@@ -12,7 +12,7 @@ import { marcarPagoEnvio, ampliarPlazoPago } from '@/app/panel/(app)/envios/acci
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean>;
 
 export default function PagoPrevio({ envio, pago, libre, hacer }: {
-  envio: { id: string; estado: string; referencia_gx: string }; pago: Ficha['pago']; libre: boolean; hacer: Hacer;
+  envio: { id: string; estado: string; referencia_gx: string; stripe_cobro_sin_aplicar?: string | null }; pago: Ficha['pago']; libre: boolean; hacer: Hacer;
 }) {
   const [exento, setExento] = useState(false);
   const [motivo, setMotivo] = useState('');
@@ -37,6 +37,12 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
         <div style={{ marginTop: '0.3rem' }}>No se puede ofertar, publicar en bolsa ni asignar hasta que se pague. El cliente lo ve en su panel con la proforma{' '}
           <a href={`/panel/envios/${envio.id}/proforma`} target="_blank" rel="noopener" style={{ color: 'var(--purple)', fontWeight: 700 }}>PRO-{envio.referencia_gx}</a>
           {' '}y puede pagar con tarjeta o por transferencia.</div>
+        {envio.stripe_cobro_sin_aplicar && (
+          <div style={{ marginTop: '0.4rem', color: '#b42318', fontWeight: 700 }}>
+            Hay un cobro con tarjeta que no se aplicó solo (pago {envio.stripe_cobro_sin_aplicar}): el importe no coincidía. El envío no se anula mientras tanto.{' '}
+            <button className="btn-secondary" style={{ marginLeft: '0.3rem' }} onClick={() => hacer('Guardando', () => marcarPagoEnvio(envio.id, 'tarjeta'))}>Darlo por pagado con tarjeta</button>
+          </div>
+        )}
         {pago.provisional && <div style={{ marginTop: '0.3rem' }}>Precio <strong>provisional</strong>: el plazo para pagar empieza cuando se revise el precio.</div>}
         {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{creadoTxt(pago.limite)}</strong>. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
         {!exento ? (

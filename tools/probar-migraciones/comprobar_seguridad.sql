@@ -2263,7 +2263,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), fa
 set role authenticated;
 do $$ declare e uuid; begin
   select (crear_envio(
-    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 8, 'fecha_carga_desde', current_date + 15, 'importe_cliente', 900, 'importe_transportista', 750),
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 8, 'fecha_carga_desde', (now() at time zone 'Europe/Madrid')::date, 'importe_cliente', 900, 'importe_transportista', 750),
     jsonb_build_array(
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Muelle 73', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 73', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
@@ -4897,3 +4897,83 @@ do $$ declare l text; plan text := ''; begin
   if plan not like '%idx_envios_busqueda%' then raise exception 'FALLO 138 · la búsqueda no usa el índice: %', plan; end if;
   raise notice 'OK 138b · la búsqueda de texto usa el índice de trigramas';
 end $$;
+
+-- ---- 139. Arreglos de la revisión de lógica ----------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+do $$ declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date + 3) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.tok139', (select token_publico::text from envios where id = e), false);
+  -- El plazo para pagar no acaba en fin de semana: viernes 18:00 + 24 h → lunes 18:00.
+  if pago_limite(timestamptz '2026-11-06 18:00:00+01') <> timestamptz '2026-11-09 18:00:00+01' then
+    raise exception 'FALLO 139 · el plazo para pagar acaba en fin de semana: %', pago_limite(timestamptz '2026-11-06 18:00:00+01');
+  end if;
+end $$;
+set role anon;
+do $$ declare r jsonb; a jsonb; begin
+  r := reservar_envio(current_setting('prueba.tok139')::uuid, '10.1.3.9');
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B59000059');
+  if coalesce(a ->> 'resultado', '') not in ('aceptada', 'pendiente_revision') then raise exception 'FALLO 139 · aceptar desde el tablón (sin oferta) falla: %', a; end if;
+end $$;
+reset role;
+-- Cobro con tarjeta por otro importe: aviso y el envío no se anula por falta de pago.
+update parametros set valor = 'true' where clave = 'previo_pago_activo';
+do $$ declare c uuid; e uuid; begin
+  insert into clientes (razon_social, cif) values ('Cobro 139 SL', 'B13913913') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (c, 13.30, 20, 1000, 800, current_date + 3) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  if (pago_envio_stripe(e, 'pi_139', 99900)) ->> 'resultado' <> 'importe_distinto' then raise exception 'FALLO 139 · no detecta el importe distinto'; end if;
+  if (select stripe_cobro_sin_aplicar from envios where id = e) is distinct from 'pi_139'
+     or not exists (select 1 from avisos where tipo = 'pago_no_aplicado' and envio_id = e) then
+    raise exception 'FALLO 139 · el cobro no aplicado no queda apuntado ni avisa a Dynamo';
+  end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  update envios set pago_pendiente_desde = now() - interval '5 days' where id = e;
+  perform set_config('request.jwt.claim.role', '', true);
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = e) <> 'programado' then raise exception 'FALLO 139 · se anula un envío con un cobro con tarjeta recibido'; end if;
+  perform set_config('prueba.e139p', e::text, false);
+end $$;
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+-- Solicitudes: rechazar no cuenta; aceptar solo el precio visto; deshacer vuelve a solicitud.
+do $$ declare a uuid; b uuid; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, solicitud_estado, precio_valido_hasta)
+    values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, current_date + 3, 'precio_propuesto', now() + interval '2 hours') returning id into a;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, solicitud_estado, precio_valido_hasta)
+    values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, current_date + 3, 'precio_propuesto', now() + interval '2 hours') returning id into b;
+  perform set_config('prueba.s139a', a::text, false);
+  perform set_config('prueba.s139b', b::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if responder_precio_solicitud(current_setting('prueba.s139b')::uuid, true, 400) <> 'precio_cambiado' then raise exception 'FALLO 139 · el cliente acepta un precio que no ha visto'; end if;
+  perform responder_precio_solicitud(current_setting('prueba.s139a')::uuid, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if not (select cancelacion_sin_coste from envios where id = current_setting('prueba.s139a')::uuid) then raise exception 'FALLO 139 · rechazar el precio de una solicitud cuenta como cancelación'; end if;
+  if (select confirmado_en from envios where id = current_setting('prueba.s139a')::uuid) is not null then raise exception 'FALLO 139 · cancelar una solicitud la da por confirmada'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if deshacer_cancelacion(current_setting('prueba.s139a')::uuid) <> 'borrador' then raise exception 'FALLO 139 · deshacer una solicitud rechazada la pasa a programada'; end if;
+  if (marcar_pago_envio(current_setting('prueba.e139p')::uuid, 'tarjeta')) ->> 'resultado' <> 'ok' then raise exception 'FALLO 139 · Dynamo no puede dar por pagado un cobro con tarjeta no aplicado'; end if;
+  begin
+    update envios set importe_cliente = 1400 where id = current_setting('prueba.e139p')::uuid;
+    raise exception 'FALLO 139 · se cambia el precio de un envío pagado';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 139 · lógica: tablón sin oferta, cobro con tarjeta no aplicado (avisa, no anula, se da por pagado), precio fijo tras pagar, rechazar no cuenta, precio visto, deshacer solicitud, plazo de pago en día hábil';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

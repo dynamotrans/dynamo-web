@@ -12,21 +12,23 @@ async function soloCliente() {
 }
 const limpio = (m: string) => (/42501|permission/i.test(m) ? 'No tienes permiso para hacer esto.' : m);
 
-export async function responderPrecio(envio: string, acepta: boolean): Promise<Res> {
+export async function responderPrecio(envio: string, acepta: boolean, precioVisto?: number | null): Promise<Res> {
   const s = await soloCliente();
   if (!s) return { ok: false, error: 'Solo el cliente responde a su precio.' };
-  const { data, error } = await s.supabase.rpc('responder_precio_solicitud', { p_envio: envio, p_acepta: acepta });
+  const { data, error } = await s.supabase.rpc('responder_precio_solicitud', { p_envio: envio, p_acepta: acepta, p_precio_visto: precioVisto ?? null });
   if (error) return { ok: false, error: limpio(error.message) };
+  if (data === 'precio_cambiado') return { ok: false, error: 'Dynamo acaba de cambiar el precio. Recarga la página para ver el nuevo antes de aceptar.' };
   if (data === 'caducado') return { ok: false, error: 'El precio ha caducado. Te pasamos uno nuevo en un momento.' };
   return { ok: true, aviso: acepta ? 'Envío confirmado. Ya está programado y buscamos el camión.' : 'Solicitud cancelada, sin ningún coste.' };
 }
 
 // Revisión del precio: el cliente acepta la subida o cancela sin coste.
-export async function responderSubidaPrecio(envio: string, acepta: boolean): Promise<Res> {
+export async function responderSubidaPrecio(envio: string, acepta: boolean, precioVisto?: number | null): Promise<Res> {
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu cuenta no está activa.' };
-  const { data, error } = await s.supabase.rpc('responder_subida_precio', { p_envio: envio, p_acepta: acepta });
+  const { data, error } = await s.supabase.rpc('responder_subida_precio', { p_envio: envio, p_acepta: acepta, p_precio_visto: precioVisto ?? null });
   if (error) return { ok: false, error: limpio(error.message) };
+  if ((data as { resultado: string }).resultado === 'precio_cambiado') return { ok: false, error: 'El precio ha cambiado. Recarga la página para ver el nuevo antes de aceptar.' };
   if ((data as { resultado: string }).resultado === 'no_pendiente') return { ok: false, error: 'Este envío ya no tiene una subida de precio pendiente.' };
   return { ok: true, aviso: acepta ? 'Nuevo precio aceptado. Ya buscamos el camión.' : 'Envío cancelado, sin ningún coste.' };
 }

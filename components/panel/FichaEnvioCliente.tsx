@@ -171,7 +171,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
             <span>He leído y acepto las <a href="#" className="ptar-inline-link" onClick={(ev) => { ev.preventDefault(); setVista('condiciones'); }}>condiciones generales de transporte</a>. Al aceptar, el envío queda <strong>programado</strong> y buscamos el camión.</span>
           </label>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" disabled={!acepto || !!trabajando} onClick={() => hacer('Confirmando el envío', () => responderPrecio(e.id, true))}><I d={ICO.check} />Aceptar precio y confirmar envío</button>
+            <button className="btn-primary" disabled={!acepto || !!trabajando} onClick={() => hacer('Confirmando el envío', () => responderPrecio(e.id, true, pc))}><I d={ICO.check} />Aceptar precio y confirmar envío</button>
             <button className="btn-ghost" disabled={!!trabajando} onClick={() => hacer('Rechazando', () => responderPrecio(e.id, false))}>Rechazar</button>
             {e.contraoferta?.permitida && !caducado && !proponer && <button className="btn-ghost" disabled={!!trabajando} onClick={() => setProponer(true)}>Proponer otro precio</button>}
           </div>

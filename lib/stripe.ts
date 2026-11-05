@@ -21,16 +21,18 @@ export async function crearPagoStripe(p: { envioId: string; referencia: string; 
   });
   if (p.email) f.set('customer_email', p.email);
   // La página de pago caduca con el plazo para pagar (Stripe admite entre 30 min y 24 h).
+  // Los topes se calculan desde el inicio de la tanda de 10 min de la clave de idempotencia:
+  // dos clics seguidos mandan exactamente lo mismo (si no, Stripe rechaza el segundo).
+  const tanda = Math.floor(Date.now() / 600000) * 600000;
   if (p.expiraEn) {
-    const ahora = Date.now();
-    const t = Math.min(Math.max(p.expiraEn.getTime(), ahora + 31 * 60000), ahora + 23.5 * 3600000);
+    const t = Math.min(Math.max(p.expiraEn.getTime(), tanda + 41 * 60000), tanda + 23.5 * 3600000);
     f.set('expires_at', String(Math.floor(t / 1000)));
   }
   const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST', body: f,
     headers: { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, 'content-type': 'application/x-www-form-urlencoded',
       // Mismo envío e importe en 10 minutos → la misma sesión (dos clics no crean dos pagos).
-      'idempotency-key': `envio-${p.envioId}-${p.centimos}-${Math.floor(Date.now() / 600000)}` },
+      'idempotency-key': `envio-${p.envioId}-${p.centimos}-${tanda / 600000}` },
   });
   const j = await r.json();
   if (!r.ok || !j.url) throw new Error(j?.error?.message ?? 'Stripe no ha devuelto la página de pago.');

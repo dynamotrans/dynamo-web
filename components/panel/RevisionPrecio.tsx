@@ -68,7 +68,7 @@ export function RevisionCliente({ envio, r, hacer }: { envio: { id: string; esta
         <div style={{ marginTop: '0.3rem' }}>Lo hemos revisado antes de la carga porque lo programaste con mucha antelación. Puedes aceptarlo o cancelar el envío <strong>sin ningún coste</strong>.</div>
         {!cancelar ? (
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={() => hacer('Guardando', () => responderSubidaPrecio(envio.id, true))}>Aceptar el nuevo precio</button>
+            <button className="btn-primary" onClick={() => hacer('Guardando', () => responderSubidaPrecio(envio.id, true, r.precio_revision_nuevo))}>Aceptar el nuevo precio</button>
             <button className="btn-ghost" onClick={() => setCancelar(true)}>Cancelar sin coste</button>
           </div>
         ) : (
