@@ -4,6 +4,9 @@
 -- un NOTICE "OK" si pasa. Regla 14-bis: un punto solo está cumplido cuando hay
 -- una prueba que lo demuestra.
 -- =====================================================================================
+-- «Hoy» en las pruebas es el día de Madrid, como en la base de datos (que nunca usa
+-- current_date: Supabase va en UTC). Así las pruebas no fallan de 00:00 a 01:00/02:00.
+set timezone to 'Europe/Madrid';
 set client_min_messages = notice;
 
 -- Las pruebas 1-99 son anteriores al previo pago de envíos y no van de eso: se corren
@@ -5414,3 +5417,39 @@ do $$ declare d jsonb := duracion_sesion(); begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 151. Horas de corte al pedir y al pagar, por separado ---------------------------------
+reset role;
+do $$ begin
+  update parametros set valor = '9' where clave = 'primer_dia_corte_pago_fija_hora';
+  update parametros set valor = '16' where clave = 'primer_dia_corte_pago_ventana_hora';
+  if primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'          -- al pedir: corte 12:00
+     or primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid', true) <> date '2026-11-13'  -- al pagar: corte 9:00
+     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid') <> date '2026-11-13'       -- al pedir: corte 14:00
+     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid', true) <> date '2026-11-12' -- al pagar: corte 16:00
+  then
+    raise exception 'FALLO 151 · las horas de corte al pagar no van por separado';
+  end if;
+  update parametros set valor = '12' where clave = 'primer_dia_corte_pago_fija_hora';
+  update parametros set valor = '14' where clave = 'primer_dia_corte_pago_ventana_hora';
+  if pg_get_functiondef('public.fn_envios_a0_fecha_al_pagar'::regproc) !~ 'primera_fecha_carga\(v_fija, now\(\), true\)' then
+    raise exception 'FALLO 151 · al pagar no se usan las horas de corte «al pagar»';
+  end if;
+  raise notice 'OK 151 · horas de corte: al pedir (12:00 fija, 14:00 ventana) y al pagar (12:00, 14:00), cada una en su parámetro';
+end $$;
+
+-- ---- 152. «Hoy» es el día de Madrid: nada de la base de datos usa current_date (UTC) ----
+reset role;
+set timezone to 'UTC';
+do $$ declare f text; begin
+  select string_agg(p.proname, ', ') into f from pg_proc p
+   where p.pronamespace = 'public'::regnamespace
+     and regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~* '\mcurrent_date\M';
+  if f is not null then raise exception 'FALLO 152 · funciones con current_date (día UTC): %', f; end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and column_default ~* 'current_date')
+     or exists (select 1 from pg_views where schemaname = 'public' and definition ~* 'current_date') then
+    raise exception 'FALLO 152 · valores por defecto o vistas con current_date';
+  end if;
+  raise notice 'OK 152 · «hoy» es el día de Madrid en toda la base de datos (sin current_date)';
+end $$;
+set timezone to 'Europe/Madrid';
