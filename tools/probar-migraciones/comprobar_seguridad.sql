@@ -4382,3 +4382,38 @@ do $$ declare m text; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 126. Más avisos: penalización (cada uno su importe), almacenamiento, cuenta activada ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare p uuid; u uuid; e uuid := current_setting('prueba.f108')::uuid; begin
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e and transportista_id is null;
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista)
+    values (e, (select id from tipos_penalizacion where clave = 'paralizacion'), 'Espera en descarga', 111, 66) returning id into p;
+  update penalizaciones set estado = 'confirmada' where id = p;
+  if not exists (select 1 from avisos where envio_id = e and para = 'cliente' and tipo = 'penalizacion' and texto like '%111,00%' and texto not like '%66,00%') then
+    raise exception 'FALLO 126 · el cliente no recibe su penalización (o ve el importe del transportista)';
+  end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'transportista' and tipo = 'penalizacion' and texto like '%66,00%' and texto not like '%111,00%') then
+    raise exception 'FALLO 126 · el transportista no recibe su penalización (o ve el importe del cliente)';
+  end if;
+  -- Alta aprobada → aviso a su empresa.
+  insert into auth.users (email) values ('nuevo126@cliente.prueba') returning id into u;
+  update usuarios set rol = 'cliente', cliente_id = current_setting('prueba.cliente')::uuid where id = u;
+  update usuarios set estado = 'activa' where id = u;
+  if not exists (select 1 from avisos where para = 'cliente' and cliente_id = current_setting('prueba.cliente')::uuid and tipo = 'cuenta_activada') then
+    raise exception 'FALLO 126 · aprobar un alta no avisa a su empresa';
+  end if;
+end $$;
+-- Dynamo cancela un almacenamiento → aviso al cliente.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+update almacenamientos set estado = 'cancelado' where id = current_setting('prueba.alm')::uuid;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if not exists (select 1 from avisos where para = 'cliente' and tipo = 'almacen_cancelado') then
+    raise exception 'FALLO 126 · cancelar un almacenamiento no avisa al cliente';
+  end if;
+  raise notice 'OK 126 · más avisos: penalización con el importe de cada uno, cuenta activada y almacenamiento cancelado';
+end $$;
