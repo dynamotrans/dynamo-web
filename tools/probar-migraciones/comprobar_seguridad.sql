@@ -4446,3 +4446,62 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 128. Plazo para pagar: pasado el plazo, el envío pendiente de pago se anula solo ------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'true' where clave = 'previo_pago_activo';
+do $$ declare c uuid; e uuid; e2 uuid; r jsonb; begin
+  insert into clientes (razon_social, cif) values ('Paga Tarde SL', 'B12812812') returning id into c;
+  for i in 1..2 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+      values (c, 13.30, 20, 1000, 800) returning id into e2;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e2;
+    if i = 1 then e := e2; end if;
+  end loop;
+  if (select pago_previo from envios where id = e) <> 'pendiente' or (select pago_pendiente_desde from envios where id = e) is null then
+    raise exception 'FALLO 128 · el envío pendiente de pago no apunta desde cuándo';
+  end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  update envios set pago_pendiente_desde = now() - interval '30 hours' where id = e;
+  perform set_config('request.jwt.claim.role', '', true);
+  -- Pasado el plazo (24 h + margen) se anula; el que está en plazo, no.
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 128 · pasado el plazo, el envío no se anula'; end if;
+  if (select estado from envios where id = e2) <> 'programado' then raise exception 'FALLO 128 · se anula un envío que aún está en plazo'; end if;
+  if not exists (select 1 from avisos where para = 'cliente' and cliente_id = c and tipo = 'pago_caducado' and envio_id = e) then
+    raise exception 'FALLO 128 · el cliente no recibe el aviso de envío anulado por falta de pago';
+  end if;
+  -- Un pago con tarjeta que llega tarde no lo reactiva: aviso urgente a Dynamo para devolverlo.
+  r := pago_envio_stripe(e, 'pi_tarde', 121000);
+  if r->>'resultado' <> 'envio_anulado' or (select estado from envios where id = e) <> 'cancelado' then
+    raise exception 'FALLO 128 · un pago fuera de plazo reactiva el envío: %', r;
+  end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'pago_anulado' and envio_id = e) then
+    raise exception 'FALLO 128 · no se avisa a Dynamo de devolver el pago';
+  end if;
+  perform set_config('prueba.e128', e2::text, false);
+end $$;
+-- Ampliar el plazo: solo Dynamo.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform ampliar_plazo_pago(current_setting('prueba.e128')::uuid); raise exception 'FALLO 128 · un cliente amplía el plazo para pagar';
+  exception when insufficient_privilege then null; end;
+  begin perform caducar_pagos_pendientes(); raise exception 'FALLO 128 · un cliente lanza la anulación por falta de pago';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (select pago_limite from pagos_envio(current_setting('prueba.e128')::uuid)) is null then raise exception 'FALLO 128 · no se ve la hora límite para pagar'; end if;
+  if (ampliar_plazo_pago(current_setting('prueba.e128')::uuid))->>'resultado' <> 'ok' then raise exception 'FALLO 128 · Dynamo no amplía el plazo'; end if;
+  raise notice 'OK 128 · plazo para pagar: pasado el plazo el envío se anula solo, avisa al cliente, un pago tardío no lo reactiva y solo Dynamo amplía el plazo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+

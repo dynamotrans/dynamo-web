@@ -20,11 +20,13 @@ export async function POST(req: Request) {
   if (!user) return Response.redirect(`${origen}/panel/entrar`, 303);
   const { data: p } = await sb.rpc('pagos_envio', { p_envio: id }).maybeSingle<any>();
   if (!p || p.pago_previo !== 'pendiente' || p.estado !== 'programado') return volver('');
+  // Pasado el plazo para pagar ya no se abre el pago (el envío se anula en unos minutos).
+  if (p.pago_limite && Date.parse(p.pago_limite) <= Date.now()) return volver('&pago=caducado');
   const centimos = Math.round(Number(p.total) * 100);
   if (!(centimos > 0)) return volver('&pago=error');
   try {
     const url = await crearPagoStripe({ envioId: id, referencia: p.referencia_gx, centimos, email: user.email ?? null,
-      vuelta: `${origen}/panel/envios?ver=${id}`, descripcion: p.referencia_cliente ? `Tu referencia: ${p.referencia_cliente}` : '' });
+      vuelta: `${origen}/panel/envios?ver=${id}`, expiraEn: p.pago_limite ? new Date(p.pago_limite) : null, descripcion: p.referencia_cliente ? `Tu referencia: ${p.referencia_cliente}` : '' });
     return Response.redirect(url, 303);
   } catch (e) {
     console.error('[Stripe] crear pago', e);

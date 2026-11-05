@@ -23,7 +23,7 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'La rebaja más grande que puede proponer. Más que esto ni siquiera te llega.',
     ejemplo: (v) => `Con ${v} %: sobre 1.000 €, lo mínimo que puede proponer es ${(1000 * (1 - Number(v) / 100)).toLocaleString('es-ES')} €.` },
   solicitud_validez_horas: { titulo: 'Horas que vale el precio que das',
-    explica: 'Cuando un cliente pide un envío y le das precio, ese precio vale estas horas. Después caduca: si pulsa «Aceptar», vuelve a pendiente de precio y le das uno nuevo.',
+    explica: 'Cuando un cliente pide un envío y le das precio a mano, ese precio vale estas horas. Después caduca: si pulsa «Aceptar», vuelve a pendiente de precio y le das uno nuevo. (No es el plazo para pagar: ese es «Horas para pagar», en Previo pago.)',
     ejemplo: (v) => `Con ${v} h: le das precio el lunes a las 10:00 → puede aceptarlo hasta ${Number(v) === 24 ? 'el martes a las 10:00' : `${v} horas después`}.` },
   contacto_transportista_horas_tras_entrega: { titulo: 'Contacto del conductor: horas tras la entrega',
     explica: 'El cliente deja de ver nombre y teléfono del conductor estas horas después del final del día de entrega previsto (para que no os salten). Si lo marcas entregado antes, deja de verlo al momento.',
@@ -35,6 +35,9 @@ export const AYUDA: Record<string, Ayuda> = {
   previo_pago_primeros_envios: { titulo: 'Primeros envíos con previo pago',
     explica: 'Cuántos de los primeros envíos de cada cliente se pagan por adelantado, aunque tenga crédito (salvo que en su ficha marques «empresa conocida»). 0 = ninguno.',
     ejemplo: (v) => `Con ${v}: ${Number(v) === 1 ? 'solo el primer envío' : `los ${v} primeros envíos`} de un cliente nuevo se paga${Number(v) === 1 ? '' : 'n'} antes; los siguientes, a su plazo.` },
+  previo_pago_horas: { titulo: 'Horas para pagar',
+    explica: 'Un envío pendiente de pago se puede pagar (tarjeta o transferencia con la proforma) durante estas horas desde que queda pendiente. Pasado el plazo se anula solo: el cliente recibe un aviso y tiene que volver a pedirlo, con el precio de ese momento y otra vez pendiente de pago. No cuenta como cancelación suya. Desde la ficha del envío puedes «Ampliar el plazo».',
+    ejemplo: (v) => `Con ${v} h: confirma el lunes a las 10:00 → puede pagar hasta ${Number(v) === 24 ? 'el martes a las 10:00' : `${v} horas después`}; si no, el envío se anula.` },
   // ---- CESCE - Riesgos -------------------------------------------------------------
   riesgo_dias_asumido: { titulo: 'Días que cuentan como riesgo asumido',
     explica: 'En CESCE - Riesgos, los envíos de estos últimos días (con IVA, sin los pagados por adelantado) cuentan como dinero pendiente de cobro. Conviene que se parezca al plazo al que te pagan.',

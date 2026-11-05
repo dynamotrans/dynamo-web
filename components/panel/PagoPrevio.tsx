@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { euros } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import type { Ficha } from '@/lib/fichaEnvio';
-import { marcarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
+import { marcarPagoEnvio, ampliarPlazoPago } from '@/app/panel/(app)/envios/acciones';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean>;
 
@@ -37,10 +37,12 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
         <div style={{ marginTop: '0.3rem' }}>No se puede ofertar, publicar en bolsa ni asignar hasta que se pague. El cliente lo ve en su panel con la proforma{' '}
           <a href={`/panel/envios/${envio.id}/proforma`} target="_blank" rel="noopener" style={{ color: 'var(--purple)', fontWeight: 700 }}>PRO-{envio.referencia_gx}</a>
           {' '}y puede pagar con tarjeta o por transferencia.</div>
+        {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{creadoTxt(pago.limite)}</strong>. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
         {!exento ? (
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Guardando', () => marcarPagoEnvio(envio.id, 'transferencia'))}>Ha llegado la transferencia</button>
             <button className="btn-ghost" onClick={() => setExento(true)}>Pasar sin pago previo (cobro a vencimiento)</button>
+            {pago.limite && <button className="btn-ghost" onClick={() => hacer('Guardando', () => ampliarPlazoPago(envio.id))}>Ampliar el plazo</button>}
           </div>
         ) : (
           <div style={{ marginTop: '0.6rem' }}>

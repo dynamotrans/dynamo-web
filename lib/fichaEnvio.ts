@@ -33,7 +33,7 @@ export type Ficha = {
   enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Previo pago (null = no lo necesita y nunca lo necesitó).
   pago: { estado: string; motivo: string | null; metodo: string | null; pagado_en: string | null; exento_motivo: string | null;
-          base: number; iva: number; total: number; conCredito: boolean } | null;
+          base: number; iva: number; total: number; conCredito: boolean; limite: string | null } | null;
 };
 
 export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ ficha: Ficha | null; error: string | null }> {
@@ -98,7 +98,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
       firmasCmr: ((fir.data ?? []) as any[]).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
       corte,
       pago: pg ? { estado: pg.pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
-        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0 } : null,
+        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null } : null,
     },
   };
 }

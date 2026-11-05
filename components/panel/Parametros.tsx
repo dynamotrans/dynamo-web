@@ -30,7 +30,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Descuento de bienvenida', claves: ['factor_bienvenida_pct', 'factor_bienvenida_envios'] },
     { titulo: 'Precio que das y su validez', claves: ['solicitud_validez_horas'] },
     { titulo: 'Contraoferta del cliente', claves: ['contraoferta_cliente_activa', 'contraoferta_cliente_auto_pct', 'contraoferta_cliente_max_pct'] },
-    { titulo: 'Previo pago de envíos', claves: ['previo_pago_activo', 'previo_pago_primeros_envios'] },
+    { titulo: 'Previo pago de envíos', claves: ['previo_pago_activo', 'previo_pago_primeros_envios', 'previo_pago_horas'] },
     { titulo: 'Contacto del conductor', claves: ['contacto_transportista_horas_tras_entrega'] },
   ] },
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [

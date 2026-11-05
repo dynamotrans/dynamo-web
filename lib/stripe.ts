@@ -7,7 +7,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 export const stripeListo = () => !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /** Crea una sesión de Stripe Checkout y devuelve su URL. */
-export async function crearPagoStripe(p: { envioId: string; referencia: string; centimos: number; email: string | null; vuelta: string; descripcion: string }): Promise<string> {
+export async function crearPagoStripe(p: { envioId: string; referencia: string; centimos: number; email: string | null; vuelta: string; descripcion: string; expiraEn?: Date | null }): Promise<string> {
   const f = new URLSearchParams({
     mode: 'payment', locale: 'es', client_reference_id: p.envioId,
     success_url: `${p.vuelta}&pago=ok`, cancel_url: `${p.vuelta}&pago=cancelado`,
@@ -20,6 +20,12 @@ export async function crearPagoStripe(p: { envioId: string; referencia: string; 
     'payment_intent_data[description]': `Dynamo · envío ${p.referencia}`,
   });
   if (p.email) f.set('customer_email', p.email);
+  // La página de pago caduca con el plazo para pagar (Stripe admite entre 30 min y 24 h).
+  if (p.expiraEn) {
+    const ahora = Date.now();
+    const t = Math.min(Math.max(p.expiraEn.getTime(), ahora + 31 * 60000), ahora + 23.5 * 3600000);
+    f.set('expires_at', String(Math.floor(t / 1000)));
+  }
   const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST', body: f,
     headers: { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, 'content-type': 'application/x-www-form-urlencoded',

@@ -228,6 +228,17 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
   return { ok: true, aviso: `Copia guardada en los documentos del envío: ${nombre}.` };
 }
 
+// Plazo para pagar: Dynamo lo vuelve a contar desde ahora (p. ej. el cliente dice que ya
+// ha hecho la transferencia y aún no ha llegado).
+export async function ampliarPlazoPago(envio: string): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo amplía el plazo para pagar.' };
+  const { data, error } = await s.supabase.rpc('ampliar_plazo_pago', { p_envio: envio });
+  if (error) return { ok: false, error: traducir(error.message) };
+  if ((data as { resultado: string }).resultado !== 'ok') return { ok: false, error: 'Ese envío ya no está pendiente de pago.' };
+  return { ok: true, aviso: 'Plazo ampliado: el cliente tiene de nuevo el plazo completo para pagar desde ahora.' };
+}
+
 // Previo pago: Dynamo marca la transferencia, pasa el envío sin pago previo (cobro a
 // vencimiento, con motivo), lo exige a un envío concreto o deshace lo marcado.
 export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | 'exento' | 'requerir' | 'deshacer', motivo?: string): Promise<Res> {
