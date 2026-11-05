@@ -78,6 +78,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
         { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
         { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },
         { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
+        { slug: 'proteccion-datos', titulo: 'Protección de datos', icono: 'escudo' },
         { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
         { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
         { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },

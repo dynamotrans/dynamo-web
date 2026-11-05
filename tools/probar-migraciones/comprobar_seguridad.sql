@@ -4417,3 +4417,25 @@ do $$ begin
   end if;
   raise notice 'OK 126 · más avisos: penalización con el importe de cada uno, cuenta activada y almacenamiento cancelado';
 end $$;
+
+-- ---- 127. Buscar a una persona para una petición RGPD: solo el Admin Master ------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from buscar_persona('compras@cliente.prueba') where tipo = 'usuario') then
+    raise exception 'FALLO 127 · el Admin Master no encuentra a un usuario por su email';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform buscar_persona('cliente.prueba');
+    raise exception 'FALLO 127 · un cliente busca personas en toda la plataforma';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 127 · buscar a una persona (RGPD): solo el Admin Master';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

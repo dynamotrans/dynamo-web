@@ -81,7 +81,7 @@ info@dynamotrans.com, respuesta en **un mes**.
 
 **Técnicos (equipo técnico):**
 - [x] Limpieza automática cada noche (`purgar_datos_personales`, pg_cron 4:53): IP de reservas e intentos a los 90 días; tiempo conectado y consultas de precio a los 12 meses (hecho 2026-11-05).
-- [x] «**Anonimizar**» (solo Admin Master): botón en la ficha del usuario; contacto y conductor con `anonimizar_contacto(id)` / `anonimizar_conductor(id)` desde Supabase. La auditoría apunta qué se borró, sin los valores (hecho 2026-11-05).
+- [x] «**Anonimizar**» (solo Admin Master): en la ficha del usuario y, para cualquier persona (usuario, contacto o conductor), en **Gestión interna → Protección de datos**, buscando por email, teléfono, DNI o nombre. La auditoría apunta qué se borró, sin los valores (hecho 2026-11-05).
 - [x] «**Exportar datos**» (JSON): cada usuario desde Mi cuenta → Editar mis datos; Dynamo desde la ficha del usuario (hecho 2026-11-05).
 - [x] Teléfono de los conductores sin viajes en 2 años: lo borra la limpieza nocturna (hecho 2026-11-05).
 - [x] Cláusula informativa en la página de firma del CMR (hecho 2026-11-05).
