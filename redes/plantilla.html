@@ -55,8 +55,32 @@ svg{position:absolute}
 .v4 .list li:nth-child(2)::before{background:var(--green2)}.v4 .list li:nth-child(3)::before{background:var(--orange)}
 .v4 .foot .site{color:var(--purple)}.v4 .foot .tag{color:#555}
 .v4 .map{right:50px;bottom:120px;width:330px;opacity:.9}
+
+/* ---------- STORY 1080x1920 (zona segura: 250px arriba y abajo) ---------- */
+.story{height:1920px}
+.story .logo{top:260px}.story .claim{top:268px}
+.story .foot{bottom:230px}.story .bar{height:18px}
+.story .cta{position:absolute;left:84px;right:84px;bottom:330px;z-index:4;display:flex;align-items:center;gap:18px;font-weight:700;font-size:30px}
+.story .cta span{background:var(--green2);color:#fff;padding:16px 28px;border-radius:40px}
+.story.v4 .cta span{background:var(--purple)}
+.story.v1 .title{top:560px;font-size:92px}
+.story.v1 .body{top:900px;font-size:38px;right:84px}
+.story.v1 .truck{right:40px;bottom:480px;width:520px}
+.story.v1 .road{bottom:468px}
+.story.v2 .kicker{top:540px}
+.story.v2 .title{top:600px;font-size:260px}
+.story.v2 .body{top:920px;width:900px;font-size:40px}
+.story.v2 .pallets{right:60px;bottom:460px;width:380px}
+.story.v3 .photo{background-position:42% 85%}
+.story.v3 .veil{background:linear-gradient(180deg,rgba(51,0,204,.97) 0%,rgba(51,0,204,.92) 50%,rgba(10,2,48,.2) 70%,rgba(10,2,48,.6) 100%)}
+.story.v3 .title{top:520px;font-size:88px}
+.story.v3 .body{top:880px;font-size:36px;right:84px}
+.story.v4 .title{top:540px;font-size:86px}
+.story.v4 .list{top:900px;right:84px;font-size:38px}
+.story.v4 .map{right:40px;bottom:450px;width:300px}
+.story .cta{display:none}.story .cta.on{display:flex}
 </style></head>
-<body class="{{VARIANT}}">
+<body class="{{VARIANT}} {{FORMAT}}">
 <div class="bg"></div>
 <div class="grid"></div>
 <div class="photo {{PHOTO}}"></div><div class="veil"></div>
@@ -102,6 +126,7 @@ svg{position:absolute}
   <g transform="translate(150,135)"><rect x="-26" y="-14" width="52" height="28" rx="6" fill="#3300cc"/><rect x="-40" y="-6" width="16" height="20" rx="3" fill="#3300cc"/><circle cx="-26" cy="18" r="6" fill="#0a0230"/><circle cx="12" cy="18" r="6" fill="#0a0230"/></g>
 </svg>
 
+<div class="cta {{CTAON}}"><span>{{CTA}}</span></div>
 <div class="foot"><div class="site">dynamotrans.com</div><div class="tag">Grupajes · Carga completa · España y Europa</div></div>
 <div class="bar"><i></i><i></i><i></i></div>
 </body></html>
