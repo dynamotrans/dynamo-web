@@ -152,7 +152,7 @@ FOOT = """<footer class="lp-foot"><div class="lp-wrap">
     <span><a href="/#aviso-legal">Aviso legal</a> · <a href="/#privacidad">Privacidad</a> · <a href="/#cookies">Cookies</a></span>
   </div>
 </div></footer>"""
-FOOT = FOOT.replace("__SECCIONES__", "".join(f'<li><a href="/{s}">{t}</a></li>' for s, t in MENU))
+FOOT = FOOT.replace("__SECCIONES__", "".join(f'<li><a href="/{s}">{t}</a></li>' for s, t in MENU) + '<li><a href="/blog/">Blog</a></li>')
 
 COOKIE = """<div class="lp-cookie" id="lpCookie" role="dialog" aria-label="Aviso de cookies">
   <div class="lp-cookie-in">
