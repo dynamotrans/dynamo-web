@@ -1,0 +1,48 @@
+# Red de seguridad en cada subida (revisión de calidad, 2026-11-05): si algo falla, se ve en
+# rojo en GitHub antes de darlo por bueno.
+#   1. Base de datos: aplica todas las migraciones en un PostgreSQL de usar y tirar que imita a
+#      Supabase y pasa las pruebas de seguridad y de reglas (tools/probar-migraciones).
+#   2. Web: comprobación de tipos y compilación completa, igual que en Vercel.
+name: CI
+
+on:
+  push:
+    branches: [pruebas]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  base-de-datos:
+    name: Base de datos (migraciones + pruebas)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 16
+        run: |
+          if ! ls /usr/lib/postgresql/*/bin/postgres >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y postgresql-16 postgresql-contrib-16
+          fi
+          sudo systemctl stop postgresql || true
+      - name: Migraciones y pruebas
+        run: sudo bash tools/probar-migraciones/probar.sh
+
+  web:
+    name: Web (tipos y compilación)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Compilación
+        run: npm run build
