@@ -144,7 +144,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       fichaCli = data ?? null;
     }
     if (fichaCli) {
-      const { data: hit } = await supabase.from('envio_hitos').select('id, hito, cuando').eq('envio_id', fichaCli.id).order('cuando', { ascending: false }).limit(100);
+      const { data: hit } = await supabase.rpc('mis_hitos', { p_envio: fichaCli.id }).limit(100);
       const { data: val } = await supabase.rpc('mi_valoracion_envio', { p_envio: fichaCli.id }).maybeSingle();
       const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: fichaCli.id }).maybeSingle();
       const { data: cf } = await supabase.rpc('mi_contraoferta', { p_envio: fichaCli.id }).maybeSingle();

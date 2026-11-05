@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { RefrescoProvider } from '@/lib/useRefrescar';
 import { supabasePublico } from '@/lib/supabase/publico';
+import { supabaseServicio } from '@/lib/supabase/servicio';
 import SelectorIdioma from '@/components/SelectorIdioma';
 import FirmarCmr from './FirmarCmr';
 import '../cmr.css';
@@ -22,10 +23,13 @@ export default async function PaginaCmr({ params }: { params: Promise<{ token: s
       const { data, error } = await sb.rpc('cmr_publico', { p_token: token });
       if (!error && data) cmr = data;
       if (cmr) { const { data: rs } = await sb.rpc('reservas_cmr_publico', { p_token: token }); cmr = { ...cmr, reservas: rs ?? [] }; }
-      // Las imágenes de las firmas ya hechas: enlaces firmados de 10 minutos.
-      const rutas: string[] = (cmr.firmas ?? []).map((f: any) => f.ruta);
-      if (rutas.length) {
-        const { data: urls } = await sb.storage.from('documentos').createSignedUrls(rutas, 600);
+      // Las imágenes de las firmas ya hechas: enlaces firmados de 10 minutos. El almacén ya no
+      // se deja leer sin sesión (las rutas llevan las llaves de los CMR): se firman con la
+      // clave de servicio, solo las rutas que la base de datos ha devuelto para ESTA llave.
+      const sv = supabaseServicio();
+      const rutas: string[] = (cmr.firmas ?? []).map((f: any) => f.ruta).filter((r: unknown) => typeof r === 'string' && r.startsWith(`cmr/${token}/`));
+      if (sv && rutas.length) {
+        const { data: urls } = await sv.storage.from('documentos').createSignedUrls(rutas, 600);
         (urls ?? []).forEach((u: any) => { if (u.signedUrl && u.path) trazos[u.path] = u.signedUrl; });
       }
     }

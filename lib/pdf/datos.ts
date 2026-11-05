@@ -46,10 +46,10 @@ export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la
 // base de datos). El documento va ENMASCARADO: el CMR lo reciben varias empresas.
 export async function cargarFirmasCmr(sb: SupabaseClient, envioId: string): Promise<FirmaDoc[]> {
-  const { data } = await sb.from('firmas_cmr').select('rol, parada_id, nombre, documento, firmado_en, firma_storage_ruta').eq('envio_id', envioId).order('firmado_en');
+  const { data } = await sb.rpc('firmas_envio', { p_envio: envioId });
   return Promise.all(((data ?? []) as any[]).map(async (f) => {
     const { data: blob } = await sb.storage.from('documentos').download(f.firma_storage_ruta);
-    return { rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: `•••${String(f.documento).slice(-4)}`, firmado_en: f.firmado_en,
+    return { rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: `•••${String(f.documento).replace(/^•+/, '').slice(-4)}`, firmado_en: f.firmado_en,
       png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
   }));
 }

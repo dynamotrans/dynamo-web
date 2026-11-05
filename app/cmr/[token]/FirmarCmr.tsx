@@ -8,8 +8,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import { firmar, type DatosFirma } from './acciones';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 
-type Bloque = { clave: string; titulo: string; casilla: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string;
-  docGuardado?: string | null; docPais?: string | null };   // conductor: DNI que ya tenemos (solo últimas cifras)
+type Bloque = { clave: string; titulo: string; casilla: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; };
 const fechaHora = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace(',', ' ·');
 const fechaCorta = (iso: string | null) => (iso ? new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`)) : '—');
 
@@ -33,7 +32,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   const lugar = (p: any) => [p?.nombre_empresa, [p?.codigo_postal, p?.poblacion].filter(Boolean).join(' '), p?.provincia !== p?.poblacion ? p?.provincia : null].filter(Boolean).join(' · ');
   const bloques: Bloque[] = [
     ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello del remitente/cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '' })),
-    { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello del porteador', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '', docGuardado: cmr.conductor_documento ?? null, docPais: cmr.conductor_documento_pais ?? null },
+    { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello del porteador', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '' },
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía (destinatario)', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '' })),
   ];
   const firmas = new Map<string, any>((cmr.firmas ?? []).map((f: any) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
@@ -85,7 +84,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const ctx = useRef<CanvasRenderingContext2D | null>(null);
   const trazando = useRef(false);
   const [dibujado, setDibujado] = useState(false);
-  const [pais, setPais] = useState(b.docPais && b.docPais !== 'XX' ? b.docPais : 'ES');
+  const [pais, setPais] = useState('ES');
   const [doc, setDoc] = useState('');
   const [nombre, setNombre] = useState(b.pre);
   const [email, setEmail] = useState('');
@@ -105,13 +104,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   useEffect(() => { requestAnimationFrame(preparar); }, []);
   const pos = (e: React.PointerEvent) => { const r = canvas.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const v = doc.trim().length >= 3 ? validaDoc(pais, doc) : null;
-  // El conductor del envío con su DNI ya guardado: puede dejarlo vacío (sale relleno).
-  const norm = (x: string) => x.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const usaGuardado = !!b.docGuardado && !doc.trim() && norm(nombre) === norm(b.pre);
 
   async function aceptar() {
     setAviso(null);
-    if ((!doc.trim() && !usaGuardado) || !nombre.trim()) { setAviso(b.docGuardado && norm(nombre) !== norm(b.pre) ? 'Firma otra persona: escribe su documento.' : 'Indica el documento y el nombre y apellidos de quien firma.'); return; }
+    if (!doc.trim() || !nombre.trim()) { setAviso('Indica el documento y el nombre y apellidos de quien firma.'); return; }
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     setGuardando(true);
@@ -130,9 +126,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <select id="sigDocPais" aria-label="País del documento" value={pais} onChange={(e) => setPais(e.target.value)}>
             {DOC_PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </select>
-          <input type="text" id="sigDni" autoComplete="off" autoCapitalize="characters" placeholder={b.docGuardado ?? '12345678Z'} value={doc} onChange={(e) => setDoc(e.target.value)} className={v && !v.ok ? 'err' : undefined} />
+          <input type="text" id="sigDni" autoComplete="off" autoCapitalize="characters" placeholder="12345678Z" value={doc} onChange={(e) => setDoc(e.target.value)} className={v && !v.ok ? 'err' : undefined} />
         </div>
-        {usaGuardado && <div className="sig-msg okv">✓ Ya tenemos tu documento ({b.docGuardado}). Si es correcto, no hace falta escribirlo.</div>}
         {v && <div className={`sig-msg ${!v.ok ? 'err' : v.soft ? 'warn' : 'okv'}`}>{!v.ok ? `⚠ ${v.msg}` : v.soft ? `⚠ ${v.soft}` : '✓ Documento válido'}</div>}
         <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos *</label>
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />

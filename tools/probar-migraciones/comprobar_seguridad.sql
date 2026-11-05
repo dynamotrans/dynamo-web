@@ -323,9 +323,11 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; begin
   if n <> 0 then raise exception 'FALLO 15 · FUGA: el transportista puede LEER % PIN', n; end if;
   select count(*) into n from envio_ofertas;
   if n <> 0 then raise exception 'FALLO 15 · el transportista ve las ofertas (y su banda %%)'; end if;
-  select count(*) into n from envio_hitos where envio_id = e and hito in ('ofertado','enlace_abierto','reservado');
+  -- Los hitos, por mis_hitos() (sin datos internos); la tabla no la lee directamente.
+  if exists (select 1 from envio_hitos where envio_id = e) then raise exception 'FALLO 15 · el transportista lee la tabla de hitos (con sus datos internos)'; end if;
+  select count(*) into n from mis_hitos(e) where hito in ('ofertado','enlace_abierto','reservado');
   if n <> 0 then raise exception 'FALLO 15 · el transportista ve hitos internos (%)', n; end if;
-  select count(*) into n from envio_hitos where envio_id = e and hito = 'transportista_asignado';
+  select count(*) into n from mis_hitos(e) where hito = 'transportista_asignado';
   if n = 0 then raise exception 'FALLO 15 · el transportista no ve que tiene la carga asignada'; end if;
   raise notice 'OK 15 · el transportista ve sus paradas e hitos utiles, pero no el PIN ni las ofertas';
 end $$;
@@ -365,8 +367,9 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; begin
-  select count(*) into n from envio_hitos where envio_id = e;
+  select count(*) into n from mis_hitos(e);
   if n = 0 then raise exception 'FALLO 17 · el cliente no ve los hitos de su envio'; end if;
+  if exists (select 1 from envio_hitos where envio_id = e) then raise exception 'FALLO 17 · el cliente lee la tabla de hitos (con importes)'; end if;
   select count(*) into n from envio_hitos where envio_id = e
     and hito in ('ofertado','enlace_abierto','reservado','reserva_caducada','contraoferta_propuesta');
   if n <> 0 then raise exception 'FALLO 17 · el cliente ve a quien se oferto su carga (%)', n; end if;
@@ -895,7 +898,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ declare n int; begin
   insert into documentos (tipo, incidencia_id, storage_ruta, nombre_archivo)
-    values ('foto_incidencia', current_setting('prueba.incidencia')::uuid, 'inc/foto1.jpg', 'foto1.jpg');
+    values ('foto_incidencia', current_setting('prueba.incidencia')::uuid, 'u/' || current_setting('prueba.u_cli') || '/f1/foto1.jpg', 'foto1.jpg');
   select count(*) into n from documentos where tipo in ('albaran','foto_incidencia');
   if n <> 2 then raise exception 'FALLO 36 · el cliente no ve su albaran y su foto (%)', n; end if;
   select count(*) into n from documentos where tipo in ('seguro_cmr','orden_transporte','otro');
@@ -933,7 +936,8 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ begin
-  if (select count(*) from firmas_cmr) <> 1 then raise exception 'FALLO 37 · el cliente no ve la firma de su CMR'; end if;
+  if (select count(*) from firmas_envio(current_setting('prueba.envio')::uuid)) <> 1 then raise exception 'FALLO 37 · el cliente no ve la firma de su CMR'; end if;
+  if exists (select 1 from firmas_cmr) then raise exception 'FALLO 37 · el cliente lee la tabla de firmas (IP, navegador, email)'; end if;
   begin
     insert into firmas_cmr (envio_id, rol, nombre, documento, firma_storage_ruta)
       values (current_setting('prueba.envio')::uuid, 'destinatario', 'Falso', 'X', 'f.png');
@@ -2287,7 +2291,7 @@ do $$ declare e uuid := current_setting('prueba.e73')::uuid; v record; tok uuid;
   select * into v from mis_viajes() m where m.id = e;
   if v.estado <> 'en_ruta' or v.fecha_carga_real is null then raise exception 'FALLO 73 · marcar en ruta no deja la fecha de carga: %', v; end if;
   -- Su albarán, sí; en el viaje de otro, no.
-  insert into documentos (envio_id, tipo, storage_bucket, storage_ruta, nombre_archivo) values (e, 'albaran', 'documentos', 'u/x/y/albaran.pdf', 'albaran.pdf');
+  insert into documentos (envio_id, tipo, storage_bucket, storage_ruta, nombre_archivo) values (e, 'albaran', 'documentos', 'u/' || current_setting('prueba.u_transp') || '/y/albaran.pdf', 'albaran.pdf');
   begin
     insert into documentos (envio_id, tipo, storage_bucket, storage_ruta, nombre_archivo)
     values (current_setting('prueba.e72')::uuid, 'albaran', 'documentos', 'u/x/z/a.pdf', 'a.pdf');
@@ -4773,11 +4777,12 @@ do $$ declare res uuid := current_setting('prueba.res133')::uuid; e uuid := curr
 end $$;
 reset role;
 
--- ---- 135. CMR: la casilla del conductor sale con su nombre y su DNI ---------------------
+-- ---- 135. CMR: el DNI del conductor no se enseña ni se rellena solo; la validez la decide la BD ----
 reset role;
-do $$ declare e uuid := current_setting('prueba.env133')::uuid; t uuid; tok uuid; c uuid; begin
+do $$ declare e uuid := current_setting('prueba.env133')::uuid; t uuid; tok uuid; begin
   select transportista_id into t from envios where id = e;
   update conductores set documento = '13513513B', documento_pais = 'ES' where transportista_id = t and nombre = 'Ana Conocida';
+  update conductores set documento = null where transportista_id = t and nombre = 'Nuevo Sin Telefono';
   update envios set conductor_nombre = 'Ana Conocida', conductor_telefono = '+34600888888' where id = e;
   update cmr_enlaces set revocado = true where envio_id = e;
   insert into cmr_enlaces (envio_id) values (e) returning token into tok;
@@ -4787,20 +4792,26 @@ end $$;
 set role anon;
 do $$ declare tok uuid := current_setting('prueba.tok135')::uuid; v jsonb; r jsonb; begin
   v := cmr_publico(tok);
-  if v ->> 'conductor' <> 'Ana Conocida' or v ->> 'conductor_documento' <> '••••513B' then raise exception 'FALLO 135 · la casilla del conductor no sale rellena: %', v ->> 'conductor_documento'; end if;
-  if v::text like '%13513513B%' then raise exception 'FALLO 135 · el CMR enseña el DNI entero'; end if;
-  -- Otra persona con el documento vacío: no vale.
-  r := firmar_cmr_publico(tok, null, 'transportista', 'Otra Persona', '', 'ES', false, null, 'cmr/' || tok || '/a.png', null, 'prueba', null);
-  if r ->> 'resultado' <> 'faltan_datos' then raise exception 'FALLO 135 · otra persona firma con el DNI del conductor: %', r; end if;
-  r := firmar_cmr_publico(tok, null, 'transportista', 'Ana Conocida', '', 'ES', false, null, 'cmr/' || tok || '/b.png', null, 'prueba', null);
-  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 135 · el conductor no firma con su DNI guardado: %', r; end if;
+  if v::text like '%513B%' or v ? 'conductor_documento' then raise exception 'FALLO 135 · el CMR enseña el DNI del conductor'; end if;
+  -- Sin escribir el documento no se firma, aunque el nombre sea el del conductor.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Ana Conocida', '', 'ES', true, null, 'cmr/' || tok || '/a.png', null, 'prueba', null);
+  if r ->> 'resultado' <> 'faltan_datos' then raise exception 'FALLO 135 · se firma la casilla del conductor sin escribir su DNI: %', r; end if;
+  -- La validez del documento la decide la base de datos, no quien llama.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Ana Conocida', '12345678A', 'ES', true, null, 'cmr/' || tok || '/b.png', null, 'prueba', null);
+  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 135 · no firma: %', r; end if;
+  -- Los anónimos no listan el almacén (las rutas llevan las llaves de los CMR).
+  if exists (select 1 from storage.objects where name like 'cmr/%') then raise exception 'FALLO 135 · un anónimo lista las rutas de los CMR (y sus llaves)'; end if;
 end $$;
 reset role;
 do $$ begin
-  if (select documento from firmas_cmr where envio_id = current_setting('prueba.env133')::uuid and rol = 'transportista') <> '13513513B' then
-    raise exception 'FALLO 135 · la firma no lleva el DNI del conductor';
+  if (select documento_validado from firmas_cmr where envio_id = current_setting('prueba.env133')::uuid and rol = 'transportista') then
+    raise exception 'FALLO 135 · un DNI con la letra mal queda como validado porque lo dice quien llama';
   end if;
-  raise notice 'OK 135 · CMR: la casilla del conductor sale con su nombre y su DNI (solo las últimas cifras a la vista) y firma sin reescribirlo';
+  if not documento_es_valido('13513513R') or documento_es_valido('13513513B') or not documento_es_valido('X1234567L') then raise exception 'FALLO 135 · la comprobación del DNI/NIE falla'; end if;
+  if (select documento from conductores c join envios e on e.transportista_id = c.transportista_id where e.id = current_setting('prueba.env133')::uuid and c.nombre = 'Ana Conocida') <> '13513513B' then
+    raise exception 'FALLO 135 · una firma pública cambia el DNI de la ficha del conductor';
+  end if;
+  raise notice 'OK 135 · CMR: el DNI del conductor ni se enseña ni se rellena, la BD decide si es válido, la firma no toca su ficha y los anónimos no listan el almacén';
 end $$;
 
 -- ---- 136. Arreglos pequeños del repaso del diccionario -------------------------------------
@@ -4977,3 +4988,72 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 140. Arreglos de seguridad de las revisiones -----------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare emp uuid; ca uuid; cb uuid; ua uuid; ub uuid; e2 uuid; begin
+  insert into lugares (nombre_empresa, es_almacen_dynamo, codigo_postal) values ('Almacén Dynamo 140', true, '41001');
+  insert into auth.users (email, invited_at) values ('empleado140@dynamo.prueba', now()) returning id into emp;
+  update usuarios set rol = 'empleado', estado = 'activa' where id = emp;
+  perform set_config('prueba.u_emp140', emp::text, false);
+  -- Cliente del envío con firmas del CMR (prueba 135) y otro cliente que no tiene nada que ver.
+  select cliente_id into ca from envios where id = current_setting('prueba.env133')::uuid;
+  insert into clientes (razon_social, cif) values ('Ajeno 140 SL', 'B14014014') returning id into cb;
+  insert into auth.users (email) values ('cli140a@prueba.prueba') returning id into ua;
+  insert into auth.users (email) values ('cli140b@prueba.prueba') returning id into ub;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = ca where id = ua;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = cb where id = ub;
+  perform set_config('prueba.u_cli140a', ua::text, false);
+  perform set_config('prueba.u_cli140b', ub::text, false);
+  select id into e2 from envios where cliente_id <> ca limit 1;
+  perform set_config('prueba.e140otro', e2::text, false);
+end $$;
+-- Anónimos: no leen los almacenes de Dynamo.
+set role anon;
+do $$ begin
+  if exists (select 1 from lugares where nombre_empresa = 'Almacén Dynamo 140') then raise exception 'FALLO 140 · un anónimo lee los almacenes de Dynamo'; end if;
+end $$;
+reset role;
+-- Un empleado no toca la cuenta del Admin Master.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_emp140'), false);
+set role authenticated;
+do $$ begin
+  begin
+    update usuarios set rol = 'empleado' where id = current_setting('prueba.u_admin')::uuid;
+    if found then raise exception 'FALLO 140 · un empleado le quita el rol al Admin Master'; end if;
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- El cliente del envío ve el trazo de su firma; otro cliente, ni las rutas. La línea de pronto
+-- pago no se le enseña. Una incidencia suya no se cuelga de otro envío.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli140a'), false);
+set role authenticated;
+do $$ declare i uuid; p jsonb; begin
+  if not exists (select 1 from storage.objects where name like 'cmr/' || current_setting('prueba.tok135') || '/%') then
+    raise exception 'FALLO 140 · el cliente no ve el trazo de la firma de su CMR';
+  end if;
+  if (select count(*) from firmas_envio(current_setting('prueba.env133')::uuid)) = 0 then raise exception 'FALLO 140 · el cliente no ve las firmas de su CMR'; end if;
+  p := pronto_pago_estado();
+  if p ? 'linea' or p ? 'usado' or p ? 'disponible' then raise exception 'FALLO 140 · el cliente ve la línea de pronto pago de Dynamo: %', p; end if;
+  insert into incidencias (tipo_id, envio_id, titulo, detalle)
+    values ((select id from tipos_incidencia limit 1), current_setting('prueba.env133')::uuid, 'Prueba 140', 'Detalle') returning id into i;
+  update incidencias set envio_id = current_setting('prueba.e140otro')::uuid where id = i;
+  perform set_config('prueba.inc140', i::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli140b'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from storage.objects where name like 'cmr/%') then raise exception 'FALLO 140 · otro cliente lista las rutas de los CMR (y sus llaves)'; end if;
+  if (select count(*) from firmas_envio(current_setting('prueba.env133')::uuid)) > 0 then raise exception 'FALLO 140 · otro cliente ve las firmas de un CMR ajeno'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if (select envio_id from incidencias where id = current_setting('prueba.inc140')::uuid) <> current_setting('prueba.env133')::uuid then
+    raise exception 'FALLO 140 · el cliente cuelga su incidencia de otro envío';
+  end if;
+  if (select rol from usuarios where id = current_setting('prueba.u_admin')::uuid) <> 'admin' then raise exception 'FALLO 140 · el Admin Master perdió el rol'; end if;
+  raise notice 'OK 140 · seguridad: almacenes de Dynamo sin sesión, Admin Master intocable para empleados, trazos del CMR solo para su envío, pronto pago reducido, incidencia no se reasigna';
+end $$;

@@ -21,7 +21,8 @@ create table auth.users (
   raw_user_meta_data jsonb not null default '{}'::jsonb,
   created_at         timestamptz not null default now(),
   last_sign_in_at    timestamptz,          -- como en Supabase: último inicio de sesión
-  email_confirmed_at timestamptz
+  email_confirmed_at timestamptz,
+  invited_at         timestamptz           -- como en Supabase: si llegó por invitación
 );
 
 -- Supabase saca el usuario del token (JWT). Aquí se simula con un ajuste de sesión:
