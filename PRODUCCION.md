@@ -22,23 +22,31 @@
 > demo de `portal.html` · vistas por rol (RLS filtra filas, NO columnas) · copias con
 > restauración probada · RGPD · CSP**. Detalle en la regla 14-bis de `CLAUDE.md`.
 
-| # | Punto | Hoy (mockup) | En la plataforma real |
+### Estado (repaso del 2026-11-05, plataforma Next.js + Supabase en la rama `pruebas`)
+
+Leyenda: ✅ hecho y comprobado · 🟡 hecho en parte · ❌ falta · 👤 lo tiene que hacer el usuario.
+
+| # | Punto | Estado | Qué falta |
 |---|---|---|---|
-| 01 | Front sin secretos | ✅ no aplica (sin build) | ⚠️ reglas nuevas con Next.js |
-| 02 | RLS en la base de datos | ✅ políticas por rol probadas (74 comprobaciones) | 🟡 repetir las pruebas en el proyecto real + `FORCE RLS` |
-| 03 | Control de versiones | ✅ cumplido | ✅ se mantiene |
-| 04 | APIs de verdad | ❌ no hay | 🔴 **crítico** — precio server-side |
-| 05 | Hosting y deploy | ✅ cumplido | ✅ se mantiene |
-| 06 | Seguridad | 🟡 CSP puesta en modo *solo avisar* en pruebas (2026-11-04); falta pasarla a bloquear | 🔴 **crítico** |
-| 07 | Rate limiting | ❌ no hay | 🔴 **crítico** — ahora sí cuesta dinero |
-| 08 | Caché | ✅ de facto (CDN) | 🟡 cuidado con cachear datos de usuario |
-| 09 | Escalabilidad | ✅ de facto (estático) | 🟡 colas y pooling |
-| 10 | Monitoreo | 🟡 solo uptime | 🔴 **crítico** |
-| 11 | **Backups con restauración probada** | ❌ | 🔴 **lo más crítico de todo** |
-| 12 | **Auditoría** | ✅ hecha (regla 12) | ✅ ya montada en la 0002 |
-| 13 | **RGPD** | ❌ | 🔴 **crítico** — hay DNIs y firmas |
-| 14 | **Control de coste** | ❌ | 🔴 **crítico** |
-| 15 | **Repaso de seguridad 2026-11-03** | 🟡 dos arreglos hechos | 🔴 email de cuentas, `SITE_URL`, CSP, 2FA… |
+| 01 | Front sin secretos | ✅ En el navegador solo van `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (públicas por diseño). Clave de servicio, Stripe y Holded, solo en el servidor. | 👤 Comprobar en Vercel que las claves secretas están marcadas *Sensitive* y sin `NEXT_PUBLIC_`. |
+| 02 | RLS en la base de datos | ✅ Todas las tablas con permisos por fila. **122 pruebas automáticas** (`tools/probar-migraciones`) antes de cada cambio. | Repetirlas contra el proyecto real el día del lanzamiento. `FORCE RLS` **no**: las funciones del sistema tienen que saltarse la RLS a propósito (con su propia comprobación de quién llama). |
+| 03 | Control de versiones | ✅ Git + migraciones numeradas que nunca se editan. | — |
+| 04 | APIs de verdad (precio en el servidor) | 🟡 El cliente nunca pone el precio: lo pone Dynamo o la base de datos (contraofertas validadas en la BD). | El **tarifador** (lo último, decisión del usuario). |
+| 05 | Hosting y deploy | ✅ Vercel, preview por rama. | — |
+| 06 | Seguridad (CSP, cabeceras) | 🟡 CSP en modo *solo avisar* en `pruebas`. | Revisar los avisos y pasarla a bloquear antes de abrir. |
+| 07 | Rate limiting | 🟡 Límites en la base de datos: consultas de precio (suspensión automática), intentos de CIF por carga y por reserva, alta online (3 por carga, 30 al día), contraofertas del cliente (3 en 24 h), PIN (3 fallos), cancelaciones. Login: los de Supabase Auth. | 👤 Revisar *Rate Limits* de Supabase Auth; valorar Vercel Firewall por IP. |
+| 08 | Caché | ✅ Las pantallas con datos de usuario son dinámicas (`force-dynamic`), no se cachean. | — |
+| 09 | Escalabilidad | 🟡 Plan gratuito de Supabase y Vercel Hobby. | 👤 Pasar a planes de pago antes de clientes reales (copias, límites, soporte). |
+| 10 | Monitoreo | 🟡 Uptime de la web pública; errores en los registros de Vercel. | Alertas de errores de la plataforma (Vercel o Sentry). |
+| 11 | **Copias con restauración probada** | ❌ | 👤 Supabase de pago (copias diarias) y **restaurar una vez** en un proyecto aparte. |
+| 12 | **Auditoría** | ✅ Cada alta, cambio y baja; historial «quién y cuándo» en cada ficha. | — |
+| 13 | **RGPD** | 🟡 Borrador completo en `RGPD.md`; cláusula en la firma del CMR; notas internas solo para Dynamo. | 👤 Revisarlo con el asesor; política de privacidad; DPA de proveedores. Técnico: anonimizar, exportar datos, borrar IPs a los 90 días. |
+| 14 | **Control de coste** | ❌ | 👤 Límite de gasto y alertas en Vercel, Supabase y Google Cloud. |
+| 15 | **Repaso de seguridad 2026-11-03** | 🟡 Ver la tabla de abajo. | `SITE_URL`, Redirect URLs, 2FA, Stripe, aviso al email antiguo (Postmark). |
+| 16 | **Revisión de seguridad 2026-11-04** | ✅ Dos revisores independientes sobre 30 migraciones: sin escaladas ni fugas entre empresas; los huecos de reglas de negocio, cerrados (migraciones `revision_seguridad`, `seguridad_puntos_bajos`, `notas_internas`). | Repetir una revisión así antes del lanzamiento sobre todo lo nuevo. |
+
+**Además, imprescindible el día del lanzamiento:** que `portal.html` (login demo) no llegue a
+producción; mantenimiento probado; pg_cron activo (suspensiones, ofertas, limpieza de avisos).
 
 ---
 
