@@ -4678,3 +4678,24 @@ do $$ declare c uuid; c2 uuid; e uuid; t uuid := current_setting('prueba.transp'
   if (select estado_asignacion from envios where id = e) <> 'sin_asignar' then raise exception 'FALLO 131 · quitar el transportista no lo deja sin asignar'; end if;
   raise notice 'OK 131 · IVA por país del cliente (21 España, 0 fuera, o el puesto a mano) en cada envío y en el cobro; asignar a mano marca asignado';
 end $$;
+
+-- ---- 132. La llave del enlace de la carga caduca al terminar el viaje ---------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r record; begin
+  select x.id, x.envio_id into r from envio_reservas x join envios e on e.id = x.envio_id and e.transportista_id = x.transportista_id
+   where x.estado = 'aceptada' and e.estado not in ('entregado', 'cancelado') limit 1;
+  if r.id is null then raise exception 'FALLO 132 · no hay ninguna carga aceptada para probar'; end if;
+  if carga_aceptada_publica(r.id) ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 132 · antes de terminar, la llave no vale'; end if;
+  perform set_config('prueba.res132', r.id::text, false);
+  update envios set estado = 'cancelado' where id = r.envio_id;
+end $$;
+set role anon;
+do $$ declare c jsonb; begin
+  c := carga_aceptada_publica(current_setting('prueba.res132')::uuid);
+  if c ->> 'resultado' <> 'cerrada' or c ? 'conductor_telefono' then raise exception 'FALLO 132 · con el viaje terminado la llave sigue enseñando la carga: %', c; end if;
+  begin perform datos_orden_publica(current_setting('prueba.res132')::uuid); raise exception 'FALLO 132 · con el viaje terminado se descarga la orden';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 132 · la llave del enlace de la carga deja de valer con el viaje terminado (sin datos, sin orden, sin CMR)';
+end $$;
+reset role;

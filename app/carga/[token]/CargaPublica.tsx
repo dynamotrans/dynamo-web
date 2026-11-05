@@ -132,6 +132,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
     </button>
   );
   if (r === 'aceptada') return <Aceptada token={token} c={reserva} />;
+  if (r === 'cerrada') return <Parar titulo={reserva?.estado === 'cancelado' ? 'Esta carga se ha cancelado' : 'Este viaje ya ha terminado'}><p className="sub">Por seguridad, este enlace ya no muestra los datos de la carga. Si necesitas algo (albarán, factura…), contáctanos.</p><Dudas /></Parar>;
   if (r === 'reasignada') return <Parar titulo="Esta carga ya no está a tu nombre"><p className="sub">Dynamo la ha reasignado. Si crees que es un error, contáctanos.</p><Dudas /></Parar>;
   if (r === 'pendiente_revision' && altaOnline) {
     return (
