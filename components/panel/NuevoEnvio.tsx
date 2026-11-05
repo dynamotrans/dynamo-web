@@ -13,13 +13,13 @@ import Cargando from '@/components/Cargando';
 import { paisDe } from '@/lib/paises';
 import { NEGOCIACION } from '@/lib/envios';
 import SelectorPais from '@/components/SelectorPais';
-import { TIPOS_LUGAR } from './TipoSitio';
+import { TIPOS_SITIO } from './TipoSitio';
 import EditorHorario from './EditorHorario';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, validarHorario, tramosDe, enTemporada, mmddTxt, type GrupoHorario } from '@/lib/horarios';
 import CampoTelefono from '@/components/CampoTelefono';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
-export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null };
+export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null; iva?: number | null };   // iva: % del cliente (su ficha)
 export type SitioOpcion = {
   id: string; cliente_id: string | null; nombre_empresa: string; tipo: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null;
@@ -428,11 +428,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     </>
   );
 
+  // IVA de la ficha del cliente (21 % en España, 0 % fuera); el que se guarda lo pone la base de datos.
+  const ivaPct = Number(cliente?.iva ?? 21);
   const cajaPrecio = (
     <div className="ptar-confirm-price">
       <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{importe > 0 ? eur(importe) : '—'}</span></div>
-      <div className="alm-price-row alm-price-sub"><span className="k">IVA (21%)</span><span className="v">{importe > 0 ? eur(importe * 0.21) : '—'}</span></div>
-      <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{importe > 0 ? eur(importe * 1.21) : '—'}</span></div>
+      <div className="alm-price-row alm-price-sub"><span className="k">IVA ({String(ivaPct).replace('.', ',')}%)</span><span className="v">{importe > 0 ? eur(importe * ivaPct / 100) : '—'}</span></div>
+      <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{importe > 0 ? eur(importe * (1 + ivaPct / 100)) : '—'}</span></div>
     </div>
   );
 
@@ -872,7 +874,7 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
           </div>
           <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Tipo de sitio</label>
           <select className="ptar-select" value={form.tipo_sitio} onChange={(e) => setForm({ ...form, tipo_sitio: e.target.value })}>
-            {TIPOS_LUGAR.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+            {TIPOS_SITIO.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </select>
           <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Horario</label>
           {form.horario ? (

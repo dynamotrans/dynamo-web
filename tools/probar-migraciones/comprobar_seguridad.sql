@@ -1624,14 +1624,16 @@ do $$ declare e uuid; r jsonb; v text; begin
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Origen 58', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 58', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
   )).id into e;
-  update envios set estado = 'hacia_la_carga' where id = e;
+  -- Sin transportista no puede ir hacia la carga (regla de la fase 1): se le asigna uno. Con la
+  -- carga a 20 días, cancelar sigue sin coste.
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado = 'hacia_la_carga' where id = e;
   r := cancelar_envio(e, 'El cliente ya no tiene la mercancía');
   if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 58 · no se ha cancelado'; end if;
   if not exists (select 1 from envio_hitos where envio_id = e and hito = 'incidencia'
                  and datos ->> 'motivo_cancelacion' = 'El cliente ya no tiene la mercancía') then
     raise exception 'FALLO 58 · el motivo no ha quedado en el historial';
   end if;
-  if (r ->> 'penalizacion')::boolean then raise exception 'FALLO 58 · penalizacion sin camion asignado'; end if;
+  if (r ->> 'penalizacion')::boolean then raise exception 'FALLO 58 · penalización al cancelar con 20 días de antelación'; end if;
   v := deshacer_cancelacion(e);
   if v <> 'hacia_la_carga' or (select estado from envios where id = e) <> 'hacia_la_carga' then
     raise exception 'FALLO 58 · no ha vuelto al estado de antes: %', v;
@@ -2772,13 +2774,13 @@ do $$ declare v uuid; c uuid; begin
   begin
     perform mi_vehiculo_guardar(current_setting('prueba.veh_otro88')::uuid, 'x', 'tractora', null, null, null, false, false);
     raise exception 'FALLO 88 · el transportista cambia un camión de otro';
-  exception when raise_exception then
+  exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
   begin
     perform mi_flota_baja('vehiculo', current_setting('prueba.veh_otro88')::uuid);
     raise exception 'FALLO 88 · el transportista da de baja un camión de otro';
-  exception when raise_exception then
+  exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
   -- Una matrícula que ya existe (aunque sea de otro): no.
@@ -2797,7 +2799,7 @@ do $$ begin
   begin
     perform mi_transporte_guardar('X', null, null, null);
     raise exception 'FALLO 88 · un cliente cambia datos de un transportista';
-  exception when raise_exception then
+  exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
 end $$;
@@ -2904,7 +2906,7 @@ do $$ begin
   begin
     perform registrar_cambio_email(current_setting('prueba.u_cli')::uuid, 'x@x.es', 'compras@cliente.prueba');
     raise exception 'FALLO 91 · un cliente apunta cambios de email';
-  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  exception when raise_exception or insufficient_privilege then if sqlerrm like 'FALLO%' then raise; end if;
   end;
 end $$;
 reset role;
@@ -2998,11 +3000,11 @@ do $$ declare e uuid := current_setting('prueba.e67')::uuid; r record; begin
   begin
     perform valorar_mi_envio(gen_random_uuid(), 3::smallint, null);
     raise exception 'FALLO 93 · valora un envío que no es suyo';
-  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  exception when raise_exception or insufficient_privilege then if sqlerrm like 'FALLO%' then raise; end if; end;
   begin
     perform valorar_mi_envio((select id from envios where cliente_id = current_setting('prueba.cliente')::uuid and estado <> 'entregado' limit 1), 3::smallint, null);
     raise exception 'FALLO 93 · valora un envío sin entregar';
-  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  exception when raise_exception or insufficient_privilege then if sqlerrm like 'FALLO%' then raise; end if; end;
 end $$;
 reset role;
 -- Dynamo no cambia la nota del cliente.
@@ -3021,7 +3023,7 @@ do $$ begin
   begin
     perform valorar_mi_envio(current_setting('prueba.e67')::uuid, 5::smallint, null);
     raise exception 'FALLO 93 · un transportista se pone nota';
-  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  exception when raise_exception or insufficient_privilege then if sqlerrm like 'FALLO%' then raise; end if; end;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -5113,6 +5115,73 @@ do $$ begin
   if not exists (select 1 from historial_registro('sitios', current_setting('prueba.sitio142')::uuid) where cuando = timestamptz '2026-01-02 10:00:00+01') then
     raise exception 'FALLO 142 · el historial de antes del cambio de nombre no sale en la ficha del sitio';
   end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 143. Reglas de asignación y estado en la base de datos; funciones para n8n --------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+do $$ declare t uuid; e uuid; begin
+  insert into transportistas (razon_social, cif, nima) values ('Suspendido 143 SL', 'B14314314', 'NIMA-143') returning id into t;
+  update transportistas set estado_operativo = 'suspendido' where id = t;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date + 3) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.t143', t::text, false);
+  perform set_config('prueba.e143', e::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e143')::uuid; r jsonb; begin
+  -- Escribiendo en la tabla (como haría n8n sin la función): un suspendido no recibe carga.
+  begin
+    update envios set transportista_id = current_setting('prueba.t143')::uuid where id = e;
+    raise exception 'FALLO 143 · se da carga a un transportista suspendido escribiendo en la tabla';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  r := asignar_transportista(e, current_setting('prueba.t143')::uuid);
+  if r ->> 'resultado' <> 'transportista_suspendido' or (r ->> 'ok')::boolean then raise exception 'FALLO 143 · asignar_transportista no frena al suspendido: %', r; end if;
+  -- Sin transportista no pasa de programado.
+  begin
+    update envios set estado = 'en_ruta' where id = e;
+    raise exception 'FALLO 143 · un envío sin transportista pasa a en ruta';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  if marcar_estado_envio(e, 'cargando') ->> 'resultado' <> 'sin_transportista' then raise exception 'FALLO 143 · marcar_estado_envio deja cargar sin transportista'; end if;
+  -- Asignar bien: copia el NIMA y normaliza matrícula y teléfono.
+  r := asignar_transportista(e, current_setting('prueba.transp')::uuid, 750, '1234 abc', null, 'Pepe', '+34 600 11 22 33');
+  if not (r ->> 'ok')::boolean then raise exception 'FALLO 143 · asignar_transportista falla: %', r; end if;
+  if (select (estado_asignacion::text, matricula_camion, conductor_telefono, importe_transportista) from envios where id = e)
+     is distinct from ('confirmada'::text, '1234ABC'::text, '+34600112233'::text, 750::numeric) then
+    raise exception 'FALLO 143 · la asignación no queda bien: %', (select row(estado_asignacion, matricula_camion, conductor_telefono, importe_transportista) from envios where id = e);
+  end if;
+  if (select transportista_nima from envios where id = e) is distinct from (select nima from transportistas where id = current_setting('prueba.transp')::uuid) then
+    raise exception 'FALLO 143 · no copia el NIMA del transportista';
+  end if;
+  if marcar_estado_envio(e, 'hacia_la_carga') ->> 'resultado' <> 'cambiado' then raise exception 'FALLO 143 · marcar_estado_envio no cambia la fase'; end if;
+  update envios set estado = 'programado' where id = e;
+  -- Quitarlo limpia camión, conductor y precio.
+  if quitar_transportista(e) ->> 'resultado' <> 'quitado' then raise exception 'FALLO 143 · quitar_transportista falla'; end if;
+  if (select (transportista_id, matricula_camion, conductor_nombre, importe_transportista, transportista_nima, estado_asignacion::text) from envios where id = e)
+     is distinct from (null::uuid, null::text, null::text, null::numeric, null::text, 'sin_asignar'::text) then
+    raise exception 'FALLO 143 · quitar el transportista deja datos suyos';
+  end if;
+  if not exists (select 1 from funciones_api() where funcion = 'asignar_transportista' and argumentos like '%DEFAULT%' and not sin_sesion) then
+    raise exception 'FALLO 143 · funciones_api no enseña los valores por defecto o si es pública';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform asignar_transportista(current_setting('prueba.e143')::uuid, current_setting('prueba.transp')::uuid);
+    raise exception 'FALLO 143 · un cliente asigna transportistas';
+  exception when insufficient_privilege then null; end;
+  if (select iva_porcentaje from mi_empresa()) is null then raise exception 'FALLO 143 · mi_empresa no da el IVA del cliente'; end if;
+  raise notice 'OK 143 · asignación y fase con reglas en la base de datos (suspendido, sin camión, NIMA, limpieza), funciones para n8n, IVA en mi_empresa';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

@@ -34,14 +34,14 @@ async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: Parada
     filas = (data ?? []) as { orden: number; sitio_id: string | null }[];
   }
   for (const { p, i } of conContacto) {
-    const lugar = filas[i]?.sitio_id;
-    if (!lugar) continue;
+    const sitio = filas[i]?.sitio_id;
+    if (!sitio) continue;
     const tel = (p.contacto_telefono ?? '').replace(/[^\d+]/g, '');
-    await sb.from('contactos').insert({ sitio_id: lugar, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel, es_principal: true });
+    await sb.from('contactos').insert({ sitio_id: sitio, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel, es_principal: true });
   }
   for (const { p, i } of conHorario) {
-    const lugar = filas[i]?.sitio_id;
-    if (lugar) await sb.rpc('guardar_horario', { p_sitio: lugar, p_tramos: p.horario_tramos });
+    const sitio = filas[i]?.sitio_id;
+    if (sitio) await sb.rpc('guardar_horario', { p_sitio: sitio, p_tramos: p.horario_tramos });
   }
 }
 export type EnvioNuevo = {
@@ -89,7 +89,7 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
 // Alta rápida de cliente desde el envío (la ficha completa llegará con la pantalla de
 // Clientes). La base de datos impide CIF repetidos (regla 10).
 export async function crearClienteRapido(razon_social: string, cif: string, pais_codigo_iso: string):
-  Promise<{ ok: true; cliente: { id: string; nombre: string; cif: string } } | { ok: false; error: string }> {
+  Promise<{ ok: true; cliente: { id: string; nombre: string; cif: string; iva: number | null } } | { ok: false; error: string }> {
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
     return { ok: false, error: 'Solo el equipo de Dynamo puede dar de alta clientes.' };
@@ -98,9 +98,9 @@ export async function crearClienteRapido(razon_social: string, cif: string, pais
   if (!rs || !c) return { ok: false, error: 'Escribe la razón social y el CIF/NIF.' };
   const { data, error } = await s.supabase.from('clientes')
     .insert({ razon_social: rs, cif: c, pais_codigo_iso: pais_codigo_iso || 'ES' })
-    .select('id, nombre_visible, cif').single();
+    .select('id, nombre_visible, cif, iva_porcentaje').single();
   if (error) return { ok: false, error: traducir(error.message) };
-  return { ok: true, cliente: { id: data.id, nombre: data.nombre_visible, cif: data.cif } };
+  return { ok: true, cliente: { id: data.id, nombre: data.nombre_visible, cif: data.cif, iva: data.iva_porcentaje } };
 }
 
 // Cambiar la ruta de un envío ya creado (antes de cargar). Las paradas con `id` se

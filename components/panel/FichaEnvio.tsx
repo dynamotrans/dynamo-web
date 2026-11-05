@@ -29,7 +29,7 @@ import {
 
 const ESTADOS: [string, string, string][] = [
   ['programado', 'Programado', 'prog'], ['hacia_la_carga', 'Hacia la carga', 'hacia'], ['cargando', 'Cargando', 'cargando'],
-  ['en_ruta', 'En ruta', 'enruta'], ['entregado', 'Entregado', 'entregado'], ['cancelado', 'Cancelada', 'cancelada'], ['borrador', 'Borrador', 'prog'],
+  ['en_ruta', 'En ruta', 'enruta'], ['entregado', 'Entregado', 'entregado'], ['cancelado', 'Cancelado', 'cancelada'], ['borrador', 'Borrador', 'prog'],
 ];
 const HITOS: Record<string, string> = {
   creado: 'Envío creado', confirmado: 'Envío confirmado', publicado_bolsa: 'Publicado en la bolsa de cargas',

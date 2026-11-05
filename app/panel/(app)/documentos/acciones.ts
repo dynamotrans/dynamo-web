@@ -23,7 +23,7 @@ async function sesion() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data: perfil } = await supabase.from('usuarios').select('id, rol, estado').eq('id', user.id).maybeSingle<{ id: string; rol: string; estado: string }>();
-  return perfil ? { supabase, perfil } : null;
+  return perfil && perfil.estado === 'activa' ? { supabase, perfil } : null;
 }
 const valido = (d: Dueno) => CAMPOS.includes(d.campo) && /^[0-9a-f-]{36}$/i.test(d.id);
 // Nombre de fichero seguro para la ruta (sin tildes, espacios ni barras).

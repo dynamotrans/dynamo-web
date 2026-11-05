@@ -249,7 +249,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                   <button type="button" className={`topbar-contact-btn${atencion.online ? '' : ' offline'}`} aria-haspopup="menu" aria-expanded={menu === 'soporte'}
                           aria-label="Soporte con Álvaro" onClick={() => setMenu(menu === 'soporte' ? null : 'soporte')}>
                     <span className="topbar-contact-avatar">
-                      <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes" />
+                      <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Operador de Transportes" />
                       <span className="topbar-contact-dot" aria-hidden="true" />
                     </span>
                     <span className="topbar-contact-label"><span className="t-pre">Soporte:</span> <span className="t-name">Álvaro</span></span>

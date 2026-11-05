@@ -3,7 +3,6 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esGestor } from '@/lib/sesion';
-import { supabaseServidor } from '@/lib/supabase/server';
 import { precioAlmacenamiento } from '@/lib/almacenamiento';
 
 export type AlmacenamientoDatos = {
@@ -90,11 +89,9 @@ export async function marcarPagadoAlmacenamiento(id: string, pagado: boolean): P
 // Sitios de un cliente, para la dirección del reparto urbano.
 // (Carga de fondo: sin sesión devuelve lista vacía en vez de redirigir a la entrada.)
 export async function sitiosDelCliente(clienteId: string): Promise<{ id: string; nombre: string; linea: string }[]> {
-  const sb = await supabaseServidor();
-  if (!sb || !clienteId) return [];
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return [];
-  const { data } = await leerTodo(sb.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !/^[0-9a-f-]{36}$/i.test(clienteId)) return [];
+  const { data } = await leerTodo(s.supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
     .eq('cliente_id', clienteId).eq('borrado', false).order('nombre_empresa'), 5000);
   return (data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') }));
 }

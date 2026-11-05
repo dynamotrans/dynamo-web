@@ -44,8 +44,8 @@ export const esSolicitudAbierta = (e: { estado: string; solicitud_estado?: strin
 export function estadoVisual(e: EnvioFila): { label: string; color: string } {
   switch (e.estado) {
     case 'entregado': return { label: 'Entregado', color: 'entregado' };
-    case 'cancelado': return { label: 'Cancelada', color: 'cancelada' };
-    case 'hacia_la_carga': return { label: 'Llegando recogida', color: 'hacia' };
+    case 'cancelado': return { label: 'Cancelado', color: 'cancelada' };
+    case 'hacia_la_carga': return { label: 'Hacia la carga', color: 'hacia' };
     case 'cargando': return { label: 'Cargando', color: 'cargando' };
     case 'en_ruta': return { label: 'En ruta', color: 'enruta' };
     case 'borrador':

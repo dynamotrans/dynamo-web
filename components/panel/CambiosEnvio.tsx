@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import { CONTACTO } from '@/lib/atencion';
-import { fecha, ventana } from '@/lib/formato';
+import { fecha, ventana, hoyMadrid } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { resolverCambio } from '@/app/panel/(app)/envios/acciones';
 import { pedirCambio } from '@/app/panel/(app)/envios/acciones-cliente';
@@ -56,7 +56,7 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: an
   const [hasta, setHasta] = useState(e.fecha_carga_hasta ?? e.fecha_carga_desde ?? '');
   const [detalle, setDetalle] = useState('');
   if (!cambio) return null;
-  const manana = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const manana = hoyMadrid(1);
   if (cambio.estado === 'pendiente') {
     return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Has pedido un cambio</strong>{cambio.en ? ` el ${creadoTxt(cambio.en)}` : ''}. Lo estamos revisando{cambio.con_camion ? ' con el transportista' : ''} y te contestamos aquí.</div></div>;
   }

@@ -23,7 +23,7 @@ export const sesion = cache(async () => {
     .from('usuarios').select('id, email, nombre, rol, estado, suspension_motivo, suspendida_en').eq('id', user.id).maybeSingle();
 
   // Nombre de la empresa para el pie del menú lateral.
-  let empresa = 'Dynamo Transportes';
+  let empresa = 'Dynamo Operador de Transportes';
   if (perfil?.rol === 'cliente') {
     const { data } = await supabase.rpc('mi_empresa').maybeSingle<{ nombre_comercial: string | null; razon_social: string }>();
     empresa = data?.nombre_comercial || data?.razon_social || '';

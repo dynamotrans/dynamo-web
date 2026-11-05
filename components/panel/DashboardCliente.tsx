@@ -20,7 +20,7 @@ export type MiniEnvio = {
 };
 
 const ESTADO: Record<string, [string, string]> = {
-  programado: ['Programado', 'prog'], hacia_la_carga: ['Llegando recogida', 'hacia'], cargando: ['Cargando', 'cargando'], en_ruta: ['En ruta', 'enruta'],
+  programado: ['Programado', 'prog'], hacia_la_carga: ['Hacia la carga', 'hacia'], cargando: ['Cargando', 'cargando'], en_ruta: ['En ruta', 'enruta'],
 };
 const RECOMIENDA_MSG = 'Hola,\n\nos envío contacto de Dynamo Operador de Transportes. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n+34 955 225 945\ninfo@dynamotrans.com';
 // Enlace DIRECTO de reseña de la ficha de Google (el que va en las órdenes de carga).

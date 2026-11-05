@@ -16,6 +16,24 @@ export function importe(v: number): string {
   return (v < 0 ? '-' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + dec;
 }
 
+// El día de hoy (o dentro de n días) en hora de Madrid, como AAAA-MM-DD (regla 12).
+// No usar new Date().toISOString().slice(0, 10): eso es el día en UTC, y entre las 0:00 y
+// las 2:00 de Madrid todavía dice «ayer».
+export function hoyMadrid(masDias = 0): string {
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+  if (!masDias) return hoy;
+  const d = new Date(`${hoy}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + masDias);
+  return d.toISOString().slice(0, 10);
+}
+
+// «1.050,50» → 1050.5 (quita el punto de miles y usa la coma decimal). Vacío → null;
+// texto que no es número → NaN.
+export function aNumero(t: string | null | undefined): number | null {
+  const v = String(t ?? '').trim(); if (!v) return null;
+  const n = Number(v.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : NaN;
+}
+
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 // Fechas tipo "2026-07-10" (columnas `date`): se leen como día de calendario, sin zona.
@@ -40,13 +58,6 @@ export const ESTADO_ENVIO: Record<string, string> = {
   en_ruta: 'En ruta',
   entregado: 'Entregado',
   cancelado: 'Cancelado',
-};
-
-export const ESTADO_ASIGNACION: Record<string, string> = {
-  sin_asignar: 'Sin asignar',
-  ofertada: 'Ofertada',
-  reservada: 'Reservándose',
-  confirmada: 'Transportista confirmado',
 };
 
 export const ROL: Record<string, string> = {

@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion } from '@/lib/sesion';
 
 // Lo que el CLIENTE puede hacer con un envío suyo. Todo pasa por funciones de la base de
@@ -10,7 +11,7 @@ async function soloCliente() {
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return null;
   return s;
 }
-const limpio = (m: string) => (/42501|permission/i.test(m) ? 'No tienes permiso para hacer esto.' : m);
+const limpio = (m: string) => mensajeError(m);
 
 export async function responderPrecio(envio: string, acepta: boolean, precioVisto?: number | null): Promise<Res> {
   const s = await soloCliente();

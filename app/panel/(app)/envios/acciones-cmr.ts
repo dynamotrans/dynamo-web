@@ -10,14 +10,14 @@ export type DatosCmr = { numero_bultos: number | null; embalaje: string | null; 
 
 export async function leerDatosCmr(envioId: string): Promise<DatosCmr | null> {
   const s = await sesion();
-  if (!s) return null;
+  if (!s?.perfil || s.perfil.estado !== 'activa') return null;
   const { data } = await s.supabase.rpc('datos_cmr_envio', { p_envio: envioId });
   return (data as DatosCmr) ?? null;
 }
 
 export async function guardarDatosCmr(envioId: string, bultos: string, embalaje: string, volumen: string): Promise<{ error: string | null }> {
   const s = await sesion();
-  if (!s) return { error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { error: 'Tu sesión ha caducado o tu cuenta no está activa.' };
   const b = bultos.trim() ? Number(bultos.replace(/\D/g, '')) : null;
   const v = volumen.trim() ? Number(volumen.replace(',', '.')) : null;
   if (b != null && (!Number.isInteger(b) || b < 1 || b > 99999)) return { error: 'El número de bultos tiene que ser un número entero (1 o más).' };

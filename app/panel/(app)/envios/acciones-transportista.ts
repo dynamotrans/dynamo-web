@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion } from '@/lib/sesion';
 
 // Lo que el TRANSPORTISTA hace con SUS viajes. Todo pasa por funciones de la base de datos
@@ -10,7 +11,7 @@ async function soloTransportista() {
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'transportista') return null;
   return s;
 }
-const limpio = (m: string) => (/42501|permission/i.test(m) ? 'No tienes permiso para hacer esto.' : m);
+const limpio = (m: string) => mensajeError(m);
 const TEXTO: Record<string, string> = {
   hacia_la_carga: 'Hecho: vas hacia la carga.', cargando: 'Hecho: estás cargando.',
   en_ruta: 'Hecho: cargado y en ruta.', entregado: 'Hecho: viaje entregado. Sube el albarán firmado para cobrarlo.',

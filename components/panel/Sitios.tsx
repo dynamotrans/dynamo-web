@@ -9,7 +9,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
-import { IconoTipo, TIPOS_LUGAR } from './TipoSitio';
+import { IconoTipo, TIPOS_SITIO } from './TipoSitio';
 import { guardarSitio, borrarSitio, marcarPrincipal, type SitioDatos } from '@/app/panel/(app)/sitios/acciones';
 import { creadoTxt } from '@/lib/envios';
 import { euros } from '@/lib/formato';
@@ -372,7 +372,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
           <label htmlFor="sitio-tipo">Tipo de sitio {!d.tipo && obl}</label>
           <select id="sitio-tipo" value={d.tipo} onChange={(e) => set('tipo', e.target.value)}>
             <option value="" disabled>Elige tipo de sitio…</option>
-            {TIPOS_LUGAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+            {TIPOS_SITIO.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}

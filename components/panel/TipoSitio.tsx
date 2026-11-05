@@ -1,13 +1,13 @@
 // Tipos de sitio y su icono (lista del usuario, 2026-11-03; iconos del mockup):
 // fábrica = Almacén/Nave/Campa · cono = Obra en zona amplia · edificios = Obra en zona
 // urbana · espiga = Finca. Todo lo que NO es Almacén/Nave lleva recargo: va en ROJO.
-export const TIPOS_LUGAR: [string, string][] = [
+export const TIPOS_SITIO: [string, string][] = [
   ['almacen_nave', 'Almacén / Nave / Campa'],
   ['obra_zona_amplia', 'Obra · acceso en zona amplia'],
   ['obra_zona_urbana', 'Obra · acceso en zona urbana'],
   ['finca', 'Finca / zona agrícola o rústica'],
 ];
-export const nombreTipo = (t: string | null | undefined) => TIPOS_LUGAR.find(([k]) => k === t)?.[1] ?? 'Almacén / Nave';
+export const nombreTipo = (t: string | null | undefined) => TIPOS_SITIO.find(([k]) => k === t)?.[1] ?? 'Almacén / Nave';
 
 const TRAZOS: Record<string, string[]> = {
   almacen_nave: ['M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z', 'M17 18h1', 'M12 18h1', 'M7 18h1'],

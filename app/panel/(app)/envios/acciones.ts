@@ -5,6 +5,7 @@ import { sesion, esGestor } from '@/lib/sesion';
 import { randomUUID, createHash } from 'node:crypto';
 import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
 import { vistaCruda } from '@/lib/vista';
+import { euros } from '@/lib/formato';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -30,32 +31,25 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo asigna transportistas.' };
   if (!a.transportista_id) return { ok: false, error: 'Elige el transportista.' };
-  const { data: t } = await s.supabase.from('transportistas').select('estado_operativo, nima').eq('id', a.transportista_id).single();
-  if (!t) return { ok: false, error: 'Ese transportista no existe.' };
-  if (t.estado_operativo === 'suspendido') return { ok: false, error: 'Ese transportista está suspendido: no se le puede dar carga.' };
-  if (a.importe_transportista != null && (!Number.isFinite(a.importe_transportista) || a.importe_transportista < 0)) {
-    return { ok: false, error: 'El precio del transportista no es un número válido.' };
-  }
-  const tel = a.conductor_telefono.replace(/[^\d+]/g, '');
-  const mat = (m: string) => vacio(m.toUpperCase().replace(/[\s-]/g, ''));
-  const { error } = await s.supabase.from('envios').update({
-    transportista_id: a.transportista_id, estado_asignacion: 'confirmada',
-    importe_transportista: a.importe_transportista,
-    matricula_camion: mat(a.matricula_camion), matricula_remolque: mat(a.matricula_remolque),
-    conductor_nombre: vacio(a.conductor_nombre), conductor_telefono: tel.replace('+', '').length >= 6 ? tel : null,
-    transportista_nima: t.nima ?? null,
-  }).eq('id', envio);
-  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+  if (a.importe_transportista != null && !Number.isFinite(a.importe_transportista)) return { ok: false, error: 'El precio del transportista no es un número válido.' };
+  // Las reglas (suspendido, NIMA, matrícula en mayúsculas, teléfono) las pone la base de datos.
+  const { data, error } = await s.supabase.rpc('asignar_transportista', {
+    p_envio: envio, p_transportista: a.transportista_id, p_importe_transportista: a.importe_transportista,
+    p_matricula_camion: a.matricula_camion, p_matricula_remolque: a.matricula_remolque,
+    p_conductor_nombre: a.conductor_nombre, p_conductor_telefono: a.conductor_telefono,
+  });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { ok: boolean; resultado: string });
+  if (r.ok) return { ok: true };
+  return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le puede dar carga.', transportista_no_existe: 'Ese transportista no existe.',
+    importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
 }
 
 export async function quitarTransportista(envio: string): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo asigna transportistas.' };
-  const { error } = await s.supabase.from('envios').update({
-    transportista_id: null, estado_asignacion: 'sin_asignar', importe_transportista: null,
-    matricula_camion: null, matricula_remolque: null, conductor_nombre: null, conductor_telefono: null,
-    vehiculo_camion_id: null, vehiculo_remolque_id: null, conductor_id: null, transportista_nima: null,
-  }).eq('id', envio);
+  // La base de datos limpia también camión, conductor, NIMA y precio del transportista.
+  const { error } = await s.supabase.rpc('quitar_transportista', { p_envio: envio });
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
 
@@ -63,16 +57,12 @@ export async function cambiarEstado(envio: string, estado: string, fechaCargaRea
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo cambia el estado de un envío.' };
   if (!(ESTADOS_FASE as readonly string[]).includes(estado)) return { ok: false, error: 'Ese estado no vale.' };
-  const { data: e } = await s.supabase.from('envios').select('estado, transportista_id, es_manual').eq('id', envio).single();
-  if (!e) return { ok: false, error: 'Ese envío no existe.' };
-  if (e.estado === 'cancelado') return { ok: false, error: 'El envío está cancelado: deshaz antes la cancelación.' };
-  if (estado !== 'programado' && !e.transportista_id && !e.es_manual) {
-    return { ok: false, error: 'Asigna antes el transportista: sin camión el envío no puede ir hacia la carga.' };
-  }
-  const cambios: Record<string, unknown> = { estado };
-  if (fechaCargaReal) cambios.fecha_carga_real = fechaCargaReal;
-  const { error } = await s.supabase.from('envios').update(cambios).eq('id', envio);
-  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+  const { data, error } = await s.supabase.rpc('marcar_estado_envio', { p_envio: envio, p_estado: estado, p_fecha_carga_real: fechaCargaReal || null });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { ok: boolean; resultado: string });
+  if (r.ok) return { ok: true };
+  return { ok: false, error: ({ cancelado: 'El envío está cancelado: deshaz antes la cancelación.', no_existe: 'Ese envío no existe.',
+    sin_transportista: 'Asigna antes el transportista: sin camión el envío no puede ir hacia la carga.' } as Record<string, string>)[r.resultado] ?? 'Ese estado no vale.' };
 }
 
 export async function cancelarEnvio(envio: string, motivo: string): Promise<Res> {
@@ -83,7 +73,7 @@ export async function cancelarEnvio(envio: string, motivo: string): Promise<Res>
   const { data, error } = await s.supabase.rpc('cancelar_envio', { p_envio: envio, p_motivo: motivo || null, p_en_nombre_cliente: enNombre });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = data as { penalizacion: boolean; importe: number | null };
-  return { ok: true, aviso: r.penalizacion ? `Cancelado fuera de plazo con camión asignado: se ha generado la penalización de cancelación${r.importe != null ? ` (${Number(r.importe).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € sin IVA)` : ''}, pendiente de confirmar.` : 'Envío cancelado, sin coste para el cliente.' };
+  return { ok: true, aviso: r.penalizacion ? `Cancelado fuera de plazo con camión asignado: se ha generado la penalización de cancelación${r.importe != null ? ` (${euros(Number(r.importe))} sin IVA)` : ''}, pendiente de confirmar.` : 'Envío cancelado, sin coste para el cliente.' };
 }
 
 export async function deshacerCancelacion(envio: string): Promise<Res> {
@@ -163,7 +153,7 @@ export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok:
 export async function revocarOferta(oferta: string): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo gestiona ofertas.' };
-  const { error } = await s.supabase.from('envio_ofertas').update({ estado: 'revocada' }).eq('id', oferta).eq('estado', 'activa');
+  const { error } = await s.supabase.rpc('revocar_oferta', { p_oferta: oferta });
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
 
@@ -182,6 +172,9 @@ export async function resolverContraoferta(reserva: string, aprobar: boolean): P
 export async function enlaceCmr(envio: string): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo genera el CMR digital.' };
+  const { data: est } = await s.supabase.from('envios').select('estado').eq('id', envio).maybeSingle();
+  if (!est) return { ok: false, error: 'Ese envío no existe.' };
+  if (est.estado === 'cancelado' || est.estado === 'borrador') return { ok: false, error: est.estado === 'cancelado' ? 'El envío está cancelado: no lleva CMR.' : 'Una solicitud sin confirmar no lleva CMR.' };
   const vivo = await s.supabase.from('cmr_enlaces').select('token').eq('envio_id', envio).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle();
   if (vivo.data) return { ok: true, token: vivo.data.token as string };
   // Uno caducado sin retirar ocuparía el hueco del enlace vivo: se retira antes.

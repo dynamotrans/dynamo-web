@@ -20,8 +20,8 @@ export type ProntoPago = {
 type Cifras = { enCurso: number; sinTransp: number; inc: number; pen: number; alm: number; contra: number; solicitudes: number };
 
 const ESTADO: Record<string, [string, string]> = {
-  programado: ['Programado', 'prog'], hacia_la_carga: ['Llegando recogida', 'hacia'], cargando: ['Cargando', 'cargando'],
-  en_ruta: ['En ruta', 'enruta'], entregado: ['Entregado', 'entregado'], cancelado: ['Cancelada', 'cancelada'],
+  programado: ['Programado', 'prog'], hacia_la_carga: ['Hacia la carga', 'hacia'], cargando: ['Cargando', 'cargando'],
+  en_ruta: ['En ruta', 'enruta'], entregado: ['Entregado', 'entregado'], cancelado: ['Cancelado', 'cancelada'],
 };
 
 function Cifra({ href, label, valor, aviso }: { href: string; label: string; valor: number; aviso?: boolean }) {

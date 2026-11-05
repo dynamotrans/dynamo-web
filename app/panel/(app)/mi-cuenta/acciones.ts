@@ -8,7 +8,8 @@ import { supabasePublico } from '@/lib/supabase/publico';
 
 export type MisDatos = { nombre: string; telefono: string; documento: string; cargo: string; idioma: string };
 
-// Cada usuario cambia SUS datos personales. Rol, estado, empresa y límites no se los puede
+// Cada usuario cambia SUS datos personales (también con la cuenta pendiente de activar o
+// suspendida, a propósito: para completar o corregir sus datos y su contraseña). Rol, estado, empresa y límites no se los puede
 // tocar nadie a sí mismo: lo impide la base de datos (migración permisos_por_rol).
 export async function guardarMisDatos(d: MisDatos): Promise<{ ok: true } | { ok: false; error: string }> {
   const s = await sesion();
@@ -63,7 +64,7 @@ async function soloTransportista() {
   if (s.perfil.rol !== 'transportista' || s.perfil.estado !== 'activa') return null;
   return s;
 }
-const limpiaError = (m: string) => m.replace(/^.*?ERROR:\s*/i, '');
+const limpiaError = (m: string) => mensajeError(m.replace(/^.*?ERROR:\s*/i, ''));
 
 export async function guardarMiTransporte(d: { nima: string; compania: string; poliza: string; vence: string }): Promise<Res> {
   const s = await soloTransportista();

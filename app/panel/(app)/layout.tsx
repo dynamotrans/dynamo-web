@@ -1,3 +1,4 @@
+import { hoyMadrid } from '@/lib/formato';
 import { leerTodo } from '@/lib/leerTodo';
 import Link from 'next/link';
 import { sesion, iniciales, esDynamo } from '@/lib/sesion';
@@ -24,8 +25,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
 
   // Números del menú lateral y de la campana, cobertura de crédito (cliente) y festivos
   // nacionales de las dos próximas semanas (para el «Vuelvo …» de Álvaro). Una llamada cada uno.
-  const hoy = new Date().toISOString().slice(0, 10);
-  const enDosSemanas = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
+  const hoy = hoyMadrid();
+  const enDosSemanas = hoyMadrid(15);
   const activa = perfil?.estado === 'activa';
   // «Ver como» (solo Dynamo): la vista elegida y las listas para elegir cliente o transportista.
   const [vista, cliV, traV] = await Promise.all([

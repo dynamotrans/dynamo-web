@@ -107,7 +107,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       { t: e.conductor_nombre ? `Conductor: ${e.conductor_nombre}` : '', s: 7.4, b: false },
     ], 34);
     // 18 Reservas y observaciones del porteador
-    const QUIEN: Record<string, string> = { remitente: 'Cargador', transportista: 'Porteador', destinatario: 'Destinatario' };
+    const QUIEN: Record<string, string> = { remitente: 'Remitente', transportista: 'Porteador', destinatario: 'Destinatario' };
     dato(438, 290, [
       ...(e.adr ? [{ t: 'MERCANCÍA ADR (peligrosa) — Acuerdo ADR', s: 7.6, c: ROJA }] : []),
       ...(d.reservas ?? []).slice(0, 3).map((r) => ({ t: `Reservas (${QUIEN[r.rol] ?? r.rol}): ${r.texto}`, s: 6.8, c: ROJA, max: 3 })),

@@ -12,7 +12,7 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
-import { euros, fecha, ventana } from '@/lib/formato';
+import { euros, fecha, ventana, aNumero } from '@/lib/formato';
 import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
@@ -180,8 +180,8 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
               <label htmlFor="cf-precio" style={{ fontWeight: 700 }}>Tu precio (sin IVA, €)</label>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 <input id="cf-precio" type="text" inputMode="decimal" value={miPrecio} onChange={(ev) => setMiPrecio(ev.target.value)} placeholder="Ej. 950" style={{ maxWidth: 160 }} />
-                <button className="btn-primary" disabled={!acepto || !!trabajando || !(Number(miPrecio.replace(',', '.')) > 0)}
-                  onClick={() => hacer('Enviando tu propuesta', () => contraofertarPrecio(e.id, Number(miPrecio.replace(',', '.'))))}>Enviar mi propuesta</button>
+                <button className="btn-primary" disabled={!acepto || !!trabajando || !((aNumero(miPrecio) ?? 0) > 0)}
+                  onClick={() => hacer('Enviando tu propuesta', () => contraofertarPrecio(e.id, aNumero(miPrecio) as number))}>Enviar mi propuesta</button>
                 <button className="btn-ghost" onClick={() => setProponer(false)}>Volver</button>
               </div>
               <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.4rem 0 0' }}>Marca antes la casilla de las condiciones. Si tu precio se acerca al nuestro, se acepta al momento; si no, lo revisamos y te contestamos aquí. Hasta entonces, el nuestro sigue en pie.</p>

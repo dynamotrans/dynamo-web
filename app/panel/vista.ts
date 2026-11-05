@@ -10,7 +10,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export async function cambiarVista(tipo: 'admin' | 'cliente' | 'transportista', id?: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo puede cambiar de vista.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo puede cambiar de vista.' };
   const almacen = await cookies();
   if (tipo === 'admin') { almacen.delete({ name: COOKIE_VISTA, path: '/' }); return { ok: true }; }
   if ((tipo !== 'cliente' && tipo !== 'transportista') || !UUID.test(id ?? '')) return { ok: false, error: 'Elige un cliente o un transportista.' };

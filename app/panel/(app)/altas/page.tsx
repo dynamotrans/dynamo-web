@@ -1,3 +1,4 @@
+import { hoyMadrid } from '@/lib/formato';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -15,7 +16,7 @@ export default async function PaginaAltas() {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
   // Festivos nacionales del último mes y el próximo (el contador no corre en festivo).
-  const hace = new Date(Date.now() - 31 * 86400000).toISOString().slice(0, 10), luego = new Date(Date.now() + 31 * 86400000).toISOString().slice(0, 10);
+  const hace = hoyMadrid(-31), luego = hoyMadrid(31);
   const [altas, clientes, reservas, fes] = await Promise.all([
     supabase.rpc('altas_pendientes'),
     leerTodo(supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible'), 10000),

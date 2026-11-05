@@ -10,7 +10,7 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { confirmarAlta, suspenderAlta, type NuevaEmpresa } from '@/app/panel/(app)/altas/acciones';
 import { creadoTxt } from '@/lib/envios';
-import { fecha } from '@/lib/formato';
+import { fecha, euros } from '@/lib/formato';
 import { estadoCola, duracionTxt, COLA_OBJETIVO_MIN } from '@/lib/colaAltas';
 import { resolverContraoferta } from '@/app/panel/(app)/envios/acciones';
 import { telBonito } from '@/lib/paises';
@@ -37,7 +37,7 @@ const Chip = ({ tipo = 'cliente' }: { tipo?: 'cliente' | 'transportista' }) => (
   <span className={`alta-chip alta-${tipo}`}>{tipo === 'cliente' ? 'Cliente' : 'Transportista'}</span>
 );
 const horaTxt = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
-const eur = (n: number | null) => (n == null ? '—' : `${n.toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`);
+const eur = (n: number | null) => euros(n);
 
 // Reloj de atención de una solicitud: espera real + barra de 30 minutos de oficina.
 function Reloj({ desde, fest, ahora }: { desde: string; fest: Set<string>; ahora: Date }) {
