@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import FilaEnlace from './FilaEnlace';
 import BuscadorEnvios from './BuscadorEnvios';
-import { euros, fechaHora, numero } from '@/lib/formato';
+import { euros, fechaHora, numero, tipoCargaTxt } from '@/lib/formato';
 import { esDynamo, type Rol } from '@/lib/sesion';
 import { type EnvioFila, type Parada, type Pestana, estadoVisual, asignacion, enPestana, urgencia, fechaCarga, fechaEntrega, dirParada, paradasDe, medidas, coincide } from '@/lib/envios';
 
@@ -68,7 +68,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
   return (
     <section className="section active" id="sec-cargas">
       <div className="sec-header">
-        <h2>{rol === 'transportista' ? 'Mis viajes' : 'Envíos'}</h2>
+        <h2>{rol === 'transportista' ? 'Mis envíos' : 'Envíos'}</h2>
         {rol !== 'transportista' && (
           <div className="sec-header-actions">
             <Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link>
@@ -236,7 +236,7 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         {e.paletizado === false ? 'No paletizado' : 'Paletizado'}
         {medidas(e) && <div className="meta meta-medidas">{medidas(e)}</div>}
         {e.tipo_carga && (
-          <div className="meta"><span className={`carga-tag ${completo ? 'carga-completo' : 'carga-grupaje'}`}>{completo ? 'Completo' : 'Grupaje'}</span></div>
+          <div className="meta"><span className={`carga-tag ${completo ? 'carga-completo' : 'carga-grupaje'}`}>{tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || 'Grupaje'}</span></div>
         )}
       </td>
       <td className="vehiculo">

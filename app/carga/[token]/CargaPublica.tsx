@@ -10,7 +10,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, type AltaTransportista } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
-import { euros, fecha, ventana, pesoTn, fechaHora, metros } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt } from '@/lib/formato';
 
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
@@ -90,7 +90,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
           <div className="of-chips">
             {o.metros_lineales != null && <div className="of-chip"><span className="of-chip-k">Metros</span><span className="of-chip-v">{metros(o.metros_lineales)}</span></div>}
             {o.toneladas != null && <div className="of-chip"><span className="of-chip-k">Peso</span><span className="of-chip-v">{pesoTn(o.toneladas)}</span></div>}
-            <div className="of-chip"><span className="of-chip-k">Tipo de carga</span><span className="of-chip-v">{o.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'}</span></div>
+            <div className="of-chip"><span className="of-chip-k">Tipo de carga</span><span className="of-chip-v">{tipoCargaTxt(o.tipo_carga, o.requiere_plataforma_elevadora) || 'Grupaje'}</span></div>
             {forma && <div className="of-chip"><span className="of-chip-k">Carga por</span><span className="of-chip-v">{forma}</span></div>}
             {o.requiere_plataforma_elevadora && <div className="of-chip"><span className="of-chip-k">Camión</span><span className="of-chip-v">Con plataforma elevadora</span></div>}
             {o.requiere_nima && <div className="of-chip"><span className="of-chip-k">Residuos</span><span className="of-chip-v">Requiere NIMA</span></div>}
@@ -119,7 +119,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   }, [r, router]);
 
   if (oferta?.resultado === 'error') {
-    return <Parar titulo="Estamos haciendo labores de mantenimiento" ambar icono="!"><p className="sub">En este momento no podemos comprobar la carga. Vuelve a intentarlo en un rato o contáctanos.</p><Dudas texto="Contáctanos" /><button className="btn" onClick={() => refrescar()}>Volver a intentarlo</button></Parar>;
+    return <Parar titulo="Estamos haciendo labores de mantenimiento" ambar icono="!"><p className="sub">En este momento no podemos comprobar el envío. Vuelve a intentarlo en un rato o contáctanos.</p><Dudas texto="Contáctanos" /><button className="btn" onClick={() => refrescar()}>Volver a intentarlo</button></Parar>;
   }
   if (!oferta || oferta.resultado === 'enlace_no_valido') {
     return <Parar titulo="Este enlace no es válido"><p className="sub">Revisa que lo has copiado entero, o pídenos uno nuevo.</p><Dudas /></Parar>;
@@ -128,18 +128,18 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   const botonOtras = otras.length > 0 && (
     <button type="button" className="btn-otras" onClick={() => { setVerOtras(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg>
-      {oferta?.disponible ? '¿No te encaja? Ver otras cargas disponibles de Dynamo' : `Ver otras cargas disponibles de Dynamo (${otras.length})`}
+      {oferta?.disponible ? '¿No te encaja? Ver otros envíos disponibles de Dynamo' : `Ver otros envíos disponibles de Dynamo (${otras.length})`}
     </button>
   );
   if (r === 'aceptada') return <Aceptada token={token} c={reserva} />;
-  if (r === 'cerrada') return <Parar titulo={reserva?.estado === 'cancelado' ? 'Esta carga se ha cancelado' : 'Este enlace ya ha caducado'}><p className="sub">Por seguridad, el enlace de la carga deja de mostrar los datos pasado el día de carga. El CMR sigue en su propio enlace. Si necesitas algo (orden, albarán, factura…), contáctanos.</p><Dudas /></Parar>;
-  if (r === 'reasignada') return <Parar titulo="Esta carga ya no está a tu nombre"><p className="sub">Dynamo la ha reasignado. Si crees que es un error, contáctanos.</p><Dudas /></Parar>;
+  if (r === 'cerrada') return <Parar titulo={reserva?.estado === 'cancelado' ? 'Este envío se ha cancelado' : 'Este enlace ya ha caducado'}><p className="sub">Por seguridad, el enlace del envío deja de mostrar los datos pasado el día de carga. El CMR sigue en su propio enlace. Si necesitas algo (orden, albarán, factura…), contáctanos.</p><Dudas /></Parar>;
+  if (r === 'reasignada') return <Parar titulo="Este envío ya no está a tu nombre"><p className="sub">Dynamo lo ha reasignado. Si crees que es un error, contáctanos.</p><Dudas /></Parar>;
   if (r === 'pendiente_revision' && altaOnline) {
     return (
       <div className="stop-screen show">
         <div className="spin spin-lg" />
         <h1>Estamos verificando tus datos, danos 3 minutos</h1>
-        <p className="sub">Comprobamos tu ficha en la bolsa de cargas y completamos tu alta. Mientras tanto, la carga sigue <strong>reservada para ti</strong>. <strong>Te contestamos en esta misma pantalla.</strong></p>
+        <p className="sub">Comprobamos tu ficha en la bolsa de cargas y completamos tu alta. Mientras tanto, el envío sigue <strong>reservado para ti</strong>. <strong>Te contestamos en esta misma pantalla.</strong></p>
         <p className="sub">Si quieres agilizar el alta, escríbenos o llámanos:</p>
         <div className="contact-btns">
           <a className="cbtn cbtn-mail" href={`mailto:${MAIL}`}>Email</a>
@@ -154,7 +154,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
       <div className="stop-screen show">
         <div className="spin spin-lg" />
         <h1>Estamos revisando tu precio</h1>
-        <p className="sub">Has propuesto <strong>{euros(reserva.precio_propuesto)}</strong>. La carga sigue reservada para ti mientras un agente de Dynamo lo revisa (normalmente en menos de 2 minutos). <strong>Te contestamos en esta misma pantalla.</strong></p>
+        <p className="sub">Has propuesto <strong>{euros(reserva.precio_propuesto)}</strong>. El envío sigue reservado para ti mientras un agente de Dynamo lo revisa (normalmente en menos de 2 minutos). <strong>Te contestamos en esta misma pantalla.</strong></p>
         <Dudas />
       </div>
     );
@@ -162,11 +162,11 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   if (r === 'viva') return <Reservada token={token} o={oferta} hasta={reserva.hasta} ahora={reserva.ahora} />;
 
   if (!oferta.disponible) {
-    if (oferta.motivo === 'cancelado') return <Parar titulo="Esta carga se ha cancelado"><p className="sub">El cliente la ha cancelado. Mira otras cargas con nosotros.</p>{botonOtras}<Dudas /></Parar>;
+    if (oferta.motivo === 'cancelado') return <Parar titulo="Este envío se ha cancelado"><p className="sub">El cliente lo ha cancelado. Mira otros envíos con nosotros.</p>{botonOtras}<Dudas /></Parar>;
     if (oferta.motivo === 'caducada') return <Parar titulo="Esta oferta ha caducado" ambar icono="!"><p className="sub">Si te sigue interesando, contáctanos y te decimos si sigue libre.</p>{botonOtras}<Dudas /></Parar>;
     return (
-      <Parar titulo="Esta carga ya no está disponible">
-        <p className="sub">{oferta.asignada_en ? 'Se aceptó por un transportista el:' : 'La ha cogido otro transportista.'}</p>
+      <Parar titulo="Este envío ya no está disponible">
+        <p className="sub">{oferta.asignada_en ? 'Se aceptó por un transportista el:' : 'Lo ha cogido otro transportista.'}</p>
         {oferta.asignada_en && <p className="tk-fecha-line">{fechaHora(oferta.asignada_en)}</p>}
         {botonOtras}
         <Dudas />
@@ -186,7 +186,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
 
   return (
     <div id="formScreen" className="show">
-      <h1>Carga disponible</h1>
+      <h1>Envío disponible</h1>
       <p className="sub">Oferta de <strong>Dynamo Operador Logístico, S.L.</strong>{oferta.para_transportista ? <> para <strong>{oferta.para_transportista}</strong></> : null}</p>
       {r === 'rechazada' && <div className="warn" style={{ display: 'block', marginBottom: '0.8rem' }}>Dynamo no ha aceptado el precio que propusiste. Si quieres, puedes aceptarla al precio de la oferta.</div>}
       {r === 'caducada' && <div className="warn" style={{ display: 'block', marginBottom: '0.8rem' }}>Se agotó el tiempo de tu reserva anterior. Si sigue libre, puedes volver a reservarla.</div>}
@@ -195,8 +195,8 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
         {num(oferta.banda_euros) ? <div className="base-nota" style={{ marginTop: 2 }}>Puedes proponer otro precio entre {euros(num(oferta.precio)! - num(oferta.banda_euros)!)} y {euros(num(oferta.precio)! + num(oferta.banda_euros)!)}.</div> : null}
       </div>
       {(oferta.en_tramite || tramite) && <Tramite hasta={tramite?.hasta} ahora={tramite?.ahora} onLibre={() => { setTramite(null); refrescar(); }} />}
-      <button className="btn" onClick={reservarla} disabled={trabajando}>{trabajando ? 'Reservando…' : 'Reservar y aceptar esta carga'}</button>
-      <p className="id-hint" style={{ textAlign: 'center', marginTop: '0.5rem' }}>Al pulsar, la carga queda <strong>reservada para ti {txtNum(oferta.reserva_minutos ?? 3)} minutos</strong> para que la aceptes; nadie más la puede coger mientras.</p>
+      <button className="btn" onClick={reservarla} disabled={trabajando}>{trabajando ? 'Reservando…' : 'Reservar y aceptar este envío'}</button>
+      <p className="id-hint" style={{ textAlign: 'center', marginTop: '0.5rem' }}>Al pulsar, el envío queda <strong>reservado para ti {txtNum(oferta.reserva_minutos ?? 3)} minutos</strong> para que lo aceptes; nadie más lo puede coger mientras.</p>
       {aviso && <div className="warn" style={{ display: 'block' }}>{aviso}</div>}
       {botonOtras}
       <div style={{ textAlign: 'center' }}><Dudas /></div>
@@ -207,7 +207,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
 // ---- Tablón: otras cargas de Dynamo disponibles (diseño de #bolsaScreen del mockup) ----
 export type OtraCarga = {
   token: string; referencia: string; fecha_carga_desde: string | null; fecha_carga_hasta: string | null;
-  metros_lineales: number | null; toneladas: number | null; tipo_carga: string | null; precio: number | null;
+  metros_lineales: number | null; toneladas: number | null; tipo_carga: string | null; requiere_plataforma_elevadora?: boolean | null; precio: number | null;
   origen: { codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null } | null;
   destino: { codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null } | null;
 };
@@ -223,8 +223,8 @@ function OtrasCargas({ cargas, onVolver }: { cargas: OtraCarga[]; onVolver: () =
   return (
     <div id="bolsaScreen">
       <button type="button" className="bolsa-volver" onClick={onVolver}><span aria-hidden="true">←</span> Volver a la oferta</button>
-      <h1 style={{ marginTop: '0.4rem' }}>Cargas disponibles de Dynamo</h1>
-      <p className="sub">Filtra y pulsa una carga para ver sus datos y aceptarla.</p>
+      <h1 style={{ marginTop: '0.4rem' }}>Envíos disponibles de Dynamo</h1>
+      <p className="sub">Filtra y pulsa un envío para ver sus datos y aceptarlo.</p>
       <div className="bolsa-filtros">
         <div className="bf-field"><label htmlFor="bf-origen">Origen</label><input type="text" id="bf-origen" placeholder="Provincia, CP o país" value={fo} onChange={(e) => setFo(e.target.value)} /></div>
         <div className="bf-field"><label htmlFor="bf-destino">Destino</label><input type="text" id="bf-destino" placeholder="Provincia, CP o país" value={fd} onChange={(e) => setFd(e.target.value)} /></div>
@@ -233,13 +233,13 @@ function OtrasCargas({ cargas, onVolver }: { cargas: OtraCarga[]; onVolver: () =
         <div className="bf-field"><label htmlFor="bf-fecha">Fecha</label><input type="text" id="bf-fecha" placeholder="Ej. 23/07" value={ff} onChange={(e) => setFf(e.target.value)} /></div>
         <button type="button" className="bf-clear" onClick={() => { setFo(''); setFd(''); setFtc(''); setFf(''); }}>Limpiar filtros</button>
       </div>
-      <div className="bolsa-count">{lista.length} {lista.length === 1 ? 'carga disponible' : 'cargas disponibles'}</div>
+      <div className="bolsa-count">{lista.length} {lista.length === 1 ? 'envío disponible' : 'envíos disponibles'}</div>
       <div className="bolsa-list">
-        {lista.length === 0 ? <div className="bolsa-empty">No hay cargas que coincidan con los filtros. Prueba a ampliarlos o pulsa «Limpiar filtros».</div>
+        {lista.length === 0 ? <div className="bolsa-empty">No hay envíos que coincidan con los filtros. Prueba a ampliarlos o pulsa «Limpiar filtros».</div>
           : lista.map((c) => (
             <a key={c.token} className="bolsa-item" href={`/carga/${c.token}`} style={{ textDecoration: 'none' }}>
               <div className="bolsa-ruta">{sitioTxt(c.origen)} → {sitioTxt(c.destino)}</div>
-              <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${metros(c.metros_lineales)}`, c.toneladas != null && `${pesoTn(c.toneladas)}`, c.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
+              <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${metros(c.metros_lineales)}`, c.toneladas != null && `${pesoTn(c.toneladas)}`, tipoCargaTxt(c.tipo_carga, c.requiere_plataforma_elevadora) || 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
               <div className="bolsa-fila"><span className="bolsa-precio">{euros(c.precio)} <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>· sin IVA</span></span>
                 <span className="bolsa-go">Ver y aceptar →</span></div>
             </a>
@@ -269,7 +269,7 @@ function Tramite({ hasta, ahora, onLibre }: { hasta?: string; ahora?: string; on
   useEffect(() => { if (hasta && quedan === 0) onLibre(); }, [hasta, quedan, onLibre]);
   return (
     <div className="tramite-box" style={{ marginTop: '0.8rem' }}>
-      <div className="spin" /> <strong>Ahora está otro transportista reservando esta carga.</strong>{' '}
+      <div className="spin" /> <strong>Ahora está otro transportista reservando este envío.</strong>{' '}
       {hasta ? <>Si no la acepta, queda libre en <strong>{texto}</strong>.</> : 'Vuelve a intentarlo en unos minutos.'}
     </div>
   );
@@ -294,7 +294,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
   if (quedan === 0) {
     return (
       <Parar titulo="Se ha agotado el tiempo de reserva" ambar icono="!">
-        <p className="sub">No se completó la aceptación a tiempo, así que la carga ha vuelto a quedar libre.</p>
+        <p className="sub">No se completó la aceptación a tiempo, así que el envío ha vuelto a quedar libre.</p>
         <button className="btn" onClick={() => refrescar()}>Volver a comprobar disponibilidad</button>
       </Parar>
     );
@@ -312,12 +312,12 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
     setTrabajando(false);
     if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { refrescar(); return; }
     const msg: Record<string, string> = {
-      transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo o, si es tu primera carga con nosotros, date de alta aquí abajo.${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
+      transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo o, si es tu primer envío con nosotros, date de alta aquí abajo.${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
       demasiados_intentos: 'Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al +34 955 225 945 y te la asignamos.',
       falta_cif: 'Escribe tu CIF / NIF para identificarte.',
       transportista_no_activo: 'Tu ficha de transportista no está activa ahora mismo. Contáctanos.',
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
-      reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'La carga ya la ha cogido otro transportista.',
+      reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'El envío ya lo ha cogido otro transportista.',
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido aceptar. Vuelve a intentarlo.');
     if (x.resultado === 'transportista_no_encontrado') setNoEncontrado(true);
@@ -326,10 +326,10 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
 
   return (
     <div id="formScreen" className="show">
-      <h1>Pulsa el botón de abajo para aceptar la carga</h1>
+      <h1>Pulsa el botón de abajo para aceptar el envío</h1>
       <p className="sub">Oferta de <strong>Dynamo Operador Logístico, S.L.</strong></p>
       <div className={`reserva-banner${quedan < 60000 ? ' urgent' : ''}`}>
-        <span>Carga <strong>reservada para ti</strong>: nadie más la puede coger durante <span className="rb-timer">{texto}</span></span>
+        <span>Envío <strong>reservado para ti</strong>: nadie más lo puede coger durante <span className="rb-timer">{texto}</span></span>
       </div>
       <Oferta o={o} />
       <div className="pago-contado">Precio: <span className="imp">{euros(precioFinal)}</span> <span className="base-nota">· base imponible (impuestos no incluidos)</span></div>
@@ -360,7 +360,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
           <div className="sec-title">Identifícate</div>
           <label htmlFor="f-cif">Tu CIF / NIF (el de tu ficha en Dynamo) *</label>
           <input type="text" id="f-cif" value={cif} placeholder="B12345678" autoCapitalize="characters" autoComplete="off" onChange={(e) => setCif(e.target.value)} />
-          <p className="id-hint">¿Primera carga con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta la carga.</p>
+          <p className="id-hint">¿Primer envío con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta el envío.</p>
         </div>
       )}
 
@@ -392,7 +392,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
 
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}
       {noEncontrado && !o.para_transportista && <button type="button" className="btn-sec" style={{ width: '100%', marginBottom: '0.6rem' }} onClick={() => setAlta(true)}>No estoy en Dynamo · darme de alta y aceptar</button>}
-      <button className="btn" onClick={aceptarla} disabled={trabajando}>{trabajando ? 'Aceptando…' : contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR carga'}</button>
+      <button className="btn" onClick={aceptarla} disabled={trabajando}>{trabajando ? 'Aceptando…' : contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR envío'}</button>
       <button type="button" className="btn-sec" style={{ display: 'block', margin: '0.7rem auto 0', background: 'none', border: 'none', color: 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }}
         onClick={async () => { await liberar(token); refrescar(); }}>No me interesa · dejarla libre ya</button>
       <div style={{ textAlign: 'center' }}><Dudas /></div>
@@ -450,7 +450,7 @@ function Aceptada({ token, c }: { token: string; c: any }) {
     <div className="ok-screen show">
       <h1 style={{ margin: 0 }}><span className="ok-aceptada">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-        {c.estado === 'cancelado' ? ' Carga cancelada por el cliente' : ' ¡Carga aceptada!'}</span></h1>
+        {c.estado === 'cancelado' ? ' Envío cancelado por el cliente' : ' ¡Envío aceptado!'}</span></h1>
       <p className="sub" style={{ marginTop: '0.4rem' }}>{c.transportista} · {c.aceptada_en ? fechaHora(c.aceptada_en) : ''}</p>
       <div className="pago-contado" style={{ textAlign: 'left' }}>
         Precio acordado: <span className="imp">{euros(precio)}</span> <span className="base-nota">· base imponible</span>
@@ -516,12 +516,12 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
     if (x.resultado === 'alta_pendiente') { refrescar(); return; }
     const campos: Record<string, string> = { bolsa: 'la bolsa de cargas', codigo_bolsa: 'tu código en la bolsa', pais: 'el país', cif: 'el CIF / NIF', telefono: 'el teléfono' };
     const msg: Record<string, string> = {
-      ya_existe: 'Ese CIF ya está dado de alta en Dynamo: vuelve atrás y acepta la carga con él.',
-      ya_existe_bolsa: 'Ese código de bolsa ya está dado de alta en Dynamo: vuelve atrás y acepta la carga con tu CIF.',
+      ya_existe: 'Ese CIF ya está dado de alta en Dynamo: vuelve atrás y acepta el envío con él.',
+      ya_existe_bolsa: 'Ese código de bolsa ya está dado de alta en Dynamo: vuelve atrás y acepta el envío con tu CIF.',
       datos_no_validos: x.error ?? `Revisa ${campos[x.campo ?? ''] ?? 'los datos'}.`,
-      reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'La carga ya la ha cogido otro transportista.',
-      oferta_personal: 'Esta oferta es para otra empresa.', demasiados_intentos: 'Demasiados intentos con esta carga. Llámanos al +34 955 225 945.',
-      demasiadas_altas: 'Ahora mismo no podemos tramitar más altas online para esta carga. Llámanos al +34 955 225 945 y te damos de alta.',
+      reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'El envío ya lo ha cogido otro transportista.',
+      oferta_personal: 'Esta oferta es para otra empresa.', demasiados_intentos: 'Demasiados intentos con este envío. Llámanos al +34 955 225 945.',
+      demasiadas_altas: 'Ahora mismo no podemos tramitar más altas online para este envío. Llámanos al +34 955 225 945 y te damos de alta.',
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido completar el alta. Vuelve a intentarlo o llámanos.');
@@ -530,7 +530,7 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
   return (
     <div id="formScreen" className="show">
       <h1>Date de alta en Dynamo</h1>
-      <p className="sub">Te damos de alta y la carga queda <strong>reservada para ti</strong> mientras verificamos tus datos.</p>
+      <p className="sub">Te damos de alta y el envío queda <strong>reservado para ti</strong> mientras verificamos tus datos.</p>
       <div className={`reserva-banner${urgente ? ' urgent' : ''}`}><span>Tienes <span className="rb-timer">{texto}</span> para enviar el alta.</span></div>
       <div className="pago-contado" style={{ textAlign: 'left' }}>Solo trabajamos con transportistas de <strong>bolsas de cargas del grupo Alpega</strong> (Wtransnet, Teleroute…). Por eso solo te pedimos estos datos: <strong>el resto (razón social, dirección, seguro…) lo completamos nosotros desde tu ficha en la bolsa</strong>.</div>
 
@@ -547,7 +547,7 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       <CampoTelefono id="al-tel" valor={d.telefono} onCambio={(v) => set('telefono', v)} />
 
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}
-      <button className="btn" onClick={enviar} disabled={trabajando}>{trabajando ? 'Enviando…' : 'Darme de alta y aceptar la carga'}</button>
+      <button className="btn" onClick={enviar} disabled={trabajando}>{trabajando ? 'Enviando…' : 'Darme de alta y aceptar el envío'}</button>
       <button type="button" className="btn-sec" style={{ display: 'block', margin: '0.7rem auto 0', background: 'none', border: 'none', color: 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }} onClick={onVolver}>← Volver</button>
       <div style={{ textAlign: 'center' }}><Dudas /></div>
     </div>

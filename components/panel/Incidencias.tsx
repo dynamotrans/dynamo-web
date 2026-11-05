@@ -42,7 +42,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
   tipoInicial?: string | null;   // ?tipo=siniestro: el formulario nuevo ya con ese tipo
   esCliente?: boolean;   // el CLIENTE (o el transportista) ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
-  esTransportista?: boolean;   // el viaje es obligatorio y solo ve las que abre él
+  esTransportista?: boolean;   // el envío es obligatorio y solo ve las que abre él
 }) {
   const router = useRouter();
   const refrescar = useRefrescar();
@@ -132,7 +132,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
     if (!datos.tipo_id) { setError('Elige el tipo de incidencia.'); return; }
     if (!datos.detalle.trim()) { setError('Cuenta lo ocurrido en el detalle de la incidencia.'); return; }
     if (!esCliente && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); return; }
-    if (esTransportista && !datos.envio_id) { setError('Elige el viaje de la incidencia.'); return; }
+    if (esTransportista && !datos.envio_id) { setError('Elige el envío de la incidencia.'); return; }
     setTrabajando(texto ?? (fila ? 'Guardando incidencia' : 'Creando incidencia'));
     const r = await guardarIncidencia(fila?.id ?? null, datos);
     setTrabajando(null);
@@ -167,7 +167,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         </div>
       )}
       <div className="modal-form-row">
-        <label>{esTransportista ? 'Viaje *' : <>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
+        <label>{esTransportista ? 'Envío *' : <>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
         <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto />
       </div>
       {!d.envio_id && !esCliente && (

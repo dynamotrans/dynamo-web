@@ -160,7 +160,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
         <div className="dash-servicios">
           <p className="dash-flota-eyebrow">Nuestros servicios</p>
           <h4 className="dash-flota-title">Soluciones de transporte</h4>
-          <p className="dash-flota-desc">Grupaje, carga completa, importación y exportación por España y Europa.</p>
+          <p className="dash-flota-desc">Grupaje, camión completo, importación y exportación por España y Europa.</p>
           <div className="clientes-row" data-dir="ltr" style={{ overflowX: 'auto' }}>
             <div className="clientes-row-track">
               {SERVICIOS.map((s, i) => (

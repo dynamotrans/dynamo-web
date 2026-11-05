@@ -48,21 +48,23 @@ export function validarHorario(g: GrupoHorario[]): string | null {
   }
   return null;
 }
-// El mismo resumen que escribe la base de datos ("L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00").
+// El mismo resumen que escribe la base de datos, horario_texto()
+// ("Lunes a jueves 8:00–14:00 y 15:00–17:30 · viernes 8:00–14:00").
 export function resumenHorario(g: GrupoHorario[]): string {
   const porDia = new Map<number, string>();
   g.forEach((x) => x.dias.forEach((d) => porDia.set(d,
-    [...x.tramos].sort((a, b) => a.abre.localeCompare(b.abre)).map((t) => `${t.abre.replace(/^0/, '')}-${t.cierra.replace(/^0/, '')}`).join(' y '))));
+    [...x.tramos].sort((a, b) => a.abre.localeCompare(b.abre)).map((t) => `${t.abre.replace(/^0/, '')}–${t.cierra.replace(/^0/, '')}`).join(' y '))));
   const partes: string[] = [];
   let ini = 1;
   for (let d = 2; d <= 8; d++) {
     if (d === 8 || porDia.get(d) !== porDia.get(ini)) {
       const t = porDia.get(ini);
-      if (t) partes.push(`${DIAS[ini - 1][1]}${d - 1 > ini ? '-' + DIAS[d - 2][1] : ''} ${t}`);
+      if (t) partes.push(`${DIAS[ini - 1][2].toLowerCase()}${d - 1 > ini ? (d - 2 === ini ? ' y ' : ' a ') + DIAS[d - 2][2].toLowerCase() : ''} ${t}`);
       ini = d;
     }
   }
-  return partes.join(' · ');
+  const txt = partes.join(' · ');
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 
 // Días (AAAA-MM-DD) de una lista en los que el sitio NO abre según su horario (días de la

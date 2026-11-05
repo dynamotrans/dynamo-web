@@ -95,6 +95,10 @@ export const metros = (m: number | string | null | undefined) => (m == null || m
 // «13,30 m · 20,50 Tn», sin separadores sueltos si falta uno.
 export const medidasTxt = (m: number | string | null | undefined, t: number | string | null | undefined) =>
   [metros(m), pesoTn(t)].filter(Boolean).join(' · ');
+// Tipo de carga: el camión completo se nombra por el camión (con plataforma elevadora va
+// en rígido; si no, en tráiler). Decisión del usuario, 2026-11-05.
+export const tipoCargaTxt = (tipo: string | null | undefined, plataforma?: boolean | null) =>
+  tipo === 'completa' ? (plataforma ? 'Rígido completo' : 'Tráiler completo') : tipo === 'grupaje' ? 'Grupaje' : '';
 // «21 %» (sin decimales si es entero; si no, con 2).
 export const porcentaje = (v: number | string | null | undefined) => {
   if (v == null || v === '') return '';

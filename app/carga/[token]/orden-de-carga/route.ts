@@ -18,13 +18,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const sb = supabasePublico();
   if (!sb) return texto('La plataforma no está conectada.', 503);
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
-  if (!reserva) return texto('La orden solo se abre desde el navegador con el que aceptaste la carga. Pídenosla al +34 955 225 945.', 403);
+  if (!reserva) return texto('La orden solo se abre desde el navegador con el que aceptaste el envío. Pídenosla al +34 955 225 945.', 403);
   const r = await cargarDatosDocPublica(sb, reserva);
   if (!r.datos) return texto('Esta orden de carga ya no está disponible. Llámanos al +34 955 225 945.', 403);
   const p = r.parametros;
   const bytes = await ordenDeCarga(r.datos, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
     dias: p.pronto_pago_dias ?? 5, plazo: p.plazo_pago_transportista_dias ?? 60 });
-  const ref = String(r.datos.envio.referencia_gx ?? 'viaje').replace(/[^A-Za-z0-9-]/g, '');
+  const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
   return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',
     'content-disposition': `inline; filename="Orden-de-carga-${ref}.pdf"`, 'cache-control': 'private, no-store' } });
 }

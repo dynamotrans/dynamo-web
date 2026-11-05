@@ -81,10 +81,10 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
       <div className="sec-header"><h2>Altas pendientes ({lista.length})</h2></div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.6rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
-        Solicitudes de alta esperando a Dynamo: <span className="alta-chip alta-cliente">clientes</span> que se registran en el portal y <span className="alta-chip alta-transportista">transportistas</span> que se dan de alta desde el enlace de una carga. Pulsa una fila para revisarla. La más antigua, arriba.
+        Solicitudes de alta esperando a Dynamo: <span className="alta-chip alta-cliente">clientes</span> que se registran en el portal y <span className="alta-chip alta-transportista">transportistas</span> que se dan de alta desde el enlace de un envío. Pulsa una fila para revisarla. La más antigua, arriba.
       </p>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-s)', margin: '0 0 0.9rem' }}>
-        <strong>Tiempo:</strong> lo que lleva esperando. La barra cuenta <strong>{COLA_OBJETIVO_MIN} minutos</strong> de horario de oficina (lunes a viernes, 8:30 a 17:30, sin festivos); al llenarse pasa a <strong style={{ color: '#b42318' }}>URGENTE</strong>. Fuera de ese horario la solicitud queda <strong>en cola</strong> y la barra arranca a las 8:30.
+        <strong>Tiempo:</strong> lo que lleva esperando. La barra cuenta <strong>{COLA_OBJETIVO_MIN} minutos</strong> de horario de oficina (lunes a viernes 8:30–17:30, sin festivos); al llenarse pasa a <strong style={{ color: '#b42318' }}>URGENTE</strong>. Fuera de ese horario la solicitud queda <strong>en cola</strong> y la barra arranca a las 8:30.
         {urgentes > 0 && <> · <strong style={{ color: '#b42318' }}>{urgentes} urgente{urgentes === 1 ? '' : 's'}</strong></>}
       </p>
       <div className="filters">
@@ -112,7 +112,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
               </tr>
             ) : (
               <tr key={`t${i.t.reserva}`} className="alta-fila alta-transportista" onClick={() => setVerT(i.t)}>
-                <td><Chip tipo="transportista" /><div><strong>Pide la carga #{i.t.envio}</strong></div><div className="meta">{i.t.ruta}</div></td>
+                <td><Chip tipo="transportista" /><div><strong>Pide el envío #{i.t.envio}</strong></div><div className="meta">{i.t.ruta}</div></td>
                 <td>{i.t.nombre}<div className="meta">{i.t.cif}{i.t.pais ? ` · ${i.t.pais}` : ''}</div></td>
                 <td>{i.t.bolsa}<div className="meta">Código {i.t.codigo_bolsa || '—'}</div></td>
                 <td style={{ whiteSpace: 'nowrap' }}>{i.t.telefono ? telBonito(i.t.telefono) : '—'}</td>
@@ -143,16 +143,16 @@ function FichaAltaTransportista({ t, onCerrar, onHecho }: { t: AltaTransportista
     onHecho();
   }
   return (
-    <Modal abierto titulo={`Alta de transportista — ${t.cif}`} sub={`Solicitada el ${horaTxt(t.solicitada_en)} · pide la carga #${t.envio}`} icono={<IcoCamion />} onCerrar={onCerrar} ancho={680}
+    <Modal abierto titulo={`Alta de transportista — ${t.cif}`} sub={`Solicitada el ${horaTxt(t.solicitada_en)} · pide el envío #${t.envio}`} icono={<IcoCamion />} onCerrar={onCerrar} ancho={680}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cerrar</button>
         <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => resolver(false)} disabled={!!trabajando}>Rechazar</button>
-        <button className="btn-primary" onClick={() => resolver(true)} disabled={!!trabajando}>Aprobar y darle la carga</button>
+        <button className="btn-primary" onClick={() => resolver(true)} disabled={!!trabajando}>Aprobar y darle el envío</button>
       </>}>
       <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
         <strong>Antes de aprobar:</strong> búscalo en <strong>{t.bolsa}</strong> con el código <strong>{t.codigo_bolsa}</strong>, completa en{' '}
         <a href={`/panel/transportistas?ver=${t.id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>su ficha</a> la razón social, dirección, seguro y email, y ponlo como <strong>Activo</strong>.
-        Si no está en la bolsa o algo no cuadra, <strong>rechaza</strong>: la carga vuelve a quedar libre.
+        Si no está en la bolsa o algo no cuadra, <strong>rechaza</strong>: el envío vuelve a quedar libre.
       </div>
       <div className="pen-envio-sum">
         {fila('Tipo de cuenta', <Chip tipo="transportista" />)}
@@ -162,7 +162,7 @@ function FichaAltaTransportista({ t, onCerrar, onHecho }: { t: AltaTransportista
         {fila('Teléfono', t.telefono ? <a href={`tel:${t.telefono}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>{telBonito(t.telefono)}</a> : '')}
         {fila('Ficha', t.verificado ? 'Activa (ya verificado)' : <span style={{ color: '#b45309', fontWeight: 700 }}>Sin verificar — razón social provisional</span>)}
       </div>
-      <div className="ptar-section-head" style={{ marginTop: '1rem' }}>La carga que pide</div>
+      <div className="ptar-section-head" style={{ marginTop: '1rem' }}>El envío que pide</div>
       <div className="pen-envio-sum">
         {fila('Envío', <a href={`/panel/envios?ver=${t.envio_id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>#{t.envio}</a>)}
         {fila('Ruta', t.ruta)}

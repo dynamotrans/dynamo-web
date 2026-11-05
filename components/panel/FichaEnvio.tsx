@@ -13,7 +13,7 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, nombreTipo } from './TipoSitio';
-import { euros, fecha, ventana, pesoTn, numero, fechaHora, metros, fechaDe, porcentaje } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn, numero, fechaHora, metros, fechaDe, porcentaje, tipoCargaTxt } from '@/lib/formato';
 import { NEGOCIACION } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
@@ -86,10 +86,10 @@ function mensajeOferta(f: Ficha, precio: number, token: string): string {
   const e = f.envio;
   const pts = (t: string) => f.paradas.filter((p) => p.tipo === t).map((p) => `${p.poblacion ?? ''}${p.codigo_postal ? ` (${p.codigo_postal.slice(0, 2)})` : ''}`).join(' + ');
   return [
-    `Carga disponible · Dynamo · #${e.referencia_gx}`,
+    `Envío disponible · Dynamo · #${e.referencia_gx}`,
     `${pts('carga')} → ${pts('descarga')}`,
     `Recogida: ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`,
-    [e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`, e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : ''].filter(Boolean).join(' · '),
+    [e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`, tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora)].filter(Boolean).join(' · '),
     [e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'NIMA', e.adr && 'ADR'].filter(Boolean).join(' · '),
     `Precio: ${euros(precio)} (sin IVA)`,
     `Acéptala aquí: ${enlaceOferta(token)}`,
@@ -126,7 +126,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
   const cerrar = () => router.push(cerrarHref, { scroll: false });
   const manual = !!e.es_manual;
   const cancelado = e.estado === 'cancelado';
-  const est = ESTADOS.find(([k]) => k === e.estado) ?? ESTADOS[0];
+  const est0 = ESTADOS.find(([k]) => k === e.estado) ?? ESTADOS[0];
+  const est: [string, string, string] = cancelado && ficha.pago?.estado === 'pendiente' ? ['cancelado', 'Anulado sin pago', 'cancelada'] : est0;
 
   async function hacer(texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, okTxt?: string) {
     setTrabajando(texto); setAviso(null);
@@ -155,7 +156,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
       {!manual && e.estado === 'programado' && !ficha.transportista && (
-        <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer carga</button>
+        <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer envío</button>
       )}
       {!manual && e.estado !== 'entregado' && (
         <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} onClick={() => setVista('asignar')}>
@@ -230,7 +231,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       {!manual && <PagoPrevio envio={e} pago={ficha.pago} hacer={hacer}
         libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en} />}
       {ficha.contraofertas.length > 1 && (
-        <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div><strong>{ficha.contraofertas.length} contraofertas esperando.</strong> La carga sigue abierta: elige la que quieras; al aprobar una (o si otro la acepta al precio ofertado), las demás quedan rechazadas solas.</div></div>
+        <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div><strong>{ficha.contraofertas.length} contraofertas esperando.</strong> El envío sigue abierto: elige la que quieras; al aprobar una (o si otro la acepta al precio ofertado), las demás quedan rechazadas solas.</div></div>
       )}
       {ficha.contraofertas.map((c) => (
         <div key={c.id} className="modal-warn-box">
@@ -238,12 +239,12 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
             <div style={{ marginBottom: '0.5rem' }}>
               <strong style={{ color: '#b42318' }}>Transportista NUEVO, dado de alta online desde el enlace</strong> ({c.alta_online.cif}).
               {c.alta_online.verificado ? ' Ya está verificado (activo).' : <> Solo ha dado su bolsa, código, país, CIF y teléfono. Antes de aprobar, <strong>búscalo en la bolsa de cargas</strong>, completa en{' '}
-                <a href={`/panel/transportistas?ver=${c.alta_online.id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>su ficha</a> la razón social y lo que quieras desde allí, y ponlo como <strong>Activo</strong>. Si no está en la bolsa o algo no cuadra, rechaza: la carga vuelve a quedar libre.</>}
+                <a href={`/panel/transportistas?ver=${c.alta_online.id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>su ficha</a> la razón social y lo que quieras desde allí, y ponlo como <strong>Activo</strong>. Si no está en la bolsa o algo no cuadra, rechaza: el envío vuelve a quedar libre.</>}
             </div>
           )}
-          <strong>{c.alta_online ? 'Pide la carga:' : 'Contraoferta pendiente:'}</strong> {c.transportista ?? 'Un transportista'} acepta la carga por <strong>{euros(c.precio_propuesto)}</strong>
+          <strong>{c.alta_online ? 'Pide el envío:' : 'Contraoferta pendiente:'}</strong> {c.transportista ?? 'Un transportista'} acepta el envío por <strong>{euros(c.precio_propuesto)}</strong>
           {c.precio_base != null && <> (ofertada a {euros(c.precio_base)}, {c.precio_propuesto > c.precio_base ? '+' : ''}{euros(c.precio_propuesto - c.precio_base)})</>}.
-          La carga sigue abierta a otros mientras decides.
+          El envío sigue abierto a otros mientras decides.
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Aprobando', () => resolverContraoferta(c.id, true))}>Aprobar su precio</button>
             <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => hacer('Rechazando', () => resolverContraoferta(c.id, false))}>Rechazar</button>
@@ -325,7 +326,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
         <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
-        <Celda l="Tipo de carga">{e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : '—'}</Celda>
+        <Celda l="Tipo de carga">{tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || '—'}</Celda>
         <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
         <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
         {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
@@ -569,7 +570,7 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
         </div>
       </div>
       {e.requiere_nima && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}
-      {t?.estado === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar carga, pero revisa por qué.</div>}
+      {t?.estado === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar el envío, pero revisa por qué.</div>}
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Las matrículas y el conductor se pueden dejar para más tarde. Queda en el historial quién asignó y a qué hora.</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
@@ -890,7 +891,7 @@ function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transporti
         pie={<button className="btn-primary" onClick={onVolver}>Volver a la ficha</button>}>
         <div className="ptar-sitio-grid">
           <div style={{ gridColumn: '1/-1' }}>
-            <label htmlFor="of-enlace">Enlace para aceptar la carga</label>
+            <label htmlFor="of-enlace">Enlace para aceptar el envío</label>
             <input id="of-enlace" readOnly value={enlaceOferta(hecho.token)} onFocus={(ev) => ev.target.select()} />
           </div>
           <div style={{ gridColumn: '1/-1' }}>
@@ -901,7 +902,7 @@ function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transporti
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
           <button className="btn-primary" onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); }}>{copiado ? 'Copiado' : 'Copiar mensaje'}</button>
           <a className="btn-secondary" href={`https://wa.me/${tel ?? ''}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp{t && !tel ? ' (sin teléfono en su ficha)' : ''}</a>
-          <a className="btn-secondary" href={`mailto:${t?.email ?? ''}?subject=${encodeURIComponent(`Carga disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
+          <a className="btn-secondary" href={`mailto:${t?.email ?? ''}?subject=${encodeURIComponent(`Envío disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
         </div>
         <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
           El mensaje no lleva el cliente ni las direcciones: el transportista las ve al aceptar. Las aperturas del enlace y quién la acepta quedan en la ficha.
@@ -911,7 +912,7 @@ function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transporti
     );
   }
   return (
-    <Modal abierto onCerrar={onVolver} titulo={`Ofrecer carga · #${e.referencia_gx}`} sub="Crea un enlace para que un transportista la acepte" icono={<I d={ICO.enviar} />}
+    <Modal abierto onCerrar={onVolver} titulo={`Ofrecer envío · #${e.referencia_gx}`} sub="Crea un enlace para que un transportista lo acepte" icono={<I d={ICO.enviar} />}
       pie={<>
         <button className="btn-ghost" onClick={onVolver} disabled={trabajando}>Volver</button>
         <button className="btn-primary" onClick={crear} disabled={trabajando}>Crear oferta y enlace</button>

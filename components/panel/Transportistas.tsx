@@ -257,7 +257,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
 
         {titulo('Personas de contacto')}
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conFuncion funcionNueva="trafico"
-          ayuda={<>Los de <strong>tráfico</strong> reciben los avisos de la operativa (cargas, recogidas, incidencias). Los de <strong>contabilidad</strong> son <strong>SOLO ADMIN</strong> (facturas): el transportista no los ve.</>} />
+          ayuda={<>Los de <strong>tráfico</strong> reciben los avisos de la operativa (envíos, recogidas, incidencias). Los de <strong>contabilidad</strong> son <strong>SOLO ADMIN</strong> (facturas): el transportista no los ve.</>} />
 
         {titulo('Pago')}
         <div>
@@ -266,7 +266,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
             {PLAZOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
         </div>
-        {interruptor('pronto_pago', 'Se le ofrece pronto pago', 'Cobrar antes a cambio de un pequeño descuento, al aceptar la carga.')}
+        {interruptor('pronto_pago', 'Se le ofrece pronto pago', 'Cobrar antes a cambio de un pequeño descuento, al aceptar el envío.')}
         <div><label htmlFor="tra-iva">IVA (%)</label><input id="tra-iva" type="text" inputMode="decimal" value={textos.iva} onChange={(e) => setTextos((t) => ({ ...t, iva: e.target.value }))} /></div>
         <div><label htmlFor="tra-ret">Retención (%)</label><input id="tra-ret" type="text" inputMode="decimal" value={textos.ret} onChange={(e) => setTextos((t) => ({ ...t, ret: e.target.value }))} /></div>
 
@@ -296,7 +296,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
                 ? <>{f.tractoras} tractora{f.tractoras === 1 ? '' : 's'} · {f.rigidos} rígido{f.rigidos === 1 ? '' : 's'} · {f.remolques} remolque{f.remolques === 1 ? '' : 's'}{f.adr ? ' · con ADR' : ''} · {fila.envios} envío{fila.envios === 1 ? '' : 's'}</>
                 : <>Aún sin vehículos dados de alta · {fila.envios} envío{fila.envios === 1 ? '' : 's'}</>}
             </div>
-            {nota('No se edita aquí: los vehículos se dan de alta al aceptar las cargas (matrícula, ITV, seguro).')}
+            {nota('No se edita aquí: los vehículos se dan de alta al aceptar los envíos (matrícula, ITV, seguro).')}
           </div>
         )}
         {fila && (

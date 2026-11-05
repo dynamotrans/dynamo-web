@@ -1,5 +1,5 @@
 import { telBonito } from '@/lib/paises';
-import { pesoTn } from '@/lib/formato';
+import { pesoTn, tipoCargaTxt } from '@/lib/formato';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { rgb, type PDFImage } from 'pdf-lib';
@@ -35,7 +35,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
   }
   const der = A4.w - l.margen.der;
   l.textoDer(der, 52, 'ORDEN DE CARGA', 16, { bold: true, color: COLOR.morado });
-  l.textoDer(der, 66, `Referencia de viaje: ${ref}`, 10, { bold: true });
+  l.textoDer(der, 66, `Referencia de envío: ${ref}`, 10, { bold: true });
   l.textoDer(der, 78, `Emitida el ${emitida}`, 8, { color: COLOR.gris });
   l.y = 92;
   if (!manual) {
@@ -166,7 +166,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
       e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? 'bulto' : 'bultos'}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
       e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), { bold: true }],
     ['Tipo de transporte', e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora' : 'Tráiler tauliner (lona corredera)'],
-    ['Tipo de carga', `${e.tipo_carga === 'completa' ? 'Carga completa' : 'Grupaje / carga parcial'}${forma ? ` · carga ${forma}` : ''}`],
+    ['Tipo de carga', `${tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || 'Grupaje'}${forma ? ` · carga ${forma}` : ''}`],
     ['Requisitos', [e.requiere_nima && `Requiere NIMA${e.transportista_nima ? ` (${e.transportista_nima})` : ''}`, e.adr && 'MERCANCÍA ADR (peligrosa)'].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
     ['Importante', 'El transportista solo está autorizado a recoger la mercancía descrita en esta orden. Si el cargador quiere cargar otra mercancía, avísanos antes para autorizarla. No está permitido el transbordo: si lo necesitas, avísanos antes para consultarlo con el cliente.'],
   ]);
@@ -215,7 +215,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
     };
     c(`Aceptación. La ausencia de un rechazo escrito a esta orden de carga en un plazo de 30 minutos desde su envío equivale a su aceptación con todas sus condiciones. La aceptación de la orden y/o la realización del servicio de transporte supone aceptar estas condiciones y los Términos y condiciones generales de contratación para transportistas: https://www.dynamotrans.com/condiciones-transportistas Salvo acuerdo por escrito en contrario, para cualquier controversia derivada de esta orden de carga las partes se someten a los juzgados y tribunales de Sevilla.`);
     c('Recuento en la carga. El conductor debe estar presente en la carga de su camión, cerciorarse de los bultos que entran, contar personalmente el número de palés junto al personal que carga y cotejarlo con la documentación que se le entrega. Si encuentra alguna discrepancia, la comunicará al operario para solventarla en ese momento. Si el conductor se niega a estar presente en el recuento final, se asumirá que la mercancía se cargó completa y correctamente identificada en el albarán, y cualquier reserva de falta en la entrega se repercutirá al transportista efectivo.');
-    c('Cancelación. El transportista asignado renuncia expresamente a reclamar el cobro íntegro del viaje, lucro cesante o cualquier importe distinto al aquí pactado. Si el transporte se cancela por cualquier causa, la única y máxima compensación a percibir queda limitada a un día de paralización, calculado conforme a la normativa de transporte vigente y al baremo legal del año en curso, con un máximo de 400 € por día completo.');
+    c('Cancelación. El transportista asignado renuncia expresamente a reclamar el cobro íntegro del envío, lucro cesante o cualquier importe distinto al aquí pactado. Si el transporte se cancela por cualquier causa, la única y máxima compensación a percibir queda limitada a un día de paralización, calculado conforme a la normativa de transporte vigente y al baremo legal del año en curso, con un máximo de 400 € por día completo.');
     c('Paralizaciones y esperas. Solo se aceptarán si se cumplen todos estos requisitos: (1) notificación previa por email a Dynamo en el mismo momento en que se produzca o se prevea, con el motivo y el tiempo estimado; no se aceptan paralizaciones comunicadas a posteriori; (2) acreditación en la carta de porte / CMR con la hora de entrada y de salida en carga y/o descarga, de forma clara y legible; (3) esas horas firmadas y selladas por el cargador en origen y por el destinatario en destino. Sin notificación previa y sin CMR firmado con horas, Dynamo no asumirá ningún coste por paralización, aunque haya existido demora.');
     c(`Siniestros. Ante cualquier daño, rotura o faltante de la mercancía, avisa a Dynamo (${telBonito(D.telefono)}, 24 h) en ese mismo momento y ANTES de terminar la carga o la descarga, y anota las reservas en el CMR o el albarán con la firma de las partes. Sin reservas documentadas no se puede declarar el siniestro al seguro.`);
     c('Documentación. Envíanos los albaranes, packing list, CMR y/o carta de porte y cualquier documentación entregada en carga y descarga, debidamente sellados y firmados por el transportista efectivo, los cargadores y los destinatarios. Si no hay sello de empresa, anota el nombre de la empresa y su CIF y, en todos los casos, el nombre, apellidos, DNI y firma de la persona que interviene. Archiva y guarda los originales por si hubiera que reclamarlos.');

@@ -24,7 +24,7 @@ export type ClienteFila = ClienteDatos & {
 export type Bienvenida = { pct: number; envios: number };
 
 const ESTADOS: [ClienteDatos['estado'], string, string][] = [
-  ['activa', 'Validado', 'green'], ['pendiente_verificacion', 'Pendiente', 'orange'], ['suspendida', 'Suspendido', 'red'],
+  ['activa', 'Activo', 'green'], ['pendiente_verificacion', 'Pendiente', 'orange'], ['suspendida', 'Suspendido', 'red'],
 ];
 const PLAZOS: [number, string][] = [[0, 'Contado inmediato (0 días)'], [30, '30 días'], [60, '60 días'], [90, '90 días'], [120, '120 días · por defecto']];
 

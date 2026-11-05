@@ -36,7 +36,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
   if (esDynamo(rol) && vista !== 'admin') return menuDe(vista);
   if (rol === 'transportista') {
     return [{ items: [
-      { slug: 'envios', titulo: 'Mis viajes', icono: 'camion', listo: true, destacado: true },
+      { slug: 'envios', titulo: 'Mis envíos', icono: 'camion', listo: true, destacado: true },
       { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
       { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
     ] }];

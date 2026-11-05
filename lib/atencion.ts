@@ -1,6 +1,6 @@
 // Horarios de atención de Dynamo (Álvaro): el mismo SCHEDULE del mockup y de la web
 // pública. Hora peninsular (Europe/Madrid), se ajusta sola en cada temporada.
-//   · Email y WhatsApp: lunes a viernes 8:00-18:00 (sin festivos).
+//   · Email y WhatsApp: lunes a viernes 8:00–18:00 (sin festivos).
 //   · Teléfono: L-J 9-14 y 15-17 · V 9-14; jornada intensiva 8:30-15:30 en verano,
 //     Navidad, Semana Santa (L-X santo) y semana festiva local; del 6 al 27 de agosto,
 //     sin teléfono (solo email y WhatsApp).
@@ -55,13 +55,13 @@ export function onlineAbierto(festivos: Set<string>, ahora = ahoraMadrid()): boo
 /** Horario de hoy del teléfono, para enseñarlo bajo "Llamar". */
 export function horarioTelefono(ahora = ahoraMadrid()): string {
   if (esAgosto(ahora)) return 'Cerrado · email y WhatsApp';
-  if (esSemanaSanta(ahora)) return 'Lunes a Miércoles 8:30-15:30 (Semana Santa)';
-  if (esNavidad(ahora)) return 'Lunes a Viernes 8:30-15:30 (Navidad)';
-  if (esSemanaFestiva(ahora)) return 'Martes a Viernes 8:30-15:30 (semana festiva)';
-  if (esVerano(ahora)) return 'Lunes a Viernes 8:30-15:30 (verano)';
-  return 'Lunes a Jueves 9-14 y 15-17 · Viernes 9-14';
+  if (esSemanaSanta(ahora)) return 'Lunes a miércoles 8:30–15:30 (Semana Santa)';
+  if (esNavidad(ahora)) return 'Lunes a viernes 8:30–15:30 (Navidad)';
+  if (esSemanaFestiva(ahora)) return 'Martes a viernes 8:30–15:30 (semana festiva)';
+  if (esVerano(ahora)) return 'Lunes a viernes 8:30–15:30 (verano)';
+  return 'Lunes a jueves 9:00–14:00 y 15:00–17:00 · viernes 9:00–14:00';
 }
-export const HORARIO_ONLINE = 'Lunes a Viernes 8-18';
+export const HORARIO_ONLINE = 'Lunes a viernes 8:00–18:00';
 
 /** "En línea · Respondo enseguida" o "He salido · Vuelvo mañana a las 8:00". */
 export function estadoAtencion(festivos: Set<string>, ahora = ahoraMadrid()): { online: boolean; texto: string } {

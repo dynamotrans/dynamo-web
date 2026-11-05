@@ -155,7 +155,7 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
 export async function cargarDatosDocTransportista(sb: SupabaseClient, id: string):
   Promise<{ datos: DatosDoc | null; parametros: Record<string, number>; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_transportista', { p_envio: id });
-  if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el viaje.' };
+  if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el envío.' };
   return { error: null, ...ordenDesdeJson(data) };
 }
 
@@ -164,7 +164,7 @@ export async function cargarDatosDocTransportista(sb: SupabaseClient, id: string
 export async function cargarDatosDocPublica(sb: SupabaseClient, reserva: string):
   Promise<{ datos: DatosDoc | null; parametros: Record<string, number>; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_publica', { p_reserva: reserva });
-  if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el viaje.' };
+  if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el envío.' };
   return { error: null, ...ordenDesdeJson(data) };
 }
 

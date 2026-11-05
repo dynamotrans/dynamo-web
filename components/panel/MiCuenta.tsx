@@ -97,7 +97,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           </div>
           <div className="account-card">
             <h3 className="account-card-title">Mi flota</h3>
-            {transporte.vehiculos.length === 0 && transporte.conductores.length === 0 && <p className="account-card-desc">Aún no hay camiones ni conductores. Se añaden solos al darnos la matrícula y el conductor de cada viaje.</p>}
+            {transporte.vehiculos.length === 0 && transporte.conductores.length === 0 && <p className="account-card-desc">Aún no hay camiones ni conductores. Se añaden solos al darnos la matrícula y el conductor de cada envío.</p>}
             {transporte.vehiculos.map((v) => (
               <button type="button" key={v.id} className="account-row account-row-btn" title="Editar este vehículo"
                 onClick={() => setVehiculo({ id: v.id, matricula: v.matricula, tipo: v.tipo as MiVehiculo['tipo'], itv: v.itv_vence ?? '', seguro: v.seguro_vence ?? '', tarjeta: v.tarjeta_transporte_vence ?? '', adr: v.adr, tiene_plataforma_elevadora: v.tiene_plataforma_elevadora })}>
@@ -115,7 +115,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
               <button className="btn-ghost" onClick={() => setVehiculo({ id: null, matricula: '', tipo: 'tractora', itv: '', seguro: '', tarjeta: '', adr: false, tiene_plataforma_elevadora: false })}>+ Añadir vehículo</button>
               <button className="btn-ghost" onClick={() => setConductor({ id: null, nombre: '', documento: '', pais: 'ES', telefono: '' })}>+ Añadir conductor</button>
             </div>
-            <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>También se completa sola con los camiones y conductores de tus viajes. Pulsa uno para cambiar sus datos o darlo de baja.</p>
+            <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>También se completa sola con los camiones y conductores de tus envíos. Pulsa uno para cambiar sus datos o darlo de baja.</p>
           </div>
           <div className="account-card">
             <h3 className="account-card-title">Documentación</h3>
@@ -297,7 +297,7 @@ function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; o
           </div>
         )}
       </div>
-      {!nuevo && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>La matrícula no se cambia: si es otro camión, añádelo nuevo. Dar de baja no borra los viajes que ya hizo.</p>}
+      {!nuevo && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>La matrícula no se cambia: si es otro camión, añádelo nuevo. Dar de baja no borra los envíos que ya hizo.</p>}
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
       {g.trabajando && <Cargando texto={g.trabajando} />}
     </Modal>

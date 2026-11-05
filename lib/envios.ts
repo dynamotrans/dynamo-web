@@ -27,6 +27,7 @@ export type EnvioFila = {
   creado_en: string | null; modificado_en: string | null; creado_por: string | null;
   paradas: Parada[];
   estado_solicitud?: string | null;   // envío pedido por el cliente: pendiente_precio / precio_propuesto / …
+  requiere_plataforma_elevadora?: boolean | null;   // completo con plataforma = rígido completo
   estado_pago_previo?: string | null;        // no_requerido / pendiente / pagado / exento (previo pago)
   estado_cambio_cliente?: string | null;   // el cliente ha pedido un cambio (pendiente / aplicado / …)
   requiere_revision_precio?: boolean | null;         // la ruta ha cambiado y el precio no se ha revisado
@@ -44,7 +45,8 @@ export const esSolicitudAbierta = (e: { estado: string; estado_solicitud?: strin
 export function estadoVisual(e: EnvioFila): { label: string; color: string } {
   switch (e.estado) {
     case 'entregado': return { label: 'Entregado', color: 'entregado' };
-    case 'cancelado': return { label: 'Cancelado', color: 'cancelada' };
+    // Sin pagar el pago previo: lo anula el sistema al pasar el plazo (o el cliente antes).
+    case 'cancelado': return e.estado_pago_previo === 'pendiente' ? { label: 'Anulado sin pago', color: 'cancelada' } : { label: 'Cancelado', color: 'cancelada' };
     case 'hacia_la_carga': return { label: 'Hacia la carga', color: 'hacia' };
     case 'cargando': return { label: 'Cargando', color: 'cargando' };
     case 'en_ruta': return { label: 'En ruta', color: 'enruta' };

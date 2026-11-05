@@ -42,7 +42,7 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
   if (r.ok) return { ok: true };
-  return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le puede dar carga.', transportista_no_existe: 'Ese transportista no existe.',
+  return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',
     importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
 }
 
@@ -138,7 +138,7 @@ export type NuevaOferta = { transportista_id: string | null; canal: string; prec
 // Ofrecer la carga: crea la oferta (con su enlace) y devuelve el token del enlace.
 export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
   const s = await soloDynamo();
-  if (!s) return { ok: false, error: 'Solo Dynamo ofrece cargas.' };
+  if (!s) return { ok: false, error: 'Solo Dynamo ofrece envíos.' };
   if (!Number.isFinite(o.precio) || o.precio <= 0) return { ok: false, error: 'Pon el precio que se ofrece al transportista.' };
   if (![0, 5, 10, 30].includes(o.banda_pct)) return { ok: false, error: 'La negociación solo puede ser 0, 5, 10 o 30 %.' };
   if (!o.transportista_id && !o.canal.startsWith('bolsa_')) return { ok: false, error: 'Sin transportista concreto, la oferta es de bolsa.' };
@@ -165,7 +165,7 @@ export async function resolverContraoferta(reserva: string, aprobar: boolean): P
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { resultado: string }).resultado;
   if (r === 'no_hay_contraoferta_pendiente') return { ok: false, error: 'Esa contraoferta ya no está pendiente.' };
-  return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el transportista queda asignado a su precio.' : 'Contraoferta rechazada: la carga vuelve a estar ofertada.' };
+  return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el transportista queda asignado a su precio.' : 'Contraoferta rechazada: el envío vuelve a estar ofertado.' };
 }
 
 // CMR digital: el enlace para que firmen cargador, transportista y destinatario. Uno vivo

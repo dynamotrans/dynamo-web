@@ -51,7 +51,7 @@ Antes de crear un control, buscar cómo está hecho el equivalente más parecido
 | Palés americanos (120×100) | 26 uds. | 16 uds. |
 | Volumen aprox. | 86 m³ | 46 m³ |
 
-El **volumen se recalcula** (largo × ancho × alto) cada vez que cambie una medida; no es un número fijo. Los palés **no** se recalculan: son los que caben de verdad.
+El **volumen se recalcula** (largo × ancho × alto) cada vez que cambie una medida; no es un número fijo. Los palets **no** se recalculan: son los que caben de verdad.
 
 **Dónde vive cada copia**: `index.html` (fichas de *Tipos de vehículo*) · `tools/generar-hojas-seccion.py` → regenera `/vehiculos` y `/carga-completa` · `dashboard.html` (fichas del panel, tooltip de metros lineales y tabla de *Ver medidas del camión*). · **plataforma** (`pruebas`): `components/panel/Recursos.tsx` (ventana *Medidas de los camiones*) y `lib/dashboardContenido.ts` (fichas de la flota, hoy ocultas).
 

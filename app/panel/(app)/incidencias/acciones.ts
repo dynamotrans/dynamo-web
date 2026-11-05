@@ -22,7 +22,7 @@ export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): 
   const transportista = s.perfil.rol === 'transportista';
   const cliente = s.perfil.rol === 'cliente' || transportista;   // los dos «de fuera»: mismas limitaciones
   if (!cliente && !esGestor(s.perfil.rol)) return { ok: false, error: 'No tienes permiso para hacer esto.' };
-  if (transportista && !id && !d.envio_id) return { ok: false, error: 'Elige el viaje de la incidencia.' };
+  if (transportista && !id && !d.envio_id) return { ok: false, error: 'Elige el envío de la incidencia.' };
   // El CLIENTE abre y amplía las suyas, o las retira; el estado, la prioridad y la
   // resolución son de Dynamo (y lo vuelve a imponer la base de datos).
   if (cliente) {

@@ -532,7 +532,7 @@ end $$;
 reset role;
 do $$ begin
   if (select horarios from sitios where id = current_setting('prueba.sitio_a')::uuid)
-     is distinct from 'L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00' then
+     is distinct from 'Lunes a jueves 8:00–14:00 y 15:00–17:30 · viernes 8:00–14:00' then
     raise exception 'FALLO 22 · el horario de la ficha de A ha cambiado';
   end if;
   if (select anotaciones from sitios where id = current_setting('prueba.sitio_a')::uuid) not like 'Manolo%' then
@@ -1533,14 +1533,14 @@ do $$ declare l uuid; begin
   if (select count(*) from sitio_horarios where sitio_id = l) <> 9 then
     raise exception 'FALLO 56 · el sitio no ha nacido con el horario por defecto';
   end if;
-  if (select horarios from sitios where id = l) <> 'L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00' then
+  if (select horarios from sitios where id = l) <> 'Lunes a jueves 8:00–14:00 y 15:00–17:30 · viernes 8:00–14:00' then
     raise exception 'FALLO 56 · resumen: %', (select horarios from sitios where id = l);
   end if;
   -- El cliente cambia su horario: el viernes también por la tarde, y abre el sábado.
   delete from sitio_horarios where sitio_id = l and dia_semana = 5;
   insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values
     (l, 5, '08:00', '14:00'), (l, 5, '15:00', '17:30'), (l, 6, '09:00', '13:00');
-  if (select horarios from sitios where id = l) <> 'L-V 8:00-14:00 y 15:00-17:30 · S 9:00-13:00' then
+  if (select horarios from sitios where id = l) <> 'Lunes a viernes 8:00–14:00 y 15:00–17:30 · sábado 9:00–13:00' then
     raise exception 'FALLO 56 · resumen tras cambiar: %', (select horarios from sitios where id = l);
   end if;
   begin
@@ -1555,7 +1555,7 @@ do $$ declare l uuid; begin
   end;
   -- Guardar de una vez: sustituye todo; vacío no vale; con un tramo malo no cambia nada.
   perform guardar_horario(l, '[{"dia":1,"abre":"07:00","cierra":"15:00"},{"dia":2,"abre":"07:00","cierra":"15:00"}]');
-  if (select horarios from sitios where id = l) <> 'L-M 7:00-15:00' then
+  if (select horarios from sitios where id = l) <> 'Lunes y martes 7:00–15:00' then
     raise exception 'FALLO 56 · guardar_horario: %', (select horarios from sitios where id = l);
   end if;
   begin
@@ -1568,7 +1568,7 @@ do $$ declare l uuid; begin
     perform guardar_horario(l, '[{"dia":3,"abre":"10:00","cierra":"09:00"}]');
   exception when check_violation then null;
   end;
-  if (select horarios from sitios where id = l) <> 'L-M 7:00-15:00' then
+  if (select horarios from sitios where id = l) <> 'Lunes y martes 7:00–15:00' then
     raise exception 'FALLO 56 · un horario malo ha dejado el sitio a medias';
   end if;
   -- El resumen no se escribe a mano.
@@ -4195,7 +4195,7 @@ do $$ declare l uuid := current_setting('prueba.sitio_a')::uuid; begin
   if exists (select 1 from horario_del_dia(l, make_date(2027, 10, 13)) where temporada = 'verano') then
     raise exception 'FALLO 119 · fuera de verano usa el horario de verano';
   end if;
-  if (select horarios_verano from sitios where id = l) <> 'L-V 7:30-15:00' then
+  if (select horarios_verano from sitios where id = l) <> 'Lunes a viernes 7:30–15:00' then
     raise exception 'FALLO 119 · el resumen del verano no se escribe: %', (select horarios_verano from sitios where id = l);
   end if;
   if (select horarios from sitios where id = l) like '%7:30-15:00%' then
@@ -4220,7 +4220,7 @@ select guardar_horario_verano(current_setting('prueba.sitio_a')::uuid, true, '06
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ begin
-  if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14)) <> 'L-V 7:30-15:00 (horario de verano)' then
+  if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14)) <> 'Lunes a viernes 7:30–15:00 (horario de verano)' then
     raise exception 'FALLO 120 · en verano no da el horario de verano: %', horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14));
   end if;
   if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 10, 13)) like '%verano%' then
@@ -5280,3 +5280,32 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 148. Textos: «envío» para todo, anulado sin pago, camión completo, horarios largos ----
+reset role;
+do $$ declare f text; l uuid; begin
+  -- Ningún texto de la base de datos llama «viaje» al envío ni dice «la carga» por el envío.
+  select string_agg(p.proname, ', ') into f from pg_proc p
+   where p.pronamespace = 'public'::regnamespace and p.prokind = 'f'
+     and regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '''[^'']*(\m[Vv]iajes?\M|[Cc]arga (asignada|cancelada|aceptada|reactivada)|[Ll]a carga (es tuya|no existe|lleva|ya ha empezado|se la ha quedado|se ha cancelado|ya no está)|esta carga|cargas con Dynamo|ofertar cargas|dar carga)[^'']*''';
+  if f is not null then raise exception 'FALLO 148 · textos con «viaje» o «carga» por envío en: %', f; end if;
+  if pg_get_functiondef('public.caducar_pagos_pendientes'::regproc) !~ 'Anulado sin pago' then
+    raise exception 'FALLO 148 · el pago caducado no dice «Anulado sin pago»';
+  end if;
+  if exists (select 1 from restricciones_servicio where mensaje ~ 'carga completa') then
+    raise exception 'FALLO 148 · las restricciones aún dicen «carga completa»';
+  end if;
+  if pg_get_functiondef('public.otras_cargas_publicas'::regproc) !~ 'requiere_plataforma_elevadora' then
+    raise exception 'FALLO 148 · el tablón no dice si el camión completo es rígido';
+  end if;
+  insert into sitios (nombre_empresa, es_almacen_dynamo, codigo_postal) values ('Prueba 148', true, '41001') returning id into l;
+  perform guardar_horario(l, '[{"dia":1,"abre":"08:00","cierra":"14:00"},{"dia":2,"abre":"08:00","cierra":"14:00"},{"dia":3,"abre":"08:00","cierra":"14:00"},{"dia":5,"abre":"09:00","cierra":"13:00"}]');
+  if (select horarios from sitios where id = l) <> 'Lunes a miércoles 8:00–14:00 · viernes 9:00–13:00' then
+    raise exception 'FALLO 148 · horario: %', (select horarios from sitios where id = l);
+  end if;
+  if exists (select 1 from sitios where horarios ~ '^[LMXJVSD](-[LMXJVSD])? ') then
+    raise exception 'FALLO 148 · quedan horarios con el formato viejo (L-V)';
+  end if;
+  delete from sitios where id = l;
+  raise notice 'OK 148 · textos: «envío» para todo, anulado sin pago, camión completo (tráiler o rígido), horarios «Lunes a viernes 8:00–18:00»';
+end $$;

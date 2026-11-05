@@ -72,7 +72,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   if (dynamo) {
     const COLS = 'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
-      'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
+      'toneladas, metros_lineales, tipo_carga, requiere_plataforma_elevadora, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
       'matricula_remolque, creado_en, modificado_en, creado_por, estado_solicitud, estado_pago_previo, estado_cambio_cliente, requiere_revision_precio, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';

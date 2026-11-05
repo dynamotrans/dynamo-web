@@ -39,11 +39,11 @@ const SECCIONES: Seccion[] = [
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
     { titulo: 'Riesgo asumido', claves: ['riesgo_dias_asumido'] },
   ] },
-  { id: 'transportistas', titulo: 'Transportistas', intro: 'Ofertas de cargas, negociación, bolsa y pago a transportistas.', subs: [
+  { id: 'transportistas', titulo: 'Transportistas', intro: 'Ofertas de envíos, negociación, bolsa y pago a transportistas.', subs: [
     { titulo: 'Ofertas y reservas', claves: ['oferta_dias_caducidad', 'reserva_minutos'] },
     { titulo: 'Bolsa de cargas', claves: ['bolsa_espera_minutos'] },
     { titulo: 'Negociación (contraofertas)', claves: ['contraoferta_transportista_activa', 'contraoferta_auto_pct', 'negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga', 'negociacion_min_cargas_hechas', 'negociacion_una_por_carga'] },
-    { titulo: 'Seguridad del enlace de la carga', claves: ['enlace_carga_horas_tras_carga', 'carga_publica_max_fallos_dia', 'carga_publica_max_fallos_reserva', 'tablon_enlace_dias'] },
+    { titulo: 'Seguridad del enlace del envío', claves: ['enlace_carga_horas_tras_carga', 'carga_publica_max_fallos_dia', 'carga_publica_max_fallos_reserva', 'tablon_enlace_dias'] },
     { titulo: 'Alta online de transportistas', claves: ['alta_online_max_pendientes_carga', 'alta_online_max_dia'] },
     { titulo: 'Plazo de pago', claves: ['plazo_pago_transportista_dias'] },
     { titulo: 'Pronto pago', claves: ['pronto_pago_encendido', 'pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'pronto_pago_linea_euros', 'pronto_pago_ventana_dias'] },

@@ -136,7 +136,7 @@ export function LlamarCambio({ e, onVolver }: { e: any; onVolver: () => void }) 
       <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>Qué pasa cuando nos llamas</div>
       <ol style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: 1.55, color: 'var(--gray-700)' }}>
         <li>Lo <strong>comprobamos con el conductor</strong> al momento.</li>
-        <li>Si el cambio es posible, lo hacemos nosotros. <strong>Modificar no tiene coste.</strong> (Si cambia el viaje, el precio se recalcula.)</li>
+        <li>Si el cambio es posible, lo hacemos nosotros. <strong>Modificar no tiene coste.</strong> (Si cambia la ruta, el precio se recalcula.)</li>
         <li>Si no es posible, hay que <strong>cancelarle la carga a ese camión</strong> y buscar otro. Esa cancelación sigue las reglas de siempre:
           {corteTxt
             ? <> gratis hasta el <strong>{corteTxt}</strong>{dentro === true ? <> (<span style={{ color: '#0f6b3a', fontWeight: 700 }}>aún estás a tiempo</span>)</> : dentro === false ? <> (<span style={{ color: '#b42318', fontWeight: 700 }}>ese plazo ya ha pasado</span>)</> : null}; después, puede conllevar el <strong>coste del servicio completo</strong>.</>

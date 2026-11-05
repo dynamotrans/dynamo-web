@@ -332,8 +332,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
 
   // ---- Opciones de los desplegables (las del mockup)
   const optsMl: [string, string][] = [];
-  for (let i = 1; i <= mlMax; i++) optsMl.push([String(i), `${i} ${i === 1 ? 'metro' : 'metros'} (equivale a ${Math.floor(i * 2.5)} europalets o ${Math.floor(i * 2)} americanos)`]);
-  if (mlMax === 13) optsMl.push(['13.3', '13,3 metros — carga completa (equivale a 33 europalets o 26 americanos)']);
+  for (let i = 1; i <= mlMax; i++) optsMl.push([String(i), `${i} ${i === 1 ? 'metro' : 'metros'} (equivale a ${Math.floor(i * 2.5)} europalets o ${Math.floor(i * 2)} palets americanos)`]);
+  if (mlMax === 13) optsMl.push(['13.3', '13,30 metros — tráiler completo (equivale a 33 europalets o 26 palets americanos)']);
   const optsPeso: [string, string][] = [['0.2', 'De 0 a 200 kg'], ['0.4', 'De 200 a 400 kg'], ['0.6', 'De 400 a 600 kg'], ['0.8', 'De 600 a 800 kg'], ['1', 'De 800 kg a 1 tonelada']];
   for (let lo = 1, hi = 3; lo < pesoMax; hi += 2) { if (hi > pesoMax) hi = pesoMax; optsPeso.push([String(hi), `De ${lo} a ${hi} toneladas${hi === pesoMax ? ' (máximo)' : ''}`]); if (hi === pesoMax) break; lo = hi; }
   const mlTxt = optsMl.find(([v]) => v === ml)?.[1] ?? '';

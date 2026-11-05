@@ -14,12 +14,12 @@ async function soloTransportista() {
 const limpio = (m: string) => mensajeError(m);
 const TEXTO: Record<string, string> = {
   hacia_la_carga: 'Hecho: vas hacia la carga.', cargando: 'Hecho: estás cargando.',
-  en_ruta: 'Hecho: cargado y en ruta.', entregado: 'Hecho: viaje entregado. Sube el albarán firmado para cobrarlo.',
+  en_ruta: 'Hecho: cargado y en ruta.', entregado: 'Hecho: envío entregado. Sube el albarán firmado para cobrarlo.',
 };
 
 export async function marcarViaje(envio: string, estado: string): Promise<Res> {
   const s = await soloTransportista();
-  if (!s) return { ok: false, error: 'Solo el transportista del viaje lo marca.' };
+  if (!s) return { ok: false, error: 'Solo el transportista del envío lo marca.' };
   const { error } = await s.supabase.rpc('marcar_mi_viaje', { p_envio: envio, p_estado: estado });
   return error ? { ok: false, error: limpio(error.message) } : { ok: true, aviso: TEXTO[estado] ?? 'Hecho.' };
 }
