@@ -460,6 +460,7 @@ function Aceptada({ token, c }: { token: string; c: any }) {
           <label htmlFor="ok-chofer">Conductor</label><input type="text" id="ok-chofer" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
           <label htmlFor="ok-tfno">Teléfono del conductor</label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button className="btn" onClick={async () => { const x = await completar(token, veh); setGuardado(x.resultado === 'guardado' ? 'Guardado. Gracias.' : 'No se ha podido guardar; contáctanos.'); }}>Guardar vehículo y conductor</button>
+          <p className="id-hint" style={{ textAlign: 'center' }}>Si dejas un campo vacío, se mantiene el dato que ya teníamos. Para cambiarlo, escribe el nuevo.</p>
           {guardado && <p className="id-hint" style={{ textAlign: 'center' }}>{guardado}</p>}
         </div>
       )}

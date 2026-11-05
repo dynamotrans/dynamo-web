@@ -4721,3 +4721,26 @@ do $$ declare r record; begin
   raise notice 'OK 132b · la llave caduca por fecha: cierre del almacén de carga ese día + 4 h (parámetro), sin que nadie marque nada';
 end $$;
 
+-- ---- 133. Completar camión y conductor desde el enlace: un campo vacío no borra ---------
+reset role;
+do $$ declare r record; v jsonb; begin
+  select x.id, x.envio_id into r from envio_reservas x join envios e on e.id = x.envio_id and e.transportista_id = x.transportista_id
+   where x.estado = 'aceptada' and e.estado in ('programado', 'hacia_la_carga') and enlace_carga_vigente(e.id) limit 1;
+  if r.id is null then raise exception 'FALLO 133 · no hay una carga aceptada y en plazo para probar'; end if;
+  perform set_config('prueba.res133', r.id::text, false);
+  perform set_config('prueba.env133', r.envio_id::text, false);
+end $$;
+set role anon;
+do $$ declare v jsonb; begin
+  v := completar_carga_publica(current_setting('prueba.res133')::uuid, '1111 bbb', 'r-2222-ccc', 'Conductor Prueba', '+34 600 000 133');
+  if v ->> 'resultado' <> 'guardado' then raise exception 'FALLO 133 · no guarda: %', v; end if;
+  v := completar_carga_publica(current_setting('prueba.res133')::uuid, '', '', '', '');
+end $$;
+reset role;
+do $$ begin
+  if (select (matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono) from envios where id = current_setting('prueba.env133')::uuid)
+     is distinct from ('1111BBB'::text, 'R2222CCC'::text, 'Conductor Prueba'::text, '+34600000133'::text) then
+    raise exception 'FALLO 133 · un campo vacío borra lo que había: %', (select (matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono) from envios where id = current_setting('prueba.env133')::uuid);
+  end if;
+  raise notice 'OK 133 · completar camión y conductor desde el enlace: un campo vacío no borra lo que había';
+end $$;
