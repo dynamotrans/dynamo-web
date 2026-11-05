@@ -339,6 +339,8 @@ que la caché y la escalabilidad juntas.
 
 ## 13 · RGPD  🔴
 
+> **Borrador completo en `RGPD.md` (2026-11-05)**: inventario de datos, bases jurídicas y plazos propuestos, proveedores, derechos, medidas y pendientes. Para revisar con el asesor.
+
 **Tampoco está en la guía.** La plataforma va a guardar **datos personales**: nombre,
 DNI/NIE y teléfono de conductores, y **firmas de CMR con valor probatorio**.
 

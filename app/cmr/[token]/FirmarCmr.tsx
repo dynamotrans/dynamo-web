@@ -144,6 +144,12 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           onPointerMove={(e) => { if (!trazando.current || !ctx.current) return; e.preventDefault(); const p = pos(e); ctx.current.lineTo(p.x, p.y); ctx.current.stroke(); }}
           onPointerUp={() => { trazando.current = false; ctx.current?.beginPath(); }}
           onPointerCancel={() => { trazando.current = false; ctx.current?.beginPath(); }} />
+        {/* Información básica de protección de datos (RGPD art. 13): quien firma da su nombre y DNI. */}
+        <p className="hint" style={{ marginTop: '0.6rem', fontSize: '0.78rem', lineHeight: 1.45 }}>
+          <strong>Protección de datos:</strong> Dynamo guarda tu nombre, documento, firma, email (si lo pones) y la hora y desde dónde firmas,
+          como prueba de la carga o la entrega en el CMR (contrato de transporte y Convenio CMR), durante 6 años. Puedes ejercer tus derechos
+          en info@dynamotrans.com. <a href="https://www.dynamotrans.com/#privacidad" target="_blank" rel="noopener">Política de privacidad</a>.
+        </p>
         <div className="sigbtns">
           <button type="button" onClick={onCerrar} disabled={guardando}>Cancelar</button>
           <button type="button" className="b-borrar" onClick={preparar} disabled={guardando}>Borrar</button>
