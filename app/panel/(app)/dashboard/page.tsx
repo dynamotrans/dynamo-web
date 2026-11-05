@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -21,15 +22,15 @@ export default async function PaginaDashboard() {
   const vista = await vistaDe(supabase, perfil.rol);
   if (dynamo) {
     const [vivos, todos] = await Promise.all([
-      filtrarVista(supabase.from('envios').select('id, referencia_gx, referencia_cliente, estado, fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, ' +
+      leerTodo(filtrarVista(supabase.from('envios').select('id, referencia_gx, referencia_cliente, estado, fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, ' +
         'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas, descripcion_mercancia, clientes(nombre_visible)'), vista)
-        .in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(2000),
+        .in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }), 2000),
       filtrarVista(supabase.from('envios').select('id', { count: 'exact', head: true }), vista).neq('estado', 'borrador'),
     ]);
     filas = (vivos.data ?? []).map((x: any) => ({ ...x, cliente: x.clientes?.nombre_visible ?? null }));
     total = todos.count ?? 0;
   } else if (perfil.rol === 'cliente') {
-    const { data } = await supabase.rpc('mis_envios').limit(2000);
+    const { data } = await leerTodo(supabase.rpc('mis_envios'), 2000);
     total = (data ?? []).length;
     filas = (data ?? []).filter((x: any) => VIVOS.includes(x.estado))
       .sort((a: any, b: any) => (a.fecha_carga_desde ?? '9').localeCompare(b.fecha_carga_desde ?? '9'));

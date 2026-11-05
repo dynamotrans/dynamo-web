@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -18,13 +19,13 @@ export default async function PaginaOperadores() {
   }
   const vista = await vistaDe(supabase, perfil.rol);
   const [ops, envs, clis] = await Promise.all([
-    filtrarVista(supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, creado_en, modificado_en, clientes(nombre_visible)'), vista, { transportista: null })
-      .eq('borrado', false).order('razon_social').limit(10000),
-    supabase.from('envios').select('operador_id').eq('es_manual', true).not('operador_id', 'is', null).limit(100000),
-    dynamo ? supabase.from('clientes').select('id, nombre_visible').order('nombre_visible').limit(10000) : Promise.resolve({ data: [] as any[] }),
+    leerTodo(filtrarVista(supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, creado_en, modificado_en, clientes(nombre_visible)'), vista, { transportista: null })
+      .eq('borrado', false).order('razon_social'), 10000),
+    supabase.rpc('envios_por_empresa', { p_campo: 'operador' }),
+    dynamo ? leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000) : Promise.resolve({ data: [] as any[] }),
   ]);
   const usos = new Map<string, number>();
-  (envs.data ?? []).forEach((e: any) => usos.set(e.operador_id, (usos.get(e.operador_id) ?? 0) + 1));
+  ((envs.data ?? []) as { id: string; envios: number }[]).forEach((e) => usos.set(e.id, Number(e.envios)));
   const filas: OperadorFila[] = (ops.data ?? []).map((o: any) => ({
     id: o.id, cliente_id: o.cliente_id, cliente: o.clientes?.nombre_visible ?? null, razon_social: o.razon_social, cif: o.cif,
     telefono: o.telefono ?? '', email: o.email ?? '', persona_contacto: o.persona_contacto ?? '', web: o.web ?? '', anotaciones: o.anotaciones ?? '',

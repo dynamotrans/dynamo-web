@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import Link from 'next/link';
 import { sesion, iniciales, esDynamo } from '@/lib/sesion';
 import PantallaMantenimiento from '@/components/PantallaMantenimiento';
@@ -29,8 +30,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   // «Ver como» (solo Dynamo): la vista elegida y las listas para elegir cliente o transportista.
   const [vista, cliV, traV] = await Promise.all([
     vistaDe(supabase, perfil?.rol),
-    dynamo && activa ? supabase.from('clientes').select('id, nombre_visible').order('nombre_visible').limit(10000) : Promise.resolve({ data: null }),
-    dynamo && activa ? supabase.from('transportistas').select('id, nombre_visible').order('nombre_visible').limit(10000) : Promise.resolve({ data: null }),
+    dynamo && activa ? leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000) : Promise.resolve({ data: null }),
+    dynamo && activa ? leerTodo(supabase.from('transportistas').select('id, nombre_visible').order('nombre_visible'), 10000) : Promise.resolve({ data: null }),
   ]);
   const opc = (d: any) => ((d ?? []) as { id: string; nombre_visible: string | null }[]).map((x) => ({ id: x.id, nombre: x.nombre_visible ?? '—' }));
   const [cont, cob, fes] = await Promise.all([

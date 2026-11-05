@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -26,9 +27,9 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     }
     const [emp, lug, fes, ops, reg] = await Promise.all([
       supabase.rpc('mi_empresa').maybeSingle(),
-      supabase.from('lugares')
+      leerTodo(supabase.from('lugares')
         .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
-        .eq('borrado', false).order('nombre_empresa').limit(5000),
+        .eq('borrado', false).order('nombre_empresa'), 5000),
       supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
       supabase.from('operadores').select('id, razon_social').eq('borrado', false).order('razon_social'),
       supabase.rpc('reglas_precio_envio'),
@@ -53,10 +54,10 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
   const vista = await vistaDe(supabase, perfil.rol);
   const [cli, lug, fes, reg] = await Promise.all([
-    filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible').limit(2000),
-    supabase.from('lugares')
+    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible'), 2000),
+    leerTodo(supabase.from('lugares')
       .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
-      .eq('borrado', false).order('nombre_empresa').limit(5000),
+      .eq('borrado', false).order('nombre_empresa'), 5000),
     // Nacionales de los próximos 13 meses, con su fecha real de cada año (los que se
     // repiten, como el 1 de noviembre o Viernes Santo, los resuelve la base de datos).
     supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),

@@ -1,3 +1,4 @@
+import { leerTodo } from './leerTodo';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { enTemporada } from './horarios';
 
@@ -109,10 +110,10 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
 // Transportistas para "Asignar transportista", con su flota y conductores para sugerir.
 export async function cargarTransportistasParaAsignar(sb: SupabaseClient): Promise<TransportistaOpcion[]> {
   const [tra, veh, con, cto] = await Promise.all([
-    sb.from('transportistas').select('id, nombre_visible, cif, estado_operativo, nima').order('nombre_visible').limit(10000),
-    sb.from('vehiculos').select('transportista_id, matricula, tipo').eq('activo', true).limit(50000),
-    sb.from('conductores').select('transportista_id, nombre, telefono').eq('activo', true).limit(50000),
-    sb.from('contactos').select('transportista_id, telefono, email').eq('funcion', 'trafico').eq('es_principal', true).not('transportista_id', 'is', null).limit(50000),
+    leerTodo(sb.from('transportistas').select('id, nombre_visible, cif, estado_operativo, nima').order('nombre_visible'), 10000),
+    leerTodo(sb.from('vehiculos').select('transportista_id, matricula, tipo').eq('activo', true), 50000),
+    leerTodo(sb.from('conductores').select('transportista_id, nombre, telefono').eq('activo', true), 50000),
+    leerTodo(sb.from('contactos').select('transportista_id, telefono, email').eq('funcion', 'trafico').eq('es_principal', true).not('transportista_id', 'is', null), 50000),
   ]);
   const trafico = new Map((cto.data ?? []).map((x: any) => [x.transportista_id as string, x]));
   const v = new Map<string, { matricula: string; tipo: string }[]>();

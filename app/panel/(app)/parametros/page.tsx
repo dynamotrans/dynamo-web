@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Parametros, { type ParametroFila, type Candidato } from '@/components/panel/Parametros';
@@ -19,8 +20,8 @@ export default async function PaginaParametros() {
     // Quién caería HOY si se lanzara la suspensión automática (solo se mira, no se toca).
     supabase.rpc('autosuspension_candidatos'),
     // Valor anterior de cada parámetro: el último cambio de «valor» en la auditoría.
-    supabase.from('auditoria').select('registro_id, cambios, cuando').eq('tabla', 'parametros').eq('accion', 'modificacion')
-      .order('cuando', { ascending: false }).limit(3000),
+    leerTodo(supabase.from('auditoria').select('registro_id, cambios, cuando').eq('tabla', 'parametros').eq('accion', 'modificacion')
+      .order('cuando', { ascending: false }), 3000),
   ]);
   const anterior = new Map<string, unknown>();
   for (const a of (aud.data ?? []) as { registro_id: string; cambios: any }[]) {

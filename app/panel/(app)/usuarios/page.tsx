@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Usuarios, { type UsuarioFila, type Empresa } from '@/components/panel/Usuarios';
@@ -16,12 +17,12 @@ export default async function PaginaUsuarios() {
   }
 
   const [usu, cli, tra, con, env, met, notas] = await Promise.all([
-    supabase.from('usuarios').select('*').order('email').limit(10000),
-    supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible').limit(5000),
-    supabase.from('transportistas').select('id, nombre_visible, cif').order('nombre_visible').limit(10000),
+    leerTodo(supabase.from('usuarios').select('*').order('email'), 10000),
+    leerTodo(supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible'), 5000),
+    leerTodo(supabase.from('transportistas').select('id, nombre_visible, cif').order('nombre_visible'), 10000),
     supabase.rpc('conexiones_usuarios'),
     // Para las métricas de uso: quién creó cada envío y en qué quedó.
-    supabase.from('envios').select('creado_por, estado, creado_en').not('creado_por', 'is', null).neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(200000),
+    supabase.rpc('uso_envios_usuarios'),
     // Consultas de precio y tiempo conectado (migración usuarios_metricas).
     supabase.rpc('metricas_usuarios'),
     notasInternas(supabase, 'usuarios'),
@@ -30,13 +31,8 @@ export default async function PaginaUsuarios() {
 
   const conexiones = new Map(((con.data ?? []) as { id: string; ultima_conexion: string | null; email_confirmado: boolean }[]).map((c) => [c.id, c]));
   const uso = new Map<string, { envios: number; cancelados: number; ult10: number; vistos: number }>();
-  (env.data ?? []).forEach((e) => {
-    const k = e.creado_por as string;
-    const x = uso.get(k) ?? { envios: 0, cancelados: 0, ult10: 0, vistos: 0 };
-    x.envios++;
-    if (e.estado === 'cancelado') { x.cancelados++; if (x.vistos < 10) x.ult10++; }
-    x.vistos++;                       // vienen del más nuevo al más viejo
-    uso.set(k, x);
+  ((env.data ?? []) as { usuario_id: string; envios: number; cancelados: number; cancelados_ult10: number }[]).forEach((e) => {
+    uso.set(e.usuario_id, { envios: Number(e.envios), cancelados: Number(e.cancelados), ult10: Number(e.cancelados_ult10), vistos: Number(e.envios) });
   });
   const clientes: Empresa[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif }));
   const transportistas: Empresa[] = (tra.data ?? []).map((t) => ({ id: t.id, nombre: t.nombre_visible, cif: t.cif }));

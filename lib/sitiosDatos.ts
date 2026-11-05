@@ -1,3 +1,4 @@
+import { leerTodo } from './leerTodo';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SitioFila } from '@/components/panel/Sitios';
 import { contactosDe } from './contactos';
@@ -6,9 +7,9 @@ import { gruposDe, VERANO_GENERICO, type FilaHorario, type FechasVerano } from '
 // Carga los sitios (de los clientes) o los almacenes Dynamo con sus contactos y su
 // horario, listos para la tabla y la ficha. La usan las páginas Sitios y Almacenes.
 export async function cargarLugares(sb: SupabaseClient, almacenes: boolean): Promise<{ filas: SitioFila[]; error: string | null; veranoDefecto: FechasVerano }> {
-  const { data: lugares, error } = await sb.from('lugares')
+  const { data: lugares, error } = await leerTodo(sb.from('lugares')
     .select('id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, emails_avisos, disponible, precio_almacenamiento_semana, precio_reparto, creado_en, modificado_en')
-    .eq('borrado', false).eq('es_almacen_dynamo', almacenes).order('nombre_empresa').limit(10000);
+    .eq('borrado', false).eq('es_almacen_dynamo', almacenes).order('nombre_empresa'), 10000);
   const ids = (lugares ?? []).map((l) => l.id as string);
   // Almacenes: son pocos, se filtra por sus ids. Sitios: pueden ser miles (la lista de ids
   // no cabría en la dirección de la consulta), así que se piden todos los de sitios: los
@@ -16,8 +17,8 @@ export async function cargarLugares(sb: SupabaseClient, almacenes: boolean): Pro
   const con0 = sb.from('contactos').select('id, lugar_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en');
   const hor0 = sb.from('lugar_horarios').select('lugar_id, temporada, dia_semana, abre, cierra');
   const [con, hor] = !ids.length ? [{ data: [] }, { data: [] }] : await Promise.all(almacenes
-    ? [con0.in('lugar_id', ids).limit(50000), hor0.in('lugar_id', ids).limit(100000)]
-    : [con0.not('lugar_id', 'is', null).limit(50000), hor0.limit(200000)]);
+    ? [leerTodo(con0.in('lugar_id', ids), 50000), leerTodo(hor0.in('lugar_id', ids), 100000)]
+    : [leerTodo(con0.not('lugar_id', 'is', null), 50000), leerTodo(hor0, 200000)]);
 
   // Fechas genéricas del verano de los almacenes (Parámetros): las que se proponen al activarlo.
   // (con una función: la tabla Parámetros solo la lee Dynamo, y los clientes también lo necesitan)

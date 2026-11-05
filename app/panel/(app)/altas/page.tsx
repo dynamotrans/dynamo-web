@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Altas, { type AltaFila, type AltaTransportista } from '@/components/panel/Altas';
@@ -17,7 +18,7 @@ export default async function PaginaAltas() {
   const hace = new Date(Date.now() - 31 * 86400000).toISOString().slice(0, 10), luego = new Date(Date.now() + 31 * 86400000).toISOString().slice(0, 10);
   const [altas, clientes, reservas, fes] = await Promise.all([
     supabase.rpc('altas_pendientes'),
-    supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible').limit(10000),
+    leerTodo(supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible'), 10000),
     // Transportistas dados de alta online desde el enlace de una carga, esperando a Dynamo.
     supabase.from('envio_reservas').select('id, envio_id, precio_propuesto, ' +
       'transportistas!inner(id, nombre_visible, cif, pais_codigo_iso, bolsa, codigo_bolsa, tags, estado_operativo, creado_en, contactos(telefono)), ' +

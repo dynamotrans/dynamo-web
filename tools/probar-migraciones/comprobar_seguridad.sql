@@ -4821,3 +4821,26 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 137. Conteos de envíos en la base de datos (sin descargar filas) ----------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare a bigint; b bigint; begin
+  select coalesce(sum(envios), 0) into a from envios_por_empresa('cliente');
+  select count(*) into b from envios where not es_manual and estado not in ('borrador', 'cancelado');
+  if a <> b then raise exception 'FALLO 137 · el conteo por cliente no cuadra: % vs %', a, b; end if;
+  select coalesce(sum(envios), 0) into a from uso_envios_usuarios();
+  select count(*) into b from envios where creado_por is not null and estado <> 'borrador';
+  if a <> b then raise exception 'FALLO 137 · el uso por usuario no cuadra: % vs %', a, b; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from envios_por_empresa('cliente') where id <> current_setting('prueba.cliente')::uuid) then
+    raise exception 'FALLO 137 · un cliente cuenta envíos de otros clientes';
+  end if;
+  raise notice 'OK 137 · conteos de envíos por empresa y por usuario en la base de datos; cada uno cuenta lo que puede ver';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

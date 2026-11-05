@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Transportistas, { type TransportistaFila } from '@/components/panel/Transportistas';
@@ -17,11 +18,11 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
   }
 
   const [tra, con, veh, env, notas] = await Promise.all([
-    supabase.from('transportistas').select('*').order('nombre_visible').limit(10000),
-    supabase.from('contactos').select('id, transportista_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('transportista_id', 'is', null).limit(50000),
-    supabase.from('vehiculos').select('transportista_id, matricula, tipo, adr').eq('activo', true).not('transportista_id', 'is', null).limit(50000),
+    leerTodo(supabase.from('transportistas').select('*').order('nombre_visible'), 10000),
+    leerTodo(supabase.from('contactos').select('id, transportista_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('transportista_id', 'is', null), 50000),
+    leerTodo(supabase.from('vehiculos').select('transportista_id, matricula, tipo, adr').eq('activo', true).not('transportista_id', 'is', null), 50000),
     // Envíos hechos con cada transportista (lo que cuenta: no borradores ni cancelados).
-    supabase.from('envios').select('transportista_id').not('transportista_id', 'is', null).not('estado', 'in', '(borrador,cancelado)').limit(200000),
+    supabase.rpc('envios_por_empresa', { p_campo: 'transportista' }),
     notasInternas(supabase, 'transportistas'),
   ]);
 
@@ -36,7 +37,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
     flota.set(k, x);
   });
   const envios = new Map<string, number>();
-  (env.data ?? []).forEach((e) => envios.set(e.transportista_id as string, (envios.get(e.transportista_id as string) ?? 0) + 1));
+  ((env.data ?? []) as { id: string; envios: number }[]).forEach((e) => envios.set(e.id, Number(e.envios)));
 
   const filas: TransportistaFila[] = (tra.data ?? []).map((t: any) => {
     return {

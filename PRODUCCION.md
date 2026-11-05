@@ -412,3 +412,10 @@ con 2 decimales (regla 0), PDFs en el visor y no descarga forzada (0-bis), icono
 nunca a `main` sin frase explícita (regla 7), cambios públicos desde `main` (regla 8),
 altas sin duplicados (regla 10), contacto del transportista oculto al finalizar (regla 11)
 y auditoría universal (regla 12).
+
+## Límite de filas de la API (Supabase → Settings → API → Max rows)
+
+Por defecto, **1.000**. La plataforma lee las listas largas por tandas de 1.000
+(`lib/leerTodo.ts`) y los conteos los hace la base de datos, así que funciona con ese valor.
+**No bajarlo de 1.000** (si se baja, cambiar también `PAG` en `lib/leerTodo.ts`).
+

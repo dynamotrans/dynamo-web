@@ -1,5 +1,6 @@
 'use server';
 
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esGestor } from '@/lib/sesion';
 import { supabaseServidor } from '@/lib/supabase/server';
 import { precioAlmacenamiento } from '@/lib/almacenamiento';
@@ -92,8 +93,8 @@ export async function sitiosDelCliente(clienteId: string): Promise<{ id: string;
   if (!sb || !clienteId) return [];
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return [];
-  const { data } = await sb.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
-    .eq('cliente_id', clienteId).eq('borrado', false).order('nombre_empresa').limit(5000);
+  const { data } = await leerTodo(sb.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
+    .eq('cliente_id', clienteId).eq('borrado', false).order('nombre_empresa'), 5000);
   return (data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') }));
 }
 

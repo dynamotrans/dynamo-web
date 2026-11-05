@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -28,11 +29,11 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
   const sp = await searchParams;
   const vista = await vistaDe(supabase, perfil.rol);
   const [pen, tipos, envios] = await Promise.all([
-    filtrarVista(supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
+    leerTodo(filtrarVista(supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
       'editada_a_mano, creado_en, modificado_en, tipos_penalizacion(nombre), ' +
       (vista.tipo === 'admin' ? 'envios' : 'envios!inner') + '(referencia_gx, referencia_cliente, cliente_id, transportista_id, clientes(nombre_visible), transportistas(nombre_visible))'),
       vista, { cliente: 'envios.cliente_id', transportista: 'envios.transportista_id' })
-      .order('creado_en', { ascending: false }).limit(5000),
+      .order('creado_en', { ascending: false }), 5000),
     supabase.from('tipos_penalizacion').select('id, nombre, activo').order('orden'),
     cargarEnviosLigeros(supabase),
   ]);

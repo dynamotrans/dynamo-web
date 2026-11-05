@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -21,10 +22,10 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
     }
     const esT = perfil.rol === 'transportista';
     const [inc, tipos, mis] = await Promise.all([
-      supabase.from('incidencias').select('id, codigo, envio_id, cliente_id, tipo_id, titulo, detalle, estado, prioridad, resolucion, resuelto_en, creado_en, modificado_en, tipos_incidencia(nombre)')
-        .order('creado_en', { ascending: false }).limit(2000),
+      leerTodo(supabase.from('incidencias').select('id, codigo, envio_id, cliente_id, tipo_id, titulo, detalle, estado, prioridad, resolucion, resuelto_en, creado_en, modificado_en, tipos_incidencia(nombre)')
+        .order('creado_en', { ascending: false }), 2000),
       supabase.from('tipos_incidencia').select('id, clave, nombre, activo').order('orden'),
-      supabase.rpc(esT ? 'mis_viajes' : 'mis_envios').neq('estado', 'borrador').limit(3000),
+      leerTodo(supabase.rpc(esT ? 'mis_viajes' : 'mis_envios').neq('estado', 'borrador'), 3000),
     ]);
     const envios: EnvioLigero[] = ((mis.data ?? []) as any[]).map((e) => ({
       id: e.id, referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente, estado: e.estado, es_manual: e.es_manual,
@@ -50,11 +51,11 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
   }
   const vista = await vistaDe(supabase, perfil.rol);
   const [inc, tipos, clientes, envios] = await Promise.all([
-    filtrarVista(supabase.from('incidencias').select('id, codigo, envio_id, cliente_id, tipo_id, titulo, detalle, estado, prioridad, resolucion, resuelto_en, creado_en, modificado_en, ' +
+    leerTodo(filtrarVista(supabase.from('incidencias').select('id, codigo, envio_id, cliente_id, tipo_id, titulo, detalle, estado, prioridad, resolucion, resuelto_en, creado_en, modificado_en, ' +
       'tipos_incidencia(nombre), clientes(nombre_visible), envios(referencia_gx, referencia_cliente, fecha_carga_desde, fecha_carga_hasta, ' +
-      'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas)'), vista).order('creado_en', { ascending: false }).limit(5000),
+      'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas)'), vista).order('creado_en', { ascending: false }), 5000),
     supabase.from('tipos_incidencia').select('id, clave, nombre, activo').order('orden'),
-    supabase.from('clientes').select('id, nombre_visible').order('nombre_visible').limit(10000),
+    leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000),
     cargarEnviosLigeros(supabase),
   ]);
   const filas: IncidenciaFila[] = (inc.data ?? []).map((x: any) => ({

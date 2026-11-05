@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Clientes, { type ClienteFila, type Bienvenida } from '@/components/panel/Clientes';
@@ -18,11 +19,11 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   }
 
   const [cli, con, par, env, emp, notas] = await Promise.all([
-    supabase.from('clientes').select('*').order('nombre_visible').limit(5000),
-    supabase.from('contactos').select('id, cliente_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('cliente_id', 'is', null).limit(50000),
+    leerTodo(supabase.from('clientes').select('*').order('nombre_visible'), 5000),
+    leerTodo(supabase.from('contactos').select('id, cliente_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('cliente_id', 'is', null), 50000),
     supabase.from('parametros').select('clave, valor').in('clave', ['factor_bienvenida_pct', 'factor_bienvenida_envios']),
     // Envíos que cuentan para el descuento de bienvenida (mismo criterio que la base de datos).
-    supabase.from('envios').select('cliente_id').eq('es_manual', false).not('estado', 'in', '(borrador,cancelado)').limit(100000),
+    supabase.rpc('envios_por_empresa', { p_campo: 'cliente' }),
     supabase.from('usuarios').select('id, nombre, email').in('rol', ['admin', 'empleado']).order('nombre'),
     notasInternas(supabase, 'clientes'),
   ]);
@@ -30,7 +31,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const p = new Map((par.data ?? []).map((x) => [x.clave as string, Number(x.valor)]));
   const bienvenida: Bienvenida = { pct: p.get('factor_bienvenida_pct') ?? -7, envios: p.get('factor_bienvenida_envios') ?? 3 };
   const cuenta = new Map<string, number>();
-  (env.data ?? []).forEach((e) => cuenta.set(e.cliente_id as string, (cuenta.get(e.cliente_id as string) ?? 0) + 1));
+  ((env.data ?? []) as { id: string; envios: number }[]).forEach((e) => cuenta.set(e.id, Number(e.envios)));
   const porCliente = new Map<string, any[]>();
   (con.data ?? []).forEach((c) => porCliente.set(c.cliente_id as string, [...(porCliente.get(c.cliente_id as string) ?? []), c]));
   const filas: ClienteFila[] = (cli.data ?? []).map((c: any) => {

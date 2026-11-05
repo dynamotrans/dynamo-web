@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -20,12 +21,12 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
   const vista = await vistaDe(supabase, perfil.rol);
   const notas = await notasInternas(supabase, 'almacenamientos');
   const [alm, almacenes, clientes, ps] = await Promise.all([
-    filtrarVista(supabase.from('almacenamientos').select('*, clientes(nombre_visible), almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), ' +
+    leerTodo(filtrarVista(supabase.from('almacenamientos').select('*, clientes(nombre_visible), almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), ' +
       'entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)'), vista, { transportista: null })
-      .order('fecha_entrada', { ascending: false }).limit(5000),
+      .order('fecha_entrada', { ascending: false }), 5000),
     supabase.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, disponible, precio_almacenamiento_semana, precio_reparto')
       .eq('es_almacen_dynamo', true).eq('borrado', false).order('provincia'),
-    supabase.from('clientes').select('id, nombre_visible, riesgo_efectivo_euros').order('nombre_visible').limit(10000),
+    leerTodo(supabase.from('clientes').select('id, nombre_visible, riesgo_efectivo_euros').order('nombre_visible'), 10000),
     supabase.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
   ]);
   const p = new Map((ps.data ?? []).map((x: any) => [x.clave, Number(x.valor)]));
@@ -59,13 +60,13 @@ async function AlmacenamientosCliente({ abrir, tab }: { abrir: boolean; tab?: st
   if (!s?.perfil) return null;
   const { supabase } = s;
   const [alm, almacenes, cob, sit] = await Promise.all([
-    supabase.from('almacenamientos').select('id, codigo, cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos, lugar_entrega_id, descripcion, referencia_cliente, importe_almacenaje, importe_reparto, importe_total, iva_aplicado, pago_adelantado, pagado_en, estado, creado_en, modificado_en, ' +
+    leerTodo(supabase.from('almacenamientos').select('id, codigo, cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos, lugar_entrega_id, descripcion, referencia_cliente, importe_almacenaje, importe_reparto, importe_total, iva_aplicado, pago_adelantado, pagado_en, estado, creado_en, modificado_en, ' +
       'almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
-      .order('fecha_entrada', { ascending: false }).limit(2000),
+      .order('fecha_entrada', { ascending: false }), 2000),
     supabase.rpc('almacenes_dynamo_tarifa'),
     supabase.rpc('mi_cobertura_credito'),
     // Sus sitios (la seguridad por filas le da los suyos y los almacenes de Dynamo).
-    supabase.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion').eq('es_almacen_dynamo', false).eq('borrado', false).order('nombre_empresa').limit(5000),
+    leerTodo(supabase.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion').eq('es_almacen_dynamo', false).eq('borrado', false).order('nombre_empresa'), 5000),
   ]);
   const sitios = (sit.data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: dirDe(l) }));
   const filas: AlmacenamientoFila[] = (alm.data ?? []).map((a: any) => ({

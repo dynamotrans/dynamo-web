@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
@@ -51,7 +52,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     } else {
       // Sin búsqueda: TODOS los vivos y los últimos terminados (entregados y cancelados).
       const [vivos, fin] = await Promise.all([
-        filtrarVista(supabase.from('envios').select(COLS), vista).not('estado', 'in', '(entregado,cancelado)').order('creado_en', { ascending: false }).limit(5000),
+        leerTodo(filtrarVista(supabase.from('envios').select(COLS), vista).not('estado', 'in', '(entregado,cancelado)').order('creado_en', { ascending: false }), 5000),
         filtrarVista(supabase.from('envios').select(COLS), vista).in('estado', ['entregado', 'cancelado']).order('creado_en', { ascending: false }).limit(TERMINADOS),
       ]);
       error = vivos.error?.message ?? fin.error?.message ?? null;
@@ -64,7 +65,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       paradas: (x.envio_paradas ?? []) as Parada[],
     }));
   } else {
-    const { data, error: e } = await supabase.rpc(rol === 'transportista' ? 'mis_viajes' : 'mis_envios').limit(1000);
+    const { data, error: e } = await leerTodo(supabase.rpc(rol === 'transportista' ? 'mis_viajes' : 'mis_envios'), 5000);
     if (e) error = e.message;
     filas = ((data ?? []) as any[]).map((x) => ({
       ...x, cliente: null, cliente_cif: null, operador: null, creado_por: x.creado_por ?? null,

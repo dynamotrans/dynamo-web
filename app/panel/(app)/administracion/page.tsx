@@ -1,3 +1,4 @@
+import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo, esGestor } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -21,12 +22,12 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
 
   const vista = await vistaDe(supabase, perfil.rol);
   const [alm, docs] = await Promise.all([
-    filtrarVista(supabase.from('almacenamientos').select('id, codigo, referencia_cliente, estado, fecha_entrada, fecha_salida, importe_total, iva_aplicado, pagado_en, creado_en, clientes(nombre_visible)'), vista, { transportista: null })
-      .eq('pago_adelantado', true).neq('estado', 'cancelado').order('creado_en', { ascending: false }).limit(5000),
-    filtrarVista(supabase.from('documentos').select(vista.tipo === 'admin' ? 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente' : 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente, envios!inner(cliente_id, transportista_id)'),
+    leerTodo(filtrarVista(supabase.from('almacenamientos').select('id, codigo, referencia_cliente, estado, fecha_entrada, fecha_salida, importe_total, iva_aplicado, pagado_en, creado_en, clientes(nombre_visible)'), vista, { transportista: null })
+      .eq('pago_adelantado', true).neq('estado', 'cancelado').order('creado_en', { ascending: false }), 5000),
+    leerTodo(filtrarVista(supabase.from('documentos').select(vista.tipo === 'admin' ? 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente' : 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente, envios!inner(cliente_id, transportista_id)'),
       vista, { cliente: 'envios.cliente_id', transportista: 'envios.transportista_id' })
       .in('tipo', ['albaran', 'cmr_firmado']).not('envio_id', 'is', null).eq('borrado', false)
-      .order('creado_en', { ascending: false }).limit(5000),
+      .order('creado_en', { ascending: false }), 5000),
   ]);
 
   // Número y ruta del envío de cada albarán. El cliente no lee la tabla de envíos (regla
@@ -36,7 +37,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
   if (ids.length) {
     const lista: any[] = dynamo
       ? ((await supabase.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino').in('id', ids)).data ?? [])
-      : ((await supabase.rpc('mis_envios').limit(5000)).data ?? []).filter((e: any) => ids.includes(e.id));
+      : ((await leerTodo(supabase.rpc('mis_envios'), 5000)).data ?? []).filter((e: any) => ids.includes(e.id));
     for (const e of lista) envios.set(e.id, { gx: e.referencia_gx, ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → ') });
   }
 
