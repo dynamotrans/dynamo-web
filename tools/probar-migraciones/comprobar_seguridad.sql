@@ -4709,6 +4709,15 @@ do $$ declare r record; begin
   if carga_aceptada_publica(r.id) ->> 'resultado' <> 'cerrada' then raise exception 'FALLO 132 · pasada la fecha de carga + 24 h la llave sigue valiendo'; end if;
   update envios set fecha_carga_desde = current_date + 2, fecha_carga_hasta = current_date + 2 where id = r.envio_id;
   if carga_aceptada_publica(r.id) ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 132 · antes de la fecha de carga la llave no vale'; end if;
-  raise notice 'OK 132b · la llave caduca por fecha: final del día de carga + 24 h (parámetro), sin que nadie marque nada';
+  -- Desde el cierre del almacén de carga ese día: cierra a las 17:00 + 4 h = 21:00.
+  declare l uuid; d date := current_date + 2; begin
+    insert into lugares (nombre_empresa, cliente_id) values ('Almacén 132', (select cliente_id from envios where id = r.envio_id)) returning id into l;
+    perform guardar_horario(l, (select jsonb_agg(jsonb_build_object('dia', g, 'abre', '08:00', 'cierra', '17:00')) from generate_series(1, 7) g));
+    update envio_paradas set lugar_id = l where envio_id = r.envio_id and tipo = 'carga';
+    if enlace_carga_caduca_en(r.envio_id) <> ((d + time '21:00')::timestamp at time zone 'Europe/Madrid') then
+      raise exception 'FALLO 132 · la llave no caduca a las 21:00 (cierre 17:00 + 4 h): %', enlace_carga_caduca_en(r.envio_id);
+    end if;
+  end;
+  raise notice 'OK 132b · la llave caduca por fecha: cierre del almacén de carga ese día + 4 h (parámetro), sin que nadie marque nada';
 end $$;
 
