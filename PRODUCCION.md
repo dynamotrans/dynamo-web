@@ -413,6 +413,9 @@ nunca a `main` sin frase explícita (regla 7), cambios públicos desde `main` (r
 altas sin duplicados (regla 10), contacto del transportista oculto al finalizar (regla 11)
 y auditoría universal (regla 12).
 
+## Carpeta privada `tarifa` (Supabase → Settings → API → Exposed schemas)
+En **Exposed schemas** deben quedar solo `public` (y `graphql_public` si viene por defecto). **No añadir nunca `tarifa`**: ahí van los coeficientes y márgenes del tarifador y solo los leen las funciones de precio. La prueba 141 comprueba los permisos; lo de la API hay que mirarlo a mano en el panel de Supabase, en pruebas y en producción.
+
 ## Límite de filas de la API (Supabase → Settings → API → Max rows)
 
 Por defecto, **1.000**. La plataforma lee las listas largas por tandas de 1.000

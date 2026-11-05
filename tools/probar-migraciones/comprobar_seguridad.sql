@@ -5057,3 +5057,28 @@ do $$ begin
   if (select rol from usuarios where id = current_setting('prueba.u_admin')::uuid) <> 'admin' then raise exception 'FALLO 140 · el Admin Master perdió el rol'; end if;
   raise notice 'OK 140 · seguridad: almacenes de Dynamo sin sesión, Admin Master intocable para empleados, trazos del CMR solo para su envío, pronto pago reducido, incidencia no se reasigna';
 end $$;
+
+-- ---- 141. Carpeta «tarifa»: privada para la web -------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+create table tarifa.prueba141 (id int);
+do $$ begin
+  if not exists (select 1 from pg_namespace where nspname = 'tarifa') then raise exception 'FALLO 141 · no existe la carpeta tarifa'; end if;
+  if has_schema_privilege('anon', 'tarifa', 'usage') or has_schema_privilege('authenticated', 'tarifa', 'usage') then
+    raise exception 'FALLO 141 · la web puede entrar en la carpeta tarifa';
+  end if;
+  if exists (select 1 from information_schema.role_table_grants
+              where table_schema = 'tarifa' and grantee in ('anon', 'authenticated', 'PUBLIC')) then
+    raise exception 'FALLO 141 · una tabla del tarifador tiene permisos para la web';
+  end if;
+end $$;
+set role authenticated;
+do $$ begin
+  begin
+    perform 1 from tarifa.prueba141;
+    raise exception 'FALLO 141 · un usuario con sesión lee una tabla del tarifador';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+drop table tarifa.prueba141;
+do $$ begin raise notice 'OK 141 · carpeta tarifa: existe, la web no entra y sus tablas nuevas nacen sin permisos para la web'; end $$;
