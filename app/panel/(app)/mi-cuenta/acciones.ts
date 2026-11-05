@@ -1,5 +1,7 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
+import { claveValida } from '@/lib/clave';
 import { sesion } from '@/lib/sesion';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { supabasePublico } from '@/lib/supabase/publico';
@@ -20,7 +22,7 @@ export async function guardarMisDatos(d: MisDatos): Promise<{ ok: true } | { ok:
   if (error) {
     if (/telefono/i.test(error.message)) return { ok: false, error: 'El teléfono no es válido: solo números, con el prefijo del país (p. ej. +34600111222).' };
     if (/idioma/i.test(error.message)) return { ok: false, error: 'Ese idioma no está disponible.' };
-    return { ok: false, error: error.message };
+    return { ok: false, error: mensajeError(error.message) };
   }
   return { ok: true };
 }
@@ -32,8 +34,7 @@ export async function cambiarMiClave(actual: string, nueva: string): Promise<{ o
   const s = await sesion();
   if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!actual) return { ok: false, error: 'Escribe tu contraseña actual.' };
-  const reglas = [/[A-ZÁÉÍÓÚÑ]/, /[a-záéíóúñ]/, /\d/, /[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]/].filter((r) => r.test(nueva)).length + (nueva.length >= 8 ? 1 : 0);
-  if (nueva.length < 8 || reglas < 3) return { ok: false, error: 'La contraseña nueva necesita 8 caracteres y al menos 3 de las reglas.' };
+  if (!claveValida(nueva)) return { ok: false, error: 'La contraseña nueva necesita 8 caracteres y al menos 3 de las reglas.' };
   if (nueva === actual) return { ok: false, error: 'La contraseña nueva tiene que ser distinta de la actual.' };
   const { data: { user } } = await s.supabase.auth.getUser();
   const pub = supabasePublico();
@@ -45,7 +46,7 @@ export async function cambiarMiClave(actual: string, nueva: string): Promise<{ o
   if (error) {
     if (/different from the old/i.test(error.message)) return { ok: false, error: 'La contraseña nueva tiene que ser distinta de la actual.' };
     if (/weak|pwned|leaked/i.test(error.message)) return { ok: false, error: 'Esa contraseña es demasiado fácil o ha aparecido en filtraciones. Elige otra.' };
-    return { ok: false, error: error.message };
+    return { ok: false, error: mensajeError(error.message) };
   }
   return { ok: true };
 }

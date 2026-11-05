@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 
 export type IncidenciaDatos = {
@@ -12,7 +13,7 @@ type Res = { ok: true; id: string } | { ok: false; error: string };
 function traducir(msg: string): string {
   if (/titulo/i.test(msg) && /check|null/i.test(msg)) return 'Escribe un resumen de la incidencia.';
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
-  return msg;
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 
 export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): Promise<Res> {

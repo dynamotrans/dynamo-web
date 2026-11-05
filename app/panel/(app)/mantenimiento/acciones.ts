@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion } from '@/lib/sesion';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 
@@ -20,7 +21,7 @@ export async function contarArchivosSueltos(): Promise<Res<{ n: number; bytes: n
   const sv = supabaseServicio();
   if (!sv) return { ok: false, error: SIN_CLAVE };
   const { data, error } = await sv.rpc('archivos_sueltos', { p_horas: 24 });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeError(error.message) };
   const filas = (data ?? []) as { bytes: number }[];
   return { ok: true, n: filas.length, bytes: filas.reduce((a, f) => a + Number(f.bytes || 0), 0) };
 }
@@ -30,7 +31,7 @@ export async function borrarArchivosSueltos(): Promise<Res<{ borrados: number }>
   const sv = supabaseServicio();
   if (!sv) return { ok: false, error: SIN_CLAVE };
   const { data, error } = await sv.rpc('archivos_sueltos', { p_horas: 24 });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeError(error.message) };
   const rutas = ((data ?? []) as { ruta: string }[]).map((f) => f.ruta);
   let borrados = 0;
   for (let i = 0; i < rutas.length; i += 100) {

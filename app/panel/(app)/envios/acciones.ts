@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import { randomUUID, createHash } from 'node:crypto';
 import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
@@ -12,7 +13,7 @@ const ESTADOS_FASE = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'en
 function traducir(msg: string): string {
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
   if (/conductor_telefono|telefono/i.test(msg) && /check/i.test(msg)) return 'El teléfono del conductor no es válido.';
-  return msg;   // los mensajes de las reglas de la base de datos ya vienen en castellano
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 async function soloDynamo() {
   const s = await sesion();
@@ -224,7 +225,7 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
     envio_id: envioId, tipo: documento === 'cmr' ? 'cmr' : 'orden_transporte', storage_bucket: 'documentos', storage_ruta: ruta,
     nombre_archivo: nombre, tipo_mime: 'application/pdf', tamano_bytes: r.bytes.length, sha256: sha, visible_cliente: false,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeError(error.message) };
   return { ok: true, aviso: `Copia guardada en los documentos del envío: ${nombre}.` };
 }
 

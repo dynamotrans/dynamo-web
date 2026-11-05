@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esGestor } from '@/lib/sesion';
 import { supabaseServidor } from '@/lib/supabase/server';
@@ -21,7 +22,7 @@ function traducir(msg: string): string {
   if (/ck_alm_reparto/i.test(msg)) return 'Con reparto urbano hay que elegir la dirección de entrega.';
   if (/num_trailers/i.test(msg)) return 'Entre 1 y 10 tráileres.';
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
-  return msg;
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 async function dynamo() {
   const s = await sesion();

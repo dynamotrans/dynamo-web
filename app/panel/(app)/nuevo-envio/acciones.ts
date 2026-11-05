@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 
 export type ParadaNueva = {
@@ -59,7 +60,7 @@ export type EnvioNuevo = {
 function traducir(msg: string): string {
   if (/duplicate key|ux_clientes_cif|unique/i.test(msg)) return 'Ya existe un cliente con ese CIF/NIF.';
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
-  return msg;
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 
 export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):

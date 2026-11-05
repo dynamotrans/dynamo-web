@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { randomUUID } from 'node:crypto';
 import { esGestor } from '@/lib/sesion';
 import { supabaseServidor } from '@/lib/supabase/server';
@@ -64,7 +65,7 @@ export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: stri
   if (error) {
     if (/Maximo 5 documentos/i.test(error.message)) return { ok: false, error: 'Como máximo 5 documentos en la ficha del transportista: quita uno antes.' };
     if (/row-level|permission/i.test(error.message)) return { ok: false, error: 'No tienes permiso para añadir este documento.' };
-    return { ok: false, error: error.message };
+    return { ok: false, error: mensajeError(error.message) };
   }
   return { ok: true };
 }
@@ -74,12 +75,12 @@ export async function quitarDocumento(id: string): Promise<Res> {
   const s = await sesion();
   if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos.' };
   const { error } = await s.supabase.from('documentos').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }
 
 export async function visibleParaCliente(id: string, visible: boolean): Promise<Res> {
   const s = await sesion();
   if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo decide qué ve el cliente.' };
   const { error } = await s.supabase.from('documentos').update({ visible_cliente: visible }).eq('id', id);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }

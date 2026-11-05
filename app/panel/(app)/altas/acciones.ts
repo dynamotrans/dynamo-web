@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 
 export type NuevaEmpresa = { razon_social: string; cif: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string };
@@ -30,12 +31,12 @@ export async function confirmarAlta(usuario: string, cliente: { id: string } | {
     }).select('id').single();
     if (error) {
       if (/ux_clientes_cif|duplicate key/i.test(error.message)) return { ok: false, error: 'Ya hay un cliente con ese CIF: elige «Asociar a un cliente que ya existe» (regla 10).' };
-      return { ok: false, error: error.message };
+      return { ok: false, error: mensajeError(error.message) };
     }
     clienteId = data.id;
   }
   const { error } = await sb.from('usuarios').update({ cliente_id: clienteId, estado: 'activa' }).eq('id', usuario);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeError(error.message) };
   return { ok: true };
 }
 
@@ -44,5 +45,5 @@ export async function suspenderAlta(usuario: string): Promise<Res> {
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona altas.' };
   const { error } = await sb.from('usuarios').update({ estado: 'suspendida' }).eq('id', usuario);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }

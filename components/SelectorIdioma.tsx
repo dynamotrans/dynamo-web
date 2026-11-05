@@ -89,7 +89,9 @@ export function useIdiomaGT(codigos: string[]): [string, (lang: string) => void]
     const m = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
     const lang = m?.[1] && codigos.includes(m[1]) ? m[1] : 'es';
     setActual(lang);
-    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); } else setTimeout(cargarGT, 800);
+    // El traductor de Google solo se carga si hay otro idioma elegido (o al elegirlo):
+    // en español no se carga ningún script de terceros.
+    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const elegir = (lang: string) => {
@@ -113,7 +115,9 @@ export default function SelectorIdioma() {
     const m = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
     const lang = m?.[1] && IDIOMAS.some(([c]) => c === m[1]) ? m[1] : 'es';
     setActual(lang);
-    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); } else setTimeout(cargarGT, 800);
+    // El traductor de Google solo se carga si hay otro idioma elegido (o al elegirlo):
+    // en español no se carga ningún script de terceros.
+    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); }
   }, []);
   useEffect(() => {
     if (!abierto) return;

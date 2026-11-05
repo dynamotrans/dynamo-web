@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
@@ -26,7 +27,7 @@ function traducir(msg: string): string {
   if (/factor_tarifa/i.test(msg)) return 'El factor de precio tiene que estar entre −30 % y +30 %.';
   if (/plazo_pago_dias/i.test(msg)) return 'El plazo de pago solo puede ser 0, 30, 60, 90 o 120 días.';
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
-  return msg;
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 const vacio = (s: string) => (s ?? '').trim() || null;
 

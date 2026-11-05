@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 
 export type OperadorDatos = {
@@ -13,7 +14,7 @@ function traducir(msg: string): string {
   if (/telefono/i.test(msg)) return 'El teléfono no es válido: solo números, con el prefijo del país (p. ej. +34600111222).';
   if (/email/i.test(msg)) return 'El email no es válido.';
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
-  return msg;
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 const vacio = (s: string) => (s ?? '').trim() || null;
 

@@ -6,7 +6,7 @@
 // estuvieran en public/, cada cambio público que baja de `main` a `pruebas` (regla 8)
 // chocaría al fusionar. Así los dos lados siguen teniendo los ficheros en el mismo sitio
 // y public/ es solo un paso de compilación (está en .gitignore).
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 
 const DESTINO = 'public';
 const CARPETAS = ['css', 'js', 'images'];
@@ -25,4 +25,19 @@ for (const f of SUELTOS) {
 for (const d of CARPETAS) {
   if (existsSync(d)) { cpSync(d, `${DESTINO}/${d}`, { recursive: true }); n++; }
 }
+// El service worker de las maquetas (PWA del portal) guardaba en el navegador CUALQUIER
+// página del dominio, también el panel real, los PDF y las exportaciones de datos, sin
+// caducar ni borrarse al salir. En la plataforma se publica en su lugar uno que se
+// desinstala solo y borra esas cachés (revisión de seguridad 2026-11-05). El sw.js de la
+// raíz (web pública y maquetas) no se toca.
+writeFileSync(`${DESTINO}/sw.js`, `// Desinstalador: borra las cachés del antiguo service worker y se da de baja.
+self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (e) {
+  e.waitUntil(caches.keys()
+    .then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })
+    .then(function () { return self.registration.unregister(); })
+    .then(function () { return self.clients.matchAll({ type: 'window' }); })
+    .then(function (cs) { cs.forEach(function (c) { c.navigate(c.url); }); }));
+});
+`);
 console.log(`[copiar-estaticos] ${n} elementos de la web publica copiados a ${DESTINO}/`);

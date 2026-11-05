@@ -4,8 +4,10 @@
 // renueva la sesión en cada visita, respete la misma elección.
 export const COOKIE_RECORDAR = 'dyn_recordar';
 type OpcionesCookie = { maxAge?: number; expires?: Date | number | string } & Record<string, unknown>;
+// En producción, además, las cookies de la sesión solo viajan por HTTPS (secure).
 export function duracionSegunRecordar<T extends OpcionesCookie>(options: T, recordar: boolean): T {
-  if (recordar) return options;
-  const { maxAge: _m, expires: _e, ...resto } = options;
+  const o = (process.env.NODE_ENV === 'production' ? { ...options, secure: true } : options) as T;
+  if (recordar) return o;
+  const { maxAge: _m, expires: _e, ...resto } = o;
   return resto as T;
 }

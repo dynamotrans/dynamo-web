@@ -15,7 +15,9 @@ export async function POST(req: Request) {
       const bloqueado = r?.['blocked-uri'] ?? r?.blockedURL ?? '?';
       const pagina = r?.['document-uri'] ?? r?.documentURL ?? '?';
       const muestra = String(r?.['script-sample'] ?? r?.sample ?? '').slice(0, 80);
-      console.warn('[CSP]', JSON.stringify({ directiva, bloqueado: String(bloqueado).slice(0, 200), pagina: String(pagina).split('?')[0].slice(0, 200), muestra }));
+      // Las direcciones /carga/<llave> y /cmr/<llave> son llaves de acceso: no se guardan.
+      const sinLlave = (u: unknown) => String(u).split('?')[0].replace(/\/(carga|cmr)\/[^/#]+/g, '/$1/…').slice(0, 200);
+      console.warn('[CSP]', JSON.stringify({ directiva, bloqueado: sinLlave(bloqueado), pagina: sinLlave(pagina), muestra }));
     }
   } catch { /* informe roto: se ignora */ }
   return new Response(null, { status: 204 });

@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { randomUUID } from 'node:crypto';
 import { sesion, esGestor } from '@/lib/sesion';
 
@@ -33,7 +34,7 @@ export async function registrarRecurso(f: { ruta: string; nombre: string; mime: 
     storage_bucket: 'documentos', storage_ruta: f.ruta, nombre_archivo: f.nombre.slice(0, 200), tipo_mime: f.mime || null,
     tamano_bytes: f.tamano, sha256: /^[0-9a-f]{64}$/.test(f.sha256) ? f.sha256 : null, visible_cliente: false,
   });
-  return error ? { ok: false, error: error.message } : { ok: true };
+  return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }
 
 // Quitar = borrado suave: deja de verse, el fichero se conserva.
@@ -41,5 +42,5 @@ export async function quitarRecurso(id: string): Promise<Res> {
   const s = await gestor();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos de Recursos.' };
   const { error } = await s.supabase.from('documentos').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id).eq('es_recurso', true);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }

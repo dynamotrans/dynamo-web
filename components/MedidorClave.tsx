@@ -2,18 +2,11 @@
 
 // Medidor de fortaleza de la contraseña (el de crear-password.html). Lo usan la pantalla
 // «Crea tu contraseña» y la ventana «Cambiar contraseña» de Mi cuenta.
-export const REGLAS_CLAVE: [string, (s: string) => boolean][] = [
-  ['Mínimo 8 caracteres', (s) => s.length >= 8],
-  ['Una mayúscula', (s) => /[A-ZÁÉÍÓÚÑ]/.test(s)],
-  ['Una minúscula', (s) => /[a-záéíóúñ]/.test(s)],
-  ['Un número', (s) => /\d/.test(s)],
-  ['Un símbolo', (s) => /[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]/.test(s)],
-];
+import { REGLAS_CLAVE, claveValida } from '@/lib/clave';
+export { REGLAS_CLAVE, claveValida };
 const NIVELES = ['Muy débil', 'Débil', 'Aceptable', 'Buena', 'Fuerte'];
 const COLORES = ['#dc2626', '#f97316', '#eab308', '#84cc16', '#22a55a'];
 
-// Vale con 8 caracteres y al menos 3 de las 5 reglas.
-export const claveValida = (s: string) => s.length >= 8 && REGLAS_CLAVE.filter(([, f]) => f(s)).length >= 3;
 
 export default function MedidorClave({ clave }: { clave: string }) {
   const cumple = REGLAS_CLAVE.map(([, f]) => f(clave));

@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 
 export type PenalizacionDatos = {
@@ -12,7 +13,7 @@ function traducir(msg: string): string {
   if (/ck_penalizacion_algun_importe/i.test(msg)) return 'Pon al menos un importe (al cliente o al transportista).';
   if (/importe_.*check|violates check/i.test(msg)) return 'Los importes no pueden ser negativos.';
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
-  return msg;
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 async function dynamo() {
   const s = await sesion();

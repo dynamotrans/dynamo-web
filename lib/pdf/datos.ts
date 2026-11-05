@@ -1,3 +1,4 @@
+import { mensajeError } from '@/lib/mensajeError';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { paisDe } from '@/lib/paises';
 
@@ -82,7 +83,7 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
       'transportistas(id, codigo, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, plazo_pago_dias), ' +
       'operadores(razon_social, cif, telefono, email, persona_contacto)')
     .eq('id', id).maybeSingle<any>();
-  if (error) return { datos: null, error: error.message };
+  if (error) return { datos: null, error: mensajeError(error.message) };
   if (!e) return { datos: null, error: 'Ese envío no existe.' };
 
   const [par, ctos, res, yo] = await Promise.all([

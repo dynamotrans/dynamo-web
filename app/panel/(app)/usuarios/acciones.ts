@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esDynamo, esGestor, type Rol } from '@/lib/sesion';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { origen } from '@/lib/origen';
@@ -24,7 +25,7 @@ function traducir(msg: string): string {
   if (/already been registered|already registered|already exists/i.test(msg)) return 'Ya existe un usuario con ese email (regla 10: un email, un usuario).';
   if (/rate limit|too many/i.test(msg)) return 'Se han enviado demasiados emails seguidos. Prueba dentro de unos minutos.';
   if (/permission denied|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
-  return msg;   // los mensajes de las reglas de la base de datos ya vienen en castellano
+  return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
 const ROLES_VALIDOS: Rol[] = ['admin', 'empleado', 'admin_lectura', 'empleado_lectura', 'cliente', 'transportista'];
 

@@ -1,5 +1,6 @@
 'use server';
 
+import { mensajeError } from '@/lib/mensajeError';
 import { revalidatePath } from 'next/cache';
 import { sesion } from '@/lib/sesion';
 
@@ -22,7 +23,7 @@ export async function guardarDatosCmr(envioId: string, bultos: string, embalaje:
   if (b != null && (!Number.isInteger(b) || b < 1 || b > 99999)) return { error: 'El número de bultos tiene que ser un número entero (1 o más).' };
   if (v != null && (!Number.isFinite(v) || v <= 0 || v > 500)) return { error: 'El volumen tiene que estar entre 0 y 500 m³.' };
   const { error } = await s.supabase.rpc('poner_datos_cmr', { p_envio: envioId, p_bultos: b, p_embalaje: embalaje.slice(0, 60), p_volumen: v });
-  if (error) return { error: error.message };
+  if (error) return { error: mensajeError(error.message) };
   revalidatePath('/panel/envios');
   return { error: null };
 }

@@ -1,3 +1,4 @@
+import { mensajeError } from '@/lib/mensajeError';
 import { leerTodo } from './leerTodo';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { enTemporada } from './horarios';
@@ -42,7 +43,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
   const { data: e, error } = await sb.from('envios')
     .select('*, clientes(id, nombre_visible, cif, riesgo_efectivo_euros), transportistas(id, nombre_visible, cif), operadores(razon_social)')
     .eq('id', id).maybeSingle();
-  if (error) return { ficha: null, error: error.message };
+  if (error) return { ficha: null, error: mensajeError(error.message) };
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
   const [par, hit, pen, ofe, res, enl, fir, pag, reg] = await Promise.all([
