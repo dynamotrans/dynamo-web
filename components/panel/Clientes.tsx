@@ -215,7 +215,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         {campo('provincia', 'Provincia', 'Sevilla')}
         <div>
           <label htmlFor="cli-pais">País</label>
-          <SelectorPais id="cli-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
+          <SelectorPais id="cli-pais" valor={d.pais_codigo_iso} onCambio={(v) => { set('pais_codigo_iso', v); setTextos((t) => ({ ...t, iva: v === 'ES' ? '21' : '0' })); }} />
         </div>
 
         {titulo('Personas de contacto')}
@@ -229,7 +229,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
             {PLAZOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
         </div>
-        {texto('iva', 'IVA (%)', '21')}
+        {texto('iva', 'IVA (%) · 21 en España, 0 fuera (cámbialo si toca, p. ej. Canarias)', '21')}
         {texto('cesce', 'Importe crédito CESCE (€)', 'Ej. 40000')}
         {texto('dyn', 'Importe crédito Dynamo (€) · 0 o vacío = manda CESCE', 'Ej. 10000')}
         {texto('ret', 'Retención (%)', '0')}

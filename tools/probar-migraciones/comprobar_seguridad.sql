@@ -4650,3 +4650,31 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 131. IVA del cliente en el envío y asignar a mano = asignado ------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+do $$ declare c uuid; c2 uuid; e uuid; t uuid := current_setting('prueba.transp')::uuid; begin
+  insert into clientes (razon_social, cif, pais_codigo_iso) values ('Client Portugal Lda', 'PT131131131', 'PT') returning id into c;
+  if (select iva_porcentaje from clientes where id = c) <> 0 then raise exception 'FALLO 131 · un cliente de fuera de España nace con IVA'; end if;
+  insert into clientes (razon_social, cif) values ('Iva España SL', 'B13113113') returning id into c2;
+  if (select iva_porcentaje from clientes where id = c2) <> 21 then raise exception 'FALLO 131 · un cliente de España no nace con el 21 %%'; end if;
+  update clientes set pais_codigo_iso = 'FR' where id = c2;
+  if (select iva_porcentaje from clientes where id = c2) <> 0 then raise exception 'FALLO 131 · al cambiar de país no cambia el IVA'; end if;
+  update clientes set pais_codigo_iso = 'ES', iva_porcentaje = 7 where id = c2;   -- a mano (p. ej. Canarias)
+  if (select iva_porcentaje from clientes where id = c2) <> 7 then raise exception 'FALLO 131 · se pisa el IVA puesto a mano'; end if;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, iva_aplicado)
+    values (c, 13.30, 20, 1000, 800, 21) returning id into e;
+  if (select iva_aplicado from envios where id = e) <> 0 then raise exception 'FALLO 131 · el envío no toma el IVA de su cliente'; end if;
+  if (select total from pago_envio_importes(e)) <> 1000 then raise exception 'FALLO 131 · el cobro no usa el IVA del envío'; end if;
+  -- Asignar a mano = asignado; quitarlo, sin asignar.
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado', fecha_carga_desde = current_date + 2 where id = e;
+  update envios set transportista_id = t where id = e;
+  if (select estado_asignacion from envios where id = e) <> 'confirmada' then raise exception 'FALLO 131 · asignar a mano no lo marca como asignado'; end if;
+  update envios set transportista_id = null where id = e;
+  if (select estado_asignacion from envios where id = e) <> 'sin_asignar' then raise exception 'FALLO 131 · quitar el transportista no lo deja sin asignar'; end if;
+  raise notice 'OK 131 · IVA por país del cliente (21 España, 0 fuera, o el puesto a mano) en cada envío y en el cobro; asignar a mano marca asignado';
+end $$;
