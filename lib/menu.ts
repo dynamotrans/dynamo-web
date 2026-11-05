@@ -58,8 +58,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
   // Equipo de Dynamo, vista de gestión interna.
   return [
     { items: [
-      { slug: 'para-hoy', titulo: 'Para hoy', icono: 'bandeja', listo: true },
       { slug: 'dashboard-admin', titulo: 'Dashboard admin', icono: 'dashboard' },
+      { slug: 'para-hoy', titulo: 'Para hoy', icono: 'bandeja', listo: true },
       { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
       { grupo: 'otras', titulo: 'Operativa', icono: 'capas', enlaces: [
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
