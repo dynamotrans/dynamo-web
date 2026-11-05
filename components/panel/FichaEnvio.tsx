@@ -4,6 +4,7 @@
 // reales. Secciones Solicitud · Transporte · Ruta · Mercancía · Precio · Penalizaciones ·
 // Historial, y las acciones arriba (Asignar transportista, Cambiar estado, Modificar,
 // Cancelar / Deshacer). Todo lo vuelve a comprobar el servidor y la base de datos.
+import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -129,7 +130,9 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
 
   async function hacer(texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, okTxt?: string) {
     setTrabajando(texto); setAviso(null);
-    const r = await fn();
+    // Si la acción revienta (sin conexión, o justo tras publicar una versión nueva), no se
+    // queda el «trabajando…» para siempre: se avisa y se puede reintentar.
+    const r: Awaited<ReturnType<typeof fn>> = await fn().catch(() => ({ ok: false, error: SIN_CONEXION }));
     setTrabajando(null);
     if (!r.ok) { setAviso({ ok: false, txt: r.error ?? 'No se ha podido hacer.' }); return false; }
     setAviso({ ok: true, txt: r.aviso ?? okTxt ?? 'Hecho.' });

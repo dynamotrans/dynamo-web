@@ -4,6 +4,7 @@
 // le toca ver (mis_envios(): sin precio del transportista, ni margen, ni factor; regla 11
 // aplicada). Si es una solicitud, aquí acepta o rechaza el precio. Puede cancelar mientras
 // el camión no va hacia la carga, reportar una incidencia y repetir el envío.
+import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -72,7 +73,9 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
 
   async function hacer(texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) {
     setTrabajando(texto); setAviso(null);
-    const r = await fn();
+    // Si la acción revienta (sin conexión, o justo tras publicar una versión nueva), no se
+    // queda el «trabajando…» para siempre: se avisa y se puede reintentar.
+    const r: Awaited<ReturnType<typeof fn>> = await fn().catch(() => ({ ok: false, error: SIN_CONEXION }));
     setTrabajando(null);
     setAviso({ ok: r.ok, txt: (r.ok ? r.aviso : r.error) ?? (r.ok ? 'Hecho.' : 'No se ha podido hacer.') });
     if (r.ok) { setVista('ficha'); refrescar(); }

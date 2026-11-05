@@ -35,9 +35,14 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
   const ids = [...new Set((docs.data ?? []).map((d: any) => d.envio_id as string))];
   const envios = new Map<string, { gx: string; ruta: string }>();
   if (ids.length) {
-    const lista: any[] = dynamo
-      ? ((await supabase.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino').in('id', ids)).data ?? [])
-      : ((await leerTodo(supabase.rpc('mis_envios'), 5000)).data ?? []).filter((e: any) => ids.includes(e.id));
+    // Por tandas de 200 ids: una lista enorme en `.in()` no cabe en la dirección de la
+    // consulta y se perdían envíos sin avisar. El cliente, solo los suyos y solo esos ids.
+    const tandas: string[][] = [];
+    for (let i = 0; i < ids.length; i += 200) tandas.push(ids.slice(i, i + 200));
+    const lista: any[] = (await Promise.all(tandas.map((t) => dynamo
+      ? supabase.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino').in('id', t)
+      : supabase.rpc('mis_envios_por_ids', { p_ids: t }))))
+      .flatMap((r) => (r.data ?? []) as any[]);
     for (const e of lista) envios.set(e.id, { gx: e.referencia_gx, ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → ') });
   }
 

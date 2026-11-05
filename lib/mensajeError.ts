@@ -11,3 +11,7 @@ export function mensajeError(msg: string | null | undefined, generico = 'No se h
   }
   return m;
 }
+
+// Cuando una acción del servidor ni siquiera responde (sin conexión, o se acaba de publicar una
+// versión nueva de la web y la pantalla abierta es la vieja).
+export const SIN_CONEXION = 'No se ha podido conectar. Recarga la página y vuelve a intentarlo.';

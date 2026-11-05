@@ -3,6 +3,7 @@
 // Dashboard admin (solo Dynamo), copiado de #sec-dashboard-admin de dashboard.html:
 // indicadores de lo que hay que atender, últimos envíos y la línea de PRONTO PAGO a
 // transportistas (interruptor, línea editable, barra de uso y anticipos de 60 días).
+import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -103,7 +104,9 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
   const col = pct < 70 ? 'var(--green)' : pct < 90 ? '#d97706' : 'var(--red)';
   async function hacer(fn: () => Promise<{ ok: boolean; error?: string }>, txt: string) {
     setFallo(null); setTrabajando(txt);
-    const r = await fn();
+    // Si la acción revienta (sin conexión, o justo tras publicar una versión nueva), no se
+    // queda el «trabajando…» para siempre: se avisa y se puede reintentar.
+    const r: Awaited<ReturnType<typeof fn>> = await fn().catch(() => ({ ok: false, error: SIN_CONEXION }));
     setTrabajando(null);
     if (!r.ok) { setFallo(r.error ?? 'No se ha podido guardar.'); return; }
     setEditando(false); refrescar();
