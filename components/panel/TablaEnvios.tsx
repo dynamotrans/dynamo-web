@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import FilaEnlace from './FilaEnlace';
+import BuscadorEnvios from './BuscadorEnvios';
 import { euros } from '@/lib/formato';
 import { esDynamo, type Rol } from '@/lib/sesion';
 import {
@@ -71,16 +72,8 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         ))}
       </div>}
 
-      <form className="filters" action="/panel/envios" method="get" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-        <input type="hidden" name="f" value={f} />
-        <input type="search" name="q" defaultValue={q} style={{ flex: '1 1 260px' }}
-               placeholder={rol === 'transportista' ? 'Buscar: nº, matrícula, conductor, población…' : 'Buscar en todos los años: nº, empresa, matrícula, población, mercancía…'} />
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-s)' }}>Carga desde
-          <input type="date" name="desde" defaultValue={desde} /></label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-s)' }}>hasta
-          <input type="date" name="hasta" defaultValue={hasta} /></label>
-        <button type="submit" className="btn-primary">Buscar</button>
-      </form>
+      <BuscadorEnvios f={f} q={q} desde={desde} hasta={hasta}
+        placeholder={rol === 'transportista' ? 'Buscar: nº, matrícula, conductor, población…' : 'Buscar en todos los años: nº, empresa, matrícula, población, mercancía…'} />
       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '-0.3rem 0 0.8rem', fontSize: 'var(--fs-s)' }}>
         {(() => {
           const h = hoyISO(), y = Number(h.slice(0, 4));
