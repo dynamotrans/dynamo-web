@@ -12,6 +12,7 @@ import { esDynamo, esSoloLectura, type Rol } from '@/lib/roles';
 import { CONTACTO, HORARIO_ONLINE, estadoAtencion, horarioTelefono, semanaFestivaTexto } from '@/lib/atencion';
 import { useIdiomaGT } from '@/components/SelectorIdioma';
 import Modal from './Modal';
+import { EVENTO_RECARGAR } from './TirarParaRecargar';
 import SelectorVista, { VISTA_TXT } from './SelectorVista';
 import { VISTA_ADMIN, inicioDe, type OpcionVista, type Vista } from '@/lib/vistaTipo';
 import { misAvisos, marcarAvisosVistos, type Aviso } from '@/app/panel/avisos';
@@ -109,7 +110,8 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
     cargar();
     const t = setInterval(cargar, 60000);
     document.addEventListener('visibilitychange', cargar);
-    return () => { vivo = false; clearInterval(t); document.removeEventListener('visibilitychange', cargar); };
+    window.addEventListener(EVENTO_RECARGAR, cargar);   // al tirar para recargar, también la campana
+    return () => { vivo = false; clearInterval(t); document.removeEventListener('visibilitychange', cargar); window.removeEventListener(EVENTO_RECARGAR, cargar); };
   }, [vistaClave]);
   const nuevos = novedades.filter((a) => a.nuevo).length;
   // Al abrir la campana se dan por vistas (siguen resaltadas mientras está abierta).

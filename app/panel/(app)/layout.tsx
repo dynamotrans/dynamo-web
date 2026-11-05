@@ -6,6 +6,7 @@ import SinConfigurar from '@/components/SinConfigurar';
 import { RefrescoProvider } from '@/lib/useRefrescar';
 import { vistaDe } from '@/lib/vista';
 import Marco, { type Contadores, type Cobertura } from '@/components/panel/Marco';
+import TirarParaRecargar from '@/components/panel/TirarParaRecargar';
 import './dashboard.css';
 import './ajustes.css';
 
@@ -35,6 +36,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   const festivos = ((fes.data ?? []) as { fecha: string; region?: string | null }[]).filter((f) => !f.region).map((f) => f.fecha);
   return (
     <RefrescoProvider>
+    <TirarParaRecargar />
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
            empresa={empresa} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
            contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}
