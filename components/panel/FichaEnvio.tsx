@@ -19,6 +19,7 @@ import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
 import CampoTelefono from '@/components/CampoTelefono';
 import PagoPrevio from './PagoPrevio';
+import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import {
@@ -222,6 +223,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {creadoTxt(e.condiciones_aceptadas_en)}.</div></div>
       )}
       {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => setVista('modificar')} />}
+      {!manual && <RevisionDynamo envio={e} r={{ ...e, margen_pct: ficha.margenRevision }} hacer={hacer} />}
       {!manual && <PagoPrevio envio={e} pago={ficha.pago} hacer={hacer}
         libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en} />}
       {ficha.contraofertas.length > 1 && (
@@ -340,6 +342,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
             <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
             <div className="alm-price-row alm-price-sub"><span className="k">IVA ({txtNum(e.iva_aplicado ?? 21)} %)</span><span className="v">{euros(pc * Number(e.iva_aplicado ?? 21) / 100)}</span></div>
             <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_aplicado ?? 21) / 100))}</span></div>
+            <SelloPrecio r={e} />
           </div>
         )}
         {!manual && (

@@ -125,11 +125,12 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: fichaCli.id }).maybeSingle();
       const { data: cf } = await supabase.rpc('mi_contraoferta', { p_envio: fichaCli.id }).maybeSingle();
       const { data: cb } = await supabase.rpc('mi_cambio_envio', { p_envio: fichaCli.id }).maybeSingle();
+      const { data: rv } = await supabase.rpc('revision_precio_envio', { p_envio: fichaCli.id }).maybeSingle();
       // Hora límite para cancelar gratis (9:00 del día hábil anterior): sale en el aviso de «llámanos».
       const fc = fichaCli.fecha_carga_desde ?? fichaCli.fecha_carga_real;
       const { data: corte } = fc ? await supabase.rpc('corte_cancelacion', { p_fecha_carga: fc }) : { data: null };
       // Pago con tarjeta: solo si Stripe está conectado (claves en Vercel).
-      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, contraoferta: cf ?? null, cambio: cb ?? null, corte: (corte as string | null) ?? null,
+      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, contraoferta: cf ?? null, cambio: cb ?? null, revision: rv ?? null, corte: (corte as string | null) ?? null,
         tarjeta: stripeListo(), pagoVuelta: sp.pago ?? null };
     }
   }

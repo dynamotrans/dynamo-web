@@ -1,7 +1,7 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
-import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base } from '@/components/panel/NuevoEnvio';
+import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base, type ReglasPrecio } from '@/components/panel/NuevoEnvio';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,13 +24,14 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     if (perfil.rol !== 'cliente') {
       return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Esta pantalla es para los clientes.</div></div></section>;
     }
-    const [emp, lug, fes, ops] = await Promise.all([
+    const [emp, lug, fes, ops, reg] = await Promise.all([
       supabase.rpc('mi_empresa').maybeSingle(),
       supabase.from('lugares')
         .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
         .eq('borrado', false).order('nombre_empresa').limit(5000),
       supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
       supabase.from('operadores').select('id, razon_social').eq('borrado', false).order('razon_social'),
+      supabase.rpc('reglas_precio_envio'),
     ]);
     const e = emp.data as any;
     if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a info@dynamotrans.com.</div></div></section>;
@@ -46,12 +47,12 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
-      operadores={((ops.data ?? []) as any[]).map((o) => ({ id: o.id, nombre: o.razon_social }))} />;
+      operadores={((ops.data ?? []) as any[]).map((o) => ({ id: o.id, nombre: o.razon_social }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
   }
 
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
   const vista = await vistaDe(supabase, perfil.rol);
-  const [cli, lug, fes] = await Promise.all([
+  const [cli, lug, fes, reg] = await Promise.all([
     filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible').limit(2000),
     supabase.from('lugares')
       .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
@@ -59,6 +60,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     // Nacionales de los próximos 13 meses, con su fecha real de cada año (los que se
     // repiten, como el 1 de noviembre o Viernes Santo, los resuelve la base de datos).
     supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
+    supabase.rpc('reglas_precio_envio'),
   ]);
 
   let base: Base | null = null;
@@ -77,5 +79,5 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));
   const error = cli.error?.message || lug.error?.message || null;
 
-  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} esMaster={perfil.rol === 'admin'} />;
+  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} esMaster={perfil.rol === 'admin'} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
 }

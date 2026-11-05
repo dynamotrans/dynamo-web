@@ -37,6 +37,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
         <div style={{ marginTop: '0.3rem' }}>No se puede ofertar, publicar en bolsa ni asignar hasta que se pague. El cliente lo ve en su panel con la proforma{' '}
           <a href={`/panel/envios/${envio.id}/proforma`} target="_blank" rel="noopener" style={{ color: 'var(--purple)', fontWeight: 700 }}>PRO-{envio.referencia_gx}</a>
           {' '}y puede pagar con tarjeta o por transferencia.</div>
+        {pago.provisional && <div style={{ marginTop: '0.3rem' }}>Precio <strong>provisional</strong>: el plazo para pagar empieza cuando se revise el precio.</div>}
         {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{creadoTxt(pago.limite)}</strong>. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
         {!exento ? (
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>

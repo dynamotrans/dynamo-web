@@ -26,9 +26,9 @@ export default async function PaginaParaHoy() {
     return <section className="section active"><div className="pt-aviso" style={{ maxWidth: 640 }}><div>«Para hoy» es de la gestión interna: vuelve a la vista de Dynamo (arriba, «Ver como»).</div></div></section>;
   }
   const hoy = hoyMadrid(), manana = masDias(hoy, 1);
-  const ENV = 'id, referencia_gx, fecha_carga_desde, fecha_carga_hasta, importe_cliente, contraoferta_cliente, creado_en, cambio_cliente_en, modificado_en, clientes(nombre_visible)';
+  const ENV = 'id, referencia_gx, fecha_carga_desde, fecha_carga_hasta, importe_cliente, contraoferta_cliente, creado_en, cambio_cliente_en, modificado_en, precio_revision_fecha, precio_revision_anterior, precio_revision_nuevo, precio_revision_en, precio_revision_recordado, clientes(nombre_visible)';
   const cnt = { count: 'exact' as const };
-  const [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm] = await Promise.all([
+  const [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio, subidas] = await Promise.all([
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
       .neq('pago_previo', 'pendiente').lte('fecha_carga_desde', manana).order('fecha_carga_desde').limit(MAX),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('solicitud_estado', 'pendiente_precio').order('creado_en').limit(MAX),
@@ -44,6 +44,9 @@ export default async function PaginaParaHoy() {
       .eq('estado', 'pendiente_confirmar').order('creado_en').limit(MAX),
     supabase.from('usuarios').select('id, email, nombre, rol, creado_en', cnt).eq('estado', 'pendiente_verificacion').is('cliente_id', null).is('transportista_id', null).order('creado_en').limit(MAX),
     supabase.from('almacenamientos').select('id, codigo, fecha_entrada, creado_en, clientes(nombre_visible)', cnt).eq('estado', 'pendiente_confirmar').order('fecha_entrada').limit(MAX),
+    // Revisión del precio de los envíos programados con mucha antelación.
+    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('precio_revision', 'revisar').order('fecha_carga_desde').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('precio_revision', 'esperando_cliente').order('precio_revision_en').limit(MAX),
   ]);
 
   const cli = (e: any) => e?.clientes?.nombre_visible ?? 'Cliente';
@@ -76,6 +79,14 @@ export default async function PaginaParaHoy() {
       filas: ((cambios.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.cambio_cliente_en })) },
     { id: 'revisar-precio', nivel: 'aviso', titulo: 'Precio por revisar (ruta cambiada)', total: revisar.count ?? 0, todo: '/panel/envios',
       filas: ((revisar.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.modificado_en })) },
+    { id: 'revision-precio', nivel: 'aviso', titulo: 'Revisar el precio (programados con antelación)', total: revPrecio.count ?? 0, todo: '/panel/envios',
+      filas: ((revPrecio.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
+        s: `Carga ${fechas(e)} · precio provisional ${euros(e.importe_cliente)}: pon el de hoy`, desde: null })) },
+    { id: 'subidas-precio', nivel: ((subidas.data ?? []) as any[]).some((e) => e.precio_revision_recordado) ? 'urgente' : 'info',
+      titulo: 'Subidas de precio esperando al cliente', total: subidas.count ?? 0, todo: '/panel/envios',
+      filas: ((subidas.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
+        s: `De ${euros(e.precio_revision_anterior)} a ${euros(e.precio_revision_nuevo)}${e.precio_revision_recordado ? ' · NO CONTESTA: llámale' : ''}`,
+        desde: e.precio_revision_en, urgente: !!e.precio_revision_recordado })) },
     { id: 'altas', nivel: 'aviso', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
       filas: ((altas.data ?? []) as any[]).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
     { id: 'penalizaciones', nivel: 'info', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
@@ -86,6 +97,6 @@ export default async function PaginaParaHoy() {
     { id: 'almacenamientos', nivel: 'info', titulo: 'Almacenamientos por confirmar', total: alm.count ?? 0, todo: '/panel/almacenamientos',
       filas: ((alm.data ?? []) as any[]).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
   ];
-  const errores = [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm].map((r) => r.error?.message).filter(Boolean);
+  const errores = [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio, subidas].map((r) => r.error?.message).filter(Boolean);
   return <ParaHoy bloques={bloques} error={errores[0] ?? null} />;
 }

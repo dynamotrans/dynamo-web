@@ -32,8 +32,9 @@ export type Ficha = {
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
   enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Previo pago (null = no lo necesita y nunca lo necesitó).
+  margenRevision: number;     // precio_revision_margen_pct
   pago: { estado: string; motivo: string | null; metodo: string | null; pagado_en: string | null; exento_motivo: string | null;
-          base: number; iva: number; total: number; conCredito: boolean; limite: string | null } | null;
+          base: number; iva: number; total: number; conCredito: boolean; limite: string | null; provisional: boolean } | null;
 };
 
 export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ ficha: Ficha | null; error: string | null }> {
@@ -43,7 +44,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
   if (error) return { ficha: null, error: error.message };
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
-  const [par, hit, pen, ofe, res, enl, fir, pag] = await Promise.all([
+  const [par, hit, pen, ofe, res, enl, fir, pag, reg] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, lugares(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
@@ -52,6 +53,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
     sb.from('cmr_enlaces').select('id, token, caduca_en').eq('envio_id', id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle(),
     sb.from('firmas_cmr').select('rol, parada_id, nombre, documento, documento_pais, documento_validado, firmado_en').eq('envio_id', id).order('firmado_en'),
     sb.rpc('pagos_envio', { p_envio: id }).maybeSingle(),
+    sb.rpc('reglas_precio_envio'),
   ]);
   const pg = pag.data as any;
 
@@ -98,7 +100,8 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
       firmasCmr: ((fir.data ?? []) as any[]).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
       corte,
       pago: pg ? { estado: pg.pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
-        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null } : null,
+        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional } : null,
+      margenRevision: Number((reg.data as any)?.margen_pct ?? 5),
     },
   };
 }

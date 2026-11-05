@@ -12,6 +12,8 @@ set client_min_messages = notice;
 update parametros set valor = 'false' where clave = 'previo_pago_activo';
 -- Igual con los requisitos de la negociación del transportista (prueba 104): a 0, no se aplican.
 update parametros set valor = '0' where clave in ('negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga');
+-- Y con la revisión del precio de los envíos lejanos (prueba 129): sin ella, todo precio es cerrado.
+update parametros set valor = '100000' where clave = 'precio_cerrado_dias';
 
 -- ---- 1. Ninguna tabla de public sin seguridad por filas ------------------------------
 do $$ declare lista text; begin
@@ -4505,3 +4507,109 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update parametros set valor = 'false' where clave = 'previo_pago_activo';
 
+
+-- ---- 129. Revisión del precio de los envíos programados con mucha antelación ----------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = '7' where clave = 'precio_cerrado_dias';
+create or replace function pg_temp.envio129(c uuid, dias int, imp numeric) returns uuid language plpgsql as $$
+declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (c, 13.30, 20, imp, imp * 0.8, (now() at time zone 'Europe/Madrid')::date + dias) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  return e;
+end $$;
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid; r jsonb; begin
+  e := pg_temp.envio129(c, 30, 1000);
+  if (select precio_revision from envios where id = e) is distinct from 'pendiente' or (select precio_revision_fecha from envios where id = e) is null
+     or (select precio_calculado_en from envios where id = e) is null then
+    raise exception 'FALLO 129 · un envío a 30 días no queda con precio provisional y fecha de revisión';
+  end if;
+  if (select precio_revision_fecha from envios where id = e) >= (select fecha_carga_desde from envios where id = e) then
+    raise exception 'FALLO 129 · la revisión no cae antes de la carga';
+  end if;
+  e2 := pg_temp.envio129(c, 3, 1000);
+  if (select precio_revision from envios where id = e2) is not null then raise exception 'FALLO 129 · un envío a 3 días no tiene precio cerrado'; end if;
+  -- Con precio provisional: ni camión ni ofertas.
+  begin update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e; raise exception 'FALLO 129 · se asigna camión con precio provisional';
+  exception when insufficient_privilege then null; end;
+  begin insert into envio_ofertas (envio_id, precio_ofertado) values (e, 800); raise exception 'FALLO 129 · se oferta con precio provisional';
+  exception when insufficient_privilege then null; end;
+  -- Nadie toca las columnas de la revisión a mano.
+  update envios set precio_revision = 'hecha' where id = e;
+  if (select precio_revision from envios where id = e) <> 'pendiente' then raise exception 'FALLO 129 · se cierra el precio sin pasar por la revisión'; end if;
+  -- Revisión: +2 % se mantiene; -10 % baja; +20 % espera al cliente.
+  r := revisar_precio_envio(e, 1020);
+  if r->>'resultado' <> 'mantenido' or (select importe_cliente from envios where id = e) <> 1000 or (select precio_revision from envios where id = e) <> 'hecha' then
+    raise exception 'FALLO 129 · una variación pequeña cambia el precio: %', r;
+  end if;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;   -- precio definitivo: ya se asigna
+  e := pg_temp.envio129(c, 40, 1000);
+  r := revisar_precio_envio(e, 900);
+  if r->>'resultado' <> 'bajado' or (select importe_cliente from envios where id = e) <> 900 then
+    raise exception 'FALLO 129 · la bajada no se aplica sola: %', r;
+  end if;
+  e := pg_temp.envio129(c, 40, 1000);
+  r := revisar_precio_envio(e, 1200);
+  if r->>'resultado' <> 'subida' or (select importe_cliente from envios where id = e) <> 1000
+     or (select precio_revision from envios where id = e) <> 'esperando_cliente' then
+    raise exception 'FALLO 129 · la subida se aplica sin que acepte el cliente';
+  end if;
+  if not exists (select 1 from avisos where para = 'cliente' and tipo = 'precio_subida' and envio_id = e) then raise exception 'FALLO 129 · no se avisa al cliente de la subida'; end if;
+  perform set_config('prueba.e129a', e::text, false);
+  e := pg_temp.envio129(c, 40, 1000);
+  perform revisar_precio_envio(e, 1200);
+  perform set_config('prueba.e129b', e::text, false);
+  -- La tarea de cada hora: los que llegan a su fecha pasan a «revisar»; las subidas sin respuesta, aviso.
+  e := pg_temp.envio129(c, 40, 1000);
+  perform set_config('dynamo.revision_precio', 'on', true);
+  update envios set precio_revision_fecha = (now() at time zone 'Europe/Madrid')::date where id = e;
+  update envios set precio_revision_en = now() - interval '30 hours' where id = current_setting('prueba.e129b')::uuid;
+  perform set_config('dynamo.revision_precio', 'off', true);
+  perform revisar_precios_programados();
+  if (select precio_revision from envios where id = e) <> 'revisar' then raise exception 'FALLO 129 · llegada la fecha, el precio no pasa a «revisar»'; end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'precio_sin_respuesta' and envio_id = current_setting('prueba.e129b')::uuid) then
+    raise exception 'FALLO 129 · no se avisa a Dynamo de la subida sin respuesta';
+  end if;
+end $$;
+-- El cliente: no revisa el precio; acepta una subida o cancela sin coste.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform revisar_precio_envio(current_setting('prueba.e129a')::uuid, 500); raise exception 'FALLO 129 · un cliente revisa su precio';
+  exception when insufficient_privilege then null; end;
+  if (select precio_revision_nuevo from revision_precio_envio(current_setting('prueba.e129a')::uuid)) <> 1200 then raise exception 'FALLO 129 · el cliente no ve el nuevo precio'; end if;
+  if (responder_subida_precio(current_setting('prueba.e129a')::uuid, true))->>'resultado' <> 'aceptado' then raise exception 'FALLO 129 · el cliente no acepta la subida'; end if;
+  if (responder_subida_precio(current_setting('prueba.e129b')::uuid, false))->>'resultado' <> 'cancelado' then raise exception 'FALLO 129 · el cliente no cancela tras la subida'; end if;
+  -- Antelación máxima (120 días): más lejos, no (la regla salta antes que los permisos).
+  begin
+    insert into envios (cliente_id, metros_lineales, toneladas, fecha_carga_desde) values (current_setting('prueba.cliente')::uuid, 4, 3, current_date + 200);
+    raise exception 'FALLO 129 · un cliente programa un envío a 200 días';
+  exception when invalid_parameter_value then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if (select importe_cliente from envios where id = current_setting('prueba.e129a')::uuid) <> 1200 then raise exception 'FALLO 129 · aceptada la subida, el precio no cambia'; end if;
+  if (select (estado, cancelacion_sin_coste) from envios where id = current_setting('prueba.e129b')::uuid) <> ('cancelado'::estado_envio, true) then
+    raise exception 'FALLO 129 · no queda cancelado sin coste';
+  end if;
+  if exists (select 1 from penalizaciones where envio_id = current_setting('prueba.e129b')::uuid) then raise exception 'FALLO 129 · cancelar tras la subida genera penalización'; end if;
+end $$;
+-- Previo pago: con precio provisional el plazo para pagar no corre; empieza con la revisión.
+update parametros set valor = 'true' where clave = 'previo_pago_activo';
+do $$ declare c uuid; e uuid; begin
+  insert into clientes (razon_social, cif) values ('Lejano SL', 'B12912912') returning id into c;
+  e := pg_temp.envio129(c, 40, 1000);
+  if (select (pago_previo, pago_pendiente_desde is null) from envios where id = e) <> ('pendiente'::text, true) then
+    raise exception 'FALLO 129 · con precio provisional ya corre el plazo para pagar';
+  end if;
+  perform revisar_precio_envio(e, 1000);
+  if (select pago_pendiente_desde from envios where id = e) is null then raise exception 'FALLO 129 · tras la revisión no empieza el plazo para pagar'; end if;
+  raise notice 'OK 129 · revisión de precio: cerrado a ≤7 días, provisional más lejos (sin camión ni ofertas), una revisión con margen, la subida la acepta o cancela gratis el cliente y el pago espera al precio definitivo';
+end $$;
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = '100000' where clave = 'precio_cerrado_dias';

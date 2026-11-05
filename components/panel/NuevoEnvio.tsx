@@ -90,14 +90,16 @@ const IcoEscudo = () => (<svg viewBox="0 0 24 24" width="17" height="17" fill="n
 // se lo pone y él lo acepta después desde la ficha del envío.
 type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null; esCliente?: boolean;
   operadores?: { id: string; nombre: string }[];      // los operadores de transporte del cliente (envío manual)
-  esMaster?: boolean };                               // Admin Master: cualquier fecha, también pasada
+  esMaster?: boolean;                                 // Admin Master: cualquier fecha, también pasada
+  reglas?: ReglasPrecio | null };                     // antelación máxima y precio provisional (parámetros)
+export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number };
 
 // Del valor guardado a la opción más cercana del desplegable (que va por tramos).
 const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>
   v == null ? defecto : opciones.find((o) => Number(o) >= Number(v) - 1e-9) ?? opciones[opciones.length - 1];
 const decimal = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false, reglas = null }: Props) {
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
@@ -337,6 +339,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const mlTxt = optsMl.find(([v]) => v === ml)?.[1] ?? '';
   const pesoTxt = optsPeso.find(([v]) => v === peso)?.[1] ?? '';
   const camionTxt = trampilla ? 'Camión rígido con trampilla elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
+  // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
+  const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;
+  const provisional = !!reglas && !!fecha && diasHasta > reglas.cerrado_dias;
+  const maxFecha = esCliente && reglas && reglas.antelacion_max_dias > 0
+    ? new Date(Date.now() + reglas.antelacion_max_dias * 86400000).toISOString().slice(0, 10) : undefined;
+  const avisoProvisional = provisional && reglas ? (
+    <div className="pt-aviso" style={{ marginTop: '0.6rem' }}><div>
+      <strong>Precio provisional:</strong> como faltan más de {reglas.cerrado_dias} días, el precio se revisa <strong>{reglas.revision_dias_habiles} días hábiles antes de la carga</strong>.
+      Si se mueve menos de un {String(reglas.margen_pct).replace('.', ',')} %, se queda igual; si baja, se baja; si sube, {esCliente ? 'podrás aceptarlo o cancelar sin coste' : 'el cliente lo acepta o cancela sin coste'}.
+      Hasta entonces no se asigna camión{esCliente ? '' : ' ni se oferta'}.
+    </div></div>) : null;
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
 
   // ---- Avisos del paso 4 (los del mockup) --------------------------------------------
@@ -569,7 +582,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                   </div>
                   <div className="ptar-field-full">
                     <label className="ptar-mlabel" htmlFor="ne-otra">¿Otro día? Elígelo en el calendario</label>
-                    <input id="ne-otra" type="date" className="ptar-select" min={esMaster ? undefined : dias[0]} value={fecha && !dias.includes(fecha) ? fecha : ''}
+                    <input id="ne-otra" type="date" className="ptar-select" min={esMaster ? undefined : dias[0]} max={maxFecha} value={fecha && !dias.includes(fecha) ? fecha : ''}
                       onChange={(e) => setFecha(e.target.value)} />
                     {esMaster && <p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede.</p>}
                   </div>
@@ -585,6 +598,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                       ? <span><strong>Fecha de recogida:</strong> {fechaTxt}</span>
                       : <span className="ptar-eta-placeholder">Elige la fecha de recogida.</span>}
                   </div>
+                  {maxFecha && fecha > maxFecha && <div className="pt-aviso error" style={{ marginTop: '0.6rem' }}><div>Como mucho se puede programar con <strong>{reglas!.antelacion_max_dias} días</strong> de antelación. Para más, llámanos al +34 955 225 945.</div></div>}
+                  {avisoProvisional}
                 </div>
                 {manual ? (
                   <div className="ptar-field ptar-field-full ptar-admin-precio">
@@ -675,6 +690,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                 : esCliente
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Precio:</strong> te lo pasamos en menos de 25 minutos (en horario de oficina) y lo aceptas desde el envío.</div></div>
                 : cajaPrecio}
+              {avisoProvisional}
               <div className="ptar-discrecion">
                 <label className="ptar-confirm-check">
                   <input type="checkbox" checked={discrecion} onChange={(e) => setDiscrecion(e.target.checked)} />

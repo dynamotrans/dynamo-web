@@ -46,7 +46,7 @@ Leyenda: ✅ hecho y comprobado · 🟡 hecho en parte · ❌ falta · 👤 lo t
 | 16 | **Revisión de seguridad 2026-11-04** | ✅ Dos revisores independientes sobre 30 migraciones: sin escaladas ni fugas entre empresas; los huecos de reglas de negocio, cerrados (migraciones `revision_seguridad`, `seguridad_puntos_bajos`, `notas_internas`). | Repetir una revisión así antes del lanzamiento sobre todo lo nuevo. |
 
 **Además, imprescindible el día del lanzamiento:** que `portal.html` (login demo) no llegue a
-producción; mantenimiento probado; pg_cron activo (suspensiones, ofertas, limpieza de avisos).
+producción; mantenimiento probado; pg_cron activo (suspensiones, ofertas, limpieza de avisos, `dynamo-pagos-caducados` cada 15 min, `dynamo-revision-precios` cada hora).
 
 ---
 

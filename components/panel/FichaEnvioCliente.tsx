@@ -18,6 +18,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio } from './CambiosEnvio';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
+import { RevisionCliente, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
@@ -143,6 +144,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
           </select>
         </div>
       )}
+      {!manual && <RevisionCliente envio={e} r={e.revision} hacer={hacer} />}
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
       {!manual && <PedirCambio e={e} cambio={e.cambio} hacer={hacer} onLlamar={() => setVista('llamar')} />}
       {!manual && ['cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro quien="cliente" incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
@@ -244,6 +246,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
               <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
               <div className="alm-price-row alm-price-sub"><span className="k">IVA ({txtNum(iva)} %)</span><span className="v">{euros(pc * iva / 100)}</span></div>
               <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + iva / 100))}</span></div>
+              <SelloPrecio r={e.revision} />
             </div>
           )}
         </div>
@@ -327,6 +330,9 @@ function PagoCliente({ e }: { e: any }) {
         <div><strong style={{ color: '#b42318' }}>Pendiente de pago · {total}</strong> (IVA incluido).</div>
         <div style={{ marginTop: '0.3rem' }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong></div>
         {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{creadoTxt(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
+        {p.precio_provisional ? (
+          <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.precio_revision_fecha ? <> (el <strong>{fecha(e.revision.precio_revision_fecha)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
+        ) : <>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
           {e.tarjeta
             ? <form action="/api/stripe/pago" method="post"><input type="hidden" name="envio" value={e.id} /><button type="submit" className="btn-primary">Pagar {total} con tarjeta</button></form>
@@ -337,6 +343,7 @@ function PagoCliente({ e }: { e: any }) {
           {e.tarjeta ? 'Con tarjeta se confirma al momento. ' : 'El pago con tarjeta estará disponible muy pronto. '}
           Por transferencia, usa los datos de la proforma y pon <strong>PRO-{e.referencia_gx}</strong> como concepto; lo validamos en horario de oficina (hasta 24 h).
         </div>
+        </>}
       </div>
     );
   }

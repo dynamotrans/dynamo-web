@@ -228,6 +228,22 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
   return { ok: true, aviso: `Copia guardada en los documentos del envío: ${nombre}.` };
 }
 
+// Revisión del precio de un envío con precio provisional (hoy a mano; con el tarifador, sola).
+export async function revisarPrecioEnvio(envio: string, precio: number): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo revisa el precio.' };
+  const { data, error } = await s.supabase.rpc('revisar_precio_envio', { p_envio: envio, p_nuevo: precio });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado: string }).resultado;
+  const TXT: Record<string, string> = {
+    mantenido: 'Variación pequeña: se queda el precio que tenía. Precio definitivo, ya se puede ofertar.',
+    bajado: 'Precio bajado y aplicado. Se le ha avisado al cliente. Ya se puede ofertar.',
+    subida: 'Subida enviada al cliente: la acepta o cancela sin coste. Se oferta cuando conteste.',
+  };
+  if (!TXT[r]) return { ok: false, error: { no_existe: 'Ese envío no existe.', no_provisional: 'Este envío ya no tiene el precio provisional.', precio_no_valido: 'Pon un precio válido.' }[r] ?? r };
+  return { ok: true, aviso: TXT[r] };
+}
+
 // Plazo para pagar: Dynamo lo vuelve a contar desde ahora (p. ej. el cliente dice que ya
 // ha hecho la transferencia y aún no ha llegado).
 export async function ampliarPlazoPago(envio: string): Promise<Res> {

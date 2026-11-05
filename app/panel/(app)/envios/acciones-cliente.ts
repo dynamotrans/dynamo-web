@@ -21,6 +21,16 @@ export async function responderPrecio(envio: string, acepta: boolean): Promise<R
   return { ok: true, aviso: acepta ? 'Envío confirmado. Ya está programado y buscamos el camión.' : 'Solicitud cancelada, sin ningún coste.' };
 }
 
+// Revisión del precio: el cliente acepta la subida o cancela sin coste.
+export async function responderSubidaPrecio(envio: string, acepta: boolean): Promise<Res> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu cuenta no está activa.' };
+  const { data, error } = await s.supabase.rpc('responder_subida_precio', { p_envio: envio, p_acepta: acepta });
+  if (error) return { ok: false, error: limpio(error.message) };
+  if ((data as { resultado: string }).resultado === 'no_pendiente') return { ok: false, error: 'Este envío ya no tiene una subida de precio pendiente.' };
+  return { ok: true, aviso: acepta ? 'Nuevo precio aceptado. Ya buscamos el camión.' : 'Envío cancelado, sin ningún coste.' };
+}
+
 export async function cancelarMiEnvio(envio: string, motivo: string): Promise<Res> {
   const s = await soloCliente();
   if (!s) return { ok: false, error: 'Solo el cliente cancela su envío.' };
