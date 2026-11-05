@@ -4312,3 +4312,34 @@ do $$ declare r jsonb; begin
   end;
   raise notice 'OK 122 · RGPD: cada uno exporta lo suyo, solo el Admin Master anonimiza (la auditoría no guarda lo borrado) y la limpieza borra solo lo caducado';
 end $$;
+
+-- ---- 123. Segunda revisión de seguridad (4-5 nov) --------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Una modificación antigua de su almacenamiento con una nota interna de Dynamo (de antes
+-- de que las notas pasaran a notas_internas).
+insert into auditoria (tabla, registro_id, accion, quien_origen, cambios)
+values ('almacenamientos', current_setting('prueba.alm'), 'modificacion', 'app',
+        '{"anotaciones": {"antes": null, "despues": "NOTA SECRETA DE DYNAMO"}, "num_trailers": {"antes": 1, "despues": 2}}');
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from historial_registro('almacenamientos', current_setting('prueba.alm')::uuid)
+              where 'anotaciones' = any (campos) or coalesce(cambios::text, '') like '%SECRETA%') then
+    raise exception 'FALLO 123 · el cliente ve notas internas en el historial de su almacenamiento';
+  end if;
+  if not exists (select 1 from historial_registro('almacenamientos', current_setting('prueba.alm')::uuid) where 'num_trailers' = any (campos)) then
+    raise exception 'FALLO 123 · el cliente ya no ve los cambios normales de su almacenamiento';
+  end if;
+  if exists (select 1 from horario_del_dia(current_setting('prueba.lugar_b')::uuid, current_date))
+     or horario_sitio_txt(current_setting('prueba.lugar_b')::uuid, current_date) is not null then
+    raise exception 'FALLO 123 · un cliente lee el horario del sitio de otro cliente';
+  end if;
+  if (verano_sitios_fechas() ->> 'desde') is null then raise exception 'FALLO 123 · un cliente no puede leer las fechas de verano'; end if;
+  if exists (select 1 from jsonb_array_elements(coalesce(exportar_datos_usuario() -> 'firmas_cmr_con_tu_email', '[]')) f where f ? 'documento') then
+    raise exception 'FALLO 123 · la exportación saca el documento de firmas cruzadas por email';
+  end if;
+  raise notice 'OK 123 · segunda revisión: sin notas internas en el historial, horarios ajenos ocultos, fechas de verano legibles, exportación sin DNI de terceros';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

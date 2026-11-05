@@ -163,11 +163,14 @@ export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<st
   const generico = { desde: '05-25', hasta: '09-15' };
   if (!s?.perfil) return { sitios: {}, generico };
   const [{ data: pv }, h, l] = await Promise.all([
-    s.supabase.from('parametros').select('clave, valor').in('clave', ['verano_sitios_desde', 'verano_sitios_hasta']),
+    s.supabase.rpc('verano_sitios_fechas'),
     limpios.length ? s.supabase.from('lugar_horarios').select('lugar_id, temporada, dia_semana').in('lugar_id', limpios) : Promise.resolve({ data: [] as any[] }),
     limpios.length ? s.supabase.from('lugares').select('id, verano_activo, verano_desde, verano_hasta, horarios_verano').in('id', limpios) : Promise.resolve({ data: [] as any[] }),
   ]);
-  (pv ?? []).forEach((x: any) => { if (x.clave === 'verano_sitios_desde') generico.desde = x.valor; else generico.hasta = x.valor; });
+  // Las fechas genéricas, con una función: Parámetros solo lo lee Dynamo.
+  const g = pv as { desde?: string; hasta?: string } | null;
+  if (g?.desde) generico.desde = g.desde;
+  if (g?.hasta) generico.hasta = g.hasta;
   const sitios: Record<string, HorarioSitioAviso> = {};
   (l.data ?? []).forEach((x: any) => { sitios[x.id] = { general: [], verano: { activo: !!x.verano_activo, desde: x.verano_desde, hasta: x.verano_hasta, dias: [], resumen: x.horarios_verano } }; });
   (h.data ?? []).forEach((r: any) => {

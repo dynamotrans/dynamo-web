@@ -20,9 +20,10 @@ export async function cargarLugares(sb: SupabaseClient, almacenes: boolean): Pro
     : [con0.not('lugar_id', 'is', null).limit(50000), hor0.limit(200000)]);
 
   // Fechas genéricas del verano de los almacenes (Parámetros): las que se proponen al activarlo.
-  const { data: pv } = await sb.from('parametros').select('clave, valor').in('clave', ['verano_sitios_desde', 'verano_sitios_hasta']);
-  const pval = (k: string) => (pv ?? []).find((x: any) => x.clave === k)?.valor as string | undefined;
-  const veranoDefecto: FechasVerano = { desde: pval('verano_sitios_desde') ?? VERANO_GENERICO.desde, hasta: pval('verano_sitios_hasta') ?? VERANO_GENERICO.hasta };
+  // (con una función: la tabla Parámetros solo la lee Dynamo, y los clientes también lo necesitan)
+  const { data: pv } = await sb.rpc('verano_sitios_fechas');
+  const g = pv as { desde?: string; hasta?: string } | null;
+  const veranoDefecto: FechasVerano = { desde: g?.desde ?? VERANO_GENERICO.desde, hasta: g?.hasta ?? VERANO_GENERICO.hasta };
   const horarioDe = new Map<string, FilaHorario[]>(), veranoDe = new Map<string, FilaHorario[]>();
   (hor.data ?? []).forEach((h: any) => {
     const m = h.temporada === 'verano' ? veranoDe : horarioDe;
