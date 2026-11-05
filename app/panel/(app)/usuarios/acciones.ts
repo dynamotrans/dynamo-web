@@ -152,3 +152,28 @@ export async function cambiarEmail(id: string, nuevo: string, emailConfirmacion:
   if (eReg) return { ok: false, error: `El email ya está cambiado, pero no se ha podido apuntar en la auditoría: ${eReg.message}` };
   return { ok: true };
 }
+
+// RGPD — derecho de supresión: borra los datos personales de un cliente o transportista
+// (ficha, contactos con su email, notas internas) y suspende la cuenta; la auditoría apunta
+// qué se borró, sin los valores. Lo que es prueba (firmas del CMR, envíos) se conserva.
+// Solo el Admin Master, tecleando el email actual. Con la clave de servicio, además se
+// cambia el email de acceso en Supabase Auth y se bloquea la entrada.
+export async function anonimizarUsuario(id: string, emailConfirmacion: string): Promise<Res & { aviso?: string }> {
+  const s = await soloDynamo();
+  if (!s || s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el administrador anonimiza cuentas.' };
+  const { data: u } = await s.supabase.from('usuarios').select('email, rol').eq('id', id).single();
+  if (!u) return { ok: false, error: 'Ese usuario no existe.' };
+  if (emailConfirmacion.trim().toLowerCase() !== String(u.email).toLowerCase()) {
+    return { ok: false, error: 'El email no coincide. Escríbelo exactamente para confirmar.' };
+  }
+  const { data, error } = await s.supabase.rpc('anonimizar_usuario', { p_usuario: id });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = data as { resultado: string; email_anonimo?: string };
+  if (r.resultado === 'solo_clientes_y_transportistas') return { ok: false, error: 'Solo se anonimizan cuentas de clientes y transportistas.' };
+  if (r.resultado !== 'ok') return { ok: false, error: 'No se ha podido anonimizar.' };
+  const servicio = supabaseServicio();
+  if (!servicio) return { ok: true, aviso: 'Datos borrados de la plataforma. Falta la clave de servicio: borra también el usuario en Supabase → Authentication.' };
+  const { error: ea } = await servicio.auth.admin.updateUserById(id, { email: r.email_anonimo, email_confirm: true, ban_duration: '876000h', user_metadata: {} });
+  if (ea) return { ok: true, aviso: `Datos borrados de la plataforma, pero no del acceso (${ea.message}): bórralo en Supabase → Authentication.` };
+  return { ok: true, aviso: 'Datos borrados y acceso bloqueado.' };
+}

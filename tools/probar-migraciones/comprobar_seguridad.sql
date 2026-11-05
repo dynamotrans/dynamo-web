@@ -4234,3 +4234,81 @@ do $$ declare r text; k int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 122. RGPD: exportar, anonimizar y limpieza automática ---------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare u uuid; begin
+  insert into auth.users (email) values ('borrame@cliente.prueba') returning id into u;
+  update usuarios set rol = 'cliente', estado = 'activa', nombre = 'Ana Borrable', telefono = '+34600123456',
+         cliente_id = current_setting('prueba.cliente')::uuid where id = u;
+  insert into contactos (cliente_id, nombre, telefono, email) values (current_setting('prueba.cliente')::uuid, 'Ana Borrable', '+34600123456', 'borrame@cliente.prueba');
+  perform set_config('prueba.u122', u::text, false);
+  -- Un intento viejo (100 días) y uno reciente en el registro del enlace de carga.
+  insert into intentos_carga_publica (envio_id, motivo, ip) values (current_setting('prueba.e108')::uuid, 'prueba_vieja', '10.1.2.2');
+end $$;
+-- La hora la pone el servidor al insertar: se envejece aquí (la limpieza tiene permiso).
+select set_config('dynamo.purga', 'on', false);
+alter table intentos_carga_publica disable trigger tg_intentos_carga_inmutable;
+update intentos_carga_publica set cuando = now() - interval '100 days' where motivo = 'prueba_vieja';
+alter table intentos_carga_publica enable trigger tg_intentos_carga_inmutable;
+select set_config('dynamo.purga', '', false);
+-- Exportar: la persona, sus datos; otro cliente, no.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u122'), false);
+set role authenticated;
+do $$ begin
+  if (exportar_datos_usuario() -> 'cuenta' ->> 'nombre') <> 'Ana Borrable' then raise exception 'FALLO 122 · no exporta los datos de la persona'; end if;
+  begin
+    perform exportar_datos_usuario(current_setting('prueba.u_cli')::uuid);
+    raise exception 'FALLO 122 · un cliente exporta los datos de otro';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+-- Anonimizar: solo el Admin Master; borra la ficha y la auditoría no guarda los valores.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := anonimizar_usuario(current_setting('prueba.u122')::uuid);
+  if r->>'resultado' <> 'ok' then raise exception 'FALLO 122 · no anonimiza: %', r; end if;
+end $$;
+reset role;
+do $$ declare u usuarios%rowtype; begin
+  select * into u from usuarios where id = current_setting('prueba.u122')::uuid;
+  if u.nombre <> 'Persona eliminada' or u.telefono is not null or u.email not like 'eliminado-%' or u.estado <> 'suspendida' then
+    raise exception 'FALLO 122 · la ficha no queda anonimizada: % % % %', u.nombre, u.telefono, u.email, u.estado;
+  end if;
+  if exists (select 1 from contactos where email = 'borrame@cliente.prueba' or nombre = 'Ana Borrable') then
+    raise exception 'FALLO 122 · su contacto no se anonimiza';
+  end if;
+  if exists (select 1 from auditoria where cuando > now() - interval '1 minute' and cambios::text like '%600123456%' and cambios ? 'anonimizado') then
+    raise exception 'FALLO 122 · la auditoría de la anonimización guarda los datos borrados';
+  end if;
+  if not exists (select 1 from auditoria where tabla = 'usuarios' and registro_id = current_setting('prueba.u122') and cambios ? 'anonimizado') then
+    raise exception 'FALLO 122 · la anonimización no queda en la auditoría';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform anonimizar_usuario(current_setting('prueba.u_cli2')::uuid);
+    raise exception 'FALLO 122 · un cliente anonimiza a otro';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Limpieza: borra el intento de hace 100 días y deja los recientes.
+do $$ declare r jsonb; begin
+  r := purgar_datos_personales();
+  if exists (select 1 from intentos_carga_publica where motivo = 'prueba_vieja') then raise exception 'FALLO 122 · la limpieza no borra los intentos viejos: %', r; end if;
+  if not exists (select 1 from intentos_carga_publica where cuando > now() - interval '1 day') then raise exception 'FALLO 122 · la limpieza borra intentos recientes'; end if;
+  begin
+    delete from intentos_carga_publica where true;
+    raise exception 'FALLO 122 · fuera de la limpieza se pueden borrar los intentos';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  raise notice 'OK 122 · RGPD: cada uno exporta lo suyo, solo el Admin Master anonimiza (la auditoría no guarda lo borrado) y la limpieza borra solo lo caducado';
+end $$;

@@ -175,6 +175,10 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
         </div>
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Los avisos por email y WhatsApp te llegarán en este idioma.</p>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.4rem 0 0' }}>
+        Protección de datos: <a href="/panel/mi-cuenta/mis-datos" download style={{ color: 'var(--purple)', fontWeight: 700 }}>descarga lo que guardamos de ti</a>.
+        Para borrarlos o cualquier otra petición, escríbenos a info@dynamotrans.com.
+      </p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {guardando && <Cargando texto="Guardando tus datos" />}
     </Modal>

@@ -26,7 +26,7 @@ asesor**.
 | 5 | **Firmas del CMR digital** (`firmas_cmr`, imagen de la firma) | Quien firma: cargador, conductor, destinatario | Nombre, DNI/NIE, email, firma, IP, navegador, hora | Prueba de la carga y la entrega | Contrato + obligación legal (Convenio CMR) + interés legítimo (defensa ante reclamaciones) | 6 años (art. 30 Código de Comercio). Las reclamaciones CMR prescriben en 1 año (3 si hay dolo), pero el CMR es documento mercantil |
 | 6 | **Documentos subidos** (almacén de archivos) | Clientes, transportistas, conductores | Hoja CIF, DNI, seguro, tarjeta de transporte, albaranes, fotos | Alta y verificación; prueba del servicio | Contrato / obligación legal | Mientras dure la relación + 6 años; DNI del alta: hasta verificar, salvo que haga falta después |
 | 7 | **Facturación y pagos** (Holded, Stripe) | Clientes (personas de contacto) | Datos de facturación; el número de tarjeta **lo trata Stripe, Dynamo no lo ve** | Cobrar y facturar | Contrato + obligación legal (fiscal) | 6 años (mercantil); 4 años mínimo (fiscal, art. 66 LGT) |
-| 8 | **Registros de seguridad** (`auditoria`, `intentos_carga_publica`, alta online) | Cualquiera que use la plataforma o los enlaces públicos | Quién hizo qué y cuándo (email), IP en los intentos | Seguridad, prueba de cambios | Interés legítimo (6.1.f) | Auditoría: 6 años (anonimizada si se pide la supresión). IPs: **90 días** (hoy no se borran, ver §6) |
+| 8 | **Registros de seguridad** (`auditoria`, `intentos_carga_publica`, alta online) | Cualquiera que use la plataforma o los enlaces públicos | Quién hizo qué y cuándo (email), IP en los intentos | Seguridad, prueba de cambios | Interés legítimo (6.1.f) | Auditoría: 6 años (anonimizada si se pide la supresión). IPs: **90 días** (se borran solas cada noche) |
 | 9 | **Avisos de la campana** (`avisos`) | Clientes, transportistas, Dynamo | Texto del aviso, envío relacionado | Informar del servicio | Contrato | 90 días (ya se borran solos) |
 | 10 | **Notas internas** (`notas_internas`) | Usuarios, clientes, transportistas, conductores | Lo que escriba el equipo | Gestión interna | Interés legítimo | Mientras dure la relación. **Escribir solo lo necesario y nada ofensivo**: el interesado puede pedir verlas (derecho de acceso) |
 
@@ -80,11 +80,10 @@ info@dynamotrans.com, respuesta en **un mes**.
 ## 6. Pendientes
 
 **Técnicos (equipo técnico):**
-- [ ] Borrar las **IP** de los registros de intentos a los 90 días (hoy esas tablas son
-      inalterables: hay que permitir el borrado solo a la tarea automática).
-- [ ] Botón «**Anonimizar**» para usuario, contacto y conductor (para atender la supresión).
-- [ ] «**Exportar mis datos**» de un usuario (acceso y portabilidad).
-- [ ] Borrar el teléfono de los conductores que lleven 2 años sin viajes.
+- [x] Limpieza automática cada noche (`purgar_datos_personales`, pg_cron 4:53): IP de reservas e intentos a los 90 días; tiempo conectado y consultas de precio a los 12 meses (hecho 2026-11-05).
+- [x] «**Anonimizar**» (solo Admin Master): botón en la ficha del usuario; contacto y conductor con `anonimizar_contacto(id)` / `anonimizar_conductor(id)` desde Supabase. La auditoría apunta qué se borró, sin los valores (hecho 2026-11-05).
+- [x] «**Exportar datos**» (JSON): cada usuario desde Mi cuenta → Editar mis datos; Dynamo desde la ficha del usuario (hecho 2026-11-05).
+- [x] Teléfono de los conductores sin viajes en 2 años: lo borra la limpieza nocturna (hecho 2026-11-05).
 - [x] Cláusula informativa en la página de firma del CMR (hecho 2026-11-05).
 
 **Del usuario con el asesor:**

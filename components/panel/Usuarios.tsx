@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
-import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
+import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, anonimizarUsuario, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
 import type { Rol } from '@/lib/sesion';
 import { creadoTxt } from '@/lib/envios';
 import { partirTel, telBonito } from '@/lib/paises';
@@ -87,6 +87,7 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
   const [ficha, setFicha] = useState<UsuarioFila | null>(null);
   const [rolDe, setRolDe] = useState<UsuarioFila | null>(null);
   const [emailDe, setEmailDe] = useState<UsuarioFila | null>(null);
+  const [anonDe, setAnonDe] = useState<UsuarioFila | null>(null);
   const [invitar, setInvitar] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -175,7 +176,9 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
 
       {ficha && <FichaUsuario u={ficha} yo={yo} clientes={clientes} transportistas={transportistas}
         onCerrar={() => setFicha(null)} onCambiarRol={() => { setRolDe(ficha); setFicha(null); }} onHecho={hecho}
-        onCambiarEmail={yo.rol === 'admin' ? () => { setEmailDe(ficha); setFicha(null); } : undefined} />}
+        onCambiarEmail={yo.rol === 'admin' ? () => { setEmailDe(ficha); setFicha(null); } : undefined}
+        onAnonimizar={yo.rol === 'admin' && ['cliente', 'transportista'].includes(ficha.rol) ? () => { setAnonDe(ficha); setFicha(null); } : undefined} />}
+      {anonDe && <Anonimizar u={anonDe} onCerrar={() => { setFicha(anonDe); setAnonDe(null); }} onHecho={hecho} />}
       {emailDe && <CambiarEmail u={emailDe} onCerrar={() => { setFicha(emailDe); setEmailDe(null); }} onHecho={hecho} />}
       {rolDe && <CambiarRol u={rolDe} yo={yo} clientes={clientes} transportistas={transportistas}
         onCerrar={() => { setFicha(rolDe); setRolDe(null); }} onHecho={hecho} />}
@@ -220,9 +223,9 @@ const telDe = (t: { pref: string; num: string }) => t.num.trim() ? t.pref + t.nu
 const IcoUsuario = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 
 // ---- Ficha --------------------------------------------------------------------------
-function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol, onCambiarEmail, onHecho }: {
+function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol, onCambiarEmail, onAnonimizar, onHecho }: {
   u: UsuarioFila; yo: { id: string; rol: Rol }; clientes: Empresa[]; transportistas: Empresa[];
-  onCerrar: () => void; onCambiarRol: () => void; onCambiarEmail?: () => void; onHecho: (t: string) => void;
+  onCerrar: () => void; onCambiarRol: () => void; onCambiarEmail?: () => void; onAnonimizar?: () => void; onHecho: (t: string) => void;
 }) {
   const [d, setD] = useState<UsuarioDatos>({
     nombre: u.nombre, documento: u.documento, telefono: u.telefono, cargo: u.cargo, idioma: u.idioma || 'es',
@@ -262,6 +265,8 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
   return (
     <Modal abierto titulo="Editar usuario" sub={u.email} icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
+        <a className="btn-ghost" href={`/panel/usuarios/${u.id}/datos`} download title="RGPD: lo que la plataforma guarda de esta persona (JSON)">Exportar datos</a>
+        {onAnonimizar && <button className="btn-ghost" style={{ color: 'var(--red)' }} onClick={onAnonimizar} disabled={!!trabajando}>Anonimizar…</button>}
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         {!u.email_confirmado && <button className="btn-secondary" onClick={reenviar} disabled={!!trabajando}>Reenviar invitación</button>}
         <button className="btn-primary" onClick={guardar} disabled={!!trabajando}>Guardar cambios</button>
@@ -534,6 +539,46 @@ function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto="Enviando invitación" />}
+    </Modal>
+  );
+}
+
+// RGPD — derecho de supresión: borrar los datos personales de un cliente o transportista
+// cuando lo pide. Solo el Admin Master, tecleando su email. No se puede deshacer.
+function Anonimizar({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () => void; onHecho: (t: string) => void }) {
+  const [conf, setConf] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  async function confirmar() {
+    setError(null); setTrabajando(true);
+    const r = await anonimizarUsuario(u.id, conf);
+    setTrabajando(false);
+    if (!r.ok) { setError(r.error); return; }
+    onHecho(`${u.email}: ${r.aviso ?? 'datos borrados.'}`);
+  }
+  return (
+    <Modal abierto titulo={`Anonimizar — ${u.email}`} sub="Derecho de supresión (RGPD)" icono={<IcoUsuario />} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
+        <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={confirmar} disabled={trabajando || !conf.trim()}>{trabajando ? 'Anonimizando…' : 'Anonimizar para siempre'}</button>
+      </>}>
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      <div className="modal-warn-box">
+        Hazlo solo cuando <strong>la propia persona lo pida</strong> (por escrito). <strong>No se puede deshacer.</strong>
+        <ul style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem' }}>
+          <li>Se borran su nombre, teléfono, DNI, cargo y email; sus fichas de contacto; y las notas internas sobre ella.</li>
+          <li>La cuenta queda suspendida y, con la clave de servicio, ya no puede entrar.</li>
+          <li>Se conserva lo que es prueba legal (firmas del CMR, envíos) hasta que pase el plazo.</li>
+          <li>La auditoría apunta que se anonimizó, sin guardar los datos borrados.</li>
+        </ul>
+        Antes, si te lo pide, descárgale sus datos con «Exportar datos».
+      </div>
+      <div className="ptar-sitio-grid">
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="anon-conf">Para confirmar, <strong>escribe su email</strong></label>
+          <input id="anon-conf" type="text" inputMode="email" autoComplete="off" placeholder={u.email} value={conf} onChange={(e) => setConf(e.target.value)} />
+        </div>
+      </div>
     </Modal>
   );
 }
