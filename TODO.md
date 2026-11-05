@@ -52,7 +52,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Calidad — lo que queda (orden propuesto)**:
   1. **ESLint** (revisión automática del código) y **pruebas unitarias** de `lib/` (`node --test`) dentro del CI.
   2. **Tipos generados desde Supabase** (`supabase gen types`) y quitar los `any` peligrosos (ficha del envío, CargaPublica).
-  3. **Envíos y panel con páginas en la base de datos**: la lista de envíos lee hasta 6.000 filas y corta en la web; la ficha manda al navegador todos los transportistas y hasta 50.000 vehículos/conductores; el marco del panel hace 5-6 consultas seguidas (una función `contexto_panel()`); el selector de envío de Incidencias lee 3.000.
+  3. ~~**Envíos y panel con páginas en la base de datos**~~ **HECHO (2026-11-05)**: lista de envíos por páginas desde la base de datos, flota a la carta en la ficha, marco del panel con las consultas a la vez (pruebas 146 y 147).
   4. **Una sola fuente** de etiquetas y colores de estado (`lib/estados.ts`), de comprobaciones de permiso (`lib/guardia.ts`) y del tipo `Res`; el teléfono y el email de Dynamo escritos a mano en ~16 ficheros → `CONTACTO`.
   5. **Validar los datos de entrada** de las acciones (zod) y no ignorar errores al guardar contactos y horarios en Nuevo envío.
   6. **Trocear** `FichaEnvio.tsx` (940 líneas) y `NuevoEnvio.tsx` (915).
