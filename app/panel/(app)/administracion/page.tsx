@@ -32,7 +32,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
 
   // Número y ruta del envío de cada albarán. El cliente no lee la tabla de envíos (regla
   // de la plataforma): para él, desde mis_envios().
-  const ids = [...new Set((docs.data ?? []).map((d: any) => d.envio_id as string))];
+  const ids = [...new Set((docs.data ?? []).map((d) => d.envio_id as string))];
   const envios = new Map<string, { gx: string; ruta: string }>();
   if (ids.length) {
     // Por tandas de 200 ids: una lista enorme en `.in()` no cabe en la dirección de la
@@ -46,7 +46,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
     for (const e of lista) envios.set(e.id, { gx: e.referencia_gx, ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → ') });
   }
 
-  const proformas: ProformaFila[] = (alm.data ?? []).map((a: any) => {
+  const proformas: ProformaFila[] = (alm.data ?? []).map((a) => {
     const base = Number(a.importe_total ?? 0), iva = a.iva_pct != null ? Number(a.iva_pct) : 21;
     return {
       id: a.id, codigo: a.codigo, referencia_cliente: a.referencia_cliente ?? '', cliente: a.clientes?.nombre_visible ?? null,
@@ -54,7 +54,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
       base, total: Math.round(base * (1 + iva / 100) * 100) / 100, pagado_en: a.pagado_en ?? null, creado_en: a.creado_en,
     };
   });
-  const albaranes: AlbaranFila[] = (docs.data ?? []).map((d: any) => ({
+  const albaranes: AlbaranFila[] = (docs.data ?? []).map((d) => ({
     id: d.id, tipo: d.tipo, nombre: d.nombre_archivo, envio_id: d.envio_id, creado_en: d.creado_en, visible_cliente: d.visible_cliente,
     gx: envios.get(d.envio_id)?.gx ?? null, ruta: envios.get(d.envio_id)?.ruta ?? '',
   }));

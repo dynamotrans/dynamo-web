@@ -102,7 +102,7 @@ export async function crearClienteRapido(razon_social: string, cif: string, pais
     .insert({ razon_social: rs, cif: c, pais_codigo_iso: pais_codigo_iso || 'ES' })
     .select('id, nombre_visible, cif, iva_pct').single();
   if (error) return { ok: false, error: traducir(error.message) };
-  return { ok: true, cliente: { id: data.id, nombre: data.nombre_visible, cif: data.cif, iva: data.iva_pct } };
+  return { ok: true, cliente: { id: data.id, nombre: data.nombre_visible ?? rs, cif: data.cif, iva: data.iva_pct } };
 }
 
 // Cambiar la ruta de un envío ya creado (antes de cargar). Las paradas con `id` se
@@ -175,8 +175,8 @@ export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<st
   if (g?.desde) generico.desde = g.desde;
   if (g?.hasta) generico.hasta = g.hasta;
   const sitios: Record<string, HorarioSitioAviso> = {};
-  (l.data ?? []).forEach((x: any) => { sitios[x.id] = { general: [], verano: { activo: !!x.verano_activo, desde: x.verano_desde, hasta: x.verano_hasta, dias: [], resumen: x.horarios_verano } }; });
-  (h.data ?? []).forEach((r: any) => {
+  (l.data ?? []).forEach((x) => { sitios[x.id] = { general: [], verano: { activo: !!x.verano_activo, desde: x.verano_desde, hasta: x.verano_hasta, dias: [], resumen: x.horarios_verano } }; });
+  (h.data ?? []).forEach((r) => {
     const x = sitios[r.sitio_id]; if (!x) return;
     const lista = r.temporada === 'verano' ? x.verano.dias : x.general;
     if (!lista.includes(r.dia_semana)) lista.push(r.dia_semana);

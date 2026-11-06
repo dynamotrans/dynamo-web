@@ -7,6 +7,8 @@ import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
 import { vistaCruda } from '@/lib/vista';
 import { euros } from '@/lib/formato';
 import { flotaDe, type FlotaTransportista } from '@/lib/fichaEnvio';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
+import type { Enum } from '@/lib/supabase/tipos';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -58,7 +60,7 @@ export async function cambiarEstado(envio: string, estado: string, fechaCargaRea
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo cambia el estado de un envío.' };
   if (!(ESTADOS_FASE as readonly string[]).includes(estado)) return { ok: false, error: 'Ese estado no vale.' };
-  const { data, error } = await s.supabase.rpc('marcar_estado_envio', { p_envio: envio, p_estado: estado, p_fecha_carga_real: fechaCargaReal || null });
+  const { data, error } = await s.supabase.rpc('marcar_estado_envio', { p_envio: envio, p_estado: estado as Enum<'estado_envio'>, p_fecha_carga_real: fechaCargaReal || null });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
   if (r.ok) return { ok: true };
@@ -123,7 +125,7 @@ export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: 
     // Si Dynamo cambia el precio del cliente, queda fijado a mano (el tarifador no lo pisará).
     cambios.precio_fijado_a_mano = d.importe_cliente != null;
   }
-  const { error } = await s.supabase.from('envios').update(cambios).eq('id', envio);
+  const { error } = await s.supabase.from('envios').update(cambios as TablaUpdate<'envios'>).eq('id', envio);
   if (error) return { ok: false, error: traducir(error.message) };
   for (const p of d.paradas) {
     const r = await s.supabase.from('envio_paradas').update({ referencia: vacio(p.referencia), anotaciones: vacio(p.anotaciones) })

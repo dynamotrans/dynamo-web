@@ -4,6 +4,7 @@ import { mensajeError } from '@/lib/mensajeError';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esGestor } from '@/lib/sesion';
 import { precioAlmacenamiento } from '@/lib/almacenamiento';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 
 export type AlmacenamientoDatos = {
   cliente_id: string; almacen_id: string; fecha_entrada: string; fecha_salida: string;
@@ -51,7 +52,7 @@ export async function guardarAlmacenamiento(id: string | null, d: Almacenamiento
       sb.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
       sb.from('clientes').select('riesgo_efectivo_euros, iva_pct').eq('id', d.cliente_id).maybeSingle(),
     ]);
-    const p = new Map((ps ?? []).map((x: any) => [x.clave, Number(x.valor)]));
+    const p = new Map((ps ?? []).map((x) => [x.clave, Number(x.valor)]));
     const precio = precioAlmacenamiento(d, {
       semana: alm?.precio_almacenamiento_semana != null ? Number(alm.precio_almacenamiento_semana) : p.get('almacen_precio_semana') ?? 240,
       reparto: alm?.precio_reparto != null ? Number(alm.precio_reparto) : p.get('almacen_precio_reparto') ?? 220,
@@ -62,8 +63,8 @@ export async function guardarAlmacenamiento(id: string | null, d: Almacenamiento
     // Sin crédito (CESCE o de Dynamo), se paga por adelantado con proforma.
     fila.requiere_pago_previo = !(Number(cli?.riesgo_efectivo_euros) > 0);
   }
-  const q = id ? sb.from('almacenamientos').update(fila).eq('id', id).select('id, codigo').single()
-               : sb.from('almacenamientos').insert(fila).select('id, codigo').single();
+  const q = id ? sb.from('almacenamientos').update(fila as TablaUpdate<'almacenamientos'>).eq('id', id).select('id, codigo').single()
+               : sb.from('almacenamientos').insert(fila as TablaInsert<'almacenamientos'>).select('id, codigo').single();
   const { data, error } = await q;
   if (error) return { ok: false, error: traducir(error.message) };
   return { ok: true, id: data.id, codigo: data.codigo };
@@ -93,7 +94,7 @@ export async function sitiosDelCliente(clienteId: string): Promise<{ id: string;
   if (!s?.perfil || s.perfil.estado !== 'activa' || !/^[0-9a-f-]{36}$/i.test(clienteId)) return [];
   const { data } = await leerTodo(s.supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
     .eq('cliente_id', clienteId).eq('borrado', false).order('nombre_empresa'), 5000);
-  return (data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') }));
+  return (data ?? []).map((l) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') }));
 }
 
 // ---- El CLIENTE pide (y cambia o cancela, mientras no esté confirmado) su almacenamiento --
@@ -124,8 +125,8 @@ export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Pr
     sitio_entrega_id: d.num_repartos > 0 ? d.sitio_entrega_id : null,
     descripcion: d.descripcion.trim().slice(0, 500) || null, referencia_cliente: d.referencia_cliente.trim().slice(0, 80) || null,
   };
-  const q = id ? sb.from('almacenamientos').update(fila).eq('id', id).eq('estado', 'pendiente_confirmar').select('id, codigo').single()
-               : sb.from('almacenamientos').insert({ ...fila, almacen_id: d.almacen_id }).select('id, codigo').single();
+  const q = id ? sb.from('almacenamientos').update(fila as TablaUpdate<'almacenamientos'>).eq('id', id).eq('estado', 'pendiente_confirmar').select('id, codigo').single()
+               : sb.from('almacenamientos').insert({ ...fila, almacen_id: d.almacen_id } as TablaInsert<'almacenamientos'>).select('id, codigo').single();   // cliente_id lo pone la base de datos
   const { data, error } = await q;
   if (error) return { ok: false, error: /0 rows|PGRST116/i.test(error.message) ? 'Ya está confirmado: para cambiarlo, escríbenos.' : traducir(error.message) };
   return { ok: true, id: data.id, codigo: data.codigo };

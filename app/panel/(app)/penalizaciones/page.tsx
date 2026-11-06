@@ -37,7 +37,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     supabase.from('tipos_penalizacion').select('id, nombre, activo').order('orden'),
     cargarEnviosLigeros(supabase),
   ]);
-  const filas: PenalizacionFila[] = (pen.data ?? []).map((p: any) => ({
+  const filas: PenalizacionFila[] = (pen.data ?? []).map((p) => ({
     id: p.id, codigo: p.codigo, envio_id: p.envio_id, tipo_id: p.tipo_id, tipo: p.tipos_penalizacion?.nombre ?? '—',
     descripcion: p.descripcion, importe_cliente: p.importe_cliente != null ? Number(p.importe_cliente) : null,
     importe_transportista: p.importe_transportista != null ? Number(p.importe_transportista) : null,

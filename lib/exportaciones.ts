@@ -4,7 +4,7 @@ export type Fichero = 'venta' | 'compra' | 'bolsa';
 export type FilaExport = Record<string, string | number | null>;
 
 export const FICHEROS: Record<Fichero, {
-  vista: string; titulo: string; sub: string; archivo: string; ref: string; fecha: string;
+  vista: 'v_holded_pedido_venta' | 'v_holded_pedido_compra' | 'v_wtransnet'; titulo: string; sub: string; archivo: string; ref: string; fecha: string;
   marcar: string; marcado: string; desmarcar: string;
   columnas: [string, string][];   // [columna del fichero, título en la tabla de la pantalla]
 }> = {

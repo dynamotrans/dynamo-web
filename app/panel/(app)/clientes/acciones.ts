@@ -4,6 +4,7 @@ import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 
 export type ClienteDatos = {
   razon_social: string; nombre_comercial: string; cif: string;
@@ -64,8 +65,8 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
   const filaUpd: Record<string, unknown> = { ...fila };
   if (!d.factor_fijado_a_mano) delete filaUpd.factor_tarifa_pct;
   const q = id
-    ? s.supabase.from('clientes').update(filaUpd).eq('id', id).select('id').single()
-    : s.supabase.from('clientes').insert(fila).select('id').single();
+    ? s.supabase.from('clientes').update(filaUpd as TablaUpdate<'clientes'>).eq('id', id).select('id').single()
+    : s.supabase.from('clientes').insert(fila as TablaInsert<'clientes'>).select('id').single();
   const { data, error } = await q;
   if (error) return { ok: false, error: traducir(error.message) };
   const clienteId = data.id as string;

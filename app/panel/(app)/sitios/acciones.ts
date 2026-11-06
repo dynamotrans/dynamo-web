@@ -5,6 +5,7 @@ import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { validarHorario, tramosDe, MMDD, type GrupoHorario, type Verano } from '@/lib/horarios';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 
 export type SitioDatos = {
   cliente_id: string; nombre_empresa: string; tipo: string;
@@ -99,8 +100,8 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   } else if (!id) fila.cliente_id = d.cliente_id;
 
   const q = id
-    ? s.supabase.from('sitios').update(fila).eq('id', id).select('id').single()
-    : s.supabase.from('sitios').insert(fila).select('id').single();
+    ? s.supabase.from('sitios').update(fila as TablaUpdate<'sitios'>).eq('id', id).select('id').single()
+    : s.supabase.from('sitios').insert(fila as TablaInsert<'sitios'>).select('id').single();
   const { data, error } = await q;
   if (error) return { ok: false, error: traducir(error.message) };
   const sitioId = data.id as string;

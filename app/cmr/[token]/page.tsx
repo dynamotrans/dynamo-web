@@ -30,7 +30,7 @@ export default async function PaginaCmr({ params }: { params: Promise<{ token: s
       const rutas: string[] = (cmr.firmas ?? []).map((f: any) => f.ruta).filter((r: unknown) => typeof r === 'string' && r.startsWith(`cmr/${token}/`));
       if (sv && rutas.length) {
         const { data: urls } = await sv.storage.from('documentos').createSignedUrls(rutas, 600);
-        (urls ?? []).forEach((u: any) => { if (u.signedUrl && u.path) trazos[u.path] = u.signedUrl; });
+        (urls ?? []).forEach((u) => { if (u.signedUrl && u.path) trazos[u.path] = u.signedUrl; });
       }
     }
   } else if (sb) cmr = { resultado: 'enlace_no_valido' };

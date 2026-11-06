@@ -1,5 +1,5 @@
 import { mensajeError } from '@/lib/mensajeError';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SB } from '@/lib/supabase/cliente';
 import { paisDe } from '@/lib/paises';
 
 // Todo lo que necesitan la orden de carga y el CMR de un envío, leído en el servidor
@@ -33,7 +33,7 @@ export type DatosDoc = {
 };
 
 // El logo del operador de un envío manual (último subido, del almacén privado).
-export async function cargarLogoOperador(sb: SupabaseClient, operadorId: string | null | undefined): Promise<Uint8Array | null> {
+export async function cargarLogoOperador(sb: SB, operadorId: string | null | undefined): Promise<Uint8Array | null> {
   if (!operadorId) return null;
   const { data } = await sb.from('documentos').select('storage_ruta').eq('operador_id', operadorId).eq('tipo', 'logo').eq('borrado', false)
     .order('creado_en', { ascending: false }).limit(1).maybeSingle<{ storage_ruta: string }>();
@@ -45,7 +45,7 @@ export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; 
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la
 // base de datos). El documento va ENMASCARADO: el CMR lo reciben varias empresas.
-export async function cargarFirmasCmr(sb: SupabaseClient, envioId: string): Promise<FirmaDoc[]> {
+export async function cargarFirmasCmr(sb: SB, envioId: string): Promise<FirmaDoc[]> {
   const { data } = await sb.rpc('firmas_envio', { p_envio: envioId });
   return Promise.all(((data ?? []) as any[]).map(async (f) => {
     const { data: blob } = await sb.storage.from('documentos').download(f.firma_storage_ruta);
@@ -66,7 +66,7 @@ export const DYNAMO = {
   iban: '', banco: 'Banco Santander', bic: 'BSCHESMM',
 };
 export type DatosDynamo = typeof DYNAMO;
-export async function datosDynamo(sb: SupabaseClient): Promise<DatosDynamo> {
+export async function datosDynamo(sb: SB): Promise<DatosDynamo> {
   const { data } = await sb.rpc('datos_dynamo');
   const j = (data ?? {}) as Record<string, string>;
   const o: Record<string, string> = { ...DYNAMO };
@@ -77,7 +77,7 @@ export async function datosDynamo(sb: SupabaseClient): Promise<DatosDynamo> {
 
 export const nombrePais = (c: string | null | undefined) => (c ? paisDe(c.trim().toUpperCase()) : null);
 
-export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
+export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
   const { data: e, error } = await sb.from('envios')
     .select('*, clientes(id, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso), ' +
       'transportistas(id, codigo, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, plazo_pago_dias), ' +
@@ -152,7 +152,7 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
 
 // La orden de carga para el TRANSPORTISTA, desde datos_orden_transportista() (solo su
 // viaje, sin el cliente de Dynamo). Mismo formato que cargarDatosDoc.
-export async function cargarDatosDocTransportista(sb: SupabaseClient, id: string):
+export async function cargarDatosDocTransportista(sb: SB, id: string):
   Promise<{ datos: DatosDoc | null; parametros: Record<string, number>; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_transportista', { p_envio: id });
   if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el envío.' };
@@ -161,7 +161,7 @@ export async function cargarDatosDocTransportista(sb: SupabaseClient, id: string
 
 // Lo mismo desde el enlace público /carga/<enlace>, sin cuenta: la llave es la reserva
 // aceptada (cookie de esa página). Trae también los datos fijos de Dynamo.
-export async function cargarDatosDocPublica(sb: SupabaseClient, reserva: string):
+export async function cargarDatosDocPublica(sb: SB, reserva: string):
   Promise<{ datos: DatosDoc | null; parametros: Record<string, number>; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_publica', { p_reserva: reserva });
   if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el envío.' };
@@ -200,7 +200,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
 
 // La orden de carga de un envío MANUAL, para el CLIENTE (datos_orden_manual(): su
 // empresa, su operador y las paradas; nada de Dynamo).
-export async function cargarDatosDocManual(sb: SupabaseClient, id: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
+export async function cargarDatosDocManual(sb: SB, id: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_manual', { p_envio: id });
   if (error || !data) return { datos: null, error: error?.message ?? 'No se ha podido leer el envío.' };
   const j = data as any, c = j.cliente ?? {}, o = j.porteador ?? {};

@@ -2,10 +2,11 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import DashboardCliente, { type MiniEnvio } from '@/components/panel/DashboardCliente';
+import type { Enum } from '@/lib/supabase/tipos';
 
 export const dynamic = 'force-dynamic';
 
-const VIVOS = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'];
+const VIVOS: Enum<'estado_envio'>[] = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'];
 
 // Dashboard del cliente: diseño de #sec-dashboard de dashboard.html. El cliente ve sus
 // envíos (mis_envios); Dynamo ve el mismo panel con los de todos, para saber qué ve el cliente.
@@ -40,7 +41,7 @@ export default async function PaginaDashboard() {
     activos = vivos.count ?? filas.length;
     total = todos.count ?? 0;
   }
-  const mini: MiniEnvio[] = filas.slice(0, 3).map((x: any) => ({
+  const mini: MiniEnvio[] = filas.slice(0, 3).map((x) => ({
     id: x.id, referencia_gx: x.referencia_gx, referencia_cliente: x.referencia_cliente, estado: x.estado,
     fecha_carga_desde: x.fecha_carga_real ?? x.fecha_carga_desde, fecha_carga_hasta: x.fecha_carga_real ? null : x.fecha_carga_hasta,
     origen: [x.codigo_postal_origen, x.poblacion_origen].filter(Boolean).join(' '), destino: [x.codigo_postal_destino, x.poblacion_destino].filter(Boolean).join(' '),

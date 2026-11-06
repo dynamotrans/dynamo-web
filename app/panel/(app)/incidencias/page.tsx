@@ -32,7 +32,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
     const ids = [...new Set([...((rec.data ?? []) as { id: string }[]).map((x) => x.id), ...((inc.data ?? []) as any[]).map((x) => x.envio_id).filter(Boolean)])];
     const envios: EnvioLigero[] = await misEnviosLigerosPorId(supabase, ids, esT);
     const porId = new Map(envios.map((e) => [e.id, e]));
-    const filas: IncidenciaFila[] = (inc.data ?? []).map((x: any) => {
+    const filas: IncidenciaFila[] = (inc.data ?? []).map((x) => {
       const e = x.envio_id ? porId.get(x.envio_id) : null;
       return { id: x.id, codigo: x.codigo, envio_id: x.envio_id, cliente_id: x.cliente_id, tipo_id: x.tipo_id, tipo: x.tipos_incidencia?.nombre ?? '—',
         titulo: x.titulo, detalle: x.detalle, estado: x.estado, prioridad: x.prioridad, resolucion: x.resolucion, resuelto_en: x.resuelto_en,
@@ -53,7 +53,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
     leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000),
     cargarEnviosLigeros(supabase),
   ]);
-  const filas: IncidenciaFila[] = (inc.data ?? []).map((x: any) => ({
+  const filas: IncidenciaFila[] = (inc.data ?? []).map((x) => ({
     id: x.id, codigo: x.codigo, envio_id: x.envio_id, cliente_id: x.cliente_id, tipo_id: x.tipo_id, tipo: x.tipos_incidencia?.nombre ?? '—',
     titulo: x.titulo, detalle: x.detalle, estado: x.estado, prioridad: x.prioridad, resolucion: x.resolucion, resuelto_en: x.resuelto_en,
     creado_en: x.creado_en, modificado_en: x.modificado_en, cliente: x.clientes?.nombre_visible ?? null,

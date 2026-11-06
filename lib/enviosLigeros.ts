@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SB } from '@/lib/supabase/cliente';
 
 // Lista corta de envíos para elegir uno en Incidencias y Penalizaciones (buscador
 // «Envío referenciado» del mockup) y para enseñar su resumen.
@@ -33,13 +33,13 @@ function aLigero(e: any): EnvioLigero {
 
 // Los más recientes primero: los que salen con el buscador vacío. El resto se busca en
 // la base de datos al escribir (buscarEnviosLigeros), así da igual que haya miles.
-export async function cargarEnviosLigeros(sb: SupabaseClient, limite = 40): Promise<EnvioLigero[]> {
+export async function cargarEnviosLigeros(sb: SB, limite = 40): Promise<EnvioLigero[]> {
   const { data } = await sb.from('envios').select(COLUMNAS).neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(limite);
   return (data ?? []).map(aLigero);
 }
 
 // Unos envíos concretos, en el orden pedido (resultado de buscar_envios, o el ya elegido).
-export async function enviosLigerosPorId(sb: SupabaseClient, ids: string[]): Promise<EnvioLigero[]> {
+export async function enviosLigerosPorId(sb: SB, ids: string[]): Promise<EnvioLigero[]> {
   if (!ids.length) return [];
   const { data } = await sb.from('envios').select(COLUMNAS).in('id', ids);
   const porId = new Map((data ?? []).map((e: any) => [e.id, aLigero(e)]));
@@ -59,7 +59,7 @@ export function ligeroDeMio(e: any, esT: boolean): EnvioLigero {
     importe_cliente: esT ? e.importe_transportista : e.importe_cliente, importe_transportista: null,
   };
 }
-export async function misEnviosLigerosPorId(sb: SupabaseClient, ids: string[], esT: boolean): Promise<EnvioLigero[]> {
+export async function misEnviosLigerosPorId(sb: SB, ids: string[], esT: boolean): Promise<EnvioLigero[]> {
   if (!ids.length) return [];
   const { data } = await sb.rpc(esT ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: ids });
   const porId = new Map(((data ?? []) as any[]).map((e) => [e.id, ligeroDeMio(e, esT)]));

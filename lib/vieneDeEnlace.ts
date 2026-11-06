@@ -1,5 +1,5 @@
 import 'server-only';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SB } from '@/lib/supabase/cliente';
 
 // ¿La sesión viene de canjear hace poco un enlace del email (invitación o «he olvidado mi
 // contraseña»)? Solo entonces se puede poner contraseña SIN dar la actual. Si se entró con
@@ -7,7 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // un ordenador ajeno no basta para quedarse con la cuenta).
 // Lo dice el `amr` del token (método y hora de la última forma de entrar), verificado.
 const MINUTOS = 30;
-export async function vieneDeEnlace(sb: SupabaseClient): Promise<boolean> {
+export async function vieneDeEnlace(sb: SB): Promise<boolean> {
   const { data, error } = await sb.auth.getClaims();
   if (error || !data?.claims) return false;
   const amr = (data.claims as any).amr as { method?: string; timestamp?: number }[] | undefined;

@@ -36,7 +36,7 @@ export default async function PaginaUsuarios() {
   });
   const clientes: Empresa[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif }));
   const transportistas: Empresa[] = (tra.data ?? []).map((t) => ({ id: t.id, nombre: t.nombre_visible, cif: t.cif }));
-  const filas: UsuarioFila[] = (usu.data ?? []).map((u: any) => {
+  const filas: UsuarioFila[] = (usu.data ?? []).map((u) => {
     const c = conexiones.get(u.id); const m = uso.get(u.id); const t = metr.get(u.id);
     // Última conexión: lo último entre entrar (login) y estar con el panel abierto.
     const ult = [c?.ultima_conexion, t?.ultimo_latido].filter(Boolean).sort().pop() ?? null;

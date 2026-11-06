@@ -27,14 +27,14 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
     supabase.from('usuarios').select('id, nombre, email').in('rol', ['admin', 'empleado']).order('nombre'),
     notasInternas(supabase, 'clientes'),
   ]);
-  const empleados = (emp.data ?? []).map((u: any) => ({ id: u.id as string, nombre: (u.nombre || u.email) as string }));
+  const empleados = (emp.data ?? []).map((u) => ({ id: u.id as string, nombre: (u.nombre || u.email) as string }));
   const p = new Map((par.data ?? []).map((x) => [x.clave as string, Number(x.valor)]));
   const bienvenida: Bienvenida = { pct: p.get('factor_bienvenida_pct') ?? -7, envios: p.get('factor_bienvenida_envios') ?? 3 };
   const cuenta = new Map<string, number>();
   ((env.data ?? []) as { id: string; envios: number }[]).forEach((e) => cuenta.set(e.id, Number(e.envios)));
   const porCliente = new Map<string, any[]>();
   (con.data ?? []).forEach((c) => porCliente.set(c.cliente_id as string, [...(porCliente.get(c.cliente_id as string) ?? []), c]));
-  const filas: ClienteFila[] = (cli.data ?? []).map((c: any) => {
+  const filas: ClienteFila[] = (cli.data ?? []).map((c) => {
     return { ...c, anotaciones: notas.get(c.id)?.anotaciones ?? null, contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0 };
   });
   return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={cli.error?.message ?? null} abrir={ver} />;

@@ -34,6 +34,12 @@ for f in $(ls "$MIG"/*.sql | sort); do
   n=$((n+1)); echo "  aplicada  $(basename "$f")"
 done
 echo "$n migraciones aplicadas sin error"
+# Con GENERAR_TIPOS=<fichero>: escribe ahí los tipos de TypeScript de la base de datos recién
+# montada (tools/tipos/generar.py). El CI los compara con lib/supabase/tipos.ts.
+if [ -n "${GENERAR_TIPOS:-}" ]; then
+  python3 "$AQUI/../tipos/generar.py" "su postgres -c '$PGBIN/psql -X -A -t -q -h $DATOS -p $PUERTO -d postgres'" > "$GENERAR_TIPOS"
+  echo "tipos de TypeScript escritos en $GENERAR_TIPOS"
+fi
 echo
 # Las comprobaciones corren TODAS aunque alguna falle, para ver el cuadro completo.
 SALIDA="$(su postgres -c "$PGBIN/psql -X -q -h $DATOS -p $PUERTO -d postgres -v ON_ERROR_STOP=0 -f $AQUI/comprobar_seguridad.sql" 2>&1 || true)"

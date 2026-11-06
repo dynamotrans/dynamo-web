@@ -152,7 +152,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
     </>
   ) : (
     <>
-      {e.estado === 'borrador' && ['pendiente_precio', 'precio_propuesto'].includes(e.estado_solicitud) && (
+      {e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto') && (
         <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
       {!manual && e.estado === 'programado' && !ficha.transportista && (

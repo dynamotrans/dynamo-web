@@ -3,13 +3,13 @@
 // email): Supabase lo guarda firmado en el token («amr», con la hora de cada forma de
 // entrar) y no cambia al renovarse la sesión. Pasado el plazo, el middleware cierra la
 // sesión de ese dispositivo y lleva a la entrada.
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SB } from '@/lib/supabase/cliente';
 
 type Duracion = { recordar_dias: number; dias: number };
 const RECARGA_MS = 5 * 60 * 1000;           // los parámetros se vuelven a leer cada 5 minutos
 let enMemoria: { valor: Duracion; leido: number } | null = null;
 
-async function duracion(sb: SupabaseClient): Promise<Duracion | null> {
+async function duracion(sb: SB): Promise<Duracion | null> {
   if (enMemoria && Date.now() - enMemoria.leido < RECARGA_MS) return enMemoria.valor;
   const { data, error } = await sb.rpc('duracion_sesion');
   if (error || !data) return enMemoria?.valor ?? null;   // sin respuesta: no se echa a nadie
@@ -30,7 +30,7 @@ function ultimaEntrada(token: string): number | null {
 }
 
 // ¿Ha pasado el plazo sin volver a escribir la contraseña?
-export async function sesionCaducada(sb: SupabaseClient, recordar: boolean): Promise<boolean> {
+export async function sesionCaducada(sb: SB, recordar: boolean): Promise<boolean> {
   const { data: { session } } = await sb.auth.getSession();
   if (!session?.access_token) return false;
   const desde = ultimaEntrada(session.access_token);

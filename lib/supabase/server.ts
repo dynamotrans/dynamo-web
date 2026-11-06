@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import type { Database } from '@/lib/supabase/tipos';
 import { cookies } from 'next/headers';
 import { COOKIE_RECORDAR, duracionSegunRecordar } from './recordar';
 export { COOKIE_RECORDAR };
@@ -21,7 +22,7 @@ export async function supabaseServidor(recordar?: boolean) {
   if (!cfg) return null;
   const almacen = await cookies();
   const mantener = recordar ?? almacen.get(COOKIE_RECORDAR)?.value !== '0';
-  return createServerClient(cfg.url, cfg.clave, {
+  return createServerClient<Database>(cfg.url, cfg.clave, {
     cookies: {
       getAll() {
         return almacen.getAll();

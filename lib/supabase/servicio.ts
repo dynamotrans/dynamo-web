@@ -1,4 +1,5 @@
 import 'server-only';
+import type { Database } from '@/lib/supabase/tipos';
 import { createClient } from '@supabase/supabase-js';
 
 // Cliente con la CLAVE DE SERVICIO de Supabase (variable SUPABASE_SERVICE_ROLE_KEY, que
@@ -11,5 +12,5 @@ export function supabaseServicio() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !clave) return null;
-  return createClient(url, clave, { auth: { persistSession: false, autoRefreshToken: false } });
+  return createClient<Database>(url, clave, { auth: { persistSession: false, autoRefreshToken: false } });
 }

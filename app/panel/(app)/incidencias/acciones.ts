@@ -2,6 +2,7 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 
 export type IncidenciaDatos = {
   envio_id: string | null; cliente_id: string | null; tipo_id: string;
@@ -34,8 +35,8 @@ export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): 
       estado: d.estado === 'cancelado' ? 'cancelado' : 'abierto',
     };
     if (!id && !transportista) fila.cliente_id = yo?.cliente_id ?? null;   // la del transportista la completa la base de datos
-    const q = id ? s.supabase.from('incidencias').update(fila).eq('id', id).select('id').single()
-                 : s.supabase.from('incidencias').insert(fila).select('id').single();
+    const q = id ? s.supabase.from('incidencias').update(fila as TablaUpdate<'incidencias'>).eq('id', id).select('id').single()
+                 : s.supabase.from('incidencias').insert(fila as TablaInsert<'incidencias'>).select('id').single();
     const { data, error } = await q;
     if (error) return { ok: false, error: traducir(error.message) };
     return { ok: true, id: data.id };
@@ -50,8 +51,8 @@ export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): 
   };
   // Con envío, el cliente lo pone la base de datos (el del envío); sin envío, el elegido.
   if (!d.envio_id) fila.cliente_id = d.cliente_id;
-  const q = id ? s.supabase.from('incidencias').update(fila).eq('id', id).select('id').single()
-               : s.supabase.from('incidencias').insert(fila).select('id').single();
+  const q = id ? s.supabase.from('incidencias').update(fila as TablaUpdate<'incidencias'>).eq('id', id).select('id').single()
+               : s.supabase.from('incidencias').insert(fila as TablaInsert<'incidencias'>).select('id').single();
   const { data, error } = await q;
   if (error) return { ok: false, error: traducir(error.message) };
   return { ok: true, id: data.id };

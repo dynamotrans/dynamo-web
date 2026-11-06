@@ -39,7 +39,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
   const envios = new Map<string, number>();
   ((env.data ?? []) as { id: string; envios: number }[]).forEach((e) => envios.set(e.id, Number(e.envios)));
 
-  const filas: TransportistaFila[] = (tra.data ?? []).map((t: any) => {
+  const filas: TransportistaFila[] = (tra.data ?? []).map((t) => {
     return {
       ...t,
       anotaciones: notas.get(t.id)?.anotaciones ?? null, anotaciones_incidencias: notas.get(t.id)?.anotaciones_incidencias ?? null,

@@ -4,6 +4,7 @@ import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 
 export type OperadorDatos = {
   cliente_id: string | null; razon_social: string; cif: string; telefono: string; email: string;
@@ -39,8 +40,8 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
     persona_contacto: vacio(d.persona_contacto), web: vacio(d.web), anotaciones: vacio(d.anotaciones),
   };
   if (!id && dynamo) fila.cliente_id = d.cliente_id;   // un cliente: lo pone la base de datos
-  const q = id ? s.supabase.from('operadores').update(fila).eq('id', id).select('id').single()
-               : s.supabase.from('operadores').insert(fila).select('id').single();
+  const q = id ? s.supabase.from('operadores').update(fila as TablaUpdate<'operadores'>).eq('id', id).select('id').single()
+               : s.supabase.from('operadores').insert(fila as TablaInsert<'operadores'>).select('id').single();
   const { data, error } = await q;
   if (error) return { ok: false, error: traducir(error.message) };
   return { ok: true, id: data.id };

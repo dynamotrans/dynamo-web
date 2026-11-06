@@ -328,6 +328,13 @@ y el resultado se mira en el panel o en el estado del commit en GitHub.
 a Supabase (roles de la API + privilegios por defecto) y lanza las comprobaciones de
 seguridad. Si dice `HAY FALLOS`, no se sube. Las pruebas se amplían con cada migración.
 
+**Tipos de la base de datos (2026-11-06)**: `lib/supabase/tipos.ts` se GENERA de las migraciones
+(no se edita a mano). Tras una migración que cambie tablas, columnas o funciones:
+`GENERAR_TIPOS=lib/supabase/tipos.ts bash tools/probar-migraciones/probar.sh`. El CI lo comprueba y
+falla si no está al día. Los clientes de Supabase van tipados (`SB` de `lib/supabase/cliente.ts`):
+si una columna cambia de nombre, `tsc` avisa en todo el código que la use. ESLint en el CI no
+deja meter `any` nuevos (tope en `package.json`, bajarlo según se quiten).
+
 **Seguridad por defecto, obligatoria en toda migración** (el arnés lo comprueba):
 1. Toda tabla nueva → `alter table X enable row level security;` **en la misma
    migración**. En Supabase, una tabla sin RLS está abierta a cualquiera con la clave

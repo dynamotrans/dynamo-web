@@ -1,6 +1,7 @@
 'use server';
 
 import { sesion, esGestor } from '@/lib/sesion';
+import type { Json } from '@/lib/supabase/tipos';
 
 type Res = { ok: true } | { ok: false; error: string };
 
@@ -8,7 +9,7 @@ type Res = { ok: true } | { ok: false; error: string };
 async function poner(clave: string, valor: unknown): Promise<Res> {
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo cambia la línea de pronto pago.' };
-  const { error, count } = await s.supabase.from('parametros').update({ valor }, { count: 'exact' }).eq('clave', clave);
+  const { error, count } = await s.supabase.from('parametros').update({ valor: valor as Json }, { count: 'exact' }).eq('clave', clave);
   if (error) return { ok: false, error: /permission|row-level/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message };
   if (!count) return { ok: false, error: 'No se ha encontrado el parámetro en la base de datos.' };
   return { ok: true };

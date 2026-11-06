@@ -29,10 +29,10 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     leerTodo(supabase.from('clientes').select('id, nombre_visible, riesgo_efectivo_euros').order('nombre_visible'), 10000),
     supabase.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
   ]);
-  const p = new Map((ps.data ?? []).map((x: any) => [x.clave, Number(x.valor)]));
+  const p = new Map((ps.data ?? []).map((x) => [x.clave, Number(x.valor)]));
   const def = { semana: p.get('almacen_precio_semana') ?? 240, reparto: p.get('almacen_precio_reparto') ?? 220 };
   const dir = (l: any) => l ? [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
-  const filas: AlmacenamientoFila[] = (alm.data ?? []).map((a: any) => ({
+  const filas: AlmacenamientoFila[] = (alm.data ?? []).map((a) => ({
     id: a.id, codigo: a.codigo, cliente_id: a.cliente_id, cliente: a.clientes?.nombre_visible ?? null,
     almacen_id: a.almacen_id, almacen: a.almacen?.nombre_empresa ?? 'Almacén Dynamo', almacen_provincia: a.almacen?.provincia ?? a.almacen?.poblacion ?? '',
     almacen_dir: dir(a.almacen), fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida, num_trailers: a.num_trailers,
@@ -42,7 +42,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     importe_total: Number(a.importe_total ?? 0), iva_pct: a.iva_pct != null ? Number(a.iva_pct) : 21,
     requiere_pago_previo: a.requiere_pago_previo, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
   }));
-  const opciones: AlmacenOpcion[] = (almacenes.data ?? []).map((l: any) => ({
+  const opciones: AlmacenOpcion[] = (almacenes.data ?? []).map((l) => ({
     id: l.id, nombre: l.nombre_empresa ?? 'Almacén Dynamo', provincia: l.provincia ?? l.poblacion ?? '', dir: dir(l), disponible: l.disponible !== false,
     semana: l.precio_almacenamiento_semana != null ? Number(l.precio_almacenamiento_semana) : def.semana,
     reparto: l.precio_reparto != null ? Number(l.precio_reparto) : def.reparto,
@@ -68,8 +68,8 @@ async function AlmacenamientosCliente({ abrir, tab }: { abrir: boolean; tab?: st
     // Sus sitios (la seguridad por filas le da los suyos y los almacenes de Dynamo).
     leerTodo(supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion').eq('es_almacen_dynamo', false).eq('borrado', false).order('nombre_empresa'), 5000),
   ]);
-  const sitios = (sit.data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: dirDe(l) }));
-  const filas: AlmacenamientoFila[] = (alm.data ?? []).map((a: any) => ({
+  const sitios = (sit.data ?? []).map((l) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: dirDe(l) }));
+  const filas: AlmacenamientoFila[] = (alm.data ?? []).map((a) => ({
     id: a.id, codigo: a.codigo, cliente_id: a.cliente_id, cliente: null,
     almacen_id: a.almacen_id, almacen: a.almacen?.nombre_empresa ?? 'Almacén Dynamo', almacen_provincia: a.almacen?.provincia ?? a.almacen?.poblacion ?? '',
     almacen_dir: dirDe(a.almacen), fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida, num_trailers: a.num_trailers,

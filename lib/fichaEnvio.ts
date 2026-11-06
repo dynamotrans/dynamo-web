@@ -1,6 +1,7 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { leerTodo } from './leerTodo';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SB } from '@/lib/supabase/cliente';
+import type { Tabla } from '@/lib/supabase/tipos';
 import { enTemporada } from './horarios';
 
 // Todo lo que enseña la ficha de un envío (solo Dynamo, etapa A), leído en el servidor.
@@ -14,7 +15,7 @@ export type ParadaFicha = {
            requiere_cita: boolean; tiene_medios_carga: boolean;
            contacto: { nombre: string | null; telefono: string | null; email: string | null } | null } | null;
 };
-export type HitoFicha = { id: string; hito: string; cuando: string; quien: string | null; origen: string | null; datos: any };
+export type HitoFicha = { id: number; hito: string; cuando: string; quien: string | null; origen: string | null; datos: any };
 export type PenalizacionFicha = { id: string; codigo: string; tipo: string; descripcion: string | null; importe_cliente: number | null; importe_transportista: number | null; estado: string; generada_auto: boolean };
 export type OfertaFicha = { id: string; token: string; canal: string; para: string | null; precio: number; banda_euros: number;
   banda_pct: number; pronto_pago: boolean; estado: string; enviada_en: string; caduca_en: string; aperturas: number; abierta_en: string | null };
@@ -26,7 +27,10 @@ export type TransportistaOpcion = { id: string; nombre: string; cif: string; est
   vehiculos?: { matricula: string; tipo: string }[]; conductores?: { nombre: string; telefono: string | null }[] };
 export type FlotaTransportista = { vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] };
 export type Ficha = {
-  envio: any; cliente: { id: string; nombre: string; cif: string } | null;
+  // El envío con sus columnas tipadas (tabla envios) más los datos que se le juntan.
+  envio: Tabla<'envios'> & { clientes: { id: string; nombre_visible: string | null; cif: string; riesgo_efectivo_euros: number | null } | null;
+    transportistas: { id: string; nombre_visible: string | null; cif: string } | null; operadores: { razon_social: string } | null };
+  cliente: { id: string; nombre: string; cif: string } | null;
   transportista: { id: string; nombre: string; cif: string } | null; operador: string | null;
   creadoPor: string | null; paradas: ParadaFicha[]; hitos: HitoFicha[]; penalizaciones: PenalizacionFicha[];
   ofertas: OfertaFicha[]; contraofertas: ContraofertaFicha[];
@@ -40,7 +44,7 @@ export type Ficha = {
           base: number; iva: number; total: number; conCredito: boolean; limite: string | null; provisional: boolean } | null;
 };
 
-export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ ficha: Ficha | null; error: string | null }> {
+export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | null; error: string | null }> {
   const { data: e, error } = await sb.from('envios')
     .select('*, clientes(id, nombre_visible, cif, riesgo_efectivo_euros), transportistas(id, nombre_visible, cif), operadores(razon_social)')
     .eq('id', id).maybeSingle();
@@ -60,13 +64,13 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
   ]);
   const pg = pag.data as any;
 
-  const sitioIds = (par.data ?? []).map((p: any) => p.sitio_id).filter(Boolean);
+  const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean);
   const contactos = new Map<string, any>();
   if (sitioIds.length) {
     const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono, email').in('sitio_id', sitioIds).eq('es_principal', true);
     (data ?? []).forEach((c) => contactos.set(c.sitio_id as string, c));
   }
-  const usuarios = [...new Set([e.creado_por, ...(hit.data ?? []).map((h: any) => h.quien)].filter(Boolean))] as string[];
+  const usuarios = [...new Set([e.creado_por, ...(hit.data ?? []).map((h) => h.quien)].filter(Boolean))] as string[];
   const nombres = new Map<string, string>();
   if (usuarios.length) {
     const { data } = await sb.from('usuarios').select('id, nombre, email').in('id', usuarios);
@@ -83,17 +87,17 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
     error: null,
     ficha: {
       envio: e,
-      cliente: e.clientes ? { id: e.clientes.id, nombre: e.clientes.nombre_visible, cif: e.clientes.cif } : null,
-      transportista: e.transportistas ? { id: e.transportistas.id, nombre: e.transportistas.nombre_visible, cif: e.transportistas.cif } : null,
+      cliente: e.clientes ? { id: e.clientes.id, nombre: e.clientes.nombre_visible ?? '', cif: e.clientes.cif } : null,
+      transportista: e.transportistas ? { id: e.transportistas.id, nombre: e.transportistas.nombre_visible ?? '', cif: e.transportistas.cif } : null,
       operador: e.operadores?.razon_social ?? null,
       creadoPor: e.creado_por ? nombres.get(e.creado_por) ?? null : null,
       paradas: (par.data ?? []).map((p: any) => ({
         ...p,
         sitio: p.sitios ? { ...p.sitios, horarios: horarioParada(p, e), contacto: p.sitio_id ? contactos.get(p.sitio_id) ?? null : null } : null,
       })),
-      hitos: (hit.data ?? []).map((h: any) => ({ id: h.id, hito: h.hito, cuando: h.cuando, quien: h.quien ? nombres.get(h.quien) ?? null : null, origen: h.quien_origen, datos: h.datos })),
-      penalizaciones: (pen.data ?? []).map((p: any) => ({ ...p, tipo: p.tipos_penalizacion?.nombre ?? 'Penalización' })),
-      ofertas: (ofe.data ?? []).map((o: any) => ({ id: o.id, token: o.token, canal: o.canal, para: o.transportistas?.nombre_visible ?? null,
+      hitos: (hit.data ?? []).map((h) => ({ id: h.id, hito: h.hito, cuando: h.cuando, quien: h.quien ? nombres.get(h.quien) ?? null : null, origen: h.quien_origen, datos: h.datos })),
+      penalizaciones: (pen.data ?? []).map((p) => ({ ...p, tipo: p.tipos_penalizacion?.nombre ?? 'Penalización' })),
+      ofertas: (ofe.data ?? []).map((o) => ({ id: o.id, token: o.token, canal: o.canal, para: o.transportistas?.nombre_visible ?? null,
         precio: Number(o.precio_ofertado), banda_euros: Number(o.banda_euros), banda_pct: o.banda_pct, pronto_pago: o.pronto_pago,
         estado: o.estado, enviada_en: o.enviada_en, caduca_en: o.caduca_en, aperturas: o.aperturas, abierta_en: o.abierta_en })),
       contraofertas: (res.data ?? []).map((r: any) => ({ id: r.id, transportista: r.transportistas?.nombre_visible ?? null,
@@ -112,18 +116,18 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
 // Transportistas para "Asignar transportista" (nombre, CIF, estado y contacto de tráfico).
 // Su flota (camiones y conductores) NO viaja con la ficha: se pide al elegir uno
 // (flotaDe). Antes se mandaban al navegador todos los vehículos y conductores de todos.
-export async function cargarTransportistasParaAsignar(sb: SupabaseClient): Promise<TransportistaOpcion[]> {
+export async function cargarTransportistasParaAsignar(sb: SB): Promise<TransportistaOpcion[]> {
   const [tra, cto] = await Promise.all([
     leerTodo(sb.from('transportistas').select('id, nombre_visible, cif, estado_operativo, nima').order('nombre_visible'), 10000),
     leerTodo(sb.from('contactos').select('transportista_id, telefono, email').eq('funcion', 'trafico').eq('es_principal', true).not('transportista_id', 'is', null), 10000),
   ]);
-  const trafico = new Map((cto.data ?? []).map((x: any) => [x.transportista_id as string, x]));
-  return (tra.data ?? []).map((t: any) => ({ id: t.id, nombre: t.nombre_visible, cif: t.cif, estado: t.estado_operativo, nima: t.nima,
+  const trafico = new Map((cto.data ?? []).map((x) => [x.transportista_id as string, x]));
+  return (tra.data ?? []).map((t) => ({ id: t.id, nombre: t.nombre_visible, cif: t.cif, estado: t.estado_operativo, nima: t.nima,
     telefono: trafico.get(t.id)?.telefono ?? null, email: trafico.get(t.id)?.email ?? null }));
 }
 
 // La flota activa de UN transportista (para sugerir matrículas y conductores al asignar).
-export async function flotaDe(sb: SupabaseClient, transportistaId: string): Promise<FlotaTransportista> {
+export async function flotaDe(sb: SB, transportistaId: string): Promise<FlotaTransportista> {
   const [veh, con] = await Promise.all([
     sb.from('vehiculos').select('matricula, tipo').eq('transportista_id', transportistaId).eq('activo', true).order('matricula').limit(500),
     sb.from('conductores').select('nombre, telefono').eq('transportista_id', transportistaId).eq('activo', true).order('nombre').limit(500),

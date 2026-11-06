@@ -4,6 +4,7 @@ import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 
 export type TransportistaDatos = {
   razon_social: string; nombre_comercial: string; cif: string;
@@ -56,8 +57,8 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
     anotaciones: vacio(d.anotaciones), anotaciones_incidencias: vacio(d.anotaciones_incidencias),
   };
   const q = id
-    ? s.supabase.from('transportistas').update(fila).eq('id', id).select('id').single()
-    : s.supabase.from('transportistas').insert(fila).select('id').single();
+    ? s.supabase.from('transportistas').update(fila as TablaUpdate<'transportistas'>).eq('id', id).select('id').single()
+    : s.supabase.from('transportistas').insert(fila as TablaInsert<'transportistas'>).select('id').single();
   const { data, error } = await q;
   if (error) return { ok: false, error: traducir(error.message) };
   const tid = data.id as string;

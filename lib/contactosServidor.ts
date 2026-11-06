@@ -1,5 +1,6 @@
 import { normalizaTel } from '@/lib/paises';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SB } from '@/lib/supabase/cliente';
+import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import type { ContactoDatos } from './contactos';
 
 type Dueno = { cliente_id: string } | { transportista_id: string } | { sitio_id: string };
@@ -22,11 +23,11 @@ export const sinVacios = (l: ContactoDatos[]) => l.filter((c) => c.nombre.trim()
 // Deja en la base de datos exactamente la lista de la ficha: borra los que se quitaron,
 // actualiza los que siguen y añade los nuevos. El PRIMERO de cada función es el
 // principal (es el que salen en las tablas y el que usan los avisos por defecto).
-export async function guardarContactos(sb: SupabaseClient, dueno: Dueno, lista: ContactoDatos[]): Promise<string | null> {
+export async function guardarContactos(sb: SB, dueno: Dueno, lista: ContactoDatos[]): Promise<string | null> {
   const [col, valor] = Object.entries(dueno)[0];
   const { data: actuales, error: e0 } = await sb.from('contactos').select('id').eq(col, valor);
   if (e0) return e0.message;
-  const quedan = new Set(lista.map((c) => c.id).filter(Boolean));
+  const quedan = new Set(lista.map((c) => c.id).filter((x): x is string => !!x));
   const fuera = (actuales ?? []).map((c) => c.id as string).filter((id) => !quedan.has(id));
   if (fuera.length) { const r = await sb.from('contactos').delete().in('id', fuera); if (r.error) return r.error.message; }
   // Primero nadie es principal (el índice único no deja dos a la vez al reordenar).
@@ -38,7 +39,7 @@ export async function guardarContactos(sb: SupabaseClient, dueno: Dueno, lista: 
     const tel = normalizaTel(c.telefono);
     const fila: Record<string, unknown> = { ...dueno, nombre: c.nombre.trim() || null, cargo: c.cargo.trim() || null, funcion: c.funcion,
       telefono: tel || null, email: c.email.trim().toLowerCase() || null, recibe_avisos: c.recibe_avisos, es_principal };
-    const r = c.id ? await sb.from('contactos').update(fila).eq('id', c.id) : await sb.from('contactos').insert(fila);
+    const r = c.id ? await sb.from('contactos').update(fila as TablaUpdate<'contactos'>).eq('id', c.id) : await sb.from('contactos').insert(fila as TablaInsert<'contactos'>);
     if (r.error) return r.error.message;
   }
   return null;

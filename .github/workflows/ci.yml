@@ -1,7 +1,8 @@
 # Red de seguridad en cada subida (revisión de calidad, 2026-11-05): si algo falla, se ve en
 # rojo en GitHub antes de darlo por bueno.
 #   1. Base de datos: aplica todas las migraciones en un PostgreSQL de usar y tirar que imita a
-#      Supabase y pasa las pruebas de seguridad y de reglas (tools/probar-migraciones).
+#      Supabase, pasa las pruebas de seguridad y de reglas (tools/probar-migraciones) y comprueba
+#      que los tipos de TypeScript (lib/supabase/tipos.ts) están al día.
 #   2. Web: tipos, revisión del código (ESLint), pruebas unitarias de lib/ y compilación
 #      completa, igual que en Vercel.
 name: CI
@@ -34,7 +35,16 @@ jobs:
         # del runner: se copian las migraciones y las pruebas a una carpeta legible.
         run: |
           rm -rf /tmp/ci && mkdir -p /tmp/ci && cp -r tools supabase /tmp/ci/ && chmod -R a+rX /tmp/ci
-          sudo bash /tmp/ci/tools/probar-migraciones/probar.sh
+          sudo GENERAR_TIPOS=/tmp/ci/tipos.ts bash /tmp/ci/tools/probar-migraciones/probar.sh
+      - name: Tipos de la base de datos al día
+        # lib/supabase/tipos.ts se genera de las migraciones. Si una migración cambia tablas,
+        # columnas o funciones, hay que regenerarlo (lo hace probar.sh con GENERAR_TIPOS).
+        run: |
+          if ! diff -u lib/supabase/tipos.ts /tmp/ci/tipos.ts > /tmp/ci/tipos.diff; then
+            head -60 /tmp/ci/tipos.diff
+            echo "::error::lib/supabase/tipos.ts no está al día con las migraciones: GENERAR_TIPOS=lib/supabase/tipos.ts sudo -E bash tools/probar-migraciones/probar.sh"
+            exit 1
+          fi
 
   web:
     name: Web (tipos, revisión, pruebas y compilación)

@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import type { Database } from '@/lib/supabase/tipos';
 import { NextResponse, type NextRequest } from 'next/server';
 import { COOKIE_RECORDAR, duracionSegunRecordar } from '@/lib/supabase/recordar';
 import { sesionCaducada } from '@/lib/supabase/duracionSesion';
@@ -31,7 +32,7 @@ export async function middleware(request: NextRequest) {
   if (!url || !clave) return conCsp(respuesta);   // sin configurar: la página lo explica
 
   const mantener = request.cookies.get(COOKIE_RECORDAR)?.value !== '0';
-  const supabase = createServerClient(url, clave, {
+  const supabase = createServerClient<Database>(url, clave, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

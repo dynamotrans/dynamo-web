@@ -1,12 +1,12 @@
 import { leerTodo } from './leerTodo';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SB } from '@/lib/supabase/cliente';
 import type { SitioFila } from '@/components/panel/Sitios';
 import { contactosDe } from './contactos';
 import { gruposDe, VERANO_GENERICO, type FilaHorario, type FechasVerano } from './horarios';
 
 // Carga los sitios (de los clientes) o los almacenes Dynamo con sus contactos y su
 // horario, listos para la tabla y la ficha. La usan las páginas Sitios y Almacenes.
-export async function cargarSitios(sb: SupabaseClient, almacenes: boolean): Promise<{ filas: SitioFila[]; error: string | null; veranoDefecto: FechasVerano }> {
+export async function cargarSitios(sb: SB, almacenes: boolean): Promise<{ filas: SitioFila[]; error: string | null; veranoDefecto: FechasVerano }> {
   const { data: sitios, error } = await leerTodo(sb.from('sitios')
     .select('id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, emails_avisos, disponible, precio_almacenamiento_semana, precio_reparto, creado_en, modificado_en')
     .eq('borrado', false).eq('es_almacen_dynamo', almacenes).order('nombre_empresa'), 10000);
@@ -26,14 +26,14 @@ export async function cargarSitios(sb: SupabaseClient, almacenes: boolean): Prom
   const g = pv as { desde?: string; hasta?: string } | null;
   const veranoDefecto: FechasVerano = { desde: g?.desde ?? VERANO_GENERICO.desde, hasta: g?.hasta ?? VERANO_GENERICO.hasta };
   const horarioDe = new Map<string, FilaHorario[]>(), veranoDe = new Map<string, FilaHorario[]>();
-  (hor.data ?? []).forEach((h: any) => {
+  (hor.data ?? []).forEach((h) => {
     const m = h.temporada === 'verano' ? veranoDe : horarioDe;
     m.set(h.sitio_id, [...(m.get(h.sitio_id) ?? []), h as FilaHorario]);
   });
   const porSitio = new Map<string, any[]>();
-  (con.data ?? []).forEach((c: any) => porSitio.set(c.sitio_id, [...(porSitio.get(c.sitio_id) ?? []), c]));
+  (con.data ?? []).forEach((c) => porSitio.set(c.sitio_id, [...(porSitio.get(c.sitio_id) ?? []), c]));
 
-  const filas: SitioFila[] = (sitios ?? []).map((l: any) => ({
+  const filas: SitioFila[] = (sitios ?? []).map((l) => ({
     ...l, cliente_id: l.cliente_id ?? '', provincia: l.provincia ?? '', horarios: l.horarios ?? '',
     url_google_maps: l.url_google_maps ?? '', anotaciones: l.anotaciones ?? '', tipo: l.tipo ?? 'almacen_nave',
     contactos: contactosDe(porSitio.get(l.id) ?? []),

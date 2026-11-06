@@ -1,6 +1,7 @@
 'use server';
 
 import { sesion } from '@/lib/sesion';
+import type { Json } from '@/lib/supabase/tipos';
 
 // Cambiar un parámetro de la plataforma (tabla `parametros`). Solo el rol ADMIN: cambian
 // cómo funciona todo (precios, plazos, PIN, mantenimiento…). Queda en la auditoría.
@@ -18,7 +19,7 @@ export async function guardarParametro(clave: string, valor: unknown): Promise<{
   if (clave.startsWith('verano_sitios_') && (typeof valor !== 'string' || !/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(valor))) {
     return { ok: false, error: 'Pon la fecha como mes-día con dos cifras: por ejemplo 05-25 (25 de mayo).' };
   }
-  const { error, count } = await s.supabase.from('parametros').update({ valor }, { count: 'exact' }).eq('clave', clave);
+  const { error, count } = await s.supabase.from('parametros').update({ valor: valor as Json }, { count: 'exact' }).eq('clave', clave);
   if (error) return { ok: false, error: /permission|row-level/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message };
   if (!count) return { ok: false, error: 'No existe ese parámetro.' };
   return { ok: true };

@@ -26,7 +26,7 @@ export default async function PaginaOperadores() {
   ]);
   const usos = new Map<string, number>();
   ((envs.data ?? []) as { id: string; envios: number }[]).forEach((e) => usos.set(e.id, Number(e.envios)));
-  const filas: OperadorFila[] = (ops.data ?? []).map((o: any) => ({
+  const filas: OperadorFila[] = (ops.data ?? []).map((o) => ({
     id: o.id, cliente_id: o.cliente_id, cliente: o.clientes?.nombre_visible ?? null, razon_social: o.razon_social, cif: o.cif,
     telefono: o.telefono ?? '', email: o.email ?? '', persona_contacto: o.persona_contacto ?? '', web: o.web ?? '', anotaciones: o.anotaciones ?? '',
     creado_en: o.creado_en, modificado_en: o.modificado_en, envios: usos.get(o.id) ?? 0,
