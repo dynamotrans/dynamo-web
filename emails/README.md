@@ -7,6 +7,7 @@ iterarlas con Claude y tenerlas versionadas en git.
 |---|---|
 | `prospeccion-brevo.html` | Email de prospección (A/A. responsable de transporte). Listo para pegar en Brevo. |
 | `deca-brevo.html` | Aviso a **clientes** sobre el DeCA, obligatorio desde el 5-10-2026. Mismo diseño que el de prospección. |
+| `huelga-brevo.html` | Aviso a **clientes** de posibles demoras por la huelga general del 11-11-2026. Mismo diseño. |
 | `build-assets.py` | Genera las imágenes del email en `images/email/` a partir de los originales de la web. |
 
 ---
