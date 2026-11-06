@@ -88,7 +88,11 @@ test.describe.serial('flujos clave', () => {
     const tra = await page.locator('#as-tra option', { hasText: 'Transportes Prueba' }).getAttribute('value');
     await page.locator('#as-tra').selectOption(tra!);
     // Con ventana de carga, el día en que carga es obligatorio (lo usa el seguimiento automático).
-    if (await page.locator('select#as-dia').count()) await page.locator('select#as-dia').selectOption({ index: 1 });
+    if (await page.locator('select#as-dia').count()) {
+      // El primer día que se puede elegir (sábado y domingo salen sin poder elegirse: no se circula).
+      const dia = await page.locator('select#as-dia option:not([disabled])').nth(1).getAttribute('value');
+      await page.locator('select#as-dia').selectOption(dia!);
+    }
     await page.fill('#as-camion', '1234BCD');
     await page.fill('#as-conductor', 'Juan Prueba');
     await page.getByRole('button', { name: 'Guardar asignación' }).click();

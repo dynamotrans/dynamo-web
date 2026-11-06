@@ -5636,16 +5636,24 @@ end $$;
 -- ---- 158. Seguimiento automático: día previsto, avance solo, marcar a mano y tacógrafo -----
 reset role;
 do $$ declare x record; begin
-  -- Tacógrafo: 12 h 30 min de conducción saliendo a las 13:30 con 2 h ya conducidas (jornada desde las 10:30).
-  select * into x from seguimiento_conducir('2026-11-06 13:30+01', '2026-11-06 10:30+01', 2, 2, 12.5);
-  if x.t <> '2026-11-07 14:30+01'::timestamptz then raise exception 'FALLO 158 · tacógrafo mal calculado: llega %', x.t; end if;
+  -- Tacógrafo (un lunes): 12 h 30 min de conducción saliendo a las 13:30 con 2 h ya conducidas (jornada desde las 10:30).
+  select * into x from seguimiento_conducir('2026-11-09 13:30+01', '2026-11-09 10:30+01', 2, 2, 12.5);
+  if x.t <> '2026-11-10 14:30+01'::timestamptz then raise exception 'FALLO 158 · tacógrafo mal calculado: llega %', x.t; end if;
   -- 300 km tras cargar: 2 h 30 min, pausa de 45 min, 1 h 15 min.
   select * into x from seguimiento_conducir('2026-11-06 13:30+01', '2026-11-06 10:30+01', 2, 2, 300 / 80.0);
   if x.t <> '2026-11-06 18:00+01'::timestamptz then raise exception 'FALLO 158 · pausa de 45 min mal puesta: llega %', x.t; end if;
   -- Jornada desde las 5:00: a las 18:00 se acaban las 13 h; 11 h de descanso acabarían a las 5:00,
   -- pero el camión no arranca antes de las 7:00 → 4 h 30, pausa, 15 min: 12:30 del día siguiente.
-  select * into x from seguimiento_conducir('2026-11-06 12:00+01', '2026-11-06 05:00+01', 0, 0, 10, time '07:00');
-  if x.t <> '2026-11-07 12:30+01'::timestamptz then raise exception 'FALLO 158 · tras el descanso arranca antes de las 7:00: llega %', x.t; end if;
+  select * into x from seguimiento_conducir('2026-11-09 12:00+01', '2026-11-09 05:00+01', 0, 0, 10, time '07:00');
+  if x.t <> '2026-11-10 12:30+01'::timestamptz then raise exception 'FALLO 158 · tras el descanso arranca antes de las 7:00: llega %', x.t; end if;
+  -- No circula sábado ni domingo: viernes 16:00 con 6 h → acaba la jornada a las 20:00 y sigue el lunes a las 7:00.
+  select * into x from seguimiento_conducir('2026-11-06 16:00+01', '2026-11-06 07:00+01', 0, 0, 6, time '07:00');
+  if x.t <> '2026-11-09 09:00+01'::timestamptz then raise exception 'FALLO 158 · circula en fin de semana: llega %', x.t; end if;
+  -- Ni en festivo nacional: lunes 7-dic 16:00 con 6 h → el 8 (Inmaculada) no circula → miércoles 9 a las 9:00.
+  if not es_dia_habil('2026-12-08') then
+    select * into x from seguimiento_conducir('2026-12-07 16:00+01', '2026-12-07 07:00+01', 0, 0, 6, time '07:00');
+    if x.t <> '2026-12-09 09:00+01'::timestamptz then raise exception 'FALLO 158 · circula en festivo: llega %', x.t; end if;
+  end if;
   -- Llega a un sitio antes de que abra: espera a la apertura (la de ese día de la semana).
   select h.sitio_id, h.dia_semana, min(h.abre) as abre into x
     from sitio_horarios h join sitios s on s.id = h.sitio_id
@@ -5663,7 +5671,12 @@ do $$ declare e uuid; t uuid; hoy date := (now() at time zone 'Europe/Madrid')::
   select id, transportista_id into e, t from envios where estado = 'programado' and transportista_id is not null
      and (select count(*) from envio_paradas p where p.envio_id = envios.id) >= 2 limit 1;
   if e is null then raise notice 'OK 158 · (sin envío programado con transportista: se salta)'; return; end if;
-  update envios set fecha_carga_desde = hoy - 1, fecha_carga_hasta = hoy + 1, fecha_carga_prevista = null, fecha_carga_real = null,
+  -- El último día hábil antes de hoy (los camiones no circulan en fin de semana ni festivo).
+  declare d date := hoy - 1; begin
+    while not es_dia_habil(d) loop d := d - 1; end loop;
+    perform set_config('prueba.seg_dia', d::text, false);
+  end;
+  update envios set fecha_carga_desde = current_setting('prueba.seg_dia')::date, fecha_carga_hasta = hoy + 1, fecha_carga_prevista = null, fecha_carga_real = null,
                     ancla_paso = null, ancla_hora = null, seguimiento_automatico = true, estado_pago_previo = 'no_requerido' where id = e;
   perform set_config('prueba.seg_envio', e::text, false);
   perform set_config('prueba.seg_transp', t::text, false);
@@ -5677,7 +5690,7 @@ do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::u
   if r ->> 'resultado' <> 'falta_fecha_prevista' then raise exception 'FALLO 158 · con ventana se asigna sin día previsto: %', r; end if;
   r := asignar_transportista(e, t, p_fecha_carga_prevista => hoy + 5);
   if r ->> 'resultado' <> 'fecha_fuera_de_ventana' then raise exception 'FALLO 158 · día previsto fuera de la ventana aceptado: %', r; end if;
-  r := asignar_transportista(e, t, p_fecha_carga_prevista => hoy - 1);
+  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_setting('prueba.seg_dia')::date);
   if not (r ->> 'ok')::boolean then raise exception 'FALLO 158 · no asigna con día previsto: %', r; end if;
 end $$;
 reset role;
@@ -5685,9 +5698,9 @@ do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::u
   if e is null then return; end if;
   perform avanzar_estados_envios();
   select estado, parada_actual into x from envios where id = e;
-  if x.estado = 'programado' then raise exception 'FALLO 158 · el automático no ha movido un envío que cargó ayer'; end if;
+  if x.estado = 'programado' then raise exception 'FALLO 158 · el automático no ha movido un envío que cargó el último día hábil'; end if;
   if not exists (select 1 from envio_hitos where envio_id = e and hito = 'hacia_la_carga' and quien_origen = 'sistema'
-                   and cuando = (((now() at time zone 'Europe/Madrid')::date - 1 + time '10:30') at time zone 'Europe/Madrid')) then
+                   and cuando = ((current_setting('prueba.seg_dia')::date + time '10:30') at time zone 'Europe/Madrid')) then
     raise exception 'FALLO 158 · la salida hacia la carga no queda a las 10:30 previstas como automática';
   end if;
 end $$;

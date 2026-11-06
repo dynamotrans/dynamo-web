@@ -216,7 +216,7 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Si el estado de los envíos avanza solo según el horario previsto (yendo a la carga, cargando, en ruta a la siguiente parada, descargando, entregado). Apagado, solo cambia a mano o cuando avisa el transportista.',
     ejemplo: (v) => v === 'Sí' ? 'Encendido: un envío que carga hoy pasa solo a «Yendo a la carga» a la hora prevista.' : 'Apagado: los envíos se quedan en el estado que tengan hasta que alguien los cambie.' },
   seguimiento_hora_inicio_jornada: { titulo: 'Hora a la que el camión empieza la jornada',
-    explica: 'Hora (Madrid, HH:MM) a la que arranca el camión. Cuenta para las 13 h de jornada del tacógrafo (conducir + cargar + esperar) y, tras el descanso de 11 h, no vuelve a arrancar antes de esta hora. Si llega a una parada antes de que abra, espera parado hasta la apertura.',
+    explica: 'Hora (Madrid, HH:MM) a la que arranca el camión. Cuenta para las 13 h de jornada del tacógrafo (conducir + cargar + esperar) y, tras el descanso de 11 h, no vuelve a arrancar antes de esta hora. Si llega a una parada antes de que abra, espera parado hasta la apertura. Sábados, domingos y festivos nacionales no circula: arranca el siguiente día hábil a esta hora.',
     ejemplo: (v) => `Con ${v}: la jornada acaba como muy tarde 13 h después; si descansa 11 h y le saldría arrancar antes de las ${v}, arranca a las ${v}.` },
   seguimiento_hora_primera_parada: { titulo: 'Hora de llegada a la 1.ª parada',
     explica: 'Hora (Madrid, HH:MM) a la que se prevé que el camión llega a cargar el día de carga. Desde ella se calcula todo lo demás. Si alguien marca a mano otra hora en un envío, manda la marcada.',

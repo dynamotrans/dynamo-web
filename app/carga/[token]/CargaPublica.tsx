@@ -477,7 +477,7 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
             <label htmlFor="ok-dia">Día en que cargas <span style={{ color: 'var(--red)' }}>· obligatorio</span></label>
             <select id="ok-dia" value={dia} onChange={(e) => setDia(e.target.value)}>
               <option value="">Elige un día de la ventana…</option>
-              {dias.map((d) => <option key={d} value={d}>{fecha(d)}</option>)}
+              {dias.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)}{w === 0 || w === 6 ? ' (no se circula)' : ''}</option>; })}
             </select>
           </>}
           <label htmlFor="ok-chofer">Conductor</label><input type="text" id="ok-chofer" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />

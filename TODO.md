@@ -632,7 +632,7 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 ## ✅ Hecho recientemente
 - [x] 2026-11-06 — **Seguimiento automático del envío**:
   - **Avance solo.** El estado avanza solo por etapas: Programado / Asignando transportista / Confirmado → Yendo a la carga → Cargando o Descargando (n.ª parada) → En ruta a la n.ª parada → Entregado.
-  - **Horario previsto**: jornada desde las 7:00, 1.ª parada a las 12:30, 1 h por parada, 80 km/h, tacógrafo y espera a la apertura de cada sitio. Se cambia en Parámetros.
+  - **Horario previsto**: jornada desde las 7:00, 1.ª parada a las 12:30, 1 h por parada, 80 km/h, tacógrafo, espera a la apertura de cada sitio, y sin circular sábados, domingos ni festivos nacionales. Se cambia en Parámetros.
   - **A mano.** Dynamo puede marcar cualquier etapa con su hora (el resto se recalcula desde ahí) o pausar el automático.
   - **Día previsto de carga** obligatorio al asignar si hay ventana.
   - **Pendiente del usuario**: revisar en Parámetros las horas (¿11:00 en verano?).

@@ -26,6 +26,8 @@ export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: 
   const dias = useMemo(() => diasEntre(e.fecha_carga_desde, e.fecha_carga_hasta), [e.fecha_carga_desde, e.fecha_carga_hasta]);
   const conVentana = dias.length > 1 || !e.fecha_carga_desde;
   const [diaCarga, setDiaCarga] = useState<string>(e.fecha_carga_prevista ?? (dias.length === 1 ? dias[0] : ''));
+  // (Sábado y domingo no se pueden elegir: los camiones no circulan. Un festivo nacional lo pasa
+  // la base de datos al siguiente día hábil.)
   const t = transportistas.find((x) => x.id === tid);
   // Su flota se pide al elegirlo (no viaja con la ficha la de todos los transportistas).
   const [flota, setFlota] = useState<{ id: string; vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] } | null>(null);
@@ -98,7 +100,7 @@ export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: 
           {conVentana && dias.length > 0 ? (
             <select id="as-dia" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)}>
               <option value="">Elige el día de la ventana…</option>
-              {dias.map((d) => <option key={d} value={d}>{fecha(d)} · {DIAS[new Date(`${d}T12:00:00`).getDay()]}</option>)}
+              {dias.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)} · {DIAS[w]}{w === 0 || w === 6 ? ' (no circula)' : ''}</option>; })}
             </select>
           ) : conVentana ? (
             <input id="as-dia" type="date" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)} />

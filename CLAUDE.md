@@ -426,7 +426,8 @@ Registro automático de sesiones. La entrada más reciente va arriba.
     - jornada desde las 7:00 y llegada a la 1.ª parada a las 12:30 (otra hora en verano, si se quiere);
     - 1 h por parada y 80 km/h;
     - tacógrafo: 45 min de pausa cada 4 h 30, máximo 9 h de conducción al día, jornada de 13 h y descanso de 11 h, sin arrancar antes de las 7:00;
-    - espera a que abra cada sitio según su horario.
+    - espera a que abra cada sitio según su horario;
+    - los camiones no circulan sábados, domingos ni festivos nacionales: descansan y arrancan el siguiente día hábil a las 7:00 (en los selectores de día, sábado y domingo no se pueden elegir).
   - **A mano.** Dynamo marca cualquier etapa con su hora desde «Cambiar estado»: lo marcado es el nuevo punto de partida y el resto se recalcula; una hora futura sirve para atrasar. «Pausar automático» lo para. El transportista avisa parada a parada desde su ficha.
   - **Día previsto de carga**: obligatorio al asignar si el envío tiene ventana, también en la bolsa.
   - **Quién y cuándo**: cada etapa deja su hito con la hora prevista y «automático», o el nombre de quien la marcó.
