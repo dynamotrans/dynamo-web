@@ -5990,7 +5990,7 @@ reset role;
 do $$ declare r text; f text; fallos text := ''; begin
   foreach r in array array['anon', 'authenticated', 'service_role'] loop
     if has_table_privilege(r, 'datos_de_prueba_peticiones', 'select') or has_table_privilege(r, 'datos_de_prueba_peticiones', 'insert') then fallos := fallos || r || '→tabla '; end if;
-    foreach f in array array['programar_datos_de_prueba(text,numeric,text,jsonb)', 'ejecutar_datos_de_prueba_pendientes()', 'estado_datos_de_prueba()'] loop
+    foreach f in array array['programar_datos_de_prueba(text,numeric,text,jsonb)', 'ejecutar_datos_de_prueba_pendientes()', 'estado_datos_de_prueba()', 'reprogramar_reloj_datos_de_prueba()'] loop
       if has_function_privilege(r, f, 'execute') then fallos := fallos || r || '→' || f || ' '; end if;
     end loop;
   end loop;
