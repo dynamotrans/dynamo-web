@@ -54,7 +54,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     primerDia = pe?.fecha_carga_desde && pe.fecha_carga_desde > tope.toISOString().slice(0, 10) ? pe.fecha_carga_desde : tope.toISOString().slice(0, 10);
   }
   const per = periodoDe(sp, primerDia);
-  const [enCurso, sinTransp, inc, pen, alm, contra, ultimos, pp, solicitudes] = await Promise.all([
+  const [enCurso, sinTransp, inc, pen, alm, contra, ultimos, pp] = await Promise.all([
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).in('estado', ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'])),
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)),
     cuenta(supabase.from('incidencias').select('id', { count: 'exact', head: true }).in('estado', ['abierto', 'en_curso'])),
@@ -65,7 +65,6 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
       'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas, descripcion_mercancia, importe_cliente, clientes(nombre_visible)')
       .neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(5).overrideTypes<FilaUltimo[], { merge: false }>(),
     supabase.rpc('pronto_pago_estado'),
-    cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).eq('estado', 'borrador').eq('estado_solicitud', 'pendiente_precio')),
   ]);
   const [cm, sec] = await Promise.all([
     supabase.rpc('cuadro_mando', { p_desde: per.desde, p_hasta: per.hasta, p_comp_desde: per.cDesde, p_comp_hasta: per.cHasta }),
@@ -78,7 +77,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     metros_lineales: x.metros_lineales, toneladas: x.toneladas, mercancia: x.descripcion_mercancia, cliente: x.clientes?.nombre_visible ?? null,
     importe: x.importe_cliente != null ? Number(x.importe_cliente) : null,
   }));
-  return <DashboardAdmin cifras={{ enCurso, sinTransp, inc, pen, alm, contra, solicitudes }} ultimos={mini}
+  return <DashboardAdmin cifras={{ enCurso, sinTransp, inc, pen, alm, contra }} ultimos={mini}
     prontoPago={(pp.data as ProntoPago) ?? null} errorPP={pp.error?.message ?? null}
     cuadro={<CuadroMando datos={(cm.data as unknown as Cuadro | null) ?? null} periodo={per.p} error={cm.error?.message ?? null} sectores={(sec.data ?? []) as Sector[]} />} />;
 }
