@@ -1,6 +1,5 @@
 import { mensajeError } from '@/lib/mensajeError';
 import type { Etapa } from '@/lib/estados';
-import { leerTodo } from './leerTodo';
 import type { SB } from '@/lib/supabase/cliente';
 import type { Tabla } from '@/lib/supabase/tipos';
 import { enTemporada } from './horarios';
@@ -118,19 +117,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   };
 }
 
-// Transportistas para "Asignar transportista" (nombre, CIF, estado y contacto de tráfico).
-// Su flota (camiones y conductores) NO viaja con la ficha: se pide al elegir uno
-// (flotaDe). Antes se mandaban al navegador todos los vehículos y conductores de todos.
-export async function cargarTransportistasParaAsignar(sb: SB): Promise<TransportistaOpcion[]> {
-  const [tra, cto] = await Promise.all([
-    leerTodo(sb.from('transportistas').select('id, nombre_visible, cif, estado_operativo, nima').order('nombre_visible'), 10000),
-    leerTodo(sb.from('contactos').select('transportista_id, telefono, email').eq('funcion', 'trafico').eq('es_principal', true).not('transportista_id', 'is', null), 10000),
-  ]);
-  const trafico = new Map((cto.data ?? []).map((x) => [x.transportista_id as string, x]));
-  return (tra.data ?? []).map((t) => ({ id: t.id, nombre: t.nombre_visible, cif: t.cif, estado: t.estado_operativo, nima: t.nima,
-    telefono: trafico.get(t.id)?.telefono ?? null, email: trafico.get(t.id)?.email ?? null }));
-}
-
+// Los transportistas de «Asignar» y «Ofrecer» ya no viajan con la ficha: se buscan al
+// escribir (buscarTransportistas en envios/acciones.ts → buscar_transportistas).
 // La flota activa de UN transportista (para sugerir matrículas y conductores al asignar).
 export async function flotaDe(sb: SB, transportistaId: string): Promise<FlotaTransportista> {
   const [veh, con] = await Promise.all([

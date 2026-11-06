@@ -5610,6 +5610,83 @@ drop function realtime.send(jsonb, text, text, boolean);
 drop table realtime._senales;
 drop schema realtime;
 
+-- ---- 156. Datos de prueba: solo desde la consola, con confirmación; se cargan y se borran enteros ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare f text; r text; begin
+  foreach f in array array['cargar_datos_de_prueba(text,numeric,text,jsonb)', 'borrar_datos_de_prueba(text)', 'contar_datos_de_prueba()',
+                           'prueba_id_fiscal(text,boolean,bigint)', 'prueba_matricula(text,boolean,bigint)', 'prueba_telefono(text,bigint)',
+                           'prueba_email(text,bigint)', 'prueba_digitos(text)'] loop
+    foreach r in array array['anon', 'authenticated', 'service_role'] loop
+      if has_function_privilege(r, f, 'execute') then raise exception 'FALLO 156 · % puede llamar a %', r, f; end if;
+    end loop;
+  end loop;
+  -- Los identificadores salen con su control bien calculado.
+  if prueba_id_fiscal('ES', true, 1) !~ '^[0-9]{8}[A-Z]$' or substr('TRWAGMYFPDXBNJZSQVHLCKE', (left(prueba_id_fiscal('ES', true, 1), 8)::bigint % 23)::int + 1, 1) <> right(prueba_id_fiscal('ES', true, 1), 1)
+     or prueba_id_fiscal('ES', false, 1) !~ '^[ABG][0-9]{8}$' or prueba_matricula('ES', false, 1) !~ '^[0-9]{4} [B-Z]{3}$' then
+    raise exception 'FALLO 156 · identificadores mal formados: % % %', prueba_id_fiscal('ES', true, 1), prueba_id_fiscal('ES', false, 1), prueba_matricula('ES', false, 1);
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  begin perform cargar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01); raise exception 'FALLO 156 · el Admin Master carga datos de prueba desde la API';
+  exception when insufficient_privilege then null; end;
+  begin perform borrar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS'); raise exception 'FALLO 156 · se borran datos de prueba desde la API';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r jsonb; b jsonb; v_env int; v_cli int; v_tra int; v_usu int; v_aud bigint; v_hit bigint; v_not int; v_avi int; v_email text; v_estados text[]; begin
+  begin perform cargar_datos_de_prueba('si'); raise exception 'FALLO 156 · carga sin la confirmación exacta';
+  exception when invalid_parameter_value then null; end;
+  begin perform borrar_datos_de_prueba('vale'); raise exception 'FALLO 156 · borra sin la confirmación exacta';
+  exception when invalid_parameter_value then null; end;
+  begin perform cargar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01, 'corta'); raise exception 'FALLO 156 · admite una contraseña corta';
+  exception when invalid_parameter_value then null; end;
+  select count(*) into v_env from envios; select count(*) into v_cli from clientes; select count(*) into v_tra from transportistas;
+  select count(*) into v_usu from usuarios; select count(*) into v_aud from auditoria; select count(*) into v_hit from envio_hitos;
+  select count(*) into v_not from notas_internas; select count(*) into v_avi from avisos;
+  select email into v_email from usuarios order by creado_en limit 1;
+  r := cargar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01, 'una-clave-larga-de-prueba',
+         jsonb_build_array(jsonb_build_object('email', 'a@ejemplo.com', 'telefono', '+34600000001', 'rol', 'cliente', 'nombre', 'Prueba A'),
+                           jsonb_build_object('email', 'b@ejemplo.com', 'telefono', '+34600000001', 'rol', 'transportista'),
+                           jsonb_build_object('email', v_email, 'rol', 'empleado')));
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 156 · la carga no va: %', r; end if;
+  -- Todos los estados de un envío, todas las cuentas de prueba y su rol.
+  select array_agg(distinct estado::text order by estado::text) into v_estados from envios where cliente_id in (select id from clientes where 'dato_de_prueba' = any (tags));
+  if v_estados <> array['borrador','cancelado','cargando','en_ruta','entregado','hacia_la_carga','programado'] then raise exception 'FALLO 156 · faltan estados: %', v_estados; end if;
+  if (select count(distinct rol) from usuarios where email like '%@prueba.invalid' and estado = 'activa') <> 5
+     or exists (select 1 from usuarios where email like '%@prueba.invalid' and rol = 'admin') then
+    raise exception 'FALLO 156 · cuentas de prueba: %', (select jsonb_object_agg(rol, n) from (select rol, count(*) n from usuarios where email like '%@prueba.invalid' group by 1) x);
+  end if;
+  if not exists (select 1 from usuarios u join clientes c on c.id = u.cliente_id where u.email = 'a@ejemplo.com' and 'dato_de_prueba' = any (c.tags))
+     or not exists (select 1 from contactos where email = 'b@ejemplo.com')
+     or not exists (select 1 from jsonb_array_elements(r -> 'cuentas_reales') x where x ->> 'email' = lower(v_email) and x ->> 'resultado' like 'ya existe%') then
+    raise exception 'FALLO 156 · cuentas reales: %', r -> 'cuentas_reales';
+  end if;
+  if exists (select 1 from envios e where e.cliente_id in (select id from clientes where 'dato_de_prueba' = any (tags)) and e.importe_cliente < 200) then
+    raise exception 'FALLO 156 · envíos por debajo del precio mínimo';
+  end if;
+  if cargar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01) ->> 'resultado' <> 'ya_cargados' then raise exception 'FALLO 156 · se carga dos veces'; end if;
+  b := borrar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS');
+  if b ->> 'resultado' <> 'ok' or exists (select 1 from jsonb_each(b -> 'quedan') x where x.key <> 'envios_por_estado' and x.value::text <> '0') then
+    raise exception 'FALLO 156 · el borrado deja datos de prueba: %', b -> 'quedan';
+  end if;
+  if (select count(*) from envios) <> v_env or (select count(*) from clientes) <> v_cli or (select count(*) from transportistas) <> v_tra
+     or (select count(*) from usuarios) <> v_usu or (select count(*) from envio_hitos) <> v_hit or (select count(*) from notas_internas) <> v_not then
+    raise exception 'FALLO 156 · el borrado no deja la base de datos como estaba (envíos %→%, clientes %→%, usuarios %→%, hitos %→%)',
+      v_env, (select count(*) from envios), v_cli, (select count(*) from clientes), v_usu, (select count(*) from usuarios), v_hit, (select count(*) from envio_hitos);
+  end if;
+  if (select count(*) from auditoria) <> v_aud then raise exception 'FALLO 156 · quedan % filas de auditoría de los datos de prueba', (select count(*) from auditoria) - v_aud; end if;
+  if (select count(*) from avisos) <> v_avi then raise exception 'FALLO 156 · quedan % avisos de los datos de prueba', (select count(*) from avisos) - v_avi; end if;
+  -- Los candados de solo-añadir vuelven a estar puestos.
+  begin delete from envio_hitos where false; raise exception 'FALLO 156 · el histórico de hitos se queda sin candado';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  if borrar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS') ->> 'resultado' <> 'nada_que_borrar' then raise exception 'FALLO 156 · borrar dos veces'; end if;
+  raise notice 'OK 156 · datos de prueba: solo desde la consola y con confirmación; se cargan (todos los estados, cuentas de cada rol, cuentas reales sin pisar las que existen) y se borran sin dejar rastro';
+end $$;
+
 -- ---- 157. Línea de tiempo completa: hacia la carga, cargando y hora de cada parada -------
 reset role;
 do $$ declare e uuid; n int; begin
@@ -5789,5 +5866,66 @@ do $$ begin
     raise exception 'FALLO 159 · un cliente ve el reparto por sector';
   end if;
   raise notice 'OK 159 · cuadro de mando: totales, comparación, serie sin huecos, 7 días de la semana, tope de 10 años, sector del cliente de la lista y solo Dynamo';
+end $$;
+reset role;
+
+-- ---- 160. Listas por páginas desde la base de datos y buscadores ------------------------
+-- Transportistas, Clientes y Sitios ya no viajan enteros al navegador: la base de datos
+-- filtra, cuenta y pagina (`*_pagina`), y los desplegables de miles de opciones son
+-- buscadores (`buscar_transportistas`, `buscar_clientes`). Se comprueba que el texto de
+-- búsqueda se mantiene solo (empresa, contactos, flota), que la paginación cuadra, que el
+-- transportista «incluido» sale aunque no case, y que un cliente solo ve sus sitios.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare t uuid := current_setting('prueba.transp')::uuid; c uuid := current_setting('prueba.cliente')::uuid; n int; tot bigint; txt text; begin
+  -- El texto de búsqueda se rellena solo y recoge contactos y matrículas.
+  select texto_busqueda into txt from transportistas where id = t;
+  if txt is null or txt = '' then raise exception 'FALLO 160 · el transportista no tiene texto de búsqueda'; end if;
+  update transportistas set nombre_comercial = 'Camiones Prueba Ciento Sesenta' where id = t;
+  select texto_busqueda into txt from transportistas where id = t;
+  if txt !~ 'ciento sesenta' then raise exception 'FALLO 160 · el texto de búsqueda no se actualiza al editar la ficha: %', left(txt, 120); end if;
+  insert into contactos (transportista_id, nombre, funcion, telefono, es_principal) values (t, 'Zenaida Contacto Buscable', 'trafico', '+34600160160', false);
+  select texto_busqueda into txt from transportistas where id = t;
+  if txt !~ 'zenaida' or txt !~ '600160160' then raise exception 'FALLO 160 · el contacto nuevo no entra en el texto de búsqueda: %', left(txt, 160); end if;
+  -- Buscar por nombre, por CIF y por teléfono del contacto encuentra al mismo.
+  if not exists (select 1 from buscar_transportistas('ciento sesenta') where id = t) then raise exception 'FALLO 160 · buscar_transportistas no encuentra por nombre'; end if;
+  if not exists (select 1 from buscar_transportistas((select cif from transportistas where id = t)) where id = t) then raise exception 'FALLO 160 · no encuentra por CIF'; end if;
+  if not exists (select 1 from buscar_transportistas('600160160') where id = t) then raise exception 'FALLO 160 · no encuentra por teléfono del contacto'; end if;
+  if (select count(*) from buscar_transportistas('')) > 12 then raise exception 'FALLO 160 · buscar_transportistas devuelve más del tope'; end if;
+  -- El «incluido» sale aunque no case con lo escrito.
+  if not exists (select 1 from buscar_transportistas('zzzz-no-casa-con-nada', 12, t) where id = t) then raise exception 'FALLO 160 · el transportista incluido no sale'; end if;
+  -- Páginas: la suma de páginas es el total y no se repiten ids.
+  select max(total) into tot from transportistas_pagina(null, null, null, 1, 10);
+  if tot is null or tot < 1 then raise exception 'FALLO 160 · transportistas_pagina sin total'; end if;
+  select count(distinct id) into n from (select id from transportistas_pagina(null, null, null, 1, 5) union all select id from transportistas_pagina(null, null, null, 2, 5)) x;
+  if n <> least(tot, 10) then raise exception 'FALLO 160 · las páginas de transportistas se solapan o faltan (% de %)', n, tot; end if;
+  if (select max(total) from transportistas_pagina('ciento sesenta', null, null, 1, 10)) < 1 then raise exception 'FALLO 160 · transportistas_pagina no filtra por texto'; end if;
+  if exists (select 1 from transportistas_pagina(null, 'suspendido', null, 1, 100) p join transportistas x on x.id = p.id where x.estado_operativo <> 'suspendido') then raise exception 'FALLO 160 · el filtro de estado deja pasar otros'; end if;
+  -- Flota y envíos de la página, por lotes de ids.
+  if (select count(*) from transportistas_flota(array[t])) <> 1 then raise exception 'FALLO 160 · transportistas_flota no devuelve una fila por id'; end if;
+  if (select count(*) from envios_hechos_de('transportista', array[t])) > 1 then raise exception 'FALLO 160 · envios_hechos_de repite ids'; end if;
+  -- Clientes: igual.
+  if not exists (select 1 from buscar_clientes((select cif from clientes where id = c)) where id = c) then raise exception 'FALLO 160 · buscar_clientes no encuentra por CIF'; end if;
+  if not exists (select 1 from buscar_clientes('zzzz-no-casa', 12, c) where id = c) then raise exception 'FALLO 160 · el cliente incluido no sale'; end if;
+  select max(total) into tot from clientes_pagina(null, null, 1, 10);
+  if tot is null or tot < 1 then raise exception 'FALLO 160 · clientes_pagina sin total'; end if;
+  if (select max(total) from clientes_pagina((select cif from clientes where id = c), null, 1, 10)) < 1 then raise exception 'FALLO 160 · clientes_pagina no filtra por CIF'; end if;
+  -- Sitios: Dynamo ve los de todos y puede acotar a un cliente.
+  if (select max(total) from sitios_pagina(null, null, 1, 10)) < 1 then raise exception 'FALLO 160 · sitios_pagina (Dynamo) sin total'; end if;
+  if exists (select 1 from sitios_pagina(null, c, 1, 100) p join sitios s on s.id = p.id where s.cliente_id <> c) then raise exception 'FALLO 160 · sitios_pagina con cliente deja pasar sitios de otros'; end if;
+  if exists (select 1 from sitios_pagina(null, null, 1, 100) p join sitios s on s.id = p.id where s.borrado) then raise exception 'FALLO 160 · sitios_pagina enseña sitios borrados'; end if;
+end $$;
+reset role;
+-- Un cliente: solo sus sitios, y no busca transportistas ni clientes.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; begin
+  if exists (select 1 from sitios_pagina(null, null, 1, 100) p join sitios s on s.id = p.id where s.cliente_id <> c) then raise exception 'FALLO 160 · un cliente ve sitios de otro por sitios_pagina'; end if;
+  if (select count(*) from buscar_transportistas('a')) > 0 then raise exception 'FALLO 160 · un cliente busca transportistas'; end if;
+  if (select count(*) from buscar_clientes('a')) > 0 then raise exception 'FALLO 160 · un cliente busca clientes'; end if;
+  if (select coalesce(max(total), 0) from transportistas_pagina(null, null, null, 1, 10)) > 0 then raise exception 'FALLO 160 · un cliente lista transportistas'; end if;
+  if (select coalesce(max(total), 0) from clientes_pagina(null, null, 1, 10)) > 0 then raise exception 'FALLO 160 · un cliente lista clientes'; end if;
+  raise notice 'OK 160 · listas por páginas (transportistas, clientes, sitios) y buscadores: texto de búsqueda al día, paginación sin solapes, incluido, y cada uno ve lo suyo';
 end $$;
 reset role;

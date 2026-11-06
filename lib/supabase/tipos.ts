@@ -283,6 +283,7 @@ export type Database = {
           exento_pago_previo_primer_envio: boolean
           riesgo_efectivo_euros: number | null
           sector: string | null
+          texto_busqueda: string | null
         }
         Insert: {
           id?: string
@@ -333,6 +334,7 @@ export type Database = {
           exento_pago_previo_primer_envio?: boolean
           riesgo_efectivo_euros?: never
           sector?: string | null
+          texto_busqueda?: string | null
         }
         Update: {
           id?: string
@@ -383,6 +385,7 @@ export type Database = {
           exento_pago_previo_primer_envio?: boolean
           riesgo_efectivo_euros?: never
           sector?: string | null
+          texto_busqueda?: string | null
         }
         Relationships: [
           {
@@ -2400,6 +2403,7 @@ export type Database = {
           verano_desde: string | null
           verano_hasta: string | null
           horarios_verano: string | null
+          texto_busqueda: string | null
         }
         Insert: {
           id?: string
@@ -2437,6 +2441,7 @@ export type Database = {
           verano_desde?: string | null
           verano_hasta?: string | null
           horarios_verano?: string | null
+          texto_busqueda?: string | null
         }
         Update: {
           id?: string
@@ -2474,6 +2479,7 @@ export type Database = {
           verano_desde?: string | null
           verano_hasta?: string | null
           horarios_verano?: string | null
+          texto_busqueda?: string | null
         }
         Relationships: [
           {
@@ -2599,6 +2605,7 @@ export type Database = {
           pronto_pago: boolean
           valoracion_clientes: number | null
           valoracion_clientes_votos: number
+          texto_busqueda: string | null
         }
         Insert: {
           id?: string
@@ -2639,6 +2646,7 @@ export type Database = {
           pronto_pago?: boolean
           valoracion_clientes?: number | null
           valoracion_clientes_votos?: number
+          texto_busqueda?: string | null
         }
         Update: {
           id?: string
@@ -2679,6 +2687,7 @@ export type Database = {
           pronto_pago?: boolean
           valoracion_clientes?: number | null
           valoracion_clientes_votos?: number
+          texto_busqueda?: string | null
         }
         Relationships: [
         ]
@@ -3109,9 +3118,11 @@ export type Database = {
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
+      buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string }[] }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }
       buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; total: number }[] }
       buscar_persona: { Args: { p_texto: string | null }; Returns: { tipo: string; id: string; nombre: string; email: string; telefono: string; documento: string; empresa: string; estado: string }[] }
+      buscar_transportistas: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; estado: string; nima: string; telefono: string; email: string }[] }
       caducar_pagos_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       caducar_reservas: { Args: { p_envio: string | null }; Returns: undefined }
       cambiar_ruta_envio: { Args: { p_envio: string | null; p_paradas: Json | null }; Returns: undefined }
@@ -3121,6 +3132,8 @@ export type Database = {
       carga_aceptada_publica: { Args: { p_reserva: string | null }; Returns: Json }
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
+      cliente_texto_busqueda: { Args: { k: Database["public"]["Tables"]["clientes"]["Row"] | null }; Returns: string }
+      clientes_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
       cmr_envio_de_token: { Args: { p_token: string | null }; Returns: string }
       cmr_publico: { Args: { p_token: string | null }; Returns: Json }
       cmr_ruta_permitida: { Args: { p_name: string | null }; Returns: boolean }
@@ -3168,6 +3181,7 @@ export type Database = {
       envio_en_pestana: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_pestana: string | null }; Returns: boolean }
       envio_texto_busqueda: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null }; Returns: string }
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }
+      envios_hechos_de: { Args: { p_campo: string | null; p_ids: string[] | null }; Returns: { id: string; envios: number }[] }
       envios_lista_ambito: { Args: { p_cliente: string | null; p_transportista: string | null }; Returns: { v_cli: string; v_tra: string; v_ok: boolean } }
       envios_pagina: { Args: { p_pestana: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; total: number }[] }
       envios_pestanas: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { pestana: string; total: number }[] }
@@ -3263,6 +3277,7 @@ export type Database = {
       paradas_viaje_json: { Args: { p_envio: string | null }; Returns: Json }
       parametro: { Args: { p_clave: string | null }; Returns: Json }
       parametro_num: { Args: { p_clave: string | null; p_defecto: number | null }; Returns: number }
+      patrones_busqueda: { Args: { p_q: string | null }; Returns: string[] }
       pausar_seguimiento_envio: { Args: { p_envio: string | null; p_pausar: boolean | null }; Returns: Json }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
       pin_aleatorio: { Args: { p_cifras: number | null }; Returns: string }
@@ -3304,11 +3319,16 @@ export type Database = {
       seguimiento_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; parada_actual: number; tipo_parada: string; paradas: number; primera_carga_en: string; asignando: boolean; fecha_carga_prevista: string; automatico: boolean }[] }
       seguimiento_paso: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_parada: number | null; p_paradas: number | null }; Returns: number }
       sitio_principal: { Args: { p_cliente: string | null }; Returns: string }
+      sitio_texto_busqueda: { Args: { s: Database["public"]["Tables"]["sitios"]["Row"] | null }; Returns: string }
+      sitios_pagina: { Args: { p_q?: string | null; p_cliente?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
       sn: { Args: { p: boolean | null }; Returns: string }
       sumar_dias_habiles: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       tarifa_almacen: { Args: { p_almacen: string | null }; Returns: { semana: number; reparto: number }[] }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       transportista_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
+      transportista_texto_busqueda: { Args: { t: Database["public"]["Tables"]["transportistas"]["Row"] | null }; Returns: string }
+      transportistas_flota: { Args: { p_ids: string[] | null }; Returns: { transportista_id: string; tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] }[] }
+      transportistas_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_adr?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
       unaccent_simple: { Args: { t: string | null }; Returns: string }
       uso_envios_usuarios: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; envios: number; cancelados: number; cancelados_ult10: number }[] }
       validar_pin_manual: { Args: { p_parada: string | null; p_nota: string | null }; Returns: Json }

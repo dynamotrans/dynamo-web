@@ -3,12 +3,13 @@
 // Clientes (solo Dynamo): tabla y ficha con el diseño de #sec-clientes de dashboard.html
 // (columnas Cliente · Contacto · Domicilio fiscal · Condiciones · Factor · Creado ·
 // Estado; ficha en la ventana del panel con la rejilla .ptar-sitio-grid).
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import Paginador, { BuscadorUrl } from './Paginador';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
-import { euros, fechaHora } from '@/lib/formato';
+import { euros, fechaHora, numero } from '@/lib/formato';
 
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
@@ -28,7 +29,6 @@ const ESTADOS: [ClienteDatos['estado'], string, string][] = [
 ];
 const PLAZOS: [number, string][] = [[0, 'Contado inmediato (0 días)'], [30, '30 días'], [60, '60 días'], [90, '90 días'], [120, '120 días · por defecto']];
 
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const num = (s: string) => { const t = String(s ?? '').trim(); if (!t) return null; const v = Number(t.replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
 
 // Etiqueta del factor (verde si cobra por encima, rojo si es descuento, gris a 0).
@@ -51,24 +51,24 @@ const NUEVO: ClienteDatos = {
 
 type Empleado = { id: string; nombre: string };
 
-export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [] }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[] }) {
+// Lo que la página ha pedido a la base de datos (filtros de la URL y total de la búsqueda).
+export type ListaClientes = { q: string; estado: string; pagina: number; porPagina: number; total: number };
+
+export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [], lista }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[]; lista: ListaClientes }) {
   const refrescar = useRefrescar();
-  const [q, setQ] = useState('');
+  const url = (p: number) => {
+    const u = new URLSearchParams();
+    if (lista.q) u.set('q', lista.q); if (lista.estado) u.set('estado', lista.estado);
+    if (p > 1) u.set('p', String(p)); if (lista.porPagina !== 20) u.set('n', String(lista.porPagina));
+    const s = u.toString(); return `/panel/clientes${s ? `?${s}` : ''}`;
+  };
   // ?ver=<id> (p. ej. desde CESCE - Riesgos) abre su ficha directamente.
   const [ficha, setFicha] = useState<{ fila: ClienteFila | null } | null>(() => { const f = abrir ? filas.find((c) => c.id === abrir) : null; return f ? { fila: f } : null; });
-
-  const lista = useMemo(() => {
-    const w = norm(q.trim());
-    if (!w) return filas;
-    return filas.filter((c) => norm([c.razon_social, c.nombre_comercial, c.cif, c.codigo, c.direccion, c.codigo_postal,
-      c.poblacion, c.provincia, paisDe(c.pais_codigo_iso), ...c.contactos.flatMap((k) => [k.nombre, k.telefono, k.email, k.cargo]),
-      c.anotaciones].filter(Boolean).join(' ')).includes(w));
-  }, [filas, q]);
 
   return (
     <section className="section active" id="sec-clientes">
       <div className="sec-header">
-        <h2>Clientes ({lista.length})</h2>
+        <h2>Clientes ({numero(lista.total, 0)})</h2>
         <div className="sec-header-actions">
           <button className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Nuevo cliente</button>
         </div>
@@ -77,9 +77,15 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Ficha de cada cliente: datos fiscales, contacto y condiciones de pago. Pulsa una fila para ver o editar la ficha.
       </p>
-      <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por empresa, CIF, email, teléfono, localidad…" />
-      </div>
+      <BuscadorUrl accion="/panel/clientes" valor={lista.q} placeholder="Buscar por empresa, CIF, email, teléfono, localidad…" campos={<>
+        <select name="estado" defaultValue={lista.estado} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Filtrar por estado">
+          <option value="">Estado (todos)</option>
+          <option value="activa">Activa</option>
+          <option value="pendiente_verificacion">Pendiente de verificar</option>
+          <option value="suspendida">Suspendida</option>
+        </select>
+        {lista.porPagina !== 20 && <input type="hidden" name="n" value={lista.porPagina} />}
+      </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los clientes: {error}</div>}
 
       <div className="table-wrap">
@@ -90,11 +96,11 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
             <th>Creado · Modificado</th><th>Estado</th>
           </tr></thead>
           <tbody>
-            {lista.length === 0 ? (
+            {filas.length === 0 ? (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length === 0 ? 'Todavía no hay clientes. Da de alta el primero con «+ Nuevo cliente».' : 'Sin clientes que coincidan'}
+                {!lista.q && !lista.estado ? 'Todavía no hay clientes. Da de alta el primero con «+ Nuevo cliente».' : 'Sin clientes que coincidan'}
               </td></tr>
-            ) : lista.map((c) => {
+            ) : filas.map((c) => {
               const est = ESTADOS.find(([k]) => k === c.estado) ?? ESTADOS[0];
               const cesce = Number(c.riesgo_cesce_euros) || 0, dyn = Number(c.riesgo_manual_euros) || 0;
               return (
@@ -113,6 +119,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
           </tbody>
         </table>
       </div>
+      <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={url} nombre="clientes" nombreUno="cliente" />
 
       {ficha && (
         <FichaCliente fila={ficha.fila} bienvenida={bienvenida} empleados={empleados} sectores={sectores} onCerrar={() => setFicha(null)}

@@ -6,7 +6,7 @@ import type { EnvioFila, Parada, Pestana } from '@/lib/envios';
 import TablaEnvios, { pestanaElegida, POR_PAGINA_ENVIOS } from '@/components/panel/TablaEnvios';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
-import { cargarFicha, cargarTransportistasParaAsignar } from '@/lib/fichaEnvio';
+import { cargarFicha } from '@/lib/fichaEnvio';
 import FichaEnvioCliente, { type EnvioCliente, type EnvioClienteBase } from '@/components/panel/FichaEnvioCliente';
 import FichaViaje, { type Viaje, type ParadaViaje } from '@/components/panel/FichaViaje';
 import OfertasAbiertas, { type Oferta } from '@/components/panel/OfertasAbiertas';
@@ -156,10 +156,10 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   }
 
   // Ficha de un envío (?ver=<id>), encima de la lista. Solo Dynamo por ahora (etapa A).
-  let ficha = null, transportistas: Awaited<ReturnType<typeof cargarTransportistasParaAsignar>> = [], errorFicha: string | null = null;
+  let ficha = null, errorFicha: string | null = null;
   if (dynamo && sp.ver) {
-    const [r, t] = await Promise.all([cargarFicha(supabase, sp.ver), cargarTransportistasParaAsignar(supabase)]);
-    ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente' } : null; errorFicha = r.error; transportistas = t;
+    const r = await cargarFicha(supabase, sp.ver);
+    ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente' } : null; errorFicha = r.error;
   }
   // Ficha para el CLIENTE: con lo que ya trae mis_envios() (sin datos internos) y sus hitos visibles.
   let fichaCli: EnvioCliente | null = null;
@@ -206,7 +206,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     <>
       {ofertas.length > 0 && <OfertasAbiertas ofertas={ofertas} />}
       <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual} />
-      {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
+      {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} />}
       {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} etapas={etapasVer} cerrarHref={cerrarHref} />}
     </>

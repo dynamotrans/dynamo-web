@@ -6,7 +6,7 @@ import type { ContactoDatos } from '@/lib/contactos';
 import { validarHorario, tramosDe, MMDD, type GrupoHorario, type Verano } from '@/lib/horarios';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
-import { gestorOCliente } from '@/lib/guardia';
+import { gestorOCliente, soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type SitioDatos = {
@@ -36,6 +36,17 @@ const clave = (s: string) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const puede = gestorOCliente;
+
+// Buscador de clientes de la agenda de Sitios (filtro y ficha nueva; solo Dynamo): los 12
+// que mejor casan con lo escrito, más el ya elegido (`incluir`).
+export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id: string | null; estado: string };
+export async function buscarClientes(q: string, incluir: string | null = null): Promise<ClienteOpcion[]> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#buscarClientes", [q, incluir]);
+  const s = await soloGestor();
+  if (!s) return [];
+  const { data } = await s.supabase.rpc('buscar_clientes', { p_q: (q ?? '').slice(0, 200), p_limite: 12, p_incluir: incluir && /^[0-9a-f-]{36}$/i.test(incluir) ? incluir : null });
+  return (data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, cif: x.cif, principal_id: x.principal_id, estado: x.estado }));
+}
 
 export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParezcaRepetido = false): Promise<Res> {
   comprobarEntrada("app/panel/(app)/sitios/acciones#guardarSitio", [id, d, aunqueParezcaRepetido]);

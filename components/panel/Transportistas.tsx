@@ -3,14 +3,15 @@
 // Transportistas (solo Dynamo): tabla y ficha con el diseño de #sec-transportistas de
 // dashboard.html (Transportista · Contacto · Código bolsa · Puntuación · Flota · Creado).
 // La flota NO se edita aquí: sale de los vehículos dados de alta y de los envíos.
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import Paginador, { BuscadorUrl } from './Paginador';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
 
-import { fecha as fmtFecha, fechaHora } from '@/lib/formato';
+import { fecha as fmtFecha, fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -34,7 +35,6 @@ const BOLSAS: [string, string][] = [['wtransnet', 'Wtransnet'], ['teleroute', 'T
 const PLAZOS: [number, string][] = [[0, 'Contado (0 días)'], [30, '30 días'], [60, '60 días · por defecto'], [90, '90 días']];
 const CAMIONES: [string, string][] = [['', 'Sin preferencia'], ['trailer_tauliner', 'Tráiler tauliner (lona)'], ['rigido_plataforma', 'Rígido con plataforma']];
 
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const num = (s: string) => { const t = String(s ?? '').trim(); if (!t) return null; const v = Number(t.replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
 const bolsaDe = (b: string | null) => BOLSAS.find(([k]) => k === (b ?? ''))?.[1] ?? '';
 
@@ -70,28 +70,26 @@ const NUEVO: TransportistaDatos = {
   contactos: [CONTACTO_VACIO('trafico')],
 };
 
-export default function Transportistas({ filas, error, abrirId }: { filas: TransportistaFila[]; error: string | null; abrirId?: string }) {
+// Lo que la página ha pedido a la base de datos (filtros de la URL y total de la búsqueda).
+export type ListaTransportistas = { q: string; estado: string; adr: string; pagina: number; porPagina: number; total: number };
+
+export default function Transportistas({ filas, error, abrirId, lista }: { filas: TransportistaFila[]; error: string | null; abrirId?: string; lista: ListaTransportistas }) {
   const refrescar = useRefrescar();
-  const [q, setQ] = useState('');
-  const [fEstado, setFEstado] = useState('');
-  const [fAdr, setFAdr] = useState('');
+  const url = (p: number, cambios: Partial<ListaTransportistas> = {}) => {
+    const v = { ...lista, ...cambios };
+    const u = new URLSearchParams();
+    if (v.q) u.set('q', v.q); if (v.estado) u.set('estado', v.estado); if (v.adr) u.set('adr', v.adr);
+    if (p > 1) u.set('p', String(p)); if (v.porPagina !== 20) u.set('n', String(v.porPagina));
+    const s = u.toString(); return `/panel/transportistas${s ? `?${s}` : ''}`;
+  };
+  const enviar = (ev: React.ChangeEvent<HTMLSelectElement>) => ev.currentTarget.form?.requestSubmit();
   // ?ver=<id>: abre esa ficha (p. ej. desde el aviso de un alta online en la ficha del envío).
   const [ficha, setFicha] = useState<{ fila: TransportistaFila | null } | null>(() => { const f = abrirId ? filas.find((x) => x.id === abrirId) : null; return f ? { fila: f } : null; });
-
-  const lista = useMemo(() => {
-    const w = norm(q.trim());
-    return filas
-      .filter((t) => !fEstado || t.estado_operativo === fEstado)
-      .filter((t) => !fAdr || (fAdr === 'si') === t.flota.adr)
-      .filter((t) => !w || norm([t.razon_social, t.nombre_comercial, t.cif, t.codigo, t.codigo_bolsa, bolsaDe(t.bolsa),
-        ...t.contactos.flatMap((k) => [k.nombre, k.telefono, k.email]), t.poblacion, t.provincia, t.nima,
-        ...t.flota.matriculas].filter(Boolean).join(' ')).includes(w));
-  }, [filas, q, fEstado, fAdr]);
 
   return (
     <section className="section active" id="sec-transportistas">
       <div className="sec-header">
-        <h2>Transportistas ({lista.length})</h2>
+        <h2>Transportistas ({numero(lista.total, 0)})</h2>
         <div className="sec-header-actions">
           <button className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Nuevo transportista</button>
         </div>
@@ -100,18 +98,18 @@ export default function Transportistas({ filas, error, abrirId }: { filas: Trans
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Ficha de cada transportista: datos fiscales, contacto, código de bolsa de carga y flota. Pulsa una fila para ver o editar la ficha.
       </p>
-      <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por empresa, CIF, código de bolsa, teléfono, matrícula…" />
-        <select value={fEstado} onChange={(e) => setFEstado(e.target.value)} aria-label="Filtrar por estado">
+      <BuscadorUrl accion="/panel/transportistas" valor={lista.q} placeholder="Buscar por empresa, CIF, código de bolsa, teléfono, matrícula…" campos={<>
+        <select name="estado" defaultValue={lista.estado} onChange={enviar} aria-label="Filtrar por estado">
           <option value="">Estado (todos)</option>
           {ESTADOS.map(([k, , c]) => <option key={k} value={k}>{c}</option>)}
         </select>
-        <select value={fAdr} onChange={(e) => setFAdr(e.target.value)} aria-label="Filtrar por ADR">
+        <select name="adr" defaultValue={lista.adr} onChange={enviar} aria-label="Filtrar por ADR">
           <option value="">ADR (todos)</option>
           <option value="si">Con ADR</option>
           <option value="no">Sin ADR</option>
         </select>
-      </div>
+        {lista.porPagina !== 20 && <input type="hidden" name="n" value={lista.porPagina} />}
+      </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los transportistas: {error}</div>}
 
       <div className="table-wrap">
@@ -120,11 +118,11 @@ export default function Transportistas({ filas, error, abrirId }: { filas: Trans
             <th>Transportista</th><th>Contacto</th><th>Código bolsa de carga</th><th>Puntuación</th><th>Flota</th><th>Creado · Modificado</th>
           </tr></thead>
           <tbody>
-            {lista.length === 0 ? (
+            {filas.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length === 0 ? 'Todavía no hay transportistas. Da de alta el primero con «+ Nuevo transportista».' : 'Sin transportistas que coincidan'}
+                {!lista.q && !lista.estado && !lista.adr ? 'Todavía no hay transportistas. Da de alta el primero con «+ Nuevo transportista».' : 'Sin transportistas que coincidan'}
               </td></tr>
-            ) : lista.map((t) => {
+            ) : filas.map((t) => {
               const f = t.flota;
               const camiones = f.tractoras + f.rigidos;
               return (
@@ -147,6 +145,7 @@ export default function Transportistas({ filas, error, abrirId }: { filas: Trans
           </tbody>
         </table>
       </div>
+      <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={(p) => url(p)} nombre="transportistas" nombreUno="transportista" />
 
       {ficha && (
         <FichaTransportista fila={ficha.fila} onCerrar={() => setFicha(null)}

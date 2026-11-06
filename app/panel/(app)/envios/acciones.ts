@@ -6,7 +6,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
 import { vistaCruda } from '@/lib/vista';
 import { euros } from '@/lib/formato';
-import { flotaDe, type FlotaTransportista } from '@/lib/fichaEnvio';
+import { flotaDe, type FlotaTransportista, type TransportistaOpcion } from '@/lib/fichaEnvio';
 import type { TablaUpdate } from '@/lib/supabase/tipos';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
@@ -251,6 +251,18 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
 }
 
 // Asignar transportista: la flota activa del elegido (matrículas y conductores para sugerir).
+// Buscador de transportistas de «Asignar» y «Ofrecer»: los 12 que mejor casan con lo
+// escrito (nombre, CIF, código de bolsa, teléfono, matrícula…), más el ya asignado
+// (`incluir`) para que salga aunque no case. Antes viajaban a la ficha TODOS los
+// transportistas (2 MB con 20.000).
+export async function buscarTransportistas(q: string, incluir: string | null = null): Promise<TransportistaOpcion[]> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#buscarTransportistas", [q, incluir]);
+  const s = await soloDynamo();
+  if (!s) return [];
+  const { data } = await s.supabase.rpc('buscar_transportistas', { p_q: (q ?? '').slice(0, 200), p_limite: 12, p_incluir: incluir && /^[0-9a-f-]{36}$/i.test(incluir) ? incluir : null });
+  return (data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, cif: x.cif, estado: x.estado, nima: x.nima, telefono: x.telefono, email: x.email }));
+}
+
 export async function flotaTransportista(transportista: string): Promise<FlotaTransportista> {
   comprobarEntrada("app/panel/(app)/envios/acciones#flotaTransportista", [transportista]);
   const s = await soloDynamo();

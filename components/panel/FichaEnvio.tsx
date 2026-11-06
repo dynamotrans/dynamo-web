@@ -14,7 +14,7 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
-import type { Ficha, TransportistaOpcion } from '@/lib/fichaEnvio';
+import type { Ficha } from '@/lib/fichaEnvio';
 import PagoPrevio from './PagoPrevio';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
@@ -32,7 +32,7 @@ import { Valoracion } from './ficha/Valoracion';
 import { CmrDigital } from './ficha/CmrDigital';
 import { Ofrecer } from './ficha/Ofrecer';
 
-export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { ficha: Ficha; transportistas: TransportistaOpcion[]; cerrarHref: string }) {
+export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const e = ficha.envio;
@@ -101,12 +101,12 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
     </>
   );
 
-  if (vista === 'asignar') return <Asignar ficha={ficha} transportistas={transportistas} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
+  if (vista === 'asignar') return <Asignar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'estado') return <Estado ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'cancelar') return <Cancelar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
-  if (vista === 'ofrecer') return <Ofrecer ficha={ficha} transportistas={transportistas} onVolver={() => { setVista('ficha'); refrescar(); }} />;
+  if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
 
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga');
   const entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');

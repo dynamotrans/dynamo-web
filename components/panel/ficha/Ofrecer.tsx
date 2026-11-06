@@ -6,15 +6,22 @@ import Cargando from '@/components/Cargando';
 import { euros, numero } from '@/lib/formato';
 import { NEGOCIACION } from '@/lib/envios';
 import type { Ficha, TransportistaOpcion } from '@/lib/fichaEnvio';
-import { ofrecerCarga } from '@/app/panel/(app)/envios/acciones';
+import { ofrecerCarga, buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
+import Buscador from '../Buscador';
 import { CANALES, I, ICO, Interruptor, aNum, enlaceOferta, mensajeOferta } from './comun';
 
 // ---- Ofrecer carga ------------------------------------------------------------------
-export function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transportistas: TransportistaOpcion[]; onVolver: () => void }) {
+export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
   const e = ficha.envio;
   const sugerido = e.importe_transportista != null ? Number(e.importe_transportista)
     : e.importe_cliente != null ? Math.round((Number(e.importe_cliente) * 0.8) / 10) * 10 : null;
-  const [para, setPara] = useState<string>('bolsa');
+  // 'bolsa' (enlace abierto) o un transportista concreto, elegido con el buscador.
+  const [modo, setModo] = useState<'bolsa' | 'uno'>('bolsa');
+  const [t, setT] = useState<TransportistaOpcion | null>(null);
+  const para = modo === 'bolsa' ? 'bolsa' : (t?.id ?? '');
+  // Solo los activos se pueden elegir (los demás salen, pero deshabilitados, para que se vea por qué no).
+  const opciones = (q: string) => buscarTransportistas(q).then((r) => r.map((o) => ({
+    ...o, detalle: o.estado === 'suspendido' ? 'SUSPENDIDO' : o.estado === 'no_ofertar' ? 'no ofertar' : null, deshabilitada: o.estado !== 'activo' })));
   const [canal, setCanal] = useState<string>('bolsa_wtransnet');
   const [precio, setPrecio] = useState(numero(sugerido, 2));
   const [banda, setBanda] = useState<number>(e.negociacion_pct ?? 10);
@@ -23,8 +30,6 @@ export function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; tra
   const [trabajando, setTrabajando] = useState(false);
   const [hecho, setHecho] = useState<{ token: string; precio: number } | null>(null);
   const [copiado, setCopiado] = useState(false);
-  const t = transportistas.find((x) => x.id === para);
-  const activos = transportistas.filter((x) => x.estado === 'activo');
   const pv = aNum(precio);
   const bandaEur = pv && banda ? Math.max(10, Math.round((pv * banda) / 100 / 10) * 10) : 0;
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
@@ -32,6 +37,7 @@ export function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; tra
   async function crear() {
     setError(null);
     if (pv == null || Number.isNaN(pv) || pv <= 0) { setError('Pon el precio que se ofrece al transportista.'); return; }
+    if (modo === 'uno' && !t) { setError('Elige el transportista al que se le ofrece.'); return; }
     setTrabajando(true);
     const r = await ofrecerCarga(e.id, { transportista_id: para === 'bolsa' ? null : para, canal, precio: pv, banda_pct: banda, pronto_pago: pronto });
     setTrabajando(false);
@@ -76,10 +82,13 @@ export function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; tra
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="of-para">Para</label>
-          <select id="of-para" value={para} onChange={(ev) => { setPara(ev.target.value); setCanal(ev.target.value === 'bolsa' ? 'bolsa_wtransnet' : 'whatsapp'); }}>
+          <select id="of-para" value={modo} onChange={(ev) => { const m = ev.target.value as 'bolsa' | 'uno'; setModo(m); setCanal(m === 'bolsa' ? 'bolsa_wtransnet' : 'whatsapp'); }}>
             <option value="bolsa">Bolsa de cargas · enlace abierto (se identifican con su CIF)</option>
-            {activos.map((x) => <option key={x.id} value={x.id}>{x.nombre} · {x.cif}</option>)}
+            <option value="uno">Un transportista concreto…</option>
           </select>
+          {modo === 'uno' && <div style={{ marginTop: '0.4rem' }}>
+            <Buscador id="of-tra" valor={t} buscar={opciones} onElegir={setT} autoFoco placeholder="Busca por nombre, CIF, código de bolsa o teléfono…" />
+          </div>}
         </div>
         <div>
           <label htmlFor="of-canal">Por dónde se le manda</label>

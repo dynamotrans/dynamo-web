@@ -4,15 +4,17 @@
 // dashboard.html: tabla Empresa · Dirección · Horario · Contacto · Notas, estrella del
 // sitio principal y ficha en la ventana del panel con la rejilla .ptar-sitio-grid.
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import Paginador, { BuscadorUrl } from './Paginador';
+import Buscador from './Buscador';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_SITIO } from './TipoSitio';
-import { guardarSitio, borrarSitio, marcarPrincipal, type SitioDatos } from '@/app/panel/(app)/sitios/acciones';
+import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, type SitioDatos, type ClienteOpcion } from '@/app/panel/(app)/sitios/acciones';
 
-import { euros, fechaHora } from '@/lib/formato';
+import { euros, fechaHora, numero } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -28,8 +30,6 @@ export type SitioFila = SitioDatos & {
 };
 export type ClienteSitios = { id: string; nombre: string; cif: string; principal_id: string | null };
 
-const POR_PAGINA = [10, 20, 50, 100];
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const esNuevo = (iso: string) => Date.now() - new Date(iso).getTime() < 48 * 3600 * 1000;
 
 const NUEVO: SitioDatos = {
@@ -41,12 +41,20 @@ const NUEVO: SitioDatos = {
 const IcoEstrella = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>);
 const IcoPin = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>);
 
-export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }: { filas: SitioFila[]; clientes: ClienteSitios[]; dynamo: boolean; error: string | null; veranoDefecto?: FechasVerano }) {
+// Lo que la página ha pedido a la base de datos (filtros de la URL y total). `vistaCliente`:
+// Dynamo está «viendo como» un cliente, así que no hay filtro de cliente que elegir.
+export type ListaSitios = { q: string; cliente: string; pagina: number; porPagina: number; total: number; vistaCliente: boolean };
+
+export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, lista }: { filas: SitioFila[]; clientes: ClienteSitios[]; dynamo: boolean; error: string | null; veranoDefecto?: FechasVerano; lista: ListaSitios }) {
   const refrescar = useRefrescar();
-  const [q, setQ] = useState('');
-  const [filtroCliente, setFiltroCliente] = useState('');
-  const [porPagina, setPorPagina] = useState(20);
-  const [pagina, setPagina] = useState(1);
+  const url = (p: number, cliente: string = lista.cliente) => {
+    const u = new URLSearchParams();
+    if (lista.q) u.set('q', lista.q); if (cliente) u.set('cliente', cliente);
+    if (p > 1) u.set('p', String(p)); if (lista.porPagina !== 20) u.set('n', String(lista.porPagina));
+    const s = u.toString(); return `/panel/sitios${s ? `?${s}` : ''}`;
+  };
+  // Filtro por cliente (Dynamo): el elegido viene con los clientes de la página.
+  const [cliFiltro, setCliFiltro] = useState<ClienteOpcion | null>(() => { const c = clientes.find((x) => x.id === lista.cliente); return c ? { ...c, estado: 'activa' } : null; });
   const [ficha, setFicha] = useState<{ fila: SitioFila | null } | null>(null);
   const [estrella, setEstrella] = useState<string | null>(null);   // sitio cuya estrella se está guardando
   const [aviso, setAviso] = useState<string | null>(null);
@@ -54,34 +62,6 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }
   const cliPorId = useMemo(() => new Map(clientes.map((c) => [c.id, c])), [clientes]);
   const esPrincipal = (f: SitioFila) => cliPorId.get(f.cliente_id)?.principal_id === f.id;
 
-  const lista = useMemo(() => {
-    const w = norm(q.trim());
-    return filas
-      .filter((f) => !filtroCliente || f.cliente_id === filtroCliente)
-      .filter((f) => !w || norm([f.nombre_empresa, f.direccion, f.codigo_postal, f.poblacion, f.provincia,
-        ...f.contactos.flatMap((k) => [k.nombre, k.telefono, k.email]), f.emails_avisos, f.anotaciones, f.horarios,
-        dynamo ? cliPorId.get(f.cliente_id)?.nombre : ''].filter(Boolean).join(' ')).includes(w))
-      .sort((a, b) => {
-        // Dynamo sin filtro: agrupados por cliente. Dentro de cada cliente, como en el
-        // mockup: el principal arriba, luego los nuevos (48 h) y el resto por nombre.
-        if (dynamo && !filtroCliente) {
-          const c = (cliPorId.get(a.cliente_id)?.nombre ?? '').localeCompare(cliPorId.get(b.cliente_id)?.nombre ?? '', 'es');
-          if (c) return c;
-        }
-        const pa = esPrincipal(a), pb = esPrincipal(b);
-        if (pa !== pb) return pa ? -1 : 1;
-        const na = esNuevo(a.creado_en), nb = esNuevo(b.creado_en);
-        if (na && nb) return b.creado_en.localeCompare(a.creado_en);
-        if (na !== nb) return na ? -1 : 1;
-        return a.nombre_empresa.localeCompare(b.nombre_empresa, 'es');
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filas, q, filtroCliente, cliPorId, dynamo]);
-
-  useEffect(() => { setPagina(1); }, [q, filtroCliente, porPagina]);
-  const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
-  const pag = Math.min(pagina, paginas);
-  const trozo = lista.slice((pag - 1) * porPagina, pag * porPagina);
 
   async function alternarEstrella(f: SitioFila) {
     setAviso(null); setEstrella(f.id);
@@ -95,7 +75,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }
   return (
     <section className="section active" id="sec-sitios">
       <div className="sec-header">
-        <h2>Sitios ({lista.length})</h2>
+        <h2>Sitios ({numero(lista.total, 0)})</h2>
         <div className="sec-header-actions">
           <button className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Crear sitio</button>
         </div>
@@ -105,15 +85,15 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }
         Se usan en el buscador al crear envíos.<br />
         <span style={{ color: '#8a6300' }}>★</span> La <strong style={{ color: 'var(--navy)' }}>estrella</strong> marca el <strong style={{ color: 'var(--navy)' }}>almacén principal</strong>{dynamo ? ' de cada cliente' : ''}: se pone solo como <strong>origen (recogida)</strong> al crear un envío. Solo puede haber uno; al marcar otro, se cambia. Siempre se puede cambiar en el propio envío.
       </p>
-      <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por empresa, dirección, teléfono, notas…" />
-        {dynamo && (
-          <select value={filtroCliente} onChange={(e) => setFiltroCliente(e.target.value)} aria-label="Filtrar por cliente">
-            <option value="">Todos los clientes</option>
-            {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
-        )}
-      </div>
+      <BuscadorUrl id="sitios-filtros" accion="/panel/sitios" valor={lista.q} placeholder="Buscar por empresa, dirección, teléfono, notas…" campos={<>
+        {dynamo && !lista.vistaCliente && <>
+          <input type="hidden" name="cliente" value={cliFiltro?.id ?? ''} />
+          <Buscador id="sitios-cliente" valor={cliFiltro} buscar={(q) => buscarClientes(q, lista.cliente || null)} placeholder="Todos los clientes (escribe para filtrar por uno)…"
+            onElegir={(c) => { setCliFiltro(c); setTimeout(() => (document.getElementById('sitios-filtros') as HTMLFormElement | null)?.requestSubmit(), 0); }} />
+          {cliFiltro && <a className="btn-ghost" href={url(1, '')} style={{ whiteSpace: 'nowrap' }}>Todos los clientes</a>}
+        </>}
+        {lista.porPagina !== 20 && <input type="hidden" name="n" value={lista.porPagina} />}
+      </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los sitios: {error}</div>}
       {aviso && <div className="pt-aviso error">{aviso}</div>}
 
@@ -123,11 +103,11 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }
             <th>Empresa</th>{dynamo && <th>Cliente</th>}<th>Dirección</th><th>Horario</th><th>Contacto</th><th>Notas</th>
           </tr></thead>
           <tbody>
-            {trozo.length === 0 ? (
+            {filas.length === 0 ? (
               <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length === 0 ? 'Todavía no hay sitios. Crea el primero con «+ Crear sitio» (o se guardan solos al crear un envío).' : 'Sin sitios que coincidan'}
+                {!lista.q && !lista.cliente ? 'Todavía no hay sitios. Crea el primero con «+ Crear sitio» (o se guardan solos al crear un envío).' : 'Sin sitios que coincidan'}
               </td></tr>
-            ) : trozo.map((f) => {
+            ) : filas.map((f) => {
               const prin = esPrincipal(f);
               const cli = cliPorId.get(f.cliente_id);
               const notas = f.anotaciones.trim();
@@ -159,30 +139,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }
           </tbody>
         </table>
       </div>
-      <div className="pagination">
-        <div className="pagination-left">
-          <label className="pagination-perpage-wrap">Mostrar{' '}
-            <select className="pagination-perpage" value={porPagina} onChange={(e) => setPorPagina(Number(e.target.value))}>
-              {POR_PAGINA.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
-          <span>{lista.length ? `${(pag - 1) * porPagina + 1}–${Math.min(pag * porPagina, lista.length)} de ${lista.length}` : 'Sin sitios'}</span>
-        </div>
-        {paginas > 1 && (
-          <div className="pagination-pages">
-            <button disabled={pag === 1} onClick={() => setPagina(pag - 1)} aria-label="Anterior">‹</button>
-            {Array.from({ length: paginas }, (_, i) => i + 1)
-              .filter((n) => n === 1 || n === paginas || Math.abs(n - pag) <= 1)
-              .map((n, i, arr) => (
-                <span key={n} style={{ display: 'contents' }}>
-                  {i > 0 && n - arr[i - 1] > 1 && <button disabled>…</button>}
-                  <button className={n === pag ? 'active' : ''} onClick={() => setPagina(n)}>{n}</button>
-                </span>
-              ))}
-            <button disabled={pag === paginas} onClick={() => setPagina(pag + 1)} aria-label="Siguiente">›</button>
-          </div>
-        )}
-      </div>
+      <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={url} nombre="sitios" nombreUno="sitio" />
 
       {ficha && (
         <FichaSitio fila={ficha.fila} clientes={clientes} dynamo={dynamo} veranoDefecto={veranoDefecto}
@@ -280,7 +237,10 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
   );
   const opc = <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span>;
   const obl = <span className="sitio-req">· obligatorio</span>;
-  const cliente = clientes.find((c) => c.id === d.cliente_id);
+  // Cliente del sitio: en una ficha existente viene con la página; en una nueva se elige con
+  // el buscador (los clientes ya no viajan todos a la pantalla).
+  const [cliSel, setCliSel] = useState<ClienteOpcion | null>(() => { const c = clientes.find((x) => x.id === d.cliente_id); return c ? { ...c, estado: 'activa' } : null; });
+  const cliente = clientes.find((c) => c.id === d.cliente_id) ?? (cliSel?.id === d.cliente_id ? cliSel : undefined);
 
   return (
     <Modal abierto titulo={fila ? `Editar ${que}` : `Nuevo ${que}`}
@@ -352,10 +312,8 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
             <label htmlFor="sitio-cliente">Cliente {!fila && obl}</label>
             {fila
               ? <input id="sitio-cliente" className="sitio-f-lock" readOnly tabIndex={-1} value={cliente ? `${cliente.nombre} · ${cliente.cif}` : '—'} />
-              : <select id="sitio-cliente" value={d.cliente_id} onChange={(e) => set('cliente_id', e.target.value)}>
-                  <option value="" disabled>Elige el cliente…</option>
-                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre} · {c.cif}</option>)}
-                </select>}
+              : <Buscador id="sitio-cliente" valor={cliSel} buscar={(q) => buscarClientes(q)} placeholder="Busca el cliente por nombre o CIF…"
+                  onElegir={(c) => { setCliSel(c); set('cliente_id', c?.id ?? ''); }} />}
           </div>
         )}
         <div style={{ gridColumn: '1/-1' }}>

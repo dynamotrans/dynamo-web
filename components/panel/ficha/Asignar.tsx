@@ -6,15 +6,29 @@ import Cargando from '@/components/Cargando';
 import { euros, numero, fecha, diasEntre } from '@/lib/formato';
 import type { TransportistaOpcion } from '@/lib/fichaEnvio';
 import CampoTelefono from '@/components/CampoTelefono';
-import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista } from '@/app/panel/(app)/envios/acciones';
+import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
+import Buscador from '../Buscador';
 import { I, ICO, SubProps, aNum } from './comun';
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 // ---- Asignar / cambiar transportista ------------------------------------------------
-export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProps & { transportistas: TransportistaOpcion[] }) {
+export function Asignar({ ficha, onVolver, hacer, trabajando }: SubProps) {
   const e = ficha.envio;
-  const [tid, setTid] = useState<string>(ficha.transportista?.id ?? '');
+  // El transportista elegido, con sus datos (estado, NIMA, contacto de tráfico). El ya
+  // asignado se pinta con lo que trae la ficha y se completa pidiéndolo a la base de datos.
+  const [t, setT] = useState<TransportistaOpcion | null>(ficha.transportista
+    ? { id: ficha.transportista.id, nombre: ficha.transportista.nombre, cif: ficha.transportista.cif, estado: 'activo', nima: null, telefono: null, email: null } : null);
+  const tid = t?.id ?? '';
+  useEffect(() => {
+    const id = ficha.transportista?.id;
+    if (!id) return;
+    let vivo = true;
+    buscarTransportistas('', id).then((r) => { const x = r.find((o) => o.id === id); if (vivo && x) setT(x); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [ficha.transportista?.id]);
+  const opciones = (q: string) => buscarTransportistas(q, ficha.transportista?.id ?? null).then((r) => r.map((o) => ({
+    ...o, detalle: o.estado === 'suspendido' ? 'SUSPENDIDO' : o.estado === 'no_ofertar' ? 'no ofertar' : null, deshabilitada: o.estado === 'suspendido' })));
   const [precio, setPrecio] = useState(numero(e.importe_transportista, 2));
   const [camion, setCamion] = useState<string>(e.matricula_camion ?? '');
   const [remolque, setRemolque] = useState<string>(e.matricula_remolque ?? '');
@@ -28,7 +42,6 @@ export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: 
   const [diaCarga, setDiaCarga] = useState<string>(e.fecha_carga_prevista ?? (dias.length === 1 ? dias[0] : ''));
   // (Sábado y domingo no se pueden elegir: los camiones no circulan. Un festivo nacional lo pasa
   // la base de datos al siguiente día hábil.)
-  const t = transportistas.find((x) => x.id === tid);
   // Su flota se pide al elegirlo (no viaja con la ficha la de todos los transportistas).
   const [flota, setFlota] = useState<{ id: string; vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] } | null>(null);
   useEffect(() => {
@@ -85,15 +98,8 @@ export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: 
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="as-tra">Transportista <span className="sitio-req">· obligatorio</span></label>
-          <select id="as-tra" value={tid} onChange={(ev) => setTid(ev.target.value)}>
-            <option value="">Elige el transportista…</option>
-            {transportistas.map((x) => (
-              <option key={x.id} value={x.id} disabled={x.estado === 'suspendido'}>
-                {x.nombre} · {x.cif}{x.estado === 'suspendido' ? ' · SUSPENDIDO' : x.estado === 'no_ofertar' ? ' · no ofertar' : ''}
-              </option>
-            ))}
-          </select>
-          {transportistas.length === 0 && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Aún no hay transportistas: dalos de alta en Otras gestiones → Transportistas.</div>}
+          <Buscador id="as-tra" valor={t} buscar={opciones} onElegir={setT} placeholder="Busca por nombre, CIF, código de bolsa, teléfono o matrícula…"
+            vacio="Ningún transportista coincide. Si es nuevo, dalo de alta en Otras gestiones → Transportistas." />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="as-dia">Día en que carga {conVentana ? <span className="sitio-req">· obligatorio</span> : null}</label>

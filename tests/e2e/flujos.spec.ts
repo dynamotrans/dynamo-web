@@ -85,8 +85,10 @@ test.describe.serial('flujos clave', () => {
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${envio}`);
     await page.getByRole('button', { name: /Asignar transportista/ }).click();
-    const tra = await page.locator('#as-tra option', { hasText: 'Transportes Prueba' }).getAttribute('value');
-    await page.locator('#as-tra').selectOption(tra!);
+    // El transportista se elige con el buscador (escribir → elegir en la lista), ya no con un desplegable.
+    await page.fill('#as-tra', 'Transportes Prueba');
+    await page.locator('.buscador-lista button', { hasText: 'Transportes Prueba' }).first().click();
+    await expect(page.locator('.buscador-elegido')).toContainText('Transportes Prueba');
     // Con ventana de carga, el día en que carga es obligatorio (lo usa el seguimiento automático).
     if (await page.locator('select#as-dia').count()) {
       // El primer día que se puede elegir (sábado y domingo salen sin poder elegirse: no se circula).
