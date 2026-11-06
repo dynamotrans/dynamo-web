@@ -4,6 +4,8 @@ import type { Metadata } from 'next';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { cookieReserva, cookieAlta } from '@/lib/cargaPublica';
 import CargaPublica from './CargaPublica';
+import EnVivo from '@/components/panel/EnVivo';
+import { canalEnlace } from '@/lib/canalEnlace';
 import SelectorIdioma from '@/components/SelectorIdioma';
 import '../carga.css';
 
@@ -43,7 +45,7 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
       <SelectorIdioma />
       <div className="card">
         <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>
-        <RefrescoProvider><CargaPublica token={token} oferta={!sb || error ? { resultado: 'error' } : valido ? oferta : { resultado: 'enlace_no_valido' }} reserva={reserva} altaOnline={altaOnline} otras={otras} /></RefrescoProvider>
+        <RefrescoProvider>{valido && <EnVivo canales={[canalEnlace(token)]} />}<CargaPublica token={token} oferta={!sb || error ? { resultado: 'error' } : valido ? oferta : { resultado: 'enlace_no_valido' }} reserva={reserva} altaOnline={altaOnline} otras={otras} /></RefrescoProvider>
       </div>
       <p className="foot">Dynamo Operador Logístico, S.L.</p>
     </div>

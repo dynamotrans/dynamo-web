@@ -4,6 +4,8 @@ import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import SelectorIdioma from '@/components/SelectorIdioma';
 import FirmarCmr from './FirmarCmr';
+import EnVivo from '@/components/panel/EnVivo';
+import { canalEnlace } from '@/lib/canalEnlace';
 import '../cmr.css';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +39,7 @@ export default async function PaginaCmr({ params }: { params: Promise<{ token: s
   return (
     <div className="cmr-page">
       <SelectorIdioma />
-      <RefrescoProvider><FirmarCmr token={token} cmr={cmr} trazos={trazos} /></RefrescoProvider>
+      <RefrescoProvider>{/^[0-9a-f-]{36}$/i.test(token) && <EnVivo canales={[canalEnlace(token)]} />}<FirmarCmr token={token} cmr={cmr} trazos={trazos} /></RefrescoProvider>
     </div>
   );
 }

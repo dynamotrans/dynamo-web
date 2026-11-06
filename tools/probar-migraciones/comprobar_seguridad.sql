@@ -5531,7 +5531,7 @@ do $$ declare e envios%rowtype; v_n int; v_topics text[]; begin
   if not found then raise exception 'FALLO 154 · no hay envío con cliente y transportista para probar'; end if;
   truncate realtime._senales;
   update envios set referencia_cliente = referencia_cliente where id = e.id;
-  select array_agg(topic order by topic) into v_topics from realtime._senales where payload ->> 't' = 'envios';
+  select array_agg(topic order by topic) into v_topics from realtime._senales where payload ->> 't' = 'envios' and topic not like 'enlace:%';  -- los enlaces, prueba 155
   if v_topics is distinct from array['cliente:' || e.cliente_id, 'dynamo', 'transportista:' || e.transportista_id] then
     raise exception 'FALLO 154 · señales de un envío: %', v_topics;
   end if;
@@ -5560,6 +5560,50 @@ do $$ declare e uuid := (select id from envios limit 1); begin
   -- Sin realtime.send() (este Postgres), los disparadores no hacen nada.
   if (select count(*) from pg_trigger where tgname like 'tg_zz_en_vivo_%') < 57 then raise exception 'FALLO 154 · faltan disparadores en vivo'; end if;
   raise notice 'OK 154 · en vivo: una señal sin datos por sentencia a Dynamo, al cliente y al transportista del envío; si Realtime falla, el cambio se guarda';
+end $$;
+drop function realtime.send(jsonb, text, text, boolean);
+drop table realtime._senales;
+drop schema realtime;
+
+-- ---- 155. En vivo en las páginas con enlace: canal = «enlace:» + sha256 de la llave ------
+reset role;
+create schema if not exists realtime;
+create table if not exists realtime._senales (topic text, payload jsonb);
+create or replace function realtime.send(payload jsonb, event text, topic text, private boolean default true)
+returns void language sql as $$ insert into realtime._senales values (topic, payload) $$;
+do $$ declare o envio_ofertas%rowtype; v_canal text; begin
+  select * into o from envio_ofertas where token is not null limit 1;
+  if not found then raise exception 'FALLO 155 · no hay ofertas con enlace para probar'; end if;
+  v_canal := 'enlace:' || encode(sha256(convert_to(o.token::text, 'UTF8')), 'hex');
+  truncate realtime._senales;
+  update envios set referencia_cliente = referencia_cliente where id = o.envio_id;
+  if not exists (select 1 from realtime._senales where topic = v_canal) then
+    raise exception 'FALLO 155 · el cambio del envío no avisa a la página de su enlace';
+  end if;
+  if exists (select 1 from realtime._senales where topic like '%' || o.token::text || '%') then
+    raise exception 'FALLO 155 · la llave del enlace va en claro en el canal';
+  end if;
+  truncate realtime._senales;
+  update envio_ofertas set aperturas = aperturas where id = o.id;
+  if not exists (select 1 from realtime._senales where topic = v_canal) then
+    raise exception 'FALLO 155 · el cambio de la oferta no avisa a su página';
+  end if;
+  -- Retirar el enlace del CMR avisa a SU página (aunque ya esté retirado).
+  declare c cmr_enlaces%rowtype; begin
+    select * into c from cmr_enlaces where not revocado limit 1;
+    if found then
+      truncate realtime._senales;
+      update cmr_enlaces set revocado = true where id = c.id;
+      if not exists (select 1 from realtime._senales where topic = 'enlace:' || encode(sha256(convert_to(c.token::text, 'UTF8')), 'hex')) then
+        raise exception 'FALLO 155 · retirar el enlace del CMR no avisa a su página';
+      end if;
+      update cmr_enlaces set revocado = false where id = c.id;
+    end if;
+  end;
+  if (select count(*) from pg_trigger where tgrelid = 'cmr_enlaces'::regclass and tgname like 'tg_zz_en_vivo_%') <> 3 then
+    raise exception 'FALLO 155 · el enlace del CMR no avisa';
+  end if;
+  raise notice 'OK 155 · en vivo en las páginas con enlace: la señal llega al canal del resumen de la llave, nunca la llave en claro';
 end $$;
 drop function realtime.send(jsonb, text, text, boolean);
 drop table realtime._senales;

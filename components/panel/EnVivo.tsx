@@ -34,8 +34,8 @@ function ocupado() {
 }
 
 // marca: la pone el servidor en cada render del marco; cuando cambia, ha llegado la página
-// nueva y entonces se recarga la campana.
-export default function EnVivo({ canales, marca }: { canales: string[]; marca: number }) {
+// nueva y entonces se recarga la campana. Las páginas con enlace (sin cuenta) no la usan.
+export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marca?: number }) {
   const router = useRouter();
   const campana = useRef(false);
   const pendiente = useRef(false);

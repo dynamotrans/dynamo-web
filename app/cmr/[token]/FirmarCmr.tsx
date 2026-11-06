@@ -119,7 +119,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   }
 
   return (
-    <div className="sigov show">
+    <div className="sigov show" role="dialog" aria-modal="true" aria-label="Firmar el CMR">
       <div className="sigcard">
         <h2>Firmar {b.titulo.toLowerCase()}</h2>
         <label className="sig-lbl" htmlFor="sigDni">Documento de identidad *</label>
