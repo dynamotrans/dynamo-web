@@ -1,8 +1,10 @@
 'use client';
 
-// Dashboard admin (solo Dynamo), copiado de #sec-dashboard-admin de dashboard.html:
-// indicadores de lo que hay que atender, últimos envíos y la línea de PRONTO PAGO a
-// transportistas (interruptor, línea editable, barra de uso y anticipos de 60 días).
+// Dashboard admin (solo Dynamo): una fila de cifras de lo que hay que atender —incluida la
+// línea de PRONTO PAGO a transportistas, que al pulsarla abre su ventana (interruptor, línea
+// editable, barra de uso y anticipos de 60 días)— y debajo el cuadro de mando.
+// (Usuario, 2026-11-06: fuera «Solicitudes sin precio», «Últimos envíos creados» y la caja
+// grande del pronto pago; todo en cifras.)
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -10,17 +12,13 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import Modal from './Modal';
 import { guardarLineaProntoPago, encenderProntoPago } from '@/app/panel/(app)/dashboard-admin/acciones';
-import type { MiniEnvio } from './DashboardCliente';
-import { euros, fecha, ventana, importe, fechaHora } from '@/lib/formato';
-import { ESTADOS_ENVIO } from '@/lib/estados';
+import { euros, importe, fechaHora } from '@/lib/formato';
 
 export type ProntoPago = {
   linea: number; encendido: boolean; ventana_dias: number; usado: number; disponible: number; activo: boolean;
   anticipos: { cuando: string; envio: string; transportista: string | null; importe: number; descuento: number; anticipado: number }[];
 };
 type Cifras = { enCurso: number; sinTransp: number; inc: number; pen: number; alm: number; contra: number };
-
-const ESTADO: Record<string, [string, string]> = Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, [v.label, v.color]]));
 
 function Cifra({ href, label, valor, aviso }: { href: string; label: string; valor: number; aviso?: boolean }) {
   return (
@@ -31,8 +29,8 @@ function Cifra({ href, label, valor, aviso }: { href: string; label: string; val
   );
 }
 
-export default function DashboardAdmin({ cifras, ultimos, prontoPago, errorPP, cuadro }: {
-  cifras: Cifras; ultimos: (MiniEnvio & { importe: number | null })[]; prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode;
+export default function DashboardAdmin({ cifras, prontoPago, errorPP, cuadro }: {
+  cifras: Cifras; prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode;
 }) {
   return (
     <section className="section active" id="sec-dashboard-admin">
@@ -48,30 +46,6 @@ export default function DashboardAdmin({ cifras, ultimos, prontoPago, errorPP, c
         <Cifra href="/panel/incidencias" label="Incidencias abiertas" valor={cifras.inc} aviso />
         <Cifra href="/panel/penalizaciones" label="Penalizaciones por confirmar" valor={cifras.pen} aviso />
         <Cifra href="/panel/almacenamientos" label="Almacenamientos por confirmar" valor={cifras.alm} aviso />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', alignItems: 'start' }}>
-        <div className="mini-list-card">
-          <div className="mini-list-head"><h4>Últimos envíos creados</h4><Link href="/panel/envios">Ver todos →</Link></div>
-          <ul className="mini-list">
-            {ultimos.length === 0 ? <li style={{ color: 'var(--gray-500)' }}>Todavía no hay envíos.</li> : ultimos.map((e) => {
-              const est = ESTADO[e.estado] ?? ESTADO.programado;
-              return (
-                <li key={e.id}>
-                  <Link href={`/panel/envios?ver=${e.id}`} className="mini-list-left" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <span className="mini-list-date"><span className="ml-ref">#{e.referencia_gx}</span>{e.cliente ? ` · ${e.cliente}` : ''} · {e.fecha_carga_hasta && e.fecha_carga_hasta !== e.fecha_carga_desde ? ventana(e.fecha_carga_desde, e.fecha_carga_hasta) : fecha(e.fecha_carga_desde)}</span>
-                    <span className="mini-list-route"><span className="ml-dot orig" />{e.origen || '—'}</span>
-                    <span className="mini-list-route"><span className="ml-dot dest" />{e.destino || '—'}</span>
-                  </Link>
-                  <div className="mini-list-right">
-                    <span className={`badge badge-${est[1]}`}>{est[0]}</span>
-                    {e.importe != null && <span className="mini-list-amount">{euros(e.importe)}</span>}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
         <LineaProntoPago pp={prontoPago} error={errorPP} />
       </div>
       {cuadro}
@@ -88,13 +62,22 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [fallo, setFallo] = useState<string | null>(null);
 
-  const caja = (hijos: React.ReactNode) => (
-    <div style={{ background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '1.1rem 1.2rem' }}>
-      <h4 style={{ margin: '0 0 0.2rem' }}>Línea de PRONTO PAGO a transportistas</h4>
-      <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0 0 0.8rem' }}>Crédito propio para adelantar el cobro a los transportistas que eligen pronto pago. Si el disponible se agota (o se apaga), las nuevas ofertas de carga salen <strong>sin</strong> la opción: lo impone la base de datos al crear la oferta.</p>
-      {hijos}
-    </div>
-  );
+  const [abierto, setAbierto] = useState(false);
+  // La cifra (como las demás de la fila) y, al pulsarla, la ventana con todo el detalle.
+  const caja = (hijos: React.ReactNode) => (<>
+    <button type="button" className="stat-card stat-card-link" style={{ font: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%' }} onClick={() => setAbierto(true)}>
+      <span className="stat-card-label">Pronto pago · disponible</span>
+      <span className="stat-card-value" style={{ color: !pp ? 'var(--red)' : !pp.encendido ? 'var(--gray-500)' : pp.activo ? 'var(--green-dark)' : 'var(--red)' }}>{pp ? euros(pp.disponible) : '—'}</span>
+      <span className="stat-card-trend" style={{ color: 'var(--gray-500)' }}>{!pp ? 'sin datos' : !pp.encendido ? `apagado · línea ${euros(pp.linea)}` : `de ${euros(pp.linea)} · ${pp.activo ? 'activo' : 'agotado'}`}</span>
+    </button>
+    {abierto && (
+      <Modal abierto titulo="Línea de pronto pago a transportistas" icono={ICO_EURO} onCerrar={() => { setAbierto(false); setEditando(false); setFallo(null); }}
+        sub={<>Crédito propio para adelantar el cobro a los transportistas que eligen pronto pago. Si el disponible se agota (o se apaga), las nuevas ofertas de carga salen <strong>sin</strong> la opción: lo impone la base de datos al crear la oferta.</>}
+        pie={<button className="btn-ghost" onClick={() => { setAbierto(false); setEditando(false); setFallo(null); }}>Cerrar</button>}>
+        {hijos}
+      </Modal>
+    )}
+  </>);
   if (!pp) return caja(<div className="pt-aviso error"><div>No se ha podido leer la línea{error ? `: ${error}` : ''}.</div></div>);
 
   const pct = pp.linea > 0 ? Math.min(100, Math.round(pp.usado / pp.linea * 100)) : 100;
@@ -123,19 +106,18 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
       </div>
     </div>
     {editando && (
-      <Modal abierto titulo="Línea de pronto pago" sub="Amplía o minora la línea según tesorería" icono={ICO_EURO} onCerrar={() => { setFallo(null); setEditando(false); }}
-        pie={<>
-          <button className="btn-ghost" onClick={() => { setFallo(null); setEditando(false); }} disabled={!!trabajando}>Cancelar</button>
-          <button className="btn-primary" disabled={!!trabajando}
-            onClick={() => hacer(() => guardarLineaProntoPago(Number(linea.replace(/\./g, '').replace(',', '.'))), 'Guardando la línea')}>Guardar línea</button>
-        </>}>
-        <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
-          <div><label htmlFor="pp-linea">Línea total (€)</label>
-            <input id="pp-linea" type="text" inputMode="decimal" value={linea} placeholder="50.000,00" onChange={(e) => setLinea(e.target.value)} /></div>
-        </div>
-        <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Ahora mismo: <strong>{euros(pp.linea)}</strong> · anticipado en los últimos {pp.ventana_dias} días: <strong>{euros(pp.usado)}</strong>.</p>
+      <div className="ptar-admin-precio" style={{ margin: '0 0 0.9rem' }}>
+        <div className="ptar-admin-precio-head">Línea total <span>· amplía o minora según tesorería</span></div>
+        <label className="ptar-admin-precio-lbl" htmlFor="pp-linea">Línea total (€)</label>
+        <input id="pp-linea" type="text" inputMode="decimal" value={linea} placeholder="50.000,00" onChange={(e) => setLinea(e.target.value)} autoFocus />
+        <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.5rem 0 0' }}>Ahora mismo: <strong>{euros(pp.linea)}</strong> · anticipado en los últimos {pp.ventana_dias} días: <strong>{euros(pp.usado)}</strong>.</p>
         {fallo && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
-      </Modal>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem' }}>
+          <button type="button" className="btn-primary" disabled={!!trabajando}
+            onClick={() => hacer(() => guardarLineaProntoPago(Number(linea.replace(/\./g, '').replace(',', '.'))), 'Guardando la línea')}>Guardar línea</button>
+          <button type="button" className="btn-ghost" onClick={() => { setFallo(null); setEditando(false); }} disabled={!!trabajando}>Cancelar</button>
+        </div>
+      </div>
     )}
     <div style={{ height: 14, borderRadius: 999, background: 'var(--gray-200)', overflow: 'hidden' }}>
       <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 999, transition: 'width 0.4s' }} />

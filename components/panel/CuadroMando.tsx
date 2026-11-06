@@ -24,7 +24,7 @@ export type Cuadro = {
   transportistas: { id: string; nombre: string | null; cif: string; realizados: number; coste: number; margen: number; km: number }[];
 };
 export type Sector = { sector: string; clientes: number; realizados: number; facturacion: number; margen: number };
-export type Periodo = 'mes' | 'mes-ant' | 'anio' | 'anio-ant' | '12m' | 'todo' | 'otro';
+export type Periodo = '5a' | '12m' | 'mes' | 'mes-ant' | 'anio' | 'anio-ant' | 'todo' | 'otro';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const n = (x: unknown) => Number(x ?? 0);
@@ -226,7 +226,8 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
     facturacion: n(s.facturacion), margen: n(s.margen), realizados: n(s.realizados), solicitados: n(s.solicitados),
   })), [datos]);
   const totFact = n(t?.facturacion);
-  const PERIODOS: [Periodo, string][] = [['mes', 'Este mes'], ['mes-ant', 'Mes pasado'], ['anio', 'Este año'], ['anio-ant', 'Año pasado'], ['12m', 'Últimos 12 meses'], ['todo', 'Todo'], ['otro', 'Otro periodo…']];
+  // Por defecto, últimos 5 años (usuario, 2026-11-06).
+  const PERIODOS: [Periodo, string][] = [['5a', 'Últimos 5 años'], ['12m', 'Últimos 12 meses'], ['mes', 'Este mes'], ['mes-ant', 'Mes pasado'], ['anio', 'Este año'], ['anio-ant', 'Año pasado'], ['todo', 'Todo'], ['otro', 'Otro periodo…']];
 
   return (
     <div className="cm">
