@@ -154,7 +154,7 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
                   <td><ChipRol rol={u.rol} /></td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {u.estado === 'activa' ? <span className="badge badge-green">Activa</span>
-                      : u.estado === 'suspendida' ? <span className="badge badge-red" title={u.suspension_motivo ?? undefined}>{u.suspension_motivo?.startsWith('Automática') ? 'Suspendida (auto)' : 'Suspendida'}</span>
+                      : u.estado === 'suspendida' ? <span className="badge badge-red" title={u.suspension_motivo ?? undefined}>{u.suspension_motivo?.startsWith('Automática') ? 'Suspendida (auto)' : u.suspension_motivo?.startsWith('Baja a petición') ? 'De baja (la pidió)' : 'Suspendida'}</span>
                       : <span className="badge badge-orange">Pendiente verif.</span>}
                     {u.estado === 'suspendida' && u.suspendida_en && <div className="meta">desde {fechaHora(u.suspendida_en)}</div>}
                     {!u.email_confirmado && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Invitación sin aceptar</div>}

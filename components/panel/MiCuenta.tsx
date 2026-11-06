@@ -7,7 +7,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { cambiarMiClave, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { cambiarMiClave, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 
 import { paisDe, telBonito } from '@/lib/paises';
@@ -48,6 +48,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
   const [editaTransp, setEditaTransp] = useState(false);
   const [cambiaClave, setCambiaClave] = useState(false);
   const [claveCambiada, setClaveCambiada] = useState(false);
+  const [baja, setBaja] = useState(false);
   const [vehiculo, setVehiculo] = useState<MiVehiculo | null>(null);
   const [conductor, setConductor] = useState<MiConductor | null>(null);
   const hecho = () => { setEditaTransp(false); setVehiculo(null); setConductor(null); refrescar(); };
@@ -74,6 +75,9 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           <button className="btn-ghost account-edit" onClick={() => { setClaveCambiada(false); setCambiaClave(true); }}>Cambiar contraseña</button>
           {claveCambiada && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Contraseña cambiada.</p>}
           <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para cambiar el <strong>email</strong> con el que entras, escríbenos a {CONTACTO.email}: es tu usuario y lo cambiamos nosotros.</p>
+          {(rol === 'cliente' || rol === 'transportista') && (
+            <button type="button" className="btn-ghost" style={{ marginTop: '0.8rem', color: 'var(--red)', borderColor: 'transparent', padding: '0.35rem 0' }} onClick={() => setBaja(true)}>Darme de baja</button>
+          )}
         </div>
         {empresa && (
           <div className="account-card">
@@ -126,6 +130,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
         </>)}
       </div>
       {cambiaClave && <CambiarClave onCerrar={() => setCambiaClave(false)} onHecho={() => { setCambiaClave(false); setClaveCambiada(true); }} />}
+      {baja && <DarmeDeBaja onCerrar={() => setBaja(false)} transportista={rol === 'transportista'} />}
       {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); refrescar(); }} />}
       {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '', compania: transporte.seguro_cmr_compania ?? '', poliza: transporte.seguro_cmr_poliza ?? '', vence: transporte.seguro_cmr_vence ?? '' }}
         onCerrar={() => setEditaTransp(false)} onHecho={hecho} />}
@@ -327,6 +332,41 @@ function EditarConductor({ inicial, onCerrar, onHecho }: { inicial: MiConductor;
           <input id="mcd-doc" type="text" value={c.documento} maxLength={30} placeholder="12345678Z" onChange={(e) => setC({ ...c, documento: e.target.value.toUpperCase() })} /></div>
         <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-tel">Teléfono móvil</label><CampoTelefono id="mcd-tel" valor={c.telefono} onCambio={(v) => setC({ ...c, telefono: v })} /></div>
       </div>
+      {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
+      {g.trabajando && <Cargando texto={g.trabajando} />}
+    </Modal>
+  );
+}
+
+// Baja del ACCESO: se conserva todo lo que la ley obliga a guardar. Pide la contraseña.
+function DarmeDeBaja({ onCerrar, transportista }: { onCerrar: () => void; transportista: boolean }) {
+  const [clave, setClave] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [seguro, setSeguro] = useState(false);
+  const g = useGuardar(() => { window.location.href = '/panel/entrar?sesion=baja'; });
+  return (
+    <Modal abierto titulo="Darme de baja" sub="Dejarás de poder entrar en la plataforma" icono={ICO_CANDADO} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
+        <button className="btn-primary" style={{ background: 'var(--red)', borderColor: 'var(--red)' }} disabled={!!g.trabajando || !clave || !seguro}
+          onClick={() => g.correr('Dando de baja tu cuenta', () => darmeDeBaja(clave, motivo))}>Darme de baja</button>
+      </>}>
+      <p className="account-card-desc" style={{ marginBottom: '0.6rem' }}>
+        Se da de baja <strong>tu acceso</strong>: no podrás entrar ni recibirás avisos. Cerramos tus sesiones en todos los dispositivos.
+      </p>
+      <div className="pt-aviso info" style={{ marginBottom: '0.7rem' }}><div>
+        <strong>Lo que NO se borra:</strong> {transportista ? 'los datos de tu empresa de transporte' : 'los datos de tu empresa'}, los envíos, albaranes, CMR, documentos de control y facturas. La ley nos obliga a guardarlos (inspección de transporte, Hacienda) y tu empresa puede tener más usuarios. Si además quieres que borremos tus datos personales, escríbenos a {CONTACTO.email}.
+      </div></div>
+      <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div><label htmlFor="baja-motivo">Motivo (opcional)</label>
+          <textarea id="baja-motivo" rows={2} maxLength={300} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Nos ayuda a mejorar" /></div>
+        <div><label htmlFor="baja-clave">Tu contraseña, para confirmar</label>
+          <input id="baja-clave" type="password" autoComplete="current-password" value={clave} onChange={(e) => setClave(e.target.value)} /></div>
+      </div>
+      <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginTop: '0.6rem', fontSize: 'var(--fs-s)' }}>
+        <input type="checkbox" checked={seguro} onChange={(e) => setSeguro(e.target.checked)} />
+        <span>Entiendo que dejaré de poder entrar. Para volver, tendré que pedírselo a Dynamo.</span>
+      </label>
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
       {g.trabajando && <Cargando texto={g.trabajando} />}
     </Modal>

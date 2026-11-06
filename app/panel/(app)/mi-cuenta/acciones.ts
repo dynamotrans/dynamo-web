@@ -9,6 +9,7 @@ import { validaDoc } from '@/lib/documentoIdentidad';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { soloTransportista } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { CONTACTO } from '@/lib/atencion';
 
 export type MisDatos = { nombre: string; telefono: string; documento: string; cargo: string; idioma: string };
 
@@ -118,4 +119,31 @@ export async function darDeBajaFlota(tipo: 'vehiculo' | 'conductor', id: string)
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar su flota.' };
   const { error } = await s.supabase.rpc('dar_baja_mi_flota', { p_tipo: tipo, p_id: id });
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };
+}
+
+// ---- BAJA DE LA CUENTA (usuario, 2026-11-06) ----------------------------------------------
+// El cliente o el transportista se da de baja él mismo. Se da de baja su ACCESO: no se borra
+// nada (empresa, envíos, documentos y facturas se guardan por ley). Pide la contraseña, como
+// cambiarla, para que una sesión olvidada abierta no baste. Después cierra sus sesiones en
+// todos los dispositivos.
+export async function darmeDeBaja(clave: string, motivo: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#darmeDeBaja", [clave, motivo]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  if (!['cliente', 'transportista'].includes(s.perfil.rol)) return { ok: false, error: 'Las cuentas del equipo de Dynamo se dan de baja desde Usuarios.' };
+  if (!clave) return { ok: false, error: 'Escribe tu contraseña para confirmar.' };
+  const { data: { user } } = await s.supabase.auth.getUser();
+  const pub = supabasePublico();
+  if (!user?.email || !pub) return { ok: false, error: 'No se ha podido comprobar tu cuenta. Vuelve a entrar.' };
+  const prueba = await pub.auth.signInWithPassword({ email: user.email, password: clave });
+  if (prueba.error) return { ok: false, error: 'La contraseña no es correcta.' };
+  await pub.auth.signOut({ scope: 'local' }).catch(() => {});
+  const { data, error } = await s.supabase.rpc('darme_de_baja', { p_motivo: motivo.trim() || null });
+  if (error) return { ok: false, error: mensajeError(error.message) };
+  const r = (data ?? {}) as { resultado?: string; envios?: number };
+  if (r.resultado === 'envios_en_marcha') return { ok: false, error: `Eres el único usuario de tu empresa y hay ${r.envios} envío${r.envios === 1 ? '' : 's'} en marcha: llámanos al ${CONTACTO.telefono} y lo dejamos atado antes de la baja.` };
+  if (r.resultado === 'ya_suspendida') return { ok: false, error: 'Tu cuenta ya está suspendida o dada de baja.' };
+  if (r.resultado !== 'ok') return { ok: false, error: 'No se ha podido hacer la baja. Llámanos y la hacemos nosotros.' };
+  await s.supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+  return { ok: true };
 }

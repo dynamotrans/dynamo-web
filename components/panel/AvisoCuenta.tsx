@@ -11,6 +11,7 @@ import { CONTACTO } from '@/lib/atencion';
 
 // Motivo para el usuario a partir del guardado («Automática · Regla 3: …» o a mano).
 function motivoVisible(m: string | null | undefined): string {
+  if ((m ?? '').startsWith('Baja a petición')) return 'Diste de baja tu acceso desde «Mi cuenta». Tus envíos y documentos se conservan.';
   const r = /Regla (\d)/.exec(m ?? '')?.[1];
   switch (r) {
     case '1': return 'Durante un tiempo se han pedido precios sin que tu empresa haya hecho ningún envío.';
@@ -46,8 +47,9 @@ export default function AvisoCuenta({ perfil }: { perfil: Perfil | null }) {
 
 function Suspendida({ perfil }: { perfil: Perfil }) {
   const automatica = (perfil.suspension_motivo ?? '').startsWith('Automática');
+  const deBaja = (perfil.suspension_motivo ?? '').startsWith('Baja a petición');
   const asunto = 'Reactivar mi cuenta en la plataforma';
-  const cuerpo = `Hola, mi cuenta (${perfil.email}) está suspendida y quiero reactivarla.`;
+  const cuerpo = `Hola, mi cuenta (${perfil.email}) está ${deBaja ? 'dada de baja' : 'suspendida'} y quiero reactivarla.`;
   const boton = (href: string, texto: string, bg: string, fuera = false) => (
     <a href={href} target={fuera ? '_blank' : undefined} rel={fuera ? 'noopener' : undefined}
        style={{ background: bg, color: '#fff', fontWeight: 800, borderRadius: 10, padding: '0.6rem 1.1rem', textDecoration: 'none', display: 'inline-block' }}>{texto}</a>
@@ -55,9 +57,9 @@ function Suspendida({ perfil }: { perfil: Perfil }) {
   return (
     <section className="section active">
       <div className="account-card" style={{ maxWidth: 640, borderColor: '#fca5a5' }}>
-        <div className="account-card-title" style={{ color: '#b42318' }}>Tu cuenta está suspendida</div>
+        <div className="account-card-title" style={{ color: '#b42318' }}>{deBaja ? 'Tu cuenta está dada de baja' : 'Tu cuenta está suspendida'}</div>
         <p className="account-card-desc" style={{ marginBottom: '0.6rem' }}>
-          Mientras esté suspendida no puedes ver ni crear envíos.{perfil.suspendida_en ? <> Suspendida el {fechaHora(perfil.suspendida_en)}.</> : null}
+          Mientras esté {deBaja ? 'de baja' : 'suspendida'} no puedes ver ni crear envíos.{perfil.suspendida_en ? <> {deBaja ? 'Baja' : 'Suspendida'} el {fechaHora(perfil.suspendida_en)}.</> : null}
         </p>
         <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>
           <strong>Motivo{automatica ? ' (automático)' : ''}:</strong> {motivoVisible(perfil.suspension_motivo)}

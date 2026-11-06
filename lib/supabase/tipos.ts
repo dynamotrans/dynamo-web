@@ -3089,6 +3089,7 @@ export type Database = {
       autosuspension_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       autosuspension_motivos: { Args: { p_usuario?: string | null }; Returns: { usuario_id: string; email: string; motivo: string }[] }
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
+      baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }
       buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; total: number }[] }
       buscar_persona: { Args: { p_texto: string | null }; Returns: { tipo: string; id: string; nombre: string; email: string; telefono: string; documento: string; empresa: string; estado: string }[] }
@@ -3121,6 +3122,7 @@ export type Database = {
       crear_solicitud_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       cuenta_mis_envios_sin_asignar: { Args: Record<PropertyKey, never>; Returns: number }
       dar_baja_mi_flota: { Args: { p_tipo: string | null; p_id: string | null }; Returns: undefined }
+      darme_de_baja: { Args: { p_motivo?: string | null }; Returns: Json }
       datos_cmr_envio: { Args: { p_envio: string | null }; Returns: Json }
       datos_dynamo: { Args: Record<PropertyKey, never>; Returns: Json }
       datos_orden_manual: { Args: { p_envio: string | null }; Returns: Json }

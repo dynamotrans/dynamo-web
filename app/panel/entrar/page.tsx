@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic';
 // cuenta" lleva al alta de clientes (/panel/registro).
 export default async function PaginaEntrar({ searchParams }: { searchParams: Promise<{ sesion?: string }> }) {
   if (!configSupabase()) return <SinConfigurar />;
-  const caducada = (await searchParams).sesion === 'caducada';
+  const sp = (await searchParams).sesion;
+  const caducada = sp === 'caducada';
   return (
     <div className="portal-page">
       <div className="portal-bg" />
@@ -24,7 +25,7 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
           <h1 id="portal-title" className="portal-title">Acceso al portal</h1>
           <p className="portal-subtitle">Área privada para <strong>clientes</strong> de Dynamo</p>
 
-          <FormEntrar caducada={caducada} />
+          <FormEntrar caducada={caducada} baja={sp === 'baja'} />
           <CrearCuenta />
 
           <a href="/" className="portal-back">

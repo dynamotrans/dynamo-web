@@ -5453,3 +5453,68 @@ do $$ declare f text; begin
   raise notice 'OK 152 · «hoy» es el día de Madrid en toda la base de datos (sin current_date)';
 end $$;
 set timezone to 'Europe/Madrid';
+
+-- ---- 153. Baja de cuenta por el propio usuario: corta el acceso, no borra nada -----------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r jsonb; v_envios int; v_cli uuid := (select cliente_id from usuarios where id = auth.uid()); begin
+  -- Por la puerta normal sigue sin poder suspenderse.
+  begin
+    update usuarios set estado = 'suspendida', suspension_motivo = 'Baja a petición del usuario.' where id = auth.uid();
+    raise exception 'FALLO 153 · el usuario cambia su estado sin pasar por darme_de_baja()';
+  exception when insufficient_privilege then null; end;
+  select count(*) into v_envios from envios where cliente_id = v_cli;
+  r := darme_de_baja('Cambio de proveedor');
+  raise notice '153 · resultado: %', r;
+  if r ->> 'resultado' = 'envios_en_marcha' then
+    if (select estado from usuarios where id = auth.uid()) <> 'activa' then
+      raise exception 'FALLO 153 · con envíos en marcha la baja no debía hacerse';
+    end if;
+  elsif r ->> 'resultado' <> 'ok' then
+    raise exception 'FALLO 153 · darme_de_baja(): %', r;
+  end if;
+end $$;
+reset role;
+do $$ declare u usuarios%rowtype; r jsonb; begin
+  select * into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if u.estado = 'activa' then
+    -- Le tocaba «envíos en marcha»: se paran un momento para probar la baja.
+    create temp table _marcha as select id, estado from envios
+      where cliente_id = u.cliente_id and estado in ('hacia_la_carga', 'cargando', 'en_ruta');
+    update envios set estado = 'programado' where id in (select id from _marcha);
+  end if;
+end $$;
+set role authenticated;
+do $$ declare r jsonb; u usuarios%rowtype; begin
+  select * into u from usuarios where id = auth.uid();
+  if u.estado = 'activa' then r := darme_de_baja('Cambio de proveedor'); if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 153 · %', r; end if; end if;
+end $$;
+reset role;
+do $$ declare u usuarios%rowtype; r jsonb; begin
+  select * into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if u.estado <> 'suspendida' or u.suspension_motivo <> 'Baja a petición del usuario: Cambio de proveedor'
+     or u.nombre is null or u.email not like '%@%' or u.cliente_id is null then
+    raise exception 'FALLO 153 · tras la baja la cuenta queda mal: % / %', u.estado, u.suspension_motivo;
+  end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'baja_cuenta' and texto like '%' || u.email || '%') then
+    raise exception 'FALLO 153 · Dynamo no recibe el aviso de la baja';
+  end if;
+end $$;
+set role authenticated;
+do $$ begin
+  if darme_de_baja() ->> 'resultado' <> 'ya_suspendida' then raise exception 'FALLO 153 · dos veces de baja'; end if;
+end $$;
+reset role;
+-- Dynamo la reactiva como cualquier suspendida y todo vuelve a estar como antes.
+update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+do $$ begin
+  if to_regclass('pg_temp._marcha') is not null then
+    execute 'update envios e set estado = m.estado from _marcha m where e.id = m.id';
+  end if;
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
+    raise exception 'FALLO 153 · no se reactiva';
+  end if;
+  raise notice 'OK 153 · baja de cuenta: el usuario corta su acceso, se conserva todo, Dynamo recibe el aviso y puede reactivarla';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
