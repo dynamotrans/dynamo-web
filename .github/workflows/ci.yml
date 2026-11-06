@@ -92,7 +92,7 @@ jobs:
       - name: Supabase local con las migraciones
         run: |
           mkdir -p /tmp/sb && cd /tmp/sb && supabase init --force
-          cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
+          mkdir -p supabase/migrations && cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
           supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,realtime,mailpit,postgres-meta
           supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | tr -d '"' >> "$GITHUB_ENV"
       - name: Datos de prueba
