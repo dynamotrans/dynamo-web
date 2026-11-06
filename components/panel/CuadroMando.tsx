@@ -1,7 +1,7 @@
 'use client';
 
 // CUADRO DE MANDO (usuario, 2026-11-06): lo que llevaba en su hoja —facturación, margen,
-// viajes, % cerrados, por día de la semana, km y €/km, por cliente y por mes— calculado de
+// viajes, % cerrados, km y €/km, por cliente y por mes— calculado de
 // los envíos reales (cuadro_mando() en la base de datos). Primera versión, para ir ajustando.
 // Gráficos en SVG propio (sin librerías): una sola escala por gráfico, barras finas, tooltip
 // al pasar, tabla debajo de cada gráfico para quien prefiera los números.
@@ -25,7 +25,6 @@ export type Sector = { sector: string; clientes: number; realizados: number; fac
 export type Periodo = 'mes' | 'mes-ant' | 'anio' | 'anio-ant' | '12m' | 'todo' | 'otro';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const n = (x: unknown) => Number(x ?? 0);
 const pct = (a: number, b: number) => (b ? `${(a / b * 100).toFixed(1).replace('.', ',')} %` : '—');
 const porKm = (eur: number, km: number) => (km > 0 ? `${(eur / km).toFixed(2).replace('.', ',')} €` : '—');
@@ -114,7 +113,6 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
     k: datos!.granularidad === 'dia' ? etiquetaDia(s.k) : etiquetaMes(s.k),
     v: n(s[grafico]), extra: `${n(s.realizados)} realizados / ${n(s.solicitados)} solicitados`,
   })), [datos, grafico]);
-  const semana = (datos?.semana ?? []).map((w) => ({ k: DIAS[w.dow - 1], v: n(w.facturacion), extra: `margen ${euros(n(w.margen))}` }));
   const totFact = n(t?.facturacion);
   const PERIODOS: [Periodo, string][] = [['mes', 'Este mes'], ['mes-ant', 'Mes pasado'], ['anio', 'Este año'], ['anio-ant', 'Año pasado'], ['12m', 'Últimos 12 meses'], ['todo', 'Todo'], ['otro', 'Otro periodo…']];
 
@@ -164,12 +162,6 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1rem', alignItems: 'start', marginTop: '1rem' }}>
-            <div className="mini-list-card">
-              <div className="mini-list-head"><h4>Por día de la semana</h4><span className="meta">facturación</span></div>
-              <Barras datos={semana} color="#3300cc" formato={euros} titulo="Facturación por día de la semana" alto={150} />
-              <Tabla cab={['Día', 'Envíos', 'Facturación', '% sem.', 'Margen', '% marg.', 'Km', '€/km venta', '€/km compra']}
-                filas={(datos!.semana ?? []).map((w) => [DIAS[w.dow - 1], n(w.realizados), euros(n(w.facturacion)), pct(n(w.facturacion), totFact), euros(n(w.margen)), pct(n(w.margen), n(w.facturacion)), importe(n(w.km)), porKm(n(w.fact_con_km), n(w.km)), porKm(n(w.coste_con_km), n(w.km))])} />
-            </div>
             <div className="mini-list-card">
               <div className="mini-list-head"><h4>Por mes · con el mismo mes del año anterior</h4></div>
               <Tabla cab={['Mes', 'Envíos', 'vs. año ant.', 'Facturación', 'vs. año ant.', 'Margen', '% marg.', 'Km']}
