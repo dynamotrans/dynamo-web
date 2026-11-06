@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { firmar, type DatosFirma } from './acciones';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
+import { CONTACTO } from '@/lib/atencion';
 
 type Bloque = { clave: string; titulo: string; casilla: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; };
 
@@ -20,7 +21,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     const t: Record<string, [string, string]> = {
       enlace_no_valido: ['Este enlace no es válido', 'Ha caducado o se ha retirado. Pide uno nuevo a quien te lo envió.'],
       cancelado: ['Este envío está cancelado', 'Ya no hace falta firmar su CMR.'],
-      mantenimiento: ['Plataforma en mantenimiento', 'Vuelve a intentarlo en un rato. Si es urgente, llámanos al +34 955 225 945.'],
+      mantenimiento: ['Plataforma en mantenimiento', `Vuelve a intentarlo en un rato. Si es urgente, llámanos al ${CONTACTO.telefono}.`],
       error: ['No se puede abrir ahora mismo', 'Vuelve a intentarlo en un momento.'],
     };
     const [h, p] = t[cmr.resultado] ?? t.error;
@@ -136,7 +137,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <label className="sig-lbl" htmlFor="sigReservas">Reservas <span className="op">· solo si falta algo o hay daños</span></label>
         <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palés; 1 palé con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
           style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit' }} />
-        {reservas.trim() && <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({'+34 955 225 945'}).</div>}
+        {reservas.trim() && <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({CONTACTO.telefono}).</div>}
         {aviso && <div className="sig-warn">⚠ {aviso}</div>}
         <p className="hint" style={{ marginTop: '0.6rem' }}>Firma con el dedo (o el ratón) dentro del recuadro.</p>
         <canvas id="sigCanvas" ref={canvas}
@@ -148,7 +149,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <p className="hint" style={{ marginTop: '0.6rem', fontSize: '0.78rem', lineHeight: 1.45 }}>
           <strong>Protección de datos:</strong> Dynamo guarda tu nombre, documento, firma, email (si lo pones) y la hora y desde dónde firmas,
           como prueba de la carga o la entrega en el CMR (contrato de transporte y Convenio CMR), durante 6 años. Puedes ejercer tus derechos
-          en info@dynamotrans.com. <a href="https://www.dynamotrans.com/#privacidad" target="_blank" rel="noopener">Política de privacidad</a>.
+          en {CONTACTO.email}. <a href="https://www.dynamotrans.com/#privacidad" target="_blank" rel="noopener">Política de privacidad</a>.
         </p>
         <div className="sigbtns">
           <button type="button" onClick={onCerrar} disabled={guardando}>Cancelar</button>

@@ -12,6 +12,7 @@ import Modal from './Modal';
 import { guardarLineaProntoPago, encenderProntoPago } from '@/app/panel/(app)/dashboard-admin/acciones';
 import type { MiniEnvio } from './DashboardCliente';
 import { euros, fecha, ventana, importe, fechaHora } from '@/lib/formato';
+import { ESTADOS_ENVIO } from '@/lib/estados';
 
 export type ProntoPago = {
   linea: number; encendido: boolean; ventana_dias: number; usado: number; disponible: number; activo: boolean;
@@ -19,10 +20,7 @@ export type ProntoPago = {
 };
 type Cifras = { enCurso: number; sinTransp: number; inc: number; pen: number; alm: number; contra: number; solicitudes: number };
 
-const ESTADO: Record<string, [string, string]> = {
-  programado: ['Programado', 'prog'], hacia_la_carga: ['Hacia la carga', 'hacia'], cargando: ['Cargando', 'cargando'],
-  en_ruta: ['En ruta', 'enruta'], entregado: ['Entregado', 'entregado'], cancelado: ['Cancelado', 'cancelada'],
-};
+const ESTADO: Record<string, [string, string]> = Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, [v.label, v.color]]));
 
 function Cifra({ href, label, valor, aviso }: { href: string; label: string; valor: number; aviso?: boolean }) {
   return (

@@ -15,14 +15,15 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros } from '@/lib/formato'
 import { paisDe, telBonito } from '@/lib/paises';
 import { marcarViaje, enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
+import { ESTADOS_ENVIO, FASES_ENVIO, enMarcha } from '@/lib/estados';
 
 const FASES: [string, string, string][] = [
   ['hacia_la_carga', 'Voy hacia la carga', 'Hacia la carga'], ['cargando', 'Estoy cargando', 'Cargando'],
   ['en_ruta', 'Cargado: salgo en ruta', 'En ruta'], ['entregado', 'Entregado', 'Entregado'],
 ];
-const ORDEN = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'];
-const NOMBRE: Record<string, string> = { programado: 'Programado', hacia_la_carga: 'Hacia la carga', cargando: 'Cargando', en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado' };
-const COLOR: Record<string, string> = { programado: 'prog', hacia_la_carga: 'hacia', cargando: 'cargando', en_ruta: 'enruta', entregado: 'entregado', cancelado: 'cancelada' };
+const ORDEN: string[] = FASES_ENVIO;
+const NOMBRE: Record<string, string> = Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, v.label]));
+const COLOR: Record<string, string> = Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, v.color]));
 const I = ({ d }: { d: string[] }) => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }}>
     {d.map((x, i) => <path key={i} d={x} />)}
@@ -83,7 +84,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {trabajando && <Cargando texto={trabajando} />}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
-      {['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
+      {enMarcha(e.estado) && <AvisoSiniestro incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {e.discrecion_comercial && (
         <div className="modal-warn-box"><strong>Discreción comercial:</strong> en la carga no digas a dónde va la mercancía, ni en la entrega de dónde viene.</div>
       )}

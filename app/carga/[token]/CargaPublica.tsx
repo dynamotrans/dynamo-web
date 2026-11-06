@@ -15,6 +15,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt } from '
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
 import CampoTelefono from '@/components/CampoTelefono';
+import { CONTACTO } from '@/lib/atencion';
 
 type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; codigo_postal: string | null; poblacion: string | null; provincia: string | null;
@@ -24,7 +25,6 @@ type Parada = {
   notas_sitio?: string | null; url_google_maps?: string | null; contacto?: { nombre: string | null; telefono: string | null } | null;
 };
 
-const TEL = '+34955225945', WA = '34628995709', MAIL = 'info@dynamotrans.com';
 const num = (v: unknown) => (v == null || v === '' ? null : Number(v));
 const txtNum = (v: unknown) => (v == null ? '' : String(v).replace('.', ','));
 
@@ -35,9 +35,9 @@ function Dudas({ texto = '¿Dudas?' }: { texto?: string }) {
       <button type="button" className="dudas-toggle" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>{texto} <span className="dt-chev" aria-hidden="true">▾</span></button>
       {abierto && (
         <div className="contact-btns">
-          <a className="cbtn cbtn-call" href={`tel:${TEL}`}>Llamar</a>
-          <a className="cbtn cbtn-wa" href={`https://wa.me/${WA}`} target="_blank" rel="noopener">WhatsApp</a>
-          <a className="cbtn cbtn-mail" href={`mailto:${MAIL}`}>Email</a>
+          <a className="cbtn cbtn-call" href={CONTACTO.telHref}>Llamar</a>
+          <a className="cbtn cbtn-wa" href={CONTACTO.waHref} target="_blank" rel="noopener">WhatsApp</a>
+          <a className="cbtn cbtn-mail" href={`mailto:${CONTACTO.email}`}>Email</a>
         </div>
       )}
     </>
@@ -142,9 +142,9 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
         <p className="sub">Comprobamos tu ficha en la bolsa de cargas y completamos tu alta. Mientras tanto, el envío sigue <strong>reservado para ti</strong>. <strong>Te contestamos en esta misma pantalla.</strong></p>
         <p className="sub">Si quieres agilizar el alta, escríbenos o llámanos:</p>
         <div className="contact-btns">
-          <a className="cbtn cbtn-mail" href={`mailto:${MAIL}`}>Email</a>
-          <a className="cbtn cbtn-wa" href={`https://wa.me/${WA}`} target="_blank" rel="noopener">WhatsApp</a>
-          <a className="cbtn cbtn-call" href={`tel:${TEL}`}>Llamar</a>
+          <a className="cbtn cbtn-mail" href={`mailto:${CONTACTO.email}`}>Email</a>
+          <a className="cbtn cbtn-wa" href={CONTACTO.waHref} target="_blank" rel="noopener">WhatsApp</a>
+          <a className="cbtn cbtn-call" href={CONTACTO.telHref}>Llamar</a>
         </div>
       </div>
     );
@@ -312,7 +312,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
     if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { refrescar(); return; }
     const msg: Record<string, string> = {
       transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo o, si es tu primer envío con nosotros, date de alta aquí abajo.${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
-      demasiados_intentos: 'Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al +34 955 225 945 y te la asignamos.',
+      demasiados_intentos: `Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al ${CONTACTO.telefono} y te la asignamos.`,
       falta_cif: 'Escribe tu CIF / NIF para identificarte.',
       transportista_no_activo: 'Tu ficha de transportista no está activa ahora mismo. Contáctanos.',
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
@@ -518,8 +518,8 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       ya_existe_bolsa: 'Ese código de bolsa ya está dado de alta en Dynamo: vuelve atrás y acepta el envío con tu CIF.',
       datos_no_validos: x.error ?? `Revisa ${campos[x.campo ?? ''] ?? 'los datos'}.`,
       reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'El envío ya lo ha cogido otro transportista.',
-      oferta_personal: 'Esta oferta es para otra empresa.', demasiados_intentos: 'Demasiados intentos con este envío. Llámanos al +34 955 225 945.',
-      demasiadas_altas: 'Ahora mismo no podemos tramitar más altas online para este envío. Llámanos al +34 955 225 945 y te damos de alta.',
+      oferta_personal: 'Esta oferta es para otra empresa.', demasiados_intentos: `Demasiados intentos con este envío. Llámanos al ${CONTACTO.telefono}.`,
+      demasiadas_altas: `Ahora mismo no podemos tramitar más altas online para este envío. Llámanos al ${CONTACTO.telefono} y te damos de alta.`,
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido completar el alta. Vuelve a intentarlo o llámanos.');

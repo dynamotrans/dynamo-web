@@ -22,6 +22,8 @@ import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { RevisionCliente, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
+import { CONTACTO } from '@/lib/atencion';
+import { ESTADOS_ENVIO, FASES_ENVIO } from '@/lib/estados';
 
 const HITOS: Record<string, string> = {
   creado: 'Solicitud creada', confirmado: 'Envío confirmado', transportista_asignado: 'Transportista asignado',
@@ -102,7 +104,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         <div className="modal-warn-box">
           {e.estado === 'borrador'
             ? <>Es una solicitud sin confirmar: se cancela <strong>sin ningún coste</strong>.</>
-            : <>Cancelar es <strong>gratis hasta las 9:00 del día hábil anterior</strong> a la carga. Después, si ya hay camión asignado, puede conllevar el <strong>coste del servicio completo</strong> (por ley, el transportista está en su derecho de cobrarlo). Si tienes dudas, llámanos al <a href="tel:+34955225945" style={{ fontWeight: 700 }}>+34 955 225 945</a>.</>}
+            : <>Cancelar es <strong>gratis hasta las 9:00 del día hábil anterior</strong> a la carga. Después, si ya hay camión asignado, puede conllevar el <strong>coste del servicio completo</strong> (por ley, el transportista está en su derecho de cobrarlo). Si tienes dudas, llámanos al <a href={CONTACTO.telHref} style={{ fontWeight: 700 }}>{CONTACTO.telefono}</a>.</>}
         </div>
         <label htmlFor="cc-motivo" style={{ display: 'block', marginTop: '0.8rem' }}>Motivo <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
         <textarea id="cc-motivo" rows={3} maxLength={500} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Cuéntanos por qué (nos ayuda a mejorar)" />
@@ -120,7 +122,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
     if (w) w.location.href = `/cmr/${r.token}`; else window.location.href = `/cmr/${r.token}`;
   }
 
-  const FASES_M: [string, string][] = [['programado', 'Programado'], ['hacia_la_carga', 'Hacia la carga'], ['cargando', 'Cargando'], ['en_ruta', 'En ruta'], ['entregado', 'Entregado']];
+  const FASES_M: [string, string][] = FASES_ENVIO.map((k) => [k, ESTADOS_ENVIO[k].label]);
   const acciones = (
     <>
       {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}

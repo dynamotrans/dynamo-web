@@ -1,6 +1,7 @@
 // Formatos de la plataforma. Reglas de CLAUDE.md:
 //  · regla 0: precios SIEMPRE con 2 decimales, formato es-ES ("1.020,00 €").
 //  · fecha única "Vie 10/07/26" (bitácora 2026-07-12), mostrada en hora de Madrid (regla 12).
+import { ESTADOS_ENVIO } from './estados';
 
 export function euros(n: number | string | null | undefined): string {
   if (n === null || n === undefined || n === '') return '—';
@@ -106,15 +107,8 @@ export const porcentaje = (v: number | string | null | undefined) => {
   return `${numero(n, Number.isInteger(n) ? 0 : 2)} %`;
 };
 
-export const ESTADO_ENVIO: Record<string, string> = {
-  borrador: 'Borrador',
-  programado: 'Programado',
-  hacia_la_carga: 'Hacia la carga',
-  cargando: 'Cargando',
-  en_ruta: 'En ruta',
-  entregado: 'Entregado',
-  cancelado: 'Cancelado',
-};
+// Nombre de cada estado del envío (de lib/estados.ts, la única lista).
+export const ESTADO_ENVIO: Record<string, string> = Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, v.label]));
 
 export const ROL: Record<string, string> = {
   admin: 'Admin Master',

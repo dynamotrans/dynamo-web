@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import { buscarPersona, anonimizarPersona, type Persona } from '@/app/panel/(app)/proteccion-datos/acciones';
+import { CONTACTO } from '@/lib/atencion';
 
 const TIPO: Record<Persona['tipo'], string> = { usuario: 'Cuenta de usuario', contacto: 'Contacto', conductor: 'Conductor' };
 const docCorto = (d: string | null) => (d ? `•••${d.slice(-4)}` : '');
@@ -29,7 +30,7 @@ export default function ProteccionDatos() {
     <section className="section active" id="sec-rgpd">
       <div className="sec-header"><h2>Protección de datos</h2></div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
-        Para atender una petición de una persona (por escrito, a info@dynamotrans.com): busca por su <strong>email, teléfono, DNI o nombre</strong> y
+        Para atender una petición de una persona (por escrito, a {CONTACTO.email}): busca por su <strong>email, teléfono, DNI o nombre</strong> y
         verás todas sus fichas en la plataforma. Desde aquí le descargas sus datos o los borras (anonimizar). Plazo para responder: <strong>un mes</strong>.
       </p>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.9rem' }}>

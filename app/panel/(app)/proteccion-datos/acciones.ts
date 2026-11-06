@@ -2,16 +2,13 @@
 
 // Protección de datos (RGPD): buscar a una persona en toda la plataforma y anonimizar
 // sus fichas. Solo el Admin Master (lo impone también la base de datos).
-import { sesion } from '@/lib/sesion';
 import { anonimizarUsuario } from '../usuarios/acciones';
+import { soloAdminMaster } from '@/lib/guardia';
 
 export type Persona = { tipo: 'usuario' | 'contacto' | 'conductor'; id: string; nombre: string | null; email: string | null;
   telefono: string | null; documento: string | null; empresa: string | null; estado: string | null };
 
-async function soloMaster() {
-  const s = await sesion();
-  return s?.perfil && s.perfil.estado === 'activa' && s.perfil.rol === 'admin' ? s : null;
-}
+const soloMaster = soloAdminMaster;
 
 export async function buscarPersona(q: string): Promise<{ ok: true; filas: Persona[] } | { ok: false; error: string }> {
   const s = await soloMaster();

@@ -2,9 +2,10 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { leerTodo } from '@/lib/leerTodo';
-import { sesion, esGestor } from '@/lib/sesion';
+import { sesion } from '@/lib/sesion';
 import { precioAlmacenamiento } from '@/lib/almacenamiento';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
+import { soloCliente, soloGestor } from '@/lib/guardia';
 
 export type AlmacenamientoDatos = {
   cliente_id: string; almacen_id: string; fecha_entrada: string; fecha_salida: string;
@@ -24,11 +25,7 @@ function traducir(msg: string): string {
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
   return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
-async function dynamo() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
-  return s.supabase;
-}
+const dynamo = async () => (await soloGestor())?.supabase ?? null;
 
 // El precio lo calcula SIEMPRE el servidor con las tarifas del almacén (o las de
 // `parametros`) y queda congelado en el registro: la tarifa de mañana no cambia lo de hoy.
@@ -104,11 +101,7 @@ export type PeticionAlm = {
   almacen_id: string; fecha_entrada: string; fecha_salida: string; num_trailers: number; num_repartos: number;
   sitio_entrega_id: string | null; descripcion: string; referencia_cliente: string;
 };
-async function cliente() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return null;
-  return s.supabase;
-}
+const cliente = async () => (await soloCliente())?.supabase ?? null;
 export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Promise<Res> {
   const sb = await cliente();
   if (!sb) return { ok: false, error: 'Tu sesión ha caducado o tu cuenta no está activa.' };

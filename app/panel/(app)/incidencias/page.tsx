@@ -4,6 +4,7 @@ import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Incidencias, { type IncidenciaFila } from '@/components/panel/Incidencias';
 import { cargarEnviosLigeros, misEnviosLigerosPorId, type EnvioLigero } from '@/lib/enviosLigeros';
+import { CONTACTO } from '@/lib/atencion';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
   // ---- Etapa B: el CLIENTE ve y abre las suyas (la base de datos solo le deja las suyas)
   if (!esDynamo(perfil.rol)) {
     if (perfil.rol !== 'cliente' && perfil.rol !== 'transportista') {
-      return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Para cualquier incidencia, llámanos al +34 955 225 945 o escríbenos por WhatsApp al +34 628 995 709.</div></div></section>;
+      return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Para cualquier incidencia, llámanos al {CONTACTO.telefono} o escríbenos por WhatsApp al {CONTACTO.whatsapp}.</div></div></section>;
     }
     const esT = perfil.rol === 'transportista';
     const [inc, tipos, rec] = await Promise.all([

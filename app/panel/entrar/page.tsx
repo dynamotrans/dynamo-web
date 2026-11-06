@@ -3,6 +3,7 @@ import SinConfigurar from '@/components/SinConfigurar';
 import FormEntrar from './FormEntrar';
 import CrearCuenta from './CrearCuenta';
 import './entrar.css';
+import { CONTACTO } from '@/lib/atencion';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
       </main>
       <footer className="portal-foot">
         © {new Date().getFullYear()} Dynamo Operador Logístico, S.L. ·{' '}
-        <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
+        <a href={`mailto:${CONTACTO.email}`}>{CONTACTO.email}</a>
       </footer>
     </div>
   );

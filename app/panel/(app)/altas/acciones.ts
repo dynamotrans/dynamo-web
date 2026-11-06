@@ -1,16 +1,12 @@
 'use server';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esGestor } from '@/lib/sesion';
+import { soloGestor } from '@/lib/guardia';
 
 export type NuevaEmpresa = { razon_social: string; cif: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string };
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 
-async function dynamo() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
-  return s.supabase;
-}
+const dynamo = async () => (await soloGestor())?.supabase ?? null;
 const vacio = (s: string) => (s ?? '').trim() || null;
 
 // Confirmar el alta: se le asocia la empresa (una que ya existe o una nueva con sus datos)

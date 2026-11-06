@@ -7,6 +7,7 @@ import { claveValida } from '@/lib/clave';
 import { sesion } from '@/lib/sesion';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { supabasePublico } from '@/lib/supabase/publico';
+import { soloTransportista } from '@/lib/guardia';
 
 export type MisDatos = { nombre: string; telefono: string; documento: string; cargo: string; idioma: string };
 
@@ -60,12 +61,6 @@ export async function cambiarMiClave(actual: string, nueva: string): Promise<{ o
 type Res = { ok: true } | { ok: false; error: string };
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const fechaOnull = (f: string) => (FECHA.test(f) ? f : null);
-async function soloTransportista() {
-  const s = await sesion();
-  if (!s?.perfil) return null;
-  if (s.perfil.rol !== 'transportista' || s.perfil.estado !== 'activa') return null;
-  return s;
-}
 const limpiaError = (m: string) => mensajeError(m.replace(/^.*?ERROR:\s*/i, ''));
 
 export async function guardarMiTransporte(d: { nima: string; compania: string; poliza: string; vence: string }): Promise<Res> {

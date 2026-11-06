@@ -4,6 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { headers } from 'next/headers';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { validaDoc } from '@/lib/documentoIdentidad';
+import { CONTACTO } from '@/lib/atencion';
 
 export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; nombre: string; documento: string; pais: string; email: string; png: string;
   reservas?: string };   // daños o faltantes: van ANTES de la firma y entran en su huella
@@ -36,7 +37,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   if (reservas) {
     const { data: rv, error: er } = await sb.rpc('anotar_reservas_cmr_publico', { p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_texto: reservas });
     const rr = (rv as { resultado?: string } | null)?.resultado;
-    if (er || rr !== 'ok') return { ok: false, error: rr === 'texto_no_valido' ? 'Las reservas tienen que tener entre 3 y 1.000 caracteres.' : rr === 'demasiadas' ? 'Ya hay varias reservas anotadas en esta casilla: llámanos al +34 955 225 945.' : 'No se han podido guardar las reservas. Vuelve a intentarlo o llámanos.' };
+    if (er || rr !== 'ok') return { ok: false, error: rr === 'texto_no_valido' ? 'Las reservas tienen que tener entre 3 y 1.000 caracteres.' : rr === 'demasiadas' ? `Ya hay varias reservas anotadas en esta casilla: llámanos al ${CONTACTO.telefono}.` : 'No se han podido guardar las reservas. Vuelve a intentarlo o llámanos.' };
   }
 
   const ruta = `cmr/${token}/${randomUUID()}.png`;

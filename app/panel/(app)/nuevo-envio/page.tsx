@@ -4,6 +4,7 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base, type ReglasPrecio } from '@/components/panel/NuevoEnvio';
+import { CONTACTO } from '@/lib/atencion';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       supabase.rpc('reglas_precio_envio'),
     ]);
     const e = emp.data as any;
-    if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a info@dynamotrans.com.</div></div></section>;
+    if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a {CONTACTO.email}.</div></div></section>;
     let base: Base | null = null;
     if (sp.repetir && /^[0-9a-f-]{36}$/i.test(sp.repetir)) {
       const { data: r } = await supabase.rpc('mis_envios').eq('id', sp.repetir).maybeSingle();

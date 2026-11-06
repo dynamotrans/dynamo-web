@@ -3,6 +3,7 @@
 // reales de la base de datos.
 import { fecha, ventana, medidasTxt } from './formato';
 import { paisDe } from './paises';
+import { ESTADOS_ENVIO } from './estados';
 
 export type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; nombre_empresa: string | null;
@@ -44,18 +45,16 @@ export const esSolicitudAbierta = (e: { estado: string; estado_solicitud?: strin
 // Estado del envío (badge de la 1ª columna).
 export function estadoVisual(e: EnvioFila): { label: string; color: string } {
   switch (e.estado) {
-    case 'entregado': return { label: 'Entregado', color: 'entregado' };
+    case 'entregado': return ESTADOS_ENVIO.entregado;
     // Sin pagar el pago previo: lo anula el sistema al pasar el plazo (o el cliente antes).
-    case 'cancelado': return e.estado_pago_previo === 'pendiente' ? { label: 'Anulado sin pago', color: 'cancelada' } : { label: 'Cancelado', color: 'cancelada' };
-    case 'hacia_la_carga': return { label: 'Hacia la carga', color: 'hacia' };
-    case 'cargando': return { label: 'Cargando', color: 'cargando' };
-    case 'en_ruta': return { label: 'En ruta', color: 'enruta' };
+    case 'cancelado': return e.estado_pago_previo === 'pendiente' ? { label: 'Anulado sin pago', color: 'cancelada' } : ESTADOS_ENVIO.cancelado;
+    case 'hacia_la_carga': case 'cargando': case 'en_ruta': return ESTADOS_ENVIO[e.estado];
     case 'borrador':
       if (e.estado_solicitud === 'pendiente_precio') return { label: 'Pendiente de precio', color: 'cargando' };
       if (e.estado_solicitud === 'precio_propuesto') return { label: 'Precio por aceptar', color: 'hacia' };
       if (e.estado_solicitud === 'contraoferta') return { label: 'Contraoferta del cliente', color: 'cargando' };
-      return { label: 'Borrador', color: 'prog' };
-    default: return esPendientePago(e) ? { label: 'Pendiente de pago', color: 'cargando' } : { label: 'Programado', color: 'prog' };
+      return ESTADOS_ENVIO.borrador;
+    default: return esPendientePago(e) ? { label: 'Pendiente de pago', color: 'cargando' } : ESTADOS_ENVIO.programado;
   }
 }
 

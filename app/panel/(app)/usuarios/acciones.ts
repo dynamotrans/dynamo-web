@@ -3,9 +3,10 @@
 import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esGestor, type Rol } from '@/lib/sesion';
+import { type Rol } from '@/lib/sesion';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { origen } from '@/lib/origen';
+import { soloGestor } from '@/lib/guardia';
 
 export type UsuarioDatos = {
   nombre: string; documento: string; telefono: string; cargo: string; idioma: string;
@@ -31,11 +32,7 @@ function traducir(msg: string): string {
 }
 const ROLES_VALIDOS: Rol[] = ['admin', 'empleado', 'admin_lectura', 'empleado_lectura', 'cliente', 'transportista'];
 
-async function soloDynamo() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
-  return s;
-}
+const soloDynamo = soloGestor;
 // La empresa que corresponde a cada rol (y nada más).
 function empresaDe(rol: Rol, cliente_id: string, transportista_id: string) {
   return {

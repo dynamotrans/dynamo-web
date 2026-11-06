@@ -22,3 +22,12 @@ test('horarios de atención en formato largo', () => {
   assert.equal(horarioTelefono(new Date(2026, 9, 14, 10)), 'Lunes a jueves 9:00–14:00 y 15:00–17:00 · viernes 9:00–14:00');
   assert.equal(horarioTelefono(new Date(2026, 6, 14, 10)), 'Lunes a viernes 8:30–15:30 (verano)');
 });
+
+test('estados: una sola lista para toda la web', async () => {
+  const { ESTADOS_ENVIO, enMarcha, nombreEstado } = await import('../../lib/estados');
+  const { ESTADO_ENVIO } = await import('../../lib/formato');
+  assert.equal(nombreEstado('hacia_la_carga'), 'Hacia la carga');
+  assert.equal(ESTADO_ENVIO.en_ruta, ESTADOS_ENVIO.en_ruta.label);
+  assert.equal(enMarcha('cargando'), true);
+  assert.equal(enMarcha('programado'), false);
+});

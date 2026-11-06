@@ -7,6 +7,7 @@ import { fechaHora } from '@/lib/formato';
 import { useState } from 'react';
 
 import { historialDe, type EntradaHistorial } from '@/app/panel/historial';
+import { ESTADOS_ENVIO } from '@/lib/estados';
 
 const CAMPOS: Record<string, string> = {
   estado: 'estado', fecha_carga_desde: 'fecha de carga', fecha_carga_hasta: 'fin de la ventana de carga', fecha_carga_real: 'fecha de carga real',
@@ -20,8 +21,9 @@ const CAMPOS: Record<string, string> = {
   razon_social: 'razón social', telefono: 'teléfono', email: 'email', persona_contacto: 'contacto', fecha_entrada: 'entrada', fecha_salida: 'salida',
   num_trailers: 'tráileres', num_repartos: 'repartos', pagado_en: 'pago', borrado: 'borrado', precio_fijado_a_mano: 'precio a mano',
 };
-const ESTADOS: Record<string, string> = { borrador: 'borrador', programado: 'programado', hacia_la_carga: 'hacia la carga', cargando: 'cargando',
-  en_ruta: 'en ruta', entregado: 'entregado', cancelado: 'cancelado', abierto: 'abierta', en_curso: 'en curso', resuelto: 'resuelta', cerrado: 'cerrada' };
+// Envíos (de lib/estados.ts) e incidencias, en minúscula para la frase del historial.
+const ESTADOS: Record<string, string> = { ...Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, v.label.toLowerCase()])),
+  abierto: 'abierta', en_curso: 'en curso', resuelto: 'resuelta', cerrado: 'cerrada' };
 const valor = (v: unknown) => v === null || v === undefined || v === '' ? 'vacío' : typeof v === 'boolean' ? (v ? 'sí' : 'no')
   : typeof v === 'string' && ESTADOS[v] ? ESTADOS[v] : typeof v === 'object' ? '…' : String(v).length > 40 ? String(v).slice(0, 40) + '…' : String(v);
 

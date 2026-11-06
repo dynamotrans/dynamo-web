@@ -23,15 +23,15 @@ import PagoPrevio from './PagoPrevio';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
+import { ESTADOS_ENVIO } from '@/lib/estados';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
   ofrecerCarga, revocarOferta, sugerirFlota, flotaTransportista, resolverContraoferta, resolverContraofertaCliente, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
 } from '@/app/panel/(app)/envios/acciones';
 
-const ESTADOS: [string, string, string][] = [
-  ['programado', 'Programado', 'prog'], ['hacia_la_carga', 'Hacia la carga', 'hacia'], ['cargando', 'Cargando', 'cargando'],
-  ['en_ruta', 'En ruta', 'enruta'], ['entregado', 'Entregado', 'entregado'], ['cancelado', 'Cancelado', 'cancelada'], ['borrador', 'Borrador', 'prog'],
-];
+// [estado, nombre, color], de lib/estados.ts (programado primero: es el de por defecto).
+const ESTADOS: [string, string, string][] = (['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado', 'cancelado', 'borrador'] as const)
+  .map((k) => [k, ESTADOS_ENVIO[k].label, ESTADOS_ENVIO[k].color]);
 const HITOS: Record<string, string> = {
   creado: 'Envío creado', confirmado: 'Envío confirmado', publicado_bolsa: 'Publicado en la bolsa de cargas',
   transportista_asignado: 'Transportista asignado', transportista_quitado: 'Transportista quitado',

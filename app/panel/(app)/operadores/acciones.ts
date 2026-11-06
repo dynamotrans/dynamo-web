@@ -3,8 +3,9 @@
 import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esGestor } from '@/lib/sesion';
+import { esGestor } from '@/lib/sesion';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
+import { gestorOCliente } from '@/lib/guardia';
 
 export type OperadorDatos = {
   cliente_id: string | null; razon_social: string; cif: string; telefono: string; email: string;
@@ -22,11 +23,7 @@ function traducir(msg: string): string {
 const vacio = (s: string) => (s ?? '').trim() || null;
 
 // Dynamo gestiona el de cualquier cliente; un cliente, el suyo (lo impone la base de datos).
-async function quien() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !(esGestor(s.perfil.rol) || s.perfil.rol === 'cliente')) return null;
-  return s;
-}
+const quien = gestorOCliente;
 
 export async function guardarOperador(id: string | null, d: OperadorDatos): Promise<Res> {
   const s = await quien();

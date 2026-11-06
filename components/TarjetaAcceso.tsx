@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import '@/app/panel/entrar/entrar.css';
+import { CONTACTO } from '@/lib/atencion';
 
 // Marco de las pantallas de acceso (entrar, crear contraseña, olvido): el mismo diseño
 // que portal.html.
@@ -23,7 +24,7 @@ export default function TarjetaAcceso({ titulo, subtitulo, children }: { titulo:
       </main>
       <footer className="portal-foot">
         © {new Date().getFullYear()} Dynamo Operador Logístico, S.L. ·{' '}
-        <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
+        <a href={`mailto:${CONTACTO.email}`}>{CONTACTO.email}</a>
       </footer>
     </div>
   );

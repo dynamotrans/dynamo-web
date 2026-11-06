@@ -17,6 +17,7 @@ import { TIPOS_SITIO } from './TipoSitio';
 import EditorHorario from './EditorHorario';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, validarHorario, tramosDe, enTemporada, mmddTxt, type GrupoHorario } from '@/lib/horarios';
 import CampoTelefono from '@/components/CampoTelefono';
+import { CONTACTO } from '@/lib/atencion';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
 export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null; iva?: number | null };   // iva: % del cliente (su ficha)
@@ -602,7 +603,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                       ? <span><strong>Fecha de recogida:</strong> {fechaTxt}</span>
                       : <span className="ptar-eta-placeholder">Elige la fecha de recogida.</span>}
                   </div>
-                  {maxFecha && fecha > maxFecha && <div className="pt-aviso error" style={{ marginTop: '0.6rem' }}><div>Como mucho se puede programar con <strong>{reglas!.antelacion_max_dias} días</strong> de antelación. Para más, llámanos al +34 955 225 945.</div></div>}
+                  {maxFecha && fecha > maxFecha && <div className="pt-aviso error" style={{ marginTop: '0.6rem' }}><div>Como mucho se puede programar con <strong>{reglas!.antelacion_max_dias} días</strong> de antelación. Para más, llámanos al {CONTACTO.telefono}.</div></div>}
                   {avisoProvisional}
                 </div>
                 {manual ? (

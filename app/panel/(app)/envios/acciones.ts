@@ -7,8 +7,9 @@ import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
 import { vistaCruda } from '@/lib/vista';
 import { euros } from '@/lib/formato';
 import { flotaDe, type FlotaTransportista } from '@/lib/fichaEnvio';
-import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
+import type { TablaUpdate } from '@/lib/supabase/tipos';
 import type { Enum } from '@/lib/supabase/tipos';
+import { soloGestor } from '@/lib/guardia';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -19,11 +20,7 @@ function traducir(msg: string): string {
   if (/conductor_telefono|telefono/i.test(msg) && /check/i.test(msg)) return 'El teléfono del conductor no es válido.';
   return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
-async function soloDynamo() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
-  return s;
-}
+const soloDynamo = soloGestor;
 
 export type Asignacion = {
   transportista_id: string; importe_transportista: number | null;

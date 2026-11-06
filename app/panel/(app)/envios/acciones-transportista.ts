@@ -2,15 +2,11 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion } from '@/lib/sesion';
+import { soloTransportista } from '@/lib/guardia';
 
 // Lo que el TRANSPORTISTA hace con SUS viajes. Todo pasa por funciones de la base de datos
 // que comprueban que el viaje es suyo.
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
-async function soloTransportista() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'transportista') return null;
-  return s;
-}
 const limpio = (m: string) => mensajeError(m);
 const TEXTO: Record<string, string> = {
   hacia_la_carga: 'Hecho: vas hacia la carga.', cargando: 'Hecho: estás cargando.',

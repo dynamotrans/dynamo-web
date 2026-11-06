@@ -15,6 +15,7 @@ import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
 import { fecha, ventana, fechaHora, medidasTxt } from '@/lib/formato';
+import { CONTACTO } from '@/lib/atencion';
 
 export type IncidenciaFila = {
   id: string; codigo: string; envio_id: string | null; cliente_id: string | null; tipo_id: string; tipo: string;
@@ -226,7 +227,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
           : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Guarda la incidencia y, al abrirla, podrás adjuntar fotos y documentos.</p>}
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>{esTransportista
-        ? <>La ve el equipo de Dynamo al momento. Si es urgente (daños, el muelle no carga), llama además al <a href="tel:+34955225945" style={{ color: 'var(--purple)', fontWeight: 700 }}>+34 955 225 945</a>. Si hay daños, haz fotos <strong>antes de descargar</strong>.</>
+        ? <>La ve el equipo de Dynamo al momento. Si es urgente (daños, el muelle no carga), llama además al <a href={CONTACTO.telHref} style={{ color: 'var(--purple)', fontWeight: 700 }}>{CONTACTO.telefono}</a>. Si hay daños, haz fotos <strong>antes de descargar</strong>.</>
         : <>Una incidencia sobre un envío queda también en su <strong>historial</strong>.</>}</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {fila?.id && <Historial tabla="incidencias" id={fila.id} />}

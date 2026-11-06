@@ -1,6 +1,7 @@
 import { mensajeError } from '@/lib/mensajeError';
 import type { SB } from '@/lib/supabase/cliente';
 import { paisDe } from '@/lib/paises';
+import { CONTACTO } from '@/lib/atencion';
 
 // Todo lo que necesitan la orden de carga y el CMR de un envío, leído en el servidor
 // con la sesión de quien lo pide (Dynamo: las tablas; los permisos por fila deciden).
@@ -61,7 +62,7 @@ export const DYNAMO = {
   razon_social: 'Dynamo Operador Logístico, S.L.',
   cif: 'ESB01596360',
   direccion: 'Paseo de las Delicias 1, planta 5ª', codigo_postal: '41001', poblacion: 'Sevilla', pais: 'España',
-  email: 'info@dynamotrans.com', telefono: '+34 955 225 945', movil: '+34 628 995 709',
+  email: `${CONTACTO.email}`, telefono: `${CONTACTO.telefono}`, movil: `${CONTACTO.whatsapp}`,
   wtransnet: '267017', tarjeta_ot: '12548918-1', web: 'www.dynamotrans.com',
   iban: '', banco: 'Banco Santander', bic: 'BSCHESMM',
 };

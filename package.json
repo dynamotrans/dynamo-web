@@ -7,7 +7,7 @@
     "dev": "node scripts/copiar-estaticos.mjs && next dev",
     "build": "node scripts/copiar-estaticos.mjs && next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=173",
+    "lint": "eslint . --max-warnings=172",
     "test": "node --import tsx --test \"tests/unit/**/*.test.ts\""
   },
   "dependencies": {

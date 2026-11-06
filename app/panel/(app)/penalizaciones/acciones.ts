@@ -1,7 +1,7 @@
 'use server';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esGestor } from '@/lib/sesion';
+import { soloGestor } from '@/lib/guardia';
 
 export type PenalizacionDatos = {
   envio_id: string; tipo_id: string; descripcion: string;
@@ -15,11 +15,7 @@ function traducir(msg: string): string {
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
   return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
 }
-async function dynamo() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
-  return s.supabase;
-}
+const dynamo = async () => (await soloGestor())?.supabase ?? null;
 
 export async function guardarPenalizacion(id: string | null, d: PenalizacionDatos): Promise<Res> {
   const sb = await dynamo();

@@ -8,6 +8,8 @@ import Link from 'next/link';
 import Modal from './Modal';
 import { fecha, ventana, medidasTxt } from '@/lib/formato';
 import { FLOTA_HTML } from '@/lib/dashboardContenido';
+import { CONTACTO } from '@/lib/atencion';
+import { ESTADOS_ENVIO } from '@/lib/estados';
 
 // «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
 // 2026-11-03). Para volver a enseñarlos basta con poner esto a true.
@@ -19,10 +21,8 @@ export type MiniEnvio = {
   metros_lineales: number | null; toneladas: number | null; mercancia: string | null; cliente: string | null;
 };
 
-const ESTADO: Record<string, [string, string]> = {
-  programado: ['Programado', 'prog'], hacia_la_carga: ['Hacia la carga', 'hacia'], cargando: ['Cargando', 'cargando'], en_ruta: ['En ruta', 'enruta'],
-};
-const RECOMIENDA_MSG = 'Hola,\n\nos envío contacto de Dynamo Operador Logístico, S.L.. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n+34 955 225 945\ninfo@dynamotrans.com';
+const ESTADO: Record<string, [string, string]> = Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, [v.label, v.color]]));
+const RECOMIENDA_MSG = `Hola,\n\nos envío contacto de Dynamo Operador Logístico, S.L.. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n${CONTACTO.telefono}\n${CONTACTO.email}`;
 // Enlace DIRECTO de reseña de la ficha de Google (el que va en las órdenes de carga).
 const GOOGLE_RESENA = 'https://g.page/r/Cdy34Hp-P-IEEBI/review';
 const LOGOS: [string, string, string][] = [

@@ -5,6 +5,7 @@ import { supabasePublico } from '@/lib/supabase/publico';
 
 import { cookieReserva, cookieAlta } from '@/lib/cargaPublica';
 import { validaIdFiscalPais } from '@/lib/idFiscal';
+import { CONTACTO } from '@/lib/atencion';
 
 // La reserva va en una cookie de esta página: su id es la llave para aceptar y para ver
 // los datos completos después. Solo la tiene quien reservó.
@@ -35,7 +36,7 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
-  if (await enMantenimiento(sb)) return { resultado: 'error', error: 'La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al +34 955 225 945.' };
+  if (await enMantenimiento(sb)) return { resultado: 'error', error: `La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al ${CONTACTO.telefono}.` };
   const { data, error } = await sb.rpc('aceptar_oferta_publica', {
     p_reserva: reserva, p_cif: a.cif, p_precio: a.precio, p_pronto_pago: a.pronto_pago,
     p_matricula_camion: a.camion, p_matricula_remolque: a.remolque, p_conductor_nombre: a.conductor, p_telefono: a.telefono,
@@ -78,9 +79,9 @@ export async function sugerirFlota(token: string, d: { matricula?: string; condu
 export async function enlaceCmr(token: string): Promise<{ cmr?: string; error?: string }> {
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
-  if (!sb || !reserva) return { error: 'Tu reserva no está en este navegador. Llámanos al +34 955 225 945.' };
+  if (!sb || !reserva) return { error: `Tu reserva no está en este navegador. Llámanos al ${CONTACTO.telefono}.` };
   const { data, error } = await sb.rpc('enlace_cmr_publico', { p_reserva: reserva });
-  if (error || !data) return { error: 'No se ha podido abrir el CMR. Llámanos al +34 955 225 945.' };
+  if (error || !data) return { error: `No se ha podido abrir el CMR. Llámanos al ${CONTACTO.telefono}.` };
   return { cmr: String(data) };
 }
 
@@ -95,7 +96,7 @@ export async function darseDeAlta(token: string, a: AltaTransportista): Promise<
   const almacen = await cookies();
   const reserva = almacen.get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
-  if (await enMantenimiento(sb)) return { resultado: 'error', error: 'La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al +34 955 225 945.' };
+  if (await enMantenimiento(sb)) return { resultado: 'error', error: `La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al ${CONTACTO.telefono}.` };
   const v = validaIdFiscalPais(a.cif, a.pais);
   if (!v || !v.ok) return { resultado: 'datos_no_validos', campo: 'cif', error: v?.msg || 'El CIF / NIF no es válido.' };
   const { data, error } = await sb.rpc('alta_transportista_publica', {

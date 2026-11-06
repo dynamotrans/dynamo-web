@@ -13,6 +13,7 @@ import { fecha, ventana, hoyMadrid, fechaHora } from '@/lib/formato';
 
 import { resolverCambio } from '@/app/panel/(app)/envios/acciones';
 import { pedirCambio } from '@/app/panel/(app)/envios/acciones-cliente';
+import { enMarcha } from '@/lib/estados';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean> | Promise<void> | void;
 const fechasTxt = (c: any) => c?.fecha_desde ? ventana(c.fecha_desde, c.fecha_hasta) : null;
@@ -67,8 +68,8 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: an
     </div></div>
   );
   // Con camión asignado o el envío ya en marcha: no se modifica aquí, hay que llamar.
-  const enMarcha = ['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado);
-  if ((cambio.modificable && cambio.con_camion) || enMarcha) {
+  const enCamino = enMarcha(e.estado);
+  if ((cambio.modificable && cambio.con_camion) || enCamino) {
     return (
       <>
         {respuesta}
@@ -126,7 +127,7 @@ export function LlamarCambio({ e, onVolver }: { e: any; onVolver: () => void }) 
     <Modal abierto onCerrar={onVolver} titulo={`Cambiar el envío ${ref}`}
       pie={<button className="btn-ghost" onClick={onVolver}>Volver al envío</button>}>
       <div className="modal-warn-box">
-        <strong style={{ color: '#b42318' }}>{['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) ? 'Tu envío ya está en marcha'
+        <strong style={{ color: '#b42318' }}>{enMarcha(e.estado) ? 'Tu envío ya está en marcha'
           : dentro === false ? 'Falta muy poco para la carga' : 'Tu envío ya tiene camión o lo estamos asignando'}: no se puede modificar desde la plataforma.</strong>
         <div style={{ marginTop: '0.35rem' }}>Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), <strong>llámanos URGENTE</strong>: cuanto antes lo sepamos, más fácil es arreglarlo.</div>
       </div>

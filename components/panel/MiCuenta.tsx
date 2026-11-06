@@ -14,6 +14,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import { ROL, fecha, fechaHora } from '@/lib/formato';
 import CampoTelefono from '@/components/CampoTelefono';
 import MedidorClave, { claveValida } from '@/components/MedidorClave';
+import { CONTACTO } from '@/lib/atencion';
 
 // Los mismos idiomas que el selector de la web (y que usarán los avisos automáticos).
 const IDIOMAS: [string, string][] = [
@@ -72,7 +73,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           {fila('Última conexión', ultimaConexion ? fechaHora(ultimaConexion) : '')}
           <button className="btn-ghost account-edit" onClick={() => { setClaveCambiada(false); setCambiaClave(true); }}>Cambiar contraseña</button>
           {claveCambiada && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Contraseña cambiada.</p>}
-          <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para cambiar el <strong>email</strong> con el que entras, escríbenos a info@dynamotrans.com: es tu usuario y lo cambiamos nosotros.</p>
+          <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para cambiar el <strong>email</strong> con el que entras, escríbenos a {CONTACTO.email}: es tu usuario y lo cambiamos nosotros.</p>
         </div>
         {empresa && (
           <div className="account-card">
@@ -177,7 +178,7 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Los avisos por email y WhatsApp te llegarán en este idioma.</p>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.4rem 0 0' }}>
         Protección de datos: <a href="/panel/mi-cuenta/mis-datos" download style={{ color: 'var(--purple)', fontWeight: 700 }}>descarga lo que guardamos de ti</a>.
-        Para borrarlos o cualquier otra petición, escríbenos a info@dynamotrans.com.
+        Para borrarlos o cualquier otra petición, escríbenos a {CONTACTO.email}.
       </p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {guardando && <Cargando texto="Guardando tus datos" />}

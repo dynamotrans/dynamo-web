@@ -2,6 +2,7 @@
 // el del transportista nunca). Diseño de la tabla de #sec-penalizaciones del mockup.
 import Link from 'next/link';
 import { euros, fechaHora } from '@/lib/formato';
+import { CONTACTO } from '@/lib/atencion';
 
 export type MiPenalizacion = { id: string; codigo: string; envio_id: string; referencia_gx: string; tipo: string;
   descripcion: string | null; importe_cliente: number | null; estado: string; creado_en: string };
@@ -15,7 +16,7 @@ export default function MisPenalizaciones({ filas, error, esTransportista = fals
       <div className="sec-header"><h2>Penalizaciones</h2></div>
       <p style={{ margin: '-0.4rem 0 1rem', fontSize: 'var(--fs-l)', color: 'var(--gray-500)', maxWidth: 820, lineHeight: 1.5 }}>
         {esTransportista
-          ? <>Lo que se te descuenta o se te abona en un envío (un retraso, una paralización, una parada de más…). Si no estás conforme con alguna, llámanos al <a href="tel:+34955225945" style={{ color: 'var(--purple)', fontWeight: 700 }}>+34 955 225 945</a> y la revisamos.</>
+          ? <>Lo que se te descuenta o se te abona en un envío (un retraso, una paralización, una parada de más…). Si no estás conforme con alguna, llámanos al <a href={CONTACTO.telHref} style={{ color: 'var(--purple)', fontWeight: 700 }}>{CONTACTO.telefono}</a> y la revisamos.</>
           : <>Costes que se aplican a un envío por una cancelación fuera de plazo, una paralización del camión o una parada que no estaba prevista.
             Si no estás conforme con alguna, abre una <Link href="/panel/incidencias?abrir=1" style={{ color: 'var(--purple)', fontWeight: 700 }}>incidencia</Link> y la revisamos.</>}
       </p>

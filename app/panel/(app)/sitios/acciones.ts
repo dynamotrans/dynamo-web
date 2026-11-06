@@ -1,11 +1,12 @@
 'use server';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esGestor } from '@/lib/sesion';
+import { esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { validarHorario, tramosDe, MMDD, type GrupoHorario, type Verano } from '@/lib/horarios';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
+import { gestorOCliente } from '@/lib/guardia';
 
 export type SitioDatos = {
   cliente_id: string; nombre_empresa: string; tipo: string;
@@ -33,12 +34,7 @@ const vacio = (s: string) => (s ?? '').trim() || null;
 const clave = (s: string) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-async function puede() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa') return null;
-  if (!esGestor(s.perfil.rol) && s.perfil.rol !== 'cliente') return null;
-  return s;
-}
+const puede = gestorOCliente;
 
 export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParezcaRepetido = false): Promise<Res> {
   const s = await puede();

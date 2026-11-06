@@ -5,6 +5,7 @@ import { supabaseServidor } from '@/lib/supabase/server';
 import { origen } from '@/lib/origen';
 import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
 import { esPaisValido, PREFIJOS, normalizaTel } from '@/lib/paises';
+import { CONTACTO } from '@/lib/atencion';
 
 // ALTA DE CLIENTE desde el portal. No hay contraseña en este paso: Supabase manda al email
 // un enlace y un código de 6 cifras; con cualquiera de los dos se entra y se crea la
@@ -59,8 +60,8 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
     if (/rate limit|too many|security purposes/i.test(error.message)) {
       return mal(undefined, 'Se han pedido varios códigos seguidos. Espera unos minutos y vuelve a probar.');
     }
-    if (!error.status || error.status >= 500) return mal(undefined, 'Ahora mismo no se puede enviar el email. Prueba en un momento o llámanos al +34 955 225 945.');
-    return mal(undefined, 'No se ha podido crear la cuenta. Revisa el email o escríbenos a info@dynamotrans.com.');
+    if (!error.status || error.status >= 500) return mal(undefined, `Ahora mismo no se puede enviar el email. Prueba en un momento o llámanos al ${CONTACTO.telefono}.`);
+    return mal(undefined, `No se ha podido crear la cuenta. Revisa el email o escríbenos a ${CONTACTO.email}.`);
   }
   redirect(`/panel/registro/codigo?email=${encodeURIComponent(d.email)}`);
 }

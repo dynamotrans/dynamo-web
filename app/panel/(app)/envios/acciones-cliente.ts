@@ -3,15 +3,12 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion } from '@/lib/sesion';
 import { fecha } from '@/lib/formato';
+import { CONTACTO } from '@/lib/atencion';
+import { soloCliente } from '@/lib/guardia';
 
 // Lo que el CLIENTE puede hacer con un envío suyo. Todo pasa por funciones de la base de
 // datos que comprueban que el envío es suyo (no hay escritura directa en `envios`).
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
-async function soloCliente() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return null;
-  return s;
-}
 const limpio = (m: string) => mensajeError(m);
 
 export async function responderPrecio(envio: string, acepta: boolean, precioVisto?: number | null): Promise<Res> {
@@ -80,7 +77,7 @@ export async function contraofertarPrecio(envio: string, importe: number): Promi
     fecha_pasada: 'La fecha de recogida ya ha pasado: cancela la solicitud y pide otra.', precio_no_valido: 'Escribe un precio válido (sin IVA).',
     no_es_rebaja: 'Tu precio tiene que ser más bajo que el nuestro.',
     demasiado_lejos: 'Ese precio está demasiado lejos del nuestro. Propón uno más cercano o llámanos.',
-    demasiados_intentos: 'Has hecho varias propuestas que no podemos aceptar. Puedes aceptar nuestro precio o llamarnos al +34 955 225 945.',
+    demasiados_intentos: `Has hecho varias propuestas que no podemos aceptar. Puedes aceptar nuestro precio o llamarnos al ${CONTACTO.telefono}.`,
   };
   if (r === 'aceptada') return { ok: true, aviso: 'Aceptado: tu envío queda programado a tu precio y buscamos el camión.' };
   if (r === 'pendiente_revision') return { ok: true, aviso: 'Hemos recibido tu propuesta. La revisamos y te contestamos aquí enseguida.' };
@@ -98,9 +95,9 @@ export async function pedirCambio(envio: string, desde: string, hasta: string, d
   const r = x.resultado;
   const ERR: Record<string, string> = {
     envio_manual: 'Es un envío con tu propio transportista: cámbialo tú directamente.',
-    no_modificable: 'El envío ya está en marcha: para cambiar algo, llámanos al +34 955 225 945.',
-    con_camion: 'Tu envío ya tiene camión o lo estamos asignando: no se puede modificar desde aquí. Llámanos URGENTE al +34 955 225 945.',
-    fuera_de_plazo: 'Falta muy poco para la carga: para cambiar algo, llámanos URGENTE al +34 955 225 945.',
+    no_modificable: `El envío ya está en marcha: para cambiar algo, llámanos al ${CONTACTO.telefono}.`,
+    con_camion: `Tu envío ya tiene camión o lo estamos asignando: no se puede modificar desde aquí. Llámanos URGENTE al ${CONTACTO.telefono}.`,
+    fuera_de_plazo: `Falta muy poco para la carga: para cambiar algo, llámanos URGENTE al ${CONTACTO.telefono}.`,
     ya_pendiente: 'Ya tienes un cambio pendiente en este envío: espera a que te contestemos.',
     fechas_no_validas: 'Revisa la fecha: como mucho a 6 meses vista.',
     dia_no_habil: 'Ese día no se carga: elige un día de lunes a viernes que no sea festivo.',

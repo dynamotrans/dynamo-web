@@ -2,7 +2,7 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { randomUUID } from 'node:crypto';
-import { sesion, esGestor } from '@/lib/sesion';
+import { soloGestor } from '@/lib/guardia';
 
 // Documentos de Recursos que publica el equipo de Dynamo (condiciones, guías, certificados…).
 // Los ve cualquier cuenta activa; los sube y los quita solo Dynamo (lo impone la base de datos:
@@ -11,11 +11,7 @@ export type RecursoSubido = { id: string; titulo: string; descripcion: string | 
 type Res<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; error: string };
 const sano = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(-80) || 'documento';
 
-async function gestor() {
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
-  return s;
-}
+const gestor = soloGestor;
 
 export async function rutaRecurso(nombre: string): Promise<Res<{ ruta: string }>> {
   const s = await gestor();
