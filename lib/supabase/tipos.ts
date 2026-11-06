@@ -764,6 +764,49 @@ export type Database = {
           },
         ]
       }
+      datos_de_prueba_peticiones: {
+        Row: {
+          id: number
+          estado: string
+          escala: number
+          clave_cuentas: string | null
+          cuentas_reales: Json | null
+          jobid: number | null
+          resultado: Json | null
+          error: string | null
+          creada_en: string
+          empezada_en: string | null
+          terminada_en: string | null
+        }
+        Insert: {
+          id?: number
+          estado?: string
+          escala?: number
+          clave_cuentas?: string | null
+          cuentas_reales?: Json | null
+          jobid?: number | null
+          resultado?: Json | null
+          error?: string | null
+          creada_en?: string
+          empezada_en?: string | null
+          terminada_en?: string | null
+        }
+        Update: {
+          id?: number
+          estado?: string
+          escala?: number
+          clave_cuentas?: string | null
+          cuentas_reales?: Json | null
+          jobid?: number | null
+          resultado?: Json | null
+          error?: string | null
+          creada_en?: string
+          empezada_en?: string | null
+          terminada_en?: string | null
+        }
+        Relationships: [
+        ]
+      }
       distancias_cp: {
         Row: {
           id: string
