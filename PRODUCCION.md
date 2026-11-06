@@ -37,7 +37,7 @@ Leyenda: ✅ hecho y comprobado · 🟡 hecho en parte · ❌ falta · 👤 lo t
 | 07 | Rate limiting | 🟡 Límites en la base de datos: consultas de precio (suspensión automática), intentos de CIF por carga y por reserva, alta online (3 por carga, 30 al día), contraofertas del cliente (3 en 24 h), PIN (3 fallos), cancelaciones. Login: los de Supabase Auth. | 👤 Revisar *Rate Limits* de Supabase Auth; valorar Vercel Firewall por IP. |
 | 08 | Caché | ✅ Las pantallas con datos de usuario son dinámicas (`force-dynamic`), no se cachean. | — |
 | 09 | Escalabilidad | 🟡 Plan gratuito de Supabase y Vercel Hobby. | 👤 Pasar a planes de pago antes de clientes reales (copias, límites, soporte). |
-| 10 | Monitoreo | 🟡 Uptime de la web pública; errores en los registros de Vercel. | Alertas de errores de la plataforma (Vercel o Sentry). |
+| 10 | Monitoreo | 🟡 Uptime de la web pública; errores en los registros de Vercel. | Alertas de errores de la plataforma: Sentry instalado, falta el DSN del usuario. |
 | 11 | **Copias con restauración probada** | ❌ | 👤 Supabase de pago (copias diarias) y **restaurar una vez** en un proyecto aparte. |
 | 12 | **Auditoría** | ✅ Cada alta, cambio y baja; historial «quién y cuándo» en cada ficha. | — |
 | 13 | **RGPD** | 🟡 Borrador completo en `RGPD.md`; cláusula en la firma del CMR; notas internas solo para Dynamo. | 👤 Revisarlo con el asesor; política de privacidad; DPA de proveedores. Técnico: anonimizar, exportar datos, borrar IPs a los 90 días. |
@@ -300,7 +300,24 @@ pago por uso será Google Maps (ver abajo).
 email si cae. Cubre "¿está en pie?", nada más.
 
 **En la plataforma real**:
-- **Captura de errores** (Sentry o equivalente), front y backend.
+- **Captura de errores (Sentry)** — 🟡 **instalada y apagada** (2026-11-06). Se enciende sola
+  al poner el DSN en Vercel; sin él no se carga ni se envía nada. Captura: errores del
+  servidor (páginas, acciones, rutas, vía `instrumentation.ts`) y del navegador (pantallas
+  de error `app/global-error.tsx` y `app/panel/(app)/error.tsx`, vía `lib/avisoError.ts`,
+  que descarga Sentry solo si hay DSN). Sin datos personales (`sendDefaultPii: false`),
+  sin medir rendimiento y sin grabar pantallas. La CSP de la plataforma ya admite
+  `*.ingest.sentry.io` / `*.ingest.de.sentry.io`.
+  **Para activarla (usuario):**
+  1. Crear cuenta en sentry.io eligiendo **región UE (Frankfurt)** — datos en la UE (RGPD).
+     El plan gratuito (5.000 errores/mes) sobra.
+  2. Crear proyecto tipo **Next.js**, copiar el **DSN** (Settings → Client Keys). El DSN no
+     es secreto (solo sirve para enviar avisos), pero va en variables, no en el código.
+  3. Vercel → dynamo-web → Settings → Environment Variables: `SENTRY_DSN` y
+     `NEXT_PUBLIC_SENTRY_DSN`, ambas con el mismo DSN, en Preview (y Production el día del
+     lanzamiento). Volver a desplegar.
+  4. En Sentry → Alerts: regla «un error nuevo → email a info@dynamotrans.com».
+  5. Opcional: subir los mapas de código para ver la línea exacta (`SENTRY_AUTH_TOKEN` +
+     `withSentryConfig`); no hace falta para recibir los avisos.
 - **Logs de Supabase** revisados, y alertas de los errores de las políticas de RLS: un
   pico de "permission denied" significa o un bug o alguien probando.
 - **Alertas de lo que es dinero o compromiso**: una orden de transporte que no se envió,

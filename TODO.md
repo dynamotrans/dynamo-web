@@ -57,7 +57,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
   5. **Validar los datos de entrada** de las acciones (zod) y no ignorar errores al guardar contactos y horarios en Nuevo envío.
   6. **Trocear** `FichaEnvio.tsx` (940 líneas) y `NuevoEnvio.tsx` (915).
   7. **Pruebas en navegador (Playwright)** de los 5 flujos críticos con una base de datos de prueba.
-  8. **Aviso de errores en producción** (Sentry u otro): necesita una cuenta del usuario.
+  8. ~~**Aviso de errores en producción**~~ **INSTALADO (2026-11-06), apagado**: Sentry se enciende al poner `SENTRY_DSN` y `NEXT_PUBLIC_SENTRY_DSN` en Vercel.
+     - [ ] **Usuario**: crear la cuenta en sentry.io (región UE), proyecto Next.js, pegar el DSN en las 2 variables de Vercel y crear la alerta por email. Pasos en PRODUCCION.md, punto 10.
 - [x] **Textos — decisiones del usuario (2026-11-05), aplicadas** (migración `20261105410000`, prueba 148): «envío» para todo, también para el transportista (fuera «carga»/«viaje» por el envío; se quedan «hacia la carga», «día de carga», «orden de carga», «bolsa de cargas»); «Anulado sin pago»; «Tráiler completo» / «Rígido completo» según la plataforma elevadora; horarios «Lunes a viernes 8:00–18:00» (también los de los sitios); «palets» genérico, «europalets» (120×80) y «palets americanos» (120×100); clientes «Activo»; CIF «ESB01596360».
   - [ ] **Equivalencias de palets por metro lineal**: las define el usuario en el **módulo tarifador** (según cómo vayan colocados: europalet 120×80 a lo ancho o de punta, americano 120×100). Hasta entonces no se tocan: la plataforma sigue con 2,5 europalets y 2 americanos por metro (13,30 m = 33 europalets).
   - [ ] **Web pública (`main`)**: horarios en el mismo formato, «Carga Completa» → «Camión completo» y CIF con «ES». Rama corta desde `main`; necesita OK del usuario para publicar.

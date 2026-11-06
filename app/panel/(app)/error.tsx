@@ -1,12 +1,13 @@
 'use client';
 
 // Si una pantalla del panel falla al cargar, se ve esto en lugar de una página en blanco.
-// El detalle técnico no se enseña: queda en la consola del navegador.
+// El detalle técnico no se enseña: queda en la consola del navegador (y en Sentry, si está activo).
 import { useEffect } from 'react';
 import { CONTACTO } from '@/lib/atencion';
+import { avisarError } from '@/lib/avisoError';
 
 export default function ErrorPanel({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error('[pantalla]', error.digest ?? '', error.message); }, [error]);
+  useEffect(() => { console.error('[pantalla]', error.digest ?? '', error.message); avisarError(error); }, [error]);
   return (
     <section className="section active">
       <div className="pt-aviso error" style={{ maxWidth: 640 }}>
