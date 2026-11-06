@@ -4,6 +4,14 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 
+- [ ] ⭐ **IMPORTANTE — PLATAFORMA EN VIVO (usuario, 2026-11-06)**: todo el panel debe moverse solo, sin refrescar: si entra un envío nuevo, cambia un estado, llega una oferta, una incidencia, un pago o un aviso, se ve al momento en la pantalla de quien deba verlo (Dynamo, el cliente o el transportista). Ver «Plataforma en vivo» más abajo para cómo está hecho y lo que falta.
+- [ ] ⭐ **MÓDULO GENERADOR DE DeCA PROPIO (usuario, 2026-11-06)** — hoy se emiten con **DecaDoc** y se paga por cada emisión; queremos el nuestro, sin coste por documento.
+  - **Qué es**: el documento de control del transporte de mercancías por carretera (Orden FOM/2861/2012): cargador contractual, transportista efectivo, origen, destino, mercancía, peso, matrícula y fecha. Tiene que ir en el camión (papel o electrónico) y conservarse **1 año** para inspección. Al montarlo, revisar qué exige hoy la normativa para la versión electrónica (formato, firma, acceso del inspector) para que el nuestro valga igual.
+  - **Cómo**: sale solo de los datos del envío que ya tenemos (cliente, transportista, matrícula, paradas, mercancía, peso), como la orden de carga y el CMR: PDF + enlace con código QR para enseñarlo en carretera, guardado en el envío y en su histórico. Numeración propia y registro de cada emisión.
+  - **Referencia DecaDoc**: copiamos **qué hace y qué campos pide** (el flujo y el contenido legal), no su diseño, su marca ni su código. Para coger la idea, el usuario pasa **2-3 DeCA ya emitidos (PDF) y capturas** de las pantallas de DecaDoc (crear, listar, buscar, enviar al conductor). **No hace falta darle su usuario y contraseña de DecaDoc a Claude.**
+  - **Fase 2 — abierto a terceros GRATIS** (transportistas y empresas que no trabajan con Dynamo): alta propia con su CIF, cada uno solo ve los suyos, límite de emisiones por día contra abusos, condiciones de uso y contrato de encargado del tratamiento (RGPD: Dynamo guarda datos de otros). Sirve además de **captación**: quien usa nuestro DeCA conoce Dynamo.
+- [ ] **TARIFADOR — el precio y las pantallas como en el borrador de Vercel (usuario, 2026-11-06)**: el precio se calculará **igual que en el borrador** (el mockup en HTML de Vercel), con el mismo diseño de los bocetos y el mismo funcionamiento. Todavía no hemos entrado en ese módulo; cuando entremos, el borrador es la especificación (además de lo anotado abajo: Google Maps, polos logísticos, horas de corte, tipo de fecha).
+
 ### Plataforma real (Next.js) — "Nuevo envío" v1 hecho (2026-11-03), lo que falta
 - [ ] 🔐 **Verificación en dos pasos (2FA) en las tres llaves de la plataforma** (usuario, pendiente para más
       adelante — 2026-11-03): **Supabase** (Account → Security), **GitHub** (Settings → Password and
