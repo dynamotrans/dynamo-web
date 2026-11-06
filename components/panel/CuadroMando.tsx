@@ -267,16 +267,6 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1rem', alignItems: 'start', marginTop: '1rem' }}>
             <div className="mini-list-card">
-              <div className="mini-list-head"><h4>Por mes · con el mismo mes del año anterior</h4></div>
-              <Tabla cab={['Mes', 'Envíos', 'vs. año ant.', 'Facturación', 'vs. año ant.', 'Margen', '% marg.', 'Km']}
-                filas={(datos!.meses ?? []).map((m) => [<span key="m" style={{ whiteSpace: 'nowrap' }}>{etiquetaMes(m.k)}</span>, `${n(m.realizados)} / ${n(m.solicitados)}`, <Var key="r" a={n(m.realizados)} b={n(m.realizados_ant)} />,
-                  euros(n(m.facturacion)), <Var key="f" a={n(m.facturacion)} b={n(m.facturacion_ant)} />, euros(n(m.margen)), pct(n(m.margen), n(m.facturacion)), importe(n(m.km))])}
-                nota="Envíos: realizados / solicitados. La variación compara con el mismo mes del año anterior." />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1rem', alignItems: 'start', marginTop: '1rem' }}>
-            <div className="mini-list-card">
               <div className="mini-list-head"><h4>Clientes del periodo</h4><Link href="/panel/clientes">Ver todos →</Link></div>
               <Tabla cab={['Cliente', 'Envíos', '% cerr.', 'Facturación', 'Margen', '% marg.', 'Riesgo disp.', 'Plazo']}
                 filas={datos!.clientes.slice(0, todosClientes ? 25 : 10).map((k) => [<Link key={k.id} href={`/panel/clientes?ver=${k.id}`}>{k.nombre ?? k.cif}</Link>, `${n(k.realizados)} / ${n(k.solicitados)}`, pct(n(k.realizados), n(k.solicitados)),
