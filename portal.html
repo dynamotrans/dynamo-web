@@ -2,15 +2,24 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
     <title>Acceso al Portal · Dynamo Operador de Transportes</title>
     <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
     <link rel="apple-touch-icon" href="/images/DYNAMO-NEW-LOGO.png">
+    <!-- PWA: manifest + service worker → permite "Instalar" el portal como app. -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
+    </script>
     <!-- theme-color para iOS Chrome: la zona de la barra de URL se pinta
          con este color. Si no se pone, iOS hereda el morado de index.html
          brevemente y se ve "franja azul" abajo al navegar con scroll. -->
-    <meta name="theme-color" content="#f7f8fa">
+    <meta name="theme-color" content="#f7f8fa" id="themeColorMeta">
     <script>
         // El navegador puede conservar el scroll position de index.html al
         // navegar aqui. portal.html es corto -> en posicion baja se ve el
@@ -21,14 +30,51 @@
         try {
             if (sessionStorage.getItem('portalTransition')) {
                 document.documentElement.classList.add('from-transition');
+                // Centrar el gradiente de llegada donde estaba el del wormhole de index
+                var _pc = sessionStorage.getItem('portalTransitionCenter');
+                if (_pc) {
+                    var _pp = _pc.split(' ');
+                    document.documentElement.style.setProperty('--acx', _pp[0]);
+                    document.documentElement.style.setProperty('--acy', _pp[1]);
+                }
                 sessionStorage.removeItem('portalTransition');
+                sessionStorage.removeItem('portalTransitionCenter');
             }
         } catch (e) {}
-        // Doble seguridad: tambien al pageshow (incluido bfcache)
-        window.addEventListener('pageshow', function () { window.scrollTo(0, 0); });
+        // iOS Chrome a veces cachea el theme-color de la pagina anterior
+        // (en index.html es morado #3300cc) en la barra de URL inferior.
+        // Forzar refresco quitando y re-añadiendo la meta tag obliga al
+        // navegador a re-leer el color. Se ejecuta al cargar y al volver.
+        function forceThemeColorRefresh() {
+            var meta = document.getElementById('themeColorMeta');
+            if (!meta) return;
+            var parent = meta.parentNode;
+            var color = meta.getAttribute('content');
+            parent.removeChild(meta);
+            // Forzar reflow antes de re-añadir
+            void document.documentElement.offsetHeight;
+            var newMeta = document.createElement('meta');
+            newMeta.setAttribute('name', 'theme-color');
+            newMeta.setAttribute('content', color);
+            newMeta.setAttribute('id', 'themeColorMeta');
+            parent.appendChild(newMeta);
+        }
+        // Doble seguridad: scroll + theme-color tambien al pageshow (incluido bfcache)
+        window.addEventListener('pageshow', function () {
+            window.scrollTo(0, 0);
+            forceThemeColorRefresh();
+        });
+        // Y al cargar inicial despues de paint
+        window.addEventListener('load', function () {
+            requestAnimationFrame(forceThemeColorRefresh);
+        });
     </script>
     <style>
         :root {
+            /* Escala de texto ÚNICA (3 niveles) del portal — igual que el panel.
+               Saltos de 0,10. Fuera de escala solo display (títulos/precios ≥1rem)
+               y los 16px de inputs (anti-zoom iOS). NO inventar tamaños. */
+            --fs-s: 0.82rem; --fs-m: 0.82rem; --fs-l: 0.92rem; --fs-d1: 1.1rem; --fs-d2: 1.2rem; --fs-d3: 1.3rem; --fs-d4: 1.7rem; /* --fs-s = alias de --fs-m: el nivel 0,72 se eliminó */
             --purple:       #3300cc;
             --purple-dark:  #220099;
             --purple-light: #5533dd;
@@ -51,8 +97,13 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: var(--navy);
+            /* 100svh = smallest viewport (con toolbars VISIBLES). Asi el body
+               siempre cabe en la zona realmente visible de iOS Chrome,
+               incluso cuando la barra de URL esta abajo y ocupa pantalla.
+               Antes usabamos 100lvh -> el body se extendia detras de la
+               barra de URL y se veia franja morada al fondo */
             min-height: 100vh;
-            min-height: 100lvh;
+            min-height: 100svh;
             display: flex; flex-direction: column;
             -webkit-font-smoothing: antialiased;
             /* viewport-fit=cover + safe-area: el body se extiende hasta el
@@ -60,6 +111,9 @@
                vacio entre el contenido y el gesture bar -> los botones de
                la toolbar aparecen sobre la pagina, no en un hueco aparte */
             padding-bottom: env(safe-area-inset-bottom);
+            /* overscroll-behavior: bloquear bounce vertical evita que iOS
+               muestre el color del <html> debajo del body al rebotar */
+            overscroll-behavior-y: contain;
         }
         .portal-bg {
             position: fixed; inset: 0; z-index: 0;
@@ -78,7 +132,11 @@
         }
         .portal-wrap {
             position: relative; z-index: 1;
-            flex: 1; display: flex; align-items: center; justify-content: center;
+            flex: 1; display: flex;
+            /* "safe center": centra solo si el contenido cabe en el viewport.
+               Si es mas alto que la pantalla, cae a flex-start y se scrollea
+               (asi en movil con login + extras no se corta el fondo) */
+            align-items: safe center; justify-content: center;
             padding: 2rem 1.2rem;
         }
         .portal-card {
@@ -106,7 +164,8 @@
         .from-transition .portal-arrival {
             display: flex; align-items: center; justify-content: center;
             position: fixed; inset: 0; z-index: 100000; pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
+            /* --acx/--acy: mismo centro que el wormhole de salida de index (lo setea el script del head) */
+            background: radial-gradient(circle at var(--acx, 50%) var(--acy, 50%), #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
             animation: portalArrivalOut 0.85s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
             will-change: opacity, transform;
         }
@@ -126,15 +185,15 @@
         }
         .portal-arrival-lock {
             width: 72px; height: 72px; border-radius: 22px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+            /* Sin backdrop-filter: el blur por frame sobre fondo animado da tirones en movil */
+            background: linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.10));
             border: 1.5px solid rgba(255,255,255,0.35);
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 30px rgba(107,61,255,0.45);
         }
         .portal-arrival-lock svg { width: 32px; height: 32px; color: white; }
         .portal-arrival-text {
-            font-size: 0.78rem; font-weight: 900; letter-spacing: 3px;
+            font-size: var(--fs-m); font-weight: 900; letter-spacing: 3px;
             text-transform: uppercase; color: rgba(255,255,255,0.92);
         }
         /* When arriving via transition, delay card so it appears AS overlay fades */
@@ -144,21 +203,28 @@
         @media (max-width: 600px) {
             .portal-arrival-lock { width: 58px; height: 58px; border-radius: 18px; }
             .portal-arrival-lock svg { width: 26px; height: 26px; }
-            .portal-arrival-text { font-size: 0.7rem; letter-spacing: 2px; }
+            .portal-arrival-text { font-size: var(--fs-s); letter-spacing: 2px; }
         }
 
-        /* Exit transition: same wormhole effect going back to index.html */
+        /* Exit transition: cortina plana + wormhole con clip-path (mismo patron que index)
+           Capa cortina cubre el lado opuesto al click rapido, el wormhole hace el efecto */
         .portal-transition {
             position: fixed; inset: 0; z-index: 999999; pointer-events: none;
             --cx: 50%; --cy: 50%;
+            background: var(--navy);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .portal-transition.active { opacity: 1; pointer-events: auto; }
+        .portal-warp {
+            position: absolute; inset: 0; overflow: hidden;
             background:
                 radial-gradient(circle at var(--cx) var(--cy),
                     #6b3dff 0%, var(--purple) 22%, var(--purple-nav) 55%, var(--navy) 100%);
             clip-path: circle(0% at var(--cx) var(--cy));
-            transition: clip-path 0.75s cubic-bezier(0.7, 0, 0.25, 1);
-            overflow: hidden;
+            transition: clip-path 0.7s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .portal-transition.active { clip-path: circle(160% at var(--cx) var(--cy)); pointer-events: auto; }
+        .portal-transition.active .portal-warp { clip-path: circle(180% at var(--cx) var(--cy)); }
         .portal-stars {
             position: absolute; inset: 0; opacity: 0;
             background:
@@ -175,7 +241,7 @@
                 radial-gradient(2px 2px at 50% 30%, white 50%, transparent 100%),
                 radial-gradient(1.5px 1.5px at 18% 50%, white 50%, transparent 100%);
         }
-        .portal-transition.active .portal-stars { animation: portalTwinkle 0.9s ease 0.15s forwards; }
+        .portal-transition.active .portal-stars { animation: portalTwinkle 0.7s ease 0.1s forwards; }
         @keyframes portalTwinkle {
             0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); }
             45%  { opacity: 1; }
@@ -183,16 +249,17 @@
         }
         .portal-ring {
             position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0; border-radius: 50%;
+            width: 480px; height: 480px; border-radius: 50%;
             border: 2px solid rgba(255,255,255,0.45);
-            transform: translate(-50%, -50%); opacity: 0;
+            /* Solo transform/opacity: animar width/height fuerza layout por frame */
+            transform: translate(-50%, -50%) scale(0); opacity: 0;
         }
-        .portal-transition.active .portal-ring1 { animation: portalRingX 0.85s ease 0.1s forwards; }
-        .portal-transition.active .portal-ring2 { animation: portalRingX 0.85s ease 0.22s forwards; }
-        .portal-transition.active .portal-ring3 { animation: portalRingX 0.85s ease 0.34s forwards; }
+        .portal-transition.active .portal-ring1 { animation: portalRingX 0.6s ease 0.08s forwards; }
+        .portal-transition.active .portal-ring2 { animation: portalRingX 0.6s ease 0.18s forwards; }
+        .portal-transition.active .portal-ring3 { animation: portalRingX 0.6s ease 0.28s forwards; }
         @keyframes portalRingX {
-            0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-            100% { width: 480px; height: 480px; opacity: 0; border-width: 1px; }
+            0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
         }
         .portal-exit-core {
             position: absolute; top: 50%; left: 50%;
@@ -200,7 +267,7 @@
             display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
             color: white; text-align: center;
         }
-        .portal-transition.active .portal-exit-core { animation: portalExitCore 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s forwards; }
+        .portal-transition.active .portal-exit-core { animation: portalExitCore 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards; }
         @keyframes portalExitCore {
             0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.35) rotate(-12deg); }
             60%  { opacity: 1; }
@@ -218,10 +285,7 @@
         }
         @keyframes portalExitLoader { to { transform: translateX(100%); } }
         @media (max-width: 600px) {
-            @keyframes portalRingX {
-                0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-                100% { width: 320px; height: 320px; opacity: 0; border-width: 1px; }
-            }
+            .portal-ring { width: 320px; height: 320px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -232,12 +296,12 @@
                 0%   { opacity: 1; }
                 100% { opacity: 0; }
             }
-            .portal-transition { transition: opacity 0.2s ease; clip-path: none; opacity: 0; }
-            .portal-transition.active { opacity: 1; }
+            .portal-warp { transition: none; clip-path: none; }
+            .portal-transition.active .portal-warp { clip-path: none; }
             .portal-transition.active .portal-ring1,
             .portal-transition.active .portal-ring2,
-            .portal-transition.active .portal-ring3,
-            .portal-transition.active .portal-stars,
+            .portal-transition.active .portal-ring3 { animation: none; opacity: 0; }
+            .portal-transition.active .portal-stars { animation: none; opacity: 0.85; transform: none; }
             .portal-transition.active .portal-exit-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
             .portal-exit-loader::after { animation: none; }
         }
@@ -248,12 +312,12 @@
         .portal-logo { display: flex; justify-content: center; margin-bottom: 1rem; }
         .portal-logo img { height: 44px; width: auto; }
         .portal-title {
-            text-align: center; font-size: 1.55rem; font-weight: 900;
+            text-align: center; font-size: var(--fs-d4); font-weight: 900;
             color: var(--navy); letter-spacing: -0.5px; line-height: 1.15;
             margin-bottom: 0.35rem;
         }
         .portal-subtitle {
-            text-align: center; font-size: 0.85rem; color: var(--gray-500);
+            text-align: center; font-size: var(--fs-m); color: var(--gray-500);
             margin-bottom: 1.3rem; line-height: 1.5;
         }
         .portal-badge {
@@ -262,7 +326,7 @@
             border: 1px solid rgba(255,122,0,0.25);
             color: var(--orange);
             padding: 0.55rem 0.9rem; border-radius: 10px;
-            font-size: 0.72rem; font-weight: 800;
+            font-size: var(--fs-s); font-weight: 800;
             letter-spacing: 0.8px; text-transform: uppercase;
             margin-bottom: 1.4rem;
         }
@@ -274,7 +338,7 @@
 
         .portal-field { margin-bottom: 0.95rem; }
         .portal-label {
-            display: block; font-size: 0.7rem; font-weight: 800;
+            display: block; font-size: var(--fs-s); font-weight: 800;
             color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px;
             margin-bottom: 0.4rem;
         }
@@ -286,31 +350,36 @@
         .portal-input {
             width: 100%; padding: 0.85rem 0.9rem 0.85rem 2.4rem;
             border-radius: 11px; border: 1.5px solid var(--gray-200);
-            background: var(--gray-100); color: var(--gray-500);
+            background: white; color: var(--navy);
             font-size: 16px; font-weight: 600;
-            cursor: not-allowed;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            outline: none;
         }
         .portal-input::placeholder { color: var(--gray-500); opacity: 0.7; }
-        .portal-input:disabled { background: var(--gray-100); }
+        .portal-input:hover { border-color: rgba(51,0,204,0.4); }
+        .portal-input:focus { border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.08); }
+        .portal-input:disabled { background: var(--gray-100); color: var(--gray-500); cursor: not-allowed; }
 
         .portal-row {
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 1.2rem; font-size: 0.8rem;
+            margin-bottom: 1.2rem; font-size: var(--fs-m);
         }
-        .portal-check { display: flex; align-items: center; gap: 0.45rem; color: var(--gray-500); cursor: not-allowed; }
-        .portal-check input { cursor: not-allowed; accent-color: var(--purple); }
-        .portal-forgot { color: var(--gray-500); text-decoration: none; font-weight: 700; pointer-events: none; opacity: 0.6; }
+        .portal-check { display: flex; align-items: center; gap: 0.45rem; color: var(--gray-700); cursor: pointer; }
+        .portal-check input { cursor: pointer; accent-color: var(--purple); }
+        .portal-forgot { color: var(--purple); text-decoration: none; font-weight: 700; }
+        .portal-forgot:hover { text-decoration: underline; }
 
         .portal-submit {
             width: 100%; padding: 0.95rem; border: none; border-radius: 12px;
             background: linear-gradient(135deg, var(--purple), var(--purple-light));
-            color: white; font-size: 0.95rem; font-weight: 900;
+            color: white; font-size: var(--fs-l); font-weight: 900;
             letter-spacing: 0.5px; text-transform: uppercase;
-            cursor: not-allowed; opacity: 0.55;
+            cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            transition: opacity 0.2s;
+            transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
         }
-        .portal-submit:disabled { cursor: not-allowed; }
+        .portal-submit:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(51,0,204,0.28); }
+        .portal-submit:active { transform: translateY(0); }
         .portal-submit svg { width: 14px; height: 14px; }
 
         .portal-create {
@@ -318,18 +387,17 @@
             display: flex; align-items: center; justify-content: center; gap: 0.5rem;
             background: white; color: var(--purple);
             border: 1.5px solid var(--purple);
-            font-size: 0.9rem; font-weight: 900; letter-spacing: 0.5px;
-            text-transform: uppercase;
-            cursor: not-allowed; opacity: 0.55;
-            box-sizing: border-box;
-            font-family: inherit;
+            font-size: var(--fs-l); font-weight: 900; letter-spacing: 0.5px;
+            text-decoration: none; text-transform: uppercase;
+            transition: all 0.2s; box-sizing: border-box;
         }
+        .portal-create:hover { background: var(--purple); color: white; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(51,0,204,0.25); }
         .portal-create svg { width: 16px; height: 16px; }
 
         .portal-divider {
             display: flex; align-items: center; gap: 0.8rem;
             margin: 1.3rem 0 1rem; color: var(--gray-500);
-            font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            font-size: var(--fs-s); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
         }
         .portal-divider::before, .portal-divider::after {
             content: ''; flex: 1; height: 1px; background: var(--gray-200);
@@ -339,14 +407,14 @@
             border: 1px solid rgba(51,0,204,0.08);
             border-radius: 10px;
             padding: 0.85rem 1rem;
-            font-size: 0.78rem; color: var(--gray-700); line-height: 1.55;
+            font-size: var(--fs-m); color: var(--gray-700); line-height: 1.55;
             margin-bottom: 1rem;
         }
         .portal-info strong { color: var(--purple); }
 
         .portal-back {
             display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-            color: var(--gray-500); text-decoration: none; font-size: 0.82rem; font-weight: 700;
+            color: var(--gray-500); text-decoration: none; font-size: var(--fs-m); font-weight: 700;
             padding: 0.6rem; border-radius: 10px; transition: background 0.2s;
         }
         .portal-back:hover { background: var(--gray-100); color: var(--navy); }
@@ -355,7 +423,7 @@
         .portal-foot {
             position: relative; z-index: 1;
             text-align: center; padding: 1rem;
-            font-size: 0.72rem; color: var(--gray-500);
+            font-size: var(--fs-s); color: var(--gray-500);
         }
         .portal-foot a { color: var(--gray-500); text-decoration: none; }
         .portal-foot a:hover { color: var(--purple); }
@@ -363,7 +431,7 @@
         @media (max-width: 480px) {
             .portal-wrap { padding: 1.2rem 1rem; }
             .portal-card { padding: 1.8rem 1.4rem 1.4rem; border-radius: 18px; }
-            .portal-title { font-size: 1.35rem; }
+            .portal-title { font-size: var(--fs-d3); }
         }
 
         /* Language selector (same UI as index, fixed top-right) */
@@ -371,13 +439,13 @@
         .lang-btn {
             display: flex; align-items: center; gap: 0.3rem; cursor: pointer;
             background: white; border: 1.5px solid var(--gray-200); border-radius: 10px;
-            padding: 0.3rem 0.7rem 0.3rem 0.45rem; font-size: 0.78rem; font-weight: 700;
+            padding: 0.3rem 0.7rem 0.3rem 0.45rem; font-size: var(--fs-m); font-weight: 700;
             color: var(--gray-700); transition: all 0.2s;
             box-shadow: 0 4px 14px rgba(10,2,48,0.08);
         }
         .lang-btn:hover { border-color: var(--purple); }
-        .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
-        .lang-btn .arrow { font-size: 0.6rem; margin-left: 0.15rem; transition: transform 0.2s; }
+        .lang-btn .flag { font-size: var(--fs-d1); line-height: 1; }
+        .lang-btn .arrow { font-size: var(--fs-s); margin-left: 0.15rem; transition: transform 0.2s; }
         .lang-btn.open .arrow { transform: rotate(180deg); }
         .lang-dropdown {
             position: absolute; top: calc(100% + 6px); right: 0; z-index: 10001;
@@ -394,26 +462,215 @@
         .lang-option {
             display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem;
             border-radius: 8px; cursor: pointer; transition: background 0.15s;
-            font-size: 0.82rem; font-weight: 600; color: var(--gray-700); border: none; background: none; width: 100%; text-align: left;
+            font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); border: none; background: none; width: 100%; text-align: left;
         }
         .lang-option:hover { background: var(--gray-100); }
         .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
-        .lang-option .flag { font-size: 1.2rem; }
+        .lang-option .flag { font-size: var(--fs-d2); }
+        .flag-svg { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
+
+        /* ============================================
+           AVATAR FAB (foto + canales contacto) - mismo patron en todas
+           las paginas del portal y la web publica
+        ============================================ */
+        .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
+        .contact-fab {
+            width:130px; height:130px; border-radius:50%; border:none; padding:0; cursor:pointer;
+            background:none; position:relative; flex-shrink:0; pointer-events:auto;
+        }
+        .contact-fab img {
+            width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;
+            box-shadow:0 4px 20px rgba(10,2,48,0.35);
+        }
+        .contact-fab-name {
+            position:absolute; top:50%; right:calc(100% + 0.7rem);
+            transform:translateY(-50%) translateX(8px);
+            background:white; color:var(--purple);
+            padding:0.55rem 0.95rem; border-radius:18px;
+            text-align:right;
+            box-shadow:0 4px 14px rgba(10,2,48,0.18);
+            opacity:0; pointer-events:none;
+            transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .contact-fab-name-title {
+            display:block; font-size:var(--fs-d1); font-weight:700; letter-spacing:0.2px;
+            white-space:nowrap;
+        }
+        .contact-fab-name-status {
+            display:block; font-size:var(--fs-s); font-weight:600;
+            color:var(--gray-500); margin-top:2px; white-space:nowrap;
+        }
+        .contact-fab-name-status::before {
+            content:""; display:inline-block;
+            width:7px; height:7px; border-radius:50%;
+            background:#22c55e; margin-right:5px; vertical-align:middle;
+            box-shadow:0 0 6px rgba(34,197,94,0.65);
+            animation:fabStatusBlink 2s ease-in-out infinite;
+        }
+        @keyframes fabStatusBlink {
+            0%, 100% { opacity:1; }
+            50%      { opacity:0.55; }
+        }
+        /* Estado OFFLINE: dot del status pasa a naranja */
+        .contact-fab-name-status.offline::before {
+            background: var(--orange) !important;
+            box-shadow: 0 0 6px rgba(255,122,0,0.65) !important;
+        }
+        .contact-fab-wrap.open .contact-fab-name {
+            opacity:1; transform:translateY(-50%) translateX(0);
+        }
+        .contact-fab::before {
+            content:""; position:absolute; inset:-4px; border-radius:50%;
+            border:3px solid #25D366; animation:fabRing 2s ease-out infinite; pointer-events:none;
+        }
+        .contact-fab-wrap.open .contact-fab::before { animation:none; opacity:0; }
+        .contact-fab::after {
+            content:""; position:absolute; bottom:7%; right:7%;
+            width:20px; height:20px; border-radius:50%;
+            background:#22c55e; border:3px solid white;
+            box-shadow:0 0 0 0 rgba(34,197,94,0.55);
+            animation:fabOnlineDotPulse 2.5s ease-out infinite;
+            pointer-events:none;
+        }
+        @keyframes fabOnlineDotPulse {
+            0%   { box-shadow:0 0 0 0 rgba(34,197,94,0.55); }
+            70%  { box-shadow:0 0 0 14px rgba(34,197,94,0); }
+            100% { box-shadow:0 0 0 0 rgba(34,197,94,0); }
+        }
+        .contact-fab:hover { transform:scale(1.06); }
+        .contact-fab, .contact-fab img { transition:transform 0.25s ease; }
+        @keyframes fabRing {
+            0%   { transform:scale(1);   opacity:0.9; }
+            70%  { transform:scale(1.35); opacity:0; }
+            100% { transform:scale(1.35); opacity:0; }
+        }
+        .contact-fab-actions { display:flex; flex-direction:column; gap:0.7rem; align-items:center; }
+        .contact-fab-action {
+            width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; color:white;
+            box-shadow:0 4px 16px rgba(10,2,48,0.3); text-decoration:none;
+            opacity:0; transform:translateY(14px) scale(0.6); pointer-events:none;
+            transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .contact-fab-action.act-email { background:var(--purple); }
+        .contact-fab-action.act-wa    { background:#25D366; }
+        .contact-fab-action.act-call  { background:var(--navy); }
+        .contact-fab-wrap.open .contact-fab-action {
+            opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+        }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(1) { transition-delay:0.05s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(2) { transition-delay:0.12s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(3) { transition-delay:0.19s; }
+        .contact-fab-action:hover { transform:translateY(-2px) scale(1.1) !important; }
+        /* Chip de horario que aparece a la izquierda del icono cuando el FAB esta abierto */
+        .contact-fab-action[data-hours] { position: relative; }
+        .contact-fab-action[data-hours]::before {
+            content: attr(data-hours);
+            position: absolute; right: calc(100% + 0.5rem); top: 50%;
+            transform: translateY(-50%);
+            background: white; color: var(--navy);
+            font-size: var(--fs-s); font-weight: 700;
+            padding: 0.3rem 0.55rem; border-radius: 10px;
+            white-space: nowrap;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease 0.15s;
+        }
+        .contact-fab-wrap.open .contact-fab-action[data-hours]::before { opacity: 1; }
+
+        /* Modal "Fuera de horario telefonico" (mismo patron que dashboard/index) */
+        .phone-modal {
+            position: fixed; inset: 0; z-index: 100000;
+            display: none; align-items: center; justify-content: center;
+            padding: 1.2rem;
+        }
+        .phone-modal.open { display: flex; animation: phoneFadeIn 0.2s ease both; }
+        @keyframes phoneFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .phone-modal-backdrop {
+            position: absolute; inset: 0;
+            background: rgba(10,2,48,0.55); backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+        .phone-modal-card {
+            position: relative; z-index: 1;
+            background: white; border-radius: 18px;
+            max-width: 420px; width: 100%;
+            padding: 2.2rem 1.6rem 1.4rem; text-align: center;
+            box-shadow: 0 30px 80px rgba(10,2,48,0.4);
+            animation: phoneCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes phoneCardIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .phone-modal-close {
+            position: absolute; top: 0.8rem; right: 0.8rem;
+            width: 32px; height: 32px; border-radius: 50%;
+            border: none; background: var(--gray-100); color: var(--gray-700);
+            font-size: var(--fs-d2); line-height: 1; cursor: pointer;
+        }
+        .phone-modal-close:hover { background: var(--gray-200); color: var(--navy); }
+        .phone-modal-icon {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--orange), #ffaa44);
+            color: white; margin: 0 auto 0.9rem;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 28px rgba(255,122,0,0.3);
+        }
+        .phone-modal-card h3 { font-size: var(--fs-d2); font-weight: 900; color: var(--navy); margin-bottom: 0.5rem; }
+        .phone-modal-sub { font-size: var(--fs-l); color: var(--gray-700); line-height: 1.5; margin-bottom: 1rem; }
+        .phone-modal-sub strong { color: var(--navy); }
+        .phone-modal-options { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+        .phone-modal-opt {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+            padding: 0.85rem 0.5rem; border-radius: 11px;
+            color: white; text-decoration: none;
+            font-size: var(--fs-l); font-weight: 800;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .phone-modal-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.18); }
+        .phone-modal-wa { background: #25D366; }
+        .phone-modal-email { background: var(--purple); }
+        .phone-modal-anyway {
+            display: block; text-align: center;
+            font-size: var(--fs-m); font-weight: 700; color: var(--gray-500);
+            text-decoration: none; padding: 0.55rem;
+        }
+        .phone-modal-anyway:hover { color: var(--navy); }
+        .phone-modal-anyway span { display: block; font-size: var(--fs-s); font-weight: 600; opacity: 0.65; margin-top: 0.1rem; }
+        @media (max-width: 600px) {
+            .contact-fab-wrap { bottom:1.2rem; right:1.2rem; gap:0.6rem; }
+            .contact-fab { width:109px; height:109px; }
+            .contact-fab-action { width:46px; height:46px; }
+            .contact-fab-name { padding:0.45rem 0.8rem; }
+            .contact-fab-name-title { font-size:var(--fs-l); }
+            .contact-fab-name-status { font-size:var(--fs-s); }
+            .contact-fab::after { width:16px; height:16px; border-width:2.5px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .contact-fab::before, .contact-fab::after, .contact-fab-name-status::before { animation:none; }
+            .contact-fab, .contact-fab img, .contact-fab-action, .contact-fab-name { transition:opacity 0.15s linear; }
+            .contact-fab-wrap.open .contact-fab-action { transform:none; }
+            .contact-fab-action { transform:none; }
+            .contact-fab-name, .contact-fab-wrap.open .contact-fab-name { transform:translateY(-50%); }
+            .contact-fab:hover, .contact-fab-action:hover { transform:none !important; }
+        }
     </style>
+    <script src="/js/festivos.js"></script>
+<script src="/js/campos.js"></script>
 </head>
 <body>
     <!-- EXIT TRANSITION OVERLAY (back to index) -->
     <div class="portal-transition" id="portalExit" aria-hidden="true">
-        <div class="portal-stars"></div>
-        <div class="portal-ring portal-ring1"></div>
-        <div class="portal-ring portal-ring2"></div>
-        <div class="portal-ring portal-ring3"></div>
-        <div class="portal-exit-core">
-            <div class="portal-arrival-lock">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div class="portal-warp">
+            <div class="portal-stars"></div>
+            <div class="portal-ring portal-ring1"></div>
+            <div class="portal-ring portal-ring2"></div>
+            <div class="portal-ring portal-ring3"></div>
+            <div class="portal-exit-core">
+                <div class="portal-arrival-lock">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div class="portal-arrival-text">Inicio</div>
+                <div class="portal-exit-loader"></div>
             </div>
-            <div class="portal-arrival-text">Inicio</div>
-            <div class="portal-exit-loader"></div>
         </div>
     </div>
     <!-- LANGUAGE SELECTOR -->
@@ -423,17 +680,19 @@
         </button>
         <div class="lang-dropdown" id="langDropdown">
             <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
+            <button class="lang-option" onclick="changeLang('ca','🟡','CAT')"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09"/><rect y="1.78" width="24" height="1.78" fill="#da121a"/><rect y="5.33" width="24" height="1.78" fill="#da121a"/><rect y="8.89" width="24" height="1.78" fill="#da121a"/><rect y="12.44" width="24" height="1.78" fill="#da121a"/></svg></span> Català</button>
+            <button class="lang-option" onclick="changeLang('eu','🟢','EUS')"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#d52b1e"/><path d="M0 0 24 16M24 0 0 16" stroke="#009b3a" stroke-width="4.2"/><rect x="10" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/></svg></span> Euskara</button>
             <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
             <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
-            <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
             <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
             <button class="lang-option" onclick="changeLang('ar','🇸🇦','AR')"><span class="flag">🇸🇦</span> العربية</button>
             <button class="lang-option" onclick="changeLang('de','🇩🇪','DE')"><span class="flag">🇩🇪</span> Deutsch</button>
             <button class="lang-option" onclick="changeLang('it','🇮🇹','IT')"><span class="flag">🇮🇹</span> Italiano</button>
-            <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
-            <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
-            <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
             <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL')"><span class="flag">🇳🇱</span> Nederlands</button>
+            <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
+            <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
+            <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
+            <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
         </div>
     </div>
 
@@ -449,22 +708,22 @@
     <main class="portal-wrap">
         <div class="portal-card" role="dialog" aria-labelledby="portal-title">
             <div class="portal-logo">
-                <a href="index.html" onclick="goToHome(event)" aria-label="Volver al inicio"><img src="/images/2.png" alt="Dynamo - Pick. Drop. Done."></a>
+                <a href="index.html" onclick="goToHome(event)" aria-label="Volver al inicio"><img src="/images/2.png" alt="Dynamo - Always Moving"></a>
             </div>
             <h1 id="portal-title" class="portal-title">Acceso al Portal</h1>
             <p class="portal-subtitle">Área privada para <strong>clientes</strong> de Dynamo</p>
 
             <div class="portal-badge">
                 <span class="dot"></span>
-                <span>Próximamente · En desarrollo</span>
+                <span>Modo demo · acceso libre para probar</span>
             </div>
 
-            <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true">
+            <form id="portalLogin" onsubmit="event.preventDefault();demoLogin();return false;" autocomplete="off">
                 <div class="portal-field">
                     <label class="portal-label" for="portal-user">Correo electrónico</label>
                     <div class="portal-input-wrap">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-                        <input id="portal-user" class="portal-input" type="email" placeholder="tu@empresa.com" disabled aria-disabled="true" tabindex="-1">
+                        <input id="portal-user" class="portal-input" type="email" placeholder="tu@empresa.com" autocomplete="username" required>
                     </div>
                 </div>
 
@@ -472,16 +731,16 @@
                     <label class="portal-label" for="portal-pass">Contraseña</label>
                     <div class="portal-input-wrap">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        <input id="portal-pass" class="portal-input" type="password" placeholder="••••••••" disabled aria-disabled="true" tabindex="-1">
+                        <input id="portal-pass" class="portal-input" type="password" placeholder="cualquier contraseña" autocomplete="current-password" required>
                     </div>
                 </div>
 
                 <div class="portal-row">
-                    <label class="portal-check"><input type="checkbox" disabled tabindex="-1"> Recordarme</label>
-                    <a href="#" class="portal-forgot" tabindex="-1" aria-disabled="true">¿Olvidaste tu contraseña?</a>
+                    <label class="portal-check"><input type="checkbox"> Recordarme</label>
+                    <a href="#" class="portal-forgot" onclick="event.preventDefault()">¿Olvidaste tu contraseña?</a>
                 </div>
 
-                <button type="submit" class="portal-submit" disabled aria-disabled="true">
+                <button type="submit" class="portal-submit">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                     Iniciar sesión
                 </button>
@@ -489,15 +748,15 @@
 
             <div class="portal-divider">¿No tienes cuenta?</div>
 
-            <button type="button" class="portal-create" disabled aria-disabled="true" tabindex="-1">
+            <a href="registro.html" class="portal-create">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
                 Crear cuenta
-            </button>
+            </a>
 
             <div class="portal-divider">Información</div>
 
             <div class="portal-info">
-                Espacio <strong>privado para clientes</strong>. Mientras tanto, contáctanos por los canales habituales.
+                <strong>Modo demo:</strong> introduce cualquier email + contraseña y pulsa <em>Iniciar sesión</em> para explorar el panel del cliente (cargas, presupuestos, facturas, incidencias). Sin backend todavía.
             </div>
 
             <a href="index.html" class="portal-back" onclick="goToHome(event)">
@@ -508,7 +767,6 @@
     </main>
     <footer class="portal-foot">
         © 2025 Dynamo Operador de Transportes ·
-        <a href="index.html" onclick="goToHome(event)">dynamotrans.com</a> ·
         <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
     </footer>
     <script>
@@ -528,11 +786,30 @@
             }
             overlay.style.setProperty('--cx', cx + 'px');
             overlay.style.setProperty('--cy', cy + 'px');
-            overlay.classList.add('active');
-            try { sessionStorage.setItem('homeTransition', '1'); } catch (e) {}
+            try {
+                sessionStorage.setItem('homeTransition', '1');
+                // El overlay de llegada de index.html usa este mismo centro (evita el salto del gradiente)
+                sessionStorage.setItem('homeTransitionCenter',
+                    (cx / window.innerWidth * 100).toFixed(1) + '% ' + (cy / window.innerHeight * 100).toFixed(1) + '%');
+            } catch (e) {}
             var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             var delay = reduce ? 250 : 850;
-            setTimeout(function () { window.location.href = 'index.html'; }, delay);
+            // Doble rAF: deja que el navegador pinte/promocione la capa antes de animarla
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    overlay.classList.add('active');
+                    setTimeout(function () { window.location.href = 'index.html'; }, delay);
+                });
+            });
+        }
+        // DEMO MODE: cualquier email + cualquier password navega al dashboard.
+        // No hay backend. Solo para probar la interfaz del panel.
+        function demoLogin() {
+            var user = (document.getElementById('portal-user') || {}).value || '';
+            var pass = (document.getElementById('portal-pass') || {}).value || '';
+            if (!user.trim() || !pass.trim()) return;
+            try { sessionStorage.setItem('demoUserEmail', user.trim()); } catch (e) {}
+            window.location.href = 'dashboard.html';
         }
         // Reset overlay state if page is restored from bfcache
         window.addEventListener('pageshow', function (e) {
@@ -541,7 +818,12 @@
             }
             var exitOverlay = document.getElementById('portalExit');
             if (exitOverlay) exitOverlay.classList.remove('active');
-            try { sessionStorage.removeItem('portalTransition'); } catch (err) {}
+            try {
+                sessionStorage.removeItem('portalTransition');
+                sessionStorage.removeItem('portalTransitionCenter');
+                sessionStorage.removeItem('homeTransition');
+                sessionStorage.removeItem('homeTransitionCenter');
+            } catch (err) {}
         });
     </script>
 
@@ -565,7 +847,7 @@
         new google.translate.TranslateElement({
             pageLanguage: 'es',
             autoDisplay: false,
-            includedLanguages: 'pt,en,zh-CN,fr,de,it,uk,ro,pl,nl,ar'
+            includedLanguages: 'ca,eu,pt,en,fr,de,it,nl,pl,ro,uk,zh-CN,ar'
         }, 'google_translate_element');
         var checkReady = setInterval(function() {
             var sel = document.querySelector('.goog-te-combo');
@@ -575,17 +857,19 @@
     }
 
     var langMap = {
+        'ca': { flag: '<svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09"/><rect y="1.78" width="24" height="1.78" fill="#da121a"/><rect y="5.33" width="24" height="1.78" fill="#da121a"/><rect y="8.89" width="24" height="1.78" fill="#da121a"/><rect y="12.44" width="24" height="1.78" fill="#da121a"/></svg>', code: 'CAT' },
+        'eu': { flag: '<svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#d52b1e"/><path d="M0 0 24 16M24 0 0 16" stroke="#009b3a" stroke-width="4.2"/><rect x="10" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/></svg>', code: 'EUS' },
         'pt': { flag: '🇵🇹', code: 'PT' },
         'en': { flag: '🇬🇧', code: 'EN' },
-        'zh-CN': { flag: '🇨🇳', code: 'ZH' },
         'fr': { flag: '🇫🇷', code: 'FR' },
-        'ar': { flag: '🇸🇦', code: 'AR' },
         'de': { flag: '🇩🇪', code: 'DE' },
         'it': { flag: '🇮🇹', code: 'IT' },
-        'uk': { flag: '🇺🇦', code: 'UK' },
-        'ro': { flag: '🇷🇴', code: 'RO' },
+        'nl': { flag: '🇳🇱', code: 'NL' },
         'pl': { flag: '🇵🇱', code: 'PL' },
-        'nl': { flag: '🇳🇱', code: 'NL' }
+        'ro': { flag: '🇷🇴', code: 'RO' },
+        'uk': { flag: '🇺🇦', code: 'UK' },
+        'zh-CN': { flag: '🇨🇳', code: 'ZH' },
+        'ar': { flag: '🇸🇦', code: 'AR' }
     };
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -646,6 +930,7 @@
         if (sel) {
             sel.value = lang;
             sel.dispatchEvent(new Event('change'));
+            if (typeof applyScheduleLabels === 'function') applyScheduleLabels(lang);
             return true;
         }
         return false;
@@ -653,7 +938,7 @@
 
     function changeLang(lang, flag, code) {
         var langBtn = document.getElementById('langBtn');
-        if (langBtn) langBtn.innerHTML = '<span class="flag">' + flag + '</span> ' + code + ' <span class="arrow">▼</span>';
+        if (langBtn) langBtn.innerHTML = '<span class="flag">' + ((langMap[lang] && langMap[lang].flag) || flag) + '</span> ' + code + ' <span class="arrow">▼</span>';
         document.querySelectorAll('.lang-option').forEach(function(o) { o.classList.remove('active'); });
         if (event && event.target) {
             var opt = event.target.closest('.lang-option');
@@ -729,6 +1014,245 @@
     .skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
     .goog-text-highlight { background: none !important; box-shadow: none !important; }
     #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+    /* El "spinner" de carga de Google Translate a veces se queda colgado en la
+       esquina (bug conocido de GT). Lo ocultamos siempre. */
+    .goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner,
+    .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
+    iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     </style>
+
+    <!-- FLOATING CONTACT FAB - avatar Alvaro -->
+    <div class="contact-fab-wrap" id="contactFab">
+        <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
+            <span class="contact-fab-name" aria-hidden="true">
+                <span class="contact-fab-name-title">Álvaro Blanco de Dynamo</span>
+                <span class="contact-fab-name-status">En línea · Respondo enseguida</span>
+            </span>
+            <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
+        </button>
+        <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
+            <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Consulta%20portal%20cliente" aria-label="Enviar email" data-hours="Lunes a Sábado 8-20" data-sched-attr="online-short">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            </a>
+            <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709" aria-label="Contactar por WhatsApp" data-hours="Lunes a Sábado 8-20" data-sched-attr="online-short">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </a>
+            <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono" data-hours="Lunes a Jueves 9-14 y 15-17 · Viernes 9-14" data-sched-attr="phone-short">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
+            </a>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var wrap = document.getElementById('contactFab');
+        if (!wrap) return;
+        var btn = document.getElementById('contactFabBtn');
+        function openFab() { wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+        function closeFab() { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+        btn.addEventListener('click', function (e) { e.stopPropagation(); wrap.classList.contains('open') ? closeFab() : openFab(); });
+        wrap.querySelectorAll('.contact-fab-action').forEach(function (a) { a.addEventListener('click', closeFab); });
+        document.addEventListener('click', function (e) { if (wrap.classList.contains('open') && !wrap.contains(e.target)) closeFab(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && wrap.classList.contains('open')) { closeFab(); btn.focus(); } });
+    })();
+    </script>
+
+    <!-- MODAL fuera de horario telefonico (se muestra al pulsar tel:) -->
+    <div class="phone-modal" id="phoneModal" role="dialog" aria-modal="true" aria-labelledby="phoneModalTitle">
+        <div class="phone-modal-backdrop" onclick="closePhoneModal()"></div>
+        <div class="phone-modal-card">
+            <button type="button" class="phone-modal-close" onclick="closePhoneModal()" aria-label="Cerrar">×</button>
+            <div class="phone-modal-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <h3 id="phoneModalTitle">Fuera de horario telefónico</h3>
+            <p class="phone-modal-sub phone-modal-reason">Nuestro teléfono está fuera de horario. Estamos disponibles por email y WhatsApp:</p>
+            <div class="phone-modal-options">
+                <a class="phone-modal-opt phone-modal-email" href="mailto:info@dynamotrans.com" onclick="closePhoneModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    e-Mail
+                </a>
+                <a class="phone-modal-opt phone-modal-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener" onclick="closePhoneModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                    WhatsApp
+                </a>
+            </div>
+            <a class="phone-modal-anyway" href="tel:+34955225945">Llamar igualmente <span>(posiblemente no se atienda ahora)</span></a>
+        </div>
+    </div>
+
+    <script>
+    /* SCHEDULE - mismo motor que dashboard/index. Cambia aqui y los chips
+       data-hours del FAB y el modal "fuera de horario" se actualizan.
+       (Cuando refactoricemos a Next.js esto sera un modulo compartido) */
+    var SCHEDULE = {
+        winter: { 1:[[9,14],[15,17]], 2:[[9,14],[15,17]], 3:[[9,14],[15,17]], 4:[[9,14],[15,17]], 5:[[9,14]] },
+        summer: { 1:[[8.5,15.5]], 2:[[8.5,15.5]], 3:[[8.5,15.5]], 4:[[8.5,15.5]], 5:[[8.5,15.5]] },
+        august: {},
+        telHref: 'tel:+34955225945'
+    };
+    // Etiquetas de horario auto-traducidas por nosotros (Google no traduce el
+    // texto inyectado por JS ni el contenido CSS del FAB). Idioma activo via cookie.
+    var SCHED_VOCAB = {
+        es:{mon:'Lunes',tue:'Martes',wed:'Miércoles',thu:'Jueves',fri:'Viernes',sat:'Sábado',to:'a',and:'y',summer:'verano',xmas:'Navidad',feria:'Feria',holy:'Semana Santa',reduced:'Cerrado · email y WhatsApp'},
+        en:{mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday',sat:'Saturday',to:'to',and:'and',summer:'summer',xmas:'Christmas',feria:'Feria',holy:'Holy Week',reduced:'Closed · email & WhatsApp'},
+        ca:{mon:'Dilluns',tue:'Dimarts',wed:'Dimecres',thu:'Dijous',fri:'Divendres',sat:'Dissabte',to:'a',and:'i',summer:'estiu',xmas:'Nadal',feria:'Fira',holy:'Setmana Santa',reduced:'Tancat · email i WhatsApp'},
+        eu:{mon:'Astelehena',tue:'Asteartea',wed:'Asteazkena',thu:'Osteguna',fri:'Ostirala',sat:'Larunbata',to:'–',and:'eta',summer:'uda',xmas:'Gabonak',feria:'Feria',holy:'Aste Santua',reduced:'Itxita · email eta WhatsApp'},
+        pt:{mon:'Segunda',tue:'Terça',wed:'Quarta',thu:'Quinta',fri:'Sexta',sat:'Sábado',to:'a',and:'e',summer:'verão',xmas:'Natal',feria:'Feira',holy:'Semana Santa',reduced:'Fechado · email e WhatsApp'},
+        fr:{mon:'Lundi',tue:'Mardi',wed:'Mercredi',thu:'Jeudi',fri:'Vendredi',sat:'Samedi',to:'au',and:'et',summer:'été',xmas:'Noël',feria:'Feria',holy:'Semaine Sainte',reduced:'Fermé · email et WhatsApp'},
+        de:{mon:'Montag',tue:'Dienstag',wed:'Mittwoch',thu:'Donnerstag',fri:'Freitag',sat:'Samstag',to:'bis',and:'und',summer:'Sommer',xmas:'Weihnachten',feria:'Feria',holy:'Karwoche',reduced:'Geschlossen · E-Mail & WhatsApp'},
+        it:{mon:'Lunedì',tue:'Martedì',wed:'Mercoledì',thu:'Giovedì',fri:'Venerdì',sat:'Sabato',to:'a',and:'e',summer:'estate',xmas:'Natale',feria:'Feria',holy:'Settimana Santa',reduced:'Chiuso · email e WhatsApp'},
+        nl:{mon:'Maandag',tue:'Dinsdag',wed:'Woensdag',thu:'Donderdag',fri:'Vrijdag',sat:'Zaterdag',to:'tot',and:'en',summer:'zomer',xmas:'Kerst',feria:'Feria',holy:'Goede Week',reduced:'Gesloten · e-mail & WhatsApp'},
+        pl:{mon:'Poniedziałek',tue:'Wtorek',wed:'Środa',thu:'Czwartek',fri:'Piątek',sat:'Sobota',to:'–',and:'i',summer:'lato',xmas:'Boże Narodzenie',feria:'Feria',holy:'Wielki Tydzień',reduced:'Zamknięte · email i WhatsApp'},
+        ro:{mon:'Luni',tue:'Marți',wed:'Miercuri',thu:'Joi',fri:'Vineri',sat:'Sâmbătă',to:'–',and:'și',summer:'vară',xmas:'Crăciun',feria:'Feria',holy:'Săptămâna Mare',reduced:'Închis · email și WhatsApp'},
+        uk:{mon:'Понеділок',tue:'Вівторок',wed:'Середа',thu:'Четвер',fri:'П\'ятниця',sat:'Субота',to:'–',and:'і',summer:'літо',xmas:'Різдво',feria:'Feria',holy:'Страсний тиждень',reduced:'Зачинено · email і WhatsApp'},
+        'zh-CN':{mon:'周一',tue:'周二',wed:'周三',thu:'周四',fri:'周五',sat:'周六',to:'至',and:'和',summer:'夏季',xmas:'圣诞',feria:'节庆',holy:'圣周',reduced:'关闭 · 邮件和 WhatsApp'}, 'ar':{mon:'الاثنين',tue:'الثلاثاء',wed:'الأربعاء',thu:'الخميس',fri:'الجمعة',sat:'السبت',to:'إلى',and:'و',summer:'الصيف',xmas:'عيد الميلاد',feria:'موسم الأعياد',holy:'أسبوع الآلام',reduced:'مغلق · البريد وواتساب'}
+    };
+    function schedLang(){ var m=document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/); var l=m?m[1]:'es'; return SCHED_VOCAB[l]?l:'es'; }
+    function buildLabels(lang){ var v=SCHED_VOCAB[lang]||SCHED_VOCAB.es; function rng(a,b){return v.to==='–'?(a+'–'+b):(a+' '+v.to+' '+b);}
+        return { phone:{ labelLong:rng(v.mon,v.thu)+' 9:00-14:00 '+v.and+' 15:00-17:00 · '+v.fri+' 9:00-14:00', labelShort:rng(v.mon,v.thu)+' 9-14 '+v.and+' 15-17 · '+v.fri+' 9-14',
+            labelSummerLong:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.summer+')',
+            labelXmasLong:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.xmas+')',
+            labelFeriaLong:rng(v.tue,v.fri)+' 8:30-15:30 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 8:30-15:30 ('+v.feria+')',
+            labelHolyLong:rng(v.mon,v.wed)+' 8:30-15:30 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 8:30-15:30 ('+v.holy+')', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
+            online:{ labelLong:rng(v.mon,v.sat)+' 8:00-20:00', labelShort:rng(v.mon,v.sat)+' 8-20' } };
+    }
+    var LABELS = buildLabels(schedLang());
+    function getNow() { return new Date(new Date().toLocaleString('en-US', { timeZone:'Europe/Madrid' })); }
+    function isAugustReduced(date){ return date.getMonth()===7 && date.getDate()>=6 && date.getDate()<=27; }
+    function isSummer(d) { var m=d.getMonth(), dd=d.getDate(); if(m===5&&dd>=15)return true; if(m===6||m===7)return true; if(m===8&&dd<=1)return true; return false; }
+    function isXmas(d) { var m=d.getMonth(), dd=d.getDate(); if(m===11&&dd>=22)return true; if(m===0&&dd<=6)return true; return false; }
+    function isFeria(d) { var e=easterSunday(d.getFullYear()); var f1=new Date(e.getFullYear(),e.getMonth(),e.getDate()+16); var f2=new Date(e.getFullYear(),e.getMonth(),e.getDate()+19); var s=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); return s>=f1.getTime()&&s<=f2.getTime(); }
+    function isHolyWeek(d) { var e=easterSunday(d.getFullYear()); var mo=new Date(e.getFullYear(),e.getMonth(),e.getDate()-6).getTime(); var we=new Date(e.getFullYear(),e.getMonth(),e.getDate()-4).getTime(); var s=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); return s>=mo&&s<=we; }
+    function isShortSchedule(d) { return isSummer(d)||isXmas(d)||isFeria(d)||isHolyWeek(d); }
+    function easterSunday(y) { return FESTIVOS.easterSunday(y); }
+    function getHolidayName(d) { return FESTIVOS.get('es', d); }
+    function isPhoneHoursNow() {
+        var n=getNow();
+        if (getHolidayName(n)) return false;
+        var day=n.getDay();
+        if (day===0||day===6) return false;
+        var tbl=isAugustReduced(n)?SCHEDULE.august:(isShortSchedule(n)?SCHEDULE.summer:SCHEDULE.winter);
+        var rg=tbl[day]; if (!rg) return false;
+        var t=n.getHours()+n.getMinutes()/60;
+        return rg.some(function(r){return t>=r[0]&&t<r[1];});
+    }
+    // Horario online Lunes a Sábado 8-20 (WhatsApp/email) + estado dinamico del chip
+    function isOnlineHoursNow() {
+        var now=getNow();
+        if (getHolidayName(now)) return false;
+        var day=now.getDay();
+        if (day===0) return false;
+        var h=now.getHours();
+        return h>=8 && h<20;
+    }
+    function nextOnlineMoment() {
+        var c=new Date(getNow());
+        for (var i=0;i<8;i++) {
+            var day=c.getDay();
+            if (day!==0 && !getHolidayName(c)) {
+                if (i===0) {
+                    var h=c.getHours();
+                    if (h>=8&&h<20) return null;
+                    if (h<8) { var t=new Date(c); t.setHours(8,0,0,0); return t; }
+                } else { var t=new Date(c); t.setHours(8,0,0,0); return t; }
+            }
+            c.setDate(c.getDate()+1); c.setHours(0,0,0,0);
+        }
+        return null;
+    }
+    function formatTimeUntilOnline() {
+        var next=nextOnlineMoment(); if (!next) return '';
+        var diffMs=next.getTime()-getNow().getTime();
+        var diffMin=Math.round(diffMs/60000);
+        if (diffMin<60) return 'en breve';
+        var diffH=Math.round(diffMs/3600000);
+        if (diffH<=18) return diffH===1?'en 1 hora':'en '+diffH+' horas';
+        var diffD=Math.ceil(diffH/24);
+        return diffD===1?'mañana':'en '+diffD+' días';
+    }
+    function syncOnlineStatus() {
+        var online=isOnlineHoursNow();
+        var txt=online?'En línea · Respondo enseguida':'He salido · Vuelvo '+formatTimeUntilOnline();
+        document.querySelectorAll('.contact-fab-name-status').forEach(function (el) {
+            el.textContent=txt; el.classList.toggle('offline', !online);
+        });
+    }
+    syncOnlineStatus();
+    setInterval(syncOnlineStatus, 60000);
+    // Interceptor global de tel:
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href^="tel:"]');
+        if (!a) return;
+        if (a.closest('#phoneModal')) return;
+        if (isPhoneHoursNow()) return;
+        e.preventDefault();
+        showPhoneOutOfHoursModal(a.getAttribute('href'));
+    });
+    function showPhoneOutOfHoursModal(telHref) {
+        var modal = document.getElementById('phoneModal');
+        if (!modal) return;
+        var anyway = modal.querySelector('.phone-modal-anyway');
+        if (anyway) anyway.setAttribute('href', telHref || SCHEDULE.telHref);
+        var now = getNow();
+        var hol = getHolidayName(now);
+        var title = modal.querySelector('#phoneModalTitle');
+        var sub = modal.querySelector('.phone-modal-reason');
+        if (hol) {
+            if (title) title.textContent = 'Hoy es festivo (' + hol + ')';
+            if (sub) sub.textContent = 'Hoy no atendemos llamadas por ser festivo nacional. Estamos disponibles por email y WhatsApp:';
+        } else if (isAugustReduced(now)) {
+            if (title) title.textContent = 'Teléfono cerrado (6-27 agosto)';
+            if (sub) sub.textContent = 'Del 6 al 27 de agosto no atendemos llamadas. Estamos disponibles por email y WhatsApp:';
+        } else {
+            if (title) title.textContent = 'Fuera de horario telefónico';
+            var lbl = LABELS.phone.labelLong;
+            if (isAugustReduced(now)) lbl = LABELS.phone.labelAugLong;
+            else if (isHolyWeek(now)) lbl = LABELS.phone.labelHolyLong;
+            else if (isFeria(now)) lbl = LABELS.phone.labelFeriaLong;
+            else if (isXmas(now)) lbl = LABELS.phone.labelXmasLong;
+            else if (isSummer(now)) lbl = LABELS.phone.labelSummerLong;
+            if (sub) sub.innerHTML = 'Nuestro teléfono se atiende <strong class="notranslate">' + lbl + '</strong>. Estamos disponibles por email y WhatsApp <strong class="notranslate">' + LABELS.online.labelLong + '</strong>:';
+        }
+        modal.classList.add('open');
+    }
+    function closePhoneModal() {
+        var modal = document.getElementById('phoneModal');
+        if (modal) modal.classList.remove('open');
+    }
+    window.closePhoneModal = closePhoneModal;
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            var modal = document.getElementById('phoneModal');
+            if (modal && modal.classList.contains('open')) closePhoneModal();
+        }
+    });
+    // Actualiza chips data-hours en el FAB segun temporada activa
+    function applyScheduleLabels(lang) {
+        LABELS = buildLabels(lang && SCHED_VOCAB[lang] ? lang : schedLang());
+        var now = getNow();
+        function phoneLabel(key) {
+            if (isAugustReduced(now)) return key==='short' ? LABELS.phone.labelAugShort : LABELS.phone.labelAugLong;
+            if (isHolyWeek(now)) return key==='short' ? LABELS.phone.labelHolyShort   : LABELS.phone.labelHolyLong;
+            if (isFeria(now))  return key==='short' ? LABELS.phone.labelFeriaShort  : LABELS.phone.labelFeriaLong;
+            if (isXmas(now))   return key==='short' ? LABELS.phone.labelXmasShort   : LABELS.phone.labelXmasLong;
+            if (isSummer(now)) return key==='short' ? LABELS.phone.labelSummerShort : LABELS.phone.labelSummerLong;
+            return key==='short' ? LABELS.phone.labelShort : LABELS.phone.labelLong;
+        }
+        function onlineLabel(key) { return key==='short' ? LABELS.online.labelShort : LABELS.online.labelLong; }
+        function resolve(key) {
+            var p = key.split('-'), w = p[1];
+            if (p[0]==='phone')  return phoneLabel(w);
+            if (p[0]==='online') return onlineLabel(w);
+            return null;
+        }
+        document.querySelectorAll('[data-sched]').forEach(function (el) {
+            var v = resolve(el.getAttribute('data-sched')); if (v) { el.textContent = v; el.classList.add('notranslate'); }
+        });
+        document.querySelectorAll('[data-sched-attr]').forEach(function (el) {
+            var v = resolve(el.getAttribute('data-sched-attr')); if (v) el.setAttribute('data-hours', v);
+        });
+    }
+    applyScheduleLabels();
+    </script>
 </body>
 </html>
