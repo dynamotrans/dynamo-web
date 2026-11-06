@@ -3943,7 +3943,8 @@ do $$ declare faltan text; begin
    where n.nspname = 'public' and c.relkind = 'r'
      and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
                            'recargos_tipo_sitio', 'restricciones_servicio', 'distancias_cp', 'distancias_sitios',
-                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos')
+                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
+                           'datos_de_prueba_peticiones')   -- encargos de datos de prueba: solo consola, no es negocio
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -5977,5 +5978,55 @@ do $$ declare c uuid; e uuid; i uuid; t uuid := current_setting('prueba.transp')
   if exists (select 1 from pg_indexes where indexname = 'idx_auditoria_cambios') then raise exception 'FALLO 161 · sigue el índice GIN de auditoria.cambios'; end if;
   if (select count(*) from pg_indexes where indexname in ('idx_auditoria_registro', 'idx_auditoria_quien', 'idx_auditoria_cuando')) <> 3 then raise exception 'FALLO 161 · faltan índices de la auditoría'; end if;
   raise notice 'OK 161 · repaso de datos: «ES» del CIF, hitos con fecha real al migrar, tope de 4 puntos en la tabla, incidencia del transportista sin cliente e índice sobrante fuera';
+end $$;
+reset role;
+
+-- ---- 162. Datos de prueba en segundo plano (programar / ejecutar / estado) --------------
+-- Solo consola: ningún rol de la API ve la tabla de encargos ni llama a las funciones. Sin
+-- pg_cron (aquí), programar_… carga en el acto; el encargo queda hecho, sin contraseña ni
+-- cuentas en la fila, y estado_… lo cuenta. Después se borra todo y la base de datos queda
+-- como estaba.
+reset role;
+do $$ declare r text; f text; fallos text := ''; begin
+  foreach r in array array['anon', 'authenticated', 'service_role'] loop
+    if has_table_privilege(r, 'datos_de_prueba_peticiones', 'select') or has_table_privilege(r, 'datos_de_prueba_peticiones', 'insert') then fallos := fallos || r || '→tabla '; end if;
+    foreach f in array array['programar_datos_de_prueba(text,numeric,text,jsonb)', 'ejecutar_datos_de_prueba_pendientes()', 'estado_datos_de_prueba()'] loop
+      if has_function_privilege(r, f, 'execute') then fallos := fallos || r || '→' || f || ' '; end if;
+    end loop;
+  end loop;
+  if fallos <> '' then raise exception 'FALLO 162 · la API llega a los encargos de datos de prueba: %', fallos; end if;
+  if not (select relrowsecurity from pg_class where relname = 'datos_de_prueba_peticiones') then raise exception 'FALLO 162 · la tabla de encargos no tiene RLS'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  begin perform programar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01); raise exception 'FALLO 162 · se programa desde la API';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ declare r jsonb; e jsonb; v_env bigint; v_cli bigint; v_usu bigint; begin
+  select count(*) into v_env from envios; select count(*) into v_cli from clientes; select count(*) into v_usu from usuarios;
+  begin perform programar_datos_de_prueba('vale', 0.01); raise exception 'FALLO 162 · programa sin la confirmación exacta';
+  exception when invalid_parameter_value then null; end;
+  begin perform programar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01, 'corta'); raise exception 'FALLO 162 · admite una contraseña corta';
+  exception when invalid_parameter_value then null; end;
+  r := programar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01, 'una-clave-larga-de-prueba',
+         jsonb_build_array(jsonb_build_object('email', 'c@ejemplo.com', 'telefono', '+34600000002', 'rol', 'cliente', 'nombre', 'Prueba C')));
+  if r ->> 'resultado' <> 'cargada_en_el_acto' or r -> 'carga' ->> 'resultado' <> 'ok' then raise exception 'FALLO 162 · sin pg_cron no carga en el acto: %', left(r::text, 300); end if;
+  if (select count(*) from datos_de_prueba_peticiones where estado = 'hecha' and clave_cuentas is null and cuentas_reales is null and resultado is not null and terminada_en is not null) <> 1 then
+    raise exception 'FALLO 162 · el encargo no queda hecho y limpio: %', (select jsonb_agg(jsonb_build_object('estado', estado, 'clave', clave_cuentas is not null, 'cuentas', cuentas_reales is not null)) from datos_de_prueba_peticiones);
+  end if;
+  if not exists (select 1 from usuarios where email = 'c@ejemplo.com') then raise exception 'FALLO 162 · la cuenta real del encargo no se crea'; end if;
+  e := estado_datos_de_prueba();
+  if (e ->> 'cargando_ahora')::boolean or e -> 'ultima_peticion' ->> 'estado' <> 'hecha' or (e -> 'filas' ->> 'clientes')::int < 1 then raise exception 'FALLO 162 · estado_datos_de_prueba no cuadra: %', left(e::text, 300); end if;
+  -- Con datos ya cargados no se programa otra.
+  if programar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS', 0.01) ->> 'resultado' <> 'ya_cargados' then raise exception 'FALLO 162 · programa una segunda carga encima'; end if;
+  -- Limpieza: como estaba.
+  perform borrar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS');
+  delete from datos_de_prueba_peticiones;
+  if (select count(*) from envios) <> v_env or (select count(*) from clientes) <> v_cli or (select count(*) from usuarios) <> v_usu then
+    raise exception 'FALLO 162 · tras borrar no queda como estaba (envíos %→%, clientes %→%, usuarios %→%)', v_env, (select count(*) from envios), v_cli, (select count(*) from clientes), v_usu, (select count(*) from usuarios);
+  end if;
+  raise notice 'OK 162 · datos de prueba en segundo plano: solo consola, confirmación y contraseña, encargo hecho y limpio, estado, y no se carga dos veces';
 end $$;
 reset role;
