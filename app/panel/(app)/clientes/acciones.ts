@@ -8,6 +8,7 @@ import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type ClienteDatos = {
+  sector?: string | null;   // de la lista de Parámetros (sectores_cliente); vacío = Sin definir
   razon_social: string; nombre_comercial: string; cif: string;
   estado: 'activa' | 'pendiente_verificacion' | 'suspendida';
   direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
@@ -46,7 +47,7 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
   if (malContacto) return { ok: false, error: malContacto };
 
   const fila = {
-    razon_social: d.razon_social.trim(), nombre_comercial: vacio(d.nombre_comercial),
+    razon_social: d.razon_social.trim(), nombre_comercial: vacio(d.nombre_comercial), sector: vacio(d.sector ?? ''),
     cif: d.cif.trim().toUpperCase(), estado: d.estado,
     direccion: vacio(d.direccion), codigo_postal: vacio(d.codigo_postal), poblacion: vacio(d.poblacion),
     provincia: vacio(d.provincia), pais_codigo_iso: d.pais_codigo_iso || 'ES',

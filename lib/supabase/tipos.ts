@@ -282,6 +282,7 @@ export type Database = {
           alta_por: string | null
           exento_pago_previo_primer_envio: boolean
           riesgo_efectivo_euros: number | null
+          sector: string | null
         }
         Insert: {
           id?: string
@@ -331,6 +332,7 @@ export type Database = {
           alta_por?: string | null
           exento_pago_previo_primer_envio?: boolean
           riesgo_efectivo_euros?: never
+          sector?: string | null
         }
         Update: {
           id?: string
@@ -380,6 +382,7 @@ export type Database = {
           alta_por?: string | null
           exento_pago_previo_primer_envio?: boolean
           riesgo_efectivo_euros?: never
+          sector?: string | null
         }
         Relationships: [
           {
@@ -3136,6 +3139,8 @@ export type Database = {
       crear_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_solicitud_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
+      cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
+      cuadro_mando_sectores: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: { sector: string; clientes: number; realizados: number; facturacion: number; margen: number }[] }
       cuenta_mis_envios_sin_asignar: { Args: Record<PropertyKey, never>; Returns: number }
       dar_baja_mi_flota: { Args: { p_tipo: string | null; p_id: string | null }; Returns: undefined }
       darme_de_baja: { Args: { p_motivo?: string | null }; Returns: Json }

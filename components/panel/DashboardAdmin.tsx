@@ -31,8 +31,8 @@ function Cifra({ href, label, valor, aviso }: { href: string; label: string; val
   );
 }
 
-export default function DashboardAdmin({ cifras, ultimos, prontoPago, errorPP }: {
-  cifras: Cifras; ultimos: (MiniEnvio & { importe: number | null })[]; prontoPago: ProntoPago | null; errorPP: string | null;
+export default function DashboardAdmin({ cifras, ultimos, prontoPago, errorPP, cuadro }: {
+  cifras: Cifras; ultimos: (MiniEnvio & { importe: number | null })[]; prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode;
 }) {
   return (
     <section className="section active" id="sec-dashboard-admin">
@@ -75,6 +75,7 @@ export default function DashboardAdmin({ cifras, ultimos, prontoPago, errorPP }:
         </div>
         <LineaProntoPago pp={prontoPago} error={errorPP} />
       </div>
+      {cuadro}
     </section>
   );
 }

@@ -36,6 +36,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Hora de corte para cargar el siguiente día hábil', claves: ['primer_dia_corte_fija_hora', 'primer_dia_corte_ventana_hora', 'primer_dia_corte_pago_fija_hora', 'primer_dia_corte_pago_ventana_hora'] },
     { titulo: 'Previo pago de envíos', claves: ['pago_previo_activo', 'pago_previo_primeros_envios', 'pago_previo_horas'] },
     { titulo: 'Contacto del conductor', claves: ['contacto_transportista_horas_tras_entrega'] },
+    { titulo: 'Sectores de los clientes', claves: ['sectores_cliente'] },
   ] },
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
     { titulo: 'Riesgo asumido', claves: ['riesgo_dias_asumido'] },

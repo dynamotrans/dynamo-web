@@ -21,7 +21,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const [cli, con, par, env, emp, notas] = await Promise.all([
     leerTodo(supabase.from('clientes').select('*').order('nombre_visible'), 5000),
     leerTodo(supabase.from('contactos').select('id, cliente_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('cliente_id', 'is', null), 50000),
-    supabase.from('parametros').select('clave, valor').in('clave', ['factor_bienvenida_pct', 'factor_bienvenida_envios']),
+    supabase.from('parametros').select('clave, valor').in('clave', ['factor_bienvenida_pct', 'factor_bienvenida_envios', 'sectores_cliente']),
     // Envíos que cuentan para el descuento de bienvenida (mismo criterio que la base de datos).
     supabase.rpc('envios_por_empresa', { p_campo: 'cliente' }),
     supabase.from('usuarios').select('id, nombre, email').in('rol', ['admin', 'empleado']).order('nombre'),
@@ -29,6 +29,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   ]);
   const empleados = (emp.data ?? []).map((u) => ({ id: u.id as string, nombre: (u.nombre || u.email) as string }));
   const p = new Map((par.data ?? []).map((x) => [x.clave as string, Number(x.valor)]));
+  const sectores = ((par.data ?? []).find((x) => x.clave === 'sectores_cliente')?.valor ?? []) as string[];
   const bienvenida: Bienvenida = { pct: p.get('factor_bienvenida_pct') ?? -7, envios: p.get('factor_bienvenida_envios') ?? 3 };
   const cuenta = new Map<string, number>();
   ((env.data ?? []) as { id: string; envios: number }[]).forEach((e) => cuenta.set(e.id, Number(e.envios)));
@@ -37,5 +38,5 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const filas: ClienteFila[] = (cli.data ?? []).map((c) => {
     return { ...c, anotaciones: notas.get(c.id)?.anotaciones ?? null, contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0 };
   });
-  return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={cli.error?.message ?? null} abrir={ver} />;
+  return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={cli.error?.message ?? null} abrir={ver} sectores={Array.isArray(sectores) ? sectores : []} />;
 }

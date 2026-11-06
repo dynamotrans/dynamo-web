@@ -5747,3 +5747,47 @@ do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::u
   raise notice 'OK 158 · seguimiento automático: día previsto obligatorio con ventana, avance solo con su hora, marcar a mano (también atrasar), pausa, permisos y tacógrafo';
 end $$;
 reset role;
+
+-- ---- 159. Cuadro de mando y sector del cliente -----------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; hoy date := (now() at time zone 'Europe/Madrid')::date; n int; begin
+  r := cuadro_mando(hoy - 400, hoy + 60, hoy - 800, hoy - 401);
+  if r -> 'totales' is null or r -> 'comparacion' is null or jsonb_array_length(r -> 'semana') <> 7 then raise exception 'FALLO 159 · cuadro_mando incompleto: %', left(r::text, 300); end if;
+  if (r -> 'totales' ->> 'facturacion')::numeric < 0 or (r -> 'totales' ->> 'realizados')::int > (r -> 'totales' ->> 'solicitados')::int then raise exception 'FALLO 159 · totales incoherentes'; end if;
+  if r ->> 'granularidad' <> 'mes' or (cuadro_mando(hoy - 10, hoy) ->> 'granularidad') <> 'dia' then raise exception 'FALLO 159 · granularidad'; end if;
+  if jsonb_array_length(cuadro_mando(hoy - 10, hoy) -> 'serie') <> 11 then raise exception 'FALLO 159 · la serie por día tiene huecos'; end if;
+  begin
+    perform cuadro_mando(hoy, hoy + 5000);
+    raise exception 'FALLO 159 · acepta 10 años o más';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  -- Sector: de la lista, o nada.
+  update clientes set sector = 'Alimentación y bebidas' where id = current_setting('prueba.cliente')::uuid;
+  begin
+    update clientes set sector = 'Sector inventado' where id = current_setting('prueba.cliente')::uuid;
+    raise exception 'FALLO 159 · admite un sector fuera de la lista';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  select count(*) into n from cuadro_mando_sectores(hoy - 400, hoy + 60) where sector = 'Alimentación y bebidas';
+  if n <> 1 and exists (select 1 from envios where cliente_id = current_setting('prueba.cliente')::uuid and estado in ('hacia_la_carga', 'cargando', 'en_ruta', 'entregado')) then
+    raise exception 'FALLO 159 · el reparto por sector no ve el sector del cliente';
+  end if;
+  update clientes set sector = null where id = current_setting('prueba.cliente')::uuid;
+end $$;
+-- Un cliente no ve el cuadro de mando.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform cuadro_mando((now() at time zone 'Europe/Madrid')::date - 30, (now() at time zone 'Europe/Madrid')::date);
+    raise exception 'FALLO 159 · un cliente ve el cuadro de mando';
+  exception when insufficient_privilege then null;
+  end;
+  if (select count(*) from cuadro_mando_sectores((now() at time zone 'Europe/Madrid')::date - 30, (now() at time zone 'Europe/Madrid')::date)) > 0 then
+    raise exception 'FALLO 159 · un cliente ve el reparto por sector';
+  end if;
+  raise notice 'OK 159 · cuadro de mando: totales, comparación, serie sin huecos, 7 días de la semana, tope de 10 años, sector del cliente de la lista y solo Dynamo';
+end $$;
+reset role;

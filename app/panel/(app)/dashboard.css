@@ -4447,3 +4447,21 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     background: rgba(10,2,48,0.5); z-index: 90;
 }
 .sidebar-backdrop.show { display: block; }
+
+/* Cuadro de mando del Dashboard admin (2026-11-06): gráficos SVG propios. */
+.cm .cm-chart { padding: 0.2rem 0 0; }
+.cm .cm-chart { margin-top: 1.6rem; }
+.cm .cm-tip { position: absolute; top: -1.5rem; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: var(--fs-s); padding: 0.25rem 0.55rem; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 12px rgba(10,2,48,0.25); }
+.cm .stat-card-value { white-space: nowrap; }
+.cm .prm-saltos { display: flex; flex-wrap: wrap; gap: 0.35rem; width: 100%; }
+.cm .prm-salto { font: inherit; font-size: var(--fs-s); font-weight: 700; color: var(--purple); background: #fff; border: 1px solid rgba(51,0,204,0.25); border-radius: 999px; padding: 0.2rem 0.7rem; cursor: pointer; white-space: nowrap; }
+.cm .prm-salto:hover { background: rgba(51,0,204,0.08); }
+.cm .prm-salto[aria-pressed="true"] { font-weight: 800; }
+.cm .prm-indice { display: flex; flex-direction: column; gap: 0.5rem; }
+.cm .prm-indice input[type="date"] { width: auto; min-width: 10rem; }
+.cm .mini-list-head .cm-salto-inv { background: transparent; color: #fff; border-color: rgba(255,255,255,0.45); }
+.cm .mini-list-head .cm-salto-inv[aria-pressed="true"] { background: #fff; color: var(--purple); border-color: #fff; }
+.cm .mini-list-head .cm-salto-inv:hover { background: rgba(255,255,255,0.18); }
+.cm .mini-list-head .cm-salto-inv[aria-pressed="true"]:hover { background: #fff; }
+.cm table.data th, .cm table.data td { padding: 0.3rem 0.5rem; font-size: var(--fs-s); }
+.cm .cm-var { font-weight: 700; }

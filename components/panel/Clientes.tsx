@@ -40,7 +40,7 @@ function Factor({ v }: { v: number }) {
 }
 
 const NUEVO: ClienteDatos = {
-  razon_social: '', nombre_comercial: '', cif: '', estado: 'activa',
+  razon_social: '', nombre_comercial: '', sector: '', cif: '', estado: 'activa',
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 120, iva_pct: 21, retencion_pct: 0, recargo_equivalencia_pct: 0,
   recargo_pago_tarde_pct: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
@@ -51,7 +51,7 @@ const NUEVO: ClienteDatos = {
 
 type Empleado = { id: string; nombre: string };
 
-export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null }) {
+export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [] }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[] }) {
   const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   // ?ver=<id> (p. ej. desde CESCE - Riesgos) abre su ficha directamente.
@@ -115,14 +115,14 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
       </div>
 
       {ficha && (
-        <FichaCliente fila={ficha.fila} bienvenida={bienvenida} empleados={empleados} onCerrar={() => setFicha(null)}
+        <FichaCliente fila={ficha.fila} bienvenida={bienvenida} empleados={empleados} sectores={sectores} onCerrar={() => setFicha(null)}
           onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
   );
 }
 
-function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; onCerrar: () => void; onGuardado: () => void }) {
+function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; sectores: string[]; onCerrar: () => void; onGuardado: () => void }) {
   const [d, setD] = useState<ClienteDatos>(() => {
     if (!fila) return { ...NUEVO, factor_tarifa_pct: bienvenida.pct };
     const o: Record<string, unknown> = {};
@@ -201,6 +201,13 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         {campo('razon_social', 'Razón social *', 'Ej. Marbex Industrial S.L.', true)}
         {campo('nombre_comercial', 'Nombre comercial (opcional)', 'Si se le conoce por otro nombre')}
         {campo('cif', 'CIF / NIF *', 'B12345678 / 12345678Z')}
+        <div>
+          <label htmlFor="cli-sector">Sector (opcional)</label>
+          <select id="cli-sector" value={d.sector ?? ''} onChange={(e) => set('sector', e.target.value || null)}>
+            <option value="">Sin definir</option>
+            {[...new Set([...sectores, ...(d.sector ? [d.sector] : [])])].map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
         <div>
           <label htmlFor="cli-estado">Estado</label>
           <select id="cli-estado" value={d.estado} onChange={(e) => set('estado', e.target.value as ClienteDatos['estado'])}>

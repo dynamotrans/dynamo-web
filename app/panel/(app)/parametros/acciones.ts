@@ -17,6 +17,12 @@ export async function guardarParametro(clave: string, valor: unknown): Promise<{
     if (!lista.length || lista.some((x) => !/^[A-Z]{2}$/.test(x))) return { ok: false, error: 'Escribe los códigos de país de 2 letras separados por comas: ES, PT, FR…' };
     valor = lista;
   }
+  // Sectores de los clientes: «Alimentación, Construcción…» → lista sin repetidos ni vacíos.
+  if (clave === 'sectores_cliente') {
+    const lista = [...new Set((Array.isArray(valor) ? valor : String(valor).replace(/[\[\]"]/g, '').split(',')).map((x) => String(x).trim()).filter(Boolean))];
+    if (!lista.length || lista.some((x) => x.length > 60)) return { ok: false, error: 'Escribe los sectores separados por comas (cada uno de hasta 60 letras).' };
+    valor = lista;
+  }
   // Fechas del verano de los almacenes: mes-día (MM-DD), p. ej. 05-25.
   if (clave.startsWith('verano_sitios_') && (typeof valor !== 'string' || !/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(valor))) {
     return { ok: false, error: 'Pon la fecha como mes-día con dos cifras: por ejemplo 05-25 (25 de mayo).' };

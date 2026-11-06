@@ -630,6 +630,8 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - Roles transportista / proveedor: fase 4 (cuando se valide la operativa con clientes).
 
 ## ✅ Hecho recientemente
+- [x] 2026-11-06 — **Cuadro de mando** en el Dashboard admin (v1): facturación, margen, envíos, km y €/km, por día/mes/semana, clientes, transportistas y sectores, con selector de periodo y comparación. **Pendiente de revisar con el usuario** qué sobra o falta. Los km reales llegarán con el tarifador.
+- [x] 2026-11-06 — **Sector del cliente** opcional en su ficha; lista editable en Parámetros.
 - [x] 2026-11-06 — **Seguimiento automático del envío**:
   - **Avance solo.** El estado avanza solo por etapas: Programado / Asignando transportista / Confirmado → Yendo a la carga → Cargando o Descargando (n.ª parada) → En ruta a la n.ª parada → Entregado.
   - **Horario previsto**: jornada desde las 7:00, 1.ª parada a las 12:30, 1 h por parada, 80 km/h, tacógrafo, espera a la apertura de cada sitio, y sin circular sábados, domingos ni festivos nacionales. Se cambia en Parámetros.
