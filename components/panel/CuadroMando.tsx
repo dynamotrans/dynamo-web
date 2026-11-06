@@ -257,7 +257,6 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
             <Kpi label="Margen" valor={euros(n(t.margen))} a={n(t.margen)} b={c && n(c.margen)} sub={`${pct(n(t.margen), totFact)} sobre facturación`} />
             <Kpi label="Envíos realizados" valor={String(n(t.realizados))} a={n(t.realizados)} b={c && n(c.realizados)} sub={`de ${n(t.solicitados)} solicitados · ${pct(n(t.realizados), n(t.solicitados))} cerrados`} />
             <Kpi label="Cancelados" valor={String(n(t.cancelados))} a={n(t.cancelados)} b={c && n(c.cancelados)} invertir sub={pct(n(t.cancelados), n(t.solicitados)) + ' de los solicitados'} />
-            <Kpi label="Km recorridos" valor={importe(n(t.km)) + ' km'} a={n(t.km)} b={c && n(c.km)} sub={`venta ${porKm(n(t.fact_con_km), n(t.km))}/km · compra ${porKm(n(t.coste_con_km), n(t.km))}/km${n(t.sin_km) ? ` · ${n(t.sin_km)} sin km` : ''}`} />
             <Kpi label="Margen medio por envío" valor={n(t.realizados) ? euros(n(t.margen) / n(t.realizados)) : '—'} sub={`${n(t.clientes)} clientes · ${n(t.transportistas)} transportistas`} />
           </div>
 
