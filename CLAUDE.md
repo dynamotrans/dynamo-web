@@ -137,6 +137,43 @@ claude/sharp-dirac-E3UIO    → preview (portal + web pública validada, URL pre
 
 **Drift**: como `preview = main + portal`, tras cada cambio público hay que `git merge main` en preview para que no se acumule drift entre las dos copias de la web pública.
 
+### 10. Emails de Brevo: SIEMPRE la misma plantilla
+
+Todos los correos que se manden desde Brevo (prospección, avisos a clientes,
+cambios normativos, incidencias…) usan **el mismo diseño**. La referencia viva
+es `emails/prospeccion-brevo.html`; los avisos a clientes salen de
+`emails/deca-brevo.html` o `emails/huelga-brevo.html`, que ya lo replican.
+
+**Estructura fija** (solo cambia el mensaje de en medio):
+
+1. Barra morada/verde superior
+2. Cabecera: logo Dynamo + claim *Always Moving. / Transporte de Mercancías. /
+   España y Europa.* (3 líneas, **también en móvil**)
+3. **Ficha de Álvaro arriba del todo** — titular en negrita a ancho completo,
+   foto 88px, nombre, *Dynamo Operador Logístico*, *Tu gestor de transporte*,
+   valoración de Google a la derecha (5,0 · +480 clientes · Atención 24/7) y
+   **tres botones al 33%** en tabla (WhatsApp / Mail / Llamar)
+4. Mensaje del aviso (+ caja de color si hay que destacar algo)
+5. Hero `hero.jpg`, con **28px de aire** antes de los botones de CTA
+6. CTAs → despedida con WhatsApp, teléfono y correo enlazados
+7. Cifras (3 casillas) → reseñas → camiones → cobertura → muro de clientes →
+   banner de cierre → permiso/baja → pie
+
+**Reglas que no se tocan**:
+- Nada de "13 años" ni antigüedad en ningún email
+- Imágenes siempre desde `https://www.dynamotrans.com/images/email/…` (JPG/PNG,
+  nunca WebP: Outlook de Windows no lo pinta). La preview de Vercel NO vale
+  (SSO Protection pide login)
+- Apilado en móvil con `inline-block` + `max-width` + ghost tables de Outlook.
+  `display:block` sobre `<td>` **no funciona**
+- Prospección tutea; los avisos a clientes van en **usted**
+- El bloque de baja se adapta: prospección ≠ aviso de servicio
+- Texto con entidades HTML para los acentos
+
+Para un aviso nuevo: copiar el archivo más parecido, cambiar el titular de la
+ficha y el mensaje, y dejar el resto igual. Medir en el navegador antes de dar
+nada por bueno (el contenedor de la ficha mide **278px** en móvil, no 304).
+
 ---
 
 ## Bitácora
