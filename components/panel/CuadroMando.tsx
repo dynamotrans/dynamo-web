@@ -7,7 +7,7 @@
 // debajo para quien prefiera los números. La evolución (usuario, 2026-11-06) lleva las tres
 // series a la vez: barras de facturación y línea de margen en euros (eje izquierdo) y línea de
 // envíos en unidades (eje derecho), con leyenda y los tres valores del mes al pulsar.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { euros, importe } from '@/lib/formato';
@@ -115,18 +115,31 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
     setSel(i); setFijo(true);
     temporizador.current = setTimeout(() => { setFijo(false); setSel(null); }, 4500);
   };
-  const ancho = 720, alto = 220, izq = 58, der = 46, arriba = 12, abajo = 24;
-  const maxEur = topeBonito(Math.max(1, ...datos.map((d) => Math.max(d.facturacion, d.margen))));
+  // El gráfico se dibuja a tamaño real (píxeles del contenedor), no escalado: así los textos
+  // de los ejes miden lo mismo que el resto de la pantalla, sea ancha o estrecha.
+  const lienzo = useRef<HTMLDivElement>(null);
+  const [ancho, setAncho] = useState(720);
+  useLayoutEffect(() => {
+    const el = lienzo.current; if (!el) return;
+    const medir = () => setAncho(Math.max(320, Math.floor(el.clientWidth)));
+    medir();
+    const ro = new ResizeObserver(medir); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const alto = 240, izq = 64, der = 48, arriba = 12, abajo = 26;
+  // Topes «bonitos» con un mínimo (1.000 € y 10 envíos) para que, sin datos, los ejes no
+  // salgan en «1 €»; 5 tramos para que las marcas del eje de envíos sean enteras.
+  const maxEur = Math.max(1000, topeBonito(Math.max(1, ...datos.map((d) => Math.max(d.facturacion, d.margen)))));
   const minEur = Math.min(0, ...datos.map((d) => d.margen));
   const minEurTope = minEur < 0 ? -topeBonito(-minEur) : 0;
-  const maxEnv = topeBonito(Math.max(1, ...datos.map((d) => d.realizados)));
+  const maxEnv = Math.max(10, topeBonito(Math.max(1, ...datos.map((d) => d.realizados))));
   const w = (ancho - izq - der) / Math.max(datos.length, 1);
   const barra = Math.max(2, Math.min(w - 4, 36));
   const yE = (v: number) => arriba + (alto - arriba - abajo) * (1 - (v - minEurTope) / (maxEur - minEurTope));
   const yN = (v: number) => arriba + (alto - arriba - abajo) * (1 - v / maxEnv);
   const xc = (i: number) => izq + i * w + w / 2;
-  const cada = Math.ceil(datos.length / 12);
-  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  const cada = Math.max(1, Math.ceil(datos.length / Math.max(4, Math.floor((ancho - izq - der) / 64))));
+  const ticks = [0, 0.2, 0.4, 0.6, 0.8, 1];
   const linea = (f: (d: typeof datos[number]) => number, y: (v: number) => number) => datos.map((d, i) => `${i ? 'L' : 'M'}${xc(i).toFixed(1)},${y(f(d)).toFixed(1)}`).join(' ');
   const d = sel != null ? datos[sel] : null;
   const muchos = datos.length > 40;   // con muchos puntos, las líneas van sin los circulitos
@@ -138,15 +151,15 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_MARGEN, verticalAlign: '3px', marginRight: 5 }} />Margen (€, eje izquierdo)</span>
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_ENVIOS, verticalAlign: '3px', marginRight: 5 }} />Envíos realizados (eje derecho)</span>
       </div>
-      <div className="cm-chart-scroll"><div className="cm-chart-lienzo">
-      <svg viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ width: '100%', height: 'auto', display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}>
+      <div className="cm-chart-scroll"><div className="cm-chart-lienzo" ref={lienzo}>
+      <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}>
         {ticks.map((f) => {
           const vE = minEurTope + (maxEur - minEurTope) * f;
           return (
             <g key={f}>
               <line x1={izq} x2={ancho - der} y1={yE(vE)} y2={yE(vE)} stroke="var(--gray-200)" strokeWidth="1" />
-              <text x={izq - 6} y={yE(vE) + 4} textAnchor="end" fontSize="10" fill={COLOR_FACT}>{eurosCortos(vE)}</text>
-              <text x={ancho - der + 6} y={yN(maxEnv * f) + 4} textAnchor="start" fontSize="10" fill={COLOR_ENVIOS}>{Math.round(maxEnv * f)}</text>
+              <text x={izq - 8} y={yE(vE) + 4} textAnchor="end" fontSize="13" fill={COLOR_FACT}>{eurosCortos(vE)}</text>
+              <text x={ancho - der + 8} y={yN(maxEnv * f) + 4} textAnchor="start" fontSize="13" fill={COLOR_ENVIOS}>{Math.round(maxEnv * f)}</text>
             </g>
           );
         })}
@@ -157,7 +170,7 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
             <g key={p.k}>
               <rect x={x} y={yE(p.facturacion)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={COLOR_FACT} opacity={sel == null || sel === i ? 0.9 : 0.4} />
               {p.facturacion > 0 && h < 3 && <rect x={x} y={yE(0) - 2} width={barra} height={2} fill={COLOR_FACT} />}
-              {i % cada === 0 && <text x={xc(i)} y={alto - 7} textAnchor="middle" fontSize="11" fill="var(--gray-500)">{p.k}</text>}
+              {i % cada === 0 && <text x={xc(i)} y={alto - 8} textAnchor="middle" fontSize="13" fill="var(--gray-500)">{p.k}</text>}
             </g>
           );
         })}
