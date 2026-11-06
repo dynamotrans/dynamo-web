@@ -4451,6 +4451,8 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 /* Cuadro de mando del Dashboard admin (2026-11-06): gráficos SVG propios. */
 .cm .cm-chart { padding: 0.2rem 0 0; }
 .cm .cm-chart { margin-top: 1.6rem; }
+/* La pista de la cabecera morada («pulsa un mes…») va en blanco suave, no en gris. */
+.cm .mini-list-head .meta { color: rgba(255,255,255,0.78); font-weight: 500; }
 /* Evolución: en pantallas estrechas el gráfico se desplaza en horizontal (si no, los ejes no se leen). */
 .cm .cm-chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .cm .cm-chart-lienzo { position: relative; min-width: 640px; }
