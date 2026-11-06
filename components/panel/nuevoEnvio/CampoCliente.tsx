@@ -1,0 +1,72 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { crearClienteRapido } from '@/app/panel/(app)/nuevo-envio/acciones';
+import SelectorPais from '@/components/SelectorPais';
+import { ClienteOpcion, IcoCliente, norm } from './comun';
+
+// ---- Buscador de cliente (con alta rápida) ----------------------------------------
+export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
+  clientes: ClienteOpcion[]; valor: ClienteOpcion | null;
+  onElegir: (c: ClienteOpcion | null) => void; onNuevo: (c: ClienteOpcion) => void;
+}) {
+  const [q, setQ] = useState('');
+  const [abierto, setAbierto] = useState(false);
+  const [alta, setAlta] = useState(false);
+  const [rs, setRs] = useState(''); const [cif, setCif] = useState(''); const [pais, setPais] = useState('ES');
+  const [error, setError] = useState<string | null>(null); const [guardando, setGuardando] = useState(false);
+  const lista = useMemo(() => {
+    const w = norm(q.trim());
+    return clientes.filter((c) => !w || norm(c.nombre + ' ' + c.cif).includes(w)).slice(0, 8);
+  }, [clientes, q]);
+
+  async function guardar() {
+    setGuardando(true); setError(null);
+    const r = await crearClienteRapido(rs, cif, pais);
+    setGuardando(false);
+    if (!r.ok) { setError(r.error); return; }
+    onNuevo(r.cliente); setAlta(false); setRs(''); setCif('');
+  }
+
+  return (
+    <>
+      <div className={`ptar-input-wrap${valor ? ' ptar-picked' : ''}`}>
+        <IcoCliente />
+        <input type="text" placeholder="Cliente · busca por nombre o CIF" autoComplete="off" readOnly={!!valor}
+          value={valor ? `${valor.nombre} · ${valor.cif}` : q}
+          onChange={(e) => { setQ(e.target.value); setAbierto(true); }}
+          onFocus={() => !valor && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)} />
+        {valor && <button type="button" className="ptar-clear" aria-label="Cambiar cliente" onClick={() => { onElegir(null); setQ(''); }}>✕</button>}
+        {abierto && !valor && (
+          <ul className="ptar-sug">
+            {lista.map((c) => (
+              <li key={c.id} onMouseDown={(e) => { e.preventDefault(); onElegir(c); setAbierto(false); }}>
+                <strong>{c.nombre}</strong><span className="sug-dir">{c.cif}</span>
+              </li>
+            ))}
+            {lista.length === 0 && <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>No hay clientes con ese nombre o CIF.</li>}
+            <li onMouseDown={(e) => { e.preventDefault(); setAlta(true); setRs(q); setAbierto(false); }}>
+              <strong style={{ color: 'var(--purple)' }}>+ Dar de alta un cliente nuevo</strong>
+            </li>
+          </ul>
+        )}
+      </div>
+      {alta && !valor && (
+        <div className="ptar-admin-precio" style={{ marginTop: '0.6rem' }}>
+          <div className="ptar-admin-precio-head">Cliente nuevo <span>· la ficha completa se rellena en Clientes</span></div>
+          <label className="ptar-admin-precio-lbl" htmlFor="ne-rs">Razón social</label>
+          <input id="ne-rs" type="text" value={rs} onChange={(e) => setRs(e.target.value)} placeholder="Ej. Marbex Industrial S.L." />
+          <label className="ptar-admin-precio-lbl" htmlFor="ne-cif" style={{ marginTop: '0.6rem' }}>CIF / NIF</label>
+          <input id="ne-cif" type="text" value={cif} onChange={(e) => setCif(e.target.value)} placeholder="Ej. B12345678" />
+          <label className="ptar-admin-precio-lbl" htmlFor="ne-pais" style={{ marginTop: '0.6rem' }}>País</label>
+          <SelectorPais id="ne-pais" valor={pais} onCambio={setPais} />
+          {error && <div className="wiz-warn show">⚠ {error}</div>}
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem' }}>
+            <button type="button" className="btn-primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Dar de alta'}</button>
+            <button type="button" className="btn-ghost" onClick={() => { setAlta(false); setError(null); }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
