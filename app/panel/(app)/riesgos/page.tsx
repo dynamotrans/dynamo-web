@@ -19,9 +19,9 @@ export default async function PaginaRiesgos() {
     supabase.from('parametros').select('valor').eq('clave', 'riesgo_dias_asumido').maybeSingle(),
   ]);
   const num = (x: unknown) => (x == null ? null : Number(x));
-  const filas: RiesgoFila[] = ((r.data ?? []) as any[]).map((x) => ({
+  const filas: RiesgoFila[] = (r.data ?? []).map((x) => ({
     id: x.cliente_id, nombre: x.nombre, cif: x.cif, cesce: num(x.riesgo_cesce), plazo: x.plazo_cesce, manual: num(x.riesgo_manual),
-    limite: num(x.riesgo_efectivo), manda: x.manda, envios: x.envios, base: Number(x.asumido_base), asumido: Number(x.asumido),
+    limite: num(x.riesgo_efectivo), manda: x.manda as RiesgoFila['manda'], envios: x.envios, base: Number(x.asumido_base), asumido: Number(x.asumido),
     disponible: num(x.disponible), ultimo: x.ultimo_envio,
   }));
   return <Riesgos filas={filas} dias={Number(p.data?.valor ?? 60)} error={r.error?.message ?? null} />;

@@ -4,6 +4,7 @@ import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Administracion, { type ProformaFila, type AlbaranFila } from '@/components/panel/Administracion';
 
+type EnvioRuta = { id: string; referencia_gx: string; poblacion_origen: string | null; poblacion_destino: string | null };
 export const dynamic = 'force-dynamic';
 
 // Administración (diseño de #sec-facturas / #sec-albaranes de dashboard.html, con una pestaña
@@ -39,10 +40,10 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
     // consulta y se perdían envíos sin avisar. El cliente, solo los suyos y solo esos ids.
     const tandas: string[][] = [];
     for (let i = 0; i < ids.length; i += 200) tandas.push(ids.slice(i, i + 200));
-    const lista: any[] = (await Promise.all(tandas.map((t) => dynamo
+    const lista: EnvioRuta[] = (await Promise.all(tandas.map((t) => dynamo
       ? supabase.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino').in('id', t)
       : supabase.rpc('mis_envios_por_ids', { p_ids: t }))))
-      .flatMap((r) => (r.data ?? []) as any[]);
+      .flatMap((r) => (r.data ?? []) as EnvioRuta[]);
     for (const e of lista) envios.set(e.id, { gx: e.referencia_gx, ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → ') });
   }
 

@@ -3,7 +3,8 @@ import { RefrescoProvider } from '@/lib/useRefrescar';
 import type { Metadata } from 'next';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { cookieReserva, cookieAlta } from '@/lib/cargaPublica';
-import CargaPublica from './CargaPublica';
+import CargaPublica, { type OtraCarga } from './CargaPublica';
+import type { OfertaPublica, ReservaPublica } from './tipos';
 import EnVivo from '@/components/panel/EnVivo';
 import { canalEnlace } from '@/lib/canalEnlace';
 import SelectorIdioma from '@/components/SelectorIdioma';
@@ -18,16 +19,16 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
   const { token } = await params;
   const sb = supabasePublico();
   const valido = /^[0-9a-f-]{36}$/i.test(token);
-  let oferta: any = null, reserva: any = null, error = false, otras: any[] = [];
+  let oferta: OfertaPublica | null = null, reserva: ReservaPublica | null = null, error = false, otras: OtraCarga[] = [];
   const altaOnline = (await cookies()).get(cookieAlta(token))?.value === '1';
   // En modo mantenimiento la página se para (sale el aviso de mantenimiento).
   const { data: mant } = sb ? await sb.rpc('mantenimiento_activo') : { data: false };
   if (mant) error = true;
   else if (sb && valido) {
     const { data, error: e } = await sb.rpc('oferta_publica', { p_token: token });
-    if (e) error = true; else oferta = data;
+    if (e) error = true; else oferta = data as OfertaPublica | null;
     // Tablón: otras cargas de Dynamo publicadas en bolsa y libres (solo con este enlace válido).
-    if (oferta?.resultado === 'ok') { const { data: o } = await sb.rpc('otras_cargas_publicas', { p_token: token }); otras = (o ?? []) as any[]; }
+    if (oferta?.resultado === 'ok') { const { data: o } = await sb.rpc('otras_cargas_publicas', { p_token: token }); otras = (o ?? []) as unknown as OtraCarga[]; }
     // Negociación del precio: solo si está encendida y la carga cumple los requisitos de
     // Parámetros (minutos creada, minutos en bolsa, horas para cargar). Si no, sin banda.
     if (oferta?.resultado === 'ok' && Number(oferta.banda_euros) > 0) {
@@ -37,7 +38,7 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
     const id = (await cookies()).get(cookieReserva(token))?.value;
     if (id) {
       const { data: r } = await sb.rpc('carga_aceptada_publica', { p_reserva: id });
-      reserva = r;
+      reserva = r as ReservaPublica | null;
     }
   }
   return (

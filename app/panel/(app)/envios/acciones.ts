@@ -252,7 +252,8 @@ export async function sugerirFlota(transportista: string, d: { matricula?: strin
   if (!s || !transportista) return null;
   const { data, error } = await s.supabase.rpc('flota_sugerencia', { p_transportista: transportista, p_matricula: d.matricula ?? null, p_conductor_nombre: d.conductor ?? null });
   if (error) return null;
-  return { conductor: (data as any)?.conductor ?? null, telefono: (data as any)?.telefono ?? null };
+  const f = data as { conductor?: string | null; telefono?: string | null } | null;
+  return { conductor: f?.conductor ?? null, telefono: f?.telefono ?? null };
 }
 
 // Revisión del precio de un envío con precio provisional (hoy a mano; con el tarifador, sola).

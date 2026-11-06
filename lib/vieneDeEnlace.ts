@@ -10,7 +10,7 @@ const MINUTOS = 30;
 export async function vieneDeEnlace(sb: SB): Promise<boolean> {
   const { data, error } = await sb.auth.getClaims();
   if (error || !data?.claims) return false;
-  const amr = (data.claims as any).amr as { method?: string; timestamp?: number }[] | undefined;
+  const amr = data.claims.amr as { method?: string; timestamp?: number }[] | undefined;
   if (!Array.isArray(amr) || !amr.length) return false;
   const ultimo = [...amr].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))[0];
   if (!ultimo?.method || ultimo.method === 'password') return false;

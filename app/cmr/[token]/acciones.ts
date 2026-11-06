@@ -23,16 +23,17 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   // el conductor: no se rellena con el de su ficha).
   if (!d.nombre.trim() || !d.documento.trim()) return { ok: false, error: 'Indica el documento y el nombre y apellidos de quien firma.' };
   const v = validaDoc(d.pais, d.documento);
-  if (!v.ok) return { ok: false, error: (v as any).msg || 'El documento no es válido.' };
+  if (!v.ok) return { ok: false, error: v.msg || 'El documento no es válido.' };
   const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(d.png);
   const png = m ? Buffer.from(m[1], 'base64') : null;
   if (!png || png.length < 200 || png.length > 600_000 || png.subarray(0, 4).toString('hex') !== '89504e47') return { ok: false, error: 'Falta la firma: firma con el dedo dentro del recuadro.' };
 
   // Lo que había en pantalla al firmar (sin las firmas): su huella prueba QUÉ se firmó.
   const { data: cmr } = await sb.rpc('cmr_publico', { p_token: token });
-  if (!cmr || (cmr as any).resultado !== 'ok') return { ok: false, error: (cmr as any)?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
+  const datos = cmr as { resultado?: string; firmas?: unknown; [campo: string]: unknown } | null;
+  if (!datos || datos.resultado !== 'ok') return { ok: false, error: datos?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- se separan las firmas para no devolverlas
-  const { firmas: _f, ...contenido } = cmr as any;
+  const { firmas: _f, ...contenido } = datos;
   const reservas = (d.reservas ?? '').trim().slice(0, 1000);
   const sha = createHash('sha256').update(JSON.stringify(reservas ? { ...contenido, reservas } : contenido)).digest('hex');
   // Reservas (protocolo de siniestro): se anotan antes de firmar y abren un siniestro para Dynamo.

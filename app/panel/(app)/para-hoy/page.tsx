@@ -49,18 +49,18 @@ export default async function PaginaParaHoy() {
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_revision_precio', 'esperando_cliente').order('revision_precio_en').limit(MAX),
   ]);
 
-  const cli = (e: any) => e?.clientes?.nombre_visible ?? 'Cliente';
+  const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
   const ficha = (id: string) => `/panel/envios?ver=${id}`;
-  const fechas = (e: any) => ventana(e.fecha_carga_desde, e.fecha_carga_hasta);
+  const fechas = (e: { fecha_carga_desde: string | null; fecha_carga_hasta: string | null }) => ventana(e.fecha_carga_desde, e.fecha_carga_hasta);
   // Incidencias: primero siniestros y críticas.
   const PRIO: Record<string, number> = { critica: 0, alta: 1, media: 2, baja: 3 };
-  const incs = ((inc.data ?? []) as any[]).sort((a, b) =>
+  const incs = (inc.data ?? []).sort((a, b) =>
     (a.tipos_incidencia?.clave === 'siniestro' ? -1 : 0) - (b.tipos_incidencia?.clave === 'siniestro' ? -1 : 0)
     || (PRIO[a.prioridad] ?? 9) - (PRIO[b.prioridad] ?? 9) || a.creado_en.localeCompare(b.creado_en)).slice(0, MAX);
 
   const bloques: Bloque[] = [
     { id: 'sin-camion', nivel: 'urgente', titulo: 'Cargan hoy o mañana y no tienen camión', total: sinCamion.count ?? 0, todo: '/panel/envios',
-      filas: ((sinCamion.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
+      filas: (sinCamion.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
         urgente: (e.fecha_carga_desde ?? '') <= hoy })) },
     { id: 'incidencias', nivel: incs.some((i) => i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica') ? 'urgente' : 'aviso',
       titulo: 'Incidencias abiertas', total: inc.count ?? 0, todo: '/panel/incidencias',
@@ -68,34 +68,34 @@ export default async function PaginaParaHoy() {
         s: [i.envios?.referencia_gx && `#${i.envios.referencia_gx}`, i.tipos_incidencia?.nombre, `prioridad ${i.prioridad}`].filter(Boolean).join(' · '), desde: i.creado_en,
         urgente: i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica' })) },
     { id: 'solicitudes', nivel: 'aviso', titulo: 'Solicitudes esperando precio', total: solicitudes.count ?? 0, todo: '/panel/envios',
-      filas: ((solicitudes.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.creado_en })) },
+      filas: (solicitudes.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.creado_en })) },
     { id: 'contraofertas-clientes', nivel: 'aviso', titulo: 'Contraofertas de clientes', total: cofCli.count ?? 0, todo: '/panel/envios',
-      filas: ((cofCli.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
+      filas: (cofCli.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
         s: `Propone ${euros(e.importe_contraoferta_cliente)} (le dimos ${euros(e.importe_cliente)})`, desde: e.modificado_en })) },
     { id: 'contraofertas-transportistas', nivel: 'aviso', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
-      filas: ((cofTra.data ?? []) as any[]).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
+      filas: (cofTra.data ?? []).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
         s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
     { id: 'cambios', nivel: 'aviso', titulo: 'Cambios pedidos por clientes', total: cambios.count ?? 0, todo: '/panel/envios',
-      filas: ((cambios.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.cambio_cliente_en })) },
+      filas: (cambios.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.cambio_cliente_en })) },
     { id: 'revisar-precio', nivel: 'aviso', titulo: 'Precio por revisar (ruta cambiada)', total: revisar.count ?? 0, todo: '/panel/envios',
-      filas: ((revisar.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.modificado_en })) },
+      filas: (revisar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.modificado_en })) },
     { id: 'revision-precio', nivel: 'aviso', titulo: 'Revisar el precio (programados con antelación)', total: revPrecio.count ?? 0, todo: '/panel/envios',
-      filas: ((revPrecio.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
+      filas: (revPrecio.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
         s: `Carga ${fechas(e)} · precio provisional ${euros(e.importe_cliente)}: pon el de hoy`, desde: null })) },
-    { id: 'subidas-precio', nivel: ((subidas.data ?? []) as any[]).some((e) => e.revision_precio_recordada) ? 'urgente' : 'info',
+    { id: 'subidas-precio', nivel: (subidas.data ?? []).some((e) => e.revision_precio_recordada) ? 'urgente' : 'info',
       titulo: 'Subidas de precio esperando al cliente', total: subidas.count ?? 0, todo: '/panel/envios',
-      filas: ((subidas.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
+      filas: (subidas.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
         s: `De ${euros(e.importe_revision_anterior)} a ${euros(e.importe_revision_nuevo)}${e.revision_precio_recordada ? ' · NO CONTESTA: llámale' : ''}`,
         desde: e.revision_precio_en, urgente: !!e.revision_precio_recordada })) },
     { id: 'altas', nivel: 'aviso', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
-      filas: ((altas.data ?? []) as any[]).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
+      filas: (altas.data ?? []).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
     { id: 'penalizaciones', nivel: 'info', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
-      filas: ((pen.data ?? []) as any[]).map((p) => ({ href: '/panel/penalizaciones', t: `${p.tipos_penalizacion?.nombre ?? 'Penalización'}${p.envios?.referencia_gx ? ` · #${p.envios.referencia_gx}` : ''}`,
+      filas: (pen.data ?? []).map((p) => ({ href: '/panel/penalizaciones', t: `${p.tipos_penalizacion?.nombre ?? 'Penalización'}${p.envios?.referencia_gx ? ` · #${p.envios.referencia_gx}` : ''}`,
         s: [p.importe_cliente != null && `Cliente ${euros(p.importe_cliente)}`, p.importe_transportista != null && `Transportista ${euros(p.importe_transportista)}`].filter(Boolean).join(' · '), desde: p.creado_en })) },
     { id: 'sin-pagar', nivel: 'info', titulo: 'Envíos esperando el pago del cliente', total: sinPagar.count ?? 0, todo: '/panel/envios?f=sin-pagar',
-      filas: ((sinPagar.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)} · si paga por transferencia, márcalo al recibirla`, desde: e.modificado_en ?? e.creado_en })) },
+      filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)} · si paga por transferencia, márcalo al recibirla`, desde: e.modificado_en ?? e.creado_en })) },
     { id: 'almacenamientos', nivel: 'info', titulo: 'Almacenamientos por confirmar', total: alm.count ?? 0, todo: '/panel/almacenamientos',
-      filas: ((alm.data ?? []) as any[]).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
+      filas: (alm.data ?? []).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
   ];
   const errores = [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio, subidas].map((r) => r.error?.message).filter(Boolean);
   return <ParaHoy bloques={bloques} error={errores[0] ?? null} />;

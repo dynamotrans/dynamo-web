@@ -15,14 +15,16 @@ const IDIOMAS: [string, string, string, string][] = [
   ['pl', '🇵🇱', 'PL', 'Polski'], ['ro', '🇷🇴', 'RO', 'Română'], ['uk', '🇺🇦', 'UK', 'Українська'], ['zh-CN', '🇨🇳', 'ZH', '中文'],
 ];
 
-declare global { interface Window { google?: any; googleTranslateElementInit?: () => void } }
+// Lo que se usa del script de Google Translate.
+type GoogleTraductor = { translate: { TranslateElement: new (opciones: { pageLanguage: string; autoDisplay: boolean; includedLanguages: string }, id: string) => unknown } };
+declare global { interface Window { google?: GoogleTraductor; googleTranslateElementInit?: () => void } }
 
 // Google Translate cambia los textos por su cuenta y React, al actualizar la página, se
 // encuentra nodos que ya no están donde los dejó y se rompe. Este parche (el habitual)
 // evita el fallo: si el nodo ya no es hijo, no hace nada.
 function parcheReact() {
-  if (typeof Node === 'undefined' || (Node.prototype as any).__parcheGT) return;
-  (Node.prototype as any).__parcheGT = true;
+  if (typeof Node === 'undefined' || (Node.prototype as Node & { __parcheGT?: boolean }).__parcheGT) return;
+  (Node.prototype as Node & { __parcheGT?: boolean }).__parcheGT = true;
   const quitar = Node.prototype.removeChild;
   Node.prototype.removeChild = function <T extends Node>(this: Node, hijo: T): T {
     if (hijo.parentNode !== this) return hijo;
@@ -68,7 +70,7 @@ let incluidos = IDIOMAS.slice(1).map((x) => x[0]).join(',');
 function cargarGT() {
   if (cargado) return; cargado = true;
   window.googleTranslateElementInit = () => {
-    new window.google.translate.TranslateElement({ pageLanguage: 'es', autoDisplay: false, includedLanguages: incluidos }, 'google_translate_element');
+    new window.google!.translate.TranslateElement({ pageLanguage: 'es', autoDisplay: false, includedLanguages: incluidos }, 'google_translate_element');
   };
   const s = document.createElement('script');
   s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';

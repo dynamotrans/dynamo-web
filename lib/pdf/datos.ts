@@ -1,5 +1,6 @@
 import { mensajeError } from '@/lib/mensajeError';
 import type { SB } from '@/lib/supabase/cliente';
+import type { Tabla } from '@/lib/supabase/tipos';
 import { paisDe } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
 
@@ -19,8 +20,11 @@ export type ParadaDoc = {
   requiere_cita: boolean; tiene_medios_carga: boolean;
   contacto: { nombre: string | null; telefono: string | null } | null;
 };
+// El envío tal como lo usan los PDF: la fila de envios (o el JSON de las funciones de
+// orden, con los mismos nombres) más lo que se le junta.
+export type EnvioDoc = Tabla<'envios'> & { plazo_pago_transportista?: number | null; transportista_nima?: string | null };
 export type DatosDoc = {
-  envio: any;
+  envio: EnvioDoc;
   manual: boolean;                       // envío con el operador del cliente: SIN mención a Dynamo
   cliente: Empresa | null;
   porteador: Empresa | null;             // transportista asignado (Dynamo) u operador del cliente (manual)
@@ -48,7 +52,7 @@ export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; 
 // base de datos). El documento va ENMASCARADO: el CMR lo reciben varias empresas.
 export async function cargarFirmasCmr(sb: SB, envioId: string): Promise<FirmaDoc[]> {
   const { data } = await sb.rpc('firmas_envio', { p_envio: envioId });
-  return Promise.all(((data ?? []) as any[]).map(async (f) => {
+  return Promise.all((data ?? []).map(async (f) => {
     const { data: blob } = await sb.storage.from('documentos').download(f.firma_storage_ruta);
     return { rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: `•••${String(f.documento).replace(/^•+/, '').slice(-4)}`, firmado_en: f.firmado_en,
       png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
@@ -78,21 +82,31 @@ export async function datosDynamo(sb: SB): Promise<DatosDynamo> {
 
 export const nombrePais = (c: string | null | undefined) => (c ? paisDe(c.trim().toUpperCase()) : null);
 
+type EmpresaFila = Pick<Tabla<'clientes'>, 'id' | 'razon_social' | 'nombre_visible' | 'cif' | 'direccion' | 'codigo_postal' | 'poblacion' | 'provincia' | 'pais_codigo_iso'>;
+type FilaEnvioDoc = Tabla<'envios'> & {
+  clientes: EmpresaFila | null;
+  transportistas: (EmpresaFila & Pick<Tabla<'transportistas'>, 'codigo' | 'plazo_pago_dias'>) | null;
+  operadores: Pick<Tabla<'operadores'>, 'razon_social' | 'cif' | 'telefono' | 'email' | 'persona_contacto'> | null;
+};
+type FilaParadaDoc = Pick<Tabla<'envio_paradas'>, 'id' | 'orden' | 'tipo' | 'sitio_id' | 'nombre_empresa' | 'direccion' | 'codigo_postal' | 'poblacion' | 'provincia' | 'pais_codigo_iso' | 'referencia' | 'anotaciones'>
+  & { sitios: Pick<Tabla<'sitios'>, 'tipo' | 'horarios' | 'anotaciones' | 'url_google_maps' | 'requiere_cita' | 'tiene_medios_carga'> | null };
+type ContactoDoc = Pick<Tabla<'contactos'>, 'cliente_id' | 'transportista_id' | 'sitio_id' | 'nombre' | 'telefono' | 'email' | 'funcion' | 'es_principal'>;
+
 export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
   const { data: e, error } = await sb.from('envios')
     .select('*, clientes(id, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso), ' +
       'transportistas(id, codigo, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, plazo_pago_dias), ' +
       'operadores(razon_social, cif, telefono, email, persona_contacto)')
-    .eq('id', id).maybeSingle<any>();
+    .eq('id', id).maybeSingle<FilaEnvioDoc>();
   if (error) return { datos: null, error: mensajeError(error.message) };
   if (!e) return { datos: null, error: 'Ese envío no existe.' };
 
   const [par, ctos, res, yo] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
-      'sitios(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
+      'sitios(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden').overrideTypes<FilaParadaDoc[], { merge: false }>(),
     sb.from('contactos').select('cliente_id, transportista_id, sitio_id, nombre, telefono, email, funcion, es_principal')
       .or([`cliente_id.eq.${e.cliente_id}`, e.transportista_id ? `transportista_id.eq.${e.transportista_id}` : null].filter(Boolean).join(','))
-      .order('es_principal', { ascending: false }).limit(200),
+      .order('es_principal', { ascending: false }).limit(200).overrideTypes<ContactoDoc[], { merge: false }>(),
     e.transportista_id
       ? sb.from('envio_reservas').select('pronto_pago').eq('envio_id', id).eq('transportista_id', e.transportista_id).eq('estado', 'aceptada')
           .order('cerrada_en', { ascending: false }).limit(1).maybeSingle<{ pronto_pago: boolean | null }>()
@@ -100,13 +114,13 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
     sb.from('usuarios').select('nombre, email, telefono').eq('id', usuarioId).maybeSingle<{ nombre: string | null; email: string; telefono: string | null }>(),
   ]);
 
-  const sitioIds = (par.data ?? []).map((p: any) => p.sitio_id).filter(Boolean) as string[];
-  const contactoSitio = new Map<string, any>();
+  const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean) as string[];
+  const contactoSitio = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null }>();
   if (sitioIds.length) {
     const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono').in('sitio_id', sitioIds).eq('es_principal', true);
-    (data ?? []).forEach((c: any) => contactoSitio.set(c.sitio_id, c));
+    (data ?? []).forEach((c) => contactoSitio.set(c.sitio_id as string, c));
   }
-  const contactos = (ctos.data ?? []) as any[];
+  const contactos = ctos.data ?? [];
   // Del cliente: el de tráfico principal, y si no, el principal de cualquier función.
   const de = (campo: 'cliente_id' | 'transportista_id', valor: string | null) => {
     const suyos = contactos.filter((c) => valor && c[campo] === valor);
@@ -138,14 +152,14 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
       envio: { ...e, plazo_pago_transportista: t?.plazo_pago_dias ?? null },
       manual: !!e.es_manual,
       cliente, porteador,
-      paradas: (par.data ?? []).map((p: any) => ({
-        id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
+      paradas: (par.data ?? []).map((p) => ({
+        id: p.id, orden: p.orden, tipo: p.tipo as ParadaDoc['tipo'], nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
         horarios: p.sitios?.horarios ?? null, url_google_maps: p.sitios?.url_google_maps ?? null, notas_sitio: p.sitios?.anotaciones ?? null,
         tipo_sitio: p.sitios?.tipo ?? null, requiere_cita: !!p.sitios?.requiere_cita, tiene_medios_carga: p.sitios?.tiene_medios_carga !== false,
         contacto: p.sitio_id ? contactoSitio.get(p.sitio_id) ?? null : null,
       })),
-      pronto_pago: !!(res.data as any)?.pronto_pago,
+      pronto_pago: !!res.data?.pronto_pago,
       gestor: yo.data ? { nombre: yo.data.nombre || yo.data.email, telefono: yo.data.telefono, email: yo.data.email } : null,
     },
   };
@@ -169,14 +183,24 @@ export async function cargarDatosDocPublica(sb: SB, reserva: string):
   return { error: null, ...ordenDesdeJson(data) };
 }
 
+// El JSON de datos_orden_*(): mismos nombres que las tablas.
+type EmpresaJson = { nombre: string; razon_social: string; cif: string | null; codigo?: string | null; direccion: string | null;
+  codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;
+  telefono?: string | null; email?: string | null; contacto?: string | null };
+type ParadaJson = Omit<ParadaDoc, 'pais' | 'tipo_sitio' | 'contacto' | 'requiere_cita' | 'tiene_medios_carga'> & {
+  pais_codigo_iso: string | null; requiere_cita?: boolean | null; tiene_medios_carga?: boolean | null;
+  contacto_nombre?: string | null; contacto_telefono?: string | null };
+type OrdenJson = { envio: EnvioDoc; porteador?: EmpresaJson; cliente?: EmpresaJson; paradas?: ParadaJson[];
+  parametros?: Record<string, unknown>; dynamo?: Record<string, unknown>; pronto_pago?: boolean };
+
 function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<string, number> } {
-  const j = data as any, t = j.porteador ?? {};
+  const j = data as OrdenJson, t = j.porteador ?? ({} as EmpresaJson);
   const parametros: Record<string, number> = {};
   Object.entries(j.parametros ?? {}).forEach(([k, v]) => { parametros[k] = Number(v); });
   let dynamo: DatosDynamo | undefined;
   if (j.dynamo) {
     const o: Record<string, string> = { ...DYNAMO };
-    Object.keys(DYNAMO).forEach((k) => { if (j.dynamo[k]) o[k] = String(j.dynamo[k]); });
+    Object.keys(DYNAMO).forEach((k) => { if (j.dynamo?.[k]) o[k] = String(j.dynamo[k]); });
     dynamo = o as DatosDynamo;
   }
   return {
@@ -186,7 +210,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
       porteador: { nombre: t.nombre, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo, direccion: t.direccion,
         codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
         telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null },
-      paradas: ((j.paradas ?? []) as any[]).map((p) => ({
+      paradas: (j.paradas ?? []).map((p) => ({
         id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
         horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,
@@ -204,7 +228,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
 export async function cargarDatosDocManual(sb: SB, id: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_manual', { p_envio: id });
   if (error || !data) return { datos: null, error: error?.message ?? 'No se ha podido leer el envío.' };
-  const j = data as any, c = j.cliente ?? {}, o = j.porteador ?? {};
+  const j = data as OrdenJson, c = j.cliente ?? ({} as EmpresaJson), o = j.porteador ?? ({} as EmpresaJson);
   return {
     error: null,
     datos: {
@@ -213,7 +237,7 @@ export async function cargarDatosDocManual(sb: SB, id: string): Promise<{ datos:
         poblacion: c.poblacion, provincia: c.provincia, pais: nombrePais(c.pais_codigo_iso), telefono: c.telefono ?? null, email: c.email ?? null, contacto: c.contacto ?? null },
       porteador: { nombre: o.nombre, razon_social: o.razon_social, cif: o.cif, direccion: null, codigo_postal: null, poblacion: null,
         provincia: null, pais: null, telefono: o.telefono ?? null, email: o.email ?? null, contacto: o.contacto ?? null },
-      paradas: ((j.paradas ?? []) as any[]).map((p) => ({
+      paradas: (j.paradas ?? []).map((p) => ({
         id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
         horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,

@@ -1,7 +1,7 @@
 import { leerTodo } from './leerTodo';
 import type { SB } from '@/lib/supabase/cliente';
 import type { SitioFila } from '@/components/panel/Sitios';
-import { contactosDe } from './contactos';
+import { contactosDe, type FilaContacto } from './contactos';
 import { gruposDe, VERANO_GENERICO, type FilaHorario, type FechasVerano } from './horarios';
 
 // Carga los sitios (de los clientes) o los almacenes Dynamo con sus contactos y su
@@ -30,7 +30,7 @@ export async function cargarSitios(sb: SB, almacenes: boolean): Promise<{ filas:
     const m = h.temporada === 'verano' ? veranoDe : horarioDe;
     m.set(h.sitio_id, [...(m.get(h.sitio_id) ?? []), h as FilaHorario]);
   });
-  const porSitio = new Map<string, any[]>();
+  const porSitio = new Map<string, FilaContacto[]>();
   (con.data ?? []).forEach((c) => porSitio.set(c.sitio_id, [...(porSitio.get(c.sitio_id) ?? []), c]));
 
   const filas: SitioFila[] = (sitios ?? []).map((l) => ({

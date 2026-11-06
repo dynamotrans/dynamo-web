@@ -159,8 +159,8 @@ export default function Transportistas({ filas, error, abrirId }: { filas: Trans
 function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: TransportistaFila | null; onCerrar: () => void; onGuardado: () => void }) {
   const [d, setD] = useState<TransportistaDatos>(() => {
     if (!fila) return { ...NUEVO };
-    const o: any = {};
-    (Object.keys(NUEVO) as (keyof TransportistaDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
+    const o: Record<string, unknown> = {};
+    (Object.keys(NUEVO) as (keyof TransportistaDatos)[]).forEach((k) => { o[k] = fila[k] ?? NUEVO[k]; });
     return o as TransportistaDatos;
   });
   const [textos, setTextos] = useState({ iva: String(d.iva_pct), ret: String(d.retencion_pct) });

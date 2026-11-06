@@ -16,11 +16,18 @@ import { pedirCambio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { enMarcha } from '@/lib/estados';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean> | Promise<void> | void;
-const fechasTxt = (c: any) => c?.fecha_desde ? ventana(c.fecha_desde, c.fecha_hasta) : null;
+// El cambio pedido por el cliente (jsonb envios.cambio_cliente).
+type CambioCliente = { fecha_desde?: string | null; fecha_hasta?: string | null; detalle?: string | null; con_camion?: boolean;
+  antes_desde?: string | null; antes_hasta?: string | null };
+type EnvioCambio = { id: string; estado: string; fecha_carga_desde: string | null; fecha_carga_hasta: string | null };
+const fechasTxt = (c: CambioCliente | null | undefined) => c?.fecha_desde ? ventana(c.fecha_desde, c.fecha_hasta) : null;
 
-export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: Hacer; onModificar: () => void }) {
+export function AvisoCambiosDynamo({ e, hacer, onModificar }: {
+  e: EnvioCambio & { requiere_revision_precio: boolean | null; estado_cambio_cliente: string | null; cambio_cliente: unknown; cambio_cliente_en: string | null };
+  hacer: Hacer; onModificar: () => void;
+}) {
   const [nota, setNota] = useState('');
-  const c = e.cambio_cliente;
+  const c = e.cambio_cliente as CambioCliente | null;
   return (
     <>
       {e.requiere_revision_precio && (
@@ -51,7 +58,11 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
   );
 }
 
-export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: any; hacer: Hacer; onLlamar: () => void }) {
+export function PedirCambio({ e, cambio, hacer, onLlamar }: {
+  e: EnvioCambio & { fecha_entrega_estimada: string | null };
+  cambio: { estado: string; en: string | null; nota: string | null; modificable: boolean; con_camion: boolean } | null;   // mi_cambio_envio()
+  hacer: Hacer; onLlamar: () => void;
+}) {
   const [abierto, setAbierto] = useState(false);
   const [desde, setDesde] = useState(e.fecha_carga_desde ?? '');
   const [detalle, setDetalle] = useState('');
@@ -113,7 +124,7 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: an
 // Ventana «llámanos»: el envío ya tiene camión, se está asignando, va en marcha o ha pasado
 // la hora límite (9:00 del día hábil anterior), y no se puede modificar desde
 // aquí. Dynamo lo contrasta con el conductor; si no es viable, se cancela y se reasigna camión.
-export function LlamarCambio({ e, onVolver }: { e: any; onVolver: () => void }) {
+export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; referencia_cliente: string | null; estado: string; corte?: string | null }; onVolver: () => void }) {
   const ref = `#${e.referencia_gx}`;
   const corte = e.corte ? new Date(e.corte) : null;
   const dentro = corte ? Date.now() < corte.getTime() : null;

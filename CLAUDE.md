@@ -413,6 +413,19 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 
 Registro automático de sesiones. La entrada más reciente va arriba.
 
+### 2026-11-06 — Claude Code web (nube)
+
+> **Calidad, panel en vivo y baja de cuenta**, todo en `pruebas`. **A producción (`main`)**: horarios «Lunes a viernes 8:00–18:00» y CIF «ESB01596360» en la web pública (`b9ceb9e`, con el «publica» del usuario), llevados también a la rama del portal (`ddc2fb6`) y a `pruebas` (`c338bb2`, que además se trae el blog y las redes de `main`).
+
+- **Calidad (los 7 puntos)**: ESLint y pruebas unitarias en el CI; tipos generados de la base de datos; una sola fuente para estados, permisos y CONTACTO; las acciones validan su entrada (zod); FichaEnvio y NuevoEnvio troceados; **Playwright con 6 flujos** contra un Supabase local completo (con Realtime); **Sentry instalado y apagado** hasta poner el DSN (recordárselo al usuario AL FINAL del proyecto); `any` de 172 a 1 (el de `leerTodo`, explicado en el código), tope de ESLint a 1. Comprobado: 78 pantallas (3 roles) sin errores y los PDF salen.
+- **Panel en vivo** (petición «importante» del usuario): señales sin datos por Supabase Realtime, canales privados «dynamo» / «cliente:<id>» / «transportista:<id>» y, sin sesión, «enlace:<sha256>» para la bolsa y el CMR (migraciones `en_vivo`, `en_vivo_enlaces`; pruebas 154 y 155). `components/panel/EnVivo.tsx` agrupa señales, espera si escribes o hay una ventana abierta, y hace **un refresco de confirmación a los 2 s** (comprobado: Next.js a veces recibe la página nueva y no la pinta; el segundo siempre entra). Para depurar: `localStorage.setItem('dynamo:envivo','1')`.
+- **Baja de cuenta** del cliente o transportista desde «Mi cuenta» (`darme_de_baja`, prueba 153): se da de baja el acceso, **no se borra nada**. Decisión del usuario: los datos de las bajas se guardan **indefinidamente**; borrar solo a mano (Anonimizar).
+- **Apuntado** en prioridad alta: DeCA propio (sustituir DecaDoc; fase 2 gratis a terceros; base: el paquete `dynamo-ordenes-deca.zip` de septiembre, que el usuario debe volver a subir) y tarifador igual que el borrador de Vercel.
+
+**Aprendizajes**: `supabase init` (CLI 2.122) ya no crea `supabase/migrations/`; en local hay que arrancar `dockerd` a mano si el contenedor se reinicia; un `next start` viejo sigue sirviendo HTML con trozos de la compilación anterior (400 en `/_next/static`) — matar `next-server`, no solo `next start`.
+
+**Pendientes del usuario**: zip del DeCA + capturas de DecaDoc; tarifa real, clave de Google Maps, equivalencias de palets y polos; Postmark y WhatsApp; clave de Holded; acceso a la API de Wtransnet; claves de Stripe; IBAN en `parametros`; decidir el alta online de transportistas nuevos; 2FA. Al final: textos legales con el asesor, Sentry, Supabase Pro + restauración probada, límites de gasto, PRODUCCION.md entero y «publica el portal».
+
 ### 2026-11-05 — Claude Code web (nube) · iPhone
 
 > **Sesión de redes sociales automáticas** (Instagram + Facebook vía Metricool). No toca `index.html` ni el portal: solo `redes/` e `images/redes/`, directo a `main` con permiso explícito del usuario (las imágenes tienen que servirse desde `www.dynamotrans.com`, el único dominio público).

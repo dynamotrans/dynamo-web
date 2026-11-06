@@ -5,6 +5,8 @@ import { normalizaTel } from '@/lib/paises';
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import type { SB } from '@/lib/supabase/cliente';
+import type { Tabla } from '@/lib/supabase/tipos';
 
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
@@ -22,7 +24,7 @@ export type ParadaNueva = {
 // crear la base de datos por la posición de la parada en la ruta.
 // Y su horario, si se cambió (si no, la base de datos le pone el de por defecto). Va
 // después de crear el envío, que es cuando existe el sitio.
-async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: ParadaNueva[], esCliente = false) {
+async function contactosDeSitiosNuevos(sb: SB, envioId: string, paradas: ParadaNueva[], esCliente = false) {
   const nuevos = paradas.map((p, i) => ({ p, i })).filter(({ p }) => p.guardar_en_agenda && !p.sitio_id);
   const conContacto = nuevos.filter(({ p }) => (p.contacto_telefono || '').replace(/[^\d]/g, '').length >= 6);
   const conHorario = nuevos.filter(({ p }) => p.horario_tramos?.length);
@@ -31,7 +33,7 @@ async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: Parada
   let filas: { orden: number; sitio_id: string | null }[] = [];
   if (esCliente) {
     const { data } = await sb.rpc('mis_envios').eq('id', envioId).maybeSingle();
-    filas = (((data as any)?.paradas ?? []) as { orden: number; sitio_id: string | null }[]).sort((a, b) => a.orden - b.orden);
+    filas = ((data?.paradas ?? []) as { orden: number; sitio_id: string | null }[]).sort((a, b) => a.orden - b.orden);
   } else {
     const { data } = await sb.from('envio_paradas').select('orden, sitio_id').eq('envio_id', envioId).order('orden');
     filas = (data ?? []) as { orden: number; sitio_id: string | null }[];
@@ -44,7 +46,7 @@ async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: Parada
   }
   for (const { p, i } of conHorario) {
     const sitio = filas[i]?.sitio_id;
-    if (sitio) await sb.rpc('guardar_horario', { p_sitio: sitio, p_tramos: p.horario_tramos });
+    if (sitio) await sb.rpc('guardar_horario', { p_sitio: sitio, p_tramos: p.horario_tramos! });
   }
 }
 export type EnvioNuevo = {
@@ -175,8 +177,9 @@ export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<st
   if (!s?.perfil) return { sitios: {}, generico };
   const [{ data: pv }, h, l] = await Promise.all([
     s.supabase.rpc('verano_sitios_fechas'),
-    limpios.length ? s.supabase.from('sitio_horarios').select('sitio_id, temporada, dia_semana').in('sitio_id', limpios) : Promise.resolve({ data: [] as any[] }),
-    limpios.length ? s.supabase.from('sitios').select('id, verano_activo, verano_desde, verano_hasta, horarios_verano').in('id', limpios) : Promise.resolve({ data: [] as any[] }),
+    limpios.length ? s.supabase.from('sitio_horarios').select('sitio_id, temporada, dia_semana').in('sitio_id', limpios) : Promise.resolve({ data: [] as Pick<Tabla<'sitio_horarios'>, 'sitio_id' | 'temporada' | 'dia_semana'>[] }),
+    limpios.length ? s.supabase.from('sitios').select('id, verano_activo, verano_desde, verano_hasta, horarios_verano').in('id', limpios)
+      : Promise.resolve({ data: [] as Pick<Tabla<'sitios'>, 'id' | 'verano_activo' | 'verano_desde' | 'verano_hasta' | 'horarios_verano'>[] }),
   ]);
   // Las fechas genéricas, con una función: Parámetros solo lo lee Dynamo.
   const g = pv as { desde?: string; hasta?: string } | null;
@@ -201,5 +204,5 @@ export async function comprobarCobertura(paradas: { orden: number; tipo: 'carga'
   const s = await sesion();
   if (!s?.perfil) return [];
   const { data } = await s.supabase.rpc('comprobar_cobertura', { p_paradas: paradas.slice(0, 20), p_tipo_carga: tipoCarga });
-  return ((data ?? []) as any[]).map((x) => ({ punto: x.punto, efecto: x.efecto, mensaje: x.mensaje }));
+  return (data ?? []).map((x) => ({ punto: x.punto, efecto: x.efecto, mensaje: x.mensaje }));
 }

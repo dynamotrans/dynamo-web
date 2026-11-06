@@ -3,6 +3,7 @@ import { esDynamo } from '@/lib/sesion';
 import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
 import { ventana, medidasTxt } from '@/lib/formato';
+import type { Tabla } from '@/lib/supabase/tipos';
 
 // /panel/envios/<id>/proforma: la factura proforma del PREVIO PAGO de un envío. Se ABRE
 // en el visor (regla 0-bis). Dynamo, cualquiera; el cliente, solo las suyas (pagos_envio()
@@ -10,6 +11,9 @@ import { ventana, medidasTxt } from '@/lib/formato';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+type EnvioProforma = Pick<Tabla<'envios'>, 'creado_en' | 'fecha_carga_desde' | 'fecha_carga_hasta' | 'poblacion_origen' | 'poblacion_destino'
+  | 'metros_lineales' | 'toneladas' | 'descripcion_mercancia'>;
+type ClienteProforma = Pick<Tabla<'clientes'>, 'razon_social' | 'cif' | 'direccion' | 'codigo_postal' | 'poblacion' | 'pais_codigo_iso'>;
 const texto = (msg: string, status: number) => new Response(msg, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,18 +26,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { data: yo } = await sb.from('usuarios').select('rol, estado').eq('id', user.id).maybeSingle<{ rol: string; estado: string }>();
   if (!yo || yo.estado !== 'activa' || !(esDynamo(yo.rol) || yo.rol === 'cliente')) return texto('No tienes permiso para ver este documento.', 403);
 
-  const { data: p } = await sb.rpc('pagos_envio', { p_envio: id }).maybeSingle<any>();
+  const { data: p } = await sb.rpc('pagos_envio', { p_envio: id }).maybeSingle();
   if (!p) return texto('Ese envío no lleva pago previo (o no es tuyo).', 404);
 
   // Datos del envío y del cliente: Dynamo los lee de las tablas; el cliente, de sus funciones.
-  let e: any = null, c: any = null;
+  let e: EnvioProforma | null = null, c: ClienteProforma | null = null;
   if (esDynamo(yo.rol)) {
     const r = await sb.from('envios').select('referencia_gx, referencia_cliente, creado_en, fecha_carga_desde, fecha_carga_hasta, poblacion_origen, poblacion_destino, ' +
-      'metros_lineales, toneladas, descripcion_mercancia, clientes(razon_social, cif, direccion, codigo_postal, poblacion, pais_codigo_iso)').eq('id', id).maybeSingle<any>();
+      'metros_lineales, toneladas, descripcion_mercancia, clientes(razon_social, cif, direccion, codigo_postal, poblacion, pais_codigo_iso)').eq('id', id).maybeSingle<EnvioProforma & { clientes: ClienteProforma | null }>();
     e = r.data; c = r.data?.clientes ?? null;
   } else {
-    e = (await sb.rpc('mis_envios').eq('id', id).maybeSingle<any>()).data;
-    c = (await sb.rpc('mi_empresa').maybeSingle<any>()).data;
+    e = (await sb.rpc('mis_envios').eq('id', id).maybeSingle()).data;
+    c = (await sb.rpc('mi_empresa').maybeSingle()).data;
   }
   if (!e) return texto('Ese envío no existe.', 404);
   const ruta = [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → ');

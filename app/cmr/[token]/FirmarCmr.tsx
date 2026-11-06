@@ -10,10 +10,11 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import { firmar, type DatosFirma } from './acciones';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
+import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
 
 type Bloque = { clave: string; titulo: string; casilla: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; };
 
-export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: any; trazos: Record<string, string> }) {
+export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
   const [abierto, setAbierto] = useState<Bloque | null>(null);
 
@@ -24,19 +25,19 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       mantenimiento: ['Plataforma en mantenimiento', `Vuelve a intentarlo en un rato. Si es urgente, llámanos al ${CONTACTO.telefono}.`],
       error: ['No se puede abrir ahora mismo', 'Vuelve a intentarlo en un momento.'],
     };
-    const [h, p] = t[cmr.resultado] ?? t.error;
+    const [h, p] = t[cmr.resultado ?? 'error'] ?? t.error;
     return <div className="card"><div className="brand"><img src="/images/2.png" alt="Dynamo" /></div><h1>{h}</h1><p className="sub">{p}</p></div>;
   }
 
-  const paradas: any[] = cmr.paradas ?? [];
+  const paradas: ParadaCmr[] = cmr.paradas ?? [];
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
-  const lugar = (p: any) => [p?.nombre_empresa, [p?.codigo_postal, p?.poblacion].filter(Boolean).join(' '), p?.provincia !== p?.poblacion ? p?.provincia : null].filter(Boolean).join(' · ');
+  const lugar = (p: ParadaCmr | undefined) => [p?.nombre_empresa, [p?.codigo_postal, p?.poblacion].filter(Boolean).join(' '), p?.provincia !== p?.poblacion ? p?.provincia : null].filter(Boolean).join(' · ');
   const bloques: Bloque[] = [
     ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello del remitente/cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '' })),
     { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello del porteador', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '' },
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía (destinatario)', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '' })),
   ];
-  const firmas = new Map<string, any>((cmr.firmas ?? []).map((f: any) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
+  const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;
 
   return (
@@ -67,7 +68,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
               <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
             </> : <div className="firma-estado">Pendiente de firma</div>}
-            {(cmr.reservas ?? []).filter((r: any) => r.rol === b.rol && (b.rol === 'transportista' || r.parada_id === b.parada_id)).map((r: any, i: number) => (
+            {(cmr.reservas ?? []).filter((r: ReservaCmr) => r.rol === b.rol && (b.rol === 'transportista' || r.parada_id === b.parada_id)).map((r: ReservaCmr, i: number) => (
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>
             ))}
           </div>

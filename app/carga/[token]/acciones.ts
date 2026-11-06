@@ -77,8 +77,9 @@ export async function sugerirFlota(token: string, d: { matricula?: string; condu
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return null;
   const { data, error } = await sb.rpc('flota_sugerencia_publica', { p_reserva: reserva, p_matricula: d.matricula ?? null, p_conductor_nombre: d.conductor ?? null });
-  if (error || (data as any)?.resultado !== 'ok') return null;
-  return { conductor: (data as any).conductor ?? null, telefono: (data as any).telefono ?? null };
+  const f = data as { resultado?: string; conductor?: string | null; telefono?: string | null } | null;
+  if (error || f?.resultado !== 'ok') return null;
+  return { conductor: f.conductor ?? null, telefono: f.telefono ?? null };
 }
 
 // El enlace de firma del CMR digital de la carga aceptada (lo crea si no hay uno vivo).

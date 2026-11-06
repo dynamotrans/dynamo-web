@@ -2,7 +2,7 @@ import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Transportistas, { type TransportistaFila } from '@/components/panel/Transportistas';
-import { contactosDe } from '@/lib/contactos';
+import { contactosDe, type FilaContacto } from '@/lib/contactos';
 import { notasInternas } from '@/lib/notasInternas';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +26,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
     notasInternas(supabase, 'transportistas'),
   ]);
 
-  const porTransportista = new Map<string, any[]>();
+  const porTransportista = new Map<string, FilaContacto[]>();
   (con.data ?? []).forEach((c) => porTransportista.set(c.transportista_id as string, [...(porTransportista.get(c.transportista_id as string) ?? []), c]));
   const flota = new Map<string, { tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] }>();
   (veh.data ?? []).forEach((v) => {

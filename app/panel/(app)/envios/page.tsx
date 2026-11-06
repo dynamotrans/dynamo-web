@@ -7,11 +7,18 @@ import TablaEnvios, { pestanaElegida, POR_PAGINA_ENVIOS } from '@/components/pan
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
 import { cargarFicha, cargarTransportistasParaAsignar } from '@/lib/fichaEnvio';
-import FichaEnvioCliente from '@/components/panel/FichaEnvioCliente';
-import FichaViaje from '@/components/panel/FichaViaje';
+import FichaEnvioCliente, { type EnvioCliente, type EnvioClienteBase } from '@/components/panel/FichaEnvioCliente';
+import FichaViaje, { type Viaje, type ParadaViaje } from '@/components/panel/FichaViaje';
 import OfertasAbiertas, { type Oferta } from '@/components/panel/OfertasAbiertas';
 
 export const dynamic = 'force-dynamic';
+// Lo que llega de la tabla (Dynamo) y de mis_envios/mis_viajes_por_ids() (cliente y transportista).
+type FilaDynamo = Omit<EnvioFila, 'cliente' | 'cliente_cif' | 'operador' | 'transportista_asignado' | 'paradas'> & {
+  transportista_id: string | null; clientes: { nombre_visible: string | null; cif: string } | null;
+  operadores: { razon_social: string } | null; envio_paradas: Parada[] | null };
+// Las funciones no traen todas las columnas de EnvioFila: las que faltan llegan sin valor.
+type FilaMia = Omit<EnvioFila, 'cliente' | 'cliente_cif' | 'operador' | 'transportista_asignado' | 'paradas' | 'creado_por'> & {
+  creado_por?: string | null; asignado_en?: string | null; operador_id?: string | null; paradas: Parada[] | null };
 export default async function PaginaEnvios({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const s = await sesion();
   if (!s) return null;
@@ -33,7 +40,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   let errorBusqueda: string | null = null;
   if (busca) {
     const POR = 100;
-    const v: any = vista;
+    const v = vista;
     const { data: res, error: eb } = await supabase.rpc('buscar_envios_pagina', {
       p_q: q || null, p_desde: desde || null, p_hasta: hasta || null, p_pagina: pb, p_por_pagina: POR,
       p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null,
@@ -57,7 +64,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   let conteos: Record<string, number> | null = null, pestana: Pestana | undefined, pagina = 1, totalPestana = 0;
   let idsPagina: string[] | null = idsBusqueda;
   if (!busca) {
-    const v: any = vista;
+    const v = vista;
     const filtro = { p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null };
     const { data: cts, error: ec } = await supabase.rpc('envios_pestanas', filtro);
     if (ec) error = ec.message;
@@ -76,13 +83,13 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
       'matricula_remolque, creado_en, modificado_en, creado_por, estado_solicitud, estado_pago_previo, estado_cambio_cliente, requiere_revision_precio, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
-    let data: any[] = [];
+    let data: FilaDynamo[] = [];
     if (idsPagina!.length) {
-      const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsPagina!);
+      const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsPagina!).overrideTypes<FilaDynamo[], { merge: false }>();
       if (r.error) error = r.error.message;
       data = r.data ?? [];
     }
-    filas = (data as any[]).map((x) => ({
+    filas = data.map((x) => ({
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,
       operador: x.operadores?.razon_social ?? null, transportista_asignado: !!x.transportista_id,
       paradas: (x.envio_paradas ?? []) as Parada[],
@@ -92,11 +99,12 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       ? await supabase.rpc(rol === 'transportista' ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: idsPagina })
       : { data: [], error: null };
     if (e) error = e.message;
-    filas = ((data ?? []) as any[]).map((x) => ({
+    const mias: (EnvioFila & { operador_id?: string | null })[] = ((data ?? []) as unknown as FilaMia[]).map((x) => ({
       ...x, cliente: null, cliente_cif: null, operador: null, creado_por: x.creado_por ?? null,
       transportista_asignado: !!x.asignado_en || x.estado_asignacion === 'confirmada',
       paradas: (x.paradas ?? []) as Parada[],
     }));
+    filas = mias;
     // Quién creó cada envío (columna «Creado por» también para el cliente).
     if (rol === 'cliente') {
       const { data: au } = await supabase.rpc('autores_mis_envios');
@@ -112,11 +120,11 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       filas.forEach((f) => { f.estado_pago_previo = pp.get(f.id) ?? null; });
     }
     // Nombre del operador de los envíos manuales del cliente (su propio catálogo).
-    const ids = [...new Set(filas.map((f: any) => f.operador_id).filter(Boolean))];
+    const ids = [...new Set(mias.map((f) => f.operador_id).filter(Boolean))] as string[];
     if (ids.length) {
       const { data: ops } = await supabase.from('operadores').select('id, razon_social').in('id', ids);
       const mapa = new Map((ops ?? []).map((o) => [o.id, o.razon_social]));
-      filas.forEach((f: any) => { f.operador = mapa.get(f.operador_id) ?? null; });
+      mias.forEach((f) => { f.operador = mapa.get(f.operador_id as string) ?? null; });
     }
   }
   // En el orden que ha dado la base de datos.
@@ -140,38 +148,38 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente' } : null; errorFicha = r.error; transportistas = t;
   }
   // Ficha para el CLIENTE: con lo que ya trae mis_envios() (sin datos internos) y sus hitos visibles.
-  let fichaCli: any = null;
+  let fichaCli: EnvioCliente | null = null;
   if (rol === 'cliente' && sp.ver) {
-    fichaCli = filas.find((x) => x.id === sp.ver) ?? null;
-    if (!fichaCli && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
+    let base: EnvioClienteBase | null = filas.find((x) => x.id === sp.ver) ?? null;
+    if (!base && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
       const { data } = await supabase.rpc('mis_envios').eq('id', sp.ver).maybeSingle();
-      fichaCli = data ?? null;
+      base = (data as EnvioClienteBase | null) ?? null;
     }
-    if (fichaCli) {
-      const { data: hit } = await supabase.rpc('mis_hitos', { p_envio: fichaCli.id }).limit(100);
-      const { data: val } = await supabase.rpc('mi_valoracion_envio', { p_envio: fichaCli.id }).maybeSingle();
-      const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: fichaCli.id }).maybeSingle();
-      const { data: cf } = await supabase.rpc('mi_contraoferta', { p_envio: fichaCli.id }).maybeSingle();
-      const { data: cb } = await supabase.rpc('mi_cambio_envio', { p_envio: fichaCli.id }).maybeSingle();
-      const { data: rv } = await supabase.rpc('ver_revision_precio_envio', { p_envio: fichaCli.id }).maybeSingle();
+    if (base) {
+      const { data: hit } = await supabase.rpc('mis_hitos', { p_envio: base.id }).limit(100);
+      const { data: val } = await supabase.rpc('mi_valoracion_envio', { p_envio: base.id }).maybeSingle();
+      const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: base.id }).maybeSingle();
+      const { data: cf } = await supabase.rpc('mi_contraoferta', { p_envio: base.id }).maybeSingle();
+      const { data: cb } = await supabase.rpc('mi_cambio_envio', { p_envio: base.id }).maybeSingle();
+      const { data: rv } = await supabase.rpc('ver_revision_precio_envio', { p_envio: base.id }).maybeSingle();
       // Hora límite para cancelar gratis (9:00 del día hábil anterior): sale en el aviso de «llámanos».
-      const fc = fichaCli.fecha_carga_desde ?? fichaCli.fecha_carga_real;
+      const fc = base.fecha_carga_desde ?? base.fecha_carga_real;
       const { data: corte } = fc ? await supabase.rpc('corte_cancelacion', { p_fecha_carga: fc }) : { data: null };
       // Pago con tarjeta: solo si Stripe está conectado (claves en Vercel).
-      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, contraoferta: cf ?? null, cambio: cb ?? null, revision: rv ?? null, corte: (corte as string | null) ?? null,
+      fichaCli = { ...base, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, contraoferta: cf ?? null, cambio: cb ?? null, revision: rv ?? null, corte: (corte as string | null) ?? null,
         tarjeta: stripeListo(), pagoVuelta: sp.pago ?? null };
     }
   }
   // Etapa C: el TRANSPORTISTA, su ficha de viaje y sus ofertas abiertas.
-  let fichaViaje: any = null, ofertas: Oferta[] = [];
+  let fichaViaje: Viaje | null = null, ofertas: Oferta[] = [];
   if (rol === 'transportista') {
     if (sp.ver) {
       fichaViaje = filas.find((x) => x.id === sp.ver) ?? null;
       // El viaje abierto puede no estar en la página que se ve.
       if (!fichaViaje && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
         const { data } = await supabase.rpc('mis_viajes_por_ids', { p_ids: [sp.ver] });
-        const x = ((data ?? []) as any[])[0];
-        fichaViaje = x ? { ...x, paradas: x.paradas ?? [] } : null;
+        const x = (data ?? [])[0];
+        fichaViaje = x ? { ...x, paradas: (x.paradas ?? []) as ParadaViaje[] } as Viaje : null;
       }
     }
     const { data } = await supabase.rpc('mis_ofertas');

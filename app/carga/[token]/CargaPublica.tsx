@@ -16,14 +16,9 @@ import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
 import CampoTelefono from '@/components/CampoTelefono';
 import { CONTACTO } from '@/lib/atencion';
+import type { OfertaPublica, ReservaPublica, ParadaPublica } from './tipos';
 
-type Parada = {
-  orden: number; tipo: 'carga' | 'descarga'; codigo_postal: string | null; poblacion: string | null; provincia: string | null;
-  pais_codigo_iso: string | null; tipo_sitio: string | null; horarios: string | null; requiere_cita: boolean; tiene_medios_carga: boolean;
-  // Solo en la carga aceptada:
-  nombre_empresa?: string | null; direccion?: string | null; referencia?: string | null; anotaciones?: string | null;
-  notas_sitio?: string | null; url_google_maps?: string | null; contacto?: { nombre: string | null; telefono: string | null } | null;
-};
+type Parada = ParadaPublica;
 
 const num = (v: unknown) => (v == null || v === '' ? null : Number(v));
 const txtNum = (v: unknown) => (v == null ? '' : String(v).replace('.', ','));
@@ -54,7 +49,7 @@ function Parar({ titulo, children, icono = '✕', ambar = false }: { titulo: str
 }
 
 // ---- La oferta: envío, ruta en tarjetas, mercancía con chips y precio --------------
-function Oferta({ o, completa }: { o: any; completa?: boolean }) {
+function Oferta({ o, completa }: { o: OfertaPublica | ReservaPublica; completa?: boolean }) {
   const paradas: Parada[] = o.paradas ?? [];
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
   const forma = [o.carga_lateral && 'Lateral', o.carga_trasera && 'Trasera', o.carga_techo && 'Techo'].filter(Boolean).join(' y ');
@@ -102,7 +97,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
   );
 }
 
-export default function CargaPublica({ token, oferta, reserva, altaOnline = false, otras = [] }: { token: string; oferta: any; reserva: any; altaOnline?: boolean; otras?: OtraCarga[] }) {
+export default function CargaPublica({ token, oferta, reserva, altaOnline = false, otras = [] }: { token: string; oferta: OfertaPublica | null; reserva: ReservaPublica | null; altaOnline?: boolean; otras?: OtraCarga[] }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
@@ -131,7 +126,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
       {oferta?.disponible ? '¿No te encaja? Ver otros envíos disponibles de Dynamo' : `Ver otros envíos disponibles de Dynamo (${otras.length})`}
     </button>
   );
-  if (r === 'aceptada') return <Aceptada token={token} c={reserva} />;
+  if (r === 'aceptada') return <Aceptada token={token} c={reserva!} />;
   if (r === 'cerrada') return <Parar titulo={reserva?.estado === 'cancelado' ? 'Este envío se ha cancelado' : 'Este enlace ya ha caducado'}><p className="sub">Por seguridad, el enlace del envío deja de mostrar los datos pasado el día de carga. El CMR sigue en su propio enlace. Si necesitas algo (orden, albarán, factura…), contáctanos.</p><Dudas /></Parar>;
   if (r === 'reasignada') return <Parar titulo="Este envío ya no está a tu nombre"><p className="sub">Dynamo lo ha reasignado. Si crees que es un error, contáctanos.</p><Dudas /></Parar>;
   if (r === 'pendiente_revision' && altaOnline) {
@@ -154,12 +149,12 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
       <div className="stop-screen show">
         <div className="spin spin-lg" />
         <h1>Estamos revisando tu precio</h1>
-        <p className="sub">Has propuesto <strong>{euros(reserva.precio_propuesto)}</strong>. El envío sigue reservado para ti mientras un agente de Dynamo lo revisa (normalmente en menos de 2 minutos). <strong>Te contestamos en esta misma pantalla.</strong></p>
+        <p className="sub">Has propuesto <strong>{euros(reserva!.precio_propuesto)}</strong>. El envío sigue reservado para ti mientras un agente de Dynamo lo revisa (normalmente en menos de 2 minutos). <strong>Te contestamos en esta misma pantalla.</strong></p>
         <Dudas />
       </div>
     );
   }
-  if (r === 'viva') return <Reservada token={token} o={oferta} hasta={reserva.hasta} ahora={reserva.ahora} />;
+  if (r === 'viva') return <Reservada token={token} o={oferta} hasta={reserva!.hasta ?? ''} ahora={reserva!.ahora ?? ''} />;
 
   if (!oferta.disponible) {
     if (oferta.motivo === 'cancelado') return <Parar titulo="Este envío se ha cancelado"><p className="sub">El cliente lo ha cancelado. Mira otros envíos con nosotros.</p>{botonOtras}<Dudas /></Parar>;
@@ -276,7 +271,7 @@ function Tramite({ hasta, ahora, onLibre }: { hasta?: string; ahora?: string; on
 }
 
 // ---- Reservada: formulario para aceptar --------------------------------------------
-function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: string; ahora: string }) {
+function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica; hasta: string; ahora: string }) {
   const refrescar = useRefrescar();
   const { quedan, texto } = useCuenta(hasta, ahora);
   const base = num(o.precio) ?? 0, banda = num(o.banda_euros) ?? 0;
@@ -419,7 +414,7 @@ function BotonCmr({ token }: { token: string }) {
   );
 }
 
-function Aceptada({ token, c }: { token: string; c: any }) {
+function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
   const [veh, setVeh] = useState({ camion: c.matricula_camion ?? '', remolque: c.matricula_remolque ?? '', conductor: c.conductor_nombre ?? '', telefono: c.conductor_telefono ?? '' });
   // Lo último guardado/sugerido, para saber si el camión o el chófer han cambiado.
   const [base, setBase] = useState({ camion: veh.camion, conductor: veh.conductor });
@@ -442,7 +437,7 @@ function Aceptada({ token, c }: { token: string; c: any }) {
   }
   const [guardado, setGuardado] = useState<string | null>(null);
   const falta = !c.matricula_camion || !c.conductor_nombre || !c.conductor_telefono;
-  const editable = ['programado', 'hacia_la_carga'].includes(c.estado);
+  const editable = ['programado', 'hacia_la_carga'].includes(c.estado ?? '');
   const pct = num(c.pronto_pago_pct) ?? 3, minimo = num(c.pronto_pago_minimo) ?? 20, precio = num(c.precio) ?? 0;
   const dto = Math.max(Math.round(precio * pct) / 100, minimo);
   return (
@@ -458,14 +453,14 @@ function Aceptada({ token, c }: { token: string; c: any }) {
       <div className="pago-contado" style={{ background: 'rgba(51,0,204,0.06)', borderColor: 'rgba(51,0,204,0.28)', color: 'var(--navy)', fontWeight: 700, textAlign: 'left' }}>
         Aquí tienes la <strong>orden de carga</strong> con todos estos datos. Guarda esta página: siempre puedes volver a ella con el mismo enlace.
       </div>
-      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado) && <div style={{ textAlign: 'left' }}><AvisoSiniestro /></div>}
+      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <div style={{ textAlign: 'left' }}><AvisoSiniestro /></div>}
       {c.estado !== 'cancelado' && (
         <a className="btn" href={`/carga/${token}/orden-de-carga`} target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxSizing: 'border-box', marginTop: '0.4rem' }}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></svg>
           Ver orden de carga (PDF)
         </a>
       )}
-      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado) && <BotonCmr token={token} />}
+      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <BotonCmr token={token} />}
       {c.discrecion_comercial && <div className="pago-contado" style={{ background: '#fff7e6', borderColor: '#ffd591', color: '#8a5a00', textAlign: 'left' }}><strong>Discreción comercial:</strong> en la carga no reveles el destino, ni en la entrega el origen.</div>}
       <div id="ok-resumen"><Oferta o={c} completa /></div>
       {editable && (

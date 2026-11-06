@@ -24,7 +24,7 @@ export default async function PaginaParametros() {
       .order('cuando', { ascending: false }), 3000),
   ]);
   const anterior = new Map<string, unknown>();
-  for (const a of (aud.data ?? []) as { registro_id: string; cambios: any }[]) {
+  for (const a of (aud.data ?? []) as { registro_id: string; cambios: { valor?: { antes?: unknown } } | null }[]) {
     if (!anterior.has(a.registro_id) && a.cambios?.valor) anterior.set(a.registro_id, a.cambios.valor.antes);
   }
   const filas = ((data ?? []) as (ParametroFila & { id: string })[]).map((p) => ({ ...p, anterior: anterior.has(p.id) ? anterior.get(p.id) : undefined }));

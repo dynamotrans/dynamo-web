@@ -16,6 +16,8 @@ import { paisDe, telBonito } from '@/lib/paises';
 import { marcarViaje, enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { ESTADOS_ENVIO, FASES_ENVIO, enMarcha } from '@/lib/estados';
+import type { EnvioFila } from '@/lib/envios';
+import type { Funcion } from '@/lib/supabase/tipos';
 
 const FASES: [string, string, string][] = [
   ['hacia_la_carga', 'Voy hacia la carga', 'Hacia la carga'], ['cargando', 'Estoy cargando', 'Cargando'],
@@ -36,17 +38,26 @@ const ICO = {
   aviso: ['M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', 'M12 9v4', 'M12 17h.01'],
   doc: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M16 13H8', 'M16 17H8'],
 };
+// El viaje del transportista: la fila de la lista o la de mis_viajes_por_ids() (paradas en JSON).
+type MiViaje = Funcion<'mis_viajes_por_ids'>[number];
+export type ParadaViaje = {
+  id?: string; tipo: string; realizado_en?: string | null; nombre_empresa: string | null; url_google_maps?: string | null;
+  direccion: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;
+  horarios?: string | null; contacto_telefono?: string | null; contacto_nombre?: string | null; requiere_cita?: boolean | null;
+  tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null;
+};
+export type Viaje = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiViaje, keyof EnvioFila>> & { paradas: ParadaViaje[] };
 function Celda({ l, children, span }: { l: string; children: React.ReactNode; span?: boolean }) {
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
 }
 
-export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: string }) {
+export default function FichaViaje({ e, cerrarHref }: { e: Viaje; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const cerrar = () => router.push(cerrarHref, { scroll: false });
-  const paradas: any[] = e.paradas ?? [];
+  const paradas = e.paradas ?? [];
   const idx = ORDEN.indexOf(e.estado);
   const siguiente = idx >= 0 && idx < ORDEN.length - 1 ? FASES.find(([k]) => k === ORDEN[idx + 1]) : null;
   const activo = idx >= 0 && e.estado !== 'entregado';
@@ -133,7 +144,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
                   <div style={{ fontSize: 'var(--fs-m)', color: '#b45309', fontWeight: 600, marginTop: 2 }}>{[p.requiere_cita && 'Con cita previa', p.tiene_medios_carga === false && 'Sin medios de carga'].filter(Boolean).join(' · ')}</div>
                 )}
                 {p.referencia && <div style={{ fontSize: 'var(--fs-m)', marginTop: 2 }}>Referencia: <strong>{p.referencia}</strong></div>}
-                {[p.notas_sitio, p.anotaciones].filter(Boolean).map((t: string, i: number) => (
+                {[p.notas_sitio, p.anotaciones].filter((t): t is string => Boolean(t)).map((t, i) => (
                   <div key={i} style={{ fontSize: 'var(--fs-m)', color: '#b45309', background: '#fef3c7', borderRadius: 8, padding: '0.35rem 0.5rem', marginTop: 4 }}>⚠ {t}</div>
                 ))}
               </div>

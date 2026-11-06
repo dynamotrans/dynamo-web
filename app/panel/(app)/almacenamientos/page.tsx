@@ -31,7 +31,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
   ]);
   const p = new Map((ps.data ?? []).map((x) => [x.clave, Number(x.valor)]));
   const def = { semana: p.get('almacen_precio_semana') ?? 240, reparto: p.get('almacen_precio_reparto') ?? 220 };
-  const dir = (l: any) => l ? [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
+  const dir = (l: Direccion | null | undefined) => l ? [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
   const filas: AlmacenamientoFila[] = (alm.data ?? []).map((a) => ({
     id: a.id, codigo: a.codigo, cliente_id: a.cliente_id, cliente: a.clientes?.nombre_visible ?? null,
     almacen_id: a.almacen_id, almacen: a.almacen?.nombre_empresa ?? 'Almacén Dynamo', almacen_provincia: a.almacen?.provincia ?? a.almacen?.poblacion ?? '',
@@ -48,10 +48,11 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     reparto: l.precio_reparto != null ? Number(l.precio_reparto) : def.reparto,
   }));
   const abrir = !!sp.abrir;
-  return <Almacenamientos abrir={abrir} pestanaInicial={sp.tab === 'pago' ? 'pago' : undefined} filas={filas} almacenes={opciones} clientes={(clientes.data ?? []) as any} error={alm.error?.message ?? null} />;
+  return <Almacenamientos abrir={abrir} pestanaInicial={sp.tab === 'pago' ? 'pago' : undefined} filas={filas} almacenes={opciones} clientes={clientes.data ?? []} error={alm.error?.message ?? null} />;
 }
 
-const dirDe = (l: any) => l ? [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
+type Direccion = { direccion: string | null; codigo_postal: string | null; poblacion: string | null };
+const dirDe = (l: Direccion | null | undefined) => l ? [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
 
 // El CLIENTE: sus almacenamientos (la seguridad por filas solo le da los suyos) y pedir uno.
 // Sin datos internos: ni notas de Dynamo ni el riesgo de crédito.
@@ -79,7 +80,7 @@ async function AlmacenamientosCliente({ abrir, tab }: { abrir: boolean; tab?: st
     importe_total: Number(a.importe_total ?? 0), iva_pct: a.iva_pct != null ? Number(a.iva_pct) : 21,
     requiere_pago_previo: a.requiere_pago_previo, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
   }));
-  const opciones: AlmacenOpcion[] = ((almacenes.data ?? []) as any[]).map((l) => ({
+  const opciones: AlmacenOpcion[] = (almacenes.data ?? []).map((l) => ({
     id: l.id, nombre: l.nombre ?? 'Almacén Dynamo', provincia: l.provincia ?? l.poblacion ?? '', dir: dirDe(l), disponible: l.disponible !== false,
     semana: Number(l.semana ?? 240), reparto: Number(l.reparto ?? 220),
   }));

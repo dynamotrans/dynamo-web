@@ -5,7 +5,7 @@ import type { Ficha } from '@/lib/fichaEnvio';
 import { valorarTransportista } from '@/app/panel/(app)/envios/acciones';
 
 // ---- Valoración del transportista (solo Dynamo, al entregar) ------------------------
-export function Valoracion({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: string, fn: () => Promise<any>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
+export function Valoracion({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
   const e = ficha.envio;
   const [nota, setNota] = useState<number | null>(e.valoracion_transportista ?? null);
   const [com, setCom] = useState<string>(e.valoracion_comentario ?? '');

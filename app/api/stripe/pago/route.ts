@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   if (!sb) return volver('&pago=error');
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return Response.redirect(`${origen}/panel/entrar`, 303);
-  const { data: p } = await sb.rpc('pagos_envio', { p_envio: id }).maybeSingle<any>();
+  const { data: p } = await sb.rpc('pagos_envio', { p_envio: id }).maybeSingle();
   if (!p || p.estado_pago_previo !== 'pendiente' || p.estado !== 'programado' || p.precio_provisional) return volver('');
   // Pasado el plazo para pagar ya no se abre el pago (el envío se anula en unos minutos).
   if (p.pago_limite && Date.parse(p.pago_limite) <= Date.now()) return volver('&pago=caducado');

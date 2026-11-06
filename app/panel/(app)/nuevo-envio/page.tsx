@@ -36,21 +36,21 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       supabase.from('operadores').select('id, razon_social').eq('borrado', false).order('razon_social'),
       supabase.rpc('reglas_precio_envio'),
     ]);
-    const e = emp.data as any;
+    const e = emp.data;
     if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a {CONTACTO.email}.</div></div></section>;
     let base: Base | null = null;
     if (sp.repetir && /^[0-9a-f-]{36}$/i.test(sp.repetir)) {
       const { data: r } = await supabase.rpc('mis_envios').eq('id', sp.repetir).maybeSingle();
-      const x = r as any;
+      const x = r;
       if (x) base = { modo: 'repetir', envio: { ...x, cliente_id: e.id, importe_cliente: null, importe_transportista: null },
-        paradas: ((x.paradas ?? []) as any[]).map((p) => ({ id: p.id, tipo: p.tipo, sitio_id: p.sitio_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
+        paradas: ((x.paradas ?? []) as Base['paradas']).map((p) => ({ id: p.id, tipo: p.tipo, sitio_id: p.sitio_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
     return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
-      operadores={((ops.data ?? []) as any[]).map((o) => ({ id: o.id, nombre: o.razon_social }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
+      operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
   }
 
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).

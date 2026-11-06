@@ -202,13 +202,14 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
   onCerrar: () => void; onAbrir: (id: string) => void; onGuardado: () => void;
 }) {
   const [d, setD] = useState<SitioDatos>(() => {
-    const o: any = fila ? {} : { ...NUEVO, cliente_id: clientes.length === 1 ? clientes[0].id : '' };
-    if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
+    const o: Partial<SitioDatos> = fila ? {} : { ...NUEVO, cliente_id: clientes.length === 1 ? clientes[0].id : '' };
+    const w = o as Record<keyof SitioDatos, unknown>;
+    if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { w[k] = fila[k] ?? NUEVO[k]; });
     if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
-    const v = (fila as any)?.verano;
+    const v = fila?.verano;
     o.verano = { activo: !!v?.activo, desde: v?.desde ?? veranoDefecto.desde, hasta: v?.hasta ?? veranoDefecto.hasta,
                  horario: v?.horario?.length ? v.horario : HORARIO_VERANO_POR_DEFECTO.map((g) => ({ dias: [...g.dias], tramos: g.tramos.map((t) => ({ ...t })) })) };
-    if (almacen) o.almacen = (fila as any)?.almacen ?? { disponible: true, precio_almacenamiento_semana: null, precio_reparto: null };
+    if (almacen) o.almacen = fila?.almacen ?? { disponible: true, precio_almacenamiento_semana: null, precio_reparto: null };
     return o as SitioDatos;
   });
   const [precios, setPrecios] = useState({

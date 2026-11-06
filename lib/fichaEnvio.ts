@@ -15,7 +15,8 @@ export type ParadaFicha = {
            requiere_cita: boolean; tiene_medios_carga: boolean;
            contacto: { nombre: string | null; telefono: string | null; email: string | null } | null } | null;
 };
-export type HitoFicha = { id: number; hito: string; cuando: string; quien: string | null; origen: string | null; datos: any };
+export type HitoFicha = { id: number; hito: string; cuando: string; quien: string | null; origen: string | null;
+  datos: { motivo_cancelacion?: string; camion?: string; remolque?: string } | null };   // jsonb del hito
 export type PenalizacionFicha = { id: string; codigo: string; tipo: string; descripcion: string | null; importe_cliente: number | null; importe_transportista: number | null; estado: string; generada_auto: boolean };
 export type OfertaFicha = { id: string; token: string; canal: string; para: string | null; precio: number; banda_euros: number;
   banda_pct: number; pronto_pago: boolean; estado: string; enviada_en: string; caduca_en: string; aperturas: number; abierta_en: string | null };
@@ -62,10 +63,10 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     sb.rpc('pagos_envio', { p_envio: id }).maybeSingle(),
     sb.rpc('reglas_precio_envio'),
   ]);
-  const pg = pag.data as any;
+  const pg = pag.data;
 
   const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean);
-  const contactos = new Map<string, any>();
+  const contactos = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null; email: string | null }>();
   if (sitioIds.length) {
     const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono, email').in('sitio_id', sitioIds).eq('es_principal', true);
     (data ?? []).forEach((c) => contactos.set(c.sitio_id as string, c));
@@ -91,24 +92,24 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
       transportista: e.transportistas ? { id: e.transportistas.id, nombre: e.transportistas.nombre_visible ?? '', cif: e.transportistas.cif } : null,
       operador: e.operadores?.razon_social ?? null,
       creadoPor: e.creado_por ? nombres.get(e.creado_por) ?? null : null,
-      paradas: (par.data ?? []).map((p: any) => ({
-        ...p,
+      paradas: (par.data ?? []).map((p) => ({
+        ...p, tipo: p.tipo as ParadaFicha['tipo'],
         sitio: p.sitios ? { ...p.sitios, horarios: horarioParada(p, e), contacto: p.sitio_id ? contactos.get(p.sitio_id) ?? null : null } : null,
       })),
-      hitos: (hit.data ?? []).map((h) => ({ id: h.id, hito: h.hito, cuando: h.cuando, quien: h.quien ? nombres.get(h.quien) ?? null : null, origen: h.quien_origen, datos: h.datos })),
+      hitos: (hit.data ?? []).map((h) => ({ id: h.id, hito: h.hito, cuando: h.cuando, quien: h.quien ? nombres.get(h.quien) ?? null : null, origen: h.quien_origen, datos: h.datos as HitoFicha['datos'] })),
       penalizaciones: (pen.data ?? []).map((p) => ({ ...p, tipo: p.tipos_penalizacion?.nombre ?? 'Penalización' })),
       ofertas: (ofe.data ?? []).map((o) => ({ id: o.id, token: o.token, canal: o.canal, para: o.transportistas?.nombre_visible ?? null,
         precio: Number(o.precio_ofertado), banda_euros: Number(o.banda_euros), banda_pct: o.banda_pct, pronto_pago: o.pronto_pago,
         estado: o.estado, enviada_en: o.enviada_en, caduca_en: o.caduca_en, aperturas: o.aperturas, abierta_en: o.abierta_en })),
-      contraofertas: (res.data ?? []).map((r: any) => ({ id: r.id, transportista: r.transportistas?.nombre_visible ?? null,
+      contraofertas: (res.data ?? []).map((r) => ({ id: r.id, transportista: r.transportistas?.nombre_visible ?? null,
         precio_propuesto: Number(r.precio_propuesto), precio_base: r.envio_ofertas?.precio_ofertado != null ? Number(r.envio_ofertas.precio_ofertado) : (e.importe_transportista != null ? Number(e.importe_transportista) : null), desde: r.desde,
-        alta_online: (r.transportistas?.tags ?? []).includes('alta_online') ? { id: r.transportistas.id, cif: r.transportistas.cif, verificado: r.transportistas.estado_operativo === 'activo' } : null })),
-      cmrEnlace: (enl.data as any) ?? null,
-      firmasCmr: ((fir.data ?? []) as any[]).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
+        alta_online: r.transportistas && (r.transportistas.tags ?? []).includes('alta_online') ? { id: r.transportistas.id, cif: r.transportistas.cif, verificado: r.transportistas.estado_operativo === 'activo' } : null })),
+      cmrEnlace: enl.data ?? null,
+      firmasCmr: (fir.data ?? []).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
       corte,
       pago: pg ? { estado: pg.estado_pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
         base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional } : null,
-      margenRevision: Number((reg.data as any)?.margen_pct ?? 5),
+      margenRevision: Number((reg.data as { margen_pct?: number } | null)?.margen_pct ?? 5),
     },
   };
 }
@@ -132,13 +133,15 @@ export async function flotaDe(sb: SB, transportistaId: string): Promise<FlotaTra
     sb.from('vehiculos').select('matricula, tipo').eq('transportista_id', transportistaId).eq('activo', true).order('matricula').limit(500),
     sb.from('conductores').select('nombre, telefono').eq('transportista_id', transportistaId).eq('activo', true).order('nombre').limit(500),
   ]);
-  return { vehiculos: (veh.data ?? []) as any[], conductores: (con.data ?? []) as any[] };
+  return { vehiculos: veh.data ?? [], conductores: con.data ?? [] };
 }
 
 // El horario que toca a una parada según su fecha: el de verano si el sitio lo tiene activo
 // y la fecha cae dentro (con «(horario de verano)»), si no el general. Fecha: la de la
 // parada; si no, la de carga (recogidas) o la de entrega estimada (entregas).
-function horarioParada(p: any, e: any): string | null {
+type ParadaHorario = { tipo: string; fecha_desde: string | null;
+  sitios: Pick<Tabla<'sitios'>, 'horarios' | 'horarios_verano' | 'verano_activo' | 'verano_desde' | 'verano_hasta'> | null };
+function horarioParada(p: ParadaHorario, e: Pick<Tabla<'envios'>, 'fecha_carga_desde' | 'fecha_entrega_estimada'>): string | null {
   const l = p.sitios;
   const dia = p.fecha_desde ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(p.fecha_desde)) : null;
   const f: string | null = dia ?? (p.tipo === 'carga' ? e.fecha_carga_desde : (e.fecha_entrega_estimada ?? e.fecha_carga_desde)) ?? null;

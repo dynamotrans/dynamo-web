@@ -1,4 +1,4 @@
-import { eventoStripe } from '@/lib/stripe';
+import { eventoStripe, type SesionPagoStripe } from '@/lib/stripe';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 
 // POST /api/stripe/webhook: Stripe avisa de que un pago se ha completado. Solo se fía de
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const ev = eventoStripe(cuerpo, req.headers.get('stripe-signature'));
   if (!ev) return new Response('firma no válida', { status: 400 });
   if (ev.type !== 'checkout.session.completed' && ev.type !== 'checkout.session.async_payment_succeeded') return new Response('ignorado', { status: 200 });
-  const s = ev.data?.object ?? {};
+  const s: SesionPagoStripe = ev.data?.object ?? {};
   if (s.payment_status !== 'paid') return new Response('aún sin pagar', { status: 200 });
   const envio = s.metadata?.envio_id ?? s.client_reference_id;
   const sb = supabaseServicio();

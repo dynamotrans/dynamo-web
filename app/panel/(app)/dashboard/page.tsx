@@ -2,10 +2,12 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import DashboardCliente, { type MiniEnvio } from '@/components/panel/DashboardCliente';
-import type { Enum } from '@/lib/supabase/tipos';
+import type { Enum, Tabla } from '@/lib/supabase/tipos';
 
 export const dynamic = 'force-dynamic';
 
+type FilaVivo = Pick<Tabla<'envios'>, 'id' | 'referencia_gx' | 'referencia_cliente' | 'estado' | 'fecha_carga_desde' | 'fecha_carga_hasta' | 'fecha_carga_real'
+  | 'codigo_postal_origen' | 'poblacion_origen' | 'codigo_postal_destino' | 'poblacion_destino' | 'metros_lineales' | 'toneladas' | 'descripcion_mercancia'>;
 const VIVOS: Enum<'estado_envio'>[] = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'];
 
 // Dashboard del cliente: diseño de #sec-dashboard de dashboard.html. El cliente ve sus
@@ -18,7 +20,7 @@ export default async function PaginaDashboard() {
   const dynamo = esDynamo(perfil.rol);
 
   // Solo hacen falta 3 envíos y dos cuentas: la base de datos cuenta, la web no descarga la lista.
-  let filas: any[] = [];
+  let filas: (FilaVivo & { cliente?: string | null })[] = [];
   let activos = 0;
   let total = 0;
   const vista = await vistaDe(supabase, perfil.rol);
@@ -26,10 +28,11 @@ export default async function PaginaDashboard() {
     const [vivos, todos] = await Promise.all([
       filtrarVista(supabase.from('envios').select('id, referencia_gx, referencia_cliente, estado, fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, ' +
         'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas, descripcion_mercancia, clientes(nombre_visible)', { count: 'exact' }), vista)
-        .in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(3),
+        .in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(3)
+        .overrideTypes<(FilaVivo & { clientes: { nombre_visible: string | null } | null })[], { merge: false }>(),
       filtrarVista(supabase.from('envios').select('id', { count: 'exact', head: true }), vista).neq('estado', 'borrador'),
     ]);
-    filas = (vivos.data ?? []).map((x: any) => ({ ...x, cliente: x.clientes?.nombre_visible ?? null }));
+    filas = (vivos.data ?? []).map((x) => ({ ...x, cliente: x.clientes?.nombre_visible ?? null }));
     activos = vivos.count ?? filas.length;
     total = todos.count ?? 0;
   } else if (perfil.rol === 'cliente') {
@@ -37,7 +40,7 @@ export default async function PaginaDashboard() {
       supabase.rpc('mis_envios', {}, { count: 'exact' }).in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(3),
       supabase.rpc('mis_envios', {}, { count: 'exact', head: true }),
     ]);
-    filas = (vivos.data ?? []) as any[];
+    filas = vivos.data ?? [];
     activos = vivos.count ?? filas.length;
     total = todos.count ?? 0;
   }

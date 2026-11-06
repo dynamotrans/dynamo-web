@@ -65,7 +65,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [x] **REVISIÓN «NIVEL TOP» (2026-11-05)** — formatos (web, PDF y textos de la base de datos), calidad y rendimiento: región Dublín, CI en GitHub (pruebas de la BD + tipos + compilación en cada subida), permisos calculados una vez por consulta, índices, pantallas que no se cuelgan, páginas de error, fechas/metros/porcentajes/teléfonos/CIF iguales en todo, nombre legal, tú en la orden de carga, textos de la BD con tildes y sin jerga.
 - [ ] **Calidad — lo que queda (orden propuesto)**:
   1. **ESLint** (revisión automática del código) y **pruebas unitarias** de `lib/` (`node --test`) dentro del CI.
-  2. **Tipos generados desde Supabase** (`supabase gen types`) y quitar los `any` peligrosos (ficha del envío, CargaPublica).
+  2. ~~**Tipos generados desde Supabase** y quitar los `any`~~ **HECHO (2026-11-06)**: de 172 `any` a 1 (`leerTodo<T = any>`: tiparlo obliga a revisar ~15 llamadas con selects montados por texto; se deja con su comentario). ESLint no deja pasar de 1 aviso.
   3. ~~**Envíos y panel con páginas en la base de datos**~~ **HECHO (2026-11-05)**: lista de envíos por páginas desde la base de datos, flota a la carta en la ficha, marco del panel con las consultas a la vez (pruebas 146 y 147).
   4. **Una sola fuente** de etiquetas y colores de estado (`lib/estados.ts`), de comprobaciones de permiso (`lib/guardia.ts`) y del tipo `Res`; el teléfono y el email de Dynamo escritos a mano en ~16 ficheros → `CONTACTO`.
   5. **Validar los datos de entrada** de las acciones (zod) y no ignorar errores al guardar contactos y horarios en Nuevo envío.

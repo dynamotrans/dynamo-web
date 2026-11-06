@@ -23,7 +23,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     }
     // Etapa C: el transportista, las suyas con SU importe.
     const { data, error } = await supabase.rpc('mis_penalizaciones_transportista');
-    const filas = ((data ?? []) as any[]).map((x) => ({ ...x, importe_cliente: x.importe_transportista }));
+    const filas = (data ?? []).map((x) => ({ ...x, importe_cliente: x.importe_transportista }));
     return <MisPenalizaciones esTransportista filas={filas as MiPenalizacion[]} error={error?.message ?? null} />;
   }
   const sp = await searchParams;
@@ -45,5 +45,5 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     envio: p.envios?.referencia_gx ?? '—', referencia_cliente: p.envios?.referencia_cliente ?? null,
     cliente: p.envios?.clientes?.nombre_visible ?? null, transportista: p.envios?.transportistas?.nombre_visible ?? null,
   }));
-  return <Penalizaciones filas={filas} tipos={(tipos.data ?? []) as any} envios={envios} nuevaPara={sp.nueva ?? null} error={pen.error?.message ?? null} />;
+  return <Penalizaciones filas={filas} tipos={tipos.data ?? []} envios={envios} nuevaPara={sp.nueva ?? null} error={pen.error?.message ?? null} />;
 }

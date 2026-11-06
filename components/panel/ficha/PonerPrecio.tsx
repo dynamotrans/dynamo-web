@@ -9,7 +9,7 @@ import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { I, ICO, aNum } from './comun';
 
 // ---- Poner precio a una solicitud del cliente ----------------------------------------
-export function PonerPrecio({ ficha, onVolver, hacer, trabajando }: { ficha: Ficha; onVolver: () => void; hacer: (t: string, fn: () => Promise<any>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
+export function PonerPrecio({ ficha, onVolver, hacer, trabajando }: { ficha: Ficha; onVolver: () => void; hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
   const e = ficha.envio;
   const [pc, setPc] = useState(numero(e.importe_cliente, 2));
   const [pt, setPt] = useState(numero(e.importe_transportista, 2));

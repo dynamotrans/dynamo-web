@@ -14,12 +14,13 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { euros, fecha, ventana, aNumero, pesoTn, fechaHora, metros, porcentaje } from '@/lib/formato';
-import { estadoVisual } from '@/lib/envios';
+import { estadoVisual, type EnvioFila, type Parada } from '@/lib/envios';
+import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio } from './CambiosEnvio';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
-import { RevisionCliente, SelloPrecio } from './RevisionPrecio';
+import { RevisionCliente, SelloPrecio, type Revision } from './RevisionPrecio';
 import Historial from './Historial';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 import { CONTACTO } from '@/lib/atencion';
@@ -48,9 +49,19 @@ const ICO = {
 function Celda({ l, children, span }: { l: string; children: React.ReactNode; span?: boolean }) {
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
 }
+// El envío del cliente: la fila de la lista (o de mis_envios()) con lo que se le junta en la página.
+type MiEnvio = Funcion<'mis_envios'>[number];
+export type EnvioClienteBase = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiEnvio, keyof EnvioFila>>
+  & { paradas: (Parada & { id?: string; referencia?: string | null })[] };
+export type EnvioCliente = EnvioClienteBase & {
+  hitos: Funcion<'mis_hitos'>; valoracion: Funcion<'mi_valoracion_envio'>[number] | null;
+  pago: Funcion<'pagos_envio'>[number] | null; contraoferta: Funcion<'mi_contraoferta'>[number] | null;
+  cambio: Funcion<'mi_cambio_envio'>[number] | null; revision: Revision | null; corte: string | null;
+  tarjeta: boolean; pagoVuelta: string | null;
+};
 const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
 
-export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHref: string }) {
+export default function FichaEnvioCliente({ e, cerrarHref }: { e: EnvioCliente; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar'>('ficha');
@@ -61,7 +72,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
   const cerrar = () => router.push(cerrarHref, { scroll: false });
   const ev = estadoVisual(e);
   const manual = !!e.es_manual;
-  const paradas: any[] = e.paradas ?? [];
+  const paradas = e.paradas ?? [];
   const recogidas = paradas.filter((p) => p.tipo === 'carga'), entregas = paradas.filter((p) => p.tipo === 'descarga');
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
   const iva = Number(e.iva_pct ?? 21);
@@ -270,7 +281,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
       {(e.hitos ?? []).length > 0 && <>
         <h4 className="modal-section-title">Historial</h4>
         <div className="pen-envio-sum">
-          {(e.hitos as any[]).filter((h) => HITOS[h.hito]).map((h) => (
+          {e.hitos.filter((h) => HITOS[h.hito]).map((h) => (
             <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{HITOS[h.hito]}</span></div>
           ))}
         </div>
@@ -322,8 +333,8 @@ function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota:
 }
 
 // Previo pago, visto por el cliente: qué falta, el total, la proforma y cómo pagar.
-function PagoCliente({ e }: { e: any }) {
-  const p = e.pago;
+function PagoCliente({ e }: { e: EnvioCliente }) {
+  const p = e.pago!;   // solo se pinta con pago
   const total = euros(Number(p.total));
   if (p.estado_pago_previo === 'pendiente') {
     return (

@@ -2,6 +2,12 @@ import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
 import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
+import type { Tabla } from '@/lib/supabase/tipos';
+
+type ClienteProforma = Pick<Tabla<'clientes'>, 'razon_social' | 'cif' | 'direccion' | 'codigo_postal' | 'poblacion' | 'pais_codigo_iso'>;
+type FilaProforma = Tabla<'almacenamientos'> & { clientes: ClienteProforma | null;
+  almacen: Pick<Tabla<'sitios'>, 'nombre_empresa' | 'poblacion' | 'provincia'> | null;
+  entrega: Pick<Tabla<'sitios'>, 'nombre_empresa' | 'direccion' | 'codigo_postal' | 'poblacion'> | null };
 
 // /panel/almacenamientos/<id>/proforma: la factura proforma (pago por adelantado). Se
 // ABRE en el visor (regla 0-bis). Dynamo y el cliente dueño (desde Administración → Proformas).
@@ -23,9 +29,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const { data: a } = await sb.from('almacenamientos').select('*, clientes(razon_social, cif, direccion, codigo_postal, poblacion, pais_codigo_iso), ' +
     'almacen:sitios!almacenamientos_almacen_id_fkey(nombre_empresa, poblacion, provincia), entrega:sitios!almacenamientos_sitio_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
-    .eq('id', id).maybeSingle<any>();
+    .eq('id', id).maybeSingle<FilaProforma>();
   if (!a) return texto('Ese almacenamiento no existe.', 404);
-  const c = a.clientes ?? {};
+  const c = a.clientes ?? ({} as ClienteProforma);
   const bytes = await proforma({
     codigo: a.codigo, referencia_cliente: a.referencia_cliente, creado_en: a.creado_en,
     cliente: { razon_social: c.razon_social ?? '—', cif: c.cif ?? '—', direccion: c.direccion, codigo_postal: c.codigo_postal, poblacion: c.poblacion, pais: nombrePais(c.pais_codigo_iso) },

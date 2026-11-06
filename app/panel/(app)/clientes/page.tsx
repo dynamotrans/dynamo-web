@@ -2,7 +2,7 @@ import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Clientes, { type ClienteFila, type Bienvenida } from '@/components/panel/Clientes';
-import { contactosDe } from '@/lib/contactos';
+import { contactosDe, type FilaContacto } from '@/lib/contactos';
 import { notasInternas } from '@/lib/notasInternas';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const bienvenida: Bienvenida = { pct: p.get('factor_bienvenida_pct') ?? -7, envios: p.get('factor_bienvenida_envios') ?? 3 };
   const cuenta = new Map<string, number>();
   ((env.data ?? []) as { id: string; envios: number }[]).forEach((e) => cuenta.set(e.id, Number(e.envios)));
-  const porCliente = new Map<string, any[]>();
+  const porCliente = new Map<string, FilaContacto[]>();
   (con.data ?? []).forEach((c) => porCliente.set(c.cliente_id as string, [...(porCliente.get(c.cliente_id as string) ?? []), c]));
   const filas: ClienteFila[] = (cli.data ?? []).map((c) => {
     return { ...c, anotaciones: notas.get(c.id)?.anotaciones ?? null, contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0 };

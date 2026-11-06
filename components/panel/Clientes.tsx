@@ -125,8 +125,8 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
 function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; onCerrar: () => void; onGuardado: () => void }) {
   const [d, setD] = useState<ClienteDatos>(() => {
     if (!fila) return { ...NUEVO, factor_tarifa_pct: bienvenida.pct };
-    const o: any = {};
-    (Object.keys(NUEVO) as (keyof ClienteDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
+    const o: Record<string, unknown> = {};
+    (Object.keys(NUEVO) as (keyof ClienteDatos)[]).forEach((k) => { o[k] = fila[k] ?? NUEVO[k]; });
     return o as ClienteDatos;
   });
   const [textos, setTextos] = useState({

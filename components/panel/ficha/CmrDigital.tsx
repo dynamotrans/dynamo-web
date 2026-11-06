@@ -9,7 +9,7 @@ import { I, ICO, ROL_CMR, enlaceCmrUrl } from './comun';
 // ---- CMR digital ------------------------------------------------------------------
 // Un enlace por envío para que firmen con el dedo cargador, transportista y destinatario
 // (sin cuenta). Las firmas quedan en el CMR relleno y no se borran nunca.
-export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: string, fn: () => Promise<any>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
+export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
   const e = ficha.envio;
   const [copiado, setCopiado] = useState(false);
   const enl = ficha.cmrEnlace;

@@ -30,7 +30,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
     ]);
     // Los 40 envíos más recientes (para elegir sin escribir) y los de sus incidencias; el resto
     // se busca en la base de datos al escribir (antes se mandaban hasta 3.000 al navegador).
-    const ids = [...new Set([...((rec.data ?? []) as { id: string }[]).map((x) => x.id), ...((inc.data ?? []) as any[]).map((x) => x.envio_id).filter(Boolean)])];
+    const ids = [...new Set([...((rec.data ?? []) as { id: string }[]).map((x) => x.id), ...(inc.data ?? []).map((x) => x.envio_id).filter(Boolean)])];
     const envios: EnvioLigero[] = await misEnviosLigerosPorId(supabase, ids, esT);
     const porId = new Map(envios.map((e) => [e.id, e]));
     const filas: IncidenciaFila[] = (inc.data ?? []).map((x) => {
@@ -41,9 +41,9 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
         envio: e ? { referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente, fecha_carga_desde: e.fecha_carga_desde, fecha_carga_hasta: e.fecha_carga_hasta,
           origen: e.origen, destino: e.destino, metros_lineales: e.metros_lineales, toneladas: e.toneladas } : null };
     });
-    return <Incidencias esCliente esTransportista={esT} filas={filas} tipos={(tipos.data ?? []) as any} clientes={[]} envios={envios}
+    return <Incidencias esCliente esTransportista={esT} filas={filas} tipos={tipos.data ?? []} clientes={[]} envios={envios}
       nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null}
-      tipoInicial={sp.tipo === 'siniestro' ? ((tipos.data ?? []) as any[]).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
+      tipoInicial={sp.tipo === 'siniestro' ? (tipos.data ?? []).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
   }
   const vista = await vistaDe(supabase, perfil.rol);
   const [inc, tipos, clientes, envios] = await Promise.all([
@@ -66,7 +66,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       metros_lineales: x.envios.metros_lineales, toneladas: x.envios.toneladas,
     } : null,
   }));
-  return <Incidencias filas={filas} tipos={(tipos.data ?? []) as any} clientes={(clientes.data ?? []) as any} envios={envios}
+  return <Incidencias filas={filas} tipos={tipos.data ?? []} clientes={clientes.data ?? []} envios={envios}
     nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null}
-      tipoInicial={sp.tipo === 'siniestro' ? ((tipos.data ?? []) as any[]).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
+      tipoInicial={sp.tipo === 'siniestro' ? (tipos.data ?? []).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
 }

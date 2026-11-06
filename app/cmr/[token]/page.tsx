@@ -4,6 +4,7 @@ import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import SelectorIdioma from '@/components/SelectorIdioma';
 import FirmarCmr from './FirmarCmr';
+import type { CmrPublico, ReservaCmr } from './tipos';
 import EnVivo from '@/components/panel/EnVivo';
 import { canalEnlace } from '@/lib/canalEnlace';
 import '../cmr.css';
@@ -16,20 +17,20 @@ export const metadata: Metadata = { title: 'CMR digital · Firma de la carta de 
 export default async function PaginaCmr({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const sb = supabasePublico();
-  let cmr: any = { resultado: 'error' };
+  let cmr: CmrPublico = { resultado: 'error' };
   const trazos: Record<string, string> = {};
   if (sb && /^[0-9a-f-]{36}$/i.test(token)) {
     const { data: mant } = await sb.rpc('mantenimiento_activo');
     if (mant) cmr = { resultado: 'mantenimiento' };
     else {
       const { data, error } = await sb.rpc('cmr_publico', { p_token: token });
-      if (!error && data) cmr = data;
-      if (cmr) { const { data: rs } = await sb.rpc('reservas_cmr_publico', { p_token: token }); cmr = { ...cmr, reservas: rs ?? [] }; }
+      if (!error && data) cmr = data as CmrPublico;
+      if (cmr) { const { data: rs } = await sb.rpc('reservas_cmr_publico', { p_token: token }); cmr = { ...cmr, reservas: (rs ?? []) as ReservaCmr[] }; }
       // Las imágenes de las firmas ya hechas: enlaces firmados de 10 minutos. El almacén ya no
       // se deja leer sin sesión (las rutas llevan las llaves de los CMR): se firman con la
       // clave de servicio, solo las rutas que la base de datos ha devuelto para ESTA llave.
       const sv = supabaseServicio();
-      const rutas: string[] = (cmr.firmas ?? []).map((f: any) => f.ruta).filter((r: unknown) => typeof r === 'string' && r.startsWith(`cmr/${token}/`));
+      const rutas: string[] = (cmr.firmas ?? []).map((f) => f.ruta).filter((r: unknown) => typeof r === 'string' && r.startsWith(`cmr/${token}/`));
       if (sv && rutas.length) {
         const { data: urls } = await sv.storage.from('documentos').createSignedUrls(rutas, 600);
         (urls ?? []).forEach((u) => { if (u.signedUrl && u.path) trazos[u.path] = u.signedUrl; });

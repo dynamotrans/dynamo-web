@@ -149,7 +149,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
           <p className="dash-flota-desc">Empresas de todos los sectores que ya mueven su mercancía con nosotros.</p>
           <div className="clientes-wall" translate="no">
             {filas.map((f, i) => (
-              <div key={i} className="clientes-row" data-dir={i === 1 ? 'rtl' : 'ltr'} style={{ ['--dur' as any]: `${[30, 38, 45][i]}s` }}>
+              <div key={i} className="clientes-row" data-dir={i === 1 ? 'rtl' : 'ltr'} style={{ '--dur': `${[30, 38, 45][i]}s` } as React.CSSProperties}>
                 <div className="clientes-row-track">{[...f, ...f].map((l, k) => <Logo key={k} l={l} />)}</div>
               </div>
             ))}

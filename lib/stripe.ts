@@ -40,7 +40,11 @@ export async function crearPagoStripe(p: { envioId: string; referencia: string; 
 }
 
 /** Comprueba la firma del aviso de Stripe (cabecera Stripe-Signature) y devuelve el evento. */
-export function eventoStripe(cuerpo: string, firma: string | null, toleranciaSeg = 300): any | null {
+// Lo que se usa del evento de Stripe (checkout.session.*).
+export type SesionPagoStripe = { id?: string; payment_status?: string; metadata?: { envio_id?: string } | null;
+  client_reference_id?: string | null; payment_intent?: string | null; amount_total?: number | null };
+export type EventoStripe = { type: string; data?: { object?: SesionPagoStripe } };
+export function eventoStripe(cuerpo: string, firma: string | null, toleranciaSeg = 300): EventoStripe | null {
   const secreto = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secreto || !firma) return null;
   const partes = firma.split(',').map((x) => x.split('=') as [string, string]);
