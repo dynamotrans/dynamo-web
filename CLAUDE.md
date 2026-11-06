@@ -340,6 +340,12 @@ deja meter `any` nuevos (tope en `package.json`, bajarlo según se quiten).
 (GENERADO de los tipos: ids = uuid, textos con tope). Al crear o cambiar una acción:
 `node tools/entradas/generar.mjs` (añade la comprobación y regenera los esquemas). El CI falla si no.
 
+**Pruebas en navegador (2026-11-06)**: `tests/e2e/flujos.spec.ts` (Playwright) recorre los 5 flujos clave
+(pedir envío · precio, aceptar y pagar · asignar · aceptar carga por enlace · firmar CMR) contra un
+Supabase LOCAL (`supabase start` en una carpeta aparte, con las migraciones) y datos de
+`tests/e2e/semilla.mjs`. Lo corre el CI (job «Navegador»). Si cambia un texto de botón o un id de
+campo de esos flujos, hay que actualizar la prueba.
+
 **Seguridad por defecto, obligatoria en toda migración** (el arnés lo comprueba):
 1. Toda tabla nueva → `alter table X enable row level security;` **en la misma
    migración**. En Supabase, una tabla sin RLS está abierta a cualquiera con la clave

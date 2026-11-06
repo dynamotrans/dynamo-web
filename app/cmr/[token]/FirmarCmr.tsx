@@ -135,7 +135,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <label className="sig-lbl" htmlFor="sigEmail">Email <span className="op">· opcional</span></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         <label className="sig-lbl" htmlFor="sigReservas">Reservas <span className="op">· solo si falta algo o hay daños</span></label>
-        <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palés; 1 palé con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
+        <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palets; 1 palet con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
           style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit' }} />
         {reservas.trim() && <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({CONTACTO.telefono}).</div>}
         {aviso && <div className="sig-warn">⚠ {aviso}</div>}

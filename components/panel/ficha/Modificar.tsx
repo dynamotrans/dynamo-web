@@ -64,7 +64,7 @@ export function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
         {campo('referencia_cliente', 'Referencia del cliente', 'PED-0424')}
 
         <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Mercancía</div>
-        {campo('descripcion_mercancia', 'Descripción', 'Ej. palés de azulejo', 'text', true)}
+        {campo('descripcion_mercancia', 'Descripción', 'Ej. palets de azulejo', 'text', true)}
         {campo('metros', 'Metros lineales', '13,3')}
         {campo('toneladas', 'Toneladas', '24')}
         {sw('paletizado', 'Paletizada')}

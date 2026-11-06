@@ -5,6 +5,7 @@
 #      que los tipos de TypeScript (lib/supabase/tipos.ts) están al día.
 #   2. Web: tipos, revisión del código (ESLint), pruebas unitarias de lib/ y compilación
 #      completa, igual que en Vercel.
+#   3. Navegador: los 5 flujos clave con Playwright contra un Supabase local completo.
 name: CI
 
 on:
@@ -69,3 +70,54 @@ jobs:
         run: node tools/entradas/generar.mjs --comprobar
       - name: Compilación
         run: npm run build
+
+  navegador:
+    # Los 5 flujos clave en un navegador (Playwright) contra un Supabase LOCAL completo (base
+    # de datos, login y API) con todas las migraciones y datos de prueba (tests/e2e). El
+    # proyecto de Supabase se crea aparte en /tmp para no tocar supabase/config.toml (que se
+    # despliega).
+    name: Navegador (5 flujos clave)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.1
+      - name: Supabase local con las migraciones
+        run: |
+          mkdir -p /tmp/sb && cd /tmp/sb && supabase init --force
+          cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
+          supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,realtime,mailpit,postgres-meta
+          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | tr -d '"' >> "$GITHUB_ENV"
+      - name: Datos de prueba
+        run: node tests/e2e/semilla.mjs
+      - name: Compilar y arrancar la plataforma
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          SITE_URL: http://localhost:3000
+        run: |
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          npm run build
+          nohup npx next start -p 3000 > /tmp/next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/panel/entrar && break; sleep 2; done
+      - run: npx playwright install --with-deps chromium
+      - name: Pruebas en navegador
+        run: npx playwright test
+        env:
+          E2E_URL: http://localhost:3000
+      - name: Informe (si falla)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-playwright
+          path: |
+            playwright-report
+            test-results
+            /tmp/next.log
+          retention-days: 7

@@ -23,3 +23,7 @@ build/
 # Next.js: public/ se genera al compilar copiando la web estatica (scripts/copiar-estaticos.mjs)
 /public/
 *.tsbuildinfo
+
+# Pruebas en navegador (Playwright): resultados locales
+/test-results/
+/playwright-report/
