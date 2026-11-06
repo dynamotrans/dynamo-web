@@ -25,9 +25,18 @@ a{color:var(--purple)}
         backdrop-filter:blur(10px);border-bottom:1px solid var(--gray-200)}
 .lp-top-in{max-width:1080px;margin:0 auto;padding:.55rem 1.25rem;
            display:flex;align-items:center;gap:1rem}
-.lp-logo{display:flex;align-items:center;gap:.55rem;text-decoration:none;flex:none}
-.lp-logo img{height:34px;width:auto}
-.lp-logo span{font-size:.62rem;font-weight:800;color:var(--navy);line-height:1.15;letter-spacing:.02em}
+.lp-logo{display:flex;align-items:center;gap:.7rem;text-decoration:none;flex:none}
+.lp-logo img{height:45px;width:auto;object-fit:contain}
+/* Mismas medidas y mismo separador que el claim del navbar de index.html,
+   para que las dos cabeceras se vean iguales. */
+.lp-logo span{font-size:.82rem;font-weight:700;color:var(--navy);line-height:1.1;
+  letter-spacing:.2px;text-align:left;padding-left:.7rem;border-left:1.5px solid var(--gray-200)}
+/* Oculto SOLO en el rango tablet, donde el menu de secciones aprieta.
+   En movil se ve, igual que en la portada. */
+@media(min-width:769px) and (max-width:1024px){.lp-logo span{display:none}}
+@media(max-width:768px){.lp-logo img{height:35px}
+  .lp-logo span{font-size:.7rem;padding-left:.5rem}}
+@media(max-width:500px){.lp-logo img{height:28px}}
 .lp-top-cta{flex:none;background:var(--purple);color:#fff;text-decoration:none;
             font-weight:800;font-size:.8rem;padding:.55rem 1rem;border-radius:10px;white-space:nowrap}
 .lp-top-cta:hover{background:var(--purple-dark)}
@@ -41,6 +50,19 @@ a{color:var(--purple)}
            text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
 .lp-menu a:hover{color:var(--purple)}
 .lp-menu a[aria-current="page"]{color:var(--purple);border-bottom-color:var(--purple)}
+
+/* Banda bajo el menu: deja claro que la pagina cubre SOLO esa seccion
+   y da salida a la web completa (la one-page). */
+.lp-solo{background:#f3f0ff;border-bottom:1px solid #e4dcff}
+.lp-solo-in{max-width:1080px;margin:0 auto;padding:.5rem 1.25rem;display:flex;
+  align-items:center;justify-content:space-between;gap:.5rem 1rem;flex-wrap:wrap}
+.lp-solo-txt{font-size:.78rem;line-height:1.35;color:var(--gray-700)}
+.lp-solo-txt b{color:var(--purple);font-weight:800}
+.lp-solo-cta{flex:none;display:inline-flex;align-items:center;gap:.35rem;
+  font-size:.78rem;font-weight:700;color:var(--purple);text-decoration:none}
+.lp-solo-cta svg{width:14px;height:14px;flex:none;transition:transform .25s ease}
+.lp-solo-cta:hover{text-decoration:underline}
+.lp-solo-cta:hover svg{transform:translateX(3px)}
 
 /* ---------- hero ---------- */
 .lp-hero{position:relative;background:var(--navy);color:#fff;overflow:hidden}
@@ -92,10 +114,44 @@ a{color:var(--purple)}
 .lp-card.dark h3{color:#fff}
 
 /* fichas técnicas */
-.lp-specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.55rem;margin-top:1rem}
-.lp-spec{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;padding:.6rem .75rem}
-.lp-spec-l{font-size:.68rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.06em}
-.lp-spec-v{font-size:.95rem;font-weight:800;color:var(--navy)}
+/* Mismo aspecto que las fichas de vehiculo de index.html (.veh-spec):
+   fondo gris, sin borde, etiqueta gris en mayusculas y valor en morado.
+   Columnas FIJAS (4 en escritorio, 2 en movil) en vez de auto-fit: con
+   auto-fit las 7 fichas se apretaban en una sola fila y el texto partia.
+   Las fichas de texto largo (Apertura, Equipamiento) ocupan dos columnas
+   para que no partan y para que las filas cuadren. */
+/* Mapa de cobertura de /cobertura. Lo rellena js/mapa-cobertura.js, que
+   solo actua si existe #lp-mapa-box; en el resto de hojas no hace nada. */
+/* Caja acotada y centrada: a todo el ancho del contenedor (1080px) el
+   mapa se iba a ~880px de alto, y al limitarlo quedaba un hueco enorme
+   a los lados. Asi llena su caja y mantiene una altura razonable. */
+.lp-mapa{position:relative;margin:1.2rem auto 0;max-width:560px;padding:1rem;min-height:230px;
+  background:var(--gray-50);border:1px solid var(--gray-200);border-radius:16px}
+/* Tope de alto: sin el, a 1080px de ancho el mapa se iba a ~880px y se
+   comia la pantalla entera. El SVG se centra dentro de su caja. */
+.lp-mapa svg{width:100%;height:auto;max-height:470px;display:block;margin:0 auto}
+@media(max-width:760px){.lp-mapa{padding:.7rem;min-height:190px}
+  .lp-mapa svg{max-height:330px}}
+.lp-mapa svg path[id]{fill:#ecedf1;stroke:#fff;stroke-width:.4}
+.lp-mapa svg path.cubierto{fill:var(--purple)}
+.lp-mapa-cargando{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;text-align:center;padding:1rem;font-size:.82rem;color:var(--gray-500)}
+.lp-mapa.listo .lp-mapa-cargando{display:none}
+.lp-mapa-leyenda{display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem 1.2rem;margin-top:.8rem;
+  font-size:.78rem;font-weight:600;color:var(--gray-700)}
+.lp-mapa-leyenda span{display:inline-flex;align-items:center;gap:.4rem}
+.lp-mapa-leyenda i{width:13px;height:13px;border-radius:4px;flex:none}
+.lp-mapa-leyenda i.si{background:var(--purple)}
+.lp-mapa-leyenda i.no{background:#ecedf1;border:1px solid var(--gray-300)}
+
+.lp-specs{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-top:1rem}
+/* Borde fino: a diferencia de la portada, estas fichas caen tambien sobre
+   secciones de fondo gris, donde el relleno gris claro se perderia. */
+.lp-spec{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;padding:.6rem .8rem}
+.lp-spec-wide{grid-column:span 2}
+.lp-spec-l{font-size:.65rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px}
+.lp-spec-v{font-size:.9rem;font-weight:800;color:var(--purple);margin-top:2px}
+@media(max-width:860px){.lp-specs{grid-template-columns:repeat(2,1fr)}}
 
 /* chips de países */
 .lp-chips{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1.2rem}
@@ -127,7 +183,13 @@ a{color:var(--purple)}
 .lp-end .lp-btns{justify-content:center}
 
 /* pie */
-.lp-foot{background:var(--navy);color:rgba(255,255,255,.6);font-size:.82rem;padding:2.2rem 0 1.6rem}
+/* El aviso de cookies es fijo al fondo y tapaba el final del pie, donde
+   viven los enlaces de aviso legal, privacidad y cookies: no se podian
+   pulsar hasta aceptar o rechazar. El pie se separa lo que mide el aviso
+   (--lp-cookie-h, que publica el propio aviso) y vuelve a su sitio al
+   cerrarlo. */
+.lp-foot{background:var(--navy);color:rgba(255,255,255,.6);font-size:.82rem;
+  padding:2.2rem 0 calc(1.6rem + var(--lp-cookie-h, 0px));transition:padding-bottom .3s ease}
 .lp-foot a{color:rgba(255,255,255,.75);text-decoration:none}
 .lp-foot a:hover{text-decoration:underline}
 .lp-foot-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:1.6rem}
@@ -137,8 +199,14 @@ a{color:var(--purple)}
              display:flex;flex-wrap:wrap;gap:.6rem;justify-content:space-between;font-size:.76rem;
              color:rgba(255,255,255,.45)}
 
+/* El avatar flotante vive en la esquina inferior derecha y se comia los
+   ultimos enlaces del pie (Privacidad y Cookies), que quedaban debajo y
+   no se podian pulsar. Se reserva su hueco. Por debajo de 600px el pie
+   ya se apila y los enlaces caen a la izquierda, libres. */
+@media(min-width:601px){.lp-foot-bot{padding-right:170px}}
+
 /* banner de cookies */
-.lp-cookie{position:fixed;left:0;right:0;bottom:0;z-index:90;display:none;
+.lp-cookie{position:fixed;left:0;right:0;bottom:0;z-index:999;display:none;
            background:var(--navy);color:rgba(255,255,255,.85);padding:1rem 1.25rem;
            box-shadow:0 -6px 24px rgba(0,0,0,.25)}
 .lp-cookie.show{display:block}
@@ -154,10 +222,23 @@ a{color:var(--purple)}
   .lp-trust-in{grid-template-columns:repeat(2,1fr);gap:1.1rem}
   .lp-foot-grid{grid-template-columns:1fr;gap:1.3rem}
   .lp-btns .lp-btn{flex:1 1 100%;justify-content:center}
-  .lp-logo span{display:none}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 /* selector de idiomas en la barra superior (su estilo está en idiomas.css) */
 .lp-top-right{margin-left:auto;display:flex;align-items:center;gap:.6rem;flex:none}
 @media(max-width:480px){.lp-top-cta{padding:.5rem .8rem;font-size:.75rem}}
+/* Pantallas estrechas: la barra superior lleva logo + claim + idiomas + CTA
+   y a 360px no cabia (se salia 23px). Se aprietan margenes y separaciones
+   en vez de esconder el claim, que es lo que se quiere ver. */
+@media(max-width:420px){
+  .lp-top-in{padding:.55rem .85rem}
+  .lp-logo{gap:.5rem}
+  .lp-top-right{gap:.4rem}
+  .lp-top-cta{padding:.45rem .55rem;font-size:.7rem}
+  .lp-menu-in,.lp-solo-in{padding-left:.85rem;padding-right:.85rem}
+}
+/* Por debajo de 345px (iPhone SE antiguo) ya no cabe el boton de la barra.
+   Se retira: justo debajo, en el hero, estan los tres CTA grandes de pedir
+   tarifa, asi que no se pierde ninguna via de contacto. */
+@media(max-width:345px){.lp-top-cta{display:none}}

@@ -1,0 +1,78 @@
+/* ===========================================================
+   blog.css — artículos y listado del blog (/blog/).
+   Se carga DESPUÉS de landing.css y reutiliza su cabecera, menú,
+   botones, pie y aviso de cookies. Aquí solo vive la tipografía
+   de lectura larga y las tarjetas del listado.
+   =========================================================== */
+
+/* ---------- listado ---------- */
+.bl-list{display:grid;gap:1rem;margin-top:1.6rem}
+.bl-item{display:block;background:#fff;border:1px solid var(--gray-200);border-radius:14px;
+  padding:1.2rem 1.3rem;text-decoration:none;transition:border-color .2s,transform .2s}
+.bl-item:hover{border-color:var(--purple);transform:translateY(-2px)}
+.bl-item time{display:block;font-size:.74rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--gray-500)}
+.bl-item h3{font-size:1.15rem;font-weight:800;color:var(--navy);margin:.3rem 0 .4rem;line-height:1.3}
+.bl-item p{font-size:.92rem;color:var(--gray-700)}
+.bl-item .bl-more{display:inline-block;margin-top:.6rem;font-weight:700;font-size:.85rem;color:var(--purple)}
+
+/* ---------- artículo ---------- */
+.bl-art{padding:2.6rem 0 3rem}
+.bl-art .lp-wrap{max-width:780px}
+.bl-meta{font-size:.84rem;color:var(--gray-500);margin-top:.9rem}
+.bl-meta a{color:var(--gray-700);font-weight:600;text-decoration:none}
+.bl-meta a:hover{text-decoration:underline}
+.bl-body{font-size:1.04rem;line-height:1.75;color:var(--gray-700)}
+.bl-body>*+*{margin-top:1.1rem}
+.bl-body .bl-intro{font-size:1.14rem;font-weight:500;color:var(--navy);line-height:1.6;
+  padding-left:1rem;border-left:4px solid var(--green)}
+.bl-body h2{font-size:clamp(1.3rem,2.6vw,1.65rem);font-weight:900;color:var(--navy);
+  line-height:1.25;margin-top:2.2rem}
+.bl-body h3{font-size:1.08rem;font-weight:800;color:var(--navy);margin-top:1.6rem}
+.bl-body ul,.bl-body ol{padding-left:1.4rem;display:grid;gap:.45rem}
+.bl-body li::marker{color:var(--purple);font-weight:700}
+.bl-body strong{color:var(--navy)}
+.bl-body a{font-weight:600}
+
+/* tabla */
+.bl-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--gray-200);
+  border-radius:12px}
+.bl-body table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:420px}
+.bl-body th,.bl-body td{padding:.65rem .8rem;text-align:left;vertical-align:top;
+  border-bottom:1px solid var(--gray-200)}
+.bl-body th{background:var(--gray-100);font-size:.76rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--gray-700)}
+.bl-body tr:last-child td{border-bottom:0}
+.bl-body td b{color:var(--purple)}
+
+/* caja destacada */
+.bl-note{background:#f3f0ff;border:1px solid #e4dcff;border-radius:12px;padding:1rem 1.2rem;font-size:.95rem}
+.bl-note b{color:var(--purple)}
+
+/* preguntas frecuentes */
+.bl-faq{display:grid;gap:.7rem}
+.bl-faq details{background:#fff;border:1px solid var(--gray-200);border-radius:12px;padding:.2rem 1.1rem}
+.bl-faq summary{cursor:pointer;font-weight:800;color:var(--navy);padding:.75rem 0;list-style:none;
+  display:flex;justify-content:space-between;gap:1rem;align-items:center}
+.bl-faq summary::-webkit-details-marker{display:none}
+.bl-faq summary::after{content:"+";flex:none;font-size:1.3rem;color:var(--purple);line-height:1}
+.bl-faq details[open] summary::after{content:"–"}
+.bl-faq details p{padding:0 0 .9rem;margin:0;font-size:.96rem}
+
+/* llamada a la acción dentro del artículo */
+.bl-cta{background:linear-gradient(135deg,var(--purple-nav),var(--purple));color:#fff;border-radius:16px;
+  padding:1.5rem 1.4rem;margin-top:2.2rem}
+.bl-cta h3{color:#fff;font-size:1.25rem;font-weight:900;margin:0}
+.bl-cta p{color:rgba(255,255,255,.85);margin-top:.4rem}
+.bl-cta .lp-btn-tel{color:#fff;border-color:rgba(255,255,255,.4)}
+.bl-cta .lp-btn-tel:hover{background:rgba(255,255,255,.1)}
+
+/* enlaces relacionados al final */
+.bl-rel{margin-top:2rem;padding-top:1.4rem;border-top:1px solid var(--gray-200)}
+.bl-rel h3{font-size:.8rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-500);margin:0}
+
+@media(max-width:760px){
+  .bl-art{padding:1.8rem 0 2.2rem}
+  .bl-body{font-size:1rem}
+  .bl-body .bl-intro{font-size:1.05rem}
+}

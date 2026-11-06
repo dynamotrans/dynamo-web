@@ -273,6 +273,19 @@ Cuando el portal tenga su sitio en producción, se le da la vuelta: **todo va a 
 
 Registro automático de sesiones. La entrada más reciente va arriba.
 
+### 2026-11-05 — Claude Code web (nube) · iPhone
+
+> **Sesión de redes sociales automáticas** (Instagram + Facebook vía Metricool). No toca `index.html` ni el portal: solo `redes/` e `images/redes/`, directo a `main` con permiso explícito del usuario (las imágenes tienen que servirse desde `www.dynamotrans.com`, el único dominio público).
+
+- **`redes/`**: `plantilla.html` + `render.py` (4 estilos de imagen de marca: v1 tarjeta morada con camión, v2 dato grande con palets, v3 foto real del trailer, v4 fondo claro con lista y ruta; formato post 1080×1080 y `--format story` 1080×1920 con botón CTA), `musica.py` (música original sintetizada, 3 moods, sin derechos de terceros), `video.py` (historia en MP4 de 12 s con zoom suave + música), `TEMAS.md` (16 temas + rotación de estilo/titular + histórico de posts) y `HISTORIAS.md` (histórico de historias).
+- **Dos tareas programadas independientes** en Claude: **post** (mar/jue/sáb 1:53 → publica ese día 8:00) e **historia en vídeo** (mar/jue/sáb 3:17 → publica 8:00), ambas a Instagram + Facebook; cada una hace commit+push de su imagen/vídeo a `main` y programa en Metricool (marca 7908179).
+- Publicados hoy: primer post (IG) y primera historia con música (IG + FB).
+
+**Pendientes**:
+- Opcional: republicar el primer post (05/11) también en Facebook.
+- Opcional: reel con música del catálogo de Instagram (posible ahora que Facebook está vinculado).
+- Sincronizar `claude/sharp-dirac-E3UIO` con `main` (regla 9).
+
 <!-- FORMATO:
 ### YYYY-MM-DD — [Mac casa | Mac oficina | Codespace]
 - Bullet de lo que se hizo
