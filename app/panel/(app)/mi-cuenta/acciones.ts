@@ -8,6 +8,7 @@ import { sesion } from '@/lib/sesion';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { soloTransportista } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type MisDatos = { nombre: string; telefono: string; documento: string; cargo: string; idioma: string };
 
@@ -15,6 +16,7 @@ export type MisDatos = { nombre: string; telefono: string; documento: string; ca
 // suspendida, a propósito: para completar o corregir sus datos y su contraseña). Rol, estado, empresa y límites no se los puede
 // tocar nadie a sí mismo: lo impide la base de datos (migración permisos_por_rol).
 export async function guardarMisDatos(d: MisDatos): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarMisDatos", [d]);
   const s = await sesion();
   if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!d.nombre.trim()) return { ok: false, error: 'Pon tu nombre y apellidos.' };
@@ -35,6 +37,7 @@ export async function guardarMisDatos(d: MisDatos): Promise<{ ok: true } | { ok:
 // dejó abierta en otro ordenador no basta para quedarse con la cuenta. La actual se
 // comprueba con una conexión aparte, sin tocar la sesión de este navegador.
 export async function cambiarMiClave(actual: string, nueva: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#cambiarMiClave", [actual, nueva]);
   const s = await sesion();
   if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!actual) return { ok: false, error: 'Escribe tu contraseña actual.' };
@@ -64,6 +67,7 @@ const fechaOnull = (f: string) => (FECHA.test(f) ? f : null);
 const limpiaError = (m: string) => mensajeError(m.replace(/^.*?ERROR:\s*/i, ''));
 
 export async function guardarMiTransporte(d: { nima: string; compania: string; poliza: string; vence: string }): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarMiTransporte", [d]);
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar estos datos.' };
   const { error } = await s.supabase.rpc('guardar_mis_datos_transporte', {
@@ -74,6 +78,7 @@ export async function guardarMiTransporte(d: { nima: string; compania: string; p
 
 export type MiVehiculo = { id: string | null; matricula: string; tipo: 'tractora' | 'remolque' | 'rigido'; itv: string; seguro: string; tarjeta: string; adr: boolean; tiene_plataforma_elevadora: boolean };
 export async function guardarMiVehiculo(v: MiVehiculo): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarMiVehiculo", [v]);
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar su flota.' };
   const mat = v.matricula.trim().toUpperCase();
@@ -88,6 +93,7 @@ export async function guardarMiVehiculo(v: MiVehiculo): Promise<Res> {
 
 export type MiConductor = { id: string | null; nombre: string; documento: string; pais: string; telefono: string };
 export async function guardarMiConductor(c: MiConductor): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarMiConductor", [c]);
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar su flota.' };
   if (!c.nombre.trim()) return { ok: false, error: 'Pon el nombre y apellidos del conductor.' };
@@ -107,6 +113,7 @@ export async function guardarMiConductor(c: MiConductor): Promise<Res> {
 }
 
 export async function darDeBajaFlota(tipo: 'vehiculo' | 'conductor', id: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#darDeBajaFlota", [tipo, id]);
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar su flota.' };
   const { error } = await s.supabase.rpc('dar_baja_mi_flota', { p_tipo: tipo, p_id: id });

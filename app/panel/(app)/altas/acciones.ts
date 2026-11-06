@@ -2,6 +2,7 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { soloGestor } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type NuevaEmpresa = { razon_social: string; cif: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string };
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
@@ -12,6 +13,7 @@ const vacio = (s: string) => (s ?? '').trim() || null;
 // Confirmar el alta: se le asocia la empresa (una que ya existe o una nueva con sus datos)
 // y la cuenta pasa a activa en el MISMO paso (la base de datos exige empresa para activar).
 export async function confirmarAlta(usuario: string, cliente: { id: string } | { nuevo: NuevaEmpresa }): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/altas/acciones#confirmarAlta", [usuario, cliente]);
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo confirma altas.' };
   let clienteId: string;
@@ -38,6 +40,7 @@ export async function confirmarAlta(usuario: string, cliente: { id: string } | {
 
 // Suspender: la cuenta queda bloqueada; ese email no puede volver a registrarse.
 export async function suspenderAlta(usuario: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/altas/acciones#suspenderAlta", [usuario]);
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona altas.' };
   const { error } = await sb.from('usuarios').update({ estado: 'suspendida' }).eq('id', usuario);

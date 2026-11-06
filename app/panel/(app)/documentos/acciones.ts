@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { esGestor } from '@/lib/sesion';
 import { supabaseServidor } from '@/lib/supabase/server';
 import type { TablaInsert } from '@/lib/supabase/tipos';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // Documentos del almacén de archivos. El fichero se sube desde el navegador directamente a
 // Supabase Storage (bucket privado `documentos`) y aquí se registra su fila. Los permisos
@@ -31,6 +32,7 @@ const valido = (d: Dueno) => CAMPOS.includes(d.campo) && /^[0-9a-f-]{36}$/i.test
 const sano = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(-80) || 'documento';
 
 export async function documentosDe(d: Dueno): Promise<DocumentoFila[]> {
+  comprobarEntrada("app/panel/(app)/documentos/acciones#documentosDe", [d]);
   const s = await sesion();
   if (!s?.perfil || !valido(d)) return [];
   const { data } = await s.supabase.from('documentos').select('id, tipo, nombre_archivo, tamano_bytes, tipo_mime, visible_cliente, creado_en, creado_por')
@@ -48,6 +50,7 @@ export async function documentosDe(d: Dueno): Promise<DocumentoFila[]> {
 // Dónde se sube: Dynamo, en la carpeta del dueño; cualquier otro, en la suya (u/<id>/…),
 // que es la única en la que el bucket le deja escribir.
 export async function rutaDeSubida(d: Dueno, nombre: string): Promise<Res<{ ruta: string }>> {
+  comprobarEntrada("app/panel/(app)/documentos/acciones#rutaDeSubida", [d, nombre]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!valido(d)) return { ok: false, error: 'No se sabe a qué pertenece el documento.' };
@@ -56,6 +59,7 @@ export async function rutaDeSubida(d: Dueno, nombre: string): Promise<Res<{ ruta
 }
 
 export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: string; nombre: string; mime: string; tamano: number; sha256: string; visible_cliente: boolean }): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/documentos/acciones#registrarDocumento", [d, f]);
   const s = await sesion();
   if (!s?.perfil || !valido(d)) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   const { error } = await s.supabase.from('documentos').insert({
@@ -73,6 +77,7 @@ export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: stri
 
 // «Quitar» = borrado suave de la fila: el fichero se conserva (valor de prueba).
 export async function quitarDocumento(id: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/documentos/acciones#quitarDocumento", [id]);
   const s = await sesion();
   if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos.' };
   const { error } = await s.supabase.from('documentos').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id);
@@ -80,6 +85,7 @@ export async function quitarDocumento(id: string): Promise<Res> {
 }
 
 export async function visibleParaCliente(id: string, visible: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/documentos/acciones#visibleParaCliente", [id, visible]);
   const s = await sesion();
   if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo decide qué ve el cliente.' };
   const { error } = await s.supabase.from('documentos').update({ visible_cliente: visible }).eq('id', id);

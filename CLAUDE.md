@@ -335,6 +335,11 @@ falla si no está al día. Los clientes de Supabase van tipados (`SB` de `lib/su
 si una columna cambia de nombre, `tsc` avisa en todo el código que la use. ESLint en el CI no
 deja meter `any` nuevos (tope en `package.json`, bajarlo según se quiten).
 
+**Entradas de las acciones del servidor (2026-11-06)**: cada acción (`'use server'`) empieza con
+`comprobarEntrada(...)`, que valida forma y tamaño con el esquema zod de `lib/entradas/esquemas.ts`
+(GENERADO de los tipos: ids = uuid, textos con tope). Al crear o cambiar una acción:
+`node tools/entradas/generar.mjs` (añade la comprobación y regenera los esquemas). El CI falla si no.
+
 **Seguridad por defecto, obligatoria en toda migración** (el arnés lo comprueba):
 1. Toda tabla nueva → `alter table X enable row level security;` **en la misma
    migración**. En Supabase, una tabla sin RLS está abierta a cualquiera con la clave

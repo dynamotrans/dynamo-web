@@ -4,6 +4,7 @@ import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
@@ -67,6 +68,7 @@ function traducir(msg: string): string {
 
 export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
   Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvio", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
     return { ok: false, error: 'Solo el equipo de Dynamo puede crear envíos por ahora.' };
@@ -92,6 +94,7 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
 // Clientes). La base de datos impide CIF repetidos (regla 10).
 export async function crearClienteRapido(razon_social: string, cif: string, pais_codigo_iso: string):
   Promise<{ ok: true; cliente: { id: string; nombre: string; cif: string; iva: number | null } } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearClienteRapido", [razon_social, cif, pais_codigo_iso]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
     return { ok: false, error: 'Solo el equipo de Dynamo puede dar de alta clientes.' };
@@ -108,6 +111,7 @@ export async function crearClienteRapido(razon_social: string, cif: string, pais
 // Cambiar la ruta de un envío ya creado (antes de cargar). Las paradas con `id` se
 // mantienen; las demás se crean; las que no vienen se quitan. Lo comprueba la base de datos.
 export async function cambiarRuta(envio: string, paradas: (ParadaNueva & { id?: string })[]): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#cambiarRuta", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo puede cambiar la ruta.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
@@ -121,6 +125,7 @@ export async function cambiarRuta(envio: string, paradas: (ParadaNueva & { id?: 
 // acepta desde su panel. La base de datos fuerza que sea de SU empresa y con SUS sitios.
 export async function crearSolicitud(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'>, paradas: ParadaNueva[]):
   Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearSolicitud", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede pedir envíos todavía.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
@@ -133,6 +138,7 @@ export async function crearSolicitud(envio: Omit<EnvioNuevo, 'cliente_id' | 'imp
 
 // Dynamo pone precio a la solicitud de un cliente (el cliente lo acepta después).
 export async function proponerPrecio(envio: string, importe: number, importeT: number | null): Promise<{ ok: true; aviso?: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#proponerPrecio", [envio, importe, importeT]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo Dynamo pone precio.' };
   if (!(importe > 0)) return { ok: false, error: 'Pon el precio del cliente (base sin IVA).' };
@@ -144,6 +150,7 @@ export async function proponerPrecio(envio: string, importe: number, importeT: n
 // El CLIENTE crea un envío con SU propio operador (manual): Dynamo no interviene.
 export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'> & { operador_id: string; precio_acordado_operador: number | null }, paradas: ParadaNueva[]):
   Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvioManual", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
   if (!envio.operador_id) return { ok: false, error: 'Elige tu operador de transporte.' };
@@ -161,6 +168,7 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
 // filtra la seguridad por filas.
 export type HorarioSitioAviso = { general: number[]; verano: { activo: boolean; desde: string | null; hasta: string | null; dias: number[]; resumen: string | null } };
 export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<string, HorarioSitioAviso>; generico: { desde: string; hasta: string } }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#diasAbiertosDe", [ids]);
   const s = await sesion();
   const limpios = [...new Set(ids)].filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 20);
   const generico = { desde: '05-25', hasta: '09-15' };
@@ -189,6 +197,7 @@ export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<st
 // los motivos de lo que no se puede (vacío = se puede).
 export async function comprobarCobertura(paradas: { orden: number; tipo: 'carga' | 'descarga'; pais: string; codigo_postal: string; nombre: string }[],
   tipoCarga: 'completa' | 'grupaje' | null): Promise<{ punto: string; efecto: string; mensaje: string }[]> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#comprobarCobertura", [paradas, tipoCarga]);
   const s = await sesion();
   if (!s?.perfil) return [];
   const { data } = await s.supabase.rpc('comprobar_cobertura', { p_paradas: paradas.slice(0, 20), p_tipo_carga: tipoCarga });

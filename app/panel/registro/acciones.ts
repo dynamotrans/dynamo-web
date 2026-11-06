@@ -6,6 +6,7 @@ import { origen } from '@/lib/origen';
 import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
 import { esPaisValido, PREFIJOS, normalizaTel } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // ALTA DE CLIENTE desde el portal. No hay contraseña en este paso: Supabase manda al email
 // un enlace y un código de 6 cifras; con cualquiera de los dos se entra y se crea la
@@ -21,6 +22,7 @@ export type EstadoAlta = { error: string | null; campo?: keyof DatosAlta | 'acep
 const limpio = (v: FormDataEntryValue | null, max = 160) => String(v ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
 
 export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoAlta> {
+  comprobarEntrada("app/panel/registro/acciones#registrar", [_prev, f]);
   const d: DatosAlta = {
     email: limpio(f.get('email'), 254).toLowerCase(), empresa: limpio(f.get('empresa')), cif: limpio(f.get('cif'), 30).toUpperCase(),
     pais: limpio(f.get('pais'), 2).toUpperCase() || 'ES', direccion: limpio(f.get('direccion')), codigo_postal: limpio(f.get('codigo_postal'), 12),
@@ -69,6 +71,7 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
 export type EstadoCodigo = { error: string | null; reenviado?: boolean };
 
 export async function comprobarCodigo(_prev: EstadoCodigo, f: FormData): Promise<EstadoCodigo> {
+  comprobarEntrada("app/panel/registro/acciones#comprobarCodigo", [_prev, f]);
   const email = limpio(f.get('email'), 254).toLowerCase();
   const token = String(f.get('codigo') ?? '').replace(/\D/g, '');
   if (!email) return { error: 'Falta el email. Vuelve a empezar el alta.' };
@@ -84,6 +87,7 @@ export async function comprobarCodigo(_prev: EstadoCodigo, f: FormData): Promise
 }
 
 export async function reenviarCodigo(_prev: EstadoCodigo, f: FormData): Promise<EstadoCodigo> {
+  comprobarEntrada("app/panel/registro/acciones#reenviarCodigo", [_prev, f]);
   const email = limpio(f.get('email'), 254).toLowerCase();
   const supabase = await supabaseServidor(true);
   if (!supabase || !email) return { error: 'No se ha podido reenviar. Vuelve a empezar el alta.' };

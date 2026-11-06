@@ -2,6 +2,7 @@
 
 import { sesion, esGestor } from '@/lib/sesion';
 import type { Json } from '@/lib/supabase/tipos';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 type Res = { ok: true } | { ok: false; error: string };
 
@@ -15,9 +16,11 @@ async function poner(clave: string, valor: unknown): Promise<Res> {
   return { ok: true };
 }
 export async function guardarLineaProntoPago(euros: number): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/dashboard-admin/acciones#guardarLineaProntoPago", [euros]);
   if (!Number.isFinite(euros) || euros < 0) return { ok: false, error: 'La línea tiene que ser un importe en euros, 0 o más.' };
   return poner('pronto_pago_linea_euros', Math.round(euros));
 }
 export async function encenderProntoPago(encendido: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/dashboard-admin/acciones#encenderProntoPago", [encendido]);
   return poner('pronto_pago_encendido', encendido);
 }

@@ -10,6 +10,7 @@ import { flotaDe, type FlotaTransportista } from '@/lib/fichaEnvio';
 import type { TablaUpdate } from '@/lib/supabase/tipos';
 import type { Enum } from '@/lib/supabase/tipos';
 import { soloGestor } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -28,6 +29,7 @@ export type Asignacion = {
 };
 
 export async function asignarTransportista(envio: string, a: Asignacion): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#asignarTransportista", [envio, a]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo asigna transportistas.' };
   if (!a.transportista_id) return { ok: false, error: 'Elige el transportista.' };
@@ -46,6 +48,7 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
 }
 
 export async function quitarTransportista(envio: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#quitarTransportista", [envio]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo asigna transportistas.' };
   // La base de datos limpia también camión, conductor, NIMA y precio del transportista.
@@ -54,6 +57,7 @@ export async function quitarTransportista(envio: string): Promise<Res> {
 }
 
 export async function cambiarEstado(envio: string, estado: string, fechaCargaReal: string | null): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#cambiarEstado", [envio, estado, fechaCargaReal]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo cambia el estado de un envío.' };
   if (!(ESTADOS_FASE as readonly string[]).includes(estado)) return { ok: false, error: 'Ese estado no vale.' };
@@ -66,6 +70,7 @@ export async function cambiarEstado(envio: string, estado: string, fechaCargaRea
 }
 
 export async function cancelarEnvio(envio: string, motivo: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#cancelarEnvio", [envio, motivo]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo cancela envíos desde la ficha.' };
   // Desde la vista del cliente («Ver como») es como si llamara él: cuenta como cancelación suya.
@@ -77,6 +82,7 @@ export async function cancelarEnvio(envio: string, motivo: string): Promise<Res>
 }
 
 export async function deshacerCancelacion(envio: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#deshacerCancelacion", [envio]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo deshace cancelaciones.' };
   const { error } = await s.supabase.rpc('deshacer_cancelacion', { p_envio: envio });
@@ -95,6 +101,7 @@ export type DatosEnvio = {
 };
 
 export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: number | null): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#modificarEnvio", [envio, d, precioAntes]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo modifica envíos desde la ficha.' };
   const nums = [d.metros_lineales, d.toneladas, d.importe_cliente, d.importe_transportista, d.precio_acordado_operador];
@@ -136,6 +143,7 @@ export type NuevaOferta = { transportista_id: string | null; canal: string; prec
 
 // Ofrecer la carga: crea la oferta (con su enlace) y devuelve el token del enlace.
 export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#ofrecerCarga", [envio, o]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo ofrece envíos.' };
   if (!Number.isFinite(o.precio) || o.precio <= 0) return { ok: false, error: 'Pon el precio que se ofrece al transportista.' };
@@ -151,6 +159,7 @@ export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok:
 }
 
 export async function revocarOferta(oferta: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#revocarOferta", [oferta]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo gestiona ofertas.' };
   const { error } = await s.supabase.rpc('revocar_oferta', { p_oferta: oferta });
@@ -158,6 +167,7 @@ export async function revocarOferta(oferta: string): Promise<Res> {
 }
 
 export async function resolverContraoferta(reserva: string, aprobar: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#resolverContraoferta", [reserva, aprobar]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo resuelve contraofertas.' };
   const { data, error } = await s.supabase.rpc('resolver_contraoferta', { p_reserva: reserva, p_acepta: aprobar });
@@ -170,6 +180,7 @@ export async function resolverContraoferta(reserva: string, aprobar: boolean): P
 // CMR digital: el enlace para que firmen cargador, transportista y destinatario. Uno vivo
 // por envío; si ya hay uno, se devuelve ese (así se puede volver a mandar sin invalidarlo).
 export async function enlaceCmr(envio: string): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#enlaceCmr", [envio]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo genera el CMR digital.' };
   const { data: est } = await s.supabase.from('envios').select('estado').eq('id', envio).maybeSingle();
@@ -185,6 +196,7 @@ export async function enlaceCmr(envio: string): Promise<{ ok: true; token: strin
 
 // Retirar el enlace: deja de abrirse. Las firmas ya hechas se quedan (no se borran nunca).
 export async function retirarEnlaceCmr(enlace: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#retirarEnlaceCmr", [enlace]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo gestiona el CMR digital.' };
   const { error } = await s.supabase.from('cmr_enlaces').update({ revocado: true }).eq('id', enlace);
@@ -193,6 +205,7 @@ export async function retirarEnlaceCmr(enlace: string): Promise<Res> {
 
 // Valoración del transportista (1-5) al entregar. Solo Dynamo; la media la rehace la base de datos.
 export async function valorarTransportista(envio: string, nota: number | null, comentario: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#valorarTransportista", [envio, nota, comentario]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo valora a los transportistas.' };
   if (nota != null && (!Number.isInteger(nota) || nota < 1 || nota > 5)) return { ok: false, error: 'La nota va de 1 a 5.' };
@@ -204,6 +217,7 @@ export async function valorarTransportista(envio: string, nota: number | null, c
 // documento del envío (queda con su huella sha256, quién y cuándo). Para tener constancia
 // de lo que se mandó, aunque el envío cambie después. Solo Dynamo.
 export async function archivarPdf(envioId: string, documento: 'orden-de-carga' | 'cmr'): Promise<{ ok: boolean; error?: string; aviso?: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#archivarPdf", [envioId, documento]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo guarda copias.' };
   const r = await pdfDeEnvioDynamo(s.supabase, envioId, documento, s.perfil.id);
@@ -224,6 +238,7 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
 
 // Asignar transportista: la flota activa del elegido (matrículas y conductores para sugerir).
 export async function flotaTransportista(transportista: string): Promise<FlotaTransportista> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#flotaTransportista", [transportista]);
   const s = await soloDynamo();
   if (!s || !/^[0-9a-f-]{36}$/i.test(transportista)) return { vehiculos: [], conductores: [] };
   return flotaDe(s.supabase, transportista);
@@ -232,6 +247,7 @@ export async function flotaTransportista(transportista: string): Promise<FlotaTr
 // Asignar transportista: los datos conocidos de su flota (chófer de ese camión de otras
 // veces, o el teléfono de ese chófer). Vacío si no hay: nunca los del chófer anterior.
 export async function sugerirFlota(transportista: string, d: { matricula?: string; conductor?: string }): Promise<{ conductor: string | null; telefono: string | null } | null> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#sugerirFlota", [transportista, d]);
   const s = await soloDynamo();
   if (!s || !transportista) return null;
   const { data, error } = await s.supabase.rpc('flota_sugerencia', { p_transportista: transportista, p_matricula: d.matricula ?? null, p_conductor_nombre: d.conductor ?? null });
@@ -241,6 +257,7 @@ export async function sugerirFlota(transportista: string, d: { matricula?: strin
 
 // Revisión del precio de un envío con precio provisional (hoy a mano; con el tarifador, sola).
 export async function revisarPrecioEnvio(envio: string, precio: number): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#revisarPrecioEnvio", [envio, precio]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo revisa el precio.' };
   const { data, error } = await s.supabase.rpc('revisar_precio_envio', { p_envio: envio, p_nuevo: precio });
@@ -258,6 +275,7 @@ export async function revisarPrecioEnvio(envio: string, precio: number): Promise
 // Plazo para pagar: Dynamo lo vuelve a contar desde ahora (p. ej. el cliente dice que ya
 // ha hecho la transferencia y aún no ha llegado).
 export async function ampliarPlazoPago(envio: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#ampliarPlazoPago", [envio]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo amplía el plazo para pagar.' };
   const { data, error } = await s.supabase.rpc('ampliar_plazo_pago', { p_envio: envio });
@@ -269,6 +287,7 @@ export async function ampliarPlazoPago(envio: string): Promise<Res> {
 // Previo pago: Dynamo marca la transferencia, pasa el envío sin pago previo (cobro a
 // vencimiento, con motivo), lo exige a un envío concreto o deshace lo marcado.
 export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | 'exento' | 'requerir' | 'deshacer' | 'tarjeta', motivo?: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#marcarPagoEnvio", [envio, accion, motivo]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo marca el pago de un envío.' };
   const { data, error } = await s.supabase.rpc('marcar_pago_envio', { p_envio: envio, p_accion: accion, p_motivo: motivo ?? null });
@@ -295,6 +314,7 @@ export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | '
 // Contraoferta del CLIENTE: Dynamo la aprueba (el envío queda confirmado a ese precio) o
 // la rechaza (vuelve a nuestro precio, con la validez renovada).
 export async function resolverContraofertaCliente(envio: string, aprobar: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#resolverContraofertaCliente", [envio, aprobar]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo resuelve las contraofertas.' };
   const { data, error } = await s.supabase.rpc('resolver_contraoferta_cliente', { p_envio: envio, p_acepta: aprobar });
@@ -308,6 +328,7 @@ export async function resolverContraofertaCliente(envio: string, aprobar: boolea
 // Cambio pedido por el CLIENTE: Dynamo lo acepta (se aplican las fechas pedidas; la ruta y
 // el precio se cambian en la ficha) o lo rechaza, con una nota para el cliente.
 export async function resolverCambio(envio: string, aceptar: boolean, nota: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#resolverCambio", [envio, aceptar, nota]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo resuelve los cambios.' };
   const { data, error } = await s.supabase.rpc('resolver_cambio_envio', { p_envio: envio, p_acepta: aceptar, p_nota: nota.trim() || null });

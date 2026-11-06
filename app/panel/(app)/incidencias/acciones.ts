@@ -3,6 +3,7 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type IncidenciaDatos = {
   envio_id: string | null; cliente_id: string | null; tipo_id: string;
@@ -18,6 +19,7 @@ function traducir(msg: string): string {
 }
 
 export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/incidencias/acciones#guardarIncidencia", [id, d]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'No tienes permiso para hacer esto.' };
   const transportista = s.perfil.rol === 'transportista';

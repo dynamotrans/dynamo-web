@@ -3,6 +3,7 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { randomUUID } from 'node:crypto';
 import { soloGestor } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // Documentos de Recursos que publica el equipo de Dynamo (condiciones, guías, certificados…).
 // Los ve cualquier cuenta activa; los sube y los quita solo Dynamo (lo impone la base de datos:
@@ -14,12 +15,14 @@ const sano = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/
 const gestor = soloGestor;
 
 export async function rutaRecurso(nombre: string): Promise<Res<{ ruta: string }>> {
+  comprobarEntrada("app/panel/(app)/recursos/acciones#rutaRecurso", [nombre]);
   const s = await gestor();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo publica documentos en Recursos.' };
   return { ok: true, ruta: `recursos/${randomUUID()}/${sano(nombre)}` };
 }
 
 export async function registrarRecurso(f: { ruta: string; nombre: string; mime: string; tamano: number; sha256: string; titulo: string; descripcion: string }): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/recursos/acciones#registrarRecurso", [f]);
   const s = await gestor();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo publica documentos en Recursos.' };
   const titulo = f.titulo.trim().slice(0, 120);
@@ -35,6 +38,7 @@ export async function registrarRecurso(f: { ruta: string; nombre: string; mime: 
 
 // Quitar = borrado suave: deja de verse, el fichero se conserva.
 export async function quitarRecurso(id: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/recursos/acciones#quitarRecurso", [id]);
   const s = await gestor();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos de Recursos.' };
   const { error } = await s.supabase.from('documentos').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id).eq('es_recurso', true);

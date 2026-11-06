@@ -2,6 +2,7 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { soloGestor } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type PenalizacionDatos = {
   envio_id: string; tipo_id: string; descripcion: string;
@@ -18,6 +19,7 @@ function traducir(msg: string): string {
 const dynamo = async () => (await soloGestor())?.supabase ?? null;
 
 export async function guardarPenalizacion(id: string | null, d: PenalizacionDatos): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/penalizaciones/acciones#guardarPenalizacion", [id, d]);
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona penalizaciones.' };
   if (!d.envio_id) return { ok: false, error: 'Elige el envío al que corresponde la penalización.' };
@@ -33,6 +35,7 @@ export async function guardarPenalizacion(id: string | null, d: PenalizacionDato
 }
 
 export async function cambiarEstadoPenalizacion(id: string, estado: 'pendiente_confirmar' | 'confirmada' | 'cancelada'): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/penalizaciones/acciones#cambiarEstadoPenalizacion", [id, estado]);
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona penalizaciones.' };
   const { error } = await sb.from('penalizaciones').update({ estado }).eq('id', id);

@@ -3,6 +3,7 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion } from '@/lib/sesion';
 import { soloTransportista } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // Lo que el TRANSPORTISTA hace con SUS viajes. Todo pasa por funciones de la base de datos
 // que comprueban que el viaje es suyo.
@@ -14,6 +15,7 @@ const TEXTO: Record<string, string> = {
 };
 
 export async function marcarViaje(envio: string, estado: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones-transportista#marcarViaje", [envio, estado]);
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo el transportista del envío lo marca.' };
   const { error } = await s.supabase.rpc('marcar_mi_viaje', { p_envio: envio, p_estado: estado });
@@ -22,6 +24,7 @@ export async function marcarViaje(envio: string, estado: string): Promise<Res> {
 
 // El enlace del CMR digital del envío (lo crea si no hay). Lo usan el transportista y el cliente.
 export async function enlaceCmrPropio(envio: string): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones-transportista#enlaceCmrPropio", [envio]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   const { data, error } = await s.supabase.rpc('mi_enlace_cmr', { p_envio: envio });

@@ -63,5 +63,9 @@ jobs:
         run: npm run lint
       - name: Pruebas unitarias (lib/)
         run: npm test
+      - name: Entradas de las acciones al día
+        # Cada acción del servidor comprueba su entrada con un esquema sacado de sus tipos
+        # (lib/entradas/esquemas.ts). Si cambia una acción, hay que regenerarlo.
+        run: node tools/entradas/generar.mjs --comprobar
       - name: Compilación
         run: npm run build

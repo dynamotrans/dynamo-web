@@ -2,6 +2,7 @@
 
 import { sesion, esDynamo } from '@/lib/sesion';
 import { enviosLigerosPorId, misEnviosLigerosPorId, type EnvioLigero } from '@/lib/enviosLigeros';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // Buscador «Envío referenciado» de Incidencias y Penalizaciones: busca en la base de datos
 // (buscar_envios_pagina, con índice). Dynamo en todos; el cliente y el transportista, en lo
@@ -10,6 +11,7 @@ const puede = (rol: string) => esDynamo(rol) || rol === 'cliente' || rol === 'tr
 const deEllos = (s: { supabase: any; perfil: { rol: string } }, ids: string[]) => esDynamo(s.perfil.rol)
   ? enviosLigerosPorId(s.supabase, ids) : misEnviosLigerosPorId(s.supabase, ids, s.perfil.rol === 'transportista');
 export async function buscarEnviosLigeros(q: string): Promise<EnvioLigero[]> {
+  comprobarEntrada("lib/enviosLigerosAcciones#buscarEnviosLigeros", [q]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !puede(s.perfil.rol)) return [];
   const texto = String(q ?? '').replace(/^#/, '').trim().slice(0, 120);
@@ -21,6 +23,7 @@ export async function buscarEnviosLigeros(q: string): Promise<EnvioLigero[]> {
 
 // Un envío ya elegido que no está entre los recientes (al abrir una ficha antigua).
 export async function envioLigero(id: string): Promise<EnvioLigero | null> {
+  comprobarEntrada("lib/enviosLigerosAcciones#envioLigero", [id]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !puede(s.perfil.rol) || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   return (await deEllos(s as any, [id]))[0] ?? null;

@@ -6,6 +6,7 @@ import { supabasePublico } from '@/lib/supabase/publico';
 import { cookieReserva, cookieAlta } from '@/lib/cargaPublica';
 import { validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // La reserva va en una cookie de esta página: su id es la llave para aceptar y para ver
 // los datos completos después. Solo la tiene quien reservó.
@@ -17,6 +18,7 @@ async function enMantenimiento(sb: NonNullable<ReturnType<typeof supabasePublico
 }
 
 export async function reservar(token: string): Promise<{ resultado: string; hasta?: string; desde?: string; ahora?: string }> {
+  comprobarEntrada("app/carga/[token]/acciones#reservar", [token]);
   const sb = supabasePublico();
   if (!sb || await enMantenimiento(sb)) return { resultado: 'error' };
   const h = await headers();
@@ -33,6 +35,7 @@ export async function reservar(token: string): Promise<{ resultado: string; hast
 export type Aceptacion = { cif: string; precio: number | null; pronto_pago: boolean; camion: string; remolque: string; conductor: string; telefono: string };
 
 export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number; error?: string }> {
+  comprobarEntrada("app/carga/[token]/acciones#aceptar", [token, a]);
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
@@ -47,6 +50,7 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
 }
 
 export async function liberar(token: string): Promise<void> {
+  comprobarEntrada("app/carga/[token]/acciones#liberar", [token]);
   const sb = supabasePublico();
   const almacen = await cookies();
   const reserva = almacen.get(cookieReserva(token))?.value;
@@ -55,6 +59,7 @@ export async function liberar(token: string): Promise<void> {
 }
 
 export async function completar(token: string, d: { camion: string; remolque: string; conductor: string; telefono: string }): Promise<{ resultado: string; conductor?: string | null; telefono?: string | null }> {
+  comprobarEntrada("app/carga/[token]/acciones#completar", [token, d]);
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error' };
@@ -67,6 +72,7 @@ export async function completar(token: string, d: { camion: string; remolque: st
 // Al escribir una matrícula o un chófer: los datos que ya conocemos de su flota (el chófer
 // de ese camión de otras veces, o el teléfono de ese chófer). Vacío si no hay.
 export async function sugerirFlota(token: string, d: { matricula?: string; conductor?: string }): Promise<{ conductor: string | null; telefono: string | null } | null> {
+  comprobarEntrada("app/carga/[token]/acciones#sugerirFlota", [token, d]);
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return null;
@@ -77,6 +83,7 @@ export async function sugerirFlota(token: string, d: { matricula?: string; condu
 
 // El enlace de firma del CMR digital de la carga aceptada (lo crea si no hay uno vivo).
 export async function enlaceCmr(token: string): Promise<{ cmr?: string; error?: string }> {
+  comprobarEntrada("app/carga/[token]/acciones#enlaceCmr", [token]);
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { error: `Tu reserva no está en este navegador. Llámanos al ${CONTACTO.telefono}.` };
@@ -92,6 +99,7 @@ export async function enlaceCmr(token: string): Promise<{ cmr?: string; error?: 
 // Dynamo desde su ficha en la bolsa.
 export type AltaTransportista = { bolsa: string; codigo_bolsa: string; pais: string; cif: string; telefono: string; precio: number | null; pronto_pago: boolean };
 export async function darseDeAlta(token: string, a: AltaTransportista): Promise<{ resultado: string; minimo?: number; maximo?: number; campo?: string; error?: string }> {
+  comprobarEntrada("app/carga/[token]/acciones#darseDeAlta", [token, a]);
   const sb = supabasePublico();
   const almacen = await cookies();
   const reserva = almacen.get(cookieReserva(token))?.value;

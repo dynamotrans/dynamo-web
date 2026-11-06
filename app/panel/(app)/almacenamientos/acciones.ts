@@ -6,6 +6,7 @@ import { sesion } from '@/lib/sesion';
 import { precioAlmacenamiento } from '@/lib/almacenamiento';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { soloCliente, soloGestor } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type AlmacenamientoDatos = {
   cliente_id: string; almacen_id: string; fecha_entrada: string; fecha_salida: string;
@@ -30,6 +31,7 @@ const dynamo = async () => (await soloGestor())?.supabase ?? null;
 // El precio lo calcula SIEMPRE el servidor con las tarifas del almacén (o las de
 // `parametros`) y queda congelado en el registro: la tarifa de mañana no cambia lo de hoy.
 export async function guardarAlmacenamiento(id: string | null, d: AlmacenamientoDatos, recalcular: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/almacenamientos/acciones#guardarAlmacenamiento", [id, d, recalcular]);
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Esta sección todavía es solo del equipo de Dynamo.' };
   if (!d.cliente_id) return { ok: false, error: 'Elige el cliente.' };
@@ -68,6 +70,7 @@ export async function guardarAlmacenamiento(id: string | null, d: Almacenamiento
 }
 
 export async function cambiarEstadoAlmacenamiento(id: string, estado: EstadoAlm): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/almacenamientos/acciones#cambiarEstadoAlmacenamiento", [id, estado]);
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Esta sección todavía es solo del equipo de Dynamo.' };
   const { error } = await sb.from('almacenamientos').update({ estado }).eq('id', id);
@@ -77,6 +80,7 @@ export async function cambiarEstadoAlmacenamiento(id: string, estado: EstadoAlm)
 
 // Pago por adelantado: Dynamo marca cuándo validó el pago (o lo deshace si se equivocó).
 export async function marcarPagadoAlmacenamiento(id: string, pagado: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/almacenamientos/acciones#marcarPagadoAlmacenamiento", [id, pagado]);
   const sb = await dynamo();
   if (!sb) return { ok: false, error: 'Esta sección todavía es solo del equipo de Dynamo.' };
   const { error } = await sb.from('almacenamientos').update({ pagado_en: pagado ? new Date().toISOString() : null }).eq('id', id);
@@ -87,6 +91,7 @@ export async function marcarPagadoAlmacenamiento(id: string, pagado: boolean): P
 // Sitios de un cliente, para la dirección del reparto urbano.
 // (Carga de fondo: sin sesión devuelve lista vacía en vez de redirigir a la entrada.)
 export async function sitiosDelCliente(clienteId: string): Promise<{ id: string; nombre: string; linea: string }[]> {
+  comprobarEntrada("app/panel/(app)/almacenamientos/acciones#sitiosDelCliente", [clienteId]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !/^[0-9a-f-]{36}$/i.test(clienteId)) return [];
   const { data } = await leerTodo(s.supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
@@ -103,6 +108,7 @@ export type PeticionAlm = {
 };
 const cliente = async () => (await soloCliente())?.supabase ?? null;
 export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/almacenamientos/acciones#pedirAlmacenamiento", [id, d]);
   const sb = await cliente();
   if (!sb) return { ok: false, error: 'Tu sesión ha caducado o tu cuenta no está activa.' };
   if (!d.almacen_id) return { ok: false, error: 'Elige el almacén Dynamo.' };
@@ -125,6 +131,7 @@ export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Pr
   return { ok: true, id: data.id, codigo: data.codigo };
 }
 export async function cancelarMiAlmacenamiento(id: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/almacenamientos/acciones#cancelarMiAlmacenamiento", [id]);
   const sb = await cliente();
   if (!sb) return { ok: false, error: 'Tu sesión ha caducado o tu cuenta no está activa.' };
   const { data, error } = await sb.from('almacenamientos').update({ estado: 'cancelado' }).eq('id', id).eq('estado', 'pendiente_confirmar').select('id');

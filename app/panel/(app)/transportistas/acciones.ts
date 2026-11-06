@@ -5,6 +5,7 @@ import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type TransportistaDatos = {
   razon_social: string; nombre_comercial: string; cif: string;
@@ -32,6 +33,7 @@ const vacio = (s: string) => (s ?? '').trim() || null;
 
 export async function guardarTransportista(id: string | null, d: TransportistaDatos):
   Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/transportistas/acciones#guardarTransportista", [id, d]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
     return { ok: false, error: 'Solo el equipo de Dynamo gestiona transportistas.' };

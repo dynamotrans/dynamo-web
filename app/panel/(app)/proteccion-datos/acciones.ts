@@ -4,6 +4,7 @@
 // sus fichas. Solo el Admin Master (lo impone también la base de datos).
 import { anonimizarUsuario } from '../usuarios/acciones';
 import { soloAdminMaster } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type Persona = { tipo: 'usuario' | 'contacto' | 'conductor'; id: string; nombre: string | null; email: string | null;
   telefono: string | null; documento: string | null; empresa: string | null; estado: string | null };
@@ -11,6 +12,7 @@ export type Persona = { tipo: 'usuario' | 'contacto' | 'conductor'; id: string; 
 const soloMaster = soloAdminMaster;
 
 export async function buscarPersona(q: string): Promise<{ ok: true; filas: Persona[] } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/proteccion-datos/acciones#buscarPersona", [q]);
   const s = await soloMaster();
   if (!s) return { ok: false, error: 'Solo el administrador.' };
   if (q.trim().length < 3) return { ok: false, error: 'Escribe al menos 3 letras o números.' };
@@ -22,6 +24,7 @@ export async function buscarPersona(q: string): Promise<{ ok: true; filas: Perso
 // Usuario: con su email como confirmación (la misma acción que en Usuarios). Contacto y
 // conductor: escribiendo ANONIMIZAR.
 export async function anonimizarPersona(tipo: Persona['tipo'], id: string, confirmacion: string): Promise<{ ok: true; aviso: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/proteccion-datos/acciones#anonimizarPersona", [tipo, id, confirmacion]);
   const s = await soloMaster();
   if (!s) return { ok: false, error: 'Solo el administrador.' };
   if (tipo === 'usuario') {

@@ -5,11 +5,13 @@
 import { sesion } from '@/lib/sesion';
 import { esDynamo } from '@/lib/roles';
 import { vistaCruda } from '@/lib/vista';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type Aviso = { id: string; tipo: string; nivel: 'info' | 'ok' | 'aviso' | 'urgente'; titulo: string; texto: string | null;
   enlace: string | null; creado_en: string; nuevo: boolean };
 
 export async function misAvisos(): Promise<Aviso[]> {
+  comprobarEntrada("app/panel/avisos#misAvisos", []);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return [];
   const v = esDynamo(s.perfil.rol) ? await vistaCruda() : { tipo: 'admin' as const };
@@ -21,6 +23,7 @@ export async function misAvisos(): Promise<Aviso[]> {
 }
 
 export async function marcarAvisosVistos(): Promise<void> {
+  comprobarEntrada("app/panel/avisos#marcarAvisosVistos", []);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return;
   await s.supabase.rpc('marcar_avisos_vistos');

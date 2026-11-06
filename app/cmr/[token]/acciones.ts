@@ -5,6 +5,7 @@ import { headers } from 'next/headers';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; nombre: string; documento: string; pais: string; email: string; png: string;
   reservas?: string };   // daños o faltantes: van ANTES de la firma y entran en su huella
@@ -13,6 +14,7 @@ export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transpo
 // pantalla solo avisa); la hora la pone la base de datos; el trazo va al almacén privado,
 // en la carpeta de este enlace; y se guarda la huella de los datos del CMR que se firmaron.
 export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/cmr/[token]/acciones#firmar", [token, d]);
   const sb = supabasePublico();
   if (!sb || !/^[0-9a-f-]{36}$/i.test(token)) return { ok: false, error: 'Este enlace no es válido.' };
   const { data: mant } = await sb.rpc('mantenimiento_activo');

@@ -3,6 +3,7 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { soloAdminMaster } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // Archivos sueltos del almacén privado (subidas que se cortaron antes de registrar su
 // fila). Solo el Admin Master, y con la clave de servicio: desde la web no se borra
@@ -14,6 +15,7 @@ const SIN_CLAVE = 'Falta conectar la clave de servicio de Supabase en Vercel (SU
 const adminMaster = async () => !!(await soloAdminMaster());
 
 export async function contarArchivosSueltos(): Promise<Res<{ n: number; bytes: number }>> {
+  comprobarEntrada("app/panel/(app)/mantenimiento/acciones#contarArchivosSueltos", []);
   if (!(await adminMaster())) return { ok: false, error: 'Solo el administrador puede hacer esto.' };
   const sv = supabaseServicio();
   if (!sv) return { ok: false, error: SIN_CLAVE };
@@ -24,6 +26,7 @@ export async function contarArchivosSueltos(): Promise<Res<{ n: number; bytes: n
 }
 
 export async function borrarArchivosSueltos(): Promise<Res<{ borrados: number }>> {
+  comprobarEntrada("app/panel/(app)/mantenimiento/acciones#borrarArchivosSueltos", []);
   if (!(await adminMaster())) return { ok: false, error: 'Solo el administrador puede hacer esto.' };
   const sv = supabaseServicio();
   if (!sv) return { ok: false, error: SIN_CLAVE };

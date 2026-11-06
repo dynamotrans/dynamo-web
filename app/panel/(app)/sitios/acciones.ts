@@ -7,6 +7,7 @@ import { validarHorario, tramosDe, MMDD, type GrupoHorario, type Verano } from '
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { gestorOCliente } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type SitioDatos = {
   cliente_id: string; nombre_empresa: string; tipo: string;
@@ -37,6 +38,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const puede = gestorOCliente;
 
 export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParezcaRepetido = false): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#guardarSitio", [id, d, aunqueParezcaRepetido]);
   const s = await puede();
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar sitios.' };
   const esAlmacen = !!d.almacen;
@@ -118,6 +120,7 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
 // Borrado SUAVE: sale de la agenda y del buscador; los envíos ya hechos conservan la
 // dirección. Si tenía la estrella, la base de datos se la quita sola.
 export async function borrarSitio(id: string): Promise<{ ok: boolean; error?: string }> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#borrarSitio", [id]);
   const s = await puede();
   if (!s) return { ok: false, error: 'No tienes permiso para borrar sitios.' };
   const { error } = await s.supabase.from('sitios')
@@ -126,6 +129,7 @@ export async function borrarSitio(id: string): Promise<{ ok: boolean; error?: st
 }
 
 export async function marcarPrincipal(clienteId: string, sitioId: string | null): Promise<{ ok: boolean; error?: string }> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#marcarPrincipal", [clienteId, sitioId]);
   const s = await puede();
   if (!s) return { ok: false, error: 'No tienes permiso.' };
   const { error } = await s.supabase.rpc('marcar_sitio_principal', { p_cliente: clienteId, p_sitio: sitioId });

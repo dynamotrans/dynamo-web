@@ -3,11 +3,13 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { supabaseServidor, COOKIE_RECORDAR } from '@/lib/supabase/server';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // Estado que devuelve el formulario de entrada.
 export type EstadoEntrar = { error: string | null; email?: string };
 
 export async function entrar(_prev: EstadoEntrar, datos: FormData): Promise<EstadoEntrar> {
+  comprobarEntrada("app/panel/acciones#entrar", [_prev, datos]);
   const recordar = datos.get('recordar') === 'on';
   const supabase = await supabaseServidor(recordar);
   const email = String(datos.get('email') || '').trim().toLowerCase();

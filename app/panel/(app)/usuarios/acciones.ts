@@ -7,6 +7,7 @@ import { type Rol } from '@/lib/sesion';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { origen } from '@/lib/origen';
 import { soloGestor } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type UsuarioDatos = {
   nombre: string; documento: string; telefono: string; cargo: string; idioma: string;
@@ -42,6 +43,7 @@ function empresaDe(rol: Rol, cliente_id: string, transportista_id: string) {
 }
 
 export async function guardarUsuario(id: string, rol: Rol, d: UsuarioDatos): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#guardarUsuario", [id, rol, d]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   const tel = normalizaTel(d.telefono);
@@ -65,6 +67,7 @@ const confirmado = (t: string) => t.trim().toLowerCase() === 'confirmo';
 const SOLO_SUPABASE = 'El Admin Master solo se nombra desde Supabase (Table Editor → usuarios), nunca desde la web.';
 export async function cambiarRol(id: string, rol: Rol, confirmacion: string,
                                  cliente_id: string, transportista_id: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#cambiarRol", [id, rol, confirmacion, cliente_id, transportista_id]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   if (id === s.perfil!.id) return { ok: false, error: 'Nadie puede cambiar su propio rol.' };
@@ -82,6 +85,7 @@ export type Invitacion = { email: string; nombre: string; rol: Rol; cliente_id: 
 // Alta de un usuario: Supabase le manda un email con el enlace para CREAR SU CONTRASEÑA
 // (Dynamo nunca la ve ni la escribe). Luego se le pone rol y empresa con la sesión del admin.
 export async function invitarUsuario(d: Invitacion): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#invitarUsuario", [d]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo da de alta usuarios.' };
   const email = d.email.trim().toLowerCase();
@@ -116,6 +120,7 @@ export async function invitarUsuario(d: Invitacion): Promise<Res> {
 
 // Reenviar la invitación a quien aún no ha creado su contraseña.
 export async function reenviarInvitacion(id: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#reenviarInvitacion", [id]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   const { data: u } = await s.supabase.from('usuarios').select('email').eq('id', id).single();
@@ -131,6 +136,7 @@ export async function reenviarInvitacion(id: string): Promise<Res> {
 // deja repetir email (regla 10) y el perfil se actualiza solo (trigger de la base de
 // datos). Necesita la clave de servicio: con la pública no se puede.
 export async function cambiarEmail(id: string, nuevo: string, emailConfirmacion: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#cambiarEmail", [id, nuevo, emailConfirmacion]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   const email = nuevo.trim().toLowerCase();
@@ -159,6 +165,7 @@ export async function cambiarEmail(id: string, nuevo: string, emailConfirmacion:
 // Solo el Admin Master, tecleando el email actual. Con la clave de servicio, además se
 // cambia el email de acceso en Supabase Auth y se bloquea la entrada.
 export async function anonimizarUsuario(id: string, emailConfirmacion: string): Promise<Res & { aviso?: string }> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#anonimizarUsuario", [id, emailConfirmacion]);
   const s = await soloDynamo();
   if (!s || s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el administrador anonimiza cuentas.' };
   const { data: u } = await s.supabase.from('usuarios').select('email, rol').eq('id', id).single();

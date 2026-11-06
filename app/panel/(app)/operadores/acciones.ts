@@ -6,6 +6,7 @@ import { mensajeError } from '@/lib/mensajeError';
 import { esGestor } from '@/lib/sesion';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { gestorOCliente } from '@/lib/guardia';
+import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type OperadorDatos = {
   cliente_id: string | null; razon_social: string; cif: string; telefono: string; email: string;
@@ -26,6 +27,7 @@ const vacio = (s: string) => (s ?? '').trim() || null;
 const quien = gestorOCliente;
 
 export async function guardarOperador(id: string | null, d: OperadorDatos): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/operadores/acciones#guardarOperador", [id, d]);
   const s = await quien();
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar transportistas.' };
   if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'El nombre y el CIF/NIF son obligatorios.' };
@@ -46,6 +48,7 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
 
 // Borrado suave: los envíos ya hechos con él no pierden a quién se dieron.
 export async function borrarOperador(id: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/operadores/acciones#borrarOperador", [id]);
   const s = await quien();
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar transportistas.' };
   const { error } = await s.supabase.from('operadores').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id);
