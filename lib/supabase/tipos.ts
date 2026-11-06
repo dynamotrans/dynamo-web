@@ -3304,7 +3304,7 @@ export type Database = {
       tipo_camion: "trailer_tauliner" | "rigido_plataforma"
       tipo_carga: "completa" | "grupaje"
       tipo_concepto: "porte" | "almacenaje" | "paralizacion" | "penalizacion" | "otros"
-      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "cargado" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida"
+      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "cargado" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida"
       tipo_sitio: "almacen_nave" | "obra_zona_amplia" | "obra_zona_urbana" | "finca"
       tipo_vehiculo: "tractora" | "remolque" | "rigido"
     }

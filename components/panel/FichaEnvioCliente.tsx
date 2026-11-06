@@ -28,7 +28,7 @@ import { ESTADOS_ENVIO, FASES_ENVIO } from '@/lib/estados';
 
 const HITOS: Record<string, string> = {
   creado: 'Solicitud creada', confirmado: 'Envío confirmado', transportista_asignado: 'Transportista asignado',
-  matricula_asignada: 'Camión asignado', cargado: 'Cargado · en ruta', entregado: 'Entregado', cancelado: 'Cancelado',
+  matricula_asignada: 'Camión asignado', hacia_la_carga: 'El camión va hacia la carga', cargando: 'Cargando', cargado: 'Cargado · en ruta', entregado: 'Entregado', cancelado: 'Cancelado',
   cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', cmr_firmado: 'CMR firmado',
   fecha_carga_movida: 'Fecha de carga movida (el pago llegó tarde)',
 };

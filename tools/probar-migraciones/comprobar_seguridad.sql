@@ -5608,3 +5608,26 @@ end $$;
 drop function realtime.send(jsonb, text, text, boolean);
 drop table realtime._senales;
 drop schema realtime;
+
+-- ---- 157. Línea de tiempo completa: hacia la carga, cargando y hora de cada parada -------
+reset role;
+do $$ declare e uuid; n int; begin
+  select id into e from envios where estado = 'programado' and transportista_id is not null limit 1;
+  if e is null then raise notice 'OK 157 · (sin envío programado con transportista en los datos de prueba: se salta)'; return; end if;
+  update envios set estado = 'hacia_la_carga' where id = e;
+  update envios set estado = 'cargando' where id = e;
+  update envios set estado = 'en_ruta' where id = e;
+  select count(*) into n from envio_hitos where envio_id = e and hito in ('hacia_la_carga', 'cargando', 'cargado');
+  if n < 3 then raise exception 'FALLO 157 · faltan hitos de la marcha (%)', n; end if;
+  if exists (select 1 from envio_paradas where envio_id = e and tipo = 'carga' and realizado_en is null) then
+    raise exception 'FALLO 157 · las recogidas no guardan su hora al pasar a «En ruta»';
+  end if;
+  update envios set estado = 'entregado' where id = e;
+  if exists (select 1 from envio_paradas where envio_id = e and realizado_en is null) then
+    raise exception 'FALLO 157 · las entregas no guardan su hora al entregar';
+  end if;
+  if not (hito_visible_fuera('hacia_la_carga') and hito_visible_fuera('cargando')) then
+    raise exception 'FALLO 157 · el cliente no ve la salida hacia la carga';
+  end if;
+  raise notice 'OK 157 · línea de tiempo: hacia la carga, cargando, cargado y entregado con su hora, y la hora de cada parada';
+end $$;
