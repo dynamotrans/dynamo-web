@@ -5518,3 +5518,49 @@ do $$ begin
   raise notice 'OK 153 · baja de cuenta: el usuario corta su acceso, se conserva todo, Dynamo recibe el aviso y puede reactivarla';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 154. Plataforma en vivo: una señal SIN DATOS por sentencia, a quien le toca ----------
+-- Aquí no hay Supabase Realtime: se imita realtime.send() con una tabla para ver qué se manda.
+reset role;
+create schema if not exists realtime;
+create table if not exists realtime._senales (topic text, payload jsonb);
+create or replace function realtime.send(payload jsonb, event text, topic text, private boolean default true)
+returns void language sql as $$ insert into realtime._senales values (topic, payload) $$;
+do $$ declare e envios%rowtype; v_n int; v_topics text[]; begin
+  select * into e from envios where cliente_id is not null and transportista_id is not null limit 1;
+  if not found then raise exception 'FALLO 154 · no hay envío con cliente y transportista para probar'; end if;
+  truncate realtime._senales;
+  update envios set referencia_cliente = referencia_cliente where id = e.id;
+  select array_agg(topic order by topic) into v_topics from realtime._senales where payload ->> 't' = 'envios';
+  if v_topics is distinct from array['cliente:' || e.cliente_id, 'dynamo', 'transportista:' || e.transportista_id] then
+    raise exception 'FALLO 154 · señales de un envío: %', v_topics;
+  end if;
+  if exists (select 1 from realtime._senales where payload - 't' <> '{}'::jsonb) then
+    raise exception 'FALLO 154 · la señal lleva datos además de la tabla';
+  end if;
+  -- Muchas filas en una sentencia = una señal por destinatario, no una por fila.
+  truncate realtime._senales;
+  update envios set referencia_cliente = referencia_cliente where cliente_id = e.cliente_id;
+  select count(*) into v_n from realtime._senales where topic = 'dynamo' and payload ->> 't' = 'envios';
+  if v_n <> 1 then raise exception 'FALLO 154 · % señales a Dynamo por una sola sentencia', v_n; end if;
+  -- Lo que cuelga de un envío avisa a los del envío.
+  truncate realtime._senales;
+  update envio_paradas set orden = orden where envio_id = e.id;
+  if not exists (select 1 from realtime._senales where topic = 'cliente:' || e.cliente_id and payload ->> 't' = 'envio_paradas') then
+    raise exception 'FALLO 154 · las paradas no avisan al cliente del envío';
+  end if;
+end $$;
+-- Si Realtime falla, el cambio se guarda igual.
+create or replace function realtime.send(payload jsonb, event text, topic text, private boolean default true)
+returns void language plpgsql as $$ begin raise exception 'Realtime caído'; end $$;
+do $$ declare e uuid := (select id from envios limit 1); begin
+  update envios set referencia_cliente = 'EN-VIVO-154' where id = e;
+  if (select referencia_cliente from envios where id = e) <> 'EN-VIVO-154' then raise exception 'FALLO 154 · con Realtime caído no se guarda'; end if;
+  update envios set referencia_cliente = null where id = e;
+  -- Sin realtime.send() (este Postgres), los disparadores no hacen nada.
+  if (select count(*) from pg_trigger where tgname like 'tg_zz_en_vivo_%') < 57 then raise exception 'FALLO 154 · faltan disparadores en vivo'; end if;
+  raise notice 'OK 154 · en vivo: una señal sin datos por sentencia a Dynamo, al cliente y al transportista del envío; si Realtime falla, el cambio se guarda';
+end $$;
+drop function realtime.send(jsonb, text, text, boolean);
+drop table realtime._senales;
+drop schema realtime;

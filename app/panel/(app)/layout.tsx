@@ -8,6 +8,7 @@ import { vistaDe } from '@/lib/vista';
 import Marco, { type Contadores, type Cobertura } from '@/components/panel/Marco';
 import TirarParaRecargar from '@/components/panel/TirarParaRecargar';
 import BotonArriba from '@/components/panel/BotonArriba';
+import EnVivo from '@/components/panel/EnVivo';
 import './dashboard.css';
 import './ajustes.css';
 
@@ -34,11 +35,15 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   const mant = mantR.data;
   // Modo mantenimiento (lo enciende Dynamo): clientes y transportistas no entran.
   if (mant && !dynamo) return <PantallaMantenimiento />;
+  // Canales de la plataforma en vivo: Dynamo lo oye todo; cada cliente y transportista, lo suyo.
+  const canales = !activa ? [] : dynamo ? ['dynamo']
+    : [perfil?.cliente_id && `cliente:${perfil.cliente_id}`, perfil?.transportista_id && `transportista:${perfil.transportista_id}`].filter(Boolean) as string[];
   const festivos = ((fes.data ?? []) as { fecha: string; region?: string | null }[]).filter((f) => !f.region).map((f) => f.fecha);
   return (
     <RefrescoProvider>
     <TirarParaRecargar />
     <BotonArriba />
+    <EnVivo canales={canales} marca={Date.now()} />
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
            empresa={empresa} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
            contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}

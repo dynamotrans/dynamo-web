@@ -5,7 +5,7 @@
 #      que los tipos de TypeScript (lib/supabase/tipos.ts) están al día.
 #   2. Web: tipos, revisión del código (ESLint), pruebas unitarias de lib/ y compilación
 #      completa, igual que en Vercel.
-#   3. Navegador: los 5 flujos clave con Playwright contra un Supabase local completo.
+#   3. Navegador: los 6 flujos clave con Playwright contra un Supabase local completo.
 name: CI
 
 on:
@@ -72,11 +72,11 @@ jobs:
         run: npm run build
 
   navegador:
-    # Los 5 flujos clave en un navegador (Playwright) contra un Supabase LOCAL completo (base
-    # de datos, login y API) con todas las migraciones y datos de prueba (tests/e2e). El
+    # Los 6 flujos clave en un navegador (Playwright) contra un Supabase LOCAL completo (base
+    # de datos, login, API y Realtime para el 6.º, «en vivo») con todas las migraciones y datos de prueba (tests/e2e). El
     # proyecto de Supabase se crea aparte en /tmp para no tocar supabase/config.toml (que se
     # despliega).
-    name: Navegador (5 flujos clave)
+    name: Navegador (6 flujos clave)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -93,7 +93,7 @@ jobs:
         run: |
           mkdir -p /tmp/sb && cd /tmp/sb && supabase init --force
           mkdir -p supabase/migrations && cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
-          supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,realtime,mailpit,postgres-meta
+          supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,mailpit,postgres-meta
           supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | tr -d '"' >> "$GITHUB_ENV"
       - name: Datos de prueba
         run: node tests/e2e/semilla.mjs

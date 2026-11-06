@@ -291,6 +291,15 @@ pago por uso será Google Maps (ver abajo).
   carga, mandar emails y WhatsApp. Nada de eso debe bloquear la respuesta al usuario.
 - La **publicación diferida en bolsas** (3 minutos tras crear o modificar, ya decidida)
   es justo un trabajo en cola.
+- **Plataforma en vivo (Supabase Realtime, 2026-11-06)** — ✅ hecho en `pruebas`. Cada cambio
+  manda una señal **sin datos** por un canal privado («dynamo», «cliente:<id>»,
+  «transportista:<id>»; migración `en_vivo`) y la pantalla se vuelve a pedir con sus permisos.
+  Una señal por sentencia, nunca bloquea un cambio. Coste: cada tanda de cambios = 2 refrescos
+  de la página abierta por cada usuario conectado que le toque (uno + uno de confirmación).
+  Plan gratuito de Supabase: 200 conexiones de Realtime a la vez y 2 M de mensajes al mes,
+  de sobra hoy; vigilarlo al crecer. **Al lanzar**: en Supabase → Realtime → Settings,
+  **quitar «Allow public access»** para que solo existan canales privados (la plataforma ya
+  solo usa privados; así nadie puede abrir uno público).
 
 ---
 

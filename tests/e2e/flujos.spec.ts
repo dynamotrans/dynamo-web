@@ -1,14 +1,12 @@
 // Los 5 flujos clave de la plataforma, de punta a punta en un navegador:
 //   1. el cliente pide un envío · 2. Dynamo pone precio, el cliente acepta y paga (transferencia)
 //   3. Dynamo asigna transportista · 4. un transportista acepta una carga por el enlace
-//   5. se firma el CMR digital.
+//   5. se firma el CMR digital · 6. la plataforma en vivo: lo nuevo aparece sin refrescar.
 import { test, expect, type Page } from '@playwright/test';
 import { entrar, ultimoEnvio, bd, CIF_TRANSPORTISTA } from './ayudas';
 
-// Pide un envío como cliente, le pone precio Dynamo, el cliente lo acepta y Dynamo da el pago
-// por recibido: queda programado, pagado y sin transportista. Devuelve su id.
-async function envioListo(page: Page): Promise<string> {
-  await entrar(page, 'cliente');
+// El cliente (ya dentro) pide un envío Sevilla → Madrid con el primer día posible.
+async function pedirEnvio(page: Page) {
   await page.goto('/panel/nuevo-envio');
   const sitio = page.locator('.ptar-route-row input[type=text]');
   await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
@@ -19,6 +17,13 @@ async function envioListo(page: Page): Promise<string> {
   await page.getByRole('button', { name: /Ver resumen/ }).click();
   await page.getByRole('button', { name: 'Enviar solicitud' }).click();
   await expect(page.getByText(/Solicitud #?\S+ enviada/)).toBeVisible();
+}
+
+// Pide un envío como cliente, le pone precio Dynamo, el cliente lo acepta y Dynamo da el pago
+// por recibido: queda programado, pagado y sin transportista. Devuelve su id.
+async function envioListo(page: Page): Promise<string> {
+  await entrar(page, 'cliente');
+  await pedirEnvio(page);
   const id = (await ultimoEnvio()).id;
   await entrar(page, 'dynamo');
   await page.goto(`/panel/envios?ver=${id}`);
@@ -47,16 +52,7 @@ test.describe.serial('flujos clave', () => {
 
   test('1 · el cliente pide un envío', async ({ page }) => {
     await entrar(page, 'cliente');
-    await page.goto('/panel/nuevo-envio');
-    const sitio = page.locator('.ptar-route-row input[type=text]');
-    await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
-    await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
-    await page.getByRole('button', { name: /Siguiente/ }).click();
-    await page.getByRole('button', { name: /Siguiente/ }).click();
-    await page.locator('select').filter({ has: page.locator('option', { hasText: 'Elige la fecha de recogida' }) }).selectOption({ index: 1 });
-    await page.getByRole('button', { name: /Ver resumen/ }).click();
-    await page.getByRole('button', { name: 'Enviar solicitud' }).click();
-    await expect(page.getByText(/Solicitud #?\S+ enviada/)).toBeVisible();
+    await pedirEnvio(page);
     const e = await ultimoEnvio();
     expect(e.estado_solicitud).toBe('pendiente_precio');
     envio = e.id;
@@ -144,5 +140,22 @@ test.describe.serial('flujos clave', () => {
       const { count } = await bd().from('firmas_cmr').select('*', { count: 'exact', head: true }).eq('envio_id', envioAceptado);
       return count;
     }).toBe(1);
+  });
+
+  test('6 · en vivo: el envío que pide un cliente le aparece a Dynamo sin refrescar', async ({ page, browser }) => {
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/envios');
+    // La solicitud nueva entra en «Solicitudes de precio» (la pestaña no sale si está vacía).
+    const pestana = page.locator('a.tab').filter({ hasText: /^Solicitudes de precio \(\d+\)$/ });
+    const cuantas = async () => (await pestana.count()) ? Number(/\((\d+)\)/.exec((await pestana.first().textContent()) ?? '')?.[1]) : 0;
+    const antes = await cuantas();
+    expect(antes).toBeGreaterThanOrEqual(0);
+
+    const cli = await (await browser.newContext({ locale: 'es-ES' })).newPage();
+    await entrar(cli, 'cliente');
+    await pedirEnvio(cli);
+
+    // Sin recargar la página de Dynamo: el contador se mueve solo.
+    await expect.poll(cuantas, { timeout: 20_000 }).toBe(antes + 1);
   });
 });
