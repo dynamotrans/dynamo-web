@@ -5,7 +5,8 @@ export const metadata: Metadata = {
   title: 'Dynamo · Plataforma',
   // La plataforma no se indexa nunca.
   robots: { index: false, follow: false },
-  icons: { icon: '/images/DYNAMO-NEW-LOGO.png' },
+  // Favicon: la marca (las tres franjas) en app/icon.svg, app/favicon.ico y app/apple-icon.png;
+  // Next los sirve y pone los <link> solo. Sin texto: a 16 px el logo con letras no se lee.
 };
 
 // Sin zoom al tocar un campo para escribir (iPhone acerca la pantalla si la letra del
