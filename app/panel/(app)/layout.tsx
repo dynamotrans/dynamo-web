@@ -9,6 +9,8 @@ import Marco, { type Contadores, type Cobertura } from '@/components/panel/Marco
 import TirarParaRecargar from '@/components/panel/TirarParaRecargar';
 import BotonArriba from '@/components/panel/BotonArriba';
 import EnVivo from '@/components/panel/EnVivo';
+import CargandoNavegacion from '@/components/panel/CargandoNavegacion';
+import { Suspense } from 'react';
 import './dashboard.css';
 import './ajustes.css';
 
@@ -44,6 +46,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     <TirarParaRecargar />
     <BotonArriba />
     <EnVivo canales={canales} marca={Date.now()} />
+    <Suspense fallback={null}><CargandoNavegacion /></Suspense>
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
            empresa={empresa} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
            contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}
