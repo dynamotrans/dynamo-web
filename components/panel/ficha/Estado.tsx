@@ -3,43 +3,76 @@
 import { useState } from 'react';
 import Modal from '../Modal';
 import Cargando from '@/components/Cargando';
-import { cambiarEstado } from '@/app/panel/(app)/envios/acciones';
-import { ESTADOS, I, ICO, SubProps, hoy, nombreEstado } from './comun';
+import { fechaHora } from '@/lib/formato';
+import { marcarEtapa, pausarSeguimiento } from '@/app/panel/(app)/envios/acciones';
+import { I, ICO, SubProps } from './comun';
+import { nombreEtapa } from './Etapas';
 
-// ---- Cambiar estado (fase del envío) -----------------------------------------------
+// ---- Cambiar estado: todas las etapas del envío, para marcar a mano la actual -----------
+// (usuario, 2026-11-06) El automático no se para: lo que se marca pasa a ser el punto de
+// partida y desde ahí sigue con los mismos plazos. Una hora futura sirve para atrasar
+// («llegará a las 14:00»): hasta entonces se queda en la etapa anterior.
+const ahoraLocal = () => {
+  const d = new Date(); d.setSeconds(0, 0);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
 export function Estado({ ficha, onVolver, hacer, trabajando }: SubProps) {
   const e = ficha.envio;
-  const fases = ESTADOS.filter(([k]) => ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(k));
-  const i = fases.findIndex(([k]) => k === e.estado);
-  const [nuevo, setNuevo] = useState<string>(fases[Math.min(Math.max(i + 1, 0), fases.length - 1)][0]);
-  const [fReal, setFReal] = useState<string>(e.fecha_carga_real ?? hoy());
-  const pideFecha = nuevo === 'en_ruta' || nuevo === 'entregado';
+  const etapas = ficha.etapas;
+  const actual = etapas.find((x) => x.actual)?.paso ?? 0;
+  const [paso, setPaso] = useState<number>(Math.min(actual + 1, Math.max(etapas.length - 1, 0)));
+  const [hora, setHora] = useState<string>(ahoraLocal);
+  const pausado = e.seguimiento_automatico === false;
+  const elegida = etapas.find((x) => x.paso === paso);
+  const isoHora = hora && !Number.isNaN(new Date(hora).getTime()) ? new Date(hora).toISOString() : null;
+  const futura = !!isoHora && new Date(isoHora).getTime() > Date.now() + 60000;
   return (
-    <Modal abierto onCerrar={onVolver} titulo={`Cambiar estado · #${e.referencia_gx}`} sub={`Estado actual: ${nombreEstado(e.estado)}`} icono={<I d={ICO.fase} />}
+    <Modal abierto ancho={640} onCerrar={onVolver} titulo={`Cambiar estado · #${e.referencia_gx}`}
+      sub={pausado ? 'Seguimiento automático en pausa: el estado solo cambia a mano' : 'El estado avanza solo con el horario previsto; aquí lo corriges'}
+      icono={<I d={ICO.fase} />}
       pie={<>
         <button className="btn-ghost" onClick={onVolver} disabled={!!trabajando}>Volver</button>
-        <button className="btn-primary" disabled={!!trabajando || nuevo === e.estado}
-          onClick={() => hacer('Cambiando el estado', () => cambiarEstado(e.id, nuevo, pideFecha ? fReal : null), `Estado cambiado a «${nombreEstado(nuevo)}».`)}>Cambiar estado</button>
+        <button className="btn-ghost" disabled={!!trabajando}
+          onClick={() => hacer(pausado ? 'Reanudando' : 'Pausando', () => pausarSeguimiento(e.id, !pausado),
+            pausado ? 'Seguimiento automático reanudado.' : 'Seguimiento automático en pausa: el estado ya no cambia solo.')}>
+          {pausado ? 'Reanudar automático' : 'Pausar automático'}</button>
+        <button className="btn-primary" disabled={!!trabajando || !elegida}
+          onClick={() => hacer('Marcando la etapa', () => marcarEtapa(e.id, paso, paso === 0 ? null : isoHora),
+            futura && isoHora ? `Hasta las ${fechaHora(isoHora)} sigue en la etapa anterior.` : `Marcado: ${elegida ? nombreEtapa(elegida) : ''}.`)}>Marcar esta etapa</button>
       </>}>
-      <div className="ptar-sitio-grid">
-        <div style={{ gridColumn: '1/-1' }}>
-          <label>Nuevo estado</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {fases.map(([k, n, c]) => (
-              <button key={k} type="button" onClick={() => setNuevo(k)} aria-pressed={nuevo === k}
-                className={`badge badge-${c}`} style={{ cursor: 'pointer', border: nuevo === k ? '2px solid var(--purple)' : '2px solid transparent', padding: '0.4rem 0.7rem' }}>{n}</button>
-            ))}
+      {etapas.length === 0
+        ? <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)' }}>Este envío no tiene paradas o fecha de carga: no hay etapas que marcar.</p>
+        : (
+          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend style={{ fontWeight: 700, marginBottom: '0.4rem' }}>¿En qué etapa está?</legend>
+            <div className="pen-envio-sum">
+              {etapas.map((x) => (
+                <label key={x.paso} className="pen-sum-row" style={{ cursor: 'pointer', ...(paso === x.paso ? { background: 'rgba(51,0,204,0.07)', borderRadius: 8 } : {}) }}>
+                  <span className="k" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: x.actual ? 800 : 600, color: x.actual ? 'var(--purple)' : undefined }}>
+                    <input type="radio" name="etapa" checked={paso === x.paso} onChange={() => setPaso(x.paso)} />
+                    {nombreEtapa(x)}{x.actual ? ' · ahora' : ''}
+                  </span>
+                  <span className="v" style={{ textAlign: 'right', color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>
+                    {x.hora ? `${x.hecha ? '' : 'prevista '}${fechaHora(x.hora)}` : ''}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+      {etapas.length > 0 && paso > 0 && (
+        <div className="ptar-sitio-grid" style={{ marginTop: '0.8rem' }}>
+          <div>
+            <label htmlFor="es-hora">¿Desde qué hora?</label>
+            <input id="es-hora" type="datetime-local" value={hora} onChange={(ev) => setHora(ev.target.value)} />
           </div>
         </div>
-        {pideFecha && (
-          <div>
-            <label htmlFor="es-fecha">Fecha de carga real</label>
-            <input id="es-fecha" type="date" value={fReal} onChange={(ev) => setFReal(ev.target.value)} />
-          </div>
-        )}
-      </div>
+      )}
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
-        «Cargado» y «Entregado» quedan en el historial con su hora. Cuando esté entregado, el cliente deja de ver el teléfono del conductor (regla 11).
+        Desde la etapa que marques, el resto se recalcula con los mismos plazos (el tiempo en cada parada, la velocidad y las pausas del tacógrafo, en Parámetros).
+        Con una hora futura se atrasa: hasta entonces sigue en la etapa anterior. Queda en el historial quién lo marcó y a qué hora.
+        Al marcar «Entregado», el cliente deja de ver el teléfono del conductor (regla 11).
       </p>
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>

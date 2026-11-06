@@ -10,7 +10,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, type AltaTransportista } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
-import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, diasEntre } from '@/lib/formato';
 
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
@@ -436,7 +436,10 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
     setBase((b) => ({ ...b, conductor: veh.conductor }));
   }
   const [guardado, setGuardado] = useState<string | null>(null);
-  const falta = !c.matricula_camion || !c.conductor_nombre || !c.conductor_telefono;
+  // Envío con ventana: el día en que cargas es obligatorio (con él va el seguimiento del viaje).
+  const dias = diasEntre(c.fecha_carga_desde ?? null, c.fecha_carga_hasta ?? null);
+  const [dia, setDia] = useState<string>(c.fecha_carga_prevista ?? '');
+  const falta = !c.matricula_camion || !c.conductor_nombre || !c.conductor_telefono || (dias.length > 1 && !c.fecha_carga_prevista);
   const editable = ['programado', 'hacia_la_carga'].includes(c.estado ?? '');
   const pct = num(c.pronto_pago_pct) ?? 3, minimo = num(c.pronto_pago_minimo) ?? 20, precio = num(c.precio) ?? 0;
   const dto = Math.max(Math.round(precio * pct) / 100, minimo);
@@ -470,16 +473,25 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
             <div><label htmlFor="ok-tractora">Matrícula camión / tractora</label><input type="text" id="ok-tractora" value={veh.camion} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} onBlur={alSalirCamion} /></div>
             <div><label htmlFor="ok-remolque">Matrícula remolque</label><input type="text" id="ok-remolque" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
           </div>
+          {dias.length > 1 && <>
+            <label htmlFor="ok-dia">Día en que cargas <span style={{ color: 'var(--red)' }}>· obligatorio</span></label>
+            <select id="ok-dia" value={dia} onChange={(e) => setDia(e.target.value)}>
+              <option value="">Elige un día de la ventana…</option>
+              {dias.map((d) => <option key={d} value={d}>{fecha(d)}</option>)}
+            </select>
+          </>}
           <label htmlFor="ok-chofer">Conductor</label><input type="text" id="ok-chofer" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />
           <label htmlFor="ok-tfno">Teléfono del conductor</label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button className="btn" onClick={async () => {
-            const x = await completar(token, veh);
+            if (dias.length > 1 && !dia) { setGuardado('Elige el día en que cargas.'); return; }
+            const x = await completar(token, { ...veh, dia });
             if (x.resultado === 'guardado') {
               // Lo que ha quedado guardado de verdad (p. ej. el teléfono conocido de ese chófer).
               setVeh((v) => ({ ...v, conductor: x.conductor ?? '', telefono: x.telefono ?? '' }));
               setBase({ camion: veh.camion, conductor: x.conductor ?? '' });
             }
-            setGuardado(x.resultado === 'guardado' ? 'Guardado. Gracias.' : 'No se ha podido guardar; contáctanos.');
+            setGuardado(x.resultado === 'guardado' ? 'Guardado. Gracias.' : x.resultado === 'falta_fecha_prevista' ? 'Elige el día en que cargas.'
+              : x.resultado === 'fecha_fuera_de_ventana' ? 'Ese día no está dentro de los días de recogida.' : 'No se ha podido guardar; contáctanos.');
           }}>Guardar vehículo y conductor</button>
           <p className="id-hint" style={{ textAlign: 'center' }}>Al poner una matrícula o un conductor, rellenamos sus datos de otras veces (si los tenemos). Si dejas un campo vacío, se mantiene el que ya había.</p>
           {guardado && <p className="id-hint" style={{ textAlign: 'center' }}>{guardado}</p>}

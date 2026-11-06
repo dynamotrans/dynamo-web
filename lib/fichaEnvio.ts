@@ -1,4 +1,5 @@
 import { mensajeError } from '@/lib/mensajeError';
+import type { Etapa } from '@/lib/estados';
 import { leerTodo } from './leerTodo';
 import type { SB } from '@/lib/supabase/cliente';
 import type { Tabla } from '@/lib/supabase/tipos';
@@ -34,6 +35,7 @@ export type Ficha = {
   cliente: { id: string; nombre: string; cif: string } | null;
   transportista: { id: string; nombre: string; cif: string } | null; operador: string | null;
   creadoPor: string | null; paradas: ParadaFicha[]; hitos: HitoFicha[]; penalizaciones: PenalizacionFicha[];
+  etapas: Etapa[];   // seguimiento: todas las etapas con su hora (etapas_envio)
   ofertas: OfertaFicha[]; contraofertas: ContraofertaFicha[];
   cmrEnlace: { id: string; token: string; caduca_en: string } | null;   // solo lo ve Dynamo
   firmasCmr: FirmaCmrFicha[];
@@ -52,7 +54,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   if (error) return { ficha: null, error: mensajeError(error.message) };
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
-  const [par, hit, pen, ofe, res, enl, fir, pag, reg] = await Promise.all([
+  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, sitios(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
@@ -62,6 +64,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     sb.from('firmas_cmr').select('rol, parada_id, nombre, documento, documento_pais, documento_validado, firmado_en').eq('envio_id', id).order('firmado_en'),
     sb.rpc('pagos_envio', { p_envio: id }).maybeSingle(),
     sb.rpc('reglas_precio_envio'),
+    sb.rpc('etapas_envio', { p_envio: id }),
   ]);
   const pg = pag.data;
 
@@ -97,6 +100,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
         sitio: p.sitios ? { ...p.sitios, horarios: horarioParada(p, e), contacto: p.sitio_id ? contactos.get(p.sitio_id) ?? null : null } : null,
       })),
       hitos: (hit.data ?? []).map((h) => ({ id: h.id, hito: h.hito, cuando: h.cuando, quien: h.quien ? nombres.get(h.quien) ?? null : null, origen: h.quien_origen, datos: h.datos as HitoFicha['datos'] })),
+      etapas: eta.data ?? [],
       penalizaciones: (pen.data ?? []).map((p) => ({ ...p, tipo: p.tipos_penalizacion?.nombre ?? 'Penalización' })),
       ofertas: (ofe.data ?? []).map((o) => ({ id: o.id, token: o.token, canal: o.canal, para: o.transportistas?.nombre_visible ?? null,
         precio: Number(o.precio_ofertado), banda_euros: Number(o.banda_euros), banda_pct: o.banda_pct, pronto_pago: o.pronto_pago,

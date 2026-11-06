@@ -630,6 +630,14 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - Roles transportista / proveedor: fase 4 (cuando se valide la operativa con clientes).
 
 ## ✅ Hecho recientemente
+- [x] 2026-11-06 — **Seguimiento automático del envío**:
+  - **Avance solo.** El estado avanza solo por etapas: Programado / Asignando transportista / Confirmado → Yendo a la carga → Cargando o Descargando (n.ª parada) → En ruta a la n.ª parada → Entregado.
+  - **Horario previsto**: jornada desde las 7:00, 1.ª parada a las 12:30, 1 h por parada, 80 km/h, tacógrafo y espera a la apertura de cada sitio. Se cambia en Parámetros.
+  - **A mano.** Dynamo puede marcar cualquier etapa con su hora (el resto se recalcula desde ahí) o pausar el automático.
+  - **Día previsto de carga** obligatorio al asignar si hay ventana.
+  - **Pendiente del usuario**: revisar en Parámetros las horas (¿11:00 en verano?).
+  - **Para afinar con datos reales**: los km entre paradas. Sin tarifador salen 300 km «(estimados)» o la línea recta × 1,25 si hay coordenadas.
+  - **v2/v3**: PIN en recogida y entrega.
 - [x] 2026-11-03 — **Administración** pasada a la plataforma (antes era «se está pasando»): pestañas **Proformas** (las del pago por adelantado de los almacenamientos: sin pagar / pagadas, «Ver PDF», «Marcar pagada» para gestores; el cliente ve y abre las suyas), **Albaranes** (albaranes y CMR firmados subidos a los envíos; el cliente, los que tiene visibles) y **Facturas** (aviso: llegarán con Holded). La campana «Proformas sin pagar» y el número rojo del menú llevan aquí
 - [x] 2026-11-03 — **Usuarios**: cambiar el rol o dar de alta un usuario pide escribir **«Confirmo»** (antes, el email del usuario). El **Admin Master ya no se puede crear desde la web**: solo desde Supabase (Table Editor → usuarios → rol = admin); la base de datos lo impide también con la clave de servicio (prueba 87)
 - [x] 2026-11-03 — **Barra superior y menú del panel como el mockup**: Álvaro (soporte) para todos con su **estado real** («En línea» / «He salido · Vuelvo mañana a las 8:00», según horario de Madrid, temporadas y festivos), horario de cada canal y la ventana **«Ver todos los horarios del año»**; **campana** con incidencias, penalizaciones (y para Dynamo pagos de almacenamientos y altas pendientes); **punto de cobertura de crédito** del cliente (sin importes); menú del usuario con **Soporte** e **Idioma** (14 idiomas); **números** naranja/rojo en cada sección del menú lateral (datos reales, `contadores_panel()`). Pendiente: «Facturas vencidas» y «Crédito agotado» del mockup necesitan la deuda viva, que hoy está en Holded

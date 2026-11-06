@@ -2288,8 +2288,9 @@ do $$ declare e uuid := current_setting('prueba.e73')::uuid; v record; tok uuid;
   if v.id is null or jsonb_array_length(v.paradas) <> 2 or v.importe_transportista <> 750 then raise exception 'FALLO 73 · no ve su viaje con sus paradas: %', v; end if;
   perform marcar_mi_viaje(e, 'hacia_la_carga');
   perform marcar_mi_viaje(e, 'en_ruta');
+  -- (Con paradas, «cargando» tras «en ruta» es llegar a la siguiente a descargar: eso avanza.)
   begin
-    perform marcar_mi_viaje(e, 'cargando');
+    perform marcar_mi_viaje(e, 'hacia_la_carga');
     raise exception 'FALLO 73 · el viaje vuelve atrás';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
   end;
@@ -5631,3 +5632,105 @@ do $$ declare e uuid; n int; begin
   end if;
   raise notice 'OK 157 · línea de tiempo: hacia la carga, cargando, cargado y entregado con su hora, y la hora de cada parada';
 end $$;
+
+-- ---- 158. Seguimiento automático: día previsto, avance solo, marcar a mano y tacógrafo -----
+reset role;
+do $$ declare x record; begin
+  -- Tacógrafo: 12 h 30 min de conducción saliendo a las 13:30 con 2 h ya conducidas (jornada desde las 10:30).
+  select * into x from seguimiento_conducir('2026-11-06 13:30+01', '2026-11-06 10:30+01', 2, 2, 12.5);
+  if x.t <> '2026-11-07 14:30+01'::timestamptz then raise exception 'FALLO 158 · tacógrafo mal calculado: llega %', x.t; end if;
+  -- 300 km tras cargar: 2 h 30 min, pausa de 45 min, 1 h 15 min.
+  select * into x from seguimiento_conducir('2026-11-06 13:30+01', '2026-11-06 10:30+01', 2, 2, 300 / 80.0);
+  if x.t <> '2026-11-06 18:00+01'::timestamptz then raise exception 'FALLO 158 · pausa de 45 min mal puesta: llega %', x.t; end if;
+  -- Jornada desde las 5:00: a las 18:00 se acaban las 13 h; 11 h de descanso acabarían a las 5:00,
+  -- pero el camión no arranca antes de las 7:00 → 4 h 30, pausa, 15 min: 12:30 del día siguiente.
+  select * into x from seguimiento_conducir('2026-11-06 12:00+01', '2026-11-06 05:00+01', 0, 0, 10, time '07:00');
+  if x.t <> '2026-11-07 12:30+01'::timestamptz then raise exception 'FALLO 158 · tras el descanso arranca antes de las 7:00: llega %', x.t; end if;
+  -- Llega a un sitio antes de que abra: espera a la apertura (la de ese día de la semana).
+  select h.sitio_id, h.dia_semana, min(h.abre) as abre into x
+    from sitio_horarios h join sitios s on s.id = h.sitio_id
+   where h.temporada = 'general' and not coalesce(s.verano_activo, false) group by 1, 2 limit 1;
+  if x.sitio_id is not null then
+    declare d date := (now() at time zone 'Europe/Madrid')::date + 1; begin
+      while extract(isodow from d)::int <> x.dia_semana loop d := d + 1; end loop;
+      if seguimiento_apertura(x.sitio_id, (d + time '00:30') at time zone 'Europe/Madrid') <> (d + x.abre) at time zone 'Europe/Madrid' then
+        raise exception 'FALLO 158 · no espera a que abra el sitio';
+      end if;
+    end;
+  end if;
+end $$;
+do $$ declare e uuid; t uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
+  select id, transportista_id into e, t from envios where estado = 'programado' and transportista_id is not null
+     and (select count(*) from envio_paradas p where p.envio_id = envios.id) >= 2 limit 1;
+  if e is null then raise notice 'OK 158 · (sin envío programado con transportista: se salta)'; return; end if;
+  update envios set fecha_carga_desde = hoy - 1, fecha_carga_hasta = hoy + 1, fecha_carga_prevista = null, fecha_carga_real = null,
+                    ancla_paso = null, ancla_hora = null, seguimiento_automatico = true, estado_pago_previo = 'no_requerido' where id = e;
+  perform set_config('prueba.seg_envio', e::text, false);
+  perform set_config('prueba.seg_transp', t::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::uuid; t uuid := nullif(current_setting('prueba.seg_transp', true), '')::uuid;
+  r jsonb; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
+  if e is null then return; end if;
+  r := asignar_transportista(e, t);
+  if r ->> 'resultado' <> 'falta_fecha_prevista' then raise exception 'FALLO 158 · con ventana se asigna sin día previsto: %', r; end if;
+  r := asignar_transportista(e, t, p_fecha_carga_prevista => hoy + 5);
+  if r ->> 'resultado' <> 'fecha_fuera_de_ventana' then raise exception 'FALLO 158 · día previsto fuera de la ventana aceptado: %', r; end if;
+  r := asignar_transportista(e, t, p_fecha_carga_prevista => hoy - 1);
+  if not (r ->> 'ok')::boolean then raise exception 'FALLO 158 · no asigna con día previsto: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::uuid; x record; begin
+  if e is null then return; end if;
+  perform avanzar_estados_envios();
+  select estado, parada_actual into x from envios where id = e;
+  if x.estado = 'programado' then raise exception 'FALLO 158 · el automático no ha movido un envío que cargó ayer'; end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'hacia_la_carga' and quien_origen = 'sistema'
+                   and cuando = (((now() at time zone 'Europe/Madrid')::date - 1 + time '10:30') at time zone 'Europe/Madrid')) then
+    raise exception 'FALLO 158 · la salida hacia la carga no queda a las 10:30 previstas como automática';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::uuid; r jsonb; x record; n int; begin
+  if e is null then return; end if;
+  -- Llega antes a la 1.ª parada: se marca y desde ahí sigue.
+  r := marcar_etapa_envio(e, 2::smallint, now() - interval '30 minutes');
+  if not (r ->> 'ok')::boolean or r ->> 'estado' <> 'cargando' or (r ->> 'parada_actual')::int <> 1 then raise exception 'FALLO 158 · marcar «cargando» a mano: %', r; end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'etapa_corregida' and quien = auth.uid()) then
+    raise exception 'FALLO 158 · la etapa corregida no guarda quién la marcó';
+  end if;
+  if exists (select 1 from envio_paradas where envio_id = e and realizado_en is not null) then
+    raise exception 'FALLO 158 · al volver a la 1.ª parada siguen paradas con hora de hecha';
+  end if;
+  select count(*) into n from etapas_envio(e) where actual;
+  if n <> 1 then raise exception 'FALLO 158 · etapas_envio no marca una etapa actual (%)', n; end if;
+  if (select hora from etapas_envio(e) where paso = 3) <> (select hora from etapas_envio(e) where paso = 2) + interval '1 hour' then
+    raise exception 'FALLO 158 · la salida de la parada no es 1 h después de llegar';
+  end if;
+  -- Atrasar: llegará a la 2.ª parada dentro de 3 h → sigue en ruta hasta entonces.
+  r := marcar_etapa_envio(e, 4::smallint, now() + interval '3 hours');
+  select estado, parada_actual into x from envios where id = e;
+  if x.estado <> 'en_ruta' or x.parada_actual <> 2 then raise exception 'FALLO 158 · una hora futura no deja la etapa anterior (% %)', x.estado, x.parada_actual; end if;
+  r := marcar_etapa_envio(e, 99::smallint);
+  if r ->> 'resultado' <> 'etapa_no_valida' then raise exception 'FALLO 158 · etapa imposible aceptada: %', r; end if;
+  r := pausar_seguimiento_envio(e, true);
+  if (select seguimiento_automatico from envios where id = e) then raise exception 'FALLO 158 · no se pausa'; end if;
+end $$;
+-- Un cliente de otra empresa ni ve las etapas ni las marca.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::uuid; begin
+  if e is null then raise notice 'OK 158 · seguimiento automático (tacógrafo comprobado; sin envío para el resto)'; return; end if;
+  if (select count(*) from etapas_envio(e)) > 0 and not exists (select 1 from envios where id = e and cliente_id = cliente_del_usuario()) then
+    raise exception 'FALLO 158 · un cliente ajeno ve las etapas de un envío';
+  end if;
+  begin
+    perform marcar_etapa_envio(e, 1::smallint);
+    raise exception 'FALLO 158 · un cliente marca la etapa de un envío';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 158 · seguimiento automático: día previsto obligatorio con ventana, avance solo con su hora, marcar a mano (también atrasar), pausa, permisos y tacógrafo';
+end $$;
+reset role;

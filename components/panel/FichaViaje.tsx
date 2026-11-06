@@ -15,12 +15,13 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros } from '@/lib/formato'
 import { paisDe, telBonito } from '@/lib/paises';
 import { marcarViaje, enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
-import { ESTADOS_ENVIO, FASES_ENVIO, enMarcha } from '@/lib/estados';
+import { ESTADOS_ENVIO, FASES_ENVIO, enMarcha, ordinal, type Etapa } from '@/lib/estados';
+import Etapas, { nombreEtapa } from './ficha/Etapas';
 import type { EnvioFila } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 
 const FASES: [string, string, string][] = [
-  ['hacia_la_carga', 'Voy hacia la carga', 'Hacia la carga'], ['cargando', 'Estoy cargando', 'Cargando'],
+  ['hacia_la_carga', 'Voy hacia la carga', 'Yendo a la carga'], ['cargando', 'Estoy cargando', 'Cargando'],
   ['en_ruta', 'Cargado: salgo en ruta', 'En ruta'], ['entregado', 'Entregado', 'Entregado'],
 ];
 const ORDEN: string[] = FASES_ENVIO;
@@ -51,7 +52,7 @@ function Celda({ l, children, span }: { l: string; children: React.ReactNode; sp
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
 }
 
-export default function FichaViaje({ e, cerrarHref }: { e: Viaje; cerrarHref: string }) {
+export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; etapas?: Etapa[]; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState<string | null>(null);
@@ -59,7 +60,16 @@ export default function FichaViaje({ e, cerrarHref }: { e: Viaje; cerrarHref: st
   const cerrar = () => router.push(cerrarHref, { scroll: false });
   const paradas = e.paradas ?? [];
   const idx = ORDEN.indexOf(e.estado);
-  const siguiente = idx >= 0 && idx < ORDEN.length - 1 ? FASES.find(([k]) => k === ORDEN[idx + 1]) : null;
+  // Siguiente paso, parada a parada si hay etapas (seguimiento): «He llegado: cargo en la 1.ª parada»,
+  // «Salgo hacia la 2.ª parada»… Si no, el de siempre.
+  const act = etapas.find((x) => x.actual);
+  const prox = act ? etapas.find((x) => x.paso === act.paso + 1) : undefined;
+  const textoProx = (x: Etapa) => x.estado === 'hacia_la_carga' ? 'Voy hacia la carga'
+    : x.estado === 'cargando' ? `He llegado: ${x.tipo_parada === 'descarga' ? 'descargo' : 'cargo'} en la ${ordinal(x.parada)} parada`
+    : x.estado === 'en_ruta' ? `Salgo hacia la ${ordinal(x.parada)} parada` : 'Entregado';
+  const siguiente: [string, string, string] | null | undefined = prox ? [prox.estado, textoProx(prox), nombreEtapa(prox)]
+    : idx >= 0 && idx < ORDEN.length - 1 ? FASES.find(([k]) => k === ORDEN[idx + 1]) : null;
+  const nombreActual = act ? nombreEtapa(act) : NOMBRE[e.estado] ?? e.estado;
   const activo = idx >= 0 && e.estado !== 'entregado';
 
   async function avanzar(estado: string) {
@@ -91,7 +101,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: Viaje; cerrarHref: st
 
   return (
     <Modal abierto ancho={760} onCerrar={cerrar} titulo={`Viaje #${e.referencia_gx}`}
-      sub={<span className={`badge badge-${COLOR[e.estado] ?? 'prog'}`}>{NOMBRE[e.estado] ?? e.estado}</span>} icono={<I d={ICO.camion} />} acciones={acciones}
+      sub={<span className={`badge badge-${COLOR[e.estado] ?? 'prog'}`}>{nombreActual}</span>} icono={<I d={ICO.camion} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {trabajando && <Cargando texto={trabajando} />}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
@@ -103,7 +113,8 @@ export default function FichaViaje({ e, cerrarHref }: { e: Viaje; cerrarHref: st
       <h4 className="modal-section-title">Viaje</h4>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Nº de viaje">#{e.referencia_gx}</Celda>
-        <Celda l="Estado">{NOMBRE[e.estado] ?? e.estado}</Celda>
+        <Celda l="Estado">{nombreActual}</Celda>
+        {e.fecha_carga_prevista && <Celda l="Día en que cargas">{fecha(e.fecha_carga_prevista)}</Celda>}
         <Celda l={e.fecha_carga_real ? 'Fecha de carga' : 'Días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
         <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : '—'}</Celda>
         <Celda l="Camión">{[e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' · ') || '—'}</Celda>
@@ -113,9 +124,13 @@ export default function FichaViaje({ e, cerrarHref }: { e: Viaje; cerrarHref: st
 
       {activo && (
         <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div>
-          Avísanos de cómo va el viaje con el botón de arriba: <strong>{FASES.map(([, , t]) => t).join(' → ')}</strong>. Cada paso queda con su hora.
+          Avísanos de cómo va el viaje con el botón de arriba. Si no nos avisas, el estado avanza solo con el horario previsto (abajo); lo que marques manda y desde ahí sigue.
         </div></div>
       )}
+      {etapas.length > 0 && e.estado !== 'cancelado' && <>
+        <h4 className="modal-section-title">Seguimiento</h4>
+        <Etapas etapas={etapas} />
+      </>}
 
       <h4 className="modal-section-title">Ruta</h4>
       <div className="det-ruta">

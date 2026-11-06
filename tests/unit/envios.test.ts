@@ -26,8 +26,19 @@ test('horarios de atención en formato largo', () => {
 test('estados: una sola lista para toda la web', async () => {
   const { ESTADOS_ENVIO, enMarcha, nombreEstado } = await import('../../lib/estados');
   const { ESTADO_ENVIO } = await import('../../lib/formato');
-  assert.equal(nombreEstado('hacia_la_carga'), 'Hacia la carga');
+  assert.equal(nombreEstado('hacia_la_carga'), 'Yendo a la carga');
   assert.equal(ESTADO_ENVIO.en_ruta, ESTADOS_ENVIO.en_ruta.label);
   assert.equal(enMarcha('cargando'), true);
   assert.equal(enMarcha('programado'), false);
+});
+
+test('seguimiento: programado, asignando, confirmado y cada parada', () => {
+  assert.equal(estadoVisual(e({ estado: 'programado' })).label, 'Programado');
+  assert.equal(estadoVisual(e({ estado: 'programado', asignando: true })).label, 'Asignando transportista');
+  assert.equal(estadoVisual(e({ estado: 'programado', asignando: true, transportista_asignado: true })).label, 'Confirmado');
+  assert.equal(estadoVisual(e({ estado: 'hacia_la_carga', parada_actual: 1 })).label, 'Yendo a la carga');
+  assert.equal(estadoVisual(e({ estado: 'cargando', parada_actual: 1, tipo_parada: 'carga' })).label, 'Cargando (1.ª parada)');
+  assert.equal(estadoVisual(e({ estado: 'en_ruta', parada_actual: 3, tipo_parada: 'descarga' })).label, 'En ruta a 3.ª parada');
+  assert.equal(estadoVisual(e({ estado: 'cargando', parada_actual: 3, tipo_parada: 'descarga' })).label, 'Descargando (3.ª parada)');
+  assert.equal(estadoVisual(e({ estado: 'en_ruta' })).label, 'En ruta');
 });

@@ -3,7 +3,7 @@
 // reales de la base de datos.
 import { fecha, ventana, medidasTxt } from './formato';
 import { paisDe } from './paises';
-import { ESTADOS_ENVIO } from './estados';
+import { ESTADOS_ENVIO, ESTADO_ASIGNANDO, ESTADO_CONFIRMADO, etiquetaEtapa } from './estados';
 
 export type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; nombre_empresa: string | null;
@@ -32,6 +32,10 @@ export type EnvioFila = {
   estado_pago_previo?: string | null;        // no_requerido / pendiente / pagado / exento (previo pago)
   estado_cambio_cliente?: string | null;   // el cliente ha pedido un cambio (pendiente / aplicado / …)
   requiere_revision_precio?: boolean | null;         // la ruta ha cambiado y el precio no se ha revisado
+  // Seguimiento (seguimiento_envios): parada en la que está o a la que va, su tipo, y si
+  // un programado sin camión ya se ve como «Asignando transportista» (a menos de 36 h).
+  parada_actual?: number | null; tipo_parada?: string | null; asignando?: boolean | null;
+  fecha_carga_prevista?: string | null; automatico?: boolean | null;
 };
 
 // Envío confirmado esperando el pago previo: no se oferta ni se asigna todavía.
@@ -48,13 +52,17 @@ export function estadoVisual(e: EnvioFila): { label: string; color: string } {
     case 'entregado': return ESTADOS_ENVIO.entregado;
     // Sin pagar el pago previo: lo anula el sistema al pasar el plazo (o el cliente antes).
     case 'cancelado': return e.estado_pago_previo === 'pendiente' ? { label: 'Anulado sin pago', color: 'cancelada' } : ESTADOS_ENVIO.cancelado;
-    case 'hacia_la_carga': case 'cargando': case 'en_ruta': return ESTADOS_ENVIO[e.estado];
+    case 'hacia_la_carga': case 'cargando': case 'en_ruta': return etiquetaEtapa(e.estado, e.parada_actual, e.tipo_parada);
     case 'borrador':
       if (e.estado_solicitud === 'pendiente_precio') return { label: 'Pendiente de precio', color: 'cargando' };
       if (e.estado_solicitud === 'precio_propuesto') return { label: 'Precio por aceptar', color: 'hacia' };
       if (e.estado_solicitud === 'contraoferta') return { label: 'Contraoferta del cliente', color: 'cargando' };
       return ESTADOS_ENVIO.borrador;
-    default: return esPendientePago(e) ? { label: 'Pendiente de pago', color: 'cargando' } : ESTADOS_ENVIO.programado;
+    default:
+      if (esPendientePago(e)) return { label: 'Pendiente de pago', color: 'cargando' };
+      if (e.es_manual) return ESTADOS_ENVIO.programado;
+      if (e.transportista_asignado || e.estado_asignacion === 'confirmada') return ESTADO_CONFIRMADO;
+      return e.asignando ? ESTADO_ASIGNANDO : ESTADOS_ENVIO.programado;
   }
 }
 
@@ -62,10 +70,8 @@ export function estadoVisual(e: EnvioFila): { label: string; color: string } {
 export function asignacion(e: EnvioFila): { key: string; label: string } | null {
   if (e.es_manual || e.estado === 'borrador') return null;
   if (esPendientePago(e)) return { key: 'espera', label: 'Se asigna al pagar' };
-  if (e.estado === 'entregado' || e.estado === 'cancelado') return null;
-  if (e.transportista_asignado || e.estado_asignacion === 'confirmada' || e.estado === 'en_ruta')
-    return { key: 'confirmado', label: 'Confirmado transportista' };
-  return { key: 'asignandose', label: 'Asignándose transportista' };
+  // Lo demás ya lo dice el estado (Programado / Asignando transportista / Confirmado…).
+  return null;
 }
 
 // Pestañas de la tabla (las del mockup).

@@ -87,10 +87,19 @@ test.describe.serial('flujos clave', () => {
     await page.getByRole('button', { name: /Asignar transportista/ }).click();
     const tra = await page.locator('#as-tra option', { hasText: 'Transportes Prueba' }).getAttribute('value');
     await page.locator('#as-tra').selectOption(tra!);
+    // Con ventana de carga, el día en que carga es obligatorio (lo usa el seguimiento automático).
+    if (await page.locator('select#as-dia').count()) await page.locator('select#as-dia').selectOption({ index: 1 });
     await page.fill('#as-camion', '1234BCD');
     await page.fill('#as-conductor', 'Juan Prueba');
     await page.getByRole('button', { name: 'Guardar asignación' }).click();
     await expect.poll(async () => (await ultimoEnvio()).transportista_id).not.toBeNull();
+
+    // Seguimiento: se marca a mano «Yendo a la carga» desde el cambiador de etapas.
+    await page.reload();
+    await page.getByRole('button', { name: 'Cambiar estado' }).click();
+    await page.getByRole('radio', { name: /Yendo a la carga/ }).check();
+    await page.getByRole('button', { name: 'Marcar esta etapa' }).click();
+    await expect.poll(async () => (await ultimoEnvio()).estado).toBe('hacia_la_carga');
   });
 
   test('4 · un transportista acepta una carga por el enlace', async ({ page, browser }) => {

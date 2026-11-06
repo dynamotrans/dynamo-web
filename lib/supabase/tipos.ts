@@ -1491,6 +1491,11 @@ export type Database = {
           cancelacion_sin_coste: boolean
           texto_busqueda: string | null
           stripe_cobro_sin_aplicar: string | null
+          fecha_carga_prevista: string | null
+          parada_actual: number | null
+          seguimiento_automatico: boolean
+          ancla_paso: number | null
+          ancla_hora: string | null
         }
         Insert: {
           id?: string
@@ -1599,6 +1604,11 @@ export type Database = {
           cancelacion_sin_coste?: boolean
           texto_busqueda?: string | null
           stripe_cobro_sin_aplicar?: string | null
+          fecha_carga_prevista?: string | null
+          parada_actual?: number | null
+          seguimiento_automatico?: boolean
+          ancla_paso?: number | null
+          ancla_hora?: string | null
         }
         Update: {
           id?: string
@@ -1707,6 +1717,11 @@ export type Database = {
           cancelacion_sin_coste?: boolean
           texto_busqueda?: string | null
           stripe_cobro_sin_aplicar?: string | null
+          fecha_carga_prevista?: string | null
+          parada_actual?: number | null
+          seguimiento_automatico?: boolean
+          ancla_paso?: number | null
+          ancla_hora?: string | null
         }
         Relationships: [
           {
@@ -3082,13 +3097,14 @@ export type Database = {
       anonimizar_usuario: { Args: { p_usuario: string | null }; Returns: Json }
       anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null }; Returns: Json }
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }
-      asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null }; Returns: Json }
+      asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       autores_mis_envios: { Args: Record<PropertyKey, never>; Returns: { envio_id: string; creado_por: string; creado_email: string; modificado_por: string; modificado_en: string }[] }
       autosuspender_cuentas: { Args: Record<PropertyKey, never>; Returns: number }
       autosuspension_candidatos: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; email: string; motivo: string }[] }
       autosuspension_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       autosuspension_motivos: { Args: { p_usuario?: string | null }; Returns: { usuario_id: string; email: string; motivo: string }[] }
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
+      avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }
       buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; total: number }[] }
@@ -3107,7 +3123,7 @@ export type Database = {
       cmr_ruta_permitida: { Args: { p_name: string | null }; Returns: boolean }
       cmr_subida_permitida: { Args: { p_name: string | null }; Returns: boolean }
       cmr_trazo_visible: { Args: { p_name: string | null }; Returns: boolean }
-      completar_carga_publica: { Args: { p_reserva: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_telefono: string | null }; Returns: Json }
+      completar_carga_publica: { Args: { p_reserva: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_telefono: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       comprobar_cobertura: { Args: { p_paradas: Json | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null }; Returns: { orden: number; punto: string; efecto: string; mensaje: string }[] }
       conductor_conocido: { Args: { p_transportista: string | null; p_nombre: string | null }; Returns: { nombre: string; telefono: string; conductor_id: string }[] }
       conductor_de_camion: { Args: { p_transportista: string | null; p_matricula: string | null }; Returns: { nombre: string; telefono: string }[] }
@@ -3158,6 +3174,7 @@ export type Database = {
       es_equipo_dynamo: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_servidor: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_solo_lectura: { Args: Record<PropertyKey, never>; Returns: boolean }
+      etapas_envio: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean; hecha: boolean; actual: boolean; marcada: boolean }[] }
       euros_texto: { Args: { p: number | null }; Returns: string }
       exportar_datos_usuario: { Args: { p_usuario?: string | null }; Returns: Json }
       factor_automatico: { Args: { p_cliente: string | null }; Returns: number }
@@ -3195,7 +3212,8 @@ export type Database = {
       liberar_reserva_publica: { Args: { p_reserva: string | null; p_motivo: string | null }; Returns: Json }
       mantenimiento_activo: { Args: Record<PropertyKey, never>; Returns: boolean }
       marcar_avisos_vistos: { Args: Record<PropertyKey, never>; Returns: undefined }
-      marcar_estado_envio: { Args: { p_envio: string | null; p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_fecha_carga_real?: string | null }; Returns: Json }
+      marcar_estado_envio: { Args: { p_envio: string | null; p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_fecha_carga_real?: string | null; p_parada?: number | null; p_hora?: string | null }; Returns: Json }
+      marcar_etapa_envio: { Args: { p_envio: string | null; p_paso: number | null; p_hora?: string | null }; Returns: Json }
       marcar_exportados: { Args: { p_fichero: string | null; p_refs: string[] | null; p_valor?: boolean | null }; Returns: number }
       marcar_facturados: { Args: { p_lado: string | null; p_refs: string[] | null; p_valor?: boolean | null }; Returns: number }
       marcar_mi_envio_manual: { Args: { p_envio: string | null; p_estado: string | null; p_precio?: number | null }; Returns: undefined }
@@ -3240,17 +3258,20 @@ export type Database = {
       paradas_viaje_json: { Args: { p_envio: string | null }; Returns: Json }
       parametro: { Args: { p_clave: string | null }; Returns: Json }
       parametro_num: { Args: { p_clave: string | null; p_defecto: number | null }; Returns: number }
+      pausar_seguimiento_envio: { Args: { p_envio: string | null; p_pausar: boolean | null }; Returns: Json }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
       pin_aleatorio: { Args: { p_cifras: number | null }; Returns: string }
       poner_datos_cmr: { Args: { p_envio: string | null; p_bultos: number | null; p_embalaje: string | null; p_volumen: number | null }; Returns: undefined }
       poner_horario_por_defecto: { Args: { p_sitio: string | null }; Returns: undefined }
       precio_por_revisar: { Args: { p: string | null }; Returns: boolean }
       preparar_pines_envio: { Args: { p_envio: string | null }; Returns: number }
+      primera_carga_posible: { Args: { p_envio: string | null }; Returns: string }
       primera_fecha_carga: { Args: { p_fija: boolean | null; p_instante?: string | null; p_al_pagar?: boolean | null }; Returns: string }
       pronto_pago_descuento: { Args: { p_importe: number | null }; Returns: number }
       pronto_pago_estado: { Args: Record<PropertyKey, never>; Returns: Json }
       pronto_pago_estado_interno: { Args: Record<PropertyKey, never>; Returns: Json }
       proponer_precio_solicitud: { Args: { p_envio: string | null; p_importe: number | null; p_importe_transportista?: number | null }; Returns: undefined }
+      puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
       quitar_transportista: { Args: { p_envio: string | null }; Returns: Json }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
@@ -3271,6 +3292,12 @@ export type Database = {
       revisar_precios_programados: { Args: Record<PropertyKey, never>; Returns: number }
       revocar_oferta: { Args: { p_oferta: string | null }; Returns: Json }
       riesgos_clientes: { Args: Record<PropertyKey, never>; Returns: { cliente_id: string; nombre: string; cif: string; riesgo_cesce: number; plazo_cesce: number; riesgo_manual: number; riesgo_efectivo: number; manda: string; envios: number; asumido_base: number; asumido: number; disponible: number; ultimo_envio: string }[] }
+      seguimiento_apertura: { Args: { p_sitio: string | null; p_t: string | null }; Returns: string }
+      seguimiento_aplicar: { Args: { p_envio: string | null; p_a_mano?: boolean | null }; Returns: number }
+      seguimiento_calcular: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; parada_id: string; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean }[] }
+      seguimiento_conducir: { Args: { t: string | null; jornada: string | null; tramo: number | null; dia: number | null; p_horas: number | null; p_inicio?: string | null }; Returns: { t: string; jornada: string; tramo: number; dia: number } }
+      seguimiento_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; parada_actual: number; tipo_parada: string; paradas: number; primera_carga_en: string; asignando: boolean; fecha_carga_prevista: string; automatico: boolean }[] }
+      seguimiento_paso: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_parada: number | null; p_paradas: number | null }; Returns: number }
       sitio_principal: { Args: { p_cliente: string | null }; Returns: string }
       sn: { Args: { p: boolean | null }; Returns: string }
       sumar_dias_habiles: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
@@ -3304,7 +3331,7 @@ export type Database = {
       tipo_camion: "trailer_tauliner" | "rigido_plataforma"
       tipo_carga: "completa" | "grupaje"
       tipo_concepto: "porte" | "almacenaje" | "paralizacion" | "penalizacion" | "otros"
-      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "cargado" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida"
+      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "descargando" | "cargado" | "descargado" | "etapa_corregida" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida"
       tipo_sitio: "almacen_nave" | "obra_zona_amplia" | "obra_zona_urbana" | "finca"
       tipo_vehiculo: "tractora" | "remolque" | "rigido"
     }

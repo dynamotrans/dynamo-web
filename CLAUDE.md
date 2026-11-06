@@ -420,6 +420,17 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Calidad (los 7 puntos)**: ESLint y pruebas unitarias en el CI; tipos generados de la base de datos; una sola fuente para estados, permisos y CONTACTO; las acciones validan su entrada (zod); FichaEnvio y NuevoEnvio troceados; **Playwright con 6 flujos** contra un Supabase local completo (con Realtime); **Sentry instalado y apagado** hasta poner el DSN (recordárselo al usuario AL FINAL del proyecto); `any` de 172 a 1 (el de `leerTodo`, explicado en el código), tope de ESLint a 1. Comprobado: 78 pantallas (3 roles) sin errores y los PDF salen.
 - **Panel en vivo** (petición «importante» del usuario): señales sin datos por Supabase Realtime, canales privados «dynamo» / «cliente:<id>» / «transportista:<id>» y, sin sesión, «enlace:<sha256>» para la bolsa y el CMR (migraciones `en_vivo`, `en_vivo_enlaces`; pruebas 154 y 155). `components/panel/EnVivo.tsx` agrupa señales, espera si escribes o hay una ventana abierta, y **nunca borra lo que el usuario escribe** (si ha escrito en la página: aviso «Hay novedades · Actualizar»). Los refrescos que no se pintaban eran culpa de `app/panel/(app)/loading.tsx`: **no volver a poner un loading.tsx en el panel** (el cargador al navegar lo pone `CargandoNavegacion`). Para depurar: `localStorage.setItem('dynamo:envivo','1')`.
 - **Baja de cuenta** del cliente o transportista desde «Mi cuenta» (`darme_de_baja`, prueba 153): se da de baja el acceso, **no se borra nada**. Decisión del usuario: los datos de las bajas se guardan **indefinidamente**; borrar solo a mano (Anonimizar).
+- **Seguimiento automático del envío** (migraciones `seguimiento_hitos` y `seguimiento_automatico`; pruebas 73 y 158):
+  - **Avance solo.** El estado avanza solo por etapas: Programado / Asignando transportista (a menos de 36 h, sin camión) / Confirmado → Yendo a la carga → Cargando o Descargando (n.ª parada) → En ruta a la n.ª parada → Entregado. Lo mueve la tarea `dynamo-estados-automaticos` cada 5 min.
+  - **Horario previsto**, todo en Parámetros → Operativa → «Seguimiento automático»:
+    - jornada desde las 7:00 y llegada a la 1.ª parada a las 12:30 (otra hora en verano, si se quiere);
+    - 1 h por parada y 80 km/h;
+    - tacógrafo: 45 min de pausa cada 4 h 30, máximo 9 h de conducción al día, jornada de 13 h y descanso de 11 h, sin arrancar antes de las 7:00;
+    - espera a que abra cada sitio según su horario.
+  - **A mano.** Dynamo marca cualquier etapa con su hora desde «Cambiar estado»: lo marcado es el nuevo punto de partida y el resto se recalcula; una hora futura sirve para atrasar. «Pausar automático» lo para. El transportista avisa parada a parada desde su ficha.
+  - **Día previsto de carga**: obligatorio al asignar si el envío tiene ventana, también en la bolsa.
+  - **Quién y cuándo**: cada etapa deja su hito con la hora prevista y «automático», o el nombre de quien la marcó.
+  - **Fuera de este trabajo**: el PIN queda para v2/v3.
 - **Apuntado** en prioridad alta: DeCA propio (sustituir DecaDoc; fase 2 gratis a terceros; base: el paquete `dynamo-ordenes-deca.zip` de septiembre, que el usuario debe volver a subir) y tarifador igual que el borrador de Vercel.
 
 **Aprendizajes**: `supabase init` (CLI 2.122) ya no crea `supabase/migrations/`; en local hay que arrancar `dockerd` a mano si el contenedor se reinicia; un `next start` viejo sigue sirviendo HTML con trozos de la compilación anterior (400 en `/_next/static`) — matar `next-server`, no solo `next start`.

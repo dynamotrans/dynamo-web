@@ -118,3 +118,12 @@ export const ROL: Record<string, string> = {
   cliente: 'Cliente',
   transportista: 'Transportista',
 };
+
+// Días de la ventana de carga (AAAA-MM-DD), como mucho 31.
+export function diasEntre(desde: string | null, hasta: string | null): string[] {
+  if (!desde) return [];
+  const out: string[] = []; const d = new Date(`${desde}T12:00:00Z`); const fin = new Date(`${hasta ?? desde}T12:00:00Z`);
+  while (d <= fin && out.length < 31) { out.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
+  return out;
+}
+

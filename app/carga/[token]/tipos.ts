@@ -31,4 +31,5 @@ export type ReservaPublica = EnvioPublico & {
   // Carga aceptada:
   token?: string | null; transportista?: string | null; aceptada_en?: string | null; discrecion_comercial?: boolean | null;
   matricula_camion?: string | null; matricula_remolque?: string | null; conductor_nombre?: string | null; conductor_telefono?: string | null;
+  fecha_carga_prevista?: string | null;   // día en que carga (lo elige el transportista si hay ventana)
 };

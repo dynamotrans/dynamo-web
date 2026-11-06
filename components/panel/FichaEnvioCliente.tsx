@@ -24,11 +24,12 @@ import { RevisionCliente, SelloPrecio, type Revision } from './RevisionPrecio';
 import Historial from './Historial';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 import { CONTACTO } from '@/lib/atencion';
-import { ESTADOS_ENVIO, FASES_ENVIO } from '@/lib/estados';
+import { ESTADOS_ENVIO, FASES_ENVIO, type Etapa } from '@/lib/estados';
+import Etapas from './ficha/Etapas';
 
 const HITOS: Record<string, string> = {
   creado: 'Solicitud creada', confirmado: 'Envío confirmado', transportista_asignado: 'Transportista asignado',
-  matricula_asignada: 'Camión asignado', hacia_la_carga: 'El camión va hacia la carga', cargando: 'Cargando', cargado: 'Cargado · en ruta', entregado: 'Entregado', cancelado: 'Cancelado',
+  matricula_asignada: 'Camión asignado', hacia_la_carga: 'El camión va hacia la carga', cargando: 'Cargando', descargando: 'Descargando', cargado: 'Cargado · en ruta', descargado: 'Descargado · sigue a la siguiente parada', entregado: 'Entregado', cancelado: 'Cancelado',
   cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', cmr_firmado: 'CMR firmado',
   fecha_carga_movida: 'Fecha de carga movida (el pago llegó tarde)',
 };
@@ -61,7 +62,7 @@ export type EnvioCliente = EnvioClienteBase & {
 };
 const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
 
-export default function FichaEnvioCliente({ e, cerrarHref }: { e: EnvioCliente; cerrarHref: string }) {
+export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar'>('ficha');
@@ -70,7 +71,8 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: EnvioCliente; 
   const [acepto, setAcepto] = useState(false);
   const [motivo, setMotivo] = useState('');
   const cerrar = () => router.push(cerrarHref, { scroll: false });
-  const ev = estadoVisual(e);
+  const act = etapas.find((x) => x.actual);
+  const ev = estadoVisual({ ...e, parada_actual: e.parada_actual ?? act?.parada ?? null, tipo_parada: e.tipo_parada ?? act?.tipo_parada ?? null });
   const manual = !!e.es_manual;
   const paradas = e.paradas ?? [];
   const recogidas = paradas.filter((p) => p.tipo === 'carga'), entregas = paradas.filter((p) => p.tipo === 'descarga');
@@ -277,6 +279,11 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: EnvioCliente; 
       </>}
 
       {e.valoracion?.puede && <ValorarTransportista envio={e.id} v={e.valoracion} onHecho={() => refrescar()} />}
+
+      {!manual && e.estado !== 'cancelado' && etapas.length > 0 && <>
+        <h4 className="modal-section-title">Seguimiento</h4>
+        <Etapas etapas={etapas} />
+      </>}
 
       {(e.hitos ?? []).length > 0 && <>
         <h4 className="modal-section-title">Historial</h4>

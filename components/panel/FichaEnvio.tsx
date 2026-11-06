@@ -24,6 +24,7 @@ import { CANALES, Celda, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Vi
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
 import { Estado } from './ficha/Estado';
+import Etapas from './ficha/Etapas';
 import { Cancelar } from './ficha/Cancelar';
 import { Modificar } from './ficha/Modificar';
 import { PonerPrecio } from './ficha/PonerPrecio';
@@ -188,9 +189,10 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           <div className="modal-info-grid">
             <Celda l="Estado asignación transportista" span>
               {cancelado || e.estado === 'entregado' ? '—' : ficha.transportista
-                ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado transportista</span>
-                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Asignándose transportista</span>}
+                ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
+                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
             </Celda>
+            <Celda l="Día previsto de carga">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : <Pend />}</Celda>
             <Celda l="Transportista asignado el">{e.asignado_en ? fechaHora(e.asignado_en) : <Pend />}</Celda>
             <Celda l="Precio del transportista (sin IVA)">{pt != null ? euros(pt) : <Pend />}</Celda>
           </div>
@@ -319,6 +321,11 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       </>}
 
       {!cancelado && <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
+
+      {!cancelado && !manual && ficha.etapas.length > 0 && <>
+        <h4 className="modal-section-title">Seguimiento</h4>
+        <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} />
+      </>}
 
       <h4 className="modal-section-title">Historial</h4>
       <div className="pen-envio-sum">

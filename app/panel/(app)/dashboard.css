@@ -1992,18 +1992,22 @@ body.theme-dark .sidebar { background: #060116; }
 .badge-cancelada { background: #fee2e2; color: #991b1b; }  /* Cancelada: red */
 .badge-pago      { background: #dc2626; color: #fff; box-shadow: inset 0 0 0 1px #dc2626; }  /* Pendiente de pago: ROJO texto blanco */
 .badge-sinconf   { background: #ede9fe; color: #5b21b6; box-shadow: inset 0 0 0 1px #a78bfa; }  /* Pendiente confirmar almacén: morado */
+.badge-asignando { background: #fff7ed; color: #9a3412; box-shadow: inset 0 0 0 1px #fdba74; }  /* Asignando transportista (menos de 36 h): naranja */
+.badge-confirmado { background: #ecfdf5; color: #065f46; box-shadow: inset 0 0 0 1px #6ee7b7; } /* Confirmado (con transportista): verde suave */
 /* Punto parpadeante a la izquierda del texto en ciertos estados de envío.
    (Entregado y Cancelada se quedan sin punto.) */
-.badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-entrega, .badge-retrasada, .badge-pago, .badge-sinconf {
+.badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-entrega, .badge-retrasada, .badge-pago, .badge-sinconf, .badge-asignando, .badge-confirmado {
     display: inline-flex; align-items: center; gap: 0.42em;
 }
 .badge-prog::before, .badge-hacia::before, .badge-cargando::before,
-.badge-enruta::before, .badge-entrega::before, .badge-retrasada::before, .badge-pago::before, .badge-sinconf::before {
+.badge-enruta::before, .badge-entrega::before, .badge-retrasada::before, .badge-pago::before, .badge-sinconf::before, .badge-asignando::before, .badge-confirmado::before {
     content: ""; width: 7px; height: 7px; border-radius: 50%;
     flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite;
 }
 .badge-sinconf::before   { background: #7c3aed; box-shadow: 0 0 5px #7c3aed; }    /* morado */
 .badge-prog::before      { background: #334155; }                                 /* gris oscuro */
+.badge-asignando::before { background: #f97316; box-shadow: 0 0 5px #f97316; }    /* naranja */
+.badge-confirmado::before { background: #10b981; }                               /* verde */
 .badge-hacia::before     { background: #2563eb; box-shadow: 0 0 5px #2563eb; }    /* azul */
 .badge-cargando::before  { background: #ff6a00; box-shadow: 0 0 5px #ff6a00; }    /* naranja flúor */
 .badge-enruta::before    { background: #00e676; box-shadow: 0 0 5px #00e676; }    /* verde flúor */

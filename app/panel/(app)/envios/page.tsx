@@ -127,6 +127,20 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       mias.forEach((f) => { f.operador = mapa.get(f.operador_id as string) ?? null; });
     }
   }
+  // Seguimiento: en qué parada está cada uno y si un programado sin camión ya está «Asignando
+  // transportista» (a menos de 36 h de poder cargar). Lo calcula la base de datos.
+  if (filas.length) {
+    const { data: seg } = await supabase.rpc('seguimiento_envios', { p_ids: filas.map((f) => f.id) });
+    const m = new Map((seg ?? []).map((x) => [x.envio_id, x]));
+    filas.forEach((f) => {
+      const x = m.get(f.id);
+      if (x) Object.assign(f, { parada_actual: x.parada_actual, tipo_parada: x.tipo_parada, asignando: x.asignando, fecha_carga_prevista: x.fecha_carga_prevista, automatico: x.automatico });
+    });
+  }
+  // Etapas del envío abierto (cliente y transportista; la ficha de Dynamo las trae con ella).
+  const etapasVer = !dynamo && sp.ver && /^[0-9a-f-]{36}$/i.test(sp.ver)
+    ? ((await supabase.rpc('etapas_envio', { p_envio: sp.ver })).data ?? []) : [];
+
   // En el orden que ha dado la base de datos.
   const pos = new Map((idsPagina ?? []).map((id, i) => [id, i]));
   filas.sort((a, b) => (pos.get(a.id) ?? 0) - (pos.get(b.id) ?? 0));
@@ -193,8 +207,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       {ofertas.length > 0 && <OfertasAbiertas ofertas={ofertas} />}
       <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
-      {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} cerrarHref={cerrarHref} />}
-      {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} cerrarHref={cerrarHref} />}
+      {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} />}
+      {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} etapas={etapasVer} cerrarHref={cerrarHref} />}
     </>
   );
 }

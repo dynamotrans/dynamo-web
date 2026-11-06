@@ -8,13 +8,11 @@ import { vistaCruda } from '@/lib/vista';
 import { euros } from '@/lib/formato';
 import { flotaDe, type FlotaTransportista } from '@/lib/fichaEnvio';
 import type { TablaUpdate } from '@/lib/supabase/tipos';
-import type { Enum } from '@/lib/supabase/tipos';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
-const ESTADOS_FASE = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'] as const;
 
 function traducir(msg: string): string {
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
@@ -26,6 +24,7 @@ const soloDynamo = soloGestor;
 export type Asignacion = {
   transportista_id: string; importe_transportista: number | null;
   matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string;
+  fecha_carga_prevista?: string | null;   // día en que carga (obligatorio si el envío tiene ventana)
 };
 
 export async function asignarTransportista(envio: string, a: Asignacion): Promise<Res> {
@@ -39,12 +38,14 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
     p_envio: envio, p_transportista: a.transportista_id, p_importe_transportista: a.importe_transportista,
     p_matricula_camion: a.matricula_camion, p_matricula_remolque: a.matricula_remolque,
     p_conductor_nombre: a.conductor_nombre, p_conductor_telefono: a.conductor_telefono,
+    p_fecha_carga_prevista: a.fecha_carga_prevista || null,
   });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
   if (r.ok) return { ok: true };
   return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',
-    importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
+    importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.',
+    falta_fecha_prevista: 'Elige el día en que carga: el envío tiene varios días de recogida.', fecha_fuera_de_ventana: 'El día de carga tiene que estar dentro de los días de recogida.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
 }
 
 export async function quitarTransportista(envio: string): Promise<Res> {
@@ -56,17 +57,30 @@ export async function quitarTransportista(envio: string): Promise<Res> {
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
 
-export async function cambiarEstado(envio: string, estado: string, fechaCargaReal: string | null): Promise<Res> {
-  comprobarEntrada("app/panel/(app)/envios/acciones#cambiarEstado", [envio, estado, fechaCargaReal]);
+// Seguimiento (usuario, 2026-11-06): marcar a mano en qué etapa está el envío y desde qué
+// hora; el automático sigue desde ahí con los mismos plazos. Una hora futura atrasa.
+export async function marcarEtapa(envio: string, paso: number, hora: string | null): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#marcarEtapa", [envio, paso, hora]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo cambia el estado de un envío.' };
-  if (!(ESTADOS_FASE as readonly string[]).includes(estado)) return { ok: false, error: 'Ese estado no vale.' };
-  const { data, error } = await s.supabase.rpc('marcar_estado_envio', { p_envio: envio, p_estado: estado as Enum<'estado_envio'>, p_fecha_carga_real: fechaCargaReal || null });
+  if (!Number.isInteger(paso) || paso < 0) return { ok: false, error: 'Esa etapa no vale.' };
+  if (hora && Number.isNaN(Date.parse(hora))) return { ok: false, error: 'La hora no es válida.' };
+  const { data, error } = await s.supabase.rpc('marcar_etapa_envio', { p_envio: envio, p_paso: paso, p_hora: hora || null });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
   if (r.ok) return { ok: true };
-  return { ok: false, error: ({ cancelado: 'El envío está cancelado: deshaz antes la cancelación.', no_existe: 'Ese envío no existe.',
-    sin_transportista: 'Asigna antes el transportista: sin camión el envío no puede ir hacia la carga.' } as Record<string, string>)[r.resultado] ?? 'Ese estado no vale.' };
+  return { ok: false, error: ({ cancelado: 'El envío está cancelado: deshaz antes la cancelación.', no_existe: 'Ese envío no existe.', borrador: 'El envío aún no está confirmado.',
+    sin_transportista: 'Asigna antes el transportista: sin camión el envío no puede ir hacia la carga.', etapa_no_valida: 'Esa etapa no vale.',
+    hora_no_valida: 'La hora tiene que estar entre hace 30 días y dentro de 14.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido cambiar.' };
+}
+
+export async function pausarSeguimiento(envio: string, pausar: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#pausarSeguimiento", [envio, pausar]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo cambia el estado de un envío.' };
+  const { data, error } = await s.supabase.rpc('pausar_seguimiento_envio', { p_envio: envio, p_pausar: pausar });
+  if (error) return { ok: false, error: traducir(error.message) };
+  return (data as { ok: boolean }).ok ? { ok: true } : { ok: false, error: 'Ese envío no existe.' };
 }
 
 export async function cancelarEnvio(envio: string, motivo: string): Promise<Res> {

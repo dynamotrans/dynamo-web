@@ -58,15 +58,16 @@ export async function liberar(token: string): Promise<void> {
   almacen.delete({ name: cookieReserva(token), path: '/carga' });
 }
 
-export async function completar(token: string, d: { camion: string; remolque: string; conductor: string; telefono: string }): Promise<{ resultado: string; conductor?: string | null; telefono?: string | null }> {
+export async function completar(token: string, d: { camion: string; remolque: string; conductor: string; telefono: string; dia?: string | null }): Promise<{ resultado: string; conductor?: string | null; telefono?: string | null; fecha_carga_prevista?: string | null }> {
   comprobarEntrada("app/carga/[token]/acciones#completar", [token, d]);
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error' };
   const { data, error } = await sb.rpc('completar_carga_publica', {
     p_reserva: reserva, p_matricula_camion: d.camion, p_matricula_remolque: d.remolque, p_conductor_nombre: d.conductor, p_telefono: d.telefono,
+    p_fecha_carga_prevista: d.dia || null,
   });
-  return error ? { resultado: 'error' } : (data as { resultado: string; conductor?: string | null; telefono?: string | null });
+  return error ? { resultado: 'error' } : (data as { resultado: string; conductor?: string | null; telefono?: string | null; fecha_carga_prevista?: string | null });
 }
 
 // Al escribir una matrícula o un chófer: los datos que ya conocemos de su flota (el chófer

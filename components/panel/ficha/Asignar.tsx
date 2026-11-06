@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import Modal from '../Modal';
 import Cargando from '@/components/Cargando';
-import { euros, numero } from '@/lib/formato';
+import { euros, numero, fecha, diasEntre } from '@/lib/formato';
 import type { TransportistaOpcion } from '@/lib/fichaEnvio';
 import CampoTelefono from '@/components/CampoTelefono';
 import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista } from '@/app/panel/(app)/envios/acciones';
 import { I, ICO, SubProps, aNum } from './comun';
+
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 // ---- Asignar / cambiar transportista ------------------------------------------------
 export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProps & { transportistas: TransportistaOpcion[] }) {
@@ -19,6 +21,11 @@ export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: 
   const [conductor, setConductor] = useState<string>(e.conductor_nombre ?? '');
   const [tel, setTel] = useState<string>(e.conductor_telefono ?? '');
   const [error, setError] = useState<string | null>(null);
+  // Día en que carga (usuario, 2026-11-06): con ventana es obligatorio y es el que usa el
+  // seguimiento automático; con fecha fija es esa fecha.
+  const dias = useMemo(() => diasEntre(e.fecha_carga_desde, e.fecha_carga_hasta), [e.fecha_carga_desde, e.fecha_carga_hasta]);
+  const conVentana = dias.length > 1 || !e.fecha_carga_desde;
+  const [diaCarga, setDiaCarga] = useState<string>(e.fecha_carga_prevista ?? (dias.length === 1 ? dias[0] : ''));
   const t = transportistas.find((x) => x.id === tid);
   // Su flota se pide al elegirlo (no viaja con la ficha la de todos los transportistas).
   const [flota, setFlota] = useState<{ id: string; vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] } | null>(null);
@@ -58,9 +65,10 @@ export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: 
     setError(null);
     if (!tid) { setError('Elige el transportista.'); return; }
     if (Number.isNaN(pv)) { setError('El precio del transportista no es un número.'); return; }
+    if (conVentana && !diaCarga) { setError('Elige el día en que carga.'); return; }
     await hacer('Asignando el transportista', () => asignarTransportista(e.id, {
       transportista_id: tid, importe_transportista: pv, matricula_camion: camion, matricula_remolque: remolque,
-      conductor_nombre: conductor, conductor_telefono: tel,
+      conductor_nombre: conductor, conductor_telefono: tel, fecha_carga_prevista: diaCarga || null,
     }), `Transportista asignado: ${t?.nombre ?? ''}.`);
   }
   return (
@@ -84,6 +92,18 @@ export function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: 
             ))}
           </select>
           {transportistas.length === 0 && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Aún no hay transportistas: dalos de alta en Otras gestiones → Transportistas.</div>}
+        </div>
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="as-dia">Día en que carga {conVentana ? <span className="sitio-req">· obligatorio</span> : null}</label>
+          {conVentana && dias.length > 0 ? (
+            <select id="as-dia" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)}>
+              <option value="">Elige el día de la ventana…</option>
+              {dias.map((d) => <option key={d} value={d}>{fecha(d)} · {DIAS[new Date(`${d}T12:00:00`).getDay()]}</option>)}
+            </select>
+          ) : conVentana ? (
+            <input id="as-dia" type="date" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)} />
+          ) : <div style={{ minHeight: 40, display: 'flex', alignItems: 'center', fontWeight: 700 }}>{fecha(dias[0])} (fecha fija)</div>}
+          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Con este día va el seguimiento automático: sale hacia la carga y llega a la 1.ª parada a la hora de Parámetros.</div>
         </div>
         <div>
           <label htmlFor="as-precio">Precio del transportista (€ sin IVA)</label>
