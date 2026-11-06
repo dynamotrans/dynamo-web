@@ -4451,6 +4451,17 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 /* Cuadro de mando del Dashboard admin (2026-11-06): gráficos SVG propios. */
 .cm .cm-chart { padding: 0.2rem 0 0; }
 .cm .cm-chart { margin-top: 1.6rem; }
+/* Evolución: en pantallas estrechas el gráfico se desplaza en horizontal (si no, los ejes no se leen). */
+.cm .cm-chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cm .cm-chart-lienzo { position: relative; min-width: 640px; }
+.cm .cm-tip.cm-tip-3 { top: 2.2rem; transform: none; display: grid; gap: 2px; text-align: left; line-height: 1.35; max-width: 260px; white-space: normal; z-index: 2; }
+@media (max-width: 640px) {
+  /* En el móvil la etiqueta va debajo del gráfico (fuera del desplazamiento) y sobra la pista de la cabecera. */
+  .cm .cm-tip.cm-tip-3 { position: static; max-width: none; margin-top: 0.5rem; }
+  .cm .mini-list-head .meta { display: none; }
+}
+.cm .cm-tip.cm-tip-3 strong { margin-bottom: 2px; }
+.cm .cm-tip.cm-tip-3 i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .cm .cm-tip { position: absolute; top: -1.5rem; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: var(--fs-s); padding: 0.25rem 0.55rem; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 12px rgba(10,2,48,0.25); }
 .cm .stat-card-value { white-space: nowrap; }
 .cm .prm-saltos { display: flex; flex-wrap: wrap; gap: 0.35rem; width: 100%; }

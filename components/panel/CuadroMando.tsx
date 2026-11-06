@@ -3,9 +3,11 @@
 // CUADRO DE MANDO (usuario, 2026-11-06): lo que llevaba en su hoja —facturación, margen,
 // viajes, % cerrados, km y €/km, por cliente y por mes— calculado de
 // los envíos reales (cuadro_mando() en la base de datos). Primera versión, para ir ajustando.
-// Gráficos en SVG propio (sin librerías): una sola escala por gráfico, barras finas, tooltip
-// al pasar, tabla debajo de cada gráfico para quien prefiera los números.
-import { useMemo, useState } from 'react';
+// Gráficos en SVG propio (sin librerías), barras finas, tooltip al pasar o al pulsar, tabla
+// debajo para quien prefiera los números. La evolución (usuario, 2026-11-06) lleva las tres
+// series a la vez: barras de facturación y línea de margen en euros (eje izquierdo) y línea de
+// envíos en unidades (eje derecho), con leyenda y los tres valores del mes al pulsar.
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { euros, importe } from '@/lib/formato';
@@ -90,6 +92,104 @@ function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: { k: str
   );
 }
 
+// Redondea un máximo a un tope «bonito» (1, 2, 2,5, 5 × 10^k) para que los ejes cuadren.
+function topeBonito(v: number): number {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const f = v / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+const eurosCortos = (v: number) => (Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(1).replace('.', ',')} M€` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0).replace('.', ',')} k€` : `${Math.round(v)} €`);
+const COLOR_FACT = '#3300cc', COLOR_MARGEN = '#22a55a', COLOR_ENVIOS = '#ff7a00';
+
+// Evolución: barras de facturación + línea de margen (euros, eje izquierdo) + línea de envíos
+// realizados (unidades, eje derecho). Al pasar el ratón o pulsar un mes, etiqueta flotante con
+// los tres valores (al pulsar se queda unos segundos, para el móvil).
+function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number; margen: number; realizados: number; solicitados: number }[]; titulo: string }) {
+  const [sel, setSel] = useState<number | null>(null);
+  const [fijo, setFijo] = useState(false);
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (temporizador.current) clearTimeout(temporizador.current); }, []);
+  const pulsar = (i: number) => {
+    if (temporizador.current) clearTimeout(temporizador.current);
+    setSel(i); setFijo(true);
+    temporizador.current = setTimeout(() => { setFijo(false); setSel(null); }, 4500);
+  };
+  const ancho = 720, alto = 220, izq = 58, der = 46, arriba = 12, abajo = 24;
+  const maxEur = topeBonito(Math.max(1, ...datos.map((d) => Math.max(d.facturacion, d.margen))));
+  const minEur = Math.min(0, ...datos.map((d) => d.margen));
+  const minEurTope = minEur < 0 ? -topeBonito(-minEur) : 0;
+  const maxEnv = topeBonito(Math.max(1, ...datos.map((d) => d.realizados)));
+  const w = (ancho - izq - der) / Math.max(datos.length, 1);
+  const barra = Math.max(2, Math.min(w - 4, 36));
+  const yE = (v: number) => arriba + (alto - arriba - abajo) * (1 - (v - minEurTope) / (maxEur - minEurTope));
+  const yN = (v: number) => arriba + (alto - arriba - abajo) * (1 - v / maxEnv);
+  const xc = (i: number) => izq + i * w + w / 2;
+  const cada = Math.ceil(datos.length / 12);
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  const linea = (f: (d: typeof datos[number]) => number, y: (v: number) => number) => datos.map((d, i) => `${i ? 'L' : 'M'}${xc(i).toFixed(1)},${y(f(d)).toFixed(1)}`).join(' ');
+  const d = sel != null ? datos[sel] : null;
+  const muchos = datos.length > 40;   // con muchos puntos, las líneas van sin los circulitos
+  const derecha = sel != null && xc(sel) > ancho / 2;   // la etiqueta se pone al otro lado del mes marcado
+  return (
+    <div className="cm-chart" style={{ position: 'relative' }}>
+      <div className="cm-leyenda" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: 'var(--fs-s)', color: 'var(--gray-700)', margin: '0 0 0.4rem' }}>
+        <span><i style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: COLOR_FACT, verticalAlign: '-1px', marginRight: 5 }} />Facturación (€, eje izquierdo)</span>
+        <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_MARGEN, verticalAlign: '3px', marginRight: 5 }} />Margen (€, eje izquierdo)</span>
+        <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_ENVIOS, verticalAlign: '3px', marginRight: 5 }} />Envíos realizados (eje derecho)</span>
+      </div>
+      <div className="cm-chart-scroll"><div className="cm-chart-lienzo">
+      <svg viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ width: '100%', height: 'auto', display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}>
+        {ticks.map((f) => {
+          const vE = minEurTope + (maxEur - minEurTope) * f;
+          return (
+            <g key={f}>
+              <line x1={izq} x2={ancho - der} y1={yE(vE)} y2={yE(vE)} stroke="var(--gray-200)" strokeWidth="1" />
+              <text x={izq - 6} y={yE(vE) + 4} textAnchor="end" fontSize="10" fill={COLOR_FACT}>{eurosCortos(vE)}</text>
+              <text x={ancho - der + 6} y={yN(maxEnv * f) + 4} textAnchor="start" fontSize="10" fill={COLOR_ENVIOS}>{Math.round(maxEnv * f)}</text>
+            </g>
+          );
+        })}
+        {datos.map((p, i) => {
+          const x = izq + i * w + (w - barra) / 2;
+          const h = Math.max(0, yE(0) - yE(p.facturacion));
+          return (
+            <g key={p.k}>
+              <rect x={x} y={yE(p.facturacion)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={COLOR_FACT} opacity={sel == null || sel === i ? 0.9 : 0.4} />
+              {p.facturacion > 0 && h < 3 && <rect x={x} y={yE(0) - 2} width={barra} height={2} fill={COLOR_FACT} />}
+              {i % cada === 0 && <text x={xc(i)} y={alto - 7} textAnchor="middle" fontSize="11" fill="var(--gray-500)">{p.k}</text>}
+            </g>
+          );
+        })}
+        <line x1={izq} x2={ancho - der} y1={yE(0)} y2={yE(0)} stroke="var(--gray-300)" strokeWidth="1" />
+        <path d={linea((p) => p.margen, yE)} fill="none" stroke={COLOR_MARGEN} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={linea((p) => p.realizados, yN)} fill="none" stroke={COLOR_ENVIOS} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={datos.length > 40 ? undefined : '0'} />
+        {datos.map((p, i) => (muchos && sel !== i ? null : (
+          <g key={p.k}>
+            <circle cx={xc(i)} cy={yE(p.margen)} r={sel === i ? 4.5 : 3} fill="#fff" stroke={COLOR_MARGEN} strokeWidth="2" />
+            <circle cx={xc(i)} cy={yN(p.realizados)} r={sel === i ? 4.5 : 3} fill="#fff" stroke={COLOR_ENVIOS} strokeWidth="2" />
+          </g>
+        )))}
+        {sel != null && <line x1={xc(sel)} x2={xc(sel)} y1={arriba} y2={alto - abajo} stroke="var(--navy)" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />}
+        {/* Zonas de captura: una por mes, encima de todo (ratón y toque). */}
+        {datos.map((p, i) => (
+          <rect key={`z${p.k}`} x={izq + i * w} y={arriba} width={w} height={alto - arriba - abajo} fill="transparent" style={{ cursor: 'pointer' }}
+            onMouseEnter={() => { if (!fijo) setSel(i); }} onClick={() => pulsar(i)} />
+        ))}
+      </svg>
+      </div></div>
+      {d && (
+        <div className="cm-tip cm-tip-3" style={derecha ? { right: `${(100 - xc(sel!) / ancho * 100 + 1.5).toFixed(1)}%` } : { left: `${(xc(sel!) / ancho * 100 + 1.5).toFixed(1)}%` }}>
+          <strong>{d.k}</strong>
+          <span><i style={{ background: COLOR_FACT }} />Facturación {euros(d.facturacion)}</span>
+          <span><i style={{ background: COLOR_MARGEN }} />Margen {euros(d.margen)}{d.facturacion ? ` (${pct(d.margen, d.facturacion)})` : ''}</span>
+          <span><i style={{ background: COLOR_ENVIOS }} />Envíos {n(d.realizados)} realizados / {n(d.solicitados)} solicitados</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Tabla({ cab, filas, nota }: { cab: string[]; filas: (string | number | React.ReactNode)[][]; nota?: string }) {
   return (
     <div className="table-wrap" style={{ marginTop: '0.4rem' }}>
@@ -105,14 +205,13 @@ function Tabla({ cab, filas, nota }: { cab: string[]; filas: (string | number | 
 export default function CuadroMando({ datos, periodo, error, sectores = [] }: { datos: Cuadro | null; periodo: Periodo; error: string | null; sectores?: Sector[] }) {
   const router = useRouter(); const ruta = usePathname();
   const [desde, setDesde] = useState(datos?.desde ?? ''); const [hasta, setHasta] = useState(datos?.hasta ?? '');
-  const [grafico, setGrafico] = useState<'facturacion' | 'margen' | 'realizados'>('facturacion');
   const [todosClientes, setTodosClientes] = useState(false);
   const ir = (p: Periodo, d?: string, h?: string) => router.push(`${ruta}?cm=${p}${p === 'otro' && d && h ? `&desde=${d}&hasta=${h}` : ''}`, { scroll: false });
   const t = datos?.totales, c = datos?.comparacion ?? undefined;
   const serie = useMemo(() => (datos?.serie ?? []).map((s) => ({
     k: datos!.granularidad === 'dia' ? etiquetaDia(s.k) : etiquetaMes(s.k),
-    v: n(s[grafico]), extra: `${n(s.realizados)} realizados / ${n(s.solicitados)} solicitados`,
-  })), [datos, grafico]);
+    facturacion: n(s.facturacion), margen: n(s.margen), realizados: n(s.realizados), solicitados: n(s.solicitados),
+  })), [datos]);
   const totFact = n(t?.facturacion);
   const PERIODOS: [Periodo, string][] = [['mes', 'Este mes'], ['mes-ant', 'Mes pasado'], ['anio', 'Este año'], ['anio-ant', 'Año pasado'], ['12m', 'Últimos 12 meses'], ['todo', 'Todo'], ['otro', 'Otro periodo…']];
 
@@ -149,16 +248,8 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
           </div>
 
           <div className="mini-list-card" style={{ marginTop: '1rem' }}>
-            <div className="mini-list-head" style={{ alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <h4>Evolución {datos!.granularidad === 'dia' ? 'por día' : 'por mes'}</h4>
-              <div style={{ display: 'flex', gap: 4 }} data-envivo-ignorar="">
-                {([['facturacion', 'Facturación'], ['margen', 'Margen'], ['realizados', 'Envíos']] as const).map(([k, l]) => (
-                  <button key={k} type="button" className="prm-salto cm-salto-inv" aria-pressed={grafico === k} onClick={() => setGrafico(k)}>{l}</button>
-                ))}
-              </div>
-            </div>
-            <Barras datos={serie} color={grafico === 'margen' ? '#22a55a' : grafico === 'realizados' ? '#ff7a00' : '#3300cc'}
-              formato={(v) => (grafico === 'realizados' ? `${v} envíos` : euros(v))} titulo={`Evolución de ${grafico}`} />
+            <div className="mini-list-head"><h4>Evolución {datos!.granularidad === 'dia' ? 'por día' : 'por mes'}</h4><span className="meta">pulsa un {datos!.granularidad === 'dia' ? 'día' : 'mes'} para ver sus cifras</span></div>
+            <Evolucion datos={serie} titulo="Evolución de facturación, margen y envíos" />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1rem', alignItems: 'start', marginTop: '1rem' }}>
