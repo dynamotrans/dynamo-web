@@ -94,6 +94,10 @@
     {
       "source": "/contacto",
       "destination": "/contacto.html"
+    },
+    {
+      "source": "/blog/:slug([a-z0-9-]+)",
+      "destination": "/blog/:slug.html"
     }
   ]
 }

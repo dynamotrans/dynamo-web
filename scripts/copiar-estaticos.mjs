@@ -9,7 +9,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 
 const DESTINO = 'public';
-const CARPETAS = ['css', 'js', 'images'];
+const CARPETAS = ['css', 'js', 'images', 'blog'];
 const SUELTOS = ['manifest.webmanifest', 'sw.js', 'robots.txt', 'sitemap.xml'];
 
 rmSync(DESTINO, { recursive: true, force: true });
