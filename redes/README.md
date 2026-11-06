@@ -7,6 +7,6 @@
 - Temas e histórico: `redes/TEMAS.md`.
 
 ## Historias (tarea aparte)
-- `render.py --format story` genera 1080×1920 con botón de CTA; `video.py` la convierte en MP4 de 12 s con zoom suave y **música original generada con `musica.py`** (moods upbeat/chill/minimal, distinta por seed; sin derechos de terceros).
+- `render.py --format story` genera 1080×1920 con botón de CTA; `video.py` la convierte en MP4 de 12 s con zoom suave y **música original generada con `musica.py`** (v2: moods drive/deep/cinematic con sidechain, riser, drop y masterizado; distinta por seed; sin derechos de terceros).
 - Se publican como STORY en Instagram y Facebook vía Metricool (sin caption; el mensaje va en la imagen).
 - Histórico de historias: `redes/HISTORIAS.md`.

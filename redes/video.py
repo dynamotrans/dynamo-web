@@ -1,6 +1,6 @@
 """Convierte una imagen de historia (1080x1920) en un vídeo MP4 vertical con zoom suave y música original.
 
-Uso: python3 redes/video.py --image images/redes/AAAA-MM-DD-slug-story.jpg --out images/redes/AAAA-MM-DD-slug-story.mp4 [--seconds 12] [--mood upbeat|chill|minimal] [--seed 3]
+Uso: python3 redes/video.py --image images/redes/AAAA-MM-DD-slug-story.jpg --out images/redes/AAAA-MM-DD-slug-story.mp4 [--seconds 12] [--mood drive|deep|cinematic] [--seed 3]
 Requiere ffmpeg. La música se genera con musica.py (sin derechos de terceros).
 """
 import argparse, subprocess, pathlib, tempfile, sys
@@ -8,7 +8,7 @@ HERE = pathlib.Path(__file__).parent
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--image", required=True); ap.add_argument("--out", required=True)
-ap.add_argument("--seconds", type=int, default=12); ap.add_argument("--mood", default="upbeat"); ap.add_argument("--seed", type=int, default=1)
+ap.add_argument("--seconds", type=int, default=12); ap.add_argument("--mood", default="drive"); ap.add_argument("--seed", type=int, default=1)
 a = ap.parse_args()
 
 wav = pathlib.Path(tempfile.mkdtemp()) / "pista.wav"

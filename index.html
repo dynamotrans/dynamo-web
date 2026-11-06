@@ -3225,9 +3225,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </section>
 
 <!-- LEGAL MODAL -->
-<div class="legal-overlay" id="legalModal" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="legal-overlay" id="legalModal" onclick="if(event.target===this)closeLegal()">
     <div class="legal-modal">
-        <button class="legal-close" onclick="document.getElementById('legalModal').classList.remove('open')">✕</button>
+        <button class="legal-close" onclick="closeLegal()" aria-label="Cerrar">✕</button>
 
         <div class="legal-tabs">
             <button class="legal-tab active" onclick="switchLegalTab('aviso',this)">Aviso Legal</button>
@@ -3490,6 +3490,18 @@ function openLegalFromHash() {
 }
 window.addEventListener('hashchange', openLegalFromHash);
 window.addEventListener('DOMContentLoaded', openLegalFromHash);
+
+// Al cerrar se quita el #aviso-legal / #privacidad / #cookies de la direccion: si no, al
+// recargar la pagina la ventana volvia a abrirse sola.
+function closeLegal() {
+    document.getElementById('legalModal').classList.remove('open');
+    if (/^#(aviso-legal|privacidad|cookies)$/.test(window.location.hash)) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('legalModal').classList.contains('open')) closeLegal();
+});
 
 function openLegal(tab) {
     var tabs = document.querySelectorAll('.legal-tab');
