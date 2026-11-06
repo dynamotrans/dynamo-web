@@ -5929,3 +5929,53 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; begin
   raise notice 'OK 160 · listas por páginas (transportistas, clientes, sitios) y buscadores: texto de búsqueda al día, paginación sin solapes, incluido, y cada uno ve lo suyo';
 end $$;
 reset role;
+
+-- ---- 161. Repaso de datos: CIF con «ES», hitos al migrar, tope de paradas, incidencias de transportista, índice -----
+reset role;
+do $$ declare c uuid; e uuid; i uuid; t uuid := current_setting('prueba.transp')::uuid; n int; h timestamptz; begin
+  -- 1. «ES» delante de un identificador español no cuenta; en otros países se queda.
+  if normalizar_id_fiscal('ES B-01.596.360') <> 'B01596360' or normalizar_id_fiscal('es12345678z') <> '12345678Z'
+     or normalizar_id_fiscal('ESX1234567L') <> 'X1234567L' then raise exception 'FALLO 161 · normalizar_id_fiscal no quita el ES: % % %', normalizar_id_fiscal('ES B-01.596.360'), normalizar_id_fiscal('es12345678z'), normalizar_id_fiscal('ESX1234567L'); end if;
+  if normalizar_id_fiscal('LT290610717') <> 'LT290610717' or normalizar_id_fiscal('ESTONIA123') <> 'ESTONIA123' or normalizar_id_fiscal('EE123456789') <> 'EE123456789' then
+    raise exception 'FALLO 161 · normalizar_id_fiscal toca identificadores que no son españoles'; end if;
+  insert into clientes (razon_social, cif) values ('Repaso Uno S.L.', 'B16100001') returning id into c;
+  begin
+    insert into clientes (razon_social, cif) values ('Repaso Uno bis S.L.', 'ES-B16100001');
+    raise exception 'FALLO 161 · el mismo CIF con «ES» delante entra dos veces como cliente';
+  exception when unique_violation then null;
+  end;
+  if (select cif from clientes where id = c) <> 'B16100001' then raise exception 'FALLO 161 · el CIF no se guarda normalizado'; end if;
+  -- 3. La tabla no admite más de 4 puntos en la ruta.
+  insert into envios (cliente_id, metros_lineales, toneladas) values (c, 2, 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values
+    (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'carga', '41002', 'Sevilla', 'ES'),
+    (e, 3, 'descarga', '28001', 'Madrid', 'ES'), (e, 4, 'descarga', '28002', 'Madrid', 'ES');
+  begin
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 5, 'descarga', '28003', 'Madrid', 'ES');
+    raise exception 'FALLO 161 · la tabla admite 5 puntos en la ruta';
+  exception when check_violation then null;
+  end;
+  if (select count(*) from envio_paradas where envio_id = e) <> 4 then raise exception 'FALLO 161 · el tope de paradas deja la ruta a medias'; end if;
+  -- 2. Al migrar, los hitos «creado» y «confirmado» llevan la fecha real de la fila, no la de hoy.
+  perform set_config('dynamo.migracion', 'on', true);
+  insert into envios (cliente_id, metros_lineales, toneladas, estado, creado_en, confirmado_en) values (c, 2, 1, 'programado', '2024-03-05 10:00+01', '2024-03-05 10:30+01') returning id into e;
+  perform set_config('dynamo.migracion', '', true);
+  select cuando into h from envio_hitos where envio_id = e and hito = 'creado';
+  if h is distinct from '2024-03-05 10:00+01'::timestamptz then raise exception 'FALLO 161 · el hito creado al migrar lleva % en vez de la fecha de la fila', h; end if;
+  select cuando into h from envio_hitos where envio_id = e and hito = 'confirmado';
+  if h is distinct from '2024-03-05 10:30+01'::timestamptz then raise exception 'FALLO 161 · el hito confirmado al migrar lleva % en vez de la fecha de la fila', h; end if;
+  if (select quien_origen from envio_hitos where envio_id = e and hito = 'creado') <> 'migracion-sheet' then raise exception 'FALLO 161 · el hito migrado no queda marcado como migración'; end if;
+  -- 4. Una incidencia de Dynamo sobre un transportista no lleva cliente aunque tenga envío.
+  update envios set transportista_id = t where id = e;
+  insert into incidencias (tipo_id, envio_id, transportista_id, titulo, detalle)
+    values ((select id from tipos_incidencia order by orden limit 1), e, t, 'Repaso 161', 'Sobre el transportista') returning id into i;
+  if (select cliente_id from incidencias where id = i) is not null then raise exception 'FALLO 161 · la incidencia sobre el transportista recibe el cliente del envío'; end if;
+  insert into incidencias (tipo_id, envio_id, titulo, detalle)
+    values ((select id from tipos_incidencia order by orden limit 1), e, 'Repaso 161 b', 'Sobre el envío') returning id into i;
+  if (select cliente_id from incidencias where id = i) is distinct from c then raise exception 'FALLO 161 · la incidencia del envío no recibe su cliente'; end if;
+  -- 5. El índice sobrante ya no está; los que sirven, sí.
+  if exists (select 1 from pg_indexes where indexname = 'idx_auditoria_cambios') then raise exception 'FALLO 161 · sigue el índice GIN de auditoria.cambios'; end if;
+  if (select count(*) from pg_indexes where indexname in ('idx_auditoria_registro', 'idx_auditoria_quien', 'idx_auditoria_cuando')) <> 3 then raise exception 'FALLO 161 · faltan índices de la auditoría'; end if;
+  raise notice 'OK 161 · repaso de datos: «ES» del CIF, hitos con fecha real al migrar, tope de 4 puntos en la tabla, incidencia del transportista sin cliente e índice sobrante fuera';
+end $$;
+reset role;

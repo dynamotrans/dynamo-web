@@ -39,13 +39,13 @@ const puede = gestorOCliente;
 
 // Buscador de clientes de la agenda de Sitios (filtro y ficha nueva; solo Dynamo): los 12
 // que mejor casan con lo escrito, más el ya elegido (`incluir`).
-export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id: string | null; estado: string };
+export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id: string | null; estado: string; iva_pct?: number | null };
 export async function buscarClientes(q: string, incluir: string | null = null): Promise<ClienteOpcion[]> {
   comprobarEntrada("app/panel/(app)/sitios/acciones#buscarClientes", [q, incluir]);
   const s = await soloGestor();
   if (!s) return [];
   const { data } = await s.supabase.rpc('buscar_clientes', { p_q: (q ?? '').slice(0, 200), p_limite: 12, p_incluir: incluir && /^[0-9a-f-]{36}$/i.test(incluir) ? incluir : null });
-  return (data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, cif: x.cif, principal_id: x.principal_id, estado: x.estado }));
+  return (data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, cif: x.cif, principal_id: x.principal_id, estado: x.estado, iva_pct: x.iva_pct == null ? null : Number(x.iva_pct) }));
 }
 
 export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParezcaRepetido = false): Promise<Res> {

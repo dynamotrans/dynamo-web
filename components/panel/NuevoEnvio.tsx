@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
@@ -19,7 +19,7 @@ import { Interruptor } from './nuevoEnvio/Interruptor';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false, reglas = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false, reglas = null }: Props) {
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
@@ -31,6 +31,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const router = useRouter();
   const refrescar = useRefrescar();
   const fest = useMemo(() => new Set(festivos), [festivos]);
+  // Los sitios que hay en pantalla: los almacenes de Dynamo y los del cliente elegido (los
+  // de cada cliente se piden al elegirlo; en la vista del cliente ya vienen todos los suyos).
+  const [sitios, setSitios] = useState(sitiosIni);
+  const sitiosRef = useRef(sitiosIni); sitiosRef.current = sitios;
   const [paso, setPaso] = useState(1);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -390,7 +394,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                   <div className="ptar-section-head">Cliente</div>
                   <div className="ptar-field ptar-field-full">
                     {enRuta || esCliente ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
-                      onElegir={(c) => { setCliente(c); const prin = c?.principal_id ? sitios.find((x) => x.id === c.principal_id && x.cliente_id === c.id) ?? null : null; setRecogidas((l) => l.map((p, i) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : (i === 0 && prin && !p.nuevo ? prin : null) }))); setEntregas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); }}
+                      onElegir={async (c) => {
+                        setCliente(c);
+                        setRecogidas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); setEntregas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null })));
+                        if (!c) return;
+                        // Sus sitios se piden ahora; su almacén principal pasa a la primera recogida.
+                        const suyos = sitiosRef.current.some((x) => x.cliente_id === c.id) ? [] : await sitiosDelCliente(c.id).catch(() => [] as typeof sitiosIni);
+                        if (suyos.length) setSitios((l) => [...l.filter((x) => x.cliente_id !== c.id), ...suyos]);
+                        const todos = suyos.length ? [...sitiosRef.current, ...suyos] : sitiosRef.current;
+                        const prin = c.principal_id ? todos.find((x) => x.id === c.principal_id && x.cliente_id === c.id) ?? null : null;
+                        if (prin) setRecogidas((l) => l.map((p, i) => (i === 0 && !p.nuevo && !p.sitio?.es_almacen_dynamo ? { ...p, sitio: prin } : p)));
+                      }}
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
                   </div>
 

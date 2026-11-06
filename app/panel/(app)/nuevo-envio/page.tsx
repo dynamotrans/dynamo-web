@@ -1,7 +1,7 @@
 import { hoyMadrid } from '@/lib/formato';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
-import { vistaDe, filtrarVista } from '@/lib/vista';
+import { vistaDe } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base, type ReglasPrecio } from '@/components/panel/NuevoEnvio';
 import { CONTACTO } from '@/lib/atencion';
@@ -55,17 +55,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
 
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
   const vista = await vistaDe(supabase, perfil.rol);
-  const [cli, lug, fes, reg] = await Promise.all([
-    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible'), 2000),
-    leerTodo(supabase.from('sitios')
-      .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
-      .eq('borrado', false).order('nombre_empresa'), 5000),
-    // Nacionales de los próximos 13 meses, con su fecha real de cada año (los que se
-    // repiten, como el 1 de noviembre o Viernes Santo, los resuelve la base de datos).
-    supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
-    supabase.rpc('reglas_precio_envio'),
-  ]);
-
+  // El envío base (repetir o cambiar ruta) decide el cliente; si no, el de la vista «Ver como».
   let base: Base | null = null;
   const idBase = sp.ruta || sp.repetir;
   if (idBase && /^[0-9a-f-]{36}$/i.test(idBase)) {
@@ -75,8 +65,23 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     ]);
     if (e) base = { modo: sp.ruta ? 'ruta' : 'repetir', envio: e as Base['envio'], paradas: (ps ?? []) as Base['paradas'] };
   }
+  const clienteIni = base?.envio.cliente_id ?? (vista.tipo === 'cliente' ? vista.id : null);
+  // Los clientes se buscan al escribir (buscar_clientes) y los sitios se piden al elegir
+  // el cliente (sitiosDelCliente): aquí solo viajan los almacenes de Dynamo y, si ya hay
+  // cliente, él y sus sitios.
+  const colsSitio = 'id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible';
+  const [cli, lug, fes, reg] = await Promise.all([
+    clienteIni ? supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct').eq('id', clienteIni) : Promise.resolve({ data: [], error: null }),
+    clienteIni
+      ? supabase.from('sitios').select(colsSitio).eq('borrado', false).or(`es_almacen_dynamo.eq.true,cliente_id.eq.${clienteIni}`).order('nombre_empresa').limit(2500)
+      : supabase.from('sitios').select(colsSitio).eq('borrado', false).eq('es_almacen_dynamo', true).order('nombre_empresa').limit(500),
+    // Nacionales de los próximos 13 meses, con su fecha real de cada año (los que se
+    // repiten, como el 1 de noviembre o Viernes Santo, los resuelve la base de datos).
+    supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
+    supabase.rpc('reglas_precio_envio'),
+  ]);
 
-  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.sitio_principal_id, iva: c.iva_pct }));
+  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible ?? '', cif: c.cif, principal_id: c.sitio_principal_id, iva: c.iva_pct }));
   const sitios: SitioOpcion[] = (lug.data ?? []) as SitioOpcion[];
   const festivos = ((fes.data ?? []) as { fecha: string }[]).map((f) => f.fecha);
   const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));

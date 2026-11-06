@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { crearClienteRapido } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { buscarClientes } from '@/app/panel/(app)/sitios/acciones';
 import SelectorPais from '@/components/SelectorPais';
 import { ClienteOpcion, IcoCliente, norm } from './comun';
 
@@ -15,10 +16,28 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
   const [alta, setAlta] = useState(false);
   const [rs, setRs] = useState(''); const [cif, setCif] = useState(''); const [pais, setPais] = useState('ES');
   const [error, setError] = useState<string | null>(null); const [guardando, setGuardando] = useState(false);
+  // Los clientes que casan con lo escrito los busca la base de datos (buscar_clientes:
+  // nombre, CIF, población, contactos…); mientras no se escribe, los pocos que ya vienen
+  // con la pantalla (el de la vista o del envío base, o los dados de alta aquí).
+  const [encontrados, setEncontrados] = useState<ClienteOpcion[] | null>(null);
+  const ultima = useRef(0);
+  useEffect(() => {
+    const w = q.trim();
+    if (!w) { setEncontrados(null); return; }
+    const n = ++ultima.current;
+    const t = setTimeout(() => {
+      buscarClientes(w).then((r) => { if (ultima.current === n) setEncontrados(r.map((c) => ({ id: c.id, nombre: c.nombre, cif: c.cif, principal_id: c.principal_id, iva: c.iva_pct }))); })
+        .catch(() => { if (ultima.current === n) setEncontrados([]); });
+    }, 220);
+    return () => clearTimeout(t);
+  }, [q]);
   const lista = useMemo(() => {
     const w = norm(q.trim());
-    return clientes.filter((c) => !w || norm(c.nombre + ' ' + c.cif).includes(w)).slice(0, 8);
-  }, [clientes, q]);
+    const locales = clientes.filter((c) => !w || norm(c.nombre + ' ' + c.cif).includes(w));
+    if (!w || !encontrados) return locales.slice(0, 8);
+    const ids = new Set(locales.map((c) => c.id));
+    return [...locales, ...encontrados.filter((c) => !ids.has(c.id))].slice(0, 12);
+  }, [clientes, q, encontrados]);
 
   async function guardar() {
     setGuardando(true); setError(null);

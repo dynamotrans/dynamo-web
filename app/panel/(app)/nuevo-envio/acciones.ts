@@ -7,6 +7,7 @@ import { sesion, esGestor } from '@/lib/sesion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import type { SB } from '@/lib/supabase/cliente';
 import type { Tabla } from '@/lib/supabase/tipos';
+import type { SitioOpcion } from '@/components/panel/nuevoEnvio/comun';
 
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
@@ -169,6 +170,18 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
 // del verano de los almacenes (Parámetros). Solo los sitios que el usuario puede ver: lo
 // filtra la seguridad por filas.
 export type HorarioSitioAviso = { general: number[]; verano: { activo: boolean; desde: string | null; hasta: string | null; dias: number[]; resumen: string | null } };
+// Sitios de UN cliente para el asistente de Dynamo (se piden al elegirlo: con 7.000 sitios
+// de 3.000 clientes la pantalla mandaba 2,6 MB al abrirse).
+export async function sitiosDelCliente(cliente: string): Promise<SitioOpcion[]> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#sitiosDelCliente", [cliente]);
+  const s = await sesion();
+  if (!s?.perfil || !esGestor(s.perfil.rol) || !/^[0-9a-f-]{36}$/i.test(cliente)) return [];
+  const { data } = await s.supabase.from('sitios')
+    .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
+    .eq('borrado', false).eq('cliente_id', cliente).order('nombre_empresa').limit(2000);
+  return (data ?? []) as SitioOpcion[];
+}
+
 export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<string, HorarioSitioAviso>; generico: { desde: string; hasta: string } }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#diasAbiertosDe", [ids]);
   const s = await sesion();
