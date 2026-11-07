@@ -4478,7 +4478,10 @@ do $$ declare c uuid; e uuid; e2 uuid; r jsonb; begin
     raise exception 'FALLO 128 · el envío pendiente de pago no apunta desde cuándo';
   end if;
   perform set_config('request.jwt.claim.role', 'service_role', true);
-  update envios set pago_pendiente_en = now() - interval '30 hours' where id = e;
+  -- 6 días atrás: pago_limite corre el vencimiento al siguiente día hábil (una transferencia
+  -- del viernes no llega hasta el lunes), así que 30 h no bastaban si la prueba corría en
+  -- fin de semana. Con 6 días ya ha vencido cualquier día, finde o festivo incluido.
+  update envios set pago_pendiente_en = now() - interval '6 days' where id = e;
   perform set_config('request.jwt.claim.role', '', true);
   -- Pasado el plazo (24 h + margen) se anula; el que está en plazo, no.
   perform caducar_pagos_pendientes();
