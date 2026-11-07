@@ -5,4 +5,4 @@ Rotación de estilo v1→v2→v3→v4 independiente de la de los posts. Música:
 
 ## Histórico
 - 2026-11-05 — Tema 1 (grupaje vs carga completa) — v1 — vídeo upbeat seed 3 — `images/redes/2026-11-05-grupaje-story.mp4` — prueba inicial
-- 2026-11-07 — Tema 3 (palets: europeo vs americano) — v2 — vídeo deep seed 41 — `images/redes/2026-11-07-palets-story.mp4` — pendiente
+- 2026-11-07 — Tema 3 (palets: europeo vs americano) — v2 — vídeo deep seed 41 — `images/redes/2026-11-07-palets-story.mp4` — Metricool 419610095 (IG + FB)
