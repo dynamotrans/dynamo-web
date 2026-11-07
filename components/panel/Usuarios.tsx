@@ -1,15 +1,19 @@
 'use client';
 
-import { fechaHora } from '@/lib/formato';
+import { fechaHora, numero } from '@/lib/formato';
 
 // Usuarios (solo Dynamo): diseño de #sec-usuarios de dashboard.html. Cada usuario es un
 // email de acceso de un admin, empleado, cliente o transportista. El alta es una
 // INVITACIÓN (el usuario crea su propia contraseña) y el rol se cambia con una acción
 // aparte que pide teclear su email, como en el mockup.
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
+import Paginador, { BuscadorUrl } from './Paginador';
+import Buscador, { type Opcion } from './Buscador';
+import { buscarClientes } from '@/app/panel/(app)/sitios/acciones';
+import { buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
 import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, anonimizarUsuario, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
 import type { Rol } from '@/lib/sesion';
 
@@ -17,8 +21,11 @@ import { partirTel, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 
 export type Empresa = { id: string; nombre: string; cif: string };
+export type Conteos = { total: number; activa: number; pendiente: number; suspendida: number; suspendida_auto: number; invitacion: number };
+export type ListaUsuarios = { q: string; rol: string; estado: string; pagina: number; porPagina: number; total: number };
 export type UsuarioFila = UsuarioDatos & {
   id: string; email: string; rol: Rol; creado_en: string; modificado_en: string | null;
+  empresa: string;
   ultima_conexion: string | null; email_confirmado: boolean;
   envios: number; cancelados: number; cancelados_ult10: number;
   consultas: number; min_dia: number; min_semana: number;
@@ -46,7 +53,6 @@ const ROL_DESC: Record<Rol, string> = {
 const ESTADOS: [UsuarioDatos['estado'], string][] = [['activa', 'Activa'], ['suspendida', 'Suspendida'], ['pendiente_verificacion', 'Pendiente de verificación']];
 const IDIOMAS: [string, string][] = [['es', 'Español'], ['pt', 'Portugués'], ['fr', 'Francés'], ['en', 'Inglés'], ['de', 'Alemán'], ['it', 'Italiano'], ['nl', 'Neerlandés'], ['pl', 'Polaco'], ['ro', 'Rumano'], ['uk', 'Ucraniano'], ['zh-CN', 'Chino']];
 
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const nombreRol = (r: Rol) => ROLES.find(([k]) => k === r)?.[1] ?? r;
 const interno = (r: Rol) => r === 'admin' || r === 'empleado' || r === 'admin_lectura' || r === 'empleado_lectura';
 // Lo que lo ve TODO (también lo de administración): solo lo concede el Admin Master.
@@ -79,13 +85,10 @@ function metricas(u: UsuarioFila) {
   return { pct: Math.round(pct), alto: pct > 29, ult10: Math.min(u.cancelados_ult10, 10), ult10Color: u.cancelados_ult10 >= 3 ? '#dc2626' : '#0f6b3a' };
 }
 
-export default function Usuarios({ filas, clientes, transportistas, yo, error }: {
-  filas: UsuarioFila[]; clientes: Empresa[]; transportistas: Empresa[]; yo: { id: string; rol: Rol }; error: string | null;
+export default function Usuarios({ filas, yo, error, conteos, lista }: {
+  filas: UsuarioFila[]; yo: { id: string; rol: Rol }; error: string | null; conteos: Conteos; lista: ListaUsuarios;
 }) {
   const refrescar = useRefrescar();
-  const [q, setQ] = useState('');
-  const [fEstado, setFEstado] = useState('');
-  const [fRol, setFRol] = useState('');
   const [ficha, setFicha] = useState<UsuarioFila | null>(null);
   const [rolDe, setRolDe] = useState<UsuarioFila | null>(null);
   const [emailDe, setEmailDe] = useState<UsuarioFila | null>(null);
@@ -93,24 +96,19 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
   const [invitar, setInvitar] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  const empresas = useMemo(() => new Map([...clientes, ...transportistas].map((e) => [e.id, e])), [clientes, transportistas]);
-  const empresaDe = (u: UsuarioFila) => interno(u.rol) ? 'Dynamo' : empresas.get(u.cliente_id || u.transportista_id)?.nombre ?? '';
-
-  const lista = useMemo(() => {
-    const w = norm(q.trim());
-    return filas.filter((u) => !fRol || u.rol === fRol)
-      .filter((u) => !fEstado || (fEstado === 'suspendida_auto' ? u.estado === 'suspendida' && !!u.suspension_motivo?.startsWith('Automática')
-        : fEstado === 'invitacion' ? !u.email_confirmado : u.estado === fEstado))
-      .filter((u) => !w || norm([u.email, u.nombre, u.documento, u.telefono, u.cargo, nombreRol(u.rol), empresaDe(u)].join(' ')).includes(w));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filas, q, fRol, fEstado, empresas]);
+  const url = (p: number) => {
+    const u = new URLSearchParams();
+    if (lista.q) u.set('q', lista.q); if (lista.rol) u.set('rol', lista.rol); if (lista.estado) u.set('estado', lista.estado);
+    if (p > 1) u.set('p', String(p)); if (lista.porPagina !== 50) u.set('n', String(lista.porPagina));
+    const s = u.toString(); return `/panel/usuarios${s ? `?${s}` : ''}`;
+  };
 
   const hecho = (txt: string) => { setFicha(null); setRolDe(null); setInvitar(false); setAviso(txt); refrescar(); };
 
   return (
     <section className="section active" id="sec-usuarios">
       <div className="sec-header">
-        <h2>Usuarios ({lista.length})</h2>
+        <h2>Usuarios ({numero(lista.total, 0)})</h2>
         <div className="sec-header-actions">
           <button className="btn-primary" onClick={() => { setAviso(null); setInvitar(true); }}>+ Nuevo usuario</button>
         </div>
@@ -119,21 +117,21 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Cada usuario es un email de acceso asociado a un empleado, cliente, transportista o admin, con sus métricas de uso. Pulsa una fila para ver o editar la ficha.
       </p>
-      <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por email, nombre, DNI, teléfono, empresa…" />
-        <select value={fRol} onChange={(e) => setFRol(e.target.value)} aria-label="Filtrar por tipo de usuario">
+      <BuscadorUrl accion="/panel/usuarios" valor={lista.q} placeholder="Buscar por email, nombre, DNI, teléfono, empresa…" campos={<>
+        <select name="rol" defaultValue={lista.rol} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Filtrar por tipo de usuario">
           <option value="">Tipo: todos</option>
           {ROLES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
         </select>
-        <select value={fEstado} onChange={(e) => setFEstado(e.target.value)} aria-label="Filtrar por estado de la cuenta">
+        <select name="estado" defaultValue={lista.estado} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Filtrar por estado de la cuenta">
           <option value="">Estado: todos</option>
-          <option value="activa">Activa ({filas.filter((u) => u.estado === 'activa').length})</option>
-          <option value="pendiente_verificacion">Pendiente de verificación ({filas.filter((u) => u.estado === 'pendiente_verificacion').length})</option>
-          <option value="suspendida">Suspendida ({filas.filter((u) => u.estado === 'suspendida').length})</option>
-          <option value="suspendida_auto">Suspendida automáticamente ({filas.filter((u) => u.estado === 'suspendida' && u.suspension_motivo?.startsWith('Automática')).length})</option>
-          <option value="invitacion">Invitación sin aceptar ({filas.filter((u) => !u.email_confirmado).length})</option>
+          <option value="activa">Activa ({conteos.activa})</option>
+          <option value="pendiente_verificacion">Pendiente de verificación ({conteos.pendiente})</option>
+          <option value="suspendida">Suspendida ({conteos.suspendida})</option>
+          <option value="suspendida_auto">Suspendida automáticamente ({conteos.suspendida_auto})</option>
+          <option value="invitacion">Invitación sin aceptar ({conteos.invitacion})</option>
         </select>
-      </div>
+        {lista.porPagina !== 50 && <input type="hidden" name="n" value={lista.porPagina} />}
+      </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los usuarios: {error}</div>}
       {aviso && <div className="pt-aviso info">{aviso}</div>}
 
@@ -144,13 +142,13 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
             <th>Última conexión</th><th>Conexión diaria</th><th>Consultas de precio</th><th>Envíos creados</th><th>Cancelaciones</th><th>Cancel. / envíos</th><th>Cancelados en últ. 10</th>
           </tr></thead>
           <tbody>
-            {lista.length === 0 ? (
+            {filas.length === 0 ? (
               <tr><td colSpan={13} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Sin usuarios que coincidan</td></tr>
-            ) : lista.map((u) => {
+            ) : filas.map((u) => {
               const m = metricas(u);
               return (
                 <tr key={u.id} onClick={() => { setAviso(null); setFicha(u); }} style={{ cursor: 'pointer' }}>
-                  <td><strong>{u.email}</strong>{u.id === yo.id && <> <span className="badge badge-green">Tú</span></>}<div className="meta">{empresaDe(u)}</div></td>
+                  <td><strong>{u.email}</strong>{u.id === yo.id && <> <span className="badge badge-green">Tú</span></>}<div className="meta">{u.empresa}</div></td>
                   <td><ChipRol rol={u.rol} /></td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {u.estado === 'activa' ? <span className="badge badge-green">Activa</span>
@@ -175,38 +173,50 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
           </tbody>
         </table>
       </div>
+      <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={url} nombre="usuarios" nombreUno="usuario" />
 
-      {ficha && <FichaUsuario u={ficha} yo={yo} clientes={clientes} transportistas={transportistas}
+      {ficha && <FichaUsuario u={ficha} yo={yo}
         onCerrar={() => setFicha(null)} onCambiarRol={() => { setRolDe(ficha); setFicha(null); }} onHecho={hecho}
         onCambiarEmail={yo.rol === 'admin' ? () => { setEmailDe(ficha); setFicha(null); } : undefined}
         onAnonimizar={yo.rol === 'admin' && ['cliente', 'transportista'].includes(ficha.rol) ? () => { setAnonDe(ficha); setFicha(null); } : undefined} />}
       {anonDe && <Anonimizar u={anonDe} onCerrar={() => { setFicha(anonDe); setAnonDe(null); }} onHecho={hecho} />}
       {emailDe && <CambiarEmail u={emailDe} onCerrar={() => { setFicha(emailDe); setEmailDe(null); }} onHecho={hecho} />}
-      {rolDe && <CambiarRol u={rolDe} yo={yo} clientes={clientes} transportistas={transportistas}
+      {rolDe && <CambiarRol u={rolDe} yo={yo}
         onCerrar={() => { setFicha(rolDe); setRolDe(null); }} onHecho={hecho} />}
-      {invitar && <Invitar yo={yo} clientes={clientes} transportistas={transportistas} onCerrar={() => setInvitar(false)} onHecho={hecho} />}
+      {invitar && <Invitar yo={yo} onCerrar={() => setInvitar(false)} onHecho={hecho} />}
     </section>
   );
 }
 
-// ---- Selector de empresa según el rol ----------------------------------------------
-function SelectorEmpresa({ rol, cliente_id, transportista_id, clientes, transportistas, onCambio, id }: {
-  rol: Rol; cliente_id: string; transportista_id: string; clientes: Empresa[]; transportistas: Empresa[];
+// ---- Selector de empresa según el rol (buscador servidor, no desplegable de miles) ------
+function SelectorEmpresa({ rol, cliente_id, transportista_id, onCambio, id }: {
+  rol: Rol; cliente_id: string; transportista_id: string;
   onCambio: (c: { cliente_id: string; transportista_id: string }) => void; id: string;
 }) {
+  const esCli = rol === 'cliente';
+  const actual = esCli ? cliente_id : transportista_id;
+  const [sel, setSel] = useState<Opcion | null>(null);
+  // Al abrir con una empresa ya asignada, traer su nombre para enseñarla ya elegida.
+  useEffect(() => {
+    let vivo = true;
+    if (interno(rol) || !actual) { setSel(null); return; }
+    (esCli ? buscarClientes('', actual) : buscarTransportistas('', actual))
+      .then((r) => { const x = r.find((o) => o.id === actual); if (vivo) setSel(x ? { id: x.id, nombre: x.nombre, cif: x.cif } : null); })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [rol, actual, esCli]);
+
   if (interno(rol)) return (
     <div><label htmlFor={id}>Empresa</label><input id={id} className="sitio-f-lock" readOnly tabIndex={-1} value="Dynamo (personal interno)" /></div>
   );
-  const esCli = rol === 'cliente';
-  const lista = esCli ? clientes : transportistas;
   return (
     <div>
       <label htmlFor={id}>{esCli ? 'Cliente' : 'Transportista'} <span className="sitio-req">· obligatorio</span></label>
-      <select id={id} value={esCli ? cliente_id : transportista_id}
-        onChange={(e) => onCambio(esCli ? { cliente_id: e.target.value, transportista_id: '' } : { cliente_id: '', transportista_id: e.target.value })}>
-        <option value="">Elige {esCli ? 'el cliente' : 'el transportista'}…</option>
-        {lista.map((e) => <option key={e.id} value={e.id}>{e.nombre} · {e.cif}</option>)}
-      </select>
+      <Buscador id={id} valor={sel}
+        buscar={async (q) => { const r = esCli ? await buscarClientes(q) : await buscarTransportistas(q); return r.map((o) => ({ id: o.id, nombre: o.nombre, cif: o.cif })); }}
+        onElegir={(o) => { setSel(o); onCambio(esCli ? { cliente_id: o?.id ?? '', transportista_id: '' } : { cliente_id: '', transportista_id: o?.id ?? '' }); }}
+        placeholder={esCli ? 'Busca el cliente por nombre o CIF…' : 'Busca el transportista por nombre o CIF…'}
+        vacio={esCli ? 'Ningún cliente coincide.' : 'Ningún transportista coincide.'} />
     </div>
   );
 }
@@ -225,8 +235,8 @@ const telDe = (t: { pref: string; num: string }) => t.num.trim() ? t.pref + t.nu
 const IcoUsuario = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 
 // ---- Ficha --------------------------------------------------------------------------
-function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol, onCambiarEmail, onAnonimizar, onHecho }: {
-  u: UsuarioFila; yo: { id: string; rol: Rol }; clientes: Empresa[]; transportistas: Empresa[];
+function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimizar, onHecho }: {
+  u: UsuarioFila; yo: { id: string; rol: Rol };
   onCerrar: () => void; onCambiarRol: () => void; onCambiarEmail?: () => void; onAnonimizar?: () => void; onHecho: (t: string) => void;
 }) {
   const [d, setD] = useState<UsuarioDatos>({
@@ -318,7 +328,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
           </div>
         )}
         <SelectorEmpresa id="usr-empresa" rol={u.rol} cliente_id={d.cliente_id} transportista_id={d.transportista_id}
-          clientes={clientes} transportistas={transportistas} onCambio={(c) => setD((x) => ({ ...x, ...c }))} />
+          onCambio={(c) => setD((x) => ({ ...x, ...c }))} />
         <div>
           <label htmlFor="usr-idioma">Idioma (portal y avisos)</label>
           <select id="usr-idioma" value={d.idioma} onChange={(e) => set('idioma', e.target.value)}>
@@ -420,8 +430,8 @@ function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () =
   );
 }
 
-function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
-  u: UsuarioFila; yo: { id: string; rol: Rol }; clientes: Empresa[]; transportistas: Empresa[];
+function CambiarRol({ u, yo, onCerrar, onHecho }: {
+  u: UsuarioFila; yo: { id: string; rol: Rol };
   onCerrar: () => void; onHecho: (t: string) => void;
 }) {
   const [nuevo, setNuevo] = useState<Rol>(u.rol);
@@ -464,7 +474,7 @@ function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
         </div>
         {!igual && !prohibido && !interno(nuevo) && (
           <SelectorEmpresa id="rol-empresa" rol={nuevo} cliente_id={emp.cliente_id} transportista_id={emp.transportista_id}
-            clientes={clientes} transportistas={transportistas} onCambio={setEmp} />
+            onCambio={setEmp} />
         )}
       </div>
       <div style={{ margin: '0.8rem 0', padding: '0.7rem 0.8rem', borderRadius: 9, fontSize: 'var(--fs-m)', lineHeight: 1.55,
@@ -487,8 +497,8 @@ function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
 }
 
 // ---- Alta (invitación) --------------------------------------------------------------
-function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
-  yo: { id: string; rol: Rol }; clientes: Empresa[]; transportistas: Empresa[]; onCerrar: () => void; onHecho: (t: string) => void;
+function Invitar({ yo, onCerrar, onHecho }: {
+  yo: { id: string; rol: Rol }; onCerrar: () => void; onHecho: (t: string) => void;
 }) {
   const [d, setD] = useState({ email: '', nombre: '', rol: 'cliente' as Rol, cliente_id: '', transportista_id: '', cargo: '' });
   const [conf, setConf] = useState('');
@@ -527,7 +537,7 @@ function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
           </select>
         </div>
         <SelectorEmpresa id="inv-empresa" rol={d.rol} cliente_id={d.cliente_id} transportista_id={d.transportista_id}
-          clientes={clientes} transportistas={transportistas} onCambio={(c) => setD({ ...d, ...c })} />
+          onCambio={(c) => setD({ ...d, ...c })} />
         <Telefono id="inv-tel" valor={tel} onCambio={setTel} />
         <div>
           <label htmlFor="inv-cargo">Cargo</label>

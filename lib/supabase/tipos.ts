@@ -3379,6 +3379,8 @@ export type Database = {
       transportistas_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_adr?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
       unaccent_simple: { Args: { t: string | null }; Returns: string }
       uso_envios_usuarios: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; envios: number; cancelados: number; cancelados_ult10: number }[] }
+      usuarios_conteos: { Args: Record<PropertyKey, never>; Returns: { total: number; activa: number; pendiente: number; suspendida: number; suspendida_auto: number; invitacion: number }[] }
+      usuarios_pagina: { Args: { p_q?: string | null; p_rol?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; empresa: string; total: number }[] }
       validar_pin_manual: { Args: { p_parada: string | null; p_nota: string | null }; Returns: Json }
       validar_pin_parada: { Args: { p_parada: string | null; p_pin: string | null; p_ip?: string | null; p_navegador?: string | null }; Returns: Json }
       validar_restricciones_envio: { Args: { p_envio: string | null }; Returns: undefined }

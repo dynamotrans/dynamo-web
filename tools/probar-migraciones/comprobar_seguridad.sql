@@ -6060,3 +6060,33 @@ do $$ begin
   raise notice 'OK 163 · CESCE - Riesgos por páginas: total, páginas sin solapes, búsqueda por CIF, filtro con crédito, y un cliente no lo ve';
 end $$;
 reset role;
+
+-- ---- 164. Usuarios por páginas ---------------------------------------------------------
+-- La pantalla ya no trae todos los usuarios ni todos los clientes/transportistas al
+-- navegador: usuarios_pagina busca, filtra (rol y estado), ordena por email y pagina con el
+-- nombre de empresa y el total; usuarios_conteos da los contadores de los filtros de estado.
+-- Solo Dynamo; un cliente no ve nada.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare tot bigint; n int; em text; begin
+  select max(total) into tot from usuarios_pagina(null, null, null, 1, 10);
+  if tot is null or tot < 1 then raise exception 'FALLO 164 · usuarios_pagina sin total'; end if;
+  if (select count(*) from usuarios_pagina(null, null, null, 1, 3)) > 3 then raise exception 'FALLO 164 · no respeta el tamaño de página'; end if;
+  select count(distinct id) into n from (select id from usuarios_pagina(null, null, null, 1, 3) union all select id from usuarios_pagina(null, null, null, 2, 3)) x;
+  if n <> least(tot, 6) then raise exception 'FALLO 164 · páginas de usuarios solapan o faltan (% de %)', n, tot; end if;
+  select email into em from usuarios where id = current_setting('prueba.u_admin')::uuid;
+  if (select max(total) from usuarios_pagina(em, null, null, 1, 10)) < 1 then raise exception 'FALLO 164 · usuarios_pagina no busca por email'; end if;
+  if exists (select 1 from usuarios_pagina(null, 'cliente', null, 1, 200) p join usuarios u on u.id = p.id where u.rol <> 'cliente') then raise exception 'FALLO 164 · el filtro de rol deja pasar otros'; end if;
+  if (select count(*) from usuarios_conteos()) <> 1 then raise exception 'FALLO 164 · usuarios_conteos no da una fila'; end if;
+  if (select total from usuarios_conteos()) <> (select count(*) from usuarios) then raise exception 'FALLO 164 · el total de conteos no cuadra'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select coalesce(max(total), 0) from usuarios_pagina(null, null, null, 1, 10)) > 0 then raise exception 'FALLO 164 · un cliente lista usuarios'; end if;
+  if (select total from usuarios_conteos()) <> 0 then raise exception 'FALLO 164 · un cliente ve conteos de usuarios'; end if;
+  raise notice 'OK 164 · Usuarios por páginas: total, páginas sin solapes, búsqueda por email, filtro por rol, conteos, y un cliente no lo ve';
+end $$;
+reset role;
