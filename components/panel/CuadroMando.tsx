@@ -92,19 +92,19 @@ function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: { k: str
   );
 }
 
-// Redondea un máximo a un tope «bonito» (1, 2, 2,5, 5 × 10^k) para que los ejes cuadren.
-function topeBonito(v: number): number {
-  if (v <= 0) return 1;
-  const p = Math.pow(10, Math.floor(Math.log10(v)));
-  const f = v / p;
-  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+// Redondea un máximo al siguiente múltiplo de `paso` por encima (340.000 con paso 100.000 →
+// 400.000; 11.422 con paso 5.000 → 15.000). Mínimo un `paso`, para que sin datos el eje no
+// salga en 0.
+function techo(v: number, paso: number): number {
+  return Math.max(paso, Math.ceil(v / paso) * paso);
 }
 const eurosCortos = (v: number) => (Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(1).replace('.', ',')} M€` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0).replace('.', ',')} k€` : `${Math.round(v)} €`);
 const COLOR_FACT = '#3300cc', COLOR_MARGEN = '#22a55a', COLOR_ENVIOS = '#ff7a00';
 
-// Evolución: barras de facturación + línea de margen (euros, eje izquierdo) + línea de envíos
-// realizados (unidades, eje derecho). Al pasar el ratón o pulsar un mes, etiqueta flotante con
-// los tres valores (al pulsar se queda unos segundos, para el móvil).
+// Evolución: barras de facturación (eje izquierdo, €) + línea de margen (eje derecho, €, con su
+// propia escala para que no se aplaste contra la facturación) + línea de envíos realizados sin
+// eje (se escala sola a su máximo). Al pasar el ratón o pulsar un mes, etiqueta flotante con los
+// tres valores (al pulsar se queda unos segundos, para el móvil).
 function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number; margen: number; realizados: number; solicitados: number }[]; titulo: string }) {
   const [sel, setSel] = useState<number | null>(null);
   const [fijo, setFijo] = useState(false);
@@ -126,17 +126,22 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
     const ro = new ResizeObserver(medir); ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const alto = 240, izq = 64, der = 48, arriba = 12, abajo = 26;
-  // Topes «bonitos» con un mínimo (1.000 € y 10 envíos) para que, sin datos, los ejes no
-  // salgan en «1 €»; 5 tramos para que las marcas del eje de envíos sean enteras.
-  const maxEur = Math.max(1000, topeBonito(Math.max(1, ...datos.map((d) => Math.max(d.facturacion, d.margen)))));
-  const minEur = Math.min(0, ...datos.map((d) => d.margen));
-  const minEurTope = minEur < 0 ? -topeBonito(-minEur) : 0;
-  const maxEnv = Math.max(10, topeBonito(Math.max(1, ...datos.map((d) => d.realizados))));
+  const alto = 240, izq = 64, der = 58, arriba = 12, abajo = 26;
+  const H = alto - arriba - abajo;
+  // Eje izquierdo = facturación, tope al cien mil por encima del máximo (340.000 → 400.000).
+  // Eje derecho = margen, tope al cinco mil por encima (11.422 → 15.000); si algún mes el
+  // margen es negativo, el suelo baja al cinco mil por debajo. Los envíos no tienen eje: la
+  // línea se escala a 1,5 × su máximo (eje invisible), para verse la forma sin pegarse arriba.
+  const maxFact = techo(Math.max(0, ...datos.map((d) => d.facturacion)), 100000);
+  const margAlto = techo(Math.max(0, ...datos.map((d) => d.margen)), 5000);
+  const margMin = Math.min(0, ...datos.map((d) => d.margen));
+  const margBajo = margMin < 0 ? -techo(-margMin, 5000) : 0;
+  const maxEnv = Math.max(1, ...datos.map((d) => d.realizados)) * 1.5;
   const w = (ancho - izq - der) / Math.max(datos.length, 1);
   const barra = Math.max(2, Math.min(w - 4, 36));
-  const yE = (v: number) => arriba + (alto - arriba - abajo) * (1 - (v - minEurTope) / (maxEur - minEurTope));
-  const yN = (v: number) => arriba + (alto - arriba - abajo) * (1 - v / maxEnv);
+  const yF = (v: number) => arriba + H * (1 - v / maxFact);
+  const yM = (v: number) => arriba + H * (1 - (v - margBajo) / (margAlto - margBajo));
+  const yN = (v: number) => arriba + H * (1 - v / maxEnv);
   const xc = (i: number) => izq + i * w + w / 2;
   const cada = Math.max(1, Math.ceil(datos.length / Math.max(4, Math.floor((ancho - izq - der) / 64))));
   const ticks = [0, 0.2, 0.4, 0.6, 0.8, 1];
@@ -148,38 +153,38 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
     <div className="cm-chart" style={{ position: 'relative' }}>
       <div className="cm-leyenda" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: 'var(--fs-s)', color: 'var(--gray-700)', margin: '0 0 0.4rem' }}>
         <span><i style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: COLOR_FACT, verticalAlign: '-1px', marginRight: 5 }} />Facturación (€, eje izquierdo)</span>
-        <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_MARGEN, verticalAlign: '3px', marginRight: 5 }} />Margen (€, eje izquierdo)</span>
-        <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_ENVIOS, verticalAlign: '3px', marginRight: 5 }} />Envíos realizados (eje derecho)</span>
+        <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_MARGEN, verticalAlign: '3px', marginRight: 5 }} />Margen (€, eje derecho)</span>
+        <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_ENVIOS, verticalAlign: '3px', marginRight: 5 }} />Envíos realizados (línea)</span>
       </div>
       <div className="cm-chart-scroll"><div className="cm-chart-lienzo" ref={lienzo}>
       <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}>
         {ticks.map((f) => {
-          const vE = minEurTope + (maxEur - minEurTope) * f;
+          const y = arriba + H * (1 - f);
           return (
             <g key={f}>
-              <line x1={izq} x2={ancho - der} y1={yE(vE)} y2={yE(vE)} stroke="var(--gray-200)" strokeWidth="1" />
-              <text x={izq - 8} y={yE(vE) + 4} textAnchor="end" fontSize="13" fill={COLOR_FACT}>{eurosCortos(vE)}</text>
-              <text x={ancho - der + 8} y={yN(maxEnv * f) + 4} textAnchor="start" fontSize="13" fill={COLOR_ENVIOS}>{Math.round(maxEnv * f)}</text>
+              <line x1={izq} x2={ancho - der} y1={y} y2={y} stroke="var(--gray-200)" strokeWidth="1" />
+              <text x={izq - 8} y={y + 4} textAnchor="end" fontSize="13" fill={COLOR_FACT}>{eurosCortos(maxFact * f)}</text>
+              <text x={ancho - der + 8} y={y + 4} textAnchor="start" fontSize="13" fill={COLOR_MARGEN}>{eurosCortos(margBajo + (margAlto - margBajo) * f)}</text>
             </g>
           );
         })}
         {datos.map((p, i) => {
           const x = izq + i * w + (w - barra) / 2;
-          const h = Math.max(0, yE(0) - yE(p.facturacion));
+          const h = Math.max(0, yF(0) - yF(p.facturacion));
           return (
             <g key={p.k}>
-              <rect x={x} y={yE(p.facturacion)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={COLOR_FACT} opacity={sel == null || sel === i ? 0.9 : 0.4} />
-              {p.facturacion > 0 && h < 3 && <rect x={x} y={yE(0) - 2} width={barra} height={2} fill={COLOR_FACT} />}
+              <rect x={x} y={yF(p.facturacion)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={COLOR_FACT} opacity={sel == null || sel === i ? 0.9 : 0.4} />
+              {p.facturacion > 0 && h < 3 && <rect x={x} y={yF(0) - 2} width={barra} height={2} fill={COLOR_FACT} />}
               {i % cada === 0 && <text x={xc(i)} y={alto - 8} textAnchor="middle" fontSize="13" fill="var(--gray-500)">{p.k}</text>}
             </g>
           );
         })}
-        <line x1={izq} x2={ancho - der} y1={yE(0)} y2={yE(0)} stroke="var(--gray-300)" strokeWidth="1" />
-        <path d={linea((p) => p.margen, yE)} fill="none" stroke={COLOR_MARGEN} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        <line x1={izq} x2={ancho - der} y1={yF(0)} y2={yF(0)} stroke="var(--gray-300)" strokeWidth="1" />
+        <path d={linea((p) => p.margen, yM)} fill="none" stroke={COLOR_MARGEN} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
         <path d={linea((p) => p.realizados, yN)} fill="none" stroke={COLOR_ENVIOS} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={datos.length > 40 ? undefined : '0'} />
         {datos.map((p, i) => (muchos && sel !== i ? null : (
           <g key={p.k}>
-            <circle cx={xc(i)} cy={yE(p.margen)} r={sel === i ? 4.5 : 3} fill="#fff" stroke={COLOR_MARGEN} strokeWidth="2" />
+            <circle cx={xc(i)} cy={yM(p.margen)} r={sel === i ? 4.5 : 3} fill="#fff" stroke={COLOR_MARGEN} strokeWidth="2" />
             <circle cx={xc(i)} cy={yN(p.realizados)} r={sel === i ? 4.5 : 3} fill="#fff" stroke={COLOR_ENVIOS} strokeWidth="2" />
           </g>
         )))}
