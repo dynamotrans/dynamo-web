@@ -6,8 +6,9 @@ import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import type { SB } from '@/lib/supabase/cliente';
-import type { Tabla } from '@/lib/supabase/tipos';
-import type { SitioOpcion } from '@/components/panel/nuevoEnvio/comun';
+import type { Tabla, TablaUpdate } from '@/lib/supabase/tipos';
+import type { SitioOpcion, SitioEditable, EdicionSitio } from '@/components/panel/nuevoEnvio/comun';
+import { gruposDe, type FilaHorario } from '@/lib/horarios';
 
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
@@ -218,4 +219,82 @@ export async function comprobarCobertura(paradas: { orden: number; tipo: 'carga'
   if (!s?.perfil) return [];
   const { data } = await s.supabase.rpc('comprobar_cobertura', { p_paradas: paradas.slice(0, 20), p_tipo_carga: tipoCarga });
   return (data ?? []).map((x) => ({ punto: x.punto, efecto: x.efecto, mensaje: x.mensaje }));
+}
+
+// Datos editables de los sitios que se usan en la ruta (para rellenar/corregir en la
+// confirmación lo que falte: horario, teléfono de contacto, notas…). Se piden solo de los
+// que están ya en la agenda, al llegar al paso 4. Lo que puede leer cada uno lo decide la
+// base de datos (RLS): Dynamo ve todo; el cliente, solo sus sitios.
+export async function datosEditablesDeSitios(ids: string[]): Promise<Record<string, SitioEditable>> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#datosEditablesDeSitios", [ids]);
+  const s = await sesion();
+  const limpios = [...new Set(ids)].filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 20);
+  if (!s?.perfil || !limpios.length) return {};
+  const [sit, con, hor] = await Promise.all([
+    s.supabase.from('sitios').select('id, es_almacen_dynamo, tipo, anotaciones, url_google_maps, emails_avisos').in('id', limpios),
+    s.supabase.from('contactos').select('sitio_id, id, nombre, telefono, es_principal, creado_en').in('sitio_id', limpios),
+    s.supabase.from('sitio_horarios').select('sitio_id, dia_semana, abre, cierra').in('sitio_id', limpios).eq('temporada', 'general'),
+  ]);
+  const out: Record<string, SitioEditable> = {};
+  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], contacto: { id: null, nombre: '', telefono: '' }, horario: [] }; });
+  // Horario general de cada sitio (filas de día → grupos de la ficha).
+  const porSitio = new Map<string, FilaHorario[]>();
+  (hor.data ?? []).forEach((r) => { const l = porSitio.get(r.sitio_id) ?? []; l.push({ dia_semana: r.dia_semana, abre: r.abre, cierra: r.cierra }); porSitio.set(r.sitio_id, l); });
+  porSitio.forEach((filas, sid) => { if (out[sid]) out[sid].horario = gruposDe(filas); });
+  // Contacto principal de cada sitio (el marcado principal; si no, el más antiguo).
+  const cont = new Map<string, { id: string; nombre: string; telefono: string; es_principal: boolean; creado_en: string }[]>();
+  (con.data ?? []).forEach((c) => { const l = cont.get(c.sitio_id!) ?? []; l.push({ id: c.id, nombre: c.nombre ?? '', telefono: c.telefono ?? '', es_principal: !!c.es_principal, creado_en: String(c.creado_en) }); cont.set(c.sitio_id!, l); });
+  cont.forEach((l, sid) => {
+    if (!out[sid]) return;
+    const p = [...l].sort((a, b) => Number(b.es_principal) - Number(a.es_principal) || a.creado_en.localeCompare(b.creado_en))[0];
+    if (p) out[sid].contacto = { id: p.id, nombre: p.nombre, telefono: p.telefono };
+  });
+  return out;
+}
+
+// Guarda en la ficha del sitio los datos que se corrigieron en la confirmación del envío
+// (horario, teléfono/persona de contacto, notas, emails de avisos y, solo Dynamo, el enlace
+// de Maps). Los almacenes de Dynamo NO se tocan desde aquí (datos fijos del catálogo). Va
+// antes de crear el envío; si algo no es válido, se corta y no se crea nada.
+export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#guardarEdicionesSitios", [cambios]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'No tienes permiso para esto.' };
+  const gestor = esGestor(s.perfil.rol);
+  const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  for (const c of (cambios ?? []).slice(0, 10)) {
+    if (!/^[0-9a-f-]{36}$/i.test(c.sitio_id)) continue;
+    // No tocar los almacenes de Dynamo (datos fijos; se editan en Almacenes).
+    const { data: sit } = await s.supabase.from('sitios').select('id, es_almacen_dynamo').eq('id', c.sitio_id).maybeSingle();
+    if (!sit || sit.es_almacen_dynamo) continue;
+    const fila: Record<string, unknown> = { anotaciones: (c.anotaciones ?? '').trim() || null };
+    // Emails de avisos: si se ponen, se validan y sustituyen; vacío NO borra los que había.
+    const emails = [...new Set((c.emails_avisos ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))];
+    if (emails.length) {
+      if (emails.length > 10) return { ok: false, error: `Máximo 10 emails de avisos por sitio (has puesto ${emails.length}).` };
+      const malo = emails.find((e) => !EMAIL.test(e));
+      if (malo) return { ok: false, error: `«${malo}» no es un email de avisos válido.` };
+      fila.emails_avisos = emails;
+    }
+    if (gestor) fila.url_google_maps = (c.url_google_maps ?? '').trim() || null;
+    const up = await s.supabase.from('sitios').update(fila as TablaUpdate<'sitios'>).eq('id', c.sitio_id);
+    if (up.error) return { ok: false, error: traducir(up.error.message) };
+    // Horario (todo o nada; la base de datos avisa si dos tramos del mismo día se pisan).
+    if (c.horario_tramos?.length) {
+      const eh = await s.supabase.rpc('guardar_horario', { p_sitio: c.sitio_id, p_tramos: c.horario_tramos });
+      if (eh.error) return { ok: false, error: /se pisan/i.test(eh.error.message) ? 'Hay dos tramos del mismo día del horario que se pisan.' : traducir(eh.error.message) };
+    }
+    // Contacto principal: teléfono y persona. Si no había, se crea; si había, se actualiza.
+    const tel = normalizaTel(c.contacto_telefono);
+    const nombre = (c.contacto_nombre ?? '').trim();
+    if (tel || nombre) {
+      if (tel && tel.replace('+', '').length < 6) return { ok: false, error: 'El teléfono de contacto del sitio no es válido.' };
+      const fc = { nombre: nombre || null, telefono: tel || null };
+      const r = c.contacto_id && /^[0-9a-f-]{36}$/i.test(c.contacto_id)
+        ? await s.supabase.from('contactos').update(fc).eq('id', c.contacto_id)
+        : await s.supabase.from('contactos').insert({ sitio_id: c.sitio_id, ...fc, funcion: 'general', es_principal: true });
+      if (r.error) return { ok: false, error: traducir(r.error.message) };
+    }
+  }
+  return { ok: true };
 }

@@ -2,7 +2,7 @@
 
 // Lo que comparten la ficha y sus partes (iconos, celdas, nombres, ayudantes).
 import { paisDe } from '@/lib/paises';
-import { type GrupoHorario } from '@/lib/horarios';
+import { HORARIO_POR_DEFECTO, type GrupoHorario } from '@/lib/horarios';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
 export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null; iva?: number | null };   // iva: % del cliente (su ficha)
@@ -29,6 +29,55 @@ export type Base = {
   paradas: { id: string; tipo: 'carga' | 'descarga'; sitio_id: string | null; nombre_empresa: string | null; direccion: string | null;
     codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null }[];
 };
+
+// ---- Fichas editables de los sitios en el paso de confirmar (como en el mockup) --------
+// Lo que la base de datos trae de un sitio de la agenda para poder rellenar/corregir en la
+// confirmación lo que falte (horario, teléfono de contacto, notas…). Se pide solo de los
+// sitios que se usan en la ruta al llegar al paso 4.
+export type SitioEditable = {
+  es_almacen_dynamo: boolean; tipo: string | null;
+  anotaciones: string | null; url_google_maps: string | null; emails_avisos: string[];
+  contacto: { id: string | null; nombre: string; telefono: string };   // el contacto principal
+  horario: GrupoHorario[];                                             // temporada general
+};
+export type DatosSitios = Record<string, SitioEditable>;
+// Lo que el usuario cambia en una ficha de la confirmación (solo lo tocado; lo demás se
+// resuelve con lo que ya tenía el sitio o el sitio nuevo del paso 1).
+export type CardEdit = { horario?: GrupoHorario[]; contacto?: string; telefono?: string; notas?: string; emails?: string; maps?: string; empresa?: string };
+// Lo que se manda al servidor para guardar en la ficha del sitio al crear el envío.
+export type EdicionSitio = {
+  sitio_id: string; contacto_id: string | null; contacto_nombre: string; contacto_telefono: string;
+  anotaciones: string; emails_avisos: string[]; url_google_maps: string | null;
+  horario_tramos: { dia: number; abre: string; cierra: string }[];
+};
+// Valores efectivos de una ficha: lo que trae el sitio (o el sitio nuevo) con lo tocado encima.
+export type FichaResuelta = {
+  empresa: string; tipo: string | null; horario: GrupoHorario[]; contacto: string; telefono: string;
+  notas: string; emails: string; maps: string; dynamo: boolean; nuevo: boolean; contacto_id: string | null;
+};
+export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit): FichaResuelta {
+  let base: FichaResuelta;
+  if (p.sitio) {
+    const d = datos[p.sitio.id];
+    base = {
+      empresa: p.sitio.nombre_empresa, tipo: d?.tipo ?? p.sitio.tipo, nuevo: false, dynamo: !!p.sitio.es_almacen_dynamo,
+      horario: d?.horario.length ? d.horario : HORARIO_POR_DEFECTO,
+      contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contacto_id: d?.contacto.id ?? null,
+      notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '',
+    };
+  } else {
+    const n = p.nuevo!;
+    base = { empresa: n.nombre_empresa, tipo: n.tipo_sitio, nuevo: true, dynamo: false, contacto_id: null,
+      horario: n.horario ?? HORARIO_POR_DEFECTO, contacto: n.contacto, telefono: n.telefono, notas: '', emails: '', maps: '' };
+  }
+  if (!edic) return base;
+  return {
+    ...base,
+    empresa: edic.empresa ?? base.empresa, horario: edic.horario ?? base.horario,
+    contacto: edic.contacto ?? base.contacto, telefono: edic.telefono ?? base.telefono,
+    notas: edic.notas ?? base.notas, emails: edic.emails ?? base.emails, maps: edic.maps ?? base.maps,
+  };
+}
 
 export const FORMAS = ['Lateral', 'Trasera', 'Techo', 'Lateral y trasera', 'Lateral y techo', 'Trasera y techo', 'Lateral, trasera y techo'];
 export const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_sitio: 'almacen_nave', horarios: '', guardar: true, contacto: '', telefono: '', horario: null };

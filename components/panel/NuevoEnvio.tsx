@@ -7,17 +7,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
 import { CONTACTO } from '@/lib/atencion';
-import { Base, ClienteOpcion, FORMAS, IcoCliente, IcoEscudo, IcoMas, Props, Punto, SitioNuevo, VACIO, decimal, direccionCompleta, iso, num, opcionCercana, primerDia, sumarHabiles } from './nuevoEnvio/comun';
+import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, IcoMas, Props, Punto, SitioNuevo, VACIO, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
+import { FichasSitios } from './nuevoEnvio/FichasSitios';
 
 export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false, reglas = null }: Props) {
   const be = base?.envio;
@@ -101,6 +102,19 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return () => { vivo = false; };
   }, [paso, idsRecogida]);
   const [enviando, setEnviando] = useState(false);
+
+  // ---- Fichas de sitio editables en la confirmación (como el mockup): se piden los datos
+  // de los sitios de la agenda que hay en la ruta al llegar al paso 4, para poder corregir
+  // ahí lo que falte (horario, teléfono de contacto…). Lo tocado va en `edicSitios`.
+  const [datosSitios, setDatosSitios] = useState<DatosSitios>({});
+  const [edicSitios, setEdicSitios] = useState<Record<number, CardEdit>>({});
+  const idsSitios = [...recogidas, ...entregas].map((p) => p.sitio?.id).filter(Boolean).join(',');
+  useEffect(() => {
+    if (paso !== 4 || !idsSitios) return;
+    let vivo = true;
+    datosEditablesDeSitios(idsSitios.split(',')).then((r) => { if (vivo) setDatosSitios(r); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [paso, idsSitios]);
 
   // El aviso de "falta tal dato" se borra en cuanto se toca cualquier cosa.
   useEffect(() => { setAviso(null); }, [cliente, recogidas, entregas, ml, peso, fecha, pc, pt, urgencia]);
@@ -199,15 +213,36 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     if (!cliente) return;
     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
     setEnviando(true); setAviso(null);
-    const paradas: ParadaNueva[] = [...recogidas, ...entregas].map((p, i) => {
+    // Guarda en la ficha de cada sitio de la AGENDA lo que se corrigió en la confirmación
+    // (los almacenes de Dynamo los ignora el servidor). Si algo no es válido, se corta aquí.
+    const puntos = [...recogidas, ...entregas];
+    const edicExist: EdicionSitio[] = puntos
+      // Solo si sus datos ya se cargaron (si no, no pisamos la ficha con valores por defecto).
+      .filter((p) => p.sitio && !p.sitio.es_almacen_dynamo && edicSitios[p.k] && datosSitios[p.sitio.id])
+      .map((p) => {
+        const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
+        return {
+          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono,
+          anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
+          url_google_maps: f.maps || null, horario_tramos: tramosDe(f.horario),
+        };
+      });
+    if (edicExist.length) {
+      const g = await guardarEdicionesSitios(edicExist);
+      if (!g.ok) { setEnviando(false); setAviso(g.error); return; }
+    }
+    const paradas: ParadaNueva[] = puntos.map((p, i) => {
       const ref = i === 0 && refCli ? refCli : undefined;
       if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref };
       const n = p.nuevo!;
+      // Datos del sitio nuevo con lo corregido en la confirmación encima.
+      const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
+      const hr = edicSitios[p.k]?.horario ?? n.horario;
       return {
-        tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
+        tipo: p.tipo, nombre_empresa: f.empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
         tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref,
-        contacto_nombre: n.contacto, contacto_telefono: n.telefono, horario_tramos: n.horario ? tramosDe(n.horario) : undefined,
+        contacto_nombre: f.contacto, contacto_telefono: f.telefono, horario_tramos: hr ? tramosDe(hr) : undefined,
       };
     });
     const f = forma.toLowerCase();
@@ -595,17 +630,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               <div className="sum2">
                 <div className="sum2-box">
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Cliente</div><div className="sum2-v">{cliente.nombre} · {cliente.cif}</div></div>
-                  {[...recogidas, ...entregas].map((p, i) => {
-                    const s = (p.sitio ?? p.nuevo)!;
-                    return (
-                      <div key={p.k} className="sum2-cell sum2-full">
-                        <div className="sum2-k">{i + 1}. {p.tipo === 'carga' ? 'Recogida' : 'Entrega'}{p.nuevo ? (p.nuevo.guardar ? ' · sitio nuevo (se guarda en la agenda)' : ' · dirección suelta') : ''}</div>
-                        <div className="sum2-v">{s.nombre_empresa}</div>
-                        <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>{direccionCompleta(s)}</div>
-                      </div>
-                    );
-                  })}
                 </div>
+                <h4 className="ptar-section-head" style={{ margin: '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
+                  Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
+                </h4>
+                <FichasSitios puntos={[...recogidas, ...entregas]} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} />
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
                   <div className="sum2-grid">
