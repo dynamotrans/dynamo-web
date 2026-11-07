@@ -33,4 +33,4 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 
 ## Histórico
 - 2026-11-05 (publicado directo, no martes) — Tema 1 — estilo v1 — titular pregunta — `images/redes/2026-11-10-grupaje-o-carga-completa.jpg` — Metricool post 418299906 — https://www.instagram.com/p/DfYF65ciNbj/
-- 2026-11-07 — Tema 2 (medios de carga y descarga) — estilo v3 (v2 sin cifra natural para el tema, se salta a v3; foto por defecto) — titular dato — `images/redes/2026-11-07-medios-de-carga.jpg` — Metricool post pendiente
+- 2026-11-07 — Tema 2 (medios de carga y descarga) — estilo v3 (v2 sin cifra natural para el tema, se salta a v3; foto por defecto) — titular dato — `images/redes/2026-11-07-medios-de-carga.jpg` — Metricool post 419570301 (IG + FB)
