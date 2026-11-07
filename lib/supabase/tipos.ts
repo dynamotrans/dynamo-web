@@ -3358,6 +3358,8 @@ export type Database = {
       revisar_precios_programados: { Args: Record<PropertyKey, never>; Returns: number }
       revocar_oferta: { Args: { p_oferta: string | null }; Returns: Json }
       riesgos_clientes: { Args: Record<PropertyKey, never>; Returns: { cliente_id: string; nombre: string; cif: string; riesgo_cesce: number; plazo_cesce: number; riesgo_manual: number; riesgo_efectivo: number; manda: string; envios: number; asumido_base: number; asumido: number; disponible: number; ultimo_envio: string }[] }
+      riesgos_pagina: { Args: { p_q?: string | null; p_filtro?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { cliente_id: string; nombre: string; cif: string; riesgo_cesce: number; plazo_cesce: number; riesgo_manual: number; riesgo_efectivo: number; manda: string; envios: number; asumido_base: number; asumido: number; disponible: number; ultimo_envio: string; total: number }[] }
+      riesgos_totales: { Args: Record<PropertyKey, never>; Returns: { limite: number; asumido: number; pasados: number }[] }
       seguimiento_apertura: { Args: { p_sitio: string | null; p_t: string | null }; Returns: string }
       seguimiento_aplicar: { Args: { p_envio: string | null; p_a_mano?: boolean | null }; Returns: number }
       seguimiento_calcular: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; parada_id: string; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean }[] }

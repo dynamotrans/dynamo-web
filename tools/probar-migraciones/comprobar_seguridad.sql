@@ -6033,3 +6033,30 @@ do $$ declare r jsonb; e jsonb; v_env bigint; v_cli bigint; v_usu bigint; begin
   raise notice 'OK 162 · datos de prueba en segundo plano: solo consola, confirmación y contraseña, encargo hecho y limpio, estado, y no se carga dos veces';
 end $$;
 reset role;
+
+-- ---- 163. CESCE - Riesgos por páginas --------------------------------------------------
+-- La pantalla ya no trae todos los clientes al navegador: riesgos_pagina (reusa
+-- riesgos_clientes) busca, filtra, ordena y pagina con el total, y riesgos_totales da los
+-- tres números de arriba. Solo Dynamo; un cliente no ve nada.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare tot bigint; n int; c uuid := current_setting('prueba.cliente')::uuid; begin
+  select max(total) into tot from riesgos_pagina(null, null, 1, 10);
+  if tot is null or tot < 1 then raise exception 'FALLO 163 · riesgos_pagina sin total'; end if;
+  if (select count(*) from riesgos_pagina(null, null, 1, 5)) > 5 then raise exception 'FALLO 163 · riesgos_pagina no respeta el tamaño de página'; end if;
+  select count(distinct cliente_id) into n from (select cliente_id from riesgos_pagina(null, null, 1, 5) union all select cliente_id from riesgos_pagina(null, null, 2, 5)) x;
+  if n <> least(tot, 10) then raise exception 'FALLO 163 · las páginas de riesgos se solapan o faltan (% de %)', n, tot; end if;
+  if (select max(total) from riesgos_pagina((select cif from clientes where id = c), null, 1, 10)) < 1 then raise exception 'FALLO 163 · riesgos_pagina no busca por CIF'; end if;
+  if exists (select 1 from riesgos_pagina(null, 'con', 1, 200) where coalesce(riesgo_efectivo, 0) <= 0) then raise exception 'FALLO 163 · el filtro «con crédito» deja pasar clientes sin límite'; end if;
+  if (select count(*) from riesgos_totales()) <> 1 then raise exception 'FALLO 163 · riesgos_totales no da una fila'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select coalesce(max(total), 0) from riesgos_pagina(null, null, 1, 10)) > 0 then raise exception 'FALLO 163 · un cliente lista riesgos'; end if;
+  if (select limite + asumido + pasados from riesgos_totales()) <> 0 then raise exception 'FALLO 163 · un cliente ve totales de riesgo'; end if;
+  raise notice 'OK 163 · CESCE - Riesgos por páginas: total, páginas sin solapes, búsqueda por CIF, filtro con crédito, y un cliente no lo ve';
+end $$;
+reset role;
