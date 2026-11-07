@@ -37,22 +37,22 @@ export type Base = {
 export type SitioEditable = {
   es_almacen_dynamo: boolean; tipo: string | null;
   anotaciones: string | null; url_google_maps: string | null; emails_avisos: string[];
-  contacto: { id: string | null; nombre: string; telefono: string };   // el contacto principal
+  contacto: { id: string | null; nombre: string; telefono: string; email: string };   // el contacto principal
   horario: GrupoHorario[];                                             // temporada general
 };
 export type DatosSitios = Record<string, SitioEditable>;
 // Lo que el usuario cambia en una ficha de la confirmación (solo lo tocado; lo demás se
 // resuelve con lo que ya tenía el sitio o el sitio nuevo del paso 1).
-export type CardEdit = { horario?: GrupoHorario[]; contacto?: string; telefono?: string; notas?: string; emails?: string; maps?: string; empresa?: string };
+export type CardEdit = { horario?: GrupoHorario[]; contacto?: string; telefono?: string; contactoEmail?: string; notas?: string; emails?: string; maps?: string; empresa?: string };
 // Lo que se manda al servidor para guardar en la ficha del sitio al crear el envío.
 export type EdicionSitio = {
-  sitio_id: string; contacto_id: string | null; contacto_nombre: string; contacto_telefono: string;
+  sitio_id: string; contacto_id: string | null; contacto_nombre: string; contacto_telefono: string; contacto_email: string;
   anotaciones: string; emails_avisos: string[]; url_google_maps: string | null;
   horario_tramos: { dia: number; abre: string; cierra: string }[];
 };
 // Valores efectivos de una ficha: lo que trae el sitio (o el sitio nuevo) con lo tocado encima.
 export type FichaResuelta = {
-  empresa: string; tipo: string | null; horario: GrupoHorario[]; contacto: string; telefono: string;
+  empresa: string; tipo: string | null; horario: GrupoHorario[]; contacto: string; telefono: string; contactoEmail: string;
   notas: string; emails: string; maps: string; dynamo: boolean; nuevo: boolean; contacto_id: string | null;
 };
 export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit): FichaResuelta {
@@ -62,19 +62,19 @@ export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit): Fi
     base = {
       empresa: p.sitio.nombre_empresa, tipo: d?.tipo ?? p.sitio.tipo, nuevo: false, dynamo: !!p.sitio.es_almacen_dynamo,
       horario: d?.horario.length ? d.horario : HORARIO_POR_DEFECTO,
-      contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contacto_id: d?.contacto.id ?? null,
+      contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contactoEmail: d?.contacto.email ?? '', contacto_id: d?.contacto.id ?? null,
       notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '',
     };
   } else {
     const n = p.nuevo!;
     base = { empresa: n.nombre_empresa, tipo: n.tipo_sitio, nuevo: true, dynamo: false, contacto_id: null,
-      horario: n.horario ?? HORARIO_POR_DEFECTO, contacto: n.contacto, telefono: n.telefono, notas: '', emails: '', maps: '' };
+      horario: n.horario ?? HORARIO_POR_DEFECTO, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '' };
   }
   if (!edic) return base;
   return {
     ...base,
     empresa: edic.empresa ?? base.empresa, horario: edic.horario ?? base.horario,
-    contacto: edic.contacto ?? base.contacto, telefono: edic.telefono ?? base.telefono,
+    contacto: edic.contacto ?? base.contacto, telefono: edic.telefono ?? base.telefono, contactoEmail: edic.contactoEmail ?? base.contactoEmail,
     notas: edic.notas ?? base.notas, emails: edic.emails ?? base.emails, maps: edic.maps ?? base.maps,
   };
 }

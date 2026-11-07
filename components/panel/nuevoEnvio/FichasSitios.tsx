@@ -68,6 +68,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   {f.horario.length > 0 && <div className="full"><label>Horario</label><input className="sitio-f-lock" value={resumenHorario(f.horario)} readOnly tabIndex={-1} /></div>}
                   {f.telefono && <div><label>Teléfono</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
+                  {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
                 </>) : (<>
                   {!f.nuevo && <div className="full"><label style={{ color: 'var(--green)' }}>Emails de avisos del sitio · opcional</label>
                     <input value={f.emails} placeholder="almacen@empresa.com, recepcion@empresa.com" onChange={(e) => set(p, { emails: e.target.value })} /></div>}
@@ -79,6 +80,8 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
                   <div><label>Persona de contacto · opcional</label>
                     <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
+                  <div className="full"><label>Email de contacto · opcional</label>
+                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="contacto@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
                   {f.nuevo
                     ? <div><label>Empresa{falta ? ' ' : ''}{falta && <span className="sitio-req">· obligatorio</span>}</label>
                         <input value={f.empresa} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>

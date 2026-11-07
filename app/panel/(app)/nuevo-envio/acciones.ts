@@ -16,7 +16,7 @@ export type ParadaNueva = {
   nombre_empresa?: string; direccion?: string; codigo_postal?: string; poblacion?: string;
   provincia?: string; pais_codigo_iso?: string; tipo_sitio?: string; horarios?: string;
   guardar_en_agenda?: boolean;
-  contacto_nombre?: string; contacto_telefono?: string;   // del sitio nuevo que se guarda en la agenda
+  contacto_nombre?: string; contacto_telefono?: string; contacto_email?: string;   // del sitio nuevo que se guarda en la agenda
   horario_tramos?: { dia: number; abre: string; cierra: string }[];   // su horario, si no es el de por defecto
   referencia?: string; anotaciones?: string;
 };
@@ -28,7 +28,7 @@ export type ParadaNueva = {
 // después de crear el envío, que es cuando existe el sitio.
 async function contactosDeSitiosNuevos(sb: SB, envioId: string, paradas: ParadaNueva[], esCliente = false) {
   const nuevos = paradas.map((p, i) => ({ p, i })).filter(({ p }) => p.guardar_en_agenda && !p.sitio_id);
-  const conContacto = nuevos.filter(({ p }) => (p.contacto_telefono || '').replace(/[^\d]/g, '').length >= 6);
+  const conContacto = nuevos.filter(({ p }) => (p.contacto_telefono || '').replace(/[^\d]/g, '').length >= 6 || (p.contacto_email || '').trim());
   const conHorario = nuevos.filter(({ p }) => p.horario_tramos?.length);
   if (!conContacto.length && !conHorario.length) return;
   // Dynamo lee las paradas; el cliente no puede (solo con mis_envios(), que las trae).
@@ -44,7 +44,7 @@ async function contactosDeSitiosNuevos(sb: SB, envioId: string, paradas: ParadaN
     const sitio = filas[i]?.sitio_id;
     if (!sitio) continue;
     const tel = normalizaTel(p.contacto_telefono);
-    await sb.from('contactos').insert({ sitio_id: sitio, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel, es_principal: true });
+    await sb.from('contactos').insert({ sitio_id: sitio, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel || null, email: (p.contacto_email ?? '').trim().toLowerCase() || null, es_principal: true });
   }
   for (const { p, i } of conHorario) {
     const sitio = filas[i]?.sitio_id;
@@ -232,22 +232,22 @@ export async function datosEditablesDeSitios(ids: string[]): Promise<Record<stri
   if (!s?.perfil || !limpios.length) return {};
   const [sit, con, hor] = await Promise.all([
     s.supabase.from('sitios').select('id, es_almacen_dynamo, tipo, anotaciones, url_google_maps, emails_avisos').in('id', limpios),
-    s.supabase.from('contactos').select('sitio_id, id, nombre, telefono, es_principal, creado_en').in('sitio_id', limpios),
+    s.supabase.from('contactos').select('sitio_id, id, nombre, telefono, email, es_principal, creado_en').in('sitio_id', limpios),
     s.supabase.from('sitio_horarios').select('sitio_id, dia_semana, abre, cierra').in('sitio_id', limpios).eq('temporada', 'general'),
   ]);
   const out: Record<string, SitioEditable> = {};
-  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], contacto: { id: null, nombre: '', telefono: '' }, horario: [] }; });
+  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], contacto: { id: null, nombre: '', telefono: '', email: '' }, horario: [] }; });
   // Horario general de cada sitio (filas de día → grupos de la ficha).
   const porSitio = new Map<string, FilaHorario[]>();
   (hor.data ?? []).forEach((r) => { const l = porSitio.get(r.sitio_id) ?? []; l.push({ dia_semana: r.dia_semana, abre: r.abre, cierra: r.cierra }); porSitio.set(r.sitio_id, l); });
   porSitio.forEach((filas, sid) => { if (out[sid]) out[sid].horario = gruposDe(filas); });
   // Contacto principal de cada sitio (el marcado principal; si no, el más antiguo).
-  const cont = new Map<string, { id: string; nombre: string; telefono: string; es_principal: boolean; creado_en: string }[]>();
-  (con.data ?? []).forEach((c) => { const l = cont.get(c.sitio_id!) ?? []; l.push({ id: c.id, nombre: c.nombre ?? '', telefono: c.telefono ?? '', es_principal: !!c.es_principal, creado_en: String(c.creado_en) }); cont.set(c.sitio_id!, l); });
+  const cont = new Map<string, { id: string; nombre: string; telefono: string; email: string; es_principal: boolean; creado_en: string }[]>();
+  (con.data ?? []).forEach((c) => { const l = cont.get(c.sitio_id!) ?? []; l.push({ id: c.id, nombre: c.nombre ?? '', telefono: c.telefono ?? '', email: c.email ?? '', es_principal: !!c.es_principal, creado_en: String(c.creado_en) }); cont.set(c.sitio_id!, l); });
   cont.forEach((l, sid) => {
     if (!out[sid]) return;
     const p = [...l].sort((a, b) => Number(b.es_principal) - Number(a.es_principal) || a.creado_en.localeCompare(b.creado_en))[0];
-    if (p) out[sid].contacto = { id: p.id, nombre: p.nombre, telefono: p.telefono };
+    if (p) out[sid].contacto = { id: p.id, nombre: p.nombre, telefono: p.telefono, email: p.email };
   });
   return out;
 }
@@ -284,12 +284,14 @@ export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{
       const eh = await s.supabase.rpc('guardar_horario', { p_sitio: c.sitio_id, p_tramos: c.horario_tramos });
       if (eh.error) return { ok: false, error: /se pisan/i.test(eh.error.message) ? 'Hay dos tramos del mismo día del horario que se pisan.' : traducir(eh.error.message) };
     }
-    // Contacto principal: teléfono y persona. Si no había, se crea; si había, se actualiza.
+    // Contacto principal: teléfono, persona y email. Si no había, se crea; si había, se actualiza.
     const tel = normalizaTel(c.contacto_telefono);
     const nombre = (c.contacto_nombre ?? '').trim();
-    if (tel || nombre) {
+    const email = (c.contacto_email ?? '').trim().toLowerCase();
+    if (tel || nombre || email) {
       if (tel && tel.replace('+', '').length < 6) return { ok: false, error: 'El teléfono de contacto del sitio no es válido.' };
-      const fc = { nombre: nombre || null, telefono: tel || null };
+      if (email && !EMAIL.test(email)) return { ok: false, error: 'El email de contacto del sitio no es válido.' };
+      const fc = { nombre: nombre || null, telefono: tel || null, email: email || null };
       const r = c.contacto_id && /^[0-9a-f-]{36}$/i.test(c.contacto_id)
         ? await s.supabase.from('contactos').update(fc).eq('id', c.contacto_id)
         : await s.supabase.from('contactos').insert({ sitio_id: c.sitio_id, ...fc, funcion: 'general', es_principal: true });

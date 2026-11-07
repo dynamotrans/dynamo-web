@@ -222,7 +222,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       .map((p) => {
         const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
         return {
-          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono,
+          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null, horario_tramos: tramosDe(f.horario),
         };
@@ -242,7 +242,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         tipo: p.tipo, nombre_empresa: f.empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
         tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref,
-        contacto_nombre: f.contacto, contacto_telefono: f.telefono, horario_tramos: hr ? tramosDe(hr) : undefined,
+        contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail, horario_tramos: hr ? tramosDe(hr) : undefined,
       };
     });
     const f = forma.toLowerCase();
