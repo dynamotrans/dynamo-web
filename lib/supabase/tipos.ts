@@ -1545,6 +1545,7 @@ export type Database = {
           seguimiento_automatico: boolean
           ancla_paso: number | null
           ancla_hora: string | null
+          fecha_efectiva: string | null
         }
         Insert: {
           id?: string
@@ -1658,6 +1659,7 @@ export type Database = {
           seguimiento_automatico?: boolean
           ancla_paso?: number | null
           ancla_hora?: string | null
+          fecha_efectiva?: string | null
         }
         Update: {
           id?: string
@@ -1771,6 +1773,7 @@ export type Database = {
           seguimiento_automatico?: boolean
           ancla_paso?: number | null
           ancla_hora?: string | null
+          fecha_efectiva?: string | null
         }
         Relationships: [
           {
