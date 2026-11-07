@@ -18,8 +18,12 @@ export default function Modal({ titulo, sub, icono, abierto, onCerrar, pie, acci
   }, [abierto, onCerrar]);
   if (!abierto) return null;
   return (
-    <div className="dash-modal open" role="dialog" aria-modal="true" aria-labelledby="dashModalTitle">
-      <div className="dash-modal-backdrop" onClick={onCerrar} />
+    // Pulsar fuera de la tarjeta (en la zona oscurecida) cierra, igual que la X. Se usa
+    // onMouseDown y se comprueba que el punto pulsado es el fondo o el contenedor, no la
+    // tarjeta: así no se cierra sin querer al soltar fuera tras seleccionar texto dentro.
+    <div className="dash-modal open" role="dialog" aria-modal="true" aria-labelledby="dashModalTitle"
+      onMouseDown={(ev) => { if (ev.button === 0 && ev.target === ev.currentTarget) onCerrar(); }}>
+      <div className="dash-modal-backdrop" onMouseDown={(ev) => { if (ev.button === 0) onCerrar(); }} />
       <div className="dash-modal-card" role="document" style={ancho ? { maxWidth: ancho } : undefined}>
         <button className="dash-modal-close" onClick={onCerrar} aria-label="Cerrar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
