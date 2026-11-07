@@ -42,7 +42,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [clientes, setClientes] = useState(clientesIni);
   const [cliente, setCliente] = useState<ClienteOpcion | null>(esCliente || (!be && clientesIni.length === 1) ? clientesIni[0] ?? null : be ? clientesIni.find((c) => c.id === be.cliente_id) ?? null : null);
   const sigK = useRef(10);
-  const calRef = useRef<HTMLInputElement>(null);   // calendario oculto que abre la última opción del desplegable de fecha
+  const calRef = useRef<HTMLInputElement>(null);   // campo de calendario que aparece al elegir «otra fecha»
+  const [modoCal, setModoCal] = useState(false);   // true mientras se elige la fecha en el calendario
+  useEffect(() => { if (modoCal && calRef.current) { calRef.current.focus(); try { calRef.current.showPicker(); } catch { /* en iPhone el usuario toca el campo para abrirlo */ } } }, [modoCal]);
   const [recogidas, setRecogidas] = useState<Punto[]>(() => {
     const l = (base?.paradas ?? []).filter((p) => p.tipo === 'carga').map((p, i) => puntoDe(p, 100 + i));
     // El cliente: su sitio principal (la estrella de Sitios) como primera recogida.
@@ -502,30 +504,33 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-section-head ptar-sh-fecha">Fecha de recogida</div>
                   <div className="ptar-field-full">
                     <select className="ptar-select" aria-label="Días de recogida" value={urgencia}
-                      onChange={(e) => { setUrgencia(e.target.value as 'dia' | 'estandar'); setFecha(''); }}>
+                      onChange={(e) => { setUrgencia(e.target.value as 'dia' | 'estandar'); setFecha(''); setModoCal(false); }}>
                       <option value="dia">Fecha fija (un día concreto, más caro)</option>
                       <option value="estandar">Recogida de 1 a 3 días (más económica)</option>
                     </select>
                   </div>
-                  <div className="ptar-field-full" style={{ position: 'relative' }}>
-                    <select className="ptar-select ptar-dia-naranja" aria-label="Fecha de recogida" value={dias.includes(fecha) ? fecha : (fecha ? 'elegida' : '')}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === '__cal__') { const el = calRef.current; if (el) { try { el.showPicker(); } catch { el.focus(); el.click(); } } }
-                        else if (v !== 'elegida') setFecha(v);
-                      }}>
-                      <option value="" disabled>Elige la fecha de recogida</option>
-                      {dias.map((d) => (
-                        <option key={d} value={d}>{urgencia === 'estandar' ? `Del ${fmtFecha(d)} al ${fmtFecha(sumarHabiles(d, 2, fest))}` : fmtFecha(d)}</option>
-                      ))}
-                      {fecha && !dias.includes(fecha) && <option value="elegida">{fechaTxt ? fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1) : fmtFecha(fecha)}</option>}
-                      <option value="__cal__">Elegir otra fecha en el calendario…</option>
-                    </select>
-                    {/* Calendario oculto: lo abre la opción «Elegir otra fecha…». Al elegir el primer día,
-                        la ventana (1 a 3 días) calcula el rango sola. */}
-                    <input ref={calRef} type="date" className="ptar-cal-oculto" tabIndex={-1} aria-hidden="true"
-                      min={esMaster ? undefined : dias[0]} max={maxFecha} value={fecha && !dias.includes(fecha) ? fecha : ''}
-                      onChange={(e) => setFecha(e.target.value)} />
+                  <div className="ptar-field-full">
+                    {!modoCal ? (
+                      // Lista de fechas; la última opción abre el calendario.
+                      <select className="ptar-select ptar-dia-naranja" aria-label="Fecha de recogida" value={dias.includes(fecha) ? fecha : (fecha ? 'elegida' : '')}
+                        onChange={(e) => { const v = e.target.value; if (v === '__cal__') setModoCal(true); else if (v !== 'elegida') setFecha(v); }}>
+                        <option value="" disabled>Elige la fecha de recogida</option>
+                        {dias.map((d) => (
+                          <option key={d} value={d}>{urgencia === 'estandar' ? `Del ${fmtFecha(d)} al ${fmtFecha(sumarHabiles(d, 2, fest))}` : fmtFecha(d)}</option>
+                        ))}
+                        {fecha && !dias.includes(fecha) && <option value="elegida">{fechaTxt ? fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1) : fmtFecha(fecha)}</option>}
+                        <option value="__cal__">Elegir otra fecha en el calendario…</option>
+                      </select>
+                    ) : (
+                      // Calendario: se toca para abrirlo (en iPhone no se puede abrir solo). Al elegir el
+                      // primer día, la ventana (1 a 3 días) calcula el rango sola.
+                      <div className="ptar-cal-fila">
+                        <input ref={calRef} type="date" className="ptar-select ptar-dia-naranja" aria-label="Elige el día en el calendario"
+                          min={esMaster ? undefined : dias[0]} max={maxFecha} value={fecha && !dias.includes(fecha) ? fecha : ''}
+                          onChange={(e) => { setFecha(e.target.value); if (e.target.value) setModoCal(false); }} />
+                        <button type="button" className="ptar-cal-volver" onClick={() => setModoCal(false)}>Volver a la lista</button>
+                      </div>
+                    )}
                   </div>
                   {esMaster && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede.</p></div>}
                 </>)}
@@ -534,15 +539,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
             {paso === 3 && (
               <div className="form-2col-side">
-                <div className="ptar-field ptar-field-full ptar-eta-field">
-                  <div className="ptar-eta-box">
-                    {fecha
-                      ? <span><strong>Fecha de recogida:</strong> {fechaTxt}</span>
-                      : <span className="ptar-eta-placeholder">Elige la fecha de recogida.</span>}
+                {/* La fecha elegida ya se ve en el desplegable; aquí solo los avisos si los hay. */}
+                {((maxFecha && fecha > maxFecha) || avisoProvisional) && (
+                  <div className="ptar-field ptar-field-full">
+                    {maxFecha && fecha > maxFecha && <div className="pt-aviso error"><div>Como mucho se puede programar con <strong>{reglas!.antelacion_max_dias} días</strong> de antelación. Para más, llámanos al {CONTACTO.telefono}.</div></div>}
+                    {avisoProvisional}
                   </div>
-                  {maxFecha && fecha > maxFecha && <div className="pt-aviso error" style={{ marginTop: '0.6rem' }}><div>Como mucho se puede programar con <strong>{reglas!.antelacion_max_dias} días</strong> de antelación. Para más, llámanos al {CONTACTO.telefono}.</div></div>}
-                  {avisoProvisional}
-                </div>
+                )}
                 {manual ? (
                   <div className="ptar-field ptar-field-full ptar-admin-precio">
                     <div className="ptar-admin-precio-head">Precio con {nombreOp}</div>

@@ -3868,9 +3868,10 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
    de recogida), para leerlo de un vistazo. Solo cuando hay fecha elegida. */
 select.ptar-dia-naranja { color: var(--orange); font-weight: 800; }
 select.ptar-dia-naranja.ptar-select-warn { color: var(--gray-500); font-weight: 600; }
-/* Calendario oculto que abre la última opción del desplegable de fecha: invisible pero
-   presente en el layout (showPicker/focus no funcionan sobre display:none). */
-.ptar-cal-oculto { position: absolute; left: 14px; bottom: 6px; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; margin: 0; }
+/* Fila del calendario que aparece al elegir «otra fecha»: el campo de fecha visible (se toca
+   para abrir el calendario, lo fiable en iPhone) y un enlace para volver a la lista. */
+.ptar-cal-fila { display: flex; flex-direction: column; gap: 0.35rem; }
+.ptar-cal-volver { align-self: flex-start; background: none; border: 0; padding: 0.1rem 0; color: var(--purple); font-weight: 700; font-size: var(--fs-s); cursor: pointer; text-decoration: underline; }
 /* Desplegable de urgencia: ROJO en Fecha fija · VERDE en 1 a 3 días. */
 select.ptar-urg-rojo { color: #dc2626; font-weight: 800; }
 select.ptar-urg-verde { color: var(--green-dark); font-weight: 800; }
