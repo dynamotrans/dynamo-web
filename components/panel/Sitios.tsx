@@ -503,8 +503,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           </select>
         </div>
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}
-        {campo('codigo_postal', <>Código postal {obl}</>, '41016')}
-        {campo('poblacion', <>Población {obl}</>, 'Sevilla')}
+        {/* CP y Población en la MISMA fila; el CP, justo para 5-6 dígitos. */}
+        <div className="ptar-sitio-grid" style={{ gridColumn: '1/-1', gridTemplateColumns: 'minmax(96px, 120px) minmax(0, 1fr)' }}>
+          {campo('codigo_postal', <>CP {obl}</>, '41016')}
+          {campo('poblacion', <>Población {obl}</>, 'Sevilla')}
+        </div>
         {/* Provincia y País SIEMPRE en la misma fila (también en el móvil), como rejilla
             ANIDADA de la estándar: mismos estilos, tamaños y separación que el resto. */}
         <div className="ptar-sitio-grid" style={{ gridColumn: '1/-1', gridTemplateColumns: '1fr 1fr' }}>
@@ -600,8 +603,7 @@ function VeranoSitio({ v, generico, onCambio }: { v: { activo: boolean; desde: s
       </div>
       {!v.activo ? (
         <div className="pt-aviso info" style={{ margin: 0 }}><div>
-          Se usa el <strong>horario general todo el año</strong>. Entre el <strong>{mmddTxt(generico.desde)}</strong> y el <strong>{mmddTxt(generico.hasta)}</strong> avisaremos
-          al crear un envío de que muchos almacenes cambian de horario en verano, para que lo revises.
+          Se usa el <strong>horario general todo el año</strong>.
         </div></div>
       ) : (
         <>
