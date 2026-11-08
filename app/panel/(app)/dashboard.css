@@ -1177,6 +1177,10 @@ body.theme-dark .sidebar { background: #060116; }
     position: fixed; inset: 0; z-index: 10000;
     display: none; align-items: flex-start; justify-content: center;
     padding: 2rem 1rem; overflow-y: auto;
+    /* Solo scroll VERTICAL: con overflow-y:auto el eje X también se volvía desplazable
+       si algo dentro era un pelín más ancho, y en iOS la ventana se podía arrastrar a
+       los lados y se quedaba aparcada. El ancho sobrante se recorta en la tarjeta. */
+    overflow-x: hidden; overscroll-behavior: contain;
 }
 .dash-modal.open { display: flex; animation: dashModalFadeIn 0.18s ease both; }
 @keyframes dashModalFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1192,6 +1196,9 @@ body.theme-dark .sidebar { background: #060116; }
     box-shadow: 0 30px 80px rgba(10,2,48,0.4);
     margin: 4rem auto 2rem;
     animation: dashModalSlideUp 0.25s cubic-bezier(0.16,1,0.3,1) both;
+    /* clip (no hidden): recorta lo que asome de más sin crear otro contenedor de scroll
+       que iOS pudiera arrastrar en horizontal. */
+    min-width: 0; overflow-x: clip;
 }
 @keyframes dashModalSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .dash-modal-close {
