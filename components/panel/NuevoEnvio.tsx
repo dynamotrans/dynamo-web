@@ -52,21 +52,22 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const calRef = useRef<HTMLInputElement>(null);   // campo de calendario que aparece al elegir «otra fecha»
   const [modoCal, setModoCal] = useState(false);   // true mientras se elige la fecha en el calendario
   useEffect(() => { if (modoCal && calRef.current) { calRef.current.focus(); try { calRef.current.showPicker(); } catch { /* en iPhone el usuario toca el campo para abrirlo */ } } }, [modoCal]);
-  const [recogidas, setRecogidas] = useState<Punto[]>(() => {
-    const l = (base?.paradas ?? []).filter((p) => p.tipo === 'carga').map((p, i) => puntoDe(p, 100 + i));
+  // La ruta es UNA sola lista ordenada (usuario, 2026-11-08): recogidas y entregas pueden
+  // ALTERNARSE libremente por el medio (recojo, entrego, recojo, entrego…). Las dos únicas
+  // reglas, las mismas que impone la base de datos (validar_ruta_envio): la primera parada
+  // siempre es una RECOGIDA y la última siempre una ENTREGA.
+  const [puntos, setPuntos] = useState<Punto[]>(() => {
+    const l = (base?.paradas ?? []).map((p, i) => puntoDe(p, 100 + i));   // en su orden real (admite intercaladas)
     // El sitio principal del cliente (la estrella de Sitios) entra solo como primera recogida
     // SIEMPRE que el cliente ya venga elegido al cargar: en la vista del propio cliente y
     // también cuando Dynamo crea el envío desde «Ver como» (si el gestor elige el cliente a
     // mano, lo hace el onCambio del buscador de clientes).
     const cliIni = esCliente || (!be && clientesIni.length === 1) ? clientesIni[0] : null;
     const prin = cliIni?.principal_id ? sitios.find((x) => x.id === cliIni.principal_id && x.cliente_id === cliIni.id) ?? null : null;
-    return l.length ? l : [{ k: 1, tipo: 'carga', sitio: prin, nuevo: null }];
+    return l.length >= 2 ? l : [{ k: 1, tipo: 'carga', sitio: prin, nuevo: null }, { k: 2, tipo: 'descarga', sitio: null, nuevo: null }];
   });
-  const [entregas, setEntregas] = useState<Punto[]>(() => {
-    const l = (base?.paradas ?? []).filter((p) => p.tipo === 'descarga').map((p, i) => puntoDe(p, 200 + i));
-    return l.length ? l : [{ k: 2, tipo: 'descarga', sitio: null, nuevo: null }];
-  });
-  const total = recogidas.length + entregas.length;
+  const recogidas = puntos.filter((p) => p.tipo === 'carga');   // derivadas (avisos de horario, etc.)
+  const total = puntos.length;
 
   // ---- Paso 2: mercancía
   const [paletizada, setPaletizada] = useState(be ? be.paletizado !== false : true);
@@ -150,7 +151,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ahí lo que falte (horario, teléfono de contacto…). Lo tocado va en `edicSitios`.
   const [datosSitios, setDatosSitios] = useState<DatosSitios>({});
   const [edicSitios, setEdicSitios] = useState<Record<number, CardEdit>>({});
-  const idsSitios = [...recogidas, ...entregas].map((p) => p.sitio?.id).filter(Boolean).join(',');
+  const idsSitios = puntos.map((p) => p.sitio?.id).filter(Boolean).join(',');
   useEffect(() => {
     if (paso !== 4 || !idsSitios) return;
     let vivo = true;
@@ -159,7 +160,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [paso, idsSitios]);
 
   // El aviso de "falta tal dato" se borra en cuanto se toca cualquier cosa.
-  useEffect(() => { setAviso(null); }, [cliente, recogidas, entregas, ml, peso, fecha, pc, pt, urgencia]);
+  useEffect(() => { setAviso(null); }, [cliente, puntos, ml, peso, fecha, pc, pt, urgencia]);
 
   const ventanaDias = urgencia === 'estandar' ? 3 : 1;
   const fechaHasta = fecha ? (ventanaDias > 1 ? sumarHabiles(fecha, ventanaDias - 1, fest) : fecha) : '';
@@ -181,13 +182,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // con un pequeño retardo para no pedir en cada tecla; el precio se calcula aquí.
   const [kmInfo, setKmInfo] = useState<{ km: number; estimado: boolean } | null>(null);
   const [ultimos, setUltimos] = useState<{ mismo: UltimoPrecioRuta; todos: UltimoPrecioRuta } | null>(null);
-  const puntosRuta = [...recogidas, ...entregas];
+  const puntosRuta = puntos;
   const rutaCompleta = puntosRuta.length >= 2 && puntosRuta.every((p) => p.sitio || p.nuevo);
   const claveRuta = puntosRuta.map((p) => p.sitio?.id ?? `${p.nuevo?.codigo_postal ?? ''}·${p.nuevo?.pais_codigo_iso ?? ''}`).join('|');
   const cpDe = (p?: Punto) => p ? (p.sitio?.codigo_postal ?? p.nuevo?.codigo_postal ?? '') : '';
   const paisDe = (p?: Punto) => p ? (p.sitio?.pais_codigo_iso ?? p.nuevo?.pais_codigo_iso ?? '') : '';
-  const cpO = cpDe(recogidas[0]), paisO = paisDe(recogidas[0]);
-  const cpD = cpDe(entregas[entregas.length - 1]), paisD = paisDe(entregas[entregas.length - 1]);
+  const cpO = cpDe(puntos[0]), paisO = paisDe(puntos[0]);
+  const cpD = cpDe(puntos[puntos.length - 1]), paisD = paisDe(puntos[puntos.length - 1]);
   useEffect(() => {
     if (!rutaCompleta) { setKmInfo(null); setUltimos(null); return; }
     let vivo = true;
@@ -235,52 +236,53 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const fechaPasada = !!fecha && fecha < hoyStr && urgencia === 'dia';
   const elegirAlternativa = (u: 'dia' | 'estandar', f: string) => { setUrgencia(u); setFecha(f); setModoCal(false); };
 
-  function nuevaParada(tipo: 'carga' | 'descarga') {
+  // El + de una fila añade otra parada JUSTO DEBAJO, del mismo tipo (luego se puede
+  // alternar con la pastilla). Añadir tras la última entrega deja la nueva como destino.
+  function nuevaParada(tras: Punto) {
     if (total >= 4) return;
-    const p: Punto = { k: sigK.current++, tipo, sitio: null, nuevo: null };
-    if (tipo === 'carga') setRecogidas((r) => [...r, p]);
-    else setEntregas((e) => [p, ...e]);   // las entregas extra van antes del destino
+    setPuntos((l) => {
+      const i = l.findIndex((x) => x.k === tras.k);
+      if (i < 0) return l;
+      const c = [...l]; c.splice(i + 1, 0, { k: sigK.current++, tipo: tras.tipo, sitio: null, nuevo: null }); return c;
+    });
   }
   function cambiar(p: Punto, cambios: Partial<Punto>) {
     // Si se cambia el sitio, ya no es la parada que había (en «Cambiar ruta»).
-    const f = (l: Punto[]) => l.map((x) => (x.k === p.k ? { ...x, ...cambios, ...('sitio' in cambios || 'nuevo' in cambios ? { parada_id: undefined } : {}) } : x));
-    if (p.tipo === 'carga') setRecogidas(f); else setEntregas(f);
+    setPuntos((l) => l.map((x) => (x.k === p.k ? { ...x, ...cambios, ...('sitio' in cambios || 'nuevo' in cambios ? { parada_id: undefined } : {}) } : x)));
   }
   function quitar(p: Punto) {
-    if (p.tipo === 'carga') setRecogidas((l) => l.filter((x) => x.k !== p.k));
-    else setEntregas((l) => l.filter((x) => x.k !== p.k));
+    setPuntos((l) => {
+      const i = l.findIndex((x) => x.k === p.k);
+      return i > 0 && i < l.length - 1 ? l.filter((x) => x.k !== p.k) : l;   // la 1.ª y la última no se quitan
+    });
   }
-  // Pulsar la pastilla del nº alterna la parada entre recogida y entrega (nunca puede
-  // quedarse la ruta sin recogidas o sin entregas; el orden y los números se recalculan).
+  // Pulsar la pastilla del nº alterna la parada entre recogida y entrega EN SU SITIO.
+  // Solo las intermedias: la primera siempre es recogida y la última siempre entrega.
   function alternarTipo(p: Punto) {
-    if (p.tipo === 'carga') {
-      if (recogidas.length <= 1) return;
-      setRecogidas((l) => l.filter((x) => x.k !== p.k));
-      setEntregas((l) => [{ ...p, tipo: 'descarga', parada_id: undefined }, ...l]);
-    } else {
-      if (entregas.length <= 1) return;
-      setEntregas((l) => l.filter((x) => x.k !== p.k));
-      setRecogidas((l) => [...l, { ...p, tipo: 'carga', parada_id: undefined }]);
-    }
+    setPuntos((l) => {
+      const i = l.findIndex((x) => x.k === p.k);
+      if (i <= 0 || i >= l.length - 1) return l;
+      return l.map((x, j) => (j === i ? { ...x, tipo: x.tipo === 'carga' ? 'descarga' as const : 'carga' as const, parada_id: undefined } : x));
+    });
   }
-  // Reordenar la ruta arrastrando el asa ≡ (Pointer Events: vale con ratón y con el dedo).
-  // Solo dentro de su grupo: recogidas entre sí y entregas entre sí (una entrega nunca
-  // puede pasar delante de una recogida). La lista se reordena en vivo al pasar por encima.
+  // Reordenar la ruta arrastrando el asa ≡ (Pointer Events: vale con ratón y con el dedo),
+  // por TODA la ruta. La lista se reordena en vivo; un movimiento que dejara la primera
+  // parada sin ser recogida o la última sin ser entrega no se aplica.
   const [arrastrando, setArrastrando] = useState<number | null>(null);   // k del punto en el aire
   function empezarArrastre(e: React.PointerEvent, p: Punto) {
     e.preventDefault();
     setArrastrando(p.k);
     const mover = (ev: PointerEvent) => {
       const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-parada]') as HTMLElement | null;
-      if (!el || el.dataset.tipo !== p.tipo) return;
+      if (!el) return;
       const k = Number(el.dataset.parada);
       if (!Number.isFinite(k) || k === p.k) return;
-      const f = (l: Punto[]) => {
+      setPuntos((l) => {
         const a = l.findIndex((x) => x.k === p.k), b = l.findIndex((x) => x.k === k);
         if (a < 0 || b < 0 || a === b) return l;
-        const c = [...l]; c.splice(b, 0, ...c.splice(a, 1)); return c;
-      };
-      if (p.tipo === 'carga') setRecogidas(f); else setEntregas(f);
+        const c = [...l]; c.splice(b, 0, ...c.splice(a, 1));
+        return c[0].tipo === 'carga' && c[c.length - 1].tipo === 'descarga' ? c : l;
+      });
     };
     const soltar = () => {
       setArrastrando(null);
@@ -288,7 +290,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     };
     window.addEventListener('pointermove', mover); window.addEventListener('pointerup', soltar); window.addEventListener('pointercancel', soltar);
   }
-  const asaDe = (p: Punto, grupo: number) => grupo > 1 ? (
+  const asaDe = (p: Punto) => puntos.length > 2 ? (
     <span className="ptar-asa" title="Arrastra para cambiar el orden" aria-label="Arrastra para cambiar el orden"
       onPointerDown={(e) => empezarArrastre(e, p)}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
@@ -299,7 +301,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   function errorPaso(n: number): string | null {
     if (n === 1) {
       if (!cliente) return 'Elige el cliente del envío.';
-      const todos = [...recogidas, ...entregas];
+      const todos = puntos;
       if (todos.some((p) => !p.sitio && !p.nuevo)) return 'Elige la recogida y la entrega (de la lista o creando el sitio).';
     }
     if (n === 2 && (!ml || !peso)) return 'Indica los metros lineales y el peso.';
@@ -315,7 +317,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [comprobando, setComprobando] = useState(false);
   async function coberturaError(n: number): Promise<string | null> {
     if (n !== 1 && n !== 2) return null;
-    const paradas = [...recogidas, ...entregas].map((p, i) => {
+    const paradas = puntos.map((p, i) => {
       const x = p.sitio ?? p.nuevo;
       return { orden: i + 1, tipo: p.tipo, pais: x?.pais_codigo_iso || 'ES', codigo_postal: x?.codigo_postal ?? '', nombre: x?.nombre_empresa ?? '' };
     });
@@ -341,7 +343,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     const e = errorPaso(1);
     if (e) { setAviso(e); return; }
     setEnviando(true); setAviso(null);
-    const r = await cambiarRuta(base.envio.id, [...recogidas, ...entregas].map((p) => {
+    const r = await cambiarRuta(base.envio.id, puntos.map((p) => {
       if (p.parada_id) return { tipo: p.tipo, id: p.parada_id };
       if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id };
       const n = p.nuevo!;
@@ -360,7 +362,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     setEnviando(true); setAviso(null);
     // Guarda en la ficha de cada sitio de la AGENDA lo que se corrigió en la confirmación
     // (los almacenes de Dynamo los ignora el servidor). Si algo no es válido, se corta aquí.
-    const puntos = [...recogidas, ...entregas];
     const edicExist: EdicionSitio[] = puntos
       // Solo si sus datos ya se cargaron (si no, no pisamos la ficha con valores por defecto).
       .filter((p) => p.sitio && !p.sitio.es_almacen_dynamo && edicSitios[p.k] && datosSitios[p.sitio.id])
@@ -582,14 +583,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     {enRuta || esCliente ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
                       onElegir={async (c) => {
                         setCliente(c);
-                        setRecogidas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); setEntregas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null })));
+                        setPuntos((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null })));
                         if (!c) return;
                         // Sus sitios se piden ahora; su almacén principal pasa a la primera recogida.
                         const suyos = sitiosRef.current.some((x) => x.cliente_id === c.id) ? [] : await sitiosDelCliente(c.id).catch(() => [] as typeof sitiosIni);
                         if (suyos.length) setSitios((l) => [...l.filter((x) => x.cliente_id !== c.id), ...suyos]);
                         const todos = suyos.length ? [...sitiosRef.current, ...suyos] : sitiosRef.current;
                         const prin = c.principal_id ? todos.find((x) => x.id === c.principal_id && x.cliente_id === c.id) ?? null : null;
-                        if (prin) setRecogidas((l) => l.map((p, i) => (i === 0 && !p.nuevo && !p.sitio?.es_almacen_dynamo ? { ...p, sitio: prin } : p)));
+                        if (prin) setPuntos((l) => l.map((p, i) => (i === 0 && !p.nuevo && !p.sitio?.es_almacen_dynamo ? { ...p, sitio: prin } : p)));
                       }}
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
                   </div>
@@ -606,13 +607,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     </div>
                   </>)}
                   <div className="ptar-section-head">Ruta</div>
-                  {recogidas.map((p, i) => (
-                    <div key={p.k} data-parada={p.k} data-tipo="carga" className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
-                      <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, recogidas.length)}
-                        placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente') : 'Otra recogida · busca en la agenda'}
-                        onCambio={(c) => cambiar(p, c)} onQuitar={i > 0 ? () => quitar(p) : undefined}
-                        onAnadir={total < 4 ? () => nuevaParada('carga') : undefined}
-                        onAlternar={recogidas.length > 1 ? () => alternarTipo(p) : undefined} />
+                  {puntos.map((p, i) => (
+                    <div key={p.k} data-parada={p.k} className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
+                      <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p)}
+                        placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente')
+                          : i === puntos.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente')
+                          : p.tipo === 'carga' ? 'Otra recogida · busca en la agenda' : 'Otra entrega · busca en la agenda'}
+                        onCambio={(c) => cambiar(p, c)}
+                        onQuitar={i > 0 && i < puntos.length - 1 ? () => quitar(p) : undefined}
+                        onAnadir={total < 4 ? () => nuevaParada(p) : undefined}
+                        onAlternar={i > 0 && i < puntos.length - 1 ? () => alternarTipo(p) : undefined} />
                       {i === 0 && p.sitio && cliente?.principal_id === p.sitio.id && (
                         <p className="ptar-prin-badge"><span className="ptar-prin-star" aria-hidden="true">★</span> {esCliente ? 'Tu almacén principal' : 'Almacén principal del cliente'} · origen por defecto
                           <span className="ptar-prin-info" tabIndex={0} title={esCliente
@@ -620,15 +624,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                             : 'Se preselecciona como recogida en cada envío nuevo. El sitio principal se cambia con la estrella en Sitios.'}>ⓘ</span>
                         </p>
                       )}
-                    </div>
-                  ))}
-                  {entregas.map((p, i) => (
-                    <div key={p.k} data-parada={p.k} data-tipo="descarga" className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
-                      <CampoSitio punto={p} numero={recogidas.length + i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, entregas.length)}
-                        placeholder={i === entregas.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente') : 'Otra entrega · busca en la agenda'}
-                        onCambio={(c) => cambiar(p, c)} onQuitar={i < entregas.length - 1 ? () => quitar(p) : undefined}
-                        onAnadir={total < 4 ? () => nuevaParada('descarga') : undefined}
-                        onAlternar={entregas.length > 1 ? () => alternarTipo(p) : undefined} />
                     </div>
                   ))}
                   {!manual && <div className="ptar-verif-note" style={{ marginTop: '0.5rem' }}>
@@ -817,7 +812,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <h4 className="ptar-section-head" style={{ margin: '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
-                <FichasSitios puntos={[...recogidas, ...entregas]} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} />
+                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} />
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
                   <div className="sum2-grid">

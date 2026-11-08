@@ -43,7 +43,10 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       const { data: r } = await supabase.rpc('mis_envios').eq('id', sp.repetir).maybeSingle();
       const x = r;
       if (x) base = { modo: 'repetir', envio: { ...x, cliente_id: e.id, importe_cliente: null, importe_transportista: null },
-        paradas: ((x.paradas ?? []) as Base['paradas']).map((p) => ({ id: p.id, tipo: p.tipo, sitio_id: p.sitio_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
+        // En su ORDEN real (la ruta admite recogidas y entregas intercaladas).
+        paradas: ((x.paradas ?? []) as (Base['paradas'][number] & { orden?: number })[])
+          .slice().sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+          .map((p) => ({ id: p.id, tipo: p.tipo, sitio_id: p.sitio_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
