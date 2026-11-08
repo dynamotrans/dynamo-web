@@ -4583,8 +4583,9 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid
   if exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace and proname = 'responder_subida_precio') then
     raise exception 'FALLO 129 · responder_subida_precio sigue existiendo (ya no hay nada que aceptar)';
   end if;
-  -- La tarea de cada hora: los que llegan a su fecha pasan a «revisar»; y si quedara un
-  -- envío en «esperando_cliente» (estado de antes de 2026-11-08), aplica la subida y avisa.
+  -- La tarea de cada hora: el precio provisional que llega a su fecha queda DEFINITIVO él
+  -- solo (sin pasar por Dynamo); y si quedara un envío en «esperando_cliente» (estado de
+  -- antes de 2026-11-08), aplica la subida y avisa.
   e := pg_temp.envio129(c, 40, 1000);
   e2 := pg_temp.envio129(c, 40, 1000);
   perform set_config('dynamo.revision_precio', 'on', true);
@@ -4592,7 +4593,9 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid
   update envios set estado_revision_precio = 'esperando_cliente', importe_revision_anterior = 1000, importe_revision_nuevo = 1300, revision_precio_en = now() where id = e2;
   perform set_config('dynamo.revision_precio', 'off', true);
   perform revisar_precios_programados();
-  if (select estado_revision_precio from envios where id = e) <> 'revisar' then raise exception 'FALLO 129 · llegada la fecha, el precio no pasa a «revisar»'; end if;
+  if (select (estado_revision_precio, importe_cliente) from envios where id = e) <> ('hecha'::text, 1000::numeric) then
+    raise exception 'FALLO 129 · llegada la fecha, el precio no queda definitivo él solo';
+  end if;
   if (select (estado_revision_precio, importe_cliente) from envios where id = e2) <> ('hecha'::text, 1300::numeric) then
     raise exception 'FALLO 129 · un envío que quedara esperando al cliente no se resuelve solo';
   end if;
@@ -4623,7 +4626,7 @@ do $$ declare c uuid; e uuid; begin
   end if;
   perform revisar_precio_envio(e, 1000);
   if (select pago_pendiente_en from envios where id = e) is null then raise exception 'FALLO 129 · tras la revisión no empieza el plazo para pagar'; end if;
-  raise notice 'OK 129 · revisión de precio: cerrado a ≤7 días, provisional más lejos (sin camión ni ofertas), una revisión con margen, la subida se aplica sola con aviso al cliente y el pago espera al precio definitivo';
+  raise notice 'OK 129 · revisión de precio: cerrado a ≤7 días, provisional más lejos (sin camión ni ofertas), una revisión con margen, la subida se aplica sola con aviso, llegada la fecha queda definitivo solo y el pago espera al precio definitivo';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
 update parametros set valor = '100000' where clave = 'precio_cerrado_dias';
@@ -6240,6 +6243,46 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; o uuid; e uuid;
     raise exception 'FALLO 167 · a un cliente no se le ignora p_cliente';
   end if;
   raise notice 'OK 167 · envío manual por vista: el gestor lo registra para el cliente de la vista, sin vista no puede, y a un cliente p_cliente se le ignora';
+end $$;
+reset role;
+
+-- ---- 168. El cliente crea su envío YA con el precio del tarifador (sin solicitudes) --------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select s.id into e from crear_envio_cliente(
+    jsonb_build_object('importe_cliente', 850, 'metros_lineales', 6, 'toneladas', 8, 'fecha_carga_desde', current_date + 7),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 168', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 168', 'codigo_postal', '28001', 'poblacion', 'Madrid'))) s;
+  if (select (m.estado::text, m.importe_cliente, m.estado_solicitud) from mis_envios() m where m.id = e)
+     is distinct from ('programado'::text, 850::numeric, 'aceptada'::text) then
+    raise exception 'FALLO 168 · el envío del cliente no nace programado con su precio';
+  end if;
+  -- Sin precio (o con uno absurdo), no se crea.
+  begin
+    perform crear_envio_cliente(jsonb_build_object('fecha_carga_desde', current_date + 7),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'),
+                        jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
+    raise exception 'FALLO 168 · crea un envío sin precio';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  begin
+    perform crear_envio_cliente(jsonb_build_object('importe_cliente', -5, 'fecha_carga_desde', current_date + 7),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'),
+                        jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
+    raise exception 'FALLO 168 · admite un precio negativo';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  -- La fecha de recogida, a partir de mañana.
+  begin
+    perform crear_envio_cliente(jsonb_build_object('importe_cliente', 850, 'fecha_carga_desde', current_date),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'),
+                        jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
+    raise exception 'FALLO 168 · admite cargar hoy (el corte lo decide la pantalla, la base de datos exige mañana)';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  raise notice 'OK 168 · el cliente crea su envío ya preciado por el tarifador: nace programado con su importe; sin precio, con precio absurdo o para hoy, no';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

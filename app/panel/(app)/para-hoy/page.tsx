@@ -34,10 +34,9 @@ export default async function PaginaParaHoy() {
   // «Revisar el precio (programados con antelación)» (usuario 2026-11-08): los precios son
   // del tarifador automático —la revisión al llegar la ventana la aplica sola la tarea
   // horaria— y los cambios se hacen directamente modificando el envío.
-  const [sinCamion, cofCli, cofTra, sinPagar, inc, pen, altas, alm] = await Promise.all([
+  const [sinCamion, cofTra, sinPagar, inc, pen, altas, alm] = await Promise.all([
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
       .neq('estado_pago_previo', 'pendiente').lte('fecha_carga_desde', manana).order('fecha_carga_desde').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('estado_solicitud', 'contraoferta').order('modificado_en').limit(MAX),
     supabase.from('envio_reservas').select('id, envio_id, precio_propuesto, cerrada_en, desde, envios(referencia_gx, importe_transportista), transportistas(nombre_visible, tags)', cnt)
       .eq('estado', 'pendiente_revision').order('desde').limit(MAX),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_pago_previo', 'pendiente').order('fecha_carga_desde').limit(MAX),
@@ -75,9 +74,6 @@ export default async function PaginaParaHoy() {
       filas: incs.map((i) => ({ href: '/panel/incidencias', t: `${i.tipos_incidencia?.clave === 'siniestro' ? 'SINIESTRO · ' : ''}${i.titulo}`,
         s: [i.envios?.referencia_gx && `#${i.envios.referencia_gx}`, i.tipos_incidencia?.nombre, `prioridad ${i.prioridad}`].filter(Boolean).join(' · '), desde: i.creado_en,
         urgente: i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica' })) },
-    { id: 'contraofertas-clientes', nivel: 'aviso', titulo: 'Contraofertas de clientes', total: cofCli.count ?? 0, todo: '/panel/envios',
-      filas: (cofCli.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
-        s: `Propone ${euros(e.importe_contraoferta_cliente)} (le dimos ${euros(e.importe_cliente)})`, desde: e.modificado_en })) },
     { id: 'contraofertas-transportistas', nivel: 'aviso', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
       filas: (cofTra.data ?? []).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
         s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
@@ -87,6 +83,6 @@ export default async function PaginaParaHoy() {
     { id: 'almacenamientos', nivel: 'info', titulo: 'Almacenamientos por confirmar', total: alm.count ?? 0, todo: '/panel/almacenamientos',
       filas: (alm.data ?? []).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
   ];
-  const errores = [sinCamion, cofCli, cofTra, sinPagar, inc, pen, altas, alm].map((r) => r.error?.message).filter(Boolean);
+  const errores = [sinCamion, cofTra, sinPagar, inc, pen, altas, alm].map((r) => r.error?.message).filter(Boolean);
   return <ParaHoy bloques={bloques} error={errores[0] ?? null} />;
 }

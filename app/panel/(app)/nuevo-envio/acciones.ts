@@ -152,15 +152,17 @@ export async function guardarEdicionEnvio(envio: string,
   return { ok: true };
 }
 
-// Etapa B: el CLIENTE pide un envío (solicitud). Sin precio: Dynamo se lo pone y él lo
-// acepta desde su panel. La base de datos fuerza que sea de SU empresa y con SUS sitios.
-export async function crearSolicitud(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'>, paradas: ParadaNueva[]):
+// El CLIENTE crea su envío YA CON EL PRECIO del tarifador automático (desde el 2026-11-08
+// no hay solicitudes de precio). Nace programado; el previo pago decide crédito o pago.
+// La base de datos fuerza que sea de SU empresa y con SUS sitios.
+export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_transportista'>, paradas: ParadaNueva[]):
   Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
-  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearSolicitud", [envio, paradas]);
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvioCliente", [envio, paradas]);
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede pedir envíos todavía.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
-  const { data, error } = await s.supabase.rpc('crear_solicitud_envio', { p_datos: envio, p_paradas: paradas });
+  if (!envio.importe_cliente || !(envio.importe_cliente > 0)) return { ok: false, error: 'El precio aún se está calculando: espera un momento y vuelve a pulsar.' };
+  const { data, error } = await s.supabase.rpc('crear_envio_cliente', { p_datos: envio, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);

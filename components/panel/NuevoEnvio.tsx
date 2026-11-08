@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
@@ -493,16 +493,19 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       return;
     }
     if (esCliente) {
-      const rs = await crearSolicitud({
+      // El precio es el del tarifador automático que el cliente tiene en pantalla.
+      if (!tarifa) { setEnviando(false); setAviso('El precio aún se está calculando: espera un momento y vuelve a pulsar.'); setPaso(3); return; }
+      const rs = await crearEnvioCliente({
         referencia_cliente: refCli, fecha_carga_desde: fecha, fecha_carga_hasta: fechaHasta,
         descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
         toneladas: Number(peso), metros_lineales: Number(ml),
         paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
         carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
+        importe_cliente: tarifa.neto,
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
-      router.push(`/panel/envios?f=solicitudes&nuevo=${encodeURIComponent(rs.referencia_gx)}`);
+      router.push(`/panel/envios?f=programada&nuevo=${encodeURIComponent(rs.referencia_gx)}`);
       refrescar();
       return;
     }
@@ -635,12 +638,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   return (
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">
       <div className="sec-header"><h2>{enRuta ? `Cambiar ruta · #${be!.referencia_gx}` : editar ? `Modificar envío · #${be!.referencia_gx}` : base ? `Repetir envío · #${be!.referencia_gx}` : 'Nuevo envío'}</h2></div>
-      {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : editar ? 'Guardando cambios' : esCliente ? 'Enviando la solicitud' : 'Creando envío'} />}
+      {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : editar ? 'Guardando cambios' : 'Creando envío'} />}
       {/* Pista flotante «Desliza…» (mockup): cuando el botón de acción del paso queda
           por debajo del pliegue. En Fecha y precio y en Confirmar, que son los largos. */}
       {(paso === 3 || paso === 4) && !revisarLegal && !enviando && (
         <PistaScroll selector="[data-pista-accion]"
-          texto={editar ? 'Desliza para guardar los cambios' : paso === 4 && esCliente && !manual ? 'Desliza para enviar la solicitud' : 'Desliza para crear el envío'} />
+          texto={editar ? 'Desliza para guardar los cambios' : 'Desliza para crear el envío'} />
       )}
       {editar && paso === 1 && (
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando el envío #{be!.referencia_gx}</strong>: cambia lo que haga falta en cualquier paso y pulsa <strong>«Guardar cambios»</strong> al final. Si no tocas nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong> — el tarifador solo sugiere, no lo pisa.</div></div>
@@ -655,7 +658,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       {errorCarga && <div className="pt-aviso error">No se han podido cargar los datos: {errorCarga}</div>}
 
       {!enRuta && <div className="wiz-bar">
-        {['Ruta', 'Mercancía', esCliente ? 'Fecha' : 'Fecha y precio', 'Confirmar'].map((t, i) => (
+        {['Ruta', 'Mercancía', 'Fecha y precio', 'Confirmar'].map((t, i) => (
           <div key={t} className={`wiz-step${paso === i + 1 ? ' act' : ''}${paso > i + 1 ? ' done' : ''}`}
                onClick={() => { if (paso > i + 1) { setAviso(null); setPaso(i + 1); } }}>
             <span className="wiz-n">{i + 1}</span><span>{t}</span>
@@ -937,7 +940,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               {manual
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
                 : esCliente
-                ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Precio:</strong> te lo pasamos en menos de 25 minutos (en horario de oficina) y lo aceptas desde el envío.</div></div>
+                ? <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
+                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
                 : cajaPrecio}
               {avisoProvisional}
               <div className="ptar-discrecion">
@@ -952,7 +956,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   : manual
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>
                   : esCliente
-                  ? <p className="ptar-terms-line">Al pulsar <strong>«Enviar solicitud»</strong> nos llega tu envío para ponerle precio. <strong>No hay compromiso</strong> hasta que aceptes el precio (y las condiciones generales).</p>
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda <strong>programado con este precio</strong> (base sin IVA). Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</p>
                   : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>}
               </div>
               {aviso && !revisarLegal && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
@@ -967,7 +971,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
                     setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
                   }}
-                  data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : esCliente && !manual ? 'Enviando…' : 'Creando envío…') : editar ? 'Guardar cambios' : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
+                  data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
               </div>
             </div>
