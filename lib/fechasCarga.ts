@@ -12,10 +12,11 @@ export function sumarHabiles(desde: string, n: number, fest: Set<string>): strin
 // Primer día de recogida posible: el siguiente día hábil, si se pide antes del corte de
 // hoy (horas de corte de Parámetros: fecha fija 12:00, ventana 14:00, hora de Madrid); si no,
 // el siguiente. Las mismas reglas que primera_fecha_carga() en la base de datos.
-export function primerDia(urg: 'dia' | 'estandar', fest: Set<string>, cortes?: { fija?: number; ventana?: number }, ahora = new Date()): string {
+export function primerDia(urg: 'dia' | 'estandar' | 'corta', fest: Set<string>, cortes?: { fija?: number; ventana?: number }, ahora = new Date()): string {
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(ahora);
   const v = (t: string) => Number(p.find((x) => x.type === t)?.value);
   const hoy = `${v('year')}-${String(v('month')).padStart(2, '0')}-${String(v('day')).padStart(2, '0')}`;
-  const corte = urg === 'dia' ? (cortes?.fija ?? 12) : (cortes?.ventana ?? 14);
+  // Corte: fecha fija y ventana corta de grupaje a las 12:00; ventana estándar a las 14:00.
+  const corte = urg === 'estandar' ? (cortes?.ventana ?? 14) : (cortes?.fija ?? 12);
   return sumarHabiles(hoy, v('hour') + v('minute') / 60 < corte ? 1 : 2, fest);
 }

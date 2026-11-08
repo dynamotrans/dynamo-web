@@ -50,7 +50,7 @@ const IcoVentCal = () => (
   </svg>
 );
 
-export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, ivaPct, pasada, fechaFija, onElegir }: {
+export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, ivaPct, pasada, fechaFija, corta = false, onElegir }: {
   tarifa: Tarifa | null;
   km: number | null; kmEstimado: boolean;
   cargando: boolean;
@@ -58,7 +58,8 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   ivaPct: number;
   pasada: boolean;                      // fecha ya pasada (registro a posteriori del Admin Master)
   fechaFija: string | null;             // la fecha elegida cuando es fecha fija (para la cabecera)
-  onElegir: (urgencia: 'dia' | 'estandar', fecha: string) => void;
+  corta?: boolean;                      // la ventana corta de grupaje (1 a 2 días) está elegida
+  onElegir: (urgencia: 'dia' | 'estandar' | 'corta', fecha: string) => void;
 }) {
   const neto = usePrecioAnimado(tarifa?.neto ?? null);
   if (cargando) {
@@ -100,8 +101,9 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
       {tarifa.alternativas.length > 0 && (
         <div className="ptar-eta-fija">
           <div className="eta-fija-head">
-            Has seleccionado <strong>FECHA FIJA{urgente ? ' URGENTE' : ''}{fechaFija ? ` (${fmtFecha(fechaFija)})` : ''}</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br />
-            <strong>¿No te corre prisa?</strong> Puedes cambiar a:
+            {corta
+              ? <>Has seleccionado la <strong>ventana corta de 1 a 2 días</strong>, con su suplemento.<br /><strong>¿No te corre prisa?</strong> Puedes cambiar a:</>
+              : <>Has seleccionado <strong>FECHA FIJA{urgente ? ' URGENTE' : ''}{fechaFija ? ` (${fmtFecha(fechaFija)})` : ''}</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br /><strong>¿No te corre prisa?</strong> Puedes cambiar a:</>}
           </div>
           <div className="eta-opts">
             {tarifa.alternativas.map((a, i) => (
@@ -109,10 +111,10 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
                 <span className="eta-opt-ico">{a.urgencia === 'dia' ? <IcoFijaCal /> : <IcoVentCal />}</span>
                 <span className="eta-opt-body">
                   <span className="eta-opt-tit">
-                    {a.urgencia === 'dia' ? <>Fecha fija · día siguiente disponible · {fmtFecha(a.fecha)}</> : 'Recogida de 1 a 3 días'}
+                    {a.urgencia === 'dia' ? <>Fecha fija · día siguiente disponible · {fmtFecha(a.fecha)}</> : a.titulo}
                     {a.recomendada && <span className="eta-badge">Recomendada</span>}
                   </span>
-                  <span className="eta-opt-sub">{a.urgencia === 'dia' ? 'Un día concreto, algo más económico que el primero disponible.' : 'Lo más barato y seguro: el 80 % de las veces cargamos en los 2 primeros días.'}</span>
+                  <span className="eta-opt-sub">{a.urgencia === 'dia' ? 'Un día concreto, algo más económico que el primero disponible.' : `Lo más barato y seguro: ${a.detalle.charAt(0).toLowerCase()}${a.detalle.slice(1)}.`}</span>
                   <span className="eta-opt-ahorro">Ahorras {euros(a.ahorro)}</span>
                 </span>
                 <span className="eta-opt-price"><span className="eta-opt-eur">{euros(tarifa.neto - a.ahorro)}</span><span className="eta-opt-go">Elegir ›</span></span>

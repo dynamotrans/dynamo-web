@@ -73,6 +73,21 @@ test('descuento por peso bajo: solo tráiler completo, tramos por toneladas, tec
   assert.equal(linea(calcularTarifa({ ...BASE, ml: 6, peso: 4 }), 'Descuento peso'), undefined); // grupaje: sin descuento
 });
 
+test('ventana corta de grupaje (1 a 2 días): +10 % o 80 € (el mayor), alternativa 1 a 4 recomendada y ETA de 2 días; en completo no existe', () => {
+  const grup = calcularTarifa({ ...BASE, ml: 2, peso: 2, urgencia: 'corta', fecha: '2026-11-18' });
+  assert.equal(grup.grupaje, true);
+  assert.equal(linea(grup, 'Ventana corta')!.v, 80);            // 10 % de 700 = 70 → manda el mínimo de 80
+  assert.deepEqual([grup.alternativas.length, grup.alternativas[0].ahorro, grup.alternativas[0].recomendada, grup.alternativas[0].urgencia],
+    [1, 80, true, 'estandar']);
+  assert.equal(grup.alternativas[0].titulo, 'Recogida de 1 a 4 días');
+  // ETA: la corta cierra la ventana a 2 días (mié 18 + 1 hábil = jue 19; tránsito 1 día → vie 20)…
+  assert.deepEqual([grup.etaDesde, grup.etaHasta], ['2026-11-19', '2026-11-20']);
+  // …y la estándar de grupaje la abre a 4 (mié 18 + 3 hábiles = lun 23; tránsito 1 → mar 24).
+  assert.equal(calcularTarifa({ ...BASE, ml: 2, peso: 2, fecha: '2026-11-18' }).etaHasta, '2026-11-24');
+  // En carga completa la opción no existe: sin suplemento aunque llegue 'corta'.
+  assert.equal(linea(calcularTarifa({ ...BASE, urgencia: 'corta' }), 'Ventana corta'), undefined);
+});
+
 test('alternativas: fija urgente ofrece día siguiente (50) y ventana recomendada (100); fija normal, ventana (50); ventana, nada', () => {
   const urgente = calcularTarifa({ ...BASE, urgencia: 'dia', fecha: '2026-11-10' });
   assert.equal(urgente.alternativas.length, 2);

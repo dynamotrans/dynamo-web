@@ -19,6 +19,7 @@ import { CONTACTO } from '@/lib/atencion';
 import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
+import AvisoCorte from './nuevoEnvio/AvisoCorte';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import CampoOperador from './nuevoEnvio/CampoOperador';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
@@ -100,7 +101,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente)));
 
   // ---- Paso 3: fecha y precio
-  const [urgencia, setUrgencia] = useState<'dia' | 'estandar'>('estandar');
+  const [urgencia, setUrgencia] = useState<'dia' | 'estandar' | 'corta'>('estandar');
   const [fecha, setFecha] = useState('');
   const [faltaFecha, setFaltaFecha] = useState(false);   // se intentó avanzar sin elegir fecha → marca el campo en rojo
   // El precio SUGERIDO del tarifador (borrador) rellena estos campos por defecto; en cuanto
@@ -167,7 +168,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // El aviso de "falta tal dato" se borra en cuanto se toca cualquier cosa.
   useEffect(() => { setAviso(null); }, [cliente, puntos, ml, peso, fecha, pc, pt, urgencia]);
 
-  const ventanaDias = urgencia === 'estandar' ? 3 : 1;
+  // GRUPAJE (no llega al tráiler completo): sin fecha fija; ventanas de 1 a 4 (estándar)
+  // o 1 a 2 (corta, más cara). Carga COMPLETA: 1 a 3 o fecha fija. Si al cambiar los
+  // metros la opción elegida deja de existir, vuelve a la estándar.
+  const esGrupaje = (Number(ml) || 0) < mlMax - 0.01;
+  useEffect(() => {
+    if ((esGrupaje && urgencia === 'dia') || (!esGrupaje && urgencia === 'corta')) setUrgencia('estandar');
+  }, [esGrupaje]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ventanaDias = urgencia === 'dia' ? 1 : urgencia === 'corta' ? 2 : esGrupaje ? 4 : 3;
   const fechaHasta = fecha ? (ventanaDias > 1 ? sumarHabiles(fecha, ventanaDias - 1, fest) : fecha) : '';
   const dias = useMemo(() => {
     const out: string[] = []; let d = primerDia(urgencia, fest, { fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora });
@@ -239,7 +247,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tarifa?.neto, interna?.vApl, interna?.compraMin, esCliente]);
   const fechaPasada = !!fecha && fecha < hoyStr && urgencia === 'dia';
-  const elegirAlternativa = (u: 'dia' | 'estandar', f: string) => { setUrgencia(u); setFecha(f); setModoCal(false); };
+  const elegirAlternativa = (u: 'dia' | 'estandar' | 'corta', f: string) => { setUrgencia(u); setFecha(f); setModoCal(false); };
 
   // El + de una fila añade otra parada JUSTO DEBAJO, del mismo tipo (luego se puede
   // alternar con la pastilla). Añadir tras la última entrega deja la nueva como destino.
@@ -716,7 +724,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-field-full">
                     {/* Al cambiar de tipo NO se borra el día ya elegido: la ventana se recalcula sola
                         (fija → el día; 1 a 3 días → de ese día al rango). */}
-                    <SelectorUrgencia valor={urgencia} onCambio={(v) => { setUrgencia(v); setModoCal(false); }} />
+                    <SelectorUrgencia valor={urgencia} grupaje={esGrupaje} onCambio={(v) => { setUrgencia(v); setModoCal(false); }} />
                   </div>
                   <div className="ptar-field-full">
                     {!modoCal ? (
@@ -725,7 +733,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         onChange={(e) => { const v = e.target.value; if (v === '__cal__') setModoCal(true); else if (v !== 'elegida') setFecha(v); }}>
                         <option value="" disabled>Elige la fecha de recogida</option>
                         {dias.map((d) => (
-                          <option key={d} value={d}>{urgencia === 'estandar' ? `Del ${fmtFecha(d)} al ${fmtFecha(sumarHabiles(d, 2, fest))}` : fmtFecha(d)}</option>
+                          <option key={d} value={d}>{urgencia !== 'dia' ? `Del ${fmtFecha(d)} al ${fmtFecha(sumarHabiles(d, ventanaDias - 1, fest))}` : fmtFecha(d)}</option>
                         ))}
                         {fecha && !dias.includes(fecha) && <option value="elegida">{fechaTxt ? fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1) : fmtFecha(fecha)}</option>}
                         <option value="__cal__">Elegir otra fecha en el calendario…</option>
@@ -742,6 +750,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     )}
                     {marcarFecha && <div className="pt-aviso error" style={{ marginTop: '0.5rem', marginBottom: 0 }}><IcoAviso /><div><strong>Elige la fecha de recogida</strong> (es el campo que falta).</div></div>}
                   </div>
+                  {!manual && !fechaPasada && (
+                    <div className="ptar-field-full">
+                      <AvisoCorte urgencia={urgencia} festivos={festivos} ventana={ventanaDias} grupaje={esGrupaje}
+                        cortes={{ fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora }} />
+                    </div>
+                  )}
                   {esMaster && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede.</p></div>}
                 </>)}
               </div>
@@ -765,11 +779,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   </div>
                 ) : esCliente ? (<>
                   <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
-                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} onElegir={elegirAlternativa} />
+                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
                   <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en firme en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
                 </>) : <>
                 <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
-                  cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} onElegir={elegirAlternativa} />
+                  cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
                   <div className="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
                   {tarifa && ultimos && interna

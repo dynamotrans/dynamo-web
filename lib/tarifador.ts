@@ -24,7 +24,7 @@ export type EntradaTarifa = {
   techo: boolean;                      // la carga entra o sale por el techo
   plataforma: boolean;                 // plataforma elevadora (rígido)
   nima: boolean; adr: boolean;
-  urgencia: 'dia' | 'estandar';
+  urgencia: 'dia' | 'estandar' | 'corta';   // corta = ventana de 1 a 2 días (solo grupaje)
   fecha: string | null;                // YYYY-MM-DD elegida (null: aún sin fecha)
   primerDia: string;                   // primer día disponible para ese tipo de fecha
   hoy: string;
@@ -34,7 +34,7 @@ export type EntradaTarifa = {
 export type LineaTarifa = { k: string; v: number };
 export type AlternativaTarifa = {
   titulo: string; detalle: string; ahorro: number; recomendada: boolean;
-  urgencia: 'dia' | 'estandar'; fecha: string;                  // lo que hay que poner al pulsar «Elegir»
+  urgencia: 'dia' | 'estandar' | 'corta'; fecha: string;       // lo que hay que poner al pulsar «Elegir»
 };
 export type Tarifa = {
   neto: number;                        // base imponible sugerida (sin IVA)
@@ -72,6 +72,12 @@ function esVerano(f: string): boolean {
   return (m === 6 && d >= 15) || m === 7 || m === 8 || (m === 9 && d <= 15);
 }
 
+// Días de la ventana de recogida: fecha fija 1 · corta 2 · estándar 4 en grupaje y 3 en
+// carga completa (el grupaje necesita más margen para completar el camión).
+export function ventanaDias(urgencia: 'dia' | 'estandar' | 'corta', grupaje: boolean): number {
+  return urgencia === 'dia' ? 1 : urgencia === 'corta' ? 2 : grupaje ? 4 : 3;
+}
+
 export function calcularTarifa(e: EntradaTarifa): Tarifa {
   const fest = new Set(e.festivos);
   const lineas: LineaTarifa[] = [];
@@ -104,6 +110,13 @@ export function calcularTarifa(e: EntradaTarifa): Tarifa {
     lineas.push({ k: 'Mercancía peligrosa (ADR)', v: r10(sub * 0.5) });
   }
 
+  // 4-bis. Ventana CORTA de grupaje (1 a 2 días): +10 % del subtotal o 80 €, el mayor
+  //        (en carga completa no existe la opción: ahí la corta es la fecha fija).
+  if (e.urgencia === 'corta' && grupaje) {
+    const sub = lineas.reduce((a, l) => a + l.v, 0);
+    lineas.push({ k: 'Ventana corta (1 a 2 días)', v: Math.max(r10(sub * 0.10), 80) });
+  }
+
   // 5. Suplemento de fecha fija: 100 si es el primer día disponible (urgente), 50 el resto;
   //    una fecha pasada (registro a posteriori del Admin Master) no lleva.
   const pasada = !!e.fecha && e.fecha < e.hoy;
@@ -127,10 +140,14 @@ export function calcularTarifa(e: EntradaTarifa): Tarifa {
     if (fijaUrgente) {
       const sig = sumarHabiles(e.fecha, 1, fest);
       alternativas.push({ titulo: 'Fecha fija, un día más tarde', detalle: 'El siguiente día hábil, sin la urgencia del primero', ahorro: 50, recomendada: false, urgencia: 'dia', fecha: sig });
-      alternativas.push({ titulo: 'Recogida de 1 a 3 días', detalle: 'El 80 % de las veces cargamos en los 2 primeros días', ahorro: 100, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
+      alternativas.push({ titulo: `Recogida de 1 a ${grupaje ? 4 : 3} días`, detalle: 'El 80 % de las veces cargamos en los 2 primeros días', ahorro: 100, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
     } else {
-      alternativas.push({ titulo: 'Recogida de 1 a 3 días', detalle: 'Mismo primer día, sin suplemento de fecha fija', ahorro: 50, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
+      alternativas.push({ titulo: `Recogida de 1 a ${grupaje ? 4 : 3} días`, detalle: 'Mismo primer día, sin suplemento de fecha fija', ahorro: 50, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
     }
+  }
+  if (e.urgencia === 'corta' && grupaje && e.fecha && !pasada) {
+    const ahorroCorta = lineas.find((l) => l.k.startsWith('Ventana corta'))?.v ?? 0;
+    if (ahorroCorta > 0) alternativas.push({ titulo: 'Recogida de 1 a 4 días', detalle: 'Más margen para completar el camión: lo más económico', ahorro: ahorroCorta, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
   }
 
   // 8. Entrega estimada: ~600 km por día de conducción, saltando fines de semana y festivos.
@@ -138,7 +155,8 @@ export function calcularTarifa(e: EntradaTarifa): Tarifa {
   let etaDesde: string | null = null, etaHasta: string | null = null;
   if (e.fecha) {
     etaDesde = sumarHabiles(e.fecha, diasTransito, fest);
-    etaHasta = e.urgencia === 'estandar' ? sumarHabiles(sumarHabiles(e.fecha, 2, fest), diasTransito, fest) : etaDesde;
+    const vDias = ventanaDias(e.urgencia, grupaje);
+    etaHasta = vDias > 1 ? sumarHabiles(sumarHabiles(e.fecha, vDias - 1, fest), diasTransito, fest) : etaDesde;
   }
   return { neto, lineas, grupaje, alternativas, etaDesde, etaHasta, diasTransito };
 }

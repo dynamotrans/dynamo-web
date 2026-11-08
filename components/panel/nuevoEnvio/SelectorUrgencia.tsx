@@ -5,13 +5,23 @@
 // peso normal, cada opción con su color: ventana de 1 a 3 días en verde, fecha fija en negro.
 import { useEffect, useRef, useState } from 'react';
 
-type Urgencia = 'dia' | 'estandar';
-const OPCIONES: { v: Urgencia; nombre: string; nota: string; color: string }[] = [
-  { v: 'estandar', nombre: 'Recogida de 1 a 3 días', nota: 'más económica', color: 'var(--green)' },
-  { v: 'dia', nombre: 'Fecha fija', nota: 'un día concreto, más caro', color: '#dc2626' },
-];
+type Urgencia = 'dia' | 'estandar' | 'corta';
+type Opcion = { v: Urgencia; nombre: string; nota: string; color: string };
+// CARGA COMPLETA: ventana de 1 a 3 días o fecha fija. GRUPAJE: sin fecha fija (no se puede
+// garantizar un día concreto hasta completar el camión); ventana de 1 a 4 días (más margen
+// para completar camión, más económica) o corta de 1 a 2 días (más cara).
+const opcionesDe = (grupaje: boolean): Opcion[] => grupaje
+  ? [
+    { v: 'estandar', nombre: 'Recogida de 1 a 4 días', nota: 'más económica', color: 'var(--green)' },
+    { v: 'corta', nombre: 'Recogida de 1 a 2 días', nota: 'más cara', color: '#dc2626' },
+  ]
+  : [
+    { v: 'estandar', nombre: 'Recogida de 1 a 3 días', nota: 'más económica', color: 'var(--green)' },
+    { v: 'dia', nombre: 'Fecha fija', nota: 'un día concreto, más caro', color: '#dc2626' },
+  ];
 
-export function SelectorUrgencia({ valor, onCambio }: { valor: Urgencia; onCambio: (v: Urgencia) => void }) {
+export function SelectorUrgencia({ valor, onCambio, grupaje = false }: { valor: Urgencia; onCambio: (v: Urgencia) => void; grupaje?: boolean }) {
+  const OPCIONES = opcionesDe(grupaje);
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
