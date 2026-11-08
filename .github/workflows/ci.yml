@@ -86,9 +86,29 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@v1
+      # La CLI de Supabase se CACHEA: su servidor de descargas da 504 a rachas (2026-11-08
+      # tumbó 4 de 5 runs sin llegar a las pruebas). Con la caché solo se descarga la
+      # primera vez (y con 5 reintentos); después el binario sale de la caché de Actions.
+      - name: Caché de la CLI de Supabase
+        id: cache-supabase
+        uses: actions/cache@v4
         with:
-          version: 2.122.1
+          path: ~/.local/bin/supabase
+          key: supabase-cli-2.122.1-linux-amd64
+      - name: Instalar la CLI de Supabase (si no está en caché)
+        if: steps.cache-supabase.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          for i in 1 2 3 4 5; do
+            curl -fsSL -o /tmp/supabase.tar.gz https://github.com/supabase/cli/releases/download/v2.122.1/supabase_linux_amd64.tar.gz && break
+            echo "Descarga fallida (intento $i de 5); espero $((i*15)) s"
+            [ "$i" = 5 ] && exit 1
+            sleep $((i*15))
+          done
+          tar -xzf /tmp/supabase.tar.gz -C ~/.local/bin supabase
+          chmod +x ~/.local/bin/supabase
+          ~/.local/bin/supabase --version
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Supabase local con las migraciones
         run: |
           mkdir -p /tmp/sb && cd /tmp/sb && supabase init --force

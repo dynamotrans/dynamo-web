@@ -122,6 +122,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [paso, idsRecogida]);
   const [enviando, setEnviando] = useState(false);
 
+  // Aviso flotante breve (~3 s): p. ej. el cambio de capacidad al activar/desactivar la
+  // plataforma elevadora (tráiler 13,3 m / 24 Tn ↔ rígido 8 m / 14 Tn).
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function avisar(txt: string) {
+    setToast(txt);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3200);
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
   // ---- Fichas de sitio editables en la confirmación (como el mockup): se piden los datos
   // de los sitios de la agenda que hay en la ruta al llegar al paso 4, para poder corregir
   // ahí lo que falte (horario, teléfono de contacto…). Lo tocado va en `edicSitios`.
@@ -541,7 +552,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       <div className="ptar-notes-body">
                         <div className="ptar-pair">
                           <Interruptor titulo="Plataforma elevadora" valor={plataforma}
-                            onCambio={(v) => { setPlataforma(v); setMl(v ? '8' : '13.3'); setPeso(v ? '14' : '24'); }} />
+                            onCambio={(v) => {
+                              setPlataforma(v); setMl(v ? '8' : '13.3'); setPeso(v ? '14' : '24');
+                              avisar(v
+                                ? 'Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m y 14 Tn (metros y peso ajustados).'
+                                : 'Sin plataforma vuelves a TRÁILER completo: máximo 13,3 m y 24 Tn. Si tu carga ocupa menos, ajústalo en metros y peso.');
+                            }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
                           <Interruptor titulo="Cita previa" valor={cita} onCambio={setCita} />
@@ -766,6 +782,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         </label>
         {aviso && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {aviso}</div>}
       </Modal>
+
+      {/* Aviso flotante breve (cambio de capacidad por la plataforma elevadora). */}
+      {toast && <div className="ne-toast" role="status">{toast}</div>}
     </section>
   );
 }

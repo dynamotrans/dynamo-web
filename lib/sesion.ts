@@ -36,12 +36,14 @@ export const sesion = cache(async () => {
 });
 
 
-// Iniciales para el avatar ("Juan García" → "JG"; sin nombre, del email).
+// Iniciales para el avatar: nombre + PRIMER apellido ("Juan García Pérez" → "JG",
+// "Alvaro Blanco Admin" → "AB"). Antes se cogía la última palabra y un nombre con
+// coletilla ("… ADMIN") daba iniciales raras. Sin nombre, del email.
 export function iniciales(nombre: string | null | undefined, email: string): string {
   const base = (nombre || '').trim();
   if (base) {
     const p = base.split(/\s+/);
-    return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+    return ((p[0]?.[0] || '') + (p.length > 1 ? p[1][0] : '')).toUpperCase();
   }
   return email.slice(0, 2).toUpperCase();
 }
