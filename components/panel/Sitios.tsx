@@ -217,9 +217,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [sugAbierto, setSugAbierto] = useState(false);
   const [avisoParecido, setAvisoParecido] = useState<{ id: string; nombre: string } | null>(null);
   const bqViva = useRef('');
+  const elegidoTxt = useRef('');   // lo último ELEGIDO: ese texto no relanza la búsqueda
   useEffect(() => {
     const q = bq.trim(); bqViva.current = q;
     if (fila || almacen) return;
+    if (q && q === elegidoTxt.current) { setSug({ ag: [], go: [], dir: [] }); setSugAbierto(false); return; }
     if (q.length < 2) { setSug({ ag: [], go: [], dir: [] }); return; }
     const t = setTimeout(async () => {
       const [ag, go, dir] = await Promise.all([
@@ -242,6 +244,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         ? x.contactos.map((c, i) => (i === 0 ? { ...c, telefono: g.telefono } : c))
         : x.contactos,
     }));
+    elegidoTxt.current = g.empresa;
     setBq(g.empresa); setSugAbierto(false); setAvisoParecido(null);
     sitioParecido(d.cliente_id || null, g.empresa, g.codigo_postal).then(setAvisoParecido).catch(() => {});
   }
@@ -460,6 +463,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                   <li key={`d${i}`} onMouseDown={(e) => {
                     e.preventDefault();
                     setD((v) => ({ ...v, direccion: x.direccion || v.direccion, codigo_postal: x.codigo_postal || v.codigo_postal, poblacion: x.poblacion || v.poblacion, provincia: x.provincia || v.provincia, pais_codigo_iso: x.pais || v.pais_codigo_iso }));
+                    elegidoTxt.current = x.etiqueta;
                     setBq(x.etiqueta); setSugAbierto(false);
                   }}>
                     <span className="sug-chip sug-chip-addr">Dirección</span><span className="sug-dir">{x.etiqueta}</span>
