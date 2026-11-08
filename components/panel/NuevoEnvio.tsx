@@ -54,8 +54,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   useEffect(() => { if (modoCal && calRef.current) { calRef.current.focus(); try { calRef.current.showPicker(); } catch { /* en iPhone el usuario toca el campo para abrirlo */ } } }, [modoCal]);
   const [recogidas, setRecogidas] = useState<Punto[]>(() => {
     const l = (base?.paradas ?? []).filter((p) => p.tipo === 'carga').map((p, i) => puntoDe(p, 100 + i));
-    // El cliente: su sitio principal (la estrella de Sitios) como primera recogida.
-    const prin = esCliente && clientesIni[0]?.principal_id ? sitios.find((x) => x.id === clientesIni[0].principal_id) ?? null : null;
+    // El sitio principal del cliente (la estrella de Sitios) entra solo como primera recogida
+    // SIEMPRE que el cliente ya venga elegido al cargar: en la vista del propio cliente y
+    // también cuando Dynamo crea el envío desde «Ver como» (si el gestor elige el cliente a
+    // mano, lo hace el onCambio del buscador de clientes).
+    const cliIni = esCliente || (!be && clientesIni.length === 1) ? clientesIni[0] : null;
+    const prin = cliIni?.principal_id ? sitios.find((x) => x.id === cliIni.principal_id && x.cliente_id === cliIni.id) ?? null : null;
     return l.length ? l : [{ k: 1, tipo: 'carga', sitio: prin, nuevo: null }];
   });
   const [entregas, setEntregas] = useState<Punto[]>(() => {
