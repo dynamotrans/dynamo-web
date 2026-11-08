@@ -5,7 +5,8 @@
 // sitio principal y ficha en la ventana del panel con la rejilla .ptar-sitio-grid.
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
 import { useMemo, useState } from 'react';
-import Paginador, { BuscadorUrl } from './Paginador';
+import Paginador from './Paginador';
+import { BuscadorUrl } from './BuscadorUrl';
 import Buscador from './Buscador';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';

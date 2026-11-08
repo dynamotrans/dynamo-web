@@ -4,7 +4,8 @@
 // dashboard.html (Transportista · Contacto · Código bolsa · Puntuación · Flota · Creado).
 // La flota NO se edita aquí: sale de los vehículos dados de alta y de los envíos.
 import { useState } from 'react';
-import Paginador, { BuscadorUrl } from './Paginador';
+import Paginador from './Paginador';
+import { BuscadorUrl } from './BuscadorUrl';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';

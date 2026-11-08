@@ -7,7 +7,8 @@
 // los calcula el servidor sobre todos los clientes.
 import Link from 'next/link';
 import { euros, fecha, numero } from '@/lib/formato';
-import Paginador, { BuscadorUrl } from './Paginador';
+import Paginador from './Paginador';
+import { BuscadorUrl } from './BuscadorUrl';
 
 export type RiesgoFila = {
   id: string; nombre: string; cif: string; cesce: number | null; plazo: number | null; manual: number | null;

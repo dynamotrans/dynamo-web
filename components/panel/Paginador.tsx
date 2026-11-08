@@ -34,17 +34,6 @@ export default function Paginador({ total, pagina, porPagina, url, nombre, nombr
   );
 }
 
-/** Buscador que manda el texto por la URL (?q=) al pulsar Intro, para que busque la base de datos. */
-export function BuscadorUrl({ valor, placeholder, campos, accion, id }: { valor: string; placeholder: string; campos?: React.ReactNode; accion: string; id?: string }) {
-  return (
-    <form id={id} className="filters" action={accion} method="get" data-envivo-ignorar="">
-      <input type="search" name="q" defaultValue={valor} placeholder={placeholder} aria-label="Buscar" />
-      {campos}
-      <button type="submit" className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>Buscar</button>
-    </form>
-  );
-}
-
 /** Página y tamaño de página de la URL, acotados. */
 export function paginaDe(sp: Record<string, string | undefined>, porDefecto = 20): { pagina: number; porPagina: number } {
   const porPagina = [10, 20, 50, 100].includes(Number(sp.n)) ? Number(sp.n) : porDefecto;

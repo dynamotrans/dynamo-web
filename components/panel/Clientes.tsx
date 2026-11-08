@@ -4,7 +4,8 @@
 // (columnas Cliente · Contacto · Domicilio fiscal · Condiciones · Factor · Creado ·
 // Estado; ficha en la ventana del panel con la rejilla .ptar-sitio-grid).
 import { useState } from 'react';
-import Paginador, { BuscadorUrl } from './Paginador';
+import Paginador from './Paginador';
+import { BuscadorUrl } from './BuscadorUrl';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
