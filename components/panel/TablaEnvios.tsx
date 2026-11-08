@@ -42,11 +42,14 @@ type Props = {
   op?: string; por?: string; est?: string; fr?: string;
   operadores?: OpcionFiltro[]; creadores?: OpcionFiltro[];
   vista?: 'lista' | 'calendario'; mes?: string; hoy?: string;
+  // «Ver como» un transportista (Dynamo): un transportista no crea envíos, así que el
+  // botón «+ Nuevo envío» tampoco sale en su vista (usuario, 2026-11-09).
+  vistaTransportista?: boolean;
 };
 const hoyISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 
 export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota, nuevoManual, desde = '', hasta = '', busqueda = null, conteos = null, pestana, pagina, totalPestana = 0,
-  op = '', por = '', est = '', fr = '', operadores = [], creadores = [], vista = 'lista', mes = '', hoy = '' }: Props) {
+  op = '', por = '', est = '', fr = '', operadores = [], creadores = [], vista = 'lista', mes = '', hoy = '', vistaTransportista = false }: Props) {
   const vistaCal = vista === 'calendario';
   const dynamo = esDynamo(rol);
   const modoBusqueda = !!busqueda;
@@ -78,7 +81,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         <h2>{rol === 'transportista' ? 'Mis envíos' : 'Envíos'}</h2>
         <div className="sec-header-actions">
           <SelectorVistaEnvios vista={vistaCal ? 'calendario' : 'lista'} q={q} op={op} por={por} f={f} />
-          {rol !== 'transportista' && <Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link>}
+          {rol !== 'transportista' && !vistaTransportista && <Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link>}
         </div>
       </div>
 

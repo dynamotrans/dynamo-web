@@ -58,6 +58,11 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
 
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
   const vista = await vistaDe(supabase, perfil.rol);
+  // En la vista de un TRANSPORTISTA no se crean envíos (un transportista no crea envíos;
+  // usuario 2026-11-09): el botón no sale, y la URL directa avisa en vez de abrir el asistente.
+  if (vista.tipo === 'transportista') {
+    return <section className="section active"><div className="pt-aviso" style={{ maxWidth: 640 }}><div>Un transportista no crea envíos: para crear uno, vuelve a la vista de Dynamo o a la de un cliente (arriba, «Ver como»).</div></div></section>;
+  }
   // El envío base (repetir o cambiar ruta) decide el cliente; si no, el de la vista «Ver como».
   let base: Base | null = null;
   const idBase = sp.editar || sp.ruta || sp.repetir;
