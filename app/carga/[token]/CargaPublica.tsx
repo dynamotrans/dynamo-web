@@ -15,7 +15,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, diasEnt
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
 import CampoTelefono from '@/components/CampoTelefono';
-import { validaIdFiscalPais } from '@/lib/idFiscal';
+import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
 import type { OfertaPublica, ReservaPublica, ParadaPublica } from './tipos';
 
@@ -355,6 +355,12 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
           <div className="sec-title">Identifícate</div>
           <label htmlFor="f-cif">Tu CIF / NIF (el de tu ficha en Dynamo) *</label>
           <input type="text" id="f-cif" value={cif} placeholder="B12345678" autoCapitalize="characters" autoComplete="off" onChange={(e) => setCif(e.target.value)} />
+          {/* Aviso en vivo SOLO cuando el número casa con un formato conocido y el control
+              falla (una errata): así no se gasta un intento. Un formato desconocido no se
+              marca (puede ser un nº fiscal extranjero válido). Aquí no hay autocompletado
+              a propósito: la página es pública y sugerir CIF revelaría nuestra agenda. */}
+          {(() => { const r = cif.trim() ? validaIdFiscal(cif) : null;
+            return r && !r.ok && r.tipo ? <p className="id-hint" style={{ color: 'var(--red)' }}>{r.tipo}: {r.msg}. Revísalo antes de aceptar.</p> : null; })()}
           <p className="id-hint">¿Primer envío con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta el envío.</p>
         </div>
       )}
