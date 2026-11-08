@@ -24,6 +24,7 @@ body {
 }
 .pt-aviso.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 .pt-aviso.info { background: rgba(51, 0, 204, 0.05); border-color: rgba(51, 0, 204, 0.2); color: var(--navy); }
+.pt-aviso.ok { background: #eafaf0; border-color: #b7ebcd; color: #0f6b3a; }
 .pt-aviso svg { flex: 0 0 auto; margin-top: 2px; }
 
 /* Pantalla "falta conectar la base de datos". */

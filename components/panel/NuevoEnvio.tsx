@@ -20,6 +20,8 @@ import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
+import Modal from './Modal';
+import CondicionesGenerales from '@/components/CondicionesGenerales';
 
 export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false, reglas = null }: Props) {
   const be = base?.envio;
@@ -92,6 +94,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   // ---- Paso 4
   const [discrecion, setDiscrecion] = useState(!!be?.discrecion_comercial);
+  // Doble confirmación al crear un envío (Dynamo): modal con costes de cancelación +
+  // condiciones generales, como en el mockup. Hay que marcar el check para confirmar.
+  const [revisarLegal, setRevisarLegal] = useState(false);
+  const [aceptaLegal, setAceptaLegal] = useState(false);
+  const [verCondiciones, setVerCondiciones] = useState(false);
   // Días que abre cada sitio de la agenda que se usa de recogida (se piden al llegar al paso 4).
   const [abiertosSitio, setAbiertosSitio] = useState<Record<string, HorarioSitioAviso>>({});
   const [veranoGen, setVeranoGen] = useState(VERANO_GENERICO);
@@ -314,6 +321,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       Hasta entonces no se asigna camión{esCliente ? '' : ' ni se oferta'}.
     </div></div>) : null;
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
+  // Carga hoy para hoy: fecha fija y el día elegido es hoy (para el aviso de la confirmación).
+  const esHoy = urgencia === 'dia' && !!fecha && diasHasta === 0;
 
   // ---- Avisos del paso 4 (los del mockup) --------------------------------------------
   // Recogida en un día que el sitio no abre (según su horario en Sitios o el del sitio nuevo).
@@ -677,15 +686,55 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Enviar solicitud»</strong> nos llega tu envío para ponerle precio. <strong>No hay compromiso</strong> hasta que aceptes el precio (y las condiciones generales).</p>
                   : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>}
               </div>
-              {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
+              {aviso && !revisarLegal && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
               <div className="ptar-actions ptar-actions-confirm">
-                <button type="button" className="btn-primary" onClick={crear} disabled={enviando}>{enviando ? (esCliente && !manual ? 'Enviando…' : 'Creando envío…') : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
+                {/* Dynamo (envío real que se asigna a transportista): doble confirmación con los
+                    costes de cancelación. El cliente (solicitud) y el envío manual no la llevan:
+                    en la solicitud no hay compromiso aún, y en el manual Dynamo no interviene. */}
+                <button type="button" className="btn-primary"
+                  onClick={() => {
+                    if (esCliente) { crear(); return; }
+                    for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
+                    setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
+                  }}
+                  disabled={enviando}>{enviando ? (esCliente && !manual ? 'Enviando…' : 'Creando envío…') : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Doble confirmación (Dynamo): costes de cancelación + condiciones generales. */}
+      <Modal abierto={revisarLegal} onCerrar={() => { if (!enviando) setRevisarLegal(false); }} ancho={620}
+        titulo="Confirmar envío" sub="Revisa los costes de cancelación antes de crear el envío."
+        pie={<>
+          <button type="button" className="btn-ghost" onClick={() => setRevisarLegal(false)} disabled={enviando}>← Volver</button>
+          <button type="button" className="btn-primary" onClick={crear} disabled={enviando || !aceptaLegal}>{enviando ? 'Creando envío…' : 'Confirmar envío'}</button>
+        </>}>
+        {esHoy && (
+          <div className="pt-aviso" style={{ marginTop: 0 }}><IcoAviso /><div>
+            <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía la ventana de carga para tener margen los días siguientes.
+          </div></div>
+        )}
+        <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
+          ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
+        </div></div>
+        <div style={{ marginTop: '0.7rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+          La <strong>cancelación o modificación reiterada</strong> de envíos puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo (por encima de 3 cancelaciones en los últimos 10 envíos confirmados).
+        </div>
+        <div style={{ marginTop: '0.7rem' }}>
+          <button type="button" className="btn-ghost" style={{ padding: '0.3rem 0' }} onClick={() => setVerCondiciones((v) => !v)}>
+            {verCondiciones ? 'Ocultar' : 'Ver'} condiciones generales de transporte
+          </button>
+          {verCondiciones && <div className="ptar-terms-scroll" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem', marginTop: '0.4rem' }}><CondicionesGenerales /></div>}
+        </div>
+        <label className="ptar-confirm-check" style={{ marginTop: '0.9rem' }}>
+          <input type="checkbox" checked={aceptaLegal} onChange={(e) => setAceptaLegal(e.target.checked)} />
+          <span>He leído los <strong>costes de cancelación</strong> y las <strong>condiciones generales de transporte</strong>.</span>
+        </label>
+        {aviso && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {aviso}</div>}
+      </Modal>
     </section>
   );
 }
