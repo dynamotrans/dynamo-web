@@ -12,9 +12,12 @@ test('fecha fija: corte a las 12:00', () => {
   assert.equal(primerDia('dia', sinFest, undefined, madrid('2026-11-11T13:00:00+01:00')), '2026-11-13');
 });
 
-test('ventana: corte a las 14:00 y salto del fin de semana', () => {
-  assert.equal(primerDia('estandar', sinFest, undefined, madrid('2026-11-11T13:00:00+01:00')), '2026-11-12');
-  assert.equal(primerDia('estandar', sinFest, undefined, madrid('2026-11-13T15:00:00+01:00')), '2026-11-17');
+test('ventana: HOY mismo antes de las 14:00 (si hoy es hábil); después, el siguiente hábil', () => {
+  assert.equal(primerDia('estandar', sinFest, undefined, madrid('2026-11-11T13:00:00+01:00')), '2026-11-11');  // hoy mismo
+  assert.equal(primerDia('estandar', sinFest, undefined, madrid('2026-11-11T15:00:00+01:00')), '2026-11-12');  // pasado el corte
+  assert.equal(primerDia('estandar', sinFest, undefined, madrid('2026-11-13T15:00:00+01:00')), '2026-11-16');  // viernes tarde → lunes
+  assert.equal(primerDia('estandar', sinFest, undefined, madrid('2026-11-14T10:00:00+01:00')), '2026-11-16');  // sábado: no hay «hoy»
+  assert.equal(primerDia('estandar', new Set(['2026-11-11']), undefined, madrid('2026-11-11T10:00:00+01:00')), '2026-11-12');  // festivo hoy
 });
 
 test('horas de corte de Parámetros y festivos', () => {

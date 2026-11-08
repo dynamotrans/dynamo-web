@@ -4,8 +4,9 @@
 // cuenta atrás en vivo («Pide antes de las 12:00, quedan 1 h 23 min…») con el primer día
 // de carga posible; pasado el corte, desde cuándo se puede cargar, con el rango de la
 // ventana. Corte de fecha fija y ventana corta 12:00 · ventana estándar 14:00 (Parámetros).
+// La ventana estándar puede empezar HOY MISMO antes de las 14:00 (usuario, 2026-11-08).
 import { useEffect, useMemo, useState } from 'react';
-import { primerDia, sumarHabiles } from '@/lib/fechasCarga';
+import { iso, primerDia, sumarHabiles } from '@/lib/fechasCarga';
 import { ahoraMadrid } from '@/lib/atencion';
 import { fecha as fmtFecha } from '@/lib/formato';
 
@@ -32,6 +33,7 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
   const etiqueta = `${corteH}:00`;
   const resta = corteH * 3600 - (m.getHours() * 3600 + m.getMinutes() * 60 + m.getSeconds());
   const first = primerDia(urgencia, fest, cortes);
+  const firstHoy = first === iso(m);
   const hasta = ventana > 1 ? sumarHabiles(first, ventana - 1, fest) : first;
   const rango = ventana > 1 ? <> (ventana del <strong>{fmtFecha(first)}</strong> al <strong>{fmtFecha(hasta)}</strong>)</> : null;
   const guia = urgencia === 'dia'
@@ -42,7 +44,7 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
     const quedan = `${h > 0 ? `${h} h ` : ''}${mi} min ${sg < 10 ? `0${sg}` : sg} s`;
     return (
       <div className="ptar-cutoff-note" role="status">
-        <IcoReloj /><strong>Pide antes de las {etiqueta}</strong> (quedan <em>{quedan}</em>) y el primer día de carga posible es el <strong>{fmtFecha(first)}</strong>{rango}.{guia}
+        <IcoReloj /><strong>Pide antes de las {etiqueta}</strong> (quedan <em>{quedan}</em>) y el primer día de carga posible es {firstHoy ? <><strong>hoy mismo</strong> ({fmtFecha(first)})</> : <>el <strong>{fmtFecha(first)}</strong></>}{rango}.{guia}
       </div>
     );
   }

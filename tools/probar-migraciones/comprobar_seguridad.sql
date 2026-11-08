@@ -5325,11 +5325,12 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; w uuid; z uuid; begin
-  -- Mismas reglas que el tarifador: siguiente día hábil antes del corte (fija 12:00, ventana 14:00).
+  -- Mismas reglas que el tarifador: fija, siguiente día hábil antes del corte (12:00);
+  -- ventana, HOY MISMO antes del corte (14:00) si hoy es hábil, o el siguiente hábil.
   if primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'
      or primera_fecha_carga(true, '2026-11-11 13:00 Europe/Madrid') <> date '2026-11-13'
-     or primera_fecha_carga(false, '2026-11-11 13:00 Europe/Madrid') <> date '2026-11-12'
-     or primera_fecha_carga(false, '2026-11-13 15:00 Europe/Madrid') <> date '2026-11-17' then
+     or primera_fecha_carga(false, '2026-11-11 13:00 Europe/Madrid') <> date '2026-11-11'
+     or primera_fecha_carga(false, '2026-11-13 15:00 Europe/Madrid') <> date '2026-11-16' then
     raise exception 'FALLO 149 · primer día posible mal calculado';
   end if;
   if dias_ventana_carga(date '2026-11-13', date '2026-11-17') <> 3 or dias_ventana_carga(date '2026-11-12', null) <> 1
@@ -5433,8 +5434,8 @@ do $$ begin
   update parametros set valor = '16' where clave = 'primer_dia_corte_pago_ventana_hora';
   if primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'          -- al pedir: corte 12:00
      or primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid', true) <> date '2026-11-13'  -- al pagar: corte 9:00
-     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid') <> date '2026-11-13'       -- al pedir: corte 14:00
-     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid', true) <> date '2026-11-12' -- al pagar: corte 16:00
+     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid') <> date '2026-11-12'       -- al pedir: corte 14:00 pasado → siguiente hábil
+     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid', true) <> date '2026-11-11' -- al pagar: corte 16:00 → hoy mismo
   then
     raise exception 'FALLO 151 · las horas de corte al pagar no van por separado';
   end if;
@@ -6274,15 +6275,46 @@ do $$ declare e uuid; begin
     raise exception 'FALLO 168 · admite un precio negativo';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
   end;
-  -- La fecha de recogida, a partir de mañana.
+  -- Con FECHA FIJA (sin fecha_carga_hasta), la recogida es a partir de mañana.
   begin
     perform crear_envio_cliente(jsonb_build_object('importe_cliente', 850, 'fecha_carga_desde', current_date),
       jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'),
                         jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
-    raise exception 'FALLO 168 · admite cargar hoy (el corte lo decide la pantalla, la base de datos exige mañana)';
+    raise exception 'FALLO 168 · admite una fecha fija para hoy (el corte de la fija exige mañana)';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
   end;
-  raise notice 'OK 168 · el cliente crea su envío ya preciado por el tarifador: nace programado con su importe; sin precio, con precio absurdo o para hoy, no';
+  raise notice 'OK 168 · el cliente crea su envío ya preciado por el tarifador: nace programado con su importe; sin precio, con precio absurdo o fija para hoy, no';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 169. La VENTANA puede empezar HOY antes del corte; la fecha fija, desde mañana --------
+reset role;
+do $$ begin
+  -- Ventana: hoy mismo antes de las 14:00 si hoy es hábil; pasado el corte, o en sábado o
+  -- domingo, el siguiente día hábil. La fecha fija no cambia (corte 12:00, desde mañana).
+  if primera_fecha_carga(false, '2026-11-11 13:59 Europe/Madrid') <> date '2026-11-11'      -- miércoles antes del corte → hoy
+     or primera_fecha_carga(false, '2026-11-11 14:00 Europe/Madrid') <> date '2026-11-12'   -- en el corte → mañana
+     or primera_fecha_carga(false, '2026-11-14 10:00 Europe/Madrid') <> date '2026-11-16'   -- sábado → lunes
+     or primera_fecha_carga(true,  '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12' then
+    raise exception 'FALLO 169 · la ventana no puede empezar hoy (o la fecha fija se ha movido)';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  -- El cliente crea una VENTANA que empieza hoy: la base de datos la admite (el corte
+  -- horario fino lo aplica la pantalla con primera_fecha_carga).
+  select s.id into e from crear_envio_cliente(
+    jsonb_build_object('importe_cliente', 900, 'metros_lineales', 4, 'toneladas', 6,
+                       'fecha_carga_desde', current_date, 'fecha_carga_hasta', sumar_dias_habiles(current_date, 2)),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 169', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 169', 'codigo_postal', '28001', 'poblacion', 'Madrid'))) s;
+  if (select m.estado::text from mis_envios() m where m.id = e) <> 'programado' then
+    raise exception 'FALLO 169 · la ventana que empieza hoy no se crea programada';
+  end if;
+  raise notice 'OK 169 · la ventana puede empezar hoy (corte 14:00, solo días hábiles); la fecha fija sigue desde mañana';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

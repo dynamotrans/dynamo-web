@@ -91,14 +91,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [nima, setNima] = useState(!!be?.requiere_nima);
   const [adr, setAdr] = useState(!!be?.adr);
   const [refCli, setRefCli] = useState(editar ? (be?.referencia_cliente ?? '') : '');
-  const [notas, setNotas] = useState(be?.anotaciones_cliente ?? '');
+  // Sin campo propio desde 2026-11-08 (decisión del usuario): se conserva lo que el envío
+  // ya tuviera en anotaciones al editar, y lo nuevo va en Notas/Nº de pedido o en la cita.
+  const [notas] = useState(be?.anotaciones_cliente ?? '');
   // Cita previa (2026-11-08, opción «sin migración»): sus datos van en las anotaciones del
   // envío (y así a la orden de carga). Si hiciera falta filtrar por cita, se pasa a campo propio.
   const [cita, setCita] = useState(false);
   const [citaHora, setCitaHora] = useState('');
-  const [citaMuelle, setCitaMuelle] = useState('');
   const [citaDetalle, setCitaDetalle] = useState('');
-  const notaCita = cita ? ['CITA PREVIA' + (citaHora ? ` a las ${citaHora}` : ''), citaMuelle.trim() ? `muelle/puerta: ${citaMuelle.trim()}` : '', citaDetalle.trim()].filter(Boolean).join(' · ') : '';
+  const notaCita = cita ? ['CITA PREVIA' + (citaHora ? ` a las ${citaHora}` : ''), citaDetalle.trim()].filter(Boolean).join(' · ') : '';
   const notasEnvio = [notaCita, notas].filter(Boolean).join('\n');
   const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente)));
 
@@ -756,7 +757,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-notes-wrap ptar-field-full">
                     <button type="button" className="ptar-notes-toggle" aria-expanded={notasAbiertas} onClick={() => setNotasAbiertas((v) => !v)}>
                       <span className="pnt-icon" aria-hidden="true">{notasAbiertas ? '−' : '+'}</span>
-                      <strong>Añadir detalle de mercancía, nº de albarán/pedido, cita previa, plataforma elevadora o NIMA</strong> (opcional)
+                      <strong>Añadir notas/nº de pedido, cita previa, plataforma elevadora o NIMA</strong> (opcional)
                     </button>
                     {notasAbiertas && (
                       <div className="ptar-notes-body">
@@ -779,23 +780,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                               <label htmlFor="ne-cita-hora">Hora de la cita</label>
                               <input id="ne-cita-hora" type="time" value={citaHora} onChange={(e) => setCitaHora(e.target.value)} />
                             </div>
-                            <div>
-                              <label htmlFor="ne-cita-muelle">Muelle / puerta · opcional</label>
-                              <input id="ne-cita-muelle" type="text" placeholder="Ej. Muelle 4" value={citaMuelle} onChange={(e) => setCitaMuelle(e.target.value)} />
-                            </div>
                             <div className="full">
                               <label htmlFor="ne-cita-det">Detalles de la cita · opcional</label>
-                              <input id="ne-cita-det" type="text" placeholder="Ej. pedir cita en el portal del almacén, preguntar por recepción…" value={citaDetalle} onChange={(e) => setCitaDetalle(e.target.value)} />
+                              <input id="ne-cita-det" type="text" placeholder="Ej. muelle 4, pedir cita en el portal del almacén, preguntar por recepción…" value={citaDetalle} onChange={(e) => setCitaDetalle(e.target.value)} />
                             </div>
                           </div>
                         )}
                         <div className="ptar-field" style={{ marginTop: '0.9rem' }}>
-                          <label className="ptar-label" htmlFor="ne-ref">Nº de albarán/pedido del cliente</label>
-                          <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234" value={refCli} onChange={(e) => setRefCli(e.target.value)} />
+                          <label className="ptar-label" htmlFor="ne-ref">Notas/Nº de pedido (opcional)</label>
+                          <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234, instrucciones breves…" value={refCli} onChange={(e) => setRefCli(e.target.value)} />
                         </div>
-                        <textarea maxLength={1000} rows={3} style={{ marginTop: '0.9rem' }} value={notas} onChange={(e) => setNotas(e.target.value)}
-                          placeholder="Detalles que debamos saber (tipo de mercancía, acceso, dimensiones especiales, instrucciones de entrega…)" />
-                        <div className="ptar-notes-counter"><span>{notas.length}</span> / 1000</div>
                       </div>
                     )}
                   </div>
@@ -928,7 +922,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-grid">
                     <div className="sum2-cell"><div className="sum2-k">Fecha de recogida</div><div className="sum2-v">{fechaTxt}</div></div>
-                    {refCli && <div className="sum2-cell"><div className="sum2-k">Tu referencia</div><div className="sum2-v">{refCli}</div></div>}
+                    {refCli && <div className="sum2-cell"><div className="sum2-k">Notas / nº de pedido</div><div className="sum2-v">{refCli}</div></div>}
                     {importeT !== null && <div className="sum2-cell"><div className="sum2-k">P. transportista</div><div className="sum2-v">{eur(importeT)}</div></div>}
                     {importeT !== null && <div className="sum2-cell"><div className="sum2-k">Margen</div><div className="sum2-v">{eur(importe - importeT)}</div></div>}
                   </div>
