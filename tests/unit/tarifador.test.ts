@@ -108,3 +108,43 @@ test('el precio del transportista sugerido: 85 % a la decena', () => {
   assert.equal(precioTransportistaSugerido(1000), 850);
   assert.equal(precioTransportistaSugerido(933), 790);
 });
+
+// ---- La tabla «Precios internos» del mockup ----
+import { compraTarifador, tablaInterna, diasDesde } from '../../lib/tarifador';
+
+test('compra del tarifador: mock determinista 72-84 % de la venta, a la decena', () => {
+  const c = compraTarifador(1030, '20001', '08001');
+  assert.equal(c, compraTarifador(1030, '20001', '08001'));   // determinista
+  assert.ok(c >= Math.round(1030 * 0.72 / 10) * 10 && c <= Math.round(1030 * 0.84 / 10) * 10);
+  assert.equal(c % 10, 0);
+  assert.equal(compraTarifador(0, '20001', '08001'), 0);
+  assert.notEqual(compraTarifador(1000, '20001', '08001'), compraTarifador(1000, '08001', '20001'));   // la ruta inversa cambia
+});
+
+test('tabla interna: el caso de la captura del mockup (último viejo no entra en la media; margen con todo)', () => {
+  const hoy = '2026-11-08';
+  const mismo = { venta: null, compra: null, fecha: null, ref: null };
+  const todos = { venta: 1080, compra: 840, fecha: '2026-10-05', ref: 'X' };   // hace 34 días
+  const t = tablaInterna(1030, 800, mismo, todos, hoy);
+  assert.deepEqual([t.vApl, t.cApl], [1030, 800]);           // la media solo usa el tarifador
+  assert.deepEqual([t.margenMin, t.margenMax], [190, 280]);  // 1030−840 · 1080−800 (los viejos sí cuentan)
+  assert.equal(t.compraMin, 800);
+});
+
+test('tabla interna: un último reciente sí entra (venta ↑decena, compra ↓decena) y manda la compra más baja', () => {
+  const hoy = '2026-11-08';
+  const mismo = { venta: 990, compra: 750, fecha: '2026-11-01', ref: 'A' };    // hace 7 días
+  const todos = { venta: null, compra: null, fecha: null, ref: null };
+  const t = tablaInterna(1030, 800, mismo, todos, hoy);
+  assert.equal(t.vApl, Math.ceil((1030 + 990) / 2 / 10) * 10);     // 1010
+  assert.equal(t.cApl, Math.floor((800 + 750) / 2 / 10) * 10);     // 770
+  assert.equal(t.compraMin, 750);
+  assert.deepEqual([t.margenMin, t.margenMax], [990 - 800, 1030 - 750]);
+});
+
+test('diasDesde: hoy 0, ayer 1, futuro negativo, sin fecha null', () => {
+  assert.equal(diasDesde('2026-11-08', '2026-11-08'), 0);
+  assert.equal(diasDesde('2026-11-07', '2026-11-08'), 1);
+  assert.equal(diasDesde('2026-11-10', '2026-11-08'), -2);
+  assert.equal(diasDesde(null, '2026-11-08'), null);
+});

@@ -3344,6 +3344,13 @@ table.data td.actions { text-align: right; white-space: nowrap; }
     border-radius: 8px; transition: color 0.15s, background 0.15s;
 }
 .ptar-parada-del:hover { color: var(--red); background: #fef2f2; }
+/* El + junto a cada parada (añade otra recogida/entrega), como el mockup: nada de botones abajo. */
+.ptar-parada-add {
+    flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
+    color: var(--purple); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px; transition: color 0.15s, background 0.15s;
+}
+.ptar-parada-add:hover { background: rgba(51,0,204,0.07); }
 /* Número de orden del recorrido (1 origen, 2.. paradas, último destino). */
 .ptar-route-num {
     flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
@@ -3906,39 +3913,69 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
     #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side { display: contents; }
     #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side > * { order: 1; margin-top: 0.55rem; }
     #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .wiz-navwrap { order: 2; }
-    #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side > /* ---- Precio sugerido del tarifador (borrador) ---- */
+    #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side > /* ---- Bloque de precio del tarifador (calcado del mockup) ---- */
 .ptar-sug-card {
     background: #f6f5ff; border: 1px solid #ded9f7; border-radius: 12px; padding: 0.9rem 1rem;
 }
-.ptar-sug-head { font-size: 0.78rem; font-weight: 800; color: var(--purple); text-transform: none; }
+.ptar-sug-head { font-size: 0.78rem; font-weight: 800; color: var(--purple); }
 .ptar-sug-head span { color: var(--gray-500); font-weight: 600; }
-.ptar-sug-precio { font-size: 1.7rem; font-weight: 900; color: var(--navy); margin-top: 0.25rem; }
-.ptar-sug-iva { font-size: 0.85rem; font-weight: 600; color: var(--gray-500); }
-.ptar-sug-sub { font-size: 0.8rem; color: var(--gray-600); margin-top: 0.15rem; }
-.ptar-sug-skel { height: 56px; border-radius: 8px; margin-top: 0.5rem;
+.ptar-sug-sub { font-size: 0.8rem; color: var(--gray-600); margin-top: 0.1rem; }
+.ptar-sug-skel { height: 120px; border-radius: 8px; margin-top: 0.5rem;
     background: linear-gradient(90deg, #ece9fb 25%, #f6f5ff 50%, #ece9fb 75%); background-size: 200% 100%;
     animation: sugSkel 1.1s linear infinite; }
 @keyframes sugSkel { to { background-position: -200% 0; } }
-.ptar-sug-toggle { background: none; border: 0; padding: 0; margin-top: 0.4rem; cursor: pointer;
-    font-size: 0.8rem; font-weight: 700; color: var(--purple); text-decoration: underline; }
-.ptar-sug-desglose { margin-top: 0.45rem; border-top: 1px dashed #d8d2f2; padding-top: 0.45rem; }
-.ptar-sug-linea { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.8rem; color: var(--gray-700); padding: 0.12rem 0; }
-.ptar-sug-linea.neg span:last-child { color: #0f6b3a; font-weight: 700; }
-.ptar-sug-linea.total { border-top: 1px solid #d8d2f2; margin-top: 0.25rem; padding-top: 0.35rem; font-weight: 800; color: var(--navy); }
-.ptar-sug-alts { margin-top: 0.6rem; }
-.ptar-sug-alts-head { font-size: 0.74rem; font-weight: 800; color: var(--gray-600); margin-bottom: 0.3rem; }
-.ptar-sug-alt { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem;
-    background: #fff; border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.65rem; margin-bottom: 0.4rem; }
-.ptar-sug-alt.rec { border-color: #b7ebcd; background: #f3fcf7; }
-.ptar-sug-alt-txt { font-size: 0.8rem; color: var(--navy); min-width: 0; }
-.ptar-sug-alt-sub { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.1rem; }
-.ptar-sug-rec { margin-left: 0.4rem; font-size: 0.62rem; font-weight: 800; color: #0f6b3a; background: #d9f5e6;
-    border-radius: 99px; padding: 0.1rem 0.45rem; vertical-align: middle; }
-.ptar-sug-alt-der { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; flex: 0 0 auto; }
-.ptar-sug-ahorro { font-size: 0.72rem; font-weight: 800; color: #0f6b3a; white-space: nowrap; }
-.ptar-sug-elegir { background: none; border: 1px solid var(--purple); color: var(--purple); border-radius: 8px;
-    padding: 0.2rem 0.6rem; font-size: 0.74rem; font-weight: 700; cursor: pointer; }
-.ptar-sug-elegir:hover { background: var(--purple); color: #fff; }
+/* Fecha de entrega estimada (verde), como el mockup. */
+.ptar-eta-data { margin: 0.6rem 0 0; }
+.ptar-eta-data dt { font-weight: 600; color: var(--gray-500); font-size: 0.82rem; margin: 0 0 0.1rem; }
+.ptar-eta-data dd { margin: 0; font-weight: 700; color: var(--navy); }
+.ptar-eta-data .ptar-eta-range { color: var(--green); font-weight: 800; }
+.ptar-eta-data .ptar-eta-warn { color: var(--gray-500); font-weight: 600; font-size: 0.82rem; }
+.eta-pasada { margin-top: 0.55rem; padding: 0.6rem 0.75rem; background: rgba(51,0,204,0.06);
+    border: 1px solid rgba(51,0,204,0.2); border-radius: 9px; font-size: 0.82rem; line-height: 1.55; color: var(--gray-700); }
+/* La caja blanca del desglose reutiliza .alm-price (ya existe); solo el margen de aquí. */
+.ptar-eta-pricebox { margin: 0.6rem 0 0 !important; }
+/* Alternativas más baratas (tarjetas del mockup). */
+.ptar-eta-fija { display: block; width: 100%; margin: 0.8rem 0 0; padding: 0.55rem 0.7rem;
+    background: rgba(51,0,204,0.06); border: 1px solid rgba(51,0,204,0.22); border-radius: 9px; }
+.eta-fija-head { font-size: 0.82rem; line-height: 1.5; color: #2a1a7a; font-weight: 600; }
+.eta-fija-head strong { color: var(--purple); }
+.eta-opts { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.55rem; }
+.eta-opt { display: flex; align-items: center; gap: 0.7rem; width: 100%; background: #fff;
+    border: 1.5px solid var(--gray-300); border-radius: 12px; padding: 0.7rem 0.8rem; text-align: left;
+    cursor: pointer; font: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
+.eta-opt:hover { border-color: var(--purple); box-shadow: 0 3px 12px rgba(51,0,204,0.1); }
+.eta-opt-rec { border-color: var(--green); }
+.eta-opt-rec:hover { border-color: #157a3f; box-shadow: 0 3px 12px rgba(34,165,90,0.15); }
+.eta-opt-ico { flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; background: rgba(51,0,204,0.1); color: var(--purple); }
+.eta-opt-rec .eta-opt-ico { background: rgba(34,165,90,0.15); color: #157a3f; }
+.eta-opt-ico svg { width: 17px; height: 17px; }
+.eta-opt-body { flex: 1; min-width: 0; }
+.eta-opt-tit { font-size: 0.82rem; font-weight: 800; color: var(--navy); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.eta-opt-sub { display: block; font-size: 0.78rem; font-weight: 600; color: var(--gray-500); line-height: 1.4; margin-top: 0.1rem; }
+.eta-opt-ahorro { display: block; font-size: 0.82rem; font-weight: 800; color: #157a3f; margin-top: 0.2rem; }
+.eta-opt-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.eta-opt-eur { font-size: 1.1rem; font-weight: 900; color: var(--navy); white-space: nowrap; }
+.eta-opt-rec .eta-opt-eur, .eta-opt-rec .eta-opt-go { color: #157a3f; }
+.eta-opt-go { font-size: 0.78rem; font-weight: 800; color: var(--purple); }
+.eta-badge { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;
+    color: #fff; background: var(--green); border-radius: 999px; padding: 0.1rem 0.45rem; }
+/* Tabla «Precios internos»: Tarifador hoy · Último (mismo) · Último (todos) · Aplicado. */
+.pint { margin-bottom: 0.6rem; }
+.pint-tabla { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.pint-cab { font-size: 0.74rem; font-weight: 800; padding: 0 0.35rem 0.25rem; }
+.pint-lbl { padding: 0.3rem 0.35rem 0.3rem 0; border-bottom: 1px solid var(--gray-200);
+    font-size: 0.74rem; font-weight: 700; color: var(--gray-600); vertical-align: top; }
+.pint-td { padding: 0.3rem 0.35rem; border-bottom: 1px solid var(--gray-200); vertical-align: top; color: var(--navy); }
+.pint-vacia { color: var(--gray-500); font-weight: 600; }
+.pint-fecha { font-size: 0.72rem; color: var(--gray-500); font-weight: 600; }
+.pint-viejo { font-size: 0.72rem; color: #b45309; font-weight: 700; }
+.pint-apl { padding: 0.35rem; border-top: 2px solid var(--purple); background: #f3f0ff; vertical-align: top; font-size: 0.92rem; }
+.pint-apl-lbl { padding-left: 0; font-weight: 800; color: var(--navy); font-size: 0.82rem; }
+.pint-apl-lbl div { font-size: 0.72rem; font-weight: 600; color: var(--gray-500); }
+.pint-nota { font-size: 0.74rem; color: var(--gray-500); font-weight: 600; margin-top: 0.25rem; }
+.pint-margen { margin-top: 0.4rem; font-size: 0.82rem; color: var(--gray-700); font-weight: 600; }
+
 
 .ptar-admin-precio { order: 3; }
 }

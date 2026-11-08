@@ -10,9 +10,9 @@ import { IcoFlecha, IcoMenos, IcoPin, Punto, SitioNuevo, SitioOpcion, VACIO, dir
 import { Campo } from './Campo';
 
 // ---- Buscador de sitio de la agenda del cliente (con sitio nuevo) -----------------
-export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambio, onQuitar, asa }: {
+export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambio, onQuitar, onAnadir, asa }: {
   punto: Punto; numero: number; sitios: SitioOpcion[]; deshabilitado: boolean; placeholder: string;
-  onCambio: (c: Partial<Punto>) => void; onQuitar?: () => void; asa?: React.ReactNode;
+  onCambio: (c: Partial<Punto>) => void; onQuitar?: () => void; onAnadir?: () => void; asa?: React.ReactNode;
 }) {
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -29,7 +29,6 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
   return (
     <>
       <div className="ptar-route-row">
-        {asa}
         <div className={`ptar-input-wrap${elegido ? ' ptar-picked' : ''}`}>
           <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`}>{numero}</span>
           {rec ? <IcoPin /> : <IcoFlecha />}
@@ -58,6 +57,10 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
           )}
         </div>
         {onQuitar && <button type="button" className="ptar-parada-del" aria-label="Quitar esta parada" onClick={onQuitar}><IcoMenos /></button>}
+        {onAnadir && <button type="button" className="ptar-parada-add" aria-label={rec ? 'Añadir otra recogida' : 'Añadir otra entrega'} title={rec ? 'Añadir otra recogida' : 'Añadir otra entrega'} onClick={onAnadir}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        </button>}
+        {asa}
       </div>
 
       {form && !elegido && (

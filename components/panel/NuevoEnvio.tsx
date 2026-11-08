@@ -8,15 +8,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
-import { calcularTarifa, precioTransportistaSugerido } from '@/lib/tarifador';
-import { PrecioSugerido } from './nuevoEnvio/PrecioSugerido';
+import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { calcularTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
+import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
 import { CONTACTO } from '@/lib/atencion';
-import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, IcoMas, Props, Punto, SitioNuevo, VACIO, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
+import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
@@ -180,11 +180,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Los km de la ruta se piden al servidor (caché de km reales → coordenadas → 300/tramo)
   // con un pequeño retardo para no pedir en cada tecla; el precio se calcula aquí.
   const [kmInfo, setKmInfo] = useState<{ km: number; estimado: boolean } | null>(null);
+  const [ultimos, setUltimos] = useState<{ mismo: UltimoPrecioRuta; todos: UltimoPrecioRuta } | null>(null);
   const puntosRuta = [...recogidas, ...entregas];
   const rutaCompleta = puntosRuta.length >= 2 && puntosRuta.every((p) => p.sitio || p.nuevo);
   const claveRuta = puntosRuta.map((p) => p.sitio?.id ?? `${p.nuevo?.codigo_postal ?? ''}·${p.nuevo?.pais_codigo_iso ?? ''}`).join('|');
+  const cpDe = (p?: Punto) => p ? (p.sitio?.codigo_postal ?? p.nuevo?.codigo_postal ?? '') : '';
+  const paisDe = (p?: Punto) => p ? (p.sitio?.pais_codigo_iso ?? p.nuevo?.pais_codigo_iso ?? '') : '';
+  const cpO = cpDe(recogidas[0]), paisO = paisDe(recogidas[0]);
+  const cpD = cpDe(entregas[entregas.length - 1]), paisD = paisDe(entregas[entregas.length - 1]);
   useEffect(() => {
-    if (!rutaCompleta) { setKmInfo(null); return; }
+    if (!rutaCompleta) { setKmInfo(null); setUltimos(null); return; }
     let vivo = true;
     const t = setTimeout(() => {
       kmRuta(puntosRuta.map((p) => ({ sitio_id: p.sitio?.id ?? null,
@@ -192,10 +197,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         pais: p.sitio?.pais_codigo_iso ?? p.nuevo?.pais_codigo_iso ?? null, lat: null, lon: null })))
         .then((r) => { if (vivo) setKmInfo(r); })
         .catch(() => { if (vivo) setKmInfo({ km: 300 * (puntosRuta.length - 1), estimado: true }); });
+      // La tabla de precios internos (últimos de esta ruta): solo Dynamo, nunca el cliente.
+      if (!esCliente && cpO && cpD) {
+        ultimosPreciosRuta(cliente?.id ?? null, cpO, paisO, cpD, paisD)
+          .then((r) => { if (vivo) setUltimos(r); }).catch(() => { if (vivo) setUltimos(null); });
+      }
     }, 600);
     return () => { vivo = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claveRuta, rutaCompleta]);
+  }, [claveRuta, rutaCompleta, cliente?.id]);
   const tarifa = useMemo(() => {
     if (!kmInfo || !rutaCompleta || manual) return null;
     return calcularTarifa({ km: kmInfo.km, puntos: puntosRuta.length,
@@ -205,13 +215,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       urgencia, fecha: fecha || null, primerDia: dias[0], hoy: hoyMadrid(), festivos });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos]);
-  // El sugerido rellena los precios internos de Dynamo que no se hayan tocado a mano.
+  // Tabla «Precios internos» (mockup): compra del tarifador (mock 72-84 % por hash de la
+  // ruta), «Aplicado · media auto» y margen. Y el autorrelleno: venta = Aplicado, compra =
+  // la más baja de la tabla; lo tecleado a mano no se pisa.
+  const hoyStr = hoyMadrid();
+  const tarCompra = tarifa && cpO && cpD ? compraTarifador(tarifa.neto, cpO, cpD) : 0;
+  const interna = useMemo(() => (!esCliente && tarifa && ultimos)
+    ? tablaInterna(tarifa.neto, tarCompra, ultimos.mismo, ultimos.todos, hoyStr) : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tarifa?.neto, tarCompra, ultimos, hoyStr, esCliente]);
   useEffect(() => {
     if (esCliente || !tarifa) return;
-    if (!pcTocado) setPc(decimal(tarifa.neto));
-    if (!ptTocado) setPt(decimal(precioTransportistaSugerido(tarifa.neto)));
+    const v = interna?.vApl || tarifa.neto;
+    const c = interna?.compraMin || tarCompra;
+    if (!pcTocado && v > 0) setPc(decimal(v));
+    if (!ptTocado && c > 0) setPt(decimal(c));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tarifa?.neto, esCliente]);
+  }, [tarifa?.neto, interna?.vApl, interna?.compraMin, esCliente]);
+  const fechaPasada = !!fecha && fecha < hoyStr && urgencia === 'dia';
   const elegirAlternativa = (u: 'dia' | 'estandar', f: string) => { setUrgencia(u); setFecha(f); setModoCal(false); };
 
   function nuevaParada(tipo: 'carga' | 'descarga') {
@@ -576,7 +597,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     <div key={p.k} data-parada={p.k} data-tipo="carga" className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
                       <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, recogidas.length)}
                         placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente') : 'Otra recogida · busca en la agenda'}
-                        onCambio={(c) => cambiar(p, c)} onQuitar={i > 0 ? () => quitar(p) : undefined} />
+                        onCambio={(c) => cambiar(p, c)} onQuitar={i > 0 ? () => quitar(p) : undefined}
+                        onAnadir={total < 4 ? () => nuevaParada('carga') : undefined} />
                       {i === 0 && p.sitio && cliente?.principal_id === p.sitio.id && (
                         <p className="ptar-prin-badge"><span className="ptar-prin-star" aria-hidden="true">★</span> {esCliente ? 'Tu almacén principal' : 'Almacén principal del cliente'} · origen por defecto
                           <span className="ptar-prin-info" tabIndex={0} title={esCliente
@@ -590,15 +612,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     <div key={p.k} data-parada={p.k} data-tipo="descarga" className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
                       <CampoSitio punto={p} numero={recogidas.length + i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, entregas.length)}
                         placeholder={i === entregas.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente') : 'Otra entrega · busca en la agenda'}
-                        onCambio={(c) => cambiar(p, c)} onQuitar={i < entregas.length - 1 ? () => quitar(p) : undefined} />
+                        onCambio={(c) => cambiar(p, c)} onQuitar={i < entregas.length - 1 ? () => quitar(p) : undefined}
+                        onAnadir={total < 4 ? () => nuevaParada('descarga') : undefined} />
                     </div>
                   ))}
-                  {total < 4 && (
-                    <div className="ptar-field-full ptar-add-paradas-row">
-                      <button type="button" className="ptar-add-parada" onClick={() => nuevaParada('carga')}><IcoMas /> Añadir recogida</button>
-                      <button type="button" className="ptar-add-parada" onClick={() => nuevaParada('descarga')}><IcoMas /> Añadir entrega</button>
-                    </div>
-                  )}
                   {!manual && <div className="ptar-verif-note" style={{ marginTop: '0.5rem' }}>
                     <IcoEscudo />
                     <span>Todos nuestros transportistas están <strong>verificados</strong> y con la <strong>documentación en vigor</strong>.</span>
@@ -733,26 +750,29 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     <p className="ptar-admin-precio-note">Solo para tu control y para la orden de carga. Dynamo no lo ve en ningún precio suyo.</p>
                   </div>
                 ) : esCliente ? (<>
-                  <PrecioSugerido tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado}
-                    cargando={rutaCompleta && !kmInfo} paraCliente onElegir={elegirAlternativa} />
+                  <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
+                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} onElegir={elegirAlternativa} />
                   <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en firme en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
                 </>) : <>
-                <PrecioSugerido tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado}
-                  cargando={rutaCompleta && !kmInfo} paraCliente={false} onElegir={elegirAlternativa} />
+                <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
+                  cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} onElegir={elegirAlternativa} />
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
                   <div className="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
-                  <label className="ptar-admin-precio-lbl" htmlFor="ne-pc">Cliente (base sin IVA)</label>
-                  <input id="ne-pc" type="text" inputMode="decimal" placeholder="Ej. 1.230,00" value={pc} onChange={(e) => { setPc(e.target.value); setPcTocado(true); }} />
-                  <label className="ptar-admin-precio-lbl" htmlFor="ne-pt" style={{ marginTop: '0.6rem' }}>Transportista (base sin IVA) · opcional</label>
-                  <input id="ne-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(e) => { setPt(e.target.value); setPtTocado(true); }} />
-                  <label className="ptar-admin-precio-lbl" htmlFor="ne-neg" style={{ marginTop: '0.6rem' }}>Negociación con el transportista</label>
+                  {tarifa && ultimos && interna
+                    ? <PreciosInternosTabla tarVenta={tarifa.neto} tarCompra={tarCompra} mismo={ultimos.mismo} todos={ultimos.todos} interna={interna} hoy={hoyStr} />
+                    : <p className="ptar-admin-precio-note" style={{ marginBottom: '0.5rem' }}>Ventas, compras y márgenes de esta ruta: se mostrarán al elegir origen y destino.</p>}
+                  <label className="ptar-admin-precio-lbl" htmlFor="ne-pc">Cliente manual (base sin IVA)</label>
+                  <input id="ne-pc" type="text" inputMode="decimal" placeholder="Se autorrellena con el precio Aplicado" value={pc} onChange={(e) => { setPc(e.target.value); setPcTocado(true); }} />
+                  <p className="ptar-admin-precio-note">Se autorrellena con el precio <strong>Aplicado</strong> (media auto de la venta) y es editable. Si tecleas otro, manda ese; si no lo tocas, el envío usa el Aplicado. Queda como precio <strong>«fijado a mano»</strong>.</p>
+                  <label className="ptar-admin-precio-lbl" htmlFor="ne-pt" style={{ marginTop: '0.6rem' }}>Transportista manual (base sin IVA)</label>
+                  <input id="ne-pt" type="text" inputMode="decimal" placeholder="Se autorrellena con la compra más baja" value={pt} onChange={(e) => { setPt(e.target.value); setPtTocado(true); }} />
+                  <p className="ptar-admin-precio-note">Se autorrellena con la compra <strong>más baja</strong> de la tabla (tarifador o último envío más barato de esta ruta, sea del transportista que sea) y es editable. Al guardar queda como <strong>P. transportista provisional</strong> del envío — de ahí sale el margen provisional — y se ajusta al cerrar la negociación.</p>
+                  <label className="ptar-admin-precio-lbl" htmlFor="ne-neg" style={{ marginTop: '0.6rem' }}>Negociación del precio (transportista)</label>
                   <select id="ne-neg" className="ptar-select" value={neg} onChange={(e) => setNeg(Number(e.target.value))}>
                     {NEGOCIACION.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
                   </select>
                   <p className="ptar-admin-precio-note">Sale ya puesta al ofrecer la carga (se puede cambiar ahí). El transportista nunca ve el %, solo el rango en euros.</p>
-                  <p className="ptar-admin-precio-note">Vienen rellenos con el <strong>precio sugerido</strong> del tarifador (borrador, números provisionales); lo que teclees a mano ya no se pisa.</p>
                 </div>
-                {cajaPrecio}
                 </>}
               </div>
             )}

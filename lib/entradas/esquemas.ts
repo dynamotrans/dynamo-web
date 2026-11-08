@@ -84,6 +84,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/nuevo-envio/acciones#kmRuta": z.tuple([z.array(z.object({ sitio_id: z.string().uuid().or(z.literal('')).nullable(), cp: z.string().max(1000).nullable(), pais: z.string().max(1000).nullable(), lat: z.number().or(z.nan()).nullable(), lon: z.number().or(z.nan()).nullable() })).max(10000)]),
   "app/panel/(app)/nuevo-envio/acciones#proponerPrecio": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()), z.number().or(z.nan()).nullable()]),
   "app/panel/(app)/nuevo-envio/acciones#sitiosDelCliente": z.tuple([z.string().max(1000)]),
+  "app/panel/(app)/nuevo-envio/acciones#ultimosPreciosRuta": z.tuple([z.string().max(1000).nullable(), z.string().max(1000), z.string().max(1000), z.string().max(1000), z.string().max(1000)]),
   "app/panel/(app)/operadores/acciones#borrarOperador": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/operadores/acciones#guardarOperador": z.tuple([z.string().uuid().or(z.literal('')).nullable(), z.object({ cliente_id: z.string().uuid().or(z.literal('')).nullable(), razon_social: z.string().max(1000), cif: z.string().max(1000), telefono: z.string().max(1000), email: z.string().max(1000), persona_contacto: z.string().max(1000), web: z.string().max(1000), anotaciones: z.string().max(5000) })]),
   "app/panel/(app)/parametros/acciones#guardarParametro": z.tuple([z.string().max(1000), z.unknown()]),

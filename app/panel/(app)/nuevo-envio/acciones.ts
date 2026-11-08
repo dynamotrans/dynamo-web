@@ -172,6 +172,35 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
 // filtra la seguridad por filas.
 export type HorarioSitioAviso = { general: number[]; verano: { activo: boolean; desde: string | null; hasta: string | null; dias: number[]; resumen: string | null } };
 // Sitios de UN cliente para el asistente de Dynamo (se piden al elegirlo: con 7.000 sitios
+// ---- Últimos precios reales de esta ruta (tabla «Precios internos» del tarifador) ----
+// Para la tabla del mockup: el último envío de ESTE cliente en esta misma ruta y el último
+// de CUALQUIER cliente (venta/compra/fecha). La ruta casa por CP+país del primer punto de
+// carga y del último de descarga. Solo Dynamo: la compra no la ve nunca un cliente.
+export type UltimoPrecioRuta = { venta: number | null; compra: number | null; fecha: string | null; ref: string | null };
+export async function ultimosPreciosRuta(cliente: string | null, cpO: string, paisO: string, cpD: string, paisD: string):
+  Promise<{ mismo: UltimoPrecioRuta; todos: UltimoPrecioRuta }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#ultimosPreciosRuta", [cliente, cpO, paisO, cpD, paisD]);
+  const nada: UltimoPrecioRuta = { venta: null, compra: null, fecha: null, ref: null };
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { mismo: nada, todos: nada };
+  const buscar = async (soloCliente: boolean): Promise<UltimoPrecioRuta> => {
+    let q = s.supabase.from('envios')
+      .select('importe_cliente, importe_transportista, fecha_efectiva, referencia_gx, origen:envio_paradas!inner(envio_id), destino:envio_paradas!inner(envio_id)')
+      .eq('origen.tipo', 'carga').eq('origen.orden', 1).eq('origen.codigo_postal', cpO).eq('origen.pais_codigo_iso', paisO)
+      .eq('destino.tipo', 'descarga').eq('destino.codigo_postal', cpD).eq('destino.pais_codigo_iso', paisD)
+      .eq('es_manual', false).in('estado', ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'])
+      .not('importe_cliente', 'is', null)
+      .order('fecha_efectiva', { ascending: false }).limit(1);
+    if (soloCliente && cliente) q = q.eq('cliente_id', cliente);
+    if (soloCliente && !cliente) return nada;
+    const { data } = await q;
+    const e = data?.[0];
+    return e ? { venta: e.importe_cliente, compra: e.importe_transportista, fecha: e.fecha_efectiva, ref: e.referencia_gx } : nada;
+  };
+  const [mismo, todos] = await Promise.all([buscar(true), buscar(false)]);
+  return { mismo, todos };
+}
+
 // ---- Kilómetros de la ruta para el precio SUGERIDO (borrador) ----------------------
 // Por cada tramo: caché de km reales (entre sitios → entre códigos postales) y, si no hay,
 // línea recta × 1,25 con las coordenadas de los sitios; sin nada, 300 km por tramo (el

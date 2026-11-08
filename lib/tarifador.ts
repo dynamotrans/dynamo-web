@@ -145,3 +145,50 @@ export function calcularTarifa(e: EntradaTarifa): Tarifa {
 
 // Precio del transportista sugerido: margen objetivo PROVISIONAL del 15 %.
 export const precioTransportistaSugerido = (neto: number) => r10(neto * 0.85);
+
+// ---- Tabla «Precios internos» del mockup (Dynamo) -----------------------------------
+// Compra del tarifador: MOCK determinista del mockup (72-84 % de la venta según un hash
+// djb2 de la ruta «CP origen>CP destino», a la decena). PROVISIONAL hasta la tarifa real
+// de compra.
+export function compraTarifador(venta: number, cpOrigen: string, cpDestino: string): number {
+  let h = 5381;
+  const s = `${cpOrigen}>${cpDestino}`;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return venta > 0 ? Math.round(venta * (0.72 + (h % 13) / 100) / 10) * 10 : 0;
+}
+
+export type UltimoRuta = { venta: number | null; compra: number | null; fecha: string | null; ref: string | null };
+export type TablaInterna = {
+  vApl: number; cApl: number;              // «Aplicado · media auto» (venta ↑decena, compra ↓decena)
+  compraMin: number;                       // la compra más baja de la tabla (rellena «Transportista manual»)
+  margenMin: number | null; margenMax: number | null;   // peor y mejor caso combinando la tabla entera
+};
+export const diasDesde = (fecha: string | null, hoy: string): number | null => {
+  if (!fecha) return null;
+  const a = new Date(fecha + 'T00:00:00'), b = new Date(hoy + 'T00:00:00');
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+};
+// Reglas del mockup: la MEDIA solo usa los «Último» con ≤ 15 días (el tarifador de hoy
+// siempre cuenta); venta a la decena superior, compra a la inferior. El MARGEN y la compra
+// más baja usan la tabla entera, también los viejos.
+export function tablaInterna(tarVenta: number, tarCompra: number, mismo: UltimoRuta, todos: UltimoRuta, hoy: string): TablaInterna {
+  const vig = (imp: number | null, f: string | null) => {
+    if (!imp) return 0;
+    const d = diasDesde(f, hoy);
+    return d != null && d <= 15 ? imp : 0;
+  };
+  const media = (l: number[]) => l.reduce((a, b) => a + b, 0) / l.length;
+  const ventasApl = [tarVenta, vig(mismo.venta, mismo.fecha), vig(todos.venta, todos.fecha)].filter((v) => v > 0);
+  const comprasApl = [tarCompra, vig(mismo.compra, mismo.fecha), vig(todos.compra, todos.fecha)].filter((v) => v > 0);
+  const vApl = ventasApl.length ? Math.ceil(media(ventasApl) / 10) * 10 : 0;
+  const cApl = comprasApl.length ? Math.floor(media(comprasApl) / 10) * 10 : 0;
+  const ventas = [tarVenta, mismo.venta ?? 0, todos.venta ?? 0].filter((v) => v > 0);
+  const compras = [tarCompra, mismo.compra ?? 0, todos.compra ?? 0].filter((v) => v > 0);
+  const hayMargen = ventas.length > 0 && compras.length > 0;
+  return {
+    vApl, cApl,
+    compraMin: compras.length ? Math.min(...compras) : 0,
+    margenMin: hayMargen ? Math.min(...ventas) - Math.max(...compras) : null,
+    margenMax: hayMargen ? Math.max(...ventas) - Math.min(...compras) : null,
+  };
+}
