@@ -109,7 +109,7 @@ export const IcoEscudo = () => (<svg viewBox="0 0 24 24" width="17" height="17" 
 // se lo pone y él lo acepta después desde la ficha del envío.
 export type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null; esCliente?: boolean;
   clienteFijo?: boolean;                              // «Ver como» un cliente: el cliente ya viene decidido y el campo no se enseña
-  operadores?: { id: string; nombre: string }[];      // los operadores de transporte del cliente (envío manual)
+  operadores?: { id: string; nombre: string; cif?: string | null; contacto?: string | null }[];   // el catálogo de transportistas del cliente (envío manual)
   esMaster?: boolean;                                 // Admin Master: cualquier fecha, también pasada
   reglas?: ReglasPrecio | null };                     // antelación máxima y precio provisional (parámetros)
 export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number;

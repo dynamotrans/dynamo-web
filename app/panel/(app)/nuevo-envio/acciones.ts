@@ -4,6 +4,7 @@ import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
+import { vistaCruda } from '@/lib/vista';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import type { SB } from '@/lib/supabase/cliente';
 import type { Tabla, TablaUpdate } from '@/lib/supabase/tipos';
@@ -151,15 +152,19 @@ export async function proponerPrecio(envio: string, importe: number, importeT: n
   return error ? { ok: false, error: traducir(error.message) } : { ok: true, aviso: 'Precio enviado al cliente: lo verá en su panel para aceptarlo.' };
 }
 
-// El CLIENTE crea un envío con SU propio operador (manual): Dynamo no interviene.
+// Envío con un operador PROPIO del cliente (manual, Dynamo no interviene): lo crea el
+// cliente, o un gestor de Dynamo con «Ver como» ese cliente (la vista decide p_cliente).
 export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'> & { operador_id: string; precio_acordado_operador: number | null }, paradas: ParadaNueva[]):
   Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvioManual", [envio, paradas]);
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
+  const dynamo = esGestor(s?.perfil?.rol);
+  if (!s?.perfil || s.perfil.estado !== 'activa' || (s.perfil.rol !== 'cliente' && !dynamo)) return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
+  const v = dynamo ? await vistaCruda() : { tipo: 'admin' as const };
+  if (dynamo && v.tipo !== 'cliente') return { ok: false, error: 'Para registrar un envío con el transportista propio de un cliente, ponte antes en su vista («Ver como»).' };
   if (!envio.operador_id) return { ok: false, error: 'Elige tu operador de transporte.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
-  const { data, error } = await s.supabase.rpc('crear_envio_manual', { p_datos: envio, p_paradas: paradas });
+  const { data, error } = await s.supabase.rpc('crear_envio_manual', { p_datos: envio, p_paradas: paradas, p_cliente: v.tipo === 'cliente' ? v.id : null });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);

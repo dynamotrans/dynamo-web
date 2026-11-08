@@ -6193,4 +6193,53 @@ do $$ declare j jsonb := current_setting('prueba.cont166')::jsonb; begin
   raise notice 'OK 166 · contadores_panel por vista: con «Ver como» los números son los de esa empresa (sin las altas), el global de Dynamo sigue entero y a un cliente se le ignoran los parámetros';
 end $$;
 reset role;
+
+-- ---- 167. Envío manual desde «Ver como» un cliente (crear_envio_manual + p_cliente) --------
+-- Un GESTOR de Dynamo registra el envío manual EN NOMBRE del cliente de la vista.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; o uuid; e uuid; begin
+  if (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname = 'crear_envio_manual') <> 1 then
+    raise exception 'FALLO 167 · quedan firmas duplicadas de crear_envio_manual';
+  end if;
+  select op.id into o from operadores op where op.cliente_id = c and op.razon_social = 'Mi Camionero 76';
+  if o is null then raise exception 'FALLO 167 · falta el operador de la prueba 76'; end if;
+  select s.id into e from crear_envio_manual(
+    jsonb_build_object('operador_id', o, 'metros_lineales', 4, 'fecha_carga_desde', current_date),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave vista 167', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino vista 167', 'poblacion', 'Córdoba')),
+    c) s;
+  if not exists (select 1 from envios x where x.id = e and x.cliente_id = c and x.operador_id = o and x.estado = 'programado') then
+    raise exception 'FALLO 167 · el envío manual de la vista no nace del cliente con su operador';
+  end if;
+  -- Sin decir el cliente, un gestor no puede (no es un cliente).
+  begin
+    perform crear_envio_manual(jsonb_build_object('operador_id', o, 'fecha_carga_desde', current_date),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'),
+                        jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
+    raise exception 'FALLO 167 · un gestor crea un envío manual sin vista de cliente';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+-- A un CLIENTE p_cliente se le ignora: el envío sale suyo igualmente.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; o uuid; e uuid; begin
+  select op.id into o from operadores op where op.cliente_id = c and op.razon_social = 'Mi Camionero 76';
+  select s.id into e from crear_envio_manual(
+    jsonb_build_object('operador_id', o, 'fecha_carga_desde', current_date),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave propia 167', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino propio 167', 'poblacion', 'Huelva')),
+    gen_random_uuid()) s;
+  -- El cliente lee lo suyo por mis_envios(): si p_cliente hubiera mandado, el envío
+  -- sería de otra empresa y aquí no saldría.
+  if not exists (select 1 from mis_envios() m where m.id = e) then
+    raise exception 'FALLO 167 · a un cliente no se le ignora p_cliente';
+  end if;
+  raise notice 'OK 167 · envío manual por vista: el gestor lo registra para el cliente de la vista, sin vista no puede, y a un cliente p_cliente se le ignora';
+end $$;
+reset role;
 select set_config('request.jwt.claim.sub', '', false);

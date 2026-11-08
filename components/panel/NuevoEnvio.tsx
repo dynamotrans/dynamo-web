@@ -20,6 +20,7 @@ import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCl
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
+import CampoOperador from './nuevoEnvio/CampoOperador';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
@@ -110,10 +111,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [ptTocado, setPtTocado] = useState(!!be);
   const [neg, setNeg] = useState<number>(be?.negociacion_pct ?? 10);
 
-  // ---- Envío MANUAL (solo el cliente): con su propio operador, Dynamo no interviene.
+  // ---- Envío MANUAL (el cliente, o Dynamo en su vista): con un operador propio del
+  // cliente, Dynamo no interviene.
   const [operador, setOperador] = useState('');
   const [precioOp, setPrecioOp] = useState('');
-  const manual = esCliente && !!operador;
+  const manual = sinCampoCliente && !!operador;
   const nombreOp = operadores.find((o) => o.id === operador)?.nombre ?? '';
 
   // ---- Paso 4
@@ -310,8 +312,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     if (n === 2 && (!ml || !peso)) return 'Indica los metros lineales y el peso.';
     if (n === 3) {
       if (!fecha) return 'Elige la fecha de recogida.';
-      if (!esCliente && !(importe > 0)) return 'Pon el precio del cliente (base sin IVA).';
-      if (!esCliente && importeT !== null && !(importeT >= 0)) return 'El precio del transportista no es un número válido.';
+      if (!esCliente && !manual && !(importe > 0)) return 'Pon el precio del cliente (base sin IVA).';
+      if (!esCliente && !manual && importeT !== null && !(importeT >= 0)) return 'El precio del transportista no es un número válido.';
     }
     return null;
   }
@@ -600,13 +602,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   </div>
                   </>}
 
-                  {esCliente && !base && (<>
-                    <div className="ptar-section-head">Operador de transporte</div>
+                  {sinCampoCliente && !base && (<>
+                    <div className="ptar-section-head">Transportista / operador</div>
                     <div className="ptar-field ptar-field-full">
-                      <select className="ptar-select" aria-label="Operador de transporte" value={operador} onChange={(ev) => setOperador(ev.target.value)}>
-                        <option value="">Dynamo Operador Logístico, S.L.</option>
-                        {operadores.map((o) => <option key={o.id} value={o.id}>Mi transportista: {o.nombre}</option>)}
-                      </select>
+                      <CampoOperador operadores={operadores} valor={operador} onCambio={setOperador} />
                       {operadores.length === 0 && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>¿Trabajas también con transportistas propios? Dalos de alta en <Link href="/panel/operadores"><strong>Transportistas</strong></Link> y podrás registrar aquí esos envíos (Dynamo no interviene) y tenerlo todo unificado.</p>}
                       {manual && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Envío con <strong>tu propio transportista</strong>: Dynamo no interviene en nada. La plataforma te sirve para organizarlo y sacar la <strong>orden de carga</strong> en PDF.</p>}
                     </div>

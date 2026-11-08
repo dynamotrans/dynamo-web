@@ -3196,7 +3196,7 @@ export type Database = {
       corte_cancelacion: { Args: { p_fecha_carga: string | null; p_pais?: string | null; p_region?: string | null }; Returns: string }
       crear_aviso: { Args: { p_para: string | null; p_cliente: string | null; p_transportista: string | null; p_tipo: string | null; p_nivel: string | null; p_titulo: string | null; p_texto: string | null; p_enlace: string | null; p_envio: string | null }; Returns: undefined }
       crear_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
-      crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
+      crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null; p_cliente?: string | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_solicitud_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
       cuadro_mando_sectores: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: { sector: string; clientes: number; realizados: number; facturacion: number; margen: number }[] }

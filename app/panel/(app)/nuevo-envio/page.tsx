@@ -33,7 +33,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
         .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
         .eq('borrado', false).order('nombre_empresa'), 5000),
       supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
-      supabase.from('operadores').select('id, razon_social').eq('borrado', false).order('razon_social'),
+      supabase.from('operadores').select('id, razon_social, cif, persona_contacto').eq('borrado', false).order('razon_social'),
       supabase.rpc('reglas_precio_envio'),
     ]);
     const e = emp.data;
@@ -53,7 +53,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
-      operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
+      operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
   }
 
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
@@ -73,7 +73,8 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   // el cliente (sitiosDelCliente): aquí solo viajan los almacenes de Dynamo y, si ya hay
   // cliente, él y sus sitios.
   const colsSitio = 'id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible';
-  const [cli, lug, fes, reg] = await Promise.all([
+  const vistaCliente = vista.tipo === 'cliente';
+  const [cli, lug, fes, reg, ops] = await Promise.all([
     clienteIni ? supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct').eq('id', clienteIni) : Promise.resolve({ data: [], error: null }),
     clienteIni
       ? supabase.from('sitios').select(colsSitio).eq('borrado', false).or(`es_almacen_dynamo.eq.true,cliente_id.eq.${clienteIni}`).order('nombre_empresa').limit(2500)
@@ -82,6 +83,10 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     // repiten, como el 1 de noviembre o Viernes Santo, los resuelve la base de datos).
     supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
     supabase.rpc('reglas_precio_envio'),
+    // En la vista «Ver como» un cliente, su catálogo de transportistas para el combo de operador.
+    vistaCliente
+      ? supabase.from('operadores').select('id, razon_social, cif, persona_contacto').eq('cliente_id', vista.tipo === 'cliente' ? vista.id : '').eq('borrado', false).order('razon_social')
+      : Promise.resolve({ data: [] }),
   ]);
 
   const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible ?? '', cif: c.cif, principal_id: c.sitio_principal_id, iva: c.iva_pct }));
@@ -90,5 +95,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));
   const error = cli.error?.message || lug.error?.message || null;
 
-  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} clienteFijo={vista.tipo === 'cliente'} esMaster={perfil.rol === 'admin'} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
+  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} clienteFijo={vistaCliente}
+    operadores={((ops.data ?? []) as { id: string; razon_social: string; cif: string | null; persona_contacto: string | null }[]).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))}
+    esMaster={perfil.rol === 'admin'} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
 }
