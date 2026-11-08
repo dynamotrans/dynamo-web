@@ -52,7 +52,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas)'), vista).order('creado_en', { ascending: false }), 5000),
     supabase.from('tipos_incidencia').select('id, clave, nombre, activo').order('orden'),
     leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible'), vista, { cliente: 'id', transportista: null }).order('nombre_visible'), 10000),
-    cargarEnviosLigeros(supabase),
+    cargarEnviosLigeros(supabase, 40, vista.tipo === 'cliente' ? { cliente: vista.id } : vista.tipo === 'transportista' ? { transportista: vista.id } : undefined),
   ]);
   const filas: IncidenciaFila[] = (inc.data ?? []).map((x) => ({
     id: x.id, codigo: x.codigo, envio_id: x.envio_id, cliente_id: x.cliente_id, tipo_id: x.tipo_id, tipo: x.tipos_incidencia?.nombre ?? '—',

@@ -40,8 +40,12 @@ function aLigero(e: FilaLigera): EnvioLigero {
 
 // Los más recientes primero: los que salen con el buscador vacío. El resto se busca en
 // la base de datos al escribir (buscarEnviosLigeros), así da igual que haya miles.
-export async function cargarEnviosLigeros(sb: SB, limite = 40): Promise<EnvioLigero[]> {
-  const { data } = await sb.from('envios').select(COLUMNAS).neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(limite)
+export async function cargarEnviosLigeros(sb: SB, limite = 40, de?: { cliente?: string | null; transportista?: string | null }): Promise<EnvioLigero[]> {
+  let q = sb.from('envios').select(COLUMNAS).neq('estado', 'borrador');
+  // Con «Ver como» una empresa, solo sus envíos (a un cliente o transportista real ya se lo acota la base de datos).
+  if (de?.cliente) q = q.eq('cliente_id', de.cliente);
+  if (de?.transportista) q = q.eq('transportista_id', de.transportista);
+  const { data } = await q.order('creado_en', { ascending: false }).limit(limite)
     .overrideTypes<FilaLigera[], { merge: false }>();
   return (data ?? []).map(aLigero);
 }

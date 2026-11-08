@@ -1,6 +1,7 @@
 'use server';
 
 import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaCruda } from '@/lib/vista';
 import { enviosLigerosPorId, misEnviosLigerosPorId, type EnvioLigero } from '@/lib/enviosLigeros';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import type { SB } from '@/lib/supabase/cliente';
@@ -17,8 +18,10 @@ export async function buscarEnviosLigeros(q: string): Promise<EnvioLigero[]> {
   if (!s?.perfil || s.perfil.estado !== 'activa' || !puede(s.perfil.rol)) return [];
   const texto = String(q ?? '').replace(/^#/, '').trim().slice(0, 120);
   if (!texto) return [];
-  // Con el índice de búsqueda (todos los años).
-  const { data } = await s.supabase.rpc('buscar_envios_pagina', { p_q: texto, p_pagina: 1, p_por_pagina: 8 });
+  // Con el índice de búsqueda (todos los años). Con «Ver como» una empresa, solo lo suyo.
+  const v = esDynamo(s.perfil.rol) ? await vistaCruda() : { tipo: 'admin' as const };
+  const { data } = await s.supabase.rpc('buscar_envios_pagina', { p_q: texto, p_pagina: 1, p_por_pagina: 8,
+    p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null });
   return deEllos({ supabase: s.supabase, perfil: s.perfil }, ((data ?? []) as { id: string }[]).map((x) => x.id));
 }
 

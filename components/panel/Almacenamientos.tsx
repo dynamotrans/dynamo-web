@@ -256,7 +256,8 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
       )}
       {!editable && <div className="alm-note" style={{ margin: '0 0 0.8rem' }}>{modoCliente ? 'Ya está confirmado: para cambiar algo, escríbenos o llámanos.' : 'Con la mercancía ya en el almacén (o el servicio cerrado) los datos quedan fijos.'}</div>}
       <div className="ptar-sitio-grid">
-        {!modoCliente && <div style={{ gridColumn: '1/-1' }}>
+        {/* Con «Ver como» un cliente llega UN solo cliente posible, ya puesto: el campo no sale. */}
+        {!modoCliente && clientes.length !== 1 && <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="alm-cli">Cliente</label>
           <select id="alm-cli" className="ptar-select" value={d.cliente_id} disabled={!!fila} onChange={(e) => { set('cliente_id', e.target.value); set('sitio_entrega_id', null); }}>
             <option value="">Selecciona el cliente…</option>

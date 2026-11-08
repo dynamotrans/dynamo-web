@@ -189,7 +189,8 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         <label>{esTransportista ? 'Envío *' : <>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
         <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto />
       </div>
-      {!d.envio_id && !esCliente && (
+      {/* Con «Ver como» un cliente llega UN solo cliente posible, ya puesto: el campo no sale. */}
+      {!d.envio_id && !esCliente && clientes.length !== 1 && (
         <div className="modal-form-row">
           <label htmlFor="inc-cli">Cliente <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· si no va sobre un envío</span></label>
           <select id="inc-cli" className="ptar-select" value={d.cliente_id ?? ''} onChange={(e) => set('cliente_id', e.target.value || null)}>
