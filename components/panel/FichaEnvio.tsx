@@ -16,7 +16,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCarga
 import { telBonito } from '@/lib/paises';
 import type { Ficha } from '@/lib/fichaEnvio';
 import PagoPrevio from './PagoPrevio';
-import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
+import { RevisionDynamo, SelloPrecio, provisional } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, archivarPdf } from '@/app/panel/(app)/envios/acciones';
@@ -43,6 +43,10 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const cerrar = () => router.push(cerrarHref, { scroll: false });
   const manual = !!e.es_manual;
   const cancelado = e.estado === 'cancelado';
+  // Precio provisional (programado con mucha antelación): la base de datos no deja ofertar
+  // ni asignar hasta revisarlo, así que esos botones no salen; la caja «Revisar precio»
+  // de la ficha explica el porqué y lo desbloquea al momento.
+  const precioProvisional = !manual && e.estado === 'programado' && provisional(e);
   const est0 = ESTADOS.find(([k]) => k === e.estado) ?? ESTADOS[0];
   const est: [string, string, string] = cancelado && ficha.pago?.estado === 'pendiente' ? ['cancelado', 'Anulado sin pago', 'cancelada'] : est0;
 
@@ -72,12 +76,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto') && (
         <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
-      {/* Pendiente de pago: ni ofertar ni asignar hasta que se pague (la base de datos lo
-          rechaza igualmente); la caja naranja del pago ya explica qué hacer. */}
-      {!manual && e.estado === 'programado' && !ficha.transportista && ficha.pago?.estado !== 'pendiente' && (
+      {/* Pendiente de pago o precio PROVISIONAL: ni ofertar ni asignar (la base de datos lo
+          rechaza igualmente); la caja naranja del pago o la de «Revisar precio» de más abajo
+          ya explican qué hacer (usuario, 2026-11-09). */}
+      {!manual && e.estado === 'programado' && !ficha.transportista && ficha.pago?.estado !== 'pendiente' && !precioProvisional && (
         <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer envío</button>
       )}
-      {!manual && e.estado !== 'entregado' && !(ficha.pago?.estado === 'pendiente' && !ficha.transportista) && (
+      {!manual && e.estado !== 'entregado' && !((ficha.pago?.estado === 'pendiente' || precioProvisional) && !ficha.transportista) && (
         <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} onClick={() => setVista('asignar')}>
           <I d={ICO.camion} />{ficha.transportista ? 'Cambiar transportista' : 'Asignar transportista'}
         </button>

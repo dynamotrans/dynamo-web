@@ -13,7 +13,7 @@ export type Revision = {
   precio_calculado_en: string | null; estado_revision_precio: string | null; fecha_revision_precio: string | null;
   importe_revision_anterior: number | null; importe_revision_nuevo: number | null; revision_precio_en: string | null; margen_pct?: number | null;
 };
-const provisional = (r: Revision | null) => !!r && ['pendiente', 'revisar', 'esperando_cliente'].includes(r.estado_revision_precio ?? '');
+export const provisional = (r: Revision | null) => !!r && ['pendiente', 'revisar', 'esperando_cliente'].includes(r.estado_revision_precio ?? '');
 const num = (v: string) => Number(v.replace(/\./g, '').replace(',', '.'));
 
 /** «Precio del 05/11/26 · 10:30 · provisional»: debajo de cada precio. */
