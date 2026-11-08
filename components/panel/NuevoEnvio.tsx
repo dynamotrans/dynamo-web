@@ -642,7 +642,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                             }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
-                          <Interruptor titulo="Cita previa" valor={cita} onCambio={setCita} />
+                          <Interruptor titulo="Cita previa" valor={cita} onCambio={setCita} noTxt="No (sin hora fija)" siTxt="Sí (con hora fija)" />
                         </div>
                         {cita && (
                           <div className="ptar-sitio-grid" style={{ marginTop: '0.9rem' }}>
