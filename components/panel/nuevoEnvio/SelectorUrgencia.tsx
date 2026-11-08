@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 type Urgencia = 'dia' | 'estandar';
 const OPCIONES: { v: Urgencia; nombre: string; nota: string; color: string }[] = [
   { v: 'estandar', nombre: 'Recogida de 1 a 3 días', nota: 'más económica', color: 'var(--green)' },
-  { v: 'dia', nombre: 'Fecha fija', nota: 'un día concreto, más caro', color: 'var(--navy)' },
+  { v: 'dia', nombre: 'Fecha fija', nota: 'un día concreto, más caro', color: '#dc2626' },
 ];
 
 export function SelectorUrgencia({ valor, onCambio }: { valor: Urgencia; onCambio: (v: Urgencia) => void }) {
