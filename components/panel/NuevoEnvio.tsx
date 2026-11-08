@@ -77,6 +77,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [adr, setAdr] = useState(!!be?.adr);
   const [refCli, setRefCli] = useState('');
   const [notas, setNotas] = useState(be?.anotaciones_cliente ?? '');
+  // Cita previa (2026-11-08, opción «sin migración»): sus datos van en las anotaciones del
+  // envío (y así a la orden de carga). Si hiciera falta filtrar por cita, se pasa a campo propio.
+  const [cita, setCita] = useState(false);
+  const [citaHora, setCitaHora] = useState('');
+  const [citaMuelle, setCitaMuelle] = useState('');
+  const [citaDetalle, setCitaDetalle] = useState('');
+  const notaCita = cita ? ['CITA PREVIA' + (citaHora ? ` a las ${citaHora}` : ''), citaMuelle.trim() ? `muelle/puerta: ${citaMuelle.trim()}` : '', citaDetalle.trim()].filter(Boolean).join(' · ') : '';
+  const notasEnvio = [notaCita, notas].filter(Boolean).join('\n');
   const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente)));
 
   // ---- Paso 3: fecha y precio
@@ -267,7 +275,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         toneladas: Number(peso), metros_lineales: Number(ml),
         paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
         carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
-        discrecion_comercial: discrecion, anotaciones_cliente: notas,
+        discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
       router.push(`/panel/envios?f=programada&nuevo=${encodeURIComponent(rm.referencia_gx)}&manual=1`);
@@ -281,7 +289,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         toneladas: Number(peso), metros_lineales: Number(ml),
         paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
         carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
-        discrecion_comercial: discrecion, anotaciones_cliente: notas,
+        discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
       router.push(`/panel/envios?f=solicitudes&nuevo=${encodeURIComponent(rs.referencia_gx)}`);
@@ -296,7 +304,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
       carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
       importe_cliente: importe, importe_transportista: importeT,
-      discrecion_comercial: discrecion, anotaciones_cliente: notas, negociacion_pct: neg,
+      discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio, negociacion_pct: neg,
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
     router.push(`/panel/envios?f=sin-asignar&nuevo=${encodeURIComponent(r.referencia_gx)}`);
@@ -527,7 +535,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-notes-wrap ptar-field-full">
                     <button type="button" className="ptar-notes-toggle" aria-expanded={notasAbiertas} onClick={() => setNotasAbiertas((v) => !v)}>
                       <span className="pnt-icon" aria-hidden="true">{notasAbiertas ? '−' : '+'}</span>
-                      <strong>Añadir detalle de mercancía, nº de albarán/pedido, plataforma elevadora o NIMA</strong> (opcional)
+                      <strong>Añadir detalle de mercancía, nº de albarán/pedido, cita previa, plataforma elevadora o NIMA</strong> (opcional)
                     </button>
                     {notasAbiertas && (
                       <div className="ptar-notes-body">
@@ -536,7 +544,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                             onCambio={(v) => { setPlataforma(v); setMl(v ? '8' : '13.3'); setPeso(v ? '14' : '24'); }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
+                          <Interruptor titulo="Cita previa" valor={cita} onCambio={setCita} />
                         </div>
+                        {cita && (
+                          <div className="ptar-sitio-grid" style={{ marginTop: '0.9rem' }}>
+                            <div>
+                              <label htmlFor="ne-cita-hora">Hora de la cita · opcional</label>
+                              <input id="ne-cita-hora" type="time" className="ptar-select" value={citaHora} onChange={(e) => setCitaHora(e.target.value)} />
+                            </div>
+                            <div>
+                              <label htmlFor="ne-cita-muelle">Muelle / puerta · opcional</label>
+                              <input id="ne-cita-muelle" type="text" className="ptar-select" placeholder="Ej. Muelle 4" value={citaMuelle} onChange={(e) => setCitaMuelle(e.target.value)} />
+                            </div>
+                            <div className="full">
+                              <label htmlFor="ne-cita-det">Detalles de la cita · opcional</label>
+                              <input id="ne-cita-det" type="text" className="ptar-select" placeholder="Ej. pedir cita en el portal del almacén, preguntar por recepción…" value={citaDetalle} onChange={(e) => setCitaDetalle(e.target.value)} />
+                            </div>
+                          </div>
+                        )}
                         <div className="ptar-field" style={{ marginTop: '0.9rem' }}>
                           <label className="ptar-label" htmlFor="ne-ref">Nº de albarán/pedido del cliente</label>
                           <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234" value={refCli} onChange={(e) => setRefCli(e.target.value)} />
@@ -658,7 +683,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     {nima && <div className="sum2-cell"><div className="sum2-k">Requiere NIMA</div><div className="sum2-v">Sí</div></div>}
                     {adr && <div className="sum2-cell"><div className="sum2-k">Mercancía ADR</div><div className="sum2-v">Sí</div></div>}
                   </div>
-                  {notas && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div style={{ fontSize: 'var(--fs-m)', fontWeight: 600, color: 'var(--gray-700)', lineHeight: 1.4 }}>{notas}</div></div>}
+                  {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div style={{ fontSize: 'var(--fs-m)', fontWeight: 600, color: 'var(--gray-700)', lineHeight: 1.4, whiteSpace: 'pre-line' }}>{notasEnvio}</div></div>}
                 </div>
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-grid">
