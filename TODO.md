@@ -4,6 +4,16 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 
+- [ ] 🧹 **LIMPIEZA del código muerto de «solicitudes de precio» (usuario, 2026-11-08)** — el usuario NO quiere
+      el código lleno de cosas sin uso. Al eliminar las solicitudes (el tarifador es automático: el cliente crea
+      el envío ya preciado, commit `9126613`), quedaron **aparcadas a propósito** las funciones viejas de la base
+      de datos **`crear_solicitud_envio`, `proponer_precio_solicitud`, `responder_precio_solicitud` y
+      `contraofertar_precio_solicitud`**: siguen ahí sin que nada las llame. Borrarlas exige reescribir 4-5
+      bloques encadenados de las pruebas de seguridad (`comprobar_seguridad.sql`), así que se hace en una
+      **pasada de limpieza tranquila**, no con prisa. En esa misma pasada: retirar la UI muerta de solicitudes
+      (PonerPrecio / aceptar / contraoferta en FichaEnvio y FichaEnvioCliente), y `BuscadorEnvios.tsx` si quedó
+      sin uso. Después, la suite entera (`probar.sh`) en verde.
+
 - [ ] **Favicon en producción (usuario, 2026-11-06)**: la plataforma (`pruebas`) ya lleva la marca de las tres franjas como favicon (`app/icon.svg`, `app/favicon.ico`, `app/apple-icon.png`; sin texto, a 16 px el logo con letras no se lee). Falta ponerlo en la **web pública** (`index.html` y las demás páginas apuntan a `/images/DYNAMO-NEW-LOGO.png`, el logo con «Pick. Drop. Done.»): rama corta desde `main` con los mismos ficheros en `images/` y los `<link rel="icon">`, cuando el usuario diga «publica». También los iconos de la PWA (`icon-192/512`, manifest) llevan el lema viejo.
 - [ ] **Supabase `dynamo-pruebas` en plan Pro (usuario, 2026-11-06)**: la carga completa de datos de prueba (~1 GB) no cabe en los 500 MB del plan gratuito (salió «EXCEEDING USAGE LIMITS»); el usuario decidió pasar a Pro (25 $/mes, 8 GB). Comprobar que el **Spend cap** (Billing → Cost Control) queda activado. El SQL Editor corta a los ~60 s y las sesiones de pg_cron a los 2 min: por eso la carga va con `programar_datos_de_prueba()` (reloj sin tope); progreso visible con `estado_datos_de_prueba()` y `pg_database_size`.
 - [ ] **DATOS DE PRUEBA en `dynamo-pruebas` (usuario, 2026-11-06)**: la migración `20261106170000_datos_de_prueba.sql` ya está en `pruebas` (Supabase la aplica sola al hacer push). Falta **ejecutar la carga a mano** en el SQL Editor del proyecto de pruebas con la línea que Claude le da al usuario (contraseña de las cuentas y sus 3 cuentas reales como parámetros; nada de eso va al repositorio). Después: **revisar el cuadro de mando** con datos («vale cuadro mandos cuando esten datos de pruebas subidos lo veo mejor»), **`analyze`** tras la carga, y probar las pantallas con volumen en la preview de Vercel. Para vaciarlo: `select borrar_datos_de_prueba('SI, ES EL PROYECTO DE PRUEBAS');`.
