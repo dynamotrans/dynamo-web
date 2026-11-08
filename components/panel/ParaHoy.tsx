@@ -38,7 +38,8 @@ export default function ParaHoy({ bloques, error }: { bloques: Bloque[]; error: 
               <Link href={b.todo} className="ph-todo">Ver todo →</Link>
             </div>
             <ul className="ph-lista">
-              {b.filas.map((f, i) => (
+              {/* Solo las 2 primeras; el resto, con «Ver N más» (lleva a la lista completa). */}
+              {b.filas.slice(0, 2).map((f, i) => (
                 <li key={i}>
                   <Link href={f.href} className={`ph-fila${f.urgente ? ' urgente' : ''}`}>
                     <span className="ph-t">{f.t}</span>
@@ -47,7 +48,9 @@ export default function ParaHoy({ bloques, error }: { bloques: Bloque[]; error: 
                   </Link>
                 </li>
               ))}
-              {b.total > b.filas.length && <li className="ph-mas">y {b.total - b.filas.length} más…</li>}
+              {b.total > Math.min(b.filas.length, 2) && (
+                <li><Link href={b.todo} className="ph-mas">Ver {b.total - Math.min(b.filas.length, 2)} más →</Link></li>
+              )}
             </ul>
           </div>
         ))}

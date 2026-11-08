@@ -56,17 +56,19 @@ export default function Historial({ tabla, id }: { tabla: Parameters<typeof hist
         {abierto ? '▾' : '▸'} Quién y cuándo (historial de cambios)
       </button>
       {abierto && (
-        <div className="pen-envio-sum" style={{ marginTop: '0.5rem' }}>
-          {error && <div className="pen-sum-row"><span className="k" style={{ color: 'var(--red)' }}>{error}</span><span className="v" /></div>}
-          {!error && !filas && <div className="pen-sum-row"><span className="k">Cargando…</span><span className="v" /></div>}
-          {filas?.length === 0 && <div className="pen-sum-row"><span className="k">Sin cambios registrados</span><span className="v" /></div>}
+        <div className="pen-envio-sum hist-lista" style={{ marginTop: '0.5rem' }}>
+          {error && <div className="hist-vacio" style={{ color: 'var(--red)' }}>{error}</div>}
+          {!error && !filas && <div className="hist-vacio">Cargando…</div>}
+          {filas?.length === 0 && <div className="hist-vacio">Sin cambios registrados</div>}
           {filas?.map((h, i) => (
-            <div key={i} className="pen-sum-row" style={{ alignItems: 'flex-start' }}>
-              <span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span>
-              <span className="v" style={{ textAlign: 'right' }}>
+            // Fecha arriba y la acción (que puede ser muy larga) debajo, a ancho completo:
+            // así no se solapan ni se salen de la ventana cuando el cambio es largo.
+            <div key={i} className="hist-row">
+              <span className="hist-cuando">{fechaHora(h.cuando)}</span>
+              <div className="hist-accion">
                 {accion(h)}
-                <div style={{ color: 'var(--gray-500)', fontWeight: 500 }}>{h.quien_nombre}{h.quien_email && h.quien_email !== h.quien_nombre ? ` · ${h.quien_email}` : ''}</div>
-              </span>
+                <div className="hist-quien">{h.quien_nombre}{h.quien_email && h.quien_email !== h.quien_nombre ? ` · ${h.quien_email}` : ''}</div>
+              </div>
             </div>
           ))}
         </div>

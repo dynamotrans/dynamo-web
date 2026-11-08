@@ -1488,6 +1488,16 @@ body.theme-dark .sidebar { background: #060116; }
 .pen-sum-row { display: flex; justify-content: space-between; gap: 1rem; font-size: var(--fs-m); padding: 0.15rem 0; }
 .pen-sum-row .k { color: var(--gray-500); font-weight: 600; }
 .pen-sum-row .v { color: var(--navy); font-weight: 700; text-align: right; }
+/* Historial de cambios: fecha arriba y la acción (que puede ser larga) debajo, a ancho
+   completo, para que no se solape con la fecha ni se salga de la ventana. */
+.hist-lista { display: flex; flex-direction: column; gap: 0.1rem; }
+.hist-vacio { font-size: var(--fs-m); color: var(--gray-500); padding: 0.15rem 0; }
+.hist-row { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.35rem 0; }
+.hist-row + .hist-row { border-top: 1px solid rgba(51,0,204,0.1); }
+.hist-cuando { font-size: var(--fs-s); color: var(--gray-500); }
+.hist-accion { font-size: var(--fs-m); color: var(--navy); line-height: 1.4; overflow-wrap: anywhere; }
+.hist-accion strong { font-weight: 800; }
+.hist-quien { color: var(--gray-500); font-weight: 500; font-size: var(--fs-s); margin-top: 0.1rem; }
 /* Mismo estándar que el resto del panel (.ptar-select): borde 1.5px,
    radio 10px, alto 44px, hover/focus morado con anillo. */
 .modal-form-row input, .modal-form-row select {

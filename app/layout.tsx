@@ -5,9 +5,12 @@ export const metadata: Metadata = {
   title: 'Dynamo · Plataforma',
   // La plataforma no se indexa nunca.
   robots: { index: false, follow: false },
-  // Iconos: el logo de Dynamo (blanco sobre el morado de marca) en app/icon.png, app/favicon.ico
-  // y app/apple-icon.png (el de la pantalla de inicio del iPhone). Next los sirve y pone los
-  // <link> solo. Los iconos de la PWA (manifest.webmanifest) usan el mismo logo.
+  // Iconos:
+  //  - Pestaña del navegador (favicon): la marca de las tres rayas de colores sobre azul
+  //    (images/DYNAMO-NEW-LOGO.png) en app/icon.png y app/favicon.ico.
+  //  - Pantalla de inicio del iPhone (apple-icon) y PWA (manifest.webmanifest): el logo de
+  //    Dynamo blanco sobre el morado de marca (images/4.png).
+  // Next sirve los iconos y pone los <link> solo.
 };
 
 // Sin zoom al tocar un campo para escribir (iPhone acerca la pantalla si la letra del

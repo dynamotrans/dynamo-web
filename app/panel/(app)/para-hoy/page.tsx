@@ -59,6 +59,10 @@ export default async function PaginaParaHoy() {
     || (PRIO[a.prioridad] ?? 9) - (PRIO[b.prioridad] ?? 9) || a.creado_en.localeCompare(b.creado_en)).slice(0, MAX);
 
   const bloques: Bloque[] = [
+    // Lo primero y destacado: hasta que el cliente no paga, el envío no avanza (no se asigna
+    // camión), así que es lo más importante de vigilar.
+    { id: 'sin-pagar', nivel: 'aviso', titulo: 'Envíos esperando el pago del cliente', total: sinPagar.count ?? 0, todo: '/panel/envios?f=sin-pagar',
+      filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)} · si paga por transferencia, márcalo al recibirla`, desde: e.modificado_en ?? e.creado_en })) },
     { id: 'sin-camion', nivel: 'urgente', titulo: 'Cargan hoy o mañana y no tienen camión', total: sinCamion.count ?? 0, todo: '/panel/envios',
       filas: (sinCamion.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
         urgente: (e.fecha_carga_desde ?? '') <= hoy })) },
@@ -92,8 +96,6 @@ export default async function PaginaParaHoy() {
     { id: 'penalizaciones', nivel: 'info', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
       filas: (pen.data ?? []).map((p) => ({ href: '/panel/penalizaciones', t: `${p.tipos_penalizacion?.nombre ?? 'Penalización'}${p.envios?.referencia_gx ? ` · #${p.envios.referencia_gx}` : ''}`,
         s: [p.importe_cliente != null && `Cliente ${euros(p.importe_cliente)}`, p.importe_transportista != null && `Transportista ${euros(p.importe_transportista)}`].filter(Boolean).join(' · '), desde: p.creado_en })) },
-    { id: 'sin-pagar', nivel: 'info', titulo: 'Envíos esperando el pago del cliente', total: sinPagar.count ?? 0, todo: '/panel/envios?f=sin-pagar',
-      filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)} · si paga por transferencia, márcalo al recibirla`, desde: e.modificado_en ?? e.creado_en })) },
     { id: 'almacenamientos', nivel: 'info', titulo: 'Almacenamientos por confirmar', total: alm.count ?? 0, todo: '/panel/almacenamientos',
       filas: (alm.data ?? []).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
   ];

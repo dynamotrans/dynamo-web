@@ -170,7 +170,8 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
 #sec-para-hoy .ph-t { font-weight: 700; color: var(--navy); font-size: var(--fs-m); grid-column: 1; }
 #sec-para-hoy .ph-s { font-size: var(--fs-s); color: var(--gray-500); grid-column: 1; }
 #sec-para-hoy .ph-h { font-size: var(--fs-s); color: var(--gray-500); grid-column: 2; grid-row: 1; white-space: nowrap; }
-#sec-para-hoy .ph-mas { font-size: var(--fs-s); color: var(--gray-500); padding: 0.3rem 0.5rem; }
+#sec-para-hoy .ph-mas { display: inline-block; font-size: var(--fs-s); font-weight: 700; color: var(--purple); text-decoration: none; padding: 0.35rem 0.5rem; }
+#sec-para-hoy .ph-mas:hover { text-decoration: underline; }
 #sec-para-hoy .ph-vacios { margin-top: 1rem; font-size: var(--fs-s); color: var(--gray-500); }
 @media (max-width: 600px) { #sec-para-hoy .ph-grid { grid-template-columns: 1fr; } }
 /* El pie de las ventanas: si no caben los botones (móvil), pasan a otra línea. */
