@@ -652,15 +652,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                           <div className="ptar-sitio-grid ptar-cita-grid" style={{ marginTop: '0.9rem' }}>
                             <div>
                               <label htmlFor="ne-cita-hora">Hora de la cita</label>
-                              <input id="ne-cita-hora" type="time" className="ptar-select" value={citaHora} onChange={(e) => setCitaHora(e.target.value)} />
+                              <input id="ne-cita-hora" type="time" value={citaHora} onChange={(e) => setCitaHora(e.target.value)} />
                             </div>
                             <div>
                               <label htmlFor="ne-cita-muelle">Muelle / puerta</label>
-                              <input id="ne-cita-muelle" type="text" className="ptar-select" placeholder="Ej. Muelle 4" value={citaMuelle} onChange={(e) => setCitaMuelle(e.target.value)} />
+                              <input id="ne-cita-muelle" type="text" placeholder="Ej. Muelle 4" value={citaMuelle} onChange={(e) => setCitaMuelle(e.target.value)} />
                             </div>
                             <div className="full">
                               <label htmlFor="ne-cita-det">Detalles de la cita · opcional</label>
-                              <input id="ne-cita-det" type="text" className="ptar-select" placeholder="Ej. pedir cita en el portal del almacén, preguntar por recepción…" value={citaDetalle} onChange={(e) => setCitaDetalle(e.target.value)} />
+                              <input id="ne-cita-det" type="text" placeholder="Ej. pedir cita en el portal del almacén, preguntar por recepción…" value={citaDetalle} onChange={(e) => setCitaDetalle(e.target.value)} />
                             </div>
                           </div>
                         )}
