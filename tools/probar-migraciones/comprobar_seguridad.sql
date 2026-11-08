@@ -6354,3 +6354,27 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; f uuid;
   end if;
   raise notice 'OK 170 · el estado «borrador» no sobrevive: la red horaria convierte todos (futuros a programado, pasados a cancelado sin coste)';
 end $$;
+
+-- ---- 171. Plazo de pago = el corte de cancelar gratis (9:00 del día hábil anterior) --------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  -- Con margen: el límite es el corte de cancelación de la carga (9:00 del hábil anterior).
+  if pago_limite('2026-11-10 10:00 Europe/Madrid', date '2026-11-20') <> corte_cancelacion(date '2026-11-20') then
+    raise exception 'FALLO 171 · el plazo de pago no es el corte de cancelar gratis';
+  end if;
+  -- Inminente (el tope ya había pasado al quedar pendiente): rige el plazo corto de 24 h.
+  if pago_limite('2026-11-19 15:00 Europe/Madrid', date '2026-11-20') <> timestamptz '2026-11-20 15:00 Europe/Madrid' then
+    raise exception 'FALLO 171 · un envío inminente no cae en el plazo corto de pago_previo_horas';
+  end if;
+  -- Sin fecha de carga: también el plazo corto (y salta el fin de semana, como siempre).
+  if pago_limite('2026-11-13 15:00 Europe/Madrid') <> timestamptz '2026-11-16 15:00 Europe/Madrid' then
+    raise exception 'FALLO 171 · sin fecha de carga no rige el plazo corto a día hábil';
+  end if;
+  -- La anulación automática y la consulta de pagos miran el tope nuevo (con la fecha de carga).
+  if pg_get_functiondef('public.caducar_pagos_pendientes'::regproc) !~ 'pago_limite\(pago_pendiente_en, fecha_carga_desde\)'
+     or pg_get_functiondef('public.pagos_envio(uuid)'::regprocedure) !~ 'pago_limite\(e.pago_pendiente_en, e.fecha_carga_desde\)' then
+    raise exception 'FALLO 171 · caducar_pagos_pendientes o pagos_envio no pasan la fecha de carga al plazo';
+  end if;
+  raise notice 'OK 171 · plazo de pago: hasta las 9:00 del día hábil anterior a la carga (corte de cancelar gratis); inminentes y sin fecha, el plazo corto de 24 h a día hábil';
+end $$;

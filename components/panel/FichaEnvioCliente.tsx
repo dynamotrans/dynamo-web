@@ -364,7 +364,7 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         </div>
         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
           {e.tarjeta ? 'Con tarjeta se confirma al momento. ' : 'El pago con tarjeta estará disponible muy pronto. '}
-          Por transferencia, usa los datos de la proforma y pon <strong>PRO-{e.referencia_gx}</strong> como concepto; lo validamos en horario de oficina (hasta 24 h).
+          Con <strong>tarjeta</strong> el envío queda <strong>pagado al momento</strong>. Por <strong>transferencia</strong>, usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y <strong>avísanos cuando la hagas</strong> (teléfono, WhatsApp o email): la validamos en horario de oficina.
         </div>
         </>}
       </div>
