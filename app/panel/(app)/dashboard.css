@@ -3568,6 +3568,11 @@ input::-webkit-date-and-time-value { text-align: left; }
    hover/focus morado con anillo. */
 .ptar-sitio-grid input, .ptar-sitio-grid select, .ptar-sitio-grid textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font: inherit; font-size: var(--fs-m); color: var(--navy); background: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
 .ptar-sitio-grid textarea { resize: vertical; min-height: 70px; }
+/* Cuadro de texto SUELTO (motivo del pago, nota de un cambio…): mismo aspecto que los
+   campos estándar de las fichas, para los textarea que viven fuera de las rejillas. */
+.campo-texto { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font: inherit; font-size: var(--fs-m); color: var(--navy); background: #fff; outline: none; resize: vertical; min-height: 70px; transition: border-color 0.15s, box-shadow 0.15s; }
+.campo-texto:hover { border-color: var(--purple); }
+.campo-texto:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.12); }
 .ptar-sitio-grid input:hover, .ptar-sitio-grid select:hover, .ptar-sitio-grid textarea:hover { border-color: var(--purple); }
 .ptar-sitio-grid input:focus, .ptar-sitio-grid select:focus, .ptar-sitio-grid textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
 .ptar-sitio-grid .full { grid-column: 1 / -1; }
