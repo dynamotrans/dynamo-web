@@ -245,6 +245,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         : x.contactos,
     }));
     elegidoTxt.current = g.empresa;
+    setCamposLibres(true);
     setBq(g.empresa); setSugAbierto(false); setAvisoParecido(null);
     sitioParecido(d.cliente_id || null, g.empresa, g.codigo_postal).then(setAvisoParecido).catch(() => {});
   }
@@ -252,6 +253,15 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   // crear, campo a campo, con flecha para copiar y «Tu registro» editable.
   const [comparar, setComparar] = useState<SitioFila | null>(null);
   const [cmp, setCmp] = useState<Record<string, string>>({});
+  // Ficha NUEVA guiada (usuario, 2026-11-09): primero el buscador (caja destacada); el
+  // resto de campos queda oculto hasta elegir un resultado o pulsar «rellenar a mano».
+  const [camposLibres, setCamposLibres] = useState(false);
+  const sinAbrir = !fila && !almacen && !camposLibres;
+  const abrirManual = () => {
+    setCamposLibres(true); setSugAbierto(false);
+    const t = bq.trim();
+    if (t && !d.nombre_empresa.trim() && !/\d{4}/.test(t)) set('nombre_empresa', t);
+  };
   const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => { setD((x) => ({ ...x, [k]: v })); setRepetido(null); };
 
   async function guardar(aunqueRepetido = false) {
@@ -383,7 +393,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         {fila && <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => setConfirmarBorrado(true)} disabled={!!trabajando}>Borrar</button>}
-        <button className="btn-primary" onClick={() => guardar(false)} disabled={!!trabajando}>{fila ? 'Guardar cambios' : `Crear ${que}`}</button>
+        <button className="btn-primary" onClick={() => guardar(false)} disabled={!!trabajando || sinAbrir}
+          title={sinAbrir ? 'Busca primero arriba (o pulsa «Rellenar el sitio a mano»)' : undefined}>{fila ? 'Guardar cambios' : `Crear ${que}`}</button>
       </>}>
       {fila && (
         <div className="sitio-meta-fechas">
@@ -441,17 +452,20 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         </>
       )}
       {!fila && !almacen && (
-        <div style={{ marginBottom: '0.8rem' }}>
+        <div style={{ border: '2px solid var(--green)', background: 'rgba(34,165,90,0.06)', borderRadius: 12, padding: '0.7rem 0.8rem', marginBottom: '0.8rem' }}>
           {/* Dentro de la rejilla estándar para que el campo tenga el mismo tamaño y
               estilo que el resto de la ficha (antes salía con el del navegador). */}
           <div className="ptar-sitio-grid" style={{ position: 'relative', gridTemplateColumns: '1fr' }}>
             <div style={{ position: 'relative' }}>
-            <label htmlFor="sitio-buscar">Buscar para autorrellenar (tu agenda, Google o dirección)</label>
+            <label htmlFor="sitio-buscar" style={{ color: 'var(--green)', fontWeight: 700 }}>Empieza aquí: busca para autorrellenar (tu agenda, Google o dirección)</label>
             <input id="sitio-buscar" autoComplete="off" placeholder="Escribe empresa o dirección…" value={bq}
               onChange={(e) => { setBq(e.target.value); setAvisoParecido(null); }}
               onFocus={() => setSugAbierto(true)} onBlur={() => setTimeout(() => setSugAbierto(false), 150)} />
-            {sugAbierto && (sug.ag.length > 0 || sug.go.length > 0 || sug.dir.length > 0) && (
+            {sugAbierto && bq.trim().length >= 2 && (
               <ul className="ptar-sug" style={{ zIndex: 1300 }}>
+                {sug.ag.length === 0 && sug.go.length === 0 && sug.dir.length === 0 && (
+                  <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Sin resultados con ese nombre.</li>
+                )}
                 {sug.ag.map((x) => (
                   <li key={`a${x.id}`} onMouseDown={(e) => { e.preventDefault(); setSugAbierto(false); onAbrir(x.id); }}>
                     <span className="sug-chip sug-chip-saved">Guardado</span><strong>{x.nombre}</strong><span className="sug-dir">{x.direccion}</span>
@@ -467,11 +481,15 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                     e.preventDefault();
                     setD((v) => ({ ...v, direccion: x.direccion || v.direccion, codigo_postal: x.codigo_postal || v.codigo_postal, poblacion: x.poblacion || v.poblacion, provincia: x.provincia || v.provincia, pais_codigo_iso: x.pais || v.pais_codigo_iso }));
                     elegidoTxt.current = x.etiqueta;
+                    setCamposLibres(true);
                     setBq(x.etiqueta); setSugAbierto(false);
                   }}>
                     <span className="sug-chip sug-chip-addr">Dirección</span><span className="sug-dir">{x.etiqueta}</span>
                   </li>
                 ))}
+                <li onMouseDown={(e) => { e.preventDefault(); abrirManual(); }}>
+                  <strong style={{ color: 'var(--purple)' }}>+ No lo encuentro: rellenar el sitio a mano</strong>
+                </li>
               </ul>
             )}
             </div>
@@ -484,6 +502,16 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           )}
         </div>
       )}
+      {/* Hasta que el buscador rellene (o se pida «a mano»), el resto de la ficha queda
+          oculto: guía primero por el buscador (usuario, 2026-11-09). */}
+      {sinAbrir ? (
+        <div className="pt-aviso info" style={{ marginBottom: 0 }}><div>
+          Empieza por el <strong>buscador de arriba</strong>: elige un sitio de tu agenda, una ficha de Google o una dirección y la ficha se rellena sola.
+          <div style={{ marginTop: '0.5rem' }}>
+            ¿No aparece? <button type="button" className="btn-secondary" onClick={abrirManual}>Rellenar el sitio a mano</button>
+          </div>
+        </div></div>
+      ) : (<>
       <div className="ptar-sitio-grid">
         {dynamo && !almacen && !clienteFijo && (
           <div style={{ gridColumn: '1/-1' }}>
@@ -564,6 +592,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         )}
 
       </div>
+      </>)}
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {fila?.id && <Historial tabla="sitios" id={fila.id} />}
       {trabajando && <Cargando texto={trabajando} />}
