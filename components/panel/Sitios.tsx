@@ -35,7 +35,7 @@ const esNuevo = (iso: string) => Date.now() - new Date(iso).getTime() < 48 * 360
 const NUEVO: SitioDatos = {
   cliente_id: '', nombre_empresa: '', tipo: '', direccion: '', codigo_postal: '', poblacion: '',
   provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '',
-  requiere_cita: false, tiene_medios_carga: true, contactos: [CONTACTO_VACIO()], emails_avisos: '',
+  requiere_cita: false, tiene_medios_carga: false, contactos: [CONTACTO_VACIO()], emails_avisos: '',
 };
 
 const IcoEstrella = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>);
@@ -122,14 +122,12 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
                     <IconoTipo tipo={f.tipo} /><strong>{f.nombre_empresa}</strong>
                     {prin && <> <span className="badge badge-principal">Principal</span></>}
                     {esNuevo(f.creado_en) && <> <span className="badge badge-green">Nuevo</span></>}
-                    {f.url_google_maps && <div className="meta"><a href={f.url_google_maps} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--purple)', fontWeight: 600, textDecoration: 'none' }}>Ver en Maps</a></div>}
                     <div className="meta sitio-fechas">Creado: {fechaHora(f.creado_en)}{f.modificado_en ? ` · Modificado: ${fechaHora(f.modificado_en)}` : ''}</div>
                   </td>
                   {dynamo && <td>{cli?.nombre ?? '—'}<div className="meta">{cli?.cif}</div></td>}
                   <td>{f.direccion || '—'}<div className="meta">{[f.codigo_postal, f.poblacion, f.provincia && f.provincia !== f.poblacion ? f.provincia : '', paisDe(f.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{f.horarios || '—'}
                     {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
-                    {(f.requiere_cita || !f.tiene_medios_carga) && <div className="meta" style={{ color: '#b45309', fontWeight: 600 }}>{[f.requiere_cita && 'Con cita previa', !f.tiene_medios_carga && 'Sin medios de carga'].filter(Boolean).join(' · ')}</div>}
                   </td>
                   <td>{(() => { const k = principal(f.contactos); return <>{telBonito(k?.telefono ?? '') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{notas ? <span style={{ color: '#b45309' }}>⚠ {notas.slice(0, 60)}{notas.length > 60 ? '…' : ''}</span> : '—'}</td>
@@ -187,7 +185,9 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
     const aNum = (t: string) => { const v = t.trim(); return v ? Number(v.replace(/\./g, '').replace(',', '.')) : null; };
     const semana = aNum(precios.semana), reparto = aNum(precios.reparto);
     if ([semana, reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0))) { setError('Los precios tienen que ser un número (o vacíos para usar los de por defecto).'); return; }
-    const datos: SitioDatos = almacen ? { ...d, almacen: { disponible: d.almacen?.disponible ?? true, precio_almacenamiento_semana: semana, precio_reparto: reparto } } : d;
+    // Cita y medios de carga ocultos de momento: se guardan siempre desactivados.
+    const base: SitioDatos = { ...d, requiere_cita: false, tiene_medios_carga: false };
+    const datos: SitioDatos = almacen ? { ...base, almacen: { disponible: d.almacen?.disponible ?? true, precio_almacenamiento_semana: semana, precio_reparto: reparto } } : base;
     if (!d.tipo) { setError('Elige el tipo de sitio.'); return; }
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
@@ -222,17 +222,6 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
       <label htmlFor={`sitio-${id}`}>{label}</label>
       <input id={`sitio-${id}`} type="text" value={String(d[id] ?? '')} placeholder={ph}
         onChange={(e) => set(id, e.target.value as never)} {...extra} />
-    </div>
-  );
-  const interruptor = (k: 'requiere_cita' | 'tiene_medios_carga', label: string, ayuda: string) => (
-    <div>
-      <label>{label}</label>
-      <label className="ptar-tramp-box">
-        <input type="checkbox" className="ptar-switch-input" checked={d[k]} onChange={(e) => set(k, e.target.checked)} />
-        <span className="ptar-switch" aria-hidden="true" />
-        <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
-      </label>
-      <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>{ayuda}</div>
     </div>
   );
   const opc = <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span>;
@@ -355,15 +344,9 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
         <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Personas de contacto del sitio</div>
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
           ayuda="Encargado de almacén, recepción… La primera es la principal (la que sale en la tabla)." />
-        {interruptor('requiere_cita', 'Requiere cita previa', 'Solo carga o descarga con cita. Se avisa al transportista antes de que llegue.')}
-        {interruptor('tiene_medios_carga', 'Tiene medios de carga', 'Muelle, carretilla… Si no los hay, hace falta camión con plataforma elevadora.')}
-        {dynamo
-          ? campo('url_google_maps', 'Enlace de Google Maps', 'https://maps.app.goo.gl/…', true)
-          : <div style={{ gridColumn: '1/-1' }}>
-              <label htmlFor="sitio-maps">Enlace de Google Maps</label>
-              <input id="sitio-maps" className="sitio-f-lock" readOnly tabIndex={-1} value={d.url_google_maps} />
-              <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>Lo completa Dynamo. Si tienes otro enlace, ponlo en <strong>Notas del sitio</strong>.</div>
-            </div>}
+        {/* «Requiere cita», «Tiene medios de carga» y «Enlace de Google Maps» ocultos de momento
+            (decisión del usuario, 2026-11-08): no se usan por ahora; se dejan desactivados al
+            guardar. No se tocan las tablas. */}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {fila?.id && <Historial tabla="sitios" id={fila.id} />}
