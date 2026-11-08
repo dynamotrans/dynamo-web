@@ -141,7 +141,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
       <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={url} nombre="sitios" nombreUno="sitio" />
 
       {ficha && (
-        <FichaSitio fila={ficha.fila} clientes={clientes} dynamo={dynamo} veranoDefecto={veranoDefecto}
+        <FichaSitio fila={ficha.fila} clientes={clientes} dynamo={dynamo} clienteFijo={lista.vistaCliente} veranoDefecto={veranoDefecto}
           onCerrar={() => setFicha(null)}
           onAbrir={(id) => { const f = filas.find((x) => x.id === id); if (f) setFicha({ fila: f }); }}
           onGuardado={() => { setFicha(null); refrescar(); }} />
@@ -152,13 +152,15 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
 
 // La misma ficha sirve para los ALMACENES DYNAMO (como en el mockup: formulario idéntico
 // al de Sitios + disponibilidad y precios propios). `almacen` trae los precios por defecto.
-export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VERANO_GENERICO, onCerrar, onAbrir, onGuardado }: {
+export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almacen, veranoDefecto = VERANO_GENERICO, onCerrar, onAbrir, onGuardado }: {
   fila: SitioFila | null; clientes: ClienteSitios[]; dynamo: boolean; veranoDefecto?: FechasVerano;
+  // «Ver como» un cliente: el sitio es SIEMPRE de ese cliente, así que el campo Cliente no sale.
+  clienteFijo?: boolean;
   almacen?: { precioSemana: number; precioReparto: number };
   onCerrar: () => void; onAbrir: (id: string) => void; onGuardado: () => void;
 }) {
   const [d, setD] = useState<SitioDatos>(() => {
-    const o: Partial<SitioDatos> = fila ? {} : { ...NUEVO, cliente_id: clientes.length === 1 ? clientes[0].id : '' };
+    const o: Partial<SitioDatos> = fila ? {} : { ...NUEVO, cliente_id: clientes.length === 1 || clienteFijo ? clientes[0]?.id ?? '' : '' };
     const w = o as Record<keyof SitioDatos, unknown>;
     if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { w[k] = fila[k] ?? NUEVO[k]; });
     if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
@@ -297,7 +299,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
         </>
       )}
       <div className="ptar-sitio-grid">
-        {dynamo && !almacen && (
+        {dynamo && !almacen && !clienteFijo && (
           <div style={{ gridColumn: '1/-1' }}>
             <label htmlFor="sitio-cliente">Cliente {!fila && obl}</label>
             {fila
