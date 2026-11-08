@@ -82,6 +82,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ---- Paso 3: fecha y precio
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar'>('estandar');
   const [fecha, setFecha] = useState('');
+  const [faltaFecha, setFaltaFecha] = useState(false);   // se intentó avanzar sin elegir fecha → marca el campo en rojo
   const [pc, setPc] = useState(esCliente ? '' : decimal(be?.importe_cliente));
   const [pt, setPt] = useState(esCliente ? '' : decimal(be?.importe_transportista));
   const [neg, setNeg] = useState<number>(be?.negociacion_pct ?? 10);
@@ -191,7 +192,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }
   async function siguiente() {
     const e = errorPaso(paso) ?? await coberturaError(paso);
-    if (e) { setAviso(e); return; }
+    if (e) { setAviso(e); if (paso === 3 && !fecha) setFaltaFecha(true); return; }
     setAviso(null); setPaso((p) => Math.min(4, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function atras() {
@@ -323,6 +324,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
   // Carga hoy para hoy: fecha fija y el día elegido es hoy (para el aviso de la confirmación).
   const esHoy = urgencia === 'dia' && !!fecha && diasHasta === 0;
+  // Resaltar en rojo el campo de fecha si se intentó avanzar sin elegirla (hasta que se ponga).
+  const marcarFecha = faltaFecha && !fecha;
+  const bordeFecha = marcarFecha ? { borderColor: '#dc2626', boxShadow: '0 0 0 3px rgba(220,38,38,0.12)' } : undefined;
 
   // ---- Avisos del paso 4 (los del mockup) --------------------------------------------
   // Recogida en un día que el sitio no abre (según su horario en Sitios o el del sitio nuevo).
@@ -555,7 +559,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-field-full">
                     {!modoCal ? (
                       // Lista de fechas; la última opción abre el calendario.
-                      <select className="ptar-select ptar-dia-naranja" aria-label="Fecha de recogida" value={dias.includes(fecha) ? fecha : (fecha ? 'elegida' : '')}
+                      <select className="ptar-select ptar-dia-naranja" aria-label="Fecha de recogida" style={bordeFecha} value={dias.includes(fecha) ? fecha : (fecha ? 'elegida' : '')}
                         onChange={(e) => { const v = e.target.value; if (v === '__cal__') setModoCal(true); else if (v !== 'elegida') setFecha(v); }}>
                         <option value="" disabled>Elige la fecha de recogida</option>
                         {dias.map((d) => (
@@ -568,12 +572,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       // Calendario: se toca para abrirlo (en iPhone no se puede abrir solo). Al elegir el
                       // primer día, la ventana (1 a 3 días) calcula el rango sola.
                       <div className="ptar-cal-fila">
-                        <input ref={calRef} type="date" className="ptar-select ptar-dia-naranja" aria-label="Elige el día en el calendario"
+                        <input ref={calRef} type="date" className="ptar-select ptar-dia-naranja" aria-label="Elige el día en el calendario" style={bordeFecha}
                           min={esMaster ? undefined : dias[0]} max={maxFecha} value={fecha && !dias.includes(fecha) ? fecha : ''}
                           onChange={(e) => { setFecha(e.target.value); if (e.target.value) setModoCal(false); }} />
                         <button type="button" className="ptar-cal-volver" onClick={() => setModoCal(false)}>Volver a la lista</button>
                       </div>
                     )}
+                    {marcarFecha && <div className="pt-aviso error" style={{ marginTop: '0.5rem', marginBottom: 0 }}><IcoAviso /><div><strong>Elige la fecha de recogida</strong> (es el campo que falta).</div></div>}
                   </div>
                   {esMaster && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede.</p></div>}
                 </>)}
