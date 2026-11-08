@@ -201,6 +201,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     for (let i = 0; i < 10; i++) { out.push(d); d = sumarHabiles(d, 1, fest); }
     return out;
   }, [urgencia, fest, reglas]);
+  // La fecha SIEMPRE válida respecto al corte (usuario, 2026-11-09): al abrir el formulario
+  // ya viene puesto el primer día posible (con la ventana estándar por defecto), y si al
+  // cambiar el tipo de fecha (fija/ventana/corta) la elegida ya no llega, salta sola al
+  // primer día hábil del tipo nuevo. Al editar no se toca (la fecha del envío manda), y el
+  // Master con fechas libres solo recibe el prerrelleno inicial.
+  useEffect(() => {
+    if (editar) return;
+    if (!fecha) { setFecha(dias[0]); return; }
+    if (!fechaLibre && fecha < dias[0]) setFecha(dias[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- corrige solo cuando cambia el primer día posible (tipo de fecha), no al teclear la fecha
+  }, [dias[0], editar, fechaLibre]);
 
   const sitiosCliente = useMemo(
     () => sitios.filter((s) => s.es_almacen_dynamo || (cliente && s.cliente_id === cliente.id)),
