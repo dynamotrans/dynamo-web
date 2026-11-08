@@ -39,7 +39,7 @@ export default function EditorHorario({ valor, onCambio }: { valor: GrupoHorario
           <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.6rem' }}>
             {g.tramos.map((t, k) => (
               <div key={k}>
-                <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600, marginBottom: 2 }}>{g.tramos.length > 1 ? (k === 0 ? 'Mañana' : k === 1 ? 'Tarde' : `Tramo ${k + 1}`) : 'Horario'}</div>
+                <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600, marginBottom: 2 }}>{g.tramos.length > 1 ? `Tramo ${k + 1}` : 'Horario'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Hora valor={t.abre} etiqueta="Abre" onCambio={(v) => cambiar(i, { ...g, tramos: g.tramos.map((x, j) => (j === k ? { ...x, abre: v } : x)) })} />
                 <span style={{ color: 'var(--gray-500)' }}>a</span>
@@ -51,7 +51,7 @@ export default function EditorHorario({ valor, onCambio }: { valor: GrupoHorario
             ))}
             {g.tramos.length < 3 && (
               <div><button type="button" className="btn-ghost" style={{ minHeight: 32, padding: '0 0.6rem', color: 'var(--purple)' }}
-                onClick={() => cambiar(i, { ...g, tramos: [...g.tramos, nuevoTramo(g.tramos)] })}>+ Añadir tramo (p. ej. de tarde)</button></div>
+                onClick={() => cambiar(i, { ...g, tramos: [...g.tramos, nuevoTramo(g.tramos)] })}>+ Añadir tramo</button></div>
             )}
           </div>
         </div>
