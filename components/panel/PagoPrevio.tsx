@@ -16,6 +16,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
 }) {
   const [exento, setExento] = useState(false);
   const [motivo, setMotivo] = useState('');
+  const [falta, setFalta] = useState<string | null>(null);
   if (!pago) {
     // Sin pago previo: Dynamo puede exigirlo a este envío mientras nadie lo tenga.
     if (envio.estado !== 'programado' || !libre) return null;
@@ -54,11 +55,18 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
           <div style={{ marginTop: '0.6rem' }}>
             {!pago.conCredito && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.3rem' }}>Ojo: este cliente no tiene crédito disponible en la plataforma. Hazlo solo si CESCE te lo ha confirmado.</div>}
             <label htmlFor="pp-motivo" style={{ fontWeight: 700 }}>Motivo (queda guardado)</label>
-            <textarea id="pp-motivo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500}
+            <textarea id="pp-motivo" rows={3} value={motivo} onChange={(e) => { setMotivo(e.target.value); if (e.target.value.trim().length >= 3) setFalta(null); }} maxLength={500}
               placeholder="P. ej. CESCE positivo, empresa conocida, cobro a 60 días" style={{ width: '100%', marginTop: '0.25rem' }} />
+            {falta && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.4rem' }}>⚠ {falta}</div>}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-              <button className="btn-primary" disabled={motivo.trim().length < 3}
-                onClick={async () => { if (await hacer('Guardando', () => marcarPagoEnvio(envio.id, 'exento', motivo))) { setExento(false); setMotivo(''); } }}>
+              <button className="btn-primary"
+                onClick={async () => {
+                  // El botón NO se deshabilita en silencio (el usuario escribió «Ok» y
+                  // parecía que no funcionaba): si el motivo es demasiado corto, se dice.
+                  if (motivo.trim().length < 3) { setFalta('Escribe el motivo con unas palabras (mínimo 3 letras): queda guardado en el envío.'); return; }
+                  setFalta(null);
+                  if (await hacer('Guardando', () => marcarPagoEnvio(envio.id, 'exento', motivo))) { setExento(false); setMotivo(''); }
+                }}>
                 Pasar a pendiente de asignar</button>
               <button className="btn-ghost" onClick={() => setExento(false)}>Volver</button>
             </div>
