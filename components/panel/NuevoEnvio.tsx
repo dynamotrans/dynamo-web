@@ -20,6 +20,7 @@ import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCl
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
 import AvisoCorte from './nuevoEnvio/AvisoCorte';
+import PistaScroll from './nuevoEnvio/PistaScroll';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import CampoOperador from './nuevoEnvio/CampoOperador';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
@@ -566,6 +567,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">
       <div className="sec-header"><h2>{enRuta ? `Cambiar ruta · #${be!.referencia_gx}` : base ? `Repetir envío · #${be!.referencia_gx}` : 'Nuevo envío'}</h2></div>
       {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : esCliente ? 'Enviando la solicitud' : 'Creando envío'} />}
+      {/* Pista flotante «Desliza…» (mockup): cuando el botón de acción del paso queda
+          por debajo del pliegue. En Fecha y precio y en Confirmar, que son los largos. */}
+      {(paso === 3 || paso === 4) && !revisarLegal && !enviando && (
+        <PistaScroll selector="[data-pista-accion]"
+          texto={paso === 4 && esCliente && !manual ? 'Desliza para enviar la solicitud' : 'Desliza para crear el envío'} />
+      )}
       {base?.modo === 'repetir' && paso === 1 && (
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se ha copiado todo del envío <strong>#{be!.referencia_gx}</strong> (ruta{esCliente ? ' y mercancía' : ', mercancía y precios'}) salvo la <strong>fecha</strong>. Revísalo y cambia lo que haga falta: se creará un envío <strong>nuevo</strong>.</div></div>
       )}
@@ -811,7 +818,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               <button type="button" className="btn-ghost" onClick={enRuta ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
               {enRuta
                 ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
-                : <button type="button" className="btn-primary" onClick={siguiente} disabled={comprobando}>{comprobando ? 'Comprobando la ruta…' : paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
+                : <button type="button" className="btn-primary" data-pista-accion onClick={siguiente} disabled={comprobando}>{comprobando ? 'Comprobando la ruta…' : paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
             </div>
             {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
           </div>
@@ -885,7 +892,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
                     setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
                   }}
-                  disabled={enviando}>{enviando ? (esCliente && !manual ? 'Enviando…' : 'Creando envío…') : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
+                  data-pista-accion disabled={enviando}>{enviando ? (esCliente && !manual ? 'Enviando…' : 'Creando envío…') : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
               </div>
             </div>
