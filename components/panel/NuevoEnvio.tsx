@@ -33,6 +33,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
+  // Fechas libres (cualquier fecha, también pasada: envíos gestionados por teléfono): SOLO
+  // el Admin Master actuando como Dynamo. Dentro de la vista de un cliente (o como
+  // cliente) la hora de corte manda para todos (usuario, 2026-11-08).
+  const fechaLibre = esMaster && !sinCampoCliente;
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';       // solo la ruta (queda para los envíos manuales)
   const editar = base?.modo === 'editar';     // modificarlo ENTERO con el asistente (ficha → «Modificar»)
@@ -336,6 +340,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     if (n === 2 && (!ml || !peso)) return 'Indica los metros lineales y el peso.';
     if (n === 3) {
       if (!fecha) return 'Elige la fecha de recogida.';
+      // La hora de corte manda: nadie elige un primer día que ya no llega. Quedan fuera el
+      // envío manual (lo mueve el operador del cliente, sin cortes de Dynamo), las fechas
+      // libres del Master y, al editar, una fecha que no se ha tocado.
+      if (!manual && !fechaLibre && fecha < dias[0] && !(editar && fecha === (be?.fecha_carga_desde ?? ''))) {
+        const corteTxt = urgencia === 'estandar' ? (reglas?.corte_ventana_hora ?? 14) : (reglas?.corte_fija_hora ?? 12);
+        return `Esa fecha ya no llega (el corte de las ${corteTxt}:00 ha pasado): el primer día de carga posible es el ${fmtFecha(dias[0])}. Elige otra fecha.`;
+      }
       if (!esCliente && !manual && !(importe > 0)) return 'Pon el precio del cliente (base sin IVA).';
       if (!esCliente && !manual && importeT !== null && !(importeT >= 0)) return 'El precio del transportista no es un número válido.';
     }
@@ -819,7 +830,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       // primer día, la ventana (1 a 3 días) calcula el rango sola.
                       <div className="ptar-cal-fila">
                         <input ref={calRef} type="date" className="ptar-select ptar-dia-naranja" aria-label="Elige el día en el calendario" style={bordeFecha}
-                          min={esMaster ? undefined : dias[0]} max={maxFecha} value={fecha && !dias.includes(fecha) ? fecha : ''}
+                          min={fechaLibre ? undefined : dias[0]} max={maxFecha} value={fecha && !dias.includes(fecha) ? fecha : ''}
                           onChange={(e) => { setFecha(e.target.value); if (e.target.value) setModoCal(false); }} />
                         <button type="button" className="ptar-cal-volver" onClick={() => setModoCal(false)}>Volver a la lista</button>
                       </div>
@@ -832,7 +843,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         cortes={{ fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora }} />
                     </div>
                   )}
-                  {esMaster && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede.</p></div>}
+                  {fechaLibre && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede; en la vista de un cliente, tampoco tú.</p></div>}
                 </>)}
               </div>
             </div>
