@@ -46,16 +46,14 @@ export function Estado({ ficha, onVolver, hacer, trabajando }: SubProps) {
         : (
           <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
             <legend style={{ fontWeight: 700, marginBottom: '0.4rem' }}>¿En qué etapa está?</legend>
-            <div className="pen-envio-sum">
+            <div className="estado-lista">
               {etapas.map((x) => (
-                <label key={x.paso} className="pen-sum-row" style={{ cursor: 'pointer', ...(paso === x.paso ? { background: 'rgba(51,0,204,0.07)', borderRadius: 8 } : {}) }}>
-                  <span className="k" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: x.actual ? 800 : 600, color: x.actual ? 'var(--purple)' : undefined }}>
+                <label key={x.paso} className={`estado-opt${paso === x.paso ? ' sel' : ''}`}>
+                  <span className="estado-opt-main">
                     <input type="radio" name="etapa" checked={paso === x.paso} onChange={() => setPaso(x.paso)} />
-                    {nombreEtapa(x)}{x.actual ? ' · ahora' : ''}
+                    <span style={{ fontWeight: x.actual ? 800 : 600, color: x.actual ? 'var(--purple)' : undefined }}>{nombreEtapa(x)}{x.actual ? ' · ahora' : ''}</span>
                   </span>
-                  <span className="v" style={{ textAlign: 'right', color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>
-                    {x.hora ? `${x.hecha ? '' : 'prevista '}${fechaHora(x.hora)}` : ''}
-                  </span>
+                  {x.hora && <span className="estado-opt-eta">{x.hecha ? '' : 'prevista '}{fechaHora(x.hora)}</span>}
                 </label>
               ))}
             </div>

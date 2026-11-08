@@ -1236,6 +1236,17 @@ body.theme-dark .sidebar { background: #060116; }
 .dash-modal-title { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); line-height: 1.25; }
 .dash-modal-sub { font-size: var(--fs-m); color: var(--gray-500); margin-top: 0.2rem; }
 .dash-modal-body { margin-bottom: 1.1rem; }
+/* Que ningún texto largo (direcciones, referencias…) desborde la ventana. */
+.dash-modal-card { overflow-wrap: anywhere; }
+/* Lista de etapas de «Cambiar estado»: la hora prevista va DEBAJO del nombre
+   (antes iba en una columna a la derecha con nowrap y se salía de la ventana
+   cuando el nombre de la parada era largo). */
+.estado-lista { display: flex; flex-direction: column; gap: 0.1rem; }
+.estado-opt { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.45rem 0.55rem; border-radius: 8px; cursor: pointer; }
+.estado-opt.sel { background: rgba(51,0,204,0.07); }
+.estado-opt-main { display: flex; align-items: center; gap: 0.5rem; font-size: var(--fs-m); line-height: 1.35; }
+.estado-opt-main input { flex: none; }
+.estado-opt-eta { color: var(--gray-500); font-size: var(--fs-s); padding-left: 1.75rem; }
 /* Aviso de suspensión: CAJA roja con la línea + "Ampliar para ver más"
    FUERA de la caja, aparte (details debajo con el texto legal). */
 .susp-caja { margin-top: 0.8rem; font-size: var(--fs-m); font-weight: 500; color: var(--gray-700); line-height: 1.55; }
