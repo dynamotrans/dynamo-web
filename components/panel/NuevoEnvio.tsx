@@ -539,7 +539,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 {paso === 3 && (<>
                   <div className="ptar-section-head ptar-sh-fecha">Fecha de recogida</div>
                   <div className="ptar-field-full">
-                    <SelectorUrgencia valor={urgencia} onCambio={(v) => { setUrgencia(v); setFecha(''); setModoCal(false); }} />
+                    {/* Al cambiar de tipo NO se borra el día ya elegido: la ventana se recalcula sola
+                        (fija → el día; 1 a 3 días → de ese día al rango). */}
+                    <SelectorUrgencia valor={urgencia} onCambio={(v) => { setUrgencia(v); setModoCal(false); }} />
                   </div>
                   <div className="ptar-field-full">
                     {!modoCal ? (
