@@ -29,7 +29,7 @@ export async function entrar(page: Page, quien: keyof typeof EMAIL) {
 }
 
 export async function ultimoEnvio() {
-  const { data, error } = await bd().from('envios').select('id, referencia_gx, estado, estado_solicitud, estado_pago_previo, transportista_id')
+  const { data, error } = await bd().from('envios').select('id, referencia_gx, estado, estado_solicitud, estado_pago_previo, transportista_id, importe_cliente')
     .order('creado_en', { ascending: false }).limit(1).single();
   if (error) throw error;
   return data;

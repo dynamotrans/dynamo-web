@@ -956,18 +956,18 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   : manual
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>
                   : esCliente
-                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda <strong>programado con este precio</strong> (base sin IVA). Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</p>
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> revisas las condiciones y queda <strong>programado con este precio</strong> (base sin IVA). Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</p>
                   : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>}
               </div>
               {aviso && !revisarLegal && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
               <div className="ptar-actions ptar-actions-confirm">
-                {/* Dynamo (envío real que se asigna a transportista): doble confirmación con los
-                    costes de cancelación. El cliente (solicitud) y el envío manual no la llevan:
-                    en la solicitud no hay compromiso aún, y en el manual Dynamo no interviene. */}
+                {/* Doble confirmación con los costes de cancelación y las condiciones generales:
+                    la llevan Dynamo y también el CLIENTE (su envío nace ya con precio y compromiso;
+                    la base de datos apunta condiciones_aceptadas_en). Al editar se guarda directo:
+                    no hay nada nuevo que aceptar. */}
                 <button type="button" className="btn-primary"
                   onClick={() => {
                     if (editar) { guardarEdicion(); return; }
-                    if (esCliente) { crear(); return; }
                     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
                     setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
                   }}

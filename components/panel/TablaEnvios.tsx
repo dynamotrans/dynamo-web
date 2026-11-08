@@ -116,7 +116,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
             ? <><strong>Envío #{nuevo} creado.</strong> Queda programado, a la espera de asignar transportista.</>
             : nuevoManual
             ? <><strong>Envío #{nuevo} creado</strong> con tu operador. Ábrelo para sacar la orden de carga y llevar su estado.</>
-            : <><strong>Solicitud #{nuevo} enviada.</strong> Te pasamos el precio en menos de 25 minutos (en horario de oficina) y lo verás aquí para aceptarlo.</>}
+            : <><strong>Envío #{nuevo} creado</strong> con el precio del tarifador. Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</>}
         </div></div>
       )}
 

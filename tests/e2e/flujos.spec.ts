@@ -1,12 +1,15 @@
 // Los 5 flujos clave de la plataforma, de punta a punta en un navegador:
-//   1. el cliente pide un envío · 2. Dynamo pone precio, el cliente acepta y paga (transferencia)
-//   3. Dynamo asigna transportista · 4. un transportista acepta una carga por el enlace
-//   5. se firma el CMR digital · 6. la plataforma en vivo: lo nuevo aparece sin refrescar.
+//   1. el cliente crea un envío (el precio lo pone el tarifador automático) · 2. nace pendiente
+//   de pago y Dynamo da la transferencia por recibida · 3. Dynamo asigna transportista
+//   4. un transportista acepta una carga por el enlace · 5. se firma el CMR digital
+//   6. la plataforma en vivo: lo nuevo aparece sin refrescar.
 import { test, expect, type Page } from '@playwright/test';
 import { entrar, ultimoEnvio, bd, CIF_TRANSPORTISTA } from './ayudas';
 
-// El cliente (ya dentro) pide un envío Sevilla → Madrid con el primer día posible.
-async function pedirEnvio(page: Page) {
+// El cliente (ya dentro) crea un envío Sevilla → Madrid con el primer día posible. Ya no hay
+// solicitudes de precio: el tarifador pone el precio y el envío nace programado, tras marcar
+// las condiciones en la ventana de confirmación.
+async function crearEnvioDeCliente(page: Page) {
   await page.goto('/panel/nuevo-envio');
   const sitio = page.locator('.ptar-route-row input[type=text]');
   await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
@@ -15,28 +18,20 @@ async function pedirEnvio(page: Page) {
   await page.getByRole('button', { name: /Siguiente/ }).click();
   await page.locator('select').filter({ has: page.locator('option', { hasText: 'Elige la fecha de recogida' }) }).selectOption({ index: 1 });
   await page.getByRole('button', { name: /Ver resumen/ }).click();
-  await page.getByRole('button', { name: 'Enviar solicitud' }).click();
-  await expect(page.getByText(/Solicitud #?\S+ enviada/)).toBeVisible();
+  await expect(page.locator('.ptar-sug-sub')).toBeVisible();   // el tarifador ya ha calculado
+  await page.getByRole('button', { name: 'Crear envío' }).click();
+  await page.locator('.dash-modal-card input[type=checkbox]').check();   // condiciones + cancelación
+  await page.getByRole('button', { name: 'Confirmar envío' }).click();
+  await expect(page.getByText(/Envío #?\S+ creado/)).toBeVisible();
 }
 
-// Pide un envío como cliente, le pone precio Dynamo, el cliente lo acepta y Dynamo da el pago
-// por recibido: queda programado, pagado y sin transportista. Devuelve su id.
+// El cliente crea un envío (nace programado, con el precio del tarifador) y, si su cuenta paga
+// por adelantado, Dynamo da la transferencia por recibida: programado, pagado y sin
+// transportista. Devuelve su id.
 async function envioListo(page: Page): Promise<string> {
   await entrar(page, 'cliente');
-  await pedirEnvio(page);
+  await crearEnvioDeCliente(page);
   const id = (await ultimoEnvio()).id;
-  await entrar(page, 'dynamo');
-  await page.goto(`/panel/envios?ver=${id}`);
-  await page.getByRole('button', { name: 'Poner precio' }).click();
-  await page.fill('#pp-pc', '1.200'); await page.fill('#pp-pt', '1.000');
-  await page.getByRole('button', { name: 'Enviar precio al cliente' }).click();
-  await expect.poll(async () => (await ultimoEnvio()).estado_solicitud).toBe('precio_propuesto');
-  await entrar(page, 'cliente');
-  await page.goto(`/panel/envios?ver=${id}`);
-  const condiciones = page.locator('input[type=checkbox]');
-  if (await condiciones.count()) await condiciones.first().check();
-  await page.getByRole('button', { name: 'Aceptar precio y confirmar envío' }).click();
-  await expect.poll(async () => (await ultimoEnvio()).estado).toBe('programado');
   if ((await ultimoEnvio()).estado_pago_previo === 'pendiente') {
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${id}`);
@@ -50,31 +45,17 @@ test.describe.serial('flujos clave', () => {
   let envio = '';
   let envioAceptado = '';
 
-  test('1 · el cliente pide un envío', async ({ page }) => {
+  test('1 · el cliente crea un envío con el precio del tarifador', async ({ page }) => {
     await entrar(page, 'cliente');
-    await pedirEnvio(page);
+    await crearEnvioDeCliente(page);
     const e = await ultimoEnvio();
-    expect(e.estado_solicitud).toBe('pendiente_precio');
+    expect(e.estado).toBe('programado');                          // nace programado, sin solicitud
+    expect(Number(e.importe_cliente)).toBeGreaterThan(0);         // el precio lo puso el tarifador
     envio = e.id;
   });
 
-  test('2 · Dynamo pone precio, el cliente lo acepta y paga por transferencia', async ({ page }) => {
-    await entrar(page, 'dynamo');
-    await page.goto(`/panel/envios?ver=${envio}`);
-    await page.getByRole('button', { name: 'Poner precio' }).click();
-    await page.fill('#pp-pc', '1.200');
-    await page.fill('#pp-pt', '1.000');
-    await page.getByRole('button', { name: 'Enviar precio al cliente' }).click();
-    await expect(page.getByText(/precio/i).first()).toBeVisible();
-
-    await entrar(page, 'cliente');
-    await page.goto(`/panel/envios?ver=${envio}`);
-    const condiciones = page.locator('input[type=checkbox]').filter({ hasNot: page.locator('[disabled]') });
-    if (await condiciones.count()) await condiciones.first().check();
-    await page.getByRole('button', { name: 'Aceptar precio y confirmar envío' }).click();
-    await expect.poll(async () => (await ultimoEnvio()).estado).toBe('programado');
+  test('2 · el envío nace pendiente de pago y Dynamo da la transferencia por recibida', async ({ page }) => {
     expect((await ultimoEnvio()).estado_pago_previo).toBe('pendiente');   // primer envío: pago previo
-
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${envio}`);
     await page.getByRole('button', { name: 'Ha llegado la transferencia' }).click();
@@ -157,18 +138,18 @@ test.describe.serial('flujos clave', () => {
     }).toBe(1);
   });
 
-  test('6 · en vivo: el envío que pide un cliente le aparece a Dynamo sin refrescar', async ({ page, browser }) => {
+  test('6 · en vivo: el envío que crea un cliente le aparece a Dynamo sin refrescar', async ({ page, browser }) => {
     await entrar(page, 'dynamo');
     await page.goto('/panel/envios');
-    // La solicitud nueva entra en «Solicitudes de precio» (la pestaña no sale si está vacía).
-    const pestana = page.locator('a.tab').filter({ hasText: /^Solicitudes de precio \(\d+\)$/ });
+    // El envío nuevo del cliente nace programado: sube el contador de la pestaña «Todas».
+    const pestana = page.locator('a.tab').filter({ hasText: /^Todas \(\d+\)$/ });
     const cuantas = async () => (await pestana.count()) ? Number(/\((\d+)\)/.exec((await pestana.first().textContent()) ?? '')?.[1]) : 0;
     const antes = await cuantas();
     expect(antes).toBeGreaterThanOrEqual(0);
 
     const cli = await (await browser.newContext({ locale: 'es-ES' })).newPage();
     await entrar(cli, 'cliente');
-    await pedirEnvio(cli);
+    await crearEnvioDeCliente(cli);
 
     // Sin recargar la página de Dynamo: el contador se mueve solo.
     await expect.poll(cuantas, { timeout: 20_000 }).toBe(antes + 1);
