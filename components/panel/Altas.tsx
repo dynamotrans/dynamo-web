@@ -8,7 +8,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { confirmarAlta, suspenderAlta, type NuevaEmpresa } from '@/app/panel/(app)/altas/acciones';
+import { confirmarAlta, crearEmpresaDesdeAlta, suspenderAlta, type NuevaEmpresa } from '@/app/panel/(app)/altas/acciones';
 
 import { fecha, euros, fechaHora } from '@/lib/formato';
 import { estadoCola, duracionTxt, COLA_OBJETIVO_TXT } from '@/lib/colaAltas';
@@ -178,8 +178,9 @@ function FichaAltaTransportista({ t, onCerrar, onHecho }: { t: AltaTransportista
 function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: Cliente[]; onCerrar: () => void; onHecho: () => void }) {
   // Si su CIF ya es de un cliente, lo normal es asociarla a ese (regla 10: un CIF, un cliente).
   const coincide = a.cif ? clientes.find((c) => norm(c.cif) === norm(a.cif)) ?? null : null;
-  const [modo, setModo] = useState<'existente' | 'nuevo'>(coincide || !a.empresa ? 'existente' : 'nuevo');
   const [clienteId, setClienteId] = useState(coincide?.id ?? '');
+  const [lista, setLista] = useState<Cliente[]>(clientes);   // los clientes del selector (+ el que se cree aquí)
+  const [crearAbierto, setCrearAbierto] = useState(false);
   const [n, setN] = useState<NuevaEmpresa>({ razon_social: a.empresa, cif: a.cif, direccion: a.direccion, codigo_postal: a.codigo_postal,
     poblacion: a.poblacion, provincia: a.provincia, pais_codigo_iso: a.pais.length === 2 ? a.pais.toUpperCase() : 'ES' });
   const [error, setError] = useState<string | null>(null);
@@ -189,10 +190,19 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
 
   async function confirmar() {
     setError(null); setTrabajando('Confirmando el alta');
-    const r = await confirmarAlta(a.id, modo === 'existente' ? { id: clienteId } : { nuevo: n });
+    const r = await confirmarAlta(a.id, { id: clienteId });
     setTrabajando(null);
     if (!r.ok) { setError(r.error); return; }
     onHecho();
+  }
+  async function crearEmpresa() {
+    setError(null); setTrabajando('Creando la empresa');
+    const r = await crearEmpresaDesdeAlta(n);
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); return; }
+    setLista((l) => [r.cliente, ...l.filter((c) => c.id !== r.cliente.id)]);
+    setClienteId(r.cliente.id);
+    setCrearAbierto(false);
   }
   async function suspender() {
     setTrabajando('Suspendiendo');
@@ -226,7 +236,7 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cerrar</button>
         <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setPreguntaSuspender(true)} disabled={!!trabajando}>Suspender</button>
-        <button className="btn-primary" onClick={confirmar} disabled={!!trabajando || (modo === 'existente' && !clienteId)}>Confirmar alta</button>
+        <button className="btn-primary" onClick={confirmar} disabled={!!trabajando || !clienteId}>Confirmar alta</button>
       </>}>
       <p style={{ fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)', marginBottom: '0.7rem' }}>Datos tal cual los envió en el <strong>formulario de registro</strong> (las altas del portal son siempre de <strong>clientes</strong>).</p>
       <div className="pen-envio-sum">
@@ -244,32 +254,40 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
 
       <div className="ptar-section-head" style={{ marginTop: '1rem' }}>Empresa de la cuenta</div>
       {coincide && <div className="pt-aviso" style={{ margin: '0.5rem 0' }}><div>Su CIF ya es de <strong>{coincide.nombre_visible}</strong>: lo normal es asociarla a esa empresa (un CIF solo puede ser cliente una vez).</div></div>}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.5rem 0 0.7rem' }}>
-        <button type="button" className={modo === 'existente' ? 'btn-primary' : 'btn-ghost'} onClick={() => setModo('existente')}>Asociar a un cliente que ya existe</button>
-        <button type="button" className={modo === 'nuevo' ? 'btn-primary' : 'btn-ghost'} onClick={() => setModo('nuevo')}>Crear un cliente nuevo con sus datos</button>
-      </div>
-      {modo === 'existente' ? (
-        <select className="ptar-select" value={clienteId} onChange={(e) => setClienteId(e.target.value)} aria-label="Cliente">
-          <option value="">Selecciona el cliente…</option>
-          {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre_visible} · {c.cif}</option>)}
-        </select>
-      ) : (
-        <div className="ptar-sitio-grid">
-          {campo('razon_social', 'Razón social *', true)}
-          {campo('cif', 'CIF / NIF *')}
-          <div>
-            <label htmlFor="alta-pais">País</label>
-            <SelectorPais id="alta-pais" valor={n.pais_codigo_iso} onCambio={(v) => setN((x) => ({ ...x, pais_codigo_iso: v }))} />
-          </div>
-          {campo('direccion', 'Dirección (calle y número)', true)}
-          {campo('codigo_postal', 'Código postal')}
-          {campo('poblacion', 'Población')}
-          {campo('provincia', 'Provincia')}
-        </div>
-      )}
+      {/* Un único selector: se busca el cliente y, si no está, la última opción crea uno nuevo. */}
+      <select className="ptar-select" style={{ marginTop: '0.5rem' }} value={clienteId} aria-label="Cliente"
+        onChange={(e) => { if (e.target.value === '__nuevo__') setCrearAbierto(true); else setClienteId(e.target.value); }}>
+        <option value="">Selecciona el cliente…</option>
+        {lista.map((c) => <option key={c.id} value={c.id}>{c.nombre_visible} · {c.cif}</option>)}
+        <option value="__nuevo__">➕ Crear un cliente nuevo con sus datos…</option>
+      </select>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Al confirmar, la cuenta queda <strong>activa</strong> y ya puede entrar. Las condiciones del cliente (plazo de pago, crédito, factor…) se completan en <strong>Clientes</strong>.</p>
-      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
-      {trabajando && <Cargando texto={trabajando} />}
+      {error && !crearAbierto && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {trabajando && !crearAbierto && <Cargando texto={trabajando} />}
+
+      {crearAbierto && (
+        <Modal abierto titulo="Crear un cliente nuevo" sub="Con los datos del registro; luego se asocia a esta cuenta." icono={<IcoUsuario />} ancho={620}
+          onCerrar={() => { if (!trabajando) { setError(null); setCrearAbierto(false); } }}
+          pie={<>
+            <button className="btn-ghost" onClick={() => { setError(null); setCrearAbierto(false); }} disabled={!!trabajando}>Cancelar</button>
+            <button className="btn-primary" onClick={crearEmpresa} disabled={!!trabajando || !n.razon_social.trim() || !n.cif.trim()}>Crear y seleccionar</button>
+          </>}>
+          <div className="ptar-sitio-grid">
+            {campo('razon_social', 'Razón social *', true)}
+            {campo('cif', 'CIF / NIF *')}
+            <div>
+              <label htmlFor="alta-pais">País</label>
+              <SelectorPais id="alta-pais" valor={n.pais_codigo_iso} onCambio={(v) => setN((x) => ({ ...x, pais_codigo_iso: v }))} />
+            </div>
+            {campo('direccion', 'Dirección (calle y número)', true)}
+            {campo('codigo_postal', 'Código postal')}
+            {campo('poblacion', 'Población')}
+            {campo('provincia', 'Provincia')}
+          </div>
+          {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+          {trabajando && <Cargando texto={trabajando} />}
+        </Modal>
+      )}
     </Modal>
   );
 }

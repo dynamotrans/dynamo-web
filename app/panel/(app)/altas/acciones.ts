@@ -38,6 +38,24 @@ export async function confirmarAlta(usuario: string, cliente: { id: string } | {
   return { ok: true };
 }
 
+// Crear una empresa (cliente) nueva con sus datos y devolverla, para elegirla en el selector
+// del alta. El alta se confirma después con esa empresa ya existente.
+export async function crearEmpresaDesdeAlta(n: NuevaEmpresa): Promise<{ ok: true; cliente: { id: string; nombre_visible: string; cif: string } } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/altas/acciones#crearEmpresaDesdeAlta", [n]);
+  const sb = await dynamo();
+  if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo crea empresas.' };
+  if (!n.razon_social.trim() || !n.cif.trim()) return { ok: false, error: 'Para crear la empresa hacen falta la razón social y el CIF.' };
+  const { data, error } = await sb.from('clientes').insert({
+    razon_social: n.razon_social.trim(), cif: n.cif.trim().toUpperCase(), direccion: vacio(n.direccion), codigo_postal: vacio(n.codigo_postal),
+    poblacion: vacio(n.poblacion), provincia: vacio(n.provincia), pais_codigo_iso: n.pais_codigo_iso || 'ES', estado: 'activa',
+  }).select('id, nombre_visible, cif').single();
+  if (error) {
+    if (/ux_clientes_cif|duplicate key/i.test(error.message)) return { ok: false, error: 'Ya hay un cliente con ese CIF: búscalo en el selector y asócialo (un CIF solo puede ser cliente una vez).' };
+    return { ok: false, error: mensajeError(error.message) };
+  }
+  return { ok: true, cliente: { id: data.id as string, nombre_visible: data.nombre_visible as string, cif: data.cif as string } };
+}
+
 // Suspender: la cuenta queda bloqueada; ese email no puede volver a registrarse.
 export async function suspenderAlta(usuario: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/altas/acciones#suspenderAlta", [usuario]);
