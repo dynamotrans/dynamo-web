@@ -6321,3 +6321,36 @@ do $$ declare e uuid; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 170. El estado «borrador» no sobrevive: la red horaria convierte TODOS ---------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; f uuid; g uuid; begin
+  -- Dos borradores SIN estado de solicitud (como los que generan los datos de prueba):
+  -- uno con fecha futura y otro con la fecha ya pasada.
+  insert into envios (cliente_id, metros_lineales, fecha_carga_desde)
+    values (c, 5, (now() at time zone 'Europe/Madrid')::date + 5) returning id into e;
+  insert into envios (cliente_id, metros_lineales, fecha_carga_desde)
+    values (c, 5, (now() at time zone 'Europe/Madrid')::date - 5) returning id into f;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES'),
+           (f, 1, 'carga', '41001', 'Sevilla', 'ES'), (f, 2, 'descarga', '28001', 'Madrid', 'ES');
+  -- Y uno futuro SIN paradas: no puede programarse (el validador exige la ruta) → se cancela.
+  insert into envios (cliente_id, metros_lineales, fecha_carga_desde)
+    values (c, 5, (now() at time zone 'Europe/Madrid')::date + 5) returning id into g;
+  if (select estado from envios where id = e) <> 'borrador' then
+    raise exception 'FALLO 170 · el envío recién insertado no nace en borrador (ha cambiado el valor por defecto)';
+  end if;
+  perform revisar_precios_programados();
+  if (select (estado::text, estado_solicitud::text, importe_cliente) from envios where id = e)
+     is distinct from ('programado'::text, 'aceptada'::text, 700::numeric) then
+    raise exception 'FALLO 170 · un borrador futuro sin estado de solicitud no se convierte en programado con el precio plano';
+  end if;
+  if (select (estado::text, cancelacion_sin_coste) from envios where id = f) is distinct from ('cancelado'::text, true) then
+    raise exception 'FALLO 170 · un borrador con la fecha pasada no se cancela sin coste';
+  end if;
+  if (select (estado::text, cancelacion_sin_coste) from envios where id = g) is distinct from ('cancelado'::text, true) then
+    raise exception 'FALLO 170 · un borrador sin ruta no se cancela sin coste';
+  end if;
+  raise notice 'OK 170 · el estado «borrador» no sobrevive: la red horaria convierte todos (futuros a programado, pasados a cancelado sin coste)';
+end $$;
