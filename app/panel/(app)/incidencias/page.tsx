@@ -51,7 +51,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       'tipos_incidencia(nombre), clientes(nombre_visible), envios(referencia_gx, referencia_cliente, fecha_carga_desde, fecha_carga_hasta, ' +
       'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas)'), vista).order('creado_en', { ascending: false }), 5000),
     supabase.from('tipos_incidencia').select('id, clave, nombre, activo').order('orden'),
-    leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000),
+    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible'), vista, { cliente: 'id', transportista: null }).order('nombre_visible'), 10000),
     cargarEnviosLigeros(supabase),
   ]);
   const filas: IncidenciaFila[] = (inc.data ?? []).map((x) => ({

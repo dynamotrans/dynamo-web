@@ -136,7 +136,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
   // El cliente solo puede tocarla mientras está abierta (después la lleva Dynamo).
   const soloLectura = esCliente && !!fila && fila.estado !== 'abierto';
   const [d, setD] = useState<IncidenciaDatos>({
-    envio_id: fila?.envio_id ?? envioInicial, cliente_id: fila?.cliente_id ?? null, tipo_id: fila?.tipo_id ?? tipoInicial ?? '',
+    envio_id: fila?.envio_id ?? envioInicial, cliente_id: fila?.cliente_id ?? (clientes.length === 1 ? clientes[0].id : null), tipo_id: fila?.tipo_id ?? tipoInicial ?? '',
     estado: fila?.estado ?? 'abierto', prioridad: fila?.prioridad ?? 'media',
     titulo: fila?.titulo ?? (tipoInicial ? 'Siniestro: ' : ''), detalle: fila?.detalle ?? '', resolucion: fila?.resolucion ?? '',
   });

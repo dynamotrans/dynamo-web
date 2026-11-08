@@ -4,6 +4,7 @@ import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
 import { esGestor } from '@/lib/sesion';
+import { vistaCruda } from '@/lib/vista';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { gestorOCliente } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
@@ -32,7 +33,13 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar transportistas.' };
   if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'El nombre y el CIF/NIF son obligatorios.' };
   const dynamo = esGestor(s.perfil!.rol);
-  if (dynamo && !id && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es este transportista.' };
+  // Un gestor sin cliente elegido: con «Ver como» un cliente, el transportista es de ESE
+  // cliente (la pantalla ya no enseña selector); sin vista, hay que decir de quién es.
+  if (dynamo && !id && !d.cliente_id) {
+    const v = await vistaCruda();
+    if (v.tipo === 'cliente') d = { ...d, cliente_id: v.id };
+    else return { ok: false, error: 'Elige de qué cliente es este transportista.' };
+  }
   const tel = normalizaTel(d.telefono);
   const fila: Record<string, unknown> = {
     razon_social: d.razon_social.trim(), cif: d.cif.trim().toUpperCase(), telefono: tel || null, email: vacio(d.email)?.toLowerCase() ?? null,

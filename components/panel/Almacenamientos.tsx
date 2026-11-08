@@ -146,9 +146,10 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
     num_trailers: fila.num_trailers, num_repartos: fila.num_repartos, sitio_entrega_id: fila.sitio_entrega_id,
     descripcion: fila.descripcion ?? '', referencia_cliente: fila.referencia_cliente ?? '', anotaciones: fila.anotaciones ?? '',
   } : {
-    cliente_id: '', almacen_id: '', fecha_entrada: masDias(hoy(), 1), fecha_salida: masDias(hoy(), 4),
+    cliente_id: clientes.length === 1 ? clientes[0].id : '', almacen_id: '', fecha_entrada: masDias(hoy(), 1), fecha_salida: masDias(hoy(), 4),
     num_trailers: 1, num_repartos: 0, sitio_entrega_id: null, descripcion: '', referencia_cliente: '', anotaciones: '',
-  }, [fila]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fila]);   // clientes solo decide el valor inicial del alta (cliente único de la vista)
   const [d, setD] = useState<AlmacenamientoDatos>(inicio);
   const [sitios, setSitios] = useState<{ id: string; nombre: string; linea: string }[]>([]);
   const [error, setError] = useState<string | null>(null);

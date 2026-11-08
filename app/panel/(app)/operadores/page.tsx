@@ -18,11 +18,14 @@ export default async function PaginaOperadores() {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes.</div></div></section>;
   }
   const vista = await vistaDe(supabase, perfil.rol);
+  // Con «Ver como» un cliente, la pantalla es LA DEL CLIENTE: sin selector de cliente
+  // (todo lo que se cree aquí es de ese cliente; lo resuelve la acción por la vista).
+  const uiDynamo = dynamo && vista.tipo === 'admin';
   const [ops, envs, clis] = await Promise.all([
     leerTodo(filtrarVista(supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, creado_en, modificado_en, clientes(nombre_visible)'), vista, { transportista: null })
       .eq('borrado', false).order('razon_social'), 10000),
     supabase.rpc('envios_por_empresa', { p_campo: 'operador' }),
-    dynamo ? leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000) : Promise.resolve({ data: [] as { id: string; nombre_visible: string }[] }),
+    uiDynamo ? leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000) : Promise.resolve({ data: [] as { id: string; nombre_visible: string }[] }),
   ]);
   const usos = new Map<string, number>();
   ((envs.data ?? []) as { id: string; envios: number }[]).forEach((e) => usos.set(e.id, Number(e.envios)));
@@ -31,5 +34,5 @@ export default async function PaginaOperadores() {
     telefono: o.telefono ?? '', email: o.email ?? '', persona_contacto: o.persona_contacto ?? '', web: o.web ?? '', anotaciones: o.anotaciones ?? '',
     creado_en: o.creado_en, modificado_en: o.modificado_en, envios: usos.get(o.id) ?? 0,
   }));
-  return <Operadores filas={filas} dynamo={dynamo} clientes={clis.data ?? []} error={ops.error?.message ?? null} />;
+  return <Operadores filas={filas} dynamo={uiDynamo} clientes={clis.data ?? []} error={ops.error?.message ?? null} />;
 }

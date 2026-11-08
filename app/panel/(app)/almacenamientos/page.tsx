@@ -26,7 +26,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
       .order('fecha_entrada', { ascending: false }), 5000),
     supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, disponible, precio_almacenamiento_semana, precio_reparto')
       .eq('es_almacen_dynamo', true).eq('borrado', false).order('provincia'),
-    leerTodo(supabase.from('clientes').select('id, nombre_visible, riesgo_efectivo_euros').order('nombre_visible'), 10000),
+    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, riesgo_efectivo_euros'), vista, { cliente: 'id', transportista: null }).order('nombre_visible'), 10000),
     supabase.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
   ]);
   const p = new Map((ps.data ?? []).map((x) => [x.clave, Number(x.valor)]));
