@@ -55,7 +55,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
           <div style={{ marginTop: '0.6rem' }}>
             {!pago.conCredito && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.3rem' }}>Ojo: este cliente no tiene crédito disponible en la plataforma. Hazlo solo si CESCE te lo ha confirmado.</div>}
             <label htmlFor="pp-motivo" style={{ fontWeight: 700 }}>Motivo (queda guardado)</label>
-            <input id="pp-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500}
+            <textarea id="pp-motivo" rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500}
               placeholder="P. ej. CESCE positivo, empresa conocida, cobro a 60 días" style={{ width: '100%', marginTop: '0.25rem' }} />
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <button className="btn-primary" disabled={motivo.trim().length < 3}

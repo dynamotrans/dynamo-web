@@ -42,7 +42,7 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: {
           {fechasTxt(c) && <> nuevas fechas de carga <strong>{fechasTxt(c)}</strong> (ahora {ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}).</>}
           {c.detalle && <div style={{ marginTop: '0.3rem' }}>«{c.detalle}»</div>}
           {c.con_camion && <div style={{ marginTop: '0.3rem', color: '#b42318', fontWeight: 700 }}>Ya tiene camión asignado: confírmalo con el transportista antes de aceptar.</div>}
-          <input type="text" value={nota} onChange={(ev) => setNota(ev.target.value)} maxLength={500} placeholder="Nota para el cliente (opcional)" style={{ width: '100%', marginTop: '0.5rem' }} />
+          <textarea rows={3} value={nota} onChange={(ev) => setNota(ev.target.value)} maxLength={500} aria-label="Nota para el cliente (opcional)" placeholder="Nota para el cliente (opcional)" style={{ width: '100%', marginTop: '0.5rem' }} />
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Aceptando', () => resolverCambio(e.id, true, nota))}>Aceptar{fechasTxt(c) ? ' (cambia las fechas)' : ''}</button>
             {c.detalle && <button className="btn-secondary" onClick={async () => { if (await hacer('Aceptando', () => resolverCambio(e.id, true, nota))) onModificar(); }}>Aceptar y aplicar el resto en «Modificar»</button>}
