@@ -55,7 +55,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
             <div className="ptar-sitio-body">
               <div className="ptar-sitio-body-meta">
                 {f.dynamo
-                  ? <><strong style={{ color: 'var(--purple)' }}>Almacén Dynamo</strong> · datos fijos (se editan en la sección Almacenes)</>
+                  ? <><strong style={{ color: 'var(--purple)' }}>Almacén Dynamo</strong> · datos fijos: solo el administrador los edita, en la sección Almacenes</>
                   : f.nuevo
                   ? 'Sitio nuevo — revisa y completa los datos; se guardarán en su ficha.'
                   : 'De la agenda — corrige aquí lo que falte (se guarda en su ficha al crear el envío).'}
@@ -70,25 +70,28 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
                 </>) : (<>
-                  {!f.nuevo && <div className="full"><label style={{ color: 'var(--green)' }}>Emails de avisos del sitio · opcional</label>
-                    <input value={f.emails} placeholder="almacen@empresa.com, recepcion@empresa.com" onChange={(e) => set(p, { emails: e.target.value })} /></div>}
-                  {!f.nuevo && <div className="full"><label style={{ color: 'var(--green)' }}>Notas del sitio · opcional</label>
-                    <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} /></div>}
-                  <div className="full"><label>Horario</label>
-                    <EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} /></div>
-                  <div><label>Teléfono de contacto</label>
-                    <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
-                  <div><label>Persona de contacto · opcional</label>
-                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
-                  <div className="full"><label>Email de contacto · opcional</label>
-                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="contacto@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                  {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
+                      2026-11-09): empresa y tipo, dirección (del paso 1), contacto
+                      (nombre · teléfono · email, sin cargo), notas internas y horario. */}
                   {f.nuevo
                     ? <div><label>Empresa{falta ? ' ' : ''}{falta && <span className="sitio-req">· obligatorio</span>}</label>
                         <input value={f.empresa} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>
                     : <div><label>Empresa</label><input className="sitio-f-lock" value={f.empresa} readOnly tabIndex={-1} />
                         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>El nombre se cambia en la sección Sitios.</div></div>}
-                  <div><label>Tipo de lugar</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
-                  <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} /></div>
+                  <div><label>Tipo de sitio</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
+                  <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} />
+                    <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>La dirección se cambia en el paso 1 (Ruta).</div></div>
+                  <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
+                  <div><label>Nombre y apellidos</label>
+                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
+                  <div><label>Teléfono</label>
+                    <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
+                  <div className="full"><label>Email</label>
+                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                  {!f.nuevo && <div className="full"><label>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></label>
+                    <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} /></div>}
+                  <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Horario de carga y descarga</div>
+                  <div className="full"><EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} /></div>
                   {f.nuevo ? null : esCliente
                     ? (f.maps ? <div className="full"><label>Enlace de Google Maps</label><input className="sitio-f-lock" value={f.maps} readOnly tabIndex={-1} /></div> : null)
                     : <div className="full"><label>Enlace de Google Maps · opcional</label>
