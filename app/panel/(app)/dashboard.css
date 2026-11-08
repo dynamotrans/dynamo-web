@@ -3625,6 +3625,9 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
 }
 .lock-info:hover { filter: brightness(1.15); }
 @media (max-width: 600px) { .ptar-sitio-grid { grid-template-columns: 1fr; } }
+/* Los campos de la cita previa, compactos: hora (columna estrecha) y muelle/puerta en la
+   MISMA fila también en móvil; los detalles debajo a lo ancho (.full). */
+.ptar-sitio-grid.ptar-cita-grid { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
 /* Ficha de sitio PLEGABLE en la confirmación: por defecto solo la
    cabecera (nº + Recogida/Entrega + empresa + CP/localidad…). Se
    despliega para editar con la flechita circular. */
