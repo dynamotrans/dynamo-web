@@ -3548,6 +3548,14 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
 .ptar-sitio-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; margin-bottom: 0.55rem; background: #fff; }
 .ptar-sitio-card h5 { font-size: var(--fs-m); color: var(--navy); margin-bottom: 0.5rem; }
 .ptar-sitio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.8rem; }
+.ptar-sitio-grid > div { min-width: 0; }   /* las celdas pueden encoger (iOS no encoge los input de fecha solo) */
+/* iOS da a los input de fecha/hora un ancho propio que se sale de su celda: a ancho
+   completo y sin el aspecto nativo que impone mínimos (el valor, alineado a la izquierda). */
+input[type="date"], input[type="time"], input[type="datetime-local"] {
+    width: 100%; min-width: 0; box-sizing: border-box;
+    -webkit-appearance: none; appearance: none;
+}
+input::-webkit-date-and-time-value { text-align: left; }
 .ptar-sitio-grid label { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
 /* Mismo estándar que el resto del panel: borde 1.5px, radio 10px,
    hover/focus morado con anillo. */
