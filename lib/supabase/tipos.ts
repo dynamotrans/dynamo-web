@@ -3316,7 +3316,7 @@ export type Database = {
       otras_cargas_publicas: { Args: { p_token: string | null }; Returns: Json }
       pago_envio_importes: { Args: { p_envio: string | null }; Returns: { base: number; iva: number; total: number }[] }
       pago_envio_stripe: { Args: { p_envio: string | null; p_pago: string | null; p_centimos: number | null }; Returns: Json }
-      pago_limite: { Args: { p_desde: string | null }; Returns: string }
+      pago_limite: { Args: { p_desde: string | null; p_carga?: string | null }; Returns: string }
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
