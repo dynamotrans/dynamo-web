@@ -9,15 +9,17 @@
 // REGLA DE ORO: NUNCA SE PIERDE LO QUE EL USUARIO ESTÁ ESCRIBIENDO (usuario, 2026-11-06:
 // «se queda en blanco lo que tenía relleno», «me borra la búsqueda»). Por eso NO se
 // refresca solo:
-//  · si en esta página has escrito o cambiado algún campo (formulario, buscador, ventana):
-//    sale el aviso «Hay novedades · Actualizar» y decides tú. Vuelve a ser automático al
-//    cambiar de página o de dirección (p. ej. cuando el buscador ya ha buscado);
+//  · si en esta página has escrito o cambiado algún campo (crear/editar algo): NO se
+//    molesta con ningún aviso (usuario, 2026-11-08: la pastilla «Hay novedades» estorbaba
+//    en Nuevo envío). La novedad espera EN SILENCIO y se aplica sola al cambiar de página
+//    o de dirección (p. ej. cuando el buscador ya ha buscado);
 //  · si hay una ventana abierta o el cursor está en un campo;
 //  · si has tocado, pulsado o escrito algo hace menos de 5 s (a medias de algo);
 //  · con la pestaña en segundo plano (se pone al día al volver).
 // Además: varias señales seguidas = un solo refresco (1 s de calma, como mucho 4 s); al
 // reconectar se refresca por si se perdió algo; la campana se recarga cuando ya ha llegado
-// la página.
+// la página. Mientras un refresco automático está en camino, arriba se ve una barrita fina
+// (morado→verde) que desaparece al llegar la página nueva: es el único rastro visible.
 // Causa de que a veces no se pintara (resuelta 2026-11-06): el loading.tsx del panel; ya no
 // existe (el cargador al navegar lo pone CargandoNavegacion). Por eso NO hay segundo refresco.
 import { useEffect, useRef, useState } from 'react';
@@ -44,8 +46,7 @@ export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marc
   const pendiente = useRef(false);
   const primera = useRef<number | null>(null);
   const reloj = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [aviso, setAviso] = useState(false);
-  const avisoCerrado = useRef(false);   // «Ahora no»: no vuelve a salir hasta la próxima novedad
+  const [alDia, setAlDia] = useState(false);   // barrita de arriba mientras llega la página nueva
   // Página «tocada»: dirección en la que se escribió algo (null = nada escrito).
   const tocada = useRef<string | null>(null);
   const ultimoGesto = useRef(0);
@@ -87,23 +88,26 @@ export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marc
       return null;
     };
 
-    const pedir = () => { campana.current = true; router.refresh(); };
+    const pedir = () => {
+      campana.current = true;
+      setAlDia(true);
+      setTimeout(() => setAlDia(false), 4000);   // por si la marca no cambia (páginas con enlace)
+      router.refresh();
+    };
     const refrescar = () => {
       const m = motivo();
       if (m) {
+        // En silencio, siempre: también con algo escrito (la novedad se aplica al salir).
         traza('espera', m);
         pendiente.current = true;
-        // Si es porque has escrito, no se sabe cuándo acabarás: se avisa y decides tú.
-        if (m === 'escrito' && !avisoCerrado.current) setAviso(true);
         return;
       }
       traza('refresca');
-      pendiente.current = false; primera.current = null; setAviso(false);
+      pendiente.current = false; primera.current = null;
       pedir();
     };
     const señal = (m?: { payload?: unknown }) => {
       traza('señal', m?.payload);
-      avisoCerrado.current = false;
       const ahora = Date.now();
       primera.current ??= ahora;
       if (reloj.current) clearTimeout(reloj.current);
@@ -145,20 +149,17 @@ export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marc
   // La campana, cuando ya ha llegado la página nueva (cambia la marca), nunca a la vez:
   // si las dos peticiones al servidor se cruzan, Next.js puede quedarse con la vieja.
   useEffect(() => {
+    setAlDia(false);
     if (campana.current) { campana.current = false; window.dispatchEvent(new Event(EVENTO_RECARGAR)); }
   }, [marca]);
 
-  if (!aviso) return null;
-  const boton: React.CSSProperties = { border: 0, borderRadius: 999, padding: '0.45rem 0.9rem', fontWeight: 800, cursor: 'pointer', font: 'inherit' };
+  if (!alDia) return null;
   return (
-    <div role="status" style={{ position: 'fixed', left: '50%', bottom: 'calc(1rem + env(safe-area-inset-bottom))', transform: 'translateX(-50%)', zIndex: 1200,
-      display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#0a0230', color: '#fff', borderRadius: 999, padding: '0.35rem 0.4rem 0.35rem 1rem',
-      boxShadow: '0 8px 24px rgba(10,2,48,0.3)', fontSize: '0.9rem', maxWidth: 'calc(100vw - 2rem)' }}>
-      <span>Hay novedades</span>
-      <button type="button" style={{ ...boton, background: '#22a55a', color: '#fff', fontWeight: 800 }}
-        onClick={() => { pendiente.current = false; tocada.current = null; setAviso(false); campana.current = true; router.refresh(); }}>Actualizar</button>
-      <button type="button" aria-label="Ahora no" style={{ ...boton, background: 'transparent', color: '#fff', padding: '0.45rem 0.6rem' }}
-        onClick={() => { avisoCerrado.current = true; setAviso(false); }}>✕</button>
-    </div>
+    <>
+      <style>{`@keyframes envivoBarra { from { background-position: 200% 0; } to { background-position: -200% 0; } }`}</style>
+      <div aria-hidden="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, zIndex: 1200, pointerEvents: 'none',
+        background: 'linear-gradient(90deg, #3300cc, #22a55a, #3300cc)', backgroundSize: '200% 100%',
+        animation: 'envivoBarra 1.2s linear infinite' }} />
+    </>
   );
 }
