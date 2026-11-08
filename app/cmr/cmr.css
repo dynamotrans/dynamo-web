@@ -35,6 +35,8 @@
     .cmr-page .firma-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
     .cmr-page .firma-tit { font-size: 0.9rem; font-weight: 800; }
     .cmr-page .firma-tit .cas { font-size: 0.68rem; font-weight: 700; color: var(--gray-500); display: block; }
+    /* Quién firma cada casilla, bien visible (usuario, 2026-11-09). */
+    .cmr-page .firma-tit .cas-quien { font-size: 0.78rem; font-weight: 900; color: var(--purple); display: block; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.02em; }
     .cmr-page .firma-btn { flex: none; background: var(--purple); color: #fff; border: none; border-radius: 9px; padding: 0.5rem 0.9rem; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
     .cmr-page .firma-btn:hover { background: var(--purple-light); }
     .cmr-page .firma-estado { font-size: 0.75rem; font-weight: 700; color: var(--gray-500); margin-top: 0.35rem; }

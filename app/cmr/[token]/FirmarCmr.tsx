@@ -12,7 +12,7 @@ import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
 
-type Bloque = { clave: string; titulo: string; casilla: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; };
+type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; };
 
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
@@ -33,9 +33,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
   const lugar = (p: ParadaCmr | undefined) => [p?.nombre_empresa, [p?.codigo_postal, p?.poblacion].filter(Boolean).join(' '), p?.provincia !== p?.poblacion ? p?.provincia : null].filter(Boolean).join(' · ');
   const bloques: Bloque[] = [
-    ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello del remitente/cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '' })),
-    { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello del porteador', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '' },
-    ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía (destinatario)', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '' })),
+    ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello', firmante: 'Remitente / Cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '' })),
+    { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello', firmante: 'Porteador / Transportista', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '' },
+    ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '' })),
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;
@@ -61,7 +61,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         return (
           <div key={b.clave} className={`firma${f ? ' firmada' : ''}`}>
             <div className="firma-head">
-              <div className="firma-tit">{b.titulo}<span className="cas">{b.casilla}</span></div>
+              <div className="firma-tit">{b.titulo}<span className="cas-quien">Firma: {b.firmante}</span><span className="cas">{b.casilla}</span></div>
               {!f && <button type="button" className="firma-btn" onClick={() => setAbierto(b)}>Firmar</button>}
             </div>
             {f ? <>
