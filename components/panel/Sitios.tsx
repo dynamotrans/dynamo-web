@@ -22,7 +22,7 @@ import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import EditorHorario from './EditorHorario';
 import EjemploAviso from './EjemploAviso';
-import { HORARIO_POR_DEFECTO, HORARIO_VERANO_POR_DEFECTO, VERANO_GENERICO, MMDD, mmddTxt, validarHorario, type FechasVerano, type GrupoHorario } from '@/lib/horarios';
+import { HORARIO_POR_DEFECTO, HORARIO_VERANO_POR_DEFECTO, VERANO_GENERICO, MMDD, mmddTxt, resumenHorario, validarHorario, type FechasVerano, type GrupoHorario } from '@/lib/horarios';
 
 export type SitioFila = SitioDatos & {
   id: string; codigo: string; creado_en: string; modificado_en: string | null;
@@ -180,6 +180,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [tabHorario, setTabHorario] = useState<'general' | 'verano'>('general');
+  // Ficha compacta (usuario, 2026-11-08): lo opcional y el horario van PLEGADOS con su
+  // resumen a la vista; solo se abre lo que haga falta tocar.
+  const [abierto, setAbierto] = useState({ avisos: false, horario: false, contactos: false });
+  const plegar = (k: 'avisos' | 'horario' | 'contactos') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
   const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => { setD((x) => ({ ...x, [k]: v })); setRepetido(null); };
 
   async function guardar(aunqueRepetido = false) {
@@ -196,11 +200,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
     }
     const malHorario = validarHorario(d.horario);
-    if (malHorario) { setTabHorario('general'); setError(malHorario); return; }
+    if (malHorario) { setAbierto((a) => ({ ...a, horario: true })); setTabHorario('general'); setError(malHorario); return; }
     if (d.verano?.activo) {
-      if (!MMDD.test(d.verano.desde) || !MMDD.test(d.verano.hasta)) { setTabHorario('verano'); setError('Pon las fechas del horario de verano.'); return; }
+      if (!MMDD.test(d.verano.desde) || !MMDD.test(d.verano.hasta)) { setAbierto((a) => ({ ...a, horario: true })); setTabHorario('verano'); setError('Pon las fechas del horario de verano.'); return; }
       const mv = validarHorario(d.verano.horario);
-      if (mv) { setTabHorario('verano'); setError(`Horario de verano: ${mv.charAt(0).toLowerCase()}${mv.slice(1)}`); return; }
+      if (mv) { setAbierto((a) => ({ ...a, horario: true })); setTabHorario('verano'); setError(`Horario de verano: ${mv.charAt(0).toLowerCase()}${mv.slice(1)}`); return; }
     }
     setTrabajando(fila ? 'Guardando cambios' : `Creando ${que}`);
     const r = await guardarSitio(fila?.id ?? null, datos, aunqueRepetido);
@@ -308,16 +312,6 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                   onElegir={(c) => { setCliSel(c); set('cliente_id', c?.id ?? ''); }} />}
           </div>
         )}
-        <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="sitio-emails"><span style={{ color: 'var(--green)' }}>Email de avisos del sitio</span> {opc}</label>
-          <input id="sitio-emails" type="text" inputMode="email" value={d.emails_avisos} placeholder="almacen@empresa.com, recepcion@empresa.com"
-            style={{ border: '1.5px solid var(--green)' }} onChange={(e) => set('emails_avisos', e.target.value)} />
-          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
-            Avisamos al sitio de sus <strong>recogidas y entregas</strong>, con <strong>total discreción</strong> (sin precios ni otros clientes). Puedes poner varios, separados por comas.{' '}
-            <EjemploAviso cliente={cliente?.nombre} />
-          </div>
-        </div>
-        {campo('anotaciones', <><span style={{ color: 'var(--green)' }}>Notas del sitio</span> {opc}</>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
         {campo('nombre_empresa', <>Empresa {obl}</>, 'Ej. Talleres Vega e Hijos S.L.')}
         <div>
           <label htmlFor="sitio-tipo">Tipo de sitio {!d.tipo && obl}</label>
@@ -334,22 +328,64 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           <label htmlFor="sitio-pais">País</label>
           <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
         </div>
-        <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Horario de carga y descarga {obl}</div>
-        <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
-          <button type="button" role="tab" aria-selected={tabHorario === 'general'} className={`tab${tabHorario === 'general' ? ' active' : ''}`} onClick={() => setTabHorario('general')}>Horario general</button>
-          <button type="button" role="tab" aria-selected={tabHorario === 'verano'} className={`tab${tabHorario === 'verano' ? ' active' : ''}`} onClick={() => setTabHorario('verano')}>
-            Horario de verano{d.verano?.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
-          </button>
-        </div>
-        {tabHorario === 'general'
-          ? <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
-          : <VeranoSitio v={d.verano!} generico={veranoDefecto} onCambio={(v) => set('verano', v)} />}
-        <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Personas de contacto del sitio</div>
-        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
-          ayuda="Encargado de almacén, recepción… La primera es la principal (la que sale en la tabla)." />
         {/* «Requiere cita», «Tiene medios de carga» y «Enlace de Google Maps» ocultos de momento
             (decisión del usuario, 2026-11-08): no se usan por ahora; se dejan desactivados al
             guardar. No se tocan las tablas. */}
+      </div>
+
+      {/* Lo demás PLEGADO con su resumen a la vista (usuario, 2026-11-08: ficha compacta). */}
+      <div style={{ display: 'grid', gap: '0.55rem', marginTop: '0.9rem' }}>
+        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.avisos} onClick={() => plegar('avisos')} style={{ margin: 0 }}>
+          <span className="pnt-icon" aria-hidden="true">{abierto.avisos ? '−' : '+'}</span>
+          <span><strong>Email de avisos y notas del sitio</strong>{' '}
+            {d.emails_avisos.trim() || d.anotaciones.trim() ? <span className="badge badge-green">Con datos</span> : <span style={{ color: 'var(--gray-500)' }}>(opcional)</span>}</span>
+        </button>
+        {abierto.avisos && (
+          <div className="ptar-sitio-grid">
+            <div style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="sitio-emails"><span style={{ color: 'var(--green)' }}>Email de avisos del sitio</span> {opc}</label>
+              <input id="sitio-emails" type="text" inputMode="email" value={d.emails_avisos} placeholder="almacen@empresa.com, recepcion@empresa.com"
+                style={{ border: '1.5px solid var(--green)' }} onChange={(e) => set('emails_avisos', e.target.value)} />
+              <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
+                Avisamos al sitio de sus <strong>recogidas y entregas</strong> con total discreción (sin precios ni otros clientes); varios, separados por comas.{' '}
+                <EjemploAviso cliente={cliente?.nombre} />
+              </div>
+            </div>
+            {campo('anotaciones', <><span style={{ color: 'var(--green)' }}>Notas del sitio</span> {opc}</>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
+          </div>
+        )}
+
+        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.horario} onClick={() => plegar('horario')} style={{ margin: 0 }}>
+          <span className="pnt-icon" aria-hidden="true">{abierto.horario ? '−' : '+'}</span>
+          <span><strong>Horario de carga y descarga</strong>{' '}
+            <span style={{ color: 'var(--gray-500)' }}>· {resumenHorario(d.horario) || 'sin definir'}{d.verano?.activo ? ' · verano activo' : ''}</span></span>
+        </button>
+        {abierto.horario && (
+          <div className="ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
+            <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
+              <button type="button" role="tab" aria-selected={tabHorario === 'general'} className={`tab${tabHorario === 'general' ? ' active' : ''}`} onClick={() => setTabHorario('general')}>Horario general</button>
+              <button type="button" role="tab" aria-selected={tabHorario === 'verano'} className={`tab${tabHorario === 'verano' ? ' active' : ''}`} onClick={() => setTabHorario('verano')}>
+                Horario de verano{d.verano?.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
+              </button>
+            </div>
+            {tabHorario === 'general'
+              ? <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
+              : <VeranoSitio v={d.verano!} generico={veranoDefecto} onCambio={(v) => set('verano', v)} />}
+          </div>
+        )}
+
+        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.contactos} onClick={() => plegar('contactos')} style={{ margin: 0 }}>
+          <span className="pnt-icon" aria-hidden="true">{abierto.contactos ? '−' : '+'}</span>
+          <span><strong>Personas de contacto</strong>{' '}
+            {(() => { const n = d.contactos.filter((c) => c.nombre.trim() || c.telefono.trim() || c.email.trim()).length;
+              return n > 0 ? <span className="badge badge-green">{n}</span> : <span style={{ color: 'var(--gray-500)' }}>(opcional)</span>; })()}</span>
+        </button>
+        {abierto.contactos && (
+          <div className="ptar-sitio-grid">
+            <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
+              ayuda="Encargado de almacén, recepción… La primera es la principal (la que sale en la tabla)." />
+          </div>
+        )}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {fila?.id && <Historial tabla="sitios" id={fila.id} />}

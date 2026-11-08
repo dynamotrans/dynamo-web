@@ -36,7 +36,7 @@ export function RevisionDynamo({ envio, r, hacer }: { envio: { id: string; estad
       <div>
         <strong>{toca ? 'Toca revisar el precio.' : 'Precio provisional.'}</strong>{' '}
         {toca ? 'Pon el precio de hoy para este envío (sin IVA).' : <>Se revisa el <strong>{fecha(r.fecha_revision_precio)}</strong>. Hasta entonces no se oferta ni se asigna camión; si quieres asignarlo ya, revísalo ahora.</>}
-        {' '}Si se mueve menos de un {String(r.margen_pct ?? 5).replace('.', ',')} % se queda {euros(envio.importe_cliente)}; si baja o sube, se aplica el precio nuevo directamente y se avisa al cliente (puede cancelar sin coste mientras no haya camión asignado).
+        {' '}Si se mueve menos de un {String(r.margen_pct ?? 5).replace('.', ',')} % se queda {euros(envio.importe_cliente)}; si baja o sube, se aplica el precio nuevo directamente y se avisa al cliente (puede cancelar sin coste hasta las 9:00 del día hábil anterior a la carga).
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="text" inputMode="decimal" className="ptar-select" style={{ maxWidth: 160 }} placeholder="Ej. 1.050,00" aria-label="Precio de la revisión (sin IVA)"

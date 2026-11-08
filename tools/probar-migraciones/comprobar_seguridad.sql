@@ -4577,7 +4577,10 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid
      or (select estado_revision_precio from envios where id = e) <> 'hecha' then
     raise exception 'FALLO 129 · la subida no se aplica sola: %', r;
   end if;
-  if not exists (select 1 from avisos where para = 'cliente' and tipo = 'precio_subida' and envio_id = e) then raise exception 'FALLO 129 · no se avisa al cliente de la subida'; end if;
+  if not exists (select 1 from avisos where para = 'cliente' and tipo = 'precio_subida' and envio_id = e
+                    and texto like '%hasta las 9:00 del día hábil anterior a la carga%') then
+    raise exception 'FALLO 129 · no se avisa al cliente de la subida (o el aviso no lleva el plazo sin coste: 9:00 del día hábil anterior)';
+  end if;
   update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;   -- precio definitivo: ya se asigna
   perform set_config('prueba.e129a', e::text, false);
   if exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace and proname = 'responder_subida_precio') then
