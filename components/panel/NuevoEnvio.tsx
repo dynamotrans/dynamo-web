@@ -655,7 +655,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                               <input id="ne-cita-hora" type="time" value={citaHora} onChange={(e) => setCitaHora(e.target.value)} />
                             </div>
                             <div>
-                              <label htmlFor="ne-cita-muelle">Muelle / puerta</label>
+                              <label htmlFor="ne-cita-muelle">Muelle / puerta · opcional</label>
                               <input id="ne-cita-muelle" type="text" placeholder="Ej. Muelle 4" value={citaMuelle} onChange={(e) => setCitaMuelle(e.target.value)} />
                             </div>
                             <div className="full">
