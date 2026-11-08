@@ -322,7 +322,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
             style={{ border: '1.5px solid var(--green)' }} onChange={(e) => set('emails_avisos', e.target.value)} />
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
             Avisamos al sitio de sus <strong>recogidas y entregas</strong>, con <strong>total discreción</strong> (sin precios ni otros clientes). Puedes poner varios, separados por comas.{' '}
-            <EjemploAviso />
+            <EjemploAviso cliente={cliente?.nombre} />
           </div>
         </div>
         {campo('anotaciones', <><span style={{ color: 'var(--green)' }}>Notas del sitio</span> {opc}</>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}

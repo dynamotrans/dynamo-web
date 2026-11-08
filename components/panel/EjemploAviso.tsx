@@ -4,11 +4,20 @@
 // lo que recibiría el sitio, en recogida y en entrega. Desplegable dentro de la ficha.
 import { useState } from 'react';
 
-function Cuerpo({ tipo }: { tipo: 'recogida' | 'entrega' }) {
+function Cuerpo({ tipo, cliente }: { tipo: 'recogida' | 'entrega'; cliente: string }) {
   const rec = tipo === 'recogida';
   const caja = { border: '1px solid var(--gray-200)', borderRadius: 10, overflow: 'hidden' as const };
   return (
     <>
+      {/* La explicación de la discreción va ARRIBA, antes del email de ejemplo. */}
+      <div style={{ marginBottom: '0.8rem', padding: '0.7rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.18)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>{' '}
+        <strong>Fíjate en lo que NO lleva el aviso</strong>: ni el origen ni el destino de la mercancía, ni precios, ni quién es el remitente o destinatario final.{' '}
+        {rec
+          ? <>El <strong>cargador</strong> donde recogemos <strong>no ve ni se le muestra el destino</strong>: solo sabe que <strong>{cliente}</strong> le recoge mercancía de su parte.</>
+          : <>El <strong>destinatario</strong> que recibe el aviso <strong>no lee el sitio de carga</strong>: solo sabe que <strong>{cliente}</strong> le envía mercancía.</>}{' '}
+        Se muestra <strong>quién gestiona el transporte, pero nunca de dónde a dónde</strong>. <strong>Discreción comercial garantizada.</strong>
+      </div>
       <div style={caja}>
         <div style={{ background: 'var(--gray-100)', padding: '0.6rem 0.8rem', fontSize: 'var(--fs-s)', color: 'var(--gray-700)' }}>
           <div><strong>De:</strong> avisos@dynamotrans.com</div>
@@ -17,7 +26,7 @@ function Cuerpo({ tipo }: { tipo: 'recogida' | 'entrega' }) {
         </div>
         <div style={{ padding: '0.8rem', fontSize: 'var(--fs-m)', lineHeight: 1.6, color: 'var(--gray-700)' }}>
           Buenos días,<br /><br />
-          <strong>Marbex Industrial S.L.</strong> ha gestionado un transporte para <strong>{rec ? 'recoger' : 'entregar'} mercancía en vuestras instalaciones</strong>.<br /><br />
+          <strong>{cliente}</strong> ha gestionado un transporte para <strong>{rec ? 'recoger' : 'entregar'} mercancía en vuestras instalaciones</strong>.<br /><br />
           <strong style={{ color: 'var(--navy)' }}>Lugar de {rec ? 'recogida' : 'entrega'} (vuestras instalaciones)</strong><br />
           · <strong>Empresa</strong>: Almacenes del Genil S.L. · Almacén / Nave<br />
           · <strong>Dirección</strong>: C. Francia, 78 · 18360 Huétor Tájar, Granada<br />
@@ -31,17 +40,12 @@ function Cuerpo({ tipo }: { tipo: 'recogida' | 'entrega' }) {
           {rec ? 'Por favor, tened la mercancía preparada para la carga.' : 'Por favor, tened preparada la recepción de la mercancía.'} Os avisaremos si la previsión de hora cambia.
         </div>
       </div>
-      <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.18)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}>
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>{' '}
-        <strong>Fíjate en lo que NO lleva el aviso</strong>: ni el origen ni el destino de la mercancía, ni precios, ni quién es el remitente o
-        destinatario final. El sitio solo sabe que <strong>tú has gestionado un transporte</strong> para recoger o entregar allí, con lo
-        imprescindible para preparar la carga o la recepción. <strong>Discreción comercial garantizada.</strong>
-      </div>
     </>
   );
 }
 
-export default function EjemploAviso() {
+export default function EjemploAviso({ cliente }: { cliente?: string }) {
+  const nombre = (cliente ?? '').trim() || 'Tu empresa';
   const [abierto, setAbierto] = useState(false);
   const [tipo, setTipo] = useState<'recogida' | 'entrega'>('recogida');
   return (
@@ -57,7 +61,7 @@ export default function EjemploAviso() {
               <button key={t} type="button" className={`aviso-tipo-btn${tipo === t ? ' active' : ''}`} onClick={() => setTipo(t)}>{t === 'recogida' ? 'Recogida' : 'Entrega'}</button>
             ))}
           </div>
-          <Cuerpo tipo={tipo} />
+          <Cuerpo tipo={tipo} cliente={nombre} />
         </div>
       )}
     </>
