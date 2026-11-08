@@ -180,6 +180,37 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     if (p.tipo === 'carga') setRecogidas((l) => l.filter((x) => x.k !== p.k));
     else setEntregas((l) => l.filter((x) => x.k !== p.k));
   }
+  // Reordenar la ruta arrastrando el asa ≡ (Pointer Events: vale con ratón y con el dedo).
+  // Solo dentro de su grupo: recogidas entre sí y entregas entre sí (una entrega nunca
+  // puede pasar delante de una recogida). La lista se reordena en vivo al pasar por encima.
+  const [arrastrando, setArrastrando] = useState<number | null>(null);   // k del punto en el aire
+  function empezarArrastre(e: React.PointerEvent, p: Punto) {
+    e.preventDefault();
+    setArrastrando(p.k);
+    const mover = (ev: PointerEvent) => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-parada]') as HTMLElement | null;
+      if (!el || el.dataset.tipo !== p.tipo) return;
+      const k = Number(el.dataset.parada);
+      if (!Number.isFinite(k) || k === p.k) return;
+      const f = (l: Punto[]) => {
+        const a = l.findIndex((x) => x.k === p.k), b = l.findIndex((x) => x.k === k);
+        if (a < 0 || b < 0 || a === b) return l;
+        const c = [...l]; c.splice(b, 0, ...c.splice(a, 1)); return c;
+      };
+      if (p.tipo === 'carga') setRecogidas(f); else setEntregas(f);
+    };
+    const soltar = () => {
+      setArrastrando(null);
+      window.removeEventListener('pointermove', mover); window.removeEventListener('pointerup', soltar); window.removeEventListener('pointercancel', soltar);
+    };
+    window.addEventListener('pointermove', mover); window.addEventListener('pointerup', soltar); window.addEventListener('pointercancel', soltar);
+  }
+  const asaDe = (p: Punto, grupo: number) => grupo > 1 ? (
+    <span className="ptar-asa" title="Arrastra para cambiar el orden" aria-label="Arrastra para cambiar el orden"
+      onPointerDown={(e) => empezarArrastre(e, p)}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
+    </span>
+  ) : undefined;
 
   // ---- Validación por paso
   function errorPaso(n: number): string | null {
@@ -493,15 +524,22 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   </>)}
                   <div className="ptar-section-head">Ruta</div>
                   {recogidas.map((p, i) => (
-                    <div key={p.k} className="ptar-field ptar-field-full">
-                      <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente}
+                    <div key={p.k} data-parada={p.k} data-tipo="carga" className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
+                      <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, recogidas.length)}
                         placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente') : 'Otra recogida · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)} onQuitar={i > 0 ? () => quitar(p) : undefined} />
+                      {i === 0 && p.sitio && cliente?.principal_id === p.sitio.id && (
+                        <p className="ptar-prin-badge"><span className="ptar-prin-star" aria-hidden="true">★</span> {esCliente ? 'Tu almacén principal' : 'Almacén principal del cliente'} · origen por defecto
+                          <span className="ptar-prin-info" tabIndex={0} title={esCliente
+                            ? 'Se preselecciona como recogida en cada envío nuevo. Puedes cambiar cuál es tu sitio principal con la estrella en Sitios.'
+                            : 'Se preselecciona como recogida en cada envío nuevo. El sitio principal se cambia con la estrella en Sitios.'}>ⓘ</span>
+                        </p>
+                      )}
                     </div>
                   ))}
                   {entregas.map((p, i) => (
-                    <div key={p.k} className="ptar-field ptar-field-full">
-                      <CampoSitio punto={p} numero={recogidas.length + i + 1} sitios={sitiosCliente} deshabilitado={!cliente}
+                    <div key={p.k} data-parada={p.k} data-tipo="descarga" className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
+                      <CampoSitio punto={p} numero={recogidas.length + i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, entregas.length)}
                         placeholder={i === entregas.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente') : 'Otra entrega · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)} onQuitar={i < entregas.length - 1 ? () => quitar(p) : undefined} />
                     </div>

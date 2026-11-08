@@ -3359,6 +3359,21 @@ table.data td.actions { text-align: right; white-space: nowrap; }
    oculto con visibility para conservar el hueco). Así input + selector y
    los botones quedan alineados en cualquier estado, sin padding extra. */
 .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
+/* Asa ≡ para reordenar la ruta arrastrando (touch-action none: con el dedo arrastra, no hace scroll). */
+.ptar-asa {
+    display: flex; align-items: center; padding: 0 0.2rem; color: var(--gray-400);
+    cursor: grab; touch-action: none; user-select: none; flex: 0 0 auto;
+}
+.ptar-asa:hover { color: var(--purple); }
+.ptar-asa:active { cursor: grabbing; }
+.ptar-dragging { opacity: 0.5; }
+/* «★ Tu almacén principal · origen por defecto» bajo la primera recogida. */
+.ptar-prin-badge {
+    margin: 0.35rem 0 0 0.2rem; font-size: 0.78rem; font-weight: 600; color: var(--gray-600);
+    display: flex; align-items: center; gap: 0.35rem;
+}
+.ptar-prin-star { color: #f59e0b; font-size: 0.9rem; line-height: 1; }
+.ptar-prin-info { color: var(--gray-400); cursor: help; font-style: normal; }
 /* 75 / 25: input de origen/destino largo, selector de tipo corto. */
 .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
 .ptar-route-row .ptar-select-sm {

@@ -10,9 +10,9 @@ import { IcoFlecha, IcoMenos, IcoPin, Punto, SitioNuevo, SitioOpcion, VACIO, dir
 import { Campo } from './Campo';
 
 // ---- Buscador de sitio de la agenda del cliente (con sitio nuevo) -----------------
-export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambio, onQuitar }: {
+export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambio, onQuitar, asa }: {
   punto: Punto; numero: number; sitios: SitioOpcion[]; deshabilitado: boolean; placeholder: string;
-  onCambio: (c: Partial<Punto>) => void; onQuitar?: () => void;
+  onCambio: (c: Partial<Punto>) => void; onQuitar?: () => void; asa?: React.ReactNode;
 }) {
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -29,6 +29,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
   return (
     <>
       <div className="ptar-route-row">
+        {asa}
         <div className={`ptar-input-wrap${elegido ? ' ptar-picked' : ''}`}>
           <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`}>{numero}</span>
           {rec ? <IcoPin /> : <IcoFlecha />}
