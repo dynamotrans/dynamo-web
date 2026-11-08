@@ -26,7 +26,7 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
     if (!w) { setEncontrados(null); return; }
     const n = ++ultima.current;
     const t = setTimeout(() => {
-      buscarClientes(w).then((r) => { if (ultima.current === n) setEncontrados(r.map((c) => ({ id: c.id, nombre: c.nombre, cif: c.cif, principal_id: c.principal_id, iva: c.iva_pct }))); })
+      buscarClientes(w).then((r) => { if (ultima.current === n) setEncontrados(r.map((c) => ({ id: c.id, nombre: c.nombre, cif: c.cif, principal_id: c.principal_id, iva: c.iva_pct, nima: !!c.nima_por_defecto }))); })
         .catch(() => { if (ultima.current === n) setEncontrados([]); });
     }, 220);
     return () => clearTimeout(t);

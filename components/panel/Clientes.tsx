@@ -45,7 +45,7 @@ const NUEVO: ClienteDatos = {
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 120, iva_pct: 21, retencion_pct: 0, recargo_equivalencia_pct: 0,
   recargo_pago_tarde_pct: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
-  factor_tarifa_pct: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false, exento_pago_previo_primer_envio: false, alta_por: null,
+  factor_tarifa_pct: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false, nima_por_defecto: false, exento_pago_previo_primer_envio: false, alta_por: null,
   cuenta_contable: '', holded_forma_pago_ref: '', anotaciones: '',
   contactos: [CONTACTO_VACIO()],
 };
@@ -178,7 +178,7 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
         onChange={(e) => setTextos((t) => ({ ...t, [k]: e.target.value }))} />
     </div>
   );
-  const interruptor = (k: 'permite_contraoferta' | 'discrecion_comercial' | 'exento_pago_previo_primer_envio', label: string) => (
+  const interruptor = (k: 'permite_contraoferta' | 'discrecion_comercial' | 'nima_por_defecto' | 'exento_pago_previo_primer_envio', label: string) => (
     <div>
       <label>{label}</label>
       <label className="ptar-tramp-box">
@@ -253,6 +253,7 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
         <div />
         {interruptor('permite_contraoferta', 'Puede hacer contraoferta de precio (si además está encendida en Parámetros)')}
         {interruptor('discrecion_comercial', 'Discreción comercial por defecto')}
+        {interruptor('nima_por_defecto', 'NIMA por defecto (residuos): sus envíos nacen con «Requiere NIMA» activado')}
         {interruptor('exento_pago_previo_primer_envio', 'Empresa conocida: sin pago previo del primer envío')}
         <div className="meta" style={{ alignSelf: 'end' }}>Solo cuenta si tiene crédito disponible. Sin crédito, todos sus envíos se pagan por adelantado.</div>
         <div style={{ gridColumn: '1/-1' }}>

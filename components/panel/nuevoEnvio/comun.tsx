@@ -5,7 +5,7 @@ import { paisDe } from '@/lib/paises';
 import { HORARIO_POR_DEFECTO, type GrupoHorario } from '@/lib/horarios';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
-export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null; iva?: number | null };   // iva: % del cliente (su ficha)
+export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null; iva?: number | null; nima?: boolean };   // iva: % del cliente · nima: NIMA por defecto (su ficha)
 export type SitioOpcion = {
   id: string; cliente_id: string | null; nombre_empresa: string; tipo: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null;

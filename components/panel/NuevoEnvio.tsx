@@ -91,7 +91,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     const t = [be.carga_lateral && 'lateral', be.carga_trasera && 'trasera', be.carga_techo && 'techo'].filter(Boolean) as string[];
     return FORMAS.find((f) => { const fl = f.toLowerCase(); return t.length > 0 && t.every((x) => fl.includes(x)) && fl.split(/,| y /).length === t.length; }) ?? 'Lateral';
   });
-  const [nima, setNima] = useState(!!be?.requiere_nima);
+  // NIMA por defecto del cliente (su ficha): los envíos de ese cliente nacen con el
+  // conmutador activado; al editar manda lo que tenga el envío (usuario, 2026-11-09).
+  const [nima, setNima] = useState(be ? !!be.requiere_nima : !!((esCliente || clientesIni.length === 1) && clientesIni[0]?.nima));
   const [adr, setAdr] = useState(!!be?.adr);
   const [refCli, setRefCli] = useState(editar ? (be?.referencia_cliente ?? '') : '');
   // Sin campo propio desde 2026-11-08 (decisión del usuario): se conserva lo que el envío
@@ -701,6 +703,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     {enRuta || editar ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
                       onElegir={async (c) => {
                         setCliente(c);
+                        setNima(!!c?.nima);   // la preferencia NIMA del cliente elegido
                         setPuntos((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null })));
                         if (!c) return;
                         // Sus sitios se piden ahora; su almacén principal pasa a la primera recogida.
@@ -710,7 +713,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         const prin = c.principal_id ? todos.find((x) => x.id === c.principal_id && x.cliente_id === c.id) ?? null : null;
                         if (prin) setPuntos((l) => l.map((p, i) => (i === 0 && !p.nuevo && !p.sitio?.es_almacen_dynamo ? { ...p, sitio: prin } : p)));
                       }}
-                      onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
+                      onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); setNima(false); }} />}
                   </div>
                   </>}
 

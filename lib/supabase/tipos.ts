@@ -284,6 +284,7 @@ export type Database = {
           riesgo_efectivo_euros: number | null
           sector: string | null
           texto_busqueda: string | null
+          nima_por_defecto: boolean
         }
         Insert: {
           id?: string
@@ -335,6 +336,7 @@ export type Database = {
           riesgo_efectivo_euros?: never
           sector?: string | null
           texto_busqueda?: string | null
+          nima_por_defecto?: boolean
         }
         Update: {
           id?: string
@@ -386,6 +388,7 @@ export type Database = {
           riesgo_efectivo_euros?: never
           sector?: string | null
           texto_busqueda?: string | null
+          nima_por_defecto?: boolean
         }
         Relationships: [
           {
@@ -3164,7 +3167,7 @@ export type Database = {
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
-      buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string }[] }
+      buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string; nima_por_defecto: boolean }[] }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }
       buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null; p_operador?: string | null; p_creado_por?: string | null; p_estado?: string | null }; Returns: { id: string; total: number }[] }
       buscar_persona: { Args: { p_texto: string | null }; Returns: { tipo: string; id: string; nombre: string; email: string; telefono: string; documento: string; empresa: string; estado: string }[] }
@@ -3291,7 +3294,7 @@ export type Database = {
       mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean }[] }
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }
-      mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number }[] }
+      mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number; nima_por_defecto: boolean }[] }
       mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string; seguro_cmr_compania: string; seguro_cmr_poliza: string; seguro_cmr_vence: string }[] }
       mi_enlace_cmr: { Args: { p_envio: string | null }; Returns: string }
       mi_valoracion_envio: { Args: { p_envio: string | null }; Returns: { puede: boolean; nota: number; comentario: string; valorado_en: string; editable: boolean }[] }

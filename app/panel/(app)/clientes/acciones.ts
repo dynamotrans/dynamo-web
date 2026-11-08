@@ -15,7 +15,7 @@ export type ClienteDatos = {
   plazo_pago_dias: number; iva_pct: number; retencion_pct: number;
   recargo_equivalencia_pct: number; recargo_pago_tarde_pct: number;
   riesgo_cesce_euros: number | null; riesgo_manual_euros: number | null;
-  factor_tarifa_pct: number; factor_fijado_a_mano: boolean; permite_contraoferta: boolean; discrecion_comercial: boolean;
+  factor_tarifa_pct: number; factor_fijado_a_mano: boolean; permite_contraoferta: boolean; discrecion_comercial: boolean; nima_por_defecto: boolean;
   exento_pago_previo_primer_envio: boolean;   // empresa conocida: su primer envío no se paga por adelantado (si tiene crédito)
   cuenta_contable: string; holded_forma_pago_ref: string; anotaciones: string;
   alta_por: string | null;   // empleado de Dynamo que captó al cliente (comisiones); null = alta online
@@ -57,7 +57,7 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
     recargo_pago_tarde_pct: d.recargo_pago_tarde_pct,
     riesgo_cesce_euros: d.riesgo_cesce_euros, riesgo_manual_euros: d.riesgo_manual_euros,
     factor_tarifa_pct: d.factor_tarifa_pct, factor_fijado_a_mano: d.factor_fijado_a_mano,
-    permite_contraoferta: d.permite_contraoferta, discrecion_comercial: d.discrecion_comercial,
+    permite_contraoferta: d.permite_contraoferta, discrecion_comercial: d.discrecion_comercial, nima_por_defecto: d.nima_por_defecto,
     exento_pago_previo_primer_envio: !!d.exento_pago_previo_primer_envio,
     cuenta_contable: vacio(d.cuenta_contable), holded_forma_pago_ref: vacio(d.holded_forma_pago_ref),
     anotaciones: vacio(d.anotaciones), alta_por: d.alta_por || null,

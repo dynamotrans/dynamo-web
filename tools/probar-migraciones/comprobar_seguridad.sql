@@ -6378,3 +6378,32 @@ do $$ begin
   end if;
   raise notice 'OK 171 · plazo de pago: hasta las 9:00 del día hábil anterior a la carga (corte de cancelar gratis); inminentes y sin fecha, el plazo corto de 24 h a día hábil';
 end $$;
+
+-- ---- 172. NIMA por defecto del cliente: columna, mi_empresa y buscar_clientes -------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if (select nima_por_defecto from clientes where id = current_setting('prueba.cliente')::uuid) then
+    raise exception 'FALLO 172 · nima_por_defecto no nace apagado';
+  end if;
+  update clientes set nima_por_defecto = true where id = current_setting('prueba.cliente')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select m.nima_por_defecto from mi_empresa() m) is distinct from true then
+    raise exception 'FALLO 172 · mi_empresa() no devuelve la preferencia NIMA al cliente';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (select b.nima_por_defecto from buscar_clientes('', 1, current_setting('prueba.cliente')::uuid) b) is distinct from true then
+    raise exception 'FALLO 172 · buscar_clientes() no devuelve la preferencia NIMA';
+  end if;
+  raise notice 'OK 172 · NIMA por defecto del cliente: columna apagada de serie, y mi_empresa y buscar_clientes la devuelven';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update clientes set nima_por_defecto = false where id = current_setting('prueba.cliente')::uuid;

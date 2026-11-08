@@ -50,7 +50,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
-    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null }]}
+    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
       operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
@@ -75,7 +75,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const colsSitio = 'id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible';
   const vistaCliente = vista.tipo === 'cliente';
   const [cli, lug, fes, reg, ops] = await Promise.all([
-    clienteIni ? supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct').eq('id', clienteIni) : Promise.resolve({ data: [], error: null }),
+    clienteIni ? supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct, nima_por_defecto').eq('id', clienteIni) : Promise.resolve({ data: [], error: null }),
     clienteIni
       ? supabase.from('sitios').select(colsSitio).eq('borrado', false).or(`es_almacen_dynamo.eq.true,cliente_id.eq.${clienteIni}`).order('nombre_empresa').limit(2500)
       : supabase.from('sitios').select(colsSitio).eq('borrado', false).eq('es_almacen_dynamo', true).order('nombre_empresa').limit(500),
@@ -89,7 +89,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       : Promise.resolve({ data: [] }),
   ]);
 
-  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible ?? '', cif: c.cif, principal_id: c.sitio_principal_id, iva: c.iva_pct }));
+  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible ?? '', cif: c.cif, principal_id: c.sitio_principal_id, iva: c.iva_pct, nima: !!c.nima_por_defecto }));
   const sitios: SitioOpcion[] = (lug.data ?? []) as SitioOpcion[];
   const festivos = ((fes.data ?? []) as { fecha: string }[]).map((f) => f.fecha);
   const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));
