@@ -3627,13 +3627,11 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
 @media (max-width: 600px) { .ptar-sitio-grid { grid-template-columns: 1fr; } }
 /* Los campos de la cita previa, compactos: hora (columna estrecha) y muelle/puerta en la
    MISMA fila también en móvil; los detalles debajo a lo ancho (.full). */
-.ptar-sitio-grid.ptar-cita-grid { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); align-items: end; }
-/* El <input type=time> de iOS trae su propio aspecto y altura (se hinchaba y pisaba la
-   fila de abajo): se le quita el aspecto nativo y se clava la misma altura que el resto. */
-.ptar-cita-grid input[type="time"] {
-    -webkit-appearance: none; appearance: none;
-    height: 2.65rem; min-height: 0; line-height: 1.2;
-}
+.ptar-sitio-grid.ptar-cita-grid { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+/* Hora y muelle clavados a la MISMA altura (el <input type=time> de iOS trae su propio
+   aspecto y altura y descuadraba la fila): fuera el aspecto nativo y altura fija en los dos. */
+.ptar-cita-grid input { height: 2.65rem; min-height: 0; line-height: 1.2; }
+.ptar-cita-grid input[type="time"] { -webkit-appearance: none; appearance: none; }
 .ptar-cita-grid input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 /* Ficha de sitio PLEGABLE en la confirmación: por defecto solo la
    cabecera (nº + Recogida/Entrega + empresa + CP/localidad…). Se
