@@ -81,6 +81,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/nuevo-envio/acciones#datosEditablesDeSitios": z.tuple([z.array(z.string().uuid().or(z.literal(''))).max(10000)]),
   "app/panel/(app)/nuevo-envio/acciones#diasAbiertosDe": z.tuple([z.array(z.string().uuid().or(z.literal(''))).max(10000)]),
   "app/panel/(app)/nuevo-envio/acciones#guardarEdicionesSitios": z.tuple([z.array(z.object({ sitio_id: z.string().uuid().or(z.literal('')), contacto_id: z.string().max(1000).nullable(), contacto_nombre: z.string().max(1000), contacto_telefono: z.string().max(1000), contacto_email: z.string().max(1000), anotaciones: z.string().max(5000), emails_avisos: z.array(z.string().max(1000)).max(10000), url_google_maps: z.string().max(4000).nullable(), horario_tramos: z.array(z.object({ dia: z.number().or(z.nan()), abre: z.string().max(1000), cierra: z.string().max(1000) })).max(10000) })).max(10000)]),
+  "app/panel/(app)/nuevo-envio/acciones#kmRuta": z.tuple([z.array(z.object({ sitio_id: z.string().uuid().or(z.literal('')).nullable(), cp: z.string().max(1000).nullable(), pais: z.string().max(1000).nullable(), lat: z.number().or(z.nan()).nullable(), lon: z.number().or(z.nan()).nullable() })).max(10000)]),
   "app/panel/(app)/nuevo-envio/acciones#proponerPrecio": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()), z.number().or(z.nan()).nullable()]),
   "app/panel/(app)/nuevo-envio/acciones#sitiosDelCliente": z.tuple([z.string().max(1000)]),
   "app/panel/(app)/operadores/acciones#borrarOperador": z.tuple([z.string().uuid().or(z.literal(''))]),

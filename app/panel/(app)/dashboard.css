@@ -3893,7 +3893,41 @@ input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appe
     #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side { display: contents; }
     #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side > * { order: 1; margin-top: 0.55rem; }
     #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .wiz-navwrap { order: 2; }
-    #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side > .ptar-admin-precio { order: 3; }
+    #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side > /* ---- Precio sugerido del tarifador (borrador) ---- */
+.ptar-sug-card {
+    background: #f6f5ff; border: 1px solid #ded9f7; border-radius: 12px; padding: 0.9rem 1rem;
+}
+.ptar-sug-head { font-size: 0.78rem; font-weight: 800; color: var(--purple); text-transform: none; }
+.ptar-sug-head span { color: var(--gray-500); font-weight: 600; }
+.ptar-sug-precio { font-size: 1.7rem; font-weight: 900; color: var(--navy); margin-top: 0.25rem; }
+.ptar-sug-iva { font-size: 0.85rem; font-weight: 600; color: var(--gray-500); }
+.ptar-sug-sub { font-size: 0.8rem; color: var(--gray-600); margin-top: 0.15rem; }
+.ptar-sug-skel { height: 56px; border-radius: 8px; margin-top: 0.5rem;
+    background: linear-gradient(90deg, #ece9fb 25%, #f6f5ff 50%, #ece9fb 75%); background-size: 200% 100%;
+    animation: sugSkel 1.1s linear infinite; }
+@keyframes sugSkel { to { background-position: -200% 0; } }
+.ptar-sug-toggle { background: none; border: 0; padding: 0; margin-top: 0.4rem; cursor: pointer;
+    font-size: 0.8rem; font-weight: 700; color: var(--purple); text-decoration: underline; }
+.ptar-sug-desglose { margin-top: 0.45rem; border-top: 1px dashed #d8d2f2; padding-top: 0.45rem; }
+.ptar-sug-linea { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.8rem; color: var(--gray-700); padding: 0.12rem 0; }
+.ptar-sug-linea.neg span:last-child { color: #0f6b3a; font-weight: 700; }
+.ptar-sug-linea.total { border-top: 1px solid #d8d2f2; margin-top: 0.25rem; padding-top: 0.35rem; font-weight: 800; color: var(--navy); }
+.ptar-sug-alts { margin-top: 0.6rem; }
+.ptar-sug-alts-head { font-size: 0.74rem; font-weight: 800; color: var(--gray-600); margin-bottom: 0.3rem; }
+.ptar-sug-alt { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem;
+    background: #fff; border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.65rem; margin-bottom: 0.4rem; }
+.ptar-sug-alt.rec { border-color: #b7ebcd; background: #f3fcf7; }
+.ptar-sug-alt-txt { font-size: 0.8rem; color: var(--navy); min-width: 0; }
+.ptar-sug-alt-sub { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.1rem; }
+.ptar-sug-rec { margin-left: 0.4rem; font-size: 0.62rem; font-weight: 800; color: #0f6b3a; background: #d9f5e6;
+    border-radius: 99px; padding: 0.1rem 0.45rem; vertical-align: middle; }
+.ptar-sug-alt-der { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; flex: 0 0 auto; }
+.ptar-sug-ahorro { font-size: 0.72rem; font-weight: 800; color: #0f6b3a; white-space: nowrap; }
+.ptar-sug-elegir { background: none; border: 1px solid var(--purple); color: var(--purple); border-radius: 8px;
+    padding: 0.2rem 0.6rem; font-size: 0.74rem; font-weight: 700; cursor: pointer; }
+.ptar-sug-elegir:hover { background: var(--purple); color: #fff; }
+
+.ptar-admin-precio { order: 3; }
 }
 /* Sin hueco muerto: los contenedores de aviso vacíos (corte de fecha,
    avisos de fecha) no ocupan fila de la rejilla cuando su contenido está

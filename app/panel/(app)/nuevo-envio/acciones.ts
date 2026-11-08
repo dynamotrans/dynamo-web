@@ -172,6 +172,50 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
 // filtra la seguridad por filas.
 export type HorarioSitioAviso = { general: number[]; verano: { activo: boolean; desde: string | null; hasta: string | null; dias: number[]; resumen: string | null } };
 // Sitios de UN cliente para el asistente de Dynamo (se piden al elegirlo: con 7.000 sitios
+// ---- Kilómetros de la ruta para el precio SUGERIDO (borrador) ----------------------
+// Por cada tramo: caché de km reales (entre sitios → entre códigos postales) y, si no hay,
+// línea recta × 1,25 con las coordenadas de los sitios; sin nada, 300 km por tramo (el
+// mismo por-defecto que el seguimiento). Solo orienta: el precio bueno lo confirma Dynamo.
+export type PuntoKm = { sitio_id: string | null; cp: string | null; pais: string | null; lat: number | null; lon: number | null };
+export async function kmRuta(puntos: PuntoKm[]): Promise<{ km: number; estimado: boolean }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#kmRuta", [puntos]);
+  const s = await sesion();
+  if (!s?.perfil || puntos.length < 2) return { km: 0, estimado: true };
+  const sb = s.supabase;
+  const ids = puntos.map((p) => p.sitio_id).filter(Boolean) as string[];
+  const coords = new Map<string, { lat: number | null; lon: number | null }>();
+  if (ids.length) {
+    const { data } = await sb.from('sitios').select('id, lat, lon').in('id', ids);
+    (data ?? []).forEach((x) => coords.set(x.id, { lat: x.lat, lon: x.lon }));
+  }
+  let km = 0, estimado = false;
+  for (let i = 1; i < puntos.length; i++) {
+    const a = puntos[i - 1], b = puntos[i];
+    let tramo: number | null = null;
+    if (a.sitio_id && b.sitio_id) {
+      const r = await sb.rpc('km_sitios', { p_origen: a.sitio_id, p_destino: b.sitio_id, p_max_edad: '100 years' });
+      tramo = r.data ?? null;
+    }
+    if (tramo == null && a.cp && b.cp && a.pais && b.pais) {
+      const r = await sb.rpc('km_cp', { p_pais_codigo_iso_origen: a.pais, p_codigo_postal_origen: a.cp,
+        p_pais_codigo_iso_destino: b.pais, p_codigo_postal_destino: b.cp, p_max_edad: '100 years' });
+      tramo = r.data ?? null;
+    }
+    if (tramo == null) {
+      const ca = a.sitio_id ? coords.get(a.sitio_id) : { lat: a.lat, lon: a.lon };
+      const cb = b.sitio_id ? coords.get(b.sitio_id) : { lat: b.lat, lon: b.lon };
+      if (ca?.lat != null && ca.lon != null && cb?.lat != null && cb.lon != null) {
+        const rad = (x: number) => (x * Math.PI) / 180;
+        const h = Math.sin(rad(cb.lat - ca.lat) / 2) ** 2 + Math.cos(rad(ca.lat)) * Math.cos(rad(cb.lat)) * Math.sin(rad(cb.lon - ca.lon) / 2) ** 2;
+        tramo = Math.round(2 * 6371 * Math.asin(Math.sqrt(h)) * 1.25);
+      }
+    }
+    if (tramo == null) { tramo = 300; estimado = true; }
+    km += Number(tramo);
+  }
+  return { km: Math.round(km), estimado };
+}
+
 // de 3.000 clientes la pantalla mandaba 2,6 MB al abrirse).
 export async function sitiosDelCliente(cliente: string): Promise<SitioOpcion[]> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#sitiosDelCliente", [cliente]);

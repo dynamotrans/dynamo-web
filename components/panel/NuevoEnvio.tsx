@@ -8,7 +8,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { calcularTarifa, precioTransportistaSugerido } from '@/lib/tarifador';
+import { PrecioSugerido } from './nuevoEnvio/PrecioSugerido';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
@@ -92,10 +94,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar'>('estandar');
   const [fecha, setFecha] = useState('');
   const [faltaFecha, setFaltaFecha] = useState(false);   // se intentó avanzar sin elegir fecha → marca el campo en rojo
-  // PRUEBAS: hasta que haya tarifador, Dynamo no tiene que teclear el precio cada vez; se
-  // rellenan unos valores por defecto en los envíos nuevos (quitar cuando llegue el tarifador).
-  const [pc, setPc] = useState(esCliente ? '' : (be ? decimal(be.importe_cliente) : '1.230,00'));
-  const [pt, setPt] = useState(esCliente ? '' : (be ? decimal(be.importe_transportista) : '1.050,00'));
+  // El precio SUGERIDO del tarifador (borrador) rellena estos campos por defecto; en cuanto
+  // Dynamo teclea uno a mano, ese ya no se vuelve a pisar.
+  const [pc, setPc] = useState(esCliente ? '' : (be ? decimal(be.importe_cliente) : ''));
+  const [pt, setPt] = useState(esCliente ? '' : (be ? decimal(be.importe_transportista) : ''));
+  const [pcTocado, setPcTocado] = useState(!!be);
+  const [ptTocado, setPtTocado] = useState(!!be);
   const [neg, setNeg] = useState<number>(be?.negociacion_pct ?? 10);
 
   // ---- Envío MANUAL (solo el cliente): con su propio operador, Dynamo no interviene.
@@ -164,6 +168,44 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   const importe = num(pc);
   const importeT = pt.trim() ? num(pt) : null;
+
+  // ---- Precio sugerido (tarifador en BORRADOR, números provisionales) ----------------
+  // Los km de la ruta se piden al servidor (caché de km reales → coordenadas → 300/tramo)
+  // con un pequeño retardo para no pedir en cada tecla; el precio se calcula aquí.
+  const [kmInfo, setKmInfo] = useState<{ km: number; estimado: boolean } | null>(null);
+  const puntosRuta = [...recogidas, ...entregas];
+  const rutaCompleta = puntosRuta.length >= 2 && puntosRuta.every((p) => p.sitio || p.nuevo);
+  const claveRuta = puntosRuta.map((p) => p.sitio?.id ?? `${p.nuevo?.codigo_postal ?? ''}·${p.nuevo?.pais_codigo_iso ?? ''}`).join('|');
+  useEffect(() => {
+    if (!rutaCompleta) { setKmInfo(null); return; }
+    let vivo = true;
+    const t = setTimeout(() => {
+      kmRuta(puntosRuta.map((p) => ({ sitio_id: p.sitio?.id ?? null,
+        cp: p.sitio?.codigo_postal ?? p.nuevo?.codigo_postal ?? null,
+        pais: p.sitio?.pais_codigo_iso ?? p.nuevo?.pais_codigo_iso ?? null, lat: null, lon: null })))
+        .then((r) => { if (vivo) setKmInfo(r); })
+        .catch(() => { if (vivo) setKmInfo({ km: 300 * (puntosRuta.length - 1), estimado: true }); });
+    }, 600);
+    return () => { vivo = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claveRuta, rutaCompleta]);
+  const tarifa = useMemo(() => {
+    if (!kmInfo || !rutaCompleta || manual) return null;
+    return calcularTarifa({ km: kmInfo.km, puntos: puntosRuta.length,
+      tiposSitio: puntosRuta.map((p) => p.sitio?.tipo ?? p.nuevo?.tipo_sitio ?? 'almacen_nave'),
+      ml: Number(ml) || 0, peso: Number(peso) || 0, mlMax, pesoMax,
+      paletizada, techo: forma.toLowerCase().includes('techo'), plataforma, nima, adr,
+      urgencia, fecha: fecha || null, primerDia: dias[0], hoy: hoyMadrid(), festivos });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos]);
+  // El sugerido rellena los precios internos de Dynamo que no se hayan tocado a mano.
+  useEffect(() => {
+    if (esCliente || !tarifa) return;
+    if (!pcTocado) setPc(decimal(tarifa.neto));
+    if (!ptTocado) setPt(decimal(precioTransportistaSugerido(tarifa.neto)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tarifa?.neto, esCliente]);
+  const elegirAlternativa = (u: 'dia' | 'estandar', f: string) => { setUrgencia(u); setFecha(f); setModoCal(false); };
 
   function nuevaParada(tipo: 'carga' | 'descarga') {
     if (total >= 4) return;
@@ -682,21 +724,25 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     <input id="ne-pop" type="text" inputMode="decimal" placeholder="Ej. 450,00" value={precioOp} onChange={(ev) => setPrecioOp(ev.target.value)} />
                     <p className="ptar-admin-precio-note">Solo para tu control y para la orden de carga. Dynamo no lo ve en ningún precio suyo.</p>
                   </div>
-                ) : esCliente ? (
-                  <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
-                ) : <>
+                ) : esCliente ? (<>
+                  <PrecioSugerido tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado}
+                    cargando={rutaCompleta && !kmInfo} paraCliente onElegir={elegirAlternativa} />
+                  <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en firme en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
+                </>) : <>
+                <PrecioSugerido tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado}
+                  cargando={rutaCompleta && !kmInfo} paraCliente={false} onElegir={elegirAlternativa} />
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
                   <div className="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
                   <label className="ptar-admin-precio-lbl" htmlFor="ne-pc">Cliente (base sin IVA)</label>
-                  <input id="ne-pc" type="text" inputMode="decimal" placeholder="Ej. 1.230,00" value={pc} onChange={(e) => setPc(e.target.value)} />
+                  <input id="ne-pc" type="text" inputMode="decimal" placeholder="Ej. 1.230,00" value={pc} onChange={(e) => { setPc(e.target.value); setPcTocado(true); }} />
                   <label className="ptar-admin-precio-lbl" htmlFor="ne-pt" style={{ marginTop: '0.6rem' }}>Transportista (base sin IVA) · opcional</label>
-                  <input id="ne-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(e) => setPt(e.target.value)} />
+                  <input id="ne-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(e) => { setPt(e.target.value); setPtTocado(true); }} />
                   <label className="ptar-admin-precio-lbl" htmlFor="ne-neg" style={{ marginTop: '0.6rem' }}>Negociación con el transportista</label>
                   <select id="ne-neg" className="ptar-select" value={neg} onChange={(e) => setNeg(Number(e.target.value))}>
                     {NEGOCIACION.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
                   </select>
                   <p className="ptar-admin-precio-note">Sale ya puesta al ofrecer la carga (se puede cambiar ahí). El transportista nunca ve el %, solo el rango en euros.</p>
-                  <p className="ptar-admin-precio-note">Hasta que llegue el tarifador, el precio lo pone Dynamo a mano y queda marcado como <strong>fijado a mano</strong>.</p>
+                  <p className="ptar-admin-precio-note">Vienen rellenos con el <strong>precio sugerido</strong> del tarifador (borrador, números provisionales); lo que teclees a mano ya no se pisa.</p>
                 </div>
                 {cajaPrecio}
                 </>}
