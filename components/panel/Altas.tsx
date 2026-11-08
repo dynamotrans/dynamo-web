@@ -11,7 +11,7 @@ import Cargando from '@/components/Cargando';
 import { confirmarAlta, suspenderAlta, type NuevaEmpresa } from '@/app/panel/(app)/altas/acciones';
 
 import { fecha, euros, fechaHora } from '@/lib/formato';
-import { estadoCola, duracionTxt, COLA_OBJETIVO_MIN } from '@/lib/colaAltas';
+import { estadoCola, duracionTxt, COLA_OBJETIVO_TXT } from '@/lib/colaAltas';
 import { resolverContraoferta } from '@/app/panel/(app)/envios/acciones';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
@@ -47,7 +47,7 @@ function Reloj({ desde, fest, ahora }: { desde: string; fest: Set<string>; ahora
       <div className="alta-espera">{duracionTxt(e.esperaMin)}</div>
       {e.urgente ? <span className="alta-urgente">URGENTE</span>
         : e.enCola ? <span className="alta-cola">En cola · empieza a las 8:30</span>
-        : <div className="alta-barra" title={`${Math.floor(e.oficinaMin)} de ${COLA_OBJETIVO_MIN} min`}><span style={{ width: `${Math.round(e.progreso * 100)}%` }} /></div>}
+        : <div className="alta-barra" title={`${duracionTxt(e.oficinaMin)} de ${COLA_OBJETIVO_TXT}`}><span style={{ width: `${Math.round(e.progreso * 100)}%` }} /></div>}
     </div>
   );
 }
@@ -84,7 +84,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
         Solicitudes de alta esperando a Dynamo: <span className="alta-chip alta-cliente">clientes</span> que se registran en el portal y <span className="alta-chip alta-transportista">transportistas</span> que se dan de alta desde el enlace de un envío. Pulsa una fila para revisarla. La más antigua, arriba.
       </p>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-s)', margin: '0 0 0.9rem' }}>
-        <strong>Tiempo:</strong> lo que lleva esperando. La barra cuenta <strong>{COLA_OBJETIVO_MIN} minutos</strong> de horario de oficina (lunes a viernes 8:30–17:30, sin festivos); al llenarse pasa a <strong style={{ color: '#b42318' }}>URGENTE</strong>. Fuera de ese horario la solicitud queda <strong>en cola</strong> y la barra arranca a las 8:30.
+        <strong>Tiempo:</strong> lo que lleva esperando (horas y minutos). La barra cuenta <strong>{COLA_OBJETIVO_TXT}</strong> de horario de oficina (lunes a viernes 8:30–17:30, sin festivos); al llenarse pasa a <strong style={{ color: '#b42318' }}>URGENTE</strong>. Fuera de ese horario la solicitud queda <strong>en cola</strong> y la barra arranca a las 8:30.
         {urgentes > 0 && <> · <strong style={{ color: '#b42318' }}>{urgentes} urgente{urgentes === 1 ? '' : 's'}</strong></>}
       </p>
       <div className="filters">

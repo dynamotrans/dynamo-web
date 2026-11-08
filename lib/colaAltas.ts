@@ -1,10 +1,11 @@
 // Contador de las altas pendientes. El reloj de atención solo corre en horario de
 // oficina: lunes a viernes de 8:30 a 17:30 (hora de España), sin festivos nacionales.
 // Fuera de ese horario la solicitud está «en cola» y el reloj arranca a las 8:30.
-// Objetivo: atenderla en 30 minutos de oficina; pasados, es URGENTE.
+// Objetivo: atenderla en 3 horas de oficina; pasadas, es URGENTE.
 import { ahoraMadrid } from './atencion';
 
-export const COLA_ABRE = 8.5, COLA_CIERRA = 17.5, COLA_OBJETIVO_MIN = 30;
+export const COLA_ABRE = 8.5, COLA_CIERRA = 17.5, COLA_OBJETIVO_MIN = 180;
+export const COLA_OBJETIVO_TXT = '3 horas';
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const laborable = (d: Date, fest: Set<string>) => d.getDay() >= 1 && d.getDay() <= 5 && !fest.has(iso(d));
 const horas = (d: Date) => d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
