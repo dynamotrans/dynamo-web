@@ -196,7 +196,10 @@ export async function buscarSitiosGoogle(q: string): Promise<SitioGoogle[]> {
     ];
     let h = 0;
     for (const ch of w) h = (h * 31 + ch.charCodeAt(0)) % 100000;
-    const nombre = q.replace(/\s+/g, ' ').trim().replace(/\p{L}/gu, (c) => c.toUpperCase());
+    // Sin la forma social que ya traiga lo escrito (S.L., S.A., SCA…), para no encadenar
+    // «, S.A., S.L.» al volver a buscar con un nombre ya elegido.
+    const limpio = q.replace(/\s+/g, ' ').trim().replace(/([,\s]+(s\.?l\.?u?|s\.?a\.?u?|s\.?c\.?a\.?|s\.?coop\.?|sl|sa)\.?)+$/i, '').trim();
+    const nombre = (limpio || q.trim()).replace(/(^|[\s,.])\p{L}/gu, (c) => c.toUpperCase());
     const inventada = (i: number): SitioGoogle => {
       const dir = DIRS[(h + i * 3) % DIRS.length];
       const tel = `+349${String((h * 7 + i * 1234567) % 100000000).padStart(8, '0')}`;
