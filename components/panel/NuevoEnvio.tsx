@@ -83,8 +83,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar'>('estandar');
   const [fecha, setFecha] = useState('');
   const [faltaFecha, setFaltaFecha] = useState(false);   // se intentó avanzar sin elegir fecha → marca el campo en rojo
-  const [pc, setPc] = useState(esCliente ? '' : decimal(be?.importe_cliente));
-  const [pt, setPt] = useState(esCliente ? '' : decimal(be?.importe_transportista));
+  // PRUEBAS: hasta que haya tarifador, Dynamo no tiene que teclear el precio cada vez; se
+  // rellenan unos valores por defecto en los envíos nuevos (quitar cuando llegue el tarifador).
+  const [pc, setPc] = useState(esCliente ? '' : (be ? decimal(be.importe_cliente) : '1.230,00'));
+  const [pt, setPt] = useState(esCliente ? '' : (be ? decimal(be.importe_transportista) : '1.050,00'));
   const [neg, setNeg] = useState<number>(be?.negociacion_pct ?? 10);
 
   // ---- Envío MANUAL (solo el cliente): con su propio operador, Dynamo no interviene.
@@ -318,8 +320,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const avisoProvisional = provisional && reglas ? (
     <div className="pt-aviso" style={{ marginTop: '0.6rem' }}><div>
       <strong>Precio provisional:</strong> como faltan más de {reglas.cerrado_dias} días, el precio se revisa <strong>{reglas.revision_dias_habiles} días hábiles antes de la carga</strong>.
-      Si se mueve menos de un {String(reglas.margen_pct).replace('.', ',')} %, se queda igual; si baja, se baja; si sube, {esCliente ? 'podrás aceptarlo o cancelar sin coste' : 'el cliente lo acepta o cancela sin coste'}.
-      Hasta entonces no se asigna camión{esCliente ? '' : ' ni se oferta'}.
     </div></div>) : null;
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
   // Carga hoy para hoy: fecha fija y el día elegido es hoy (para el aviso de la confirmación).
