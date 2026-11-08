@@ -6,6 +6,7 @@
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
@@ -479,13 +480,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
                   </div>
 
-                  {esCliente && !base && operadores.length > 0 && (<>
-                    <div className="ptar-section-head">¿Quién hace el transporte?</div>
+                  {esCliente && !base && (<>
+                    <div className="ptar-section-head">Operador de transporte</div>
                     <div className="ptar-field ptar-field-full">
-                      <select className="ptar-select" aria-label="Quién hace el transporte" value={operador} onChange={(ev) => setOperador(ev.target.value)}>
-                        <option value="">Dynamo (te pasamos el precio)</option>
-                        {operadores.map((o) => <option key={o.id} value={o.id}>Mi operador: {o.nombre}</option>)}
+                      <select className="ptar-select" aria-label="Operador de transporte" value={operador} onChange={(ev) => setOperador(ev.target.value)}>
+                        <option value="">Dynamo Operador Logístico, S.L.</option>
+                        {operadores.map((o) => <option key={o.id} value={o.id}>Mi transportista: {o.nombre}</option>)}
                       </select>
+                      {operadores.length === 0 && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>¿Trabajas también con transportistas propios? Dalos de alta en <Link href="/panel/operadores"><strong>Transportistas</strong></Link> y podrás registrar aquí esos envíos (Dynamo no interviene) y tenerlo todo unificado.</p>}
                       {manual && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Envío con <strong>tu propio transportista</strong>: Dynamo no interviene en nada. La plataforma te sirve para organizarlo y sacar la <strong>orden de carga</strong> en PDF.</p>}
                     </div>
                   </>)}

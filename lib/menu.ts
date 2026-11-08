@@ -48,6 +48,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'sitios', titulo: 'Sitios', icono: 'sitios' },
       { grupo: 'otras', titulo: 'Otras gestiones', icono: 'capas', enlaces: [
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
+        { slug: 'operadores', titulo: 'Transportistas', icono: 'camion' },
         { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
         { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
         { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
