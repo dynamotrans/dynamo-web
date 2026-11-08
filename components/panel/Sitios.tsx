@@ -21,7 +21,6 @@ import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import EditorHorario from './EditorHorario';
-import EjemploAviso from './EjemploAviso';
 import { HORARIO_POR_DEFECTO, HORARIO_VERANO_POR_DEFECTO, VERANO_GENERICO, MMDD, mmddTxt, resumenHorario, validarHorario, type FechasVerano, type GrupoHorario } from '@/lib/horarios';
 
 export type SitioFila = SitioDatos & {
@@ -285,7 +284,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           setCmp({
             nombre: full.nombre_empresa ?? '', direccion: full.direccion ?? '', cp: full.codigo_postal ?? '',
             poblacion: full.poblacion ?? '', provincia: full.provincia ?? '',
-            telefono: principal(full.contactos)?.telefono ?? '', email: full.emails_avisos ?? '', notas: full.anotaciones ?? '',
+            telefono: principal(full.contactos)?.telefono ?? '', notas: full.anotaciones ?? '',
           });
           setComparar(full);
         } else setRepetido(r.duplicado);
@@ -328,7 +327,6 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     datos.codigo_postal = cmp.cp.trim() || datos.codigo_postal;
     datos.poblacion = cmp.poblacion.trim() || datos.poblacion;
     datos.provincia = cmp.provincia.trim();
-    datos.emails_avisos = cmp.email.trim();
     datos.anotaciones = cmp.notas.trim();
     const tel = cmp.telefono.replace(/[^0-9+]/g, '');
     if (tel) datos.contactos = datos.contactos.length ? datos.contactos.map((c, i) => (i === 0 ? { ...c, telefono: tel } : c)) : [{ ...CONTACTO_VACIO(), telefono: tel }];
@@ -341,9 +339,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   if (comparar) {
     const propios: Record<string, string> = {
       nombre: d.nombre_empresa, direccion: d.direccion, cp: d.codigo_postal, poblacion: d.poblacion,
-      provincia: d.provincia, telefono: d.contactos[0]?.telefono ?? '', email: d.emails_avisos, notas: d.anotaciones,
+      provincia: d.provincia, telefono: d.contactos[0]?.telefono ?? '', notas: d.anotaciones,
     };
-    const FILAS: [string, string][] = [['nombre', 'Nombre'], ['direccion', 'Dirección'], ['cp', 'Código postal'], ['poblacion', 'Población'], ['provincia', 'Provincia'], ['telefono', 'Teléfono'], ['email', 'Email de avisos'], ['notas', 'Notas']];
+    const FILAS: [string, string][] = [['nombre', 'Nombre'], ['direccion', 'Dirección'], ['cp', 'Código postal'], ['poblacion', 'Población'], ['provincia', 'Provincia'], ['telefono', 'Teléfono'], ['notas', 'Notas']];
     return (
       <Modal abierto titulo="Ya tienes un sitio muy parecido" sub="Comprueba que no lo dupliques antes de crearlo"
         icono={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>}
@@ -516,28 +514,21 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           desplegado y sin el campo Cargo. */}
       <div className="ptar-section-head" style={{ marginTop: '0.9rem' }}>Contacto de sitio <span className="sitio-req">· obligatorio</span></div>
       <div className="ptar-sitio-grid">
-        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} />
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} conAvisos={dynamo} />
       </div>
 
       {/* Lo demás PLEGADO con su resumen a la vista (usuario, 2026-11-08: ficha compacta). */}
       <div style={{ display: 'grid', gap: '0.55rem', marginTop: '0.9rem' }}>
+        {/* El email de avisos del sitio salió de la ficha (usuario, 2026-11-09): los avisos
+            van a los CONTACTOS (todos nacen recibiéndolos; Dynamo puede apagarlos). */}
         <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.avisos} onClick={() => plegar('avisos')} style={{ margin: 0 }}>
           <span className="pnt-icon" aria-hidden="true">{abierto.avisos ? '−' : '+'}</span>
-          <span><strong>Email de avisos y notas del sitio</strong>{' '}
-            {d.emails_avisos.trim() || d.anotaciones.trim() ? <span className="badge badge-green">Con datos</span> : <span style={{ color: 'var(--gray-500)' }}>(opcional)</span>}</span>
+          <span><strong>Notas internas del sitio</strong>{' '}
+            {d.anotaciones.trim() ? <span className="badge badge-green">Con datos</span> : <span style={{ color: 'var(--gray-500)' }}>(privadas · opcional)</span>}</span>
         </button>
         {abierto.avisos && (
           <div className="ptar-sitio-grid">
-            <div style={{ gridColumn: '1/-1' }}>
-              <label htmlFor="sitio-emails"><span style={{ color: 'var(--green)' }}>Email de avisos del sitio</span> {opc}</label>
-              <input id="sitio-emails" type="text" inputMode="email" value={d.emails_avisos} placeholder="almacen@empresa.com, recepcion@empresa.com"
-                style={{ border: '1.5px solid var(--green)' }} onChange={(e) => set('emails_avisos', e.target.value)} />
-              <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
-                Avisamos al sitio de sus <strong>recogidas y entregas</strong> con total discreción (sin precios ni otros clientes); varios, separados por comas.{' '}
-                <EjemploAviso cliente={cliente?.nombre} />
-              </div>
-            </div>
-            {campo('anotaciones', <><span style={{ color: 'var(--green)' }}>Notas del sitio</span> {opc}</>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
+            {campo('anotaciones', <>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
           </div>
         )}
 

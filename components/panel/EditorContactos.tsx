@@ -8,16 +8,18 @@ import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/l
 import { partirTel } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 
-export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, funcionNueva = 'general', ayuda }: {
+export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, funcionNueva = 'general', ayuda }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
-  conFuncion?: boolean; conCargo?: boolean; funcionNueva?: Funcion; ayuda?: React.ReactNode;
+  // conAvisos: enseña el conmutador «Recibe los avisos». En los SITIOS solo lo ve Dynamo:
+  // el cliente no; todo contacto nuevo nace recibiendo avisos (CONTACTO_VACIO).
+  conFuncion?: boolean; conCargo?: boolean; conAvisos?: boolean; funcionNueva?: Funcion; ayuda?: React.ReactNode;
 }) {
   const cambiar = (i: number, c: ContactoDatos) => onCambio(valor.map((x, j) => (j === i ? c : x)));
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.6rem' }}>
       {valor.length === 0 && <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)' }}>Sin personas de contacto.</div>}
       {valor.map((c, i) => (
-        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion} conCargo={conCargo}
+        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion} conCargo={conCargo} conAvisos={conAvisos}
           onCambio={(x) => cambiar(i, x)} onQuitar={() => onCambio(valor.filter((_, j) => j !== i))} />
       ))}
       <div>
@@ -31,8 +33,8 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
   );
 }
 
-function Persona({ c, i, total, conFuncion, conCargo, onCambio, onQuitar }: {
-  c: ContactoDatos; i: number; total: number; conFuncion: boolean; conCargo: boolean;
+function Persona({ c, i, total, conFuncion, conCargo, conAvisos, onCambio, onQuitar }: {
+  c: ContactoDatos; i: number; total: number; conFuncion: boolean; conCargo: boolean; conAvisos: boolean;
   onCambio: (c: ContactoDatos) => void; onQuitar: () => void;
 }) {
   const t = partirTel(c.telefono);
@@ -78,14 +80,16 @@ function Persona({ c, i, total, conFuncion, conCargo, onCambio, onQuitar }: {
             </select>
           </div>
         )}
-        <div>
-          <label>Recibe los avisos</label>
-          <label className="ptar-tramp-box">
-            <input type="checkbox" className="ptar-switch-input" checked={c.recibe_avisos} onChange={(e) => onCambio({ ...c, recibe_avisos: e.target.checked })} />
-            <span className="ptar-switch" aria-hidden="true" />
-            <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
-          </label>
-        </div>
+        {conAvisos && (
+          <div>
+            <label>Recibe los avisos</label>
+            <label className="ptar-tramp-box">
+              <input type="checkbox" className="ptar-switch-input" checked={c.recibe_avisos} onChange={(e) => onCambio({ ...c, recibe_avisos: e.target.checked })} />
+              <span className="ptar-switch" aria-hidden="true" />
+              <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
+            </label>
+          </div>
+        )}
       </div>
     </div>
   );
