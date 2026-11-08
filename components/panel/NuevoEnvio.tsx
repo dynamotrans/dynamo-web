@@ -26,7 +26,10 @@ import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
 import Modal from './Modal';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false, reglas = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, reglas = null }: Props) {
+  // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
+  // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
+  const sinCampoCliente = esCliente || clienteFijo;
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
@@ -578,9 +581,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               <div className="ptar-grid">
 
                 {paso === 1 && (<>
+                  {!sinCampoCliente && <>
                   <div className="ptar-section-head">Cliente</div>
                   <div className="ptar-field ptar-field-full">
-                    {enRuta || esCliente ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
+                    {enRuta ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
                       onElegir={async (c) => {
                         setCliente(c);
                         setPuntos((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null })));
@@ -594,6 +598,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       }}
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
                   </div>
+                  </>}
 
                   {esCliente && !base && (<>
                     <div className="ptar-section-head">Operador de transporte</div>
