@@ -10,7 +10,9 @@ import { canalEnlace } from '@/lib/canalEnlace';
 import '../cmr.css';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'CMR digital · Firma de la carta de porte', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'CMR digital · Firma de la carta de porte', robots: { index: false, follow: false },
+  // iOS convertía direcciones y números en enlaces tocables (subrayado de puntitos).
+  formatDetection: { telephone: false, address: false, email: false, date: false } };
 
 // CMR digital: página PÚBLICA (sin cuenta) donde firman cargador, transportista y
 // destinatario. Diseño de firmar-cmr.html. Solo usa la puerta pública de la base de datos.

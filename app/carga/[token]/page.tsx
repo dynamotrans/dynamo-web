@@ -11,7 +11,9 @@ import SelectorIdioma from '@/components/SelectorIdioma';
 import '../carga.css';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Aceptar carga · Dynamo', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'Aceptar carga · Dynamo', robots: { index: false, follow: false },
+  // iOS convertía direcciones y números en enlaces tocables (subrayado de puntitos).
+  formatDetection: { telephone: false, address: false, email: false, date: false } };
 
 // Página PÚBLICA del transportista (sin iniciar sesión): ver la oferta, reservarla 3 min y
 // aceptarla. Diseño de aceptar-carga.html. Solo usa la puerta pública de la base de datos.

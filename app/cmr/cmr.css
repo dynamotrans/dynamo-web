@@ -71,3 +71,13 @@
     .cmr-page .sigbtns .b-aceptar { background: var(--green); border-color: var(--green); color: #fff; }
     .cmr-page .sigbtns .b-aceptar[disabled] { opacity: 0.45; cursor: default; }
     .cmr-page .sigbtns .b-borrar { color: var(--red); border-color: rgba(220,38,38,0.4); }
+
+/* iOS "data detectors": aunque las direcciones y teléfonos son texto plano, Safari
+   los convierte en enlaces al mapa/marcador (subrayado de puntitos). Neutralizados:
+   los enlaces de verdad de la página son <a href> explícitos y no se tocan. */
+a[x-apple-data-detectors], a[x-apple-data-detectors] * {
+    color: inherit !important;
+    text-decoration: none !important;
+    pointer-events: none !important;
+    -webkit-touch-callout: none !important;
+}

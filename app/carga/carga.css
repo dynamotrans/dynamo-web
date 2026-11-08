@@ -504,3 +504,13 @@
     /* El tablón usa enlaces (<a>) en vez de botones: que no hereden el azul del enlace. */
     a.bolsa-item { color: var(--navy); }
     a.bolsa-item .bolsa-meta { color: var(--gray-500); }
+
+/* iOS "data detectors": aunque las direcciones y teléfonos son texto plano, Safari
+   los convierte en enlaces al mapa/marcador (subrayado de puntitos). Neutralizados:
+   los enlaces de verdad de la página son <a href> explícitos y no se tocan. */
+a[x-apple-data-detectors], a[x-apple-data-detectors] * {
+    color: inherit !important;
+    text-decoration: none !important;
+    pointer-events: none !important;
+    -webkit-touch-callout: none !important;
+}
