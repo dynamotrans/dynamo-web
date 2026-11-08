@@ -146,3 +146,114 @@ export async function marcarPrincipal(clienteId: string, sitioId: string | null)
   const { error } = await s.supabase.rpc('marcar_sitio_principal', { p_cliente: clienteId, p_sitio: sitioId });
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
+
+// =====================================================================================
+// BUSCADOR «PARA AUTORRELLENAR» DEL NUEVO SITIO (como el mockup): agenda + Google.
+// =====================================================================================
+// Nivel GOOGLE: con GOOGLE_MAPS_API_KEY puesta (en Vercel, nunca en el repo) busca de
+// verdad en Google Places y los resultados salen reales; sin clave, una lista de EJEMPLO
+// (la del mockup) para que el flujo completo se pueda probar ya. El usuario lo decidió
+// así el 2026-11-09: «cuando paguemos la API saldrán reales en búsqueda».
+export type SitioGoogle = {
+  empresa: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string;
+  pais_codigo_iso: string; telefono: string; url_google_maps: string; etiqueta: string;
+};
+const GOOGLE_EJEMPLO: SitioGoogle[] = [
+  { empresa: 'Grupal Art SL', direccion: 'Carrer Perdellot, 12', codigo_postal: '08185', poblacion: 'Lliçà de Vall', provincia: 'Barcelona', pais_codigo_iso: 'ES', telefono: '+34938445187', url_google_maps: 'https://goo.gl/maps/q4ECJQVWoezFTaHA6', etiqueta: 'Carrer Perdellot, 12, 08185 Lliçà de Vall, Barcelona' },
+  { empresa: 'Modular Normalizada S.L.', direccion: 'Calle del Berilio, 3', codigo_postal: '28946', poblacion: 'Fuenlabrada', provincia: 'Madrid', pais_codigo_iso: 'ES', telefono: '+34916421761', url_google_maps: 'https://maps.app.goo.gl/wm2DhtjTyovfFkXe6', etiqueta: 'Calle del Berilio, 3, 28946 Fuenlabrada, Madrid' },
+  { empresa: 'Circular Polimeri', direccion: 'Carrer Nou, 21', codigo_postal: '46469', poblacion: 'Beniparrell', provincia: 'Valencia', pais_codigo_iso: 'ES', telefono: '+34961214088', url_google_maps: 'https://maps.app.goo.gl/a9eiXJTidcnLHVjD6', etiqueta: 'Carrer Nou, 21, 46469 Beniparrell, Valencia' },
+  { empresa: 'Talleres Norte SL', direccion: 'Pol. Malpica, Calle E, 30', codigo_postal: '50016', poblacion: 'Zaragoza', provincia: 'Zaragoza', pais_codigo_iso: 'ES', telefono: '+34976573021', url_google_maps: 'https://maps.app.goo.gl/talleresnorte', etiqueta: 'Pol. Malpica, Calle E, 30, 50016 Zaragoza' },
+  { empresa: 'Logística Manchega SL', direccion: 'Pol. Campollano, Av. 2ª, 40', codigo_postal: '02007', poblacion: 'Albacete', provincia: 'Albacete', pais_codigo_iso: 'ES', telefono: '+34967218450', url_google_maps: 'https://maps.app.goo.gl/logmanchega', etiqueta: 'Pol. Campollano, Av. 2ª, 40, 02007 Albacete' },
+  { empresa: 'Cerámicas Levante SA', direccion: 'Ctra. Alcora, km 9', codigo_postal: '12006', poblacion: 'Castellón de la Plana', provincia: 'Castellón', pais_codigo_iso: 'ES', telefono: '+34964257133', url_google_maps: 'https://maps.app.goo.gl/ceramicaslevante', etiqueta: 'Ctra. Alcora, km 9, 12006 Castellón de la Plana' },
+  { empresa: 'Frutas del Sur SCA', direccion: 'Ctra. de la Mojonera, km 3', codigo_postal: '04745', poblacion: 'La Mojonera', provincia: 'Almería', pais_codigo_iso: 'ES', telefono: '+34950581247', url_google_maps: 'https://maps.app.goo.gl/frutasdelsur', etiqueta: 'Ctra. de la Mojonera, km 3, 04745 La Mojonera, Almería' },
+  { empresa: 'Hierros Cantabria SL', direccion: 'Pol. Barros, Nave 12', codigo_postal: '39408', poblacion: 'Los Corrales de Buelna', provincia: 'Cantabria', pais_codigo_iso: 'ES', telefono: '+34942830719', url_google_maps: 'https://maps.app.goo.gl/hierroscantabria', etiqueta: 'Pol. Barros, Nave 12, 39408 Los Corrales de Buelna, Cantabria' },
+];
+const normTxt = (s: string) => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+export async function buscarSitiosGoogle(q: string): Promise<SitioGoogle[]> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#buscarSitiosGoogle", [q]);
+  const s = await puede();
+  if (!s) return [];
+  q = (q ?? '').trim().slice(0, 120);
+  if (q.length < 2) return [];
+  const clave = process.env.GOOGLE_MAPS_API_KEY;
+  if (!clave) {
+    const w = normTxt(q);
+    return GOOGLE_EJEMPLO.filter((g) => normTxt(`${g.empresa} ${g.etiqueta}`).includes(w)).slice(0, 3);
+  }
+  try {
+    // Places API (New) · Text Search. Campos mínimos para autorrellenar la ficha.
+    const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json', 'X-Goog-Api-Key': clave,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.addressComponents,places.nationalPhoneNumber,places.googleMapsUri',
+      },
+      body: JSON.stringify({ textQuery: q, languageCode: 'es', regionCode: 'ES', pageSize: 4 }),
+    });
+    if (!r.ok) return [];
+    const j = (await r.json()) as { places?: { displayName?: { text?: string }; formattedAddress?: string; nationalPhoneNumber?: string; googleMapsUri?: string; addressComponents?: { longText?: string; shortText?: string; types?: string[] }[] }[] };
+    return (j.places ?? []).map((p) => {
+      const comp = (tipo: string, corto = false) => {
+        const c = (p.addressComponents ?? []).find((x) => x.types?.includes(tipo));
+        return (corto ? c?.shortText : c?.longText) ?? '';
+      };
+      return {
+        empresa: p.displayName?.text ?? '',
+        direccion: [comp('route'), comp('street_number')].filter(Boolean).join(', '),
+        codigo_postal: comp('postal_code'), poblacion: comp('locality'),
+        provincia: comp('administrative_area_level_2'), pais_codigo_iso: comp('country', true) || 'ES',
+        telefono: (p.nationalPhoneNumber ?? '').replace(/\s/g, ''), url_google_maps: p.googleMapsUri ?? '',
+        etiqueta: p.formattedAddress ?? '',
+      };
+    }).filter((g) => g.empresa);
+  } catch {
+    return [];
+  }
+}
+
+// La agenda del cliente para el buscador de la ficha (los 4 que mejor casan).
+export async function buscarAgendaSitios(q: string, clienteId: string | null): Promise<{ id: string; nombre: string; direccion: string }[]> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#buscarAgendaSitios", [q, clienteId]);
+  const s = await puede();
+  if (!s || !(q ?? '').trim()) return [];
+  const cli = clienteId && /^[0-9a-f-]{36}$/i.test(clienteId) ? clienteId : null;
+  const { data } = await s.supabase.rpc('sitios_pagina', { p_q: q.trim().slice(0, 120), p_cliente: cli, p_pagina: 1, p_por_pagina: 4 });
+  const ids = (data ?? []).map((x) => x.id);
+  if (!ids.length) return [];
+  const { data: filas } = await s.supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion').in('id', ids);
+  return ids.map((id) => {
+    const f = (filas ?? []).find((x) => x.id === id);
+    return f ? { id: f.id, nombre: f.nombre_empresa, direccion: [f.direccion, f.codigo_postal, f.poblacion].filter(Boolean).join(', ') } : null;
+  }).filter(Boolean) as { id: string; nombre: string; direccion: string }[];
+}
+
+// La ficha completa de UN sitio (para abrir un registro que no está en la página, y para
+// el comparador de duplicados). Los permisos por fila deciden qué puede leer cada uno.
+export async function leerSitio(id: string) {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#leerSitio", [id]);
+  const s = await puede();
+  if (!s || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { cargarSitios } = await import('@/lib/sitiosDatos');
+  const { filas } = await cargarSitios(s.supabase, false, [id]);
+  return filas[0] ?? null;
+}
+
+// ¿Hay un sitio guardado MUY PARECIDO a estos datos? Mismo criterio que el mockup: la
+// primera palabra «fuerte» (≥4 letras) del nombre coincide, o mismo CP con parte del
+// nombre. Para el aviso en vivo al elegir un resultado de Google.
+export async function sitioParecido(clienteId: string | null, empresa: string, cp: string): Promise<{ id: string; nombre: string } | null> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#sitioParecido", [clienteId, empresa, cp]);
+  const s = await puede();
+  if (!s) return null;
+  const tok = normTxt(empresa ?? '').split(/\s+/).filter((w) => w.length >= 4)[0] ?? '';
+  if (!tok && !(cp ?? '').trim()) return null;
+  let base = s.supabase.from('sitios').select('id, nombre_empresa, codigo_postal').eq('borrado', false).limit(200);
+  if (clienteId && /^[0-9a-f-]{36}$/i.test(clienteId)) base = base.eq('cliente_id', clienteId);
+  const { data } = await (tok ? base.ilike('nombre_empresa', `%${tok}%`) : base.eq('codigo_postal', (cp ?? '').trim()));
+  const hit = (data ?? []).find((x) => {
+    const sTok = normTxt(x.nombre_empresa).split(/\s+/).filter((w) => w.length >= 4)[0] ?? '';
+    return (tok && sTok && tok === sTok) || ((cp ?? '').trim() && x.codigo_postal === cp.trim() && tok && normTxt(x.nombre_empresa).includes(tok));
+  });
+  return hit ? { id: hit.id, nombre: hit.nombre_empresa } : null;
+}

@@ -4,6 +4,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 
+- [ ] 🗺️ **Google Places del buscador de sitios (usuario, 2026-11-09)**: el «Buscar para autorrellenar» de Nuevo sitio ya funciona como el mockup (agenda + Google + dirección OSM + comparador de duplicados), pero el nivel Google usa la LISTA DE EJEMPLO del mockup hasta que se pague la API. Cuando toque: crear la clave en Google Cloud (Places API New), ponerla en Vercel como `GOOGLE_MAPS_API_KEY` (Sensitive, sin NEXT_PUBLIC_) y los resultados salen reales solos (la rama real ya está escrita en `buscarSitiosGoogle`).
+
 - [ ] 🧹 **LIMPIEZA del código muerto de «solicitudes de precio» (usuario, 2026-11-08)** — el usuario NO quiere
       el código lleno de cosas sin uso. Al eliminar las solicitudes (el tarifador es automático: el cliente crea
       el envío ya preciado, commit `9126613`), quedaron **aparcadas a propósito** las funciones viejas de la base

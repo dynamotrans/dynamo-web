@@ -4,7 +4,7 @@
 // dashboard.html: tabla Empresa · Dirección · Horario · Contacto · Notas, estrella del
 // sitio principal y ficha en la ventana del panel con la rejilla .ptar-sitio-grid.
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
 import Buscador from './Buscador';
@@ -13,7 +13,7 @@ import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_SITIO } from './TipoSitio';
-import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, type SitioDatos, type ClienteOpcion } from '@/app/panel/(app)/sitios/acciones';
+import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, buscarAgendaSitios, buscarSitiosGoogle, leerSitio, sitioParecido, type SitioDatos, type ClienteOpcion, type SitioGoogle } from '@/app/panel/(app)/sitios/acciones';
 
 import { euros, fechaHora, numero } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
@@ -38,6 +38,42 @@ const NUEVO: SitioDatos = {
   provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '',
   requiere_cita: false, tiene_medios_carga: false, contactos: [CONTACTO_VACIO()], emails_avisos: '',
 };
+
+// Los datos de la ficha a partir de una fila (o vacíos): lo usa el estado inicial y el
+// comparador de duplicados («Actualizar el mío» parte del registro guardado).
+function datosDeFicha(fila: SitioFila | null, veranoDefecto: FechasVerano, almacen: boolean, clienteNuevo: string): SitioDatos {
+  const o: Partial<SitioDatos> = fila ? {} : { ...NUEVO, cliente_id: clienteNuevo };
+  const w = o as Record<keyof SitioDatos, unknown>;
+  if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { w[k] = fila[k] ?? NUEVO[k]; });
+  if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
+  const v = fila?.verano;
+  o.verano = { activo: !!v?.activo, desde: v?.desde ?? veranoDefecto.desde, hasta: v?.hasta ?? veranoDefecto.hasta,
+               horario: v?.horario?.length ? v.horario : HORARIO_VERANO_POR_DEFECTO.map((g) => ({ dias: [...g.dias], tramos: g.tramos.map((t) => ({ ...t })) })) };
+  if (almacen) o.almacen = fila?.almacen ?? { disponible: true, precio_almacenamiento_semana: null, precio_reparto: null };
+  return o as SitioDatos;
+}
+
+// Direcciones de OpenStreetMap (Nominatim) para el nivel «Dirección» del buscador: gratis
+// y sin clave, como en la web pública. Si falla, el buscador sigue con agenda + Google.
+type DirOSM = { etiqueta: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string };
+async function buscarDireccionesOSM(q: string): Promise<DirOSM[]> {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=3&accept-language=es&q=${encodeURIComponent(q)}`);
+    if (!r.ok) return [];
+    const j = (await r.json()) as { display_name?: string; address?: Record<string, string> }[];
+    return j.map((it) => {
+      const a = it.address ?? {};
+      const loc = a.city || a.town || a.village || a.municipality || '';
+      return {
+        etiqueta: (it.display_name ?? '').split(',').slice(0, 3).join(',').trim(),
+        direccion: [a.road ?? a.pedestrian ?? '', a.house_number ?? ''].filter(Boolean).join(', '),
+        codigo_postal: a.postcode ?? '', poblacion: loc,
+        provincia: a.province || (a.state && a.state !== loc ? a.state : '') || '',
+        pais: (a.country_code ?? 'es').toUpperCase(),
+      };
+    }).filter((x) => x.direccion || x.poblacion);
+  } catch { return []; }
+}
 
 const IcoEstrella = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>);
 const IcoPin = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>);
@@ -143,7 +179,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
       {ficha && (
         <FichaSitio fila={ficha.fila} clientes={clientes} dynamo={dynamo} clienteFijo={lista.vistaCliente} veranoDefecto={veranoDefecto}
           onCerrar={() => setFicha(null)}
-          onAbrir={(id) => { const f = filas.find((x) => x.id === id); if (f) setFicha({ fila: f }); }}
+          onAbrir={async (id) => { const f = filas.find((x) => x.id === id) ?? await leerSitio(id).catch(() => null); if (f) setFicha({ fila: f }); }}
           onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
@@ -159,17 +195,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   almacen?: { precioSemana: number; precioReparto: number };
   onCerrar: () => void; onAbrir: (id: string) => void; onGuardado: () => void;
 }) {
-  const [d, setD] = useState<SitioDatos>(() => {
-    const o: Partial<SitioDatos> = fila ? {} : { ...NUEVO, cliente_id: clientes.length === 1 || clienteFijo ? clientes[0]?.id ?? '' : '' };
-    const w = o as Record<keyof SitioDatos, unknown>;
-    if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { w[k] = fila[k] ?? NUEVO[k]; });
-    if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
-    const v = fila?.verano;
-    o.verano = { activo: !!v?.activo, desde: v?.desde ?? veranoDefecto.desde, hasta: v?.hasta ?? veranoDefecto.hasta,
-                 horario: v?.horario?.length ? v.horario : HORARIO_VERANO_POR_DEFECTO.map((g) => ({ dias: [...g.dias], tramos: g.tramos.map((t) => ({ ...t })) })) };
-    if (almacen) o.almacen = fila?.almacen ?? { disponible: true, precio_almacenamiento_semana: null, precio_reparto: null };
-    return o as SitioDatos;
-  });
+  const [d, setD] = useState<SitioDatos>(() => datosDeFicha(fila, veranoDefecto, !!almacen,
+    clientes.length === 1 || clienteFijo ? clientes[0]?.id ?? '' : ''));
   const [precios, setPrecios] = useState({
     semana: d.almacen?.precio_almacenamiento_semana == null ? '' : String(d.almacen.precio_almacenamiento_semana).replace('.', ','),
     reparto: d.almacen?.precio_reparto == null ? '' : String(d.almacen.precio_reparto).replace('.', ','),
@@ -184,6 +211,45 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   // resumen a la vista; solo se abre lo que haga falta tocar.
   const [abierto, setAbierto] = useState({ avisos: false, horario: false });
   const plegar = (k: 'avisos' | 'horario') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
+  // Buscador «para autorrellenar» (solo ficha NUEVA): agenda («Guardado»), Google (reales
+  // con GOOGLE_MAPS_API_KEY; de ejemplo mientras no se pague la API) y dirección (OSM).
+  const [bq, setBq] = useState('');
+  const [sug, setSug] = useState<{ ag: { id: string; nombre: string; direccion: string }[]; go: SitioGoogle[]; dir: DirOSM[] }>({ ag: [], go: [], dir: [] });
+  const [sugAbierto, setSugAbierto] = useState(false);
+  const [avisoParecido, setAvisoParecido] = useState<{ id: string; nombre: string } | null>(null);
+  const bqViva = useRef('');
+  useEffect(() => {
+    const q = bq.trim(); bqViva.current = q;
+    if (fila || almacen) return;
+    if (q.length < 2) { setSug({ ag: [], go: [], dir: [] }); return; }
+    const t = setTimeout(async () => {
+      const [ag, go, dir] = await Promise.all([
+        buscarAgendaSitios(q, d.cliente_id || null).catch(() => []),
+        buscarSitiosGoogle(q).catch(() => []),
+        buscarDireccionesOSM(q).catch(() => []),
+      ]);
+      if (bqViva.current === q) { setSug({ ag, go, dir }); setSugAbierto(true); }
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- la búsqueda depende solo del texto y del cliente
+  }, [bq, d.cliente_id]);
+  // Elegir una ficha de Google: autorrellena y avisa si ya hay un sitio muy parecido.
+  function elegirGoogle(g: SitioGoogle) {
+    setD((x) => ({
+      ...x, nombre_empresa: g.empresa, direccion: g.direccion, codigo_postal: g.codigo_postal,
+      poblacion: g.poblacion, provincia: g.provincia, pais_codigo_iso: g.pais_codigo_iso || 'ES',
+      url_google_maps: g.url_google_maps,
+      contactos: g.telefono && !x.contactos.some((c) => c.telefono.trim())
+        ? x.contactos.map((c, i) => (i === 0 ? { ...c, telefono: g.telefono } : c))
+        : x.contactos,
+    }));
+    setBq(g.empresa); setSugAbierto(false); setAvisoParecido(null);
+    sitioParecido(d.cliente_id || null, g.empresa, g.codigo_postal).then(setAvisoParecido).catch(() => {});
+  }
+  // El comparador de duplicados al guardar: el registro guardado entero + lo que ibas a
+  // crear, campo a campo, con flecha para copiar y «Tu registro» editable.
+  const [comparar, setComparar] = useState<SitioFila | null>(null);
+  const [cmp, setCmp] = useState<Record<string, string>>({});
   const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => { setD((x) => ({ ...x, [k]: v })); setRepetido(null); };
 
   async function guardar(aunqueRepetido = false) {
@@ -213,7 +279,18 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     const r = await guardarSitio(fila?.id ?? null, datos, aunqueRepetido);
     setTrabajando(null);
     if (!r.ok) {
-      if (r.duplicado) { setRepetido(r.duplicado); return; }
+      if (r.duplicado) {
+        const full = await leerSitio(r.duplicado.id).catch(() => null);
+        if (full) {
+          setCmp({
+            nombre: full.nombre_empresa ?? '', direccion: full.direccion ?? '', cp: full.codigo_postal ?? '',
+            poblacion: full.poblacion ?? '', provincia: full.provincia ?? '',
+            telefono: principal(full.contactos)?.telefono ?? '', email: full.emails_avisos ?? '', notas: full.anotaciones ?? '',
+          });
+          setComparar(full);
+        } else setRepetido(r.duplicado);
+        return;
+      }
       setError(r.error); return;
     }
     onGuardado();
@@ -241,6 +318,63 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [cliSel, setCliSel] = useState<ClienteOpcion | null>(() => { const c = clientes.find((x) => x.id === d.cliente_id); return c ? { ...c, estado: 'activa' } : null; });
   const cliente = clientes.find((c) => c.id === d.cliente_id) ?? (cliSel?.id === d.cliente_id ? cliSel : undefined);
 
+  // «Actualizar el mío»: guarda sobre el registro EXISTENTE lo editado/copiado en la
+  // tabla del comparador (el resto de su ficha —horario, verano, contactos extra— se queda).
+  async function actualizarElMio() {
+    if (!comparar) return;
+    const datos = datosDeFicha(comparar, veranoDefecto, false, '');
+    datos.nombre_empresa = cmp.nombre.trim() || datos.nombre_empresa;
+    datos.direccion = cmp.direccion.trim() || datos.direccion;
+    datos.codigo_postal = cmp.cp.trim() || datos.codigo_postal;
+    datos.poblacion = cmp.poblacion.trim() || datos.poblacion;
+    datos.provincia = cmp.provincia.trim();
+    datos.emails_avisos = cmp.email.trim();
+    datos.anotaciones = cmp.notas.trim();
+    const tel = cmp.telefono.replace(/[^0-9+]/g, '');
+    if (tel) datos.contactos = datos.contactos.length ? datos.contactos.map((c, i) => (i === 0 ? { ...c, telefono: tel } : c)) : [{ ...CONTACTO_VACIO(), telefono: tel }];
+    setTrabajando('Actualizando tu registro');
+    const r = await guardarSitio(comparar.id, datos);
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); setComparar(null); return; }
+    onGuardado();
+  }
+  if (comparar) {
+    const propios: Record<string, string> = {
+      nombre: d.nombre_empresa, direccion: d.direccion, cp: d.codigo_postal, poblacion: d.poblacion,
+      provincia: d.provincia, telefono: d.contactos[0]?.telefono ?? '', email: d.emails_avisos, notas: d.anotaciones,
+    };
+    const FILAS: [string, string][] = [['nombre', 'Nombre'], ['direccion', 'Dirección'], ['cp', 'Código postal'], ['poblacion', 'Población'], ['provincia', 'Provincia'], ['telefono', 'Teléfono'], ['email', 'Email de avisos'], ['notas', 'Notas']];
+    return (
+      <Modal abierto titulo="Ya tienes un sitio muy parecido" sub="Comprueba que no lo dupliques antes de crearlo"
+        icono={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>}
+        onCerrar={() => { if (!trabajando) setComparar(null); }} ancho={700}
+        pie={<div className="dup-footer">
+          <button className="btn-ghost" onClick={() => guardar(true)} disabled={!!trabajando}>Crear igualmente</button>
+          <button className="btn-primary" onClick={actualizarElMio} disabled={!!trabajando}>Actualizar el mío</button>
+        </div>}>
+        <div className="modal-warn-box">
+          Si creas uno nuevo tendrás <strong>dos registros del mismo sitio</strong>. Lo normal es <strong>actualizar el que ya tienes</strong> (puede llevar anotaciones o el teléfono bueno): edita sus campos o cópialos con el botón <strong>→</strong>. Solo pulsa <strong>Crear igualmente</strong> si de verdad es otro sitio distinto (p. ej. otra nave o muelle en la misma dirección).
+        </div>
+        <div className="table-wrap"><table className="data cmp-table">
+          <thead><tr><th></th><th>Datos que ibas a crear</th><th>Tu registro</th></tr></thead>
+          <tbody>
+            {FILAS.map(([f, label]) => (
+              <tr key={f}>
+                <td className="cmp-l">{label}</td>
+                <td className="cmp-goog">{propios[f]
+                  ? <>{propios[f]}<button type="button" className="dup-copy" title="Copiar este dato a mi registro" aria-label={`Copiar ${label} a mi registro`}
+                      onClick={() => setCmp((x) => ({ ...x, [f]: propios[f] }))}>→</button></>
+                  : <span style={{ color: 'var(--gray-400)' }}>—</span>}</td>
+                <td><input className="dup-inp" aria-label={`${label} de tu registro`} value={cmp[f] ?? ''} onChange={(e) => setCmp((x) => ({ ...x, [f]: e.target.value }))} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+        {error && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {error}</div>}
+        {trabajando && <Cargando texto={trabajando} />}
+      </Modal>
+    );
+  }
   return (
     <Modal abierto titulo={fila ? `Editar ${que}` : `Nuevo ${que}`}
       sub={fila ? `${fila.nombre_empresa} · ${fila.codigo}${dynamo && cliente ? ` · ${cliente.nombre}` : ''}` : almacen ? 'Alta de un almacén Dynamo en el catálogo interno' : 'Crea un sitio de recogida/entrega para la agenda'}
@@ -304,6 +438,45 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             </div>
           </div>
         </>
+      )}
+      {!fila && !almacen && (
+        <div style={{ marginBottom: '0.8rem' }}>
+          <div className="ptar-field" style={{ position: 'relative' }}>
+            <label htmlFor="sitio-buscar">Buscar para autorrellenar (tu agenda, Google o dirección)</label>
+            <input id="sitio-buscar" autoComplete="off" placeholder="Escribe empresa o dirección…" value={bq}
+              onChange={(e) => { setBq(e.target.value); setAvisoParecido(null); }}
+              onFocus={() => setSugAbierto(true)} onBlur={() => setTimeout(() => setSugAbierto(false), 150)} />
+            {sugAbierto && (sug.ag.length > 0 || sug.go.length > 0 || sug.dir.length > 0) && (
+              <ul className="ptar-sug" style={{ zIndex: 1300 }}>
+                {sug.ag.map((x) => (
+                  <li key={`a${x.id}`} onMouseDown={(e) => { e.preventDefault(); setSugAbierto(false); onAbrir(x.id); }}>
+                    <span className="sug-chip sug-chip-saved">Guardado</span><strong>{x.nombre}</strong><span className="sug-dir">{x.direccion}</span>
+                  </li>
+                ))}
+                {sug.go.map((g, i) => (
+                  <li key={`g${i}`} onMouseDown={(e) => { e.preventDefault(); elegirGoogle(g); }}>
+                    <span className="sug-chip sug-chip-google">Google</span><strong>{g.empresa}</strong><span className="sug-dir">{g.etiqueta}</span>
+                  </li>
+                ))}
+                {sug.dir.map((x, i) => (
+                  <li key={`d${i}`} onMouseDown={(e) => {
+                    e.preventDefault();
+                    setD((v) => ({ ...v, direccion: x.direccion || v.direccion, codigo_postal: x.codigo_postal || v.codigo_postal, poblacion: x.poblacion || v.poblacion, provincia: x.provincia || v.provincia, pais_codigo_iso: x.pais || v.pais_codigo_iso }));
+                    setBq(x.etiqueta); setSugAbierto(false);
+                  }}>
+                    <span className="sug-chip sug-chip-addr">Dirección</span><span className="sug-dir">{x.etiqueta}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          {avisoParecido && (
+            <div className="modal-warn-box" style={{ marginTop: '0.6rem' }}>
+              Ya tienes un sitio muy parecido guardado: <strong>{avisoParecido.nombre}</strong>. Puede tener anotaciones o el teléfono bueno.{' '}
+              <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(e) => { e.preventDefault(); onAbrir(avisoParecido.id); }}>Abrir mi registro</a>
+            </div>
+          )}
+        </div>
       )}
       <div className="ptar-sitio-grid">
         {dynamo && !almacen && !clienteFijo && (
