@@ -97,6 +97,19 @@ export async function enlaceCmr(token: string): Promise<{ cmr?: string; error?: 
 // ---- Alta online de un transportista nuevo (CIF que no está en Dynamo) --------------------
 // Se crea su ficha y la carga queda reservada para él, PENDIENTE de que Dynamo verifique sus
 // datos (alta_transportista_publica). Solo con enlaces de bolsa y con la reserva viva.
+// Sugerencias para identificarse (como el mockup): hasta 6 transportistas de Dynamo que
+// casan con lo escrito (nombre desde 2 letras, CIF/NIF normalizado, código de bolsa…).
+// La base de datos solo responde con una RESERVA VIVA (la cookie del enlace).
+export type SugerenciaT = { nombre: string; cif: string; poblacion: string | null };
+export async function sugerirTransportistas(token: string, q: string): Promise<SugerenciaT[]> {
+  comprobarEntrada("app/carga/[token]/acciones#sugerirTransportistas", [token, q]);
+  const sb = supabasePublico();
+  const reserva = (await cookies()).get(cookieReserva(token))?.value;
+  if (!sb || !reserva || q.trim().replace(/[^0-9A-Za-z]/g, '').length < 2) return [];
+  const { data } = await sb.rpc('sugerencias_transportistas_publicas', { p_reserva: reserva, p_q: q.trim().slice(0, 80) });
+  return (data ?? []).map((s) => ({ nombre: s.nombre, cif: s.cif, poblacion: s.poblacion ?? null }));
+}
+
 // Solo transportistas de una bolsa del grupo Alpega: cuatro datos, el resto lo completa
 // Dynamo desde su ficha en la bolsa.
 export type AltaTransportista = { bolsa: string; codigo_bolsa: string; pais: string; cif: string; telefono: string; precio: number | null; pronto_pago: boolean };

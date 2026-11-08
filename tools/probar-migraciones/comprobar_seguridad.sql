@@ -6425,3 +6425,48 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update clientes set nima_por_defecto = false where id = current_setting('prueba.cliente')::uuid;
+
+-- ---- 173. Sugerencias públicas para identificarse: solo con reserva viva --------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; o uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 23, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A173', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B173', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  o := ofertar_envio(e, null, 'bolsa_wtransnet', 800, 0::smallint, false);
+  perform set_config('prueba.tok173', (select token::text from envio_ofertas where id = o), false);
+  -- El CIF y el nombre del transportista de prueba se leen AQUÍ (como Dynamo): el bloque
+  -- de abajo corre como anon y RLS no le deja leer la tabla transportistas.
+  perform set_config('prueba.cif173', (select cif from transportistas where id = current_setting('prueba.transp')::uuid), false);
+  perform set_config('prueba.nom173', (select nombre_visible from transportistas where id = current_setting('prueba.transp')::uuid), false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare r jsonb; rid uuid; t record; n int; begin
+  r := reservar_envio_publico(current_setting('prueba.tok173')::uuid, null, 'prueba173');
+  rid := (r ->> 'reserva_id')::uuid;
+  t := (select x from (select current_setting('prueba.cif173') as cif, current_setting('prueba.nom173') as nombre_visible) x);
+  -- Por CIF tal cual, y con «ES», guiones y minúsculas (normalizado).
+  if not exists (select 1 from sugerencias_transportistas_publicas(rid, t.cif) s where s.cif = t.cif) then
+    raise exception 'FALLO 173 · no encuentra por CIF exacto';
+  end if;
+  if not exists (select 1 from sugerencias_transportistas_publicas(rid, 'es ' || lower(left(t.cif, 1) || '-' || substr(t.cif, 2))) s where s.cif = t.cif) then
+    raise exception 'FALLO 173 · no encuentra con ES, guion y minusculas';
+  end if;
+  -- Por la primera palabra del nombre (desde 2 letras), y máximo 6 filas.
+  if not exists (select 1 from sugerencias_transportistas_publicas(rid, split_part(lower(t.nombre_visible), ' ', 1)) s where s.cif = t.cif) then
+    raise exception 'FALLO 173 · no encuentra por nombre';
+  end if;
+  select count(*) into n from sugerencias_transportistas_publicas(rid, 'a e');
+  if n > 6 then raise exception 'FALLO 173 · devuelve mas de 6'; end if;
+  -- Con 1 solo carácter útil, nada; sin reserva viva (uuid inventado), nada.
+  select count(*) into n from sugerencias_transportistas_publicas(rid, 'B'); if n <> 0 then raise exception 'FALLO 173 · sugiere con 1 caracter'; end if;
+  select count(*) into n from sugerencias_transportistas_publicas(gen_random_uuid(), t.cif); if n <> 0 then raise exception 'FALLO 173 · sugiere sin reserva'; end if;
+  -- Liberada la reserva, se acabaron las sugerencias.
+  perform liberar_reserva_publica(rid, 'prueba 173');
+  select count(*) into n from sugerencias_transportistas_publicas(rid, t.cif); if n <> 0 then raise exception 'FALLO 173 · sugiere con la reserva liberada'; end if;
+  raise notice 'OK 173 · sugerencias públicas para identificarse: solo con reserva viva, desde 2 caracteres, por nombre o CIF (ES, guiones y mayúsculas dan igual), máximo 6';
+end $$;
+reset role;

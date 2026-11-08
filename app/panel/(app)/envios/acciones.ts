@@ -236,7 +236,11 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo guarda copias.' };
   const r = await pdfDeEnvioDynamo(s.supabase, envioId, documento, s.perfil.id);
   if ('error' in r) return { ok: false, error: r.error };
-  const fecha = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '').replace(/^(\d{8})(\d{4})$/, '$1-$2');
+  // Sello del nombre en HORA DE MADRID: con el ISO (UTC), a partir de las 23:00/00:00 el
+  // nombre llevaba el día y la hora ANTERIORES («…-20261108-2305» siendo las 00:05 del 9).
+  const partes = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const parte = (t: Intl.DateTimeFormatPartTypes) => partes.find((x) => x.type === t)?.value ?? '';
+  const fecha = `${parte('year')}${parte('month')}${parte('day')}-${parte('hour')}${parte('minute')}`;
   const nombre = r.nombre.replace(/\.pdf$/, `-${fecha}.pdf`);
   const ruta = `envios/${envioId}/${randomUUID()}/${nombre}`;
   const { error: eSubida } = await s.supabase.storage.from('documentos').upload(ruta, r.bytes, { contentType: 'application/pdf', upsert: false });

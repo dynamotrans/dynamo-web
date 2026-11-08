@@ -10,6 +10,7 @@ export const ESQUEMAS = {
   "app/carga/[token]/acciones#liberar": z.tuple([z.string().max(1000)]),
   "app/carga/[token]/acciones#reservar": z.tuple([z.string().max(1000)]),
   "app/carga/[token]/acciones#sugerirFlota": z.tuple([z.string().max(1000), z.object({ matricula: z.string().max(1000).optional(), conductor: z.string().max(1000).optional() })]),
+  "app/carga/[token]/acciones#sugerirTransportistas": z.tuple([z.string().max(1000), z.string().max(1000)]),
   "app/cmr/[token]/acciones#firmar": z.tuple([z.string().max(1000), z.object({ parada_id: z.string().uuid().or(z.literal('')).nullable(), rol: z.enum(["remitente", "transportista", "destinatario"]), nombre: z.string().max(1000), documento: z.string().max(1000), pais: z.string().max(1000), email: z.string().max(1000), png: z.string().max(3000000), reservas: z.string().max(5000).optional() })]),
   "app/panel/(app)/almacenamientos/acciones#cambiarEstadoAlmacenamiento": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["pendiente_confirmar", "confirmado", "en_almacen", "finalizado", "cancelado"])]),
   "app/panel/(app)/almacenamientos/acciones#cancelarMiAlmacenamiento": z.tuple([z.string().uuid().or(z.literal(''))]),

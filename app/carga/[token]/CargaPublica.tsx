@@ -4,11 +4,11 @@
 // reserva de 3 minutos con su contador, identificación, vehículo, pronto pago, contraoferta
 // dentro de la banda, y la carga aceptada con todos sus datos. También: ya no disponible,
 // en trámite, tiempo agotado y enlace no válido.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
-import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, type AltaTransportista } from './acciones';
+import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, sugerirTransportistas, type AltaTransportista, type SugerenciaT } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, diasEntre } from '@/lib/formato';
 
@@ -285,6 +285,28 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   const [trabajando, setTrabajando] = useState(false);
   const [alta, setAlta] = useState(false);
   const [noEncontrado, setNoEncontrado] = useState(false);
+  // Autocompletado del mockup: sugerencias de la base de Dynamo mientras escribe
+  // (nombre desde 2 letras; CIF, NIF o código de bolsa desde 4). Elegir una deja la
+  // empresa fijada («No soy yo · cambiar»). La base de datos solo responde con la
+  // reserva viva de este enlace.
+  const [sugs, setSugs] = useState<SugerenciaT[] | null>(null);
+  const [buscando, setBuscando] = useState(false);
+  const [acAbierto, setAcAbierto] = useState(false);
+  const [elegido, setElegido] = useState<SugerenciaT | null>(null);
+  const seqBusqueda = useRef(0);
+  useEffect(() => {
+    if (elegido || o.para_transportista) return;
+    const q = cif.trim();
+    if (q.replace(/[^0-9A-Za-z]/g, '').length < 2) { setSugs(null); setBuscando(false); return; }
+    setBuscando(true);
+    const mio = ++seqBusqueda.current;
+    const t = setTimeout(() => {
+      sugerirTransportistas(token, q)
+        .then((r) => { if (seqBusqueda.current === mio) { setSugs(r); setBuscando(false); } })
+        .catch(() => { if (seqBusqueda.current === mio) { setSugs([]); setBuscando(false); } });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [cif, elegido, token, o.para_transportista]);
 
   if (quedan === 0) {
     return (
@@ -297,13 +319,14 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   const pct = num(o.pronto_pago_pct) ?? 3, minimo = num(o.pronto_pago_minimo) ?? 20;
   const precioFinal = contra ? precio : base;
   const dto = Math.max(Math.round(precioFinal * pct) / 100, minimo);
-  if (alta) return <AltaNueva token={token} cif={cif} precio={contra && precio !== base ? precio : null} pronto={pronto} texto={texto} urgente={quedan < 60000} onVolver={() => setAlta(false)} />;
+  if (alta) return <AltaNueva token={token} cif={/\d{4,}/.test(cif) ? cif : ''} precio={contra && precio !== base ? precio : null} pronto={pronto} texto={texto} urgente={quedan < 60000} onVolver={() => setAlta(false)} />;
 
+  const cifReal = (elegido?.cif ?? cif).trim();
   async function aceptarla() {
     setError(null);
-    if (!o.para_transportista && !cif.trim()) { setError('Escribe tu CIF / NIF para identificarte.'); return; }
+    if (!o.para_transportista && !cifReal) { setError('Escribe tu CIF / NIF para identificarte.'); return; }
     setTrabajando(true);
-    const x = await aceptar(token, { cif, precio: contra && precio !== base ? precio : null, pronto_pago: pronto, ...veh });
+    const x = await aceptar(token, { cif: cifReal, precio: contra && precio !== base ? precio : null, pronto_pago: pronto, ...veh });
     setTrabajando(false);
     if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { refrescar(); return; }
     const msg: Record<string, string> = {
@@ -353,15 +376,39 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
       ) : (
         <div id="identBlock">
           <div className="sec-title">Identifícate</div>
-          <label htmlFor="f-cif">Tu CIF / NIF (el de tu ficha en Dynamo) *</label>
-          <input type="text" id="f-cif" value={cif} placeholder="B12345678" autoCapitalize="characters" autoComplete="off" onChange={(e) => setCif(e.target.value)} />
-          {/* Aviso en vivo SOLO cuando el número casa con un formato conocido y el control
-              falla (una errata): así no se gasta un intento. Un formato desconocido no se
-              marca (puede ser un nº fiscal extranjero válido). Aquí no hay autocompletado
-              a propósito: la página es pública y sugerir CIF revelaría nuestra agenda. */}
-          {(() => { const r = cif.trim() ? validaIdFiscal(cif) : null;
-            return r && !r.ok && r.tipo ? <p className="id-hint" style={{ color: 'var(--red)' }}>{r.tipo}: {r.msg}. Revísalo antes de aceptar.</p> : null; })()}
-          <p className="id-hint">¿Primer envío con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta el envío.</p>
+          {elegido ? (
+            <div className="empresa-resumen" style={{ marginTop: '0.6rem' }}>
+              <div className="er-nombre">{elegido.nombre}</div>
+              <div className="er-cif">{elegido.cif}{elegido.poblacion ? ` · ${elegido.poblacion}` : ''}</div>
+              <button type="button" className="btn-sec" style={{ marginTop: '0.55rem', padding: '0.55rem' }} onClick={() => { setElegido(null); setCif(''); setSugs(null); }}>No soy yo · cambiar</button>
+            </div>
+          ) : (<>
+            <label htmlFor="f-cif">Tu CIF / NIF, código de bolsa o el nombre de tu empresa *</label>
+            <div className="idrow">
+              <input type="text" id="f-cif" value={cif} placeholder="B12345678 o tu empresa" autoCapitalize="characters" autoComplete="off"
+                onChange={(e) => { setCif(e.target.value); setAcAbierto(true); }}
+                onFocus={() => setAcAbierto(true)} onBlur={() => setTimeout(() => setAcAbierto(false), 150)} />
+              <ul className={`ac-list${acAbierto && cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 2 && (buscando || sugs !== null) ? ' show' : ''}`} id="ac-buscar">
+                {(sugs ?? []).map((s) => (
+                  <li key={s.cif} onMouseDown={(ev) => { ev.preventDefault(); setElegido(s); setCif(s.cif); setAcAbierto(false); }}>
+                    {s.nombre}<span className="ac-sub">{s.cif}{s.poblacion ? ` · ${s.poblacion}` : ''}</span>
+                  </li>
+                ))}
+                {buscando && <li className="ac-tip">Consultando la base de Dynamo…</li>}
+                {/* Última opción (o la única, si no hay resultados): darse de alta. */}
+                {!buscando && sugs !== null && (
+                  <li style={{ color: 'var(--purple)', fontWeight: 800 }} onMouseDown={(ev) => { ev.preventDefault(); setAlta(true); }}>
+                    {sugs.length ? '¿No eres ninguna? Darme de alta y aceptar →' : 'No te encontramos · darme de alta y aceptar →'}
+                  </li>
+                )}
+              </ul>
+            </div>
+            {/* Aviso en vivo SOLO cuando el número casa con un formato conocido y el control
+                falla (una errata): así no se gasta un intento de identificación. */}
+            {(() => { const r = cif.trim() ? validaIdFiscal(cif) : null;
+              return r && !r.ok && r.tipo ? <p className="id-hint" style={{ color: 'var(--red)' }}>{r.tipo}: {r.msg}. Revísalo antes de aceptar.</p> : null; })()}
+            <p className="id-hint">Sugerencias desde 2 letras (nombre) o 4 caracteres (CIF o código de bolsa). ¿Primer envío con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta el envío.</p>
+          </>)}
         </div>
       )}
 
