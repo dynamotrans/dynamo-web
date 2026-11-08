@@ -178,8 +178,36 @@ export async function buscarSitiosGoogle(q: string): Promise<SitioGoogle[]> {
   if (q.length < 2) return [];
   const clave = process.env.GOOGLE_MAPS_API_KEY;
   if (!clave) {
+    // SIN clave: como en el mockup, «casi cualquier empresa aparece en Google» — si la
+    // lista curada no casa, se generan fichas de EJEMPLO deterministas a partir de lo
+    // escrito (mismo texto → mismos resultados), para poder probar el flujo con todo.
     const w = normTxt(q);
-    return GOOGLE_EJEMPLO.filter((g) => normTxt(`${g.empresa} ${g.etiqueta}`).includes(w)).slice(0, 3);
+    const lista = GOOGLE_EJEMPLO.filter((g) => normTxt(`${g.empresa} ${g.etiqueta}`).includes(w)).slice(0, 3);
+    if (lista.length >= 2) return lista;
+    const DIRS = [
+      { direccion: 'Pol. Ind. La Isla, C/ Río Viejo, 48', codigo_postal: '41703', poblacion: 'Dos Hermanas', provincia: 'Sevilla' },
+      { direccion: 'C/ de la Resina, 13', codigo_postal: '28021', poblacion: 'Madrid', provincia: 'Madrid' },
+      { direccion: 'Pol. Ind. Can Salvatella, Av. Arraona, 60', codigo_postal: '08210', poblacion: 'Barberà del Vallès', provincia: 'Barcelona' },
+      { direccion: 'Ctra. N-340, km 942, Nave 5', codigo_postal: '12550', poblacion: 'Almassora', provincia: 'Castellón' },
+      { direccion: 'Pol. Ind. Juncaril, C/ Loja, 119', codigo_postal: '18220', poblacion: 'Albolote', provincia: 'Granada' },
+      { direccion: 'Pol. Ind. El Oliveral, C/ G, 24', codigo_postal: '46394', poblacion: 'Riba-roja de Túria', provincia: 'Valencia' },
+      { direccion: 'Pol. Ind. Villalonquéjar, C/ López Bravo, 82', codigo_postal: '09001', poblacion: 'Burgos', provincia: 'Burgos' },
+      { direccion: 'Parque Empresarial A Grela, C/ Gutenberg, 26', codigo_postal: '15008', poblacion: 'A Coruña', provincia: 'A Coruña' },
+    ];
+    let h = 0;
+    for (const ch of w) h = (h * 31 + ch.charCodeAt(0)) % 100000;
+    const nombre = q.replace(/\s+/g, ' ').trim().replace(/\p{L}/gu, (c) => c.toUpperCase());
+    const inventada = (i: number): SitioGoogle => {
+      const dir = DIRS[(h + i * 3) % DIRS.length];
+      const tel = `+349${String((h * 7 + i * 1234567) % 100000000).padStart(8, '0')}`;
+      const empresa = i === 0 ? `${nombre}, S.L.` : `${nombre} ${dir.provincia}, S.A.`;
+      return {
+        empresa, ...dir, pais_codigo_iso: 'ES', telefono: tel,
+        url_google_maps: `https://maps.google.com/?q=${encodeURIComponent(`${empresa} ${dir.poblacion}`)}`,
+        etiqueta: `${dir.direccion}, ${dir.codigo_postal} ${dir.poblacion}, ${dir.provincia}`,
+      };
+    };
+    return [...lista, inventada(0), inventada(1)].slice(0, 3);
   }
   try {
     // Places API (New) · Text Search. Campos mínimos para autorrellenar la ficha.
