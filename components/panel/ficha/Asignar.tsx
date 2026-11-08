@@ -13,7 +13,7 @@ import { I, ICO, SubProps, aNum } from './comun';
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 // ---- Asignar / cambiar transportista ------------------------------------------------
-export function Asignar({ ficha, onVolver, hacer, trabajando }: SubProps) {
+export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps) {
   const e = ficha.envio;
   // El transportista elegido, con sus datos (estado, NIMA, contacto de tráfico). El ya
   // asignado se pinta con lo que trae la ficha y se completa pidiéndolo a la base de datos.
@@ -147,7 +147,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando }: SubProps) {
       {e.requiere_nima && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}
       {t?.estado === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar el envío, pero revisa por qué.</div>}
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Las matrículas y el conductor se pueden dejar para más tarde. Queda en el historial quién asignó y a qué hora.</p>
-      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {(error ?? fallo) && <div className="wiz-warn show" role="alert">⚠ {error ?? fallo}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

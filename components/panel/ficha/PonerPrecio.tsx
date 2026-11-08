@@ -9,7 +9,7 @@ import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { I, ICO, aNum } from './comun';
 
 // ---- Poner precio a una solicitud del cliente ----------------------------------------
-export function PonerPrecio({ ficha, onVolver, hacer, trabajando }: { ficha: Ficha; onVolver: () => void; hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
+export function PonerPrecio({ ficha, onVolver, hacer, trabajando, fallo }: { ficha: Ficha; onVolver: () => void; hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>; trabajando: string | null; fallo?: string | null }) {
   const e = ficha.envio;
   const [pc, setPc] = useState(numero(e.importe_cliente, 2));
   const [pt, setPt] = useState(numero(e.importe_transportista, 2));
@@ -34,7 +34,7 @@ export function PonerPrecio({ ficha, onVolver, hacer, trabajando }: { ficha: Fic
         <input id="pp-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(ev) => setPt(ev.target.value)} />
         <p className="ptar-admin-precio-note">El cliente lo verá en su panel con el IVA y lo podrá aceptar durante el plazo de validez (parámetro <strong>solicitud_validez_horas</strong>, 24 h por defecto). Al aceptarlo, el envío pasa a programado.</p>
       </div>
-      {error && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{error}</div></div>}
+      {(error ?? fallo) && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{error ?? fallo}</div></div>}
     </Modal>
   );
 }

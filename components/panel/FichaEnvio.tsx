@@ -72,10 +72,12 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto') && (
         <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
-      {!manual && e.estado === 'programado' && !ficha.transportista && (
+      {/* Pendiente de pago: ni ofertar ni asignar hasta que se pague (la base de datos lo
+          rechaza igualmente); la caja naranja del pago ya explica qué hacer. */}
+      {!manual && e.estado === 'programado' && !ficha.transportista && ficha.pago?.estado !== 'pendiente' && (
         <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer envío</button>
       )}
-      {!manual && e.estado !== 'entregado' && (
+      {!manual && e.estado !== 'entregado' && !(ficha.pago?.estado === 'pendiente' && !ficha.transportista) && (
         <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} onClick={() => setVista('asignar')}>
           <I d={ICO.camion} />{ficha.transportista ? 'Cambiar transportista' : 'Asignar transportista'}
         </button>
@@ -106,11 +108,12 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
     </>
   );
 
-  if (vista === 'asignar') return <Asignar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
-  if (vista === 'estado') return <Estado ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
-  if (vista === 'cancelar') return <Cancelar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
-  if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
-  if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
+  const fallo = aviso && !aviso.ok ? aviso.txt : null;
+  if (vista === 'asignar') return <Asignar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
+  if (vista === 'estado') return <Estado ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
+  if (vista === 'cancelar') return <Cancelar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
+  if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
+  if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
 
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga');

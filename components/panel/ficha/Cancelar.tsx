@@ -8,7 +8,7 @@ import { cancelarEnvio } from '@/app/panel/(app)/envios/acciones';
 import { I, ICO, SubProps } from './comun';
 
 // ---- Cancelar -----------------------------------------------------------------------
-export function Cancelar({ ficha, onVolver, hacer, trabajando }: SubProps) {
+export function Cancelar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps) {
   const e = ficha.envio;
   const [motivo, setMotivo] = useState('');
   const conCamion = !!ficha.transportista && !e.es_manual;
@@ -39,6 +39,7 @@ export function Cancelar({ ficha, onVolver, hacer, trabajando }: SubProps) {
           : <><strong>Estás en gestión interna:</strong> cuenta como cancelación de Dynamo (no le afecta al cliente). Si te lo ha pedido el cliente, cancélalo desde su vista («Ver como» → el cliente).</>}
       </div></div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Se puede deshacer desde la ficha: el envío vuelve al estado que tenía.</p>
+      {fallo && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {fallo}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

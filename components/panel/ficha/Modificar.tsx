@@ -9,7 +9,7 @@ import { modificarEnvio, type DatosEnvio } from '@/app/panel/(app)/envios/accion
 import { I, ICO, Interruptor, SubProps, aNum, txtNum } from './comun';
 
 // ---- Modificar ----------------------------------------------------------------------
-export function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
+export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps) {
   const e = ficha.envio;
   const manual = !!e.es_manual;
   const [d, setD] = useState({
@@ -104,7 +104,7 @@ export function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
         </div>
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Para cambiar los sitios de la ruta, de momento cancela el envío y créalo de nuevo (cambiar la ruta desde aquí llega más adelante).</p>
-      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {(error ?? fallo) && <div className="wiz-warn show" role="alert">⚠ {error ?? fallo}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

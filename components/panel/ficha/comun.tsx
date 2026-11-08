@@ -92,4 +92,7 @@ export function Interruptor({ k, l, v, on }: { k: string; l: string; v: boolean;
 export type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer' | 'precio';
 
 export type SubProps = { ficha: Ficha; onVolver: () => void; trabajando: string | null;
+  // El error de la última acción: los submodales (Asignar, Cancelar…) lo pintan DENTRO,
+  // porque el aviso rojo de la ficha no se ve mientras el submodal está abierto.
+  fallo?: string | null;
   hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, okTxt?: string) => Promise<boolean> };

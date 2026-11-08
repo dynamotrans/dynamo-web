@@ -17,7 +17,7 @@ const ahoraLocal = () => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
-export function Estado({ ficha, onVolver, hacer, trabajando }: SubProps) {
+export function Estado({ ficha, onVolver, hacer, trabajando, fallo }: SubProps) {
   const e = ficha.envio;
   const etapas = ficha.etapas;
   const actual = etapas.find((x) => x.actual)?.paso ?? 0;
@@ -72,6 +72,7 @@ export function Estado({ ficha, onVolver, hacer, trabajando }: SubProps) {
         Con una hora futura se atrasa: hasta entonces sigue en la etapa anterior. Queda en el historial quién lo marcó y a qué hora.
         Al marcar «Entregado», el cliente deja de ver el teléfono del conductor (regla 11).
       </p>
+      {fallo && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {fallo}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );
