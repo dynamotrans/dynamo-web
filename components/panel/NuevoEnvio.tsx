@@ -19,6 +19,7 @@ import { Interruptor } from './nuevoEnvio/Interruptor';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
+import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
 
 export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false, reglas = null }: Props) {
   const be = base?.envio;
@@ -538,12 +539,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 {paso === 3 && (<>
                   <div className="ptar-section-head ptar-sh-fecha">Fecha de recogida</div>
                   <div className="ptar-field-full">
-                    <select className="ptar-select" aria-label="Días de recogida" value={urgencia}
-                      style={{ fontWeight: 800, color: urgencia === 'estandar' ? 'var(--green)' : 'var(--navy)' }}
-                      onChange={(e) => { setUrgencia(e.target.value as 'dia' | 'estandar'); setFecha(''); setModoCal(false); }}>
-                      <option value="dia" style={{ fontWeight: 800, color: 'var(--navy)' }}>Fecha fija (un día concreto, más caro)</option>
-                      <option value="estandar" style={{ fontWeight: 800, color: 'var(--green)' }}>Recogida de 1 a 3 días (más económica)</option>
-                    </select>
+                    <SelectorUrgencia valor={urgencia} onCambio={(v) => { setUrgencia(v); setFecha(''); setModoCal(false); }} />
                   </div>
                   <div className="ptar-field-full">
                     {!modoCal ? (

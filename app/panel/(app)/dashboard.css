@@ -3370,6 +3370,15 @@ table.data td.actions { text-align: right; white-space: nowrap; }
 .ptar-sug li:hover, .ptar-sug li.active {
     background: rgba(51,0,204,0.06); color: var(--purple);
 }
+/* Desplegable propio del tipo de fecha (nombre en negrita, la aclaración entre
+   paréntesis en peso normal, cada opción con su color). */
+.ptar-urg { position: relative; }
+.ptar-urg-btn { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; text-align: left; font-weight: 800; }
+.ptar-urg-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ptar-urg-nota { font-weight: 400; }
+.ptar-urg-chev { flex: none; opacity: 0.7; }
+.ptar-urg-list { font-weight: 800; }
+.ptar-urg-list li { white-space: normal; }
 /* Buscador de 3 niveles: chips Guardado / Google / Dirección */
 .ptar-sug .sug-chip { float: right; margin-left: 0.6rem; font-size: var(--fs-s); font-weight: 700; padding: 0.05rem 0.45rem; border-radius: 999px; }
 .ptar-sug .sug-chip-saved  { background: rgba(34,165,90,0.12); color: #15803d; }
