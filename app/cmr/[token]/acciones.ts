@@ -8,7 +8,8 @@ import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; nombre: string; documento: string; pais: string; email: string; png: string;
-  reservas?: string };   // daños o faltantes: van ANTES de la firma y entran en su huella
+  reservas?: string;     // daños o faltantes: van ANTES de la firma y entran en su huella
+  fotos?: string[] };    // fotos de las reservas, ya subidas a cmr/<token>/… (máx. 6)
 
 // Firmar una casilla del CMR. La validez del documento la decide AQUÍ el servidor (la
 // pantalla solo avisa); la hora la pone la base de datos; el trazo va al almacén privado,
@@ -36,9 +37,12 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   const { firmas: _f, ...contenido } = datos;
   const reservas = (d.reservas ?? '').trim().slice(0, 1000);
   const sha = createHash('sha256').update(JSON.stringify(reservas ? { ...contenido, reservas } : contenido)).digest('hex');
-  // Reservas (protocolo de siniestro): se anotan antes de firmar y abren un siniestro para Dynamo.
+  // Reservas (protocolo de siniestro): se anotan antes de firmar y abren un siniestro para
+  // Dynamo. Las FOTOS (ya subidas por la página a la carpeta de este enlace) se cuelgan de
+  // esa incidencia; la base de datos revalida que son de este enlace, imágenes y ≤25 MB.
   if (reservas) {
-    const { data: rv, error: er } = await sb.rpc('anotar_reservas_cmr_publico', { p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_texto: reservas });
+    const fotos = (d.fotos ?? []).filter((f) => f.startsWith(`cmr/${token}/`)).slice(0, 6);
+    const { data: rv, error: er } = await sb.rpc('anotar_reservas_cmr_publico', { p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_texto: reservas, p_fotos: fotos.length ? fotos : null });
     const rr = (rv as { resultado?: string } | null)?.resultado;
     if (er || rr !== 'ok') return { ok: false, error: rr === 'texto_no_valido' ? 'Las reservas tienen que tener entre 3 y 1.000 caracteres.' : rr === 'demasiadas' ? `Ya hay varias reservas anotadas en esta casilla: llámanos al ${CONTACTO.telefono}.` : 'No se han podido guardar las reservas. Vuelve a intentarlo o llámanos.' };
   }

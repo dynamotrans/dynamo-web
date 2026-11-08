@@ -6470,3 +6470,49 @@ do $$ declare r jsonb; rid uuid; t record; n int; begin
   raise notice 'OK 173 · sugerencias públicas para identificarse: solo con reserva viva, desde 2 caracteres, por nombre o CIF (ES, guiones y mayúsculas dan igual), máximo 6';
 end $$;
 reset role;
+
+-- ---- 174. Fotos en las reservas del CMR: a la incidencia de siniestro del envío -------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 24, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A174', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B174', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  perform set_config('prueba.e174', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare tok uuid; begin
+  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e174')::uuid) returning token into tok;
+  perform set_config('prueba.tok174', tok::text, false);
+  -- Una foto buena, un PDF (no es imagen) y una foto de OTRO enlace: solo la primera vale.
+  perform set_config('prueba.ajena174', 'cmr/' || gen_random_uuid()::text || '/foto-ajena.jpg', false);
+  insert into storage.objects (bucket_id, name, metadata) values
+    ('documentos', 'cmr/' || tok::text || '/foto-a.jpg', jsonb_build_object('mimetype', 'image/jpeg', 'size', 123456)),
+    ('documentos', 'cmr/' || tok::text || '/doc-no-foto.pdf', jsonb_build_object('mimetype', 'application/pdf', 'size', 1000)),
+    ('documentos', current_setting('prueba.ajena174'), jsonb_build_object('mimetype', 'image/jpeg', 'size', 1000));
+end $$;
+set role anon;
+do $$ declare r jsonb; begin
+  r := anotar_reservas_cmr_publico(current_setting('prueba.tok174')::uuid, null, 'transportista', 'Embalaje roto en 2 palés',
+        array['cmr/' || current_setting('prueba.tok174') || '/foto-a.jpg',
+              'cmr/' || current_setting('prueba.tok174') || '/doc-no-foto.pdf',
+              current_setting('prueba.ajena174'),
+              'cmr/' || current_setting('prueba.tok174') || '/no-existe.jpg']);
+  if r->>'resultado' <> 'ok' or (r->>'fotos')::int <> 1 then
+    raise exception 'FALLO 174 · la reserva con fotos no cuela solo la imagen del enlace: %', r;
+  end if;
+end $$;
+reset role;
+do $$ declare inc uuid; begin
+  select incidencia_id into inc from cmr_reservas where envio_id = current_setting('prueba.e174')::uuid and rol = 'transportista';
+  if inc is null then raise exception 'FALLO 174 · la reserva no abrió su incidencia'; end if;
+  if (select count(*) from documentos d where d.incidencia_id = inc) <> 1
+     or not exists (select 1 from documentos d where d.incidencia_id = inc and d.tipo = 'foto_incidencia'
+                      and d.envio_id = current_setting('prueba.e174')::uuid
+                      and d.storage_ruta like 'cmr/%/foto-a.jpg' and not d.visible_cliente) then
+    raise exception 'FALLO 174 · la foto no cuelga de la incidencia y del envío (o cuela de más)';
+  end if;
+  raise notice 'OK 174 · fotos en las reservas del CMR: solo imágenes del propio enlace (ni PDF, ni de otro enlace, ni inventadas), colgadas de la incidencia de siniestro y del envío';
+end $$;

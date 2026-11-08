@@ -83,3 +83,7 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
     pointer-events: none !important;
     -webkit-touch-callout: none !important;
 }
+
+/* Botones Cámara / Galería de las fotos de reservas (misma fila). */
+.cmr-page .sig-foto-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; border: 1.5px solid var(--purple); color: var(--purple); background: #fff; border-radius: 10px; padding: 0.55rem 0.5rem; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+.cmr-page .sig-foto-btn:has(input:disabled) { opacity: 0.55; cursor: default; }

@@ -8,6 +8,7 @@ import { pesoTn, metros, fecha, fechaHora } from '@/lib/formato';
 import { useEffect, useRef, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { firmar, type DatosFirma } from './acciones';
+import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
@@ -93,6 +94,27 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const [reservas, setReservas] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Fotos de las reservas (usuario, 2026-11-09): cámara o galería, se suben al momento a
+  // la carpeta de este enlace (la política del almacén solo admite enlaces vivos) y al
+  // firmar se cuelgan de la incidencia de siniestro que abren las reservas.
+  const [fotos, setFotos] = useState<{ ruta: string; nombre: string }[]>([]);
+  const [subiendo, setSubiendo] = useState(false);
+  const [fotoAviso, setFotoAviso] = useState<string | null>(null);
+  async function subirFotos(files: FileList | null) {
+    if (!files?.length) return;
+    const sb = supabaseNavegador();
+    if (!sb) { setFotoAviso('No se ha podido subir la foto. Vuelve a intentarlo.'); return; }
+    setFotoAviso(null); setSubiendo(true);
+    for (const f of Array.from(files).slice(0, Math.max(0, 6 - fotos.length))) {
+      if (f.size > 25 * 1024 * 1024) { setFotoAviso(`«${f.name}» pasa de 25 MB: hazla de nuevo o elige otra.`); continue; }
+      const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const ruta = `cmr/${token}/foto-${crypto.randomUUID()}.${ext}`;
+      const { error } = await sb.storage.from('documentos').upload(ruta, f, { contentType: f.type || 'image/jpeg', upsert: false });
+      if (error) { setFotoAviso('No se ha podido subir la foto. Vuelve a intentarlo.'); break; }
+      setFotos((l) => [...l, { ruta, nombre: f.name || 'foto' }]);
+    }
+    setSubiendo(false);
+  }
 
   function preparar() {
     const c = canvas.current; if (!c) return;
@@ -113,7 +135,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     setGuardando(true);
-    const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, reservas, png: canvas.current!.toDataURL('image/png') });
+    const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, reservas,
+      fotos: reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png') });
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
     onFirmado();
@@ -138,7 +161,34 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <label className="sig-lbl" htmlFor="sigReservas">Reservas <span className="op">· solo si falta algo o hay daños</span></label>
         <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palets; 1 palet con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
           style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit' }} />
-        {reservas.trim() && <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({CONTACTO.telefono}).</div>}
+        {reservas.trim() && <>
+          <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({CONTACTO.telefono}).</div>
+          {/* Cámara y galería en la misma fila: las fotos se verán en la incidencia del envío. */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <label className="sig-foto-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
+              Cámara
+              <input type="file" accept="image/*" capture="environment" hidden disabled={subiendo || fotos.length >= 6} onChange={(e) => { void subirFotos(e.target.files); e.target.value = ''; }} />
+            </label>
+            <label className="sig-foto-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+              Galería
+              <input type="file" accept="image/*" multiple hidden disabled={subiendo || fotos.length >= 6} onChange={(e) => { void subirFotos(e.target.files); e.target.value = ''; }} />
+            </label>
+          </div>
+          {subiendo && <div className="sig-msg warn">Subiendo la foto…</div>}
+          {fotoAviso && <div className="sig-msg err">⚠ {fotoAviso}</div>}
+          {fotos.length > 0 && (
+            <div className="sig-msg okv">✓ {fotos.length === 1 ? '1 foto adjunta' : `${fotos.length} fotos adjuntas`} (máx. 6): se verán en la incidencia del envío.
+              {' '}{fotos.map((f, i) => (
+                <span key={f.ruta} style={{ whiteSpace: 'nowrap' }}>{i > 0 && ' · '}{f.nombre}
+                  <button type="button" aria-label={`Quitar ${f.nombre}`} onClick={() => setFotos((l) => l.filter((x) => x.ruta !== f.ruta))}
+                    style={{ border: 'none', background: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 900, padding: '0 0.2rem' }}>✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </>}
         {aviso && <div className="sig-warn">⚠ {aviso}</div>}
         <p className="hint" style={{ marginTop: '0.6rem' }}>Firma con el dedo (o el ratón) dentro del recuadro.</p>
         <canvas id="sigCanvas" ref={canvas}

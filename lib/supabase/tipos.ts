@@ -3156,7 +3156,7 @@ export type Database = {
       anonimizar_conductor: { Args: { p_conductor: string | null }; Returns: Json }
       anonimizar_contacto: { Args: { p_contacto: string | null }; Returns: Json }
       anonimizar_usuario: { Args: { p_usuario: string | null }; Returns: Json }
-      anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null }; Returns: Json }
+      anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null; p_fotos?: string[] | null }; Returns: Json }
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }
       asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       autores_mis_envios: { Args: Record<PropertyKey, never>; Returns: { envio_id: string; creado_por: string; creado_email: string; modificado_por: string; modificado_en: string }[] }
