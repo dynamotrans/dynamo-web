@@ -61,8 +61,9 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
   // Equipo de Dynamo, vista de gestión interna.
   return [
     { items: [
+      // «Para hoy» ya no es sección: sus bloques viven como cajas con contador en el
+      // Dashboard admin (usuario, 2026-11-09); /panel/para-hoy redirige allí.
       { slug: 'dashboard-admin', titulo: 'Dashboard admin', icono: 'dashboard' },
-      { slug: 'para-hoy', titulo: 'Para hoy', icono: 'bandeja', listo: true },
       { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
       { grupo: 'otras', titulo: 'Operativa', icono: 'capas', enlaces: [
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },

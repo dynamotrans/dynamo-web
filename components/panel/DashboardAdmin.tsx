@@ -18,7 +18,26 @@ export type ProntoPago = {
   linea: number; encendido: boolean; ventana_dias: number; usado: number; disponible: number; activo: boolean;
   anticipos_n: number;   // cuántos hay en la ventana; el detalle se pide por páginas al abrir
 };
-type Cifras = { enCurso: number; sinTransp: number; inc: number; pen: number; alm: number; contra: number };
+// Lo pendiente (antes la sección «Para hoy», usuario 2026-11-09): cada bloque es una caja
+// con contador y, al pulsarla, su ventana con las primeras líneas (cada línea abre su ficha).
+export type Fila = { href: string; t: string; s?: string; desde: string | null; urgente?: boolean };
+export type Bloque = {
+  id: string; nivel: 'urgente' | 'aviso' | 'info';
+  corto: string;      // etiqueta de la caja
+  titulo: string;     // título de la ventana
+  sub: string;        // explicación bajo el título de la ventana
+  total: number; todo: string; filas: Fila[];
+};
+
+// «hace 25 min», «hace 3 h», «hace 2 días»: cuánto lleva esperando.
+function espera(iso: string | null): string {
+  if (!iso) return '';
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 1) return 'ahora';
+  if (min < 60) return `hace ${min} min`;
+  if (min < 48 * 60) return `hace ${Math.round(min / 60)} h`;
+  return `hace ${Math.round(min / 1440)} días`;
+}
 
 function Cifra({ href, label, valor, aviso }: { href: string; label: string; valor: number; aviso?: boolean }) {
   return (
@@ -29,28 +48,66 @@ function Cifra({ href, label, valor, aviso }: { href: string; label: string; val
   );
 }
 
-export default function DashboardAdmin({ cifras, prontoPago, errorPP, cuadro }: {
-  cifras: Cifras; prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode;
+export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoPago, errorPP, cuadro }: {
+  enCurso: number; bloques: Bloque[]; errorBloques: string | null;
+  prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode;
 }) {
   return (
     <section className="section active" id="sec-dashboard-admin">
       <div className="sec-header"><h2>Dashboard admin</h2></div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
-        Indicadores internos de gestión: lo que hay que atender hoy y la línea de <strong>pronto pago a transportistas</strong>.
+        Indicadores internos de gestión: cada caja abre su ventana con lo pendiente, y la línea de <strong>pronto pago a transportistas</strong>.
       </p>
+      {errorBloques && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se ha podido cargar todo: {errorBloques}</div></div>}
       <div className="stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-        <Cifra href="/panel/envios?f=programada" label="Envíos en curso" valor={cifras.enCurso} />
-        <Cifra href="/panel/envios?f=sin-asignar" label="Sin transportista" valor={cifras.sinTransp} aviso />
-        <Cifra href="/panel/envios" label="Contraofertas por revisar" valor={cifras.contra} aviso />
-        <Cifra href="/panel/incidencias" label="Incidencias abiertas" valor={cifras.inc} aviso />
-        <Cifra href="/panel/penalizaciones" label="Penalizaciones por confirmar" valor={cifras.pen} aviso />
-        <Cifra href="/panel/almacenamientos" label="Almacenamientos por confirmar" valor={cifras.alm} aviso />
+        <Cifra href="/panel/envios?f=programada" label="Envíos en curso" valor={enCurso} />
+        {bloques.map((b) => <BloqueCard key={b.id} b={b} />)}
         <LineaProntoPago pp={prontoPago} error={errorPP} />
       </div>
       {cuadro}
     </section>
   );
+}
+
+// Caja con contador que abre la ventana del bloque: sus primeras líneas (cada una lleva a
+// su ficha), «Ver N más» y el botón «Ver todo» a la sección correspondiente.
+function BloqueCard({ b }: { b: Bloque }) {
+  const [abierto, setAbierto] = useState(false);
+  const color = b.total === 0 ? 'var(--gray-500)' : b.nivel === 'urgente' ? 'var(--red)' : b.nivel === 'aviso' ? '#d97706' : 'var(--navy)';
+  return (<>
+    <button type="button" className="stat-card stat-card-link" style={{ font: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%' }} onClick={() => setAbierto(true)}>
+      <span className="stat-card-label">{b.corto}</span>
+      <span className="stat-card-value" style={{ color }}>{b.total}</span>
+      <span className="stat-card-trend" style={{ color: 'var(--gray-500)' }}>{b.total === 0 ? 'al día' : 'ver pendientes'}</span>
+    </button>
+    {abierto && (
+      <Modal abierto titulo={b.titulo} sub={b.sub} onCerrar={() => setAbierto(false)}
+        pie={<>
+          <button className="btn-ghost" onClick={() => setAbierto(false)}>Cerrar</button>
+          <Link className="btn-primary" href={b.todo} style={{ textDecoration: 'none' }}>Ver todo →</Link>
+        </>}>
+        <div className="ph-caja">
+          {b.total === 0
+            ? <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: 0 }}><strong>Al día.</strong> No hay nada esperando respuesta.</p>
+            : (<ul className="ph-lista">
+                {b.filas.map((f, i) => (
+                  <li key={i}>
+                    <Link href={f.href} className={`ph-fila${f.urgente ? ' urgente' : ''}`}>
+                      <span className="ph-t">{f.t}</span>
+                      {f.s && <span className="ph-s">{f.s}</span>}
+                      {f.desde && <span className="ph-h" title={fechaHora(f.desde)}>{espera(f.desde)}</span>}
+                    </Link>
+                  </li>
+                ))}
+                {b.total > b.filas.length && (
+                  <li><Link href={b.todo} className="ph-mas">Ver {b.total - b.filas.length} más →</Link></li>
+                )}
+              </ul>)}
+        </div>
+      </Modal>
+    )}
+  </>);
 }
 
 const ICO_EURO = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 7a7 7 0 1 0 0 10" /><line x1="4" y1="10" x2="14" y2="10" /><line x1="4" y1="14" x2="14" y2="14" /></svg>;
