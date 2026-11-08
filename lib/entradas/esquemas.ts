@@ -55,7 +55,6 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones-cliente#marcarMiEnvioManual": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/envios/acciones-cliente#pedirCambio": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000), z.string().max(1000), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones-cliente#responderPrecio": z.tuple([z.string().uuid().or(z.literal('')), z.boolean(), z.number().or(z.nan()).nullable().optional()]),
-  "app/panel/(app)/envios/acciones-cliente#responderSubidaPrecio": z.tuple([z.string().uuid().or(z.literal('')), z.boolean(), z.number().or(z.nan()).nullable().optional()]),
   "app/panel/(app)/envios/acciones-cliente#valorarMiEnvio": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones-cmr#guardarDatosCmr": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000), z.string().max(1000), z.string().max(1000)]),
   "app/panel/(app)/envios/acciones-cmr#leerDatosCmr": z.tuple([z.string().uuid().or(z.literal(''))]),

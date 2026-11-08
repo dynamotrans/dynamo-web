@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { euros, fecha, fechaHora } from '@/lib/formato';
 
 import { revisarPrecioEnvio } from '@/app/panel/(app)/envios/acciones';
-import { responderSubidaPrecio } from '@/app/panel/(app)/envios/acciones-cliente';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<unknown>;
 export type Revision = {
@@ -32,20 +31,12 @@ export function RevisionDynamo({ envio, r, hacer }: { envio: { id: string; estad
   const [precio, setPrecio] = useState('');
   if (envio.estado !== 'programado' || !provisional(r)) return null;
   const toca = r.estado_revision_precio === 'revisar';
-  if (r.estado_revision_precio === 'esperando_cliente') {
-    return (
-      <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
-        <div><strong>Subida de precio esperando al cliente:</strong> de {euros(r.importe_revision_anterior)} a <strong>{euros(r.importe_revision_nuevo)}</strong> (sin IVA), enviada el {fechaHora(r.revision_precio_en)}.</div>
-        <div style={{ marginTop: '0.3rem' }}>Puede aceptarla o cancelar sin coste. Si no contesta, te avisamos para que le llames. No se oferta hasta que conteste.</div>
-      </div>
-    );
-  }
   return (
     <div className={toca ? 'modal-warn-box' : 'pt-aviso info'} style={{ marginBottom: '0.8rem', display: 'block' }}>
       <div>
         <strong>{toca ? 'Toca revisar el precio.' : 'Precio provisional.'}</strong>{' '}
         {toca ? 'Pon el precio de hoy para este envío (sin IVA).' : <>Se revisa el <strong>{fecha(r.fecha_revision_precio)}</strong>. Hasta entonces no se oferta ni se asigna camión; si quieres asignarlo ya, revísalo ahora.</>}
-        {' '}Si se mueve menos de un {String(r.margen_pct ?? 5).replace('.', ',')} % se queda {euros(envio.importe_cliente)}; si baja, se aplica; si sube, el cliente lo acepta o cancela sin coste.
+        {' '}Si se mueve menos de un {String(r.margen_pct ?? 5).replace('.', ',')} % se queda {euros(envio.importe_cliente)}; si baja o sube, se aplica el precio nuevo directamente y se avisa al cliente (puede cancelar sin coste mientras no haya camión asignado).
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="text" inputMode="decimal" className="ptar-select" style={{ maxWidth: 160 }} placeholder="Ej. 1.050,00" aria-label="Precio de la revisión (sin IVA)"
@@ -58,33 +49,12 @@ export function RevisionDynamo({ envio, r, hacer }: { envio: { id: string; estad
 }
 
 /** En la ficha del cliente: precio provisional o subida por aceptar. */
-export function RevisionCliente({ envio, r, hacer }: { envio: { id: string; estado: string }; r: Revision | null; hacer: Hacer }) {
-  const [cancelar, setCancelar] = useState(false);
+export function RevisionCliente({ envio, r }: { envio: { id: string; estado: string }; r: Revision | null; hacer?: Hacer }) {
   if (!r || envio.estado !== 'programado' || !provisional(r)) return null;
-  if (r.estado_revision_precio === 'esperando_cliente') {
-    return (
-      <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
-        <div><strong style={{ color: '#b42318' }}>Nuevo precio de tu envío: {euros(r.importe_revision_nuevo)}</strong> + IVA (antes {euros(r.importe_revision_anterior)}).</div>
-        <div style={{ marginTop: '0.3rem' }}>Lo hemos revisado antes de la carga porque lo programaste con mucha antelación. Puedes aceptarlo o cancelar el envío <strong>sin ningún coste</strong>.</div>
-        {!cancelar ? (
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={() => hacer('Guardando', () => responderSubidaPrecio(envio.id, true, r.importe_revision_nuevo))}>Aceptar el nuevo precio</button>
-            <button className="btn-ghost" onClick={() => setCancelar(true)}>Cancelar sin coste</button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>¿Seguro que lo cancelas?</span>
-            <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => hacer('Cancelando', () => responderSubidaPrecio(envio.id, false))}>Sí, cancelar sin coste</button>
-            <button className="btn-ghost" onClick={() => setCancelar(false)}>No</button>
-          </div>
-        )}
-      </div>
-    );
-  }
   return (
     <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>
       <strong>Precio provisional.</strong> Como lo programaste con mucha antelación, revisamos el precio {r.fecha_revision_precio ? <>el <strong>{fecha(r.fecha_revision_precio)}</strong></> : 'unos días antes de la carga'}.
-      {' '}Si apenas cambia, se queda igual; si baja, te lo bajamos; si sube, te avisamos y podrás aceptarlo o cancelar sin coste.
+      {' '}Si apenas cambia, se queda igual; si cambia, se aplica el precio nuevo y te avisamos. Si no te encaja, puedes cancelar sin coste mientras el envío no tenga camión asignado.
     </div></div>
   );
 }

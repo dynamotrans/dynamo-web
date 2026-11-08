@@ -3351,7 +3351,6 @@ export type Database = {
       resolver_contraoferta: { Args: { p_reserva: string | null; p_acepta: boolean | null }; Returns: Json }
       resolver_contraoferta_cliente: { Args: { p_envio: string | null; p_acepta: boolean | null }; Returns: Json }
       responder_precio_solicitud: { Args: { p_envio: string | null; p_acepta: boolean | null; p_precio_visto?: number | null }; Returns: string }
-      responder_subida_precio: { Args: { p_envio: string | null; p_acepta: boolean | null; p_precio_visto?: number | null }; Returns: Json }
       restriccion_punto: { Args: { p_pais: string | null; p_cp: string | null; p_tipo_parada?: string | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null; p_fecha?: string | null }; Returns: { nombre: string; efecto: string; mensaje: string }[] }
       restricciones_ruta: { Args: { p_envio: string | null }; Returns: { orden: number; punto: string; tipo: string; nombre: string; efecto: string; mensaje: string }[] }
       revisar_precio_envio: { Args: { p_envio: string | null; p_nuevo: number | null }; Returns: Json }

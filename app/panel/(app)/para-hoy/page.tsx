@@ -26,9 +26,9 @@ export default async function PaginaParaHoy() {
     return <section className="section active"><div className="pt-aviso" style={{ maxWidth: 640 }}><div>«Para hoy» es de la gestión interna: vuelve a la vista de Dynamo (arriba, «Ver como»).</div></div></section>;
   }
   const hoy = hoyMadrid(), manana = masDias(hoy, 1);
-  const ENV = 'id, referencia_gx, fecha_carga_desde, fecha_carga_hasta, importe_cliente, importe_contraoferta_cliente, creado_en, cambio_cliente_en, modificado_en, fecha_revision_precio, importe_revision_anterior, importe_revision_nuevo, revision_precio_en, revision_precio_recordada, clientes(nombre_visible)';
+  const ENV = 'id, referencia_gx, fecha_carga_desde, fecha_carga_hasta, importe_cliente, importe_contraoferta_cliente, creado_en, cambio_cliente_en, modificado_en, clientes(nombre_visible)';
   const cnt = { count: 'exact' as const };
-  const [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio, subidas] = await Promise.all([
+  const [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio] = await Promise.all([
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
       .neq('estado_pago_previo', 'pendiente').lte('fecha_carga_desde', manana).order('fecha_carga_desde').limit(MAX),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('estado_solicitud', 'pendiente_precio').order('creado_en').limit(MAX),
@@ -46,7 +46,6 @@ export default async function PaginaParaHoy() {
     supabase.from('almacenamientos').select('id, codigo, fecha_entrada, creado_en, clientes(nombre_visible)', cnt).eq('estado', 'pendiente_confirmar').order('fecha_entrada').limit(MAX),
     // Revisión del precio de los envíos programados con mucha antelación.
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_revision_precio', 'revisar').order('fecha_carga_desde').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_revision_precio', 'esperando_cliente').order('revision_precio_en').limit(MAX),
   ]);
 
   const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
@@ -86,11 +85,6 @@ export default async function PaginaParaHoy() {
     { id: 'revision-precio', nivel: 'aviso', titulo: 'Revisar el precio (programados con antelación)', total: revPrecio.count ?? 0, todo: '/panel/envios',
       filas: (revPrecio.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
         s: `Carga ${fechas(e)} · precio provisional ${euros(e.importe_cliente)}: pon el de hoy`, desde: null })) },
-    { id: 'subidas-precio', nivel: (subidas.data ?? []).some((e) => e.revision_precio_recordada) ? 'urgente' : 'info',
-      titulo: 'Subidas de precio esperando al cliente', total: subidas.count ?? 0, todo: '/panel/envios',
-      filas: (subidas.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
-        s: `De ${euros(e.importe_revision_anterior)} a ${euros(e.importe_revision_nuevo)}${e.revision_precio_recordada ? ' · NO CONTESTA: llámale' : ''}`,
-        desde: e.revision_precio_en, urgente: !!e.revision_precio_recordada })) },
     { id: 'altas', nivel: 'aviso', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
       filas: (altas.data ?? []).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
     { id: 'penalizaciones', nivel: 'info', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
@@ -99,6 +93,6 @@ export default async function PaginaParaHoy() {
     { id: 'almacenamientos', nivel: 'info', titulo: 'Almacenamientos por confirmar', total: alm.count ?? 0, todo: '/panel/almacenamientos',
       filas: (alm.data ?? []).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
   ];
-  const errores = [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio, subidas].map((r) => r.error?.message).filter(Boolean);
+  const errores = [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio].map((r) => r.error?.message).filter(Boolean);
   return <ParaHoy bloques={bloques} error={errores[0] ?? null} />;
 }
