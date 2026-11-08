@@ -6553,3 +6553,51 @@ do $$ declare tok uuid := current_setting('prueba.tok174')::uuid; r jsonb; ruta 
   raise notice 'OK 175 · firmas extra del CMR: la casilla principal una sola vez, hasta 3 extra con su tope, y cmr_publico las distingue';
 end $$;
 reset role;
+
+-- ---- 176. La firma del CMR ancla el seguimiento (solo hacia delante, solo principales) -------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A176', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B176', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  perform set_config('prueba.e176', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare tok uuid; i int; begin
+  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e176')::uuid) returning token into tok;
+  perform set_config('prueba.tok176', tok::text, false);
+  -- Las paradas se resuelven AQUÍ (RLS no deja a anon leer envio_paradas).
+  perform set_config('prueba.car176', (select id::text from envio_paradas where envio_id = current_setting('prueba.e176')::uuid and tipo = 'carga' limit 1), false);
+  perform set_config('prueba.des176', (select id::text from envio_paradas where envio_id = current_setting('prueba.e176')::uuid and tipo = 'descarga' limit 1), false);
+  for i in 1..3 loop
+    insert into storage.objects (bucket_id, name, metadata)
+    values ('documentos', 'cmr/' || tok::text || '/t176-' || i || '.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000));
+  end loop;
+end $$;
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok176')::uuid;
+  v_carga uuid := current_setting('prueba.car176')::uuid; v_desc uuid := current_setting('prueba.des176')::uuid; r jsonb; begin
+  -- Firma del REMITENTE en la recogida: el envío pasa a EN RUTA hacia la 2.ª parada.
+  r := firmar_cmr_publico(tok, v_carga, 'remitente', 'Lucía Muelle', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t176-1.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 176 · no firma el remitente: %', r; end if;
+  -- Una firma EXTRA no mueve nada (se añade sobre la misma casilla).
+  r := firmar_cmr_publico(tok, v_carga, 'remitente', 'Extra', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t176-2.png', null, 'prueba', null, true);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 176 · no deja la firma extra: %', r; end if;
+  -- Firma del DESTINATARIO en la ÚLTIMA entrega: ENTREGADO a la hora de la firma.
+  r := firmar_cmr_publico(tok, v_desc, 'destinatario', 'Pepe Receptor', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t176-3.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 176 · no firma el destinatario: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e176')::uuid; begin
+  if (select estado from envios where id = e) <> 'entregado' then
+    raise exception 'FALLO 176 · el envío no queda entregado tras la firma de la última entrega: %', (select estado from envios where id = e);
+  end if;
+  if (select count(*) from envio_hitos where envio_id = e and hito = 'etapa_corregida' and datos ->> 'por' = 'firma_cmr') <> 2 then
+    raise exception 'FALLO 176 · faltan (o sobran) las anclas de las firmas (remitente y destinatario; la extra no)';
+  end if;
+  raise notice 'OK 176 · la firma del CMR ancla el seguimiento: remitente → en ruta, destinatario de la última → entregado, la extra no mueve nada y todo solo hacia delante';
+end $$;
