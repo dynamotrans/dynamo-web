@@ -43,5 +43,15 @@ export function aCsv(columnas: string[], filas: FilaExport[]): string {
   return '﻿' + [columnas.map(celda).join(';'), ...filas.map((f) => columnas.map((c) => celda(f[c])).join(';'))].join('\r\n');
 }
 
+// Descarga un CSV en el navegador: «<archivo>-AAAA-MM-DD.csv» con el día de Madrid.
+export function descargarCsv(archivo: string, columnas: string[], filas: FilaExport[]) {
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+  const url = URL.createObjectURL(new Blob([aCsv(columnas, filas)], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `${archivo}-${hoy}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
 // "dd/mm/yyyy" → "yyyy-mm" (para filtrar por mes).
 export const mesDe = (s: unknown) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s ?? '')); return m ? `${m[3]}-${m[2]}` : ''; };

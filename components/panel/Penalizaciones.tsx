@@ -10,10 +10,12 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
+import BarraFiltros from './BarraFiltros';
 import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
 import { euros, numero, fechaHora } from '@/lib/formato';
+import { descargarCsv } from '@/lib/exportaciones';
 
 export type PenalizacionFila = {
   id: string; codigo: string; envio_id: string; tipo_id: string; tipo: string; descripcion: string | null;
@@ -57,6 +59,13 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error 
     return filas.filter((p) => (pestana === 'todas' || p.estado === pestana) && (!tipo || p.tipo_id === tipo)
       && (!w || norm([p.codigo, p.envio, p.referencia_cliente, p.tipo, p.transportista, p.cliente, p.descripcion].filter(Boolean).join(' ')).includes(w)));
   }, [filas, pestana, q, tipo]);
+  // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
+  const exportar = () => descargarCsv('Penalizaciones', ['Penalización', 'Descripción', 'Envío', 'Ref. cliente', 'Tipo', 'Estado', 'Transportista', 'Cliente', 'P. cliente (sin IVA)', 'P. transportista (sin IVA)', 'Margen (sin IVA)', 'Fecha'],
+    lista.map((p) => ({ 'Penalización': p.codigo, 'Descripción': p.descripcion ?? '', 'Envío': `#${p.envio}`, 'Ref. cliente': p.referencia_cliente ?? '',
+      Tipo: p.tipo, Estado: ESTADO[p.estado][0], Transportista: p.transportista ?? '', Cliente: p.cliente ?? '',
+      'P. cliente (sin IVA)': p.importe_cliente, 'P. transportista (sin IVA)': p.importe_transportista,
+      'Margen (sin IVA)': p.importe_cliente == null && p.importe_transportista == null ? null : (p.importe_cliente ?? 0) - (p.importe_transportista ?? 0),
+      Fecha: fechaHora(p.creado_en) })));
   const cerrar = () => { setFicha(null); if (nuevaPara) router.replace('/panel/penalizaciones'); };
 
   return (
@@ -70,13 +79,13 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error 
           <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta[k] ?? 0})</button>
         ))}
       </div>
-      <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por código, envío, tipo, transportista, cliente…" />
+      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), tipo].filter(Boolean).length} onExportar={exportar}
+        placeholder="Buscar por código, envío, tipo, transportista, cliente…">
         <select className="filter-estado" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Filtrar por tipo">
           <option value="">Tipo</option>
           {tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
         </select>
-      </div>
+      </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar las penalizaciones: {error}</div>}
       <div className="table-wrap">
         <table className="data data-penalizaciones">

@@ -11,10 +11,14 @@ import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
+import BarraFiltros from './BarraFiltros';
+import { opcionesFecha } from './FiltrosEnvios';
 import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
 import { fecha, ventana, fechaHora, medidasTxt } from '@/lib/formato';
+import { rangoRapido } from '@/lib/envios';
+import { descargarCsv } from '@/lib/exportaciones';
 import { CONTACTO } from '@/lib/atencion';
 
 export type IncidenciaFila = {
@@ -48,15 +52,26 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
   const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>('abiertas');
   const [q, setQ] = useState('');
+  const [fr, setFr] = useState('');
   const [ficha, setFicha] = useState<{ fila: IncidenciaFila | null; envio?: string | null } | null>(nuevaPara != null ? { fila: null, envio: nuevaPara || null } : null);
+  const hoy = useMemo(() => diaMadrid(new Date().toISOString()), []);
 
   const cuenta = useMemo(() => ({ abiertas: filas.filter((x) => abierta(x.estado)).length, resueltas: filas.filter((x) => !abierta(x.estado)).length, todas: filas.length }), [filas]);
   const lista = useMemo(() => {
     const w = norm(q.trim()).split(/\s+/).filter(Boolean);
+    const r = fr ? rangoRapido(fr, hoy) : null;
     return filas.filter((x) => (pestana === 'todas' || (pestana === 'abiertas') === abierta(x.estado))
+      && (!r || (() => { const d = diaMadrid(x.creado_en); return d >= r.desde && d <= r.hasta; })())
       && (!w.length || (() => { const b = norm([x.codigo, x.tipo, x.titulo, x.detalle, x.cliente, x.envio?.referencia_gx, x.envio?.referencia_cliente,
         x.envio?.origen, x.envio?.destino, ESTADOS.find(([k]) => k === x.estado)?.[1], fecha(diaMadrid(x.creado_en))].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()));
-  }, [filas, pestana, q]);
+  }, [filas, pestana, q, fr, hoy]);
+  // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
+  const exportar = () => descargarCsv('Incidencias', ['F. registro', 'Hora', 'Código', 'Tipo', 'Resumen', 'Detalle', 'Nº envío', 'Ref. cliente', ...(esCliente ? [] : ['Cliente']), 'F. carga', 'Origen', 'Destino', 'm · Tn', 'Estado', 'Prioridad'],
+    lista.map((x) => ({ 'F. registro': fecha(diaMadrid(x.creado_en)), Hora: horaMadrid(x.creado_en), 'Código': x.codigo, Tipo: x.tipo, Resumen: x.titulo, Detalle: x.detalle,
+      'Nº envío': x.envio ? `#${x.envio.referencia_gx}` : '', 'Ref. cliente': x.envio?.referencia_cliente ?? '', ...(esCliente ? {} : { Cliente: x.cliente ?? '' }),
+      'F. carga': x.envio ? fecha(x.envio.fecha_carga_desde) : '', Origen: x.envio?.origen ?? '', Destino: x.envio?.destino ?? '',
+      'm · Tn': x.envio && (x.envio.metros_lineales != null || x.envio.toneladas != null) ? medidasTxt(x.envio.metros_lineales, x.envio.toneladas) : '',
+      Estado: ESTADOS.find(([k]) => k === x.estado)?.[1] ?? x.estado, Prioridad: PRIORIDADES.find(([k]) => k === x.prioridad)?.[1] ?? '' })));
   const cerrar = () => { setFicha(null); if (nuevaPara != null) router.replace('/panel/incidencias'); };
 
   return (
@@ -70,9 +85,13 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
         <button className={`tab${pestana === 'resueltas' ? ' active' : ''}`} onClick={() => setPestana('resueltas')}>Resueltas ({cuenta.resueltas})</button>
         <button className={`tab${pestana === 'todas' ? ' active' : ''}`} onClick={() => setPestana('todas')}>Todas</button>
       </div>
-      <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={esCliente ? 'Buscar por descripción, nº de envío, ruta…' : 'Buscar por descripción, nº de envío, cliente, ruta…'} />
-      </div>
+      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), fr].filter(Boolean).length} onExportar={exportar}
+        placeholder={esCliente ? 'Buscar por descripción, nº de envío, ruta…' : 'Buscar por descripción, nº de envío, cliente, ruta…'}>
+        <select className="filter-estado" value={fr} aria-label="Filtrar por fecha de registro" onChange={(e) => setFr(e.target.value)}>
+          <option value="">Fecha</option>
+          {opcionesFecha(hoy).map((o) => <option key={o.v} value={o.v}>{o.t}</option>)}
+        </select>
+      </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar las incidencias: {error}</div>}
       <div className="table-wrap">
         <table className="data">

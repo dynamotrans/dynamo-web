@@ -13,6 +13,10 @@ import Cargando from '@/components/Cargando';
 import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, marcarPagadoAlmacenamiento, sitiosDelCliente, pedirAlmacenamiento, cancelarMiAlmacenamiento, type AlmacenamientoDatos, type EstadoAlm } from '@/app/panel/(app)/almacenamientos/acciones';
 import { precioAlmacenamiento, diasAlmacen } from '@/lib/almacenamiento';
 import { euros, fecha, fechaHora, porcentaje } from '@/lib/formato';
+import { rangoRapido } from '@/lib/envios';
+import { descargarCsv } from '@/lib/exportaciones';
+import BarraFiltros from './BarraFiltros';
+import { opcionesFecha } from './FiltrosEnvios';
 
 export type AlmacenamientoFila = AlmacenamientoDatos & {
   id: string; codigo: string; cliente: string | null; almacen: string; almacen_provincia: string; almacen_dir: string; entrega: string | null;
@@ -52,6 +56,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
   const router = useRouter();
   const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<EstadoAlm | 'todos' | 'pago'>(pestanaInicial ?? 'pendiente_confirmar');
+  const [fr, setFr] = useState('');
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(abrir ? { fila: null } : null);
 
@@ -64,11 +69,20 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
   }, [filas]);
   const lista = useMemo(() => {
     const w = norm(q.trim()).split(/\s+/).filter(Boolean);
+    const r = fr ? rangoRapido(fr, hoy()) : null;   // la Fecha filtra por el día de ENTRADA
     return filas.filter((f) => (pestana === 'todos' || (pestana === 'pago' ? sinPagar(f) : f.estado === pestana))
+      && (!r || (f.fecha_entrada >= r.desde && f.fecha_entrada <= r.hasta))
       && (!w.length || (() => { const b = norm([f.codigo, f.cliente, f.almacen, f.almacen_provincia, f.almacen_dir, f.entrega, f.descripcion, f.referencia_cliente, f.anotaciones].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()))
       // Lo vivo primero, por fecha de entrada; lo finalizado al final.
       .sort((a, b) => (Number(a.estado === 'finalizado') - Number(b.estado === 'finalizado')) || (a.fecha_entrada < b.fecha_entrada ? -1 : 1));
-  }, [filas, pestana, q]);
+  }, [filas, pestana, q, fr]);
+  // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
+  const exportar = () => descargarCsv('Almacenamientos', ['Almacenamiento', ...(modoCliente ? [] : ['Cliente']), 'Ref. cliente', 'Almacén', 'Dirección', 'Entrada', 'Salida', 'Tráilers', 'Reparto urbano', 'Total (sin IVA)', 'Pago', 'Estado'],
+    lista.map((f) => ({ Almacenamiento: `#${f.codigo}`, ...(modoCliente ? {} : { Cliente: f.cliente ?? '' }), 'Ref. cliente': f.referencia_cliente ?? '',
+      'Almacén': `Dynamo · ${f.almacen_provincia}`, 'Dirección': f.almacen_dir, Entrada: fecha(f.fecha_entrada), Salida: fecha(f.fecha_salida),
+      'Tráilers': f.num_trailers, 'Reparto urbano': f.num_repartos > 0 ? `Sí · ${f.num_repartos}` : 'No', 'Total (sin IVA)': f.importe_total,
+      Pago: f.requiere_pago_previo ? (f.pagado_en ? `Pagado el ${fecha(diaMadrid(f.pagado_en))}` : 'Pendiente de pago') : '',
+      Estado: ESTADOS.find(([k]) => k === f.estado)?.[2] ?? f.estado })));
 
   return (
     <section className="section active" id="sec-almacenes">
@@ -82,9 +96,13 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
         <button className={`tab${pestana === 'pago' ? ' active' : ''}`} onClick={() => setPestana('pago')}>Pendiente de pago ({cuenta.pago})</button>
         <button className={`tab${pestana === 'todos' ? ' active' : ''}`} onClick={() => setPestana('todos')}>Todos ({cuenta.todos})</button>
       </div>
-      <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={modoCliente ? 'Buscar por nº, almacén, dirección, referencia…' : 'Buscar por nº, cliente, almacén, dirección, referencia…'} />
-      </div>
+      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), fr].filter(Boolean).length} onExportar={exportar}
+        placeholder={modoCliente ? 'Buscar por nº, almacén, dirección, referencia…' : 'Buscar por nº, cliente, almacén, dirección, referencia…'}>
+        <select className="filter-estado" value={fr} aria-label="Filtrar por fecha de entrada" onChange={(e) => setFr(e.target.value)}>
+          <option value="">Fecha</option>
+          {opcionesFecha(hoy()).map((o) => <option key={o.v} value={o.v}>{o.t}</option>)}
+        </select>
+      </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar los almacenamientos: {error}</div>}
       <div className="table-wrap">
         <table className="data data-almacenes">

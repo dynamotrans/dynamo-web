@@ -6,7 +6,7 @@
 import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
-import { FICHEROS, aCsv, esImporte, mesDe, type Fichero, type FilaExport } from '@/lib/exportaciones';
+import { FICHEROS, descargarCsv, esImporte, mesDe, type Fichero, type FilaExport } from '@/lib/exportaciones';
 import { marcarExportados, marcarFacturados } from '@/app/panel/(app)/exportaciones/acciones';
 import { euros, numero } from '@/lib/formato';
 
@@ -49,15 +49,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
   const refs = useMemo(() => [...new Set(lista.map((f) => String(f[F.ref])))], [lista, F.ref]);
   const cuenta = (p: string) => new Set(filas.filter((f) => { const h = hechos.has(String(f[F.ref])); return p === 'todos' || (p === 'hechos' ? h : !h); }).map((f) => String(f[F.ref]))).size;
 
-  function descargar() {
-    const csv = aCsv(columnas[fichero], lista);
-    const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = `${F.archivo}-${hoy}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
-  }
+  const descargar = () => descargarCsv(F.archivo, columnas[fichero], lista);
   // Facturado (solo Holded): sobre los envíos de la lista que se ve.
   const sinFacturar = useMemo(() => new Set(lista.filter((f) => f['FACTURADO?'] !== 'SI').map((f) => String(f[F.ref]))), [lista, F.ref]);
   async function facturar(valor: boolean) {
