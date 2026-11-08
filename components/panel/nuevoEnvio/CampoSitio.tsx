@@ -6,13 +6,13 @@ import { TIPOS_SITIO } from '../TipoSitio';
 import EditorHorario from '../EditorHorario';
 import { HORARIO_POR_DEFECTO, validarHorario } from '@/lib/horarios';
 import CampoTelefono from '@/components/CampoTelefono';
-import { IcoFlecha, IcoMenos, IcoPin, Punto, SitioNuevo, SitioOpcion, VACIO, direccionCompleta, norm, textoSitio } from './comun';
+import { IcoMenos, Punto, SitioNuevo, SitioOpcion, VACIO, direccionCompleta, norm, textoSitio } from './comun';
 import { Campo } from './Campo';
 
 // ---- Buscador de sitio de la agenda del cliente (con sitio nuevo) -----------------
-export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambio, onQuitar, onAnadir, asa }: {
+export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambio, onQuitar, onAnadir, onAlternar, asa }: {
   punto: Punto; numero: number; sitios: SitioOpcion[]; deshabilitado: boolean; placeholder: string;
-  onCambio: (c: Partial<Punto>) => void; onQuitar?: () => void; onAnadir?: () => void; asa?: React.ReactNode;
+  onCambio: (c: Partial<Punto>) => void; onQuitar?: () => void; onAnadir?: () => void; onAlternar?: () => void; asa?: React.ReactNode;
 }) {
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -30,8 +30,14 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
     <>
       <div className="ptar-route-row">
         <div className={`ptar-input-wrap${elegido ? ' ptar-picked' : ''}`}>
-          <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`}>{numero}</span>
-          {rec ? <IcoPin /> : <IcoFlecha />}
+          {/* Pastilla con el nº y el tipo (naranja recogida · verde entrega). Al pulsarla,
+              la parada ALTERNA entre recogida y entrega (si no es la única de su grupo). */}
+          {onAlternar
+            ? <button type="button" className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`} onClick={onAlternar}
+                title={rec ? 'Cambiar a entrega' : 'Cambiar a recogida'} aria-label={`Parada ${numero}, ${rec ? 'recogida' : 'entrega'}. Pulsa para cambiarla a ${rec ? 'entrega' : 'recogida'}`}>
+                {numero} · {rec ? 'Recogida' : 'Entrega'}
+              </button>
+            : <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`}>{numero} · {rec ? 'Recogida' : 'Entrega'}</span>}
           <input type="text" autoComplete="off" placeholder={deshabilitado ? 'Elige antes el cliente' : placeholder}
             disabled={deshabilitado} readOnly={!!elegido}
             value={elegido ? textoSitio(elegido) + (punto.parada_id || !punto.nuevo ? '' : punto.nuevo.guardar ? ' (nuevo)' : ' (dirección suelta)') : q}

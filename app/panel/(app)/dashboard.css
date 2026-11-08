@@ -3360,6 +3360,17 @@ table.data td.actions { text-align: right; white-space: nowrap; }
 /* Naranja = recogida/origen, Verde = entrega/destino. */
 .ptar-route-num.rec { background: var(--orange); }
 .ptar-route-num.ent { background: var(--green); }
+/* Pastilla «N · Recogida / Entrega» de la ruta: el color dice el tipo y, si es botón,
+   pulsarla ALTERNA la parada entre recogida y entrega. */
+.ptar-route-tag {
+    flex: 0 0 auto; display: inline-flex; align-items: center; height: 24px; padding: 0 9px;
+    border: 0; border-radius: 999px; color: #fff; font-size: 0.7rem; font-weight: 800;
+    font-family: inherit; letter-spacing: 0.01em; white-space: nowrap;
+}
+.ptar-route-tag.rec { background: var(--orange); }
+.ptar-route-tag.ent { background: var(--green); }
+button.ptar-route-tag { cursor: pointer; }
+button.ptar-route-tag:hover { filter: brightness(0.92); }
 /* Botón "+" al final de la fila de origen/destino. */
 .ptar-route-add {
     flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;

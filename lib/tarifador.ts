@@ -6,9 +6,9 @@
 // Dynamo (editables) y, al cliente, se le enseña como orientativo: el que vale es el
 // que confirma Dynamo.
 //
-// Esquema del cálculo (mockup):
-//   envío base   = 220 + km × 1,35 × ocupación   (mínimo 320 completo / 190 grupaje, redondeo a 10)
-//   ocupación    = max(coef. metros, peso/máx, palets/máx)   (palets = metros × 2,5)
+// Esquema del cálculo:
+//   envío base   = 700 € FIJO para todos (venta) y 600 € (compra) — relleno plano a propósito
+//                  hasta la tarifa real; el motor por km y ocupación del mockup queda abajo listo
 //   + paradas extra (40 € cada una) + recargo por tipo de sitio (% del envío base, por punto)
 //   + suplementos (no paletizada, techo, plataforma, NIMA, ADR) + suplemento de fecha fija
 //   − descuento por peso bajo en tráiler completo
@@ -47,8 +47,8 @@ export type Tarifa = {
 const r10 = (n: number) => Math.round(n / 10) * 10;
 
 // Ocupación por metros: tabla escalonada aproximada del cliente (0,8 ml→25 % … 10,4 ml→100 %
-// sobre 13,2 m). PROVISIONAL: afinar con la tabla exacta cuando llegue la tarifa.
-function coefMetros(ml: number, mlMax: number): number {
+// sobre 13,2 m). HOY NO SE USA (importe fijo 700 €): queda lista para la tarifa real.
+export function coefMetros(ml: number, mlMax: number): number {
   const r = ml / mlMax;
   const tramos: [number, number][] = [
     [0.061, 0.25], [0.076, 0.33], [0.15, 0.40], [0.23, 0.50], [0.30, 0.55],
@@ -77,11 +77,11 @@ export function calcularTarifa(e: EntradaTarifa): Tarifa {
   const lineas: LineaTarifa[] = [];
   const grupaje = e.ml < e.mlMax - 0.01;
 
-  // 1. El importe del envío: 220 de salida + km por ocupación.
-  const palets = Math.round(e.ml * 2.5);
-  const ocupacion = Math.max(coefMetros(e.ml, e.mlMax), e.peso / e.pesoMax, palets / Math.round(e.mlMax * 2.5));
-  let envioBase = r10(220 + e.km * 1.35 * ocupacion);
-  envioBase = Math.max(envioBase, grupaje ? 190 : 320);
+  // 1. El importe del envío: FIJO 700 € para TODOS los envíos, completos y grupajes
+  //    (decisión del usuario 2026-11-08: mejor un número plano reconocible como relleno
+  //    que el mock por km, que parecía un precio de verdad). Cuando entre la tarifa real,
+  //    aquí vuelve el cálculo por distancia y ocupación (ocupacionCamion, abajo).
+  const envioBase = 700;
   lineas.push({ k: 'Importe del envío', v: envioBase });
 
   // 2. Paradas extra (la ruta normal son 2 puntos).
@@ -150,11 +150,10 @@ export const precioTransportistaSugerido = (neto: number) => r10(neto * 0.85);
 // Compra del tarifador: MOCK determinista del mockup (72-84 % de la venta según un hash
 // djb2 de la ruta «CP origen>CP destino», a la decena). PROVISIONAL hasta la tarifa real
 // de compra.
-export function compraTarifador(venta: number, cpOrigen: string, cpDestino: string): number {
-  let h = 5381;
-  const s = `${cpOrigen}>${cpDestino}`;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
-  return venta > 0 ? Math.round(venta * (0.72 + (h % 13) / 100) / 10) * 10 : 0;
+export function compraTarifador(venta: number): number {
+  // FIJO 600 € para todos (decisión del usuario 2026-11-08), como la venta a 700 €.
+  // Con la tarifa real volverá el cálculo (el mockup usaba un 72-84 % de la venta).
+  return venta > 0 ? 600 : 0;
 }
 
 export type UltimoRuta = { venta: number | null; compra: number | null; fecha: string | null; ref: string | null };

@@ -14,26 +14,16 @@ const BASE: EntradaTarifa = {
 };
 const linea = (t: ReturnType<typeof calcularTarifa>, k: string) => t.lineas.find((l) => l.k.startsWith(k));
 
-test('tráiler completo: 220 + km×1,35, redondeado a 10, sin suplementos', () => {
+test('importe del envío FIJO: 700 € para todos, completos y grupajes, a cualquier distancia', () => {
   const t = calcularTarifa(BASE);
   assert.equal(t.grupaje, false);
-  assert.equal(linea(t, 'Importe del envío')!.v, Math.round((220 + 530 * 1.35) / 10) * 10);
+  assert.equal(linea(t, 'Importe del envío')!.v, 700);
   assert.equal(t.lineas.length, 1);
-  assert.equal(t.neto, linea(t, 'Importe del envío')!.v);
-});
-
-test('grupaje: la ocupación por metros abarata (coef 0,5 con 2 ml) y el mínimo de completo no aplica', () => {
-  const t = calcularTarifa({ ...BASE, ml: 2, peso: 2, km: 40 });
-  assert.equal(t.grupaje, true);
-  assert.equal(linea(t, 'Importe del envío')!.v, 250);   // 220 + 40×1,35×0,5 = 247 → 250
-  const completoCorto = calcularTarifa({ ...BASE, km: 40 });
-  assert.equal(linea(completoCorto, 'Importe del envío')!.v, 320);   // mínimo de camión completo
-});
-
-test('la ocupación manda la mayor de las tres (peso alto en pocos metros)', () => {
-  const poca = calcularTarifa({ ...BASE, ml: 2, peso: 2 });
-  const pesada = calcularTarifa({ ...BASE, ml: 2, peso: 24 });
-  assert.ok(pesada.neto > poca.neto);
+  assert.equal(t.neto, 700);
+  const grup = calcularTarifa({ ...BASE, ml: 2, peso: 2, km: 40 });
+  assert.equal(grup.grupaje, true);
+  assert.equal(linea(grup, 'Importe del envío')!.v, 700);
+  assert.equal(calcularTarifa({ ...BASE, km: 2000 }).neto, 700);
 });
 
 test('paradas extra: 40 € por punto a partir del tercero', () => {
@@ -112,13 +102,10 @@ test('el precio del transportista sugerido: 85 % a la decena', () => {
 // ---- La tabla «Precios internos» del mockup ----
 import { compraTarifador, tablaInterna, diasDesde } from '../../lib/tarifador';
 
-test('compra del tarifador: mock determinista 72-84 % de la venta, a la decena', () => {
-  const c = compraTarifador(1030, '20001', '08001');
-  assert.equal(c, compraTarifador(1030, '20001', '08001'));   // determinista
-  assert.ok(c >= Math.round(1030 * 0.72 / 10) * 10 && c <= Math.round(1030 * 0.84 / 10) * 10);
-  assert.equal(c % 10, 0);
-  assert.equal(compraTarifador(0, '20001', '08001'), 0);
-  assert.notEqual(compraTarifador(1000, '20001', '08001'), compraTarifador(1000, '08001', '20001'));   // la ruta inversa cambia
+test('compra del tarifador: 600 € fijos para todos (hasta la tarifa real); sin venta, 0', () => {
+  assert.equal(compraTarifador(1030), 600);
+  assert.equal(compraTarifador(700), 600);
+  assert.equal(compraTarifador(0), 0);
 });
 
 test('tabla interna: el caso de la captura del mockup (último viejo no entra en la media; margen con todo)', () => {

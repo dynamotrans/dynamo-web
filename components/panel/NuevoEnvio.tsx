@@ -219,7 +219,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ruta), «Aplicado · media auto» y margen. Y el autorrelleno: venta = Aplicado, compra =
   // la más baja de la tabla; lo tecleado a mano no se pisa.
   const hoyStr = hoyMadrid();
-  const tarCompra = tarifa && cpO && cpD ? compraTarifador(tarifa.neto, cpO, cpD) : 0;
+  const tarCompra = tarifa ? compraTarifador(tarifa.neto) : 0;
   const interna = useMemo(() => (!esCliente && tarifa && ultimos)
     ? tablaInterna(tarifa.neto, tarCompra, ultimos.mismo, ultimos.todos, hoyStr) : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -249,6 +249,19 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   function quitar(p: Punto) {
     if (p.tipo === 'carga') setRecogidas((l) => l.filter((x) => x.k !== p.k));
     else setEntregas((l) => l.filter((x) => x.k !== p.k));
+  }
+  // Pulsar la pastilla del nº alterna la parada entre recogida y entrega (nunca puede
+  // quedarse la ruta sin recogidas o sin entregas; el orden y los números se recalculan).
+  function alternarTipo(p: Punto) {
+    if (p.tipo === 'carga') {
+      if (recogidas.length <= 1) return;
+      setRecogidas((l) => l.filter((x) => x.k !== p.k));
+      setEntregas((l) => [{ ...p, tipo: 'descarga', parada_id: undefined }, ...l]);
+    } else {
+      if (entregas.length <= 1) return;
+      setEntregas((l) => l.filter((x) => x.k !== p.k));
+      setRecogidas((l) => [...l, { ...p, tipo: 'carga', parada_id: undefined }]);
+    }
   }
   // Reordenar la ruta arrastrando el asa ≡ (Pointer Events: vale con ratón y con el dedo).
   // Solo dentro de su grupo: recogidas entre sí y entregas entre sí (una entrega nunca
@@ -598,7 +611,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, recogidas.length)}
                         placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente') : 'Otra recogida · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)} onQuitar={i > 0 ? () => quitar(p) : undefined}
-                        onAnadir={total < 4 ? () => nuevaParada('carga') : undefined} />
+                        onAnadir={total < 4 ? () => nuevaParada('carga') : undefined}
+                        onAlternar={recogidas.length > 1 ? () => alternarTipo(p) : undefined} />
                       {i === 0 && p.sitio && cliente?.principal_id === p.sitio.id && (
                         <p className="ptar-prin-badge"><span className="ptar-prin-star" aria-hidden="true">★</span> {esCliente ? 'Tu almacén principal' : 'Almacén principal del cliente'} · origen por defecto
                           <span className="ptar-prin-info" tabIndex={0} title={esCliente
@@ -613,7 +627,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       <CampoSitio punto={p} numero={recogidas.length + i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p, entregas.length)}
                         placeholder={i === entregas.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente') : 'Otra entrega · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)} onQuitar={i < entregas.length - 1 ? () => quitar(p) : undefined}
-                        onAnadir={total < 4 ? () => nuevaParada('descarga') : undefined} />
+                        onAnadir={total < 4 ? () => nuevaParada('descarga') : undefined}
+                        onAlternar={entregas.length > 1 ? () => alternarTipo(p) : undefined} />
                     </div>
                   ))}
                   {!manual && <div className="ptar-verif-note" style={{ marginTop: '0.5rem' }}>
