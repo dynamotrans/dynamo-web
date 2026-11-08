@@ -15,6 +15,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, diasEnt
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
 import CampoTelefono from '@/components/CampoTelefono';
+import { validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
 import type { OfertaPublica, ReservaPublica, ParadaPublica } from './tipos';
 
@@ -510,6 +511,10 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   const set = (k: keyof AltaTransportista, v: string) => setD((x) => ({ ...x, [k]: v }));
+  // Aviso en vivo bajo el campo: valen empresas Y autónomos (CIF, NIF o NIE) y cualquier
+  // país — con prefijo de IVA si es europeo; del resto del mundo se admite el nº fiscal
+  // tal cual y lo revisa Dynamo al activar (usuario, 2026-11-09).
+  const idf = d.cif.trim() ? validaIdFiscalPais(d.cif, d.pais) : null;
   async function enviar() {
     setError(null);
     if (!d.codigo_bolsa.trim()) { setError('Escribe tu código en la bolsa de cargas.'); return; }
@@ -546,8 +551,15 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       </div>
       <div className="row2">
         <div><label htmlFor="al-pais">País *</label><SelectorPais modo="pais" id="al-pais" valor={d.pais} onCambio={(v) => set('pais', v)} /></div>
-        <div><label htmlFor="al-cif">CIF / NIF *</label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="B12345678" onChange={(e) => set('cif', e.target.value)} /></div>
+        <div><label htmlFor="al-cif">CIF / NIF *</label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="B12345678 / 12345678Z" onChange={(e) => set('cif', e.target.value)} /></div>
       </div>
+      <p className="id-hint" style={idf && !idf.ok ? { color: 'var(--red)' } : undefined}>
+        {idf && !idf.ok
+          ? `${idf.tipo ? `${idf.tipo}: ` : ''}${idf.msg}.`
+          : idf?.ok && !idf.soft && idf.tipo
+          ? `${idf.tipo}: correcto.`
+          : 'Empresa o autónomo, da igual: CIF, NIF o NIE en España; de otro país, tu nº de IVA con el prefijo (PT…, FR…) o tu nº fiscal tal cual.'}
+      </p>
       <label htmlFor="al-tel">Teléfono *</label>
       <CampoTelefono id="al-tel" valor={d.telefono} onCambio={(v) => set('telefono', v)} />
 

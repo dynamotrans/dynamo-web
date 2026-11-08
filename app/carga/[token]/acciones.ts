@@ -108,7 +108,10 @@ export async function darseDeAlta(token: string, a: AltaTransportista): Promise<
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
   if (await enMantenimiento(sb)) return { resultado: 'error', error: `La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al ${CONTACTO.telefono}.` };
   const v = validaIdFiscalPais(a.cif, a.pais);
-  if (!v || !v.ok) return { resultado: 'datos_no_validos', campo: 'cif', error: v?.msg || 'El CIF / NIF no es válido.' };
+  // Valen empresas Y autónomos: CIF, NIF o NIE en España; nº de IVA europeo con prefijo;
+  // y de cualquier otro país, el nº fiscal tal cual (lo revisa Dynamo al activar el alta).
+  if (!v || !v.ok) return { resultado: 'datos_no_validos', campo: 'cif',
+    error: `${v?.tipo ? `${v.tipo}: ${v.msg}` : v?.msg || 'El CIF / NIF no es válido'}. Valen el CIF de empresa y el NIF/NIE de autónomo; de otro país, el nº de IVA con su prefijo (PT…, FR…) o tu nº fiscal.` };
   const { data, error } = await sb.rpc('alta_transportista_publica', {
     p_reserva: reserva, p_bolsa: a.bolsa || null, p_codigo_bolsa: a.codigo_bolsa, p_pais: a.pais, p_cif: a.cif, p_telefono: a.telefono,
     p_precio: a.precio, p_pronto_pago: a.pronto_pago, p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
