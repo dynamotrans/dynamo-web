@@ -182,8 +182,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [tabHorario, setTabHorario] = useState<'general' | 'verano'>('general');
   // Ficha compacta (usuario, 2026-11-08): lo opcional y el horario van PLEGADOS con su
   // resumen a la vista; solo se abre lo que haga falta tocar.
-  const [abierto, setAbierto] = useState({ avisos: false, horario: false, contactos: false });
-  const plegar = (k: 'avisos' | 'horario' | 'contactos') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
+  const [abierto, setAbierto] = useState({ avisos: false, horario: false });
+  const plegar = (k: 'avisos' | 'horario') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
   const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => { setD((x) => ({ ...x, [k]: v })); setRepetido(null); };
 
   async function guardar(aunqueRepetido = false) {
@@ -198,6 +198,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     if (!d.tipo) { setError('Elige el tipo de sitio.'); return; }
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
+    }
+    if (!almacen && !d.contactos.some((x) => x.nombre.trim() && (x.telefono.trim() || x.email.trim()))) {
+      setError('El contacto del sitio es obligatorio: pon al menos uno con nombre y teléfono o email.'); return;
     }
     const malHorario = validarHorario(d.horario);
     if (malHorario) { setAbierto((a) => ({ ...a, horario: true })); setTabHorario('general'); setError(malHorario); return; }
@@ -323,14 +326,24 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}
         {campo('codigo_postal', <>Código postal {obl}</>, '41016')}
         {campo('poblacion', <>Población {obl}</>, 'Sevilla')}
-        {campo('provincia', <>Provincia {opc}</>, 'Sevilla')}
-        <div>
-          <label htmlFor="sitio-pais">País</label>
-          <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
+        {/* Provincia y País SIEMPRE en la misma fila (también en el móvil). */}
+        <div style={{ gridColumn: '1/-1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.7rem' }}>
+          {campo('provincia', <>Provincia {opc}</>, 'Sevilla')}
+          <div>
+            <label htmlFor="sitio-pais">País</label>
+            <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
+          </div>
         </div>
         {/* «Requiere cita», «Tiene medios de carga» y «Enlace de Google Maps» ocultos de momento
             (decisión del usuario, 2026-11-08): no se usan por ahora; se dejan desactivados al
             guardar. No se tocan las tablas. */}
+      </div>
+
+      {/* El contacto del sitio es OBLIGATORIO (usuario, 2026-11-09): va tras el país,
+          desplegado y sin el campo Cargo. */}
+      <div className="ptar-section-head" style={{ marginTop: '0.9rem' }}>Contacto de sitio <span className="sitio-req">· obligatorio</span></div>
+      <div className="ptar-sitio-grid">
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} />
       </div>
 
       {/* Lo demás PLEGADO con su resumen a la vista (usuario, 2026-11-08: ficha compacta). */}
@@ -374,18 +387,6 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           </div>
         )}
 
-        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.contactos} onClick={() => plegar('contactos')} style={{ margin: 0 }}>
-          <span className="pnt-icon" aria-hidden="true">{abierto.contactos ? '−' : '+'}</span>
-          <span><strong>Personas de contacto</strong>{' '}
-            {(() => { const n = d.contactos.filter((c) => c.nombre.trim() || c.telefono.trim() || c.email.trim()).length;
-              return n > 0 ? <span className="badge badge-green">{n}</span> : <span style={{ color: 'var(--gray-500)' }}>(opcional)</span>; })()}</span>
-        </button>
-        {abierto.contactos && (
-          <div className="ptar-sitio-grid">
-            <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
-              ayuda="Encargado de almacén, recepción… La primera es la principal (la que sale en la tabla)." />
-          </div>
-        )}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {fila?.id && <Historial tabla="sitios" id={fila.id} />}

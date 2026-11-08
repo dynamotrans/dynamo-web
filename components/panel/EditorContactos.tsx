@@ -8,16 +8,16 @@ import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/l
 import { partirTel } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 
-export default function EditorContactos({ valor, onCambio, conFuncion = false, funcionNueva = 'general', ayuda }: {
+export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, funcionNueva = 'general', ayuda }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
-  conFuncion?: boolean; funcionNueva?: Funcion; ayuda?: React.ReactNode;
+  conFuncion?: boolean; conCargo?: boolean; funcionNueva?: Funcion; ayuda?: React.ReactNode;
 }) {
   const cambiar = (i: number, c: ContactoDatos) => onCambio(valor.map((x, j) => (j === i ? c : x)));
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.6rem' }}>
       {valor.length === 0 && <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)' }}>Sin personas de contacto.</div>}
       {valor.map((c, i) => (
-        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion}
+        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion} conCargo={conCargo}
           onCambio={(x) => cambiar(i, x)} onQuitar={() => onCambio(valor.filter((_, j) => j !== i))} />
       ))}
       <div>
@@ -31,8 +31,8 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, f
   );
 }
 
-function Persona({ c, i, total, conFuncion, onCambio, onQuitar }: {
-  c: ContactoDatos; i: number; total: number; conFuncion: boolean;
+function Persona({ c, i, total, conFuncion, conCargo, onCambio, onQuitar }: {
+  c: ContactoDatos; i: number; total: number; conFuncion: boolean; conCargo: boolean;
   onCambio: (c: ContactoDatos) => void; onQuitar: () => void;
 }) {
   const t = partirTel(c.telefono);
@@ -44,7 +44,7 @@ function Persona({ c, i, total, conFuncion, onCambio, onQuitar }: {
     <div style={{ border: '1.5px solid var(--gray-200)', borderRadius: 12, padding: '0.7rem 0.8rem', background: 'var(--gray-50)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
         <strong style={{ fontSize: 'var(--fs-m)', color: 'var(--navy)' }}>
-          Contacto {total > 1 ? i + 1 : ''}{i === 0 && total > 1 ? ' · principal' : ''}
+          Contacto {i + 1}{i === 0 && total > 1 ? ' · principal' : ''}
         </strong>
         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }} onClick={onQuitar}>Quitar</button>
       </div>
@@ -53,10 +53,12 @@ function Persona({ c, i, total, conFuncion, onCambio, onQuitar }: {
           <label htmlFor={`${id}-nombre`}>Nombre y apellidos</label>
           <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} />
         </div>
-        <div>
-          <label htmlFor={`${id}-cargo`}>Cargo</label>
-          <input id={`${id}-cargo`} type="text" value={c.cargo} placeholder="Jefe de almacén, tráfico…" onChange={(e) => onCambio({ ...c, cargo: e.target.value })} />
-        </div>
+        {conCargo && (
+          <div>
+            <label htmlFor={`${id}-cargo`}>Cargo</label>
+            <input id={`${id}-cargo`} type="text" value={c.cargo} placeholder="Jefe de almacén, tráfico…" onChange={(e) => onCambio({ ...c, cargo: e.target.value })} />
+          </div>
+        )}
         <div>
           <label htmlFor={`${id}-tel`}>Teléfono</label>
           <div className="tel-group">
