@@ -234,7 +234,8 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
         </div>
 
         {titulo('Personas de contacto')}
-        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conFuncion
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
+          roles={[['trafico', 'Logística'], ['contabilidad', 'Contabilidad']]} funcionNueva="trafico"
           ayuda={<>La primera es la <strong>principal</strong> (la que sale en la tabla). Pon en <strong>Contabilidad</strong> a quien recibe las facturas.</>} />
 
         {titulo('Condiciones')}

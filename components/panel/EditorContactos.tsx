@@ -8,12 +8,16 @@ import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/l
 import { partirTel } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 
-export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, obligatorios = false, funcionNueva = 'general', ayuda }: {
+export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, obligatorios = false, roles, funcionNueva = 'general', ayuda }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
   // conAvisos: enseña el conmutador «Recibe los avisos». En los SITIOS solo lo ve Dynamo:
   // el cliente no; todo contacto nuevo nace recibiendo avisos (CONTACTO_VACIO).
   // obligatorios: marca Teléfono y Email como obligatorios y el nombre como opcional
   // (los SITIOS exigen un contacto con teléfono y email; nombre opcional).
+  // roles: UN solo desplegable «Rol» con estas opciones (sustituye a Cargo + «Para qué»;
+  // usuario 2026-11-09): clientes Logística/Contabilidad · transportistas Tráfico/
+  // Contabilidad. Un valor antiguo fuera de la lista se añade para no perderlo.
+  roles?: [Funcion, string][];
   conFuncion?: boolean; conCargo?: boolean; conAvisos?: boolean; obligatorios?: boolean; funcionNueva?: Funcion; ayuda?: React.ReactNode;
 }) {
   const cambiar = (i: number, c: ContactoDatos) => onCambio(valor.map((x, j) => (j === i ? c : x)));
@@ -21,7 +25,7 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.6rem' }}>
       {valor.length === 0 && <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)' }}>Sin personas de contacto.</div>}
       {valor.map((c, i) => (
-        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion} conCargo={conCargo} conAvisos={conAvisos} obligatorios={obligatorios}
+        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion} conCargo={conCargo} conAvisos={conAvisos} obligatorios={obligatorios} roles={roles}
           onCambio={(x) => cambiar(i, x)} onQuitar={() => onCambio(valor.filter((_, j) => j !== i))} />
       ))}
       <div>
@@ -35,8 +39,9 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
   );
 }
 
-function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, onCambio, onQuitar }: {
+function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, roles, onCambio, onQuitar }: {
   c: ContactoDatos; i: number; total: number; conFuncion: boolean; conCargo: boolean; conAvisos: boolean; obligatorios: boolean;
+  roles?: [Funcion, string][];
   onCambio: (c: ContactoDatos) => void; onQuitar: () => void;
 }) {
   const t = partirTel(c.telefono);
@@ -68,13 +73,21 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, o
           <label htmlFor={`${id}-nombre`}>Nombre y apellidos{obligatorios && <> <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
           <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} />
         </div>
-        {conCargo && (
+        {roles ? (
+          <div>
+            <label htmlFor={`${id}-rol`}>Rol</label>
+            <select id={`${id}-rol`} value={c.funcion} onChange={(e) => onCambio({ ...c, funcion: e.target.value as Funcion })}>
+              {!roles.some(([k]) => k === c.funcion) && <option value={c.funcion}>{FUNCIONES.find(([k]) => k === c.funcion)?.[1] ?? c.funcion}</option>}
+              {roles.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+            </select>
+          </div>
+        ) : conCargo && (
           <div>
             <label htmlFor={`${id}-cargo`}>Cargo</label>
             <input id={`${id}-cargo`} type="text" value={c.cargo} placeholder="Jefe de almacén, tráfico…" onChange={(e) => onCambio({ ...c, cargo: e.target.value })} />
           </div>
         )}
-        {conFuncion && (
+        {conFuncion && !roles && (
           <div>
             <label htmlFor={`${id}-funcion`}>Para qué</label>
             <select id={`${id}-funcion`} value={c.funcion} onChange={(e) => onCambio({ ...c, funcion: e.target.value as Funcion })}>

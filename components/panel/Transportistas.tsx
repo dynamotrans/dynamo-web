@@ -256,8 +256,9 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
         </div>
 
         {titulo('Personas de contacto')}
-        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conFuncion funcionNueva="trafico"
-          ayuda={<>Los de <strong>tráfico</strong> reciben los avisos de la operativa (envíos, recogidas, incidencias). Los de <strong>contabilidad</strong> son <strong>SOLO ADMIN</strong> (facturas): el transportista no los ve.</>} />
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
+          roles={[['trafico', 'Tráfico'], ['contabilidad', 'Contabilidad']]} funcionNueva="trafico"
+          ayuda={<>Los de <strong>tráfico</strong> reciben los avisos de la operativa (envíos, recogidas, incidencias); un <strong>autónomo</strong> va como Tráfico. Los de <strong>contabilidad</strong> son <strong>SOLO ADMIN</strong> (facturas): el transportista no los ve. Los <strong>conductores</strong> van en la flota (matrícula, DNI y móvil), no aquí.</>} />
 
         {titulo('Pago')}
         <div>
