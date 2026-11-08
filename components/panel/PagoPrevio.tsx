@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { euros, fechaHora, porcentaje } from '@/lib/formato';
 
 import type { Ficha } from '@/lib/fichaEnvio';
-import { marcarPagoEnvio, ampliarPlazoPago } from '@/app/panel/(app)/envios/acciones';
+import { marcarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean>;
 
@@ -49,7 +49,6 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Guardando', () => marcarPagoEnvio(envio.id, 'transferencia'))}>Ha llegado la transferencia</button>
             <button className="btn-ghost" onClick={() => setExento(true)}>Pasar sin pago previo (cobro a vencimiento)</button>
-            {pago.limite && <button className="btn-ghost" onClick={() => hacer('Guardando', () => ampliarPlazoPago(envio.id))}>Ampliar el plazo</button>}
           </div>
         ) : (
           <div style={{ marginTop: '0.6rem' }}>

@@ -6,7 +6,6 @@
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
@@ -705,10 +704,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   </>}
 
                   {sinCampoCliente && !base && (<>
-                    <div className="ptar-section-head">Transportista / operador</div>
+                    <div className="ptar-section-head">Transportista / operador{' '}
+                      <span className="ptar-prin-info" tabIndex={0} title="¿Trabajas también con transportistas propios? Dalos de alta en Transportistas y podrás registrar aquí esos envíos (Dynamo no interviene) y tenerlo todo unificado." aria-label="Ayuda sobre transportistas propios">ⓘ</span>
+                    </div>
                     <div className="ptar-field ptar-field-full">
                       <CampoOperador operadores={operadores} valor={operador} onCambio={setOperador} />
-                      {operadores.length === 0 && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>¿Trabajas también con transportistas propios? Dalos de alta en <Link href="/panel/operadores"><strong>Transportistas</strong></Link> y podrás registrar aquí esos envíos (Dynamo no interviene) y tenerlo todo unificado.</p>}
                       {manual && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Envío con <strong>tu propio transportista</strong>: Dynamo no interviene en nada. La plataforma te sirve para organizarlo y sacar la <strong>orden de carga</strong> en PDF.</p>}
                     </div>
                   </>)}
