@@ -3,7 +3,7 @@
 // cambian con la tarifa real, estas pruebas se actualizan con ellos.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularTarifa, precioTransportistaSugerido, type EntradaTarifa } from '../../lib/tarifador';
+import { calcularTarifa, combinaciones, precioTransportistaSugerido, type EntradaTarifa } from '../../lib/tarifador';
 
 // Un envío de referencia: tráiler completo Sevilla→Madrid (530 km), almacenes, ventana.
 const BASE: EntradaTarifa = {
@@ -107,6 +107,27 @@ test('entrega estimada: ~600 km por día hábil; la ventana añade sus 2 días a
   const ventana = calcularTarifa({ ...BASE, fecha: '2026-11-18' });
   assert.deepEqual([ventana.etaDesde, ventana.etaHasta], ['2026-11-19', '2026-11-23']);
   assert.equal(calcularTarifa({ ...BASE, fecha: null }).etaDesde, null);
+});
+
+test('combinaciones: las 4 casillas por detrás (tipo de ventana × primer día hábil / posterior)', () => {
+  // Carga COMPLETA: fecha fija × ventana, cada una en el primer día hábil y en uno posterior.
+  const c = combinaciones(BASE);
+  assert.deepEqual(c.map((x) => [x.urgencia, x.fecha, x.primerDia, x.neto]), [
+    ['dia', '2026-11-10', true, 800],       // fija el primer día hábil → +100 urgente
+    ['dia', '2026-11-18', false, 750],      // fija un día posterior → +50
+    ['estandar', '2026-11-10', true, 700],  // ventana desde el primer día
+    ['estandar', '2026-11-18', false, 700], // ventana empezando más tarde
+  ]);
+  assert.ok(c.every((x) => x.titulo.includes(' · ')));
+  // GRUPAJE: sin fecha fija; corta (1 a 2) × estándar (1 a 4).
+  const g = combinaciones({ ...BASE, ml: 2, peso: 2 });
+  assert.deepEqual(g.map((x) => [x.urgencia, x.fecha, x.neto]), [
+    ['corta', '2026-11-10', 780], ['corta', '2026-11-18', 780],
+    ['estandar', '2026-11-10', 700], ['estandar', '2026-11-18', 700],
+  ]);
+  // Sin fecha elegida (o fecha no posterior al primer día): el día posterior es el siguiente hábil.
+  const sf = combinaciones({ ...BASE, fecha: null });
+  assert.deepEqual(sf.map((x) => x.fecha), ['2026-11-10', '2026-11-11', '2026-11-10', '2026-11-11']);
 });
 
 test('el precio del transportista sugerido: 85 % a la decena', () => {

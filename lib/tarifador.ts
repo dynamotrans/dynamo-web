@@ -78,8 +78,10 @@ export function ventanaDias(urgencia: 'dia' | 'estandar' | 'corta', grupaje: boo
   return urgencia === 'dia' ? 1 : urgencia === 'corta' ? 2 : grupaje ? 4 : 3;
 }
 
-export function calcularTarifa(e: EntradaTarifa): Tarifa {
-  const fest = new Set(e.festivos);
+// El DESGLOSE de una combinación concreta (tipo de ventana + fecha): el núcleo del precio.
+// calcularTarifa lo usa para la combinación elegida y, por detrás, para las demás (las
+// alternativas de ahorro y la función combinaciones()).
+function desgloseDe(e: EntradaTarifa): { lineas: LineaTarifa[]; neto: number; grupaje: boolean; pasada: boolean; fijaUrgente: boolean } {
   const lineas: LineaTarifa[] = [];
   const grupaje = e.ml < e.mlMax - 0.01;
 
@@ -133,21 +135,34 @@ export function calcularTarifa(e: EntradaTarifa): Tarifa {
   }
 
   const neto = lineas.reduce((a, l) => a + l.v, 0);
+  return { lineas, neto, grupaje, pasada, fijaUrgente };
+}
 
-  // 7. Alternativas más baratas («Elegir» cambia el tipo de fecha / la fecha y recalcula).
+export function calcularTarifa(e: EntradaTarifa): Tarifa {
+  const fest = new Set(e.festivos);
+  const { lineas, neto, grupaje, pasada, fijaUrgente } = desgloseDe(e);
+
+  // 7. Alternativas más baratas: el tarifador calcula POR DETRÁS las demás combinaciones
+  //    (fecha fija / ventana × primer día hábil / posterior; en grupaje, corta / estándar)
+  //    con los MISMOS datos, y ofrece las que salen más baratas con su ahorro real
+  //    («Elegir» cambia el tipo de fecha / la fecha y recalcula). Con la tarifa real,
+  //    las diferencias saldrán de aquí tal cual, sin tocar nada.
   const alternativas: AlternativaTarifa[] = [];
-  if (e.urgencia === 'dia' && e.fecha && !pasada) {
-    if (fijaUrgente) {
+  if (e.fecha && !pasada) {
+    const netoDe = (urgencia: EntradaTarifa['urgencia'], fecha: string) => desgloseDe({ ...e, urgencia, fecha }).neto;
+    if (e.urgencia === 'dia' && fijaUrgente) {
       const sig = sumarHabiles(e.fecha, 1, fest);
-      alternativas.push({ titulo: 'Fecha fija, un día más tarde', detalle: 'El siguiente día hábil, sin la urgencia del primero', ahorro: 50, recomendada: false, urgencia: 'dia', fecha: sig });
-      alternativas.push({ titulo: `Recogida de 1 a ${grupaje ? 4 : 3} días`, detalle: 'El 80 % de las veces cargamos en los 2 primeros días', ahorro: 100, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
-    } else {
-      alternativas.push({ titulo: `Recogida de 1 a ${grupaje ? 4 : 3} días`, detalle: 'Mismo primer día, sin suplemento de fecha fija', ahorro: 50, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
+      const nSig = netoDe('dia', sig);
+      if (nSig < neto) alternativas.push({ titulo: 'Fecha fija, un día más tarde', detalle: 'El siguiente día hábil, sin la urgencia del primero', ahorro: neto - nSig, recomendada: false, urgencia: 'dia', fecha: sig });
     }
-  }
-  if (e.urgencia === 'corta' && grupaje && e.fecha && !pasada) {
-    const ahorroCorta = lineas.find((l) => l.k.startsWith('Ventana corta'))?.v ?? 0;
-    if (ahorroCorta > 0) alternativas.push({ titulo: 'Recogida de 1 a 4 días', detalle: 'Más margen para completar el camión: lo más económico', ahorro: ahorroCorta, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
+    if (e.urgencia === 'dia' || (e.urgencia === 'corta' && grupaje)) {
+      const nVen = netoDe('estandar', e.fecha);
+      if (nVen < neto) alternativas.push({
+        titulo: `Recogida de 1 a ${grupaje ? 4 : 3} días`,
+        detalle: e.urgencia === 'corta' ? 'Más margen para completar el camión: lo más económico'
+          : fijaUrgente ? 'El 80 % de las veces cargamos en los 2 primeros días' : 'Mismo primer día, sin suplemento de fecha fija',
+        ahorro: neto - nVen, recomendada: true, urgencia: 'estandar', fecha: e.fecha });
+    }
   }
 
   // 8. Entrega estimada: ~600 km por día de conducción, saltando fines de semana y festivos.
@@ -159,6 +174,36 @@ export function calcularTarifa(e: EntradaTarifa): Tarifa {
     etaHasta = vDias > 1 ? sumarHabiles(sumarHabiles(e.fecha, vDias - 1, fest), diasTransito, fest) : etaDesde;
   }
   return { neto, lineas, grupaje, alternativas, etaDesde, etaHasta, diasTransito };
+}
+
+export type Combinacion = {
+  urgencia: 'dia' | 'estandar' | 'corta';
+  fecha: string;         // primer día de carga de esa combinación
+  primerDia: boolean;    // true = el primer día hábil disponible; false = el posterior (la fecha elegida, o el siguiente hábil)
+  titulo: string;
+  neto: number;
+};
+
+// Las COMBINACIONES que el tarifador calcula por detrás con los MISMOS datos (decisión del
+// usuario 2026-11-08): tipo de ventana × primer día hábil / posterior. En carga completa,
+// fecha fija y ventana de 1 a 3; en grupaje (sin fecha fija), corta de 1 a 2 y ventana de
+// 1 a 4. La combinación elegida es el precio del envío; las demás alimentan las
+// alternativas de ahorro de calcularTarifa.
+export function combinaciones(e: EntradaTarifa): Combinacion[] {
+  const fest = new Set(e.festivos);
+  const grupaje = e.ml < e.mlMax - 0.01;
+  const posterior = e.fecha && e.fecha > e.primerDia ? e.fecha : sumarHabiles(e.primerDia, 1, fest);
+  const tipos: ('dia' | 'estandar' | 'corta')[] = grupaje ? ['corta', 'estandar'] : ['dia', 'estandar'];
+  const nombre: Record<string, string> = { dia: 'Fecha fija', corta: 'Recogida de 1 a 2 días', estandar: `Recogida de 1 a ${grupaje ? 4 : 3} días` };
+  const out: Combinacion[] = [];
+  for (const u of tipos) {
+    for (const [fecha, primer] of [[e.primerDia, true], [posterior, false]] as [string, boolean][]) {
+      out.push({ urgencia: u, fecha, primerDia: primer,
+        titulo: `${nombre[u]} · ${primer ? 'primer día hábil' : 'empezando más tarde'}`,
+        neto: desgloseDe({ ...e, urgencia: u, fecha }).neto });
+    }
+  }
+  return out;
 }
 
 // Precio del transportista sugerido: margen objetivo PROVISIONAL del 15 %.
