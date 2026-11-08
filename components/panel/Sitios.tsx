@@ -267,8 +267,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
     }
-    if (!almacen && !d.contactos.some((x) => x.nombre.trim() && (x.telefono.trim() || x.email.trim()))) {
-      setError('El contacto del sitio es obligatorio: pon al menos uno con nombre y teléfono o email.'); return;
+    if (!almacen && !d.contactos.some((x) => x.telefono.trim() && x.email.trim())) {
+      setError('El contacto del sitio es obligatorio: pon al menos uno con teléfono y email (el nombre es opcional).'); return;
     }
     const malHorario = validarHorario(d.horario);
     if (malHorario) { setAbierto((a) => ({ ...a, horario: true })); setTabHorario('general'); setError(malHorario); return; }
@@ -442,7 +442,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       )}
       {!fila && !almacen && (
         <div style={{ marginBottom: '0.8rem' }}>
-          <div className="ptar-field" style={{ position: 'relative' }}>
+          {/* Dentro de la rejilla estándar para que el campo tenga el mismo tamaño y
+              estilo que el resto de la ficha (antes salía con el del navegador). */}
+          <div className="ptar-sitio-grid" style={{ position: 'relative', gridTemplateColumns: '1fr' }}>
+            <div style={{ position: 'relative' }}>
             <label htmlFor="sitio-buscar">Buscar para autorrellenar (tu agenda, Google o dirección)</label>
             <input id="sitio-buscar" autoComplete="off" placeholder="Escribe empresa o dirección…" value={bq}
               onChange={(e) => { setBq(e.target.value); setAvisoParecido(null); }}
@@ -471,6 +474,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                 ))}
               </ul>
             )}
+            </div>
           </div>
           {avisoParecido && (
             <div className="modal-warn-box" style={{ marginTop: '0.6rem' }}>
@@ -501,8 +505,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}
         {campo('codigo_postal', <>Código postal {obl}</>, '41016')}
         {campo('poblacion', <>Población {obl}</>, 'Sevilla')}
-        {/* Provincia y País SIEMPRE en la misma fila (también en el móvil). */}
-        <div style={{ gridColumn: '1/-1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.7rem' }}>
+        {/* Provincia y País SIEMPRE en la misma fila (también en el móvil), como rejilla
+            ANIDADA de la estándar: mismos estilos, tamaños y separación que el resto. */}
+        <div className="ptar-sitio-grid" style={{ gridColumn: '1/-1', gridTemplateColumns: '1fr 1fr' }}>
           {campo('provincia', <>Provincia {opc}</>, 'Sevilla')}
           <div>
             <label htmlFor="sitio-pais">País</label>
@@ -518,7 +523,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           desplegado y sin el campo Cargo. */}
       <div className="ptar-section-head" style={{ marginTop: '0.9rem' }}>Contacto de sitio <span className="sitio-req">· obligatorio</span></div>
       <div className="ptar-sitio-grid">
-        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} conAvisos={dynamo} />
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} conAvisos={dynamo} obligatorios />
       </div>
 
       {/* Lo demás PLEGADO con su resumen a la vista (usuario, 2026-11-08: ficha compacta). */}

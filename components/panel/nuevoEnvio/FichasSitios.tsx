@@ -82,12 +82,12 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} />
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>La dirección se cambia en el paso 1 (Ruta).</div></div>
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
-                  <div><label>Nombre y apellidos</label>
-                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
-                  <div><label>Teléfono</label>
+                  <div><label>Teléfono <span className="sitio-req">· obligatorio</span></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
-                  <div className="full"><label>Email</label>
+                  <div><label>Email <span className="sitio-req">· obligatorio</span></label>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                  <div className="full"><label>Nombre y apellidos <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
+                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
                   {!f.nuevo && <div className="full"><label>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></label>
                     <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} /></div>}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Horario de carga y descarga</div>

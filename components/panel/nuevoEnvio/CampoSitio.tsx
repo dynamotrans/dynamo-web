@@ -86,11 +86,11 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-            <Campo l="Persona de contacto · opcional" v={form.contacto} on={(v) => setForm({ ...form, contacto: v })} ph="Ej. Lucía (muelle)" />
             <div>
               <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem', display: 'block' }}>Teléfono · opcional</label>
               <CampoTelefono valor={form.telefono} onCambio={(v) => setForm({ ...form, telefono: v })} />
             </div>
+            <Campo l="Nombre y apellidos · opcional" v={form.contacto} on={(v) => setForm({ ...form, contacto: v })} ph="Ej. Lucía (muelle)" />
           </div>
           <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Tipo de sitio</label>
           <select className="ptar-select" value={form.tipo_sitio} onChange={(e) => setForm({ ...form, tipo_sitio: e.target.value })}>

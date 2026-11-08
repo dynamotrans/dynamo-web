@@ -8,18 +8,20 @@ import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/l
 import { partirTel } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 
-export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, funcionNueva = 'general', ayuda }: {
+export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, obligatorios = false, funcionNueva = 'general', ayuda }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
   // conAvisos: enseña el conmutador «Recibe los avisos». En los SITIOS solo lo ve Dynamo:
   // el cliente no; todo contacto nuevo nace recibiendo avisos (CONTACTO_VACIO).
-  conFuncion?: boolean; conCargo?: boolean; conAvisos?: boolean; funcionNueva?: Funcion; ayuda?: React.ReactNode;
+  // obligatorios: marca Teléfono y Email como obligatorios y el nombre como opcional
+  // (los SITIOS exigen un contacto con teléfono y email; nombre opcional).
+  conFuncion?: boolean; conCargo?: boolean; conAvisos?: boolean; obligatorios?: boolean; funcionNueva?: Funcion; ayuda?: React.ReactNode;
 }) {
   const cambiar = (i: number, c: ContactoDatos) => onCambio(valor.map((x, j) => (j === i ? c : x)));
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.6rem' }}>
       {valor.length === 0 && <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)' }}>Sin personas de contacto.</div>}
       {valor.map((c, i) => (
-        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion} conCargo={conCargo} conAvisos={conAvisos}
+        <Persona key={c.id ?? `n${i}`} c={c} i={i} total={valor.length} conFuncion={conFuncion} conCargo={conCargo} conAvisos={conAvisos} obligatorios={obligatorios}
           onCambio={(x) => cambiar(i, x)} onQuitar={() => onCambio(valor.filter((_, j) => j !== i))} />
       ))}
       <div>
@@ -33,8 +35,8 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
   );
 }
 
-function Persona({ c, i, total, conFuncion, conCargo, conAvisos, onCambio, onQuitar }: {
-  c: ContactoDatos; i: number; total: number; conFuncion: boolean; conCargo: boolean; conAvisos: boolean;
+function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, onCambio, onQuitar }: {
+  c: ContactoDatos; i: number; total: number; conFuncion: boolean; conCargo: boolean; conAvisos: boolean; obligatorios: boolean;
   onCambio: (c: ContactoDatos) => void; onQuitar: () => void;
 }) {
   const t = partirTel(c.telefono);
@@ -52,7 +54,18 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, onCambio, onQui
       </div>
       <div className="ptar-sitio-grid">
         <div>
-          <label htmlFor={`${id}-nombre`}>Nombre y apellidos</label>
+          <label htmlFor={`${id}-tel`}>Teléfono{obligatorios && <> <span className="sitio-req">· obligatorio</span></>}</label>
+          <div className="tel-group">
+            <SelectorPais modo="prefijo" valor={pref} onCambio={(v) => { setPref(v); ponTel(v, num); }} />
+            <input id={`${id}-tel`} type="tel" inputMode="tel" value={num} placeholder="600 000 000" onChange={(e) => ponTel(pref, e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label htmlFor={`${id}-email`}>Email{obligatorios && <> <span className="sitio-req">· obligatorio</span></>}</label>
+          <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
+        </div>
+        <div>
+          <label htmlFor={`${id}-nombre`}>Nombre y apellidos{obligatorios && <> <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
           <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} />
         </div>
         {conCargo && (
@@ -61,17 +74,6 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, onCambio, onQui
             <input id={`${id}-cargo`} type="text" value={c.cargo} placeholder="Jefe de almacén, tráfico…" onChange={(e) => onCambio({ ...c, cargo: e.target.value })} />
           </div>
         )}
-        <div>
-          <label htmlFor={`${id}-tel`}>Teléfono</label>
-          <div className="tel-group">
-            <SelectorPais modo="prefijo" valor={pref} onCambio={(v) => { setPref(v); ponTel(v, num); }} />
-            <input id={`${id}-tel`} type="tel" inputMode="tel" value={num} placeholder="600 000 000" onChange={(e) => ponTel(pref, e.target.value)} />
-          </div>
-        </div>
-        <div>
-          <label htmlFor={`${id}-email`}>Email</label>
-          <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
-        </div>
         {conFuncion && (
           <div>
             <label htmlFor={`${id}-funcion`}>Para qué</label>
