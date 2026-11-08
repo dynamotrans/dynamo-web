@@ -729,8 +729,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           La <strong>cancelación o modificación reiterada</strong> de envíos puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo (por encima de 3 cancelaciones en los últimos 10 envíos confirmados).
         </div>
         <div style={{ marginTop: '0.7rem' }}>
-          <button type="button" className="btn-ghost" style={{ padding: '0.3rem 0' }} onClick={() => setVerCondiciones((v) => !v)}>
-            {verCondiciones ? 'Ocultar' : 'Ver'} condiciones generales de transporte
+          <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}
+            style={{ background: 'none', border: 'none', padding: 0, color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>
+            {verCondiciones ? '▾' : '▸'} {verCondiciones ? 'Ocultar' : 'Ver'} condiciones generales de transporte
           </button>
           {verCondiciones && <div className="ptar-terms-scroll" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem', marginTop: '0.4rem' }}><CondicionesGenerales /></div>}
         </div>
