@@ -2112,7 +2112,12 @@ body.theme-dark .sidebar { background: #060116; }
 }
 /* Discreción comercial (confirmación de envío) */
 .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
-.ptar-discrecion .ptar-confirm-check { margin: 0; }
+.ptar-discrecion /* La casilla legal sin marcar tras pulsar «Confirmar envío»: casilla y texto en rojo. */
+.ptar-confirm-check.ptar-check-err, .ptar-confirm-check.ptar-check-err strong { color: #b42318; }
+.ptar-confirm-check.ptar-check-err input {
+    outline: 2px solid #dc2626; outline-offset: 2px; border-radius: 4px; accent-color: #dc2626;
+}
+.ptar-confirm-check { margin: 0; }
 .ptar-discrecion-aviso { margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 8px; background: rgba(51,0,204,0.07); border: 1px solid rgba(51,0,204,0.28); color: var(--purple); font-size: var(--fs-m); line-height: 1.5; font-weight: 600; }
 /* Enlace en línea dentro del texto de un check (Ver más / condiciones):
    abre su ventana SIN marcar la casilla. */

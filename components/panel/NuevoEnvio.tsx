@@ -118,6 +118,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // condiciones generales, como en el mockup. Hay que marcar el check para confirmar.
   const [revisarLegal, setRevisarLegal] = useState(false);
   const [aceptaLegal, setAceptaLegal] = useState(false);
+  // Se pulsó «Confirmar envío» sin marcar la casilla: la casilla y su texto se ponen en rojo.
+  const [faltaLegal, setFaltaLegal] = useState(false);
+  useEffect(() => { if (!revisarLegal) setFaltaLegal(false); }, [revisarLegal]);
   const [verCondiciones, setVerCondiciones] = useState(false);
   // Días que abre cada sitio de la agenda que se usa de recogida (se piden al llegar al paso 4).
   const [abiertosSitio, setAbiertosSitio] = useState<Record<string, HorarioSitioAviso>>({});
@@ -847,7 +850,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         titulo="Confirmar envío" sub="Revisa los costes de cancelación antes de crear el envío."
         pie={<>
           <button type="button" className="btn-ghost" onClick={() => setRevisarLegal(false)} disabled={enviando}>← Volver</button>
-          <button type="button" className="btn-primary" onClick={crear} disabled={enviando || !aceptaLegal}>{enviando ? 'Creando envío…' : 'Confirmar envío'}</button>
+          <button type="button" className="btn-primary" disabled={enviando}
+            onClick={() => { if (!aceptaLegal) { setFaltaLegal(true); return; } crear(); }}>{enviando ? 'Creando envío…' : 'Confirmar envío'}</button>
         </>}>
         {esHoy && (
           <div className="pt-aviso" style={{ marginTop: 0 }}><IcoAviso /><div>
@@ -867,10 +871,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           </button>
           {verCondiciones && <div className="ptar-terms-scroll" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem', marginTop: '0.4rem' }}><CondicionesGenerales /></div>}
         </div>
-        <label className="ptar-confirm-check" style={{ marginTop: '0.9rem' }}>
-          <input type="checkbox" checked={aceptaLegal} onChange={(e) => setAceptaLegal(e.target.checked)} />
+        <label className={`ptar-confirm-check${faltaLegal && !aceptaLegal ? ' ptar-check-err' : ''}`} style={{ marginTop: '0.9rem' }}>
+          <input type="checkbox" checked={aceptaLegal} onChange={(e) => { setAceptaLegal(e.target.checked); if (e.target.checked) setFaltaLegal(false); }} />
           <span>He leído los <strong>costes de cancelación</strong> y las <strong>condiciones generales de transporte</strong>.</span>
         </label>
+        {faltaLegal && !aceptaLegal && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.5rem' }}>⚠ Marca la casilla de arriba para poder confirmar el envío.</div>}
         {aviso && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {aviso}</div>}
       </Modal>
 
