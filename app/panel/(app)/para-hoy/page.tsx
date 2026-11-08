@@ -30,10 +30,11 @@ export default async function PaginaParaHoy() {
   const cnt = { count: 'exact' as const };
   // OJO: las solicitudes «esperando precio» NO salen aquí (decisión del usuario 2026-11-08):
   // el precio lo pondrá el tarifador automático, no depende del equipo.
-  // Tampoco salen «Precio por revisar (ruta cambiada)» ni «Cambios pedidos por clientes»
-  // (usuario 2026-11-08): los precios serán autocalculados por el tarifador, y los cambios
-  // se aplican directamente modificando el envío (el aviso vive en la ficha del envío).
-  const [sinCamion, cofCli, cofTra, sinPagar, inc, pen, altas, alm, revPrecio] = await Promise.all([
+  // Tampoco salen «Precio por revisar (ruta cambiada)», «Cambios pedidos por clientes» ni
+  // «Revisar el precio (programados con antelación)» (usuario 2026-11-08): los precios son
+  // del tarifador automático —la revisión al llegar la ventana la aplica sola la tarea
+  // horaria— y los cambios se hacen directamente modificando el envío.
+  const [sinCamion, cofCli, cofTra, sinPagar, inc, pen, altas, alm] = await Promise.all([
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
       .neq('estado_pago_previo', 'pendiente').lte('fecha_carga_desde', manana).order('fecha_carga_desde').limit(MAX),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('estado_solicitud', 'contraoferta').order('modificado_en').limit(MAX),
@@ -46,8 +47,6 @@ export default async function PaginaParaHoy() {
       .eq('estado', 'pendiente_confirmar').order('creado_en').limit(MAX),
     supabase.from('usuarios').select('id, email, nombre, rol, creado_en', cnt).eq('estado', 'pendiente_verificacion').is('cliente_id', null).is('transportista_id', null).order('creado_en').limit(MAX),
     supabase.from('almacenamientos').select('id, codigo, fecha_entrada, creado_en, clientes(nombre_visible)', cnt).eq('estado', 'pendiente_confirmar').order('fecha_entrada').limit(MAX),
-    // Revisión del precio de los envíos programados con mucha antelación.
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_revision_precio', 'revisar').order('fecha_carga_desde').limit(MAX),
   ]);
 
   const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
@@ -82,15 +81,12 @@ export default async function PaginaParaHoy() {
     { id: 'contraofertas-transportistas', nivel: 'aviso', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
       filas: (cofTra.data ?? []).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
         s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
-    { id: 'revision-precio', nivel: 'aviso', titulo: 'Revisar el precio (programados con antelación)', total: revPrecio.count ?? 0, todo: '/panel/envios',
-      filas: (revPrecio.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
-        s: `Carga ${fechas(e)} · precio provisional ${euros(e.importe_cliente)}: pon el de hoy`, desde: null })) },
     { id: 'penalizaciones', nivel: 'info', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
       filas: (pen.data ?? []).map((p) => ({ href: '/panel/penalizaciones', t: `${p.tipos_penalizacion?.nombre ?? 'Penalización'}${p.envios?.referencia_gx ? ` · #${p.envios.referencia_gx}` : ''}`,
         s: [p.importe_cliente != null && `Cliente ${euros(p.importe_cliente)}`, p.importe_transportista != null && `Transportista ${euros(p.importe_transportista)}`].filter(Boolean).join(' · '), desde: p.creado_en })) },
     { id: 'almacenamientos', nivel: 'info', titulo: 'Almacenamientos por confirmar', total: alm.count ?? 0, todo: '/panel/almacenamientos',
       filas: (alm.data ?? []).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
   ];
-  const errores = [sinCamion, cofCli, cofTra, sinPagar, inc, pen, altas, alm, revPrecio].map((r) => r.error?.message).filter(Boolean);
+  const errores = [sinCamion, cofCli, cofTra, sinPagar, inc, pen, altas, alm].map((r) => r.error?.message).filter(Boolean);
   return <ParaHoy bloques={bloques} error={errores[0] ?? null} />;
 }
