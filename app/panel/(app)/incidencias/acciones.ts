@@ -45,14 +45,21 @@ export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): 
   }
   if (!d.tipo_id) return { ok: false, error: 'Elige el tipo de incidencia.' };
   if (!d.detalle.trim()) return { ok: false, error: 'Cuenta lo ocurrido en el detalle de la incidencia.' };
-  if (!d.envio_id && !d.cliente_id) return { ok: false, error: 'Elige el envío o, si no va sobre un envío, el cliente.' };
+  // «Ver como» un transportista: la incidencia sin envío es DE ESE transportista (sin
+  // cliente), así que no hay cliente que elegir (usuario, 2026-11-09).
+  const { vistaCruda } = await import('@/lib/vista');
+  const vista = await vistaCruda();
+  const deTransportista = vista.tipo === 'transportista' && !d.envio_id;
+  if (!deTransportista && !d.envio_id && !d.cliente_id) return { ok: false, error: 'Elige el envío o, si no va sobre un envío, el cliente.' };
   const fila: Record<string, unknown> = {
     envio_id: d.envio_id, tipo_id: d.tipo_id, estado: d.estado, prioridad: d.prioridad,
     titulo: d.titulo.trim() || d.detalle.trim().slice(0, 80), detalle: d.detalle.trim(),
     resolucion: d.resolucion.trim() || null,
   };
-  // Con envío, el cliente lo pone la base de datos (el del envío); sin envío, el elegido.
-  if (!d.envio_id) fila.cliente_id = d.cliente_id;
+  // Con envío, el cliente lo pone la base de datos (el del envío); sin envío, el elegido
+  // (o, en la vista de un transportista, ese transportista y sin cliente).
+  if (deTransportista && !id) { fila.transportista_id = vista.id; fila.cliente_id = null; }
+  else if (!d.envio_id) fila.cliente_id = d.cliente_id;
   const q = id ? s.supabase.from('incidencias').update(fila as TablaUpdate<'incidencias'>).eq('id', id).select('id').single()
                : s.supabase.from('incidencias').insert(fila as TablaInsert<'incidencias'>).select('id').single();
   const { data, error } = await q;

@@ -42,10 +42,11 @@ const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null }: {
+export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null, vistaTransportista = false }: {
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
   tipoInicial?: string | null;   // ?tipo=siniestro: el formulario nuevo ya con ese tipo
   esCliente?: boolean;   // el CLIENTE (o el transportista) ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
+  vistaTransportista?: boolean;   // Dynamo «viendo como» un transportista: la incidencia sin envío es de ese transportista (sin selector de cliente)
   esTransportista?: boolean;   // el envío es obligatorio y solo ve las que abre él
 }) {
   const router = useRouter();
@@ -123,15 +124,15 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
           </tbody>
         </table>
       </div>
-      {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipoInicial={ficha.fila ? null : tipoInicial} tipos={tipos} clientes={clientes} envios={envios}
+      {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} vistaTransportista={vistaTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipoInicial={ficha.fila ? null : tipoInicial} tipos={tipos} clientes={clientes} envios={envios}
         onCerrar={cerrar} onHecho={() => { cerrar(); refrescar(); }} />}
     </section>
   );
 }
 
-function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho, esCliente, esTransportista = false, tipoInicial = null }: {
+function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho, esCliente, esTransportista = false, vistaTransportista = false, tipoInicial = null }: {
   fila: IncidenciaFila | null; envioInicial: string | null; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; tipoInicial?: string | null;
-  onCerrar: () => void; onHecho: () => void; esCliente: boolean; esTransportista?: boolean;
+  onCerrar: () => void; onHecho: () => void; esCliente: boolean; esTransportista?: boolean; vistaTransportista?: boolean;
 }) {
   // El cliente solo puede tocarla mientras está abierta (después la lleva Dynamo).
   const soloLectura = esCliente && !!fila && fila.estado !== 'abierto';
@@ -150,7 +151,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
     setError(null);
     if (!datos.tipo_id) { setError('Elige el tipo de incidencia.'); return; }
     if (!datos.detalle.trim()) { setError('Cuenta lo ocurrido en el detalle de la incidencia.'); return; }
-    if (!esCliente && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); return; }
+    if (!esCliente && !vistaTransportista && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); return; }
     if (esTransportista && !datos.envio_id) { setError('Elige el envío de la incidencia.'); return; }
     setTrabajando(texto ?? (fila ? 'Guardando incidencia' : 'Creando incidencia'));
     const r = await guardarIncidencia(fila?.id ?? null, datos);
@@ -190,7 +191,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto />
       </div>
       {/* Con «Ver como» un cliente llega UN solo cliente posible, ya puesto: el campo no sale. */}
-      {!d.envio_id && !esCliente && clientes.length !== 1 && (
+      {!d.envio_id && !esCliente && !vistaTransportista && clientes.length !== 1 && (
         <div className="modal-form-row">
           <label htmlFor="inc-cli">Cliente <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· si no va sobre un envío</span></label>
           <select id="inc-cli" className="ptar-select" value={d.cliente_id ?? ''} onChange={(e) => set('cliente_id', e.target.value || null)}>

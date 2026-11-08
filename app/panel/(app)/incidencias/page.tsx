@@ -51,7 +51,9 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       'tipos_incidencia(nombre), clientes(nombre_visible), envios(referencia_gx, referencia_cliente, fecha_carga_desde, fecha_carga_hasta, ' +
       'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas)'), vista).order('creado_en', { ascending: false }), 5000),
     supabase.from('tipos_incidencia').select('id, clave, nombre, activo').order('orden'),
-    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible'), vista, { cliente: 'id', transportista: null }).order('nombre_visible'), 10000),
+    // En la vista de un transportista no hay cliente que elegir: ni se cargan.
+    vista.tipo === 'transportista' ? Promise.resolve({ data: [] as { id: string; nombre_visible: string }[], error: null })
+      : leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible'), vista, { cliente: 'id', transportista: null }).order('nombre_visible'), 10000),
     cargarEnviosLigeros(supabase, 40, vista.tipo === 'cliente' ? { cliente: vista.id } : vista.tipo === 'transportista' ? { transportista: vista.id } : undefined),
   ]);
   const filas: IncidenciaFila[] = (inc.data ?? []).map((x) => ({
@@ -66,7 +68,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       metros_lineales: x.envios.metros_lineales, toneladas: x.envios.toneladas,
     } : null,
   }));
-  return <Incidencias filas={filas} tipos={tipos.data ?? []} clientes={clientes.data ?? []} envios={envios}
+  return <Incidencias filas={filas} tipos={tipos.data ?? []} clientes={clientes.data ?? []} envios={envios} vistaTransportista={vista.tipo === 'transportista'}
     nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null}
       tipoInicial={sp.tipo === 'siniestro' ? (tipos.data ?? []).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
 }
