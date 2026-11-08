@@ -6090,3 +6090,68 @@ do $$ begin
   raise notice 'OK 164 · Usuarios por páginas: total, páginas sin solapes, búsqueda por email, filtro por rol, conteos, y un cliente no lo ve';
 end $$;
 reset role;
+
+-- ---- 165. Filtros de la lista de envíos (operador, creado por, estado y fechas) ------------
+-- Como ADMIN: las funciones de lista piden sesión (sin ella el ámbito no deja listar nada).
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e envios%rowtype; n bigint; begin
+  -- Solo queda UNA firma de cada función (la vieja sin filtros se quitó al ampliarla).
+  if (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname = 'envios_pagina') <> 1
+     or (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname = 'buscar_envios_pagina') <> 1 then
+    raise exception 'FALLO 165 · quedan firmas duplicadas de envios_pagina o buscar_envios_pagina';
+  end if;
+  select * into e from envios where id = current_setting('prueba.e138')::uuid;
+  -- Cada comprobación se acota al DÍA del envío (p_desde/p_hasta): «todas» tiene cientos de
+  -- filas y la pertenencia a la página 1 dependería del orden, no del filtro.
+  -- Operador: es un envío de Dynamo (sin operador) → entra con 'dynamo' y no con un uuid ajeno.
+  if not exists (select 1 from envios_pagina('todas', 1, 200, p_operador := 'dynamo', p_desde := e.fecha_efectiva, p_hasta := e.fecha_efectiva) p where p.id = e.id) then
+    raise exception 'FALLO 165 · el filtro operador=dynamo deja fuera un envío de Dynamo';
+  end if;
+  if exists (select 1 from envios_pagina('todas', 1, 200, p_operador := gen_random_uuid()::text, p_desde := e.fecha_efectiva, p_hasta := e.fecha_efectiva) p where p.id = e.id) then
+    raise exception 'FALLO 165 · el filtro por operador no filtra';
+  end if;
+  -- Estado: el suyo entra, otro no.
+  if e.estado::text in ('programado', 'hacia_la_carga', 'cargando', 'en_ruta')
+     and not exists (select 1 from envios_pagina('todas', 1, 200, p_estado := e.estado::text, p_desde := e.fecha_efectiva, p_hasta := e.fecha_efectiva) p where p.id = e.id) then
+    raise exception 'FALLO 165 · el filtro de estado deja fuera el estado real (%)', e.estado;
+  end if;
+  if e.estado <> 'cargando' and exists (select 1 from envios_pagina('todas', 1, 200, p_estado := 'cargando', p_desde := e.fecha_efectiva, p_hasta := e.fecha_efectiva) p where p.id = e.id) then
+    raise exception 'FALLO 165 · el filtro de estado no filtra';
+  end if;
+  -- Creado por: un usuario al azar no casa con nadie.
+  select coalesce(max(total), 0) into n from envios_pagina('todas', 1, 1, p_creado_por := gen_random_uuid());
+  if n <> 0 then raise exception 'FALLO 165 · el filtro de creado por no filtra (%)', n; end if;
+  -- Fechas sobre la fecha efectiva: su día entra, un rango imposible no.
+  if not exists (select 1 from envios_pagina('todas', 1, 200, p_desde := e.fecha_efectiva, p_hasta := e.fecha_efectiva) p where p.id = e.id) then
+    raise exception 'FALLO 165 · el rango de fechas deja fuera su propio día';
+  end if;
+  if exists (select 1 from envios_pagina('todas', 1, 200, p_desde := date '1990-01-01', p_hasta := date '1990-01-02') p where p.id = e.id) then
+    raise exception 'FALLO 165 · el rango de fechas no filtra';
+  end if;
+  -- El buscador con los mismos filtros: texto + operador=dynamo lo encuentra; con uuid ajeno, no.
+  if not exists (select 1 from buscar_envios_pagina('villabusquedilla', p_operador := 'dynamo') b where b.id = e.id) then
+    raise exception 'FALLO 165 · buscar con operador=dynamo deja fuera el envío';
+  end if;
+  if exists (select 1 from buscar_envios_pagina('villabusquedilla', p_operador := gen_random_uuid()::text) b where b.id = e.id) then
+    raise exception 'FALLO 165 · buscar no aplica el filtro de operador';
+  end if;
+  -- Solo filtros sin texto ni fechas: ahora también devuelve (antes exigía texto o fechas).
+  if (select coalesce(max(total), 0) from buscar_envios_pagina(null, p_operador := 'dynamo', p_pagina := 1, p_por_pagina := 1)) = 0 then
+    raise exception 'FALLO 165 · buscar solo con filtros no devuelve nada';
+  end if;
+end $$;
+reset role;
+-- Un cliente con los filtros sigue viendo SOLO lo suyo.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from buscar_envios_pagina(null, p_operador := 'dynamo', p_por_pagina := 500) b
+              join envios x on x.id = b.id where x.cliente_id <> cliente_del_usuario()) then
+    raise exception 'FALLO 165 · con filtros, un cliente ve envíos de otros';
+  end if;
+  raise notice 'OK 165 · filtros de la lista de envíos: operador, creado por, estado y fechas filtran en la base de datos, una sola firma por función y cada uno sigue viendo lo suyo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import FilaEnlace from './FilaEnlace';
-import BuscadorEnvios from './BuscadorEnvios';
+import FiltrosEnvios, { type OpcionFiltro } from './FiltrosEnvios';
+import CalendarioEnvios from './CalendarioEnvios';
+import SelectorVistaEnvios from './SelectorVistaEnvios';
 import { euros, fechaHora, numero, tipoCargaTxt } from '@/lib/formato';
 import { esDynamo, type Rol } from '@/lib/sesion';
 import { type EnvioFila, type Parada, type Pestana, estadoVisual, asignacion, enPestana, urgencia, fechaCarga, fechaEntrega, dirParada, paradasDe, medidas, coincide } from '@/lib/envios';
@@ -37,10 +39,16 @@ type Props = {
   // Lista normal por páginas desde la base de datos (envios_pestanas / envios_pagina): cuántos
   // hay en cada pestaña, la pestaña elegida y la página (las filas ya son solo las de esa página).
   conteos?: Record<string, number> | null; pestana?: Pestana; pagina?: number; totalPestana?: number;
+  // La barra de filtros del mockup y la vista (lista o calendario con su mes).
+  op?: string; por?: string; est?: string; fr?: string;
+  operadores?: OpcionFiltro[]; creadores?: OpcionFiltro[];
+  vista?: 'lista' | 'calendario'; mes?: string; hoy?: string;
 };
 const hoyISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 
-export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota, nuevoManual, desde = '', hasta = '', busqueda = null, conteos = null, pestana, pagina, totalPestana = 0 }: Props) {
+export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota, nuevoManual, desde = '', hasta = '', busqueda = null, conteos = null, pestana, pagina, totalPestana = 0,
+  op = '', por = '', est = '', fr = '', operadores = [], creadores = [], vista = 'lista', mes = '', hoy = '' }: Props) {
+  const vistaCal = vista === 'calendario';
   const dynamo = esDynamo(rol);
   const modoBusqueda = !!busqueda;
   // ---- Pestaña, buscador y página
@@ -69,14 +77,13 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
     <section className="section active" id="sec-cargas">
       <div className="sec-header">
         <h2>{rol === 'transportista' ? 'Mis envíos' : 'Envíos'}</h2>
-        {rol !== 'transportista' && (
-          <div className="sec-header-actions">
-            <Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link>
-          </div>
-        )}
+        <div className="sec-header-actions">
+          <SelectorVistaEnvios vista={vistaCal ? 'calendario' : 'lista'} q={q} op={op} por={por} f={f} />
+          {rol !== 'transportista' && <Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link>}
+        </div>
       </div>
 
-      {!modoBusqueda && <div className="tabs" data-table="cargas">
+      {!modoBusqueda && !vistaCal && <div className="tabs" data-table="cargas">
         {pestanas.map((p) => (
           <Link key={p.f} href={url({ f: p.f, p: 1 })} className={`tab${p.f === f ? ' active' : ''}`}>
             {p.titulo} (<span>{numero(cuantos(p.f), 0)}</span>)
@@ -84,9 +91,13 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         ))}
       </div>}
 
-      <BuscadorEnvios f={f} q={q} desde={desde} hasta={hasta}
-        placeholder={rol === 'transportista' ? 'Buscar: nº, matrícula, conductor, población…' : 'Buscar en todos los años: nº, empresa, matrícula, población, mercancía…'} />
-      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '-0.3rem 0 0.8rem', fontSize: 'var(--fs-s)' }}>
+      <FiltrosEnvios f={f} q={q} op={op} por={por} est={est} fr={fr} vistaCal={vistaCal} mes={mes} hoy={hoy || hoyISO()}
+        operadores={operadores} creadores={creadores} mostrarEstado={!vistaCal && f === 'programada'}
+        placeholder={rol === 'transportista' ? 'Buscar: nº, matrícula, conductor, población…' : 'Buscar por cualquier dato: nº, empresa, dirección, matrícula, población, mercancía…'} />
+      {vistaCal && (
+        <CalendarioEnvios filas={filas} mes={mes || (hoy || hoyISO()).slice(0, 7)} hoy={hoy || hoyISO()} q={q} op={op} por={por} />
+      )}
+      {!vistaCal && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '-0.3rem 0 0.8rem', fontSize: 'var(--fs-s)' }}>
         {(() => {
           const h = hoyISO(), y = Number(h.slice(0, 4));
           const atajos: [string, string, string][] = [
@@ -98,7 +109,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
           ));
         })()}
         {modoBusqueda && <Link href="/panel/envios" style={{ marginLeft: 'auto' }}>✕ Quitar búsqueda</Link>}
-      </div>
+      </div>}
 
       {nuevo && (
         <div className="pt-aviso info" role="status"><div>
@@ -115,6 +126,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
       )}
       {nota && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>{nota}</div></div>}
 
+      {!vistaCal && <>
       <div className="table-wrap">
         <table className="data">
           <thead><tr>
@@ -165,6 +177,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
           </div>
         )}
       </div>
+      </>}
     </section>
   );
 }

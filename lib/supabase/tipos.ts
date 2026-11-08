@@ -3166,7 +3166,7 @@ export type Database = {
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string }[] }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }
-      buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; total: number }[] }
+      buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null; p_operador?: string | null; p_creado_por?: string | null; p_estado?: string | null }; Returns: { id: string; total: number }[] }
       buscar_persona: { Args: { p_texto: string | null }; Returns: { tipo: string; id: string; nombre: string; email: string; telefono: string; documento: string; empresa: string; estado: string }[] }
       buscar_transportistas: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; estado: string; nima: string; telefono: string; email: string }[] }
       caducar_pagos_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
@@ -3229,7 +3229,7 @@ export type Database = {
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }
       envios_hechos_de: { Args: { p_campo: string | null; p_ids: string[] | null }; Returns: { id: string; envios: number }[] }
       envios_lista_ambito: { Args: { p_cliente: string | null; p_transportista: string | null }; Returns: { v_cli: string; v_tra: string; v_ok: boolean } }
-      envios_pagina: { Args: { p_pestana: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; total: number }[] }
+      envios_pagina: { Args: { p_pestana: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null; p_operador?: string | null; p_creado_por?: string | null; p_estado?: string | null; p_desde?: string | null; p_hasta?: string | null }; Returns: { id: string; total: number }[] }
       envios_pestanas: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { pestana: string; total: number }[] }
       envios_por_empresa: { Args: { p_campo: string | null }; Returns: { id: string; envios: number }[] }
       envios_que_cuentan: { Args: { p_cliente: string | null }; Returns: number }

@@ -42,3 +42,17 @@ test('seguimiento: programado, asignando, confirmado y cada parada', () => {
   assert.equal(estadoVisual(e({ estado: 'cargando', parada_actual: 3, tipo_parada: 'descarga' })).label, 'Descargando (3.ª parada)');
   assert.equal(estadoVisual(e({ estado: 'en_ruta' })).label, 'En ruta');
 });
+
+// La «Fecha» rápida de la barra de filtros: semanas de lunes a domingo y meses enteros.
+import { rangoRapido } from '../../lib/envios';
+test('rangoRapido: hoy/mañana/ayer, semana (L-D) y mes entero', () => {
+  const hoy = '2026-11-08';   // domingo
+  assert.deepEqual(rangoRapido('hoy', hoy), { desde: '2026-11-08', hasta: '2026-11-08' });
+  assert.deepEqual(rangoRapido('manana', hoy), { desde: '2026-11-09', hasta: '2026-11-09' });
+  assert.deepEqual(rangoRapido('ayer', hoy), { desde: '2026-11-07', hasta: '2026-11-07' });
+  assert.deepEqual(rangoRapido('esta-semana', hoy), { desde: '2026-11-02', hasta: '2026-11-08' });
+  assert.deepEqual(rangoRapido('proxima-semana', hoy), { desde: '2026-11-09', hasta: '2026-11-15' });
+  assert.deepEqual(rangoRapido('semana-pasada', hoy), { desde: '2026-10-26', hasta: '2026-11-01' });
+  assert.deepEqual(rangoRapido('2026-02', hoy), { desde: '2026-02-01', hasta: '2026-02-28' });
+  assert.equal(rangoRapido('rarito', hoy), null);
+});

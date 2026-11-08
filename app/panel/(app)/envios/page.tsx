@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import { hoyMadrid } from '@/lib/formato';
+import { rangoRapido } from '@/lib/envios';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
@@ -34,7 +36,25 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   const fechaOk = (x?: string) => (/^\d{4}-\d{2}-\d{2}$/.test(x ?? '') ? x! : '');
   const desde = fechaOk(sp.desde), hasta = fechaOk(sp.hasta);
   const pb = Math.max(1, Math.floor(Number(sp.pb) || 1));
-  const busca = !!(q || desde || hasta);
+  // ---- La barra de filtros del mockup: operador, creado por, estado y «Fecha» rápida;
+  // y la vista (lista o calendario con su mes, acotado a ±3 meses del actual).
+  const hoy = hoyMadrid();
+  const uuidOk = (x?: string) => (/^[0-9a-f-]{36}$/i.test(x ?? '') ? x! : '');
+  const op = sp.op === 'dynamo' ? 'dynamo' : uuidOk(sp.op);
+  const por = uuidOk(sp.por);
+  const est = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'veh:confirmada', 'veh:sin_asignar'].includes(sp.est ?? '') ? sp.est! : '';
+  const fr = (sp.fr && (['hoy', 'manana', 'ayer', 'esta-semana', 'proxima-semana', 'semana-pasada'].includes(sp.fr) || /^\d{4}-\d{2}$/.test(sp.fr))) ? sp.fr : '';
+  const rangoFr = fr ? rangoRapido(fr, hoy) : null;
+  const vistaCal = sp.vista === 'calendario';
+  const mes = (() => {
+    const pedido = /^\d{4}-\d{2}$/.test(sp.mes ?? '') ? sp.mes! : hoy.slice(0, 7);
+    const [a, m] = pedido.split('-').map(Number); const [ha, hm] = hoy.split('-').map(Number);
+    const off = Math.max(-3, Math.min(3, (a - ha) * 12 + (m - hm)));
+    const d = new Date(ha, hm - 1 + off, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  })();
+  const fDesde = desde || rangoFr?.desde || '', fHasta = hasta || rangoFr?.hasta || '';
+  const busca = !vistaCal && !!(q || desde || hasta);
   let busqueda: { total: number; pagina: number; porPagina: number } | null = null;
   let idsBusqueda: string[] | null = null;
   let errorBusqueda: string | null = null;
@@ -42,8 +62,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const POR = 100;
     const v = vista;
     const { data: res, error: eb } = await supabase.rpc('buscar_envios_pagina', {
-      p_q: q || null, p_desde: desde || null, p_hasta: hasta || null, p_pagina: pb, p_por_pagina: POR,
+      p_q: q || null, p_desde: fDesde || null, p_hasta: fHasta || null, p_pagina: pb, p_por_pagina: POR,
       p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null,
+      p_operador: op || null, p_creado_por: por || null, p_estado: est || null,
     });
     if (eb) errorBusqueda = eb.message;
     const r = (res ?? []) as { id: string; total: number }[];
@@ -63,7 +84,20 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   // se leían hasta 6.000 envíos con sus paradas para enseñar 20).
   let conteos: Record<string, number> | null = null, pestana: Pestana | undefined, pagina = 1, totalPestana = 0;
   let idsPagina: string[] | null = idsBusqueda;
-  if (!busca) {
+  if (vistaCal) {
+    // VISTA CALENDARIO: todos los envíos del mes pintado (por fecha de carga), con el
+    // buscador y los filtros de operador y creador. Tope prudente de 500 fichitas.
+    const [ma, mm] = mes.split('-').map(Number);
+    const d2 = `${mes}-${String(new Date(ma, mm, 0).getDate()).padStart(2, '0')}`;
+    const v = vista;
+    const { data: res, error: eb } = await supabase.rpc('buscar_envios_pagina', {
+      p_q: q || null, p_desde: `${mes}-01`, p_hasta: d2, p_pagina: 1, p_por_pagina: 500,
+      p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null,
+      p_operador: op || null, p_creado_por: por || null, p_estado: null,
+    });
+    if (eb) error = eb.message;
+    idsPagina = ((res ?? []) as { id: string }[]).map((x) => x.id);
+  } else if (!busca) {
     const v = vista;
     const filtro = { p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null };
     const { data: cts, error: ec } = await supabase.rpc('envios_pestanas', filtro);
@@ -72,9 +106,14 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     pestana = pestanaElegida(dynamo, sp.f, (p) => conteos![p] ?? 0);
     totalPestana = conteos[pestana] ?? 0;
     pagina = Math.min(Math.max(1, Math.floor(Number(sp.p) || 1)), Math.max(1, Math.ceil(totalPestana / POR_PAGINA_ENVIOS)));
-    const { data: pg, error: ep } = await supabase.rpc('envios_pagina', { p_pestana: pestana, p_pagina: pagina, p_por_pagina: POR_PAGINA_ENVIOS, ...filtro });
+    const { data: pg, error: ep } = await supabase.rpc('envios_pagina', { p_pestana: pestana, p_pagina: pagina, p_por_pagina: POR_PAGINA_ENVIOS, ...filtro,
+      p_operador: op || null, p_creado_por: por || null, p_estado: est || null,
+      p_desde: rangoFr?.desde ?? null, p_hasta: rangoFr?.hasta ?? null });
     if (ep) error = ep.message;
-    idsPagina = ((pg ?? []) as { id: string }[]).map((x) => x.id);
+    const pgRows = (pg ?? []) as { id: string; total: number }[];
+    idsPagina = pgRows.map((x) => x.id);
+    // Con filtros de barra puestos, el total real es el FILTRADO (lo trae la propia página).
+    if (op || por || est || rangoFr) totalPestana = Number(pgRows[0]?.total ?? 0);
   }
   if (dynamo) {
     const COLS = 'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
@@ -202,10 +241,30 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   const sinVer = new URLSearchParams(Object.entries(sp).filter(([k, v]) => k !== 'ver' && v) as [string, string][]).toString();
   const cerrarHref = `/panel/envios${sinVer ? `?${sinVer}` : ''}`;
 
+  // Opciones de los desplegables de la barra: Operador = Dynamo + los operadores que ve
+  // quien mira (RLS los acota); Creado por = los usuarios de la empresa (o el equipo de
+  // Dynamo en su vista de gestión). El transportista no lleva estos filtros.
+  let opcOperadores: { id: string; nombre: string }[] = [];
+  let opcCreadores: { id: string; nombre: string }[] = [];
+  if (rol !== 'transportista') {
+    const [opsQ, creQ] = await Promise.all([
+      supabase.from('operadores').select('id, razon_social').eq('borrado', false).order('razon_social').limit(200),
+      vista.tipo === 'cliente'
+        ? supabase.from('usuarios').select('id, nombre, email').eq('cliente_id', vista.id).eq('estado', 'activa').order('email').limit(100)
+        : dynamo
+          ? supabase.from('usuarios').select('id, nombre, email').in('rol', ['admin', 'empleado', 'admin_lectura', 'empleado_lectura']).eq('estado', 'activa').order('email').limit(100)
+          : supabase.from('usuarios').select('id, nombre, email').eq('cliente_id', perfil.cliente_id ?? '00000000-0000-0000-0000-000000000000').eq('estado', 'activa').order('email').limit(100),
+    ]);
+    opcOperadores = ((opsQ.data ?? []) as { id: string; razon_social: string }[]).map((o) => ({ id: o.id, nombre: o.razon_social }));
+    opcCreadores = ((creQ.data ?? []) as { id: string; nombre: string | null; email: string }[]).map((u) => ({ id: u.id, nombre: u.nombre || u.email }));
+  }
+
   return (
     <>
       {ofertas.length > 0 && <OfertasAbiertas ofertas={ofertas} />}
-      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual} />
+      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual}
+        op={op} por={por} est={est} fr={fr} operadores={opcOperadores} creadores={opcCreadores}
+        vista={vistaCal ? 'calendario' : 'lista'} mes={mes} hoy={hoy} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} />}
       {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} etapas={etapasVer} cerrarHref={cerrarHref} />}

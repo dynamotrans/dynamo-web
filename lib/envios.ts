@@ -157,3 +157,22 @@ export const NEGOCIACION: [number, string][] = [
   [10, 'Negociable ±10 % · lo decide el sistema'],
   [30, 'Negociable ±30 % · lo revisa un agente'],
 ];
+
+// «Fecha» rápida de la barra de filtros (mockup): hoy/mañana/ayer, semanas de lunes a
+// domingo y meses «YYYY-MM». Devuelve el rango en días (ambos incluidos) o null.
+export function rangoRapido(fr: string, hoy: string): { desde: string; hasta: string } | null {
+  const suma = (s: string, n: number) => {
+    const [a, m, dd] = s.split('-').map(Number); const x = new Date(a, m - 1, dd + n);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  };
+  if (fr === 'hoy') return { desde: hoy, hasta: hoy };
+  if (fr === 'manana') return { desde: suma(hoy, 1), hasta: suma(hoy, 1) };
+  if (fr === 'ayer') return { desde: suma(hoy, -1), hasta: suma(hoy, -1) };
+  const lunes = suma(hoy, -((new Date(hoy + 'T12:00:00').getDay() + 6) % 7));
+  if (fr === 'esta-semana') return { desde: lunes, hasta: suma(lunes, 6) };
+  if (fr === 'proxima-semana') return { desde: suma(lunes, 7), hasta: suma(lunes, 13) };
+  if (fr === 'semana-pasada') return { desde: suma(lunes, -7), hasta: suma(lunes, -1) };
+  const m = /^(\d{4})-(\d{2})$/.exec(fr);
+  if (m) return { desde: `${fr}-01`, hasta: `${fr}-${String(new Date(Number(m[1]), Number(m[2]), 0).getDate()).padStart(2, '0')}` };
+  return null;
+}
