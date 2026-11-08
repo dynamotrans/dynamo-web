@@ -4548,7 +4548,7 @@ declare e uuid; begin
   update envios set estado = 'programado' where id = e;
   return e;
 end $$;
-do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid; r jsonb; begin
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid; e3 uuid; r jsonb; begin
   e := pg_temp.envio129(c, 30, 1000);
   if (select estado_revision_precio from envios where id = e) is distinct from 'pendiente' or (select fecha_revision_precio from envios where id = e) is null
      or (select precio_calculado_en from envios where id = e) is null then
@@ -4559,11 +4559,16 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid
   end if;
   e2 := pg_temp.envio129(c, 3, 1000);
   if (select estado_revision_precio from envios where id = e2) is not null then raise exception 'FALLO 129 · un envío a 3 días no tiene precio cerrado'; end if;
-  -- Con precio provisional: ni camión ni ofertas.
-  begin update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e; raise exception 'FALLO 129 · se asigna camión con precio provisional';
-  exception when insufficient_privilege then null; end;
-  begin insert into envio_ofertas (envio_id, precio_ofertado) values (e, 800); raise exception 'FALLO 129 · se oferta con precio provisional';
-  exception when insufficient_privilege then null; end;
+  -- Con precio provisional SÍ se oferta y SÍ se asigna (2026-11-09); al asignar camión
+  -- el precio queda definitivo solo (como al pagar). En un tercer envío, para no tocar
+  -- el flujo de revisión manual de e.
+  e3 := pg_temp.envio129(c, 30, 1000);
+  perform ofertar_envio(e3, null, 'bolsa_wtransnet', 800, 10::smallint, true);
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e3;
+  if (select estado_revision_precio from envios where id = e3) is distinct from 'hecha'
+     or (select revision_precio_en from envios where id = e3) is null then
+    raise exception 'FALLO 129 · al asignar camión con precio provisional no queda definitivo';
+  end if;
   -- Nadie toca las columnas de la revisión a mano.
   update envios set estado_revision_precio = 'hecha' where id = e;
   if (select estado_revision_precio from envios where id = e) <> 'pendiente' then raise exception 'FALLO 129 · se cierra el precio sin pasar por la revisión'; end if;
@@ -4637,7 +4642,7 @@ do $$ declare c uuid; e uuid; begin
   end if;
   perform revisar_precio_envio(e, 1000);
   if (select pago_pendiente_en from envios where id = e) is null then raise exception 'FALLO 129 · tras la revisión no empieza el plazo para pagar'; end if;
-  raise notice 'OK 129 · revisión de precio: cerrado a ≤7 días, provisional más lejos (sin camión ni ofertas), una revisión con margen, la subida se aplica sola con aviso, llegada la fecha queda definitivo solo y el pago espera al precio definitivo';
+  raise notice 'OK 129 · revisión de precio: cerrado a ≤7 días, provisional más lejos (se oferta y se asigna igualmente; al asignar camión queda definitivo), una revisión con margen, la subida se aplica sola con aviso, llegada la fecha queda definitivo solo y el pago espera al precio definitivo';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
 update parametros set valor = '100000' where clave = 'precio_cerrado_dias';
@@ -5384,7 +5389,12 @@ do $$ declare e uuid := current_setting('prueba.e149')::uuid; w uuid := current_
   if (select fecha_carga_desde from envios where id = z) <> sumar_dias_habiles(current_date, 5) then
     raise exception 'FALLO 149 · se mueve la fecha de un envío pagado a tiempo';
   end if;
-  if (select count(*) from envio_hitos where envio_id in (e, w) and hito = 'fecha_carga_movida') <> 2
+  -- La fija (e) siempre se mueve (su primer día es como pronto mañana). La ventana (w)
+  -- SOLO si su primer día posible no es hoy: desde el 2026-11-09 la ventana puede empezar
+  -- HOY (antes de las 14:00 en día hábil) y entonces la fecha no cambia y no hay hito.
+  if (select count(*) from envio_hitos where envio_id = e and hito = 'fecha_carga_movida') <> 1
+     or (select count(*) from envio_hitos where envio_id = w and hito = 'fecha_carga_movida')
+        <> (case when primera_fecha_carga(false) = current_date then 0 else 1 end)
      or exists (select 1 from envio_hitos where envio_id = z and hito = 'fecha_carga_movida') then
     raise exception 'FALLO 149 · hitos de la fecha movida';
   end if;

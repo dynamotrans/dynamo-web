@@ -587,7 +587,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             </div>
             {tabHorario === 'general'
               ? <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
-              : <VeranoSitio v={d.verano!} generico={veranoDefecto} onCambio={(v) => set('verano', v)} />}
+              : <VeranoSitio v={d.verano!} onCambio={(v) => set('verano', v)} />}
           </div>
         )}
 
@@ -618,7 +618,7 @@ function SelectorMMDD({ id, valor, onCambio }: { id: string; valor: string; onCa
     </div>
   );
 }
-function VeranoSitio({ v, generico, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }; generico: FechasVerano;
+function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
   onCambio: (v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }) => void }) {
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.7rem' }}>

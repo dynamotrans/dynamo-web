@@ -35,7 +35,7 @@ export function RevisionDynamo({ envio, r, hacer }: { envio: { id: string; estad
     <div className={toca ? 'modal-warn-box' : 'pt-aviso info'} style={{ marginBottom: '0.8rem', display: 'block' }}>
       <div>
         <strong>{toca ? 'Toca revisar el precio.' : 'Precio provisional.'}</strong>{' '}
-        {toca ? 'Pon el precio de hoy para este envío (sin IVA).' : <>Se revisa el <strong>{fecha(r.fecha_revision_precio)}</strong>. Hasta entonces no se oferta ni se asigna camión; si quieres asignarlo ya, revísalo ahora.</>}
+        {toca ? 'Pon el precio de hoy para este envío (sin IVA).' : <>Se revisa el <strong>{fecha(r.fecha_revision_precio)}</strong>. Puedes ofertarlo y asignar camión igualmente: al asignar, el precio queda definitivo tal cual está. Si quieres fijarlo antes, revísalo ahora.</>}
         {' '}Si se mueve menos de un {String(r.margen_pct ?? 5).replace('.', ',')} % se queda {euros(envio.importe_cliente)}; si baja o sube, se aplica el precio nuevo directamente y se avisa al cliente (puede cancelar sin coste hasta las 9:00 del día hábil anterior a la carga).
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -54,7 +54,7 @@ export function RevisionCliente({ envio, r }: { envio: { id: string; estado: str
   return (
     <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>
       <strong>Precio provisional.</strong> Como lo programaste con mucha antelación, revisamos el precio {r.fecha_revision_precio ? <>el <strong>{fecha(r.fecha_revision_precio)}</strong></> : 'unos días antes de la carga'}.
-      {' '}Si apenas cambia, se queda igual; si cambia, se aplica el precio nuevo y te avisamos. Si no te encaja, puedes cancelar sin coste mientras el envío no tenga camión asignado.
+      {' '}Si apenas cambia, se queda igual; si cambia, se aplica el precio nuevo y te avisamos. Si no te encaja, puedes cancelar sin coste hasta las 9:00 del día hábil anterior a la carga.
     </div></div>
   );
 }
