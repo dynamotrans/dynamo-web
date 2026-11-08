@@ -21,11 +21,13 @@ export type SitioNuevo = {
 export type Punto = { k: number; tipo: 'carga' | 'descarga'; sitio: SitioOpcion | null; nuevo: SitioNuevo | null; parada_id?: string };
 // Envío de partida: «Repetir envío» (todo relleno salvo la fecha) o «Cambiar ruta».
 export type Base = {
-  modo: 'repetir' | 'ruta';
+  modo: 'repetir' | 'ruta' | 'editar';   // editar = modificarlo entero desde el asistente
   envio: { id: string; referencia_gx: string; cliente_id: string; estado: string; metros_lineales: number | null; toneladas: number | null;
     paletizado: boolean | null; carga_lateral: boolean; carga_trasera: boolean; carga_techo: boolean; requiere_plataforma_elevadora: boolean;
     requiere_nima: boolean; adr: boolean; anotaciones_cliente: string | null; importe_cliente: number | null; importe_transportista: number | null;
-    discrecion_comercial: boolean; negociacion_pct?: number | null };
+    discrecion_comercial: boolean; negociacion_pct?: number | null;
+    // Solo para «editar»: lo que el asistente deja precargado tal cual estaba.
+    referencia_cliente?: string | null; fecha_carga_desde?: string | null; fecha_carga_hasta?: string | null };
   paradas: { id: string; tipo: 'carga' | 'descarga'; sitio_id: string | null; nombre_empresa: string | null; direccion: string | null;
     codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null }[];
 };

@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 // Etapa A: lo crea el equipo de Dynamo para un cliente, con el precio puesto a mano.
 // ?repetir=<envío> abre el asistente relleno con otro envío (sin fecha); ?ruta=<envío>
 // abre solo la ruta de un envío ya creado para cambiarla.
-export default async function PaginaNuevoEnvio({ searchParams }: { searchParams: Promise<{ repetir?: string; ruta?: string }> }) {
+export default async function PaginaNuevoEnvio({ searchParams }: { searchParams: Promise<{ repetir?: string; ruta?: string; editar?: string }> }) {
   const sp = await searchParams;
   const s = await sesion();
   if (!s) return null;
@@ -60,13 +60,13 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const vista = await vistaDe(supabase, perfil.rol);
   // El envío base (repetir o cambiar ruta) decide el cliente; si no, el de la vista «Ver como».
   let base: Base | null = null;
-  const idBase = sp.ruta || sp.repetir;
+  const idBase = sp.editar || sp.ruta || sp.repetir;
   if (idBase && /^[0-9a-f-]{36}$/i.test(idBase)) {
     const [{ data: e }, { data: ps }] = await Promise.all([
-      supabase.from('envios').select('id, referencia_gx, cliente_id, estado, metros_lineales, toneladas, paletizado, carga_lateral, carga_trasera, carga_techo, requiere_plataforma_elevadora, requiere_nima, adr, anotaciones_cliente, importe_cliente, importe_transportista, discrecion_comercial, negociacion_pct').eq('id', idBase).maybeSingle(),
+      supabase.from('envios').select('id, referencia_gx, cliente_id, estado, metros_lineales, toneladas, paletizado, carga_lateral, carga_trasera, carga_techo, requiere_plataforma_elevadora, requiere_nima, adr, anotaciones_cliente, importe_cliente, importe_transportista, discrecion_comercial, negociacion_pct, referencia_cliente, fecha_carga_desde, fecha_carga_hasta').eq('id', idBase).maybeSingle(),
       supabase.from('envio_paradas').select('id, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso').eq('envio_id', idBase).order('orden'),
     ]);
-    if (e) base = { modo: sp.ruta ? 'ruta' : 'repetir', envio: e as Base['envio'], paradas: (ps ?? []) as Base['paradas'] };
+    if (e) base = { modo: sp.editar ? 'editar' : sp.ruta ? 'ruta' : 'repetir', envio: e as Base['envio'], paradas: (ps ?? []) as Base['paradas'] };
   }
   const clienteIni = base?.envio.cliente_id ?? (vista.tipo === 'cliente' ? vista.id : null);
   // Los clientes se buscan al escribir (buscar_clientes) y los sitios se piden al elegir

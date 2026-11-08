@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearSolicitud, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
@@ -34,12 +34,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
   const be = base?.envio;
-  const enRuta = base?.modo === 'ruta';
+  const enRuta = base?.modo === 'ruta';       // solo la ruta (queda para los envíos manuales)
+  const editar = base?.modo === 'editar';     // modificarlo ENTERO con el asistente (ficha → «Modificar»)
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
     const s = p.sitio_id ? sitios.find((x) => x.id === p.sitio_id) ?? null : null;
     const nuevo: SitioNuevo | null = s ? null : { ...VACIO, nombre_empresa: p.nombre_empresa ?? '', direccion: p.direccion ?? '', codigo_postal: p.codigo_postal ?? '',
       poblacion: p.poblacion ?? '', provincia: p.provincia ?? '', pais_codigo_iso: p.pais_codigo_iso ?? 'ES', guardar: false };
-    return { k, tipo: p.tipo, sitio: s, nuevo, parada_id: enRuta ? p.id : undefined };
+    return { k, tipo: p.tipo, sitio: s, nuevo, parada_id: enRuta || editar ? p.id : undefined };
   };
   const router = useRouter();
   const refrescar = useRefrescar();
@@ -89,7 +90,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   });
   const [nima, setNima] = useState(!!be?.requiere_nima);
   const [adr, setAdr] = useState(!!be?.adr);
-  const [refCli, setRefCli] = useState('');
+  const [refCli, setRefCli] = useState(editar ? (be?.referencia_cliente ?? '') : '');
   const [notas, setNotas] = useState(be?.anotaciones_cliente ?? '');
   // Cita previa (2026-11-08, opción «sin migración»): sus datos van en las anotaciones del
   // envío (y así a la orden de carga). Si hiciera falta filtrar por cita, se pasa a campo propio.
@@ -102,8 +103,21 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente)));
 
   // ---- Paso 3: fecha y precio
-  const [urgencia, setUrgencia] = useState<'dia' | 'estandar' | 'corta'>('estandar');
-  const [fecha, setFecha] = useState('');
+  // Al EDITAR, el tipo de fecha sale de la ventana guardada (un día → fija; 2 días hábiles
+  // en grupaje → corta; el resto → estándar); si no se toca nada, las fechas no cambian.
+  const urgenciaIni = useMemo<'dia' | 'estandar' | 'corta'>(() => {
+    if (!editar || !be?.fecha_carga_desde) return 'estandar';
+    const hasta = be.fecha_carga_hasta;
+    if (!hasta || hasta <= be.fecha_carga_desde) return 'dia';
+    const fst = new Set(festivos);
+    let n = 1;
+    for (let d = be.fecha_carga_desde; d < hasta && n < 6; n++) d = sumarHabiles(d, 1, fst);
+    const grup = (be.metros_lineales ?? 13.3) < 13 - 0.01;
+    return n === 2 && grup ? 'corta' : 'estandar';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [urgencia, setUrgencia] = useState<'dia' | 'estandar' | 'corta'>(urgenciaIni);
+  const [fecha, setFecha] = useState(editar ? (be?.fecha_carga_desde ?? '') : '');
   const [faltaFecha, setFaltaFecha] = useState(false);   // se intentó avanzar sin elegir fecha → marca el campo en rojo
   // El precio SUGERIDO del tarifador (borrador) rellena estos campos por defecto; en cuanto
   // Dynamo teclea uno a mano, ese ya no se vuelve a pisar.
@@ -370,6 +384,61 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     refrescar();
   }
 
+  // Guardar la MODIFICACIÓN de un envío (modo editar): mismos datos que al crear, pero
+  // sobre el envío que ya existe. La ruta solo se reenvía si CAMBIÓ (paradas intactas
+  // conservan referencia y notas); si no se toca la fecha ni el tipo de ventana, las
+  // fechas guardadas no se mueven; y el precio va tal cual está en pantalla (prefijado
+  // con el actual: solo cambia si lo cambias tú).
+  async function guardarEdicion() {
+    if (!base || !cliente) return;
+    for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
+    setEnviando(true); setAviso(null);
+    const edicExist: EdicionSitio[] = puntos
+      .filter((p) => p.sitio && !p.sitio.es_almacen_dynamo && edicSitios[p.k] && datosSitios[p.sitio.id])
+      .map((p) => {
+        const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
+        return {
+          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
+          anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
+          url_google_maps: f.maps || null, horario_tramos: tramosDe(f.horario),
+        };
+      });
+    if (edicExist.length) {
+      const g = await guardarEdicionesSitios(edicExist);
+      if (!g.ok) { setEnviando(false); setAviso(g.error); return; }
+    }
+    const rutaCambiada = puntos.map((p) => p.parada_id ?? 'nueva').join(',') !== base.paradas.map((p) => p.id).join(',');
+    const paradas = !rutaCambiada ? null : puntos.map((p) => {
+      if (p.parada_id) return { tipo: p.tipo, id: p.parada_id };
+      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id };
+      const n = p.nuevo!;
+      const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
+      const hr = edicSitios[p.k]?.horario ?? n.horario;
+      return {
+        tipo: p.tipo, nombre_empresa: f.empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
+        poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
+        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar,
+        contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail, horario_tramos: hr ? tramosDe(hr) : undefined,
+      };
+    });
+    const fechasIguales = fecha === (be!.fecha_carga_desde ?? '') && urgencia === urgenciaIni;
+    const f = forma.toLowerCase();
+    const r = await guardarEdicionEnvio(base.envio.id, {
+      referencia_cliente: refCli,
+      fecha_carga_desde: fechasIguales ? (be!.fecha_carga_desde ?? '') : fecha,
+      fecha_carga_hasta: fechasIguales ? (be!.fecha_carga_hasta ?? '') : fechaHasta,
+      descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
+      metros_lineales: Number(ml), toneladas: Number(peso),
+      paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'), carga_techo: f.includes('techo'),
+      requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
+      importe_cliente: importe, importe_transportista: importeT, negociacion_pct: neg,
+      discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
+    }, paradas);
+    if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
+    router.push(`/panel/envios?ver=${base.envio.id}`);
+    refrescar();
+  }
+
   async function crear() {
     if (!cliente) return;
     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
@@ -565,13 +634,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   return (
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">
-      <div className="sec-header"><h2>{enRuta ? `Cambiar ruta · #${be!.referencia_gx}` : base ? `Repetir envío · #${be!.referencia_gx}` : 'Nuevo envío'}</h2></div>
-      {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : esCliente ? 'Enviando la solicitud' : 'Creando envío'} />}
+      <div className="sec-header"><h2>{enRuta ? `Cambiar ruta · #${be!.referencia_gx}` : editar ? `Modificar envío · #${be!.referencia_gx}` : base ? `Repetir envío · #${be!.referencia_gx}` : 'Nuevo envío'}</h2></div>
+      {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : editar ? 'Guardando cambios' : esCliente ? 'Enviando la solicitud' : 'Creando envío'} />}
       {/* Pista flotante «Desliza…» (mockup): cuando el botón de acción del paso queda
           por debajo del pliegue. En Fecha y precio y en Confirmar, que son los largos. */}
       {(paso === 3 || paso === 4) && !revisarLegal && !enviando && (
         <PistaScroll selector="[data-pista-accion]"
-          texto={paso === 4 && esCliente && !manual ? 'Desliza para enviar la solicitud' : 'Desliza para crear el envío'} />
+          texto={editar ? 'Desliza para guardar los cambios' : paso === 4 && esCliente && !manual ? 'Desliza para enviar la solicitud' : 'Desliza para crear el envío'} />
+      )}
+      {editar && paso === 1 && (
+        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando el envío #{be!.referencia_gx}</strong>: cambia lo que haga falta en cualquier paso y pulsa <strong>«Guardar cambios»</strong> al final. Si no tocas nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong> — el tarifador solo sugiere, no lo pisa.</div></div>
       )}
       {base?.modo === 'repetir' && paso === 1 && (
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se ha copiado todo del envío <strong>#{be!.referencia_gx}</strong> (ruta{esCliente ? ' y mercancía' : ', mercancía y precios'}) salvo la <strong>fecha</strong>. Revísalo y cambia lo que haga falta: se creará un envío <strong>nuevo</strong>.</div></div>
@@ -601,7 +673,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {!sinCampoCliente && <>
                   <div className="ptar-section-head">Cliente</div>
                   <div className="ptar-field ptar-field-full">
-                    {enRuta ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
+                    {enRuta || editar ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
                       onElegir={async (c) => {
                         setCliente(c);
                         setPuntos((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null })));
@@ -815,7 +887,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
           <div className="wiz-navwrap">
             <div className="wiz-nav">
-              <button type="button" className="btn-ghost" onClick={enRuta ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
+              <button type="button" className="btn-ghost" onClick={enRuta || (editar && paso === 1) ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
               {enRuta
                 ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
                 : <button type="button" className="btn-primary" data-pista-accion onClick={siguiente} disabled={comprobando}>{comprobando ? 'Comprobando la ruta…' : paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
@@ -875,7 +947,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 </label>
               </div>
               <div className="ptar-terms-box">
-                {manual
+                {editar
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza el envío #{be!.referencia_gx}. Si no has tocado nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong>: solo cambia si lo cambias tú.</p>
+                  : manual
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>
                   : esCliente
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Enviar solicitud»</strong> nos llega tu envío para ponerle precio. <strong>No hay compromiso</strong> hasta que aceptes el precio (y las condiciones generales).</p>
@@ -888,11 +962,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     en la solicitud no hay compromiso aún, y en el manual Dynamo no interviene. */}
                 <button type="button" className="btn-primary"
                   onClick={() => {
+                    if (editar) { guardarEdicion(); return; }
                     if (esCliente) { crear(); return; }
                     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
                     setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
                   }}
-                  data-pista-accion disabled={enviando}>{enviando ? (esCliente && !manual ? 'Enviando…' : 'Creando envío…') : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
+                  data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : esCliente && !manual ? 'Enviando…' : 'Creando envío…') : editar ? 'Guardar cambios' : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
               </div>
             </div>

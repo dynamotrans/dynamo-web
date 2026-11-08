@@ -81,8 +81,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </button>
       )}
       <button className="btn-secondary" onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
-      <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
-      {['programado', 'hacia_la_carga'].includes(e.estado) && ficha.firmasCmr.length === 0 && (
+      {/* Un solo «Modificar»: abre el asistente de Nuevo envío con TODO precargado (ruta,
+          mercancía, fecha y precio); si no se toca nada que afecte al precio, el precio
+          se queda. El envío manual conserva su ventana rápida y su «Cambiar ruta». */}
+      {manual
+        ? <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
+        : <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar</a>}
+      {manual && ['programado', 'hacia_la_carga'].includes(e.estado) && ficha.firmasCmr.length === 0 && (
         <a className="btn-secondary" href={`/panel/nuevo-envio?ruta=${e.id}`}><I d={ICO.ruta} />Cambiar ruta</a>
       )}
       {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
@@ -143,7 +148,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {e.estado_solicitud === 'aceptada' && e.condiciones_aceptadas_en && (
         <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {fechaHora(e.condiciones_aceptadas_en)}.</div></div>
       )}
-      {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => setVista('modificar')} />}
+      {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => { window.location.assign(`/panel/nuevo-envio?editar=${e.id}`); }} />}
       {!manual && <RevisionDynamo envio={e} r={{ ...e, margen_pct: ficha.margenRevision }} hacer={hacer} />}
       {!manual && <PagoPrevio envio={e} pago={ficha.pago} hacer={hacer}
         libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en} />}

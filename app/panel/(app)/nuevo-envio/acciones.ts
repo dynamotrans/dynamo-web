@@ -5,6 +5,7 @@ import { normalizaTel } from '@/lib/paises';
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 import { vistaCruda } from '@/lib/vista';
+import { modificarEnvio, type DatosEnvio } from '@/app/panel/(app)/envios/acciones';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import type { SB } from '@/lib/supabase/cliente';
 import type { Tabla, TablaUpdate } from '@/lib/supabase/tipos';
@@ -123,6 +124,31 @@ export async function cambiarRuta(envio: string, paradas: (ParadaNueva & { id?: 
   const { error } = await s.supabase.rpc('cambiar_ruta_envio', { p_envio: envio, p_paradas: paradas.map((p) => (p.id ? { id: p.id } : p)) });
   if (error) return { ok: false, error: traducir(error.message) };
   await contactosDeSitiosNuevos(s.supabase, envio, paradas);
+  return { ok: true };
+}
+
+// MODIFICAR un envío entero desde el asistente (ficha → «Modificar», solo Dynamo): los
+// campos, el precio y, SOLO si se tocó, la ruta (paradas null = la ruta no cambió y no
+// se toca: las paradas conservan referencias y notas). Si no se cambia nada que afecte
+// al precio, el precio se queda tal cual (viene prefijado y el tarifador no lo pisa).
+export async function guardarEdicionEnvio(envio: string,
+  d: Omit<DatosEnvio, 'paradas' | 'fecha_entrega_estimada' | 'precio_acordado_operador'>,
+  paradas: (ParadaNueva & { id?: string })[] | null): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#guardarEdicionEnvio", [envio, d, paradas]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo modifica envíos.' };
+  const { data: cur } = await s.supabase.from('envios').select('es_manual, fecha_entrega_estimada, importe_cliente').eq('id', envio).maybeSingle();
+  if (!cur) return { ok: false, error: 'Ese envío no existe.' };
+  if (cur.es_manual) return { ok: false, error: 'Un envío con transportista propio del cliente se modifica desde su ficha.' };
+  if (paradas) {
+    const r = await cambiarRuta(envio, paradas);
+    if (!r.ok) return r;
+  }
+  const r2 = await modificarEnvio(envio, { ...d, fecha_entrega_estimada: cur.fecha_entrega_estimada ?? '', precio_acordado_operador: null, paradas: [] },
+    cur.importe_cliente != null ? Number(cur.importe_cliente) : null);
+  if (!r2.ok) return r2;
+  // El precio acaba de revisarse en esta misma pantalla: fuera el aviso de «precio por revisar».
+  await s.supabase.from('envios').update({ requiere_revision_precio: false }).eq('id', envio);
   return { ok: true };
 }
 
