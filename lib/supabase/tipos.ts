@@ -3337,6 +3337,7 @@ export type Database = {
       preparar_pines_envio: { Args: { p_envio: string | null }; Returns: number }
       primera_carga_posible: { Args: { p_envio: string | null }; Returns: string }
       primera_fecha_carga: { Args: { p_fija: boolean | null; p_instante?: string | null; p_al_pagar?: boolean | null }; Returns: string }
+      pronto_pago_anticipos: { Args: { p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { cuando: string; envio: string; transportista: string; importe: number; descuento: number; anticipado: number; total: number }[] }
       pronto_pago_descuento: { Args: { p_importe: number | null }; Returns: number }
       pronto_pago_estado: { Args: Record<PropertyKey, never>; Returns: Json }
       pronto_pago_estado_interno: { Args: Record<PropertyKey, never>; Returns: Json }

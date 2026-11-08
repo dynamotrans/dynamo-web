@@ -1784,9 +1784,16 @@ do $$ declare st jsonb; e uuid; o uuid; begin
   end if;
   st := pronto_pago_estado();
   -- La carga aceptada con pronto pago de la prueba 59 (800 EUR) ya consume 776 EUR.
-  if (st ->> 'usado')::numeric <> 776 or jsonb_array_length(st -> 'anticipos') <> 1 or not (st ->> 'activo')::boolean then
+  if (st ->> 'usado')::numeric <> 776 or (st ->> 'anticipos_n')::int <> 1 or not (st ->> 'activo')::boolean then
     raise exception 'FALLO 61 · estado de la linea: %', st;
   end if;
+  if st ? 'anticipos' then raise exception 'FALLO 61 · el estado sigue incrustando la lista de anticipos'; end if;
+  -- La lista por paginas (2026-11-09): 1 anticipo de 776 EUR con su total; la pagina 2 vacia.
+  if (select count(*) from pronto_pago_anticipos()) <> 1
+     or exists (select 1 from pronto_pago_anticipos() a where a.total <> 1 or a.anticipado <> 776) then
+    raise exception 'FALLO 61 · lista de anticipos por paginas';
+  end if;
+  if exists (select 1 from pronto_pago_anticipos(2, 10)) then raise exception 'FALLO 61 · la pagina 2 deberia salir vacia'; end if;
   update parametros set valor = '500' where clave = 'pronto_pago_linea_euros';
   if (pronto_pago_estado() ->> 'activo')::boolean then raise exception 'FALLO 61 · linea agotada y sigue activa'; end if;
   select (crear_envio(
@@ -1808,7 +1815,8 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ begin
-  if jsonb_array_length(pronto_pago_estado() -> 'anticipos') <> 0 then raise exception 'FALLO 61 · un cliente ve los anticipos'; end if;
+  if pronto_pago_estado() ? 'anticipos_n' then raise exception 'FALLO 61 · un cliente ve el detalle de la linea'; end if;
+  if exists (select 1 from pronto_pago_anticipos()) then raise exception 'FALLO 61 · un cliente ve los anticipos'; end if;
 end $$;
 reset role;
 set role anon;

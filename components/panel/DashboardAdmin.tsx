@@ -6,17 +6,17 @@
 // (Usuario, 2026-11-06: fuera «Solicitudes sin precio», «Últimos envíos creados» y la caja
 // grande del pronto pago; todo en cifras.)
 import { SIN_CONEXION } from '@/lib/mensajeError';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import Modal from './Modal';
-import { guardarLineaProntoPago, encenderProntoPago } from '@/app/panel/(app)/dashboard-admin/acciones';
-import { euros, importe, fechaHora } from '@/lib/formato';
+import { guardarLineaProntoPago, encenderProntoPago, anticiposProntoPago, type AnticipoPP } from '@/app/panel/(app)/dashboard-admin/acciones';
+import { euros, importe, fechaHora, numero } from '@/lib/formato';
 
 export type ProntoPago = {
   linea: number; encendido: boolean; ventana_dias: number; usado: number; disponible: number; activo: boolean;
-  anticipos: { cuando: string; envio: string; transportista: string | null; importe: number; descuento: number; anticipado: number }[];
+  anticipos_n: number;   // cuántos hay en la ventana; el detalle se pide por páginas al abrir
 };
 type Cifras = { enCurso: number; sinTransp: number; inc: number; pen: number; alm: number; contra: number };
 
@@ -129,10 +129,38 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
     {!pp.encendido ? aviso('#fdecec', '#f5b5b5', '#b42318', 'PRONTO PAGO APAGADO A MANO — las nuevas ofertas de carga salen sin la opción hasta volver a encenderlo.')
       : !pp.activo ? aviso('#fdecec', '#f5b5b5', '#b42318', 'NO DISPONIBLE TEMPORALMENTE — línea agotada: las nuevas ofertas de carga salen sin pronto pago.')
       : aviso('#eafaf0', '#b7ebcd', '#0f6b3a', 'PRONTO PAGO ACTIVO — se ofrece a los transportistas en las ofertas de carga.')}
-    <h4 style={{ margin: '1.1rem 0 0.4rem', fontSize: 'var(--fs-m)' }}>Anticipos con pronto pago · últimos {pp.ventana_dias} días ({pp.anticipos.length})</h4>
-    {pp.anticipos.length === 0 ? <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: 0 }}>Ningún transportista ha elegido pronto pago en este periodo.</p>
-      : pp.anticipos.map((a, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap', border: '1px solid var(--gray-200)', borderRadius: 9, padding: '0.45rem 0.7rem', marginBottom: '0.35rem', fontSize: 'var(--fs-m)' }}>
+    <Anticipos ventanaDias={pp.ventana_dias} n={pp.anticipos_n} />
+    {fallo && !editando && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
+    {trabajando && <Cargando texto={trabajando} />}
+  </>);
+}
+
+// Lista de anticipos por páginas (10 por página): se pide a la base de datos al abrir la
+// ventana y al cambiar de página — con cientos de anticipos en la ventana, la lista entera
+// ni viaja ni se pinta (usuario, 2026-11-09).
+const PP_POR_PAGINA = 10;
+function Anticipos({ ventanaDias, n }: { ventanaDias: number; n: number }) {
+  const [pagina, setPagina] = useState(1);
+  const [filas, setFilas] = useState<AnticipoPP[] | null>(null);
+  const [total, setTotal] = useState(n);
+  const [fallo, setFallo] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    setFallo(null);
+    anticiposProntoPago(pagina)
+      .then((r) => { if (!vivo) return; if (r.ok) { setFilas(r.filas); if (r.filas.length || pagina === 1) setTotal(r.total); } else setFallo(r.error); })
+      .catch(() => { if (vivo) setFallo(SIN_CONEXION); });
+    return () => { vivo = false; };
+  }, [pagina]);
+  const paginas = Math.max(1, Math.ceil(total / PP_POR_PAGINA));
+  const pag = Math.min(pagina, paginas);
+  return (<>
+    <h4 style={{ margin: '1.1rem 0 0.4rem', fontSize: 'var(--fs-m)' }}>Anticipos con pronto pago · últimos {ventanaDias} días ({numero(total, 0)})</h4>
+    {fallo ? <div className="wiz-warn show" role="alert">⚠ No se han podido leer los anticipos: {fallo}</div>
+      : filas === null ? <Cargando texto="Leyendo los anticipos" />
+      : total === 0 ? <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: 0 }}>Ningún transportista ha elegido pronto pago en este periodo.</p>
+      : filas.map((a, i) => (
+        <div key={`${a.envio}-${a.cuando}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap', border: '1px solid var(--gray-200)', borderRadius: 9, padding: '0.45rem 0.7rem', marginBottom: '0.35rem', fontSize: 'var(--fs-m)' }}>
           <span style={{ color: 'var(--gray-500)', minWidth: 86 }}>{fechaHora(a.cuando)}</span>
           <strong>#{a.envio}</strong>
           <span style={{ flex: 1, minWidth: 120 }}>{a.transportista ?? '—'}</span>
@@ -140,7 +168,24 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
           <strong>{euros(a.anticipado)}</strong>
         </div>
       ))}
-    {fallo && !editando && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
-    {trabajando && <Cargando texto={trabajando} />}
+    {paginas > 1 && (
+      <div className="pagination" style={{ marginTop: '0.5rem', padding: '0.6rem 0.75rem' }}>
+        <div className="pagination-left">
+          <span>Mostrando {numero((pag - 1) * PP_POR_PAGINA + 1, 0)}–{numero(Math.min(pag * PP_POR_PAGINA, total), 0)} de {numero(total, 0)} anticipos</span>
+        </div>
+        <div className="pagination-pages">
+          {pag > 1 && <button type="button" aria-label="Anterior" onClick={() => setPagina(pag - 1)}>‹</button>}
+          {Array.from({ length: paginas }, (_, i) => i + 1)
+            .filter((x) => x === 1 || x === paginas || Math.abs(x - pag) <= 2)
+            .map((x, i, arr) => (
+              <span key={x} style={{ display: 'contents' }}>
+                {i > 0 && x - arr[i - 1] > 1 && <span style={{ padding: '0 0.3rem', color: 'var(--gray-500)' }}>…</span>}
+                <button type="button" className={x === pag ? 'active' : ''} onClick={() => setPagina(x)}>{x}</button>
+              </span>
+            ))}
+          {pag < paginas && <button type="button" aria-label="Siguiente" onClick={() => setPagina(pag + 1)}>›</button>}
+        </div>
+      </div>
+    )}
   </>);
 }
