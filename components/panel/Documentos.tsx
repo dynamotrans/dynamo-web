@@ -101,7 +101,7 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
             <li key={d.id} className="modal-file-item" style={{ flexWrap: 'wrap' }}>
               <span className="mfi-ico"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg></span>
               <a className="mfi-name" href={`/panel/documentos/${d.id}`} target="_blank" rel="noopener" title={`Ver ${d.nombre_archivo}`} style={{ textDecoration: 'none' }}>{d.nombre_archivo}</a>
-              <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>{TIPOS_DOC[d.tipo] ?? d.tipo} · {tamano(d.tamano_bytes)} · {fechaHora(d.creado_en)}{d.autor ? ` · ${d.autor}` : ''}</span>
+              <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>{TIPOS_DOC[d.tipo] ?? d.tipo} · {tamano(d.tamano_bytes)} · {fechaHora(d.creado_en)}{d.autor ? ` · ${d.autor}` : ''}</span>
               {conVisibleCliente && editable && (
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-s)', color: d.visible_cliente ? '#0f6b3a' : 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }}
                   title="Si lo marcas, el cliente lo verá en su panel">

@@ -1485,9 +1485,11 @@ body.theme-dark .sidebar { background: #060116; }
     background: rgba(51,0,204,0.05); border: 1px solid rgba(51,0,204,0.18); border-radius: 10px;
 }
 .pen-envio-sum[hidden] { display: none; }
-.pen-sum-row { display: flex; justify-content: space-between; gap: 1rem; font-size: var(--fs-m); padding: 0.15rem 0; }
-.pen-sum-row .k { color: var(--gray-500); font-weight: 600; }
-.pen-sum-row .v { color: var(--navy); font-weight: 700; text-align: right; }
+/* La fila ENVUELVE: si la etiqueta y el valor no caben juntos (móvil, fechas largas del
+   Seguimiento), el valor baja a su propia línea pegado a la derecha en vez de salirse. */
+.pen-sum-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.15rem 1rem; font-size: var(--fs-m); padding: 0.15rem 0; }
+.pen-sum-row .k { color: var(--gray-500); font-weight: 600; min-width: 0; }
+.pen-sum-row .v { color: var(--navy); font-weight: 700; text-align: right; min-width: 0; margin-left: auto; }
 /* Historial de cambios: fecha arriba y la acción (que puede ser larga) debajo, a ancho
    completo, para que no se solape con la fecha ni se salga de la ventana. */
 .hist-lista { display: flex; flex-direction: column; gap: 0.1rem; }
