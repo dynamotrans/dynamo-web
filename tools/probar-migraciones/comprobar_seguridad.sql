@@ -6516,3 +6516,40 @@ do $$ declare inc uuid; begin
   end if;
   raise notice 'OK 174 · fotos en las reservas del CMR: solo imágenes del propio enlace (ni PDF, ni de otro enlace, ni inventadas), colgadas de la incidencia de siniestro y del envío';
 end $$;
+
+-- ---- 175. Firmas extra del CMR: hasta 3, sin ocupar la casilla ------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare tok uuid := current_setting('prueba.tok174')::uuid; i int; begin
+  -- Trazos ya subidos (como los de verdad) para la principal y las extra.
+  for i in 1..5 loop
+    insert into storage.objects (bucket_id, name, metadata)
+    values ('documentos', 'cmr/' || tok::text || '/trazo-' || i || '.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000));
+  end loop;
+end $$;
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok174')::uuid; r jsonb; ruta text; i int; begin
+  ruta := 'cmr/' || tok::text || '/trazo-1.png';
+  -- La casilla principal del transportista se firma una vez…
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Paco Pérez', '12345678Z', 'ES', true, null, ruta, null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 175 · no firma la casilla principal: %', r; end if;
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Otro', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/trazo-2.png', null, 'prueba', null);
+  if r->>'resultado' <> 'ya_firmada' then raise exception 'FALLO 175 · deja firmar dos veces la casilla principal: %', r; end if;
+  -- …y además caben 3 firmas EXTRA (misma casilla u otra), ni una más.
+  for i in 2..4 loop
+    r := firmar_cmr_publico(tok, null, 'transportista', 'Extra ' || i, '12345678Z', 'ES', true, null,
+                            'cmr/' || tok::text || '/trazo-' || i || '.png', null, 'prueba', null, true);
+    if r->>'resultado' <> 'firmada' then raise exception 'FALLO 175 · no deja la firma extra %: %', i, r; end if;
+  end loop;
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Extra 5', '12345678Z', 'ES', true, null,
+                          'cmr/' || tok::text || '/trazo-5.png', null, 'prueba', null, true);
+  if r->>'resultado' <> 'demasiadas_firmas' then raise exception 'FALLO 175 · deja una 4.ª firma extra: %', r; end if;
+  -- cmr_publico marca cuáles son extra.
+  r := cmr_publico(tok);
+  if (select count(*) from jsonb_array_elements(r->'firmas') f where (f->>'extra')::boolean) <> 3
+     or (select count(*) from jsonb_array_elements(r->'firmas') f where not (f->>'extra')::boolean) <> 1 then
+    raise exception 'FALLO 175 · cmr_publico no separa las firmas extra: %', r->'firmas';
+  end if;
+  raise notice 'OK 175 · firmas extra del CMR: la casilla principal una sola vez, hasta 3 extra con su tope, y cmr_publico las distingue';
+end $$;
+reset role;

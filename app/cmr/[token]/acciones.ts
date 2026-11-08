@@ -9,7 +9,8 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; nombre: string; documento: string; pais: string; email: string; png: string;
   reservas?: string;     // daños o faltantes: van ANTES de la firma y entran en su huella
-  fotos?: string[] };    // fotos de las reservas, ya subidas a cmr/<token>/… (máx. 6)
+  fotos?: string[];      // fotos de las reservas, ya subidas a cmr/<token>/… (máx. 6)
+  extra?: boolean };     // firma AÑADIDA (máx. 3 por envío): no ocupa la casilla ni anota reservas
 
 // Firmar una casilla del CMR. La validez del documento la decide AQUÍ el servidor (la
 // pantalla solo avisa); la hora la pone la base de datos; el trazo va al almacén privado,
@@ -35,7 +36,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   if (!datos || datos.resultado !== 'ok') return { ok: false, error: datos?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- se separan las firmas para no devolverlas
   const { firmas: _f, ...contenido } = datos;
-  const reservas = (d.reservas ?? '').trim().slice(0, 1000);
+  const reservas = d.extra ? '' : (d.reservas ?? '').trim().slice(0, 1000);
   const sha = createHash('sha256').update(JSON.stringify(reservas ? { ...contenido, reservas } : contenido)).digest('hex');
   // Reservas (protocolo de siniestro): se anotan antes de firmar y abren un siniestro para
   // Dynamo. Las FOTOS (ya subidas por la página a la carpeta de este enlace) se cuelgan de
@@ -55,13 +56,13 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
   const { data, error } = await sb.rpc('firmar_cmr_publico', {
     p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_nombre: d.nombre, p_documento: v.norm, p_pais: d.pais,
-    p_validado: !v.soft, p_email: d.email, p_ruta: ruta, p_ip: ip, p_navegador: h.get('user-agent'), p_sha256: sha,
+    p_validado: !v.soft, p_email: d.email, p_ruta: ruta, p_ip: ip, p_navegador: h.get('user-agent'), p_sha256: sha, p_extra: !!d.extra,
   });
   if (error) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   const r = (data as { resultado: string }).resultado;
   if (r === 'firmada') return { ok: true };
   const msg: Record<string, string> = {
-    ya_firmada: 'Esta casilla ya está firmada.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
+    ya_firmada: 'Esta casilla ya está firmada.', demasiadas_firmas: 'Ya hay 3 firmas extra en este CMR: no caben más.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
     parada_no_valida: 'Esa casilla no corresponde a este envío.', faltan_datos: 'Indica el documento y el nombre y apellidos.', falta_trazo: 'Falta la firma.',
   };
   return { ok: false, error: msg[r] ?? 'No se ha podido guardar la firma.' };

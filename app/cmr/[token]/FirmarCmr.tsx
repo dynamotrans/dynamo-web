@@ -13,11 +13,14 @@ import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
 
-type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; };
+type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; extra?: boolean };
 
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
   const [abierto, setAbierto] = useState<Bloque | null>(null);
+  // Firma EXTRA (usuario, 2026-11-09): hasta 3 además de las casillas de siempre. Se elige
+  // la casilla y se abre la pantalla de firma normal; no ocupa la casilla ni anota reservas.
+  const [eligiendoExtra, setEligiendoExtra] = useState(false);
 
   if (cmr.resultado !== 'ok') {
     const t: Record<string, [string, string]> = {
@@ -38,8 +41,11 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello', firmante: 'Porteador / Transportista', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '' },
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '' })),
   ];
-  const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
+  const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
+  const extras = (cmr.firmas ?? []).filter((f) => f.extra);
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;
+  const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
+    ?? (f.rol === 'remitente' ? 'Recogida' : f.rol === 'transportista' ? 'Transportista' : 'Entrega');
 
   return (
     <div className="card">
@@ -75,6 +81,38 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         );
       })}
+      {extras.map((f, i) => (
+        <div key={`x${i}`} className="firma firmada">
+          <div className="firma-head">
+            <div className="firma-tit">Firma extra {extras.length > 1 ? i + 1 : ''}<span className="cas-quien">Firma: {nombreBloque(f)}</span><span className="cas">Añadida a las casillas del CMR</span></div>
+          </div>
+          {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
+          <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
+        </div>
+      ))}
+      {extras.length < 3 && (
+        <div className="firma">
+          {eligiendoExtra ? (
+            <>
+              <div className="firma-tit" style={{ marginBottom: '0.45rem' }}>¿De qué casilla es la firma extra?</div>
+              <div style={{ display: 'grid', gap: '0.45rem' }}>
+                {bloques.map((b) => (
+                  <button key={`eb${b.clave}`} type="button" className="firma-btn" style={{ width: '100%' }}
+                    onClick={() => { setEligiendoExtra(false); setAbierto({ ...b, clave: `extra:${b.clave}`, titulo: `Firma extra · ${b.titulo}`, extra: true }); }}>
+                    {b.titulo} · {b.firmante}
+                  </button>
+                ))}
+                <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)' }} onClick={() => setEligiendoExtra(false)}>Cancelar</button>
+              </div>
+            </>
+          ) : (
+            <div className="firma-head">
+              <div className="firma-tit">Firma extra<span className="cas">Otra persona que también firma (hasta 3): elige su casilla y firma como siempre</span></div>
+              <button type="button" className="firma-btn" onClick={() => setEligiendoExtra(true)}>+ Añadir</button>
+            </div>
+          )}
+        </div>
+      )}
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó. Firma electrónica simple (Reglamento eIDAS).</p>
       {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); refrescar(); }} />}
@@ -135,8 +173,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     setGuardando(true);
-    const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, reservas,
-      fotos: reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png') });
+    const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
+      reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png') });
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
     onFirmado();
@@ -158,6 +196,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <label className="sig-lbl" htmlFor="sigEmail">Email <span className="op">· opcional</span></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {/* Las reservas son de la casilla principal: una firma extra no las anota. */}
+        {!b.extra && <>
         <label className="sig-lbl" htmlFor="sigReservas">Reservas <span className="op">· solo si falta algo o hay daños</span></label>
         <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palets; 1 palet con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
           style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit' }} />
@@ -188,6 +228,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
               ))}
             </div>
           )}
+        </>}
         </>}
         {aviso && <div className="sig-warn">⚠ {aviso}</div>}
         <p className="hint" style={{ marginTop: '0.6rem' }}>Firma con el dedo (o el ratón) dentro del recuadro.</p>

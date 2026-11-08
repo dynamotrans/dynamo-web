@@ -1888,6 +1888,7 @@ export type Database = {
           navegador: string | null
           firma_storage_ruta: string
           sha256_documento: string | null
+          extra: boolean
         }
         Insert: {
           id?: string
@@ -1904,6 +1905,7 @@ export type Database = {
           navegador?: string | null
           firma_storage_ruta: string
           sha256_documento?: string | null
+          extra?: boolean
         }
         Update: {
           id?: string
@@ -1920,6 +1922,7 @@ export type Database = {
           navegador?: string | null
           firma_storage_ruta?: string
           sha256_documento?: string | null
+          extra?: boolean
         }
         Relationships: [
           {
@@ -3252,7 +3255,7 @@ export type Database = {
       fecha_texto: { Args: { p: string | null }; Returns: string }
       festivo_cae_en: { Args: { p_fecha: string | null; p_desde: string | null; p_repetir: string | null; p_dias_pascua: number | null; p_hasta: string | null }; Returns: boolean }
       festivos_entre: { Args: { p_desde: string | null; p_hasta: string | null; p_pais?: string | null; p_region?: string | null }; Returns: { fecha: string; nombre: string; region: string }[] }
-      firmar_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_nombre: string | null; p_documento: string | null; p_pais: string | null; p_validado: boolean | null; p_email: string | null; p_ruta: string | null; p_ip: string | null; p_navegador: string | null; p_sha256: string | null }; Returns: Json }
+      firmar_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_nombre: string | null; p_documento: string | null; p_pais: string | null; p_validado: boolean | null; p_email: string | null; p_ruta: string | null; p_ip: string | null; p_navegador: string | null; p_sha256: string | null; p_extra?: boolean | null }; Returns: Json }
       firmas_envio: { Args: { p_envio: string | null }; Returns: { rol: string; parada_id: string; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string; firma_storage_ruta: string }[] }
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }

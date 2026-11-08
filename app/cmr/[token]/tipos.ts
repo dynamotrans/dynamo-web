@@ -8,7 +8,7 @@ export type ParadaCmr = {
 };
 export type FirmaCmr = {
   rol: string; parada_id: string | null; ruta: string; nombre: string; documento: string;
-  documento_pais?: string | null; firmado_en: string;
+  documento_pais?: string | null; firmado_en: string; extra?: boolean;
 };
 export type ReservaCmr = { rol: string; parada_id: string | null; texto: string };
 
