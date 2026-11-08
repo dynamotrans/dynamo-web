@@ -27,11 +27,20 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   // Todo lo que pide el marco, a la vez (antes en tres tandas seguidas): modo mantenimiento,
   // «Ver como», números del menú y de la campana, cobertura de crédito (cliente) y festivos
   // nacionales de las dos próximas semanas (para el «Vuelvo …» de Álvaro).
-  const [mantR, vista, cont, cob, fes] = await Promise.all([
+  // Con «Ver como» (Dynamo), la campana, los números del menú y el CESCE son LOS DE ESA
+  // EMPRESA, no los globales: la vista decide los parámetros de contadores_panel y de
+  // dónde sale la cobertura de crédito.
+  const vista = await vistaDe(supabase, perfil?.rol);
+  const vCli = dynamo && vista.tipo === 'cliente' ? vista.id : null;
+  const vTra = dynamo && vista.tipo === 'transportista' ? vista.id : null;
+  const [mantR, cont, cob, fes] = await Promise.all([
     supabase.rpc('mantenimiento_activo'),
-    vistaDe(supabase, perfil?.rol),
-    activa ? supabase.rpc('contadores_panel') : Promise.resolve({ data: null }),
-    activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_cobertura_credito') : Promise.resolve({ data: null }),
+    activa ? supabase.rpc('contadores_panel', { p_cliente: vCli, p_transportista: vTra }) : Promise.resolve({ data: null }),
+    activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_cobertura_credito')
+      : activa && vCli
+        ? supabase.from('clientes').select('riesgo_efectivo_euros').eq('id', vCli).maybeSingle()
+            .then((r) => ({ data: !r.data ? null : r.data.riesgo_efectivo_euros == null ? 'sinclasif' : r.data.riesgo_efectivo_euros === 0 ? 'nulo' : 'disponible' }))
+        : Promise.resolve({ data: null }),
     supabase.rpc('festivos_entre', { p_desde: hoyMadrid(), p_hasta: hoyMadrid(15) }),
   ]);
   const mant = mantR.data;

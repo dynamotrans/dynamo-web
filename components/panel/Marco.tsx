@@ -77,6 +77,9 @@ type Props = {
 export default function Marco({ rol, nombre, email, empresa, iniciales, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
   // Menú del perfil que se está viendo (el equipo de Dynamo elige vista arriba).
   const menuVisto = useMemo(() => menuDe(rol, vista.tipo), [rol, vista.tipo]);
+  // El perfil QUE SE VE manda en la campana y el CESCE: con «Ver como» un cliente, lo
+  // que vería ese cliente (los contadores ya llegan de esa empresa desde el layout).
+  const visto: 'admin' | 'cliente' | 'transportista' = esDynamo(rol) ? vista.tipo : rol === 'transportista' ? 'transportista' : 'cliente';
   const ruta = usePathname();
   const [lateral, setLateral] = useState(false);
   const [menu, setMenu] = useState<null | 'usuario' | 'soporte' | 'campana' | 'cesce' | 'vista'>(null);
@@ -199,9 +202,9 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
   const avisos = [
     { href: '/panel/incidencias', t: 'Incidencias abiertas', s: 'Pendientes de resolver', cero: 'Sin incidencias abiertas', n: contadores.incidencias ?? 0, color: 'inc', ico: ICO_AVISO },
     { href: '/panel/penalizaciones', t: 'Penalizaciones abiertas', s: 'Pendientes de confirmar', cero: 'Ninguna pendiente', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO },
-    ...(rol !== 'transportista' ? [{ href: '/panel/envios?f=sin-pagar', t: 'Envíos pendientes de pago', s: 'Se asignan a un camión al pagar', cero: 'Ninguno pendiente de pago', n: contadores.envios_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
-    ...(rol !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Almacenamientos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
-    ...(esDynamo(rol) ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
+    ...(visto !== 'transportista' ? [{ href: '/panel/envios?f=sin-pagar', t: 'Envíos pendientes de pago', s: 'Se asignan a un camión al pagar', cero: 'Ninguno pendiente de pago', n: contadores.envios_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
+    ...(visto !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Almacenamientos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
+    ...(visto === 'admin' ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
   ];
   const pendientes = avisos.reduce((a, x) => a + x.n, 0);
   const totalAvisos = pendientes + nuevos;
@@ -325,7 +328,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                 </div>
               </div>
             </div>
-            {rol === 'cliente' && cobertura && (
+            {visto === 'cliente' && cobertura && (
               <div className="topbar-cesce-wrap">
                 <button type="button" className={`topbar-ind topbar-ind-cesce ${COBERTURA[cobertura].chip}${menu === 'cesce' ? ' cesce-open' : ''}`} aria-haspopup="menu" aria-expanded={menu === 'cesce'}
                         title="Cobertura de crédito CESCE" aria-label="Cobertura de crédito CESCE" onClick={() => setMenu(menu === 'cesce' ? null : 'cesce')}>

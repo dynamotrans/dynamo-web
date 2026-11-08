@@ -6154,4 +6154,43 @@ do $$ begin
   raise notice 'OK 165 · filtros de la lista de envíos: operador, creado por, estado y fechas filtran en la base de datos, una sola firma por función y cada uno sigue viendo lo suyo';
 end $$;
 reset role;
+
+-- ---- 166. Campana y menú según la vista «Ver como» (contadores_panel por empresa) ----------
+-- Como ADMIN: con p_cliente, los números son LOS DE ESE CLIENTE y sin las altas de Dynamo.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare c uuid; j jsonb; begin
+  if (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname = 'contadores_panel') <> 1 then
+    raise exception 'FALLO 166 · quedan firmas duplicadas de contadores_panel';
+  end if;
+  select cliente_id into c from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  j := contadores_panel(p_cliente := c);
+  if j ? 'altas' then raise exception 'FALLO 166 · la vista de un cliente enseña las altas de Dynamo'; end if;
+  if (j->>'incidencias')::int <> (select count(*) from incidencias where cliente_id = c and estado in ('abierto', 'en_curso')) then
+    raise exception 'FALLO 166 · las incidencias de la vista no son las del cliente';
+  end if;
+  if (j->>'alm_sin_confirmar')::int <> (select count(*) from almacenamientos where cliente_id = c and estado = 'pendiente_confirmar') then
+    raise exception 'FALLO 166 · los almacenamientos de la vista no son los del cliente';
+  end if;
+  perform set_config('prueba.cont166', j::text, false);
+  if not (contadores_panel() ? 'altas') then raise exception 'FALLO 166 · el global de Dynamo pierde las altas'; end if;
+  -- La vista de un transportista trae SOLO sus dos números (sin pagos ni altas).
+  if contadores_panel(p_transportista := gen_random_uuid()) - 'incidencias' - 'penalizaciones' <> '{}'::jsonb then
+    raise exception 'FALLO 166 · la vista de transportista trae claves de más';
+  end if;
+end $$;
+reset role;
+-- El propio CLIENTE ve lo mismo que su vista, y los parámetros se le ignoran.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare j jsonb := current_setting('prueba.cont166')::jsonb; begin
+  if (contadores_panel()->>'incidencias') is distinct from (j->>'incidencias') then
+    raise exception 'FALLO 166 · la vista del cliente no coincide con lo que él mismo ve';
+  end if;
+  if contadores_panel(p_cliente := gen_random_uuid()) is distinct from contadores_panel() then
+    raise exception 'FALLO 166 · un cliente puede pedir los contadores de otra empresa';
+  end if;
+  raise notice 'OK 166 · contadores_panel por vista: con «Ver como» los números son los de esa empresa (sin las altas), el global de Dynamo sigue entero y a un cliente se le ignoran los parámetros';
+end $$;
+reset role;
 select set_config('request.jwt.claim.sub', '', false);
