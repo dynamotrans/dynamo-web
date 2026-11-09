@@ -87,3 +87,8 @@ body {
 .ptr-cargando .ptr-rueda { animation: dynGira 0.9s linear infinite; }
 .ptr-texto { font-size: var(--fs-s, 0.85rem); font-weight: 700; color: var(--navy, #0f172a); }
 @media (prefers-reduced-motion: reduce) { .ptr-cargando .ptr-rueda { animation-duration: 2.5s; } }
+
+/* Google Translate (traducción del navegador) deja a veces su spinner colgado
+   arriba a la izquierda (bug conocido; ya lo escondimos igual en la web pública). */
+.goog-te-spinner-pos, #goog-gt-tt, .goog-te-balloon-frame,
+iframe.goog-te-banner-frame, iframe[id^=":"][src*="translate"] { display: none !important; }

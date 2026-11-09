@@ -135,21 +135,37 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
   const [logo, setLogo] = useState<File | null>(null);
   // Vista previa del logo en cuadro 1:1 (usuario, 2026-11-09): se usará en webs y
   // documentos, así que se enseña tal cual quedará. En el alta, el archivo elegido; en
-  // la edición, el guardado (vía el visor con permisos /panel/documentos/<id>).
+  // la edición, el guardado. El visor /panel/documentos/<id> no se puede usar de src
+  // directo: responde con no-store y 3 saltos, y el navegador lo re-pedía una y otra
+  // vez (iba a trompicones). Se descarga UNA vez como blob y se pinta desde memoria.
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoCargando, setLogoCargando] = useState(false);
+  const [logoVez, setLogoVez] = useState(0);
+  const filaId = fila?.id ?? null;
   useEffect(() => {
-    if (!fila) {
+    if (!filaId) {
       if (!logo) { setLogoUrl(null); return; }
       const u = URL.createObjectURL(logo);
       setLogoUrl(u);
       return () => URL.revokeObjectURL(u);
     }
-    documentosDe({ campo: 'operador_id', id: fila.id }).then((docs) => {
-      const l = docs.find((x) => x.tipo === 'logo');
-      setLogoUrl(l ? `/panel/documentos/${l.id}` : null);
-    });
-  }, [fila, logo]);
-  const recargarLogo = () => { if (fila) documentosDe({ campo: 'operador_id', id: fila.id }).then((docs) => { const l = docs.find((x) => x.tipo === 'logo'); setLogoUrl(l ? `/panel/documentos/${l.id}` : null); }); };
+    let vivo = true;
+    let blobUrl: string | null = null;
+    setLogoCargando(true);
+    (async () => {
+      try {
+        const docs = await documentosDe({ campo: 'operador_id', id: filaId });
+        const l = docs.find((x) => x.tipo === 'logo');
+        if (!l) { if (vivo) setLogoUrl(null); return; }
+        const r = await fetch(`/panel/documentos/${l.id}`);
+        if (!r.ok) { if (vivo) setLogoUrl(null); return; }
+        blobUrl = URL.createObjectURL(await r.blob());
+        if (vivo) setLogoUrl(blobUrl);
+      } catch { if (vivo) setLogoUrl(null); }
+      finally { if (vivo) setLogoCargando(false); }
+    })();
+    return () => { vivo = false; if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  }, [filaId, logo, logoVez]);
   const set = <K extends keyof OperadorDatos>(k: K, v: OperadorDatos[K]) => setD((x) => ({ ...x, [k]: v }));
 
   async function guardar() {
@@ -241,15 +257,17 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
       </div>
       <div style={{ marginTop: '0.7rem' }}>
         <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga <Req si={false} /></label>
-        {logoUrl && (
+        {(logoUrl || logoCargando) && (
           <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', margin: '0.2rem 0 0.55rem' }}>
             <div style={{ width: 112, height: 112, flex: 'none', border: '1px solid var(--gray-200)', borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <img src={logoUrl} alt="Logo del transportista" style={{ maxWidth: '92%', maxHeight: '92%', objectFit: 'contain' }} />
+              {logoUrl
+                ? <img src={logoUrl} alt="Logo del transportista" style={{ maxWidth: '92%', maxHeight: '92%', objectFit: 'contain' }} />
+                : <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Cargando…</span>}
             </div>
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>Vista previa en cuadro 1:1 — así quedará en la orden de carga y en los demás sitios donde se use.</div>
           </div>
         )}
-        {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen onCambio={recargarLogo} />
+        {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen onCambio={() => setLogoVez((v) => v + 1)} />
           : <>
               <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" aria-label="Logo del transportista"
                 onChange={(e) => {

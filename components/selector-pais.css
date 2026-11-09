@@ -70,6 +70,9 @@
    El número se encoge para caber; los dos al mismo alto. */
 .campo-tel { display: flex; gap: 0.5rem; align-items: stretch; width: 100%; }
 .campo-tel .pref-wrap { flex: 0 0 112px; width: 112px; }
-.campo-tel .pref-btn { height: 100%; font-size: var(--fs-m, 0.85rem); padding: 0 0.5rem; gap: 0.3rem; }
+/* Dentro de un campo de teléfono, la altura la manda el INPUT de al lado (el botón
+   del prefijo se estira a su medida): así el campo mide lo mismo que los demás del
+   formulario, tenga este los inputs del tamaño que tenga (usuario, 2026-11-09). */
+.campo-tel .pref-btn { height: 100%; min-height: 0; font-size: var(--fs-m, 0.85rem); padding: 0 0.5rem; gap: 0.3rem; }
 .campo-tel .pref-btn .pf-flag { font-size: 1rem; }
 .campo-tel > input { flex: 1 1 0; min-width: 0; width: auto !important; }

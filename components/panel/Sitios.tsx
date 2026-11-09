@@ -399,7 +399,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         {fila && <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => setConfirmarBorrado(true)} disabled={!!trabajando}>Borrar</button>}
         <button className="btn-primary" onClick={() => guardar(false)} disabled={!!trabajando || sinAbrir}
-          title={sinAbrir ? 'Busca primero arriba (o pulsa «Rellenar el sitio a mano»)' : undefined}>{fila ? 'Guardar cambios' : `Crear ${que}`}</button>
+          title={sinAbrir ? 'Busca primero arriba (o elige «¿No lo encuentras? + Crear un sitio nuevo» en el desplegable)' : undefined}>{fila ? 'Guardar cambios' : `Crear ${que}`}</button>
       </>}>
       {fila && (
         <div className="sitio-meta-fechas">
@@ -493,7 +493,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                   </li>
                 ))}
                 <li onMouseDown={(e) => { e.preventDefault(); abrirManual(); }}>
-                  <strong style={{ color: 'var(--purple)' }}>+ No lo encuentro: rellenar el sitio a mano</strong>
+                  <strong style={{ color: 'var(--purple)' }}>¿No lo encuentras? + Crear un sitio nuevo</strong>
                 </li>
               </ul>
             )}
@@ -509,14 +509,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       )}
       {/* Hasta que el buscador rellene (o se pida «a mano»), el resto de la ficha queda
           oculto: guía primero por el buscador (usuario, 2026-11-09). */}
-      {sinAbrir ? (
-        <div className="pt-aviso info" style={{ marginBottom: 0 }}><div>
-          Empieza por el <strong>buscador de arriba</strong>: elige un sitio de tu agenda, una ficha de Google o una dirección y la ficha se rellena sola.
-          <div style={{ marginTop: '0.5rem' }}>
-            ¿No aparece? <button type="button" className="btn-secondary" onClick={abrirManual}>Rellenar el sitio a mano</button>
-          </div>
-        </div></div>
-      ) : (<>
+      {sinAbrir ? null : (<>
       <div className="ptar-sitio-grid">
         {dynamo && !almacen && !clienteFijo && (
           <div style={{ gridColumn: '1/-1' }}>
