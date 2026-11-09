@@ -4079,7 +4079,8 @@ select.ptar-urg-verde { color: var(--green-dark); font-weight: 800; }
 /* Aviso informativo cuando se elige FECHA FIJA (1 solo día) en un día
    futuro: recomendar ventana de 2 días (más probabilidad y más barato). */
 .ptar-eta-fija {
-    display: block; width: 100%; margin: 0 0 0.8rem; padding: 0.55rem 0.7rem;
+    /* Separada de la caja de importes de arriba (usuario, 2026-11-09: iban pegadas). */
+    display: block; width: 100%; margin: 0.8rem 0; padding: 0.55rem 0.7rem;
     background: rgba(51,0,204,0.06); border: 1px solid rgba(51,0,204,0.22);
     border-radius: 9px; font-size: var(--fs-m); line-height: 1.5; color: #2a1a7a; font-weight: 600;
 }
