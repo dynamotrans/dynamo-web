@@ -20,7 +20,7 @@ export type HitoFicha = { id: number; hito: string; cuando: string; quien: strin
 export type PenalizacionFicha = { id: string; codigo: string; tipo: string; descripcion: string | null; importe_cliente: number | null; importe_transportista: number | null; estado: string; generada_auto: boolean };
 export type OfertaFicha = { id: string; token: string; canal: string; para: string | null; precio: number; banda_euros: number;
   banda_pct: number; pronto_pago: boolean; estado: string; enviada_en: string; caduca_en: string; aperturas: number; abierta_en: string | null };
-export type FirmaCmrFicha = { rol: string; parada_id: string | null; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string };
+export type FirmaCmrFicha = { rol: string; parada_id: string | null; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string; extra: boolean };
 export type ContraofertaFicha = { id: string; transportista: string | null; precio_propuesto: number; precio_base: number | null; desde: string;
   alta_online?: { id: string; cif: string; verificado: boolean } | null };   // transportista nuevo dado de alta desde el enlace
 export type TransportistaOpcion = { id: string; nombre: string; cif: string; estado: string; nima: string | null;
@@ -60,7 +60,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     sb.from('envio_ofertas').select('id, token, canal, precio_ofertado, banda_euros, banda_pct, pronto_pago, estado, enviada_en, caduca_en, aperturas, abierta_en, transportistas(nombre_visible)').eq('envio_id', id).order('enviada_en', { ascending: false }),
     sb.from('envio_reservas').select('id, precio_propuesto, desde, oferta_id, transportistas(id, nombre_visible, cif, tags, estado_operativo), envio_ofertas(precio_ofertado)').eq('envio_id', id).eq('estado', 'pendiente_revision'),
     sb.from('cmr_enlaces').select('id, token, caduca_en').eq('envio_id', id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle(),
-    sb.from('firmas_cmr').select('rol, parada_id, nombre, documento, documento_pais, documento_validado, firmado_en').eq('envio_id', id).order('firmado_en'),
+    sb.from('firmas_cmr').select('rol, parada_id, nombre, documento, documento_pais, documento_validado, firmado_en, extra').eq('envio_id', id).order('firmado_en'),
     sb.rpc('pagos_envio', { p_envio: id }).maybeSingle(),
     sb.rpc('reglas_precio_envio'),
     sb.rpc('etapas_envio', { p_envio: id }),

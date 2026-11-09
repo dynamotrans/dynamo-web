@@ -301,20 +301,34 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
 
       <h4 className="modal-section-title">Documentos</h4>
       <div className="det-block">
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
-          {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
-            <button type="button" className="btn-ghost" disabled={!!trabajando}
-              onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
-              <I d={ICO.doc} />Guardar copia de la {'orden de carga'}
-            </button>
-          )}
-          {e.estado !== 'cancelado' && (
-            <button type="button" className="btn-ghost" disabled={!!trabajando}
-              onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'cmr'))) setVerDocs((n) => n + 1); }}>
-              <I d={ICO.doc} />Guardar copia del CMR
-            </button>
-          )}
-        </div>
+        {/* «Ver CMR» (usuario, 2026-11-09): el CMR relleno TAL CUAL está ahora (vacío, con una,
+            varias o todas las firmas), siempre visible. El contador va en naranja hasta que
+            están todas las firmas principales (paradas + porteador) y en verde al completarse.
+            Fuera el «Guardar copia del CMR»: el PDF en vivo lo sustituye. */}
+        {(() => {
+          const hechas = ficha.firmasCmr.filter((x) => !x.extra).length;
+          const total = ficha.paradas.length + 1;
+          const ok = hechas >= total;
+          return (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
+              <a className="btn-ghost" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
+                 style={{ textDecoration: 'none' }} title="El CMR relleno tal y como está ahora mismo, con las firmas que haya.">
+                <I d={ICO.doc} />Ver CMR
+                <span style={{ marginLeft: '0.45rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800,
+                  background: ok ? 'rgba(34,165,90,0.14)' : 'rgba(217,119,6,0.16)', color: ok ? 'var(--green-dark)' : '#b45309' }}>
+                  {hechas}/{total} firmas{ok ? ' ✓' : ''}
+                </span>
+              </a>
+              {ok && <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, color: 'var(--green-dark)' }}>CMR completamente firmado</span>}
+              {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
+                <button type="button" className="btn-ghost" disabled={!!trabajando}
+                  onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
+                  <I d={ICO.doc} />Guardar copia de la {'orden de carga'}
+                </button>
+              )}
+            </div>
+          );
+        })()}
         <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
           tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_carga', 'foto_incidencia', 'gps_tacografo', 'otro']}
           ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
