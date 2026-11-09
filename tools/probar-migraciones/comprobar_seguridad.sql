@@ -6601,3 +6601,85 @@ do $$ declare e uuid := current_setting('prueba.e176')::uuid; begin
   end if;
   raise notice 'OK 176 · la firma del CMR ancla el seguimiento: remitente → en ruta, destinatario de la última → entregado, la extra no mueve nada y todo solo hacia delante';
 end $$;
+
+-- ---- 177. El email de la firma del CMR: de la ficha (precarga) y a la ficha (si no tenía) ----
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare sa uuid; sb uuid; t uuid; e uuid; begin
+  -- Sitio A CON email en su contacto (se precarga) · sitio B SIN contactos (se guardará).
+  insert into sitios (cliente_id, nombre_empresa, codigo_postal, poblacion)
+  values (current_setting('prueba.cliente')::uuid, 'Muelle A177', '41001', 'Sevilla') returning id into sa;
+  insert into contactos (sitio_id, nombre, email, es_principal) values (sa, 'Marta Muelle', 'marta@a177.com', true);
+  insert into sitios (cliente_id, nombre_empresa, codigo_postal, poblacion)
+  values (current_setting('prueba.cliente')::uuid, 'Nave B177', '28001', 'Madrid') returning id into sb;
+  insert into transportistas (razon_social, cif) values ('Transportes 177', 'B17717717') returning id into t;
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'sitio_id', sa, 'nombre_empresa', 'Muelle A177', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'sitio_id', sb, 'nombre_empresa', 'Nave B177', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  update envios set transportista_id = t where id = e;
+  perform set_config('prueba.e177', e::text, false);
+  perform set_config('prueba.sa177', sa::text, false);
+  perform set_config('prueba.sb177', sb::text, false);
+  perform set_config('prueba.t177', t::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare tok uuid; i int; begin
+  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e177')::uuid) returning token into tok;
+  perform set_config('prueba.tok177', tok::text, false);
+  -- Las paradas se resuelven AQUÍ (RLS no deja a anon leer envio_paradas).
+  perform set_config('prueba.car177', (select id::text from envio_paradas where envio_id = current_setting('prueba.e177')::uuid and tipo = 'carga' limit 1), false);
+  perform set_config('prueba.des177', (select id::text from envio_paradas where envio_id = current_setting('prueba.e177')::uuid and tipo = 'descarga' limit 1), false);
+  for i in 1..4 loop
+    insert into storage.objects (bucket_id, name, metadata)
+    values ('documentos', 'cmr/' || tok::text || '/t177-' || i || '.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000));
+  end loop;
+end $$;
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok177')::uuid;
+  v_carga uuid := current_setting('prueba.car177')::uuid; v_desc uuid := current_setting('prueba.des177')::uuid; r jsonb; begin
+  -- PRECARGA: la parada del sitio A trae el email de su primer contacto; B y el
+  -- transportista, nada (sus fichas no tienen).
+  r := cmr_publico(tok);
+  if (select p ->> 'email' from jsonb_array_elements(r -> 'paradas') p where p ->> 'tipo' = 'carga') <> 'marta@a177.com' then
+    raise exception 'FALLO 177 · cmr_publico no precarga el email del contacto del sitio: %', r -> 'paradas';
+  end if;
+  if (select p ->> 'email' from jsonb_array_elements(r -> 'paradas') p where p ->> 'tipo' = 'descarga') is not null
+     or r ->> 'transportista_email' is not null then
+    raise exception 'FALLO 177 · cmr_publico inventa un email donde la ficha no tiene';
+  end if;
+  -- A LA FICHA: el destinatario (sitio B sin contactos) y el transportista dejan su email.
+  r := firmar_cmr_publico(tok, v_desc, 'destinatario', 'Pepe Receptor', '12345678Z', 'ES', true, 'PEPE@b177.com ', 'cmr/' || tok::text || '/t177-1.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 177 · no firma el destinatario: %', r; end if;
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Chófer 177', '12345678Z', 'ES', true, 'chofer@t177.com', 'cmr/' || tok::text || '/t177-2.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 177 · no firma el transportista: %', r; end if;
+  -- SIN PISAR: otra firma (extra) en B con otro email no toca el que ya quedó; y en A
+  -- (que ya tenía) tampoco cambia nada.
+  r := firmar_cmr_publico(tok, v_desc, 'destinatario', 'Extra B', '12345678Z', 'ES', true, 'otro@b177.com', 'cmr/' || tok::text || '/t177-3.png', null, 'prueba', null, true);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 177 · no deja la firma extra en B: %', r; end if;
+  r := firmar_cmr_publico(tok, v_carga, 'remitente', 'Luis Carga', '12345678Z', 'ES', true, 'luis@a177.com', 'cmr/' || tok::text || '/t177-4.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 177 · no firma el remitente: %', r; end if;
+end $$;
+reset role;
+do $$ declare sa uuid := current_setting('prueba.sa177')::uuid; sb uuid := current_setting('prueba.sb177')::uuid;
+  t uuid := current_setting('prueba.t177')::uuid; r jsonb; begin
+  if (select count(*) from contactos where sitio_id = sb) <> 1
+     or not exists (select 1 from contactos where sitio_id = sb and email = 'pepe@b177.com' and nombre = 'Pepe Receptor' and es_principal) then
+    raise exception 'FALLO 177 · el email del destinatario no queda (una sola vez, limpio y principal) en la ficha del sitio B';
+  end if;
+  if not exists (select 1 from contactos where transportista_id = t and email = 'chofer@t177.com' and nombre = 'Chófer 177') then
+    raise exception 'FALLO 177 · el email del chófer no queda en la ficha del transportista';
+  end if;
+  if (select email from contactos where sitio_id = sa) <> 'marta@a177.com' or (select count(*) from contactos where sitio_id = sa) <> 1 then
+    raise exception 'FALLO 177 · la firma del remitente pisó (o duplicó) el email que la ficha del sitio A ya tenía';
+  end if;
+  -- Y la precarga ya sale: la próxima firma en B trae el email recién guardado.
+  r := cmr_publico(current_setting('prueba.tok177')::uuid);
+  if (select p ->> 'email' from jsonb_array_elements(r -> 'paradas') p where p ->> 'tipo' = 'descarga') <> 'pepe@b177.com'
+     or r ->> 'transportista_email' <> 'chofer@t177.com' then
+    raise exception 'FALLO 177 · la precarga no refleja los emails recién guardados: %', r;
+  end if;
+  raise notice 'OK 177 · email de la firma del CMR: se precarga el del primer contacto de la ficha, el nuevo se guarda solo si la ficha no tenía, y nunca pisa uno existente';
+end $$;
