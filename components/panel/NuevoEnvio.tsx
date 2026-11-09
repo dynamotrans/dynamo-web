@@ -195,8 +195,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // o 1 a 2 (corta, más cara). Carga COMPLETA: 1 a 3 o fecha fija. Si al cambiar los
   // metros la opción elegida deja de existir, vuelve a la estándar.
   const esGrupaje = (Number(ml) || 0) < mlMax - 0.01;
+  const primerDiaDe = (u: 'dia' | 'estandar' | 'corta') =>
+    primerDia(u, fest, { fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora });
   useEffect(() => {
-    if ((esGrupaje && urgencia === 'dia') || (!esGrupaje && urgencia === 'corta')) setUrgencia('estandar');
+    if ((esGrupaje && urgencia === 'dia') || (!esGrupaje && urgencia === 'corta')) {
+      // El tipo cambia solo → la fecha salta también al primer día viable del tipo nuevo.
+      setUrgencia('estandar'); setFecha(primerDiaDe('estandar'));
+    }
   }, [esGrupaje]); // eslint-disable-line react-hooks/exhaustive-deps
   const ventanaDias = urgencia === 'dia' ? 1 : urgencia === 'corta' ? 2 : esGrupaje ? 4 : 3;
   const fechaHasta = fecha ? (ventanaDias > 1 ? sumarHabiles(fecha, ventanaDias - 1, fest) : fecha) : '';
@@ -206,10 +211,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return out;
   }, [urgencia, fest, reglas]);
   // La fecha SIEMPRE válida respecto al corte (usuario, 2026-11-09): al abrir el formulario
-  // ya viene puesto el primer día posible (con la ventana estándar por defecto), y si al
-  // cambiar el tipo de fecha (fija/ventana/corta) la elegida ya no llega, salta sola al
-  // primer día hábil del tipo nuevo. Al editar no se toca (la fecha del envío manda), y el
-  // Master con fechas libres solo recibe el prerrelleno inicial.
+  // ya viene puesto el primer día posible (con la ventana estándar por defecto). Al CAMBIAR
+  // el tipo de fecha (fija/ventana/corta) es el propio selector quien pone el primer día
+  // viable del tipo nuevo — también para el Admin Master con fechas libres, que después
+  // puede cambiarla a mano (usuario, 2026-11-09). Este efecto queda de red de seguridad:
+  // si reglas o festivos llegan después y el primer día se mueve, corrige. Al editar no se
+  // toca (la fecha del envío manda) salvo que se cambie el tipo a mano.
   useEffect(() => {
     if (editar) return;
     if (!fecha) { setFecha(dias[0]); return; }
@@ -282,6 +289,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [tarifa?.neto, interna?.vApl, interna?.compraMin, esCliente]);
   const fechaPasada = !!fecha && fecha < hoyStr && urgencia === 'dia';
   const elegirAlternativa = (u: 'dia' | 'estandar' | 'corta', f: string) => { setUrgencia(u); setFecha(f); setModoCal(false); };
+  // Cambiar el TIPO de fecha pone SOLO el primer día viable del tipo nuevo (usuario,
+  // 2026-11-09) — también para el Master con fechas libres, que después puede cambiarla.
+  // Al editar, volver al tipo original del envío recupera su fecha («si no se toca nada,
+  // las fechas no cambian»). Pulsar el tipo ya elegido no toca la fecha.
+  const cambiarTipoFecha = (v: 'dia' | 'estandar' | 'corta') => {
+    if (v !== urgencia) setFecha(editar && v === urgenciaIni && be?.fecha_carga_desde ? be.fecha_carga_desde : primerDiaDe(v));
+    setUrgencia(v); setModoCal(false);
+  };
 
   // El + de una fila añade otra parada JUSTO DEBAJO, del mismo tipo (luego se puede
   // alternar con la pastilla). Añadir tras la última entrega deja la nueva como destino.
@@ -853,9 +868,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 {paso === 3 && (<>
                   <div className="ptar-section-head ptar-sh-fecha">Fecha de recogida</div>
                   <div className="ptar-field-full">
-                    {/* Al cambiar de tipo NO se borra el día ya elegido: la ventana se recalcula sola
-                        (fija → el día; 1 a 3 días → de ese día al rango). */}
-                    <SelectorUrgencia valor={urgencia} grupaje={esGrupaje} onCambio={(v) => { setUrgencia(v); setModoCal(false); }} />
+                    {/* Al cambiar de tipo, la fecha salta SOLA al primer día viable del tipo nuevo
+                        (usuario, 2026-11-09) — también para el Master con fechas libres y al editar;
+                        después se puede cambiar a mano (lista o calendario). */}
+                    <SelectorUrgencia valor={urgencia} grupaje={esGrupaje} onCambio={cambiarTipoFecha} />
                   </div>
                   <div className="ptar-field-full">
                     {!modoCal ? (
