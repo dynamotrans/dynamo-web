@@ -75,10 +75,15 @@ export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit): Fi
       contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contactoEmail: d?.contacto.email ?? '', contacto_id: d?.contacto.id ?? null,
       notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '',
     };
-  } else {
-    const n = p.nuevo!;
+  } else if (p.nuevo) {
+    const n = p.nuevo;
     base = { empresa: n.nombre_empresa, tipo: n.tipo_sitio, nuevo: true, dynamo: false, contacto_id: null,
       horario: n.horario ?? HORARIO_POR_DEFECTO, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '' };
+  } else {
+    // Punto aún sin sitio (ruta a medio rellenar): ficha vacía y SIN horario, para que
+    // ningún aviso salte ni nada reviente (antes p.nuevo! con null tumbaba la pantalla).
+    base = { empresa: '', tipo: 'almacen_nave', nuevo: true, dynamo: false, contacto_id: null,
+      horario: [], contacto: '', telefono: '', contactoEmail: '', notas: '', emails: '', maps: '' };
   }
   if (!edic) return base;
   return {

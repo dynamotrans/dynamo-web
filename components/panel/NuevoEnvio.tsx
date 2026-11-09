@@ -1077,7 +1077,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             los precios internos ya se ven y ajustan en el paso 3. */}
         {/* Carga hoy y el sitio de recogida cierra pronto (o ya cerró): el aviso se repite
             aquí, con la línea de repercusión al cliente (usuario, 2026-11-09). */}
-        {cargaHoy && puntos.filter((pt) => pt.tipo === 'carga').map((pt) => {
+        {/* Solo paradas CON sitio elegido: nada más abrir el formulario, con ventana antes
+            del corte, la fecha ya es HOY y la ruta aún está vacía — resolverFicha sobre un
+            punto vacío tumbaba la pantalla entera (CI roto tras medianoche, 2026-11-10). */}
+        {cargaHoy && puntos.filter((pt) => pt.tipo === 'carga' && (pt.sitio || pt.nuevo)).map((pt) => {
           const fs = resolverFicha(pt, datosSitios, edicSitios[pt.k]);
           return fs.horario.length > 0 ? <AvisoCierreSitio key={pt.k} empresa={fs.empresa || 'El sitio de recogida'} horario={fs.horario} repercusion /> : null;
         })}
