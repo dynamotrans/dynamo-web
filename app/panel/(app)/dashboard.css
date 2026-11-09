@@ -4252,6 +4252,13 @@ select.ptar-urg-verde { color: var(--green-dark); font-weight: 800; }
 .sum2-cell { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.7rem; }
 .sum2-k { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); margin-bottom: 0.1rem; }
 .sum2-v { font-size: var(--fs-l); font-weight: 800; color: var(--navy); line-height: 1.3; }
+/* Tarjeta de la MERCANCÍA del paso 4 en AZUL MARINO (usuario, 2026-11-10): más
+   llamativa y legible — etiquetas claras y valores en blanco sobre navy. */
+.sum2-box.sum2-azul { background: var(--navy); border-color: var(--navy); }
+.sum2-box.sum2-azul .sum2-cell { background: rgba(255,255,255,0.09); }
+.sum2-azul .sum2-k { color: rgba(255,255,255,0.68); }
+.sum2-azul .sum2-v { color: #fff; }
+.sum2-azul .sum2-notas { font-size: var(--fs-m); font-weight: 600; color: rgba(255,255,255,0.9); line-height: 1.4; white-space: pre-line; }
 .sum2-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.7rem 0.8rem; }
 .sum2-merc-head { display: flex; align-items: center; gap: 0.45rem; color: var(--purple); margin-bottom: 0.55rem; }
 .sum2-merc-head span { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }

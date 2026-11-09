@@ -990,7 +990,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} />
-                <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
+                {/* Tarjeta de la MERCANCÍA en azul marino (usuario, 2026-11-10): más
+                    llamativa y legible que el gris de las demás. */}
+                <div className="sum2-box sum2-azul" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
                   <div className="sum2-grid">
                     <div className="sum2-cell"><div className="sum2-k">Metros lineales</div><div className="sum2-v">{mlTxt.split(' (')[0]}</div></div>
@@ -1000,7 +1002,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     {nima && <div className="sum2-cell"><div className="sum2-k">Requiere NIMA</div><div className="sum2-v">Sí</div></div>}
                     {adr && <div className="sum2-cell"><div className="sum2-k">Mercancía ADR</div><div className="sum2-v">Sí</div></div>}
                   </div>
-                  {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div style={{ fontSize: 'var(--fs-m)', fontWeight: 600, color: 'var(--gray-700)', lineHeight: 1.4, whiteSpace: 'pre-line' }}>{notasEnvio}</div></div>}
+                  {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div className="sum2-notas">{notasEnvio}</div></div>}
                 </div>
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar
