@@ -14,6 +14,7 @@ import { resumenHorario } from '@/lib/horarios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
 import { CardEdit, ContactoExtra, DatosSitios, Punto, direccionCompleta, resolverFicha } from './comun';
 import Req from '@/components/Req';
+import Tip from '@/components/Tip';
 
 const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
@@ -155,9 +156,8 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                     <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} />)}
                   <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
-                  <div><label>Email <Req util /></label>
-                    {/* Nota en VERDE, bajo la etiqueta y ANTES del campo (usuario, 2026-11-09). */}
-                    <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>
+                  {/* La explicación del email va en un tooltip ⓘ (usuario, 2026-11-10). */}
+                  <div><label>Email <Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></label>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
                   {/* Contactos ADICIONALES del sitio (usuario, 2026-11-10): mismo botón fino
                       que en la ficha de Sitios; se crean en la agenda del sitio al guardar. */}

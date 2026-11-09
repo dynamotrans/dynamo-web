@@ -8,6 +8,7 @@ import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/l
 import { partirTel } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import Req from '@/components/Req';
+import Tip from '@/components/Tip';
 
 export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, obligatorios = false, roles, funcionNueva = 'general', ayuda }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
@@ -82,9 +83,10 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
           </div>
         </div>
         <div>
-          <label htmlFor={`${id}-email`}>Email {obligatorios ? <Req util /> : <Req si={false} />}</label>
-          {/* Nota en VERDE, bajo la etiqueta y ANTES del campo (usuario, 2026-11-09). */}
-          {obligatorios && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>}
+          {/* La explicación va en un tooltip ⓘ, no en texto visible (usuario, 2026-11-10). */}
+          <label htmlFor={`${id}-email`}>Email {obligatorios
+            ? <><Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></>
+            : <Req si={false} />}</label>
           <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
         </div>
         {roles ? (

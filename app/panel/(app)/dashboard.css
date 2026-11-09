@@ -4729,6 +4729,19 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3rem; }
 .campo-plegado .cp-val { color: var(--gray-500); font-weight: 600; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* Tooltip ⓘ reutilizable (usuario, 2026-11-10): globo por hover en escritorio y por
+   TAP (foco) en móvil. Anclado al icono, abre hacia la derecha para no salirse de la
+   pantalla cuando el icono está pegado al borde izquierdo. */
+.tip-i { position: relative; display: inline-flex; vertical-align: middle; }
+.tip-i-btn { border: none; background: none; padding: 0 0.15rem; font: inherit; color: var(--gray-400); cursor: help; line-height: 1; }
+.tip-i-btn:focus { outline: none; color: var(--purple); }
+.tip-i-pop { position: absolute; bottom: calc(100% + 8px); left: -8px;
+    width: min(290px, 78vw); background: var(--navy); color: #fff; font-size: var(--fs-s);
+    font-weight: 600; line-height: 1.45; padding: 0.55rem 0.7rem; border-radius: 10px;
+    box-shadow: 0 8px 22px rgba(10,15,44,0.25); opacity: 0; visibility: hidden; z-index: 40;
+    transition: opacity 0.15s; pointer-events: none; }
+.tip-i:focus-within .tip-i-pop { opacity: 1; visibility: visible; }
+@media (hover: hover) { .tip-i:hover .tip-i-pop { opacity: 1; visibility: visible; } }
 /* Botón «Añadir contacto adicional» FINO y discreto (usuario, 2026-11-10): la misma
    fila de 44px que los campos replegados, con borde discontinuo de «añadir» y el
    texto en morado. Se usa en Sitios, clientes/transportistas y en las fichas de
