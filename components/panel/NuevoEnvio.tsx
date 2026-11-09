@@ -15,7 +15,7 @@ import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
 import { CONTACTO } from '@/lib/atencion';
-import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
+import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
 import AvisoCorte from './nuevoEnvio/AvisoCorte';
@@ -196,8 +196,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // o 1 a 2 (corta, más cara). Carga COMPLETA: 1 a 3 o fecha fija. Si al cambiar los
   // metros la opción elegida deja de existir, vuelve a la estándar.
   const esGrupaje = (Number(ml) || 0) < mlMax - 0.01;
-  const primerDiaDe = (u: 'dia' | 'estandar' | 'corta') =>
-    primerDia(u, fest, { fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora });
+  // Cada ventana con SU hora de corte de Parámetros (usuario, 2026-11-10).
+  const cortes = { fija: reglas?.corte_fija_hora, v12: reglas?.corte_ventana_1_2_hora,
+    v13: reglas?.corte_ventana_1_3_hora, v14: reglas?.corte_ventana_1_4_hora };
+  const primerDiaDe = (u: 'dia' | 'estandar' | 'corta') => primerDia(u, esGrupaje, fest, cortes);
   useEffect(() => {
     if ((esGrupaje && urgencia === 'dia') || (!esGrupaje && urgencia === 'corta')) {
       // El tipo cambia solo → la fecha salta también al primer día viable del tipo nuevo.
@@ -207,10 +209,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const ventanaDias = urgencia === 'dia' ? 1 : urgencia === 'corta' ? 2 : esGrupaje ? 4 : 3;
   const fechaHasta = fecha ? (ventanaDias > 1 ? sumarHabiles(fecha, ventanaDias - 1, fest) : fecha) : '';
   const dias = useMemo(() => {
-    const out: string[] = []; let d = primerDia(urgencia, fest, { fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora });
+    const out: string[] = []; let d = primerDia(urgencia, esGrupaje, fest,
+      { fija: reglas?.corte_fija_hora, v12: reglas?.corte_ventana_1_2_hora, v13: reglas?.corte_ventana_1_3_hora, v14: reglas?.corte_ventana_1_4_hora });
     for (let i = 0; i < 10; i++) { out.push(d); d = sumarHabiles(d, 1, fest); }
     return out;
-  }, [urgencia, fest, reglas]);
+  }, [urgencia, esGrupaje, fest, reglas]);
   // La fecha SIEMPRE válida respecto al corte (usuario, 2026-11-09): al abrir el formulario
   // ya viene puesto el primer día posible (con la ventana estándar por defecto). Al CAMBIAR
   // el tipo de fecha (fija/ventana/corta) es el propio selector quien pone el primer día
@@ -374,7 +377,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       // envío manual (lo mueve el operador del cliente, sin cortes de Dynamo), las fechas
       // libres del Master y, al editar, una fecha que no se ha tocado.
       if (!manual && !fechaLibre && fecha < dias[0] && !(editar && fecha === (be?.fecha_carga_desde ?? ''))) {
-        const corteTxt = urgencia === 'estandar' ? (reglas?.corte_ventana_hora ?? 14) : (reglas?.corte_fija_hora ?? 12);
+        const corteTxt = corteDe(urgencia, esGrupaje, cortes);
         return `Esa fecha ya no llega (el corte de las ${corteTxt}:00 ha pasado): el primer día de carga posible es el ${fmtFecha(dias[0])}. Elige otra fecha.`;
       }
       if (!esCliente && !manual && !(importe > 0)) return 'Pon el precio del cliente (base sin IVA).';
@@ -913,12 +916,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   </div>
                   {!manual && !fechaPasada && (
                     <div className="ptar-field-full">
-                      <AvisoCorte urgencia={urgencia} festivos={festivos} ventana={ventanaDias} grupaje={esGrupaje}
-                        cortes={{ fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora }} />
+                      <AvisoCorte urgencia={urgencia} festivos={festivos} ventana={ventanaDias} grupaje={esGrupaje} cortes={cortes} />
                     </div>
                   )}
                   {fechaLibre && fecha && dias[0] && fecha < dias[0] && (
-                    <div className="ptar-field-full"><div className="wiz-warn show" role="alert">⚠ <strong>Fuera de las reglas de corte:</strong> esta fecha no se podría elegir normalmente (fija desde mañana con su corte · ventana con corte de las {reglas?.corte_ventana_hora ?? 14}:00). Úsalo solo para urgencias o imprevistos: la recogida dependerá de encontrar camión a tiempo.</div></div>
+                    <div className="ptar-field-full"><div className="wiz-warn show" role="alert">⚠ <strong>Fuera de las reglas de corte:</strong> esta fecha no se podría elegir normalmente (fija desde mañana con su corte · cada ventana con su hora de corte — la elegida, las {corteDe(urgencia, esGrupaje, cortes)}:00). Úsalo solo para urgencias o imprevistos: la recogida dependerá de encontrar camión a tiempo.</div></div>
                   )}
                 </>)}
               </div>

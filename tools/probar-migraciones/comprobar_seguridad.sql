@@ -7018,3 +7018,32 @@ do $$ declare e uuid; s1 date; s2 date; mal boolean := false; begin
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 187 · entrega sugerida con el motor del seguimiento (se desplaza con el día de carga) y solo para Dynamo';
 end $$;
+
+
+-- ---- 188. Hora de corte POR VENTANA (1-2, 1-3 y 1-4), cada una en su parámetro ------------
+reset role;
+do $$ begin
+  update parametros set valor = '10' where clave = 'primer_dia_corte_ventana_1_2_hora';
+  update parametros set valor = '14' where clave = 'primer_dia_corte_ventana_1_3_hora';
+  update parametros set valor = '16' where clave = 'primer_dia_corte_ventana_1_4_hora';
+  -- Miércoles 11/11/2026 a las 12:00 (hábil): la 1-2 (corte 10:00) ya pasó → jueves;
+  -- la 1-3 (14:00) y la 1-4 (16:00) aún llegan → HOY mismo. Pasado el suyo, el
+  -- siguiente hábil — nunca salta dos. La fija no cambia (corte 12:00).
+  if primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', false, 2) <> date '2026-11-12'
+     or primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', false, 3) <> date '2026-11-11'
+     or primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', false, 4) <> date '2026-11-11'
+     or primera_fecha_carga(false, '2026-11-11 17:00 Europe/Madrid', false, 4) <> date '2026-11-12'
+     or primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'
+  then raise exception 'FALLO 188 · los cortes por ventana no van cada uno con su parámetro'; end if;
+  -- La pantalla recibe las tres horas (reglas_precio_envio).
+  if (reglas_precio_envio() ->> 'corte_ventana_1_2_hora') <> '10'
+     or (reglas_precio_envio() ->> 'corte_ventana_1_3_hora') <> '14'
+     or (reglas_precio_envio() ->> 'corte_ventana_1_4_hora') <> '16'
+  then raise exception 'FALLO 188 · reglas_precio_envio no devuelve las tres horas de corte'; end if;
+  -- crear_envio_cliente y pedir_cambio_envio usan el corte de SU ventana.
+  if pg_get_functiondef('public.crear_envio_cliente'::regproc) !~ 'primera_fecha_carga\(v_hasta = v_desde, now\(\), false, v_vdias\)'
+     or pg_get_functiondef('public.pedir_cambio_envio'::regproc) !~ 'primera_fecha_carga\(v_n = 1, now\(\), false, v_n\)'
+  then raise exception 'FALLO 188 · crear_envio_cliente o pedir_cambio_envio no pasan los días de su ventana'; end if;
+  update parametros set valor = '14' where clave in ('primer_dia_corte_ventana_1_2_hora', 'primer_dia_corte_ventana_1_4_hora');
+  raise notice 'OK 188 · hora de corte por ventana (1-2, 1-3 y 1-4), separadas y cada una en su parámetro';
+end $$;

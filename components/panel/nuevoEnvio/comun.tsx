@@ -100,7 +100,8 @@ export const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_pos
 export const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 export const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
 
-export { iso, habil, sumarHabiles, primerDia } from '@/lib/fechasCarga';
+export { iso, habil, sumarHabiles, primerDia, corteDe } from '@/lib/fechasCarga';
+export type { CortesCarga } from '@/lib/fechasCarga';
 
 export function textoSitio(s: SitioOpcion | SitioNuevo): string {
   const lin = [s.codigo_postal, s.poblacion].filter(Boolean).join(' ');
@@ -128,7 +129,8 @@ export type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos
   esMaster?: boolean;                                 // Admin Master: cualquier fecha, también pasada
   reglas?: ReglasPrecio | null };                     // antelación máxima y precio provisional (parámetros)
 export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number;
-  corte_fija_hora?: number; corte_ventana_hora?: number };   // horas de corte para cargar el siguiente día hábil
+  // Horas de corte: la de fecha fija y una POR VENTANA (1-2, 1-3 y 1-4 días; usuario, 2026-11-10).
+  corte_fija_hora?: number; corte_ventana_1_2_hora?: number; corte_ventana_1_3_hora?: number; corte_ventana_1_4_hora?: number };
 
 // Del valor guardado a la opción más cercana del desplegable (que va por tramos).
 export const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>

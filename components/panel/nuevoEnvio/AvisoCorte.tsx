@@ -3,11 +3,12 @@
 // Aviso del CORTE del día en el paso de fecha (calcado del mockup): antes del corte, una
 // cuenta atrás en vivo («Pide antes de las 12:00, quedan 1 h 23 min…») con el primer día
 // de carga posible; pasado el corte, desde cuándo se puede cargar, con el rango de la
-// ventana. Corte de fecha fija 12:00 · ventanas (estándar y corta) 14:00 (Parámetros).
-// Toda ventana puede empezar HOY MISMO antes de las 14:00; pasado el corte, el siguiente
+// ventana. CADA ventana tiene SU hora de corte en Parámetros (usuario, 2026-11-10):
+// 1-3 días (carga completa), 1-2 y 1-4 (grupaje); la fecha fija, la suya (12:00).
+// Toda ventana puede empezar HOY MISMO antes de su corte; pasado, el siguiente
 // día hábil, nunca dos (usuario, 2026-11-09).
 import { useEffect, useMemo, useState } from 'react';
-import { iso, primerDia, sumarHabiles } from '@/lib/fechasCarga';
+import { corteDe, iso, primerDia, sumarHabiles, type CortesCarga } from '@/lib/fechasCarga';
 import { ahoraMadrid } from '@/lib/atencion';
 import { fecha as fmtFecha } from '@/lib/formato';
 
@@ -20,7 +21,7 @@ const IcoReloj = () => (
 export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaje }: {
   urgencia: 'dia' | 'estandar' | 'corta';
   festivos: string[];
-  cortes?: { fija?: number; ventana?: number };
+  cortes?: CortesCarga;
   ventana: number;              // días de la ventana de recogida (1 = fecha fija)
   grupaje: boolean;
 }) {
@@ -30,10 +31,10 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
   const fest = useMemo(() => new Set(festivos), [festivos]);
 
   const m = ahoraMadrid();
-  const corteH = urgencia === 'dia' ? (cortes?.fija ?? 12) : (cortes?.ventana ?? 14);
+  const corteH = corteDe(urgencia, grupaje, cortes);
   const etiqueta = `${corteH}:00`;
   const resta = corteH * 3600 - (m.getHours() * 3600 + m.getMinutes() * 60 + m.getSeconds());
-  const first = primerDia(urgencia, fest, cortes);
+  const first = primerDia(urgencia, grupaje, fest, cortes);
   const firstHoy = first === iso(m);
   const hasta = ventana > 1 ? sumarHabiles(first, ventana - 1, fest) : first;
   const rango = ventana > 1 ? <> (ventana del <strong>{fmtFecha(first)}</strong> al <strong>{fmtFecha(hasta)}</strong>)</> : null;
