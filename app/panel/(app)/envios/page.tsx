@@ -17,6 +17,7 @@ export const dynamic = 'force-dynamic';
 // Lo que llega de la tabla (Dynamo) y de mis_envios/mis_viajes_por_ids() (cliente y transportista).
 type FilaDynamo = Omit<EnvioFila, 'cliente' | 'cliente_cif' | 'operador' | 'transportista_asignado' | 'paradas'> & {
   transportista_id: string | null; clientes: { nombre_visible: string | null; cif: string } | null;
+  transportistas: { nombre_visible: string | null } | null;
   operadores: { razon_social: string } | null; envio_paradas: Parada[] | null };
 // Las funciones no traen todas las columnas de EnvioFila: las que faltan llegan sin valor.
 type FilaMia = Omit<EnvioFila, 'cliente' | 'cliente_cif' | 'operador' | 'transportista_asignado' | 'paradas' | 'creado_por'> & {
@@ -119,7 +120,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const COLS = 'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
       'toneladas, metros_lineales, tipo_carga, requiere_plataforma_elevadora, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
-      'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
+      'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, conductor_nombre, conductor_telefono, transportistas(nombre_visible), ' +
       'matricula_remolque, creado_en, modificado_en, creado_por, estado_solicitud, estado_pago_previo, estado_cambio_cliente, requiere_revision_precio, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
     let data: FilaDynamo[] = [];
@@ -130,6 +131,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     }
     filas = data.map((x) => ({
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,
+      transportista: x.transportistas?.nombre_visible ?? null,
       operador: x.operadores?.razon_social ?? null, transportista_asignado: !!x.transportista_id,
       paradas: (x.envio_paradas ?? []) as Parada[],
     }));

@@ -24,6 +24,8 @@ export type EnvioFila = {
   importe_cliente: number | null; importe_transportista: number | null;
   precio_acordado_operador: number | null; precio_fijado_a_mano: boolean | null;
   matricula_camion: string | null; matricula_remolque: string | null;
+  // Solo en la lista de Dynamo (el cliente no ve qué transportista lleva su envío).
+  transportista?: string | null; conductor_nombre?: string | null; conductor_telefono?: string | null;
   cliente: string | null; cliente_cif: string | null;
   creado_en: string | null; modificado_en: string | null; creado_por: string | null;
   paradas: Parada[];
