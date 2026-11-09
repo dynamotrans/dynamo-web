@@ -70,10 +70,10 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
         </div>
         <div>
           <label htmlFor={`${id}-email`}>Email {obligatorios ? <Req util /> : <Req si={false} />}</label>
+          {/* Nota en VERDE, bajo la etiqueta y ANTES del campo (usuario, 2026-11-09). */}
+          {obligatorios && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>}
           <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
         </div>
-        {/* Nota corta a TODO el ancho (usuario, 2026-11-09: bajo el email dejaba hueco). */}
-        {obligatorios && <div style={{ gridColumn: '1/-1', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '-0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>}
         <div>{!obligatorios || c.nombre.trim() || verNombre
           ? <><label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>
               <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
