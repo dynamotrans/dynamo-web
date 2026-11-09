@@ -8,6 +8,8 @@ import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
 import { euros, fechaHora, numero } from '@/lib/formato';
@@ -149,7 +151,11 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
 
   async function guardar() {
     setError(null);
-    if (!d.razon_social.trim() || !d.cif.trim()) { setError('La razón social y el CIF/NIF son obligatorios.'); return; }
+    if (!d.razon_social.trim() || !d.cif.trim()) {
+      setError('La razón social y el CIF/NIF son obligatorios.');
+      avisaFaltas([!d.razon_social.trim() && 'cli-razon_social', !d.cif.trim() && 'cli-cif'].filter(Boolean) as string[]);
+      return;
+    }
     const n = { cesce: num(textos.cesce), dyn: num(textos.dyn), iva: num(textos.iva), ret: num(textos.ret), re: num(textos.re), tarde: num(textos.tarde) };
     if (Object.values(n).some((v) => Number.isNaN(v))) { setError('Hay un importe o porcentaje que no es un número.'); return; }
     setGuardando(true);
@@ -164,14 +170,14 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
     onGuardado();
   }
 
-  const campo = (id: keyof ClienteDatos, label: string, ph?: string, full?: boolean) => (
+  const campo = (id: keyof ClienteDatos, label: React.ReactNode, ph?: string, full?: boolean) => (
     <div style={full ? { gridColumn: '1/-1' } : undefined}>
       <label htmlFor={`cli-${id}`}>{label}</label>
       <input id={`cli-${id}`} type="text" value={String(d[id] ?? '')} placeholder={ph}
         onChange={(e) => set(id, e.target.value as never)} />
     </div>
   );
-  const texto = (k: keyof typeof textos, label: string, ph?: string) => (
+  const texto = (k: keyof typeof textos, label: React.ReactNode, ph?: string) => (
     <div>
       <label htmlFor={`cli-t-${k}`}>{label}</label>
       <input id={`cli-t-${k}`} type="text" inputMode="decimal" value={textos[k]} placeholder={ph}
@@ -206,11 +212,11 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
       )}
       <div className="ptar-sitio-grid">
         {titulo('Empresa')}
-        {campo('razon_social', 'Razón social *', 'Ej. Marbex Industrial S.L.', true)}
-        {campo('nombre_comercial', 'Nombre comercial (opcional)', 'Si se le conoce por otro nombre')}
-        {campo('cif', 'CIF / NIF *', 'B12345678 / 12345678Z')}
+        {campo('razon_social', <>Razón social <Req /></>, 'Ej. Marbex Industrial S.L.', true)}
+        {campo('nombre_comercial', <>Nombre comercial <Req si={false} /></>, 'Si se le conoce por otro nombre')}
+        {campo('cif', <>CIF / NIF <Req /></>, 'B12345678 / 12345678Z')}
         <div>
-          <label htmlFor="cli-sector">Sector (opcional)</label>
+          <label htmlFor="cli-sector">Sector <Req si={false} /></label>
           <select id="cli-sector" value={d.sector ?? ''} onChange={(e) => set('sector', e.target.value || null)}>
             <option value="">Sin definir</option>
             {[...new Set([...sectores, ...(d.sector ? [d.sector] : [])])].map((s) => <option key={s} value={s}>{s}</option>)}
@@ -224,10 +230,10 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
         </div>
 
         {titulo('Domicilio fiscal')}
-        {campo('direccion', 'Dirección (calle y número)', 'Calle y número', true)}
-        {campo('codigo_postal', 'Código postal', '41001')}
-        {campo('poblacion', 'Población', 'Sevilla')}
-        {campo('provincia', 'Provincia', 'Sevilla')}
+        {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, 'Calle y número', true)}
+        {campo('codigo_postal', <>Código postal <Req si={false} /></>, '41001')}
+        {campo('poblacion', <>Población <Req si={false} /></>, 'Sevilla')}
+        {campo('provincia', <>Provincia <Req si={false} /></>, 'Sevilla')}
         <div>
           <label htmlFor="cli-pais">País</label>
           <SelectorPais id="cli-pais" valor={d.pais_codigo_iso} onCambio={(v) => { set('pais_codigo_iso', v); setTextos((t) => ({ ...t, iva: v === 'ES' ? '21' : '0' })); }} />
@@ -245,12 +251,12 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
             {PLAZOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
         </div>
-        {texto('iva', 'IVA (%) · 21 en España, 0 fuera (cámbialo si toca, p. ej. Canarias)', '21')}
-        {texto('cesce', 'Importe crédito CESCE (€)', 'Ej. 40000')}
-        {texto('dyn', 'Importe crédito Dynamo (€) · 0 o vacío = manda CESCE', 'Ej. 10000')}
-        {texto('ret', 'Retención (%)', '0')}
-        {texto('re', 'Recargo de equivalencia (%)', '0')}
-        {texto('tarde', 'Recargo por pago tarde (%)', '0')}
+        {texto('iva', <>IVA (%) · 21 en España, 0 fuera (cámbialo si toca, p. ej. Canarias) <Req si={false} /></>, '21')}
+        {texto('cesce', <>Importe crédito CESCE (€) <Req si={false} /></>, 'Ej. 40000')}
+        {texto('dyn', <>Importe crédito Dynamo (€) · 0 o vacío = manda CESCE <Req si={false} /></>, 'Ej. 10000')}
+        {texto('ret', <>Retención (%) <Req si={false} /></>, '0')}
+        {texto('re', <>Recargo de equivalencia (%) <Req si={false} /></>, '0')}
+        {texto('tarde', <>Recargo por pago tarde (%) <Req si={false} /></>, '0')}
         <div />
         {interruptor('permite_contraoferta', 'Puede hacer contraoferta de precio (si además está encendida en Parámetros)')}
         {interruptor('discrecion_comercial', 'Discreción comercial por defecto')}
@@ -296,10 +302,10 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
         </div>
 
         {titulo('Contabilidad (Holded)')}
-        {campo('cuenta_contable', 'Cuenta contable', 'Ej. 43000123')}
-        {campo('holded_forma_pago_ref', 'Forma de pago en Holded (ID)', 'Ej. 5f2a…')}
+        {campo('cuenta_contable', <>Cuenta contable <Req si={false} /></>, 'Ej. 43000123')}
+        {campo('holded_forma_pago_ref', <>Forma de pago en Holded (ID) <Req si={false} /></>, 'Ej. 5f2a…')}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="cli-notas">Notas internas</label>
+          <label htmlFor="cli-notas">Notas internas <Req si={false} /></label>
           <textarea id="cli-notas" rows={3} placeholder="Solo visibles para el equipo Dynamo" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} />
         </div>
       </div>

@@ -6,7 +6,11 @@ import Cargando from '@/components/Cargando';
 import { numero } from '@/lib/formato';
 import type { Ficha } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 import { I, ICO, aNum } from './comun';
+
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 
 // ---- Poner precio a una solicitud del cliente ----------------------------------------
 export function PonerPrecio({ ficha, onVolver, hacer, trabajando, fallo }: { ficha: Ficha; onVolver: () => void; hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>; trabajando: string | null; fallo?: string | null }) {
@@ -20,7 +24,7 @@ export function PonerPrecio({ ficha, onVolver, hacer, trabajando, fallo }: { fic
       pie={<>
         <button className="btn-ghost" onClick={onVolver} disabled={!!trabajando}>Volver</button>
         <button className="btn-primary" disabled={!!trabajando} onClick={() => {
-          if (!(vc != null && vc > 0)) { setError('Pon el precio del cliente (base sin IVA).'); return; }
+          if (!(vc != null && vc > 0)) { setError('Pon el precio del cliente (base sin IVA).'); avisaFaltas(['pp-pc']); return; }
           if (vt != null && Number.isNaN(vt)) { setError('El precio del transportista no es válido.'); return; }
           hacer('Enviando el precio', () => proponerPrecio(e.id, vc, vt));
         }}>Enviar precio al cliente</button>
@@ -28,9 +32,9 @@ export function PonerPrecio({ ficha, onVolver, hacer, trabajando, fallo }: { fic
       {trabajando && <Cargando texto={trabajando} />}
       <div className="ptar-admin-precio">
         <div className="ptar-admin-precio-head">Precios <span>· el del transportista solo lo ves tú</span></div>
-        <label className="ptar-admin-precio-lbl" htmlFor="pp-pc">Cliente (base sin IVA)</label>
+        <label className="ptar-admin-precio-lbl" htmlFor="pp-pc">Cliente (base sin IVA) <Req /></label>
         <input id="pp-pc" type="text" inputMode="decimal" placeholder="Ej. 1.230,00" value={pc} onChange={(ev) => setPc(ev.target.value)} />
-        <label className="ptar-admin-precio-lbl" htmlFor="pp-pt" style={{ marginTop: '0.6rem' }}>Transportista (base sin IVA) · opcional</label>
+        <label className="ptar-admin-precio-lbl" htmlFor="pp-pt" style={{ marginTop: '0.6rem' }}>Transportista (base sin IVA) <Req si={false} /></label>
         <input id="pp-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(ev) => setPt(ev.target.value)} />
         <p className="ptar-admin-precio-note">El cliente lo verá en su panel con el IVA. Al aceptarlo, el envío pasa a programado.</p>
       </div>

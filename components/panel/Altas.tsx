@@ -15,6 +15,8 @@ import { estadoCola, duracionTxt, COLA_OBJETIVO_TXT } from '@/lib/colaAltas';
 import { resolverContraoferta } from '@/app/panel/(app)/envios/acciones';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
+// Etiquetas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
 
 export type AltaFila = {
   id: string; email: string; nombre: string; telefono: string; documento: string; solicitada_en: string; confirmado_email: boolean;
@@ -225,7 +227,7 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
     );
   }
 
-  const campo = (k: keyof NuevaEmpresa, label: string, full = false) => (
+  const campo = (k: keyof NuevaEmpresa, label: React.ReactNode, full = false) => (
     <div style={full ? { gridColumn: '1/-1' } : undefined}>
       <label htmlFor={`alta-${k}`}>{label}</label>
       <input id={`alta-${k}`} type="text" value={n[k]} onChange={(e) => setN((x) => ({ ...x, [k]: e.target.value }))} />
@@ -273,16 +275,16 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
             <button className="btn-primary" onClick={crearEmpresa} disabled={!!trabajando || !n.razon_social.trim() || !n.cif.trim()}>Crear y seleccionar</button>
           </>}>
           <div className="ptar-sitio-grid">
-            {campo('razon_social', 'Razón social *', true)}
-            {campo('cif', 'CIF / NIF *')}
+            {campo('razon_social', <>Razón social <Req /></>, true)}
+            {campo('cif', <>CIF / NIF <Req /></>)}
             <div>
               <label htmlFor="alta-pais">País</label>
               <SelectorPais id="alta-pais" valor={n.pais_codigo_iso} onCambio={(v) => setN((x) => ({ ...x, pais_codigo_iso: v }))} />
             </div>
-            {campo('direccion', 'Dirección (calle y número)', true)}
-            {campo('codigo_postal', 'Código postal')}
-            {campo('poblacion', 'Población')}
-            {campo('provincia', 'Provincia')}
+            {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, true)}
+            {campo('codigo_postal', <>Código postal <Req si={false} /></>)}
+            {campo('poblacion', <>Población <Req si={false} /></>)}
+            {campo('provincia', <>Provincia <Req si={false} /></>)}
           </div>
           {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
           {trabajando && <Cargando texto={trabajando} />}

@@ -20,6 +20,8 @@ import type { Rol } from '@/lib/sesion';
 
 import { partirTel, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 export type Empresa = { id: string; nombre: string; cif: string };
 export type Conteos = { total: number; activa: number; pendiente: number; suspendida: number; suspendida_auto: number; invitacion: number };
@@ -212,7 +214,7 @@ function SelectorEmpresa({ rol, cliente_id, transportista_id, onCambio, id }: {
   );
   return (
     <div>
-      <label htmlFor={id}>{esCli ? 'Cliente' : 'Transportista'} <span className="sitio-req">· obligatorio</span></label>
+      <label htmlFor={id}>{esCli ? 'Cliente' : 'Transportista'} <Req /></label>
       <Buscador id={id} valor={sel}
         buscar={async (q) => { const r = esCli ? await buscarClientes(q) : await buscarTransportistas(q); return r.map((o) => ({ id: o.id, nombre: o.nombre, cif: o.cif })); }}
         onElegir={(o) => { setSel(o); onCambio(esCli ? { cliente_id: o?.id ?? '', transportista_id: '' } : { cliente_id: '', transportista_id: o?.id ?? '' }); }}
@@ -224,7 +226,7 @@ function SelectorEmpresa({ rol, cliente_id, transportista_id, onCambio, id }: {
 function Telefono({ id, valor, onCambio }: { id: string; valor: { pref: string; num: string }; onCambio: (v: { pref: string; num: string }) => void }) {
   return (
     <div>
-      <label htmlFor={id}>Teléfono</label>
+      <label htmlFor={id}>Teléfono <Req si={false} /></label>
       <div className="tel-group">
         <SelectorPais modo="prefijo" valor={valor.pref} onCambio={(v) => onCambio({ ...valor, pref: v })} />
         <input id={id} type="tel" inputMode="tel" value={valor.num} placeholder="600 000 000" onChange={(e) => onCambio({ ...valor, num: e.target.value })} />
@@ -268,7 +270,7 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
   }
   const limite = (k: 'limite_consultas_precio_diario' | 'limite_envios_diario', label: string) => (
     <div>
-      <label htmlFor={`usr-${k}`}>{label}</label>
+      <label htmlFor={`usr-${k}`}>{label} <Req si={false} /></label>
       <input id={`usr-${k}`} type="text" inputMode="numeric" placeholder="Sin límite" value={d[k] ?? ''}
         onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); set(k, v ? Number(v) : null); }} />
     </div>
@@ -337,22 +339,22 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
           </select>
         </div>
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="usr-nombre">Nombre y apellidos</label>
+          <label htmlFor="usr-nombre">Nombre y apellidos <Req si={false} /></label>
           <input id="usr-nombre" type="text" value={d.nombre} placeholder="Nombre y apellidos" onChange={(e) => set('nombre', e.target.value)} />
         </div>
         <div>
-          <label htmlFor="usr-dni">DNI / NIE</label>
+          <label htmlFor="usr-dni">DNI / NIE <Req si={false} /></label>
           <input id="usr-dni" type="text" value={d.documento} placeholder="12345678Z" onChange={(e) => set('documento', e.target.value)} />
         </div>
         <Telefono id="usr-tel" valor={tel} onCambio={setTel} />
         <div>
-          <label htmlFor="usr-cargo">Cargo</label>
+          <label htmlFor="usr-cargo">Cargo <Req si={false} /></label>
           <input id="usr-cargo" type="text" value={d.cargo} placeholder="Jefe de tráfico, administración…" onChange={(e) => set('cargo', e.target.value)} />
         </div>
         <div />
         {u.rol === 'cliente' && <>{limite('limite_consultas_precio_diario', 'Límite de consultas de precio al día')}{limite('limite_envios_diario', 'Límite de envíos al día')}</>}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="usr-copias">Enviar copia a · opcional (si hay varios, sepáralos por comas; máx. 10)</label>
+          <label htmlFor="usr-copias">Enviar copia a <Req si={false} /> (si hay varios, sepáralos por comas; máx. 10)</label>
           <input id="usr-copias" type="text" inputMode="email" value={d.copias} placeholder="logistica@empresa.com, almacen@empresa.com" onChange={(e) => set('copias', e.target.value)} />
         </div>
         {!interno(u.rol) && (
@@ -367,7 +369,7 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
           </div>
         )}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="usr-notas">Notas internas</label>
+          <label htmlFor="usr-notas">Notas internas <Req si={false} /></label>
           <textarea id="usr-notas" rows={2} placeholder="Solo visibles para el equipo Dynamo" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} />
         </div>
       </div>
@@ -419,7 +421,7 @@ function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () =
       <div className="modal-warn-box">Hazlo solo si te lo pide <strong>el propio usuario</strong> o su empresa (por teléfono o desde su email de siempre). Desde ese momento entra con el email nuevo y su contraseña de siempre; los avisos le llegan al nuevo.</div>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="email-nuevo">Email nuevo</label>
+          <label htmlFor="email-nuevo">Email nuevo <Req /></label>
           <input id="email-nuevo" type="email" inputMode="email" autoComplete="off" placeholder="nuevo@empresa.com" value={nuevo} onChange={(e) => setNuevo(e.target.value)} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
@@ -509,6 +511,13 @@ function Invitar({ yo, onCerrar, onHecho }: {
 
   async function enviar() {
     setError(null);
+    // Faltas de obligatorios: aviso + desplazar + borde rojo (criterio único, 2026-11-09).
+    const faltas = [
+      !d.email.trim() && 'inv-email', !d.nombre.trim() && 'inv-nombre',
+      d.rol === 'cliente' && !d.cliente_id && 'inv-empresa',
+      d.rol === 'transportista' && !d.transportista_id && 'inv-empresa',
+    ].filter(Boolean) as string[];
+    if (faltas.length) { setError('Faltan campos obligatorios (en rojo).'); avisaFaltas(faltas); return; }
     if (!confirmado(conf)) { setError('Escribe «Confirmo» para dar de alta este tipo de usuario.'); return; }
     setTrabajando(true);
     const r = await invitarUsuario({ ...d, telefono: telDe(tel), confirmacion: conf });
@@ -524,11 +533,11 @@ function Invitar({ yo, onCerrar, onHecho }: {
       </>}>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="inv-email">Email (usuario de acceso) <span className="sitio-req">· obligatorio</span></label>
+          <label htmlFor="inv-email">Email (usuario de acceso) <Req /></label>
           <input id="inv-email" type="email" inputMode="email" autoComplete="off" value={d.email} placeholder="nombre@empresa.com" onChange={(e) => setD({ ...d, email: e.target.value })} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="inv-nombre">Nombre y apellidos <span className="sitio-req">· obligatorio</span></label>
+          <label htmlFor="inv-nombre">Nombre y apellidos <Req /></label>
           <input id="inv-nombre" type="text" value={d.nombre} placeholder="Nombre y apellidos" onChange={(e) => setD({ ...d, nombre: e.target.value })} />
         </div>
         <div>
@@ -541,7 +550,7 @@ function Invitar({ yo, onCerrar, onHecho }: {
           onCambio={(c) => setD({ ...d, ...c })} />
         <Telefono id="inv-tel" valor={tel} onCambio={setTel} />
         <div>
-          <label htmlFor="inv-cargo">Cargo</label>
+          <label htmlFor="inv-cargo">Cargo <Req si={false} /></label>
           <input id="inv-cargo" type="text" value={d.cargo} placeholder="Jefe de tráfico, administración…" onChange={(e) => setD({ ...d, cargo: e.target.value })} />
         </div>
         <CampoConfirmo id="inv-confirmo" valor={conf} onCambio={(v) => { setConf(v); setError(null); }} />

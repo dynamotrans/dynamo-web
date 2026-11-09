@@ -5,7 +5,10 @@ import Modal from '../Modal';
 import Cargando from '@/components/Cargando';
 import { euros, fechaHora } from '@/lib/formato';
 import { cancelarEnvio } from '@/app/panel/(app)/envios/acciones';
+import Req from '@/components/Req';
 import { I, ICO, SubProps } from './comun';
+
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 
 // ---- Cancelar -----------------------------------------------------------------------
 export function Cancelar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps) {
@@ -29,7 +32,7 @@ export function Cancelar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps
       </div>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="ca-motivo">Motivo (queda en el historial)</label>
+          <label htmlFor="ca-motivo">Motivo (queda en el historial) <Req si={false} /></label>
           <textarea id="ca-motivo" rows={3} value={motivo} placeholder="Ej. el cliente ya no tiene la mercancía" onChange={(ev) => setMotivo(ev.target.value)} />
         </div>
       </div>

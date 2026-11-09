@@ -8,6 +8,9 @@ import { euros, fechaHora, porcentaje } from '@/lib/formato';
 
 import type { Ficha } from '@/lib/fichaEnvio';
 import { marcarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean>;
 
@@ -54,7 +57,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
         ) : (
           <div style={{ marginTop: '0.6rem' }}>
             {!pago.conCredito && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.3rem' }}>Ojo: este cliente no tiene crédito disponible en la plataforma. Hazlo solo si CESCE te lo ha confirmado.</div>}
-            <label htmlFor="pp-motivo" style={{ fontWeight: 700 }}>Motivo (queda guardado)</label>
+            <label htmlFor="pp-motivo" style={{ fontWeight: 700 }}>Motivo (queda guardado) <Req /></label>
             <textarea id="pp-motivo" className="campo-texto" rows={3} value={motivo} onChange={(e) => { setMotivo(e.target.value); if (e.target.value.trim().length >= 3) setFalta(null); }} maxLength={500}
               placeholder="P. ej. CESCE positivo, empresa conocida, cobro a 60 días" style={{ marginTop: '0.25rem' }} />
             {falta && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.4rem' }}>⚠ {falta}</div>}
@@ -63,7 +66,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
                 onClick={async () => {
                   // El botón NO se deshabilita en silencio (el usuario escribió «Ok» y
                   // parecía que no funcionaba): si el motivo es demasiado corto, se dice.
-                  if (motivo.trim().length < 3) { setFalta('Escribe el motivo con unas palabras (mínimo 3 letras): queda guardado en el envío.'); return; }
+                  if (motivo.trim().length < 3) { setFalta('Escribe el motivo con unas palabras (mínimo 3 letras): queda guardado en el envío.'); avisaFaltas(['pp-motivo']); return; }
                   setFalta(null);
                   if (await hacer('Guardando', () => marcarPagoEnvio(envio.id, 'exento', motivo))) { setExento(false); setMotivo(''); }
                 }}>

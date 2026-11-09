@@ -16,6 +16,9 @@ import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
 import { euros, numero, fechaHora } from '@/lib/formato';
 import { descargarCsv } from '@/lib/exportaciones';
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 export type PenalizacionFila = {
   id: string; codigo: string; envio_id: string; tipo_id: string; tipo: string; descripcion: string | null;
@@ -141,9 +144,9 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
     setError(null);
     const c = aNum(ic), t = aNum(it);
     if (Number.isNaN(c) || Number.isNaN(t)) { setError('Algún importe no es un número.'); return; }
-    if (!envio) { setError('Elige el envío al que corresponde la penalización.'); return; }
-    if (!tipo) { setError('Elige el tipo de penalización.'); return; }
-    if (c == null && t == null) { setError('Pon al menos un importe (al cliente o al transportista).'); return; }
+    if (!envio) { setError('Elige el envío al que corresponde la penalización.'); avisaFaltas(['pen-envio']); return; }
+    if (!tipo) { setError('Elige el tipo de penalización.'); avisaFaltas(['pen-tipo']); return; }
+    if (c == null && t == null) { setError('Pon al menos un importe (al cliente o al transportista).'); avisaFaltas(['pen-ic', 'pen-it']); return; }
     setTrabajando(fila ? 'Guardando penalización' : 'Creando penalización');
     const r = await guardarPenalizacion(fila?.id ?? null, { envio_id: envio, tipo_id: tipo, descripcion: desc, importe_cliente: c, importe_transportista: t });
     setTrabajando(null);
@@ -189,27 +192,27 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
         </div>
       )}
       <div className="modal-form-row">
-        <label>Envío referenciado</label>
-        <BuscaEnvio envios={envios} valor={envio} onCambio={setEnvio} remoto />
+        <label>Envío referenciado <Req /></label>
+        <div id="pen-envio"><BuscaEnvio envios={envios} valor={envio} onCambio={setEnvio} remoto /></div>
       </div>
       <div className="modal-form-row">
-        <label htmlFor="pen-tipo">Tipo de penalización</label>
+        <label htmlFor="pen-tipo">Tipo de penalización <Req /></label>
         <select id="pen-tipo" className="ptar-select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
           <option value="">Selecciona el tipo…</option>
           {tipos.filter((t) => t.activo || t.id === tipo).map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
         </select>
       </div>
       <div className="modal-form-row">
-        <label htmlFor="pen-desc">Descripción</label>
+        <label htmlFor="pen-desc">Descripción <Req si={false} /></label>
         <textarea id="pen-desc" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Describe el motivo de la penalización…" />
       </div>
       <div className="ptar-sitio-grid">
         <div>
-          <label htmlFor="pen-ic">Importe al cliente <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sin IVA</span></label>
+          <label htmlFor="pen-ic">Importe al cliente <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sin IVA · al menos uno de los dos</span></label>
           <input id="pen-ic" type="text" inputMode="decimal" value={ic} onChange={(e) => setIc(e.target.value)} placeholder="Lo que se le cobra" />
         </div>
         <div>
-          <label htmlFor="pen-it">Importe al transportista <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sin IVA</span></label>
+          <label htmlFor="pen-it">Importe al transportista <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sin IVA · al menos uno de los dos</span></label>
           <input id="pen-it" type="text" inputMode="decimal" value={it} onChange={(e) => setIt(e.target.value)} placeholder="Lo que se le paga" />
         </div>
       </div>

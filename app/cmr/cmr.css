@@ -96,3 +96,8 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
 .cmr-page .privcard p { margin: 0 0 0.55rem; font-size: 0.83rem; line-height: 1.5; color: #333; }
 .cmr-page .priv-x { position: absolute; top: 0.6rem; right: 0.65rem; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #eef0f4; color: #333; font-size: 1rem; font-weight: 800; line-height: 1; cursor: pointer; }
 .cmr-page .priv-cerrar { display: block; width: 100%; margin-top: 0.7rem; padding: 0.72rem; border: 0; border-radius: 12px; background: var(--purple); color: #fff; font-weight: 800; font-size: 0.95rem; cursor: pointer; }
+
+/* Etiqueta única obligatorio/opcional y campo sin rellenar (copiada de dashboard.css). */
+.cmr-page .campo-oblig { color: #dc2626; font-weight: 700; font-size: 0.82rem; text-transform: none; letter-spacing: 0; }
+.cmr-page .campo-opc { color: var(--gray-700); font-weight: 500; font-size: 0.82rem; text-transform: none; letter-spacing: 0; }
+.cmr-page .campo-falta, .cmr-page .campo-falta input, .cmr-page .campo-falta select, .cmr-page .campo-falta textarea { border-color: #dc2626 !important; }

@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { entrar, type EstadoEntrar } from '../acciones';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
+import Req from '@/components/Req';
 
 const inicial: EstadoEntrar = { error: null };
 
@@ -26,7 +27,7 @@ export default function FormEntrar({ caducada = false, baja = false }: { caducad
         <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>
       )}
       <div className="portal-field">
-        <label className="portal-label" htmlFor="portal-user">Correo electrónico</label>
+        <label className="portal-label" htmlFor="portal-user">Correo electrónico <Req /></label>
         <div className="portal-input-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 5L2 7" /></svg>
           <input id="portal-user" name="email" key={estado.email ?? ''} defaultValue={estado.email ?? ''} className="portal-input" type="email" inputMode="email"
@@ -35,7 +36,7 @@ export default function FormEntrar({ caducada = false, baja = false }: { caducad
       </div>
 
       <div className="portal-field">
-        <label className="portal-label" htmlFor="portal-pass">Contraseña</label>
+        <label className="portal-label" htmlFor="portal-pass">Contraseña <Req /></label>
         <div className="portal-input-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           <input id="portal-pass" name="password" className="portal-input" type="password"

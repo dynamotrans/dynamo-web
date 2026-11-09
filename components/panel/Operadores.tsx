@@ -5,14 +5,16 @@ import { fechaHora } from '@/lib/formato';
 // Transportistas propios del cliente (catálogo PRIVADO, tabla `operadores`), con el diseño
 // de #sec-operadores de dashboard.html: Dynamo como fila fija arriba (no editable), y
 // debajo los del cliente. Dynamo ve los de todos los clientes, con su columna de cliente.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel/(app)/operadores/acciones';
-import { rutaDeSubida, registrarDocumento } from '@/app/panel/(app)/documentos/acciones';
+import { rutaDeSubida, registrarDocumento, documentosDe } from '@/app/panel/(app)/documentos/acciones';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 
 import { telBonito } from '@/lib/paises';
@@ -131,12 +133,29 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
   // Logo elegido YA en el alta (usuario, 2026-11-09): se crea el transportista y se sube
   // seguido, sin tener que volver a abrir su ficha.
   const [logo, setLogo] = useState<File | null>(null);
+  // Vista previa del logo en cuadro 1:1 (usuario, 2026-11-09): se usará en webs y
+  // documentos, así que se enseña tal cual quedará. En el alta, el archivo elegido; en
+  // la edición, el guardado (vía el visor con permisos /panel/documentos/<id>).
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!fila) {
+      if (!logo) { setLogoUrl(null); return; }
+      const u = URL.createObjectURL(logo);
+      setLogoUrl(u);
+      return () => URL.revokeObjectURL(u);
+    }
+    documentosDe({ campo: 'operador_id', id: fila.id }).then((docs) => {
+      const l = docs.find((x) => x.tipo === 'logo');
+      setLogoUrl(l ? `/panel/documentos/${l.id}` : null);
+    });
+  }, [fila, logo]);
+  const recargarLogo = () => { if (fila) documentosDe({ campo: 'operador_id', id: fila.id }).then((docs) => { const l = docs.find((x) => x.tipo === 'logo'); setLogoUrl(l ? `/panel/documentos/${l.id}` : null); }); };
   const set = <K extends keyof OperadorDatos>(k: K, v: OperadorDatos[K]) => setD((x) => ({ ...x, [k]: v }));
 
   async function guardar() {
     setError(null);
-    if (!d.razon_social.trim()) { setError('El nombre es obligatorio.'); return; }
-    if (dynamo && !fila && !d.cliente_id) { setError('Elige de qué cliente es este transportista.'); return; }
+    if (!d.razon_social.trim()) { setError('El nombre es obligatorio.'); avisaFaltas(['op-razon_social']); return; }
+    if (dynamo && !fila && !d.cliente_id) { setError('Elige de qué cliente es este transportista.'); avisaFaltas(['op-cli']); return; }
     setTrabajando(fila ? 'Guardando cambios' : 'Creando transportista');
     const r = await guardarOperador(fila?.id ?? null, d);
     if (!r.ok) { setTrabajando(null); setError(r.error); return; }
@@ -168,10 +187,6 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
     if (!r.ok) { setError(r.error); setPreguntaBorrar(false); return; }
     onHecho();
   }
-  // Todos los campos dicen SIEMPRE si son obligatorios u opcionales (usuario, 2026-11-09).
-  const Req = ({ si }: { si: boolean }) => si
-    ? <span className="sitio-req">· obligatorio</span>
-    : <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span>;
   const campo = (k: keyof OperadorDatos, label: string, req: boolean, ph: string, full = false, tipo = 'text') => (
     <div style={full ? { gridColumn: '1/-1' } : undefined}>
       <label htmlFor={`op-${k}`}>{label} <Req si={req} /></label>
@@ -226,7 +241,15 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
       </div>
       <div style={{ marginTop: '0.7rem' }}>
         <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga <Req si={false} /></label>
-        {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen />
+        {logoUrl && (
+          <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', margin: '0.2rem 0 0.55rem' }}>
+            <div style={{ width: 112, height: 112, flex: 'none', border: '1px solid var(--gray-200)', borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <img src={logoUrl} alt="Logo del transportista" style={{ maxWidth: '92%', maxHeight: '92%', objectFit: 'contain' }} />
+            </div>
+            <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>Vista previa en cuadro 1:1 — así quedará en la orden de carga y en los demás sitios donde se use.</div>
+          </div>
+        )}
+        {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen onCambio={recargarLogo} />
           : <>
               <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" aria-label="Logo del transportista"
                 onChange={(e) => {

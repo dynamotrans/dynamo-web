@@ -13,6 +13,8 @@ import { DOC_PAISES } from '@/lib/documentoIdentidad';
 import { paisDe, telBonito } from '@/lib/paises';
 import { ROL, fecha, fechaHora } from '@/lib/formato';
 import CampoTelefono from '@/components/CampoTelefono';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 import MedidorClave, { claveValida } from '@/components/MedidorClave';
 import { CONTACTO } from '@/lib/atencion';
 
@@ -146,7 +148,9 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
   const [guardando, setGuardando] = useState(false);
   const set = (k: keyof MisDatos, v: string) => setD((x) => ({ ...x, [k]: v }));
   async function guardar() {
-    setError(null); setGuardando(true);
+    setError(null);
+    if (!d.nombre.trim()) { setError('Pon tu nombre y apellidos.'); avisaFaltas(['mc-nombre']); return; }
+    setGuardando(true);
     const r = await guardarMisDatos(d);
     setGuardando(false);
     if (!r.ok) { setError(r.error); return; }
@@ -154,7 +158,7 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
   }
   const campo = (k: keyof MisDatos, label: string, ph: string, tipo = 'text') => (
     <div>
-      <label htmlFor={`mc-${k}`}>{label}</label>
+      <label htmlFor={`mc-${k}`}>{label} <Req si={false} /></label>
       <input id={`mc-${k}`} type={tipo} value={d[k]} placeholder={ph} onChange={(e) => set(k, e.target.value)} />
     </div>
   );
@@ -167,10 +171,10 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
       </>}>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="mc-nombre">Nombre y apellidos *</label>
+          <label htmlFor="mc-nombre">Nombre y apellidos <Req /></label>
           <input id="mc-nombre" type="text" value={d.nombre} placeholder="Nombre y apellidos" onChange={(e) => set('nombre', e.target.value)} />
         </div>
-        <div><label htmlFor="mc-telefono">Teléfono</label><CampoTelefono id="mc-telefono" valor={d.telefono} onCambio={(v) => set('telefono', v)} /></div>
+        <div><label htmlFor="mc-telefono">Teléfono <Req si={false} /></label><CampoTelefono id="mc-telefono" valor={d.telefono} onCambio={(v) => set('telefono', v)} /></div>
         {campo('documento', 'DNI / NIE', '12345678Z')}
         {campo('cargo', 'Cargo', 'Ej. Responsable de tráfico')}
         <div>
@@ -209,7 +213,7 @@ function useGuardar(onHecho: () => void) {
   return { error, trabajando, correr };
 }
 const fechaCampo = (id: string, label: string, valor: string, onCambio: (v: string) => void) => (
-  <div><label htmlFor={id}>{label}</label><input id={id} type="date" value={valor} onChange={(e) => onCambio(e.target.value)} /></div>
+  <div><label htmlFor={id}>{label} <Req si={false} /></label><input id={id} type="date" value={valor} onChange={(e) => onCambio(e.target.value)} /></div>
 );
 
 function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: string; compania: string; poliza: string; vence: string }; onCerrar: () => void; onHecho: () => void }) {
@@ -222,9 +226,9 @@ function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: str
         <button className="btn-primary" onClick={() => g.correr('Guardando', () => guardarMiTransporte(d))} disabled={!!g.trabajando}>Guardar cambios</button>
       </>}>
       <div className="ptar-sitio-grid">
-        <div><label htmlFor="mt-nima">NIMA</label><input id="mt-nima" type="text" value={d.nima} maxLength={40} placeholder="Solo si transportas residuos" onChange={(e) => setD({ ...d, nima: e.target.value })} /></div>
-        <div><label htmlFor="mt-comp">Compañía del seguro CMR</label><input id="mt-comp" type="text" value={d.compania} maxLength={120} placeholder="Ej. Mapfre" onChange={(e) => setD({ ...d, compania: e.target.value })} /></div>
-        <div><label htmlFor="mt-pol">Nº de póliza</label><input id="mt-pol" type="text" value={d.poliza} maxLength={60} onChange={(e) => setD({ ...d, poliza: e.target.value })} /></div>
+        <div><label htmlFor="mt-nima">NIMA <Req si={false} /></label><input id="mt-nima" type="text" value={d.nima} maxLength={40} placeholder="Solo si transportas residuos" onChange={(e) => setD({ ...d, nima: e.target.value })} /></div>
+        <div><label htmlFor="mt-comp">Compañía del seguro CMR <Req si={false} /></label><input id="mt-comp" type="text" value={d.compania} maxLength={120} placeholder="Ej. Mapfre" onChange={(e) => setD({ ...d, compania: e.target.value })} /></div>
+        <div><label htmlFor="mt-pol">Nº de póliza <Req si={false} /></label><input id="mt-pol" type="text" value={d.poliza} maxLength={60} onChange={(e) => setD({ ...d, poliza: e.target.value })} /></div>
         {fechaCampo('mt-vence', 'Vence el', d.vence, (v) => setD({ ...d, vence: v }))}
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Recuerda subir la póliza renovada en Documentación.</p>
@@ -251,9 +255,9 @@ function CambiarClave({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
         <button className="btn-primary" onClick={() => g.correr('Cambiando la contraseña', () => cambiarMiClave(actual, nueva))} disabled={!!g.trabajando || !vale}>Guardar contraseña</button>
       </>}>
       <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
-        <div><label htmlFor="cc-actual">Contraseña actual</label>
+        <div><label htmlFor="cc-actual">Contraseña actual <Req /></label>
           <input id="cc-actual" type={tipo} autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} /></div>
-        <div><label htmlFor="cc-nueva">Contraseña nueva</label>
+        <div><label htmlFor="cc-nueva">Contraseña nueva <Req /></label>
           <input id="cc-nueva" type={tipo} autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} /></div>
       </div>
       <div style={{ marginTop: '0.5rem' }}><MedidorClave clave={nueva} /></div>
@@ -280,10 +284,10 @@ function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; o
       pie={<>
         {!nuevo && <BotonBaja texto="Sí, dar de baja" disabled={!!g.trabajando} onBaja={() => g.correr('Dando de baja', () => darDeBajaFlota('vehiculo', v.id!))} />}
         <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
-        <button className="btn-primary" onClick={() => g.correr('Guardando', () => guardarMiVehiculo(v))} disabled={!!g.trabajando}>{nuevo ? 'Añadir' : 'Guardar cambios'}</button>
+        <button className="btn-primary" onClick={() => { if (nuevo && !v.matricula.trim()) avisaFaltas(['mv-mat']); g.correr('Guardando', () => guardarMiVehiculo(v)); }} disabled={!!g.trabajando}>{nuevo ? 'Añadir' : 'Guardar cambios'}</button>
       </>}>
       <div className="ptar-sitio-grid">
-        <div><label htmlFor="mv-mat">Matrícula{nuevo ? ' *' : ''}</label>
+        <div><label htmlFor="mv-mat">Matrícula{nuevo && <Req />}</label>
           <input id="mv-mat" type="text" value={v.matricula} placeholder="1234 ABC" onChange={(e) => setV({ ...v, matricula: e.target.value.toUpperCase() })} /></div>
         <div><label htmlFor="mv-tipo">Tipo</label>
           <select id="mv-tipo" className="ptar-select" value={v.tipo} onChange={(e) => setV({ ...v, tipo: e.target.value as MiVehiculo['tipo'] })}>
@@ -319,18 +323,18 @@ function EditarConductor({ inicial, onCerrar, onHecho }: { inicial: MiConductor;
       pie={<>
         {!nuevo && <BotonBaja texto="Sí, dar de baja" disabled={!!g.trabajando} onBaja={() => g.correr('Dando de baja', () => darDeBajaFlota('conductor', c.id!))} />}
         <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
-        <button className="btn-primary" onClick={() => g.correr('Guardando', () => guardarMiConductor(c))} disabled={!!g.trabajando}>{nuevo ? 'Añadir' : 'Guardar cambios'}</button>
+        <button className="btn-primary" onClick={() => { if (!c.nombre.trim()) avisaFaltas(['mcd-nom']); g.correr('Guardando', () => guardarMiConductor(c)); }} disabled={!!g.trabajando}>{nuevo ? 'Añadir' : 'Guardar cambios'}</button>
       </>}>
       <div className="ptar-sitio-grid">
-        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-nom">Nombre y apellidos *</label>
+        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-nom">Nombre y apellidos <Req /></label>
           <input id="mcd-nom" type="text" value={c.nombre} maxLength={120} onChange={(e) => setC({ ...c, nombre: e.target.value })} /></div>
         <div><label htmlFor="mcd-pais">País del documento</label>
           <select id="mcd-pais" className="ptar-select" value={c.pais} onChange={(e) => setC({ ...c, pais: e.target.value })}>
             {DOC_PAISES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select></div>
-        <div><label htmlFor="mcd-doc">DNI / NIE / documento</label>
+        <div><label htmlFor="mcd-doc">DNI / NIE / documento <Req si={false} /></label>
           <input id="mcd-doc" type="text" value={c.documento} maxLength={30} placeholder="12345678Z" onChange={(e) => setC({ ...c, documento: e.target.value.toUpperCase() })} /></div>
-        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-tel">Teléfono móvil</label><CampoTelefono id="mcd-tel" valor={c.telefono} onCambio={(v) => setC({ ...c, telefono: v })} /></div>
+        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-tel">Teléfono móvil <Req si={false} /></label><CampoTelefono id="mcd-tel" valor={c.telefono} onCambio={(v) => setC({ ...c, telefono: v })} /></div>
       </div>
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
       {g.trabajando && <Cargando texto={g.trabajando} />}
@@ -358,9 +362,9 @@ function DarmeDeBaja({ onCerrar, transportista }: { onCerrar: () => void; transp
         <strong>Lo que NO se borra:</strong> {transportista ? 'los datos de tu empresa de transporte' : 'los datos de tu empresa'}, los envíos, albaranes, CMR, documentos de control y facturas. La ley nos obliga a guardarlos (inspección de transporte, Hacienda) y tu empresa puede tener más usuarios. Si además quieres que borremos tus datos personales, escríbenos a {CONTACTO.email}.
       </div></div>
       <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
-        <div><label htmlFor="baja-motivo">Motivo (opcional)</label>
+        <div><label htmlFor="baja-motivo">Motivo <Req si={false} /></label>
           <textarea id="baja-motivo" rows={2} maxLength={300} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Nos ayuda a mejorar" /></div>
-        <div><label htmlFor="baja-clave">Tu contraseña, para confirmar</label>
+        <div><label htmlFor="baja-clave">Tu contraseña, para confirmar <Req /></label>
           <input id="baja-clave" type="password" autoComplete="current-password" value={clave} onChange={(e) => setClave(e.target.value)} /></div>
       </div>
       <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginTop: '0.6rem', fontSize: 'var(--fs-s)' }}>

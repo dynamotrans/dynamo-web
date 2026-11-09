@@ -24,9 +24,10 @@ async function huella(f: File): Promise<string> {
   return [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 
-export default function Documentos({ dueno, tipos, max, conVisibleCliente = false, soloImagen = false, ayuda, editable = true, sinQuitar = false }: {
+export default function Documentos({ dueno, tipos, max, conVisibleCliente = false, soloImagen = false, ayuda, editable = true, sinQuitar = false, onCambio }: {
   dueno: Dueno; tipos: string[]; max?: number; conVisibleCliente?: boolean; soloImagen?: boolean; ayuda?: React.ReactNode; editable?: boolean;
   sinQuitar?: boolean;   // puede subir pero no quitar (clientes y transportistas: retirar un documento es cosa de Dynamo)
+  onCambio?: () => void;   // avisa al padre cada vez que la lista cambia (p. ej. vista previa del logo)
 }) {
   const [docs, setDocs] = useState<DocumentoFila[] | null>(null);
   const [tipo, setTipo] = useState(tipos[0]);
@@ -36,7 +37,7 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
   const [encima, setEncima] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
-  const cargar = useCallback(() => { documentosDe(dueno).then(setDocs); }, [dueno.campo, dueno.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cargar = useCallback(() => { documentosDe(dueno).then((d) => { setDocs(d); onCambio?.(); }); }, [dueno.campo, dueno.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { cargar(); }, [cargar]);
   const lleno = !!max && (docs?.length ?? 0) >= max;
 

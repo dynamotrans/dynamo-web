@@ -6,7 +6,11 @@ import Cargando from '@/components/Cargando';
 import { numero } from '@/lib/formato';
 import { NEGOCIACION } from '@/lib/envios';
 import { modificarEnvio, type DatosEnvio } from '@/app/panel/(app)/envios/acciones';
+import Req from '@/components/Req';
 import { I, ICO, Interruptor, SubProps, aNum, txtNum } from './comun';
+
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09): aquí nada se exige
+// al guardar (solo que los números sean válidos), así que todo campo libre es opcional.
 
 // ---- Modificar ----------------------------------------------------------------------
 export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps) {
@@ -44,7 +48,7 @@ export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProp
   }
   const campo = (k: keyof typeof d, l: string, ph?: string, tipo = 'text', full = false) => (
     <div style={full ? { gridColumn: '1/-1' } : undefined}>
-      <label htmlFor={`mo-${k}`}>{l}</label>
+      <label htmlFor={`mo-${k}`}>{l} <Req si={false} /></label>
       <input id={`mo-${k}`} type={tipo} inputMode={tipo === 'text' && /importe|metros|toneladas|acordado/.test(k) ? 'decimal' : undefined}
         value={String(d[k])} placeholder={ph} onChange={(ev) => set(k, ev.target.value)} />
     </div>
@@ -92,14 +96,14 @@ export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProp
         {paradas.map((p, i) => (
           <div key={p.id} style={{ gridColumn: '1/-1', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,2fr)', gap: '0.5rem 0.8rem' }}>
             <div style={{ gridColumn: '1/-1', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)' }}>{p.titulo}</div>
-            <div><label htmlFor={`mo-ref-${i}`}>Referencia</label><input id={`mo-ref-${i}`} type="text" value={p.referencia} placeholder="Nº de carga del almacén"
+            <div><label htmlFor={`mo-ref-${i}`}>Referencia <Req si={false} /></label><input id={`mo-ref-${i}`} type="text" value={p.referencia} placeholder="Nº de carga del almacén"
               onChange={(ev) => setParadas((l) => l.map((x, j) => (j === i ? { ...x, referencia: ev.target.value } : x)))} /></div>
-            <div><label htmlFor={`mo-not-${i}`}>Anotaciones de esta parada</label><input id={`mo-not-${i}`} type="text" value={p.anotaciones} placeholder="Ej. preguntar por Manolo"
+            <div><label htmlFor={`mo-not-${i}`}>Anotaciones de esta parada <Req si={false} /></label><input id={`mo-not-${i}`} type="text" value={p.anotaciones} placeholder="Ej. preguntar por Manolo"
               onChange={(ev) => setParadas((l) => l.map((x, j) => (j === i ? { ...x, anotaciones: ev.target.value } : x)))} /></div>
           </div>
         ))}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="mo-anot">Anotaciones del envío</label>
+          <label htmlFor="mo-anot">Anotaciones del envío <Req si={false} /></label>
           <textarea id="mo-anot" rows={2} value={d.anotaciones_cliente} onChange={(ev) => set('anotaciones_cliente', ev.target.value)} />
         </div>
       </div>

@@ -12,6 +12,7 @@ import { PAISES_MUNDO } from '@/lib/paises';
 const prefijoDe = (c: string) => PAISES_MUNDO.find(([k]) => k === c)?.[2] ?? '';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
+import Req from '@/components/Req';
 
 const VACIO: DatosAlta = { email: '', empresa: '', cif: '', pais: 'ES', direccion: '', codigo_postal: '', poblacion: '', provincia: '', nombre: '', dni: '', prefijo: '+34', telefono: '' };
 
@@ -45,21 +46,21 @@ export default function FormRegistro() {
       {estado.error && <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>}
       <div className="reg-grid">
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-email">Correo electrónico</label>
+          <label className="portal-label" htmlFor="reg-email">Correo electrónico <Req /></label>
           <div className="portal-input-wrap"><IcoMail />
             <input id="reg-email" key={k('email')} name="email" defaultValue={ini.email} className="portal-input" style={rojo('email')}
                    type="email" inputMode="email" placeholder="tu@empresa.com" autoComplete="email" required />
           </div>
         </div>
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-empresa">Empresa o razón social / Nombre y apellidos</label>
+          <label className="portal-label" htmlFor="reg-empresa">Empresa o razón social / Nombre y apellidos <Req /></label>
           <div className="portal-input-wrap"><IcoEmpresa />
             <input id="reg-empresa" key={k('empresa')} name="empresa" defaultValue={ini.empresa} className="portal-input" style={rojo('empresa')}
                    placeholder="Empresa o nombre completo (autónomo)" autoComplete="organization" required />
           </div>
         </div>
         <div className="portal-field">
-          <label className="portal-label" htmlFor="reg-cif">CIF / NIF</label>
+          <label className="portal-label" htmlFor="reg-cif">CIF / NIF <Req /></label>
           <div className="portal-input-wrap"><IcoDoc />
             <input id="reg-cif" name="cif" value={cif} onChange={(e) => setCif(e.target.value)} className="portal-input" style={rojo('cif')}
                    placeholder="B12345678 / 12345678Z" autoCapitalize="characters" required />
@@ -71,41 +72,41 @@ export default function FormRegistro() {
           <SelectorPais id="reg-pais" name="pais" valor={pais} onCambio={(v) => { setPais(v); if (!prefijo || prefijo === prefijoDe(pais)) { const d = prefijoDe(v); if (d) setPrefijo(d); } }} className="selpais-portal" />
         </div>
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-dir">Dirección fiscal</label>
+          <label className="portal-label" htmlFor="reg-dir">Dirección fiscal <Req /></label>
           <div className="portal-input-wrap"><IcoPin />
             <input id="reg-dir" key={k('direccion')} name="direccion" defaultValue={ini.direccion} className="portal-input" style={rojo('direccion')}
                    placeholder="Calle y número" autoComplete="street-address" required />
           </div>
         </div>
         <div className="portal-field">
-          <label className="portal-label" htmlFor="reg-cp">Código postal</label>
+          <label className="portal-label" htmlFor="reg-cp">Código postal <Req /></label>
           <input id="reg-cp" key={k('codigo_postal')} name="codigo_postal" defaultValue={ini.codigo_postal} className="portal-input sin-ico" style={rojo('codigo_postal')}
                  placeholder="41001" inputMode="numeric" autoComplete="postal-code" required />
         </div>
         <div className="portal-field">
-          <label className="portal-label" htmlFor="reg-pob">Población</label>
+          <label className="portal-label" htmlFor="reg-pob">Población <Req /></label>
           <input id="reg-pob" key={k('poblacion')} name="poblacion" defaultValue={ini.poblacion} className="portal-input sin-ico" style={rojo('codigo_postal')}
                  placeholder="Sevilla" autoComplete="address-level2" required />
         </div>
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-prov">Provincia</label>
+          <label className="portal-label" htmlFor="reg-prov">Provincia <Req si={false} /></label>
           <input id="reg-prov" name="provincia" defaultValue={ini.provincia} className="portal-input sin-ico" placeholder="Sevilla" autoComplete="address-level1" />
         </div>
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-nombre">Tu nombre y apellidos</label>
+          <label className="portal-label" htmlFor="reg-nombre">Tu nombre y apellidos <Req /></label>
           <div className="portal-input-wrap"><IcoPersona />
             <input id="reg-nombre" key={k('nombre')} name="nombre" defaultValue={ini.nombre} className="portal-input" style={rojo('nombre')}
                    placeholder="La persona que usará la cuenta" autoComplete="name" required />
           </div>
         </div>
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-dni">DNI / NIE · opcional</label>
+          <label className="portal-label" htmlFor="reg-dni">DNI / NIE <Req si={false} /></label>
           <input id="reg-dni" name="dni" value={dni} onChange={(e) => setDni(e.target.value)} className="portal-input sin-ico" style={rojo('dni')}
                  placeholder="12345678Z" autoCapitalize="characters" />
           {dni && <Feedback valor={dni} />}
         </div>
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-tel">Teléfono</label>
+          <label className="portal-label" htmlFor="reg-tel">Teléfono <Req /></label>
           <div className="reg-phone" style={rojo('telefono')}>
             <SelectorPais modo="prefijo" name="prefijo" valor={prefijo} onCambio={setPrefijo} />
             <input id="reg-tel" key={k('telefono')} name="telefono" defaultValue={ini.telefono} className="reg-phone-num"

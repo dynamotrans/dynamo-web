@@ -8,6 +8,7 @@ import { HORARIO_POR_DEFECTO, validarHorario } from '@/lib/horarios';
 import CampoTelefono from '@/components/CampoTelefono';
 import { IcoMenos, Punto, SitioNuevo, SitioOpcion, VACIO, direccionCompleta, norm, textoSitio } from './comun';
 import { Campo } from './Campo';
+import Req from '@/components/Req';
 
 // ---- Buscador de sitio de la agenda del cliente (con sitio nuevo) -----------------
 export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambio, onQuitar, onAnadir, onAlternar, asa }: {
@@ -72,14 +73,14 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
       {form && !elegido && (
         <div className="ptar-admin-precio" style={{ marginTop: '0.6rem' }}>
           <div className="ptar-admin-precio-head">Sitio nuevo de {rec ? 'recogida' : 'entrega'}</div>
-          <Campo l="Empresa" v={form.nombre_empresa} on={(v) => setForm({ ...form, nombre_empresa: v })} ph="Ej. Cerámicas del Sur S.L." />
-          <Campo l="Dirección (calle y número)" v={form.direccion} on={(v) => setForm({ ...form, direccion: v })} ph="Ej. C/ Industria, 4" />
+          <Campo l="Empresa" req v={form.nombre_empresa} on={(v) => setForm({ ...form, nombre_empresa: v })} ph="Ej. Cerámicas del Sur S.L." />
+          <Campo l="Dirección (calle y número)" req={false} v={form.direccion} on={(v) => setForm({ ...form, direccion: v })} ph="Ej. C/ Industria, 4" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.5rem' }}>
-            <Campo l="Código postal" v={form.codigo_postal} on={(v) => setForm({ ...form, codigo_postal: v })} ph="41016" />
-            <Campo l="Población" v={form.poblacion} on={(v) => setForm({ ...form, poblacion: v })} ph="Sevilla" />
+            <Campo l="Código postal" req v={form.codigo_postal} on={(v) => setForm({ ...form, codigo_postal: v })} ph="41016" />
+            <Campo l="Población" req v={form.poblacion} on={(v) => setForm({ ...form, poblacion: v })} ph="Sevilla" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-            <Campo l="Provincia" v={form.provincia} on={(v) => setForm({ ...form, provincia: v })} ph="Sevilla" />
+            <Campo l="Provincia" req={false} v={form.provincia} on={(v) => setForm({ ...form, provincia: v })} ph="Sevilla" />
             <div>
               <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>País</label>
               <SelectorPais valor={form.pais_codigo_iso} onCambio={(v) => setForm({ ...form, pais_codigo_iso: v })} />
@@ -87,10 +88,10 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <div>
-              <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem', display: 'block' }}>Teléfono · opcional</label>
+              <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem', display: 'block' }}>Teléfono <Req si={false} /></label>
               <CampoTelefono valor={form.telefono} onCambio={(v) => setForm({ ...form, telefono: v })} />
             </div>
-            <Campo l="Nombre y apellidos · opcional" v={form.contacto} on={(v) => setForm({ ...form, contacto: v })} ph="Ej. Lucía (muelle)" />
+            <Campo l="Nombre y apellidos" req={false} v={form.contacto} on={(v) => setForm({ ...form, contacto: v })} ph="Ej. Lucía (muelle)" />
           </div>
           <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Tipo de sitio</label>
           <select className="ptar-select" value={form.tipo_sitio} onChange={(e) => setForm({ ...form, tipo_sitio: e.target.value })}>

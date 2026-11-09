@@ -12,6 +12,8 @@ import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; preEmail: string; lugar?: string; extra?: boolean };
 
@@ -174,7 +176,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
 
   async function aceptar() {
     setAviso(null);
-    if (!doc.trim() || !nombre.trim()) { setAviso('Indica el documento y el nombre y apellidos de quien firma.'); return; }
+    if (!doc.trim() || !nombre.trim()) { setAviso('Indica el documento y el nombre y apellidos de quien firma.'); avisaFaltas([!doc.trim() && 'sigDni', !nombre.trim() && 'sigNombre'].filter(Boolean) as string[]); return; }
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     setGuardando(true);
@@ -189,7 +191,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     <div className="sigov show" role="dialog" aria-modal="true" aria-label="Firmar el CMR">
       <div className="sigcard">
         <h2>Firmar {b.titulo.toLowerCase()}</h2>
-        <label className="sig-lbl" htmlFor="sigDni">Documento de identidad *</label>
+        <label className="sig-lbl" htmlFor="sigDni">Documento de identidad <Req /></label>
         <div className="sig-row">
           <select id="sigDocPais" aria-label="País del documento" value={pais} onChange={(e) => setPais(e.target.value)}>
             {DOC_PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
@@ -197,13 +199,13 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <input type="text" id="sigDni" autoComplete="off" autoCapitalize="characters" placeholder="12345678Z" value={doc} onChange={(e) => setDoc(e.target.value)} className={v && !v.ok ? 'err' : undefined} />
         </div>
         {v && <div className={`sig-msg ${!v.ok ? 'err' : v.soft ? 'warn' : 'okv'}`}>{!v.ok ? `⚠ ${v.msg}` : v.soft ? `⚠ ${v.soft}` : '✓ Documento válido'}</div>}
-        <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos *</label>
+        <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos <Req /></label>
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <label className="sig-lbl" htmlFor="sigEmail">Email <span className="op">· opcional</span></label>
+        <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         {/* Las reservas son de la casilla principal: una firma extra no las anota. */}
         {!b.extra && <>
-        <label className="sig-lbl" htmlFor="sigReservas">Reservas <span className="op">· solo si falta algo o hay daños</span></label>
+        <label className="sig-lbl" htmlFor="sigReservas">Reservas <Req si={false} /></label>
         <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palets; 1 palet con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
           style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit' }} />
         {reservas.trim() && <>

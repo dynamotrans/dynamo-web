@@ -26,6 +26,10 @@ import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista
 import { CONTACTO } from '@/lib/atencion';
 import { ESTADOS_ENVIO, FASES_ENVIO, type Etapa } from '@/lib/estados';
 import Etapas from './ficha/Etapas';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
+
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 
 const HITOS: Record<string, string> = {
   creado: 'Solicitud creada', confirmado: 'Envío confirmado', transportista_asignado: 'Transportista asignado',
@@ -119,7 +123,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
             ? <>Es una solicitud sin confirmar: se cancela <strong>sin ningún coste</strong>.</>
             : <>Cancelar es <strong>gratis hasta las 9:00 del día hábil anterior</strong> a la carga. Después, si ya hay camión asignado, puede conllevar el <strong>coste del servicio completo</strong> (por ley, el transportista está en su derecho de cobrarlo). Si tienes dudas, llámanos al <a href={CONTACTO.telHref} style={{ fontWeight: 700 }}>{CONTACTO.telefono}</a>.</>}
         </div>
-        <label htmlFor="cc-motivo" style={{ display: 'block', marginTop: '0.8rem' }}>Motivo <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
+        <label htmlFor="cc-motivo" style={{ display: 'block', marginTop: '0.8rem' }}>Motivo <Req si={false} /></label>
         <textarea id="cc-motivo" rows={3} maxLength={500} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Cuéntanos por qué (nos ayuda a mejorar)" />
         {aviso && !aviso.ok && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{aviso.txt}</div></div>}
       </Modal>
@@ -195,7 +199,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           </div>
           {proponer && (
             <div style={{ marginTop: '0.8rem', paddingTop: '0.7rem', borderTop: '1px solid var(--gray-200)' }}>
-              <label htmlFor="cf-precio" style={{ fontWeight: 700 }}>Tu precio (sin IVA, €)</label>
+              <label htmlFor="cf-precio" style={{ fontWeight: 700 }}>Tu precio (sin IVA, €) <Req /></label>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 <input id="cf-precio" type="text" inputMode="decimal" value={miPrecio} onChange={(ev) => setMiPrecio(ev.target.value)} placeholder="Ej. 950" style={{ maxWidth: 160 }} />
                 <button className="btn-primary" disabled={!acepto || !!trabajando || !((aNumero(miPrecio) ?? 0) > 0)}
@@ -309,7 +313,7 @@ function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota:
   const [trabajando, setTrabajando] = useState(false);
   const cambiado = nota !== (v.nota ?? null) || com !== (v.comentario ?? '');
   async function guardar() {
-    if (!nota) { setMsg({ ok: false, txt: 'Elige de 1 a 5 estrellas.' }); return; }
+    if (!nota) { setMsg({ ok: false, txt: 'Elige de 1 a 5 estrellas.' }); avisaFaltas(['val-nota']); return; }
     setMsg(null); setTrabajando(true);
     const r = await valorarMiEnvio(envio, nota, com);
     setTrabajando(false);
@@ -320,7 +324,7 @@ function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota:
     <h4 className="modal-section-title">¿Qué tal el transportista?</h4>
     <div className="det-block">
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
-        <div className="valora-estrellas" role="radiogroup" aria-label="Nota de 1 a 5">
+        <div id="val-nota" className="valora-estrellas" role="radiogroup" aria-label="Nota de 1 a 5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} type="button" role="radio" aria-checked={nota === n} aria-label={`${n} de 5`} disabled={!v.editable}
               className={nota != null && n <= nota ? 'on' : ''} onClick={() => setNota(n)}>★</button>

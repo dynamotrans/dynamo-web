@@ -8,7 +8,11 @@ import type { TransportistaOpcion } from '@/lib/fichaEnvio';
 import CampoTelefono from '@/components/CampoTelefono';
 import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
 import Buscador from '../Buscador';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 import { I, ICO, SubProps, aNum } from './comun';
+
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
@@ -78,9 +82,9 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
 
   async function guardar() {
     setError(null);
-    if (!tid) { setError('Elige el transportista.'); return; }
-    if (Number.isNaN(pv)) { setError('El precio del transportista no es un número.'); return; }
-    if (conVentana && !diaCarga) { setError('Elige el día en que carga.'); return; }
+    if (!tid) { setError('Elige el transportista.'); avisaFaltas(['as-tra']); return; }
+    if (Number.isNaN(pv)) { setError('El precio del transportista no es un número.'); avisaFaltas(['as-precio']); return; }
+    if (conVentana && !diaCarga) { setError('Elige el día en que carga.'); avisaFaltas(['as-dia']); return; }
     await hacer('Asignando el transportista', () => asignarTransportista(e.id, {
       transportista_id: tid, importe_transportista: pv, matricula_camion: camion, matricula_remolque: remolque,
       conductor_nombre: conductor, conductor_telefono: tel, fecha_carga_prevista: diaCarga || null,
@@ -97,12 +101,12 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
       </>}>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="as-tra">Transportista <span className="sitio-req">· obligatorio</span></label>
+          <label htmlFor="as-tra">Transportista <Req /></label>
           <Buscador id="as-tra" valor={t} buscar={opciones} onElegir={setT} placeholder="Busca por nombre, CIF, código de bolsa, teléfono o matrícula…"
             vacio="Ningún transportista coincide. Si es nuevo, dalo de alta en Otras gestiones → Transportistas." />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="as-dia">Día en que carga {conVentana ? <span className="sitio-req">· obligatorio</span> : null}</label>
+          <label htmlFor="as-dia">Día en que carga {conVentana ? <Req /> : null}</label>
           {conVentana && dias.length > 0 ? (
             <select id="as-dia" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)}>
               <option value="">Elige el día de la ventana…</option>
@@ -114,7 +118,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Con este día va el seguimiento automático: sale hacia la carga y llega a la 1.ª parada a la hora de Parámetros.</div>
         </div>
         <div>
-          <label htmlFor="as-precio">Precio del transportista (€ sin IVA)</label>
+          <label htmlFor="as-precio">Precio del transportista (€ sin IVA) <Req si={false} /></label>
           <input id="as-precio" type="text" inputMode="decimal" value={precio} placeholder="Ej. 720" onChange={(ev) => setPrecio(ev.target.value)} />
         </div>
         <div>
@@ -124,23 +128,23 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
           </div>
         </div>
         <div>
-          <label htmlFor="as-camion">Matrícula camión / tractora</label>
+          <label htmlFor="as-camion">Matrícula camión / tractora <Req si={false} /></label>
           <input id="as-camion" list="as-camiones" type="text" value={camion} placeholder="1234ABC" onChange={(ev) => setCamion(ev.target.value)} onBlur={alSalirCamion} />
           <datalist id="as-camiones">{camiones.map((v) => <option key={v.matricula} value={v.matricula}>{v.tipo === 'rigido' ? 'Rígido' : 'Tractora'}</option>)}</datalist>
         </div>
         <div>
-          <label htmlFor="as-remolque">Matrícula remolque (si es tráiler)</label>
+          <label htmlFor="as-remolque">Matrícula remolque (si es tráiler) <Req si={false} /></label>
           <input id="as-remolque" list="as-remolques" type="text" value={remolque} placeholder="R1234BCD" onChange={(ev) => setRemolque(ev.target.value)} />
           <datalist id="as-remolques">{remolques.map((v) => <option key={v.matricula} value={v.matricula} />)}</datalist>
         </div>
         <div>
-          <label htmlFor="as-conductor">Conductor</label>
+          <label htmlFor="as-conductor">Conductor <Req si={false} /></label>
           <input id="as-conductor" list="as-conductores" type="text" value={conductor} placeholder="Nombre y apellidos"
             onChange={(ev) => setConductor(ev.target.value)} onBlur={alSalirConductor} />
           <datalist id="as-conductores">{(fl?.conductores ?? []).map((c) => <option key={c.nombre} value={c.nombre} />)}</datalist>
         </div>
         <div>
-          <label htmlFor="as-tel">Teléfono del conductor</label>
+          <label htmlFor="as-tel">Teléfono del conductor <Req si={false} /></label>
           <CampoTelefono id="as-tel" valor={tel} onCambio={setTel} />
         </div>
       </div>

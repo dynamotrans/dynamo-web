@@ -5,6 +5,8 @@
 import { useEffect, useState } from 'react';
 import { guardarDatosCmr, leerDatosCmr, type DatosCmr as Datos } from '@/app/panel/(app)/envios/acciones-cmr';
 import { IcoAviso } from '@/components/Iconos';
+// Etiquetas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
 
 const txt = (n: number | null) => (n == null ? '' : String(n).replace('.', ','));
 const EMBALAJES = ['Palet europeo', 'Palet americano', 'Cajas', 'Big bag', 'Bobinas', 'Granel en sacos', 'Sin embalaje'];
@@ -38,11 +40,11 @@ export default function DatosCmr({ envioId, puedeEditar, bloquearSiFirmado = fal
       <label>Para el CMR · bultos, embalaje y volumen</label>
       {error && <div className="pt-aviso error" role="alert" style={{ margin: '0.3rem 0' }}><IcoAviso /><div>{error}</div></div>}
       <div className="ptar-sitio-grid" style={{ marginTop: '0.3rem' }}>
-        <div><label htmlFor={`cmr-b-${envioId}`}>Nº de bultos (casilla 7)</label>
+        <div><label htmlFor={`cmr-b-${envioId}`}>Nº de bultos (casilla 7) <Req si={false} /></label>
           <input id={`cmr-b-${envioId}`} inputMode="numeric" value={f.b} onChange={(ev) => setF({ ...f, b: ev.target.value })} placeholder="33" /></div>
-        <div><label htmlFor={`cmr-v-${envioId}`}>Volumen en m³ (casilla 12)</label>
+        <div><label htmlFor={`cmr-v-${envioId}`}>Volumen en m³ (casilla 12) <Req si={false} /></label>
           <input id={`cmr-v-${envioId}`} inputMode="decimal" value={f.v} onChange={(ev) => setF({ ...f, v: ev.target.value })} placeholder="86" /></div>
-        <div style={{ gridColumn: '1/-1' }}><label htmlFor={`cmr-e-${envioId}`}>Embalaje (casilla 8)</label>
+        <div style={{ gridColumn: '1/-1' }}><label htmlFor={`cmr-e-${envioId}`}>Embalaje (casilla 8) <Req si={false} /></label>
           <input id={`cmr-e-${envioId}`} list={`cmr-emb-${envioId}`} maxLength={60} value={f.e} onChange={(ev) => setF({ ...f, e: ev.target.value })} placeholder="Palet europeo" />
           <datalist id={`cmr-emb-${envioId}`}>{EMBALAJES.map((x) => <option key={x} value={x} />)}</datalist></div>
       </div>

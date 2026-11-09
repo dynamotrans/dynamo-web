@@ -17,6 +17,9 @@ import { rangoRapido } from '@/lib/envios';
 import { descargarCsv } from '@/lib/exportaciones';
 import BarraFiltros from './BarraFiltros';
 import { opcionesFecha } from './FiltrosEnvios';
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 export type AlmacenamientoFila = AlmacenamientoDatos & {
   id: string; codigo: string; cliente: string | null; almacen: string; almacen_provincia: string; almacen_dir: string; entrega: string | null;
@@ -178,11 +181,11 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
 
   async function guardar() {
     setError(null);
-    if (!modoCliente && !d.cliente_id) { setError('Elige el cliente.'); return; }
-    if (!d.almacen_id) { setError('Elige el almacén Dynamo.'); return; }
+    if (!modoCliente && !d.cliente_id) { setError('Elige el cliente.'); avisaFaltas(['alm-cli']); return; }
+    if (!d.almacen_id) { setError('Elige el almacén Dynamo.'); avisaFaltas(['alm-alm']); return; }
     if (!fila && alm && !alm.disponible) { setError('Este almacén está COMPLETO y no admite entradas.'); return; }
     if (d.fecha_salida < d.fecha_entrada) { setError('La fecha de salida no puede ser anterior a la de entrada.'); return; }
-    if (d.num_repartos > 0 && !d.sitio_entrega_id) { setError('Con reparto urbano hay que elegir la dirección de entrega.'); return; }
+    if (d.num_repartos > 0 && !d.sitio_entrega_id) { setError('Con reparto urbano hay que elegir la dirección de entrega.'); avisaFaltas(['alm-dest']); return; }
     setTrabajando(fila ? 'Guardando almacenamiento' : modoCliente ? 'Pidiendo almacenamiento' : 'Creando almacenamiento');
     const r = modoCliente
       ? await pedirAlmacenamiento(fila?.id ?? null, { almacen_id: d.almacen_id, fecha_entrada: d.fecha_entrada, fecha_salida: d.fecha_salida, num_trailers: d.num_trailers,
@@ -258,14 +261,14 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
       <div className="ptar-sitio-grid">
         {/* Con «Ver como» un cliente llega UN solo cliente posible, ya puesto: el campo no sale. */}
         {!modoCliente && clientes.length !== 1 && <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="alm-cli">Cliente</label>
+          <label htmlFor="alm-cli">Cliente{!fila && <> <Req /></>}</label>
           <select id="alm-cli" className="ptar-select" value={d.cliente_id} disabled={!!fila} onChange={(e) => { set('cliente_id', e.target.value); set('sitio_entrega_id', null); }}>
             <option value="">Selecciona el cliente…</option>
             {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre_visible}</option>)}
           </select>
         </div>}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="alm-alm">Almacén Dynamo</label>
+          <label htmlFor="alm-alm">Almacén Dynamo{!fila && <> <Req /></>}</label>
           <select id="alm-alm" className="ptar-select" value={d.almacen_id} disabled={!editable || !!fila} onChange={(e) => set('almacen_id', e.target.value)}>
             <option value="">Selecciona el almacén…</option>
             {almacenes.map((a) => <option key={a.id} value={a.id}>{`Dynamo · ${a.provincia} — ${a.dir}${a.disponible ? '' : ' · COMPLETO'}`}</option>)}
@@ -297,7 +300,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
         </div>
         {d.num_repartos > 0 && (
           <div style={{ gridColumn: '1/-1' }}>
-            <label htmlFor="alm-dest">Dirección de entrega del reparto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· radio máx. 20 km del almacén</span></label>
+            <label htmlFor="alm-dest">Dirección de entrega del reparto{editable && <> <Req /></>} <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· radio máx. 20 km del almacén</span></label>
             <select id="alm-dest" className="ptar-select" value={d.sitio_entrega_id ?? ''} disabled={!editable || (!modoCliente && !d.cliente_id)} onChange={(e) => set('sitio_entrega_id', e.target.value || null)}>
               <option value="">{modoCliente ? (sitios.length ? 'Elige uno de tus sitios…' : 'No tienes sitios: créalo antes en Sitios') : d.cliente_id ? (sitios.length ? 'Elige uno de sus sitios…' : 'Este cliente no tiene sitios: créalo en Sitios') : 'Elige antes el cliente'}</option>
               {sitios.map((s) => <option key={s.id} value={s.id}>{s.nombre} — {s.linea}</option>)}
@@ -306,15 +309,15 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
           </div>
         )}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="alm-desc">Mercancía</label>
+          <label htmlFor="alm-desc">Mercancía{editable && <> <Req si={false} /></>}</label>
           <input id="alm-desc" type="text" value={d.descripcion} disabled={!editable} onChange={(e) => set('descripcion', e.target.value)} placeholder="Ej. 22 palets de material eléctrico" />
         </div>
         <div>
-          <label htmlFor="alm-ref">{modoCliente ? 'Tu referencia' : 'Referencia del cliente'}</label>
+          <label htmlFor="alm-ref">{modoCliente ? 'Tu referencia' : 'Referencia del cliente'}{editable && <> <Req si={false} /></>}</label>
           <input id="alm-ref" type="text" value={d.referencia_cliente} disabled={!editable} onChange={(e) => set('referencia_cliente', e.target.value)} placeholder="Su nº de pedido o albarán" />
         </div>
         {!modoCliente && <div>
-          <label htmlFor="alm-not">Notas internas</label>
+          <label htmlFor="alm-not">Notas internas <Req si={false} /></label>
           <input id="alm-not" type="text" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} placeholder="Solo para el equipo de Dynamo" />
         </div>}
         {fila && !modoCliente && (

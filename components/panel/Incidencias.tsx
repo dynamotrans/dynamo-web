@@ -20,6 +20,9 @@ import { fecha, ventana, fechaHora, medidasTxt } from '@/lib/formato';
 import { rangoRapido } from '@/lib/envios';
 import { descargarCsv } from '@/lib/exportaciones';
 import { CONTACTO } from '@/lib/atencion';
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 export type IncidenciaFila = {
   id: string; codigo: string; envio_id: string | null; cliente_id: string | null; tipo_id: string; tipo: string;
@@ -149,10 +152,10 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
   async function guardar(cambios: Partial<IncidenciaDatos> = {}, texto?: string) {
     const datos = { ...d, ...cambios };
     setError(null);
-    if (!datos.tipo_id) { setError('Elige el tipo de incidencia.'); return; }
-    if (!datos.detalle.trim()) { setError('Cuenta lo ocurrido en el detalle de la incidencia.'); return; }
-    if (!esCliente && !vistaTransportista && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); return; }
-    if (esTransportista && !datos.envio_id) { setError('Elige el envío de la incidencia.'); return; }
+    if (!datos.tipo_id) { setError('Elige el tipo de incidencia.'); avisaFaltas(['inc-tipo']); return; }
+    if (!datos.detalle.trim()) { setError('Cuenta lo ocurrido en el detalle de la incidencia.'); avisaFaltas(['inc-det']); return; }
+    if (!esCliente && !vistaTransportista && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); avisaFaltas(['inc-envio', 'inc-cli']); return; }
+    if (esTransportista && !datos.envio_id) { setError('Elige el envío de la incidencia.'); avisaFaltas(['inc-envio']); return; }
     setTrabajando(texto ?? (fila ? 'Guardando incidencia' : 'Creando incidencia'));
     const r = await guardarIncidencia(fila?.id ?? null, datos);
     setTrabajando(null);
@@ -187,13 +190,13 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         </div>
       )}
       <div className="modal-form-row">
-        <label>{esTransportista ? 'Envío *' : <>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
-        <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto />
+        <label>{esTransportista ? <>Envío <Req /></> : <>Envío relacionado <Req si={false} /></>}</label>
+        <div id="inc-envio"><BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto /></div>
       </div>
       {/* Con «Ver como» un cliente llega UN solo cliente posible, ya puesto: el campo no sale. */}
       {!d.envio_id && !esCliente && !vistaTransportista && clientes.length !== 1 && (
         <div className="modal-form-row">
-          <label htmlFor="inc-cli">Cliente <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· si no va sobre un envío</span></label>
+          <label htmlFor="inc-cli">Cliente <Req /> <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· si no va sobre un envío</span></label>
           <select id="inc-cli" className="ptar-select" value={d.cliente_id ?? ''} onChange={(e) => set('cliente_id', e.target.value || null)}>
             <option value="">Selecciona el cliente…</option>
             {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre_visible}</option>)}
@@ -202,7 +205,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       )}
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="inc-tipo">Tipo de incidencia</label>
+          <label htmlFor="inc-tipo">Tipo de incidencia <Req /></label>
           <select id="inc-tipo" className="ptar-select" value={d.tipo_id} onChange={(e) => set('tipo_id', e.target.value)}>
             <option value="">Selecciona el tipo…</option>
             {tipos.filter((t) => t.activo || t.id === d.tipo_id).map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
@@ -228,17 +231,17 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         </div>
         </>}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="inc-tit">Resumen <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· una línea; si lo dejas vacío, se toma del detalle</span></label>
+          <label htmlFor="inc-tit">Resumen <Req si={false} /> <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· una línea; si lo dejas vacío, se toma del detalle</span></label>
           <input id="inc-tit" type="text" maxLength={140} value={d.titulo} onChange={(e) => set('titulo', e.target.value)} placeholder="Ej. Palet roto en la descarga" />
         </div>
       </div>
       <div className="modal-form-row" style={{ marginTop: '0.7rem' }}>
-        <label htmlFor="inc-det">Detalle de la incidencia *</label>
+        <label htmlFor="inc-det">Detalle de la incidencia <Req /></label>
         <textarea id="inc-det" value={d.detalle} onChange={(e) => set('detalle', e.target.value)} placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…" />
       </div>
       {!esCliente && (d.estado === 'resuelto' || d.resolucion) && (
         <div className="modal-form-row">
-          <label htmlFor="inc-res">Cómo se ha resuelto</label>
+          <label htmlFor="inc-res">Cómo se ha resuelto <Req si={false} /></label>
           <textarea id="inc-res" value={d.resolucion} onChange={(e) => set('resolucion', e.target.value)} placeholder="Qué se hizo para cerrarla (abono, reenvío, albarán recibido…)" />
         </div>
       )}

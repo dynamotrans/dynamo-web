@@ -10,6 +10,9 @@ import Cargando from '@/components/Cargando';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { rutaRecurso, registrarRecurso, quitarRecurso, type RecursoSubido } from '@/app/panel/(app)/recursos/acciones';
 import { fecha } from '@/lib/formato';
+// Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 // Regla 0-bis: todo PDF se ABRE en el visor (ventana nueva).
 const abrir = (url: string) => { const w = window.open(url, '_blank'); if (!w) location.href = url; };
@@ -136,6 +139,7 @@ function SubirRecurso({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
   const input = useRef<HTMLInputElement>(null);
   function elegir(f: File | undefined) {
     setError(null);
+    document.getElementById('rec-arch')?.classList.remove('campo-falta');
     if (!f) return;
     if (f.size > MAX_BYTES) { setError(`«${f.name}» pasa de 25 MB.`); return; }
     if (!ACEPTA.split(',').includes(f.type)) { setError(`«${f.name}»: solo PDF o imágenes (JPG, PNG, WEBP, HEIC).`); return; }
@@ -144,8 +148,8 @@ function SubirRecurso({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
   }
   async function publicar() {
     setError(null);
-    if (!titulo.trim()) { setError('Pon un título al documento.'); return; }
-    if (!archivo) { setError('Elige el archivo.'); return; }
+    if (!titulo.trim()) { setError('Pon un título al documento.'); avisaFaltas(['rec-tit']); return; }
+    if (!archivo) { setError('Elige el archivo.'); avisaFaltas(['rec-arch']); return; }
     const sb = supabaseNavegador();
     if (!sb) { setError('La plataforma no está conectada.'); return; }
     setTrabajando('Subiendo el documento');
@@ -167,8 +171,8 @@ function SubirRecurso({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
       </>}>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
-          <label>Archivo *</label>
-          <div className="modal-file-drop" role="button" tabIndex={0} onClick={() => input.current?.click()}
+          <label>Archivo <Req /></label>
+          <div id="rec-arch" className="modal-file-drop" role="button" tabIndex={0} onClick={() => input.current?.click()}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.current?.click(); } }}
             onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); elegir(e.dataTransfer.files[0]); }}>
             <div>{archivo ? `«${archivo.name}»` : 'Selecciona el archivo o arrástralo aquí'}</div>
@@ -177,11 +181,11 @@ function SubirRecurso({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
           <input ref={input} type="file" accept={ACEPTA} hidden onChange={(e) => { elegir(e.target.files?.[0]); e.target.value = ''; }} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="rec-tit">Título *</label>
+          <label htmlFor="rec-tit">Título <Req /></label>
           <input id="rec-tit" type="text" value={titulo} maxLength={120} placeholder="Ej. Condiciones generales de transporte" onChange={(e) => setTitulo(e.target.value)} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="rec-desc">Descripción</label>
+          <label htmlFor="rec-desc">Descripción <Req si={false} /></label>
           <input id="rec-desc" type="text" value={desc} maxLength={300} placeholder="Una línea que explique para qué sirve" onChange={(e) => setDesc(e.target.value)} />
         </div>
       </div>

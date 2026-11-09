@@ -11,6 +11,7 @@ import CampoTelefono from '@/components/CampoTelefono';
 import { resumenHorario } from '@/lib/horarios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
 import { CardEdit, DatosSitios, Punto, direccionCompleta, resolverFicha } from './comun';
+import Req from '@/components/Req';
 
 const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
@@ -83,7 +84,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                       2026-11-09): empresa y tipo, dirección (del paso 1), contacto
                       (nombre · teléfono · email, sin cargo), notas internas y horario. */}
                   {f.nuevo
-                    ? <div><label>Empresa{falta ? ' ' : ''}{falta && <span className="sitio-req">· obligatorio</span>}</label>
+                    ? <div><label>Empresa <Req /></label>
                         <input value={f.empresa} style={marcada && !f.empresa.trim() ? { borderColor: '#dc2626' } : undefined} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>
                     : <div><label>Empresa</label><input className="sitio-f-lock" value={f.empresa} readOnly tabIndex={-1} />
                         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>El nombre se cambia en la sección Sitios.</div></div>}
@@ -91,11 +92,11 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} />
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>La dirección se cambia en el paso 1 (Ruta).</div></div>
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
-                  <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <span className="sitio-req">· obligatorio</span></label>
+                  <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
-                  <div><label>Email <span className="sitio-req">· obligatorio</span></label>
+                  <div><label>Email <Req /></label>
                     <input type="text" inputMode="email" value={f.contactoEmail} style={marcada && !emailOk ? { borderColor: '#dc2626' } : undefined} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
-                  <div className="full"><label>Nombre y apellidos <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
+                  <div className="full"><label>Nombre y apellidos <Req si={false} /></label>
                     <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
                   {!f.nuevo && <div className="full"><label>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></label>
                     <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} /></div>}
@@ -103,7 +104,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   <div className="full"><EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} /></div>
                   {f.nuevo ? null : esCliente
                     ? (f.maps ? <div className="full"><label>Enlace de Google Maps</label><input className="sitio-f-lock" value={f.maps} readOnly tabIndex={-1} /></div> : null)
-                    : <div className="full"><label>Enlace de Google Maps · opcional</label>
+                    : <div className="full"><label>Enlace de Google Maps <Req si={false} /></label>
                         <input value={f.maps} placeholder="https://maps.app.goo.gl/…" onChange={(e) => set(p, { maps: e.target.value })} /></div>}
                 </>)}
               </div>

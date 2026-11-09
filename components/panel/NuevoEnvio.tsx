@@ -27,6 +27,7 @@ import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
 import Modal from './Modal';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
+import Req from '@/components/Req';
 
 export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, reglas = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
@@ -832,13 +833,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                               <input id="ne-cita-hora" type="time" value={citaHora} onChange={(e) => setCitaHora(e.target.value)} />
                             </div>
                             <div className="full">
-                              <label htmlFor="ne-cita-det">Detalles de la cita · opcional</label>
+                              <label htmlFor="ne-cita-det">Detalles de la cita <Req si={false} /></label>
                               <input id="ne-cita-det" type="text" placeholder="Ej. muelle 4, pedir cita en el portal del almacén, preguntar por recepción…" value={citaDetalle} onChange={(e) => setCitaDetalle(e.target.value)} />
                             </div>
                           </div>
                         )}
                         <div className="ptar-field" style={{ marginTop: '0.9rem' }}>
-                          <label className="ptar-label" htmlFor="ne-ref">Notas/Nº de pedido (opcional)</label>
+                          <label className="ptar-label" htmlFor="ne-ref">Notas/Nº de pedido <Req si={false} /></label>
                           <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234, instrucciones breves…" value={refCli} onChange={(e) => setRefCli(e.target.value)} />
                         </div>
                       </div>
@@ -903,7 +904,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 {manual ? (
                   <div className="ptar-field ptar-field-full ptar-admin-precio">
                     <div className="ptar-admin-precio-head">Precio con {nombreOp}</div>
-                    <label className="ptar-admin-precio-lbl" htmlFor="ne-pop">Precio acordado con tu transportista (sin IVA) · opcional</label>
+                    <label className="ptar-admin-precio-lbl" htmlFor="ne-pop">Precio acordado con tu transportista (sin IVA) <Req si={false} /></label>
                     <input id="ne-pop" type="text" inputMode="decimal" placeholder="Ej. 450,00" value={precioOp} onChange={(ev) => setPrecioOp(ev.target.value)} />
                     <p className="ptar-admin-precio-note">Solo para tu control y para la orden de carga. Dynamo no lo ve en ningún precio suyo.</p>
                   </div>

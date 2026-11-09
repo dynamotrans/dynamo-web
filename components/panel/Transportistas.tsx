@@ -16,6 +16,8 @@ import { fecha as fmtFecha, fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 import EditorContactos from './EditorContactos';
 
 type Flota = { tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] };
@@ -170,7 +172,11 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
 
   async function guardar() {
     setError(null);
-    if (!d.razon_social.trim() || !d.cif.trim()) { setError('La empresa y el CIF/NIF son obligatorios.'); return; }
+    if (!d.razon_social.trim() || !d.cif.trim()) {
+      setError('La empresa y el CIF/NIF son obligatorios.');
+      avisaFaltas([!d.razon_social.trim() && 'tra-razon_social', !d.cif.trim() && 'tra-cif'].filter(Boolean) as string[]);
+      return;
+    }
     const iva = num(textos.iva), ret = num(textos.ret);
     if (Number.isNaN(iva) || Number.isNaN(ret)) { setError('El IVA o la retención no son un número.'); return; }
     setGuardando(true);
@@ -222,9 +228,9 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
       )}
       <div className="ptar-sitio-grid">
         {titulo('Empresa')}
-        {campo('razon_social', 'Empresa / Nombre *', 'Razón social o nombre del autónomo', true)}
-        {campo('nombre_comercial', 'Nombre comercial (opcional)', 'Si se le conoce por otro nombre')}
-        {campo('cif', 'CIF / NIF *', 'B12345678 / 12345678Z')}
+        {campo('razon_social', <>Empresa / Nombre <Req /></>, 'Razón social o nombre del autónomo', true)}
+        {campo('nombre_comercial', <>Nombre comercial <Req si={false} /></>, 'Si se le conoce por otro nombre')}
+        {campo('cif', <>CIF / NIF <Req /></>, 'B12345678 / 12345678Z')}
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="tra-estado">Estado operativo <span className="badge" style={{ background: est[3].bg, color: est[3].fg, border: `1px solid ${est[3].bd}`, marginLeft: '0.35rem' }}>{est[2]}</span>
             <span style={{ fontWeight: 800, color: 'var(--red)', marginLeft: '0.4rem' }}>· SOLO ADMIN — el transportista no lo ve</span></label>
@@ -239,17 +245,17 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
           </select>
         </div>
         <div>
-          <label htmlFor="tra-codigo_bolsa">Código bolsa de carga</label>
+          <label htmlFor="tra-codigo_bolsa">Código bolsa de carga <Req si={false} /></label>
           <input id="tra-codigo_bolsa" type="text" value={d.codigo_bolsa} placeholder={d.bolsa ? 'Ej. 482113' : 'Sin bolsa'} disabled={!d.bolsa}
             onChange={(e) => set('codigo_bolsa', e.target.value)} />
         </div>
         {!d.bolsa && nota('Sin bolsa de carga: su alta online queda pendiente de revisión (solo se aceptan transportistas de las bolsas de Alpega).')}
 
         {titulo('Domicilio fiscal')}
-        {campo('direccion', 'Dirección (calle y número)', 'Calle y número', true)}
-        {campo('codigo_postal', 'Código postal', '41001')}
-        {campo('poblacion', 'Población', 'Sevilla')}
-        {campo('provincia', 'Provincia', 'Sevilla')}
+        {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, 'Calle y número', true)}
+        {campo('codigo_postal', <>Código postal <Req si={false} /></>, '41001')}
+        {campo('poblacion', <>Población <Req si={false} /></>, 'Sevilla')}
+        {campo('provincia', <>Provincia <Req si={false} /></>, 'Sevilla')}
         <div>
           <label htmlFor="tra-pais">País</label>
           <SelectorPais id="tra-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
@@ -268,11 +274,11 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
           </select>
         </div>
         {interruptor('pronto_pago', 'Se le ofrece pronto pago', 'Cobrar antes a cambio de un pequeño descuento, al aceptar el envío.')}
-        <div><label htmlFor="tra-iva">IVA (%)</label><input id="tra-iva" type="text" inputMode="decimal" value={textos.iva} onChange={(e) => setTextos((t) => ({ ...t, iva: e.target.value }))} /></div>
-        <div><label htmlFor="tra-ret">Retención (%)</label><input id="tra-ret" type="text" inputMode="decimal" value={textos.ret} onChange={(e) => setTextos((t) => ({ ...t, ret: e.target.value }))} /></div>
+        <div><label htmlFor="tra-iva">IVA (%) <Req si={false} /></label><input id="tra-iva" type="text" inputMode="decimal" value={textos.iva} onChange={(e) => setTextos((t) => ({ ...t, iva: e.target.value }))} /></div>
+        <div><label htmlFor="tra-ret">Retención (%) <Req si={false} /></label><input id="tra-ret" type="text" inputMode="decimal" value={textos.ret} onChange={(e) => setTextos((t) => ({ ...t, ret: e.target.value }))} /></div>
 
         {titulo('Operativa')}
-        {campo('nima', 'Nº de NIMA (residuos)', 'Texto libre, como lo dé el transportista')}
+        {campo('nima', <>Nº de NIMA (residuos) <Req si={false} /></>, 'Texto libre, como lo dé el transportista')}
         <div>
           <label htmlFor="tra-camion">Camión habitual</label>
           <select id="tra-camion" value={d.tipo_camion_defecto ?? ''} onChange={(e) => set('tipo_camion_defecto', e.target.value)}>
@@ -281,10 +287,10 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
         </div>
         {interruptor('tiene_almacen', 'Tiene almacén logístico')}
         <div />
-        {campo('seguro_cmr_compania', 'Seguro CMR · compañía', 'Ej. Mapfre')}
-        {campo('seguro_cmr_poliza', 'Seguro CMR · nº de póliza', 'Ej. 0961-…')}
+        {campo('seguro_cmr_compania', <>Seguro CMR · compañía <Req si={false} /></>, 'Ej. Mapfre')}
+        {campo('seguro_cmr_poliza', <>Seguro CMR · nº de póliza <Req si={false} /></>, 'Ej. 0961-…')}
         <div>
-          <label htmlFor="tra-vence">Seguro CMR · vence</label>
+          <label htmlFor="tra-vence">Seguro CMR · vence <Req si={false} /></label>
           <input id="tra-vence" type="date" value={d.seguro_cmr_vence ?? ''} onChange={(e) => set('seguro_cmr_vence', e.target.value)} />
           <AvisoSeguro vence={d.seguro_cmr_vence} ficha />
         </div>
@@ -316,14 +322,14 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
         )}
 
         {titulo('Contabilidad (Holded) y notas')}
-        {campo('cuenta_contable', 'Cuenta contable', 'Ej. 40000123')}
-        {campo('holded_forma_pago_ref', 'Forma de pago en Holded (ID)', 'Ej. 5f2a…')}
+        {campo('cuenta_contable', <>Cuenta contable <Req si={false} /></>, 'Ej. 40000123')}
+        {campo('holded_forma_pago_ref', <>Forma de pago en Holded (ID) <Req si={false} /></>, 'Ej. 5f2a…')}
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="tra-inc">Incidencias (historial)</label>
+          <label htmlFor="tra-inc">Incidencias (historial) <Req si={false} /></label>
           <textarea id="tra-inc" rows={2} placeholder="Retrasos, daños, no presentados…" value={d.anotaciones_incidencias} onChange={(e) => set('anotaciones_incidencias', e.target.value)} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="tra-notas">Notas internas</label>
+          <label htmlFor="tra-notas">Notas internas <Req si={false} /></label>
           <textarea id="tra-notas" rows={3} placeholder="Solo visibles para el equipo Dynamo" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} />
         </div>
         {titulo('Documentación')}

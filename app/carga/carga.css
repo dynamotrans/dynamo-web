@@ -532,3 +532,8 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
 @media (max-width: 520px) {
     .carga-page .row2 { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* Etiqueta única obligatorio/opcional y campo sin rellenar (copiada de dashboard.css). */
+.carga-page .campo-oblig { color: #dc2626; font-weight: 700; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
+.carga-page .campo-opc { color: var(--gray-700); font-weight: 500; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
+.carga-page .campo-falta, .carga-page .campo-falta input, .carga-page .campo-falta select, .carga-page .campo-falta textarea { border-color: #dc2626 !important; }

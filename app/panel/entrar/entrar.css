@@ -256,3 +256,8 @@ select.portal-input { appearance: none; -webkit-appearance: none; padding-right:
     .reg-grid { grid-template-columns: minmax(0,1fr); }
     .otp-box { width: 42px; height: 50px; font-size: 1.3rem; }
 }
+
+/* Etiqueta única obligatorio/opcional y campo sin rellenar (copiada de dashboard.css). */
+.campo-oblig { color: #dc2626; font-weight: 700; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
+.campo-opc { color: #3f4759; font-weight: 500; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
+.campo-falta, .campo-falta input, .campo-falta select, .campo-falta textarea { border-color: #dc2626 !important; }

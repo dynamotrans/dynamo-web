@@ -6,6 +6,7 @@ import { guardarClave, type EstadoClave } from './acciones';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
 import MedidorClave, { claveValida } from '@/components/MedidorClave';
+import Req from '@/components/Req';
 
 export default function FormClave() {
   const [estado, accion, enviando] = useActionState(guardarClave, { error: null } as EstadoClave);
@@ -17,7 +18,7 @@ export default function FormClave() {
       {enviando && <Cargando texto="Guardando la contraseña" />}
       {estado.error && <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>}
       <div className="portal-field">
-        <label className="portal-label" htmlFor="clave">Contraseña nueva</label>
+        <label className="portal-label" htmlFor="clave">Contraseña nueva <Req /></label>
         <div className="portal-input-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           <input id="clave" name="password" className="portal-input" type={ver ? 'text' : 'password'} autoComplete="new-password"

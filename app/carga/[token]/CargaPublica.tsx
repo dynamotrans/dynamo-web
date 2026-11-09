@@ -18,6 +18,8 @@ import CampoTelefono from '@/components/CampoTelefono';
 import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
 import type { OfertaPublica, ReservaPublica, ParadaPublica } from './tipos';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 type Parada = ParadaPublica;
 
@@ -327,7 +329,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   const cifReal = (elegido?.cif ?? cif).trim();
   async function aceptarla() {
     setError(null);
-    if (!o.para_transportista && !cifReal) { setError('Escribe tu CIF / NIF para identificarte.'); return; }
+    if (!o.para_transportista && !cifReal) { setError('Escribe tu CIF / NIF para identificarte.'); avisaFaltas(['f-cif']); return; }
     setTrabajando(true);
     const x = await aceptar(token, { cif: cifReal, precio: contra && precio !== base ? precio : null, pronto_pago: pronto, ...veh });
     setTrabajando(false);
@@ -388,7 +390,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
               <button type="button" className="btn-sec" style={{ marginTop: '0.55rem', padding: '0.55rem' }} onClick={() => { setElegido(null); setCif(''); setSugs(null); }}>No soy yo · cambiar</button>
             </div>
           ) : (<>
-            <label htmlFor="f-cif">Tu CIF / NIF, código de bolsa o el nombre de tu empresa *</label>
+            <label htmlFor="f-cif">Tu CIF / NIF, código de bolsa o el nombre de tu empresa <Req /></label>
             <div className="idrow">
               <input type="text" id="f-cif" value={cif} placeholder="B12345678 o tu empresa" autoCapitalize="characters" autoComplete="off"
                 onChange={(e) => { setCif(e.target.value); setAcAbierto(true); }}
@@ -420,12 +422,12 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
       <div className="fsec fsec-vehiculo">
         <div className="sec-title">Vehículo y conductor <span className="op" style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· puedes mandarlos más tarde</span></div>
         <div className="row2">
-          <div><label htmlFor="f-tractora">Matrícula camión / tractora</label><input type="text" id="f-tractora" value={veh.camion} placeholder="1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
-          <div><label htmlFor="f-remolque">Matrícula remolque</label><input type="text" id="f-remolque" value={veh.remolque} placeholder="R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
+          <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="f-tractora" value={veh.camion} placeholder="1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
+          <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="f-remolque" value={veh.remolque} placeholder="R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
         </div>
-        <label htmlFor="f-chofer">Nombre y apellidos del conductor</label>
+        <label htmlFor="f-chofer">Nombre y apellidos del conductor <Req si={false} /></label>
         <input type="text" id="f-chofer" value={veh.conductor} placeholder="Nombre y apellidos" onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
-        <label htmlFor="f-tfno">Teléfono del conductor</label>
+        <label htmlFor="f-tfno">Teléfono del conductor <Req si={false} /></label>
         <CampoTelefono id="f-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
         <p className="id-hint">Con estos datos, cargador y destinatario <strong>coordinan la recogida y la entrega</strong> con el conductor.</p>
       </div>
@@ -530,20 +532,20 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
         <div className="fsec fsec-vehiculo" style={{ textAlign: 'left' }}>
           <div className="sec-title">Vehículo y conductor {falta && <span style={{ color: 'var(--red)' }}>· faltan datos</span>}</div>
           <div className="row2">
-            <div><label htmlFor="ok-tractora">Matrícula camión / tractora</label><input type="text" id="ok-tractora" value={veh.camion} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} onBlur={alSalirCamion} /></div>
-            <div><label htmlFor="ok-remolque">Matrícula remolque</label><input type="text" id="ok-remolque" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
+            <div><label htmlFor="ok-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="ok-tractora" value={veh.camion} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} onBlur={alSalirCamion} /></div>
+            <div><label htmlFor="ok-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="ok-remolque" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
           </div>
           {dias.length > 1 && <>
-            <label htmlFor="ok-dia">Día en que cargas <span style={{ color: 'var(--red)' }}>· obligatorio</span></label>
+            <label htmlFor="ok-dia">Día en que cargas <Req /></label>
             <select id="ok-dia" value={dia} onChange={(e) => setDia(e.target.value)}>
               <option value="">Elige un día de la ventana…</option>
               {dias.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)}{w === 0 || w === 6 ? ' (no se circula)' : ''}</option>; })}
             </select>
           </>}
-          <label htmlFor="ok-chofer">Conductor</label><input type="text" id="ok-chofer" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />
-          <label htmlFor="ok-tfno">Teléfono del conductor</label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
+          <label htmlFor="ok-chofer">Conductor <Req si={false} /></label><input type="text" id="ok-chofer" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />
+          <label htmlFor="ok-tfno">Teléfono del conductor <Req si={false} /></label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button className="btn" onClick={async () => {
-            if (dias.length > 1 && !dia) { setGuardado('Elige el día en que cargas.'); return; }
+            if (dias.length > 1 && !dia) { setGuardado('Elige el día en que cargas.'); avisaFaltas(['ok-dia']); return; }
             const x = await completar(token, { ...veh, dia });
             if (x.resultado === 'guardado') {
               // Lo que ha quedado guardado de verdad (p. ej. el teléfono conocido de ese chófer).
@@ -576,9 +578,9 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
   const idf = d.cif.trim() ? validaIdFiscalPais(d.cif, d.pais) : null;
   async function enviar() {
     setError(null);
-    if (!d.codigo_bolsa.trim()) { setError('Escribe tu código en la bolsa de cargas.'); return; }
-    if (!d.cif.trim()) { setError('Escribe tu CIF / NIF.'); return; }
-    if (d.telefono.replace(/[^0-9]/g, '').length < 6) { setError('Escribe un teléfono de contacto.'); return; }
+    if (!d.codigo_bolsa.trim()) { setError('Escribe tu código en la bolsa de cargas.'); avisaFaltas(['al-cbolsa']); return; }
+    if (!d.cif.trim()) { setError('Escribe tu CIF / NIF.'); avisaFaltas(['al-cif']); return; }
+    if (d.telefono.replace(/[^0-9]/g, '').length < 6) { setError('Escribe un teléfono de contacto.'); avisaFaltas(['al-tel']); return; }
     setTrabajando(true);
     const x = await darseDeAlta(token, d);
     setTrabajando(false);
@@ -604,13 +606,13 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       <div className="pago-contado" style={{ textAlign: 'left' }}>Solo trabajamos con transportistas de <strong>bolsas de cargas del grupo Alpega</strong> (Wtransnet, Teleroute…). Por eso solo te pedimos estos datos: <strong>el resto (razón social, dirección, seguro…) lo completamos nosotros desde tu ficha en la bolsa</strong>.</div>
 
       <div className="row2">
-        <div><label htmlFor="al-bolsa">Bolsa de cargas *</label>
+        <div><label htmlFor="al-bolsa">Bolsa de cargas</label>
           <select id="al-bolsa" value={d.bolsa} onChange={(e) => set('bolsa', e.target.value)}>{BOLSAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
-        <div><label htmlFor="al-cbolsa">Tu código en la bolsa *</label><input type="text" id="al-cbolsa" value={d.codigo_bolsa} maxLength={30} placeholder="Ej.: 123456" onChange={(e) => set('codigo_bolsa', e.target.value)} /></div>
+        <div><label htmlFor="al-cbolsa">Tu código en la bolsa <Req /></label><input type="text" id="al-cbolsa" value={d.codigo_bolsa} maxLength={30} placeholder="Ej.: 123456" onChange={(e) => set('codigo_bolsa', e.target.value)} /></div>
       </div>
       <div className="row2">
-        <div><label htmlFor="al-pais">País *</label><SelectorPais modo="pais" id="al-pais" valor={d.pais} onCambio={(v) => set('pais', v)} /></div>
-        <div><label htmlFor="al-cif">CIF / NIF *</label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="B12345678 / 12345678Z" onChange={(e) => set('cif', e.target.value)} /></div>
+        <div><label htmlFor="al-pais">País</label><SelectorPais modo="pais" id="al-pais" valor={d.pais} onCambio={(v) => set('pais', v)} /></div>
+        <div><label htmlFor="al-cif">CIF / NIF <Req /></label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="B12345678 / 12345678Z" onChange={(e) => set('cif', e.target.value)} /></div>
       </div>
       <p className="id-hint" style={idf && !idf.ok ? { color: 'var(--red)' } : undefined}>
         {idf && !idf.ok
@@ -619,7 +621,7 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
           ? `${idf.tipo}: correcto.`
           : 'Empresa o autónomo, da igual: CIF, NIF o NIE en España; de otro país, tu nº de IVA con el prefijo (PT…, FR…) o tu nº fiscal tal cual.'}
       </p>
-      <label htmlFor="al-tel">Teléfono *</label>
+      <label htmlFor="al-tel">Teléfono <Req /></label>
       <CampoTelefono id="al-tel" valor={d.telefono} onCambio={(v) => set('telefono', v)} />
 
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}

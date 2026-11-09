@@ -4711,3 +4711,8 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 
 /* Confirmación de Nuevo envío: campos obligatorios del sitio sin rellenar, en rojo. */
 .sitio-f-falta input, .sitio-f-falta select { border-color: #dc2626 !important; }
+/* Etiqueta única obligatorio/opcional de todos los formularios (usuario, 2026-11-09). */
+.campo-oblig { color: #dc2626; font-weight: 700; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
+.campo-opc { color: var(--gray-700); font-weight: 500; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
+/* Campo obligatorio sin rellenar al enviar: borde rojo hasta que se toca (lib/faltas.ts). */
+.campo-falta, .campo-falta input, .campo-falta select, .campo-falta textarea { border-color: #dc2626 !important; }

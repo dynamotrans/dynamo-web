@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/lib/contactos';
 import { partirTel } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
+import Req from '@/components/Req';
 
 export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, obligatorios = false, roles, funcionNueva = 'general', ayuda }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
@@ -59,18 +60,18 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
       </div>
       <div className="ptar-sitio-grid">
         <div>
-          <label htmlFor={`${id}-tel`}>Teléfono{obligatorios && <> <span className="sitio-req">· obligatorio</span></>}</label>
+          <label htmlFor={`${id}-tel`}>Teléfono <Req si={obligatorios} /></label>
           <div className="tel-group">
             <SelectorPais modo="prefijo" valor={pref} onCambio={(v) => { setPref(v); ponTel(v, num); }} />
             <input id={`${id}-tel`} type="tel" inputMode="tel" value={num} placeholder="600 000 000" onChange={(e) => ponTel(pref, e.target.value)} />
           </div>
         </div>
         <div>
-          <label htmlFor={`${id}-email`}>Email{obligatorios && <> <span className="sitio-req">· obligatorio</span></>}</label>
+          <label htmlFor={`${id}-email`}>Email <Req si={obligatorios} /></label>
           <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
         </div>
         <div>
-          <label htmlFor={`${id}-nombre`}>Nombre y apellidos{obligatorios && <> <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
+          <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>
           <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} />
         </div>
         {roles ? (
@@ -83,7 +84,7 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
           </div>
         ) : conCargo && (
           <div>
-            <label htmlFor={`${id}-cargo`}>Cargo</label>
+            <label htmlFor={`${id}-cargo`}>Cargo <Req si={false} /></label>
             <input id={`${id}-cargo`} type="text" value={c.cargo} placeholder="Jefe de almacén, tráfico…" onChange={(e) => onCambio({ ...c, cargo: e.target.value })} />
           </div>
         )}

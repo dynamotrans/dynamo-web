@@ -20,6 +20,8 @@ import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 import EditorHorario from './EditorHorario';
 import { HORARIO_POR_DEFECTO, HORARIO_VERANO_POR_DEFECTO, VERANO_GENERICO, MMDD, mmddTxt, resumenHorario, validarHorario, type FechasVerano, type GrupoHorario } from '@/lib/horarios';
 
@@ -266,19 +268,22 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
 
   async function guardar(aunqueRepetido = false) {
     setError(null);
-    if (!almacen && !d.cliente_id) { setError('Elige de qué cliente es el sitio.'); return; }
+    if (!almacen && !d.cliente_id) { setError('Elige de qué cliente es el sitio.'); avisaFaltas(['sitio-cliente']); return; }
     const aNum = (t: string) => { const v = t.trim(); return v ? Number(v.replace(/\./g, '').replace(',', '.')) : null; };
     const semana = aNum(precios.semana), reparto = aNum(precios.reparto);
     if ([semana, reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0))) { setError('Los precios tienen que ser un número (o vacíos para usar los de por defecto).'); return; }
     // Cita y medios de carga ocultos de momento: se guardan siempre desactivados.
     const base: SitioDatos = { ...d, requiere_cita: false, tiene_medios_carga: false };
     const datos: SitioDatos = almacen ? { ...base, almacen: { disponible: d.almacen?.disponible ?? true, precio_almacenamiento_semana: semana, precio_reparto: reparto } } : base;
-    if (!d.tipo) { setError('Elige el tipo de sitio.'); return; }
+    if (!d.tipo) { setError('Elige el tipo de sitio.'); avisaFaltas(['sitio-tipo']); return; }
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
-      setError('Empresa, dirección, código postal y población son obligatorios.'); return;
+      setError('Empresa, dirección, código postal y población son obligatorios.');
+      avisaFaltas([!d.nombre_empresa.trim() && 'sitio-nombre_empresa', !d.direccion.trim() && 'sitio-direccion',
+        !d.codigo_postal.trim() && 'sitio-codigo_postal', !d.poblacion.trim() && 'sitio-poblacion'].filter(Boolean) as string[]);
+      return;
     }
     if (!almacen && !d.contactos.some((x) => x.telefono.trim() && x.email.trim())) {
-      setError('El contacto del sitio es obligatorio: pon al menos uno con teléfono y email (el nombre es opcional).'); return;
+      setError('El contacto del sitio es obligatorio: pon al menos uno con teléfono y email (el nombre es opcional).'); avisaFaltas(['ct-0-tel', 'ct-0-email']); return;
     }
     const malHorario = validarHorario(d.horario);
     if (malHorario) { setAbierto((a) => ({ ...a, horario: true })); setTabHorario('general'); setError(malHorario); return; }
@@ -323,8 +328,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         onChange={(e) => set(id, e.target.value as never)} {...extra} />
     </div>
   );
-  const opc = <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span>;
-  const obl = <span className="sitio-req">· obligatorio</span>;
+  const opc = <Req si={false} />;
+  const obl = <Req />;
   // Cliente del sitio: en una ficha existente viene con la página; en una nueva se elige con
   // el buscador (los clientes ya no viajan todos a la pantalla).
   const [cliSel, setCliSel] = useState<ClienteOpcion | null>(() => { const c = clientes.find((x) => x.id === d.cliente_id); return c ? { ...c, estado: 'activa' } : null; });
@@ -438,12 +443,12 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             <span style={{ display: 'block', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '1px 0 0.6rem' }}>Base sin IVA. Vacío = el precio por defecto.</span>
             <div className="ptar-sitio-grid">
               <div>
-                <label htmlFor="alm-semana">Almacenamiento · 7 días / 1 semana (€)</label>
+                <label htmlFor="alm-semana">Almacenamiento · 7 días / 1 semana (€) <Req si={false} /></label>
                 <input id="alm-semana" type="text" inputMode="decimal" value={precios.semana} placeholder={`${euros(almacen.precioSemana)} por defecto`}
                   onChange={(e) => setPrecios((p) => ({ ...p, semana: e.target.value }))} />
               </div>
               <div>
-                <label htmlFor="alm-reparto">Reparto urbano · camión 4 m (€ / reparto)</label>
+                <label htmlFor="alm-reparto">Reparto urbano · camión 4 m (€ / reparto) <Req si={false} /></label>
                 <input id="alm-reparto" type="text" inputMode="decimal" value={precios.reparto} placeholder={`${euros(almacen.precioReparto)} por defecto`}
                   onChange={(e) => setPrecios((p) => ({ ...p, reparto: e.target.value }))} />
               </div>
@@ -552,7 +557,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
 
       {/* El contacto del sitio es OBLIGATORIO (usuario, 2026-11-09): va tras el país,
           desplegado y sin el campo Cargo. */}
-      <div className="ptar-section-head" style={{ marginTop: '0.9rem' }}>Contacto de sitio <span className="sitio-req">· obligatorio</span></div>
+      <div className="ptar-section-head" style={{ marginTop: '0.9rem' }}>Contacto de sitio <Req /></div>
       <div className="ptar-sitio-grid">
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} conAvisos={dynamo} obligatorios />
       </div>
@@ -637,8 +642,8 @@ function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; has
       ) : (
         <>
           <div className="ptar-sitio-grid">
-            <div><label htmlFor="ver-desde">Desde</label><SelectorMMDD id="ver-desde" valor={v.desde} onCambio={(x) => onCambio({ ...v, desde: x })} /></div>
-            <div><label htmlFor="ver-hasta">Hasta</label><SelectorMMDD id="ver-hasta" valor={v.hasta} onCambio={(x) => onCambio({ ...v, hasta: x })} /></div>
+            <div><label htmlFor="ver-desde">Desde <Req /></label><SelectorMMDD id="ver-desde" valor={v.desde} onCambio={(x) => onCambio({ ...v, desde: x })} /></div>
+            <div><label htmlFor="ver-hasta">Hasta <Req /></label><SelectorMMDD id="ver-hasta" valor={v.hasta} onCambio={(x) => onCambio({ ...v, hasta: x })} /></div>
           </div>
           <div style={{ marginTop: '-0.3rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Se repite cada año. Fuera de esas fechas se usa el horario general.</div>
           <EditorHorario valor={v.horario} onCambio={(g) => onCambio({ ...v, horario: g })} />

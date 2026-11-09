@@ -14,6 +14,8 @@ import { fecha, ventana, hoyMadrid, fechaHora } from '@/lib/formato';
 import { resolverCambio } from '@/app/panel/(app)/envios/acciones';
 import { pedirCambio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { enMarcha } from '@/lib/estados';
+// Etiquetas según el criterio único (usuario, 2026-11-09).
+import Req from '@/components/Req';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean> | Promise<void> | void;
 // El cambio pedido por el cliente (jsonb envios.cambio_cliente).
@@ -106,7 +108,7 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: {
               ? 'Es una fecha fija: sigue siendo un solo día.'
               : 'Mantienes tu ventana: el último día lo calculamos con los mismos días hábiles que ahora (sin fines de semana ni festivos).'}</div>
             <div style={{ gridColumn: '1/-1' }}>
-              <label htmlFor="pc-detalle">¿Algo más? (dirección, mercancía, horario…) · opcional</label>
+              <label htmlFor="pc-detalle">¿Algo más? (dirección, mercancía, horario…) <Req si={false} /></label>
               <textarea id="pc-detalle" rows={3} maxLength={1000} value={detalle} onChange={(ev) => setDetalle(ev.target.value)} placeholder="Ej. la descarga pasa a ser en nuestra nave de Getafe" />
             </div>
           </div>

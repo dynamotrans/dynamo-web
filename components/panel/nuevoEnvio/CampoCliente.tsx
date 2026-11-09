@@ -5,6 +5,8 @@ import { crearClienteRapido } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { buscarClientes } from '@/app/panel/(app)/sitios/acciones';
 import SelectorPais from '@/components/SelectorPais';
 import { ClienteOpcion, IcoCliente, norm } from './comun';
+import Req from '@/components/Req';
+import { avisaFaltas } from '@/lib/faltas';
 
 // ---- Buscador de cliente (con alta rápida) ----------------------------------------
 export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
@@ -40,6 +42,8 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
   }, [clientes, q, encontrados]);
 
   async function guardar() {
+    const faltan = [!rs.trim() && 'ne-rs', !cif.trim() && 'ne-cif'].filter(Boolean) as string[];
+    if (faltan.length) { setError('Escribe la razón social y el CIF/NIF.'); avisaFaltas(faltan); return; }
     setGuardando(true); setError(null);
     const r = await crearClienteRapido(rs, cif, pais);
     setGuardando(false);
@@ -73,9 +77,9 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
       {alta && !valor && (
         <div className="ptar-admin-precio" style={{ marginTop: '0.6rem' }}>
           <div className="ptar-admin-precio-head">Cliente nuevo <span>· la ficha completa se rellena en Clientes</span></div>
-          <label className="ptar-admin-precio-lbl" htmlFor="ne-rs">Razón social</label>
+          <label className="ptar-admin-precio-lbl" htmlFor="ne-rs">Razón social <Req /></label>
           <input id="ne-rs" type="text" value={rs} onChange={(e) => setRs(e.target.value)} placeholder="Ej. Marbex Industrial S.L." />
-          <label className="ptar-admin-precio-lbl" htmlFor="ne-cif" style={{ marginTop: '0.6rem' }}>CIF / NIF</label>
+          <label className="ptar-admin-precio-lbl" htmlFor="ne-cif" style={{ marginTop: '0.6rem' }}>CIF / NIF <Req /></label>
           <input id="ne-cif" type="text" value={cif} onChange={(e) => setCif(e.target.value)} placeholder="Ej. B12345678" />
           <label className="ptar-admin-precio-lbl" htmlFor="ne-pais" style={{ marginTop: '0.6rem' }}>País</label>
           <SelectorPais id="ne-pais" valor={pais} onCambio={setPais} />
