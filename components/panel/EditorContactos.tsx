@@ -76,10 +76,13 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
         </div>
         <div>{!obligatorios || verNombre
           ? <>{obligatorios
-                ? <button type="button" className="campo-plegado" aria-expanded onClick={() => setVerNombre(false)}>− Nombre y apellidos <Req si={false} /></button>
+                ? <button type="button" className="campo-plegado" aria-expanded onClick={() => setVerNombre(false)} style={{ marginBottom: '0.45rem' }}>
+                    <span className="cp-ico" aria-hidden="true">−</span><span className="cp-txt">Nombre y apellidos <Req si={false} /></span></button>
                 : <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>}
               <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
-          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>+ Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <strong style={{ color: 'var(--navy)' }}> · {c.nombre}</strong> : null}</button>}
+          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>
+              <span className="cp-ico" aria-hidden="true">+</span>
+              <span className="cp-txt">Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <span className="cp-val">· {c.nombre}</span> : null}</span></button>}
         </div>
         {roles ? (
           <div>

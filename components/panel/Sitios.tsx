@@ -550,10 +550,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
 
       {/* El HORARIO (replegado, con resumen) va ANTES del contacto (usuario, 2026-11-09). */}
       <div style={{ display: 'grid', gap: '0.55rem', marginTop: '0.9rem' }}>
-        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.horario} onClick={() => plegar('horario')} style={{ margin: 0 }}>
-          <span className="pnt-icon" aria-hidden="true">{abierto.horario ? '−' : '+'}</span>
-          <span><strong>Horario de carga y descarga</strong>{' '}
-            <span style={{ color: 'var(--gray-500)' }}>· {resumenHorario(d.horario) || 'sin definir'}{d.verano?.activo ? ' · verano activo' : ''}</span></span>
+        <button type="button" className="campo-plegado" aria-expanded={abierto.horario} onClick={() => plegar('horario')}>
+          <span className="cp-ico" aria-hidden="true">{abierto.horario ? '−' : '+'}</span>
+          <span className="cp-txt">Horario de carga y descarga
+            <span className="cp-val">· {resumenHorario(d.horario) || 'sin definir'}{d.verano?.activo ? ' · verano activo' : ''}</span></span>
         </button>
         {abierto.horario && (
           <div className="ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
@@ -581,10 +581,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       <div style={{ display: 'grid', gap: '0.55rem', marginTop: '0.9rem' }}>
         {/* El email de avisos del sitio salió de la ficha (usuario, 2026-11-09): los avisos
             van a los CONTACTOS (todos nacen recibiéndolos; Dynamo puede apagarlos). */}
-        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.avisos} onClick={() => plegar('avisos')} style={{ margin: 0 }}>
-          <span className="pnt-icon" aria-hidden="true">{abierto.avisos ? '−' : '+'}</span>
-          <span><strong>Notas internas del sitio</strong>{' '}
-            {d.anotaciones.trim() ? <span className="badge badge-green">Con datos</span> : <span style={{ color: 'var(--gray-500)' }}>(privadas · opcional)</span>}</span>
+        <button type="button" className="campo-plegado" aria-expanded={abierto.avisos} onClick={() => plegar('avisos')}>
+          <span className="cp-ico" aria-hidden="true">{abierto.avisos ? '−' : '+'}</span>
+          <span className="cp-txt">Notas internas del sitio
+            {d.anotaciones.trim() ? <span className="cp-val">· {d.anotaciones.length > 42 ? d.anotaciones.slice(0, 41) + '…' : d.anotaciones}</span> : <span className="cp-val">· privadas · opcional</span>}</span>
         </button>
         {abierto.avisos && (
           <div className="ptar-sitio-grid">

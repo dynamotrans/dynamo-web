@@ -4717,9 +4717,17 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .aviso-cierre strong { color: #b91c1c; font-weight: 800; }
 /* «· Muy útil» (verde negrita): no obligatorio pero muy conveniente (email de sitios). */
 .campo-util { color: var(--green); font-weight: 700; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
-/* Campo opcional REPLEGADO: solo la etiqueta, pulsándola se abre el campo
-   (para no llenar la pantalla de opcionales; usuario, 2026-11-09). */
-.campo-plegado { display: block; background: none; border: 0; padding: 0.15rem 0; margin: 0;
-    font: inherit; font-size: var(--fs-s); font-weight: 600; color: var(--gray-700);
-    cursor: pointer; text-align: left; }
-.campo-plegado:hover { color: var(--purple); text-decoration: underline; }
+/* Campo opcional REPLEGADO (usuario, 2026-11-09): fila uniforme tipo tarjeta — icono
+   redondo +/−, etiqueta y el valor resumido en gris; pulsando abre y cierra. Misma
+   altura estándar (44px) que los campos. */
+.campo-plegado { display: flex; align-items: center; gap: 0.55rem; width: 100%; min-height: 44px;
+    background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.4rem 0.7rem;
+    margin: 0; font: inherit; cursor: pointer; text-align: left; transition: border-color 0.15s; }
+.campo-plegado:hover { border-color: var(--purple); }
+.campo-plegado .cp-ico { width: 22px; height: 22px; flex: none; border-radius: 50%;
+    background: rgba(51,0,204,0.08); color: var(--purple); font-weight: 800; font-size: 0.95rem;
+    display: inline-flex; align-items: center; justify-content: center; }
+.campo-plegado .cp-txt { min-width: 0; font-size: var(--fs-m); font-weight: 700; color: var(--navy);
+    display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3rem; }
+.campo-plegado .cp-val { color: var(--gray-500); font-weight: 600; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }

@@ -39,9 +39,10 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
     return (
       <div className="full" key={k}>
         <button type="button" className="campo-plegado" aria-expanded={ab} onClick={() => toggleOpc(k)}>
-          {ab ? '−' : '+'} {etiqueta}{!ab && valor.trim() ? <strong style={{ color: 'var(--navy)' }}> · {valor.length > 60 ? valor.slice(0, 59) + '…' : valor}</strong> : null}
+          <span className="cp-ico" aria-hidden="true">{ab ? '−' : '+'}</span>
+          <span className="cp-txt">{etiqueta}{!ab && valor.trim() ? <span className="cp-val">· {valor.length > 42 ? valor.slice(0, 41) + '…' : valor}</span> : null}</span>
         </button>
-        {ab && campo}
+        {ab && <div style={{ marginTop: '0.45rem' }}>{campo}</div>}
       </div>
     );
   };
@@ -138,10 +139,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   {/* Horario REPLEGADO con resumen, igual que en la ficha de Sitios
                       (usuario, 2026-11-09): pulsando se abre el editor. */}
                   <div className="full">
-                    <button type="button" className="ptar-notes-toggle" aria-expanded={horAbierto.has(p.k)} onClick={() => toggleHor(p.k)} style={{ margin: 0 }}>
-                      <span className="pnt-icon" aria-hidden="true">{horAbierto.has(p.k) ? '−' : '+'}</span>
-                      <span><strong>Horario de carga y descarga</strong>{' '}
-                        <span style={{ color: 'var(--gray-500)' }}>· {resumenHorario(f.horario) || 'sin definir'}</span></span>
+                    <button type="button" className="campo-plegado" aria-expanded={horAbierto.has(p.k)} onClick={() => toggleHor(p.k)}>
+                      <span className="cp-ico" aria-hidden="true">{horAbierto.has(p.k) ? '−' : '+'}</span>
+                      <span className="cp-txt">Horario de carga y descarga<span className="cp-val">· {resumenHorario(f.horario) || 'sin definir'}</span></span>
                     </button>
                   </div>
                   {horAbierto.has(p.k) && <div className="full"><EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} /></div>}
