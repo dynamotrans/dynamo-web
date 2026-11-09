@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import EditorHorario from '../EditorHorario';
 import AvisoCierreSitio from './AvisoCierreSitio';
+import { Interruptor } from './Interruptor';
 import CampoTelefono from '@/components/CampoTelefono';
 import { resumenHorario } from '@/lib/horarios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
@@ -48,6 +49,23 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
         const telOk = !!f.telefono.trim();
         const faltaCampos = marcada && ((f.nuevo && !f.empresa.trim()) || !telOk);
         const abierta = abiertas.has(p.k);
+        // CITA PREVIA por sitio (usuario, 2026-11-09): el activador vive aquí, encima del
+        // horario, y su texto va a las anotaciones de ESA parada al crear el envío.
+        const ed = edic[p.k];
+        const citaBloque = (<>
+          <div className="full" style={{ marginBottom: 0 }}>
+            <Interruptor titulo="Cita previa" valor={ed?.cita ?? false} noTxt="No (sin hora fija)" siTxt="Sí (con hora fija)"
+              onCambio={(v) => set(p, { cita: v, citaHora: v && !ed?.citaHora ? '08:00' : ed?.citaHora })} />
+          </div>
+          {ed?.cita && (<>
+            <div className="ptar-cita-grid" style={{ display: 'contents' }}>
+              <div><label>Hora de la cita</label>
+                <input type="time" value={ed?.citaHora ?? '08:00'} onChange={(e) => set(p, { citaHora: e.target.value })} /></div>
+              <div className="full"><label>Detalles de la cita <Req si={false} /></label>
+                <input type="text" placeholder="Ej. muelle 4, preguntar por recepción…" value={ed?.citaDetalle ?? ''} onChange={(e) => set(p, { citaDetalle: e.target.value })} /></div>
+            </div>
+          </>)}
+        </>);
         return (
           <div key={p.k} className={`ptar-sitio-card${abierta ? ' open' : ''}${falta || faltaCampos ? ' falta' : ' req-ok'}`}>
             <button type="button" className="ptar-sitio-head" aria-expanded={abierta} onClick={() => toggle(p.k)}>
@@ -83,6 +101,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   <div><label>Empresa</label><input className="sitio-f-lock" value={f.empresa} readOnly tabIndex={-1} /></div>
                   <div><label>Tipo de lugar</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} /></div>
+                  {citaBloque}
                   {f.horario.length > 0 && <div className="full"><label>Horario</label><input className="sitio-f-lock" value={resumenHorario(f.horario)} readOnly tabIndex={-1} /></div>}
                   {f.telefono && <div><label>Teléfono</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
@@ -99,6 +118,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   <div><label>Tipo de sitio</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} />
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>La dirección se cambia en el paso 1 (Ruta).</div></div>
+                  {citaBloque}
                   {/* Horario REPLEGADO con resumen, igual que en la ficha de Sitios
                       (usuario, 2026-11-09): pulsando se abre el editor. */}
                   <div className="full">

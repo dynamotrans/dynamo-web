@@ -102,13 +102,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Sin campo propio desde 2026-11-08 (decisión del usuario): se conserva lo que el envío
   // ya tuviera en anotaciones al editar, y lo nuevo va en Notas/Nº de pedido o en la cita.
   const [notas] = useState(be?.anotaciones_cliente ?? '');
-  // Cita previa (2026-11-08, opción «sin migración»): sus datos van en las anotaciones del
-  // envío (y así a la orden de carga). Si hiciera falta filtrar por cita, se pasa a campo propio.
-  const [cita, setCita] = useState(false);
-  const [citaHora, setCitaHora] = useState('');
-  const [citaDetalle, setCitaDetalle] = useState('');
-  const notaCita = cita ? ['CITA PREVIA' + (citaHora ? ` a las ${citaHora}` : ''), citaDetalle.trim()].filter(Boolean).join(' · ') : '';
-  const notasEnvio = [notaCita, notas].filter(Boolean).join('\n');
+  // La CITA PREVIA vive ahora POR SITIO en el paso 4 (usuario, 2026-11-09): su texto va
+  // a las anotaciones de esa parada, no a las del envío.
+  const notasEnvio = notas;
   const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente)));
 
   // ---- Paso 3: fecha y precio
@@ -512,9 +508,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       const g = await guardarEdicionesSitios(edicExist);
       if (!g.ok) { setEnviando(false); setAviso(g.error); return; }
     }
+    const citaTxt = (k: number) => {
+      const c = edicSitios[k];
+      return c?.cita ? ['CITA PREVIA' + (c.citaHora ? ` a las ${c.citaHora}` : ''), (c.citaDetalle ?? '').trim()].filter(Boolean).join(' · ') : undefined;
+    };
     const paradas: ParadaNueva[] = puntos.map((p, i) => {
       const ref = i === 0 && refCli ? refCli : undefined;
-      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref };
+      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref, anotaciones: citaTxt(p.k) };
       const n = p.nuevo!;
       // Datos del sitio nuevo con lo corregido en la confirmación encima.
       const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
@@ -522,7 +522,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       return {
         tipo: p.tipo, nombre_empresa: f.empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
-        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref,
+        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref, anotaciones: citaTxt(p.k),
         contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail, horario_tramos: hr ? tramosDe(hr) : undefined,
       };
     });
@@ -826,7 +826,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-notes-wrap ptar-field-full">
                     <button type="button" className="ptar-notes-toggle" aria-expanded={notasAbiertas} onClick={() => setNotasAbiertas((v) => !v)}>
                       <span className="pnt-icon" aria-hidden="true">{notasAbiertas ? '−' : '+'}</span>
-                      <strong>Añadir notas/nº de pedido, cita previa, plataforma elevadora o NIMA</strong> (opcional)
+                      <strong>Añadir notas/nº de pedido, plataforma elevadora o NIMA</strong> (opcional)
                     </button>
                     {notasAbiertas && (
                       <div className="ptar-notes-body">
@@ -840,21 +840,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                             }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
-                          <Interruptor titulo="Cita previa" valor={cita} noTxt="No (sin hora fija)" siTxt="Sí (con hora fija)"
-                            onCambio={(v) => { setCita(v); if (v && !citaHora) setCitaHora('08:00'); }} />
                         </div>
-                        {cita && (
-                          <div className="ptar-sitio-grid ptar-cita-grid" style={{ marginTop: '0.9rem' }}>
-                            <div>
-                              <label htmlFor="ne-cita-hora">Hora de la cita</label>
-                              <input id="ne-cita-hora" type="time" value={citaHora} onChange={(e) => setCitaHora(e.target.value)} />
-                            </div>
-                            <div className="full">
-                              <label htmlFor="ne-cita-det">Detalles de la cita <Req si={false} /></label>
-                              <input id="ne-cita-det" type="text" placeholder="Ej. muelle 4, pedir cita en el portal del almacén, preguntar por recepción…" value={citaDetalle} onChange={(e) => setCitaDetalle(e.target.value)} />
-                            </div>
-                          </div>
-                        )}
                         <div className="ptar-field" style={{ marginTop: '0.9rem' }}>
                           <label className="ptar-label" htmlFor="ne-ref">Notas/Nº de pedido <Req si={false} /></label>
                           <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234, instrucciones breves…" value={refCli} onChange={(e) => setRefCli(e.target.value)} />

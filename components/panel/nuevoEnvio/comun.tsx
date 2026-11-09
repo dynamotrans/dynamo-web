@@ -45,7 +45,9 @@ export type SitioEditable = {
 export type DatosSitios = Record<string, SitioEditable>;
 // Lo que el usuario cambia en una ficha de la confirmación (solo lo tocado; lo demás se
 // resuelve con lo que ya tenía el sitio o el sitio nuevo del paso 1).
-export type CardEdit = { horario?: GrupoHorario[]; contacto?: string; telefono?: string; contactoEmail?: string; notas?: string; emails?: string; maps?: string; empresa?: string };
+// cita/citaHora/citaDetalle: CITA PREVIA por sitio (usuario, 2026-11-09): se elige en la
+// tarjeta del paso 4 y va como texto a las anotaciones de ESA parada del envío.
+export type CardEdit = { horario?: GrupoHorario[]; contacto?: string; telefono?: string; contactoEmail?: string; notas?: string; emails?: string; maps?: string; empresa?: string; cita?: boolean; citaHora?: string; citaDetalle?: string };
 // Lo que se manda al servidor para guardar en la ficha del sitio al crear el envío.
 export type EdicionSitio = {
   sitio_id: string; contacto_id: string | null; contacto_nombre: string; contacto_telefono: string; contacto_email: string;
