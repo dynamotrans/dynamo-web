@@ -20,7 +20,10 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
   return <>
     <h4 className="modal-section-title">CMR digital</h4>
     <div className="det-block">
-      <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>Un enlace para que <strong>cargador, transportista y destinatario</strong> firmen el CMR con el dedo desde el móvil, sin crear cuenta. Cada firma queda con su documento, la hora del servidor y desde dónde se firmó, y sale en el <strong>CMR relleno</strong>.</p>
+      {/* El enlace nace CON el envío (usuario, 2026-11-09): los avisos automáticos se lo
+          mandarán a las partes, y aquí quedan siempre los botones para reenviarlo a mano.
+          El botón de crear solo aparece si se retiró (o caducó) el enlace. */}
+      <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>El enlace se crea solo con el envío, para que <strong>cargador, transportista y destinatario</strong> firmen el CMR con el dedo desde el móvil, sin crear cuenta. Cada firma queda con su documento, la hora del servidor y desde dónde se firmó, y sale en el <strong>CMR relleno</strong>. Desde aquí puedes reenviárselo a quien haga falta.</p>
       {enl ? (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(enlaceCmrUrl(enl.token)); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>{copiado ? 'Enlace copiado' : 'Copiar enlace'}</button>
@@ -30,7 +33,7 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
           <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', flexBasis: '100%' }}>Vale hasta el {fechaDe(enl.caduca_en)}.</span>
         </div>
       ) : (
-        <button className="btn-primary" disabled={!!trabajando} onClick={() => hacer('Creando el enlace', () => enlaceCmr(e.id), 'Enlace del CMR creado: cópialo o mándalo por WhatsApp.')}><I d={ICO.doc} />Crear enlace para firmar</button>
+        <button className="btn-primary" disabled={!!trabajando} onClick={() => hacer('Creando el enlace', () => enlaceCmr(e.id), 'Enlace del CMR creado: cópialo o mándalo por WhatsApp.')}><I d={ICO.doc} />Crear el enlace de nuevo</button>
       )}
       <div className="pen-envio-sum" style={{ marginTop: '0.7rem' }}>
         <div className="pen-sum-row"><span className="k"><strong>{ficha.firmasCmr.length} de {total}</strong> firmas</span><span className="v">{ficha.firmasCmr.length >= total ? <span className="badge badge-green">CMR firmado</span> : ''}</span></div>

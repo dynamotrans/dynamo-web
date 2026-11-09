@@ -1942,7 +1942,8 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
 do $$ declare tok uuid; begin
-  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e59')::uuid) returning token into tok;
+  -- El enlace nace con el envío (20261109160000): se coge el vivo en vez de insertar.
+  select token into strict tok from cmr_enlaces where envio_id = current_setting('prueba.e59')::uuid and not revocado;
   perform set_config('prueba.tok65', tok::text, false);
   perform set_config('prueba.carga65', (select id::text from envio_paradas where envio_id = current_setting('prueba.e59')::uuid and tipo = 'carga' limit 1), false);
   perform set_config('prueba.desc65', (select id::text from envio_paradas where envio_id = current_setting('prueba.e59')::uuid and tipo = 'descarga' limit 1), false);
@@ -3778,7 +3779,8 @@ select set_config('request.jwt.claim.sub', '', false);
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare tok uuid; begin
-  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e108')::uuid) returning token into tok;
+  -- El enlace nace con el envío (20261109160000): se coge el vivo en vez de insertar.
+  select token into strict tok from cmr_enlaces where envio_id = current_setting('prueba.e108')::uuid and not revocado;
   perform set_config('prueba.tok110', tok::text, false);
   perform set_config('prueba.par110', (select id::text from envio_paradas where envio_id = current_setting('prueba.e108')::uuid and tipo = 'descarga' limit 1), false);
   perform set_config('prueba.car110', (select id::text from envio_paradas where envio_id = current_setting('prueba.e108')::uuid and tipo = 'carga' limit 1), false);
@@ -6484,7 +6486,8 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare tok uuid; begin
-  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e174')::uuid) returning token into tok;
+  -- El enlace nace con el envío (20261109160000): se coge el vivo en vez de insertar.
+  select token into strict tok from cmr_enlaces where envio_id = current_setting('prueba.e174')::uuid and not revocado;
   perform set_config('prueba.tok174', tok::text, false);
   -- Una foto buena, un PDF (no es imagen) y una foto de OTRO enlace: solo la primera vale.
   perform set_config('prueba.ajena174', 'cmr/' || gen_random_uuid()::text || '/foto-ajena.jpg', false);
@@ -6568,7 +6571,8 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare tok uuid; i int; begin
-  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e176')::uuid) returning token into tok;
+  -- El enlace nace con el envío (20261109160000): se coge el vivo en vez de insertar.
+  select token into strict tok from cmr_enlaces where envio_id = current_setting('prueba.e176')::uuid and not revocado;
   perform set_config('prueba.tok176', tok::text, false);
   -- Las paradas se resuelven AQUÍ (RLS no deja a anon leer envio_paradas).
   perform set_config('prueba.car176', (select id::text from envio_paradas where envio_id = current_setting('prueba.e176')::uuid and tipo = 'carga' limit 1), false);
@@ -6627,7 +6631,8 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare tok uuid; i int; begin
-  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e177')::uuid) returning token into tok;
+  -- El enlace nace con el envío (20261109160000): se coge el vivo en vez de insertar.
+  select token into strict tok from cmr_enlaces where envio_id = current_setting('prueba.e177')::uuid and not revocado;
   perform set_config('prueba.tok177', tok::text, false);
   -- Las paradas se resuelven AQUÍ (RLS no deja a anon leer envio_paradas).
   perform set_config('prueba.car177', (select id::text from envio_paradas where envio_id = current_setting('prueba.e177')::uuid and tipo = 'carga' limit 1), false);
@@ -6705,5 +6710,27 @@ do $$ declare e uuid; o uuid; mal boolean := false; begin
   end;
   if not mal then raise exception 'FALLO 178 · cuela un canal inventado'; end if;
   raise notice 'OK 178 · ofertas con canal «enlace» (envío puntual del enlace): se guardan, y un canal inventado no cuela';
+end $$;
+reset role;
+
+-- ---- 179. El enlace del CMR nace con el envío (y retirado no se recrea solo) -----------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; n int; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 30, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A179', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B179', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  -- Nace con su enlace vivo, y uno solo.
+  select count(*) into n from cmr_enlaces where envio_id = e and not revocado;
+  if n <> 1 then raise exception 'FALLO 179 · el envío no nace con su enlace del CMR (hay %)', n; end if;
+  -- Retirado a mano, un cambio de estado NO lo recrea (lo recrea Dynamo con el botón).
+  update cmr_enlaces set revocado = true where envio_id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  if exists (select 1 from cmr_enlaces where envio_id = e and not revocado) then
+    raise exception 'FALLO 179 · un enlace retirado se recrea solo al cambiar el envío';
+  end if;
+  raise notice 'OK 179 · el enlace del CMR nace con el envío (uno vivo) y, retirado a mano, no se recrea solo';
 end $$;
 reset role;
