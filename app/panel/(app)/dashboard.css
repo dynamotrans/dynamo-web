@@ -1796,6 +1796,12 @@ body.theme-dark .sidebar { background: #060116; }
     font-size: var(--fs-s); font-weight: 700;
     display: flex; align-items: center; gap: 0.2rem;
 }
+/* Dashboard admin: tarjetas compactas y discretas, de uso operativo (usuario, 2026-11-09). */
+.stats-compactas { gap: 0.45rem; }
+.stats-compactas .stat-card { padding: 0.45rem 0.65rem; gap: 0.1rem; border-radius: 10px; }
+.stats-compactas .stat-card-label { font-size: var(--fs-s); }
+.stats-compactas .stat-card-value { font-size: var(--fs-d2); font-weight: 800; }
+.stats-compactas .stat-card-trend { font-size: var(--fs-s); font-weight: 600; }
 .stat-card-trend.up   { color: var(--green-dark); }
 .stat-card-trend.down { color: var(--red); }
 /* Boton que parece tarjeta (resetea estilos de <button>) y reacciona

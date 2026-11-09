@@ -60,7 +60,7 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
         Indicadores internos de gestión: cada caja abre su ventana con lo pendiente, y la línea de <strong>pronto pago a transportistas</strong>.
       </p>
       {errorBloques && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se ha podido cargar todo: {errorBloques}</div></div>}
-      <div className="stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+      <div className="stats-row stats-compactas" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
         <Cifra href="/panel/envios?f=programada" label="Envíos en curso" valor={enCurso} />
         {bloques.map((b) => <BloqueCard key={b.id} b={b} />)}
         <LineaProntoPago pp={prontoPago} error={errorPP} />
