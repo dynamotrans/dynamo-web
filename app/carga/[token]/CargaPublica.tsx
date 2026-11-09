@@ -503,7 +503,8 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
       <h1 style={{ margin: 0 }}><span className="ok-aceptada">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
         {c.estado === 'cancelado' ? ' Envío cancelado por el cliente' : ' ¡Envío aceptado!'}</span></h1>
-      <p className="sub" style={{ marginTop: '0.4rem' }}>{c.transportista} · {c.aceptada_en ? fechaHora(c.aceptada_en) : ''}</p>
+      {/* Caja destacada (usuario, 2026-11-09): quién lo aceptó y cuándo, bien visible. */}
+      <div className="oferta-para" style={{ marginTop: '0.5rem' }}><span className="op-lbl">Aceptado por</span><strong>{c.transportista}</strong>{c.aceptada_en ? <> · {fechaHora(c.aceptada_en)}</> : null}</div>
       <div className="pago-contado" style={{ textAlign: 'left' }}>
         Precio acordado: <span className="imp">{euros(precio)}</span> <span className="base-nota">· base imponible</span>
         {c.pronto_pago && <div className="base-nota" style={{ marginTop: 2 }}>Con pronto pago: cobras {euros(precio - dto)} a {txtNum(c.pronto_pago_dias)} días de la factura.</div>}
