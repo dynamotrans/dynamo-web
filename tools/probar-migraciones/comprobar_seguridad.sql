@@ -6746,3 +6746,53 @@ do $$ declare v timestamptz; begin
   end if;
   raise notice 'OK 180 · el enlace del CMR vale indefinidamente (infinity) y sigue vigente para las funciones públicas';
 end $$;
+
+-- ---- 181. La carga aceptada trae la ficha completa del sitio (horarios, verano, PIN, tfno) ---
+reset role;
+do $$ declare s uuid; begin
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, requiere_pin, requiere_cita)
+  values (current_setting('prueba.cliente')::uuid, 'Nave 181', 'C/ Ficha 1', '41001', 'Sevilla', true, true) returning id into s;
+  -- Verano activo con sus tramos (el resumen lo escribe la base de datos) y dos contactos:
+  -- el principal SIN teléfono (solo email) y otro CON teléfono — debe salir el segundo.
+  insert into sitio_horarios (sitio_id, dia_semana, abre, cierra, temporada)
+  select s, d, time '07:00', time '15:00', 'verano' from generate_series(1, 5) d;
+  update sitios set verano_activo = true, verano_desde = '06-15', verano_hasta = '09-15' where id = s;
+  insert into contactos (sitio_id, nombre, email, es_principal) values (s, 'Jefa Sin Tfno', 'jefa@n181.com', true);
+  insert into contactos (sitio_id, nombre, telefono) values (s, 'Muelle 181', '+34600181181');
+  perform set_config('prueba.s181', s::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; o uuid; tok uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 30, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'sitio_id', current_setting('prueba.s181'), 'nombre_empresa', 'Nave 181', 'direccion', 'C/ Ficha 1', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B181', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  insert into transportistas (razon_social, cif) values ('Trans 181 SL', 'B18118118');
+  o := ofertar_envio(e, null, 'enlace', 800, 10::smallint, true);
+  select token into tok from envio_ofertas where id = o;
+  perform set_config('prueba.tok181', tok::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare r jsonb; a jsonb; c jsonb; p jsonb; tok uuid := current_setting('prueba.tok181')::uuid; begin
+  r := reservar_envio_publico(tok, null, 'prueba');
+  if r ->> 'resultado' <> 'reservada' then raise exception 'FALLO 181 · no reserva: %', r; end if;
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B18118118');
+  if a ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 181 · no acepta: %', a; end if;
+  c := carga_aceptada_publica((r ->> 'reserva_id')::uuid);
+  select x into p from jsonb_array_elements(c -> 'paradas') x where x ->> 'tipo' = 'carga';
+  if p ->> 'horarios' is null then raise exception 'FALLO 181 · la parada no trae el horario del sitio: %', p; end if;
+  if p ->> 'horarios_verano' is null or p ->> 'verano_desde' <> '06-15' or p ->> 'verano_hasta' <> '09-15' then
+    raise exception 'FALLO 181 · falta el horario de verano con sus fechas: %', p;
+  end if;
+  if not (p ->> 'requiere_pin')::boolean or not (p ->> 'requiere_cita')::boolean then
+    raise exception 'FALLO 181 · faltan el PIN o la cita previa del sitio: %', p;
+  end if;
+  if p #>> '{contacto,telefono}' <> '+34600181181' then
+    raise exception 'FALLO 181 · no sale el primer contacto CON teléfono: %', p -> 'contacto';
+  end if;
+  raise notice 'OK 181 · la carga aceptada trae la ficha completa del sitio: horario, verano con fechas, PIN, cita y el primer contacto con teléfono';
+end $$;
+reset role;

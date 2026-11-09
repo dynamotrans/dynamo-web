@@ -5,6 +5,7 @@ type Num = number | string | null;
 export type ParadaPublica = {
   orden: number; tipo: 'carga' | 'descarga'; codigo_postal: string | null; poblacion: string | null; provincia: string | null;
   pais_codigo_iso: string | null; tipo_sitio: string | null; horarios: string | null; requiere_cita: boolean; tiene_medios_carga: boolean;
+  horarios_verano?: string | null; verano_desde?: string | null; verano_hasta?: string | null; requiere_pin?: boolean;
   // Solo en la carga aceptada:
   nombre_empresa?: string | null; direccion?: string | null; referencia?: string | null; anotaciones?: string | null;
   notas_sitio?: string | null; url_google_maps?: string | null; contacto?: { nombre: string | null; telefono: string | null } | null;

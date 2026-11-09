@@ -53,6 +53,7 @@ function Parar({ titulo, children, icono = '✕', ambar = false }: { titulo: str
 function Oferta({ o, completa }: { o: OfertaPublica | ReservaPublica; completa?: boolean }) {
   const paradas: Parada[] = o.paradas ?? [];
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
+  const ddmm = (s: string) => s.split('-').reverse().join('/');   // 'MM-DD' → 'DD/MM' (cada año)
   const forma = [o.carga_lateral && 'Lateral', o.carga_trasera && 'Trasera', o.carga_techo && 'Techo'].filter(Boolean).join(' y ');
   return (
     <>
@@ -71,7 +72,8 @@ function Oferta({ o, completa }: { o: OfertaPublica | ReservaPublica; completa?:
               {completa && p.nombre_empresa && <div className="of-pt-loc" style={{ color: 'var(--navy)' }}>{p.url_google_maps ? <a href={p.url_google_maps} target="_blank" rel="noopener" style={{ color: 'var(--purple)' }}>{p.nombre_empresa}</a> : p.nombre_empresa}</div>}
               <div className="of-pt-loc">{[completa ? p.direccion : null, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : ''].filter(Boolean).join(', ')}</div>
               {p.horarios && <div className="of-pt-hor">Horario: {p.horarios}</div>}
-              {(p.requiere_cita || !p.tiene_medios_carga) && <div className="of-pt-hor" style={{ color: '#b45309', fontWeight: 700 }}>{[p.requiere_cita && 'Con cita previa', !p.tiene_medios_carga && 'Sin medios de carga (plataforma elevadora)'].filter(Boolean).join(' · ')}</div>}
+              {p.horarios_verano && <div className="of-pt-hor">Verano{p.verano_desde && p.verano_hasta ? ` (del ${ddmm(p.verano_desde)} al ${ddmm(p.verano_hasta)})` : ''}: {p.horarios_verano}</div>}
+              {(p.requiere_cita || !p.tiene_medios_carga || p.requiere_pin) && <div className="of-pt-hor" style={{ color: '#b45309', fontWeight: 700 }}>{[p.requiere_cita && 'Con cita previa', !p.tiene_medios_carga && 'Sin medios de carga (plataforma elevadora)', p.requiere_pin && `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} con PIN`].filter(Boolean).join(' · ')}</div>}
               {completa && p.contacto?.telefono && <div className="of-pt-hor">Contacto: <a href={`tel:${p.contacto.telefono}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>{telBonito(p.contacto.telefono)}</a>{p.contacto.nombre ? ` (${p.contacto.nombre})` : ''}</div>}
               {completa && p.referencia && <div className="of-pt-hor">Referencia: <strong style={{ color: 'var(--navy)' }}>{p.referencia}</strong></div>}
               {completa && [p.notas_sitio, p.anotaciones].filter(Boolean).map((n, k) => <div key={k} className="of-pt-hor" style={{ color: '#b45309' }}>⚠ {n}</div>)}
