@@ -137,7 +137,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
         <div className="dash-recomienda-icon"><Svg size={22}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" /></Svg></div>
         <div className="dash-recomienda-text"><p style={{ fontSize: 'var(--fs-m)', fontWeight: 700, color: 'var(--navy)', margin: 0 }}>¿Te estamos ayudando en tu negocio? Ayúdanos valorando nuestro trabajo. Gracias.</p></div>
         <div className="dash-recomienda-btns">
-          <button type="button" className="btn-primary" onClick={() => setVentana('recomendar')}>Recomendar Dynamo</button>
+          <button type="button" className="btn-secondary" onClick={() => setVentana('recomendar')}>Recomendar Dynamo</button>
           <button type="button" className="btn-secondary" onClick={() => setVentana('google')}>★ Puntúanos en Google</button>
         </div>
       </div>

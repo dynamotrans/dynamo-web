@@ -686,6 +686,20 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     </div>
   );
 
+  // Botonera del asistente (usuario, 2026-11-09): en el paso 3 va DENTRO de la columna
+  // del precio, justo debajo de la caja «Precio sugerido»; en los pasos 1-2, al fondo.
+  const navBotones = (
+    <div className="wiz-navwrap">
+      <div className="wiz-nav">
+        <button type="button" className="btn-ghost" onClick={enRuta || (editar && paso === 1) ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
+        {enRuta
+          ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
+          : <button type="button" className="btn-primary" data-pista-accion onClick={siguiente} disabled={comprobando}>{comprobando ? 'Comprobando la ruta…' : paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
+      </div>
+      {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
+    </div>
+  );
+
   return (
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">
       <div className="sec-header"><h2>{enRuta ? `Cambiar ruta · #${be!.referencia_gx}` : editar ? `Modificar envío · #${be!.referencia_gx}` : base ? `Repetir envío · #${be!.referencia_gx}` : 'Nuevo envío'}</h2></div>
@@ -901,20 +915,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     {avisoProvisional}
                   </div>
                 )}
-                {manual ? (
+                {manual ? (<>
                   <div className="ptar-field ptar-field-full ptar-admin-precio">
                     <div className="ptar-admin-precio-head">Precio con {nombreOp}</div>
                     <label className="ptar-admin-precio-lbl" htmlFor="ne-pop">Precio acordado con tu transportista (sin IVA) <Req si={false} /></label>
                     <input id="ne-pop" type="text" inputMode="decimal" placeholder="Ej. 450,00" value={precioOp} onChange={(ev) => setPrecioOp(ev.target.value)} />
                     <p className="ptar-admin-precio-note">Solo para tu control y para la orden de carga. Dynamo no lo ve en ningún precio suyo.</p>
                   </div>
+                  {navBotones}
+                  </>
                 ) : esCliente ? (<>
                   <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
                   <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en firme en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
+                  {navBotones}
                 </>) : <>
                 <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
                   cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
+                {navBotones}
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
                   <div className="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
                   {tarifa && ultimos && interna
@@ -937,15 +955,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             )}
           </div>
 
-          <div className="wiz-navwrap">
-            <div className="wiz-nav">
-              <button type="button" className="btn-ghost" onClick={enRuta || (editar && paso === 1) ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
-              {enRuta
-                ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
-                : <button type="button" className="btn-primary" data-pista-accion onClick={siguiente} disabled={comprobando}>{comprobando ? 'Comprobando la ruta…' : paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
-            </div>
-            {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
-          </div>
+          {paso !== 3 && navBotones}
         </div>
       )}
 
