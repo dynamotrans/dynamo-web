@@ -162,7 +162,6 @@ export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok:
   if (!s) return { ok: false, error: 'Solo Dynamo ofrece envíos.' };
   if (!Number.isFinite(o.precio) || o.precio <= 0) return { ok: false, error: 'Pon el precio que se ofrece al transportista.' };
   if (![0, 5, 10, 30].includes(o.banda_pct)) return { ok: false, error: 'La negociación solo puede ser 0, 5, 10 o 30 %.' };
-  if (!o.transportista_id && !o.canal.startsWith('bolsa_')) return { ok: false, error: 'Sin transportista concreto, la oferta es de bolsa.' };
   const { data, error } = await s.supabase.rpc('ofertar_envio', {
     p_envio: envio, p_transportista: o.transportista_id, p_canal: o.canal, p_precio: o.precio,
     p_banda_pct: o.banda_pct, p_pronto_pago: o.pronto_pago,

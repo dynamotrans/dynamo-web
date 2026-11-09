@@ -6683,3 +6683,27 @@ do $$ declare sa uuid := current_setting('prueba.sa177')::uuid; sb uuid := curre
   end if;
   raise notice 'OK 177 · email de la firma del CMR: se precarga el del primer contacto de la ficha, el nuevo se guarda solo si la ficha no tenía, y nunca pisa uno existente';
 end $$;
+
+-- ---- 178. Ofertas con canal «enlace» (envío puntual; un canal inventado no cuela) ------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; o uuid; mal boolean := false; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 30, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A178', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B178', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  -- La oferta del panel: enlace abierto, canal «enlace».
+  o := ofertar_envio(e, null, 'enlace', 800, 10::smallint, true);
+  if not exists (select 1 from envio_ofertas where id = o and canal = 'enlace' and transportista_id is null) then
+    raise exception 'FALLO 178 · la oferta con canal «enlace» no queda guardada';
+  end if;
+  -- Un canal inventado lo para el check de la tabla.
+  begin
+    perform ofertar_envio(e, null, 'paloma_mensajera', 800, 10::smallint, true);
+  exception when others then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 178 · cuela un canal inventado'; end if;
+  raise notice 'OK 178 · ofertas con canal «enlace» (envío puntual del enlace): se guardan, y un canal inventado no cuela';
+end $$;
+reset role;
