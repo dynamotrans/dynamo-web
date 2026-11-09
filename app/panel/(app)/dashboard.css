@@ -3904,16 +3904,13 @@ input::-webkit-date-and-time-value { text-align: left; }
 /* Tramo de línea ya recorrido (pasos alcanzados) en verde. */
 .wiz-bar .wiz-step.act::before, .wiz-bar .wiz-step.done::before { background: var(--green); }
 .wiz-nav { display: none; }
-/* Botonera compacta y SIEMPRE pegada a la izquierda (una o dos columnas):
-   mismo alto, pero ancho al contenido (no estiran a todo el ancho). */
-.wiz-v2 .wiz-nav { display: flex; gap: 0.6rem; margin-top: 1.1rem; justify-content: flex-start; flex-wrap: wrap; }
-.wiz-nav .btn-primary, .wiz-nav .btn-ghost { flex: 0 0 auto; justify-content: center; padding: 0.9rem 1.6rem; font-size: var(--fs-l); border-radius: 10px; }
-/* Paso 3 (usuario, 2026-11-09): botonera IGUAL que la de Confirmar — «Ver resumen»
-   grande a todo el ancho arriba y «← Atrás» discreto debajo, dentro de la columna
-   del precio (mismo tamaño y colocación que «Crear envío / ← Editar datos»). */
-.form-2col-side .wiz-navwrap .wiz-nav { flex-direction: column-reverse; gap: 0.6rem; }
-.form-2col-side .wiz-navwrap .wiz-nav .btn-primary { width: 100%; min-height: 64px; font-size: var(--fs-d1); font-weight: 800; border-radius: 14px; }
-.form-2col-side .wiz-navwrap .wiz-nav .btn-ghost { width: 100%; }
+/* Botonera del asistente (usuario, 2026-11-09): MISMO formato en TODOS los pasos que
+   la de Confirmar («Crear envío / ← Editar datos») — la acción principal (Siguiente /
+   Ver resumen) grande a todo el ancho arriba y Cancelar / ← Atrás discreto debajo,
+   también a lo ancho. En el paso 3 vive dentro de la columna del precio. */
+.wiz-v2 .wiz-nav { display: flex; flex-direction: column-reverse; gap: 0.6rem; margin-top: 1.1rem; }
+.wiz-nav .btn-primary, .wiz-nav .btn-ghost { width: 100%; justify-content: center; padding: 0.9rem 1.6rem; font-size: var(--fs-l); border-radius: 10px; }
+.wiz-nav .btn-primary { min-height: 64px; font-size: var(--fs-d1); font-weight: 800; border-radius: 14px; }
 .wiz-warn { display: none; margin-top: 0.6rem; padding: 0.6rem 0.75rem; background: #fde8e8; border: 1px solid #f5b5b5; border-radius: 9px; color: #b42318; font-size: var(--fs-m); font-weight: 700; }
 .wiz-warn.show { display: block; }
 /* Visibilidad por paso (solo con el asistente activo) */
