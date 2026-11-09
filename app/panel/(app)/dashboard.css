@@ -1586,7 +1586,7 @@ body.theme-dark .sidebar { background: #060116; }
 /* Fila de 3: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto.
    Selector doble clase: gana a la regla base de .dash-top-row (2 col)
    definida más abajo. */
-.dash-top-row.dash-top-2 { grid-template-columns: 1.4fr 1fr !important; align-items: stretch; }
+.dash-top-row.dash-top-2 { grid-template-columns: 1.1fr 1fr !important; align-items: start; }
 .dash-top-row.dash-top-2 .mini-list-card { margin: 0; min-width: 0; }
 @media (max-width: 768px) {
     /* En móvil: botón arriba y la muestra de envíos debajo a lo ancho. */
@@ -2070,9 +2070,8 @@ body.theme-dark .sidebar { background: #060116; }
 }
 .dash-top-row > * { min-width: 0; height: 100%; }
 /* Columna izquierda: mitad superior = 2 CTAs · mitad inferior = Recomiéndanos */
-.dash-left-col { display: flex; flex-direction: column; gap: 0.7rem; height: 100%; }
-.dash-left-col > .dash-cta-stack { flex: 1 1 50%; min-height: 0; }
-.dash-left-col > .dash-recomienda { flex: 1 1 50%; margin-top: 0; }
+.dash-left-col { display: flex; flex-direction: column; gap: 0.7rem; }
+.dash-left-col > .dash-recomienda { margin-top: 0; }
 /* Onboarding de cuenta nueva (dashboard): pasos guiados */
 .onb-steps { display: flex; flex-direction: column; gap: 0.5rem; }
 .onb-step {
@@ -2150,29 +2149,35 @@ body.theme-dark .sidebar { background: #060116; }
 .stats-row-4 .cesce-card h3 { font-size: var(--fs-m); }
 .stats-row-4 .cesce-status { font-size: var(--fs-m); padding: 0.4rem 0.6rem; }
 .dash-cta {
-    display: flex; align-items: center; gap: 1rem;
-    padding: 1.3rem 1.5rem; border-radius: 14px;
+    display: flex; align-items: center; gap: 0.8rem;
+    padding: 0.85rem 1rem; border-radius: 14px;
     text-decoration: none; cursor: pointer;
-    transition: transform 0.18s, box-shadow 0.18s;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
-.dash-cta:hover { transform: translateY(-3px); }
+.dash-cta:hover { transform: translateY(-1px); }
 .dash-cta-icon {
-    width: 52px; height: 52px; border-radius: 12px;
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
     background: rgba(255,255,255,0.2);
     display: flex; align-items: center; justify-content: center;
     color: white;
 }
-.dash-cta-text { color: white; }
-.dash-cta-text h4 { font-size: var(--fs-d1); font-weight: 900; }
-.dash-cta-text p  { font-size: var(--fs-m); opacity: 0.85; margin-top: 0.15rem; }
-.dash-cta-purple { background: linear-gradient(135deg, var(--purple), var(--purple-light)); box-shadow: 0 8px 22px rgba(51,0,204,0.3); }
-.dash-cta-green  { background: linear-gradient(135deg, var(--green), #4dc97a);             box-shadow: 0 8px 22px rgba(34,165,90,0.3); }
+.dash-cta-icon svg { width: 22px; height: 22px; }
+.dash-cta-text { color: white; min-width: 0; }
+.dash-cta-text h4 { font-size: var(--fs-l); font-weight: 800; }
+.dash-cta-text p  { font-size: var(--fs-s); opacity: 0.85; margin-top: 0.1rem; }
+.dash-cta-purple { background: linear-gradient(135deg, var(--purple), var(--purple-light)); box-shadow: 0 4px 14px rgba(51,0,204,0.22); }
+.dash-cta-purple:hover { box-shadow: 0 6px 18px rgba(51,0,204,0.3); }
+/* «Otras gestiones» pasa a tarjeta BLANCA secundaria (la acción principal es una sola). */
+.dash-cta-green { background: #fff; border: 1.5px solid var(--gray-200); box-shadow: none; }
+.dash-cta-green:hover { border-color: var(--purple); box-shadow: 0 4px 14px rgba(51,0,204,0.08); }
+.dash-cta-green .dash-cta-icon { background: rgba(51,0,204,0.08); color: var(--purple); }
+.dash-cta-green .dash-cta-text h4 { color: var(--navy); }
+.dash-cta-green .dash-cta-text p { color: var(--gray-500); opacity: 1; }
+.dash-cta-green .dash-cta-chev { color: var(--gray-500); }
 /* Nuevo envío (2/3, principal) + Nuevo almacenamiento (1/3, secundario)
    en la misma línea. */
-.dash-cta-stack { display: flex; flex-direction: row; gap: 0.8rem; }
-.dash-cta-stack .dash-cta { min-width: 0; padding: 1.1rem 1rem; }
-.dash-cta-stack .dash-cta-purple { flex: 2 1 0; }
-.dash-cta-stack .dash-cta-green  { flex: 1 1 0; }
+.dash-cta-stack { display: flex; flex-direction: column; gap: 0.6rem; }
+.dash-cta-stack .dash-cta, .dash-cta-stack .dash-cta-dd { min-width: 0; width: 100%; }
 .dash-cta-stack .dash-cta-dd { flex: 1 1 0; min-width: 0; position: relative; display: flex; }
 /* "Otras gestiones": layout centrado (icono arriba, título y flecha
    debajo), igual en escritorio y móvil. La descripción larga la da el
