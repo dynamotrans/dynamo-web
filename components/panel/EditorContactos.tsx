@@ -61,6 +61,17 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }} onClick={onQuitar}>Quitar</button>
       </div>
       <div className="ptar-sitio-grid">
+        {/* El nombre va ANTES de los campos de teléfono (usuario, 2026-11-09). */}
+        <div>{!obligatorios || verNombre
+          ? <>{obligatorios
+                ? <button type="button" className="campo-plegado" aria-expanded onClick={() => setVerNombre(false)} style={{ marginBottom: '0.45rem' }}>
+                    <span className="cp-ico" aria-hidden="true">−</span><span className="cp-txt">Nombre y apellidos <Req si={false} /></span></button>
+                : <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>}
+              <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
+          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>
+              <span className="cp-ico" aria-hidden="true">+</span>
+              <span className="cp-txt">Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <span className="cp-val">· {c.nombre}</span> : null}</span></button>}
+        </div>
         <div>
           <label htmlFor={`${id}-tel`}>Teléfono <Req si={obligatorios} /></label>
           <div className="tel-group">
@@ -73,16 +84,6 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
           {/* Nota en VERDE, bajo la etiqueta y ANTES del campo (usuario, 2026-11-09). */}
           {obligatorios && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>}
           <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
-        </div>
-        <div>{!obligatorios || verNombre
-          ? <>{obligatorios
-                ? <button type="button" className="campo-plegado" aria-expanded onClick={() => setVerNombre(false)} style={{ marginBottom: '0.45rem' }}>
-                    <span className="cp-ico" aria-hidden="true">−</span><span className="cp-txt">Nombre y apellidos <Req si={false} /></span></button>
-                : <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>}
-              <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
-          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>
-              <span className="cp-ico" aria-hidden="true">+</span>
-              <span className="cp-txt">Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <span className="cp-val">· {c.nombre}</span> : null}</span></button>}
         </div>
         {roles ? (
           <div>

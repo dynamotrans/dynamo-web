@@ -146,14 +146,15 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   </div>
                   {horAbierto.has(p.k) && <div className="full"><EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} /></div>}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
+                  {/* El nombre va ANTES de los campos de teléfono (usuario, 2026-11-09). */}
+                  {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
+                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} />)}
                   <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
                   <div><label>Email <Req util /></label>
                     {/* Nota en VERDE, bajo la etiqueta y ANTES del campo (usuario, 2026-11-09). */}
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
-                  {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
-                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} />)}
                   {/* Las notas internas del sitio y el enlace de Google Maps NO se muestran
                       ni se editan aquí (usuario, 2026-11-09): se gestionan en la sección
                       Sitios. Los que tenga el sitio se conservan tal cual al guardar. */}
