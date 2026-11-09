@@ -526,3 +526,9 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
     display: block; font-size: var(--fs-s); font-weight: 800; text-transform: uppercase;
     letter-spacing: 0.05em; color: var(--purple); margin-bottom: 0.15rem;
 }
+
+/* Pares de campos (matrículas, etc.) apilados en pantallas estrechas: dos columnas de
+   ~160 px partían las etiquetas en 2-3 líneas y descuadraban los campos (usuario, 2026-11-09). */
+@media (max-width: 520px) {
+    .carga-page .row2 { grid-template-columns: 1fr; gap: 0; }
+}
