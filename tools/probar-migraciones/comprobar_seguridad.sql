@@ -6985,3 +6985,36 @@ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+
+-- ---- 187. Entrega estimada SUGERIDA al asignar: motor del seguimiento, solo Dynamo ---------
+reset role;
+do $$ declare e uuid; s1 date; s2 date; mal boolean := false; begin
+  select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false) into strict e;
+  set local role authenticated;
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 15, 'fecha_carga_hasta', current_date + 17, 'importe_cliente', 900),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A187', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B187', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  s1 := entrega_estimada_sugerida(e, current_date + 15);
+  if s1 is null or s1 < current_date + 15 or s1 > current_date + 25 then
+    raise exception 'FALLO 187 · la sugerencia no es razonable: %', s1;
+  end if;
+  -- Con otro día de carga, el plan se desplaza (nunca entrega antes de cargar).
+  s2 := entrega_estimada_sugerida(e, current_date + 17);
+  if s2 is null or s2 < current_date + 17 or s2 < s1 then
+    raise exception 'FALLO 187 · con otro día de carga la sugerencia no se desplaza: % → %', s1, s2;
+  end if;
+  reset role;
+  -- Un cliente no puede pedirla.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  begin
+    perform entrega_estimada_sugerida(e, current_date + 15);
+  exception when insufficient_privilege then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 187 · deja a un cliente pedir la sugerencia'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 187 · entrega sugerida con el motor del seguimiento (se desplaza con el día de carga) y solo para Dynamo';
+end $$;

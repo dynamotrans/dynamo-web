@@ -3228,6 +3228,7 @@ export type Database = {
       enlace_carga_caduca_en: { Args: { p_envio: string | null }; Returns: string }
       enlace_carga_vigente: { Args: { p_envio: string | null }; Returns: boolean }
       enlace_cmr_publico: { Args: { p_reserva: string | null }; Returns: string }
+      entrega_estimada_sugerida: { Args: { p_envio: string | null; p_dia: string | null }; Returns: string }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_cliente: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
@@ -3370,7 +3371,7 @@ export type Database = {
       riesgos_totales: { Args: Record<PropertyKey, never>; Returns: { limite: number; asumido: number; pasados: number }[] }
       seguimiento_apertura: { Args: { p_sitio: string | null; p_t: string | null }; Returns: string }
       seguimiento_aplicar: { Args: { p_envio: string | null; p_a_mano?: boolean | null }; Returns: number }
-      seguimiento_calcular: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; parada_id: string; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean }[] }
+      seguimiento_calcular: { Args: { p_envio: string | null; p_dia?: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; parada_id: string; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean }[] }
       seguimiento_conducir: { Args: { t: string | null; jornada: string | null; tramo: number | null; dia: number | null; p_horas: number | null; p_inicio?: string | null }; Returns: { t: string; jornada: string; tramo: number; dia: number } }
       seguimiento_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; parada_actual: number; tipo_parada: string; paradas: number; primera_carga_en: string; asignando: boolean; fecha_carga_prevista: string; automatico: boolean }[] }
       seguimiento_paso: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_parada: number | null; p_paradas: number | null }; Returns: number }

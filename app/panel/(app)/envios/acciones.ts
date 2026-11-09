@@ -51,6 +51,18 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
     entrega_antes_de_cargar: 'El día de entrega (estimado) no puede ser anterior al día en que carga.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
 }
 
+// Día de entrega ESTIMADO si el envío cargara ese día: lo calcula el motor del
+// seguimiento (tacógrafo, velocidad y minutos por parada de Parámetros, km entre
+// paradas y apertura de los sitios). La pantalla de asignación lo preselecciona y
+// se puede pisar a mano (usuario, 2026-11-09).
+export async function sugerirEntrega(envio: string, dia: string): Promise<string | null> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#sugerirEntrega", [envio, dia]);
+  const s = await soloDynamo();
+  if (!s) return null;
+  const { data, error } = await s.supabase.rpc('entrega_estimada_sugerida', { p_envio: envio, p_dia: dia });
+  return error ? null : (data as string | null);
+}
+
 export async function quitarTransportista(envio: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones#quitarTransportista", [envio]);
   const s = await soloDynamo();

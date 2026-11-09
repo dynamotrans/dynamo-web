@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from '../Modal';
 import Cargando from '@/components/Cargando';
 import { euros, numero, fecha, diasEntre } from '@/lib/formato';
 import type { TransportistaOpcion } from '@/lib/fichaEnvio';
 import CampoTelefono from '@/components/CampoTelefono';
-import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
+import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas, sugerirEntrega } from '@/app/panel/(app)/envios/acciones';
 import Buscador from '../Buscador';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -49,6 +49,21 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
   // aquí no se filtra — la base de datos solo exige que no sea anterior a la carga).
   const [entrega, setEntrega] = useState<string>(e.fecha_entrega_estimada ?? '');
   const baseEntrega = conVentana ? diaCarga : (dias[0] ?? '');
+  // SUGERENCIA AUTOMÁTICA, pisable a mano (usuario, 2026-11-09): al elegir el día de
+  // carga, el motor del seguimiento (tacógrafo, velocidad y minutos por parada de
+  // Parámetros, km entre paradas, apertura de los sitios) calcula la llegada a la
+  // última parada y se preselecciona. Si el admin ya eligió otra a mano, no se pisa.
+  const sugRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!baseEntrega) return;
+    let vivo = true;
+    sugerirEntrega(e.id, baseEntrega).then((s) => {
+      if (!vivo || !s) return;
+      setEntrega((prev) => (prev === '' || prev === sugRef.current) ? s : prev);
+      sugRef.current = s;
+    }).catch(() => {});
+    return () => { vivo = false; };
+  }, [baseEntrega, e.id]);
   const diasEntrega = useMemo(() => {
     if (!baseEntrega) return [] as string[];
     const out = [baseEntrega];
@@ -61,6 +76,8 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     }
     return out;
   }, [baseEntrega]);
+  // Si la sugerencia cae fuera de los 7 hábiles (rutas largas), entra igual en la lista.
+  const opcionesEntrega = useMemo(() => (!entrega || diasEntrega.includes(entrega)) ? diasEntrega : [...diasEntrega, entrega].sort(), [diasEntrega, entrega]);
   // (Sábado y domingo no se pueden elegir: los camiones no circulan. Un festivo nacional lo pasa
   // la base de datos al siguiente día hábil.)
   // Su flota se pide al elegirlo (no viaja con la ficha la de todos los transportistas).
@@ -138,11 +155,11 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="as-ent">Día entrega (estimado) <Req /></label>
-          <select id="as-ent" value={diasEntrega.includes(entrega) ? entrega : ''} disabled={!baseEntrega} onChange={(ev) => setEntrega(ev.target.value)}>
+          <select id="as-ent" value={opcionesEntrega.includes(entrega) ? entrega : ''} disabled={!baseEntrega} onChange={(ev) => setEntrega(ev.target.value)}>
             <option value="">{baseEntrega ? 'Elige el día de entrega…' : 'Elige antes el día en que carga'}</option>
-            {diasEntrega.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d}>{fecha(d)} · {DIAS[w]}{d === baseEntrega ? ' (mismo día de carga)' : ''}</option>; })}
+            {opcionesEntrega.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d}>{fecha(d)} · {DIAS[w]}{d === baseEntrega ? ' (mismo día de carga)' : ''}{d === sugRef.current ? ' · sugerido' : ''}</option>; })}
           </select>
-          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Siempre es una estimación (el cliente la ve como «Entrega estimada»); también marca hasta cuándo ve el teléfono del conductor. Del mismo día de carga a 7 días hábiles.</div>
+          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Se sugiere sola con el plan del seguimiento (horas legales de conducción, km entre paradas, tiempos de parada y horarios de los sitios) y puedes cambiarla. Siempre es una estimación (el cliente la ve como «Entrega estimada»); también marca hasta cuándo ve el teléfono del conductor.</div>
         </div>
         <div>
           <label htmlFor="as-precio">Precio del transportista (€ sin IVA) <Req si={false} /></label>
