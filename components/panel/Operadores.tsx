@@ -168,9 +168,13 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
     if (!r.ok) { setError(r.error); setPreguntaBorrar(false); return; }
     onHecho();
   }
-  const campo = (k: keyof OperadorDatos, label: string, ph: string, full = false, tipo = 'text') => (
+  // Todos los campos dicen SIEMPRE si son obligatorios u opcionales (usuario, 2026-11-09).
+  const Req = ({ si }: { si: boolean }) => si
+    ? <span className="sitio-req">· obligatorio</span>
+    : <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span>;
+  const campo = (k: keyof OperadorDatos, label: string, req: boolean, ph: string, full = false, tipo = 'text') => (
     <div style={full ? { gridColumn: '1/-1' } : undefined}>
-      <label htmlFor={`op-${k}`}>{label}</label>
+      <label htmlFor={`op-${k}`}>{label} <Req si={req} /></label>
       <input id={`op-${k}`} type={tipo} value={String(d[k] ?? '')} placeholder={ph} onChange={(e) => set(k, e.target.value as never)} />
     </div>
   );
@@ -205,23 +209,23 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
       <div className="ptar-sitio-grid">
         {dynamo && (
           <div style={{ gridColumn: '1/-1' }}>
-            <label htmlFor="op-cli">Cliente (dueño del catálogo)</label>
+            <label htmlFor="op-cli">Cliente (dueño del catálogo) <Req si /></label>
             <select id="op-cli" className="ptar-select" value={d.cliente_id ?? ''} disabled={!!fila} onChange={(e) => set('cliente_id', e.target.value || null)}>
               <option value="">Selecciona el cliente…</option>
               {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre_visible}</option>)}
             </select>
           </div>
         )}
-        {campo('razon_social', 'Nombre / Razón social *', 'Ej. Transportes Iberia Express S.L.', true)}
+        {campo('razon_social', 'Nombre / Razón social', true, 'Ej. Transportes Iberia Express S.L.', true)}
         {/* CIF opcional y sin Web ni Notas (usuario, 2026-11-09): es una agenda informal.
             Los valores antiguos de web/anotaciones se conservan al guardar (siguen en d). */}
-        {campo('cif', 'CIF / NIF · opcional', 'B12345678')}
-        <div><label htmlFor="op-telefono">Teléfono</label><CampoTelefono id="op-telefono" valor={String(d.telefono ?? '')} onCambio={(v) => set('telefono', v as never)} /></div>
-        {campo('email', 'Email', 'trafico@empresa.com', false, 'email')}
-        {campo('persona_contacto', 'Persona de contacto', 'Nombre y apellidos')}
+        {campo('cif', 'CIF / NIF', false, 'B12345678')}
+        <div><label htmlFor="op-telefono">Teléfono <Req si={false} /></label><CampoTelefono id="op-telefono" valor={String(d.telefono ?? '')} onCambio={(v) => set('telefono', v as never)} /></div>
+        {campo('email', 'Email', false, 'trafico@empresa.com', false, 'email')}
+        {campo('persona_contacto', 'Persona de contacto', false, 'Nombre y apellidos')}
       </div>
       <div style={{ marginTop: '0.7rem' }}>
-        <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga</label>
+        <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga <Req si={false} /></label>
         {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen />
           : <>
               <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" aria-label="Logo del transportista"
