@@ -1064,7 +1064,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <div className="confirm-fino">
         {esHoy && (
           <div className="pt-aviso" style={{ marginTop: 0 }}><IcoAviso /><div>
-            <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía la ventana de carga para tener margen los días siguientes.
+            <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. <strong>Nos ponemos a ello y te avisamos en breve.</strong> La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong>{' '}
+            {/* Vínculo verde (usuario, 2026-11-10): vuelve al paso 3 con la ventana amplia
+                ya seleccionada (y la fecha en su primer día viable, como siempre). */}
+            <button type="button" onClick={() => { setRevisarLegal(false); cambiarTipoFecha('estandar'); setPaso(3); }}
+              style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', color: 'var(--green)', fontWeight: 800, textDecoration: 'underline' }}>
+              amplía la ventana de carga (más económica)</button>{' '}
+            para tener margen los días siguientes.
           </div></div>
         )}
         {/* El resumen de fecha/precios/margen se quitó de aquí también (usuario, 2026-11-09):
