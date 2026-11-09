@@ -189,6 +189,11 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         <Celda l="Creado">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
         <Celda l="Última modificación">{e.modificado_en ? fechaHora(e.modificado_en) : '—'}</Celda>
         <Celda l={e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
+        {/* El día que el transportista eligió dentro de la ventana, bien visible junto a
+            ella (usuario, 2026-11-09): con ventana no se veía la fecha asignada. */}
+        {!e.fecha_carga_real && e.fecha_carga_prevista && (
+          <Celda l="Fecha de carga asignada"><span style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></Celda>
+        )}
         <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
         {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
       </div></div>

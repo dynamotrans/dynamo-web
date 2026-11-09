@@ -215,6 +215,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         <Celda l="Estado">{ev.label}</Celda>
         <Celda l="Creado">{fechaHora(e.creado_en)}</Celda>
         <Celda l={e.fecha_carga_real ? 'Fecha de carga' : 'Días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
+        {!e.fecha_carga_real && e.fecha_carga_prevista && (
+          <Celda l="Fecha de carga asignada"><span style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></Celda>
+        )}
         <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
         {e.discrecion_comercial && <Celda l="Discreción comercial" span>Activada: el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
       </div></div>
