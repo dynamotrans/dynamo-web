@@ -810,6 +810,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       )}
                     </div>
                   ))}
+                  {/* Discreción comercial en el paso 1, tras los sitios de la ruta
+                      (usuario, 2026-11-10); antes vivía en el paso de confirmar. */}
+                  <div className="ptar-discrecion" style={{ marginTop: '0.5rem' }}>
+                    <label className="ptar-confirm-check">
+                      <input type="checkbox" checked={discrecion} onChange={(e) => setDiscrecion(e.target.checked)} />
+                      <span><strong>Discreción comercial</strong> (opcional): el conductor no dirá en la carga a quién va la mercancía ni en la entrega de dónde viene.</span>
+                    </label>
+                  </div>
                   {!manual && <div className="ptar-verif-note" style={{ marginTop: '0.5rem' }}>
                     <IcoEscudo />
                     <span>Todos nuestros transportistas están <strong>verificados</strong> y con la <strong>documentación en vigor</strong>.</span>
@@ -1010,12 +1018,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
                 : cajaPrecio}
               {avisoProvisional}
-              <div className="ptar-discrecion">
-                <label className="ptar-confirm-check">
-                  <input type="checkbox" checked={discrecion} onChange={(e) => setDiscrecion(e.target.checked)} />
-                  <span><strong>Discreción comercial</strong> (opcional): el conductor no dirá en la carga a quién va la mercancía ni en la entrega de dónde viene.</span>
-                </label>
-              </div>
               {/* En la vista de administración normal no hace falta explicar qué hace el
                   botón (usuario, 2026-11-10): solo quedan los textos de editar, manual
                   y cliente. */}
