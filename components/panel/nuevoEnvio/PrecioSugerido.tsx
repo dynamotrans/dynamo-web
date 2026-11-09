@@ -65,7 +65,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   if (cargando) {
     return (
       <div className="ptar-field ptar-field-full ptar-sug-card">
-        <div className="ptar-sug-head">Precio {paraCliente ? 'orientativo' : 'sugerido'} <span>· borrador del tarifador</span></div>
+        {paraCliente && <div className="ptar-sug-head">Precio orientativo <span>· borrador del tarifador</span></div>}
         <div className="ptar-sug-skel" aria-hidden="true" />
       </div>
     );
@@ -74,7 +74,11 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   const urgente = tarifa.alternativas.length === 2;   // fija el primer día disponible
   return (
     <div className="ptar-field ptar-field-full ptar-sug-card">
-      <div className="ptar-sug-head">Precio {paraCliente ? 'orientativo' : 'sugerido'} <span>· borrador del tarifador</span></div>
+      {/* Vista admin (usuario, 2026-11-09): solo la caja de importes — la cabecera, la
+          entrega estimada y el «Grupaje · km» no hacen falta aquí (la tabla de precios
+          internos viene justo debajo). El cliente conserva su bloque completo. */}
+      {paraCliente && <>
+      <div className="ptar-sug-head">Precio orientativo <span>· borrador del tarifador</span></div>
 
       <dl className="ptar-eta-data">
         <dt>Fecha entrega estimada</dt>
@@ -84,6 +88,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
           : <dd className="ptar-eta-warn">Asigna la fecha de recogida para ver la entrega estimada.</dd>}
       </dl>
       <div className="ptar-sug-sub">{tarifa.grupaje ? 'Grupaje' : 'Camión completo'}{km != null && <> · {km} km{kmEstimado ? ' (estimados)' : ''}</>}</div>
+      </>}
 
       {pasada && (
         <div className="eta-pasada"><strong>Registro a posteriori</strong>: estás dando de alta un envío con <strong>fecha ya pasada</strong>{fechaFija ? <> ({fmtFecha(fechaFija)})</> : null}. Se registra tal cual, sin suplementos de fecha fija ni avisos de plazo.</div>
@@ -124,11 +129,9 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
         </div>
       )}
 
-      <p className="ptar-admin-precio-note" style={{ marginTop: '0.5rem' }}>
-        {paraCliente
-          ? <>Precio <strong>orientativo</strong> con la información de la ruta y la mercancía: el precio en firme te lo confirma Dynamo con tu tarifa.</>
-          : <>Sugerido con el tarifador en <strong>borrador</strong> (números provisionales): revisa la tabla de precios internos y ajusta abajo si hace falta.</>}
-      </p>
+      {paraCliente && <p className="ptar-admin-precio-note" style={{ marginTop: '0.5rem' }}>
+        Precio <strong>orientativo</strong> con la información de la ruta y la mercancía: el precio en firme te lo confirma Dynamo con tu tarifa.
+      </p>}
     </div>
   );
 }
