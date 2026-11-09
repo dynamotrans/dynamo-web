@@ -6,6 +6,14 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 - [ ] 🗺️ **Google Places del buscador de sitios (usuario, 2026-11-09)**: el «Buscar para autorrellenar» de Nuevo sitio ya funciona como el mockup (agenda + Google + dirección OSM + comparador de duplicados), pero el nivel Google usa la LISTA DE EJEMPLO del mockup hasta que se pague la API. Cuando toque: crear la clave en Google Cloud (Places API New), ponerla en Vercel como `GOOGLE_MAPS_API_KEY` (Sensitive, sin NEXT_PUBLIC_) y los resultados salen reales solos (la rama real ya está escrita en `buscarSitiosGoogle`).
 
+- [ ] 🚦 **PRUEBAS DE CARGA (k6) ANTES DE PASAR A PRODUCCIÓN (usuario, 2026-11-09)** — decidido al hilo de un
+      reel sobre Grafana k6: lo funcional, los flujos E2E y el volumen de DATOS ya están probados; falta simular
+      **usuarios simultáneos**. Guion de k6 contra la preview, con los datos de prueba cargados: 100-200
+      transportistas abriendo enlaces `/carga/` y firmando CMR a la vez + panel Dynamo + clientes creando envíos.
+      Objetivo: confirmar que el plan de Supabase aguanta, medir tiempos bajo carga y ver qué se satura primero
+      (conexiones de Postgres, funciones públicas, realtime). El guion queda versionado en el repo para repetirlo
+      antes de cada hito. (Tarea #67.)
+
 - [ ] 📣 **PUBLICACIÓN AUTOMÁTICA EN BOLSAS DE CARGA (usuario, 2026-11-09)** — el usuario dirá cómo se automatiza
       (criterios, plazos, etc.). Lo ya decidido ese día, al quitar la «bolsa» del modal Ofrecer envío (que queda
       como envío puntual del enlace a transportistas): **publicar y despublicar solos** — al asignarse
