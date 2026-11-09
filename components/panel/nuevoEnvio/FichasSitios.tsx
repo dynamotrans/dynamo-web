@@ -5,7 +5,7 @@
 // del sitio editables, por si falta algún horario o teléfono de contacto que rellenar. Lo que
 // se cambie se guarda en la ficha del sitio al crear el envío (los almacenes de Dynamo no:
 // son datos fijos del catálogo). Las direcciones no se tocan aquí (se cambian en el paso 1).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import EditorHorario from '../EditorHorario';
 import CampoTelefono from '@/components/CampoTelefono';
 import { resumenHorario } from '@/lib/horarios';
@@ -16,13 +16,18 @@ const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
 );
 
-export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCliente }: {
+const EMAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCliente, faltas }: {
   puntos: Punto[]; datos: DatosSitios; edic: Record<number, CardEdit>;
   setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>;
   fechaCargaTxt: string; esCliente: boolean;
+  faltas?: Set<number>;   // puntos con datos obligatorios sin rellenar (los marca el padre al crear)
 }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(new Set());
   const toggle = (k: number) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  // Al intentar crear con faltas, las tarjetas afectadas se ABREN solas (usuario, 2026-11-09).
+  useEffect(() => { if (faltas && faltas.size) setAbiertas((s) => new Set([...s, ...faltas])); }, [faltas]);
   const set = (p: Punto, cambios: Partial<CardEdit>) => setEdic((prev) => ({ ...prev, [p.k]: { ...prev[p.k], ...cambios } }));
 
   return (
@@ -32,9 +37,13 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
         const f = resolverFicha(p, datos, edic[p.k]);
         const dir = direccionCompleta((p.sitio ?? p.nuevo)!);
         const falta = f.nuevo && !f.empresa.trim();   // sitio nuevo sin nombre: datos obligatorios pendientes
+        // Marcada por el padre al intentar crear: lo que siga vacío se pinta en rojo.
+        const marcada = !!faltas?.has(p.k) && !f.dynamo;
+        const telOk = !!f.telefono.trim(), emailOk = EMAIL_OK.test(f.contactoEmail.trim());
+        const faltaCampos = marcada && ((f.nuevo && !f.empresa.trim()) || !telOk || !emailOk);
         const abierta = abiertas.has(p.k);
         return (
-          <div key={p.k} className={`ptar-sitio-card${abierta ? ' open' : ''}${falta ? '' : ' req-ok'}`}>
+          <div key={p.k} className={`ptar-sitio-card${abierta ? ' open' : ''}${falta || faltaCampos ? ' falta' : ' req-ok'}`}>
             <button type="button" className="ptar-sitio-head" aria-expanded={abierta} onClick={() => toggle(p.k)}>
               <span className="ptar-sitio-head-main">
                 <span className="ptar-sitio-head-l1">
@@ -48,7 +57,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}
                 {dir && <span className="ptar-sitio-head-dir">{dir}</span>}
                 {f.empresa && <span className="ptar-sitio-head-empn">{f.empresa}</span>}
-                {falta && <span className="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>}
+                {(falta || faltaCampos) && <span className="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>}
               </span>
               <Chevron />
             </button>
@@ -75,17 +84,17 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                       (nombre · teléfono · email, sin cargo), notas internas y horario. */}
                   {f.nuevo
                     ? <div><label>Empresa{falta ? ' ' : ''}{falta && <span className="sitio-req">· obligatorio</span>}</label>
-                        <input value={f.empresa} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>
+                        <input value={f.empresa} style={marcada && !f.empresa.trim() ? { borderColor: '#dc2626' } : undefined} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>
                     : <div><label>Empresa</label><input className="sitio-f-lock" value={f.empresa} readOnly tabIndex={-1} />
                         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>El nombre se cambia en la sección Sitios.</div></div>}
                   <div><label>Tipo de sitio</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} />
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>La dirección se cambia en el paso 1 (Ruta).</div></div>
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
-                  <div><label>Teléfono <span className="sitio-req">· obligatorio</span></label>
+                  <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <span className="sitio-req">· obligatorio</span></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
                   <div><label>Email <span className="sitio-req">· obligatorio</span></label>
-                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                    <input type="text" inputMode="email" value={f.contactoEmail} style={marcada && !emailOk ? { borderColor: '#dc2626' } : undefined} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
                   <div className="full"><label>Nombre y apellidos <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
                     <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
                   {!f.nuevo && <div className="full"><label>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></label>

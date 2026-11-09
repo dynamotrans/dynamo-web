@@ -179,6 +179,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ahí lo que falte (horario, teléfono de contacto…). Lo tocado va en `edicSitios`.
   const [datosSitios, setDatosSitios] = useState<DatosSitios>({});
   const [edicSitios, setEdicSitios] = useState<Record<number, CardEdit>>({});
+  // Puntos con datos obligatorios del sitio sin rellenar (teléfono, email; empresa si es
+  // nuevo). Se marca al intentar crear: las tarjetas se abren solas y pintan en rojo.
+  const [faltasSitios, setFaltasSitios] = useState<Set<number>>(new Set());
   const idsSitios = puntos.map((p) => p.sitio?.id).filter(Boolean).join(',');
   useEffect(() => {
     if (paso !== 4 || !idsSitios) return;
@@ -464,8 +467,30 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     refrescar();
   }
 
+  // Teléfono y email del contacto de cada sitio son OBLIGATORIOS (usuario, 2026-11-09):
+  // sin ellos no se crea el envío. Los almacenes Dynamo y las fichas aún sin cargar no
+  // se exigen (sus datos no se editan aquí / no se conocen todavía).
+  function sitiosConFaltas(): Set<number> {
+    const s = new Set<number>();
+    for (const p of puntos) {
+      if (p.sitio?.es_almacen_dynamo) continue;
+      if (p.sitio && !datosSitios[p.sitio.id]) continue;
+      const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
+      if (f.dynamo) continue;
+      if ((f.nuevo && !f.empresa.trim()) || !f.telefono.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.contactoEmail.trim())) s.add(p.k);
+    }
+    return s;
+  }
+  function avisarFaltasSitios(faltas: Set<number>) {
+    setFaltasSitios(faltas);
+    setAviso('Faltan datos obligatorios de los sitios: teléfono y email de contacto (y la empresa en los sitios nuevos). Revisa las tarjetas marcadas en rojo.');
+    setTimeout(() => document.querySelector('.ptar-sitio-card.falta')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+  }
+
   async function crear() {
     if (!cliente) return;
+    const faltas = sitiosConFaltas();
+    if (faltas.size) { setRevisarLegal(false); avisarFaltasSitios(faltas); return; }
     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
     setEnviando(true); setAviso(null);
     // Guarda en la ficha de cada sitio de la AGENDA lo que se corrigió en la confirmación
@@ -935,7 +960,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <h4 className="ptar-section-head" style={{ margin: '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
-                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} />
+                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} faltas={faltasSitios} />
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
                   <div className="sum2-grid">
@@ -990,6 +1015,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     no hay nada nuevo que aceptar. */}
                 <button type="button" className="btn-primary"
                   onClick={() => {
+                    const faltas = sitiosConFaltas();
+                    if (faltas.size) { avisarFaltasSitios(faltas); return; }
                     if (editar) { guardarEdicion(); return; }
                     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
                     setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);

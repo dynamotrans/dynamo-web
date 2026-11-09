@@ -36,6 +36,11 @@ insert into sitios (cliente_id, nombre_empresa, tipo, direccion, codigo_postal, 
   select c.id, x.n, 'almacen_nave', x.d, x.cp, x.p, x.pr, 'ES' from clientes c,
     (values ('Almacén Sevilla', 'Calle Uno 1', '41001', 'Sevilla', 'Sevilla'), ('Nave Madrid', 'Calle Dos 2', '28001', 'Madrid', 'Madrid')) x(n, d, cp, p, pr)
    where c.cif = 'B12345674' and not exists (select 1 from sitios s where s.cliente_id = c.id and s.nombre_empresa = x.n);
+-- Teléfono y email del contacto del sitio son obligatorios al crear envío (2026-11-09).
+insert into contactos (sitio_id, nombre, telefono, email, es_principal)
+  select s.id, 'Contacto ' || s.nombre_empresa, '+34600123123', 'sitio@pruebas.es', true
+    from sitios s join clientes c on c.id = s.cliente_id
+   where c.cif = 'B12345674' and not exists (select 1 from contactos k where k.sitio_id = s.id);
 `;
 execFileSync('psql', [DB, '-v', 'ON_ERROR_STOP=1', '-q', '-c', sql], { stdio: 'inherit' });
 console.log('semilla lista', ids);

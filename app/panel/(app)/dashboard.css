@@ -4708,3 +4708,6 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 }
 .pagination-pages a:hover { border-color: var(--purple); color: var(--purple); }
 .pagination-pages a.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+/* Confirmación de Nuevo envío: campos obligatorios del sitio sin rellenar, en rojo. */
+.sitio-f-falta input, .sitio-f-falta select { border-color: #dc2626 !important; }
