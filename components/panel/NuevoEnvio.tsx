@@ -1016,15 +1016,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <span><strong>Discreción comercial</strong> (opcional): el conductor no dirá en la carga a quién va la mercancía ni en la entrega de dónde viene.</span>
                 </label>
               </div>
-              <div className="ptar-terms-box">
+              {/* En la vista de administración normal no hace falta explicar qué hace el
+                  botón (usuario, 2026-11-10): solo quedan los textos de editar, manual
+                  y cliente. */}
+              {(editar || manual || esCliente) && <div className="ptar-terms-box">
                 {editar
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza el envío #{be!.referencia_gx}. Si no has tocado nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong>: solo cambia si lo cambias tú.</p>
                   : manual
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>
-                  : esCliente
-                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> revisas las condiciones y queda <strong>programado con este precio</strong> (base sin IVA). Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</p>
-                  : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>}
-              </div>
+                  : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> revisas las condiciones y queda <strong>programado con este precio</strong> (base sin IVA). Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</p>}
+              </div>}
               {aviso && !revisarLegal && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
               <div className="ptar-actions ptar-actions-confirm">
                 {/* Doble confirmación con los costes de cancelación y las condiciones generales:
