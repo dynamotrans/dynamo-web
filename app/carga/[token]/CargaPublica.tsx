@@ -376,9 +376,11 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
         </div>
       ) : (
         <div id="identBlock">
-          <div className="sec-title">Identifícate</div>
+          <div className="sec-title">{elegido ? 'Identificado' : 'Identifícate'}</div>
           {elegido ? (
-            <div className="empresa-resumen" style={{ marginTop: '0.6rem' }}>
+            /* La clase `show` es la que lo pinta (el CSS lo trae oculto): sin ella, la caja
+               se quedaba vacía tras elegir la empresa (usuario, 2026-11-09). */
+            <div className="empresa-resumen show" style={{ marginTop: '0.6rem' }}>
               <div className="er-nombre">{elegido.nombre}</div>
               <div className="er-cif">{elegido.cif}{elegido.poblacion ? ` · ${elegido.poblacion}` : ''}</div>
               <button type="button" className="btn-sec" style={{ marginTop: '0.55rem', padding: '0.55rem' }} onClick={() => { setElegido(null); setCif(''); setSugs(null); }}>No soy yo · cambiar</button>
