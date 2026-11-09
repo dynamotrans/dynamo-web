@@ -87,3 +87,12 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
 /* Botones Cámara / Galería de las fotos de reservas (misma fila). */
 .cmr-page .sig-foto-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; border: 1.5px solid var(--purple); color: var(--purple); background: #fff; border-radius: 10px; padding: 0.55rem 0.5rem; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
 .cmr-page .sig-foto-btn:has(input:disabled) { opacity: 0.55; cursor: default; }
+
+/* ===== Política de privacidad: ventana emergente propia (no saca de la página) ===== */
+.cmr-page .sig-link { background: none; border: 0; padding: 0; color: var(--purple); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.cmr-page .privov { position: fixed; inset: 0; background: rgba(10, 2, 48, 0.6); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 60; }
+.cmr-page .privcard { position: relative; background: #fff; border-radius: 16px; padding: 1.25rem 1.2rem 1.1rem; max-width: 560px; width: 100%; max-height: 82vh; overflow: auto; box-shadow: 0 18px 50px rgba(10, 2, 48, 0.35); }
+.cmr-page .privcard h2 { margin: 0 2.2rem 0.65rem 0; font-size: 1.05rem; color: var(--navy, #0a0230); }
+.cmr-page .privcard p { margin: 0 0 0.55rem; font-size: 0.83rem; line-height: 1.5; color: #333; }
+.cmr-page .priv-x { position: absolute; top: 0.6rem; right: 0.65rem; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #eef0f4; color: #333; font-size: 1rem; font-weight: 800; line-height: 1; cursor: pointer; }
+.cmr-page .priv-cerrar { display: block; width: 100%; margin-top: 0.7rem; padding: 0.72rem; border: 0; border-radius: 12px; background: var(--purple); color: #fff; font-weight: 800; font-size: 0.95rem; cursor: pointer; }

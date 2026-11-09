@@ -140,6 +140,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const [fotos, setFotos] = useState<{ ruta: string; nombre: string }[]>([]);
   const [subiendo, setSubiendo] = useState(false);
   const [fotoAviso, setFotoAviso] = useState<string | null>(null);
+  // La política de privacidad se enseña AQUÍ, en una ventana emergente propia: el enlace
+  // de antes se llevaba a quien firmaba fuera de la página (usuario, 2026-11-09).
+  const [verPrivacidad, setVerPrivacidad] = useState(false);
   async function subirFotos(files: FileList | null) {
     if (!files?.length) return;
     const sb = supabaseNavegador();
@@ -243,7 +246,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <p className="hint" style={{ marginTop: '0.6rem', fontSize: '0.78rem', lineHeight: 1.45 }}>
           <strong>Protección de datos:</strong> Dynamo guarda tu nombre, documento, firma, email (si lo pones) y la hora y desde dónde firmas,
           como prueba de la carga o la entrega en el CMR (contrato de transporte y Convenio CMR), durante 6 años. Puedes ejercer tus derechos
-          en {CONTACTO.email}. <a href="https://www.dynamotrans.com/#privacidad" target="_blank" rel="noopener">Política de privacidad</a>.
+          en {CONTACTO.email}. <button type="button" className="sig-link" onClick={() => setVerPrivacidad(true)}>Política de privacidad</button>.
         </p>
         <div className="sigbtns">
           <button type="button" onClick={onCerrar} disabled={guardando}>Cancelar</button>
@@ -251,6 +254,27 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <button type="button" className="b-aceptar" disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>
         </div>
       </div>
+      {verPrivacidad && (
+        <div className="privov" role="dialog" aria-modal="true" aria-label="Política de privacidad"
+          onClick={(e) => { if (e.target === e.currentTarget) setVerPrivacidad(false); }}>
+          <div className="privcard">
+            <button type="button" className="priv-x" aria-label="Cerrar" onClick={() => setVerPrivacidad(false)}>✕</button>
+            <h2>Política de privacidad · firma del CMR</h2>
+            <p><strong>Responsable:</strong> Dynamo Operador Logístico, S.L. · {CONTACTO.email} · {CONTACTO.telefono}.</p>
+            <p><strong>Qué guardamos:</strong> tu nombre y apellidos, el documento de identidad, el trazo de la firma, el email (si lo pones),
+              la fecha y la hora, y desde dónde firmas (dirección IP y navegador). Si anotas reservas, también su texto y sus fotos.</p>
+            <p><strong>Para qué:</strong> dejar constancia de quién firmó la carga o la entrega en el CMR y poder demostrarlo ante quienes
+              intervienen en el transporte o ante una reclamación.</p>
+            <p><strong>Con qué base:</strong> la ejecución del contrato de transporte y el Convenio CMR (art. 6.1.b y f del RGPD).</p>
+            <p><strong>Cuánto tiempo:</strong> 6 años, el plazo de conservación de la documentación mercantil.</p>
+            <p><strong>A quién se comunica:</strong> solo a las partes de este transporte (cliente, transportista, aseguradora si hay siniestro)
+              y a las autoridades si lo exigen. Nunca se usa para publicidad ni se cede a terceros ajenos al envío.</p>
+            <p><strong>Tus derechos:</strong> acceso, rectificación, supresión, limitación, oposición y portabilidad, escribiendo
+              a {CONTACTO.email}; y reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
+            <button type="button" className="priv-cerrar" onClick={() => setVerPrivacidad(false)}>Cerrar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
