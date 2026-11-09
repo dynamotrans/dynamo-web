@@ -1051,7 +1051,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
         </div></div>
         <div style={{ marginTop: '0.7rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
-          La <strong>cancelación o modificación reiterada</strong> de envíos, con o sin transportista asignado, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo (por encima de 3 cancelaciones en los últimos 10 envíos confirmados).
+          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo (por encima de 3 cancelaciones en los últimos 10 envíos confirmados).
         </div>
         <div style={{ marginTop: '0.7rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}
