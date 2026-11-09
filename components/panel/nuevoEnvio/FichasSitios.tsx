@@ -27,8 +27,24 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
   cargaHoy?: boolean;     // la carga empieza HOY: avisa si el sitio de recogida cierra pronto
 }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(new Set());
-  // Campo de nombre REPLEGADO hasta que se pulse su etiqueta (usuario, 2026-11-09).
-  const [nomAbierto, setNomAbierto] = useState<Set<number>>(new Set());
+  // Campos opcionales REPLEGADOS (usuario, 2026-11-09): nombre de contacto, notas
+  // internas y enlace de Google Maps se abren Y SE CIERRAN pulsando su etiqueta; al
+  // cerrarlos, el valor (si lo hay) queda a la vista en la propia etiqueta.
+  const [opcAbiertos, setOpcAbiertos] = useState<Set<string>>(new Set());
+  const toggleOpc = (k: string) => setOpcAbiertos((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  // Función (no componente): si fuera un componente definido aquí dentro, React lo
+  // remontaría en cada render y el input perdería el foco al teclear.
+  const opc = (k: string, etiqueta: React.ReactNode, valor: string, campo: React.ReactNode) => {
+    const ab = opcAbiertos.has(k);
+    return (
+      <div className="full" key={k}>
+        <button type="button" className="campo-plegado" aria-expanded={ab} onClick={() => toggleOpc(k)}>
+          {ab ? '−' : '+'} {etiqueta}{!ab && valor.trim() ? <strong style={{ color: 'var(--navy)' }}> · {valor.length > 60 ? valor.slice(0, 59) + '…' : valor}</strong> : null}
+        </button>
+        {ab && campo}
+      </div>
+    );
+  };
   // Horario replegado por tarjeta (como en la ficha de Sitios).
   const [horAbierto, setHorAbierto] = useState<Set<number>>(new Set());
   const toggleHor = (k: number) => setHorAbierto((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
@@ -136,18 +152,15 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                     {/* Nota en VERDE, bajo la etiqueta y ANTES del campo (usuario, 2026-11-09). */}
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
-                  <div className="full">{f.contacto.trim() || nomAbierto.has(p.k)
-                    ? <><label>Nombre y apellidos <Req si={false} /></label>
-                        <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></>
-                    : <button type="button" className="campo-plegado" onClick={() => setNomAbierto((prev) => new Set([...prev, p.k]))}>+ Nombre y apellidos · opcional</button>}
-                  </div>
-                  {!f.nuevo && <div className="full"><label>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></label>
-                    <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} /></div>}
-
+                  {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
+                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} />)}
+                  {!f.nuevo && opc(`${p.k}:notas`, <>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></>, f.notas,
+                    <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} />)}
                   {f.nuevo ? null : esCliente
-                    ? (f.maps ? <div className="full"><label>Enlace de Google Maps</label><input className="sitio-f-lock" value={f.maps} readOnly tabIndex={-1} /></div> : null)
-                    : <div className="full"><label>Enlace de Google Maps <Req si={false} /></label>
-                        <input value={f.maps} placeholder="https://maps.app.goo.gl/…" onChange={(e) => set(p, { maps: e.target.value })} /></div>}
+                    ? (f.maps ? opc(`${p.k}:maps`, 'Enlace de Google Maps', f.maps,
+                        <input className="sitio-f-lock" value={f.maps} readOnly tabIndex={-1} />) : null)
+                    : opc(`${p.k}:maps`, <>Enlace de Google Maps <Req si={false} /></>, f.maps,
+                        <input value={f.maps} placeholder="https://maps.app.goo.gl/…" onChange={(e) => set(p, { maps: e.target.value })} />)}
                 </>)}
               </div>
             </div>

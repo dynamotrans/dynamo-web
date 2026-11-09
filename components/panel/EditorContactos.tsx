@@ -48,7 +48,7 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
   const t = partirTel(c.telefono);
   const [pref, setPref] = useState(t.pref);
   // En sitios, el nombre va REPLEGADO hasta pulsar su etiqueta (usuario, 2026-11-09).
-  const [verNombre, setVerNombre] = useState(false);
+  const [verNombre, setVerNombre] = useState(!!c.nombre.trim());
   const num = t.num;
   const ponTel = (p: string, n: string) => onCambio({ ...c, telefono: n.trim() ? p + n.replace(/\D/g, '') : '' });
   const id = `ct-${i}`;
@@ -74,10 +74,12 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
           {obligatorios && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>}
           <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
         </div>
-        <div>{!obligatorios || c.nombre.trim() || verNombre
-          ? <><label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>
+        <div>{!obligatorios || verNombre
+          ? <>{obligatorios
+                ? <button type="button" className="campo-plegado" aria-expanded onClick={() => setVerNombre(false)}>− Nombre y apellidos <Req si={false} /></button>
+                : <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>}
               <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
-          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>+ Nombre y apellidos · opcional</button>}
+          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>+ Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <strong style={{ color: 'var(--navy)' }}> · {c.nombre}</strong> : null}</button>}
         </div>
         {roles ? (
           <div>
