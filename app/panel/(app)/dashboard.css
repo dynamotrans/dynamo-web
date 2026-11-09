@@ -1586,7 +1586,7 @@ body.theme-dark .sidebar { background: #060116; }
 /* Fila de 3: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto.
    Selector doble clase: gana a la regla base de .dash-top-row (2 col)
    definida más abajo. */
-.dash-top-row.dash-top-2 { grid-template-columns: 1.1fr 1fr !important; align-items: start; }
+.dash-top-row.dash-top-2 { grid-template-columns: 1fr 1fr !important; align-items: start; }
 .dash-top-row.dash-top-2 .mini-list-card { margin: 0; min-width: 0; }
 @media (max-width: 768px) {
     /* En móvil: botón arriba y la muestra de envíos debajo a lo ancho. */
