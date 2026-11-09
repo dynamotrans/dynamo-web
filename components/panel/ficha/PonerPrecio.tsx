@@ -32,7 +32,7 @@ export function PonerPrecio({ ficha, onVolver, hacer, trabajando, fallo }: { fic
         <input id="pp-pc" type="text" inputMode="decimal" placeholder="Ej. 1.230,00" value={pc} onChange={(ev) => setPc(ev.target.value)} />
         <label className="ptar-admin-precio-lbl" htmlFor="pp-pt" style={{ marginTop: '0.6rem' }}>Transportista (base sin IVA) · opcional</label>
         <input id="pp-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(ev) => setPt(ev.target.value)} />
-        <p className="ptar-admin-precio-note">El cliente lo verá en su panel con el IVA y lo podrá aceptar durante el plazo de validez (parámetro <strong>solicitud_validez_horas</strong>, 24 h por defecto). Al aceptarlo, el envío pasa a programado.</p>
+        <p className="ptar-admin-precio-note">El cliente lo verá en su panel con el IVA. Al aceptarlo, el envío pasa a programado.</p>
       </div>
       {(error ?? fallo) && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{error ?? fallo}</div></div>}
     </Modal>

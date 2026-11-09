@@ -32,10 +32,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
-  // Fechas libres (cualquier fecha, también pasada: envíos gestionados por teléfono): SOLO
-  // el Admin Master actuando como Dynamo. Dentro de la vista de un cliente (o como
-  // cliente) la hora de corte manda para todos (usuario, 2026-11-08).
-  const fechaLibre = esMaster && !sinCampoCliente;
+  // Fechas libres (cualquier fecha, también hoy, pasada o saltándose las horas de corte;
+  // urgencias e imprevistos): SOLO el Admin Master, también en la vista de un cliente
+  // (usuario, 2026-11-09). Los clientes y los empleados siguen con los cortes. Al elegir
+  // una fecha fuera de las reglas sale el aviso ámbar de abajo.
+  const fechaLibre = esMaster && !esCliente;
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';       // solo la ruta (queda para los envíos manuales)
   const editar = base?.modo === 'editar';     // modificarlo ENTERO con el asistente (ficha → «Modificar»)
@@ -857,7 +858,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         cortes={{ fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora }} />
                     </div>
                   )}
-                  {fechaLibre && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede; en la vista de un cliente, tampoco tú.</p></div>}
+                  {fechaLibre && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha: también hoy, una pasada (un envío gestionado por teléfono) o saltándote las horas de corte. Nadie más puede.</p></div>}
+                  {fechaLibre && fecha && dias[0] && fecha < dias[0] && (
+                    <div className="ptar-field-full"><div className="wiz-warn show" role="alert">⚠ <strong>Fuera de las reglas de corte:</strong> esta fecha no se podría elegir normalmente (fija desde mañana con su corte · ventana con corte de las {reglas?.corte_ventana_hora ?? 14}:00). Úsalo solo para urgencias o imprevistos: la recogida dependerá de encontrar camión a tiempo.</div></div>
+                  )}
                 </>)}
               </div>
             </div>

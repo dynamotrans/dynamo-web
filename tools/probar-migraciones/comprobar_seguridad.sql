@@ -2590,7 +2590,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_emp84'), fa
 set role authenticated;
 do $$ declare n int; begin
   if not exists (select 1 from parametros where clave = 'dynamo_cif') then raise exception 'FALLO 84 · el empleado ya no lee los parámetros'; end if;
-  update parametros set valor = '999' where clave = 'solicitud_validez_horas';
+  update parametros set valor = '999' where clave = 'pronto_pago_dias';
   get diagnostics n = row_count;
   if n > 0 then raise exception 'FALLO 84 · un empleado cambia parámetros llamando a la API'; end if;
 end $$;
@@ -2608,7 +2608,7 @@ do $$ declare n int; begin
     raise exception 'FALLO 84 · se borra el CIF de Dynamo desde la web';
   exception when insufficient_privilege then null;
   end;
-  update parametros set valor = valor where clave = 'solicitud_validez_horas';
+  update parametros set valor = valor where clave = 'pronto_pago_dias';
   get diagnostics n = row_count;
   if n <> 1 then raise exception 'FALLO 84 · el administrador ya no puede cambiar parámetros normales'; end if;
 end $$;
