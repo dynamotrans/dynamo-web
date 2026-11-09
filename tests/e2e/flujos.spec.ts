@@ -94,8 +94,12 @@ test.describe.serial('flujos clave', () => {
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${id}`);
     await page.getByRole('button', { name: 'Ofrecer envío' }).click();
-    await page.locator('#of-para').selectOption('bolsa');
-    await page.getByRole('button', { name: 'Crear oferta y enlace' }).click();
+    // El enlace de la oferta nace con el envío: el modal suele abrirse ya en la pantalla de
+    // compartir. Si el envío no traía precio del transportista, se crea aquí (precio prefilado).
+    await expect(page.locator('#of-enlace').or(page.getByRole('button', { name: 'Crear oferta y enlace' })).first()).toBeVisible();
+    if (await page.getByRole('button', { name: 'Crear oferta y enlace' }).isVisible()) {
+      await page.getByRole('button', { name: 'Crear oferta y enlace' }).click();
+    }
     const enlace = await page.locator('#of-enlace').inputValue();
     expect(enlace).toMatch(/\/carga\//);
 
@@ -115,7 +119,7 @@ test.describe.serial('flujos clave', () => {
     expect(envioAceptado).not.toBe('');
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${envioAceptado}`);
-    await page.getByRole('button', { name: 'Crear enlace para firmar' }).click();
+    // El enlace del CMR nace con el envío: la ficha enseña directamente los botones de compartir.
     const href = await page.locator('a[href^="/cmr/"]').first().getAttribute('href');
     expect(href).toBeTruthy();
 
