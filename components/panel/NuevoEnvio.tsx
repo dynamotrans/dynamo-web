@@ -1059,6 +1059,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           <button type="button" className="btn-primary" disabled={enviando}
             onClick={() => { if (!aceptaLegal) { setFaltaLegal(true); return; } crear(); }}>{enviando ? 'Creando envío…' : 'Confirmar envío'}</button>
         </>}>
+        <div className="confirm-fino">
         {esHoy && (
           <div className="pt-aviso" style={{ marginTop: 0 }}><IcoAviso /><div>
             <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía la ventana de carga para tener margen los días siguientes.
@@ -1075,12 +1076,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
         </div></div>
-        <div style={{ marginTop: '0.7rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+        <div style={{ marginTop: '0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.5 }}>
           La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo (por encima de 3 cancelaciones en los últimos 10 envíos confirmados).
         </div>
-        <div style={{ marginTop: '0.7rem' }}>
+        <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}
-            style={{ background: 'none', border: 'none', padding: 0, color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>
+            style={{ background: 'none', border: 'none', padding: 0, color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', font: 'inherit', fontSize: 'var(--fs-m)', textDecoration: 'underline' }}>
             {verCondiciones ? '▾' : '▸'} {verCondiciones ? 'Ocultar' : 'Ver'} condiciones generales de transporte
           </button>
           {verCondiciones && <div className="ptar-terms-scroll" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem', marginTop: '0.4rem' }}><CondicionesGenerales /></div>}
@@ -1091,6 +1092,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         </label>
         {faltaLegal && !aceptaLegal && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.5rem' }}>⚠ Marca la casilla de arriba para poder confirmar el envío.</div>}
         {aviso && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {aviso}</div>}
+        </div>
       </Modal>
 
       {/* Aviso flotante breve (cambio de capacidad por la plataforma elevadora). */}
