@@ -154,8 +154,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
                   {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
                     <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} />)}
-                  {!f.nuevo && opc(`${p.k}:notas`, <>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></>, f.notas,
-                    <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} />)}
+                  {/* Las notas internas del sitio NO se muestran ni se editan aquí (usuario,
+                      2026-11-09): se gestionan en la sección Sitios. Las que tenga se
+                      conservan tal cual al guardar. */}
                   {f.nuevo ? null : esCliente
                     ? (f.maps ? opc(`${p.k}:maps`, 'Enlace de Google Maps', f.maps,
                         <input className="sitio-f-lock" value={f.maps} readOnly tabIndex={-1} />) : null)
