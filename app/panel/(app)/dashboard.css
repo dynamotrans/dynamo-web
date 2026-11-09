@@ -4718,3 +4718,11 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .campo-opc { color: var(--gray-700); font-weight: 500; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
 /* Campo obligatorio sin rellenar al enviar: borde rojo hasta que se toca (lib/faltas.ts). */
 .campo-falta, .campo-falta input, .campo-falta select, .campo-falta textarea { border-color: #dc2626 !important; }
+/* «· Muy útil» (verde negrita): no obligatorio pero muy conveniente (email de sitios). */
+.campo-util { color: var(--green); font-weight: 700; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
+/* Campo opcional REPLEGADO: solo la etiqueta, pulsándola se abre el campo
+   (para no llenar la pantalla de opcionales; usuario, 2026-11-09). */
+.campo-plegado { display: block; background: none; border: 0; padding: 0.15rem 0; margin: 0;
+    font: inherit; font-size: var(--fs-s); font-weight: 600; color: var(--gray-700);
+    cursor: pointer; text-align: left; }
+.campo-plegado:hover { color: var(--purple); text-decoration: underline; }

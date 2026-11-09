@@ -17,8 +17,6 @@ const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
 );
 
-const EMAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-
 export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCliente, faltas }: {
   puntos: Punto[]; datos: DatosSitios; edic: Record<number, CardEdit>;
   setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>;
@@ -26,6 +24,11 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
   faltas?: Set<number>;   // puntos con datos obligatorios sin rellenar (los marca el padre al crear)
 }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(new Set());
+  // Campo de nombre REPLEGADO hasta que se pulse su etiqueta (usuario, 2026-11-09).
+  const [nomAbierto, setNomAbierto] = useState<Set<number>>(new Set());
+  // Horario replegado por tarjeta (como en la ficha de Sitios).
+  const [horAbierto, setHorAbierto] = useState<Set<number>>(new Set());
+  const toggleHor = (k: number) => setHorAbierto((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const toggle = (k: number) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   // Al intentar crear con faltas, las tarjetas afectadas se ABREN solas (usuario, 2026-11-09).
   useEffect(() => { if (faltas && faltas.size) setAbiertas((s) => new Set([...s, ...faltas])); }, [faltas]);
@@ -40,8 +43,8 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
         const falta = f.nuevo && !f.empresa.trim();   // sitio nuevo sin nombre: datos obligatorios pendientes
         // Marcada por el padre al intentar crear: lo que siga vacío se pinta en rojo.
         const marcada = !!faltas?.has(p.k) && !f.dynamo;
-        const telOk = !!f.telefono.trim(), emailOk = EMAIL_OK.test(f.contactoEmail.trim());
-        const faltaCampos = marcada && ((f.nuevo && !f.empresa.trim()) || !telOk || !emailOk);
+        const telOk = !!f.telefono.trim();
+        const faltaCampos = marcada && ((f.nuevo && !f.empresa.trim()) || !telOk);
         const abierta = abiertas.has(p.k);
         return (
           <div key={p.k} className={`ptar-sitio-card${abierta ? ' open' : ''}${falta || faltaCampos ? ' falta' : ' req-ok'}`}>
@@ -91,17 +94,30 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   <div><label>Tipo de sitio</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} />
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>La dirección se cambia en el paso 1 (Ruta).</div></div>
+                  {/* Horario REPLEGADO con resumen, igual que en la ficha de Sitios
+                      (usuario, 2026-11-09): pulsando se abre el editor. */}
+                  <div className="full">
+                    <button type="button" className="ptar-notes-toggle" aria-expanded={horAbierto.has(p.k)} onClick={() => toggleHor(p.k)} style={{ margin: 0 }}>
+                      <span className="pnt-icon" aria-hidden="true">{horAbierto.has(p.k) ? '−' : '+'}</span>
+                      <span><strong>Horario de carga y descarga</strong>{' '}
+                        <span style={{ color: 'var(--gray-500)' }}>· {resumenHorario(f.horario) || 'sin definir'}</span></span>
+                    </button>
+                  </div>
+                  {horAbierto.has(p.k) && <div className="full"><EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} /></div>}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
                   <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
-                  <div><label>Email <Req /></label>
-                    <input type="text" inputMode="email" value={f.contactoEmail} style={marcada && !emailOk ? { borderColor: '#dc2626' } : undefined} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
-                  <div className="full"><label>Nombre y apellidos <Req si={false} /></label>
-                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
+                  <div><label>Email <Req util /></label>
+                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} />
+                    <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>Si lo pones, avisamos al sitio de las recogidas y entregas de los envíos: agiliza mucho la operativa y da buena imagen ante tus proveedores y clientes.</div></div>
+                  <div className="full">{f.contacto.trim() || nomAbierto.has(p.k)
+                    ? <><label>Nombre y apellidos <Req si={false} /></label>
+                        <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></>
+                    : <button type="button" className="campo-plegado" onClick={() => setNomAbierto((prev) => new Set([...prev, p.k]))}>+ Nombre y apellidos · opcional</button>}
+                  </div>
                   {!f.nuevo && <div className="full"><label>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></label>
                     <input value={f.notas} placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…" onChange={(e) => set(p, { notas: e.target.value })} /></div>}
-                  <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Horario de carga y descarga</div>
-                  <div className="full"><EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} /></div>
+
                   {f.nuevo ? null : esCliente
                     ? (f.maps ? <div className="full"><label>Enlace de Google Maps</label><input className="sitio-f-lock" value={f.maps} readOnly tabIndex={-1} /></div> : null)
                     : <div className="full"><label>Enlace de Google Maps <Req si={false} /></label>

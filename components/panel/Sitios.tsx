@@ -282,8 +282,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         !d.codigo_postal.trim() && 'sitio-codigo_postal', !d.poblacion.trim() && 'sitio-poblacion'].filter(Boolean) as string[]);
       return;
     }
-    if (!almacen && !d.contactos.some((x) => x.telefono.trim() && x.email.trim())) {
-      setError('El contacto del sitio es obligatorio: pon al menos uno con teléfono y email (el nombre es opcional).'); avisaFaltas(['ct-0-tel', 'ct-0-email']); return;
+    if (!almacen && !d.contactos.some((x) => x.telefono.trim())) {
+      setError('El contacto del sitio es obligatorio: pon al menos uno con teléfono (el email es muy útil; el nombre, opcional).'); avisaFaltas(['ct-0-tel']); return;
     }
     const malHorario = validarHorario(d.horario);
     if (malHorario) { setAbierto((a) => ({ ...a, horario: true })); setTabHorario('general'); setError(malHorario); return; }
@@ -548,7 +548,29 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             guardar. No se tocan las tablas. */}
       </div>
 
-      {/* El contacto del sitio es OBLIGATORIO (usuario, 2026-11-09): va tras el país,
+      {/* El HORARIO (replegado, con resumen) va ANTES del contacto (usuario, 2026-11-09). */}
+      <div style={{ display: 'grid', gap: '0.55rem', marginTop: '0.9rem' }}>
+        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.horario} onClick={() => plegar('horario')} style={{ margin: 0 }}>
+          <span className="pnt-icon" aria-hidden="true">{abierto.horario ? '−' : '+'}</span>
+          <span><strong>Horario de carga y descarga</strong>{' '}
+            <span style={{ color: 'var(--gray-500)' }}>· {resumenHorario(d.horario) || 'sin definir'}{d.verano?.activo ? ' · verano activo' : ''}</span></span>
+        </button>
+        {abierto.horario && (
+          <div className="ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
+            <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
+              <button type="button" role="tab" aria-selected={tabHorario === 'general'} className={`tab${tabHorario === 'general' ? ' active' : ''}`} onClick={() => setTabHorario('general')}>Horario general</button>
+              <button type="button" role="tab" aria-selected={tabHorario === 'verano'} className={`tab${tabHorario === 'verano' ? ' active' : ''}`} onClick={() => setTabHorario('verano')}>
+                Horario de verano{d.verano?.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
+              </button>
+            </div>
+            {tabHorario === 'general'
+              ? <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
+              : <VeranoSitio v={d.verano!} onCambio={(v) => set('verano', v)} />}
+          </div>
+        )}
+      </div>
+
+      {/* El contacto del sitio es OBLIGATORIO (usuario, 2026-11-09): va tras el horario,
           desplegado y sin el campo Cargo. */}
       <div className="ptar-section-head" style={{ marginTop: '0.9rem' }}>Contacto de sitio <Req /></div>
       <div className="ptar-sitio-grid">
@@ -570,24 +592,6 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           </div>
         )}
 
-        <button type="button" className="ptar-notes-toggle" aria-expanded={abierto.horario} onClick={() => plegar('horario')} style={{ margin: 0 }}>
-          <span className="pnt-icon" aria-hidden="true">{abierto.horario ? '−' : '+'}</span>
-          <span><strong>Horario de carga y descarga</strong>{' '}
-            <span style={{ color: 'var(--gray-500)' }}>· {resumenHorario(d.horario) || 'sin definir'}{d.verano?.activo ? ' · verano activo' : ''}</span></span>
-        </button>
-        {abierto.horario && (
-          <div className="ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
-            <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
-              <button type="button" role="tab" aria-selected={tabHorario === 'general'} className={`tab${tabHorario === 'general' ? ' active' : ''}`} onClick={() => setTabHorario('general')}>Horario general</button>
-              <button type="button" role="tab" aria-selected={tabHorario === 'verano'} className={`tab${tabHorario === 'verano' ? ' active' : ''}`} onClick={() => setTabHorario('verano')}>
-                Horario de verano{d.verano?.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
-              </button>
-            </div>
-            {tabHorario === 'general'
-              ? <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
-              : <VeranoSitio v={d.verano!} onCambio={(v) => set('verano', v)} />}
-          </div>
-        )}
 
       </div>
       </>)}

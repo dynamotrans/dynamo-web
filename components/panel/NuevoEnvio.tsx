@@ -478,13 +478,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       if (p.sitio && !datosSitios[p.sitio.id]) continue;
       const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
       if (f.dynamo) continue;
-      if ((f.nuevo && !f.empresa.trim()) || !f.telefono.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.contactoEmail.trim())) s.add(p.k);
+      if ((f.nuevo && !f.empresa.trim()) || !f.telefono.trim()) s.add(p.k);
     }
     return s;
   }
   function avisarFaltasSitios(faltas: Set<number>) {
     setFaltasSitios(faltas);
-    setAviso('Faltan datos obligatorios de los sitios: teléfono y email de contacto (y la empresa en los sitios nuevos). Revisa las tarjetas marcadas en rojo.');
+    setAviso('Faltan datos obligatorios de los sitios: teléfono de contacto (y la empresa en los sitios nuevos). Revisa las tarjetas marcadas en rojo.');
     setTimeout(() => document.querySelector('.ptar-sitio-card.falta')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
   }
 

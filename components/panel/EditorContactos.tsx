@@ -13,7 +13,7 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
   // conAvisos: enseña el conmutador «Recibe los avisos». En los SITIOS solo lo ve Dynamo:
   // el cliente no; todo contacto nuevo nace recibiendo avisos (CONTACTO_VACIO).
-  // obligatorios: marca Teléfono y Email como obligatorios y el nombre como opcional
+  // obligatorios (modo sitios): Teléfono obligatorio, Email «Muy útil» y nombre replegado
   // (los SITIOS exigen un contacto con teléfono y email; nombre opcional).
   // roles: UN solo desplegable «Rol» con estas opciones (sustituye a Cargo + «Para qué»;
   // usuario 2026-11-09): clientes Logística/Contabilidad · transportistas Tráfico/
@@ -47,6 +47,8 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
 }) {
   const t = partirTel(c.telefono);
   const [pref, setPref] = useState(t.pref);
+  // En sitios, el nombre va REPLEGADO hasta pulsar su etiqueta (usuario, 2026-11-09).
+  const [verNombre, setVerNombre] = useState(false);
   const num = t.num;
   const ponTel = (p: string, n: string) => onCambio({ ...c, telefono: n.trim() ? p + n.replace(/\D/g, '') : '' });
   const id = `ct-${i}`;
@@ -67,12 +69,14 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
           </div>
         </div>
         <div>
-          <label htmlFor={`${id}-email`}>Email <Req si={obligatorios} /></label>
+          <label htmlFor={`${id}-email`}>Email {obligatorios ? <Req util /> : <Req si={false} />}</label>
           <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
+          {obligatorios && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>Si lo pones, avisamos al sitio de las recogidas y entregas de los envíos: agiliza mucho la operativa y da buena imagen ante tus proveedores y clientes.</div>}
         </div>
-        <div>
-          <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>
-          <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} />
+        <div>{!obligatorios || c.nombre.trim() || verNombre
+          ? <><label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>
+              <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
+          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>+ Nombre y apellidos · opcional</button>}
         </div>
         {roles ? (
           <div>
