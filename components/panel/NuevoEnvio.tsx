@@ -1040,17 +1040,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía la ventana de carga para tener margen los días siguientes.
           </div></div>
         )}
-        {/* Resumen de precios SOLO ADMIN (usuario, 2026-11-09: salió del paso 4). */}
-        {!esCliente && !manual && (
-          <div className="sum2-box" style={{ margin: '0.6rem 0 0' }}>
-            <div className="sum2-grid">
-              <div className="sum2-cell"><div className="sum2-k">Fecha de recogida</div><div className="sum2-v">{fechaTxt}</div></div>
-              <div className="sum2-cell"><div className="sum2-k">P. cliente</div><div className="sum2-v">{eur(importe)}</div></div>
-              {importeT !== null && <div className="sum2-cell"><div className="sum2-k">P. transportista</div><div className="sum2-v">{eur(importeT)}</div></div>}
-              {importeT !== null && <div className="sum2-cell"><div className="sum2-k">Margen</div><div className="sum2-v" style={{ color: importe - importeT >= 0 ? '#0f6b3a' : '#dc2626' }}>{eur(importe - importeT)}</div></div>}
-            </div>
-          </div>
-        )}
+        {/* El resumen de fecha/precios/margen se quitó de aquí también (usuario, 2026-11-09):
+            los precios internos ya se ven y ajustan en el paso 3. */}
         {/* Carga hoy y el sitio de recogida cierra pronto (o ya cerró): el aviso se repite
             aquí, con la línea de repercusión al cliente (usuario, 2026-11-09). */}
         {cargaHoy && puntos.filter((pt) => pt.tipo === 'carga').map((pt) => {
