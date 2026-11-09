@@ -302,7 +302,8 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   useEffect(() => {
     if (elegido || o.para_transportista) return;
     const q = cif.trim();
-    if (q.replace(/[^0-9A-Za-z]/g, '').length < 2) { setSugs(null); setBuscando(false); return; }
+    // Mínimo 4 caracteres para autocompletar (usuario, 2026-11-09): con 2 salían listas enormes.
+    if (q.replace(/[^0-9A-Za-z]/g, '').length < 4) { setSugs(null); setBuscando(false); return; }
     setBuscando(true);
     const mio = ++seqBusqueda.current;
     const t = setTimeout(() => {
@@ -395,7 +396,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
               <input type="text" id="f-cif" value={cif} placeholder="B12345678 o tu empresa" autoCapitalize="characters" autoComplete="off"
                 onChange={(e) => { setCif(e.target.value); setAcAbierto(true); }}
                 onFocus={() => setAcAbierto(true)} onBlur={() => setTimeout(() => setAcAbierto(false), 150)} />
-              <ul className={`ac-list${acAbierto && cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 2 && (buscando || sugs !== null) ? ' show' : ''}`} id="ac-buscar">
+              <ul className={`ac-list${acAbierto && cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 4 && (buscando || sugs !== null) ? ' show' : ''}`} id="ac-buscar">
                 {(sugs ?? []).map((s) => (
                   <li key={s.cif} onMouseDown={(ev) => { ev.preventDefault(); setElegido(s); setCif(s.cif); setAcAbierto(false); }}>
                     {s.nombre}<span className="ac-sub">{s.cif}{s.poblacion ? ` · ${s.poblacion}` : ''}</span>
