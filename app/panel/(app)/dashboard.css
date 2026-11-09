@@ -4740,7 +4740,8 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     font-weight: 600; line-height: 1.45; padding: 0.55rem 0.7rem; border-radius: 10px;
     box-shadow: 0 8px 22px rgba(10,15,44,0.25); opacity: 0; visibility: hidden; z-index: 40;
     transition: opacity 0.15s; pointer-events: none; }
-.tip-i:focus-within .tip-i-pop { opacity: 1; visibility: visible; }
+.tip-i.tip-abierto .tip-i-btn { color: var(--purple); }
+.tip-i.tip-abierto .tip-i-pop, .tip-i:focus-within .tip-i-pop { opacity: 1; visibility: visible; }
 @media (hover: hover) { .tip-i:hover .tip-i-pop { opacity: 1; visibility: visible; } }
 /* Botón «Añadir contacto adicional» FINO y discreto (usuario, 2026-11-10): la misma
    fila de 44px que los campos replegados, con borde discontinuo de «añadir» y el

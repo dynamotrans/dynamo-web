@@ -29,6 +29,7 @@ import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
 import Modal from './Modal';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
 import Req from '@/components/Req';
+import Tip from '@/components/Tip';
 
 export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, reglas = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
@@ -783,7 +784,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
                   {sinCampoCliente && !base && (<>
                     <div className="ptar-section-head">Transportista / operador{' '}
-                      <span className="ptar-prin-info" tabIndex={0} title="¿Trabajas también con transportistas propios? Dalos de alta en Transportistas y podrás registrar aquí esos envíos (Dynamo no interviene) y tenerlo todo unificado." aria-label="Ayuda sobre transportistas propios">ⓘ</span>
+                      <Tip texto="¿Trabajas también con transportistas propios? Dalos de alta en Transportistas y podrás registrar aquí esos envíos (Dynamo no interviene) y tenerlo todo unificado." aria="Ayuda sobre transportistas propios" />
                     </div>
                     <div className="ptar-field ptar-field-full">
                       <CampoOperador operadores={operadores} valor={operador} onCambio={setOperador} />
@@ -802,10 +803,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         onAnadir={total < 4 ? () => nuevaParada(p) : undefined}
                         onAlternar={i > 0 && i < puntos.length - 1 ? () => alternarTipo(p) : undefined} />
                       {i === 0 && p.sitio && cliente?.principal_id === p.sitio.id && (
-                        <p className="ptar-prin-badge"><span className="ptar-prin-star" aria-hidden="true">★</span> {esCliente ? 'Tu almacén principal' : 'Almacén principal del cliente'} · origen por defecto
-                          <span className="ptar-prin-info" tabIndex={0} title={esCliente
+                        <p className="ptar-prin-badge"><span className="ptar-prin-star" aria-hidden="true">★</span> {esCliente ? 'Tu almacén principal' : 'Almacén principal del cliente'} · origen por defecto{' '}
+                          <Tip texto={esCliente
                             ? 'Se preselecciona como recogida en cada envío nuevo. Puedes cambiar cuál es tu sitio principal con la estrella en Sitios.'
-                            : 'Se preselecciona como recogida en cada envío nuevo. El sitio principal se cambia con la estrella en Sitios.'}>ⓘ</span>
+                            : 'Se preselecciona como recogida en cada envío nuevo. El sitio principal se cambia con la estrella en Sitios.'} aria="Ayuda sobre el almacén principal" />
                         </p>
                       )}
                     </div>
