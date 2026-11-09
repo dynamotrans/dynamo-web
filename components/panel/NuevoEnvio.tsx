@@ -648,7 +648,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     <>
       {!plataforma && (
         <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
-          <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga</strong>. Si requieres plataforma elevadora (<strong>más caro y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
+          <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
           <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
         </div></div>
       )}
