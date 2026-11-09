@@ -165,6 +165,21 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                 </>)}
               </div>
             </div>
+            {/* DETALLE DE MERCANCÍA de esta parada (usuario, 2026-11-09): al pie de la
+                caja y SIEMPRE visible (fuera del desplegable de los datos del sitio).
+                Su texto va a las anotaciones de ESA parada al crear el envío. */}
+            <div className="ptar-sitio-merc">
+              <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
+                <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
+                <span className="cp-txt">Añadir detalle de mercancía <Req si={false} />
+                  {!opcAbiertos.has(`${p.k}:merc`) && (ed?.mercancia ?? '').trim()
+                    ? <span className="cp-val">· {ed!.mercancia!.length > 42 ? ed!.mercancia!.slice(0, 41) + '…' : ed!.mercancia}</span> : null}</span>
+              </button>
+              {opcAbiertos.has(`${p.k}:merc`) && <div style={{ marginTop: '0.45rem' }}>
+                <textarea className="campo-texto" rows={2} value={ed?.mercancia ?? ''}
+                  placeholder={rec ? 'Ej. aquí se cargan 4 palets de recambios, 1 caja de 2×1 m…' : 'Ej. aquí se entregan 2 de los 6 palets…'}
+                  onChange={(e) => set(p, { mercancia: e.target.value })} /></div>}
+            </div>
           </div>
         );
       })}

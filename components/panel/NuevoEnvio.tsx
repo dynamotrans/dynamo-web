@@ -523,13 +523,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       const g = await guardarEdicionesSitios(edicExist);
       if (!g.ok) { setEnviando(false); setAviso(g.error); return; }
     }
-    const citaTxt = (k: number) => {
+    // Anotaciones de ESA parada: la cita previa y el detalle de mercancía del paso 4.
+    const anotParada = (k: number) => {
       const c = edicSitios[k];
-      return c?.cita ? ['CITA PREVIA' + (c.citaHora ? ` a las ${c.citaHora}` : ''), (c.citaDetalle ?? '').trim()].filter(Boolean).join(' · ') : undefined;
+      const cita = c?.cita ? ['CITA PREVIA' + (c.citaHora ? ` a las ${c.citaHora}` : ''), (c.citaDetalle ?? '').trim()].filter(Boolean).join(' · ') : '';
+      const merc = (c?.mercancia ?? '').trim();
+      return [cita, merc ? `MERCANCÍA: ${merc}` : ''].filter(Boolean).join(' · ') || undefined;
     };
     const paradas: ParadaNueva[] = puntos.map((p, i) => {
       const ref = i === 0 && refCli ? refCli : undefined;
-      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref, anotaciones: citaTxt(p.k) };
+      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref, anotaciones: anotParada(p.k) };
       const n = p.nuevo!;
       // Datos del sitio nuevo con lo corregido en la confirmación encima.
       const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
@@ -537,7 +540,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       return {
         tipo: p.tipo, nombre_empresa: f.empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
-        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref, anotaciones: citaTxt(p.k),
+        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref, anotaciones: anotParada(p.k),
         contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail, horario_tramos: hr ? tramosDe(hr) : undefined,
       };
     });

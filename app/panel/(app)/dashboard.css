@@ -4732,3 +4732,9 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3rem; }
 .campo-plegado .cp-val { color: var(--gray-500); font-weight: 600; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* Pie de la tarjeta de sitio del paso 4 (usuario, 2026-11-09): detalle de mercancía de
+   esa parada, al borde inferior de la caja y SIEMPRE visible (fuera del desplegable de
+   los datos del sitio). El icono es una flecha que gira al abrir. */
+.ptar-sitio-merc { margin-top: 0.6rem; border-top: 1px dashed var(--gray-200); padding-top: 0.6rem; }
+.ptar-sitio-merc .cp-ico svg { transition: transform 0.18s; }
+.ptar-sitio-merc .campo-plegado[aria-expanded="true"] .cp-ico svg { transform: rotate(180deg); }
