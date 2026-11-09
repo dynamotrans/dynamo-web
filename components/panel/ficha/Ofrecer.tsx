@@ -5,24 +5,19 @@ import Modal from '../Modal';
 import Cargando from '@/components/Cargando';
 import { euros, numero } from '@/lib/formato';
 import { NEGOCIACION } from '@/lib/envios';
-import type { Ficha, TransportistaOpcion } from '@/lib/fichaEnvio';
-import { ofrecerCarga, buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
-import Buscador from '../Buscador';
+import type { Ficha } from '@/lib/fichaEnvio';
+import { ofrecerCarga } from '@/app/panel/(app)/envios/acciones';
 import { I, ICO, Interruptor, aNum, enlaceOferta, mensajeOferta } from './comun';
 
 // ---- Ofrecer carga ------------------------------------------------------------------
+// Una oferta es un envío PUNTUAL del enlace a transportistas (usuario, 2026-11-09): se
+// crea el enlace abierto y se manda por WhatsApp o email; quien lo abre se identifica
+// con su CIF al aceptar. Sin elegir transportista, sin «bolsa» ni «por dónde se manda»
+// (la publicación automática en bolsas, con sus criterios y parámetros, vendrá aparte).
 export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
   const e = ficha.envio;
   const sugerido = e.importe_transportista != null ? Number(e.importe_transportista)
     : e.importe_cliente != null ? Math.round((Number(e.importe_cliente) * 0.8) / 10) * 10 : null;
-  // Una oferta es un envío PUNTUAL a un transportista (usuario, 2026-11-09): se crea el
-  // enlace y se le manda por WhatsApp o email. Elegirlo aquí es OPCIONAL (prefila sus
-  // botones de envío y queda en la ficha); sin elegirlo, el enlace es abierto y quien lo
-  // abre se identifica con su CIF al aceptar. Fuera la «bolsa» y el «por dónde se manda».
-  const [t, setT] = useState<TransportistaOpcion | null>(null);
-  // Solo los activos se pueden elegir (los demás salen, pero deshabilitados, para que se vea por qué no).
-  const opciones = (q: string) => buscarTransportistas(q).then((r) => r.map((o) => ({
-    ...o, detalle: o.estado === 'suspendido' ? 'SUSPENDIDO' : o.estado === 'no_ofertar' ? 'no ofertar' : null, deshabilitada: o.estado !== 'activo' })));
   const [precio, setPrecio] = useState(numero(sugerido, 2));
   const [banda, setBanda] = useState<number>(e.negociacion_pct ?? 10);
   const [pronto, setPronto] = useState(true);
@@ -38,7 +33,7 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
     setError(null);
     if (pv == null || Number.isNaN(pv) || pv <= 0) { setError('Pon el precio que se ofrece al transportista.'); return; }
     setTrabajando(true);
-    const r = await ofrecerCarga(e.id, { transportista_id: t?.id ?? null, canal: 'enlace', precio: pv, banda_pct: banda, pronto_pago: pronto });
+    const r = await ofrecerCarga(e.id, { transportista_id: null, canal: 'enlace', precio: pv, banda_pct: banda, pronto_pago: pronto });
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     setHecho({ token: r.token, precio: pv });
@@ -46,9 +41,8 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
 
   if (hecho) {
     const msg = mensajeOferta(ficha, hecho.precio, hecho.token);
-    const tel = t?.telefono?.replace(/[^\d]/g, '');
     return (
-      <Modal abierto onCerrar={onVolver} titulo="Oferta creada" sub={`#${e.referencia_gx} · ${t ? t.nombre : 'enlace abierto'}`} icono={<I d={ICO.enviar} />}
+      <Modal abierto onCerrar={onVolver} titulo="Oferta creada" sub={`#${e.referencia_gx} · enlace para aceptar`} icono={<I d={ICO.enviar} />}
         pie={<button className="btn-primary" onClick={onVolver}>Volver a la ficha</button>}>
         <div className="ptar-sitio-grid">
           <div style={{ gridColumn: '1/-1' }}>
@@ -62,30 +56,23 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
           <button className="btn-primary" onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); }}>{copiado ? 'Copiado' : 'Copiar mensaje'}</button>
-          <a className="btn-secondary" href={`https://wa.me/${tel ?? ''}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp{t && !tel ? ' (sin teléfono en su ficha)' : ''}</a>
-          <a className="btn-secondary" href={`mailto:${t?.email ?? ''}?subject=${encodeURIComponent(`Envío disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
+          <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
+          <a className="btn-secondary" href={`mailto:?subject=${encodeURIComponent(`Envío disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
         </div>
         <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
-          El mensaje no lleva el cliente ni las direcciones: el transportista las ve al aceptar. Las aperturas del enlace y quién la acepta quedan en la ficha.
-          El envío automático por WhatsApp y email llegará con los avisos (NOTIFICACIONES.md).
+          El mensaje no lleva el cliente ni las direcciones: el transportista las ve al aceptar, identificándose con su CIF.
+          Las aperturas del enlace y quién lo acepta quedan en la ficha. El envío automático por WhatsApp y email llegará con los avisos (NOTIFICACIONES.md).
         </p>
       </Modal>
     );
   }
   return (
-    <Modal abierto onCerrar={onVolver} titulo={`Ofrecer envío · #${e.referencia_gx}`} sub="Crea un enlace para que un transportista lo acepte" icono={<I d={ICO.enviar} />}
+    <Modal abierto onCerrar={onVolver} titulo={`Ofrecer envío · #${e.referencia_gx}`} sub="Crea un enlace y mándaselo al transportista: se identifica con su CIF al aceptar" icono={<I d={ICO.enviar} />}
       pie={<>
         <button className="btn-ghost" onClick={onVolver} disabled={trabajando}>Volver</button>
         <button className="btn-primary" onClick={crear} disabled={trabajando}>Crear oferta y enlace</button>
       </>}>
       <div className="ptar-sitio-grid">
-        <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="of-tra">Transportista <span style={{ fontWeight: 400, color: 'var(--gray-500)' }}>· opcional</span></label>
-          <Buscador id="of-tra" valor={t} buscar={opciones} onElegir={setT} placeholder="Busca por nombre, CIF, código de bolsa o teléfono…" />
-          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>
-            Si no eliges ninguno, el enlace es abierto: quien lo reciba se identifica con su CIF al aceptar.
-          </div>
-        </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="of-precio">Precio ofrecido (€ sin IVA)</label>
           <input id="of-precio" type="text" inputMode="decimal" value={precio} placeholder="Ej. 800" onChange={(ev) => setPrecio(ev.target.value)} />
@@ -100,7 +87,6 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
         </div>
         <Interruptor k="of-pronto" l="Ofrecer pronto pago" v={pronto} on={setPronto} />
       </div>
-      {t && !t.telefono && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista no tiene teléfono de tráfico en su ficha: el WhatsApp se abrirá sin destinatario.</div>}
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto="Creando la oferta" />}
     </Modal>
