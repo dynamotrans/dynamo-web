@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { fechaHora, fechaDe } from '@/lib/formato';
+import { fechaHora } from '@/lib/formato';
 import type { Ficha } from '@/lib/fichaEnvio';
-import { enlaceCmr, retirarEnlaceCmr } from '@/app/panel/(app)/envios/acciones';
+import { enlaceCmr } from '@/app/panel/(app)/envios/acciones';
 import { I, ICO, ROL_CMR, enlaceCmrUrl } from './comun';
 
 // ---- CMR digital ------------------------------------------------------------------
@@ -29,8 +29,6 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
           <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(enlaceCmrUrl(enl.token)); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>{copiado ? 'Enlace copiado' : 'Copiar enlace'}</button>
           <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
           <a className="btn-secondary" href={`/cmr/${enl.token}`} target="_blank" rel="noopener"><I d={ICO.ojo} />Abrir</a>
-          <button className="btn-ghost" style={{ color: '#dc2626' }} disabled={!!trabajando} onClick={() => hacer('Retirando el enlace', () => retirarEnlaceCmr(enl.id), 'Enlace del CMR retirado: ya no se abre. Las firmas hechas se conservan.')}>Retirar enlace</button>
-          <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', flexBasis: '100%' }}>Vale hasta el {fechaDe(enl.caduca_en)}.</span>
         </div>
       ) : (
         <button className="btn-primary" disabled={!!trabajando} onClick={() => hacer('Creando el enlace', () => enlaceCmr(e.id), 'Enlace del CMR creado: cópialo o mándalo por WhatsApp.')}><I d={ICO.doc} />Crear el enlace de nuevo</button>

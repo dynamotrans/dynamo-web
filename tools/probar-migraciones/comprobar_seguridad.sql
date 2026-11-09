@@ -6734,3 +6734,15 @@ do $$ declare e uuid; n int; begin
   raise notice 'OK 179 · el enlace del CMR nace con el envío (uno vivo) y, retirado a mano, no se recrea solo';
 end $$;
 reset role;
+
+-- ---- 180. El enlace del CMR no caduca (validez indefinida) -----------------------------------
+reset role;
+do $$ declare v timestamptz; begin
+  -- El enlace del envío de la 177 sigue vivo: nace ya sin caducidad.
+  select caduca_en into strict v from cmr_enlaces where envio_id = current_setting('prueba.e177')::uuid and not revocado;
+  if v <> 'infinity' then raise exception 'FALLO 180 · el enlace vivo no queda con validez indefinida: %', v; end if;
+  if cmr_envio_de_token(current_setting('prueba.tok177')::uuid) is null then
+    raise exception 'FALLO 180 · un enlace con validez indefinida no se da por vigente';
+  end if;
+  raise notice 'OK 180 · el enlace del CMR vale indefinidamente (infinity) y sigue vigente para las funciones públicas';
+end $$;

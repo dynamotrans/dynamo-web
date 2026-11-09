@@ -207,15 +207,6 @@ export async function enlaceCmr(envio: string): Promise<{ ok: true; token: strin
   return error || !data ? { ok: false, error: traducir(error?.message ?? 'No se ha podido crear el enlace.') } : { ok: true, token: data.token as string };
 }
 
-// Retirar el enlace: deja de abrirse. Las firmas ya hechas se quedan (no se borran nunca).
-export async function retirarEnlaceCmr(enlace: string): Promise<Res> {
-  comprobarEntrada("app/panel/(app)/envios/acciones#retirarEnlaceCmr", [enlace]);
-  const s = await soloDynamo();
-  if (!s) return { ok: false, error: 'Solo Dynamo gestiona el CMR digital.' };
-  const { error } = await s.supabase.from('cmr_enlaces').update({ revocado: true }).eq('id', enlace);
-  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
-}
-
 // Valoración del transportista (1-5) al entregar. Solo Dynamo; la media la rehace la base de datos.
 export async function valorarTransportista(envio: string, nota: number | null, comentario: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones#valorarTransportista", [envio, nota, comentario]);
