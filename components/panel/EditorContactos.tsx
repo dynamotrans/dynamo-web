@@ -30,9 +30,11 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
           onCambio={(x) => cambiar(i, x)} onQuitar={() => onCambio(valor.filter((_, j) => j !== i))} />
       ))}
       <div>
-        <button type="button" className="btn-secondary" onClick={() => onCambio([...valor, CONTACTO_VACIO(funcionNueva)])}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          {valor.length ? 'Añadir contacto adicional' : 'Añadir contacto'}
+        {/* Botón FINO y discreto (usuario, 2026-11-10): misma fila que los campos
+            replegados, con borde discontinuo de «añadir». */}
+        <button type="button" className="campo-plegado btn-mas-contacto" onClick={() => onCambio([...valor, CONTACTO_VACIO(funcionNueva)])}>
+          <span className="cp-ico" aria-hidden="true">+</span>
+          <span className="cp-txt">{valor.length ? 'Añadir contacto adicional' : 'Añadir contacto'}</span>
         </button>
       </div>
       {ayuda && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.5 }}>{ayuda}</div>}

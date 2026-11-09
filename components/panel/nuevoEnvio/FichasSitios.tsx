@@ -12,7 +12,7 @@ import { Interruptor } from './Interruptor';
 import CampoTelefono from '@/components/CampoTelefono';
 import { resumenHorario } from '@/lib/horarios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
-import { CardEdit, DatosSitios, Punto, direccionCompleta, resolverFicha } from './comun';
+import { CardEdit, ContactoExtra, DatosSitios, Punto, direccionCompleta, resolverFicha } from './comun';
 import Req from '@/components/Req';
 
 const Chevron = () => (
@@ -53,6 +53,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
   // Al intentar crear con faltas, las tarjetas afectadas se ABREN solas (usuario, 2026-11-09).
   useEffect(() => { if (faltas && faltas.size) setAbiertas((s) => new Set([...s, ...faltas])); }, [faltas]);
   const set = (p: Punto, cambios: Partial<CardEdit>) => setEdic((prev) => ({ ...prev, [p.k]: { ...prev[p.k], ...cambios } }));
+  // Cambia un campo de un contacto ADICIONAL (usuario, 2026-11-10).
+  const setExtra = (p: Punto, i: number, cambios: Partial<ContactoExtra>) =>
+    setEdic((prev) => { const e = prev[p.k] ?? {}; const l = [...(e.extra ?? [])]; l[i] = { ...l[i], ...cambios }; return { ...prev, [p.k]: { ...e, extra: l } }; });
 
   return (
     <div className="ptar-sitios-list">
@@ -120,8 +123,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} /></div>
                   {citaBloque}
                   {f.horario.length > 0 && <div className="full"><label>Horario</label><input className="sitio-f-lock" value={resumenHorario(f.horario)} readOnly tabIndex={-1} /></div>}
-                  {f.telefono && <div><label>Teléfono</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
+                  {/* El nombre va ANTES del teléfono también aquí (usuario, 2026-11-10). */}
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
+                  {f.telefono && <div><label>Teléfono</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
                 </>) : (<>
                   {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
@@ -155,6 +159,30 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                     {/* Nota en VERDE, bajo la etiqueta y ANTES del campo (usuario, 2026-11-09). */}
                     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--green)', fontWeight: 600, lineHeight: 1.4, margin: '0.1rem 0 0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                  {/* Contactos ADICIONALES del sitio (usuario, 2026-11-10): mismo botón fino
+                      que en la ficha de Sitios; se crean en la agenda del sitio al guardar. */}
+                  {!f.nuevo && (ed?.extra ?? []).map((x, xi) => (
+                    <div className="full" key={xi} style={{ border: '1.5px solid var(--gray-200)', borderRadius: 12, padding: '0.7rem 0.8rem', background: 'var(--gray-50)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
+                        <strong style={{ fontSize: 'var(--fs-m)', color: 'var(--navy)' }}>Contacto {xi + 2}</strong>
+                        <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }}
+                          onClick={() => set(p, { extra: (ed?.extra ?? []).filter((_, j) => j !== xi) })}>Quitar</button>
+                      </div>
+                      <div className="ptar-sitio-grid">
+                        <div><label>Nombre y apellidos <Req si={false} /></label>
+                          <input value={x.nombre} placeholder="Persona de contacto" onChange={(e) => setExtra(p, xi, { nombre: e.target.value })} /></div>
+                        <div><label>Teléfono <Req si={false} /></label>
+                          <CampoTelefono valor={x.telefono} onCambio={(v) => setExtra(p, xi, { telefono: v })} /></div>
+                        <div><label>Email <Req si={false} /></label>
+                          <input type="text" inputMode="email" value={x.email} placeholder="nombre@empresa.com" onChange={(e) => setExtra(p, xi, { email: e.target.value })} /></div>
+                      </div>
+                    </div>
+                  ))}
+                  {!f.nuevo && (ed?.extra ?? []).length < 5 && <div className="full">
+                    <button type="button" className="campo-plegado btn-mas-contacto" onClick={() => set(p, { extra: [...(ed?.extra ?? []), { nombre: '', telefono: '', email: '' }] })}>
+                      <span className="cp-ico" aria-hidden="true">+</span><span className="cp-txt">Añadir contacto adicional</span>
+                    </button>
+                  </div>}
                   {/* Las notas internas del sitio y el enlace de Google Maps NO se muestran
                       ni se editan aquí (usuario, 2026-11-09): se gestionan en la sección
                       Sitios. Los que tenga el sitio se conservan tal cual al guardar. */}

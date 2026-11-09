@@ -403,6 +403,17 @@ export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{
         : await s.supabase.from('contactos').insert({ sitio_id: c.sitio_id, ...fc, funcion: 'general', es_principal: true });
       if (r.error) return { ok: false, error: traducir(r.error.message) };
     }
+    // Contactos ADICIONALES añadidos desde la tarjeta (usuario, 2026-11-10): se crean en
+    // la agenda del sitio, no principales. Los vacíos se ignoran.
+    for (const x of (c.contactos_extra ?? []).slice(0, 5)) {
+      const xt = normalizaTel(x.telefono); const xn = (x.nombre ?? '').trim(); const xe = (x.email ?? '').trim().toLowerCase();
+      if (!xt && !xn && !xe) continue;
+      if (xt && xt.replace('+', '').length < 6) return { ok: false, error: 'El teléfono de un contacto adicional del sitio no es válido.' };
+      if (xe && !EMAIL.test(xe)) return { ok: false, error: `«${xe}» no es un email válido (contacto adicional del sitio).` };
+      const r = await s.supabase.from('contactos').insert({ sitio_id: c.sitio_id,
+        nombre: xn || null, telefono: xt || null, email: xe || null, funcion: 'general', es_principal: false });
+      if (r.error) return { ok: false, error: traducir(r.error.message) };
+    }
   }
   return { ok: true };
 }
