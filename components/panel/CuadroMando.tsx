@@ -65,6 +65,10 @@ function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: { k: str
   const barra = Math.max(2, Math.min(w - 2, 40));
   const y = (v: number) => arriba + (alto - arriba - abajo) * (1 - v / max);
   const cada = Math.ceil(datos.length / 12);
+  // Etiquetas recortadas al hueco de su barra (usuario, 2026-11-09: los nombres de sector
+  // enteros se montaban unos sobre otros). El nombre completo vive en el tooltip y en la tabla.
+  const maxChars = Math.max(4, Math.floor(w / 6.5));
+  const etiqueta = (t: string) => t.length > maxChars ? t.slice(0, maxChars - 1).trimEnd() + '…' : t;
   return (
     <div className="cm-chart" style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ width: '100%', height: 'auto', display: 'block' }} onMouseLeave={() => setSel(null)}>
@@ -77,7 +81,7 @@ function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: { k: str
               <rect x={izq + i * w} y={arriba} width={w} height={alto - arriba - abajo} fill="transparent" />
               <rect x={x} y={y(d.v)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={color} opacity={sel == null || sel === i ? 1 : 0.45} />
               {d.v > 0 && h < 4 && <rect x={x} y={y(0) - 2} width={barra} height={2} fill={color} />}
-              {i % cada === 0 && <text x={izq + i * w + w / 2} y={alto - 6} textAnchor="middle" fontSize="11" fill="var(--gray-500)">{d.k}</text>}
+              {i % cada === 0 && <text x={izq + i * w + w / 2} y={alto - 6} textAnchor="middle" fontSize="11" fill="var(--gray-500)">{etiqueta(d.k)}</text>}
             </g>
           );
         })}
