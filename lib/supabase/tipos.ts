@@ -2100,7 +2100,7 @@ export type Database = {
           id: string
           cliente_id: string
           razon_social: string
-          cif: string
+          cif: string | null
           telefono: string | null
           email: string | null
           persona_contacto: string | null
@@ -2118,7 +2118,7 @@ export type Database = {
           id?: string
           cliente_id: string
           razon_social: string
-          cif: string
+          cif?: string | null
           telefono?: string | null
           email?: string | null
           persona_contacto?: string | null
@@ -2136,7 +2136,7 @@ export type Database = {
           id?: string
           cliente_id?: string
           razon_social?: string
-          cif?: string
+          cif?: string | null
           telefono?: string | null
           email?: string | null
           persona_contacto?: string | null

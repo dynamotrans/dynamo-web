@@ -31,7 +31,7 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
   comprobarEntrada("app/panel/(app)/operadores/acciones#guardarOperador", [id, d]);
   const s = await quien();
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar transportistas.' };
-  if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'El nombre y el CIF/NIF son obligatorios.' };
+  if (!d.razon_social.trim()) return { ok: false, error: 'El nombre es obligatorio.' };
   const dynamo = esGestor(s.perfil!.rol);
   // Un gestor sin cliente elegido: con «Ver como» un cliente, el transportista es de ESE
   // cliente (la pantalla ya no enseña selector); sin vista, hay que decir de quién es.
@@ -42,7 +42,7 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
   }
   const tel = normalizaTel(d.telefono);
   const fila: Record<string, unknown> = {
-    razon_social: d.razon_social.trim(), cif: d.cif.trim().toUpperCase(), telefono: tel || null, email: vacio(d.email)?.toLowerCase() ?? null,
+    razon_social: d.razon_social.trim(), cif: vacio(d.cif)?.toUpperCase() ?? null, telefono: tel || null, email: vacio(d.email)?.toLowerCase() ?? null,
     persona_contacto: vacio(d.persona_contacto), web: vacio(d.web), anotaciones: vacio(d.anotaciones),
   };
   if (!id && dynamo) fila.cliente_id = d.cliente_id;   // un cliente: lo pone la base de datos

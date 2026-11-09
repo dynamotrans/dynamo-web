@@ -12,6 +12,8 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel/(app)/operadores/acciones';
+import { rutaDeSubida, registrarDocumento } from '@/app/panel/(app)/documentos/acciones';
+import { supabaseNavegador } from '@/lib/supabase/navegador';
 
 import { telBonito } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
@@ -100,7 +102,7 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
               </td></tr>
             ) : lista.map((o) => (
               <tr key={o.id} onClick={() => setFicha({ fila: o })} style={{ cursor: 'pointer' }}>
-                <td className="ref"><strong>{o.razon_social}</strong><div className="meta">{o.cif}{o.envios ? ` · ${o.envios} envío${o.envios > 1 ? 's' : ''}` : ''}</div></td>
+                <td className="ref"><strong>{o.razon_social}</strong><div className="meta">{o.cif || 'Sin CIF'}{o.envios ? ` · ${o.envios} envío${o.envios > 1 ? 's' : ''}` : ''}</div></td>
                 {dynamo && <td>{o.cliente ?? '—'}</td>}
                 <td>{o.telefono ? telBonito(o.telefono) : '—'}</td>
                 <td>{o.email || '—'}</td>
@@ -126,16 +128,36 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [preguntaBorrar, setPreguntaBorrar] = useState(false);
+  // Logo elegido YA en el alta (usuario, 2026-11-09): se crea el transportista y se sube
+  // seguido, sin tener que volver a abrir su ficha.
+  const [logo, setLogo] = useState<File | null>(null);
   const set = <K extends keyof OperadorDatos>(k: K, v: OperadorDatos[K]) => setD((x) => ({ ...x, [k]: v }));
 
   async function guardar() {
     setError(null);
-    if (!d.razon_social.trim() || !d.cif.trim()) { setError('El nombre y el CIF/NIF son obligatorios.'); return; }
+    if (!d.razon_social.trim()) { setError('El nombre es obligatorio.'); return; }
     if (dynamo && !fila && !d.cliente_id) { setError('Elige de qué cliente es este transportista.'); return; }
     setTrabajando(fila ? 'Guardando cambios' : 'Creando transportista');
     const r = await guardarOperador(fila?.id ?? null, d);
+    if (!r.ok) { setTrabajando(null); setError(r.error); return; }
+    // Recién creado y con logo elegido: se sube ahora a su ficha. Si fallara, el
+    // transportista queda creado igualmente (el logo se puede subir desde su ficha).
+    if (!fila && logo && r.id) {
+      setTrabajando('Subiendo el logo');
+      try {
+        const dueno = { campo: 'operador_id', id: r.id } as const;
+        const ru = await rutaDeSubida(dueno, logo.name);
+        const sb = supabaseNavegador();
+        if (ru.ok && sb) {
+          const [{ error: e }, sha] = await Promise.all([
+            sb.storage.from('documentos').upload(ru.ruta, logo, { contentType: logo.type, upsert: false }),
+            crypto.subtle.digest('SHA-256', await logo.arrayBuffer()).then((h) => [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('')),
+          ]);
+          if (!e) await registrarDocumento(dueno, { tipo: 'logo', ruta: ru.ruta, nombre: logo.name, mime: logo.type, tamano: logo.size, sha256: sha, visible_cliente: false });
+        }
+      } catch { /* el logo nunca frena el alta */ }
+    }
     setTrabajando(null);
-    if (!r.ok) { setError(r.error); return; }
     onHecho();
   }
   async function borrar() {
@@ -174,7 +196,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         <button className="btn-primary" onClick={guardar} disabled={!!trabajando}>{fila ? 'Guardar cambios' : 'Crear transportista'}</button>
       </>}>
-      {!fila && <div style={{ marginBottom: '0.8rem', padding: '0.65rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.2)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}><strong>Privado y sin intervención de Dynamo.</strong> Solo lo ve {dynamo ? 'ese cliente' : 'tu empresa'}; no contactamos con este transportista ni tocamos precios, albaranes ni condiciones. Sirve para ver todos los envíos juntos en Envíos.</div>}
+      {!fila && <div style={{ marginBottom: '0.8rem', padding: '0.65rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.2)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}><strong>Privado, gratis y sin intervención de Dynamo.</strong> Sirve para tener <strong>centralizada la logística y el transporte de {dynamo ? 'su' : 'tu'} empresa en un mismo lugar</strong>: todos los envíos juntos en Envíos, los de Dynamo y los {dynamo ? 'suyos' : 'tuyos'}. Solo lo ve {dynamo ? 'ese cliente' : 'tu empresa'}; no contactamos con este transportista ni tocamos precios, albaranes ni condiciones.</div>}
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
           Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
@@ -191,20 +213,27 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
           </div>
         )}
         {campo('razon_social', 'Nombre / Razón social *', 'Ej. Transportes Iberia Express S.L.', true)}
-        {campo('cif', 'CIF / NIF *', 'B12345678')}
+        {/* CIF opcional y sin Web ni Notas (usuario, 2026-11-09): es una agenda informal.
+            Los valores antiguos de web/anotaciones se conservan al guardar (siguen en d). */}
+        {campo('cif', 'CIF / NIF · opcional', 'B12345678')}
         <div><label htmlFor="op-telefono">Teléfono</label><CampoTelefono id="op-telefono" valor={String(d.telefono ?? '')} onCambio={(v) => set('telefono', v as never)} /></div>
         {campo('email', 'Email', 'trafico@empresa.com', false, 'email')}
         {campo('persona_contacto', 'Persona de contacto', 'Nombre y apellidos')}
-        {campo('web', 'Web', 'www.empresa.com', true)}
-        <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="op-notas">Notas</label>
-          <textarea id="op-notas" rows={3} value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} placeholder="Lo que haga falta recordar de este transportista" />
-        </div>
       </div>
       <div style={{ marginTop: '0.7rem' }}>
         <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga</label>
         {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen />
-          : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Crea el transportista y, al abrir su ficha, podrás subir su logo.</p>}
+          : <>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" aria-label="Logo del transportista"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  if (f && f.size > 25 * 1024 * 1024) { setError('El logo pasa de 25 MB.'); e.target.value = ''; return; }
+                  setError(null); setLogo(f);
+                }} />
+              <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>
+                {logo ? <>Se subirá <strong>{logo.name}</strong> al crear el transportista.</> : 'Una imagen (JPG, PNG, WEBP…), opcional: sale en su orden de carga.'}
+              </p>
+            </>}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {fila?.id && <Historial tabla="operadores" id={fila.id} />}

@@ -6848,3 +6848,17 @@ do $$ declare e uuid; n int; begin
   if n <> 1 then raise exception 'FALLO 182 · al pagarse no llega el enlace (hay %)', n; end if;
   raise notice 'OK 182 · el enlace de compartir nace con el envío, su precio se mantiene al día (sin pisar reservas) y con pago previo llega al pagarse';
 end $$;
+
+-- ---- 183. Catálogo privado de transportistas: CIF opcional (y único solo si se pone) --------
+reset role;
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; mal boolean := false; begin
+  insert into operadores (cliente_id, razon_social) values (c, 'Agenda Sin CIF 1');
+  insert into operadores (cliente_id, razon_social) values (c, 'Agenda Sin CIF 2');   -- dos sin CIF no chocan
+  insert into operadores (cliente_id, razon_social, cif) values (c, 'Agenda Con CIF', 'B18300183');
+  begin
+    insert into operadores (cliente_id, razon_social, cif) values (c, 'Repetido', 'b-18300183');
+  exception when unique_violation then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 183 · deja repetir el mismo CIF en el catálogo del cliente'; end if;
+  raise notice 'OK 183 · operadores: el CIF es opcional (varios sin CIF conviven) y, puesto, sigue sin poder repetirse en el catálogo';
+end $$;
