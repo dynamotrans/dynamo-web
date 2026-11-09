@@ -6895,3 +6895,47 @@ do $$ declare e uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb;
   end if;
   raise notice 'OK 184 · entrega estimada al asignar: nunca antes de cargar, se guarda, reasignar no la borra y al quitar el camión se limpia';
 end $$;
+
+-- ---- 185. Enlace público: flota del transportista (último usado, listas y contacto oculto) --
+reset role;
+do $$ declare e uuid; rid uuid; t uuid := current_setting('prueba.transp')::uuid; v_cif text; f jsonb; begin
+  select cif into strict v_cif from transportistas where id = t;
+  insert into contactos (transportista_id, nombre, telefono, email, es_principal)
+  values (t, 'Tráfico 185', '+34600111222', 'pepe.lopez@empresa.com', true);
+  select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false) into strict rid;
+  set local role authenticated;
+  -- Un envío SUYO con matrícula única (las matrículas son únicas en toda la base: una
+  -- ya usada pertenecería a otro transportista y no entraría en su flota).
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 19, 'importe_cliente', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'C185', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'D185', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  perform asignar_transportista(e, t, 650, '1850 tst', null, 'Chofer Prueba 185', '+34600185185', current_date + 19, current_date + 20);
+  -- Y el envío del enlace, para la reserva pública.
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 20, 'importe_cliente', 900, 'importe_transportista', 700),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A185', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B185', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  reset role;
+  set local role anon;
+  perform reservar_envio_publico((select token from envio_ofertas where envio_id = e and canal = 'enlace' and estado = 'activa'), null, 'prueba');
+  reset role;
+  select id into strict rid from envio_reservas where envio_id = e and estado = 'viva';
+  set local role anon;
+  f := flota_publica(rid, v_cif);
+  if f ->> 'resultado' <> 'ok' then raise exception 'FALLO 185 · no responde con reserva viva y CIF: %', f; end if;
+  if not (f -> 'camiones') ? '1850TST' then raise exception 'FALLO 185 · la lista de camiones no trae la matrícula usada en envíos: %', f -> 'camiones'; end if;
+  if f -> 'ultimo' ->> 'camion' <> '1850TST' or f -> 'ultimo' ->> 'conductor' <> 'Chofer Prueba 185' then
+    raise exception 'FALLO 185 · lo último usado no es el último envío: %', f -> 'ultimo';
+  end if;
+  if f ->> 'telefono_oculto' <> '+34 60011****' then raise exception 'FALLO 185 · el teléfono no sale oculto como toca: %', f ->> 'telefono_oculto'; end if;
+  if f ->> 'email_oculto' <> '****.lopez@****esa.com' then raise exception 'FALLO 185 · el email no sale oculto como toca: %', f ->> 'email_oculto'; end if;
+  -- CIF que no existe → sin transportista (y nunca el contacto de nadie).
+  f := flota_publica(rid, 'X0000000T');
+  if f ->> 'resultado' <> 'sin_transportista' then raise exception 'FALLO 185 · con CIF desconocido debe decir sin_transportista: %', f; end if;
+  -- Reserva inventada → nada.
+  f := flota_publica(gen_random_uuid(), v_cif);
+  if f ->> 'resultado' <> 'no_valida' then raise exception 'FALLO 185 · con una reserva inventada no debe responder: %', f; end if;
+  reset role;
+  raise notice 'OK 185 · flota pública: último usado + listas con reserva viva, contacto oculto en servidor, y nada sin reserva válida';
+end $$;

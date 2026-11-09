@@ -7,6 +7,7 @@ export const ESQUEMAS = {
   "app/carga/[token]/acciones#completar": z.tuple([z.string().max(1000), z.object({ camion: z.string().max(1000), remolque: z.string().max(1000), conductor: z.string().max(1000), telefono: z.string().max(1000), dia: z.string().max(1000).nullable().optional() })]),
   "app/carga/[token]/acciones#darseDeAlta": z.tuple([z.string().max(1000), z.object({ bolsa: z.string().max(1000), codigo_bolsa: z.string().max(1000), pais: z.string().max(1000), cif: z.string().max(1000), telefono: z.string().max(1000), precio: z.number().or(z.nan()).nullable(), pronto_pago: z.boolean() })]),
   "app/carga/[token]/acciones#enlaceCmr": z.tuple([z.string().max(1000)]),
+  "app/carga/[token]/acciones#flotaPublica": z.tuple([z.string().max(1000), z.string().max(1000).nullable()]),
   "app/carga/[token]/acciones#liberar": z.tuple([z.string().max(1000)]),
   "app/carga/[token]/acciones#reservar": z.tuple([z.string().max(1000)]),
   "app/carga/[token]/acciones#sugerirFlota": z.tuple([z.string().max(1000), z.object({ matricula: z.string().max(1000).optional(), conductor: z.string().max(1000).optional() })]),

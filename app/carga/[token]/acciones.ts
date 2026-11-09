@@ -83,6 +83,27 @@ export async function sugerirFlota(token: string, d: { matricula?: string; condu
   return { conductor: f.conductor ?? null, telefono: f.telefono ?? null };
 }
 
+// Flota de otras veces del transportista (usuario, 2026-11-09): lo último usado en un
+// envío (para autorrellenar al identificarse), las listas de matrículas y chóferes ya
+// usados (para elegir o escribir nuevos) y su teléfono/email de ficha OCULTOS (se
+// enmascaran en el servidor). Solo con la reserva viva del navegador.
+export type FlotaPublica = {
+  ultimo: { camion: string | null; remolque: string | null; conductor: string | null; telefono: string | null } | null;
+  camiones: string[]; remolques: string[]; conductores: string[];
+  telefono_oculto: string | null; email_oculto: string | null;
+};
+export async function flotaPublica(token: string, cif: string | null): Promise<FlotaPublica | null> {
+  comprobarEntrada("app/carga/[token]/acciones#flotaPublica", [token, cif]);
+  const sb = supabasePublico();
+  const reserva = (await cookies()).get(cookieReserva(token))?.value;
+  if (!sb || !reserva) return null;
+  const { data, error } = await sb.rpc('flota_publica', { p_reserva: reserva, p_cif: cif });
+  const f = data as (FlotaPublica & { resultado?: string }) | null;
+  if (error || f?.resultado !== 'ok') return null;
+  return { ultimo: f.ultimo ?? null, camiones: f.camiones ?? [], remolques: f.remolques ?? [],
+           conductores: f.conductores ?? [], telefono_oculto: f.telefono_oculto ?? null, email_oculto: f.email_oculto ?? null };
+}
+
 // El enlace de firma del CMR digital de la carga aceptada (lo crea si no hay uno vivo).
 export async function enlaceCmr(token: string): Promise<{ cmr?: string; error?: string }> {
   comprobarEntrada("app/carga/[token]/acciones#enlaceCmr", [token]);

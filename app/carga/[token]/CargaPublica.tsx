@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
-import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, sugerirTransportistas, type AltaTransportista, type SugerenciaT } from './acciones';
+import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, sugerirTransportistas, flotaPublica, type AltaTransportista, type SugerenciaT, type FlotaPublica } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, diasEntre } from '@/lib/formato';
 
@@ -298,6 +298,24 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   const [buscando, setBuscando] = useState(false);
   const [acAbierto, setAcAbierto] = useState(false);
   const [elegido, setElegido] = useState<SugerenciaT | null>(null);
+  // Flota de otras veces (usuario, 2026-11-09): al identificarse se autorrellena lo
+  // último usado (si los campos están vacíos) y cada campo ofrece la lista de
+  // matrículas/chóferes ya usados. prefRef recuerda lo autorrellenado para poder
+  // vaciarlo si cambia de empresa sin haberlo tocado.
+  const [flo, setFlo] = useState<FlotaPublica | null>(null);
+  const prefFlo = useRef<string | null>(null);
+  async function cargaFlota(cifSel: string | null) {
+    const f = await flotaPublica(token, cifSel);
+    setFlo(f);
+    setVeh((v) => {
+      if (!f?.ultimo || v.camion || v.remolque || v.conductor || v.telefono) return v;
+      const nuevo = { camion: f.ultimo.camion ?? '', remolque: f.ultimo.remolque ?? '', conductor: f.ultimo.conductor ?? '', telefono: f.ultimo.telefono ?? '' };
+      prefFlo.current = JSON.stringify(nuevo);
+      return nuevo;
+    });
+  }
+  // Oferta personal: el transportista ya es el de la reserva.
+  useEffect(() => { if (o.para_transportista) cargaFlota(null); }, [o.para_transportista]); // eslint-disable-line react-hooks/exhaustive-deps
   const seqBusqueda = useRef(0);
   useEffect(() => {
     if (elegido || o.para_transportista) return;
@@ -388,7 +406,15 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
             <div className="empresa-resumen show" style={{ marginTop: '0.6rem' }}>
               <div className="er-nombre">{elegido.nombre}</div>
               <div className="er-cif">{elegido.cif}{elegido.poblacion ? ` · ${elegido.poblacion}` : ''}</div>
-              <button type="button" className="btn-sec" style={{ marginTop: '0.55rem', padding: '0.55rem' }} onClick={() => { setElegido(null); setCif(''); setSugs(null); }}>No soy yo · cambiar</button>
+              {/* Contacto de su ficha, OCULTO (llega ya enmascarado del servidor). */}
+              {flo?.telefono_oculto && <div className="er-cif" style={{ marginTop: '0.3rem' }}>Teléfono: {flo.telefono_oculto}</div>}
+              {flo?.email_oculto && <div className="er-cif">Mail: {flo.email_oculto}</div>}
+              <button type="button" className="btn-sec" style={{ marginTop: '0.55rem', padding: '0.55rem' }} onClick={() => {
+                setElegido(null); setCif(''); setSugs(null); setFlo(null);
+                // Si los campos del vehículo siguen tal cual se autorrellenaron, se vacían.
+                setVeh((v) => prefFlo.current === JSON.stringify(v) ? { camion: '', remolque: '', conductor: '', telefono: '' } : v);
+                prefFlo.current = null;
+              }}>No soy yo · cambiar</button>
             </div>
           ) : (<>
             <label htmlFor="f-cif">Tu CIF / NIF, código de bolsa o el nombre de tu empresa <Req /></label>
@@ -398,7 +424,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
                 onFocus={() => setAcAbierto(true)} onBlur={() => setTimeout(() => setAcAbierto(false), 150)} />
               <ul className={`ac-list${acAbierto && cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 4 && (buscando || sugs !== null) ? ' show' : ''}`} id="ac-buscar">
                 {(sugs ?? []).map((s) => (
-                  <li key={s.cif} onMouseDown={(ev) => { ev.preventDefault(); setElegido(s); setCif(s.cif); setAcAbierto(false); }}>
+                  <li key={s.cif} onMouseDown={(ev) => { ev.preventDefault(); setElegido(s); setCif(s.cif); setAcAbierto(false); cargaFlota(s.cif); }}>
                     {s.nombre}<span className="ac-sub">{s.cif}{s.poblacion ? ` · ${s.poblacion}` : ''}</span>
                   </li>
                 ))}
@@ -415,7 +441,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
                 falla (una errata): así no se gasta un intento de identificación. */}
             {(() => { const r = cif.trim() ? validaIdFiscal(cif) : null;
               return r && !r.ok && r.tipo ? <p className="id-hint" style={{ color: 'var(--red)' }}>{r.tipo}: {r.msg}. Revísalo antes de aceptar.</p> : null; })()}
-            <p className="id-hint">Sugerencias desde 2 letras (nombre) o 4 caracteres (CIF o código de bolsa). ¿Primer envío con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta el envío.</p>
+            <p className="id-hint">Sugerencias desde 5 letras (nombre) o 4 caracteres (CIF o código de bolsa). ¿Primer envío con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta el envío.</p>
           </>)}
         </div>
       )}
@@ -423,11 +449,14 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
       <div className="fsec fsec-vehiculo">
         <div className="sec-title">Vehículo y conductor <span className="op" style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· puedes mandarlos más tarde</span></div>
         <div className="row2">
-          <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="f-tractora" value={veh.camion} placeholder="1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
-          <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="f-remolque" value={veh.remolque} placeholder="R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
+          <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="f-tractora" list="fl-camiones" value={veh.camion} placeholder="1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
+          <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="f-remolque" list="fl-remolques" value={veh.remolque} placeholder="R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
+          <datalist id="fl-camiones">{(flo?.camiones ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+          <datalist id="fl-remolques">{(flo?.remolques ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+          <datalist id="fl-choferes">{(flo?.conductores ?? []).map((m) => <option key={m} value={m} />)}</datalist>
         </div>
         <label htmlFor="f-chofer">Nombre y apellidos del conductor <Req si={false} /></label>
-        <input type="text" id="f-chofer" value={veh.conductor} placeholder="Nombre y apellidos" onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
+        <input type="text" id="f-chofer" list="fl-choferes" value={veh.conductor} placeholder="Nombre y apellidos" onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
         <label htmlFor="f-tfno">Teléfono del conductor <Req si={false} /></label>
         <CampoTelefono id="f-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
         <p className="id-hint">Con estos datos, cargador y destinatario <strong>coordinan la recogida y la entrega</strong> con el conductor.</p>
@@ -478,6 +507,10 @@ function BotonCmr({ token }: { token: string }) {
 
 function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
   const [veh, setVeh] = useState({ camion: c.matricula_camion ?? '', remolque: c.matricula_remolque ?? '', conductor: c.conductor_nombre ?? '', telefono: c.conductor_telefono ?? '' });
+  // Listas de matrículas y chóferes de otras veces (usuario, 2026-11-09): aquí el
+  // transportista ya es el de la reserva, así que se piden al cargar.
+  const [flo, setFlo] = useState<FlotaPublica | null>(null);
+  useEffect(() => { flotaPublica(token, null).then(setFlo).catch(() => {}); }, [token]);
   // Lo último guardado/sugerido, para saber si el camión o el chófer han cambiado.
   const [base, setBase] = useState({ camion: veh.camion, conductor: veh.conductor });
   const sinEsp = (x: string) => x.replace(/[^0-9a-z]/gi, '').toUpperCase();
@@ -533,8 +566,11 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
         <div className="fsec fsec-vehiculo" style={{ textAlign: 'left' }}>
           <div className="sec-title">Vehículo y conductor {falta && <span style={{ color: 'var(--red)' }}>· faltan datos</span>}</div>
           <div className="row2">
-            <div><label htmlFor="ok-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="ok-tractora" value={veh.camion} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} onBlur={alSalirCamion} /></div>
-            <div><label htmlFor="ok-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="ok-remolque" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
+            <div><label htmlFor="ok-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="ok-tractora" list="okfl-camiones" value={veh.camion} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} onBlur={alSalirCamion} /></div>
+            <div><label htmlFor="ok-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="ok-remolque" list="okfl-remolques" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
+            <datalist id="okfl-camiones">{(flo?.camiones ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+            <datalist id="okfl-remolques">{(flo?.remolques ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+            <datalist id="okfl-choferes">{(flo?.conductores ?? []).map((m) => <option key={m} value={m} />)}</datalist>
           </div>
           {dias.length > 1 && <>
             <label htmlFor="ok-dia">Día en que cargas <Req /></label>
@@ -543,7 +579,7 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
               {dias.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)}{w === 0 || w === 6 ? ' (no se circula)' : ''}</option>; })}
             </select>
           </>}
-          <label htmlFor="ok-chofer">Conductor <Req si={false} /></label><input type="text" id="ok-chofer" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />
+          <label htmlFor="ok-chofer">Conductor <Req si={false} /></label><input type="text" id="ok-chofer" list="okfl-choferes" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />
           <label htmlFor="ok-tfno">Teléfono del conductor <Req si={false} /></label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button className="btn" onClick={async () => {
             if (dias.length > 1 && !dia) { setGuardado('Elige el día en que cargas.'); avisaFaltas(['ok-dia']); return; }
