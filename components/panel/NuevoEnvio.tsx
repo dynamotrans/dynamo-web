@@ -978,7 +978,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <h4 className="ptar-section-head" style={{ margin: '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
-                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} faltas={faltasSitios} cargaHoy={cargaHoy} />
+                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} />
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
                   <div className="sum2-grid">

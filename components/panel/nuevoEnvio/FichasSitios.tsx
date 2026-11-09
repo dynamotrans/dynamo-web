@@ -19,10 +19,10 @@ const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
 );
 
-export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCliente, faltas, cargaHoy }: {
+export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, faltas, cargaHoy }: {
   puntos: Punto[]; datos: DatosSitios; edic: Record<number, CardEdit>;
   setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>;
-  fechaCargaTxt: string; esCliente: boolean;
+  fechaCargaTxt: string;
   faltas?: Set<number>;   // puntos con datos obligatorios sin rellenar (los marca el padre al crear)
   cargaHoy?: boolean;     // la carga empieza HOY: avisa si el sitio de recogida cierra pronto
 }) {
@@ -154,14 +154,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
                   {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
                     <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} />)}
-                  {/* Las notas internas del sitio NO se muestran ni se editan aquí (usuario,
-                      2026-11-09): se gestionan en la sección Sitios. Las que tenga se
-                      conservan tal cual al guardar. */}
-                  {f.nuevo ? null : esCliente
-                    ? (f.maps ? opc(`${p.k}:maps`, 'Enlace de Google Maps', f.maps,
-                        <input className="sitio-f-lock" value={f.maps} readOnly tabIndex={-1} />) : null)
-                    : opc(`${p.k}:maps`, <>Enlace de Google Maps <Req si={false} /></>, f.maps,
-                        <input value={f.maps} placeholder="https://maps.app.goo.gl/…" onChange={(e) => set(p, { maps: e.target.value })} />)}
+                  {/* Las notas internas del sitio y el enlace de Google Maps NO se muestran
+                      ni se editan aquí (usuario, 2026-11-09): se gestionan en la sección
+                      Sitios. Los que tenga el sitio se conservan tal cual al guardar. */}
                 </>)}
               </div>
             </div>
