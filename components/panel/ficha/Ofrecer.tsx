@@ -23,7 +23,12 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
   const [pronto, setPronto] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
-  const [hecho, setHecho] = useState<{ token: string; precio: number } | null>(null);
+  // El enlace nace con el envío (disparador en la base de datos) y es siempre el mismo:
+  // si hay una oferta abierta viva, el modal se abre directamente en la pantalla de
+  // compartir, con su enlace y su precio (al día). «Ofrecer con otro precio» crea otra.
+  const abierta = ficha.ofertas.find((o) => !o.para && o.canal === 'enlace' && o.estado === 'activa' && new Date(o.caduca_en) > new Date());
+  const [hecho, setHecho] = useState<{ token: string; precio: number } | null>(
+    abierta ? { token: abierta.token, precio: Number(abierta.precio) } : null);
   const [copiado, setCopiado] = useState(false);
   const pv = aNum(precio);
   const bandaEur = pv && banda ? Math.max(10, Math.round((pv * banda) / 100 / 10) * 10) : 0;
@@ -58,6 +63,7 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
           <button className="btn-primary" onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); }}>{copiado ? 'Copiado' : 'Copiar mensaje'}</button>
           <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
           <a className="btn-secondary" href={`mailto:?subject=${encodeURIComponent(`Envío disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
+          <button className="btn-ghost" onClick={() => { setHecho(null); setCopiado(false); }}>Ofrecer con otro precio…</button>
         </div>
         <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
           El mensaje no lleva el cliente ni las direcciones: el transportista las ve al aceptar, identificándose con su CIF.

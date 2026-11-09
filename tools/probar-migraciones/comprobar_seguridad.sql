@@ -6796,3 +6796,55 @@ do $$ declare r jsonb; a jsonb; c jsonb; p jsonb; tok uuid := current_setting('p
   raise notice 'OK 181 · la carga aceptada trae la ficha completa del sitio: horario, verano con fechas, PIN, cita y el primer contacto con teléfono';
 end $$;
 reset role;
+
+-- ---- 182. El enlace de compartir la carga nace con el envío (y su precio se mantiene al día) --
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; o record; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 30, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A182', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B182', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  perform set_config('prueba.e182', e::text, false);
+  -- Nace con su oferta abierta (canal enlace, su precio), sin tocar la asignación.
+  select * into o from envio_ofertas where envio_id = e and transportista_id is null and canal = 'enlace' and estado = 'activa';
+  if not found or o.precio_ofertado <> 800 then raise exception 'FALLO 182 · el envío no nace con su enlace de oferta (o el precio no es el suyo)'; end if;
+  if (select estado_asignacion from envios where id = e) <> 'sin_asignar' then
+    raise exception 'FALLO 182 · el enlace automático no debe marcar el envío como ofertado';
+  end if;
+  perform set_config('prueba.tok182', o.token::text, false);
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e182')::uuid; r jsonb; begin
+  -- Cambia el precio del transportista → el enlace se pone al día.
+  update envios set importe_transportista = 750 where id = e;
+  if (select precio_ofertado from envio_ofertas where token = current_setting('prueba.tok182')::uuid) <> 750 then
+    raise exception 'FALLO 182 · el precio del enlace no se pone al día al cambiar el del envío';
+  end if;
+  -- Con una reserva en marcha, el precio NO se pisa.
+  set local role anon;
+  r := reservar_envio_publico(current_setting('prueba.tok182')::uuid, null, 'prueba');
+  reset role;
+  if r ->> 'resultado' <> 'reservada' then raise exception 'FALLO 182 · no se deja reservar el enlace automático: %', r; end if;
+  update envios set importe_transportista = 700 where id = e;
+  if (select precio_ofertado from envio_ofertas where token = current_setting('prueba.tok182')::uuid) <> 750 then
+    raise exception 'FALLO 182 · el precio del enlace se pisa con una reserva en marcha';
+  end if;
+end $$;
+do $$ declare e uuid; n int; begin
+  -- Pendiente de pago: el enlace NO nace al crear, llega al marcarse pagado.
+  select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false) into strict e;
+  set local role authenticated;
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 30, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'C182', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'D182', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  reset role;
+  update envios set estado_pago_previo = 'pendiente' where id = e;
+  delete from envio_ofertas where envio_id = e;   -- se queda sin enlace, como si hubiera nacido pendiente
+  update envios set estado_pago_previo = 'pagado' where id = e;
+  select count(*) into n from envio_ofertas where envio_id = e and transportista_id is null and canal = 'enlace' and estado = 'activa';
+  if n <> 1 then raise exception 'FALLO 182 · al pagarse no llega el enlace (hay %)', n; end if;
+  raise notice 'OK 182 · el enlace de compartir nace con el envío, su precio se mantiene al día (sin pisar reservas) y con pago previo llega al pagarse';
+end $$;
