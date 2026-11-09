@@ -4709,6 +4709,12 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .campo-opc { color: var(--gray-700); font-weight: 500; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
 /* Campo obligatorio sin rellenar al enviar: borde rojo hasta que se toca (lib/faltas.ts). */
 .campo-falta, .campo-falta input, .campo-falta select, .campo-falta textarea { border-color: #dc2626 !important; }
+/* Aviso de CIERRE del sitio al cargar hoy (usuario, 2026-11-09): caja roja clara con
+   texto rojo en negrita y cuenta atrás en vivo. */
+.aviso-cierre { background: #fee2e2; border: 1.5px solid #dc2626; border-radius: 10px;
+    padding: 0.6rem 0.75rem; margin: 0.45rem 0; color: #b91c1c; font-size: var(--fs-m);
+    line-height: 1.45; font-weight: 600; }
+.aviso-cierre strong { color: #b91c1c; font-weight: 800; }
 /* «· Muy útil» (verde negrita): no obligatorio pero muy conveniente (email de sitios). */
 .campo-util { color: var(--green); font-weight: 700; font-size: var(--fs-s); text-transform: none; letter-spacing: 0; }
 /* Campo opcional REPLEGADO: solo la etiqueta, pulsándola se abre el campo

@@ -7,6 +7,7 @@
 // son datos fijos del catálogo). Las direcciones no se tocan aquí (se cambian en el paso 1).
 import { useEffect, useState } from 'react';
 import EditorHorario from '../EditorHorario';
+import AvisoCierreSitio from './AvisoCierreSitio';
 import CampoTelefono from '@/components/CampoTelefono';
 import { resumenHorario } from '@/lib/horarios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
@@ -17,11 +18,12 @@ const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
 );
 
-export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCliente, faltas }: {
+export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCliente, faltas, cargaHoy }: {
   puntos: Punto[]; datos: DatosSitios; edic: Record<number, CardEdit>;
   setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>;
   fechaCargaTxt: string; esCliente: boolean;
   faltas?: Set<number>;   // puntos con datos obligatorios sin rellenar (los marca el padre al crear)
+  cargaHoy?: boolean;     // la carga empieza HOY: avisa si el sitio de recogida cierra pronto
 }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(new Set());
   // Campo de nombre REPLEGADO hasta que se pulse su etiqueta (usuario, 2026-11-09).
@@ -65,6 +67,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
               </span>
               <Chevron />
             </button>
+            {/* Carga HOY y el sitio de recogida cierra pronto (o ya cerró): caja roja con
+                cuenta atrás, SIEMPRE visible aunque la tarjeta esté plegada. No prohíbe. */}
+            {rec && cargaHoy && f.horario.length > 0 && <AvisoCierreSitio empresa={f.empresa || 'El sitio de recogida'} horario={f.horario} />}
             <div className="ptar-sitio-body">
               <div className="ptar-sitio-body-meta">
                 {f.dynamo

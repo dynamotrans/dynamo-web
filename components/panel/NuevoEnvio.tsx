@@ -24,6 +24,7 @@ import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import CampoOperador from './nuevoEnvio/CampoOperador';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
+import AvisoCierreSitio from './nuevoEnvio/AvisoCierreSitio';
 import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
 import Modal from './Modal';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
@@ -596,6 +597,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
   // Carga hoy para hoy: fecha fija y el día elegido es hoy (para el aviso de la confirmación).
   const esHoy = urgencia === 'dia' && !!fecha && diasHasta === 0;
+  // La carga EMPIEZA hoy (fija hoy o ventana desde hoy): avisa si el sitio cierra pronto.
+  const cargaHoy = !!fecha && fecha === hoyStr;
   // Resaltar en rojo el campo de fecha si se intentó avanzar sin elegirla (hasta que se ponga).
   const marcarFecha = faltaFecha && !fecha;
   const bordeFecha = marcarFecha ? { borderColor: '#dc2626', boxShadow: '0 0 0 3px rgba(220,38,38,0.12)' } : undefined;
@@ -971,7 +974,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <h4 className="ptar-section-head" style={{ margin: '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
-                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} faltas={faltasSitios} />
+                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} esCliente={esCliente} faltas={faltasSitios} cargaHoy={cargaHoy} />
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
                   <div className="sum2-grid">
@@ -1053,6 +1056,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía la ventana de carga para tener margen los días siguientes.
           </div></div>
         )}
+        {/* Carga hoy y el sitio de recogida cierra pronto (o ya cerró): el aviso se repite
+            aquí, con la línea de repercusión al cliente (usuario, 2026-11-09). */}
+        {cargaHoy && puntos.filter((pt) => pt.tipo === 'carga').map((pt) => {
+          const fs = resolverFicha(pt, datosSitios, edicSitios[pt.k]);
+          return fs.horario.length > 0 ? <AvisoCierreSitio key={pt.k} empresa={fs.empresa || 'El sitio de recogida'} horario={fs.horario} repercusion /> : null;
+        })}
         <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
         </div></div>

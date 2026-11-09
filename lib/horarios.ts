@@ -30,6 +30,20 @@ export function gruposDe(filas: FilaHorario[]): GrupoHorario[] {
   return grupos;
 }
 // Grupos → lo que guarda guardar_horario().
+// Minuto del día en que el sitio CIERRA ese día de la semana, cogiendo el TRAMO MÁS
+// TARDÍO (con jornada partida cuenta el de la tarde). null = ese día no abre o no hay
+// horario. (usuario, 2026-11-09: para avisar si el sitio cierra pronto al cargar hoy.)
+export function cierreDelDia(g: GrupoHorario[], diaSemana: number): number | null {
+  let max: number | null = null;
+  for (const grupo of g) if (grupo.dias.includes(diaSemana))
+    for (const t of grupo.tramos) {
+      const [h, m] = t.cierra.split(':').map(Number);
+      const v = h * 60 + m;
+      if (max == null || v > max) max = v;
+    }
+  return max;
+}
+
 export const tramosDe = (g: GrupoHorario[]) =>
   g.flatMap((x) => x.dias.flatMap((dia) => x.tramos.map((t) => ({ dia, abre: t.abre, cierra: t.cierra }))));
 
