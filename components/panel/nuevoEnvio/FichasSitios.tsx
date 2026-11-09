@@ -108,8 +108,10 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, esCl
                   <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
                   <div><label>Email <Req util /></label>
-                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} />
-                    <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>Si lo pones, avisamos al sitio de las recogidas y entregas de los envíos: agiliza mucho la operativa y da buena imagen ante tus proveedores y clientes.</div></div>
+                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                  {/* Nota corta a TODO el ancho, bajo los dos campos (usuario, 2026-11-09:
+                      debajo del email dejaba un hueco vacío a la izquierda). */}
+                  <div className="full" style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '-0.3rem' }}>Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes.</div>
                   <div className="full">{f.contacto.trim() || nomAbierto.has(p.k)
                     ? <><label>Nombre y apellidos <Req si={false} /></label>
                         <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></>

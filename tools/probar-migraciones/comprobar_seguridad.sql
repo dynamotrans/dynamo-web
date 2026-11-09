@@ -6275,7 +6275,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ declare e uuid; begin
   select s.id into e from crear_envio_cliente(
-    jsonb_build_object('importe_cliente', 850, 'metros_lineales', 6, 'toneladas', 8, 'fecha_carga_desde', current_date + 7),
+    jsonb_build_object('importe_cliente', 850, 'metros_lineales', 6, 'toneladas', 8, 'fecha_carga_desde', sumar_dias_habiles(current_date, 5)),
     jsonb_build_array(
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 168', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 168', 'codigo_postal', '28001', 'poblacion', 'Madrid'))) s;
@@ -6285,14 +6285,14 @@ do $$ declare e uuid; begin
   end if;
   -- Sin precio (o con uno absurdo), no se crea.
   begin
-    perform crear_envio_cliente(jsonb_build_object('fecha_carga_desde', current_date + 7),
+    perform crear_envio_cliente(jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 5)),
       jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'),
                         jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
     raise exception 'FALLO 168 · crea un envío sin precio';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
   end;
   begin
-    perform crear_envio_cliente(jsonb_build_object('importe_cliente', -5, 'fecha_carga_desde', current_date + 7),
+    perform crear_envio_cliente(jsonb_build_object('importe_cliente', -5, 'fecha_carga_desde', sumar_dias_habiles(current_date, 5)),
       jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'),
                         jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
     raise exception 'FALLO 168 · admite un precio negativo';
@@ -6330,7 +6330,9 @@ do $$ declare e uuid; begin
   -- horario fino lo aplica la pantalla con primera_fecha_carga).
   select s.id into e from crear_envio_cliente(
     jsonb_build_object('importe_cliente', 900, 'metros_lineales', 4, 'toneladas', 6,
-                       'fecha_carga_desde', current_date, 'fecha_carga_hasta', sumar_dias_habiles(current_date, 2)),
+                       -- El primer día que permite el corte AHORA (hoy antes de las 14:00; si no,
+                       -- el siguiente hábil): así la prueba vale a cualquier hora y cualquier día.
+                       'fecha_carga_desde', primera_fecha_carga(false), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 2)),
     jsonb_build_array(
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 169', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 169', 'codigo_postal', '28001', 'poblacion', 'Madrid'))) s;
@@ -6939,3 +6941,47 @@ do $$ declare e uuid; rid uuid; t uuid := current_setting('prueba.transp')::uuid
   reset role;
   raise notice 'OK 185 · flota pública: último usado + listas con reserva viva, contacto oculto en servidor, y nada sin reserva válida';
 end $$;
+
+
+-- ---- 186. El cliente NUNCA elige fechas fuera de reglas (hábiles + hora de corte) ----------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid; sab date; mal boolean := false;
+  paradas jsonb := jsonb_build_array(
+    jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 186', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+    jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 186', 'codigo_postal', '28001', 'poblacion', 'Madrid'));
+begin
+  -- El próximo sábado (estrictamente futuro).
+  sab := current_date + (6 - extract(dow from current_date)::int + 7) % 7;
+  if sab <= current_date then sab := sab + 7; end if;
+  -- Ventana que empieza en sábado: no.
+  begin
+    perform crear_envio_cliente(jsonb_build_object('importe_cliente', 500, 'fecha_carga_desde', sab, 'fecha_carga_hasta', sab + 3), paradas);
+  exception when raise_exception then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 186 · deja empezar la ventana en sábado'; end if;
+  -- Antes del primer día que permite el corte: no (da igual la hora a la que corra la prueba:
+  -- primera_fecha_carga(false) - 1 siempre es hoy pasado el corte, o directamente el pasado).
+  mal := false;
+  begin
+    perform crear_envio_cliente(jsonb_build_object('importe_cliente', 500,
+      'fecha_carga_desde', primera_fecha_carga(false) - 1, 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 2)), paradas);
+  exception when raise_exception then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 186 · deja una fecha anterior al primer día del corte'; end if;
+  -- Fija en sábado: tampoco.
+  mal := false;
+  begin
+    perform crear_envio_cliente(jsonb_build_object('importe_cliente', 500, 'fecha_carga_desde', sab), paradas);
+  exception when raise_exception then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 186 · deja una fecha fija en sábado'; end if;
+  -- Y con el primer día válido, se crea sin más.
+  select s.id into e from crear_envio_cliente(jsonb_build_object('importe_cliente', 500,
+    'fecha_carga_desde', primera_fecha_carga(false), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 2)), paradas) s;
+  if e is null then raise exception 'FALLO 186 · no crea con el primer día válido'; end if;
+  raise notice 'OK 186 · el cliente no puede saltarse días hábiles ni horas de corte, ni llamando a la base de datos directamente';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
