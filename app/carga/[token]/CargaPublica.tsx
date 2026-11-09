@@ -183,7 +183,8 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   return (
     <div id="formScreen" className="show">
       <h1>Envío disponible</h1>
-      <p className="sub">Oferta de <strong>Dynamo Operador Logístico, S.L.</strong>{oferta.para_transportista ? <> para <strong>{oferta.para_transportista}</strong></> : null}</p>
+      {/* Caja destacada (usuario, 2026-11-09): de quién es la oferta y para quién, bien visible. */}
+      <div className="oferta-para"><span className="op-lbl">Oferta de</span><strong>Dynamo Operador Logístico, S.L.</strong>{oferta.para_transportista ? <> para <strong>{oferta.para_transportista}</strong></> : null}</div>
       {r === 'rechazada' && <div className="warn" style={{ display: 'block', marginBottom: '0.8rem' }}>Dynamo no ha aceptado el precio que propusiste. Si quieres, puedes aceptarla al precio de la oferta.</div>}
       {r === 'caducada' && <div className="warn" style={{ display: 'block', marginBottom: '0.8rem' }}>Se agotó el tiempo de tu reserva anterior. Si sigue libre, puedes volver a reservarla.</div>}
       <Oferta o={oferta} />
@@ -345,7 +346,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   return (
     <div id="formScreen" className="show">
       <h1>Pulsa el botón de abajo para aceptar el envío</h1>
-      <p className="sub">Oferta de <strong>Dynamo Operador Logístico, S.L.</strong></p>
+      <div className="oferta-para"><span className="op-lbl">Oferta de</span><strong>Dynamo Operador Logístico, S.L.</strong></div>
       <div className={`reserva-banner${quedan < 60000 ? ' urgent' : ''}`}>
         <span>Envío <strong>reservado para ti</strong>: nadie más lo puede coger durante <span className="rb-timer">{texto}</span></span>
       </div>

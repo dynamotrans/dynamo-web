@@ -514,3 +514,15 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
     pointer-events: none !important;
     -webkit-touch-callout: none !important;
 }
+
+/* Caja «Oferta de … para …» bajo el título (usuario, 2026-11-09): más clara y grande. */
+.carga-page .oferta-para {
+    background: #ece8fb; border: 1px solid rgba(51, 0, 204, 0.22); border-radius: 11px;
+    padding: 0.65rem 0.9rem; margin: 0 0 0.9rem; text-align: center;
+    font-size: var(--fs-d1, 1.1rem); line-height: 1.4; color: var(--navy);
+}
+.carga-page .oferta-para strong { font-weight: 900; }
+.carga-page .oferta-para .op-lbl {
+    display: block; font-size: var(--fs-s); font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--purple); margin-bottom: 0.15rem;
+}
