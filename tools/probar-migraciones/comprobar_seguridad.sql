@@ -6862,3 +6862,36 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; mal boolean := 
   if not mal then raise exception 'FALLO 183 · deja repetir el mismo CIF en el catálogo del cliente'; end if;
   raise notice 'OK 183 · operadores: el CIF es opcional (varios sin CIF conviven) y, puesto, sigue sin poder repetirse en el catálogo';
 end $$;
+
+-- ---- 184. Al asignar: día de entrega (estimado) — nunca antes de cargar; se limpia al quitar --
+reset role;
+do $$ declare e uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb; begin
+  select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false) into strict e;
+  set local role authenticated;
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3,
+                       'fecha_carga_desde', current_date + 10, 'fecha_carga_hasta', current_date + 12, 'importe_cliente', 900),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A184', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B184', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  -- Entrega anterior al día en que carga: rechazada.
+  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_date + 11, p_fecha_entrega_estimada => current_date + 10);
+  if r ->> 'resultado' <> 'entrega_antes_de_cargar' then raise exception 'FALLO 184 · deja una entrega anterior al día en que carga: %', r; end if;
+  -- El mismo día vale (desde el mismo día a +7 hábiles en pantalla); se guarda.
+  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_date + 11, p_fecha_entrega_estimada => current_date + 11);
+  if r ->> 'resultado' <> 'asignado' then raise exception 'FALLO 184 · no asigna con entrega estimada válida: %', r; end if;
+  if (select fecha_entrega_estimada from envios where id = e) <> current_date + 11 then
+    raise exception 'FALLO 184 · la entrega estimada no se guarda al asignar';
+  end if;
+  -- Sin mandarla (p. ej. la aceptación por enlace) se conserva la que había.
+  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_date + 12);
+  if (select fecha_entrega_estimada from envios where id = e) <> current_date + 11 then
+    raise exception 'FALLO 184 · reasignar sin entrega estimada no debe borrarla';
+  end if;
+  -- Al quitar el transportista se limpia (como el día previsto de carga).
+  reset role;
+  update envios set transportista_id = null where id = e;
+  if (select fecha_entrega_estimada from envios where id = e) is not null then
+    raise exception 'FALLO 184 · al quitar el transportista la entrega estimada debe limpiarse';
+  end if;
+  raise notice 'OK 184 · entrega estimada al asignar: nunca antes de cargar, se guarda, reasignar no la borra y al quitar el camión se limpia';
+end $$;

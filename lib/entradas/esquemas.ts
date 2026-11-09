@@ -32,7 +32,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/documentos/acciones#visibleParaCliente": z.tuple([z.string().uuid().or(z.literal('')), z.boolean()]),
   "app/panel/(app)/envios/acciones#ampliarPlazoPago": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#archivarPdf": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["orden-de-carga", "cmr"])]),
-  "app/panel/(app)/envios/acciones#asignarTransportista": z.tuple([z.string().uuid().or(z.literal('')), z.object({ transportista_id: z.string().uuid().or(z.literal('')), importe_transportista: z.number().or(z.nan()).nullable(), matricula_camion: z.string().max(1000), matricula_remolque: z.string().max(1000), conductor_nombre: z.string().max(1000), conductor_telefono: z.string().max(1000), fecha_carga_prevista: z.string().max(1000).nullable().optional() })]),
+  "app/panel/(app)/envios/acciones#asignarTransportista": z.tuple([z.string().uuid().or(z.literal('')), z.object({ transportista_id: z.string().uuid().or(z.literal('')), importe_transportista: z.number().or(z.nan()).nullable(), matricula_camion: z.string().max(1000), matricula_remolque: z.string().max(1000), conductor_nombre: z.string().max(1000), conductor_telefono: z.string().max(1000), fecha_carga_prevista: z.string().max(1000).nullable().optional(), fecha_entrega_estimada: z.string().max(1000).nullable().optional() })]),
   "app/panel/(app)/envios/acciones#buscarTransportistas": z.tuple([z.string().max(1000), z.string().max(1000).nullable().optional()]),
   "app/panel/(app)/envios/acciones#cancelarEnvio": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones#deshacerCancelacion": z.tuple([z.string().uuid().or(z.literal(''))]),

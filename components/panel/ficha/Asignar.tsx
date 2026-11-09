@@ -44,6 +44,23 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
   const dias = useMemo(() => diasEntre(e.fecha_carga_desde, e.fecha_carga_hasta), [e.fecha_carga_desde, e.fecha_carga_hasta]);
   const conVentana = dias.length > 1 || !e.fecha_carga_desde;
   const [diaCarga, setDiaCarga] = useState<string>(e.fecha_carga_prevista ?? (dias.length === 1 ? dias[0] : ''));
+  // Día de entrega (SIEMPRE estimado; usuario, 2026-11-09): obligatorio al asignar, del
+  // mismo día de carga a +7 días hábiles (sábados y domingos fuera; un festivo nacional
+  // aquí no se filtra — la base de datos solo exige que no sea anterior a la carga).
+  const [entrega, setEntrega] = useState<string>(e.fecha_entrega_estimada ?? '');
+  const baseEntrega = conVentana ? diaCarga : (dias[0] ?? '');
+  const diasEntrega = useMemo(() => {
+    if (!baseEntrega) return [] as string[];
+    const out = [baseEntrega];
+    const [a, m, d] = baseEntrega.split('-').map(Number);
+    const x = new Date(a, m - 1, d);
+    while (out.length < 8) {
+      x.setDate(x.getDate() + 1);
+      if (x.getDay() === 0 || x.getDay() === 6) continue;
+      out.push(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`);
+    }
+    return out;
+  }, [baseEntrega]);
   // (Sábado y domingo no se pueden elegir: los camiones no circulan. Un festivo nacional lo pasa
   // la base de datos al siguiente día hábil.)
   // Su flota se pide al elegirlo (no viaja con la ficha la de todos los transportistas).
@@ -85,9 +102,11 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     if (!tid) { setError('Elige el transportista.'); avisaFaltas(['as-tra']); return; }
     if (Number.isNaN(pv)) { setError('El precio del transportista no es un número.'); avisaFaltas(['as-precio']); return; }
     if (conVentana && !diaCarga) { setError('Elige el día en que carga.'); avisaFaltas(['as-dia']); return; }
+    if (!entrega) { setError('Elige el día de entrega (estimado).'); avisaFaltas(['as-ent']); return; }
     await hacer('Asignando el transportista', () => asignarTransportista(e.id, {
       transportista_id: tid, importe_transportista: pv, matricula_camion: camion, matricula_remolque: remolque,
       conductor_nombre: conductor, conductor_telefono: tel, fecha_carga_prevista: diaCarga || null,
+      fecha_entrega_estimada: entrega,
     }), `Transportista asignado: ${t?.nombre ?? ''}.`);
   }
   return (
@@ -116,6 +135,14 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
             <input id="as-dia" type="date" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)} />
           ) : <div style={{ minHeight: 40, display: 'flex', alignItems: 'center', fontWeight: 700 }}>{fecha(dias[0])} (fecha fija)</div>}
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Con este día va el seguimiento automático: sale hacia la carga y llega a la 1.ª parada a la hora de Parámetros.</div>
+        </div>
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="as-ent">Día entrega (estimado) <Req /></label>
+          <select id="as-ent" value={diasEntrega.includes(entrega) ? entrega : ''} disabled={!baseEntrega} onChange={(ev) => setEntrega(ev.target.value)}>
+            <option value="">{baseEntrega ? 'Elige el día de entrega…' : 'Elige antes el día en que carga'}</option>
+            {diasEntrega.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d}>{fecha(d)} · {DIAS[w]}{d === baseEntrega ? ' (mismo día de carga)' : ''}</option>; })}
+          </select>
+          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Siempre es una estimación (el cliente la ve como «Entrega estimada»); también marca hasta cuándo ve el teléfono del conductor. Del mismo día de carga a 7 días hábiles.</div>
         </div>
         <div>
           <label htmlFor="as-precio">Precio del transportista (€ sin IVA) <Req si={false} /></label>

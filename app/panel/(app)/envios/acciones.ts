@@ -25,6 +25,7 @@ export type Asignacion = {
   transportista_id: string; importe_transportista: number | null;
   matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string;
   fecha_carga_prevista?: string | null;   // día en que carga (obligatorio si el envío tiene ventana)
+  fecha_entrega_estimada?: string | null;  // día de entrega, SIEMPRE estimado (la pantalla lo exige)
 };
 
 export async function asignarTransportista(envio: string, a: Asignacion): Promise<Res> {
@@ -32,20 +33,22 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo asigna transportistas.' };
   if (!a.transportista_id) return { ok: false, error: 'Elige el transportista.' };
+  if (!a.fecha_entrega_estimada) return { ok: false, error: 'Elige el día de entrega (estimado).' };
   if (a.importe_transportista != null && !Number.isFinite(a.importe_transportista)) return { ok: false, error: 'El precio del transportista no es un número válido.' };
   // Las reglas (suspendido, NIMA, matrícula en mayúsculas, teléfono) las pone la base de datos.
   const { data, error } = await s.supabase.rpc('asignar_transportista', {
     p_envio: envio, p_transportista: a.transportista_id, p_importe_transportista: a.importe_transportista,
     p_matricula_camion: a.matricula_camion, p_matricula_remolque: a.matricula_remolque,
     p_conductor_nombre: a.conductor_nombre, p_conductor_telefono: a.conductor_telefono,
-    p_fecha_carga_prevista: a.fecha_carga_prevista || null,
+    p_fecha_carga_prevista: a.fecha_carga_prevista || null, p_fecha_entrega_estimada: a.fecha_entrega_estimada,
   });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
   if (r.ok) return { ok: true };
   return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',
     importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.',
-    falta_fecha_prevista: 'Elige el día en que carga: el envío tiene varios días de recogida.', fecha_fuera_de_ventana: 'El día de carga tiene que estar dentro de los días de recogida.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
+    falta_fecha_prevista: 'Elige el día en que carga: el envío tiene varios días de recogida.', fecha_fuera_de_ventana: 'El día de carga tiene que estar dentro de los días de recogida.',
+    entrega_antes_de_cargar: 'El día de entrega (estimado) no puede ser anterior al día en que carga.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
 }
 
 export async function quitarTransportista(envio: string): Promise<Res> {

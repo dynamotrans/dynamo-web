@@ -76,6 +76,9 @@ test.describe.serial('flujos clave', () => {
       const dia = await page.locator('select#as-dia option:not([disabled])').nth(1).getAttribute('value');
       await page.locator('select#as-dia').selectOption(dia!);
     }
+    // Día de entrega (estimado): obligatorio al asignar (usuario, 2026-11-09).
+    const ent = await page.locator('select#as-ent option:not([disabled])').nth(1).getAttribute('value');
+    await page.locator('select#as-ent').selectOption(ent!);
     await page.fill('#as-camion', '1234BCD');
     await page.fill('#as-conductor', 'Juan Prueba');
     await page.getByRole('button', { name: 'Guardar asignación' }).click();
