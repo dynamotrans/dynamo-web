@@ -887,7 +887,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         cortes={{ fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora }} />
                     </div>
                   )}
-                  {fechaLibre && <div className="ptar-field-full"><p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha: también hoy, una pasada (un envío gestionado por teléfono) o saltándote las horas de corte. Nadie más puede.</p></div>}
                   {fechaLibre && fecha && dias[0] && fecha < dias[0] && (
                     <div className="ptar-field-full"><div className="wiz-warn show" role="alert">⚠ <strong>Fuera de las reglas de corte:</strong> esta fecha no se podría elegir normalmente (fija desde mañana con su corte · ventana con corte de las {reglas?.corte_ventana_hora ?? 14}:00). Úsalo solo para urgencias o imprevistos: la recogida dependerá de encontrar camión a tiempo.</div></div>
                   )}
