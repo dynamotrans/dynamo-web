@@ -1303,10 +1303,22 @@ body.theme-dark .sidebar { background: #060116; }
 @keyframes fmFade { from { opacity: 0; } }
 @keyframes fmSube { from { transform: translateY(26px); opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) { .ficha-mas-backdrop, .ficha-mas-menu { animation: none; } }
-.ficha-mas-menu .fm-cab { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0.25rem 0.9rem 0.4rem; font-size: var(--fs-s); font-weight: 800; color: var(--gray-500); }
-.ficha-mas-menu .fm-cab span { white-space: nowrap; }
-.ficha-mas-menu .fm-x { border: 0; background: none; cursor: pointer; font-size: 1rem; line-height: 1; color: var(--gray-500); padding: 0.25rem 0.45rem; border-radius: 8px; }
-.ficha-mas-menu .fm-x:hover { background: rgba(51,0,204,0.06); color: var(--purple); }
+/* Asa de hoja (solo móvil) + cabecera con título navy y ✕ redonda BIEN visible
+   (usuario, 2026-11-10: «no se ve bien lo de cerrar»). */
+.ficha-mas-menu .fm-asa { display: none; width: 44px; height: 5px; border-radius: 999px; background: var(--gray-200); margin: 0.1rem auto 0.3rem; flex: none; }
+@media (max-width: 640px) { .ficha-mas-menu .fm-asa { display: block; } }
+.ficha-mas-menu .fm-cab {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; width: 100%;
+    padding: 0.2rem 0.3rem 0.55rem 0.9rem; border-bottom: 1px solid var(--gray-200); margin-bottom: 0.35rem;
+}
+.ficha-mas-menu .fm-cab span { white-space: nowrap; font-size: var(--fs-m); font-weight: 800; color: var(--navy); }
+.ficha-mas-menu .fm-x {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 999px; border: 0; cursor: pointer;
+    background: var(--gray-100); color: var(--gray-700);
+}
+.ficha-mas-menu .fm-x:hover { background: rgba(51,0,204,0.08); color: var(--purple); }
+.ficha-mas-menu .fm-lista { display: flex; flex-direction: column; gap: 2px; }
 .ficha-mas-menu .fm-item {
     display: flex; align-items: center; gap: 0.55rem; width: 100%;
     padding: 0.85rem 0.9rem; border: 0; background: none; border-radius: 10px;
