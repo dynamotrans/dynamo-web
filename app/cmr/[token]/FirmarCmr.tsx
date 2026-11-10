@@ -160,6 +160,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const [reservas, setReservas] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [preGps, setPreGps] = useState(false);   // nuestro aviso de ubicación, ANTES del diálogo del sistema
   // Fotos de las reservas (usuario, 2026-11-09): cámara o galería, se suben al momento a
   // la carpeta de este enlace (la política del almacén solo admite enlaces vivos) y al
   // firmar se cuelgan de la incidencia de siniestro que abren las reservas.
@@ -203,13 +204,25 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (!doc.trim() || !nombre.trim()) { setAviso('Indica el documento y el nombre y apellidos de quien firma.'); avisaFaltas([!doc.trim() && 'sigDni', !nombre.trim() && 'sigNombre'].filter(Boolean) as string[]); return; }
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
+    // El diálogo de ubicación del SISTEMA es obligatorio (una web no puede darse permiso
+    // sola), pero antes sale el NUESTRO, con diseño y explicación (usuario, 2026-11-10).
+    // Con el permiso ya concedido o denegado, no se molesta: se firma directamente.
+    let estado: string | null = null;
+    try { estado = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch { estado = null; }
+    if (estado === 'granted') return guardar(true);
+    if (estado === 'denied') return guardar(false);
+    setPreGps(true);
+  }
+
+  async function guardar(conGps: boolean) {
+    setPreGps(false);
     setGuardando(true);
     // Ubicación del dispositivo (OPCIONAL): el permiso se pide AQUÍ, al pulsar el botón,
     // y la posición es la VIVA de ese momento — jamás una guardada de hace horas (se
     // descarta cualquier lectura de más de 40 minutos; el navegador como mucho reutiliza
     // una de hace 1 minuto). Si quien firma deniega el permiso, no hay señal o tarda
     // demasiado, la firma se guarda exactamente igual, sin ubicación.
-    const gps = await (async () => {
+    const gps = !conGps ? null : await (async () => {
       try {
         const p = await new Promise<GeolocationPosition>((res, rej) => {
           if (!navigator.geolocation) { rej(new Error('sin geolocalización')); return; }
@@ -303,6 +316,26 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <button type="button" className="b-aceptar" disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>
         </div>
       </div>
+      {/* NUESTRO aviso de ubicación, con diseño, ANTES del diálogo del sistema (que es
+          obligatorio: solo el navegador puede conceder el permiso). Sin ubicación, la
+          firma vale exactamente igual. */}
+      {preGps && (
+        <div role="dialog" aria-modal="true" aria-label="Añadir la ubicación a la firma"
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}>
+          <div style={{ background: '#fff', borderRadius: 18, padding: '1.3rem 1.2rem', maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(10,2,48,0.35)' }}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#3300cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ margin: '0 auto 0.5rem', display: 'block' }}>
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" />
+            </svg>
+            <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem' }}>¿Añadimos tu ubicación a la firma?</h2>
+            <p style={{ margin: '0 0 0.9rem', fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5 }}>
+              Refuerza la validez: queda registrado el punto exacto desde el que se firma. Tu navegador te pedirá permiso ahora
+              — pulsa <strong>Permitir</strong>. Si prefieres no darla, la firma vale exactamente igual.
+            </p>
+            <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.45rem' }} onClick={() => guardar(true)}>Sí, añadir mi ubicación</button>
+            <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)' }} onClick={() => guardar(false)}>Firmar sin ubicación</button>
+          </div>
+        </div>
+      )}
       {verPrivacidad && (
         <div className="privov" role="dialog" aria-modal="true" aria-label="Política de privacidad"
           onClick={(e) => { if (e.target === e.currentTarget) setVerPrivacidad(false); }}>

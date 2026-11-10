@@ -141,6 +141,9 @@ test.describe.serial('flujos clave', () => {
     for (let k = 1; k <= 12; k++) await f.mouse.move(x + w * (0.2 + k * 0.05), y + h * (0.5 + Math.sin(k) * 0.25));
     await f.mouse.up();
     await f.getByRole('button', { name: 'Aceptar firma' }).click();
+    // Primero sale NUESTRO aviso de ubicación (el del sistema es obligatorio y solo
+    // salta si se acepta): aquí se firma sin ubicación.
+    await f.getByRole('button', { name: 'Firmar sin ubicación' }).click();
     await expect.poll(async () => {
       const { count } = await bd().from('firmas_cmr').select('*', { count: 'exact', head: true }).eq('envio_id', envioAceptado);
       return count;
