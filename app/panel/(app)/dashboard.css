@@ -1306,7 +1306,9 @@ body.theme-dark .sidebar { background: #060116; }
 }
 .ficha-sec-head .fsh-chev { flex: none; color: var(--gray-500); display: inline-flex; transition: transform 0.18s; }
 .ficha-sec.open .fsh-chev { transform: rotate(180deg); color: var(--purple); }
-.ficha-sec-head .fsh-t { font-size: var(--fs-m); font-weight: 800; color: var(--navy); white-space: nowrap; }
+/* flex: none — el título NUNCA encoge (encogido, su nowrap desbordaba y se pisaba con el
+   resumen en móvil, usuario 2026-11-10); el que recorta con «…» es el resumen. */
+.ficha-sec-head .fsh-t { flex: none; font-size: var(--fs-m); font-weight: 800; color: var(--navy); white-space: nowrap; }
 .ficha-sec-head:hover .fsh-t { color: var(--purple); }
 .ficha-sec-head .fsh-sum { margin-left: auto; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; text-align: right; }
 .ficha-sec-body { padding: 0 0.8rem 0.8rem; }
