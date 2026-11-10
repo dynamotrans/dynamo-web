@@ -628,6 +628,27 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       <strong>Precio provisional:</strong> como faltan más de {reglas.cerrado_dias} días, el precio se revisa <strong>{reglas.revision_dias_habiles} días hábiles antes de la carga</strong>.
     </div></div>) : null;
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
+  // Entrega ESTIMADA por parada (usuario, 2026-11-10): cada tarjeta de entrega del paso 4
+  // enseña su fecha — fija: un día («estimada»); ventana: rango «del X al Y». La última
+  // parada usa la ETA del tarifador; una entrega intermedia, el tránsito proporcional a
+  // su posición en la ruta (hasta tener km por tramo).
+  const entregasTxt = useMemo(() => {
+    const out: Record<number, string> = {};
+    if (!fecha || !kmInfo) return out;
+    const n = puntos.length;
+    puntos.forEach((p, i) => {
+      if (p.tipo !== 'descarga') return;
+      let d1: string, d2: string;
+      if (i === n - 1 && tarifa?.etaDesde) { d1 = tarifa.etaDesde; d2 = tarifa.etaHasta ?? tarifa.etaDesde; }
+      else {
+        const tr = Math.max(1, Math.ceil((kmInfo.km * (n > 1 ? i / (n - 1) : 1)) / 600));
+        d1 = sumarHabiles(fecha, tr, fest);
+        d2 = fechaHasta && fechaHasta !== fecha ? sumarHabiles(fechaHasta, tr, fest) : d1;
+      }
+      out[p.k] = `Entrega estimada · ${d1 === d2 ? fmtFecha(d1) : `del ${fmtFecha(d1)} al ${fmtFecha(d2)}`}`;
+    });
+    return out;
+  }, [puntos, fecha, fechaHasta, fest, kmInfo, tarifa]);
   // Carga hoy para hoy: fecha fija y el día elegido es hoy (para el aviso de la confirmación).
   const esHoy = urgencia === 'dia' && !!fecha && diasHasta === 0;
   // La carga EMPIEZA hoy (fija hoy o ventana desde hoy): avisa si el sitio cierra pronto.
@@ -1000,7 +1021,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <h4 className="ptar-section-head" style={{ margin: '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
-                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} />
+                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasEntrega={entregasTxt} />
                 {/* Tarjeta de la MERCANCÍA en azul marino (usuario, 2026-11-10): más
                     llamativa y legible que el gris de las demás. */}
                 <div className="sum2-box sum2-azul" style={{ marginTop: '0.6rem' }}>

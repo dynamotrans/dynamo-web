@@ -20,13 +20,14 @@ const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
 );
 
-export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, faltas, cargaHoy, mercanciaDefecto }: {
+export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, faltas, cargaHoy, mercanciaDefecto, fechasEntrega }: {
   puntos: Punto[]; datos: DatosSitios; edic: Record<number, CardEdit>;
   setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>;
   fechaCargaTxt: string;
   faltas?: Set<number>;   // puntos con datos obligatorios sin rellenar (los marca el padre al crear)
   cargaHoy?: boolean;     // la carga empieza HOY: avisa si el sitio de recogida cierra pronto
   mercanciaDefecto?: string;   // resumen del paso 2 («6 metros - Paletizada - …»): prerrellena el detalle de mercancía de cada parada (usuario, 2026-11-10)
+  fechasEntrega?: Record<number, string>;   // «Entrega estimada · …» por parada de entrega, por su k (usuario, 2026-11-10)
 }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(new Set());
   // Campos opcionales REPLEGADOS (usuario, 2026-11-09): nombre de contacto, notas
@@ -100,6 +101,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`} style={{ marginRight: '0.45rem', verticalAlign: '-6px' }} title={nombreTipo(f.tipo)}>{i + 1} · {rec ? 'Recogida' : 'Entrega'}<IconoTipo tipo={f.tipo} blanco /></span>
                 </span>
                 {rec && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt}</span>}
+                {!rec && fechasEntrega?.[p.k] && <span className="ptar-sitio-head-fecha shf-ent">{fechasEntrega[p.k]}</span>}
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}
                 {dir && <span className="ptar-sitio-head-dir">{dir}</span>}
                 {f.empresa && <span className="ptar-sitio-head-empn">{f.empresa}</span>}
