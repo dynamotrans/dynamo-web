@@ -13,8 +13,9 @@ const POR_PAGINA = 20;
 const PESTANAS: { f: Pestana; titulo: string; soloDynamo?: boolean; siHay?: boolean }[] = [
   // «Pendientes de pago» DESPUÉS de «Sin asignar transportista» (usuario, 2026-11-10):
   // un envío sin pagar no está aún en la cola de asignar camión (sin-asignar los excluye
-  // y la base de datos rechaza asignar u ofertar hasta que se pague).
-  { f: 'sin-asignar', titulo: 'Sin asignar transportista', soloDynamo: true },
+  // y la base de datos rechaza asignar u ofertar hasta que se pague). Las dos aparecen
+  // solo cuando tienen algo (usuario, 2026-11-10); a 0, se entra en «Programados».
+  { f: 'sin-asignar', titulo: 'Sin asignar transportista', soloDynamo: true, siHay: true },
   { f: 'sin-pagar', titulo: 'Pendientes de pago', siHay: true },
   { f: 'programada', titulo: 'Programados' },
   { f: 'entregada', titulo: 'Entregados' },
@@ -27,7 +28,10 @@ export function visiblesPestanas(dynamo: boolean, fParam: string | undefined, cu
   return PESTANAS.filter((p) => (dynamo || !p.soloDynamo) && (!p.siHay || cuantos(p.f) > 0 || fParam === p.f));
 }
 export function pestanaElegida(dynamo: boolean, fParam: string | undefined, cuantos: (p: Pestana) => number): Pestana {
-  return (visiblesPestanas(dynamo, fParam, cuantos).find((p) => p.f === fParam)?.f ?? (dynamo ? 'sin-asignar' : 'programada')) as Pestana;
+  const vis = visiblesPestanas(dynamo, fParam, cuantos);
+  return (vis.find((p) => p.f === fParam)?.f
+    // Por defecto, la bandeja de trabajo de Dynamo; oculta (a 0), «Programados».
+    ?? (dynamo && vis.some((p) => p.f === 'sin-asignar') ? 'sin-asignar' : 'programada')) as Pestana;
 }
 export const POR_PAGINA_ENVIOS = POR_PAGINA;
 
