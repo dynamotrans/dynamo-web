@@ -142,7 +142,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
   const [d, setD] = useState<IncidenciaDatos>({
     envio_id: fila?.envio_id ?? envioInicial, cliente_id: fila?.cliente_id ?? (clientes.length === 1 ? clientes[0].id : null), tipo_id: fila?.tipo_id ?? tipoInicial ?? '',
     estado: fila?.estado ?? 'abierto', prioridad: fila?.prioridad ?? 'media',
-    titulo: fila?.titulo ?? (tipoInicial ? 'Siniestro: ' : ''), detalle: fila?.detalle ?? '', resolucion: fila?.resolucion ?? '',
+    titulo: fila?.titulo ?? '', detalle: fila?.detalle ?? '', resolucion: fila?.resolucion ?? '',
   });
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
@@ -230,10 +230,6 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
           </select>
         </div>
         </>}
-        <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="inc-tit">Resumen <Req si={false} /> <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· una línea; si lo dejas vacío, se toma del detalle</span></label>
-          <input id="inc-tit" type="text" maxLength={140} value={d.titulo} onChange={(e) => set('titulo', e.target.value)} placeholder="Ej. Palet roto en la descarga" />
-        </div>
       </div>
       <div className="modal-form-row" style={{ marginTop: '0.7rem' }}>
         <label htmlFor="inc-det">Detalle de la incidencia <Req /></label>
