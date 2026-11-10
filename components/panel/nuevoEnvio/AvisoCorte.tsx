@@ -38,8 +38,18 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
   const firstHoy = first === iso(m);
   const hasta = ventana > 1 ? sumarHabiles(first, ventana - 1, fest) : first;
   const rango = ventana > 1 ? <> (ventana del <strong>{fmtFecha(first)}</strong> al <strong>{fmtFecha(hasta)}</strong>)</> : null;
+  // Con FECHA FIJA, la ventana recomendada tiene su propio corte (más tarde) y casi
+  // siempre habilita un primer día ANTERIOR: se dice con la fecha concreta (usuario,
+  // 2026-11-10: «avisa que poniendo la ventana no hay que esperar al jueves»).
+  const altFirst = urgencia === 'dia' ? primerDia('estandar', grupaje, fest, cortes) : null;
+  const altHoy = altFirst === iso(m);
   const guia = urgencia === 'dia'
-    ? <> Lo más barato y seguro: la <strong>recogida de 1 a {grupaje ? 4 : 3} días</strong>.</> : null;
+    ? <> Lo más barato y seguro: la <strong>recogida de 1 a {grupaje ? 4 : 3} días</strong>{altFirst && altFirst < first
+      ? <> — con ella el primer día posible {altHoy ? <>es <strong>hoy mismo</strong> ({fmtFecha(altFirst)})</> : <>sería el <strong>{fmtFecha(altFirst)}</strong></>}, sin esperar al {fmtFecha(first)}</>
+      : null}.</>
+    : null;
+  // El corte solo decide el PRIMER día: quien carga más adelante elige su fecha y ya.
+  const futuro = <> <em>Para una fecha más adelante este corte no afecta: elige el día que quieras.</em></>;
 
   if (resta > 0) {
     const h = Math.floor(resta / 3600), mi = Math.floor((resta % 3600) / 60), sg = resta % 60;
@@ -52,7 +62,7 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
   }
   return (
     <div className="ptar-cutoff-note" role="status">
-      <IcoReloj />El corte de las {etiqueta} ya ha pasado. Primer día de carga posible: <strong>{fmtFecha(first)}</strong>{rango}.{guia}
+      <IcoReloj />El corte de las {etiqueta} ya ha pasado. Primer día de carga posible: <strong>{fmtFecha(first)}</strong>{rango}.{guia}{futuro}
     </div>
   );
 }
