@@ -101,10 +101,12 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       // (~5 mm) con los bordes y 4pt con el marco rojo del impreso (que empieza a ~76pt):
       // una impresora estándar no recorta nada (usuario, 2026-11-10).
       if (qrImg) {
-        const QR = 50, qx = A4.w - 18 - QR;
+        // DER = borde derecho del marco rojo del impreso (medido: 561pt): el QR y su
+        // rótulo quedan alineados con el marco, no con el filo del papel (usuario, 2026-11-10).
+        const QR = 50, DER = 561, qx = DER - QR;
         pg.drawImage(qrImg, { x: qx, y: A4.h - 15 - QR, width: QR, height: QR });
         const rot = 'e-CMR', resto = ' · Escanéalo con el móvil', wRot = l.medida(rot, 5.5, true);
-        const xr = A4.w - 18 - wRot - l.medida(resto, 5, false);
+        const xr = DER - wRot - l.medida(resto, 5, false);
         t(xr, 72, rot, 5.5, true);
         t(xr + wRot, 72, resto, 5, false, COLOR.gris);
       }
