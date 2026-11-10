@@ -11,8 +11,11 @@ import { type EnvioFila, type Parada, type Pestana, estadoVisual, asignacion, en
 // datos ya leídos y con los permisos del rol aplicados en el servidor.
 const POR_PAGINA = 20;
 const PESTANAS: { f: Pestana; titulo: string; soloDynamo?: boolean; siHay?: boolean }[] = [
-  { f: 'sin-pagar', titulo: 'Pendientes de pago', siHay: true },
+  // «Pendientes de pago» DESPUÉS de «Sin asignar transportista» (usuario, 2026-11-10):
+  // un envío sin pagar no está aún en la cola de asignar camión (sin-asignar los excluye
+  // y la base de datos rechaza asignar u ofertar hasta que se pague).
   { f: 'sin-asignar', titulo: 'Sin asignar transportista', soloDynamo: true },
+  { f: 'sin-pagar', titulo: 'Pendientes de pago', siHay: true },
   { f: 'programada', titulo: 'Programados' },
   { f: 'entregada', titulo: 'Entregados' },
   { f: 'cancelada', titulo: 'Cancelados' },
