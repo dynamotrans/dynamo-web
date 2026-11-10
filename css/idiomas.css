@@ -51,3 +51,8 @@ body { top: 0 !important; position: static !important; }
 .goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner,
 .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
 iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
+/* Google Translate moderno usa clases OFUSCADAS (VIpgJd-…) en vez de goog-te-*:
+   el MISMO spinner colgado con otro nombre (visto 2026-11-10 en móvil). */
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf *, img.VIpgJd-ZVi9od-aZ2wEe,
+.VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-yAWNEb-L7lbkb { display: none !important; }
+.VIpgJd-ZVi9od-aZ2wEe-OiiCO { background: transparent !important; box-shadow: none !important; }
