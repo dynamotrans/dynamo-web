@@ -609,7 +609,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ---- Opciones de los desplegables (las del mockup)
   const optsMl: [string, string][] = [];
   // Formato corto elegido por el usuario (2026-11-10): «6 metros · ≈15 euro / 12 amer.»
-  for (let i = 1; i <= mlMax; i++) optsMl.push([String(i), `${i} ${i === 1 ? 'metro' : 'metros'} · ≈${Math.floor(i * 2.5)} euro / ${Math.floor(i * 2)} amer.`]);
+  for (let i = 1; i <= mlMax; i++) optsMl.push([String(i), `${i} ${i === 1 ? 'metro' : 'metros'} · Grupaje ≈${Math.floor(i * 2.5)} euro / ${Math.floor(i * 2)} amer.`]);
   if (mlMax === 13) optsMl.push(['13.3', '13,30 metros · Tráiler completo (33 euro / 26 amer.)']);
   const optsPeso: [string, string][] = [['0.2', 'De 0 a 200 kg'], ['0.4', 'De 200 a 400 kg'], ['0.6', 'De 400 a 600 kg'], ['0.8', 'De 600 a 800 kg'], ['1', 'De 800 kg a 1 tonelada']];
   for (let lo = 1, hi = 3; lo < pesoMax; hi += 2) { if (hi > pesoMax) hi = pesoMax; optsPeso.push([String(hi), `De ${lo} a ${hi} toneladas${hi === pesoMax ? ' (máximo)' : ''}`]); if (hi === pesoMax) break; lo = hi; }
