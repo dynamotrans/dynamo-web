@@ -30,15 +30,21 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
   const [preFirma, setPreFirma] = useState<Bloque | null>(null);
-  // Con una ventana abierta, el FONDO no scrollea: en iOS, el teclado sobre la pantalla
-  // de firma scrolleaba la página de detrás y le dejaba un hueco enorme al final
-  // (usuario, 2026-11-10: «scroll muy largo»).
+  // Con una ventana abierta, el FONDO no scrollea. En iOS Safari «overflow: hidden» no
+  // basta (el teclado sobre la pantalla de firma scrolleaba la página de detrás y le
+  // dejaba un hueco enorme al final; usuario, 2026-11-10 ×2): se FIJA el body en su
+  // sitio (position: fixed) mientras la ventana está abierta y, al cerrarla, se
+  // devuelve el scroll acotado a la altura real, que borra el hueco fantasma.
   const hayVentana = !!(abierto || preFirma);
   useEffect(() => {
     if (!hayVentana) return;
-    const html = document.documentElement, prev = html.style.overflow;
+    const html = document.documentElement, b = document.body, y = window.scrollY;
     html.style.overflow = 'hidden';
-    return () => { html.style.overflow = prev; };
+    b.style.position = 'fixed'; b.style.top = `-${y}px`; b.style.left = '0'; b.style.right = '0'; b.style.width = '100%';
+    return () => {
+      html.style.overflow = ''; b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; b.style.width = '';
+      window.scrollTo(0, Math.min(y, Math.max(0, html.scrollHeight - window.innerHeight)));
+    };
   }, [hayVentana]);
 
   if (cmr.resultado !== 'ok') {
