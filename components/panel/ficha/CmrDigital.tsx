@@ -35,6 +35,9 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
         <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>
           <strong>Base legal:</strong> Orden FOM/2861/2012, de 13 de diciembre (documento de control administrativo del transporte público de mercancías por carretera), <strong>art. 6</strong>: el documento de control puede llevarse en <strong>soporte electrónico</strong> siempre que recoja los datos exigidos (art. 5: cargador contractual y transportista efectivo con su NIF, vehículo, naturaleza y peso de la carga, origen, destino y fechas) y pueda mostrarse en una inspección en carretera. Este eCMR los recoge todos, con el QR, el nº único y el registro de creación y firmas dentro del PDF. En transporte <strong>internacional</strong> rige el Convenio CMR (Ginebra, 19-may-1956) y no se exige DeCA.
         </p>
+        <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>
+          <strong>En resumen:</strong> e-CMR con <strong>firma electrónica simple eIDAS</strong>, reforzada con evidencias de identidad, tiempo y ubicación (<strong>audit trail</strong>): documento del firmante con letra validada, hora del servidor, IP, GPS con dirección y huella SHA-256 de lo firmado. El Reglamento eIDAS (UE 910/2014, <strong>art. 25</strong>) impide negarle efectos jurídicos: es <strong>admisible como prueba ante organismos, peritos y tribunales</strong>; y el <strong>Protocolo e-CMR</strong> (Ginebra, 2008), ratificado por España y decenas de países, reconoce <strong>internacionalmente</strong> la carta de porte electrónica.
+        </p>
       </>}
       {enl ? (
         <>
