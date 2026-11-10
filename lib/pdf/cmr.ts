@@ -63,6 +63,11 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   });
   const enCasilla = new Set(cartas.flatMap((en) => casillasDe(en)).filter(Boolean).map((c) => c!.f));
 
+  // QR del e-CMR (el enlace https ÚNICO del documento): va en la cabecera de TODAS las
+  // páginas (usuario, 2026-11-10), con tamaño legible con el móvil, y en la hoja de firmas.
+  let qrImg: PDFImage | null = null;
+  if (d.deca) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
+
   for (let nc = 0; nc < cartas.length; nc++) {
     const entrega = cartas[nc];
     const casillas = casillasDe(entrega);
@@ -91,9 +96,15 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         }
       };
 
-      // Nº de envío, en la franja blanca de arriba (no pisa el texto legal de la cabecera).
-      t(468, 40, `Nº ${e.referencia_gx ?? ''}`, 9);
-      if (varias) t(468, 51, `Carta ${nc + 1} de ${cartas.length}`, 7.5);
+      // Nº de envío, en la franja blanca de arriba (no pisa el texto legal de la cabecera);
+      // con QR, el Nº se corre a la izquierda para dejarle el rincón.
+      if (qrImg) {
+        pg.drawImage(qrImg, { x: 517, y: A4.h - 4 - 58, width: 58, height: 58 });
+        t(517, 68, 'e-CMR', 6, true);
+        t(517, 75, 'Escanéalo con el móvil', 5, false, COLOR.gris);
+      }
+      t(qrImg ? 440 : 468, 40, `Nº ${e.referencia_gx ?? ''}`, 9);
+      if (varias) t(qrImg ? 440 : 468, 51, `Carta ${nc + 1} de ${cartas.length}`, 7.5);
       if (logo) { const h = 22, w = h * logo.width / logo.height; pg.drawImage(logo, { x: 36, y: A4.h - 12 - h, width: w, height: h }); }
 
       // 1 Remitente
@@ -227,11 +238,6 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     const lista = [...firmas].sort((x, y) => (x.extra ? 1 : 0) - (y.extra ? 1 : 0) || (ordenRol[x.rol] ?? 9) - (ordenRol[y.rol] ?? 9)
       || idx(x) - idx(y) || x.firmado_en.localeCompare(y.firmado_en));
 
-    // DeCA (Orden FOM/2861/2012, art. 6): el QR con el enlace https ÚNICO del documento va
-    // DENTRO del PDF, con su nº único y la fecha y hora de creación registrada en la BD.
-    let qrImg: PDFImage | null = null;
-    if (d.deca) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
-
     // CABECERA moderna (usuario, 2026-11-10): logo de Dynamo, título, nº en pastilla
     // morada y línea de acento; el bloque DeCA va en un panel claro con el QR dentro.
     l.nuevaPagina();
@@ -242,7 +248,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       l.pag.drawImage(logo, { x: l.x0, y: A4.h - cabY - 1 - h, width: w, height: h });
       xTit = l.x0 + w + 12;
     }
-    l.texto(xTit, cabY + 16, 'Registro de firmas / DeCA', 15, { bold: true, color: COLOR.navy });
+    l.texto(xTit, cabY + 16, 'Hoja de firmas eCMR / DeCA', 15, { bold: true, color: COLOR.navy });
     const num = `CMR Nº ${e.referencia_gx ?? ''}`;
     const anchoNum = l.medida(num, 9, true) + 16;
     l.rect(A4.w - l.margen.der - anchoNum, cabY + 1, anchoNum, 20, COLOR.moradoSuave);
@@ -296,7 +302,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     // siguen en otra hoja, que lleva su propia cabecera de continuación.
     const cabCont = () => {
       if (logo) { const h = 14, w = h * logo.width / logo.height; l.pag.drawImage(logo, { x: l.x0, y: A4.h - l.y - h, width: w, height: h }); }
-      l.texto(l.x0 + (logo ? 14 * logo.width / logo.height + 10 : 0), l.y + 11, 'Registro de firmas / DeCA (continuación)', 11, { bold: true, color: COLOR.navy });
+      l.texto(l.x0 + (logo ? 14 * logo.width / logo.height + 10 : 0), l.y + 11, 'Hoja de firmas eCMR / DeCA (continuación)', 11, { bold: true, color: COLOR.navy });
       l.textoDer(A4.w - l.margen.der, l.y + 11, `CMR Nº ${e.referencia_gx ?? ''}`, 8.5, { bold: true, color: COLOR.morado });
       l.y += 18;
       l.linea(l.x0, l.y, A4.w - l.margen.der, l.y, COLOR.morado, 1);
