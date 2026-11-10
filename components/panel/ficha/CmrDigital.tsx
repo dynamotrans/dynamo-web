@@ -26,18 +26,20 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
       {/* La explicación larga y la base legal, PLEGADAS tras un enlace (usuario,
           2026-11-10: «mete en texto que pulsa y abre entero»). El enlace nace CON el
           envío; el botón de crear solo aparece si se retiró (o caducó). */}
+      {/* Afirmación, no pregunta (usuario, 2026-11-10): primero el eIDAS con las
+          evidencias, después la base legal del DeCA y al final cómo funciona. */}
       <button type="button" onClick={() => setMasInfo((v) => !v)} aria-expanded={masInfo}
-        style={{ border: 0, background: 'none', padding: 0, margin: '0 0 0.6rem', cursor: 'pointer', font: 'inherit', fontSize: 'var(--fs-s)', fontWeight: 700, color: 'var(--purple)' }}>
-        {masInfo ? 'Ocultar cómo funciona y la base legal ▴' : '¿Cómo funciona y qué validez legal tiene? ▾'}
+        style={{ border: 0, background: 'none', padding: 0, margin: '0 0 0.6rem', cursor: 'pointer', font: 'inherit', fontSize: 'var(--fs-s)', fontWeight: 700, color: 'var(--purple)', textAlign: 'left' }}>
+        100% seguro, digital y legal. Protocolo eIDAS ~ Orden FOM/2861/2012. {masInfo ? '▴' : '▾'}
       </button>
       {masInfo && <>
-        <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>El enlace se crea solo con el envío, para que <strong>cargador, transportista y destinatario</strong> firmen el CMR con el dedo desde el móvil, sin crear cuenta. Cada firma queda con su documento, la hora del servidor y desde dónde se firmó, y sale en el <strong>CMR relleno</strong>, que lleva dentro el QR con el nº único del documento y hace de <strong>DeCA</strong> (documento de control) en los tramos nacionales. Desde aquí puedes reenviárselo a quien haga falta.</p>
+        <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>
+          e-CMR con <strong>firma electrónica simple eIDAS</strong>, reforzada con evidencias de identidad, tiempo y ubicación (<strong>audit trail</strong>): documento del firmante con letra validada, hora del servidor, IP, GPS con dirección y huella SHA-256 de lo firmado. El Reglamento eIDAS (UE 910/2014, <strong>art. 25</strong>) impide negarle efectos jurídicos: es <strong>admisible como prueba ante organismos, peritos y tribunales</strong>; y el <strong>Protocolo e-CMR</strong> (Ginebra, 2008), ratificado por España y decenas de países, reconoce <strong>internacionalmente</strong> la carta de porte electrónica.
+        </p>
         <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>
           <strong>Base legal:</strong> Orden FOM/2861/2012, de 13 de diciembre (documento de control administrativo del transporte público de mercancías por carretera), <strong>art. 6</strong>: el documento de control puede llevarse en <strong>soporte electrónico</strong> siempre que recoja los datos exigidos (art. 5: cargador contractual y transportista efectivo con su NIF, vehículo, naturaleza y peso de la carga, origen, destino y fechas) y pueda mostrarse en una inspección en carretera. Este eCMR los recoge todos, con el QR, el nº único y el registro de creación y firmas dentro del PDF. En transporte <strong>internacional</strong> rige el Convenio CMR (Ginebra, 19-may-1956) y no se exige DeCA.
         </p>
-        <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>
-          <strong>En resumen:</strong> e-CMR con <strong>firma electrónica simple eIDAS</strong>, reforzada con evidencias de identidad, tiempo y ubicación (<strong>audit trail</strong>): documento del firmante con letra validada, hora del servidor, IP, GPS con dirección y huella SHA-256 de lo firmado. El Reglamento eIDAS (UE 910/2014, <strong>art. 25</strong>) impide negarle efectos jurídicos: es <strong>admisible como prueba ante organismos, peritos y tribunales</strong>; y el <strong>Protocolo e-CMR</strong> (Ginebra, 2008), ratificado por España y decenas de países, reconoce <strong>internacionalmente</strong> la carta de porte electrónica.
-        </p>
+        <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>El enlace se crea solo con el envío, para que <strong>cargador, transportista y destinatario</strong> firmen el CMR con el dedo desde el móvil, sin crear cuenta. Cada firma queda con su documento, la hora del servidor y desde dónde se firmó, y sale en el <strong>CMR relleno</strong>, que lleva dentro el QR con el nº único del documento y hace de <strong>DeCA</strong> (documento de control) en los tramos nacionales. Desde aquí puedes reenviárselo a quien haga falta.</p>
       </>}
       {enl ? (
         <>
