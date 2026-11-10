@@ -386,7 +386,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
             <a className="btn-ghost" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
                style={{ textDecoration: 'none' }} title="El CMR relleno tal y como está ahora mismo, con las firmas que haya.">
-              <I d={ICO.doc} />Ver CMR
+              <I d={ICO.doc} />Ver/Descargar CMR relleno
               <span style={{ marginLeft: '0.45rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800,
                 background: firmasHechas >= firmasTotal ? 'rgba(34,165,90,0.14)' : 'rgba(217,119,6,0.16)', color: firmasHechas >= firmasTotal ? 'var(--green-dark)' : '#b45309' }}>
                 {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}

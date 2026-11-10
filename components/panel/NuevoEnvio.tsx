@@ -754,6 +754,39 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     </div>
   );
 
+  // ---- MODIFICAR: mini-resumen del precio ANTES → AHORA (usuario, 2026-11-10) --------
+  // Cliente y margen antes/ahora, y el precio del transportista EDITABLE aquí mismo:
+  // si el precio sube se le puede mejorar al chófer, si baja se negocia a la baja por
+  // teléfono y se ajusta antes de guardar.
+  const pcAnt = editar && be?.importe_cliente != null ? Number(be.importe_cliente) : null;
+  const ptAnt = editar && be?.importe_transportista != null ? Number(be.importe_transportista) : null;
+  const margenAnt = pcAnt != null && ptAnt != null ? pcAnt - ptAnt : null;
+  const margenAhora = importe > 0 && importeT != null ? importe - importeT : null;
+  const Delta = ({ antes, ahora }: { antes: number | null; ahora: number | null }) => {
+    if (antes == null || ahora == null || antes === ahora) return null;
+    const d = ahora - antes;
+    return <span style={{ marginLeft: '0.4rem', fontWeight: 800, color: d > 0 ? 'var(--green-dark)' : '#b42318' }}>({d > 0 ? '+' : '−'}{eur(Math.abs(d))})</span>;
+  };
+  const resumenCambioPrecio = !editar ? null : (
+    <div className="ptar-confirm-price" style={{ marginTop: '0.6rem' }}>
+      <div className="alm-price-row alm-price-sub" style={{ fontWeight: 800, color: 'var(--navy)' }}><span className="k">Antes → ahora</span><span className="v" /></div>
+      <div className="alm-price-row alm-price-sub"><span className="k">Cliente</span>
+        <span className="v">{pcAnt != null ? eur(pcAnt) : '—'} → <strong>{importe > 0 ? eur(importe) : '—'}</strong><Delta antes={pcAnt} ahora={importe > 0 ? importe : null} /></span></div>
+      <div className="alm-price-row alm-price-sub" style={{ alignItems: 'center' }}><span className="k">Transportista</span>
+        <span className="v" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>{ptAnt != null ? eur(ptAnt) : '—'} →
+          <input type="text" inputMode="decimal" aria-label="Precio del transportista (sin IVA)" value={pt}
+            onChange={(e) => { setPt(e.target.value); setPtTocado(true); }}
+            style={{ width: 90, padding: '0.25rem 0.45rem', textAlign: 'right', fontWeight: 800 }} /> €
+          <Delta antes={ptAnt} ahora={importeT} /></span></div>
+      <div className="alm-price-row alm-price-sub"><span className="k">Margen</span>
+        <span className="v">{margenAnt != null ? eur(margenAnt) : '—'} → <strong style={{ color: margenAhora == null ? undefined : margenAhora >= 0 ? 'var(--green-dark)' : '#b42318' }}>{margenAhora != null ? eur(margenAhora) : '—'}</strong><Delta antes={margenAnt} ahora={margenAhora} /></span></div>
+      {importe > 0 && pcAnt != null && importe !== pcAnt && (
+        <p style={{ margin: '0.45rem 0 0', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4 }}>
+          El precio del cliente {importe > pcAnt ? 'SUBE' : 'BAJA'}: llama al transportista, negocia su precio y ajústalo aquí antes de guardar.</p>
+      )}
+    </div>
+  );
+
   // Botonera del asistente (usuario, 2026-11-09): en el paso 3 va DENTRO de la columna
   // del precio, justo debajo de la caja «Precio sugerido»; en los pasos 1-2, al fondo.
   const navBotones = (
@@ -1062,7 +1095,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 : esCliente
                 ? <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
-                : cajaPrecio}
+                : <>{cajaPrecio}{resumenCambioPrecio}</>}
               {avisoProvisional}
               {/* En la vista de administración normal no hace falta explicar qué hace el
                   botón (usuario, 2026-11-10): solo quedan los textos de editar, manual
