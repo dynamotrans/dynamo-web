@@ -35,7 +35,7 @@ export function cspPlataforma(nonce: string, desarrollo = false): string {
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${TRADUCTOR}`,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${TRADUCTOR} ${VERCEL} ${SENTRY} wss://ws-us3.pusher.com`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org ${TRADUCTOR} ${VERCEL} ${SENTRY} wss://ws-us3.pusher.com`,
     `frame-src 'self' ${TRADUCTOR} ${VERCEL}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",

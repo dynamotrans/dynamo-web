@@ -214,7 +214,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
     l.y += 8;
 
-    const ALTO = 68, tx = l.x0 + 150;
+    const ALTO = 80, tx = l.x0 + 150, anchoTexto = l.ancho - 150 - 10;
     for (const f of lista) {
       l.sitio(ALTO + 8);
       l.rect(l.x0, l.y, l.ancho, ALTO, COLOR.blanco, COLOR.grisClaro);
@@ -228,14 +228,16 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       l.textoDer(A4.w - l.margen.der - 10, l.y + 17, donde, 7, { color: f.extra ? COLOR.ambar : COLOR.gris });
       const par = paradaTxt(f.parada_id);
       if (par) {
-        const anchoPar = l.ancho - 150 - 10;
-        const partes = l.partir(par, 7.4, anchoPar);
+        const partes = l.partir(par, 7.4, anchoTexto);
         l.texto(tx, l.y + 30, partes.length > 1 ? partes[0].slice(0, -1) + '…' : partes[0], 7.4, { color: COLOR.gris });
       }
       l.texto(tx, l.y + (par ? 44 : 34), `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.8, { color: COLOR.tinta });
       if (f.lat != null && f.lon != null) {
-        l.texto(tx, l.y + (par ? 57 : 47), `GPS: ${f.lat.toFixed(5)}, ${f.lon.toFixed(5)}${f.gps_precision_m != null ? ` (±${f.gps_precision_m} m)` : ''}`, 7.2, { color: COLOR.gris });
+        const gpsTxt = `GPS: ${f.lat.toFixed(5)}, ${f.lon.toFixed(5)}${f.gps_precision_m != null ? ` (±${f.gps_precision_m} m)` : ''}${f.gps_direccion ? ` · ${f.gps_direccion}` : ''}`;
+        const gl = l.partir(gpsTxt, 7.2, anchoTexto);
+        l.texto(tx, l.y + (par ? 57 : 47), gl.length > 1 ? gl[0].slice(0, -1) + '…' : gl[0], 7.2, { color: COLOR.gris });
       }
+      if (f.sha256) l.texto(tx, l.y + (par ? 69 : 59), `Huella SHA-256 de lo firmado: ${f.sha256}`, 5.8, { color: COLOR.gris });
       l.y += ALTO + 8;
     }
   }

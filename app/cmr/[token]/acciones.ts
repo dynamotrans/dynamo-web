@@ -11,7 +11,7 @@ export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transpo
   reservas?: string;     // daños o faltantes: van ANTES de la firma y entran en su huella
   fotos?: string[];      // fotos de las reservas, ya subidas a cmr/<token>/… (máx. 6)
   extra?: boolean;       // firma AÑADIDA (máx. 3 por envío): no ocupa la casilla ni anota reservas
-  gps?: { lat: number; lon: number; precision_m?: number } | null };   // ubicación del dispositivo, si dio permiso
+  gps?: { lat: number; lon: number; precision_m?: number; direccion?: string } | null };   // ubicación VIVA del dispositivo al pulsar firmar, si dio permiso
 
 // Firmar una casilla del CMR. La validez del documento la decide AQUÍ el servidor (la
 // pantalla solo avisa); la hora la pone la base de datos; el trazo va al almacén privado,
@@ -64,6 +64,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     p_validado: !v.soft, p_email: d.email, p_ruta: ruta, p_ip: ip, p_navegador: h.get('user-agent'), p_sha256: sha, p_extra: !!d.extra,
     p_lat: g?.lat ?? null, p_lon: g?.lon ?? null,
     p_gps_precision_m: g && Number.isFinite(g.precision_m) ? Math.max(0, Math.min(100000, Math.round(g.precision_m!))) : null,
+    p_gps_direccion: g?.direccion ? String(g.direccion).trim().slice(0, 300) : null,
   });
   if (error) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   const r = (data as { resultado: string }).resultado;

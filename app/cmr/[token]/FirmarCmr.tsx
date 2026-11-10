@@ -124,17 +124,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
 
 function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bloque; onCerrar: () => void; onFirmado: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  // Ubicación del dispositivo (OPCIONAL): se pide al abrir la pantalla de firma y, si
-  // quien firma da permiso, viaja con la firma como refuerzo probatorio del e-CMR. Si
-  // no hay permiso, no hay GPS o tarda demasiado, la firma vale exactamente igual.
-  const gps = useRef<{ lat: number; lon: number; precision_m?: number } | null>(null);
-  useEffect(() => {
-    try {
-      navigator.geolocation?.getCurrentPosition(
-        (p) => { gps.current = { lat: p.coords.latitude, lon: p.coords.longitude, precision_m: Math.round(p.coords.accuracy) }; },
-        () => {}, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
-    } catch { /* sin geolocalización */ }
-  }, []);
   const ctx = useRef<CanvasRenderingContext2D | null>(null);
   const trazando = useRef(false);
   const [dibujado, setDibujado] = useState(false);
@@ -191,9 +180,31 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     setGuardando(true);
+    // Ubicación del dispositivo (OPCIONAL): el permiso se pide AQUÍ, al pulsar el botón,
+    // y la posición es la VIVA de ese momento — jamás una guardada de hace horas (se
+    // descarta cualquier lectura de más de 40 minutos; el navegador como mucho reutiliza
+    // una de hace 1 minuto). Si quien firma deniega el permiso, no hay señal o tarda
+    // demasiado, la firma se guarda exactamente igual, sin ubicación.
+    const gps = await (async () => {
+      try {
+        const p = await new Promise<GeolocationPosition>((res, rej) => {
+          if (!navigator.geolocation) { rej(new Error('sin geolocalización')); return; }
+          navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+        });
+        if (Date.now() - p.timestamp > 40 * 60 * 1000) return null;   // nunca una posición vieja
+        const g: NonNullable<DatosFirma['gps']> = { lat: p.coords.latitude, lon: p.coords.longitude, precision_m: Math.round(p.coords.accuracy) };
+        try {
+          // La dirección aproximada de esas coordenadas (geocodificado inverso de OSM).
+          const rg = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=es&lat=${g.lat}&lon=${g.lon}`);
+          const j = (await rg.json()) as { display_name?: string };
+          if (j?.display_name) g.direccion = String(j.display_name).slice(0, 300);
+        } catch { /* sin dirección: las coordenadas bastan */ }
+        return g;
+      } catch { return null; }
+    })();
     const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
       reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
-      gps: gps.current });
+      gps });
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
     onFirmado();
