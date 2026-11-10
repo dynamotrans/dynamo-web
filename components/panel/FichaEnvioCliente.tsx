@@ -19,6 +19,7 @@ import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio } from './CambiosEnvio';
+import { Secc } from './ficha/comun';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { RevisionCliente, SelloPrecio, type Revision } from './RevisionPrecio';
 import Historial from './Historial';
@@ -89,6 +90,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const [proponer, setProponer] = useState(false);
   const caducado = porAceptar && e.precio_caduca_en && new Date(e.precio_caduca_en) < new Date();
   const cancelable = ['borrador', 'programado'].includes(e.estado);
+  // SIEMPRE todo plegado al abrir (usuario, 2026-11-10), como la ficha de Dynamo.
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
+  const toggle = (k: string) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   async function hacer(texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) {
     setTrabajando(texto); setAviso(null);
@@ -212,7 +216,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         </div>
       )}
 
-      <h4 className="modal-section-title">Solicitud</h4>
+      <Secc k="solicitud" titulo="Solicitud" abiertas={abiertas} toggle={toggle}
+        resumen={<>creado {fecha(e.creado_en)} · {e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</>}>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Nº de envío">#{e.referencia_gx}</Celda>
         <Celda l="Tu referencia">{e.referencia_cliente || '—'}</Celda>
@@ -225,9 +230,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
         {e.discrecion_comercial && <Celda l="Discreción comercial" span>Activada: el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
       </div></div>
+      </Secc>
 
-      {!manual && !pendientePrecio && !porAceptar && e.estado !== 'cancelado' && <>
-        <h4 className="modal-section-title">Transporte</h4>
+      {!manual && !pendientePrecio && !porAceptar && e.estado !== 'cancelado' && (
+        <Secc k="transporte" titulo="Transporte" abiertas={abiertas} toggle={toggle}
+          resumen={e.matricula_camion ? <>{e.matricula_camion}{e.conductor_nombre ? ` · ${e.conductor_nombre}` : ''}</> : 'Sin camión todavía'}>
         <div className="det-block"><div className="modal-info-grid">
           <Celda l="Camión">{e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : <Pend />}{e.matricula_remolque ? <> · <span className="dtc-mat">{e.matricula_remolque}</span></> : null}</Celda>
           <Celda l="Conductor">{e.conductor_nombre || (e.estado === 'entregado' ? '—' : <Pend />)}</Celda>
@@ -236,9 +243,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
               : e.conductor_telefono ? <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a> : <Pend />}
           </Celda>
         </div></div>
-      </>}
+        </Secc>
+      )}
 
-      <h4 className="modal-section-title">Ruta</h4>
+      <Secc k="ruta" titulo="Ruta" extra={paradas.length} abiertas={abiertas} toggle={toggle}
+        resumen={`${recogidas[0]?.poblacion ?? ''} → ${entregas[entregas.length - 1]?.poblacion ?? ''}`}>
       <div className="det-ruta">
         {[...recogidas.map((p, i) => ({ p, cls: 'rec', num: i + 1, label: `Recogida ${i + 1}` })), ...entregas.map((p, i) => ({ p, cls: 'ent', num: i + 1, label: `Entrega ${i + 1}` }))].map(({ p, cls, num, label }) => (
           <div key={p.id} className="det-punto">
@@ -251,8 +260,10 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           </div>
         ))}
       </div>
+      </Secc>
 
-      <h4 className="modal-section-title">Mercancía</h4>
+      <Secc k="mercancia" titulo="Mercancía" abiertas={abiertas} toggle={toggle}
+        resumen={[e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas), e.descripcion_mercancia].filter(Boolean).join(' · ')}>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
         <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
@@ -260,9 +271,12 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
         {e.estado !== 'cancelado' && <DatosCmr envioId={e.id} puedeEditar={['borrador', 'programado', 'hacia_la_carga'].includes(e.estado)} bloquearSiFirmado />}
       </div></div>
+      </Secc>
 
-      {!porAceptar && <>
-        <h4 className="modal-section-title">Precio</h4>
+      {!porAceptar && (
+        <Secc k="precio" titulo="Precio" abiertas={abiertas} toggle={toggle}
+          resumen={manual ? (e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'sin anotar')
+            : pc != null ? `${euros(pc)} + IVA` : pendientePrecio ? 'calculando' : 'pendiente'}>
         <div className="det-block">
           {manual ? (
             <div className="modal-info-grid"><Celda l="Precio acordado con tu transportista (sin IVA)" span>{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</Celda></div>
@@ -275,32 +289,37 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
             </div>
           )}
         </div>
-      </>}
+        </Secc>
+      )}
 
-      {!pendientePrecio && !porAceptar && <>
-        <h4 className="modal-section-title">Documentos</h4>
+      {!pendientePrecio && !porAceptar && (
+        <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="albarán y CMR firmado">
         <div className="det-block">
           <Documentos dueno={{ campo: 'envio_id', id: e.id }} tipos={['albaran', 'cmr_firmado', 'otro']} editable={false}
             ayuda={<>El albarán y el CMR firmado aparecen aquí en cuanto los tengamos.</>} />
         </div>
-      </>}
+        </Secc>
+      )}
 
       {e.valoracion?.puede && <ValorarTransportista envio={e.id} v={e.valoracion} onHecho={() => refrescar()} />}
 
-      {!manual && e.estado !== 'cancelado' && etapas.length > 0 && <>
-        <h4 className="modal-section-title">Seguimiento</h4>
-        <Etapas etapas={etapas} />
-      </>}
+      {!manual && e.estado !== 'cancelado' && etapas.length > 0 && (
+        <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle} resumen="la ruta en vivo, parada a parada">
+          <Etapas etapas={etapas} />
+        </Secc>
+      )}
 
-      {(e.hitos ?? []).length > 0 && <>
-        <h4 className="modal-section-title">Historial</h4>
-        <div className="pen-envio-sum">
-          {e.hitos.filter((h) => HITOS[h.hito]).map((h) => (
-            <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{HITOS[h.hito]}</span></div>
-          ))}
-        </div>
-      </>}
-      <Historial tabla="envios" id={e.id} />
+      <Secc k="historial" titulo="Historial" abiertas={abiertas} toggle={toggle}
+        extra={(e.hitos ?? []).filter((h) => HITOS[h.hito]).length || undefined}>
+        {(e.hitos ?? []).length > 0 && (
+          <div className="pen-envio-sum">
+            {e.hitos.filter((h) => HITOS[h.hito]).map((h) => (
+              <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{HITOS[h.hito]}</span></div>
+            ))}
+          </div>
+        )}
+        <Historial tabla="envios" id={e.id} />
+      </Secc>
     </Modal>
   );
 }

@@ -19,6 +19,7 @@ import { ESTADOS_ENVIO, FASES_ENVIO, enMarcha, ordinal, type Etapa } from '@/lib
 import Etapas, { nombreEtapa } from './ficha/Etapas';
 import type { EnvioFila } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
+import { Secc } from './ficha/comun';
 
 const FASES: [string, string, string][] = [
   ['hacia_la_carga', 'Voy hacia la carga', 'Yendo a la carga'], ['cargando', 'Estoy cargando', 'Cargando'],
@@ -71,6 +72,9 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
     : idx >= 0 && idx < ORDEN.length - 1 ? FASES.find(([k]) => k === ORDEN[idx + 1]) : null;
   const nombreActual = act ? nombreEtapa(act) : NOMBRE[e.estado] ?? e.estado;
   const activo = idx >= 0 && e.estado !== 'entregado';
+  // SIEMPRE todo plegado al abrir (usuario, 2026-11-10), como las otras fichas.
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
+  const toggle = (k: string) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   async function avanzar(estado: string) {
     setTrabajando('Guardando'); setAviso(null);
@@ -110,7 +114,8 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
         <div className="modal-warn-box"><strong>Discreción comercial:</strong> en la carga no digas a dónde va la mercancía, ni en la entrega de dónde viene.</div>
       )}
 
-      <h4 className="modal-section-title">Viaje</h4>
+      <Secc k="viaje" titulo="Viaje" abiertas={abiertas} toggle={toggle}
+        resumen={<>{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}{e.importe_transportista != null ? <> · <strong>{euros(e.importe_transportista)}</strong></> : null}</>}>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Nº de viaje">#{e.referencia_gx}</Celda>
         <Celda l="Estado">{nombreActual}</Celda>
@@ -121,18 +126,21 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
         <Celda l="Conductor">{e.conductor_nombre ? <>{e.conductor_nombre}{e.conductor_telefono ? ` · ${telBonito(e.conductor_telefono)}` : ''}</> : '—'}</Celda>
         <Celda l="Tu precio (base sin IVA)" span><strong>{e.importe_transportista != null ? euros(e.importe_transportista) : '—'}</strong></Celda>
       </div></div>
+      </Secc>
 
       {activo && (
         <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div>
           Avísanos de cómo va el viaje con el botón de arriba. Si no nos avisas, el estado avanza solo con el horario previsto (abajo); lo que marques manda y desde ahí sigue.
         </div></div>
       )}
-      {etapas.length > 0 && e.estado !== 'cancelado' && <>
-        <h4 className="modal-section-title">Seguimiento</h4>
-        <Etapas etapas={etapas} />
-      </>}
+      {etapas.length > 0 && e.estado !== 'cancelado' && (
+        <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle} resumen="el horario previsto, parada a parada">
+          <Etapas etapas={etapas} />
+        </Secc>
+      )}
 
-      <h4 className="modal-section-title">Ruta</h4>
+      <Secc k="ruta" titulo="Ruta" extra={paradas.length} abiertas={abiertas} toggle={toggle}
+        resumen={`${paradas.find((p) => p.tipo === 'carga')?.poblacion ?? ''} → ${[...paradas].reverse().find((p) => p.tipo === 'descarga')?.poblacion ?? ''}`}>
       <div className="det-ruta">
         {paradas.map((p) => {
           const rec = p.tipo === 'carga';
@@ -167,16 +175,19 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
           );
         })}
       </div>
+      </Secc>
 
-      <h4 className="modal-section-title">Mercancía</h4>
+      <Secc k="mercancia" titulo="Mercancía" abiertas={abiertas} toggle={toggle}
+        resumen={[e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas), e.descripcion_mercancia].filter(Boolean).join(' · ')}>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
         <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
         <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
         <Celda l="Requisitos">{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
       </div></div>
+      </Secc>
 
-      <h4 className="modal-section-title">Documentos</h4>
+      <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="sube aquí el albarán firmado">
       <div className="det-block">
         {/* SIN selector de tipo (usuario, 2026-11-10): lo que sube el transportista aquí es
             el albarán firmado (o su foto) — se registra como albarán, que es lo que miran
@@ -184,6 +195,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
         <Documentos dueno={{ campo: 'envio_id', id: e.id }} tipos={['albaran']} editable={e.estado !== 'cancelado'} sinQuitar
           ayuda={<>Sube aquí el <strong>albarán firmado</strong> (o una foto clara) al entregar: sin él no se puede pagar el viaje. Si algo llega dañado, haz fotos <strong>antes de descargar</strong> y llámanos.</>} />
       </div>
+      </Secc>
     </Modal>
   );
 }

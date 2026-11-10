@@ -21,7 +21,7 @@ import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, archivarPdf } from '@/app/panel/(app)/envios/acciones';
-import { CANALES, Celda, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Vista, enlaceOferta, txtNum } from './ficha/comun';
+import { CANALES, Celda, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
 import { Estado } from './ficha/Estado';
@@ -32,24 +32,6 @@ import { PonerPrecio } from './ficha/PonerPrecio';
 import { Valoracion } from './ficha/Valoracion';
 import { CmrDigital } from './ficha/CmrDigital';
 import { Ofrecer } from './ficha/Ofrecer';
-
-// ---- Sección plegable del acordeón: cerrada enseña su RESUMEN en la misma línea -----
-function Secc({ k, titulo, resumen, extra, abiertas, toggle, children }: {
-  k: string; titulo: React.ReactNode; resumen?: React.ReactNode; extra?: number;
-  abiertas: Set<string>; toggle: (k: string) => void; children: React.ReactNode;
-}) {
-  const open = abiertas.has(k);
-  return (
-    <section className={`ficha-sec${open ? ' open' : ''}`}>
-      <button type="button" className="ficha-sec-head" aria-expanded={open} onClick={() => toggle(k)}>
-        <span className="fsh-chev" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
-        <span className="fsh-t">{titulo}{extra != null ? ` (${extra})` : ''}</span>
-        {!open && resumen ? <span className="fsh-sum">{resumen}</span> : null}
-      </button>
-      {open && <div className="ficha-sec-body">{children}</div>}
-    </section>
-  );
-}
 
 // ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
 function MasAcciones({ children }: { children: React.ReactNode }) {
