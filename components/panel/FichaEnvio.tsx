@@ -7,6 +7,7 @@
 // resumen en la línea. Todo lo vuelve a comprobar el servidor y la base de datos.
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { avisarNavegando } from './CargandoNavegacion';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -37,27 +38,27 @@ import { Ofrecer } from './ficha/Ofrecer';
 // ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
 function MasAcciones({ children }: { children: React.ReactNode }) {
   const [abierto, setAbierto] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!abierto) return;
-    const fuera = (ev: PointerEvent) => { if (ref.current && !ref.current.contains(ev.target as Node)) setAbierto(false); };
     const esc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setAbierto(false); };
-    document.addEventListener('pointerdown', fuera);
     document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', esc); };
+    return () => document.removeEventListener('keydown', esc);
   }, [abierto]);
   // EMERGENTE a lo ancho (usuario, 2026-11-10): velo + panel centrado (hoja inferior en
-  // móvil), en vez del desplegable pequeño pegado al botón.
+  // móvil). En PORTAL sobre <body>: dentro del modal de la ficha (que lleva transform por
+  // su animación) el position:fixed se calcula contra el modal y el panel caía fuera de
+  // la pantalla — solo se veía el velo. El velo cierra, así que no hace falta detectar
+  // clics «fuera».
   return (
-    <div className="ficha-mas" ref={ref}>
+    <div className="ficha-mas">
       <button type="button" className="btn-secondary" aria-haspopup="menu" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>⋯ Más</button>
-      {abierto && <>
+      {abierto && createPortal(<>
         <div className="ficha-mas-backdrop" onClick={() => setAbierto(false)} />
         <div className="ficha-mas-menu" role="menu" onClick={() => setAbierto(false)}>
           <div className="fm-cab"><span>Más acciones</span><button type="button" className="fm-x" aria-label="Cerrar">✕</button></div>
           {children}
         </div>
-      </>}
+      </>, document.body)}
     </div>
   );
 }
