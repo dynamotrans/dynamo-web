@@ -16,12 +16,27 @@ export const TIPOS_DOC: Record<string, string> = {
   seguro_cmr: 'Seguro CMR', tarjeta_transporte: 'Tarjeta de transporte', foto_incidencia: 'Foto', gps_tacografo: 'GPS / tacógrafo',
   hoja_cif: 'Hoja CIF', dni: 'DNI', logo: 'Logo', adjunto: 'Adjunto', otro: 'Otro',
 };
-const MAX_BYTES = 25 * 1024 * 1024;
-const ACEPTA = 'application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif';
-const tamano = (b: number | null) => (b == null ? '' : b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`);
+export const MAX_BYTES = 25 * 1024 * 1024;
+export const ACEPTA = 'application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif';
+export const tamano = (b: number | null) => (b == null ? '' : b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`);
 async function huella(f: File): Promise<string> {
   const h = await crypto.subtle.digest('SHA-256', await f.arrayBuffer());
   return [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+// Sube UN fichero al bucket y registra su fila: lo usan la lista de abajo y los adjuntos
+// elegidos ANTES de crear la ficha (p. ej. reportar incidencia), que se suben al guardar.
+export async function subirDocumentoDirecto(dueno: Dueno, f: File, tipo: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const sb = supabaseNavegador();
+  if (!sb) return { ok: false, error: 'La plataforma no está conectada.' };
+  const r = await rutaDeSubida(dueno, f.name);
+  if (!r.ok) return r;
+  const [{ error: e }, sha] = await Promise.all([
+    sb.storage.from('documentos').upload(r.ruta, f, { contentType: f.type, upsert: false }),
+    huella(f),
+  ]);
+  if (e) return { ok: false, error: `No se ha podido subir «${f.name}»: ${/row-level|policy|403/i.test(e.message) ? 'no tienes permiso' : e.message}.` };
+  return registrarDocumento(dueno, { tipo, ruta: r.ruta, nombre: f.name, mime: f.type, tamano: f.size, sha256: sha, visible_cliente: false });
 }
 
 export default function Documentos({ dueno, tipos, max, conVisibleCliente = false, soloImagen = false, ayuda, editable = true, sinQuitar = false, onCambio }: {
@@ -43,23 +58,14 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
 
   async function subir(lista: FileList | File[]) {
     setError(null);
-    const sb = supabaseNavegador();
-    if (!sb) { setError('La plataforma no está conectada.'); return; }
     let quedan = max ? max - (docs?.length ?? 0) : Infinity;
     for (const f of Array.from(lista)) {
       if (quedan <= 0) { setError(`Como máximo ${max} documentos.`); break; }
       if (f.size > MAX_BYTES) { setError(`«${f.name}» pasa de 25 MB.`); continue; }
       if (!ACEPTA.split(',').includes(f.type) || (soloImagen && !f.type.startsWith('image/'))) { setError(`«${f.name}»: solo ${soloImagen ? 'imágenes' : 'PDF o imágenes (JPG, PNG, WEBP, HEIC)'}.`); continue; }
       setSubiendo(f.name);
-      const r = await rutaDeSubida(dueno, f.name);
-      if (!r.ok) { setError(r.error); break; }
-      const [{ error: e }, sha] = await Promise.all([
-        sb.storage.from('documentos').upload(r.ruta, f, { contentType: f.type, upsert: false }),
-        huella(f),
-      ]);
-      if (e) { setError(`No se ha podido subir «${f.name}»: ${/row-level|policy|403/i.test(e.message) ? 'no tienes permiso' : e.message}.`); continue; }
-      const g = await registrarDocumento(dueno, { tipo, ruta: r.ruta, nombre: f.name, mime: f.type, tamano: f.size, sha256: sha, visible_cliente: false });
-      if (!g.ok) { setError(g.error); continue; }
+      const r = await subirDocumentoDirecto(dueno, f, tipo);
+      if (!r.ok) { setError(r.error); continue; }
       quedan--;
     }
     setSubiendo(null);

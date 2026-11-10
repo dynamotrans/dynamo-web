@@ -4,7 +4,7 @@
 // dashboard.html (pestañas Abiertas · Resueltas · Todas; columnas F. registro ·
 // Descripción · Nº envío · Ref. cliente · F. carga · Ruta · m · Tn · Estado; ventana
 // «Reportar incidencia» con el envío relacionado y su resumen).
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
@@ -13,7 +13,7 @@ import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
 import BarraFiltros from './BarraFiltros';
 import { opcionesFecha } from './FiltrosEnvios';
-import Documentos from './Documentos';
+import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
 import { fecha, ventana, fechaHora, medidasTxt } from '@/lib/formato';
@@ -147,6 +147,23 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [preguntaCancelar, setPreguntaCancelar] = useState(false);
+  // Adjuntos elegidos ANTES de crear la incidencia (usuario, 2026-11-10): foto con la
+  // cámara o galería/archivos; se suben nada más crearla. Si una subida falla, la
+  // incidencia ya existe: idCreada hace que el reintento actualice en vez de duplicar.
+  const [pendientes, setPendientes] = useState<File[]>([]);
+  const [idCreada, setIdCreada] = useState<string | null>(null);
+  const inFoto = useRef<HTMLInputElement>(null);
+  const inGal = useRef<HTMLInputElement>(null);
+  const anadirPendientes = (lista: FileList) => {
+    setError(null);
+    const nuevos: File[] = [];
+    for (const f of Array.from(lista)) {
+      if (f.size > MAX_BYTES) { setError(`«${f.name}» pasa de 25 MB.`); continue; }
+      if (!ACEPTA.split(',').includes(f.type)) { setError(`«${f.name}»: solo PDF o imágenes (JPG, PNG, WEBP, HEIC).`); continue; }
+      nuevos.push(f);
+    }
+    if (nuevos.length) setPendientes((l) => [...l, ...nuevos]);
+  };
   const set = <K extends keyof IncidenciaDatos>(k: K, v: IncidenciaDatos[K]) => setD((x) => ({ ...x, [k]: v }));
 
   async function guardar(cambios: Partial<IncidenciaDatos> = {}, texto?: string) {
@@ -157,9 +174,27 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
     if (!esCliente && !vistaTransportista && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); avisaFaltas(['inc-envio', 'inc-cli']); return; }
     if (esTransportista && !datos.envio_id) { setError('Elige el envío de la incidencia.'); avisaFaltas(['inc-envio']); return; }
     setTrabajando(texto ?? (fila ? 'Guardando incidencia' : 'Creando incidencia'));
-    const r = await guardarIncidencia(fila?.id ?? null, datos);
+    const r = await guardarIncidencia(fila?.id ?? idCreada, datos);
+    if (!r.ok) { setTrabajando(null); setError(r.error); return; }
+    // Los adjuntos elegidos antes de guardar se suben ahora, contra la incidencia recién
+    // creada. Los que fallen se quedan en la lista para reintentar (la incidencia ya existe).
+    if (!fila && pendientes.length) {
+      setIdCreada(r.id);
+      const fallos: File[] = [];
+      let ultimoError = '';
+      for (const f of pendientes) {
+        setTrabajando(`Subiendo «${f.name}»`);
+        const g = await subirDocumentoDirecto({ campo: 'incidencia_id', id: r.id }, f, f.type.startsWith('image/') ? 'foto_incidencia' : 'adjunto');
+        if (!g.ok) { fallos.push(f); ultimoError = g.error; }
+      }
+      setPendientes(fallos);
+      if (fallos.length) {
+        setTrabajando(null);
+        setError(`La incidencia se ha creado, pero no se ha podido subir ${fallos.map((f) => `«${f.name}»`).join(', ')} (${ultimoError}). Vuelve a pulsar el botón para reintentarlo, o quítalos de la lista.`);
+        return;
+      }
+    }
     setTrabajando(null);
-    if (!r.ok) { setError(r.error); return; }
     onHecho();
   }
 
@@ -244,7 +279,41 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       <div className="modal-form-row">
         <label>Adjuntar fotos / documentos</label>
         {fila ? <Documentos dueno={{ campo: 'incidencia_id', id: fila.id }} tipos={esCliente ? ['foto_incidencia', 'adjunto'] : ['foto_incidencia', 'albaran', 'adjunto', 'otro']} editable={!soloLectura} sinQuitar={esCliente} />
-          : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Guarda la incidencia y, al abrirla, podrás adjuntar fotos y documentos.</p>}
+          : <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div className="modal-file-drop" role="button" tabIndex={0} onClick={() => inFoto.current?.click()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inFoto.current?.click(); } }}>
+                <div>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>{' '}
+                  Hacer foto
+                </div>
+              </div>
+              <div className="modal-file-drop" role="button" tabIndex={0} onClick={() => inGal.current?.click()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inGal.current?.click(); } }}>
+                <div>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>{' '}
+                  Galería o archivo
+                </div>
+              </div>
+            </div>
+            <input ref={inFoto} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+              onChange={(e) => { if (e.target.files?.length) anadirPendientes(e.target.files); e.target.value = ''; }} />
+            <input ref={inGal} type="file" multiple accept={ACEPTA} style={{ display: 'none' }}
+              onChange={(e) => { if (e.target.files?.length) anadirPendientes(e.target.files); e.target.value = ''; }} />
+            {pendientes.length > 0 && (
+              <ul className="modal-file-list">
+                {pendientes.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="modal-file-item">
+                    <span className="mfi-ico"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg></span>
+                    <span className="mfi-name">{f.name}</span>
+                    <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>{tamano(f.size)}</span>
+                    <button type="button" className="mfi-del" aria-label={`Quitar ${f.name}`} onClick={() => setPendientes((l) => l.filter((_, j) => j !== i))}>×</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.35rem 0 0' }}>PDF, JPG, PNG, WEBP o HEIC · máx. 25 MB cada uno · se adjuntan al crear la incidencia.</p>
+          </>}
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>{esTransportista
         ? <>La ve el equipo de Dynamo al momento. Si es urgente (daños, el muelle no carga), llama además al <a href={CONTACTO.telHref} style={{ color: 'var(--purple)', fontWeight: 700 }}>{CONTACTO.telefono}</a>. Si hay daños, haz fotos <strong>antes de descargar</strong>.</>
