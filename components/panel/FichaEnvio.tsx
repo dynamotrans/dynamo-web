@@ -153,7 +153,11 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {!manual && !ficha.transportista && e.estado !== 'entregado' && ficha.pago?.estado !== 'pendiente' && (
         <button className="btn-primary" onClick={() => setVista('asignar')}><I d={ICO.camion} />Asignar transportista</button>
       )}
-      <button className="btn-secondary" onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
+      {/* «Cambiar estado» vive DENTRO de Seguimiento (usuario, 2026-11-10); arriba solo
+          queda cuando esa sección no existe (envío manual o sin etapas). */}
+      {!(!cancelado && !manual && ficha.etapas.length > 0) && (
+        <button className="btn-secondary" onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
+      )}
       {/* Un solo «Modificar»: abre el asistente de Nuevo envío con TODO precargado (ruta,
           mercancía, fecha y precio); si no se toca nada que afecte al precio, el precio
           se queda. El envío manual conserva su ventana rápida y su «Cambiar ruta». */}
@@ -298,6 +302,9 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle}
           resumen={<>{ficha.etapas.length} etapas{e.seguimiento_automatico === false ? ' · pausado' : ''}</>}>
           <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} />
+          <div style={{ marginTop: '0.6rem' }}>
+            <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
+          </div>
         </Secc>
       )}
 
