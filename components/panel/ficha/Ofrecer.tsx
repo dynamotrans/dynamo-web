@@ -30,6 +30,7 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
   const [hecho, setHecho] = useState<{ token: string; precio: number } | null>(
     abierta ? { token: abierta.token, precio: Number(abierta.precio) } : null);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoEnlace, setCopiadoEnlace] = useState(false);
   const pv = aNum(precio);
   const bandaEur = pv && banda ? Math.max(10, Math.round((pv * banda) / 100 / 10) * 10) : 0;
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
@@ -60,10 +61,11 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
-          <button className="btn-primary" onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); }}>{copiado ? 'Copiado' : 'Copiar mensaje'}</button>
+          <button className="btn-primary" onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); setCopiadoEnlace(false); }}>{copiado ? 'Copiado' : 'Copiar mensaje'}</button>
+          <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(enlaceOferta(hecho.token)); setCopiadoEnlace(true); setCopiado(false); }}>{copiadoEnlace ? 'Enlace copiado' : 'Copiar enlace'}</button>
           <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
           <a className="btn-secondary" href={`mailto:?subject=${encodeURIComponent(`Envío disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
-          <button className="btn-ghost" onClick={() => { setHecho(null); setCopiado(false); }}>Ofrecer con otro precio…</button>
+          <button className="btn-ghost" onClick={() => { setHecho(null); setCopiado(false); setCopiadoEnlace(false); }}>Ofrecer con otro precio…</button>
         </div>
         <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
           El mensaje no lleva el cliente ni las direcciones: el transportista las ve al aceptar, identificándose con su CIF.
