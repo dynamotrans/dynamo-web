@@ -28,7 +28,7 @@ export default async function PaginaDashboard() {
     const [vivos, todos] = await Promise.all([
       filtrarVista(supabase.from('envios').select('id, referencia_gx, referencia_cliente, estado, fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, ' +
         'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas, descripcion_mercancia, clientes(nombre_visible)', { count: 'exact' }), vista)
-        .in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(3)
+        .in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(2)
         .overrideTypes<(FilaVivo & { clientes: { nombre_visible: string | null } | null })[], { merge: false }>(),
       filtrarVista(supabase.from('envios').select('id', { count: 'exact', head: true }), vista).neq('estado', 'borrador'),
     ]);
@@ -37,14 +37,14 @@ export default async function PaginaDashboard() {
     total = todos.count ?? 0;
   } else if (perfil.rol === 'cliente') {
     const [vivos, todos] = await Promise.all([
-      supabase.rpc('mis_envios', {}, { count: 'exact' }).in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(3),
+      supabase.rpc('mis_envios', {}, { count: 'exact' }).in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(2),
       supabase.rpc('mis_envios', {}, { count: 'exact', head: true }),
     ]);
     filas = vivos.data ?? [];
     activos = vivos.count ?? filas.length;
     total = todos.count ?? 0;
   }
-  const mini: MiniEnvio[] = filas.slice(0, 3).map((x) => ({
+  const mini: MiniEnvio[] = filas.slice(0, 2).map((x) => ({
     id: x.id, referencia_gx: x.referencia_gx, referencia_cliente: x.referencia_cliente, estado: x.estado,
     fecha_carga_desde: x.fecha_carga_real ?? x.fecha_carga_desde, fecha_carga_hasta: x.fecha_carga_real ? null : x.fecha_carga_hasta,
     origen: [x.codigo_postal_origen, x.poblacion_origen].filter(Boolean).join(' '), destino: [x.codigo_postal_destino, x.poblacion_destino].filter(Boolean).join(' '),

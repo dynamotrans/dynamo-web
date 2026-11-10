@@ -1586,7 +1586,7 @@ body.theme-dark .sidebar { background: #060116; }
 /* Fila de 3: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto.
    Selector doble clase: gana a la regla base de .dash-top-row (2 col)
    definida más abajo. */
-.dash-top-row.dash-top-2 { grid-template-columns: 1fr 1fr !important; align-items: start; }
+.dash-top-row.dash-top-2 { grid-template-columns: 1fr 1fr !important; align-items: stretch; }
 .dash-top-row.dash-top-2 .mini-list-card { margin: 0; min-width: 0; }
 @media (max-width: 768px) {
     /* En móvil: botón arriba y la muestra de envíos debajo a lo ancho. */
@@ -2179,6 +2179,21 @@ body.theme-dark .sidebar { background: #060116; }
 /* Nuevo envío (2/3, principal) + Nuevo almacenamiento (1/3, secundario)
    en la misma línea. */
 .dash-cta-stack { display: flex; flex-direction: column; gap: 0.6rem; }
+/* Las 3 filas de botones a la MISMA altura y la columna estirada hasta igualar la
+   tarjeta de envíos de la derecha (usuario, 2026-11-10): una sola rejilla 2×3 donde
+   «Nuevo envío» ocupa la fila 1 entera y las 4 tarjetas entran como hijas directas. */
+@media (min-width: 769px) {
+    .dash-top-2 .dash-left-col { height: 100%; }
+    .dash-top-2 .dash-cta-stack {
+        display: grid; flex: 1; grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 0.6rem;
+    }
+    .dash-top-2 .dash-cta-stack > .dash-cta-purple { grid-column: 1 / -1; }
+    .dash-top-2 .dash-cta-grid { display: contents; }
+}
+/* «Nuevo envío» es la acción principal: texto centrado y más grande. */
+.dash-cta-stack .dash-cta-purple { flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 0.4rem; padding: 0.7rem 1rem; }
+.dash-cta-stack .dash-cta-purple .dash-cta-text h4 { font-size: 1.3rem; }
 .dash-cta-stack .dash-cta, .dash-cta-stack .dash-cta-dd { min-width: 0; width: 100%; }
 .dash-cta-stack .dash-cta-dd { flex: 1 1 0; min-width: 0; position: relative; display: flex; }
 /* "Otras gestiones": MISMO tamaño y layout que «Nuevo envío» (usuario,
