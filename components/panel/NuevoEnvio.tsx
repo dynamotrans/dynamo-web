@@ -608,15 +608,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   // ---- Opciones de los desplegables (las del mockup)
   const optsMl: [string, string][] = [];
-  for (let i = 1; i <= mlMax; i++) optsMl.push([String(i), `${i} ${i === 1 ? 'metro' : 'metros'} (equivale a ${Math.floor(i * 2.5)} europalets o ${Math.floor(i * 2)} palets americanos)`]);
-  if (mlMax === 13) optsMl.push(['13.3', '13,30 metros — tráiler completo (equivale a 33 europalets o 26 palets americanos)']);
+  // Formato corto elegido por el usuario (2026-11-10): «6 metros · ≈15 euro / 12 amer.»
+  for (let i = 1; i <= mlMax; i++) optsMl.push([String(i), `${i} ${i === 1 ? 'metro' : 'metros'} · ≈${Math.floor(i * 2.5)} euro / ${Math.floor(i * 2)} amer.`]);
+  if (mlMax === 13) optsMl.push(['13.3', '13,30 metros · Tráiler completo (33 euro / 26 amer.)']);
   const optsPeso: [string, string][] = [['0.2', 'De 0 a 200 kg'], ['0.4', 'De 200 a 400 kg'], ['0.6', 'De 400 a 600 kg'], ['0.8', 'De 600 a 800 kg'], ['1', 'De 800 kg a 1 tonelada']];
   for (let lo = 1, hi = 3; lo < pesoMax; hi += 2) { if (hi > pesoMax) hi = pesoMax; optsPeso.push([String(hi), `De ${lo} a ${hi} toneladas${hi === pesoMax ? ' (máximo)' : ''}`]); if (hi === pesoMax) break; lo = hi; }
   const mlTxt = optsMl.find(([v]) => v === ml)?.[1] ?? '';
   const pesoTxt = optsPeso.find(([v]) => v === peso)?.[1] ?? '';
   // Resumen de la mercancía del paso 2 en UNA línea (usuario, 2026-11-10): prerrellena el
   // «detalle de mercancía» de cada parada del paso 4 (editable/borrable allí).
-  const mercResumen = [mlTxt.split(' (')[0].split(' — ')[0], paletizada ? 'Paletizada' : 'No paletizada', pesoTxt.split(' (')[0]].filter(Boolean).join(' - ');
+  const mercResumen = [mlTxt.split(' ·')[0], paletizada ? 'Paletizada' : 'No paletizada', pesoTxt.split(' (')[0]].filter(Boolean).join(' - ');
   // La info del sitio va DEBAJO del resumen en el campo; al guardarla de vuelta en la
   // ficha del sitio se quita la línea del resumen (es de ESTE envío, no del sitio).
   const sinResumen = (s: string) => { const x = s.trim(); return mercResumen && x.startsWith(mercResumen) ? x.slice(mercResumen.length).trim() : x; };
@@ -1030,7 +1031,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <div className="sum2-box sum2-azul" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
                   <div className="sum2-grid">
-                    <div className="sum2-cell"><div className="sum2-k">Metros lineales</div><div className="sum2-v">{mlTxt.split(' (')[0]}</div></div>
+                    <div className="sum2-cell"><div className="sum2-k">Metros lineales</div><div className="sum2-v">{ml === '13.3' ? '13,30 metros · Tráiler completo' : mlTxt.split(' ·')[0]}</div></div>
                     <div className="sum2-cell"><div className="sum2-k">Peso</div><div className="sum2-v">{pesoTxt}</div></div>
                     <div className="sum2-cell"><div className="sum2-k">Tipo de carga</div><div className="sum2-v">{forma}</div></div>
                     <div className="sum2-cell"><div className="sum2-k">Tipo</div><div className="sum2-v">{paletizada ? 'Paletizada' : 'No paletizada'}</div></div>
