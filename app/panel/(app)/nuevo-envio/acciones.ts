@@ -10,7 +10,7 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import type { SB } from '@/lib/supabase/cliente';
 import type { Tabla, TablaUpdate } from '@/lib/supabase/tipos';
 import type { SitioOpcion, SitioEditable, EdicionSitio } from '@/components/panel/nuevoEnvio/comun';
-import { gruposDe, type FilaHorario } from '@/lib/horarios';
+import { HORARIO_VERANO_POR_DEFECTO, MMDD, VERANO_GENERICO, gruposDe, type FilaHorario } from '@/lib/horarios';
 
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
@@ -337,15 +337,21 @@ export async function datosEditablesDeSitios(ids: string[]): Promise<Record<stri
   const limpios = [...new Set(ids)].filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 20);
   if (!s?.perfil || !limpios.length) return {};
   const [sit, con, hor] = await Promise.all([
-    s.supabase.from('sitios').select('id, es_almacen_dynamo, tipo, anotaciones, url_google_maps, emails_avisos, mercancia_defecto').in('id', limpios),
+    s.supabase.from('sitios').select('id, es_almacen_dynamo, tipo, anotaciones, url_google_maps, emails_avisos, mercancia_defecto, verano_activo, verano_desde, verano_hasta').in('id', limpios),
     s.supabase.from('contactos').select('sitio_id, id, nombre, telefono, email, es_principal, creado_en').in('sitio_id', limpios),
-    s.supabase.from('sitio_horarios').select('sitio_id, dia_semana, abre, cierra').in('sitio_id', limpios).eq('temporada', 'general'),
+    s.supabase.from('sitio_horarios').select('sitio_id, temporada, dia_semana, abre, cierra').in('sitio_id', limpios),
   ]);
   const out: Record<string, SitioEditable> = {};
-  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], mercancia_defecto: x.mercancia_defecto, contacto: { id: null, nombre: '', telefono: '', email: '' }, contactos: [], horario: [] }; });
+  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], mercancia_defecto: x.mercancia_defecto, contacto: { id: null, nombre: '', telefono: '', email: '' }, contactos: [], horario: [],
+    verano: { activo: !!x.verano_activo, desde: x.verano_desde ?? VERANO_GENERICO.desde, hasta: x.verano_hasta ?? VERANO_GENERICO.hasta, horario: [] } }; });
   // Horario general de cada sitio (filas de día → grupos de la ficha).
-  const porSitio = new Map<string, FilaHorario[]>();
-  (hor.data ?? []).forEach((r) => { const l = porSitio.get(r.sitio_id) ?? []; l.push({ dia_semana: r.dia_semana, abre: r.abre, cierra: r.cierra }); porSitio.set(r.sitio_id, l); });
+  const porSitio = new Map<string, FilaHorario[]>(), porSitioVerano = new Map<string, FilaHorario[]>();
+  (hor.data ?? []).forEach((r) => {
+    const m = r.temporada === 'verano' ? porSitioVerano : porSitio;
+    const l = m.get(r.sitio_id) ?? []; l.push({ dia_semana: r.dia_semana, abre: r.abre, cierra: r.cierra }); m.set(r.sitio_id, l);
+  });
+  porSitioVerano.forEach((filas, sid) => { if (out[sid]) out[sid].verano.horario = gruposDe(filas); });
+  Object.values(out).forEach((x) => { if (!x.verano.horario.length) x.verano.horario = HORARIO_VERANO_POR_DEFECTO; });
   porSitio.forEach((filas, sid) => { if (out[sid]) out[sid].horario = gruposDe(filas); });
   // Contacto principal de cada sitio (el marcado principal; si no, el más antiguo).
   const cont = new Map<string, { id: string; nombre: string; telefono: string; email: string; es_principal: boolean; creado_en: string }[]>();
@@ -396,6 +402,16 @@ export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{
     if (c.horario_tramos?.length) {
       const eh = await s.supabase.rpc('guardar_horario', { p_sitio: c.sitio_id, p_tramos: c.horario_tramos });
       if (eh.error) return { ok: false, error: /se pisan/i.test(eh.error.message) ? 'Hay dos tramos del mismo día del horario que se pisan.' : traducir(eh.error.message) };
+    }
+    // Horario de VERANO (usuario, 2026-11-10): solo llega si se tocó en la tarjeta; mismo
+    // guardado que la ficha de Sitios (activo + fechas + tramos; inactivo = sin tramos).
+    if (c.verano) {
+      if (c.verano.activo && (!MMDD.test(c.verano.desde) || !MMDD.test(c.verano.hasta))) {
+        return { ok: false, error: 'Pon las fechas del horario de verano (desde y hasta).' };
+      }
+      const ev = await s.supabase.rpc('guardar_horario_verano', { p_sitio: c.sitio_id, p_activo: c.verano.activo,
+        p_desde: c.verano.desde, p_hasta: c.verano.hasta, p_tramos: c.verano.activo ? c.verano.tramos : [] });
+      if (ev.error) return { ok: false, error: /se pisan/i.test(ev.error.message) ? 'Horario de verano: hay dos tramos del mismo día que se pisan.' : traducir(ev.error.message) };
     }
     // Contacto principal: teléfono, persona y email. Si no había, se crea; si había, se actualiza.
     const tel = normalizaTel(c.contacto_telefono);

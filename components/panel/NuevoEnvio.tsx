@@ -448,6 +448,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           url_google_maps: f.maps || null,
           mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? (sinResumen(edicSitios[p.k]!.mercancia ?? '') || null) : undefined,
           horario_tramos: tramosDe(f.horario),
+          // El horario de VERANO solo se manda si se tocó en la tarjeta (usuario, 2026-11-10).
+          verano: edicSitios[p.k]?.verano ? { activo: f.verano.activo, desde: f.verano.desde, hasta: f.verano.hasta, tramos: tramosDe(f.verano.horario) } : undefined,
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
       });
@@ -526,6 +528,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           url_google_maps: f.maps || null,
           mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? (sinResumen(edicSitios[p.k]!.mercancia ?? '') || null) : undefined,
           horario_tramos: tramosDe(f.horario),
+          // El horario de VERANO solo se manda si se tocó en la tarjeta (usuario, 2026-11-10).
+          verano: edicSitios[p.k]?.verano ? { activo: f.verano.activo, desde: f.verano.desde, hasta: f.verano.hasta, tramos: tramosDe(f.verano.horario) } : undefined,
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
       });

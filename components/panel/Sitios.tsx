@@ -633,7 +633,7 @@ function SelectorMMDD({ id, valor, onCambio }: { id: string; valor: string; onCa
     </div>
   );
 }
-function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
+export function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
   onCambio: (v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }) => void }) {
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.7rem' }}>

@@ -2,7 +2,7 @@
 
 // Lo que comparten la ficha y sus partes (iconos, celdas, nombres, ayudantes).
 import { paisDe } from '@/lib/paises';
-import { HORARIO_POR_DEFECTO, type GrupoHorario } from '@/lib/horarios';
+import { HORARIO_POR_DEFECTO, HORARIO_VERANO_POR_DEFECTO, VERANO_GENERICO, type GrupoHorario, type Verano } from '@/lib/horarios';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
 export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null; iva?: number | null; nima?: boolean };   // iva: % del cliente · nima: NIMA por defecto (su ficha)
@@ -43,6 +43,7 @@ export type SitioEditable = {
   contacto: { id: string | null; nombre: string; telefono: string; email: string };   // el contacto principal
   contactos: { id: string; nombre: string; telefono: string }[];   // TODOS los que tienen teléfono (principal primero): se listan en la tarjeta del paso 4
   horario: GrupoHorario[];                                             // temporada general
+  verano: Verano;                                                      // horario de verano (activo, fechas y tramos)
 };
 export type DatosSitios = Record<string, SitioEditable>;
 // Lo que el usuario cambia en una ficha de la confirmación (solo lo tocado; lo demás se
@@ -53,44 +54,46 @@ export type DatosSitios = Record<string, SitioEditable>;
 // la tarjeta del paso 4; también va a las anotaciones de la parada.
 // extra: contactos ADICIONALES añadidos desde la tarjeta (usuario, 2026-11-10): se crean
 // en la agenda del sitio al guardar (no principales).
-export type CardEdit = { horario?: GrupoHorario[]; contacto?: string; telefono?: string; contactoEmail?: string; notas?: string; emails?: string; maps?: string; empresa?: string; cita?: boolean; citaHora?: string; citaDetalle?: string; mercancia?: string; extra?: ContactoExtra[] };
+export type CardEdit = { horario?: GrupoHorario[]; verano?: Verano; contacto?: string; telefono?: string; contactoEmail?: string; notas?: string; emails?: string; maps?: string; empresa?: string; cita?: boolean; citaHora?: string; citaDetalle?: string; mercancia?: string; extra?: ContactoExtra[] };
 export type ContactoExtra = { nombre: string; telefono: string; email: string };
 // Lo que se manda al servidor para guardar en la ficha del sitio al crear el envío.
 export type EdicionSitio = {
   sitio_id: string; contacto_id: string | null; contacto_nombre: string; contacto_telefono: string; contacto_email: string;
   anotaciones: string; emails_avisos: string[]; url_google_maps: string | null; mercancia_defecto?: string | null;
   horario_tramos: { dia: number; abre: string; cierra: string }[];
+  verano?: { activo: boolean; desde: string; hasta: string; tramos: { dia: number; abre: string; cierra: string }[] };
   contactos_extra?: ContactoExtra[];
 };
 // Valores efectivos de una ficha: lo que trae el sitio (o el sitio nuevo) con lo tocado encima.
 export type FichaResuelta = {
-  empresa: string; tipo: string | null; horario: GrupoHorario[]; contacto: string; telefono: string; contactoEmail: string;
+  empresa: string; tipo: string | null; horario: GrupoHorario[]; verano: Verano; contacto: string; telefono: string; contactoEmail: string;
   notas: string; emails: string; maps: string; mercancia: string; dynamo: boolean; nuevo: boolean; contacto_id: string | null;
 };
+const VERANO_VACIO: Verano = { activo: false, desde: VERANO_GENERICO.desde, hasta: VERANO_GENERICO.hasta, horario: HORARIO_VERANO_POR_DEFECTO };
 export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit, mercanciaDefecto = ''): FichaResuelta {
   let base: FichaResuelta;
   if (p.sitio) {
     const d = datos[p.sitio.id];
     base = {
       empresa: p.sitio.nombre_empresa, tipo: d?.tipo ?? p.sitio.tipo, nuevo: false, dynamo: !!p.sitio.es_almacen_dynamo,
-      horario: d?.horario.length ? d.horario : HORARIO_POR_DEFECTO,
+      horario: d?.horario.length ? d.horario : HORARIO_POR_DEFECTO, verano: d?.verano ?? VERANO_VACIO,
       contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contactoEmail: d?.contacto.email ?? '', contacto_id: d?.contacto.id ?? null,
       notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '', mercancia: [mercanciaDefecto, d?.mercancia_defecto ?? ''].filter(Boolean).join('\n'),
     };
   } else if (p.nuevo) {
     const n = p.nuevo;
     base = { empresa: n.nombre_empresa, tipo: n.tipo_sitio, nuevo: true, dynamo: false, contacto_id: null,
-      horario: n.horario ?? HORARIO_POR_DEFECTO, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
+      horario: n.horario ?? HORARIO_POR_DEFECTO, verano: VERANO_VACIO, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
   } else {
     // Punto aún sin sitio (ruta a medio rellenar): ficha vacía y SIN horario, para que
     // ningún aviso salte ni nada reviente (antes p.nuevo! con null tumbaba la pantalla).
     base = { empresa: '', tipo: 'almacen_nave', nuevo: true, dynamo: false, contacto_id: null,
-      horario: [], contacto: '', telefono: '', contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
+      horario: [], verano: VERANO_VACIO, contacto: '', telefono: '', contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
   }
   if (!edic) return base;
   return {
     ...base,
-    empresa: edic.empresa ?? base.empresa, horario: edic.horario ?? base.horario,
+    empresa: edic.empresa ?? base.empresa, horario: edic.horario ?? base.horario, verano: edic.verano ?? base.verano,
     contacto: edic.contacto ?? base.contacto, telefono: edic.telefono ?? base.telefono, contactoEmail: edic.contactoEmail ?? base.contactoEmail,
     notas: edic.notas ?? base.notas, emails: edic.emails ?? base.emails, maps: edic.maps ?? base.maps, mercancia: edic.mercancia ?? base.mercancia,
   };
