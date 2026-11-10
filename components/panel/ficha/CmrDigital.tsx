@@ -37,7 +37,10 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
           <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title="Copiar el enlace de firma"
             onClick={() => { navigator.clipboard?.writeText(enlaceCmrUrl(enl.token)); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>{copiado ? 'Copiado ✓' : 'Copiar enlace'}</button>
           <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
-          <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`/cmr/${enl.token}`} target="_blank" rel="noopener"><I d={ICO.ojo} />Abrir</a>
+          {/* El botón grande de arriba ya ABRE la página de firma (usuario, 2026-11-10):
+              aquí va el PDF relleno, que salió de la sección. */}
+          <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`/panel/envios/${ficha.envio.id}/cmr`} target="_blank" rel="noopener"
+             title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."><I d={ICO.ojo} />PDF relleno</a>
         </div>
       ) : (
         <button className="btn-primary" disabled={!!trabajando} onClick={() => hacer('Creando el enlace', () => enlaceCmr(e.id), 'Enlace del CMR creado: cópialo o mándalo por WhatsApp.')}><I d={ICO.doc} />Crear el enlace de nuevo</button>

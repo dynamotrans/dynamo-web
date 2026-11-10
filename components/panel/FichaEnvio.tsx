@@ -122,10 +122,11 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
     </>
   ) : (
     <>
-      {/* eCMR + DeCA relleno EL PRIMERO y siempre a mano (usuario, 2026-11-10): botón
-          destacado en ámbar con el contador de firmas, en verde cuando están todas. */}
-      <a className="btn-primary" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
-         title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."
+      {/* eCMR + DeCA EL PRIMERO y siempre a mano (usuario, 2026-11-10): abre la página
+          de FIRMA (el enlace vivo); sin enlace, el PDF relleno. Ámbar con el contador
+          de firmas, en verde cuando están todas. El PDF vive en la tarjeta del enlace. */}
+      <a className="btn-primary" href={ficha.cmrEnlace ? `/cmr/${ficha.cmrEnlace.token}` : `/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
+         title={ficha.cmrEnlace ? 'Abre la página de firma del CMR: cargador, transportista y destinatario firman desde el móvil.' : 'El CMR relleno tal y como está ahora mismo, con las firmas que haya.'}
          style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
         <I d={ICO.doc} />eCMR + DeCA
         <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
