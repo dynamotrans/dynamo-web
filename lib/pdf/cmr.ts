@@ -232,23 +232,33 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     let qrImg: PDFImage | null = null;
     if (d.deca) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
 
+    // CABECERA moderna (usuario, 2026-11-10): logo de Dynamo, título, nº en pastilla
+    // morada y línea de acento; el bloque DeCA va en un panel claro con el QR dentro.
     l.nuevaPagina();
-    l.texto(l.x0, l.y + 12, 'Registro de firmas / DeCA', 15, { bold: true });
-    l.textoDer(A4.w - l.margen.der, l.y + 12, `CMR Nº ${e.referencia_gx ?? ''}`, 10, { bold: true });
-    l.y += 24;
-    const qrY = l.y, anchoIntro = l.ancho - (qrImg ? 92 : 0);
-    if (qrImg) {
-      l.pag.drawImage(qrImg, { x: A4.w - l.margen.der - 76, y: A4.h - qrY - 76, width: 76, height: 76 });
-      l.textoDer(A4.w - l.margen.der, qrY + 86, 'Escanéalo para verificar en línea', 6.4, { color: COLOR.gris });
+    const cabY = l.y;
+    let xTit = l.x0;
+    if (logo) {
+      const h = 20, w = h * logo.width / logo.height;
+      l.pag.drawImage(logo, { x: l.x0, y: A4.h - cabY - 1 - h, width: w, height: h });
+      xTit = l.x0 + w + 12;
     }
+    l.texto(xTit, cabY + 16, 'Registro de firmas / DeCA', 15, { bold: true, color: COLOR.navy });
+    const num = `CMR Nº ${e.referencia_gx ?? ''}`;
+    const anchoNum = l.medida(num, 9, true) + 16;
+    l.rect(A4.w - l.margen.der - anchoNum, cabY + 1, anchoNum, 20, COLOR.moradoSuave);
+    l.textoDer(A4.w - l.margen.der - 8, cabY + 15, num, 9, { bold: true, color: COLOR.morado });
+    l.y = cabY + 28;
+    l.linea(l.x0, l.y, A4.w - l.margen.der, l.y, COLOR.morado, 1.4);
+    l.y += 8;
     const intro = 'Las casillas 22, 23 y 24 del impreso solo admiten una firma cada una. Esta hoja forma parte del CMR y recoge TODAS las '
       + 'firmas del CMR digital, con su trazo, el documento de quien firma y la fecha y hora del servidor en el momento de firmar.';
-    for (const ln of l.partir(intro, 8, anchoIntro)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
+    for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
     if (d.deca) {
       l.y += 6;
-      l.texto(l.x0, l.y + 9, 'Este e-CMR hace también de documento de control (DeCA, Orden FOM/2861/2012) en los tramos nacionales.', 7.6, { bold: true });
-      l.y += 11;
       const nUnico = d.deca.url.split('/').pop() ?? '';
+      const anchoTxt = l.ancho - (qrImg ? 100 : 0) - 20;
+      const partes: { t: string; s: number; b: boolean }[] = [];
+      for (const ln of l.partir('Este e-CMR hace también de documento de control (DeCA, Orden FOM/2861/2012) en los tramos nacionales.', 7.6, anchoTxt)) partes.push({ t: ln, s: 7.6, b: true });
       const lineas = [
         `Nº único del documento: ${nUnico} · creado el ${fechaHora(d.deca.creado_en)} · verificación en línea: ${d.deca.url}`,
         ...(!manual ? [`Cargador contractual: ${D.razon_social} · NIF ${D.cif}`
@@ -256,10 +266,17 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
             ? ` — Transportista efectivo: ${[d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).join(' · ')}` : '')
           + (e.matricula_camion ? ` · Matr. ${e.matricula_camion}` : '')] : []),
       ];
-      for (const tx of lineas) for (const ln of l.partir(tx, 7.2, anchoIntro)) { l.texto(l.x0, l.y + 8, ln, 7.2, { color: COLOR.gris }); l.y += 10; }
-    }
-    if (qrImg) l.y = Math.max(l.y, qrY + 94);
-    l.y += 8;
+      for (const tx of lineas) for (const ln of l.partir(tx, 7.2, anchoTxt)) partes.push({ t: ln, s: 7.2, b: false });
+      const altoPanel = Math.max(partes.length * 10 + 16, qrImg ? 96 : 0);
+      l.rect(l.x0, l.y, l.ancho, altoPanel, COLOR.fondo, COLOR.grisClaro);
+      if (qrImg) {
+        l.pag.drawImage(qrImg, { x: A4.w - l.margen.der - 80, y: A4.h - (l.y + 8) - 70, width: 70, height: 70 });
+        l.textoDer(A4.w - l.margen.der - 10, l.y + 87, 'Escanéalo para verificar', 6.2, { color: COLOR.gris });
+      }
+      let yTxt = l.y + 8;
+      for (const p of partes) { l.texto(l.x0 + 10, yTxt + p.s, p.t, p.s, { bold: p.b, color: p.b ? COLOR.navy : COLOR.gris }); yTxt += 10; }
+      l.y += altoPanel + 8;
+    } else { l.y += 4; }
     if (!firmas.length) {
       l.texto(l.x0, l.y + 10, 'Aún no hay ninguna firma registrada.', 9, { bold: true });
       for (const ln of l.partir('Cada firma quedará aquí con su trazo, la casilla y parada que firma, el nombre y documento de quien firma, la fecha y hora del servidor, su ubicación GPS con la dirección (si da permiso) y la huella SHA-256 de lo firmado.', 8, l.ancho)) {
@@ -278,15 +295,20 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     // Sin tope de firmas (usuario, 2026-11-10): si no caben (más destinos, extras…),
     // siguen en otra hoja, que lleva su propia cabecera de continuación.
     const cabCont = () => {
-      l.texto(l.x0, l.y + 10, 'Registro de firmas / DeCA (continuación)', 11, { bold: true });
-      l.textoDer(A4.w - l.margen.der, l.y + 10, `CMR Nº ${e.referencia_gx ?? ''}`, 8.5, { bold: true });
-      l.y += 22;
+      if (logo) { const h = 14, w = h * logo.width / logo.height; l.pag.drawImage(logo, { x: l.x0, y: A4.h - l.y - h, width: w, height: h }); }
+      l.texto(l.x0 + (logo ? 14 * logo.width / logo.height + 10 : 0), l.y + 11, 'Registro de firmas / DeCA (continuación)', 11, { bold: true, color: COLOR.navy });
+      l.textoDer(A4.w - l.margen.der, l.y + 11, `CMR Nº ${e.referencia_gx ?? ''}`, 8.5, { bold: true, color: COLOR.morado });
+      l.y += 18;
+      l.linea(l.x0, l.y, A4.w - l.margen.der, l.y, COLOR.morado, 1);
+      l.y += 8;
     };
     for (const f of lista) {
       const pgAntes = l.pag;
       l.sitio(ALTO + 6);
       if (l.pag !== pgAntes) cabCont();
       l.rect(l.x0, l.y, l.ancho, ALTO, COLOR.blanco, COLOR.grisClaro);
+      // Barra de acento: morada (impresa en su casilla), gris (solo registro), ámbar (extra).
+      l.rect(l.x0, l.y, 3, ALTO, f.extra ? COLOR.ambar : enCasilla.has(f) ? COLOR.morado : COLOR.gris);
       const img = trazos.get(f);
       if (img) {
         const k = Math.min(126 / img.width, (ALTO - 10) / img.height), w = img.width * k, h = img.height * k;
