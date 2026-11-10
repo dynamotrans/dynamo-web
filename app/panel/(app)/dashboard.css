@@ -2206,6 +2206,24 @@ body.theme-dark .dash-cta-chev { background: rgba(255,255,255,0.06); border-colo
 .dash-cta-green .dash-cta-icon { background: var(--gray-100); color: var(--gray-700); }
 .dash-cta-green .dash-cta-text, .dash-cta-green .dash-cta-text h4 { color: var(--navy); }
 .dash-cta-green .dash-cta-text p { color: var(--gray-500); }
+/* «Otras gestiones» en cuadrícula 2×2 (usuario, 2026-11-10): las tres acciones del
+   antiguo desplegable + Administración, como tarjetas blancas siempre a la vista. */
+.dash-cta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.dash-cta-mini {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.45rem; text-align: center; padding: 0.8rem 0.5rem; border-radius: 14px;
+    background: #fff; border: 1px solid var(--gray-200);
+    color: var(--navy); font-weight: 700; font-size: var(--fs-m); line-height: 1.25;
+    text-decoration: none; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.dash-cta-mini:hover { transform: translateY(-1px); border-color: var(--purple); box-shadow: 0 4px 14px rgba(51,0,204,0.08); }
+.dash-cta-mini-ico {
+    width: 38px; height: 38px; border-radius: 10px; flex: none;
+    background: rgba(51,0,204,0.08); color: var(--purple);
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.dash-cta-mini-ico svg { width: 20px; height: 20px; }
+
 /* ===== Formulario "Nuevo almacenamiento" ===== */
 .alm-form { max-width: 760px; }
 /* ===== Formularios en 2 columnas (crear/confirmar envío y almacén) =====

@@ -3,7 +3,7 @@
 // Dashboard del cliente, copiado de #sec-dashboard de dashboard.html: guía de primeros
 // pasos (cuenta sin envíos), botones «Nuevo envío» y «Otras gestiones», «Mis envíos»,
 // Recomiéndanos / Puntúanos en Google, muro de clientes, servicios y flota.
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Modal from './Modal';
 import { fecha, ventana, medidasTxt } from '@/lib/formato';
@@ -55,17 +55,9 @@ function Logo({ l }: { l: [string, string, string] }) {
 }
 
 export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }: { envios: MiniEnvio[]; activos: number; dynamo: boolean; sinEnvios: boolean }) {
-  const [menu, setMenu] = useState(false);
   const [ventanaAbierta, setVentana] = useState<null | 'recomendar' | 'google' | number>(null);
   const [texto, setTexto] = useState(RECOMIENDA_MSG);
   const [copiado, setCopiado] = useState(false);
-  const dd = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!menu) return;
-    const fuera = (e: MouseEvent) => { if (dd.current && !dd.current.contains(e.target as Node)) setMenu(false); };
-    document.addEventListener('mousedown', fuera);
-    return () => document.removeEventListener('mousedown', fuera);
-  }, [menu]);
   const filas = [0, 1, 2].map((r) => LOGOS.filter((_, i) => i % 3 === r));
 
   return (
@@ -95,17 +87,13 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
               <div className="dash-cta-icon"><Svg size={28}><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></div>
               <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicita un transporte</p></div>
             </Link>
-            <div className={`btn-dropdown dash-cta-dd${menu ? ' open' : ''}`} ref={dd}>
-              <a className="dash-cta dash-cta-green" href="#" aria-haspopup="menu" aria-expanded={menu} onClick={(e) => { e.preventDefault(); setMenu((v) => !v); }}>
-                <div className="dash-cta-icon"><Svg size={28}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></Svg></div>
-                <div className="dash-cta-text"><h4>Otras gestiones</h4><p>Reportar incidencia, crear sitio y más…</p></div>
-                <span className="dash-cta-chev" aria-hidden="true"><svg className="btn-dropdown-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
-              </a>
-              <div className="btn-dropdown-menu" role="menu" hidden={!menu}>
-                <Link role="menuitem" href="/panel/incidencias?abrir=1"><Svg><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></Svg> Reportar incidencia</Link>
-                <Link role="menuitem" href="/panel/sitios"><Svg><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></Svg> Crear sitio</Link>
-                {dynamo && <Link role="menuitem" href="/panel/almacenamientos?abrir=1"><Svg><path d="M3 21V9l9-5 9 5v12" /><path d="M3 21h18" /><rect x="8" y="13" width="8" height="8" /></Svg> Nuevo almacenamiento</Link>}
-              </div>
+            {/* «Otras gestiones» en cuadrícula de 4 (usuario, 2026-11-10): las tres
+                acciones del antiguo desplegable + Administración, siempre a la vista. */}
+            <div className="dash-cta-grid">
+              <Link className="dash-cta-mini" href="/panel/incidencias?abrir=1"><span className="dash-cta-mini-ico"><Svg><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></Svg></span><span>Reportar incidencia</span></Link>
+              <Link className="dash-cta-mini" href="/panel/sitios"><span className="dash-cta-mini-ico"><Svg><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></Svg></span><span>Crear sitio</span></Link>
+              <Link className="dash-cta-mini" href="/panel/almacenamientos?abrir=1"><span className="dash-cta-mini-ico"><Svg><path d="M3 21V9l9-5 9 5v12" /><path d="M3 21h18" /><rect x="8" y="13" width="8" height="8" /></Svg></span><span>Nuevo almacenamiento</span></Link>
+              <Link className="dash-cta-mini" href="/panel/administracion"><span className="dash-cta-mini-ico"><Svg><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="16" y2="17" /><line x1="8" y1="9" x2="10" y2="9" /></Svg></span><span>Administración</span></Link>
             </div>
           </div>
         </div>
