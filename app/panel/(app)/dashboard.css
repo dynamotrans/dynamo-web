@@ -3490,6 +3490,9 @@ button.ptar-route-tag:hover { filter: brightness(0.92); }
 .ptar-urg-list { font-weight: 800; }
 .ptar-urg-list li { white-space: normal; }
 /* Buscador de 3 niveles: chips Guardado / Google / Dirección */
+/* El buscador de «Nuevo sitio» vive en un modal con scroll: su desplegable va EN FLUJO
+   (empuja la ficha hacia abajo) para que el modal no lo recorte (usuario, 2026-11-10). */
+.ptar-sug.ptar-sug-flujo { position: static; margin-top: 6px; max-height: 320px; }
 .ptar-sug .sug-chip { float: right; margin-left: 0.6rem; font-size: var(--fs-s); font-weight: 700; padding: 0.05rem 0.45rem; border-radius: 999px; }
 .ptar-sug .sug-chip-saved  { background: rgba(34,165,90,0.12); color: #15803d; }
 .ptar-sug .sug-chip-google { background: rgba(66,133,244,0.12); color: #1a73e8; }

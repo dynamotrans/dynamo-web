@@ -467,7 +467,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
               onChange={(e) => { setBq(e.target.value); setAvisoParecido(null); }}
               onFocus={() => setSugAbierto(true)} onBlur={() => setTimeout(() => setSugAbierto(false), 150)} />
             {sugAbierto && bq.trim().length >= 2 && (
-              <ul className="ptar-sug" style={{ zIndex: 1300 }}>
+              <ul className="ptar-sug ptar-sug-flujo">
                 {sug.ag.length === 0 && sug.go.length === 0 && sug.dir.length === 0 && (
                   <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Sin resultados con ese nombre.</li>
                 )}
