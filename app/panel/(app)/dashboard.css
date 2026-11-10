@@ -2127,8 +2127,12 @@ body.theme-dark .sidebar { background: #060116; }
     .ptar-hover-tip:hover .ptar-tip-pop { opacity: 1; visibility: visible; transform: translateY(0); }
 }
 /* Discreción comercial (confirmación de envío) */
-.ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
-.ptar-discrecion /* La casilla legal sin marcar tras pulsar «Confirmar envío»: casilla y texto en rojo. */
+/* Discreción comercial (paso 1): caja a TODO el ancho de la rejilla del formulario
+   (antes caía en una de las 2 columnas y quedaba descompensada con la nota verde),
+   con la casilla centrada respecto al texto. */
+.ptar-discrecion { grid-column: 1 / -1; border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.75rem 0.9rem; background: var(--gray-50); margin-bottom: 0; }
+.ptar-discrecion .ptar-confirm-check { margin: 0; align-items: center; }
+/* La casilla legal sin marcar tras pulsar «Confirmar envío»: casilla y texto en rojo. */
 .ptar-confirm-check.ptar-check-err, .ptar-confirm-check.ptar-check-err strong { color: #b42318; }
 .ptar-confirm-check.ptar-check-err input {
     outline: 2px solid #dc2626; outline-offset: 2px; border-radius: 4px; accent-color: #dc2626;
@@ -4515,7 +4519,7 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 #sec-nueva-carga[data-entry-mode="manual"] .ptar-verif-note,
 #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-terms-warn] { display: none !important; }
 /* Nota de confianza: transportistas verificados y con documentación en vigor. */
-.ptar-verif-note { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.7rem 0; padding: 0.6rem 0.75rem; background: rgba(34,165,90,0.09); border: 1px solid rgba(34,165,90,0.4); border-radius: 10px; font-size: var(--fs-m); line-height: 1.5; color: #0f6b3a; }
+.ptar-verif-note { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.7rem 0; padding: 0.6rem 0.75rem; background: rgba(34,165,90,0.09); border: 1px solid rgba(34,165,90,0.4); border-radius: 10px; font-size: var(--fs-m); line-height: 1.5; color: #0f6b3a; }
 .ptar-verif-note svg { flex: none; color: var(--green-dark); margin-top: 1px; }
 .ptar-verif-note strong { color: #0f6b3a; }
 #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-final-confirm] { opacity: 1; pointer-events: auto; }
