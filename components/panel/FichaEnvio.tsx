@@ -158,13 +158,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {!(!cancelado && !manual && ficha.etapas.length > 0) && (
         <button className="btn-secondary" onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
       )}
-      {/* Un solo «Modificar»: abre el asistente de Nuevo envío con TODO precargado (ruta,
-          mercancía, fecha y precio); si no se toca nada que afecte al precio, el precio
-          se queda. El envío manual conserva su ventana rápida y su «Cambiar ruta». */}
-      {manual
-        ? <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
-        : <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar</a>}
       <MasAcciones>
+        {/* Un solo «Modificar» (dentro de «Más», usuario 2026-11-10): abre el asistente de
+            Nuevo envío con TODO precargado; si no se toca nada que afecte al precio, el
+            precio se queda. El envío manual conserva su ventana rápida y su «Cambiar ruta». */}
+        {manual
+          ? <button className="fm-item" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
+          : <a className="fm-item" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar</a>}
         {!manual && ficha.transportista && e.estado !== 'entregado' && (
           <button className="fm-item" onClick={() => setVista('asignar')}><I d={ICO.camion} />Cambiar transportista</button>
         )}
