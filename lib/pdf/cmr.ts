@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import QRCode from 'qrcode';
 import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
 import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
@@ -119,9 +120,10 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       const nomLineas = l.partir(porteador.nombre, 8.4, 26 * 8.4 * 0.5, true).length;
       dato(438, 190, [{ t: porteador.nombre, s: 8.4 }], 26);
       dato(438, 190 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
-      // 17 Porteadores sucesivos: el transportista efectivo, su camión y su conductor
+      // 17 Porteadores sucesivos: el transportista EFECTIVO con su CIF (DeCA: debe constar
+      // frente al cargador contractual de la 16), su camión y su conductor.
       dato(438, 236, [
-        { t: manual ? '' : d.porteador?.razon_social ?? '—', s: 7.8, max: 2 },
+        { t: manual ? '' : [d.porteador?.razon_social, d.porteador?.cif && `CIF ${d.porteador.cif}`].filter(Boolean).join(' · ') || '—', s: 7.8, max: 2 },
         { t: [e.matricula_camion && `Matr. ${e.matricula_camion}`, e.matricula_remolque && `Rem. ${e.matricula_remolque}`].filter(Boolean).join(' · '), s: 7.4, b: false },
         { t: e.conductor_nombre ? `Conductor: ${e.conductor_nombre}` : '', s: 7.4, b: false },
       ], 34);
@@ -184,6 +186,14 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
           dato(452, 752, [{ t: fechaDe(c.f.firmado_en), s: 7.4 }], 20);
         }
       }
+
+      // DeCA (Orden FOM/2861/2012): junto a la casilla de firma del porteador (23) debe
+      // constar el CARGADOR CONTRACTUAL (Dynamo, con su NIF) además del transportista
+      // efectivo con el suyo (usuario, 2026-11-10). Línea pequeña bajo las casillas de firma.
+      if (!manual) {
+        const efect = [d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).join(' · ');
+        dato(40, 791, [{ t: `Cargador contractual: ${D.razon_social} · NIF ${D.cif}${efect ? ` — Transportista efectivo: ${efect}` : ''}`, s: 5.6, b: false, c: COLOR.gris, max: 1 }], 190);
+      }
     }
   }
 
@@ -205,13 +215,38 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     const lista = [...firmas].sort((x, y) => (x.extra ? 1 : 0) - (y.extra ? 1 : 0) || (ordenRol[x.rol] ?? 9) - (ordenRol[y.rol] ?? 9)
       || idx(x) - idx(y) || x.firmado_en.localeCompare(y.firmado_en));
 
+    // DeCA (Orden FOM/2861/2012, art. 6): el QR con el enlace https ÚNICO del documento va
+    // DENTRO del PDF, con su nº único y la fecha y hora de creación registrada en la BD.
+    let qrImg: PDFImage | null = null;
+    if (d.deca) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
+
     l.nuevaPagina();
     l.texto(l.x0, l.y + 12, 'Registro de firmas', 15, { bold: true });
     l.textoDer(A4.w - l.margen.der, l.y + 12, `CMR Nº ${e.referencia_gx ?? ''}`, 10, { bold: true });
     l.y += 24;
+    const qrY = l.y, anchoIntro = l.ancho - (qrImg ? 92 : 0);
+    if (qrImg) {
+      l.pag.drawImage(qrImg, { x: A4.w - l.margen.der - 76, y: A4.h - qrY - 76, width: 76, height: 76 });
+      l.textoDer(A4.w - l.margen.der, qrY + 86, 'Escanéalo para verificar en línea', 6.4, { color: COLOR.gris });
+    }
     const intro = 'Las casillas 22, 23 y 24 del impreso solo admiten una firma cada una. Esta hoja forma parte del CMR y recoge TODAS las '
       + 'firmas del CMR digital, con su trazo, el documento de quien firma y la fecha y hora del servidor en el momento de firmar.';
-    for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
+    for (const ln of l.partir(intro, 8, anchoIntro)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
+    if (d.deca) {
+      l.y += 6;
+      l.texto(l.x0, l.y + 9, 'Este e-CMR hace también de documento de control (DeCA, Orden FOM/2861/2012) en los tramos nacionales.', 7.6, { bold: true });
+      l.y += 11;
+      const nUnico = d.deca.url.split('/').pop() ?? '';
+      const lineas = [
+        `Nº único del documento: ${nUnico} · creado el ${fechaHora(d.deca.creado_en)} · verificación en línea: ${d.deca.url}`,
+        ...(!manual ? [`Cargador contractual: ${D.razon_social} · NIF ${D.cif}`
+          + ([d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).length
+            ? ` — Transportista efectivo: ${[d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).join(' · ')}` : '')
+          + (e.matricula_camion ? ` · Matr. ${e.matricula_camion}` : '')] : []),
+      ];
+      for (const tx of lineas) for (const ln of l.partir(tx, 7.2, anchoIntro)) { l.texto(l.x0, l.y + 8, ln, 7.2, { color: COLOR.gris }); l.y += 10; }
+    }
+    if (qrImg) l.y = Math.max(l.y, qrY + 94);
     l.y += 8;
     if (!firmas.length) {
       l.texto(l.x0, l.y + 10, 'Aún no hay ninguna firma registrada.', 9, { bold: true });

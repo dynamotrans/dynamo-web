@@ -5,7 +5,7 @@ import { cmr } from './cmr';
 
 // La orden de carga (o de transporte, si es manual) y el CMR de un envío, como los ve
 // Dynamo. La usan el visor (/panel/envios/<id>/<documento>) y «Guardar copia» de la ficha.
-export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-carga' | 'cmr', usuarioId: string):
+export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-carga' | 'cmr', usuarioId: string, origen?: string):
   Promise<{ bytes: Uint8Array; nombre: string; manual: boolean } | { error: string }> {
   const { datos, error } = await cargarDatosDoc(sb, id, usuarioId);
   if (!datos) return { error: error ?? 'No se ha podido leer el envío.' };
@@ -13,7 +13,12 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
   datos.dynamo = await datosDynamo(sb);
   if (documento === 'cmr') {
     const { data: rs } = await sb.from('cmr_reservas').select('rol, texto').eq('envio_id', id).order('creado_en');
-    bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string }[] });
+    // El enlace vivo del CMR digital hace de nº único del DeCA: va en el PDF como QR con
+    // su fecha de creación (Orden FOM/2861/2012, art. 6).
+    const { data: enl } = await sb.from('cmr_enlaces').select('token, creado_en').eq('envio_id', id).eq('revocado', false)
+      .order('creado_en', { ascending: false }).limit(1).maybeSingle();
+    bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string }[],
+      deca: enl ? { url: `${origen ?? 'https://www.dynamotrans.com'}/cmr/${enl.token}`, creado_en: enl.creado_en } : null });
   }
   else {
     const { data: ps } = await sb.from('parametros').select('clave, valor')

@@ -400,7 +400,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </Secc>
       )}
 
-      <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle}
+      <Secc k="documentos" titulo="e-CMR / DeCA / Documentos" abiertas={abiertas} toggle={toggle}
         resumen={<>{firmasHechas}/{firmasTotal} firmas CMR{firmasHechas >= firmasTotal ? ' ✓' : ''} · adjuntos</>}>
         <div className="det-block">
           {/* «Ver CMR» (usuario, 2026-11-09): el CMR relleno TAL CUAL está ahora (vacío, con una,
@@ -410,13 +410,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
             <a className="btn-ghost" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
                style={{ textDecoration: 'none' }} title="El CMR relleno tal y como está ahora mismo, con las firmas que haya.">
-              <I d={ICO.doc} />Ver/Descargar CMR relleno
+              <I d={ICO.doc} />Ver/Descargar eCMR + DeCA relleno
               <span style={{ marginLeft: '0.45rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800,
                 background: firmasHechas >= firmasTotal ? 'rgba(34,165,90,0.14)' : 'rgba(217,119,6,0.16)', color: firmasHechas >= firmasTotal ? 'var(--green-dark)' : '#b45309' }}>
                 {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
               </span>
             </a>
-            {firmasHechas >= firmasTotal && <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, color: 'var(--green-dark)' }}>CMR completamente firmado</span>}
+            {firmasHechas >= firmasTotal && <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, color: 'var(--green-dark)' }}>eCMR completamente firmado</span>}
             {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
               <button type="button" className="btn-ghost" disabled={!!trabajando}
                 onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>

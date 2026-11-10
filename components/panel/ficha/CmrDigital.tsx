@@ -21,11 +21,11 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
   // CMR en uno»): sub-bloque con el enlace de firma y el estado, junto al botón del PDF.
   return <>
     <div className="det-block" style={{ margin: '0 0 0.8rem' }}>
-      <p style={{ margin: '0 0 0.5rem', fontSize: 'var(--fs-m)', fontWeight: 800, color: 'var(--navy)' }}>CMR digital — firma desde el móvil</p>
+      <p style={{ margin: '0 0 0.5rem', fontSize: 'var(--fs-m)', fontWeight: 800, color: 'var(--navy)' }}>eCMR + DeCA (el eCMR sirve como DeCA) — firma desde el móvil</p>
       {/* El enlace nace CON el envío (usuario, 2026-11-09): los avisos automáticos se lo
           mandarán a las partes, y aquí quedan siempre los botones para reenviarlo a mano.
           El botón de crear solo aparece si se retiró (o caducó) el enlace. */}
-      <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>El enlace se crea solo con el envío, para que <strong>cargador, transportista y destinatario</strong> firmen el CMR con el dedo desde el móvil, sin crear cuenta. Cada firma queda con su documento, la hora del servidor y desde dónde se firmó, y sale en el <strong>CMR relleno</strong>. Desde aquí puedes reenviárselo a quien haga falta.</p>
+      <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>El enlace se crea solo con el envío, para que <strong>cargador, transportista y destinatario</strong> firmen el CMR con el dedo desde el móvil, sin crear cuenta. Cada firma queda con su documento, la hora del servidor y desde dónde se firmó, y sale en el <strong>CMR relleno</strong>, que lleva dentro el QR con el nº único del documento y hace de <strong>DeCA</strong> (documento de control) en los tramos nacionales. Desde aquí puedes reenviárselo a quien haga falta.</p>
       {enl ? (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(enlaceCmrUrl(enl.token)); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>{copiado ? 'Enlace copiado' : 'Copiar enlace'}</button>

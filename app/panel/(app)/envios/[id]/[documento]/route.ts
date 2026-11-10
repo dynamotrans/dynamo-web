@@ -45,7 +45,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
   if (!esDynamo(yo.rol)) return texto('No tienes permiso para ver este documento.', 403);
 
-  const r = await pdfDeEnvioDynamo(sb, id, documento as 'orden-de-carga' | 'cmr', user.id);
+  const r = await pdfDeEnvioDynamo(sb, id, documento as 'orden-de-carga' | 'cmr', user.id, new URL(req.url).origin);
   if ('error' in r) return texto(r.error, 404);
   const { bytes, nombre } = r;
   return new Response(Buffer.from(bytes), {
