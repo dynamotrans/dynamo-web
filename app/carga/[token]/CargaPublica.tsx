@@ -285,6 +285,10 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   const [contra, setContra] = useState(false);
   const [precio, setPrecio] = useState(base);
   const [veh, setVeh] = useState({ camion: '', remolque: '', conductor: '', telefono: '' });
+  // El día de carga se elige YA al aceptar (usuario, 2026-11-10): antes se aceptaba sin
+  // día y la página lo reclamaba después, cuando debió ponerlo el propio transportista.
+  const diasV = diasEntre(o.fecha_carga_desde ?? null, o.fecha_carga_hasta ?? null);
+  const [diaAc, setDiaAc] = useState('');
   const [pronto, setPronto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
@@ -349,8 +353,10 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   async function aceptarla() {
     setError(null);
     if (!o.para_transportista && !cifReal) { setError('Escribe tu CIF / NIF para identificarte.'); avisaFaltas(['f-cif']); return; }
+    if (diasV.length > 1 && !diaAc) { setError('Elige el día en que cargas dentro de la ventana.'); avisaFaltas(['f-dia']); return; }
     setTrabajando(true);
     const x = await aceptar(token, { cif: cifReal, precio: contra && precio !== base ? precio : null, pronto_pago: pronto, ...veh });
+    if (x.resultado === 'aceptada' && diasV.length > 1 && diaAc) await completar(token, { ...veh, dia: diaAc });
     setTrabajando(false);
     if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { refrescar(); return; }
     const msg: Record<string, string> = {
@@ -452,6 +458,13 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
       {(o.para_transportista || elegido || cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 4) && (
       <div className="fsec fsec-vehiculo">
         <div className="sec-title">Vehículo y conductor <span className="op" style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· puedes mandarlos más tarde</span></div>
+        {diasV.length > 1 && <>
+          <label htmlFor="f-dia">Día en que cargas <Req /></label>
+          <select id="f-dia" value={diaAc} onChange={(e) => setDiaAc(e.target.value)}>
+            <option value="">Elige un día de la ventana…</option>
+            {diasV.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)}{w === 0 || w === 6 ? ' (no se circula)' : ''}</option>; })}
+          </select>
+        </>}
         <div className="row2">
           <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="f-tractora" list="fl-camiones" value={veh.camion} placeholder="1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
           <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="f-remolque" list="fl-remolques" value={veh.remolque} placeholder="R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>

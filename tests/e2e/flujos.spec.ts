@@ -116,6 +116,11 @@ test.describe.serial('flujos clave', () => {
     await t.fill('#f-cif', CIF_TRANSPORTISTA);
     await t.fill('#f-tractora', '5678CDF');
     await t.fill('#f-chofer', 'Ana Conductora');
+    // Con ventana de carga, el día se elige YA al aceptar (usuario, 2026-11-10).
+    if (await t.locator('select#f-dia').count()) {
+      const dia = await t.locator('select#f-dia option:not([disabled])').nth(1).getAttribute('value');
+      await t.locator('select#f-dia').selectOption(dia!);
+    }
     await t.getByRole('button', { name: 'ACEPTAR envío' }).click();
     await expect(t.getByText('¡Envío aceptado!')).toBeVisible();
     await expect.poll(async () => (await ultimoEnvio()).transportista_id).not.toBeNull();
