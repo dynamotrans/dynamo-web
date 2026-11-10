@@ -23,7 +23,7 @@ import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, responderCambioEnNombre } from '@/app/panel/(app)/envios/acciones';
-import { CANALES, Celda, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
+import { CANALES, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
 import { Estado } from './ficha/Estado';
@@ -335,22 +335,22 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
             <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
           </div>
         </>}
+        {/* Solicitud, Mercancía y Precio en el mismo esquema de CAJA DE FILAS que la
+            cabecera y Transporte (usuario, 2026-11-10: «detalles e info, claro, cajas»). */}
         <SubTit primero={!conSeguimiento}>Solicitud</SubTit>
-        <div className="det-block"><div className="modal-info-grid">
-          <Celda l="Nº de envío">#{e.referencia_gx}</Celda>
-          <Celda l="Ref. cliente">{e.referencia_cliente || '—'}</Celda>
-          <Celda l="Cliente">{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</Celda>
-          <Celda l="Creado">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
-          {manual && <Celda l="Operador de transporte" span><span style={{ color: '#b45309', fontWeight: 700 }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</Celda>}
-          <Celda l={e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
+        <div className="pen-envio-sum">
+          <div className="pen-sum-row"><span className="k">Nº de envío</span><span className="v">#{e.referencia_gx}</span></div>
+          <div className="pen-sum-row"><span className="k">Ref. cliente</span><span className="v">{e.referencia_cliente || '—'}</span></div>
+          <div className="pen-sum-row"><span className="k">Cliente</span><span className="v" style={{ textAlign: 'right' }}>{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</span></div>
+          <div className="pen-sum-row"><span className="k">Creado</span><span className="v" style={{ textAlign: 'right' }}>{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</span></div>
+          {manual && <div className="pen-sum-row pen-sum-col"><span className="k">Operador de transporte</span><span className="v"><span style={{ color: '#b45309' }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</span></div>}
+          <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {/* El día que el transportista eligió dentro de la ventana, junto a ella. */}
-          {!e.fecha_carga_real && e.fecha_carga_prevista
-            ? <Celda l="Fecha de carga asignada"><span style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></Celda>
-            : <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>}
-          {!e.fecha_carga_real && e.fecha_carga_prevista && <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>}
-          {e.modificado_en && <Celda l="Última modificación">{fechaHora(e.modificado_en)}</Celda>}
-          {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
-        </div></div>
+          {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}
+          <div className="pen-sum-row"><span className="k">Entrega estimada</span><span className="v">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</span></div>
+          {e.modificado_en && <div className="pen-sum-row"><span className="k">Última modificación</span><span className="v">{fechaHora(e.modificado_en)}</span></div>}
+          {e.discrecion_comercial && <div className="pen-sum-row pen-sum-col"><span className="k">Discreción comercial</span><span className="v"><span style={{ color: 'var(--purple)' }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</span></div>}
+        </div>
         {/* Sin seguimiento (manual, cancelado o sin etapas), la ruta se queda como
             bloque propio; con él, las fichas van incrustadas en la línea temporal. */}
         {!conSeguimiento && <>
@@ -361,38 +361,40 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           </div>
         </>}
         <SubTit>Mercancía</SubTit>
-        <div className="det-block"><div className="modal-info-grid">
-          <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
-          <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
-          <Celda l="Tipo de carga">{tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || '—'}</Celda>
-          <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
-          <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
-          {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
-          <DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} />
-        </div></div>
+        <div className="pen-envio-sum">
+          <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v" style={{ textAlign: 'right' }}>{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</span></div>
+          <div className="pen-sum-row"><span className="k">Medidas</span><span className="v">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</span></div>
+          <div className="pen-sum-row"><span className="k">Tipo de carga</span><span className="v">{tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || '—'}</span></div>
+          <div className="pen-sum-row"><span className="k">Forma de carga</span><span className="v">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</span></div>
+          <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v" style={{ textAlign: 'right' }}>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</span></div>
+          {e.anotaciones_cliente && <div className="pen-sum-row pen-sum-col"><span className="k">Anotaciones</span><span className="v">{e.anotaciones_cliente}</span></div>}
+          {/* DatosCmr pinta su propia fila con el botón Rellenar/Cambiar (formato de parrilla). */}
+          <div className="modal-info-grid" style={{ marginTop: '0.2rem' }}><DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} /></div>
+        </div>
         <SubTit>Precio</SubTit>
-        <div className="det-block">
+        {/* UNA sola caja: el precio del cliente arriba (base en grande), el sello de
+            cuándo se calculó y, tras un separador, el coste y el margen (solo admin). */}
+        <div className="pen-envio-sum">
           {manual ? (
-            e.precio_acordado_operador != null ? (
-              <div className="alm-price" style={{ margin: 0 }}>
-                <div className="alm-price-row alm-price-base"><span className="k">Precio acordado con su transportista (sin IVA)</span><span className="v">{euros(e.precio_acordado_operador)}</span></div>
-              </div>
-            ) : <div className="modal-info-grid"><Celda l="Precio acordado" span>No anotado</Celda></div>
-          ) : pc == null ? <div className="modal-info-grid"><Celda l="Precio" span><Pend /></Celda></div> : (
-            <div className="alm-price" style={{ margin: 0 }}>
-              <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
-              <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(e.iva_pct ?? 21)})</span><span className="v">{euros(pc * Number(e.iva_pct ?? 21) / 100)}</span></div>
-              <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_pct ?? 21) / 100))}</span></div>
+            <div className="pen-sum-row"><span className="k">Precio acordado con su transportista (sin IVA)</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
+          ) : pc == null ? (
+            <div className="pen-sum-row"><span className="k">Precio</span><span className="v"><Pend /></span></div>
+          ) : (
+            <>
+              <div className="pen-sum-row"><span className="k" style={{ color: 'var(--navy)', fontWeight: 800 }}>Base imponible</span><span className="v" style={{ color: 'var(--purple)', fontSize: 'var(--fs-l)', fontWeight: 800 }}>{euros(pc)}</span></div>
+              <div className="pen-sum-row"><span className="k">IVA ({porcentaje(e.iva_pct ?? 21)})</span><span className="v" style={{ fontWeight: 600 }}>{euros(pc * Number(e.iva_pct ?? 21) / 100)}</span></div>
+              <div className="pen-sum-row"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_pct ?? 21) / 100))}</span></div>
               <SelloPrecio r={e} />
-            </div>
+            </>
           )}
           {!manual && (
-            <div className="pen-envio-sum" style={{ marginTop: '0.6rem' }}>
+            <>
+              <div aria-hidden="true" style={{ borderTop: '1px dashed var(--gray-300)', margin: '0.45rem 0' }} />
               <div className="pen-sum-row"><span className="k">P. transportista <span style={{ color: 'var(--red)', fontWeight: 800 }}>· solo admin</span></span><span className="v">{pt != null ? euros(pt) : '—'}</span></div>
               <div className="pen-sum-row"><span className="k">Margen</span><span className="v" style={{ color: e.margen_euros == null ? undefined : Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626', fontWeight: 800 }}>{e.margen_euros != null ? euros(e.margen_euros) : '—'}</span></div>
               {e.factor_tarifa_pct != null && <div className="pen-sum-row"><span className="k">Factor del cliente aplicado</span><span className="v">{txtNum(e.factor_tarifa_pct)} %</span></div>}
               {e.precio_fijado_a_mano && <div className="pen-sum-row"><span className="k">Precio</span><span className="v">fijado a mano</span></div>}
-            </div>
+            </>
           )}
         </div>
       </Secc>
