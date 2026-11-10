@@ -135,6 +135,8 @@ test.describe.serial('flujos clave', () => {
     const f = await (await browser.newContext({ locale: 'es-ES', hasTouch: true })).newPage();
     await f.goto(href!);
     await f.getByRole('button', { name: 'Firmar' }).first().click();
+    // Aviso previo con tono de alerta (quién firma y que el dispositivo queda registrado).
+    await f.getByRole('button', { name: 'De acuerdo' }).click();
     await f.fill('#sigNombre', 'Pedro Cargador');
     await f.fill('#sigDni', '12345678Z');
     const lienzo = await f.locator('#sigCanvas').boundingBox();

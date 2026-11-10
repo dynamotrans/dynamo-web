@@ -27,6 +27,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // nada no ve el botón de salir.
   const [firmoAqui, setFirmoAqui] = useState(false);
   const [compartido, setCompartido] = useState(false);   // «Enlace copiado ✓» del botón de compartir
+  // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
+  // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
+  const [preFirma, setPreFirma] = useState<Bloque | null>(null);
 
   if (cmr.resultado !== 'ok') {
     const t: Record<string, [string, string]> = {
@@ -102,7 +105,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           <div key={b.clave} className={`firma${f ? ' firmada' : ''}`}>
             <div className="firma-head">
               <div className="firma-tit">{b.titulo}<span className="cas-quien">Firma: {b.firmante}</span><span className="cas">{b.casilla}{b.lugar ? ` · ${b.lugar}` : ''}</span></div>
-              {!f && <button type="button" className="firma-btn" onClick={() => setAbierto(b)}>Firmar</button>}
+              {!f && <button type="button" className="firma-btn" onClick={() => setPreFirma(b)}>Firmar</button>}
             </div>
             {f ? <>
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
@@ -131,7 +134,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               <div style={{ display: 'grid', gap: '0.45rem' }}>
                 {bloques.map((b) => (
                   <button key={`eb${b.clave}`} type="button" className="firma-btn" style={{ width: '100%' }}
-                    onClick={() => { setEligiendoExtra(false); setAbierto({ ...b, clave: `extra:${b.clave}`, titulo: `Firma extra · ${b.titulo}`, extra: true }); }}>
+                    onClick={() => { setEligiendoExtra(false); setPreFirma({ ...b, clave: `extra:${b.clave}`, titulo: `Firma extra · ${b.titulo}`, extra: true }); }}>
                     {b.titulo} · {b.firmante}{b.lugar ? ` · ${b.lugar.split(' · ')[0]}` : ''}
                   </button>
                 ))}
@@ -149,6 +152,25 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
       {firmoAqui && <div style={{ margin: '0.8rem 0 0' }}>{btnFin}</div>}
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó (y tu ubicación GPS si das permiso). Firma electrónica simple (Reglamento eIDAS).</p>
+      {preFirma && (
+        <div role="alertdialog" aria-modal="true" aria-label="Aviso antes de firmar"
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}>
+          <div style={{ background: '#fff', borderRadius: 18, padding: '1.3rem 1.2rem', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(10,2,48,0.35)', borderTop: '5px solid #d97706' }}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ margin: '0 auto 0.5rem', display: 'block' }}>
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.05rem' }}>Vas a firmar como {preFirma.firmante}</h2>
+            <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: 'var(--gray-500)' }}>{preFirma.titulo}{preFirma.lugar ? ` · ${preFirma.lugar}` : ''}</p>
+            <p style={{ margin: '0 0 0.9rem', fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, textAlign: 'left' }}>
+              La firma queda asociada a tu persona de forma inequívoca: se registran <strong>tu dispositivo</strong>, la <strong>fecha y hora</strong> y el
+              <strong> nombre y documento</strong> que pongas. <strong>Si no eres tú quien debe firmar, no firmes:</strong> el dispositivo queda registrado y
+              firmar por otra persona te haría responsable en caso de fraude.
+            </p>
+            <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.45rem' }} onClick={() => { setAbierto(preFirma); setPreFirma(null); }}>De acuerdo</button>
+            <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)' }} onClick={() => setPreFirma(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
       {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); setFirmoAqui(true); refrescar(); }} />}
     </div>
   );
