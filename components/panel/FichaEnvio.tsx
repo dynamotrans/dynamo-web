@@ -41,13 +41,23 @@ function MasAcciones({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!abierto) return;
     const fuera = (ev: PointerEvent) => { if (ref.current && !ref.current.contains(ev.target as Node)) setAbierto(false); };
+    const esc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setAbierto(false); };
     document.addEventListener('pointerdown', fuera);
-    return () => document.removeEventListener('pointerdown', fuera);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', esc); };
   }, [abierto]);
+  // EMERGENTE a lo ancho (usuario, 2026-11-10): velo + panel centrado (hoja inferior en
+  // móvil), en vez del desplegable pequeño pegado al botón.
   return (
     <div className="ficha-mas" ref={ref}>
       <button type="button" className="btn-secondary" aria-haspopup="menu" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>⋯ Más</button>
-      {abierto && <div className="ficha-mas-menu" role="menu" onClick={() => setAbierto(false)}>{children}</div>}
+      {abierto && <>
+        <div className="ficha-mas-backdrop" onClick={() => setAbierto(false)} />
+        <div className="ficha-mas-menu" role="menu" onClick={() => setAbierto(false)}>
+          <div className="fm-cab"><span>Más acciones</span><button type="button" className="fm-x" aria-label="Cerrar">✕</button></div>
+          {children}
+        </div>
+      </>}
     </div>
   );
 }

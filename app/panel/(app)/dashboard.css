@@ -1281,16 +1281,34 @@ body.theme-dark .sidebar { background: #060116; }
    secciones en acordeón con su resumen en la propia línea. */
 .ficha-vital { display: block; margin-top: 4px; font-size: var(--fs-m); color: var(--gray-700); font-weight: 600; line-height: 1.5; }
 .ficha-vital strong { font-weight: 800; }
-.ficha-mas { position: relative; display: inline-flex; }
+.ficha-mas { display: inline-flex; }
+/* Menú «Más» EMERGENTE (usuario, 2026-11-10: «que ocupe ancho», no el desplegable enano):
+   velo + panel centrado en escritorio; en móvil, hoja pegada abajo a todo el ancho. */
+.ficha-mas-backdrop { position: fixed; inset: 0; z-index: 10050; background: rgba(10,2,48,0.45); animation: fmFade 0.16s ease; }
 .ficha-mas-menu {
-    position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
-    background: #fff; border: 1px solid var(--gray-200); border-radius: 12px;
-    box-shadow: 0 18px 40px rgba(10,2,48,0.18); padding: 0.35rem; min-width: 235px;
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 10051;
+    width: min(440px, calc(100vw - 2rem));
+    background: #fff; border: 1px solid var(--gray-200); border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(10,2,48,0.3); padding: 0.5rem;
     display: flex; flex-direction: column; gap: 2px;
 }
+@media (max-width: 640px) {
+    .ficha-mas-menu {
+        left: 0; right: 0; bottom: 0; top: auto; transform: none; width: 100%;
+        border-radius: 18px 18px 0 0; border-left: 0; border-right: 0; border-bottom: 0;
+        padding: 0.6rem 0.6rem calc(0.6rem + env(safe-area-inset-bottom));
+        animation: fmSube 0.2s ease;
+    }
+}
+@keyframes fmFade { from { opacity: 0; } }
+@keyframes fmSube { from { transform: translateY(26px); opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .ficha-mas-backdrop, .ficha-mas-menu { animation: none; } }
+.ficha-mas-menu .fm-cab { display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0.9rem 0.4rem; font-size: var(--fs-s); font-weight: 800; color: var(--gray-500); }
+.ficha-mas-menu .fm-x { border: 0; background: none; cursor: pointer; font-size: 1rem; line-height: 1; color: var(--gray-500); padding: 0.25rem 0.45rem; border-radius: 8px; }
+.ficha-mas-menu .fm-x:hover { background: rgba(51,0,204,0.06); color: var(--purple); }
 .ficha-mas-menu .fm-item {
     display: flex; align-items: center; gap: 0.55rem; width: 100%;
-    padding: 0.55rem 0.7rem; border: 0; background: none; border-radius: 8px;
+    padding: 0.85rem 0.9rem; border: 0; background: none; border-radius: 10px;
     font: inherit; font-size: var(--fs-m); font-weight: 600; color: var(--gray-700);
     text-decoration: none; cursor: pointer; text-align: left; white-space: nowrap;
 }
