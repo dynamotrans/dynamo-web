@@ -60,12 +60,19 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
             <textarea id="of-msg" readOnly rows={8} value={msg} />
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
-          <button className="btn-primary" onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); setCopiadoEnlace(false); }}>{copiado ? 'Copiado' : 'Copiar mensaje'}</button>
-          <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(enlaceOferta(hecho.token)); setCopiadoEnlace(true); setCopiado(false); }}>{copiadoEnlace ? 'Enlace copiado' : 'Copiar enlace'}</button>
-          <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
-          <a className="btn-secondary" href={`mailto:?subject=${encodeURIComponent(`Envío disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
-          <button className="btn-ghost" onClick={() => { setHecho(null); setCopiado(false); setCopiadoEnlace(false); }}>Ofrecer con otro precio…</button>
+        {/* UNA sola fila SIEMPRE (usuario, 2026-11-10: con flex-wrap quedaban dos filas y
+            la segunda con un botón suelto): rejilla de 4 columnas iguales con etiquetas
+            cortas, y «Ofrecer con otro precio…» a lo ancho debajo. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.45rem', marginTop: '0.8rem' }}>
+          <button className="btn-primary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title="Copiar el mensaje entero"
+            onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); setCopiadoEnlace(false); }}>{copiado ? 'Copiado ✓' : 'Mensaje'}</button>
+          <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title="Copiar solo el enlace"
+            onClick={() => { navigator.clipboard?.writeText(enlaceOferta(hecho.token)); setCopiadoEnlace(true); setCopiado(false); }}>{copiadoEnlace ? 'Copiado ✓' : 'Enlace'}</button>
+          <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
+          <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`mailto:?subject=${encodeURIComponent(`Envío disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
+        </div>
+        <div style={{ marginTop: '0.45rem' }}>
+          <button className="btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setHecho(null); setCopiado(false); setCopiadoEnlace(false); }}>Ofrecer con otro precio…</button>
         </div>
         <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
           El mensaje no lleva el cliente ni las direcciones: el transportista las ve al aceptar, identificándose con su CIF.
