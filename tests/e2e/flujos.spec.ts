@@ -84,8 +84,11 @@ test.describe.serial('flujos clave', () => {
     await page.getByRole('button', { name: 'Guardar asignación' }).click();
     await expect.poll(async () => (await ultimoEnvio()).transportista_id).not.toBeNull();
 
-    // Seguimiento: se marca a mano «Yendo a la carga» desde el cambiador de etapas.
+    // Seguimiento: se marca a mano «Yendo a la carga» desde el cambiador de etapas, que
+    // ahora vive DENTRO de la sección Seguimiento (acordeón, plegada al abrir).
     await page.reload();
+    const secSeg = page.getByRole('button', { name: /Seguimiento/ }).first();
+    if ((await secSeg.getAttribute('aria-expanded')) !== 'true') await secSeg.click();
     await page.getByRole('button', { name: 'Cambiar estado' }).click();
     await page.getByRole('radio', { name: /Yendo a la carga/ }).check();
     await page.getByRole('button', { name: 'Marcar esta etapa' }).click();
