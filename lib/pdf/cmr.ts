@@ -202,7 +202,19 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   // se ven aquí. Va al final del PDF con TODAS las firmas del CMR digital, quepan o no en
   // las casillas 22/23/24; sin firmas, lo dice y explica qué quedará registrado.
   {
-    const ROL: Record<string, string> = { remitente: 'Remitente / cargador — casilla 22', transportista: 'Porteador / transportista — casilla 23', destinatario: 'Destinatario — casilla 24' };
+    const ROL: Record<string, string> = { remitente: 'Remitente / cargador', transportista: 'Porteador / transportista', destinatario: 'Destinatario' };
+    const CASILLA: Record<string, number> = { remitente: 22, transportista: 23, destinatario: 24 };
+    // A qué carta corresponde la firma (usuario, 2026-11-10: con varias partidas en el
+    // mismo camión hay una carta por entrega, y cada firma debe decir la suya): el
+    // destinatario firma SU carta; remitente y porteador salen en todas.
+    const cartaTxt = (f: FirmaDoc) => {
+      if (cartas.length <= 1) return '';
+      if (f.rol === 'destinatario') {
+        const iE = ent.findIndex((p) => p.id === f.parada_id);
+        return iE >= 0 ? `Carta ${iE + 1} de ${cartas.length}` : '';
+      }
+      return `Todas las cartas (1–${cartas.length})`;
+    };
     const paradaTxt = (id: string | null) => {
       const iR = rec.findIndex((p) => p.id === id);
       if (iR >= 0) return `${rec.length > 1 ? `Recogida ${iR + 1} de ${rec.length}` : 'Recogida'} · ${[rec[iR].nombre_empresa, lineaDir(rec[iR])].filter(Boolean).join(' · ')}`;
@@ -221,7 +233,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     if (d.deca) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
 
     l.nuevaPagina();
-    l.texto(l.x0, l.y + 12, 'Registro de firmas', 15, { bold: true });
+    l.texto(l.x0, l.y + 12, 'Registro de firmas / DeCA', 15, { bold: true });
     l.textoDer(A4.w - l.margen.der, l.y + 12, `CMR Nº ${e.referencia_gx ?? ''}`, 10, { bold: true });
     l.y += 24;
     const qrY = l.y, anchoIntro = l.ancho - (qrImg ? 92 : 0);
@@ -255,31 +267,34 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       }
     }
 
-    const ALTO = 80, tx = l.x0 + 150, anchoTexto = l.ancho - 150 - 10;
+    // COMPACTO (usuario, 2026-11-10): hasta 6 firmas en la misma hoja, cada una con su
+    // casilla, SU CARTA (M de N), parada, firmante, hora, GPS y huella.
+    const ALTO = 64, tx = l.x0 + 150, anchoTexto = l.ancho - 150 - 10;
+    const linea1 = (f: FirmaDoc) => {
+      const carta = cartaTxt(f);
+      return `Casilla ${CASILLA[f.rol] ?? '—'} · ${ROL[f.rol] ?? f.rol}${carta ? ` — ${carta}` : ''}`;
+    };
+    const corta = (t: string, s: number) => { const p = l.partir(t, s, anchoTexto); return p.length > 1 ? p[0].slice(0, -1) + '…' : p[0]; };
     for (const f of lista) {
-      l.sitio(ALTO + 8);
+      l.sitio(ALTO + 6);
       l.rect(l.x0, l.y, l.ancho, ALTO, COLOR.blanco, COLOR.grisClaro);
       const img = trazos.get(f);
       if (img) {
-        const k = Math.min(126 / img.width, (ALTO - 14) / img.height), w = img.width * k, h = img.height * k;
+        const k = Math.min(126 / img.width, (ALTO - 10) / img.height), w = img.width * k, h = img.height * k;
         l.pag.drawImage(img, { x: l.x0 + 10, y: A4.h - l.y - (ALTO + h) / 2, width: w, height: h });
       }
       const donde = f.extra ? 'Firma extra (no ocupa casilla)' : enCasilla.has(f) ? 'Impresa en su casilla' : 'Solo en este registro';
-      l.texto(tx, l.y + 17, ROL[f.rol] ?? f.rol, 8.6, { bold: true });
-      l.textoDer(A4.w - l.margen.der - 10, l.y + 17, donde, 7, { color: f.extra ? COLOR.ambar : COLOR.gris });
+      l.texto(tx, l.y + 13, linea1(f), 8.2, { bold: true });
+      l.textoDer(A4.w - l.margen.der - 10, l.y + 13, donde, 6.6, { color: f.extra ? COLOR.ambar : COLOR.gris });
       const par = paradaTxt(f.parada_id);
-      if (par) {
-        const partes = l.partir(par, 7.4, anchoTexto);
-        l.texto(tx, l.y + 30, partes.length > 1 ? partes[0].slice(0, -1) + '…' : partes[0], 7.4, { color: COLOR.gris });
-      }
-      l.texto(tx, l.y + (par ? 44 : 34), `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.8, { color: COLOR.tinta });
+      if (par) l.texto(tx, l.y + 24, corta(par, 7), 7, { color: COLOR.gris });
+      l.texto(tx, l.y + (par ? 35 : 27), `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.4, { color: COLOR.tinta });
       if (f.lat != null && f.lon != null) {
         const gpsTxt = `GPS: ${f.lat.toFixed(5)}, ${f.lon.toFixed(5)}${f.gps_precision_m != null ? ` (±${f.gps_precision_m} m)` : ''}${f.gps_direccion ? ` · ${f.gps_direccion}` : ''}`;
-        const gl = l.partir(gpsTxt, 7.2, anchoTexto);
-        l.texto(tx, l.y + (par ? 57 : 47), gl.length > 1 ? gl[0].slice(0, -1) + '…' : gl[0], 7.2, { color: COLOR.gris });
+        l.texto(tx, l.y + (par ? 46 : 38), corta(gpsTxt, 6.8), 6.8, { color: COLOR.gris });
       }
-      if (f.sha256) l.texto(tx, l.y + (par ? 69 : 59), `Huella SHA-256 de lo firmado: ${f.sha256}`, 5.8, { color: COLOR.gris });
-      l.y += ALTO + 8;
+      if (f.sha256) l.texto(tx, l.y + (par ? 56 : 48), `Huella SHA-256 de lo firmado: ${f.sha256}`, 5.4, { color: COLOR.gris });
+      l.y += ALTO + 6;
     }
   }
 
