@@ -306,6 +306,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
               </div>
               {e.requiere_nima && <div style={{ marginTop: '0.4rem', fontSize: 'var(--fs-m)' }}>NIMA del transportista: <strong>{e.transportista_nima || <Pend />}</strong></div>}
             </div>
+            {/* El botón de asignar/cambiar TAMBIÉN dentro de la sección (usuario, 2026-11-10):
+                quien mira aquí el estado no tiene que volver arriba a por la acción. */}
+            {!manual && !cancelado && e.estado !== 'entregado' && ficha.pago?.estado !== 'pendiente' && (
+              <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} style={{ marginTop: '0.7rem' }} onClick={() => setVista('asignar')}>
+                <I d={ICO.camion} />{ficha.transportista ? 'Cambiar transportista' : 'Asignar transportista'}
+              </button>
+            )}
           </div>
         </Secc>
       )}
