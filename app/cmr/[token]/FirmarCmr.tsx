@@ -116,7 +116,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         </div>
       )}
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
-      <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó. Firma electrónica simple (Reglamento eIDAS).</p>
+      <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó (y tu ubicación GPS si das permiso). Firma electrónica simple (Reglamento eIDAS).</p>
       {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); refrescar(); }} />}
     </div>
   );
@@ -124,6 +124,17 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
 
 function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bloque; onCerrar: () => void; onFirmado: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  // Ubicación del dispositivo (OPCIONAL): se pide al abrir la pantalla de firma y, si
+  // quien firma da permiso, viaja con la firma como refuerzo probatorio del e-CMR. Si
+  // no hay permiso, no hay GPS o tarda demasiado, la firma vale exactamente igual.
+  const gps = useRef<{ lat: number; lon: number; precision_m?: number } | null>(null);
+  useEffect(() => {
+    try {
+      navigator.geolocation?.getCurrentPosition(
+        (p) => { gps.current = { lat: p.coords.latitude, lon: p.coords.longitude, precision_m: Math.round(p.coords.accuracy) }; },
+        () => {}, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+    } catch { /* sin geolocalización */ }
+  }, []);
   const ctx = useRef<CanvasRenderingContext2D | null>(null);
   const trazando = useRef(false);
   const [dibujado, setDibujado] = useState(false);
@@ -181,7 +192,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     setGuardando(true);
     const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
-      reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png') });
+      reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
+      gps: gps.current });
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
     onFirmado();
@@ -264,7 +276,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
             <h2>Política de privacidad · firma del CMR</h2>
             <p><strong>Responsable:</strong> Dynamo Operador Logístico, S.L. · {CONTACTO.email} · {CONTACTO.telefono}.</p>
             <p><strong>Qué guardamos:</strong> tu nombre y apellidos, el documento de identidad, el trazo de la firma, el email (si lo pones),
-              la fecha y la hora, y desde dónde firmas (dirección IP y navegador). Si anotas reservas, también su texto y sus fotos.</p>
+              la fecha y la hora, y desde dónde firmas (dirección IP y navegador; la ubicación GPS solo si das permiso en tu dispositivo). Si anotas reservas, también su texto y sus fotos.</p>
             <p><strong>Para qué:</strong> dejar constancia de quién firmó la carga o la entrega en el CMR y poder demostrarlo ante quienes
               intervienen en el transporte o ante una reclamación.</p>
             <p><strong>Con qué base:</strong> la ejecución del contrato de transporte y el Convenio CMR (art. 6.1.b y f del RGPD).</p>

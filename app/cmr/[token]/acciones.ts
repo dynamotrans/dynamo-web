@@ -10,7 +10,8 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; nombre: string; documento: string; pais: string; email: string; png: string;
   reservas?: string;     // daños o faltantes: van ANTES de la firma y entran en su huella
   fotos?: string[];      // fotos de las reservas, ya subidas a cmr/<token>/… (máx. 6)
-  extra?: boolean };     // firma AÑADIDA (máx. 3 por envío): no ocupa la casilla ni anota reservas
+  extra?: boolean;       // firma AÑADIDA (máx. 3 por envío): no ocupa la casilla ni anota reservas
+  gps?: { lat: number; lon: number; precision_m?: number } | null };   // ubicación del dispositivo, si dio permiso
 
 // Firmar una casilla del CMR. La validez del documento la decide AQUÍ el servidor (la
 // pantalla solo avisa); la hora la pone la base de datos; el trazo va al almacén privado,
@@ -54,9 +55,15 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
 
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
+  // El GPS es opcional y lo sanea también la base de datos; aquí se descarta lo que no
+  // sea un par finito dentro de rango.
+  const g = d.gps && Number.isFinite(d.gps.lat) && Number.isFinite(d.gps.lon)
+    && Math.abs(d.gps.lat) <= 90 && Math.abs(d.gps.lon) <= 180 ? d.gps : null;
   const { data, error } = await sb.rpc('firmar_cmr_publico', {
     p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_nombre: d.nombre, p_documento: v.norm, p_pais: d.pais,
     p_validado: !v.soft, p_email: d.email, p_ruta: ruta, p_ip: ip, p_navegador: h.get('user-agent'), p_sha256: sha, p_extra: !!d.extra,
+    p_lat: g?.lat ?? null, p_lon: g?.lon ?? null,
+    p_gps_precision_m: g && Number.isFinite(g.precision_m) ? Math.max(0, Math.min(100000, Math.round(g.precision_m!))) : null,
   });
   if (error) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   const r = (data as { resultado: string }).resultado;

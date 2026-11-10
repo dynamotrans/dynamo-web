@@ -214,7 +214,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
     l.y += 8;
 
-    const ALTO = 58, tx = l.x0 + 150;
+    const ALTO = 68, tx = l.x0 + 150;
     for (const f of lista) {
       l.sitio(ALTO + 8);
       l.rect(l.x0, l.y, l.ancho, ALTO, COLOR.blanco, COLOR.grisClaro);
@@ -233,6 +233,9 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         l.texto(tx, l.y + 30, partes.length > 1 ? partes[0].slice(0, -1) + '…' : partes[0], 7.4, { color: COLOR.gris });
       }
       l.texto(tx, l.y + (par ? 44 : 34), `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.8, { color: COLOR.tinta });
+      if (f.lat != null && f.lon != null) {
+        l.texto(tx, l.y + (par ? 57 : 47), `GPS: ${f.lat.toFixed(5)}, ${f.lon.toFixed(5)}${f.gps_precision_m != null ? ` (±${f.gps_precision_m} m)` : ''}`, 7.2, { color: COLOR.gris });
+      }
       l.y += ALTO + 8;
     }
   }
