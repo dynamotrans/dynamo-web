@@ -254,8 +254,10 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         )) : <>
         <div>
           <label htmlFor="inc-estado">Estado</label>
+          {/* Solo Abierta y Resuelta (usuario, 2026-11-10). «Cancelada» va por su botón, y
+              una antigua «En curso» conserva su opción para no cambiarla sin querer. */}
           <select id="inc-estado" className="ptar-select" value={d.estado} onChange={(e) => set('estado', e.target.value as IncidenciaDatos['estado'])}>
-            {ESTADOS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+            {ESTADOS.filter(([k]) => k === 'abierto' || k === 'resuelto' || k === d.estado).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
         </div>
         <div>
