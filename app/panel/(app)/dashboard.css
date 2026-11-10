@@ -1276,6 +1276,45 @@ body.theme-dark .sidebar { background: #060116; }
 .susp-in .susp-cuerpo strong,
 .susp-in .susp-details > summary .susp-more { color: inherit; }
 .susp-in .susp-details[open] > summary .susp-more { opacity: 0.75; }
+/* ===== Ficha de envío COMPACTA (usuario, 2026-11-10) ================================
+   Cabecera «vital» bajo el título, «⋯ Más» con las acciones secundarias y las
+   secciones en acordeón con su resumen en la propia línea. */
+.ficha-vital { display: block; margin-top: 4px; font-size: var(--fs-m); color: var(--gray-700); font-weight: 600; line-height: 1.5; }
+.ficha-vital strong { font-weight: 800; }
+.ficha-mas { position: relative; display: inline-flex; }
+.ficha-mas-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+    background: #fff; border: 1px solid var(--gray-200); border-radius: 12px;
+    box-shadow: 0 18px 40px rgba(10,2,48,0.18); padding: 0.35rem; min-width: 235px;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.ficha-mas-menu .fm-item {
+    display: flex; align-items: center; gap: 0.55rem; width: 100%;
+    padding: 0.55rem 0.7rem; border: 0; background: none; border-radius: 8px;
+    font: inherit; font-size: var(--fs-m); font-weight: 600; color: var(--gray-700);
+    text-decoration: none; cursor: pointer; text-align: left; white-space: nowrap;
+}
+.ficha-mas-menu .fm-item svg { flex: none; }
+.ficha-mas-menu .fm-item:hover { background: rgba(51,0,204,0.06); color: var(--purple); }
+.ficha-mas-menu .fm-item.rojo { color: #dc2626; }
+.ficha-mas-menu .fm-item.rojo:hover { background: rgba(220,38,38,0.08); color: #dc2626; }
+.ficha-sec { border: 1px solid var(--gray-200); border-radius: 12px; margin-bottom: 0.55rem; background: #fff; }
+.ficha-sec-head {
+    display: flex; align-items: center; gap: 0.5rem; width: 100%;
+    padding: 0.65rem 0.8rem; border: 0; background: none; cursor: pointer;
+    font: inherit; text-align: left; border-radius: 12px;
+}
+.ficha-sec-head .fsh-chev { flex: none; color: var(--gray-500); display: inline-flex; transition: transform 0.18s; }
+.ficha-sec.open .fsh-chev { transform: rotate(180deg); color: var(--purple); }
+.ficha-sec-head .fsh-t { font-size: var(--fs-m); font-weight: 800; color: var(--navy); white-space: nowrap; }
+.ficha-sec-head:hover .fsh-t { color: var(--purple); }
+.ficha-sec-head .fsh-sum { margin-left: auto; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; text-align: right; }
+.ficha-sec-body { padding: 0 0.8rem 0.8rem; }
+/* Dentro del acordeón, las cajas pierden su borde (lo pone la sección) y su margen. */
+.ficha-sec-body > .det-block { border: 0; padding: 0; margin-top: 0; background: none; }
+.ficha-sec-body > .pen-envio-sum { margin-top: 0; }
+.ficha-sec-body > .det-ruta { margin-top: 0; }
+
 .dash-modal-actions {
     display: flex; gap: 0.5rem; flex-wrap: wrap;
     margin: -0.4rem 0 1.1rem;

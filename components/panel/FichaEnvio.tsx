@@ -1,11 +1,12 @@
 'use client';
 
 // Ficha del envío (solo Dynamo, etapa A): el "Ver detalle" de dashboard.html con datos
-// reales. Secciones Solicitud · Transporte · Ruta · Mercancía · Precio · Penalizaciones ·
-// Historial, y las acciones arriba (Asignar transportista, Cambiar estado, Modificar,
-// Cancelar / Deshacer). Todo lo vuelve a comprobar el servidor y la base de datos.
+// reales. Compacta (usuario, 2026-11-10): cabecera «vital» con lo esencial, 2-3 acciones
+// primarias según el estado + el resto en «⋯ Más», y las secciones (Solicitud · Transporte
+// · Ruta · Mercancía · Precio · Documentos · Seguimiento · Historial…) en ACORDEÓN con su
+// resumen en la línea. Todo lo vuelve a comprobar el servidor y la base de datos.
 import { SIN_CONEXION } from '@/lib/mensajeError';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
@@ -32,6 +33,42 @@ import { Valoracion } from './ficha/Valoracion';
 import { CmrDigital } from './ficha/CmrDigital';
 import { Ofrecer } from './ficha/Ofrecer';
 
+// ---- Sección plegable del acordeón: cerrada enseña su RESUMEN en la misma línea -----
+function Secc({ k, titulo, resumen, extra, abiertas, toggle, children }: {
+  k: string; titulo: React.ReactNode; resumen?: React.ReactNode; extra?: number;
+  abiertas: Set<string>; toggle: (k: string) => void; children: React.ReactNode;
+}) {
+  const open = abiertas.has(k);
+  return (
+    <section className={`ficha-sec${open ? ' open' : ''}`}>
+      <button type="button" className="ficha-sec-head" aria-expanded={open} onClick={() => toggle(k)}>
+        <span className="fsh-chev" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
+        <span className="fsh-t">{titulo}{extra != null ? ` (${extra})` : ''}</span>
+        {!open && resumen ? <span className="fsh-sum">{resumen}</span> : null}
+      </button>
+      {open && <div className="ficha-sec-body">{children}</div>}
+    </section>
+  );
+}
+
+// ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
+function MasAcciones({ children }: { children: React.ReactNode }) {
+  const [abierto, setAbierto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (ev: PointerEvent) => { if (ref.current && !ref.current.contains(ev.target as Node)) setAbierto(false); };
+    document.addEventListener('pointerdown', fuera);
+    return () => document.removeEventListener('pointerdown', fuera);
+  }, [abierto]);
+  return (
+    <div className="ficha-mas" ref={ref}>
+      <button type="button" className="btn-secondary" aria-haspopup="menu" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>⋯ Más</button>
+      {abierto && <div className="ficha-mas-menu" role="menu" onClick={() => setAbierto(false)}>{children}</div>}
+    </div>
+  );
+}
+
 export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
@@ -46,6 +83,22 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const est0 = ESTADOS.find(([k]) => k === e.estado) ?? ESTADOS[0];
   const est: [string, string, string] = cancelado && ficha.pago?.estado === 'pendiente' ? ['cancelado', 'Anulado sin pago', 'cancelada'] : est0;
 
+  const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga');
+  const entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
+  const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
+  const pt = e.importe_transportista != null ? Number(e.importe_transportista) : null;
+  const firmasHechas = ficha.firmasCmr.filter((x) => !x.extra).length;
+  const firmasTotal = ficha.paradas.length + 1;
+
+  // Acordeón: abierta por defecto SOLO la sección que toca según el estado.
+  const inicial = e.estado === 'borrador' ? 'precio'
+    : cancelado ? 'solicitud'
+    : !manual && ficha.etapas.length > 0 && ['hacia_la_carga', 'cargando', 'en_ruta', 'descargando'].includes(e.estado) ? 'seguimiento'
+    : e.estado === 'entregado' ? 'documentos'
+    : manual ? 'solicitud' : 'transporte';
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set([inicial]));
+  const toggle = (k: string) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+
   async function hacer(texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, okTxt?: string) {
     setTrabajando(texto); setAviso(null);
     // Si la acción revienta (sin conexión, o justo tras publicar una versión nueva), no se
@@ -59,7 +112,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
     return true;
   }
 
-  // ---- Acciones de arriba según el estado (mismo árbol que el mockup) --------------
+  // ---- Acciones: 2-3 primarias según el estado y el resto en «⋯ Más» ----------------
   const acciones = cancelado ? (
     <>
       <button className="btn-primary" onClick={() => hacer('Deshaciendo la cancelación', () => deshacerCancelacion(e.id), 'Cancelación deshecha: el envío vuelve a estar como antes.')}>
@@ -79,10 +132,8 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {!manual && e.estado === 'programado' && !ficha.transportista && ficha.pago?.estado !== 'pendiente' && (
         <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer envío</button>
       )}
-      {!manual && e.estado !== 'entregado' && !(ficha.pago?.estado === 'pendiente' && !ficha.transportista) && (
-        <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} onClick={() => setVista('asignar')}>
-          <I d={ICO.camion} />{ficha.transportista ? 'Cambiar transportista' : 'Asignar transportista'}
-        </button>
+      {!manual && !ficha.transportista && e.estado !== 'entregado' && ficha.pago?.estado !== 'pendiente' && (
+        <button className="btn-primary" onClick={() => setVista('asignar')}><I d={ICO.camion} />Asignar transportista</button>
       )}
       <button className="btn-secondary" onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
       {/* Un solo «Modificar»: abre el asistente de Nuevo envío con TODO precargado (ruta,
@@ -91,22 +142,25 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {manual
         ? <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
         : <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar</a>}
-      {manual && ['programado', 'hacia_la_carga'].includes(e.estado) && ficha.firmasCmr.length === 0 && (
-        <a className="btn-secondary" href={`/panel/nuevo-envio?ruta=${e.id}`}><I d={ICO.ruta} />Cambiar ruta</a>
-      )}
-      {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
-      {/* PDF: se generan al momento y se abren en el visor (regla 0-bis). La orden, cuando
-          ya hay a quién mandarla. */}
-      {(manual || ficha.transportista) && (
-        <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener">
-          <I d={ICO.doc} />{'Orden de carga'}
-        </a>
-      )}
-      <a className="btn-secondary" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"><I d={ICO.doc} />CMR relleno</a>
-      {/* Incidencia en cualquier estado del envío (decisión 2026-07-12); penalización en los de Dynamo. */}
-      <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>
-      {!manual && <a className="btn-secondary" href={`/panel/penalizaciones?nueva=${e.id}`}><I d={ICO.x} />Crear penalización</a>}
-      <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setVista('cancelar')}><I d={ICO.x} />Cancelar envío</button>
+      <MasAcciones>
+        {!manual && ficha.transportista && e.estado !== 'entregado' && (
+          <button className="fm-item" onClick={() => setVista('asignar')}><I d={ICO.camion} />Cambiar transportista</button>
+        )}
+        {manual && ['programado', 'hacia_la_carga'].includes(e.estado) && ficha.firmasCmr.length === 0 && (
+          <a className="fm-item" href={`/panel/nuevo-envio?ruta=${e.id}`}><I d={ICO.ruta} />Cambiar ruta</a>
+        )}
+        {!manual && <a className="fm-item" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
+        {/* PDF: se generan al momento y se abren en el visor (regla 0-bis). La orden, cuando
+            ya hay a quién mandarla. */}
+        {(manual || ficha.transportista) && (
+          <a className="fm-item" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga</a>
+        )}
+        <a className="fm-item" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"><I d={ICO.doc} />CMR relleno</a>
+        {/* Incidencia en cualquier estado del envío (decisión 2026-07-12); penalización en los de Dynamo. */}
+        <a className="fm-item" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>
+        {!manual && <a className="fm-item" href={`/panel/penalizaciones?nueva=${e.id}`}><I d={ICO.x} />Crear penalización</a>}
+        <button className="fm-item rojo" onClick={() => setVista('cancelar')}><I d={ICO.x} />Cancelar envío</button>
+      </MasAcciones>
     </>
   );
 
@@ -118,14 +172,31 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
 
-  const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga');
-  const entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
-  const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
-  const pt = e.importe_transportista != null ? Number(e.importe_transportista) : null;
+  // ---- Cabecera «vital»: lo que se mira el 90 % de las veces, sin scroll ------------
+  const rutaCorta = [recogidas[0]?.poblacion, entregas[entregas.length - 1]?.poblacion].filter(Boolean).join(' → ');
+  const fechaVital = e.fecha_carga_real ? fecha(e.fecha_carga_real)
+    : e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista)
+    : e.fecha_carga_desde ? ventana(e.fecha_carga_desde, e.fecha_carga_hasta) : '';
+  const mercResumen = [e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas),
+    e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ');
 
   return (
     <Modal abierto ancho={760} onCerrar={cerrar} titulo={`Detalle de envío #${e.referencia_gx}`}
-      sub={<>{ficha.cliente ? `${ficha.cliente.nombre} · ` : ''}<span className={`badge badge-${est[2]}`}>{est[1]}</span></>}
+      sub={<>
+        {ficha.cliente ? `${ficha.cliente.nombre} · ` : ''}<span className={`badge badge-${est[2]}`}>{est[1]}</span>
+        <span className="ficha-vital">
+          {fechaVital && <strong style={{ color: 'var(--orange)' }}>{fechaVital}</strong>}
+          {fechaVital && rutaCorta ? ' · ' : ''}{rutaCorta}
+          {ficha.transportista ? <> · {ficha.transportista.nombre}</> : null}
+          {manual
+            ? (e.precio_acordado_operador != null ? <> · {euros(e.precio_acordado_operador)}</> : null)
+            : <>
+                {pc != null && <> · Cliente {euros(pc)}</>}
+                {pt != null && <> · Transp. {euros(pt)}</>}
+                {e.margen_euros != null && <> · Margen <strong style={{ color: Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626' }}>{euros(e.margen_euros)}</strong></>}
+              </>}
+        </span>
+      </>}
       icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
@@ -178,200 +249,217 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           </div>
         </div>
       ))}
-
-      <h4 className="modal-section-title">Solicitud</h4>
-      <div className="det-block"><div className="modal-info-grid">
-        <Celda l="Nº de envío">#{e.referencia_gx}</Celda>
-        <Celda l="Ref. cliente">{e.referencia_cliente || '—'}</Celda>
-        <Celda l="Cliente">{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</Celda>
-        <Celda l="Estado">{est[1]}</Celda>
-        {manual && <Celda l="Operador de transporte" span><span style={{ color: '#b45309', fontWeight: 700 }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</Celda>}
-        <Celda l="Creado">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
-        <Celda l="Última modificación">{e.modificado_en ? fechaHora(e.modificado_en) : '—'}</Celda>
-        <Celda l={e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
-        {/* El día que el transportista eligió dentro de la ventana, bien visible junto a
-            ella (usuario, 2026-11-09): con ventana no se veía la fecha asignada. */}
-        {!e.fecha_carga_real && e.fecha_carga_prevista && (
-          <Celda l="Fecha de carga asignada"><span style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></Celda>
-        )}
-        <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
-        {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
-      </div></div>
-
-      {!manual && <>
-        <h4 className="modal-section-title">Transporte</h4>
-        <div className="det-block">
-          <div className="modal-info-grid">
-            <Celda l="Estado asignación transportista" span>
-              {cancelado || e.estado === 'entregado' ? '—' : ficha.transportista
-                ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
-                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
-            </Celda>
-            <Celda l="Día previsto de carga">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : <Pend />}</Celda>
-            <Celda l="Transportista asignado el">{e.asignado_en ? fechaHora(e.asignado_en) : <Pend />}</Celda>
-            <Celda l="Precio del transportista (sin IVA)">{pt != null ? euros(pt) : <Pend />}</Celda>
-          </div>
-          <div className="det-transp-card">
-            <div className="dtc-main"><I d={ICO.camion} /><strong>{ficha.transportista ? `${ficha.transportista.nombre} · ${ficha.transportista.cif}` : <Pend />}</strong></div>
-            <div className="dtc-row">
-              <span className="dtc-item"><label>Matrícula</label><span className="dtc-v">{e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : <Pend />}</span></span>
-              <span className="dtc-item"><label>Remolque</label><span className="dtc-v">{e.matricula_remolque ? <span className="dtc-mat">{e.matricula_remolque}</span> : '—'}</span></span>
-              <span className="dtc-item"><label>Conductor</label><span className="dtc-v">{e.conductor_nombre || <Pend />}</span></span>
-              <span className="dtc-item"><label>Teléfono</label><span className="dtc-v">{e.conductor_telefono ? <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a> : <Pend />}</span></span>
-            </div>
-            {e.requiere_nima && <div style={{ marginTop: '0.4rem', fontSize: 'var(--fs-m)' }}>NIMA del transportista: <strong>{e.transportista_nima || <Pend />}</strong></div>}
-          </div>
-        </div>
-      </>}
-
-      {ficha.ofertas.length > 0 && <>
-        <h4 className="modal-section-title">Ofertas a transportistas</h4>
-        <div className="pen-envio-sum">
-          {ficha.ofertas.map((o) => {
-            const [et, ec] = ESTADO_OFERTA[o.estado] ?? [o.estado, 'gray'];
-            return (
-              <div key={o.id} className="pen-sum-row" style={{ alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <span className="k">
-                  <strong style={{ color: 'var(--navy)' }}>{o.para ?? CANALES[o.canal] ?? o.canal}</strong>{o.para ? ` · ${CANALES[o.canal] ?? o.canal}` : ''}
-                  {' · '}{euros(o.precio)}{o.banda_euros ? ` ± ${euros(o.banda_euros)}` : ''}{o.pronto_pago ? ' · pronto pago' : ''}
-                  <br />{fechaHora(o.enviada_en)} · {o.aperturas} apertura{o.aperturas === 1 ? '' : 's'}{o.abierta_en ? ` (1.ª ${fechaHora(o.abierta_en)})` : ''}
-                </span>
-                <span className="v" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                  <span className={`badge badge-${ec}`}>{et}</span>
-                  {o.estado === 'activa' && <>
-                    <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem' }} onClick={() => navigator.clipboard?.writeText(enlaceOferta(o.token))}>Copiar enlace</button>
-                    <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }} onClick={() => hacer('Retirando la oferta', () => revocarOferta(o.id), 'Oferta retirada: su enlace ya no vale.')}>Retirar</button>
-                  </>}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </>}
-
-      <h4 className="modal-section-title">Ruta</h4>
-      <div className="det-ruta">
-        {recogidas.map((p, i) => <Punto key={p.id} p={p} cls="rec" num={i + 1} label={`Recogida ${i + 1}`} />)}
-        {entregas.map((p, i) => <Punto key={p.id} p={p} cls="ent" num={i + 1} label={`Entrega ${i + 1}`} />)}
-      </div>
-
-      <h4 className="modal-section-title">Mercancía</h4>
-      <div className="det-block"><div className="modal-info-grid">
-        <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
-        <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
-        <Celda l="Tipo de carga">{tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || '—'}</Celda>
-        <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
-        <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
-        {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
-        <DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} />
-      </div></div>
-
-      <h4 className="modal-section-title">Precio</h4>
-      <div className="det-block">
-        {manual ? (
-          e.precio_acordado_operador != null ? (
-            <div className="alm-price" style={{ margin: 0 }}>
-              <div className="alm-price-row alm-price-base"><span className="k">Precio acordado con su transportista (sin IVA)</span><span className="v">{euros(e.precio_acordado_operador)}</span></div>
-            </div>
-          ) : <div className="modal-info-grid"><Celda l="Precio acordado" span>No anotado</Celda></div>
-        ) : pc == null ? <div className="modal-info-grid"><Celda l="Precio" span><Pend /></Celda></div> : (
-          <div className="alm-price" style={{ margin: 0 }}>
-            <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(e.iva_pct ?? 21)})</span><span className="v">{euros(pc * Number(e.iva_pct ?? 21) / 100)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_pct ?? 21) / 100))}</span></div>
-            <SelloPrecio r={e} />
-          </div>
-        )}
-        {!manual && (
-          <div className="pen-envio-sum" style={{ marginTop: '0.6rem' }}>
-            <div className="pen-sum-row"><span className="k">P. transportista <span style={{ color: 'var(--red)', fontWeight: 800 }}>· solo admin</span></span><span className="v">{pt != null ? euros(pt) : '—'}</span></div>
-            <div className="pen-sum-row"><span className="k">Margen</span><span className="v" style={{ color: e.margen_euros == null ? undefined : Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626', fontWeight: 800 }}>{e.margen_euros != null ? euros(e.margen_euros) : '—'}</span></div>
-            {e.factor_tarifa_pct != null && <div className="pen-sum-row"><span className="k">Factor del cliente aplicado</span><span className="v">{txtNum(e.factor_tarifa_pct)} %</span></div>}
-            {e.precio_fijado_a_mano && <div className="pen-sum-row"><span className="k">Precio</span><span className="v">fijado a mano</span></div>}
-          </div>
-        )}
-      </div>
-
-      {ficha.penalizaciones.length > 0 && <>
-        <h4 className="modal-section-title">Penalizaciones</h4>
-        <div className="pen-envio-sum">
-          {ficha.penalizaciones.map((p) => (
-            <div key={p.id} className="pen-sum-row">
-              <span className="k">{p.codigo} · {p.tipo}{p.generada_auto ? ' · automática' : ''} · <em>{p.estado === 'pendiente_confirmar' ? 'pendiente de confirmar' : p.estado}</em></span>
-              <span className="v">{euros(p.importe_cliente)}</span>
-            </div>
-          ))}
-        </div>
-      </>}
-
-      <h4 className="modal-section-title">Documentos</h4>
-      <div className="det-block">
-        {/* «Ver CMR» (usuario, 2026-11-09): el CMR relleno TAL CUAL está ahora (vacío, con una,
-            varias o todas las firmas), siempre visible. El contador va en naranja hasta que
-            están todas las firmas principales (paradas + porteador) y en verde al completarse.
-            Fuera el «Guardar copia del CMR»: el PDF en vivo lo sustituye. */}
-        {(() => {
-          const hechas = ficha.firmasCmr.filter((x) => !x.extra).length;
-          const total = ficha.paradas.length + 1;
-          const ok = hechas >= total;
-          return (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
-              <a className="btn-ghost" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
-                 style={{ textDecoration: 'none' }} title="El CMR relleno tal y como está ahora mismo, con las firmas que haya.">
-                <I d={ICO.doc} />Ver CMR
-                <span style={{ marginLeft: '0.45rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800,
-                  background: ok ? 'rgba(34,165,90,0.14)' : 'rgba(217,119,6,0.16)', color: ok ? 'var(--green-dark)' : '#b45309' }}>
-                  {hechas}/{total} firmas{ok ? ' ✓' : ''}
-                </span>
-              </a>
-              {ok && <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, color: 'var(--green-dark)' }}>CMR completamente firmado</span>}
-              {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
-                <button type="button" className="btn-ghost" disabled={!!trabajando}
-                  onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
-                  <I d={ICO.doc} />Guardar copia de la {'orden de carga'}
-                </button>
-              )}
-            </div>
-          );
-        })()}
-        <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
-          tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_carga', 'foto_incidencia', 'gps_tacografo', 'otro']}
-          ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
-      </div>
-
       {e.estado === 'entregado' && ficha.transportista && !manual && <Valoracion ficha={ficha} hacer={hacer} trabajando={trabajando} />}
-      {e.valoracion_cliente != null && <>
-        <h4 className="modal-section-title">Valoración del cliente</h4>
-        <div className="det-block">
-          <span style={{ color: '#f5b301', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(e.valoracion_cliente)}</span><span style={{ color: 'var(--gray-200)', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(5 - e.valoracion_cliente)}</span>
-          <span style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginLeft: '0.5rem' }}>{e.valoracion_cliente} de 5{e.valoracion_cliente_en ? ` · ${fechaHora(e.valoracion_cliente_en)}` : ''}</span>
-          {e.valoracion_cliente_comentario && <p style={{ margin: '0.4rem 0 0', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>«{e.valoracion_cliente_comentario}»</p>}
+
+      <Secc k="solicitud" titulo="Solicitud" abiertas={abiertas} toggle={toggle}
+        resumen={<>{e.referencia_cliente ? `ref ${e.referencia_cliente} · ` : ''}creado {fecha(e.creado_en)} · {e.fecha_carga_real ? `carga real ${fecha(e.fecha_carga_real)}` : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</>}>
+        <div className="det-block"><div className="modal-info-grid">
+          <Celda l="Nº de envío">#{e.referencia_gx}</Celda>
+          <Celda l="Ref. cliente">{e.referencia_cliente || '—'}</Celda>
+          <Celda l="Cliente">{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</Celda>
+          <Celda l="Estado">{est[1]}</Celda>
+          {manual && <Celda l="Operador de transporte" span><span style={{ color: '#b45309', fontWeight: 700 }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</Celda>}
+          <Celda l="Creado">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
+          <Celda l="Última modificación">{e.modificado_en ? fechaHora(e.modificado_en) : '—'}</Celda>
+          <Celda l={e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
+          {/* El día que el transportista eligió dentro de la ventana, bien visible junto a
+              ella (usuario, 2026-11-09): con ventana no se veía la fecha asignada. */}
+          {!e.fecha_carga_real && e.fecha_carga_prevista && (
+            <Celda l="Fecha de carga asignada"><span style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></Celda>
+          )}
+          <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
+          {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
+        </div></div>
+      </Secc>
+
+      {!manual && (
+        <Secc k="transporte" titulo="Transporte" abiertas={abiertas} toggle={toggle}
+          resumen={cancelado || e.estado === 'entregado'
+            ? (ficha.transportista ? ficha.transportista.nombre : '—')
+            : ficha.transportista ? <>Confirmado · {ficha.transportista.nombre}{pt != null ? ` · ${euros(pt)}` : ''}</> : 'Sin transportista todavía'}>
+          <div className="det-block">
+            <div className="modal-info-grid">
+              <Celda l="Estado asignación transportista" span>
+                {cancelado || e.estado === 'entregado' ? '—' : ficha.transportista
+                  ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
+                  : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
+              </Celda>
+              <Celda l="Día previsto de carga">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : <Pend />}</Celda>
+              <Celda l="Transportista asignado el">{e.asignado_en ? fechaHora(e.asignado_en) : <Pend />}</Celda>
+              <Celda l="Precio del transportista (sin IVA)">{pt != null ? euros(pt) : <Pend />}</Celda>
+            </div>
+            <div className="det-transp-card">
+              <div className="dtc-main"><I d={ICO.camion} /><strong>{ficha.transportista ? `${ficha.transportista.nombre} · ${ficha.transportista.cif}` : <Pend />}</strong></div>
+              <div className="dtc-row">
+                <span className="dtc-item"><label>Matrícula</label><span className="dtc-v">{e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : <Pend />}</span></span>
+                <span className="dtc-item"><label>Remolque</label><span className="dtc-v">{e.matricula_remolque ? <span className="dtc-mat">{e.matricula_remolque}</span> : '—'}</span></span>
+                <span className="dtc-item"><label>Conductor</label><span className="dtc-v">{e.conductor_nombre || <Pend />}</span></span>
+                <span className="dtc-item"><label>Teléfono</label><span className="dtc-v">{e.conductor_telefono ? <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a> : <Pend />}</span></span>
+              </div>
+              {e.requiere_nima && <div style={{ marginTop: '0.4rem', fontSize: 'var(--fs-m)' }}>NIMA del transportista: <strong>{e.transportista_nima || <Pend />}</strong></div>}
+            </div>
+          </div>
+        </Secc>
+      )}
+
+      {ficha.ofertas.length > 0 && (
+        <Secc k="ofertas" titulo="Ofertas a transportistas" extra={ficha.ofertas.length} abiertas={abiertas} toggle={toggle}
+          resumen={`${ficha.ofertas.filter((o) => o.estado === 'activa').length} activas`}>
+          <div className="pen-envio-sum">
+            {ficha.ofertas.map((o) => {
+              const [et, ec] = ESTADO_OFERTA[o.estado] ?? [o.estado, 'gray'];
+              return (
+                <div key={o.id} className="pen-sum-row" style={{ alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <span className="k">
+                    <strong style={{ color: 'var(--navy)' }}>{o.para ?? CANALES[o.canal] ?? o.canal}</strong>{o.para ? ` · ${CANALES[o.canal] ?? o.canal}` : ''}
+                    {' · '}{euros(o.precio)}{o.banda_euros ? ` ± ${euros(o.banda_euros)}` : ''}{o.pronto_pago ? ' · pronto pago' : ''}
+                    <br />{fechaHora(o.enviada_en)} · {o.aperturas} apertura{o.aperturas === 1 ? '' : 's'}{o.abierta_en ? ` (1.ª ${fechaHora(o.abierta_en)})` : ''}
+                  </span>
+                  <span className="v" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <span className={`badge badge-${ec}`}>{et}</span>
+                    {o.estado === 'activa' && <>
+                      <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem' }} onClick={() => navigator.clipboard?.writeText(enlaceOferta(o.token))}>Copiar enlace</button>
+                      <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }} onClick={() => hacer('Retirando la oferta', () => revocarOferta(o.id), 'Oferta retirada: su enlace ya no vale.')}>Retirar</button>
+                    </>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Secc>
+      )}
+
+      <Secc k="ruta" titulo="Ruta" extra={ficha.paradas.length > 2 ? ficha.paradas.length : undefined} abiertas={abiertas} toggle={toggle} resumen={rutaCorta || undefined}>
+        <div className="det-ruta">
+          {recogidas.map((p, i) => <Punto key={p.id} p={p} cls="rec" num={i + 1} label={`Recogida ${i + 1}`} />)}
+          {entregas.map((p, i) => <Punto key={p.id} p={p} cls="ent" num={i + 1} label={`Entrega ${i + 1}`} />)}
         </div>
-      </>}
+      </Secc>
+
+      <Secc k="mercancia" titulo="Mercancía" abiertas={abiertas} toggle={toggle} resumen={mercResumen || undefined}>
+        <div className="det-block"><div className="modal-info-grid">
+          <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
+          <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
+          <Celda l="Tipo de carga">{tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || '—'}</Celda>
+          <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
+          <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
+          {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
+          <DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} />
+        </div></div>
+      </Secc>
+
+      <Secc k="precio" titulo="Precio" abiertas={abiertas} toggle={toggle}
+        resumen={manual
+          ? (e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado')
+          : pc == null ? 'Pendiente' : <>{euros(pc)} cliente{e.margen_euros != null ? <> · margen {euros(e.margen_euros)}</> : null}</>}>
+        <div className="det-block">
+          {manual ? (
+            e.precio_acordado_operador != null ? (
+              <div className="alm-price" style={{ margin: 0 }}>
+                <div className="alm-price-row alm-price-base"><span className="k">Precio acordado con su transportista (sin IVA)</span><span className="v">{euros(e.precio_acordado_operador)}</span></div>
+              </div>
+            ) : <div className="modal-info-grid"><Celda l="Precio acordado" span>No anotado</Celda></div>
+          ) : pc == null ? <div className="modal-info-grid"><Celda l="Precio" span><Pend /></Celda></div> : (
+            <div className="alm-price" style={{ margin: 0 }}>
+              <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
+              <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(e.iva_pct ?? 21)})</span><span className="v">{euros(pc * Number(e.iva_pct ?? 21) / 100)}</span></div>
+              <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_pct ?? 21) / 100))}</span></div>
+              <SelloPrecio r={e} />
+            </div>
+          )}
+          {!manual && (
+            <div className="pen-envio-sum" style={{ marginTop: '0.6rem' }}>
+              <div className="pen-sum-row"><span className="k">P. transportista <span style={{ color: 'var(--red)', fontWeight: 800 }}>· solo admin</span></span><span className="v">{pt != null ? euros(pt) : '—'}</span></div>
+              <div className="pen-sum-row"><span className="k">Margen</span><span className="v" style={{ color: e.margen_euros == null ? undefined : Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626', fontWeight: 800 }}>{e.margen_euros != null ? euros(e.margen_euros) : '—'}</span></div>
+              {e.factor_tarifa_pct != null && <div className="pen-sum-row"><span className="k">Factor del cliente aplicado</span><span className="v">{txtNum(e.factor_tarifa_pct)} %</span></div>}
+              {e.precio_fijado_a_mano && <div className="pen-sum-row"><span className="k">Precio</span><span className="v">fijado a mano</span></div>}
+            </div>
+          )}
+        </div>
+      </Secc>
+
+      {ficha.penalizaciones.length > 0 && (
+        <Secc k="penalizaciones" titulo="Penalizaciones" extra={ficha.penalizaciones.length} abiertas={abiertas} toggle={toggle}
+          resumen={euros(ficha.penalizaciones.reduce((s, p) => s + Number(p.importe_cliente ?? 0), 0))}>
+          <div className="pen-envio-sum">
+            {ficha.penalizaciones.map((p) => (
+              <div key={p.id} className="pen-sum-row">
+                <span className="k">{p.codigo} · {p.tipo}{p.generada_auto ? ' · automática' : ''} · <em>{p.estado === 'pendiente_confirmar' ? 'pendiente de confirmar' : p.estado}</em></span>
+                <span className="v">{euros(p.importe_cliente)}</span>
+              </div>
+            ))}
+          </div>
+        </Secc>
+      )}
+
+      <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle}
+        resumen={<>{firmasHechas}/{firmasTotal} firmas CMR{firmasHechas >= firmasTotal ? ' ✓' : ''} · adjuntos</>}>
+        <div className="det-block">
+          {/* «Ver CMR» (usuario, 2026-11-09): el CMR relleno TAL CUAL está ahora (vacío, con una,
+              varias o todas las firmas), siempre visible. El contador va en naranja hasta que
+              están todas las firmas principales (paradas + porteador) y en verde al completarse.
+              Fuera el «Guardar copia del CMR»: el PDF en vivo lo sustituye. */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
+            <a className="btn-ghost" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
+               style={{ textDecoration: 'none' }} title="El CMR relleno tal y como está ahora mismo, con las firmas que haya.">
+              <I d={ICO.doc} />Ver CMR
+              <span style={{ marginLeft: '0.45rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800,
+                background: firmasHechas >= firmasTotal ? 'rgba(34,165,90,0.14)' : 'rgba(217,119,6,0.16)', color: firmasHechas >= firmasTotal ? 'var(--green-dark)' : '#b45309' }}>
+                {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
+              </span>
+            </a>
+            {firmasHechas >= firmasTotal && <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, color: 'var(--green-dark)' }}>CMR completamente firmado</span>}
+            {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
+              <button type="button" className="btn-ghost" disabled={!!trabajando}
+                onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
+                <I d={ICO.doc} />Guardar copia de la {'orden de carga'}
+              </button>
+            )}
+          </div>
+          <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
+            tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_carga', 'foto_incidencia', 'gps_tacografo', 'otro']}
+            ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
+        </div>
+      </Secc>
+
+      {e.valoracion_cliente != null && (
+        <Secc k="valoracion" titulo="Valoración del cliente" abiertas={abiertas} toggle={toggle}
+          resumen={`${'★'.repeat(e.valoracion_cliente)} ${e.valoracion_cliente} de 5`}>
+          <div className="det-block">
+            <span style={{ color: '#f5b301', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(e.valoracion_cliente)}</span><span style={{ color: 'var(--gray-200)', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(5 - e.valoracion_cliente)}</span>
+            <span style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginLeft: '0.5rem' }}>{e.valoracion_cliente} de 5{e.valoracion_cliente_en ? ` · ${fechaHora(e.valoracion_cliente_en)}` : ''}</span>
+            {e.valoracion_cliente_comentario && <p style={{ margin: '0.4rem 0 0', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>«{e.valoracion_cliente_comentario}»</p>}
+          </div>
+        </Secc>
+      )}
 
       {!cancelado && <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
 
-      {!cancelado && !manual && ficha.etapas.length > 0 && <>
-        <h4 className="modal-section-title">Seguimiento</h4>
-        <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} />
-      </>}
+      {!cancelado && !manual && ficha.etapas.length > 0 && (
+        <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle}
+          resumen={<>{ficha.etapas.length} etapas{e.seguimiento_automatico === false ? ' · pausado' : ''}</>}>
+          <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} />
+        </Secc>
+      )}
 
-      <h4 className="modal-section-title">Historial</h4>
-      <div className="pen-envio-sum">
-        {ficha.hitos.length === 0 && <div className="pen-sum-row"><span className="k">Sin movimientos</span><span className="v" /></div>}
-        {ficha.hitos.map((h) => (
-          <div key={h.id} className="pen-sum-row">
-            <span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span>
-            <span className="v" style={{ textAlign: 'right' }}>
-              {HITOS[h.hito] ?? h.hito}
-              {h.datos?.motivo_cancelacion && <> — «{h.datos.motivo_cancelacion}»</>}
-              {h.hito === 'matricula_asignada' && h.datos?.camion && <> — {h.datos.camion}{h.datos.remolque ? ` + ${h.datos.remolque}` : ''}</>}
-              <span style={{ color: 'var(--gray-500)', fontWeight: 500 }}>{h.quien ? ` · ${h.quien}` : ORIGEN[h.origen ?? ''] ? ` · ${ORIGEN[h.origen ?? '']}` : ''}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-      <Historial tabla="envios" id={e.id} />
+      <Secc k="historial" titulo="Historial" extra={ficha.hitos.length || undefined} abiertas={abiertas} toggle={toggle}
+        resumen={ficha.hitos.length ? `último ${fechaHora(ficha.hitos[ficha.hitos.length - 1].cuando)}` : 'Sin movimientos'}>
+        <div className="pen-envio-sum">
+          {ficha.hitos.length === 0 && <div className="pen-sum-row"><span className="k">Sin movimientos</span><span className="v" /></div>}
+          {ficha.hitos.map((h) => (
+            <div key={h.id} className="pen-sum-row">
+              <span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span>
+              <span className="v" style={{ textAlign: 'right' }}>
+                {HITOS[h.hito] ?? h.hito}
+                {h.datos?.motivo_cancelacion && <> — «{h.datos.motivo_cancelacion}»</>}
+                {h.hito === 'matricula_asignada' && h.datos?.camion && <> — {h.datos.camion}{h.datos.remolque ? ` + ${h.datos.remolque}` : ''}</>}
+                <span style={{ color: 'var(--gray-500)', fontWeight: 500 }}>{h.quien ? ` · ${h.quien}` : ORIGEN[h.origen ?? ''] ? ` · ${ORIGEN[h.origen ?? '']}` : ''}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <Historial tabla="envios" id={e.id} />
+      </Secc>
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );
