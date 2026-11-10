@@ -5450,24 +5450,24 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
--- ---- 151. Horas de corte al pedir y al pagar, por separado ---------------------------------
+-- ---- 151. Al pagar y liberar rigen los MISMOS cortes que al pedir --------------------------
+-- (usuario, 2026-11-10: fuera los dos parámetros de corte «al pagar»; la fecha fija con
+-- su corte y cada ventana con el suyo, igual que al pedir)
 reset role;
 do $$ begin
-  update parametros set valor = '9' where clave = 'primer_dia_corte_pago_fija_hora';
-  update parametros set valor = '16' where clave = 'primer_dia_corte_pago_ventana_hora';
-  if primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'          -- al pedir: corte 12:00
-     or primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid', true) <> date '2026-11-13'  -- al pagar: corte 9:00
-     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid') <> date '2026-11-12'       -- al pedir: corte 14:00 pasado → siguiente hábil
-     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid', true) <> date '2026-11-11' -- al pagar: corte 16:00 → hoy mismo
+  if exists (select 1 from parametros where clave in ('primer_dia_corte_pago_fija_hora', 'primer_dia_corte_pago_ventana_hora')) then
+    raise exception 'FALLO 151 · los parámetros de corte «al pagar» siguen existiendo';
+  end if;
+  if primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'      -- fija: corte 12:00
+     or primera_fecha_carga(false, '2026-11-11 15:00 Europe/Madrid') <> date '2026-11-12'  -- ventana: su corte pasado → siguiente hábil
   then
-    raise exception 'FALLO 151 · las horas de corte al pagar no van por separado';
+    raise exception 'FALLO 151 · los cortes al pedir no responden';
   end if;
-  update parametros set valor = '12' where clave = 'primer_dia_corte_pago_fija_hora';
-  update parametros set valor = '14' where clave = 'primer_dia_corte_pago_ventana_hora';
-  if pg_get_functiondef('public.fn_envios_a0_fecha_al_pagar'::regproc) !~ 'primera_fecha_carga\(v_fija, now\(\), true\)' then
-    raise exception 'FALLO 151 · al pagar no se usan las horas de corte «al pagar»';
+  -- El disparador de la fecha al pagar usa los mismos cortes, con los días de SU ventana.
+  if pg_get_functiondef('public.fn_envios_a0_fecha_al_pagar'::regproc) !~ 'primera_fecha_carga\(v_fija, now\(\), v_n\)' then
+    raise exception 'FALLO 151 · al pagar no rigen los mismos cortes que al pedir';
   end if;
-  raise notice 'OK 151 · horas de corte: al pedir (12:00 fija, 14:00 ventana) y al pagar (12:00, 14:00), cada una en su parámetro';
+  raise notice 'OK 151 · al pagar y liberar rigen los MISMOS cortes que al pedir (la fija el suyo y cada ventana el suyo)';
 end $$;
 
 -- ---- 152. «Hoy» es el día de Madrid: nada de la base de datos usa current_date (UTC) ----
@@ -7029,10 +7029,10 @@ do $$ begin
   -- Miércoles 11/11/2026 a las 12:00 (hábil): la 1-2 (corte 10:00) ya pasó → jueves;
   -- la 1-3 (14:00) y la 1-4 (16:00) aún llegan → HOY mismo. Pasado el suyo, el
   -- siguiente hábil — nunca salta dos. La fija no cambia (corte 12:00).
-  if primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', false, 2) <> date '2026-11-12'
-     or primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', false, 3) <> date '2026-11-11'
-     or primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', false, 4) <> date '2026-11-11'
-     or primera_fecha_carga(false, '2026-11-11 17:00 Europe/Madrid', false, 4) <> date '2026-11-12'
+  if primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', 2) <> date '2026-11-12'
+     or primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', 3) <> date '2026-11-11'
+     or primera_fecha_carga(false, '2026-11-11 12:00 Europe/Madrid', 4) <> date '2026-11-11'
+     or primera_fecha_carga(false, '2026-11-11 17:00 Europe/Madrid', 4) <> date '2026-11-12'
      or primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'
   then raise exception 'FALLO 188 · los cortes por ventana no van cada uno con su parámetro'; end if;
   -- La pantalla recibe las tres horas (reglas_precio_envio).
@@ -7041,8 +7041,8 @@ do $$ begin
      or (reglas_precio_envio() ->> 'corte_ventana_1_4_hora') <> '16'
   then raise exception 'FALLO 188 · reglas_precio_envio no devuelve las tres horas de corte'; end if;
   -- crear_envio_cliente y pedir_cambio_envio usan el corte de SU ventana.
-  if pg_get_functiondef('public.crear_envio_cliente'::regproc) !~ 'primera_fecha_carga\(v_hasta = v_desde, now\(\), false, v_vdias\)'
-     or pg_get_functiondef('public.pedir_cambio_envio'::regproc) !~ 'primera_fecha_carga\(v_n = 1, now\(\), false, v_n\)'
+  if pg_get_functiondef('public.crear_envio_cliente'::regproc) !~ 'primera_fecha_carga\(v_hasta = v_desde, now\(\), v_vdias\)'
+     or pg_get_functiondef('public.pedir_cambio_envio'::regproc) !~ 'primera_fecha_carga\(v_n = 1, now\(\), v_n\)'
   then raise exception 'FALLO 188 · crear_envio_cliente o pedir_cambio_envio no pasan los días de su ventana'; end if;
   update parametros set valor = '14' where clave in ('primer_dia_corte_ventana_1_2_hora', 'primer_dia_corte_ventana_1_4_hora');
   raise notice 'OK 188 · hora de corte por ventana (1-2, 1-3 y 1-4), separadas y cada una en su parámetro';

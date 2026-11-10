@@ -55,12 +55,8 @@ export const AYUDA: Record<string, Ayuda> = {
   primer_dia_corte_ventana_1_4_hora: { titulo: 'Al pedir · ventana de 1 a 4 días (grupaje)',
     explica: 'Pedida antes de esta hora (Madrid) en un día hábil, la ventana de 1 a 4 días puede empezar HOY mismo; después (o en sábado, domingo o festivo), el siguiente día hábil — nunca salta dos.',
     ejemplo: (v) => `Con ${v}: pedida el martes a las ${Math.max(Number(v) - 1, 0)}:30 → la ventana puede empezar ese mismo martes; a las ${v}:05 → el miércoles.` },
-  primer_dia_corte_pago_fija_hora: { titulo: 'Al pagar y liberar · fecha fija',
-    explica: 'Hora de Madrid. Cuando llega el pago previo (o lo pasas sin pago previo) y la fecha elegida ya no llega: antes de esta hora, la carga pasa al siguiente día hábil; después, al otro.',
-    ejemplo: (v) => `Con ${v}: carga pedida para el lunes y pagada el martes antes de las ${v}:00 → pasa al miércoles; después → al jueves.` },
-  primer_dia_corte_pago_ventana_hora: { titulo: 'Al pagar y liberar · ventana de carga',
-    explica: 'Lo mismo para TODAS las ventanas: pagada antes de esta hora en un día hábil, la ventana puede empezar ese mismo día; después, el siguiente día hábil — nunca salta dos. Conserva sus días hábiles.',
-    ejemplo: (v) => `Con ${v}: ventana de 3 días pagada el lunes antes de las ${v}:00 → del lunes al miércoles; después → del martes al jueves.` },
+  // Al pagar y liberar rigen los MISMOS cortes que al pedir (usuario, 2026-11-10): los
+  // dos parámetros de corte «al pagar» se quitaron.
   envio_antelacion_max_dias: { titulo: 'Antelación máxima para programar',
     explica: 'Con cuántos días de antelación como máximo puede programar un cliente un envío. Más lejos, el asistente no le deja y le pide que llame. Dynamo no tiene límite. 0 = sin límite.',
     ejemplo: (v) => `Con ${v}: hoy puede programar como mucho a ${v} días vista.` },
