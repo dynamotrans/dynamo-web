@@ -321,8 +321,16 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           manual ? (e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : null) : pc != null ? euros(pc) : null,
         ].filter(Boolean).join(' · ') || undefined}>
         {conSeguimiento && <>
-          <SubTit primero>Seguimiento{e.seguimiento_automatico === false ? ' · en pausa' : ''}</SubTit>
-          <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} paradas={ficha.paradas} />
+          {/* Ruta y seguimiento son UNA línea temporal (usuario, 2026-11-10): la ficha
+              de cada parada va incrustada en su hito de carga o descarga. */}
+          <SubTit primero>Seguimiento de la ruta{e.seguimiento_automatico === false ? ' · en pausa' : ''}</SubTit>
+          <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false}
+            fichaParada={(n) => {
+              const p = ficha.paradas[n - 1];
+              if (!p) return null;
+              const rec = p.tipo === 'carga', lista = rec ? recogidas : entregas, i = lista.findIndex((z) => z.id === p.id) + 1;
+              return <Punto p={p} cls={rec ? 'rec' : 'ent'} num={i} label={`${rec ? 'Recogida' : 'Entrega'} ${i}`} />;
+            }} />
           <div style={{ marginTop: '0.6rem' }}>
             <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
           </div>
@@ -343,11 +351,15 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           {e.modificado_en && <Celda l="Última modificación">{fechaHora(e.modificado_en)}</Celda>}
           {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
         </div></div>
-        <SubTit>Ruta{ficha.paradas.length > 2 ? ` (${ficha.paradas.length} paradas)` : ''}</SubTit>
-        <div className="det-ruta">
-          {recogidas.map((p, i) => <Punto key={p.id} p={p} cls="rec" num={i + 1} label={`Recogida ${i + 1}`} />)}
-          {entregas.map((p, i) => <Punto key={p.id} p={p} cls="ent" num={i + 1} label={`Entrega ${i + 1}`} />)}
-        </div>
+        {/* Sin seguimiento (manual, cancelado o sin etapas), la ruta se queda como
+            bloque propio; con él, las fichas van incrustadas en la línea temporal. */}
+        {!conSeguimiento && <>
+          <SubTit>Ruta{ficha.paradas.length > 2 ? ` (${ficha.paradas.length} paradas)` : ''}</SubTit>
+          <div className="det-ruta">
+            {recogidas.map((p, i) => <Punto key={p.id} p={p} cls="rec" num={i + 1} label={`Recogida ${i + 1}`} />)}
+            {entregas.map((p, i) => <Punto key={p.id} p={p} cls="ent" num={i + 1} label={`Entrega ${i + 1}`} />)}
+          </div>
+        </>}
         <SubTit>Mercancía</SubTit>
         <div className="det-block"><div className="modal-info-grid">
           <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>

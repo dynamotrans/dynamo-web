@@ -1564,6 +1564,28 @@ body.theme-dark .sidebar { background: #060116; }
    debajo a la izquierda, en vez de un ajuste de línea a la derecha a trompicones. */
 .pen-sum-row.pen-sum-col { flex-direction: column; align-items: flex-start; gap: 0; }
 .pen-sum-row.pen-sum-col .v { margin-left: 0; text-align: left; }
+/* --- Línea temporal del seguimiento (2026-11-10: «unifica ruta y seguimiento,
+   una línea temporal con hitos, más visual») ---
+   Hitos unidos por una línea vertical; el hito actual con punto morado y halo, los
+   hechos en verde; las fichas de las paradas van incrustadas en su hito (.tl-card). */
+.tl { position: relative; }
+.tl::before {
+    content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px;
+    width: 2px; background: var(--gray-200); border-radius: 2px;
+}
+.tl-item { position: relative; padding: 0 0 0.9rem 1.5rem; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-dot {
+    position: absolute; left: 0; top: 0.28rem; width: 12px; height: 12px;
+    border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 2px var(--gray-300);
+}
+.tl-hecha .tl-dot { background: #047857; box-shadow: inset 0 0 0 2px #047857; }
+.tl-actual .tl-dot { background: var(--purple); box-shadow: inset 0 0 0 2px var(--purple), 0 0 0 4px rgba(51,0,204,0.14); }
+.tl-tit { display: block; font-size: var(--fs-m); line-height: 1.35; }
+.tl-sub { display: block; margin-top: 0.1rem; font-size: var(--fs-s); line-height: 1.35; }
+.tl-card { margin-top: 0.45rem; }
+.tl-card .det-punto { background: #fff; }
+
 /* Fila de precios en MINI-COLUMNAS (Cliente / Transp. / Margen): cada una con su
    etiqueta encima, para que no se parta un importe a la línea siguiente. */
 .pen-sum-row.pen-sum-3 { justify-content: flex-start; gap: 0.15rem 1.8rem; }
