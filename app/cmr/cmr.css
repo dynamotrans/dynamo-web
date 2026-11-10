@@ -47,9 +47,11 @@
     .cmr-page .banner-ok.show { display: block; }
     .cmr-page .foot { margin-top: 1rem; font-size: 0.72rem; color: var(--gray-500); text-align: center; line-height: 1.5; }
     /* ===== Pantalla de firma (overlay a pantalla completa) ===== */
-    .cmr-page .sigov { position: fixed; inset: 0; background: rgba(10,2,48,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
+    /* Con scroll PROPIO: si la tarjeta no cabe (móvil apaisado, teclado abierto), se
+       desplaza ella — antes iOS scrolleaba el fondo y dejaba un hueco enorme debajo. */
+    .cmr-page .sigov { position: fixed; inset: 0; background: rgba(10,2,48,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 50; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .cmr-page .sigov.show { display: flex; }
-    .cmr-page .sigcard { background: #fff; border-radius: 16px; padding: 1rem; width: 100%; max-width: 560px; }
+    .cmr-page .sigcard { background: #fff; border-radius: 16px; padding: 1rem; width: 100%; max-width: 560px; margin: auto 0; }
     .cmr-page .sigcard h2 { font-size: 1.02rem; margin-bottom: 0.15rem; }
     .cmr-page .sigcard .hint { font-size: 0.78rem; color: var(--gray-500); margin-bottom: 0.6rem; }
     .cmr-page .sig-lbl { display: block; font-size: 0.7rem; font-weight: 800; color: var(--gray-700); margin: 0.55rem 0 0.2rem; }

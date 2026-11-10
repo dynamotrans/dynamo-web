@@ -30,6 +30,16 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
   const [preFirma, setPreFirma] = useState<Bloque | null>(null);
+  // Con una ventana abierta, el FONDO no scrollea: en iOS, el teclado sobre la pantalla
+  // de firma scrolleaba la página de detrás y le dejaba un hueco enorme al final
+  // (usuario, 2026-11-10: «scroll muy largo»).
+  const hayVentana = !!(abierto || preFirma);
+  useEffect(() => {
+    if (!hayVentana) return;
+    const html = document.documentElement, prev = html.style.overflow;
+    html.style.overflow = 'hidden';
+    return () => { html.style.overflow = prev; };
+  }, [hayVentana]);
 
   if (cmr.resultado !== 'ok') {
     const t: Record<string, [string, string]> = {
