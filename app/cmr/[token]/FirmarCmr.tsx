@@ -77,6 +77,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
+      {/* El PDF e-CMR / DeCA relleno, también desde aquí (usuario, 2026-11-10): botón
+          discreto en blanco. Abre /cmr/<token>/pdf, la ruta pública por el mismo enlace. */}
+      <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', margin: '0.8rem 0 0', background: '#fff',
+        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', textDecoration: 'none' }}>
+        Abrir el PDF e-CMR / DeCA
+      </a>
       <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
       {firmoAqui && <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
       {bloques.map((b) => {
