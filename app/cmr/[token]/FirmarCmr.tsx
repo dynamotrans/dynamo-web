@@ -23,6 +23,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // Firma EXTRA (usuario, 2026-11-09): hasta 3 además de las casillas de siempre. Se elige
   // la casilla y se abre la pantalla de firma normal; no ocupa la casilla ni anota reservas.
   const [eligiendoExtra, setEligiendoExtra] = useState(false);
+  const [terminado, setTerminado] = useState(false);
 
   if (cmr.resultado !== 'ok') {
     const t: Record<string, [string, string]> = {
@@ -44,6 +45,27 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
+  // «He terminado» (usuario, 2026-11-10): cada firma se guarda SOLA al firmar, así que no
+  // hay nada que guardar; el botón despide con un «todo guardado» y se intenta cerrar la
+  // pestaña (si el navegador no deja, queda la pantalla de despedida).
+  if (terminado) {
+    return (
+      <div className="card" style={{ textAlign: 'center' }}>
+        {!cmr.manual && <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>}
+        <div aria-hidden="true" style={{ fontSize: '3rem', lineHeight: 1, margin: '0.5rem 0', color: '#15803d' }}>✓</div>
+        <h1>Firmado y guardado</h1>
+        <p className="sub">Cada firma queda registrada en el CMR en el momento de firmar: no hay nada más que hacer. Ya puedes cerrar esta pestaña.</p>
+        <button type="button" className="firma-btn" style={{ width: '100%', marginTop: '0.8rem', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)' }}
+          onClick={() => setTerminado(false)}>Volver a las firmas</button>
+      </div>
+    );
+  }
+  const btnFin = (
+    <button type="button" className="firma-btn" style={{ width: '100%', background: '#1d9e57' }}
+      onClick={() => { setTerminado(true); try { window.close(); } catch { /* el navegador decide */ } }}>
+      He terminado — está todo guardado
+    </button>
+  );
   const extras = (cmr.firmas ?? []).filter((f) => f.extra);
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;
   const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
@@ -65,6 +87,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
       <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
+      <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>
       {bloques.map((b) => {
         const f = firmas.get(b.clave);
         return (
@@ -116,6 +139,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         </div>
       )}
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
+      <div style={{ margin: '0.8rem 0 0' }}>{btnFin}</div>
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó (y tu ubicación GPS si das permiso). Firma electrónica simple (Reglamento eIDAS).</p>
       {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); refrescar(); }} />}
     </div>
