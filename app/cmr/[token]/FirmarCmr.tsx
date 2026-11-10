@@ -166,8 +166,10 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               <strong> nombre y documento</strong> que pongas. <strong>Si no eres tú quien debe firmar, no firmes:</strong> el dispositivo queda registrado y
               firmar por otra persona te haría responsable en caso de fraude.
             </p>
-            <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.45rem' }} onClick={() => { setAbierto(preFirma); setPreFirma(null); }}>De acuerdo</button>
-            <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)' }} onClick={() => setPreFirma(null)}>Cancelar</button>
+            <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.5rem', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
+              onClick={() => { setAbierto(preFirma); setPreFirma(null); }}>Firmar</button>
+            <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
+              onClick={() => setPreFirma(null)}>Cancelar</button>
           </div>
         </div>
       )}
