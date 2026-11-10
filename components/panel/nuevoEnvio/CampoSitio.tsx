@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import SelectorPais from '@/components/SelectorPais';
-import { TIPOS_SITIO } from '../TipoSitio';
+import { IconoTipo, TIPOS_SITIO } from '../TipoSitio';
 import EditorHorario from '../EditorHorario';
 import { HORARIO_POR_DEFECTO, validarHorario } from '@/lib/horarios';
 import CampoTelefono from '@/components/CampoTelefono';
@@ -24,6 +24,10 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
     return sitios.filter((s) => !w || norm([s.nombre_empresa, s.direccion, s.codigo_postal, s.poblacion, s.provincia].filter(Boolean).join(' ')).includes(w)).slice(0, 8);
   }, [sitios, q]);
   const rec = punto.tipo === 'carga';
+  // Icono del TIPO de sitio en blanco dentro de la pastilla (usuario, 2026-11-10):
+  // fábrica · cono de obra · edificios · espiga, tras «Recogida»/«Entrega».
+  const tipoSel = punto.sitio ? punto.sitio.tipo : punto.nuevo?.tipo_sitio;
+  const icoTipo = elegido ? <IconoTipo tipo={tipoSel} blanco /> : null;
   const malHorario = form?.horario ? validarHorario(form.horario) : null;
   const listo = form && form.nombre_empresa.trim() && form.poblacion.trim() && form.codigo_postal.trim() && !malHorario;
 
@@ -36,9 +40,9 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
           {onAlternar
             ? <button type="button" className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`} onClick={onAlternar}
                 title={rec ? 'Cambiar a entrega' : 'Cambiar a recogida'} aria-label={`Parada ${numero}, ${rec ? 'recogida' : 'entrega'}. Pulsa para cambiarla a ${rec ? 'entrega' : 'recogida'}`}>
-                {numero} · {rec ? 'Recogida' : 'Entrega'}
+                {numero} · {rec ? 'Recogida' : 'Entrega'}{icoTipo}
               </button>
-            : <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`}>{numero} · {rec ? 'Recogida' : 'Entrega'}</span>}
+            : <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`}>{numero} · {rec ? 'Recogida' : 'Entrega'}{icoTipo}</span>}
           <input type="text" autoComplete="off" placeholder={deshabilitado ? 'Elige antes el cliente' : placeholder}
             disabled={deshabilitado} readOnly={!!elegido}
             value={elegido ? textoSitio(elegido) + (punto.parada_id || !punto.nuevo ? '' : punto.nuevo.guardar ? ' (nuevo)' : ' (dirección suelta)') : q}

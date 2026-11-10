@@ -3410,6 +3410,8 @@ table.data td.actions { text-align: right; white-space: nowrap; }
 }
 .ptar-route-tag.rec { background: var(--orange); }
 .ptar-route-tag.ent { background: var(--green); }
+/* Icono del tipo de sitio dentro de la pastilla (blanco negativo). */
+.ptar-route-tag .rf-tipo-ico { margin: 0 0 0 0.35rem; }
 button.ptar-route-tag { cursor: pointer; }
 button.ptar-route-tag:hover { filter: brightness(0.92); }
 /* Botón "+" al final de la fila de origen/destino. */
