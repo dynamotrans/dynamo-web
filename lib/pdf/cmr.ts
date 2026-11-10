@@ -275,8 +275,17 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       return `Casilla ${CASILLA[f.rol] ?? '—'} · ${ROL[f.rol] ?? f.rol}${carta ? ` — ${carta}` : ''}`;
     };
     const corta = (t: string, s: number) => { const p = l.partir(t, s, anchoTexto); return p.length > 1 ? p[0].slice(0, -1) + '…' : p[0]; };
+    // Sin tope de firmas (usuario, 2026-11-10): si no caben (más destinos, extras…),
+    // siguen en otra hoja, que lleva su propia cabecera de continuación.
+    const cabCont = () => {
+      l.texto(l.x0, l.y + 10, 'Registro de firmas / DeCA (continuación)', 11, { bold: true });
+      l.textoDer(A4.w - l.margen.der, l.y + 10, `CMR Nº ${e.referencia_gx ?? ''}`, 8.5, { bold: true });
+      l.y += 22;
+    };
     for (const f of lista) {
+      const pgAntes = l.pag;
       l.sitio(ALTO + 6);
+      if (l.pag !== pgAntes) cabCont();
       l.rect(l.x0, l.y, l.ancho, ALTO, COLOR.blanco, COLOR.grisClaro);
       const img = trazos.get(f);
       if (img) {
