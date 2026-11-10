@@ -21,18 +21,27 @@ export default function Etapas({ etapas, pausado }: { etapas: Etapa[]; pausado?:
       {pausado && <div className="pen-sum-row"><span className="k" style={{ color: '#b45309', fontWeight: 800 }}>Seguimiento automático en pausa</span><span className="v">El estado solo cambia a mano</span></div>}
       {etapas.map((x) => {
         const color = x.actual ? 'var(--purple)' : x.hecha ? '#047857' : 'var(--gray-500)';
+        // DOS líneas limpias a la izquierda (usuario, 2026-11-10: la fecha a la derecha
+        // se partía y se amontonaba en móvil): el nombre, y debajo fecha · km · notas.
+        const sub = [
+          x.hora ? `${x.hecha ? '' : 'prevista '}${fechaHora(x.hora)}` : '',
+          x.km != null ? `${Math.round(Number(x.km))} km${x.km_estimado ? ' (estimados)' : ''}` : '',
+        ].filter(Boolean).join(' · ');
         return (
-          <div key={x.paso} className="pen-sum-row" aria-current={x.actual ? 'step' : undefined} style={x.actual ? { background: 'rgba(51,0,204,0.06)', borderRadius: 8 } : undefined}>
-            <span className="k" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color, fontWeight: x.actual ? 800 : 600 }}>
+          <div key={x.paso} className="pen-sum-row" aria-current={x.actual ? 'step' : undefined}
+               style={{ display: 'block', ...(x.actual ? { background: 'rgba(51,0,204,0.06)', borderRadius: 8 } : {}) }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color, fontWeight: x.actual ? 800 : 600 }}>
               <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
                 background: x.hecha ? color : '#fff', boxShadow: `inset 0 0 0 2px ${color}` }} />
               {nombreEtapa(x)}
             </span>
-            <span className="v" style={{ textAlign: 'right', color: x.hecha ? 'var(--navy)' : 'var(--gray-500)', whiteSpace: 'nowrap' }}>
-              {x.hora ? <>{x.hecha ? '' : 'prevista '}{fechaHora(x.hora)}</> : ''}
-              {x.km != null && <span style={{ display: 'block', fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>{Math.round(Number(x.km))} km{x.km_estimado ? ' (estimados)' : ''}</span>}
-              {x.marcada && <span style={{ display: 'block', fontSize: 'var(--fs-s)', color: '#b45309', fontWeight: 700 }}>marcada a mano</span>}
-            </span>
+            {(sub || x.marcada) && (
+              <span style={{ display: 'block', margin: '0.15rem 0 0 calc(10px + 0.5rem)', fontSize: 'var(--fs-s)',
+                             color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>
+                {sub}
+                {x.marcada && <span style={{ color: '#b45309', fontWeight: 700 }}>{sub ? ' · ' : ''}marcada a mano</span>}
+              </span>
+            )}
           </div>
         );
       })}

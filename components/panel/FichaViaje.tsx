@@ -160,6 +160,13 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
         </div>
       )}
 
+      {/* Seguimiento EL PRIMERO del acordeón (usuario, 2026-11-10): es lo que más se mira. */}
+      {etapas.length > 0 && e.estado !== 'cancelado' && (
+        <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle} resumen="el horario previsto, parada a parada">
+          <Etapas etapas={etapas} />
+        </Secc>
+      )}
+
       <Secc k="viaje" titulo="Viaje" abiertas={abiertas} toggle={toggle}
         resumen={<>{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}{e.importe_transportista != null ? <> · <strong>{euros(e.importe_transportista)}</strong></> : null}</>}>
       <div className="det-block"><div className="modal-info-grid">
@@ -178,11 +185,6 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
         <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div>
           Avísanos de cómo va el viaje con el botón de arriba. Si no nos avisas, el estado avanza solo con el horario previsto (abajo); lo que marques manda y desde ahí sigue.
         </div></div>
-      )}
-      {etapas.length > 0 && e.estado !== 'cancelado' && (
-        <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle} resumen="el horario previsto, parada a parada">
-          <Etapas etapas={etapas} />
-        </Secc>
       )}
 
       <Secc k="ruta" titulo="Ruta" extra={paradas.length} abiertas={abiertas} toggle={toggle}

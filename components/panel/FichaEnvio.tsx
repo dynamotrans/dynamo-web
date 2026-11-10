@@ -293,6 +293,14 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       ))}
       {e.estado === 'entregado' && ficha.transportista && !manual && <Valoracion ficha={ficha} hacer={hacer} trabajando={trabajando} />}
 
+      {/* Seguimiento EL PRIMERO del acordeón (usuario, 2026-11-10): es lo que más se mira. */}
+      {!cancelado && !manual && ficha.etapas.length > 0 && (
+        <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle}
+          resumen={<>{ficha.etapas.length} etapas{e.seguimiento_automatico === false ? ' · pausado' : ''}</>}>
+          <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} />
+        </Secc>
+      )}
+
       <Secc k="solicitud" titulo="Solicitud" abiertas={abiertas} toggle={toggle}
         resumen={<>{e.referencia_cliente ? `ref ${e.referencia_cliente} · ` : ''}creado {fecha(e.creado_en)} · {e.fecha_carga_real ? `carga real ${fecha(e.fecha_carga_real)}` : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</>}>
         <div className="det-block"><div className="modal-info-grid">
@@ -463,13 +471,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </Secc>
       )}
 
-
-      {!cancelado && !manual && ficha.etapas.length > 0 && (
-        <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle}
-          resumen={<>{ficha.etapas.length} etapas{e.seguimiento_automatico === false ? ' · pausado' : ''}</>}>
-          <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} />
-        </Secc>
-      )}
 
       <Secc k="historial" titulo="Historial" extra={ficha.hitos.length || undefined} abiertas={abiertas} toggle={toggle}
         resumen={ficha.hitos.length ? `último ${fechaHora(ficha.hitos[ficha.hitos.length - 1].cuando)}` : 'Sin movimientos'}>
