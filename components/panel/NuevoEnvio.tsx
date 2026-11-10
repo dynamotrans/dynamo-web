@@ -755,9 +755,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   );
 
   // ---- MODIFICAR: mini-resumen del precio ANTES → AHORA (usuario, 2026-11-10) --------
-  // Cliente y margen antes/ahora, y el precio del transportista EDITABLE aquí mismo:
-  // si el precio sube se le puede mejorar al chófer, si baja se negocia a la baja por
-  // teléfono y se ajusta antes de guardar.
+  // Solo lectura: el precio del transportista se edita en «Precios internos» (paso 3),
+  // no hace falta repetir el campo aquí (usuario, 2026-11-10).
   const pcAnt = editar && be?.importe_cliente != null ? Number(be.importe_cliente) : null;
   const ptAnt = editar && be?.importe_transportista != null ? Number(be.importe_transportista) : null;
   const margenAnt = pcAnt != null && ptAnt != null ? pcAnt - ptAnt : null;
@@ -772,17 +771,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       <div className="alm-price-row alm-price-sub" style={{ fontWeight: 800, color: 'var(--navy)' }}><span className="k">Antes → ahora</span><span className="v" /></div>
       <div className="alm-price-row alm-price-sub"><span className="k">Cliente</span>
         <span className="v">{pcAnt != null ? eur(pcAnt) : '—'} → <strong>{importe > 0 ? eur(importe) : '—'}</strong><Delta antes={pcAnt} ahora={importe > 0 ? importe : null} /></span></div>
-      <div className="alm-price-row alm-price-sub" style={{ alignItems: 'center' }}><span className="k">Transportista</span>
-        <span className="v" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>{ptAnt != null ? eur(ptAnt) : '—'} →
-          <input type="text" inputMode="decimal" aria-label="Precio del transportista (sin IVA)" value={pt}
-            onChange={(e) => { setPt(e.target.value); setPtTocado(true); }}
-            style={{ width: 90, padding: '0.25rem 0.45rem', textAlign: 'right', fontWeight: 800 }} /> €
-          <Delta antes={ptAnt} ahora={importeT} /></span></div>
+      <div className="alm-price-row alm-price-sub"><span className="k">Transportista</span>
+        <span className="v">{ptAnt != null ? eur(ptAnt) : '—'} → <strong>{importeT != null ? eur(importeT) : '—'}</strong><Delta antes={ptAnt} ahora={importeT} /></span></div>
       <div className="alm-price-row alm-price-sub"><span className="k">Margen</span>
         <span className="v">{margenAnt != null ? eur(margenAnt) : '—'} → <strong style={{ color: margenAhora == null ? undefined : margenAhora >= 0 ? 'var(--green-dark)' : '#b42318' }}>{margenAhora != null ? eur(margenAhora) : '—'}</strong><Delta antes={margenAnt} ahora={margenAhora} /></span></div>
       {importe > 0 && pcAnt != null && importe !== pcAnt && (
         <p style={{ margin: '0.45rem 0 0', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4 }}>
-          El precio del cliente {importe > pcAnt ? 'SUBE' : 'BAJA'}: llama al transportista, negocia su precio y ajústalo aquí antes de guardar.</p>
+          El precio del cliente {importe > pcAnt ? 'SUBE' : 'BAJA'}: si toca negociar el del transportista, ajústalo en «Precios internos» (paso anterior) antes de guardar.</p>
       )}
     </div>
   );
