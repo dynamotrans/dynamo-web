@@ -6,7 +6,7 @@
 // · Ruta · Mercancía · Precio · Documentos · Seguimiento · Historial…) en ACORDEÓN con su
 // resumen en la línea. Todo lo vuelve a comprobar el servidor y la base de datos.
 import { SIN_CONEXION } from '@/lib/mensajeError';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { avisarNavegando } from './CargandoNavegacion';
