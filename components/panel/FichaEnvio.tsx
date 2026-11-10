@@ -122,17 +122,17 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
     </>
   ) : (
     <>
-      {/* eCMR + DeCA EL PRIMERO y siempre a mano (usuario, 2026-11-10): abre la página
-          de FIRMA (el enlace vivo); sin enlace, el PDF relleno. Ámbar con el contador
-          de firmas, en verde cuando están todas. El PDF vive en la tarjeta del enlace. */}
-      <a className="btn-primary" href={ficha.cmrEnlace ? `/cmr/${ficha.cmrEnlace.token}` : `/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
-         title={ficha.cmrEnlace ? 'Abre la página de firma del CMR: cargador, transportista y destinatario firman desde el móvil.' : 'El CMR relleno tal y como está ahora mismo, con las firmas que haya.'}
+      {/* eCMR + DeCA EL PRIMERO y siempre a mano (usuario, 2026-11-10): TODO lo del CMR
+          unificado detrás de este botón (vista propia: firmar, compartir el enlace, el
+          PDF relleno y el registro de firmas). Ámbar con el contador; verde al completarse. */}
+      <button type="button" className="btn-primary" onClick={() => setVista('cmr')}
+         title="Todo el eCMR + DeCA: firmar, compartir el enlace y el PDF relleno con el QR."
          style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
         <I d={ICO.doc} />eCMR + DeCA
         <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
           {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
         </span>
-      </a>
+      </button>
       {e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto') && (
         <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
@@ -181,6 +181,16 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
+  // TODO lo del eCMR + DeCA unificado en su vista (usuario, 2026-11-10): firmar,
+  // compartir el enlace, el PDF relleno y el registro de firmas, detrás del botón ámbar.
+  if (vista === 'cmr') return (
+    <Modal abierto onCerrar={() => setVista('ficha')} titulo="eCMR + DeCA" sub={`#${e.referencia_gx} · ${firmasHechas}/${firmasTotal} firmas`} icono={<I d={ICO.doc} />}
+      pie={<button className="btn-primary" onClick={() => setVista('ficha')}>Volver a la ficha</button>}>
+      {cancelado
+        ? <div className="pt-aviso info"><div>El envío está cancelado: no lleva CMR.</div></div>
+        : <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
+    </Modal>
+  );
 
   // ---- Cabecera «vital»: lo que se mira el 90 % de las veces, sin scroll ------------
   const rutaCorta = [recogidas[0]?.poblacion, entregas[entregas.length - 1]?.poblacion].filter(Boolean).join(' → ');
@@ -434,12 +444,10 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </Secc>
       )}
 
-      <Secc k="documentos" titulo="e-CMR / DeCA / Documentos" abiertas={abiertas} toggle={toggle}
-        resumen={<>{firmasHechas}/{firmasTotal} firmas CMR{firmasHechas >= firmasTotal ? ' ✓' : ''} · adjuntos</>}>
+      <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="adjuntos y copias">
         <div className="det-block">
-          {/* El botón del eCMR + DeCA relleno vive ARRIBA, con los botones siempre visibles
-              (usuario, 2026-11-10); aquí quedan el enlace de firma, la copia de la orden
-              y los adjuntos. */}
+          {/* TODO lo del CMR vive detrás del botón ámbar «eCMR + DeCA» de arriba (usuario,
+              2026-11-10); aquí quedan la copia de la orden y los adjuntos. */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
             {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
               <button type="button" className="btn-ghost" disabled={!!trabajando}
@@ -448,9 +456,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
               </button>
             )}
           </div>
-          {/* El CMR digital, UNIFICADO aquí (usuario, 2026-11-10): el enlace de firma y su
-              estado viven junto al botón del PDF relleno — un solo sitio para todo el CMR. */}
-          {!cancelado && <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
           {/* SIN selector de tipo (usuario, 2026-11-10): se sube y punto (tipo «Otro»). Los
               documentos generados (orden de carga, CMR…) conservan su tipo, y la visibilidad
               la decide la casilla «Lo ve el cliente» de cada fila. */}

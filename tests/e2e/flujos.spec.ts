@@ -122,10 +122,9 @@ test.describe.serial('flujos clave', () => {
     expect(envioAceptado).not.toBe('');
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${envioAceptado}`);
-    // El enlace del CMR nace con el envío y vive en la sección Documentos de la ficha
-    // (acordeón): se abre si está plegada y ahí están los botones de compartir.
-    const secDocs = page.getByRole('button', { name: /Documentos/ }).first();
-    if ((await secDocs.getAttribute('aria-expanded')) !== 'true') await secDocs.click();
+    // TODO lo del CMR vive detrás del botón «eCMR + DeCA» de la ficha (vista propia
+    // con la página de firma, compartir el enlace y el PDF relleno).
+    await page.getByRole('button', { name: /eCMR \+ DeCA/ }).first().click();
     const href = await page.locator('a[href^="/cmr/"]').first().getAttribute('href');
     expect(href).toBeTruthy();
 

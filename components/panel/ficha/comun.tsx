@@ -36,6 +36,7 @@ export const I = ({ d }: { d: string[] }) => (
 export const ICO = {
   camion: ['M1 4.5A1.5 1.5 0 0 1 2.5 3h12A1.5 1.5 0 0 1 16 4.5V16H1z', 'M16 8h4l3 3v5h-7z', 'M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z'],
   editar: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z'],
+  firma: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z'],
   fase: ['M5 12h14', 'M13 5l7 7-7 7'],
   x: ['M18 6 6 18', 'M6 6l12 12'],
   deshacer: ['M3 7v6h6', 'M21 17a9 9 0 0 0-15-6.7L3 13'],
@@ -89,7 +90,7 @@ export function Interruptor({ k, l, v, on }: { k: string; l: string; v: boolean;
   );
 }
 
-export type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer' | 'precio';
+export type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer' | 'precio' | 'cmr';
 
 export type SubProps = { ficha: Ficha; onVolver: () => void; trabajando: string | null;
   // El error de la última acción: los submodales (Asignar, Cancelar…) lo pintan DENTRO,
