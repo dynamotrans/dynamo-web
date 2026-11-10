@@ -124,6 +124,15 @@ test.describe.serial('flujos clave', () => {
     await t.getByRole('button', { name: 'ACEPTAR envío' }).click();
     await expect(t.getByText('¡Envío aceptado!')).toBeVisible();
     await expect.poll(async () => (await ultimoEnvio()).transportista_id).not.toBeNull();
+    // Con ventana, el día elegido al aceptar queda guardado en el envío.
+    if (await t.locator('select#ok-dia').count()) {
+      await expect.poll(async () => (await ultimoEnvio()).fecha_carga_prevista).not.toBeNull();
+    }
+    // Y el editor de vehículo FUNCIONA después de aceptar (usuario, 2026-11-10:
+    // guardar devolvía el error genérico): se añade el remolque y se guarda.
+    await t.fill('#ok-remolque', 'R1234BCD');
+    await t.getByRole('button', { name: 'Guardar vehículo y conductor' }).click();
+    await expect(t.getByText('Guardado. Gracias.')).toBeVisible();
     envioAceptado = id;
   });
   test('5 · se firma el CMR digital', async ({ page, browser }) => {

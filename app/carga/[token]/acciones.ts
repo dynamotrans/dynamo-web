@@ -62,7 +62,9 @@ export async function completar(token: string, d: { camion: string; remolque: st
   comprobarEntrada("app/carga/[token]/acciones#completar", [token, d]);
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
-  if (!sb || !reserva) return { resultado: 'error' };
+  if (!sb) return { resultado: 'error' };
+  // Sin la cookie de la reserva no se puede guardar: que la pantalla lo diga claro.
+  if (!reserva) return { resultado: 'sin_reserva' };
   const { data, error } = await sb.rpc('completar_carga_publica', {
     p_reserva: reserva, p_matricula_camion: d.camion, p_matricula_remolque: d.remolque, p_conductor_nombre: d.conductor, p_telefono: d.telefono,
     p_fecha_carga_prevista: d.dia || null,

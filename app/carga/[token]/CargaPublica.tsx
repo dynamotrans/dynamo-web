@@ -609,8 +609,13 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
               setVeh((v) => ({ ...v, conductor: x.conductor ?? '', telefono: x.telefono ?? '' }));
               setBase({ camion: veh.camion, conductor: x.conductor ?? '' });
             }
+            // Cada fallo con su mensaje (usuario, 2026-11-10: «no funciona bien» y el
+            // genérico no decía POR QUÉ): sin cookie, reserva caída o envío cambiado.
             setGuardado(x.resultado === 'guardado' ? 'Guardado. Gracias.' : x.resultado === 'falta_fecha_prevista' ? 'Elige el día en que cargas.'
-              : x.resultado === 'fecha_fuera_de_ventana' ? 'Ese día no está dentro de los días de recogida.' : 'No se ha podido guardar; contáctanos.');
+              : x.resultado === 'fecha_fuera_de_ventana' ? 'Ese día no está dentro de los días de recogida.'
+              : x.resultado === 'sin_reserva' ? 'Este navegador ya no guarda tu acceso a esta carga: abre otra vez el enlace que te enviaron y vuelve a intentarlo.'
+              : x.resultado === 'no_aceptada' || x.resultado === 'ya_no_se_puede' ? 'Este envío ha cambiado o ya no está contigo: recarga la página para ver cómo está, o llámanos.'
+              : 'No se ha podido guardar; contáctanos.');
           }}>Guardar vehículo y conductor</button>
           <p className="id-hint" style={{ textAlign: 'center' }}>Al poner una matrícula o un conductor, rellenamos sus datos de otras veces (si los tenemos). Si dejas un campo vacío, se mantiene el que ya había.</p>
           {guardado && <p className="id-hint" style={{ textAlign: 'center' }}>{guardado}</p>}
