@@ -350,7 +350,8 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
                   : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
               </Celda>
               <Celda l="Día previsto de carga">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : <Pend />}</Celda>
-              <Celda l="Transportista asignado el">{e.asignado_en ? fechaHora(e.asignado_en) : <Pend />}</Celda>
+              {/* Solo con transportista: si se quitó, su fecha no pinta nada (usuario, 2026-11-10). */}
+              <Celda l="Transportista asignado el">{ficha.transportista && e.asignado_en ? fechaHora(e.asignado_en) : <Pend />}</Celda>
               <Celda l="Precio del transportista (sin IVA)">{pt != null ? euros(pt) : <Pend />}</Celda>
             </div>
             <div className="det-transp-card">

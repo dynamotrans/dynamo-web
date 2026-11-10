@@ -7226,6 +7226,14 @@ set role authenticated;
 do $$ declare r jsonb; begin
   r := quitar_transportista(current_setting('prueba.e191')::uuid);
   if r ->> 'resultado' <> 'quitado' then raise exception 'FALLO 191 · no se puede quitar el transportista: %', r; end if;
+  -- Al quitar el transportista se van TODOS sus datos, el precio incluido (triggers
+  -- del 2026-11-09: fn_envios_ac_asignacion limpia lo suyo y fn_envios_hitos la fecha).
+  if exists (select 1 from envios where id = current_setting('prueba.e191')::uuid
+               and (asignado_en is not null or matricula_camion is not null or conductor_nombre is not null
+                    or conductor_telefono is not null or transportista_nima is not null
+                    or importe_transportista is not null
+                    or fecha_carga_prevista is not null or fecha_entrega_estimada is not null)) then
+    raise exception 'FALLO 191 · al quitar el transportista quedan datos suyos en el envío'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
