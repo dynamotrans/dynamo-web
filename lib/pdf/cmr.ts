@@ -157,9 +157,9 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       // 19 Estipulaciones particulares (con aviso de la hoja de firmas adjunta si la hay)
       dato(438, 532, [
         { t: e.discrecion_comercial ? 'Discreción comercial' : '', s: 7.8, b: false },
-        { t: firmas.length ? `Firmado electrónicamente: ${firmas.length} ${firmas.length === 1 ? 'firma' : 'firmas'} según registro anexo (hoja final)` : '', s: 7, b: false, max: 2 },
-        { t: !e.discrecion_comercial && !firmas.length ? '—' : '', s: 7.8, b: false },
-      ], 34);
+        { t: firmas.length ? `Firmado electrónicamente: ${firmas.length} ${firmas.length === 1 ? 'firma' : 'firmas'} según registro anexo (hoja final)`
+           : 'Firma electrónica con registro anexo (hoja final)', s: 7, b: false, max: 2 },
+        ], 34);
       // 14 Forma de pago
       dato(42, 660, [{ t: 'Porte pagado / Franco', s: 8, b: false }]);
       // 21 Formalizado en … a …
@@ -187,10 +187,11 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     }
   }
 
-  // HOJA «REGISTRO DE FIRMAS»: SIEMPRE que haya alguna firma (usuario, 2026-11-10) — el
-  // GPS con su dirección y la huella SHA-256 solo se ven aquí, así que la hoja va al final
-  // del PDF con TODAS las firmas del CMR digital, quepan o no en las casillas 22/23/24.
-  if (firmas.length) {
+  // HOJA «REGISTRO DE FIRMAS»: SIEMPRE, también sin ninguna firma (usuario, 2026-11-10:
+  // «que se sepa que existe esa hoja») — el GPS con su dirección y la huella SHA-256 solo
+  // se ven aquí. Va al final del PDF con TODAS las firmas del CMR digital, quepan o no en
+  // las casillas 22/23/24; sin firmas, lo dice y explica qué quedará registrado.
+  {
     const ROL: Record<string, string> = { remitente: 'Remitente / cargador — casilla 22', transportista: 'Porteador / transportista — casilla 23', destinatario: 'Destinatario — casilla 24' };
     const paradaTxt = (id: string | null) => {
       const iR = rec.findIndex((p) => p.id === id);
@@ -212,6 +213,12 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       + 'firmas del CMR digital, con su trazo, el documento de quien firma y la fecha y hora del servidor en el momento de firmar.';
     for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
     l.y += 8;
+    if (!firmas.length) {
+      l.texto(l.x0, l.y + 10, 'Aún no hay ninguna firma registrada.', 9, { bold: true });
+      for (const ln of l.partir('Cada firma quedará aquí con su trazo, la casilla y parada que firma, el nombre y documento de quien firma, la fecha y hora del servidor, su ubicación GPS con la dirección (si da permiso) y la huella SHA-256 de lo firmado.', 8, l.ancho)) {
+        l.y += 11; l.texto(l.x0, l.y + 10, ln, 8, { color: COLOR.gris });
+      }
+    }
 
     const ALTO = 80, tx = l.x0 + 150, anchoTexto = l.ancho - 150 - 10;
     for (const f of lista) {
