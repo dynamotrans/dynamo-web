@@ -419,9 +419,10 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           {/* El CMR digital, UNIFICADO aquí (usuario, 2026-11-10): el enlace de firma y su
               estado viven junto al botón del PDF relleno — un solo sitio para todo el CMR. */}
           {!cancelado && <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
-          <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
-            tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_carga', 'foto_incidencia', 'gps_tacografo', 'otro']}
-            ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
+          {/* SIN selector de tipo (usuario, 2026-11-10): se sube y punto (tipo «Otro»). Los
+              documentos generados (orden de carga, CMR…) conservan su tipo, y la visibilidad
+              la decide la casilla «Lo ve el cliente» de cada fila. */}
+          <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente tipos={['otro']} />
         </div>
       </Secc>
 
