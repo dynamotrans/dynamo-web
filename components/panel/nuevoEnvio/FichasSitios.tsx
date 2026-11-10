@@ -92,10 +92,11 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
             <button type="button" className="ptar-sitio-head" aria-expanded={abierta} onClick={() => toggle(p.k)}>
               <span className="ptar-sitio-head-main">
                 <span className="ptar-sitio-head-l1">
-                  <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`} style={{ verticalAlign: '-4px', marginRight: '0.35rem' }}>{i + 1}</span>
-                  <span style={{ color: rec ? 'var(--orange)' : 'var(--green)' }}>{rec ? 'Recogida' : 'Entrega'}</span>
+                  {/* La MISMA pastilla del paso 1 (usuario, 2026-11-10): nº · Recogida/Entrega
+                      con el icono del tipo en blanco dentro. El nombre del tipo sigue al lado. */}
+                  <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`} style={{ marginRight: '0.45rem', verticalAlign: '-6px' }}>{i + 1} · {rec ? 'Recogida' : 'Entrega'}<IconoTipo tipo={f.tipo} blanco /></span>
                   <span className={`ptar-sitio-head-tipo${f.tipo && f.tipo !== 'almacen_nave' ? ' esp' : ''}`}>
-                    <IconoTipo tipo={f.tipo} /><span>({nombreTipo(f.tipo)})</span>
+                    <span>({nombreTipo(f.tipo)})</span>
                   </span>
                 </span>
                 {rec && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt}</span>}
