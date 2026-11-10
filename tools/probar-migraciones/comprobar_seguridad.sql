@@ -2219,33 +2219,32 @@ do $$ begin
 end $$;
 reset role;
 
--- ---- 72. Etapa B: el cliente pide, Dynamo pone precio, el cliente acepta --------------
+-- ---- 72. Etapa B: Dynamo pone precio a una solicitud y el cliente acepta --------------
+-- La solicitud se siembra DIRECTA (superusuario): crear_solicitud_envio ya no existe
+-- (regla «solo envíos confirmados», migración 20261110080000) y la web confirma en la
+-- misma transacción con crear_envio_cliente.
+reset role;
+do $$ declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, fecha_carga_desde, fecha_carga_hasta, estado_solicitud)
+  values (current_setting('prueba.cliente')::uuid, 4, 3, current_date + 10, current_date + 12, 'pendiente_precio') returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', 'Mi almacén 72', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', 'Mi cliente 72', '46001', 'Valencia', 'ES');
+  perform set_config('prueba.e72', e::text, false);
+end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare e uuid; v record; r text; j jsonb; begin
-  select s.id into e from crear_solicitud_envio(
-    jsonb_build_object('metros_lineales', 4, 'toneladas', 3, 'fecha_carga_desde', current_date + 10, 'fecha_carga_hasta', current_date + 12),
-    jsonb_build_array(
-      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Mi almacén 72', 'codigo_postal', '41001', 'poblacion', 'Sevilla', 'guardar_en_agenda', true, 'contacto_telefono', '+34 600 72 72 72'),
-      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Mi cliente 72', 'codigo_postal', '46001', 'poblacion', 'Valencia'))) s;
+do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; begin
   select * into v from mis_envios() m where m.id = e;
   if v.estado <> 'borrador' or v.estado_solicitud <> 'pendiente_precio' or v.importe_cliente is not null then raise exception 'FALLO 72 · la solicitud no nace bien: %', v; end if;
-  -- Un sitio de OTRO cliente no se puede usar.
-  begin
-    perform crear_solicitud_envio(jsonb_build_object('fecha_carga_desde', current_date + 5),
-      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'sitio_id', (select id from sitios where cliente_id <> current_setting('prueba.cliente')::uuid and not es_almacen_dynamo limit 1)),
-                        jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'X', 'poblacion', 'Cádiz')));
-    raise exception 'FALLO 72 · el cliente usa un sitio de otro cliente';
-  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
-             when insufficient_privilege then null;
-  end;
+  -- La puerta está CERRADA: la función de crear solicitudes sin precio ya no existe.
+  if exists (select 1 from pg_proc where proname = 'crear_solicitud_envio') then
+    raise exception 'FALLO 72 · crear_solicitud_envio sigue existiendo (los borradores están prohibidos)'; end if;
   -- El cliente no se pone precio.
   begin
     perform proponer_precio_solicitud(e, 1);
     raise exception 'FALLO 72 · el cliente se pone el precio';
   exception when insufficient_privilege then null;
   end;
-  perform set_config('prueba.e72', e::text, false);
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
@@ -2272,7 +2271,7 @@ do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; r text; j
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
   end;
   if exists (select 1 from mis_penalizaciones() where importe_cliente is null) then raise exception 'FALLO 72 · penalización sin importe'; end if;
-  raise notice 'OK 72 · etapa B: solicitud del cliente, precio de Dynamo, aceptar (programa) y cancelar el suyo; sitios ajenos no';
+  raise notice 'OK 72 · etapa B: precio de Dynamo a una solicitud, aceptar (programa) y cancelar el suyo; crear_solicitud_envio ya no existe';
 end $$;
 reset role;
 
