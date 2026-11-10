@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
-import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
+import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
 import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 
@@ -34,20 +34,28 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   const hoy = fecha(hoyMadrid());
   const ROJA = COLOR.rojo, TINTA = COLOR.tinta;
 
-  // Firmas del CMR digital: 22 la PRIMERA recogida, 23 el transportista, 24 la ÚLTIMA entrega
-  // (las de otras paradas quedan en el registro de firmas, que es la prueba completa).
+  // Firmas del CMR digital: en el impreso, 22 la PRIMERA recogida, 23 el transportista y
+  // 24 la ÚLTIMA entrega (la firma PRINCIPAL de cada casilla, nunca una extra). Las demás
+  // (paradas intermedias y extras) van en la hoja «Registro de firmas» del final.
   const fechaFirma = (iso: string) => fechaHora(iso);
-  const firmaDe = (rol: string, parada: string | null | undefined) => (d.firmas ?? []).find((f) => f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
-  const casillas = await Promise.all(([
+  const firmas = d.firmas ?? [];
+  const trazos = new Map<FirmaDoc, PDFImage | null>();
+  for (const f of firmas) {
+    let img: PDFImage | null = null;
+    if (f.png) { try { img = await l.doc.embedPng(f.png); } catch { img = null; } }
+    trazos.set(f, img);
+  }
+  const firmaDe = (rol: string, parada: string | null | undefined) => firmas.find((f) => !f.extra && f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
+  const casillas = ([
     ['remitente', carga?.id, 38, 742, 150],
     ['transportista', null, 195, 742, 165],
     ['destinatario', entrega?.id, 369, 765, 185],
-  ] as const).map(async ([rol, parada, x, top, ancho]) => {
+  ] as const).map(([rol, parada, x, top, ancho]) => {
     const f = firmaDe(rol, parada);
-    let img: PDFImage | null = null;
-    if (f?.png) { try { img = await l.doc.embedPng(f.png); } catch { img = null; } }
-    return f ? { f, img, x, top, ancho, alto: rol === 'destinatario' ? 24 : 40 } : null;
-  }));
+    return f ? { f, img: trazos.get(f) ?? null, x, top, ancho, alto: rol === 'destinatario' ? 24 : 40 } : null;
+  });
+  const enCasilla = new Set(casillas.filter(Boolean).map((c) => c!.f));
+  const fueraDeCasilla = firmas.filter((f) => !enCasilla.has(f));
 
   // Una página por ejemplar, con los mismos datos.
   for (let i = 0; i < 4; i++) {
@@ -133,8 +141,12 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       ...ent.slice(0, -1).map((p) => `Otra entrega: ${p.nombre_empresa ?? ''} ${lineaDir(p)}`),
     ];
     dato(42, 532, [...otras.map((o) => ({ t: o, s: 7.4, b: false })), { t: e.anotaciones_cliente || (otras.length ? '' : '—'), s: 7.8, b: false }], 50);
-    // 19 Estipulaciones particulares
-    dato(438, 532, [{ t: e.discrecion_comercial ? 'Discreción comercial' : '—', s: 7.8, b: false }], 34);
+    // 19 Estipulaciones particulares (con aviso de la hoja de firmas adjunta si la hay)
+    dato(438, 532, [
+      { t: e.discrecion_comercial ? 'Discreción comercial' : '', s: 7.8, b: false },
+      { t: fueraDeCasilla.length ? `Firmas: ${firmas.length} en total, registro completo en hoja adjunta` : '', s: 7, b: false, max: 2 },
+      { t: !e.discrecion_comercial && !fueraDeCasilla.length ? '—' : '', s: 7.8, b: false },
+    ], 34);
     // 14 Forma de pago
     dato(42, 660, [{ t: 'Porte pagado / Franco', s: 8, b: false }]);
     // 21 Formalizado en … a …
@@ -155,6 +167,55 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       }
     }
   }
+  // HOJA «REGISTRO DE FIRMAS»: el impreso solo admite UNA firma por casilla (22/23/24).
+  // Cuando hay más (varias recogidas/entregas o firmas extra), una hoja final lista TODAS
+  // las del CMR digital con su trazo, documento y hora del servidor.
+  if (fueraDeCasilla.length) {
+    const ROL: Record<string, string> = { remitente: 'Remitente / cargador — casilla 22', transportista: 'Porteador / transportista — casilla 23', destinatario: 'Destinatario — casilla 24' };
+    const paradaTxt = (id: string | null) => {
+      const iR = rec.findIndex((p) => p.id === id);
+      if (iR >= 0) return `${rec.length > 1 ? `Recogida ${iR + 1} de ${rec.length}` : 'Recogida'} · ${[rec[iR].nombre_empresa, lineaDir(rec[iR])].filter(Boolean).join(' · ')}`;
+      const iE = ent.findIndex((p) => p.id === id);
+      if (iE >= 0) return `${ent.length > 1 ? `Entrega ${iE + 1} de ${ent.length}` : 'Entrega'} · ${[ent[iE].nombre_empresa, lineaDir(ent[iE])].filter(Boolean).join(' · ')}`;
+      return '';
+    };
+    const ordenRol: Record<string, number> = { remitente: 0, transportista: 1, destinatario: 2 };
+    const idx = (f: FirmaDoc) => { const i = d.paradas.findIndex((p) => p.id === f.parada_id); return i < 0 ? 99 : i; };
+    const lista = [...firmas].sort((x, y) => (x.extra ? 1 : 0) - (y.extra ? 1 : 0) || (ordenRol[x.rol] ?? 9) - (ordenRol[y.rol] ?? 9)
+      || idx(x) - idx(y) || x.firmado_en.localeCompare(y.firmado_en));
+
+    l.nuevaPagina();
+    l.texto(l.x0, l.y + 12, 'Registro de firmas', 15, { bold: true });
+    l.textoDer(A4.w - l.margen.der, l.y + 12, `CMR Nº ${e.referencia_gx ?? ''}`, 10, { bold: true });
+    l.y += 24;
+    const intro = 'Las casillas 22, 23 y 24 del impreso solo admiten una firma cada una. Esta hoja forma parte del CMR y recoge TODAS las '
+      + 'firmas del CMR digital, con su trazo, el documento de quien firma y la fecha y hora del servidor en el momento de firmar.';
+    for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
+    l.y += 8;
+
+    const ALTO = 58, tx = l.x0 + 150;
+    for (const f of lista) {
+      l.sitio(ALTO + 8);
+      l.rect(l.x0, l.y, l.ancho, ALTO, COLOR.blanco, COLOR.grisClaro);
+      const img = trazos.get(f);
+      if (img) {
+        const k = Math.min(126 / img.width, (ALTO - 14) / img.height), w = img.width * k, h = img.height * k;
+        l.pag.drawImage(img, { x: l.x0 + 10, y: A4.h - l.y - (ALTO + h) / 2, width: w, height: h });
+      }
+      const donde = f.extra ? 'Firma extra (no ocupa casilla)' : enCasilla.has(f) ? 'Impresa en su casilla' : 'Solo en este registro';
+      l.texto(tx, l.y + 17, ROL[f.rol] ?? f.rol, 8.6, { bold: true });
+      l.textoDer(A4.w - l.margen.der - 10, l.y + 17, donde, 7, { color: f.extra ? COLOR.ambar : COLOR.gris });
+      const par = paradaTxt(f.parada_id);
+      if (par) {
+        const anchoPar = l.ancho - 150 - 10;
+        const partes = l.partir(par, 7.4, anchoPar);
+        l.texto(tx, l.y + 30, partes.length > 1 ? partes[0].slice(0, -1) + '…' : partes[0], 7.4, { color: COLOR.gris });
+      }
+      l.texto(tx, l.y + (par ? 44 : 34), `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.8, { color: COLOR.tinta });
+      l.y += ALTO + 8;
+    }
+  }
+
   l.doc.setTitle(limpio(`CMR ${e.referencia_gx ?? ''}`));
   l.doc.setAuthor(manual ? cli?.razon_social ?? '' : D.razon_social);
   return l.guardar();

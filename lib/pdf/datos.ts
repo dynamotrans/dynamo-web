@@ -46,7 +46,7 @@ export async function cargarLogoOperador(sb: SB, operadorId: string | null | und
   const { data: blob } = await sb.storage.from('documentos').download(data.storage_ruta);
   return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
 }
-export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; png: Uint8Array | null };
+export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; png: Uint8Array | null };
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la
 // base de datos). El documento va ENMASCARADO: el CMR lo reciben varias empresas.
@@ -55,7 +55,7 @@ export async function cargarFirmasCmr(sb: SB, envioId: string): Promise<FirmaDoc
   return Promise.all((data ?? []).map(async (f) => {
     const { data: blob } = await sb.storage.from('documentos').download(f.firma_storage_ruta);
     return { rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: `•••${String(f.documento).replace(/^•+/, '').slice(-4)}`, firmado_en: f.firmado_en,
-      png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
+      extra: f.extra, png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
   }));
 }
 
