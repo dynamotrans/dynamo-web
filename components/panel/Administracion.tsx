@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
+import { avisarNavegando } from '@/components/panel/CargandoNavegacion';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
 import { euros, fecha } from '@/lib/formato';
 
@@ -125,7 +126,9 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                     {albaranes.length ? 'No hay albaranes que coincidan.' : 'Aún no hay albaranes. Se suben desde la ficha de cada envío.'}
                   </td></tr>
                 ) : (lista as AlbaranFila[]).map((a) => (
-                  <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/panel/envios/${a.envio_id}`)}>
+                  // La ficha se abre con ?ver=: /panel/envios/<id> a secas NO existe y daba
+                  // 404 al tocar la fila (usuario, 2026-11-10).
+                  <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => { avisarNavegando(); router.push(`/panel/envios?ver=${a.envio_id}`, { scroll: false }); }}>
                     <td className="ref"><strong>{a.gx ? `#${a.gx}` : 'Envío'}</strong>{a.ruta && <div className="meta">{a.ruta}</div>}</td>
                     <td>{a.tipo === 'cmr_firmado' ? 'CMR firmado' : 'Albarán'}<div className="meta">{a.nombre}</div></td>
                     <td>{fecha(diaMadrid(a.creado_en))}</td>
