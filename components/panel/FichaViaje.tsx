@@ -163,7 +163,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
       {/* Seguimiento EL PRIMERO del acordeón (usuario, 2026-11-10): es lo que más se mira. */}
       {etapas.length > 0 && e.estado !== 'cancelado' && (
         <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle} resumen="el horario previsto, parada a parada">
-          <Etapas etapas={etapas} />
+          <Etapas etapas={etapas} paradas={paradas} />
         </Secc>
       )}
 

@@ -14,13 +14,27 @@ export function nombreEtapa(x: Pick<Etapa, 'paso' | 'estado' | 'parada' | 'tipo_
   return x.poblacion ? `${base} · ${x.poblacion}` : base;
 }
 
-export default function Etapas({ etapas, pausado }: { etapas: Etapa[]; pausado?: boolean }) {
+/** Lo que hace falta de una parada para pintar su dirección en el seguimiento. */
+export type ParadaDir = { codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null };
+
+// «15001 A Coruña, A Coruña, ES»: CP y localidad, provincia (si no repite) y el país
+// SIEMPRE en siglas ISO (usuario, 2026-11-10: «cp, localidad, provincia y país con siglas»).
+function dirEtapa(p: ParadaDir): string {
+  const prov = p.provincia && p.provincia !== p.poblacion ? p.provincia : null;
+  return [[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), prov, (p.pais_codigo_iso ?? 'ES').toUpperCase()].filter(Boolean).join(', ');
+}
+
+export default function Etapas({ etapas, pausado, paradas }: { etapas: Etapa[]; pausado?: boolean; paradas?: ParadaDir[] }) {
   if (etapas.length === 0) return null;
   return (
     <div className="pen-envio-sum" aria-label="Etapas del envío">
       {pausado && <div className="pen-sum-row"><span className="k" style={{ color: '#b45309', fontWeight: 800 }}>Seguimiento automático en pausa</span><span className="v">El estado solo cambia a mano</span></div>}
       {etapas.map((x) => {
         const color = x.actual ? 'var(--purple)' : x.hecha ? '#047857' : 'var(--gray-500)';
+        // Con las paradas a mano, la etapa lleva su dirección completa en una línea propia
+        // (y el título ya no repite la población); sin ellas, se queda «· Población».
+        const p = paradas && x.parada ? paradas[x.parada - 1] : null;
+        const dir = p ? dirEtapa(p) : '';
         // DOS líneas limpias a la izquierda (usuario, 2026-11-10: la fecha a la derecha
         // se partía y se amontonaba en móvil): el nombre, y debajo fecha · km · notas.
         const sub = [
@@ -33,10 +47,16 @@ export default function Etapas({ etapas, pausado }: { etapas: Etapa[]; pausado?:
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color, fontWeight: x.actual ? 800 : 600 }}>
               <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
                 background: x.hecha ? color : '#fff', boxShadow: `inset 0 0 0 2px ${color}` }} />
-              {nombreEtapa(x)}
+              {dir ? nombreEtapa({ ...x, poblacion: '' }) : nombreEtapa(x)}
             </span>
-            {(sub || x.marcada) && (
+            {dir && (
               <span style={{ display: 'block', margin: '0.15rem 0 0 calc(10px + 0.5rem)', fontSize: 'var(--fs-s)',
+                             fontWeight: 600, color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>
+                {dir}
+              </span>
+            )}
+            {(sub || x.marcada) && (
+              <span style={{ display: 'block', margin: `${dir ? '0.05rem' : '0.15rem'} 0 0 calc(10px + 0.5rem)`, fontSize: 'var(--fs-s)',
                              color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>
                 {sub}
                 {x.marcada && <span style={{ color: '#b45309', fontWeight: 700 }}>{sub ? ' · ' : ''}marcada a mano</span>}

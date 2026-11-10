@@ -224,7 +224,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       {/* Seguimiento EL PRIMERO del acordeón (usuario, 2026-11-10): es lo que más se mira. */}
       {!manual && e.estado !== 'cancelado' && etapas.length > 0 && (
         <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle} resumen="la ruta en vivo, parada a parada">
-          <Etapas etapas={etapas} />
+          <Etapas etapas={etapas} paradas={paradas} />
         </Secc>
       )}
 

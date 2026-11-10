@@ -315,7 +315,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {!cancelado && !manual && ficha.etapas.length > 0 && (
         <Secc k="seguimiento" titulo="Seguimiento" abiertas={abiertas} toggle={toggle}
           resumen={<>{ficha.etapas.length} etapas{e.seguimiento_automatico === false ? ' · pausado' : ''}</>}>
-          <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} />
+          <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false} paradas={ficha.paradas} />
           <div style={{ marginTop: '0.6rem' }}>
             <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
           </div>
