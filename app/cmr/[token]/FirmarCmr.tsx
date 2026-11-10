@@ -316,11 +316,12 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           onPointerMove={(e) => { if (!trazando.current || !ctx.current) return; e.preventDefault(); const p = pos(e); ctx.current.lineTo(p.x, p.y); ctx.current.stroke(); }}
           onPointerUp={() => { trazando.current = false; ctx.current?.beginPath(); }}
           onPointerCancel={() => { trazando.current = false; ctx.current?.beginPath(); }} />
-        {/* Información básica de protección de datos (RGPD art. 13): quien firma da su nombre y DNI. */}
+        {/* Información básica de protección de datos (RGPD art. 13), capa 1 con lo MÍNIMO
+            que pide la ley —responsable, finalidad y derechos— y el resto en la política
+            (usuario, 2026-11-10: «pon lo mínimo por ley»). */}
         <p className="hint" style={{ marginTop: '0.6rem', fontSize: '0.78rem', lineHeight: 1.45 }}>
-          <strong>Protección de datos:</strong> Dynamo guarda tu nombre, documento, firma, email (si lo pones) y la hora y desde dónde firmas,
-          como prueba de la carga o la entrega en el CMR (contrato de transporte y Convenio CMR), durante 6 años. Puedes ejercer tus derechos
-          en {CONTACTO.email}. <button type="button" className="sig-link" onClick={() => setVerPrivacidad(true)}>Política de privacidad</button>.
+          <strong>Protección de datos:</strong> Dynamo guarda estos datos y tu firma como prueba del CMR durante 6 años.
+          Derechos: {CONTACTO.email} · <button type="button" className="sig-link" onClick={() => setVerPrivacidad(true)}>Política de privacidad</button>.
         </p>
         {/* Aceptar GRANDE y en verde arriba; Cancelar y Borrar debajo (usuario, 2026-11-10). */}
         <div className="sigbtns">

@@ -67,7 +67,8 @@
     .cmr-page .sig-msg.warn { display: block; color: #9a6b00; }
     .cmr-page .sig-msg.okv { display: block; color: var(--green-dark); }
     .cmr-page .sig-warn { margin-top: 0.5rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 9px; padding: 0.45rem 0.6rem; font-size: 0.78rem; font-weight: 700; }
-    .cmr-page #sigCanvas { width: 100%; height: 220px; background: #fff; border: 2px dashed var(--gray-300); border-radius: 12px; touch-action: none; display: block; }
+    /* 165px: un 25% menos alto que los 220 originales (usuario, 2026-11-10). */
+    .cmr-page #sigCanvas { width: 100%; height: 165px; background: #fff; border: 2px dashed var(--gray-300); border-radius: 12px; touch-action: none; display: block; }
     /* Aceptar firma GRANDE en verde a lo ancho; Cancelar y Borrar en la fila de abajo. */
     .cmr-page .sigbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; margin-top: 0.7rem; }
     .cmr-page .sigbtns button { border-radius: 10px; padding: 0.75rem 0.5rem; font: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer; border: 1.5px solid var(--gray-300); background: #fff; color: var(--gray-700); }
