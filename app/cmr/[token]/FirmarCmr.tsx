@@ -86,7 +86,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           pueden firmar en este mismo móvil; el botón es para reenviársela a quien la quiera.
           Con menú de compartir del sistema si lo hay; si no, copia el enlace. */}
       <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.8rem 0 0', background: '#fff',
-        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center' }}
+        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
         onClick={() => {
           const url = window.location.href;
           if (navigator.share) { navigator.share({ title: `Firmas del CMR ${cmr.referencia ?? ''}`.trim(), url }).catch(() => {}); }
