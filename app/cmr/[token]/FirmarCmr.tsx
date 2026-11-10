@@ -73,6 +73,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   );
   const extras = (cmr.firmas ?? []).filter((f) => f.extra);
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;
+  // SIN TRANSPORTISTA NO SE FIRMA (usuario, 2026-11-10): sin camión asignado no se puede
+  // estar cargando. La base de datos lo rechaza igualmente (sin_transportista); aquí los
+  // botones quedan bloqueados con el porqué. Las firmas ya hechas se quedan, y la página
+  // está EN VIVO: al asignar (o reasignar) transportista se desbloquea sola. En envíos
+  // manuales el porteador es el operador del cliente: no aplica.
+  const sinTransportista = !cmr.manual && !cmr.transportista;
   const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
     ?? (f.rol === 'remitente' ? 'Recogida' : f.rol === 'transportista' ? 'Transportista' : 'Entrega');
 
@@ -113,6 +119,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         Cargador, transportista y destinatario ya la han recibido igual que tú, y también pueden firmar aquí, en tu móvil. Si alguien la quiere, mándasela.
       </p>
       <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
+      {sinTransportista && hechas < bloques.length && (
+        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
+          Todavía no se puede firmar: el envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
+          En cuanto se asigne, las firmas se abren solas en esta misma página. Las ya hechas no se pierden.
+        </div>
+      )}
       {firmoAqui && <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
       {bloques.map((b) => {
         const f = firmas.get(b.clave);
@@ -120,7 +132,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           <div key={b.clave} className={`firma${f ? ' firmada' : ''}`}>
             <div className="firma-head">
               <div className="firma-tit">{b.titulo}<span className="cas-quien">Firma: {b.firmante}</span><span className="cas">{b.casilla}{b.lugar ? ` · ${b.lugar}` : ''}</span></div>
-              {!f && <button type="button" className="firma-btn" onClick={() => setPreFirma(b)}>Firmar</button>}
+              {!f && <button type="button" className="firma-btn" disabled={sinTransportista}
+                title={sinTransportista ? 'No se puede firmar hasta que haya transportista asignado' : undefined}
+                onClick={() => setPreFirma(b)}>Firmar</button>}
             </div>
             {f ? <>
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
@@ -159,7 +173,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           ) : (
             <div className="firma-head">
               <div className="firma-tit">Firma extra<span className="cas">Otra persona que también firma (hasta 3): elige su casilla y firma como siempre</span></div>
-              <button type="button" className="firma-btn" onClick={() => setEligiendoExtra(true)}>+ Añadir</button>
+              <button type="button" className="firma-btn" disabled={sinTransportista}
+                title={sinTransportista ? 'No se puede firmar hasta que haya transportista asignado' : undefined}
+                onClick={() => setEligiendoExtra(true)}>+ Añadir</button>
             </div>
           )}
         </div>

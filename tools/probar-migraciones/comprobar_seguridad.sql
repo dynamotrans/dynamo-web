@@ -6482,6 +6482,10 @@ do $$ declare e uuid; begin
     jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 24, 'importe_cliente', 1000, 'importe_transportista', 800),
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A174', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B174', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  -- Con transportista: sin él no se firma el CMR (regla de 20261110100000; el bloqueo
+  -- lo cubre la prueba 191 — aquí hace falta poder firmar y anotar reservas).
+  perform asignar_transportista(e, current_setting('prueba.transp')::uuid,
+    800, '0174 TST', null, 'Chofer 174', '+34600174174', current_date + 24, current_date + 25);
   perform set_config('prueba.e174', e::text, false);
 end $$;
 reset role;
@@ -7171,3 +7175,83 @@ do $$ declare e uuid := current_setting('prueba.e190')::uuid; r jsonb; v_f times
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 190 · etapa a mano: libre, pero la hora de una parada firmada es la de su firma del CMR';
 end $$;
+
+-- =====================================================================================
+-- ---- 191. CMR: sin transportista asignado no se firma; al asignar, se reanuda --------
+-- Sin camión no se puede estar cargando (usuario, 2026-11-10): firmar devuelve
+-- «sin_transportista». Al asignar, se firma; si se QUITA el transportista, las firmas
+-- hechas se quedan y las nuevas vuelven a esperar; al asignar OTRO, se reanudan.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 6,
+                       'fecha_carga_desde', current_date + 30, 'importe_cliente', 700, 'importe_transportista', 500),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Almacen 191', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 191', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e;
+  perform set_config('prueba.e191', e::text, false);
+  perform set_config('prueba.tok191', (select token::text from cmr_enlaces where envio_id = e and not revocado), false);
+  perform set_config('prueba.carga191', (select id::text from envio_paradas where envio_id = e and tipo = 'carga' limit 1), false);
+  perform set_config('prueba.desc191', (select id::text from envio_paradas where envio_id = e and tipo = 'descarga' limit 1), false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; ruta text; r jsonb; begin
+  ruta := 'cmr/' || tok || '/' || gen_random_uuid() || '.png';
+  insert into storage.objects (bucket_id, name) values ('documentos', ruta);
+  r := firmar_cmr_publico(tok, current_setting('prueba.carga191')::uuid, 'remitente', 'Ana 191', '12345678Z', 'ES', true, null, ruta, null, null, null);
+  if r ->> 'resultado' <> 'sin_transportista' then raise exception 'FALLO 191 · se firma sin transportista asignado: %', r; end if;
+  perform set_config('prueba.ruta191', ruta, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  perform asignar_transportista(current_setting('prueba.e191')::uuid, current_setting('prueba.transp')::uuid,
+    500, '0191 TST', null, 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; r jsonb; begin
+  r := firmar_cmr_publico(tok, current_setting('prueba.carga191')::uuid, 'remitente', 'Ana 191', '12345678Z', 'ES', true, null, current_setting('prueba.ruta191'), null, null, null);
+  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 191 · con transportista no deja firmar: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := quitar_transportista(current_setting('prueba.e191')::uuid);
+  if r ->> 'resultado' <> 'quitado' then raise exception 'FALLO 191 · no se puede quitar el transportista: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; r jsonb; begin
+  -- La firma hecha se queda; las nuevas esperan al siguiente transportista.
+  if (cmr_publico(tok) -> 'firmas') is null or jsonb_array_length(cmr_publico(tok) -> 'firmas') <> 1 then
+    raise exception 'FALLO 191 · al quitar el transportista se pierde la firma hecha'; end if;
+  r := firmar_cmr_publico(tok, current_setting('prueba.desc191')::uuid, 'destinatario', 'Destino 191', '12345678Z', 'ES', true, null, current_setting('prueba.ruta191'), null, null, null);
+  if r ->> 'resultado' <> 'sin_transportista' then raise exception 'FALLO 191 · sin transportista se sigue firmando: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  perform asignar_transportista(current_setting('prueba.e191')::uuid, current_setting('prueba.transp')::uuid,
+    500, '0191 TST', null, 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; r jsonb; begin
+  r := firmar_cmr_publico(tok, current_setting('prueba.desc191')::uuid, 'destinatario', 'Destino 191', '12345678Z', 'ES', true, null, current_setting('prueba.ruta191'), null, null, null);
+  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 191 · con el transportista nuevo no se reanudan las firmas: %', r; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 191 · CMR: sin transportista no se firma; al asignar (o reasignar) se reanuda y nada se pierde';
+end $$;
+reset role;
