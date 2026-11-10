@@ -337,12 +337,12 @@ export async function datosEditablesDeSitios(ids: string[]): Promise<Record<stri
   const limpios = [...new Set(ids)].filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 20);
   if (!s?.perfil || !limpios.length) return {};
   const [sit, con, hor] = await Promise.all([
-    s.supabase.from('sitios').select('id, es_almacen_dynamo, tipo, anotaciones, url_google_maps, emails_avisos').in('id', limpios),
+    s.supabase.from('sitios').select('id, es_almacen_dynamo, tipo, anotaciones, url_google_maps, emails_avisos, mercancia_defecto').in('id', limpios),
     s.supabase.from('contactos').select('sitio_id, id, nombre, telefono, email, es_principal, creado_en').in('sitio_id', limpios),
     s.supabase.from('sitio_horarios').select('sitio_id, dia_semana, abre, cierra').in('sitio_id', limpios).eq('temporada', 'general'),
   ]);
   const out: Record<string, SitioEditable> = {};
-  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], contacto: { id: null, nombre: '', telefono: '', email: '' }, horario: [] }; });
+  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], mercancia_defecto: x.mercancia_defecto, contacto: { id: null, nombre: '', telefono: '', email: '' }, horario: [] }; });
   // Horario general de cada sitio (filas de día → grupos de la ficha).
   const porSitio = new Map<string, FilaHorario[]>();
   (hor.data ?? []).forEach((r) => { const l = porSitio.get(r.sitio_id) ?? []; l.push({ dia_semana: r.dia_semana, abre: r.abre, cierra: r.cierra }); porSitio.set(r.sitio_id, l); });
@@ -374,6 +374,9 @@ export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{
     const { data: sit } = await s.supabase.from('sitios').select('id, es_almacen_dynamo').eq('id', c.sitio_id).maybeSingle();
     if (!sit || sit.es_almacen_dynamo) continue;
     const fila: Record<string, unknown> = { anotaciones: (c.anotaciones ?? '').trim() || null };
+    // Mercancía por defecto: lo que quede en el «detalle de mercancía» del paso 4 se
+    // guarda en la ficha del sitio (vaciarlo lo borra; usuario, 2026-11-10).
+    fila.mercancia_defecto = (c.mercancia_defecto ?? '').trim() || null;
     // Emails de avisos: si se ponen, se validan y sustituyen; vacío NO borra los que había.
     const emails = [...new Set((c.emails_avisos ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))];
     if (emails.length) {

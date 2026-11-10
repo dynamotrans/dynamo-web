@@ -36,7 +36,7 @@ const esNuevo = (iso: string) => Date.now() - new Date(iso).getTime() < 48 * 360
 
 const NUEVO: SitioDatos = {
   cliente_id: '', nombre_empresa: '', tipo: '', direccion: '', codigo_postal: '', poblacion: '',
-  provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '',
+  provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '', mercancia_defecto: '',
   requiere_cita: false, tiene_medios_carga: false, contactos: [CONTACTO_VACIO()], emails_avisos: '',
 };
 
@@ -210,8 +210,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [tabHorario, setTabHorario] = useState<'general' | 'verano'>('general');
   // Ficha compacta (usuario, 2026-11-08): lo opcional y el horario van PLEGADOS con su
   // resumen a la vista; solo se abre lo que haga falta tocar.
-  const [abierto, setAbierto] = useState({ avisos: false, horario: false });
-  const plegar = (k: 'avisos' | 'horario') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
+  const [abierto, setAbierto] = useState({ avisos: false, horario: false, merc: false });
+  const plegar = (k: 'avisos' | 'horario' | 'merc') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
   // Buscador «para autorrellenar» (solo ficha NUEVA): agenda («Guardado»), Google (reales
   // con GOOGLE_MAPS_API_KEY; de ejemplo mientras no se pague la API) y dirección (OSM).
   const [bq, setBq] = useState('');
@@ -589,6 +589,19 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         {abierto.avisos && (
           <div className="ptar-sitio-grid">
             {campo('anotaciones', <>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
+          </div>
+        )}
+
+        {/* Mercancía por defecto (usuario, 2026-11-10): prerrellena el «detalle de
+            mercancía» de la parada en Nuevo envío; editarlo allí actualiza este valor. */}
+        <button type="button" className="campo-plegado" aria-expanded={abierto.merc} onClick={() => plegar('merc')}>
+          <span className="cp-ico" aria-hidden="true">{abierto.merc ? '−' : '+'}</span>
+          <span className="cp-txt">Mercancía por defecto
+            {d.mercancia_defecto.trim() ? <span className="cp-val">· {d.mercancia_defecto.length > 42 ? d.mercancia_defecto.slice(0, 41) + '…' : d.mercancia_defecto}</span> : <span className="cp-val">· opcional</span>}</span>
+        </button>
+        {abierto.merc && (
+          <div className="ptar-sitio-grid">
+            {campo('mercancia_defecto', <>Mercancía por defecto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sale prerrellena al crear envíos con este sitio</span></>, 'Ej. 4 palets de recambios, 1 caja de 2×1 m…', true)}
           </div>
         )}
 

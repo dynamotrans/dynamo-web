@@ -445,7 +445,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         return {
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
-          url_google_maps: f.maps || null, horario_tramos: tramosDe(f.horario),
+          url_google_maps: f.maps || null, mercancia_defecto: f.mercancia.trim() || null, horario_tramos: tramosDe(f.horario),
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
       });
@@ -521,7 +521,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         return {
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
-          url_google_maps: f.maps || null, horario_tramos: tramosDe(f.horario),
+          url_google_maps: f.maps || null, mercancia_defecto: f.mercancia.trim() || null, horario_tramos: tramosDe(f.horario),
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
       });
@@ -530,15 +530,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       if (!g.ok) { setEnviando(false); setAviso(g.error); return; }
     }
     // Anotaciones de ESA parada: la cita previa y el detalle de mercancía del paso 4.
-    const anotParada = (k: number) => {
-      const c = edicSitios[k];
+    const anotParada = (p: (typeof puntos)[number]) => {
+      const c = edicSitios[p.k];
       const cita = c?.cita ? ['CITA PREVIA' + (c.citaHora ? ` a las ${c.citaHora}` : ''), (c.citaDetalle ?? '').trim()].filter(Boolean).join(' · ') : '';
-      const merc = (c?.mercancia ?? '').trim();
+      // El detalle de mercancía RESUELTO: lo editado en el paso 4 o, si no se tocó, el
+      // por defecto del sitio (usuario, 2026-11-10).
+      const merc = resolverFicha(p, datosSitios, c).mercancia.trim();
       return [cita, merc ? `MERCANCÍA: ${merc}` : ''].filter(Boolean).join(' · ') || undefined;
     };
     const paradas: ParadaNueva[] = puntos.map((p, i) => {
       const ref = i === 0 && refCli ? refCli : undefined;
-      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref, anotaciones: anotParada(p.k) };
+      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref, anotaciones: anotParada(p) };
       const n = p.nuevo!;
       // Datos del sitio nuevo con lo corregido en la confirmación encima.
       const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
@@ -546,7 +548,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       return {
         tipo: p.tipo, nombre_empresa: f.empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
-        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref, anotaciones: anotParada(p.k),
+        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref, anotaciones: anotParada(p),
         contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail, horario_tramos: hr ? tramosDe(hr) : undefined,
       };
     });

@@ -8,7 +8,7 @@ import { gruposDe, VERANO_GENERICO, type FilaHorario, type FechasVerano } from '
 // horario, listos para la tabla y la ficha. La usan las páginas Sitios y Almacenes.
 // Con `soloIds` (la lista por páginas): solo esos sitios, con sus contactos y horarios.
 export async function cargarSitios(sb: SB, almacenes: boolean, soloIds?: string[]): Promise<{ filas: SitioFila[]; error: string | null; veranoDefecto: FechasVerano }> {
-  const cols = 'id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, emails_avisos, disponible, precio_almacenamiento_semana, precio_reparto, creado_en, modificado_en';
+  const cols = 'id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, emails_avisos, mercancia_defecto, disponible, precio_almacenamiento_semana, precio_reparto, creado_en, modificado_en';
   const { data: sitios, error } = soloIds
     ? (soloIds.length ? await sb.from('sitios').select(cols).in('id', soloIds) : { data: [], error: null })
     : await leerTodo(sb.from('sitios').select(cols).eq('borrado', false).eq('es_almacen_dynamo', almacenes).order('nombre_empresa'), 10000);
@@ -34,7 +34,7 @@ export async function cargarSitios(sb: SB, almacenes: boolean, soloIds?: string[
 
   const filas: SitioFila[] = (sitios ?? []).map((l) => ({
     ...l, cliente_id: l.cliente_id ?? '', provincia: l.provincia ?? '', horarios: l.horarios ?? '',
-    url_google_maps: l.url_google_maps ?? '', anotaciones: l.anotaciones ?? '', tipo: l.tipo ?? 'almacen_nave',
+    url_google_maps: l.url_google_maps ?? '', anotaciones: l.anotaciones ?? '', mercancia_defecto: l.mercancia_defecto ?? '', tipo: l.tipo ?? 'almacen_nave',
     contactos: contactosDe(porSitio.get(l.id) ?? []),
     horario: gruposDe(horarioDe.get(l.id) ?? []),
     horarios_verano: l.horarios_verano ?? '',

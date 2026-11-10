@@ -15,6 +15,7 @@ export type SitioDatos = {
   horario: GrupoHorario[];        // obligatorio (tabla sitio_horarios, temporada general)
   verano?: Verano;                // horario de verano (opcional; temporada verano)
   url_google_maps: string; anotaciones: string;
+  mercancia_defecto: string;   // detalle de mercancía por defecto (prerrellena el paso 4 de Nuevo envío)
   requiere_cita: boolean; tiene_medios_carga: boolean;
   contactos: ContactoDatos[];     // personas (tabla contactos, una o varias)
   emails_avisos: string;          // uno o varios, separados por comas (sitios.emails_avisos)
@@ -95,7 +96,7 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
     nombre_empresa: d.nombre_empresa.trim(), tipo: d.tipo || 'almacen_nave',
     direccion: d.direccion.trim(), codigo_postal: d.codigo_postal.trim(), poblacion: d.poblacion.trim(),
     provincia: vacio(d.provincia), pais_codigo_iso: d.pais_codigo_iso || 'ES',
-    anotaciones: vacio(d.anotaciones),
+    anotaciones: vacio(d.anotaciones), mercancia_defecto: vacio(d.mercancia_defecto),
     requiere_cita: d.requiere_cita, tiene_medios_carga: d.tiene_medios_carga,
     emails_avisos: emails,
   };
