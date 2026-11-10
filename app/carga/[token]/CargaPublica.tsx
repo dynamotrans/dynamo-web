@@ -557,9 +557,11 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
       <div className="pago-contado" style={{ background: 'rgba(51,0,204,0.06)', borderColor: 'rgba(51,0,204,0.28)', color: 'var(--navy)', fontWeight: 700, textAlign: 'left' }}>
         Aquí tienes la <strong>orden de carga</strong> con todos estos datos. Guarda esta página: siempre puedes volver a ella con el mismo enlace.
       </div>
-      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <div style={{ textAlign: 'left' }}><AvisoSiniestro /></div>}
+      {/* El aviso no trae margen arriba (en las fichas lo pone quien lo rodea): sin este,
+          quedaba PEGADO a la caja morada de encima (usuario, 2026-11-10: «se junta»). */}
+      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <div style={{ textAlign: 'left', marginTop: '0.7rem' }}><AvisoSiniestro /></div>}
       {c.estado !== 'cancelado' && (
-        <a className="btn" href={`/carga/${token}/orden-de-carga`} target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxSizing: 'border-box', marginTop: '0.4rem' }}>
+        <a className="btn" href={`/carga/${token}/orden-de-carga`} target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxSizing: 'border-box', marginTop: '0.7rem' }}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></svg>
           Ver orden de carga (PDF)
         </a>
