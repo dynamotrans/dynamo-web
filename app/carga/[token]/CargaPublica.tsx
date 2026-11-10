@@ -446,6 +446,10 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
         </div>
       )}
 
+      {/* El vehículo y el conductor solo salen cuando ya hay identificación (usuario,
+          2026-11-10): oferta nominal, empresa elegida o un CIF/nombre escrito (4+). Así la
+          pantalla guía: primero identifícate (o date de alta), luego lo demás. */}
+      {(o.para_transportista || elegido || cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 4) && (
       <div className="fsec fsec-vehiculo">
         <div className="sec-title">Vehículo y conductor <span className="op" style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· puedes mandarlos más tarde</span></div>
         <div className="row2">
@@ -461,6 +465,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
         <CampoTelefono id="f-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
         <p className="id-hint">Con estos datos, cargador y destinatario <strong>coordinan la recogida y la entrega</strong> con el conductor.</p>
       </div>
+      )}
 
       {o.pronto_pago && (
         <div className="fac-opts">
