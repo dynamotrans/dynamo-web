@@ -190,6 +190,10 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid; o uuid; tok uuid;
   if (select banda_euros from envio_ofertas where id = o) <> 80 then
     raise exception 'FALLO 11 · la banda del 10%% sobre 800 deberia ser 80 EUR';
   end if;
+  -- Ofertar deja el precio ofertado como coste previsto del envío (20261110120000).
+  if (select importe_transportista from envios where id = e) <> 800 then
+    raise exception 'FALLO 11 · ofertar no deja el precio ofertado como coste previsto';
+  end if;
   if (select estado_asignacion from envios where id = e) <> 'ofertada'
      or (select primera_oferta_en from envios where id = e) is null then
     raise exception 'FALLO 11 · ofertar no ha marcado el envio como ofertado';
