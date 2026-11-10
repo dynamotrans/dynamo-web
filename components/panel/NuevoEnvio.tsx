@@ -1089,7 +1089,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
         </div></div>
-        <div style={{ marginTop: '0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.5 }}>
+        {/* En caja GRIS, como la verde de arriba pero neutra (usuario, 2026-11-10). */}
+        <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
           La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo (por encima de 3 cancelaciones en los últimos 10 envíos confirmados).
         </div>
         <div style={{ marginTop: '0.6rem' }}>
