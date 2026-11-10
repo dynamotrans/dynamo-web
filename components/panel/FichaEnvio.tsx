@@ -16,7 +16,7 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt } from '@/lib/formato';
-import { telBonito } from '@/lib/paises';
+import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha } from '@/lib/fichaEnvio';
 import PagoPrevio from './PagoPrevio';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
@@ -210,23 +210,33 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (cerrando) return null;
   return (
     <Modal abierto envivo ancho={760} onCerrar={cerrar} titulo={`Detalle de envío #${e.referencia_gx}`}
-      sub={<>
-        {ficha.cliente ? `${ficha.cliente.nombre} · ` : ''}<span className={`badge badge-${est[2]}`}>{est[1]}</span>
-        <span className="ficha-vital">
-          {fechaVital && <strong style={{ color: 'var(--orange)' }}>{fechaVital}</strong>}
-          {fechaVital && rutaCorta ? ' · ' : ''}{rutaCorta}
-          {ficha.transportista ? <> · {ficha.transportista.nombre}</> : null}
-          {manual
-            ? (e.precio_acordado_operador != null ? <> · {euros(e.precio_acordado_operador)}</> : null)
-            : <>
-                {pc != null && <> · Cliente {euros(pc)}</>}
-                {pt != null && <> · Transp. {euros(pt)}</>}
-                {e.margen_euros != null && <> · Margen <strong style={{ color: Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626' }}>{euros(e.margen_euros)}</strong></>}
-              </>}
-        </span>
-      </>}
+      sub={<>{ficha.cliente ? `${ficha.cliente.nombre} · ` : ''}<span className={`badge badge-${est[2]}`}>{est[1]}</span></>}
       icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
+      {/* CABECERA EN CAJA (usuario, 2026-11-10: «esa info es un caos; ponlo en caja
+          simple, ordenado, claro»): fecha, ruta con TODAS las paradas (CP, localidad,
+          provincia y país), mercancía y precios, cada cosa en su fila. */}
+      <div className="det-block" style={{ marginBottom: '0.8rem' }}>
+        <div className="pen-envio-sum">
+          <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fechaVital || '—'}</span></div>
+          {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
+            ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }) => (
+            <div key={p.id} className="pen-sum-row">
+              <span className="k" style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: color, marginRight: '0.4rem' }} />{lbl}</span>
+              <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}</span>
+            </div>
+          ))}
+          <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v" style={{ textAlign: 'right' }}>{mercResumen || '—'}</span></div>
+          {!manual && ficha.transportista && <div className="pen-sum-row"><span className="k">Transportista</span><span className="v" style={{ textAlign: 'right' }}>{ficha.transportista.nombre}</span></div>}
+          {manual
+            ? <div className="pen-sum-row"><span className="k">Precio acordado</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
+            : <div className="pen-sum-row"><span className="k">Precio</span><span className="v">
+                {pc != null ? <>Cliente <strong>{euros(pc)}</strong></> : 'Pendiente'}
+                {pt != null && <> · Transp. {euros(pt)}</>}
+                {e.margen_euros != null && <> · Margen <strong style={{ color: Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626' }}>{euros(e.margen_euros)}</strong></>}
+              </span></div>}
+        </div>
+      </div>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {e.estado === 'borrador' && e.estado_solicitud === 'pendiente_precio' && (
         <div className="modal-warn-box"><strong>Solicitud del cliente esperando precio.</strong> Pónselo con «Poner precio»: lo verá en su panel para aceptarlo (prometemos menos de 25 minutos en horario de oficina).</div>
