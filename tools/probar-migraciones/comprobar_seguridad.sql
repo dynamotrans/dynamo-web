@@ -7125,3 +7125,50 @@ do $$ declare e uuid := current_setting('prueba.e189')::uuid; r jsonb; c uuid; b
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 189 · cambios al transportista: propuesta con aviso, aceptar (él o Dynamo en su nombre) y rechazo que desasigna y avisa urgente';
 end $$;
+
+-- ---- 190. Etapa a mano: la hora de una parada firmada es la de la firma -------------------
+reset role;
+do $$ declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+  values (current_setting('prueba.cliente')::uuid, 6, 700, 600, current_date, current_date) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.e190', e::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e190')::uuid; r jsonb; begin
+  r := asignar_transportista(e, current_setting('prueba.transp')::uuid, 600, '1190BBB', null, 'Chófer Prueba', '+34 600 001 190');
+  if not (r ->> 'ok')::boolean then raise exception 'FALLO 190 · no se pudo asignar el transportista: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e190')::uuid; v_p uuid; begin
+  -- Firma el remitente la recogida (parada 1) hace 2 horas: el servidor la ancla solo.
+  select id into v_p from envio_paradas where envio_id = e and orden = 1;
+  insert into firmas_cmr (envio_id, parada_id, rol, nombre, documento, documento_validado, firma_storage_ruta, firmado_en)
+  values (e, v_p, 'remitente', 'Firma Prueba', '12345678Z', true, 'firmas/f190.png', now() - interval '2 hours');
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e190')::uuid; r jsonb; v_f timestamptz; begin
+  select firmado_en into v_f from firmas_envio(e) limit 1;
+  -- Marcar a mano «parada 1 terminada» (paso 3) con OTRA hora → la hora guardada es la de la firma.
+  r := marcar_etapa_envio(e, 3::smallint, now());
+  if r ->> 'resultado' <> 'marcada' or (r ->> 'hora_de_firma')::boolean is not true then
+    raise exception 'FALLO 190 · marcar la parada firmada no usa la hora de la firma: %', r; end if;
+  if (select ancla_hora from envios where id = e) <> v_f then
+    raise exception 'FALLO 190 · el ancla no queda en la hora de la firma'; end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'etapa_corregida'
+                 and datos ->> 'por' = 'firma_cmr' and datos ->> 'rol' = 'remitente' and (datos ->> 'hora')::timestamptz = v_f) then
+    raise exception 'FALLO 190 · el hito no dice que la hora la fija la firma'; end if;
+  -- La etapa sigue siendo libre: hacia atrás («en la parada 1», paso 2) con hora manual, se respeta la manual.
+  r := marcar_etapa_envio(e, 2::smallint, now() - interval '3 hours');
+  if r ->> 'resultado' <> 'marcada' or (r ->> 'hora_de_firma')::boolean is not false then
+    raise exception 'FALLO 190 · marcar otra etapa ya no es libre: %', r; end if;
+  if (select ancla_hora from envios where id = e) = v_f then
+    raise exception 'FALLO 190 · la hora manual de otra etapa no se respeta'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 190 · etapa a mano: libre, pero la hora de una parada firmada es la de su firma del CMR';
+end $$;
