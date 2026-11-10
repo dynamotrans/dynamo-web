@@ -7047,3 +7047,81 @@ do $$ begin
   update parametros set valor = '14' where clave in ('primer_dia_corte_ventana_1_2_hora', 'primer_dia_corte_ventana_1_4_hora');
   raise notice 'OK 188 · hora de corte por ventana (1-2, 1-3 y 1-4), separadas y cada una en su parámetro';
 end $$;
+
+-- ---- 189. Cambios al transportista: proponer, responder y rechazo que desasigna -----------
+reset role;
+do $$ declare e uuid; begin
+  -- Fecha FIJA (desde = hasta): así asignar_transportista no exige el día previsto.
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+  values (current_setting('prueba.cliente')::uuid, 6, 700, 600, current_date + 5, current_date + 5) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.e189', e::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e189')::uuid; r jsonb; c1 uuid; c2 uuid; begin
+  -- Sin transportista no hay a quién proponer.
+  if proponer_cambio_transportista(e, 600, 650, 'Prueba') ->> 'resultado' <> 'sin_transportista' then
+    raise exception 'FALLO 189 · propone cambios sin transportista asignado'; end if;
+  r := asignar_transportista(e, current_setting('prueba.transp')::uuid, 600, '1189BBB', null, 'Chófer Prueba', '+34 600 001 189');
+  if not (r ->> 'ok')::boolean then raise exception 'FALLO 189 · no se pudo asignar el transportista: %', r; end if;
+  -- Proponer deja la fila pendiente y avisa al transportista.
+  r := proponer_cambio_transportista(e, 600, 650, 'Precio: 600,00 € → 650,00 €');
+  if r ->> 'resultado' <> 'propuesto' then raise exception 'FALLO 189 · no propone: %', r; end if;
+  c1 := (r ->> 'id')::uuid;
+  if (select estado from envio_cambios_transportista where id = c1) <> 'pendiente' then raise exception 'FALLO 189 · la propuesta no queda pendiente'; end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'transportista' and tipo = 'cambio_transportista') then
+    raise exception 'FALLO 189 · no avisa al transportista'; end if;
+  -- Una segunda propuesta reemplaza a la pendiente.
+  r := proponer_cambio_transportista(e, 600, 640, 'Precio: 600,00 € → 640,00 €');
+  c2 := (r ->> 'id')::uuid;
+  if (select estado from envio_cambios_transportista where id = c1) <> 'reemplazado' then raise exception 'FALLO 189 · la anterior no queda reemplazada'; end if;
+  perform set_config('prueba.c189', c2::text, false);
+end $$;
+-- El cliente no puede responder.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare mal boolean := false; begin
+  begin
+    perform responder_cambio_transportista(current_setting('prueba.c189')::uuid, true);
+  exception when insufficient_privilege then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 189 · deja a un cliente responder el cambio'; end if;
+  -- Y tampoco responder «en nombre» sin ser Dynamo.
+  mal := false;
+  begin
+    perform responder_cambio_transportista(current_setting('prueba.c189')::uuid, true, null, true);
+  exception when insufficient_privilege then mal := true;
+  end;
+  if not mal then raise exception 'FALLO 189 · deja a un cliente responder en nombre del transportista'; end if;
+end $$;
+-- El transportista ACEPTA; una nueva propuesta RECHAZADA en su nombre desasigna el envío.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare r jsonb; c uuid := current_setting('prueba.c189')::uuid; begin
+  r := responder_cambio_transportista(c, true);
+  if r ->> 'resultado' <> 'aceptado' then raise exception 'FALLO 189 · el transportista no puede aceptar: %', r; end if;
+  if (select respondido_en from envio_cambios_transportista where id = c) is null then raise exception 'FALLO 189 · no apunta cuándo se aceptó'; end if;
+  if responder_cambio_transportista(c, false) ->> 'resultado' <> 'ya_respondido' then raise exception 'FALLO 189 · deja responder dos veces'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e189')::uuid; r jsonb; c uuid; begin
+  if not exists (select 1 from avisos where envio_id = e and para = 'dynamo' and nivel = 'ok' and tipo = 'cambio_transportista') then
+    raise exception 'FALLO 189 · la aceptación del transportista no avisa a Dynamo'; end if;
+  r := proponer_cambio_transportista(e, 650, 500, 'Precio: 650,00 € → 500,00 €');
+  c := (r ->> 'id')::uuid;
+  r := responder_cambio_transportista(c, false, 'No me sale el precio', true);
+  if r ->> 'resultado' <> 'rechazado' then raise exception 'FALLO 189 · Dynamo no puede rechazar en su nombre: %', r; end if;
+  if (select transportista_id from envios where id = e) is not null then
+    raise exception 'FALLO 189 · el rechazo no desasigna el envío'; end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'dynamo' and nivel = 'urgente' and tipo = 'cambio_transportista') then
+    raise exception 'FALLO 189 · el rechazo no avisa urgente a Dynamo'; end if;
+  if (select en_nombre from envio_cambios_transportista where id = c) is not true then
+    raise exception 'FALLO 189 · no apunta que se respondió en nombre del transportista'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 189 · cambios al transportista: propuesta con aviso, aceptar (él o Dynamo en su nombre) y rechazo que desasigna y avisa urgente';
+end $$;

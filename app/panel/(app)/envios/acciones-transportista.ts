@@ -22,6 +22,19 @@ export async function marcarViaje(envio: string, estado: string): Promise<Res> {
   return error ? { ok: false, error: limpio(error.message) } : { ok: true, aviso: TEXTO[estado] ?? 'Hecho.' };
 }
 
+// Aceptar o rechazar los cambios que Dynamo ha hecho en un viaje asignado (usuario,
+// 2026-11-10). El rechazo DESASIGNA el envío automáticamente (lo decide la función).
+export async function responderCambioTransportista(cambio: string, acepta: boolean, motivo?: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones-transportista#responderCambioTransportista", [cambio, acepta, motivo]);
+  const s = await soloTransportista();
+  if (!s) return { ok: false, error: 'Solo el transportista del envío responde a sus cambios.' };
+  const { data, error } = await s.supabase.rpc('responder_cambio_transportista', { p_cambio: cambio, p_acepta: acepta, p_motivo: motivo ?? null, p_en_nombre: false });
+  if (error) return { ok: false, error: limpio(error.message) };
+  const r = (data as { ok: boolean; resultado: string }) ?? { ok: false, resultado: '' };
+  if (!r.ok) return { ok: false, error: r.resultado === 'ya_respondido' ? 'Estos cambios ya estaban respondidos.' : 'No se ha podido guardar la respuesta.' };
+  return { ok: true, aviso: acepta ? 'Cambios aceptados. ¡Gracias!' : 'Cambios rechazados: el viaje queda liberado y Dynamo ya está avisado.' };
+}
+
 // El enlace del CMR digital del envío (lo crea si no hay). Lo usan el transportista y el cliente.
 export async function enlaceCmrPropio(envio: string): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/envios/acciones-transportista#enlaceCmrPropio", [envio]);

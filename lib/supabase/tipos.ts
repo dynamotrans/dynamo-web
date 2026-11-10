@@ -1050,6 +1050,66 @@ export type Database = {
           },
         ]
       }
+      envio_cambios_transportista: {
+        Row: {
+          id: string
+          envio_id: string
+          transportista_id: string
+          precio_antes: number | null
+          precio_ahora: number | null
+          detalle: string
+          estado: string
+          creado_en: string
+          creado_por: string | null
+          respondido_en: string | null
+          en_nombre: boolean
+          motivo_rechazo: string | null
+        }
+        Insert: {
+          id?: string
+          envio_id: string
+          transportista_id: string
+          precio_antes?: number | null
+          precio_ahora?: number | null
+          detalle: string
+          estado?: string
+          creado_en?: string
+          creado_por?: string | null
+          respondido_en?: string | null
+          en_nombre?: boolean
+          motivo_rechazo?: string | null
+        }
+        Update: {
+          id?: string
+          envio_id?: string
+          transportista_id?: string
+          precio_antes?: number | null
+          precio_ahora?: number | null
+          detalle?: string
+          estado?: string
+          creado_en?: string
+          creado_por?: string | null
+          respondido_en?: string | null
+          en_nombre?: boolean
+          motivo_rechazo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envio_cambios_transportista_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_cambios_transportista_transportista_id_fkey"
+            columns: ["transportista_id"]
+            isOneToOne: false
+            referencedRelation: "transportistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       envio_hitos: {
         Row: {
           id: number
@@ -3361,6 +3421,7 @@ export type Database = {
       pronto_pago_descuento: { Args: { p_importe: number | null }; Returns: number }
       pronto_pago_estado: { Args: Record<PropertyKey, never>; Returns: Json }
       pronto_pago_estado_interno: { Args: Record<PropertyKey, never>; Returns: Json }
+      proponer_cambio_transportista: { Args: { p_envio: string | null; p_precio_antes: number | null; p_precio_ahora: number | null; p_detalle: string | null }; Returns: Json }
       proponer_precio_solicitud: { Args: { p_envio: string | null; p_importe: number | null; p_importe_transportista?: number | null }; Returns: undefined }
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
@@ -3375,6 +3436,7 @@ export type Database = {
       resolver_cambio_envio: { Args: { p_envio: string | null; p_acepta: boolean | null; p_nota?: string | null }; Returns: Json }
       resolver_contraoferta: { Args: { p_reserva: string | null; p_acepta: boolean | null }; Returns: Json }
       resolver_contraoferta_cliente: { Args: { p_envio: string | null; p_acepta: boolean | null }; Returns: Json }
+      responder_cambio_transportista: { Args: { p_cambio: string | null; p_acepta: boolean | null; p_motivo?: string | null; p_en_nombre?: boolean | null }; Returns: Json }
       responder_precio_solicitud: { Args: { p_envio: string | null; p_acepta: boolean | null; p_precio_visto?: number | null }; Returns: string }
       restriccion_punto: { Args: { p_pais: string | null; p_cp: string | null; p_tipo_parada?: string | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null; p_fecha?: string | null }; Returns: { nombre: string; efecto: string; mensaje: string }[] }
       restricciones_ruta: { Args: { p_envio: string | null }; Returns: { orden: number; punto: string; tipo: string; nombre: string; efecto: string; mensaje: string }[] }

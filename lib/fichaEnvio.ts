@@ -20,6 +20,8 @@ export type HitoFicha = { id: number; hito: string; cuando: string; quien: strin
 export type PenalizacionFicha = { id: string; codigo: string; tipo: string; descripcion: string | null; importe_cliente: number | null; importe_transportista: number | null; estado: string; generada_auto: boolean };
 export type OfertaFicha = { id: string; token: string; canal: string; para: string | null; precio: number; banda_euros: number;
   banda_pct: number; pronto_pago: boolean; estado: string; enviada_en: string; caduca_en: string; aperturas: number; abierta_en: string | null };
+export type CambioTransportistaFicha = { id: string; estado: string; precio_antes: number | null; precio_ahora: number | null;
+  detalle: string; creado_en: string; respondido_en: string | null; en_nombre: boolean; motivo_rechazo: string | null };
 export type FirmaCmrFicha = { rol: string; parada_id: string | null; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string; extra: boolean };
 export type ContraofertaFicha = { id: string; transportista: string | null; precio_propuesto: number; precio_base: number | null; desde: string;
   alta_online?: { id: string; cif: string; verificado: boolean } | null };   // transportista nuevo dado de alta desde el enlace
@@ -38,6 +40,7 @@ export type Ficha = {
   ofertas: OfertaFicha[]; contraofertas: ContraofertaFicha[];
   cmrEnlace: { id: string; token: string; caduca_en: string } | null;   // solo lo ve Dynamo
   firmasCmr: FirmaCmrFicha[];
+  cambioTransportista: CambioTransportistaFicha | null;   // última propuesta de cambios al transportista
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
   enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Previo pago (null = no lo necesita y nunca lo necesitó).
@@ -53,7 +56,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   if (error) return { ficha: null, error: mensajeError(error.message) };
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
-  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta] = await Promise.all([
+  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, sitios(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
@@ -64,6 +67,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     sb.rpc('pagos_envio', { p_envio: id }).maybeSingle(),
     sb.rpc('reglas_precio_envio'),
     sb.rpc('etapas_envio', { p_envio: id }),
+    sb.from('envio_cambios_transportista').select('id, estado, precio_antes, precio_ahora, detalle, creado_en, respondido_en, en_nombre, motivo_rechazo')
+      .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
   ]);
   const pg = pag.data;
 
@@ -109,6 +114,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
         alta_online: r.transportistas && (r.transportistas.tags ?? []).includes('alta_online') ? { id: r.transportistas.id, cif: r.transportistas.cif, verificado: r.transportistas.estado_operativo === 'activo' } : null })),
       cmrEnlace: enl.data ?? null,
       firmasCmr: (fir.data ?? []).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
+      cambioTransportista: cam.data ? { ...cam.data, precio_antes: cam.data.precio_antes != null ? Number(cam.data.precio_antes) : null,
+        precio_ahora: cam.data.precio_ahora != null ? Number(cam.data.precio_ahora) : null } : null,
       corte,
       pago: pg ? { estado: pg.estado_pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
         base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional } : null,

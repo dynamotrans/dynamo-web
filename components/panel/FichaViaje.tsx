@@ -14,7 +14,7 @@ import Cargando from '@/components/Cargando';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros } from '@/lib/formato';
 
 import { paisDe, telBonito } from '@/lib/paises';
-import { marcarViaje, enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
+import { marcarViaje, enlaceCmrPropio, responderCambioTransportista } from '@/app/panel/(app)/envios/acciones-transportista';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { ESTADOS_ENVIO, FASES_ENVIO, enMarcha, ordinal, type Etapa } from '@/lib/estados';
 import Etapas, { nombreEtapa } from './ficha/Etapas';
@@ -50,14 +50,17 @@ export type ParadaViaje = {
   tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null;
 };
 export type Viaje = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiViaje, keyof EnvioFila>> & { paradas: ParadaViaje[] };
+export type CambioViaje = { id: string; precio_antes: number | null; precio_ahora: number | null; detalle: string; creado_en: string };
 function Celda({ l, children, span }: { l: string; children: React.ReactNode; span?: boolean }) {
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
 }
 
-export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; etapas?: Etapa[]; cerrarHref: string }) {
+export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }: { e: Viaje; etapas?: Etapa[]; cerrarHref: string; cambio?: CambioViaje | null }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState<string | null>(null);
+  const [rechazando, setRechazando] = useState(false);
+  const [motivo, setMotivo] = useState('');
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
   // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
@@ -79,6 +82,17 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
   // SIEMPRE todo plegado al abrir (usuario, 2026-11-10), como las otras fichas.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
   const toggle = (k: string) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+
+  // Aceptar o rechazar los cambios que Dynamo ha hecho en este viaje. El rechazo libera
+  // el viaje (Dynamo asigna otro camión) y esta ficha deja de ser suya.
+  async function responderCambio(acepta: boolean) {
+    if (!cambio) return;
+    setTrabajando(acepta ? 'Aceptando los cambios' : 'Rechazando los cambios'); setAviso(null);
+    const r = await responderCambioTransportista(cambio.id, acepta, acepta ? undefined : motivo.trim() || undefined);
+    setTrabajando(null);
+    setAviso({ ok: r.ok, txt: r.ok ? r.aviso ?? 'Hecho.' : r.error });
+    if (r.ok) { setRechazando(false); if (acepta) refrescar(); else { avisarNavegando(); router.push(cerrarHref, { scroll: false }); refrescar(); } }
+  }
 
   async function avanzar(estado: string) {
     setTrabajando('Guardando'); setAviso(null);
@@ -117,6 +131,33 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
       {enMarcha(e.estado) && <AvisoSiniestro incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {e.discrecion_comercial && (
         <div className="modal-warn-box"><strong>Discreción comercial:</strong> en la carga no digas a dónde va la mercancía, ni en la entrega de dónde viene.</div>
+      )}
+      {/* CAMBIOS DE DYNAMO PENDIENTES (usuario, 2026-11-10): el viaje ya va con los datos
+          nuevos; aquí los aceptas o los rechazas. Rechazar libera el viaje. */}
+      {cambio && (
+        <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
+          <strong>Dynamo ha cambiado este viaje</strong> ({fechaHora(cambio.creado_en)}).
+          {cambio.precio_antes !== cambio.precio_ahora && cambio.precio_ahora != null && (
+            <div style={{ marginTop: '0.3rem' }}>Tu precio: {cambio.precio_antes != null ? euros(cambio.precio_antes) : '—'} → <strong>{euros(cambio.precio_ahora)}</strong> (base sin IVA).</div>
+          )}
+          <div style={{ marginTop: '0.3rem' }}>{cambio.detalle}</div>
+          {!rechazando ? (
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+              <button className="btn-primary" disabled={!!trabajando} onClick={() => responderCambio(true)}>Acepto los cambios</button>
+              <button className="btn-ghost" disabled={!!trabajando} onClick={() => setRechazando(true)}>No los acepto…</button>
+            </div>
+          ) : (
+            <div style={{ marginTop: '0.6rem' }}>
+              <label htmlFor="rc-motivo" style={{ display: 'block', fontWeight: 700 }}>¿Por qué no? <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
+              <textarea id="rc-motivo" rows={2} maxLength={500} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. con ese precio no me sale" />
+              <div className="pt-aviso" style={{ margin: '0.5rem 0' }}><div>Al rechazar, <strong>el viaje queda liberado</strong> (deja de ser tuyo) y Dynamo buscará otro camión.</div></div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button className="btn-primary" style={{ background: 'var(--red)' }} disabled={!!trabajando} onClick={() => responderCambio(false)}>Rechazar y liberar el viaje</button>
+                <button className="btn-ghost" disabled={!!trabajando} onClick={() => setRechazando(false)}>Volver</button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       <Secc k="viaje" titulo="Viaje" abiertas={abiertas} toggle={toggle}

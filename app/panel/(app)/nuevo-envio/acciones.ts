@@ -137,7 +137,7 @@ export async function guardarEdicionEnvio(envio: string,
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#guardarEdicionEnvio", [envio, d, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo modifica envíos.' };
-  const { data: cur } = await s.supabase.from('envios').select('es_manual, fecha_entrega_estimada, importe_cliente').eq('id', envio).maybeSingle();
+  const { data: cur } = await s.supabase.from('envios').select('es_manual, fecha_entrega_estimada, importe_cliente, transportista_id, importe_transportista, fecha_carga_desde, fecha_carga_hasta, metros_lineales, toneladas').eq('id', envio).maybeSingle();
   if (!cur) return { ok: false, error: 'Ese envío no existe.' };
   if (cur.es_manual) return { ok: false, error: 'Un envío con transportista propio del cliente se modifica desde su ficha.' };
   if (paradas) {
@@ -149,6 +149,28 @@ export async function guardarEdicionEnvio(envio: string,
   if (!r2.ok) return r2;
   // El precio acaba de revisarse en esta misma pantalla: fuera el aviso de «precio por revisar».
   await s.supabase.from('envios').update({ requiere_revision_precio: false }).eq('id', envio);
+  // CON TRANSPORTISTA ASIGNADO (usuario, 2026-11-10): el cambio se aplica YA y se le manda
+  // la propuesta con el antes → ahora de SU precio y el detalle; él acepta o rechaza (o
+  // Dynamo responde en su nombre). El rechazo desasigna el envío automáticamente.
+  if (cur.transportista_id) {
+    const fBon = (x: string | null | undefined) => (x ? x.split('-').reverse().join('/') : '');
+    const eurT = (n: number | null) => (n == null ? '—' : `${n.toFixed(2).replace('.', ',')} €`);
+    const ptA = cur.importe_transportista != null ? Number(cur.importe_transportista) : null;
+    const ptN = d.importe_transportista ?? null;
+    const partes: string[] = [];
+    if (ptA !== ptN) partes.push(`Tu precio: ${eurT(ptA)} → ${eurT(ptN)}`);
+    if ((cur.fecha_carga_desde ?? '') !== d.fecha_carga_desde || (cur.fecha_carga_hasta ?? '') !== d.fecha_carga_hasta) {
+      partes.push(`Fecha de carga: ${fBon(d.fecha_carga_desde)}${d.fecha_carga_hasta && d.fecha_carga_hasta !== d.fecha_carga_desde ? ` al ${fBon(d.fecha_carga_hasta)}` : ''}`);
+    }
+    if (paradas) partes.push('La ruta ha cambiado (mírala en la ficha)');
+    if (Number(cur.metros_lineales ?? 0) !== d.metros_lineales || Number(cur.toneladas ?? 0) !== d.toneladas) {
+      partes.push(`Mercancía: ${String(d.metros_lineales).replace('.', ',')} m · ${String(d.toneladas).replace('.', ',')} Tn`);
+    }
+    if (partes.length) {
+      const pr = await s.supabase.rpc('proponer_cambio_transportista', { p_envio: envio, p_precio_antes: ptA, p_precio_ahora: ptN, p_detalle: partes.join(' · ') });
+      if (pr.error) return { ok: false, error: traducir(pr.error.message) };
+    }
+  }
   return { ok: true };
 }
 

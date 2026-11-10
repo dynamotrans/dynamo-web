@@ -21,7 +21,7 @@ import PagoPrevio from './PagoPrevio';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
-import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, archivarPdf } from '@/app/panel/(app)/envios/acciones';
+import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, archivarPdf, responderCambioEnNombre } from '@/app/panel/(app)/envios/acciones';
 import { CANALES, Celda, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
@@ -209,6 +209,30 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {fechaHora(e.condiciones_aceptadas_en)}.</div></div>
       )}
       {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => { window.location.assign(`/panel/nuevo-envio?editar=${e.id}`); }} />}
+      {/* Propuesta de cambios al TRANSPORTISTA (usuario, 2026-11-10): el cambio ya está
+          aplicado; aquí se ve si la aceptó, la rechazó (desasignado automático) o sigue
+          pendiente — con el botón de aceptarla en su nombre tras hablar con él. */}
+      {ficha.cambioTransportista && (() => {
+        const c = ficha.cambioTransportista;
+        const rango = c.precio_antes !== c.precio_ahora && c.precio_ahora != null
+          ? <> · su precio {euros(c.precio_antes)} → <strong>{euros(c.precio_ahora)}</strong></> : null;
+        if (c.estado === 'pendiente') return (
+          <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>
+            <strong>Cambios enviados al transportista</strong> ({fechaHora(c.creado_en)}){rango}: pendiente de que los acepte. {c.detalle}
+            <div style={{ marginTop: '0.5rem' }}>
+              <button className="btn-secondary" disabled={!!trabajando} onClick={() => hacer('Aceptando en su nombre', () => responderCambioEnNombre(c.id, true))}>Aceptar en su nombre (he hablado con él)</button>
+            </div>
+          </div></div>);
+        if (c.estado === 'rechazado' && !ficha.transportista) return (
+          <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>
+            <strong>El transportista RECHAZÓ los cambios</strong>{c.motivo_rechazo ? <> («{c.motivo_rechazo}»)</> : null}: el envío quedó <strong>sin transportista</strong> — asigna otro camión.
+          </div></div>);
+        if (c.estado === 'aceptado') return (
+          <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>
+            Cambios <strong>aceptados</strong> {c.en_nombre ? 'en su nombre' : 'por el transportista'}{c.respondido_en ? ` el ${fechaHora(c.respondido_en)}` : ''}{rango}.
+          </div></div>);
+        return null;
+      })()}
       {!manual && <RevisionDynamo envio={e} r={{ ...e, margen_pct: ficha.margenRevision }} hacer={hacer} />}
       {!manual && <PagoPrevio envio={e} pago={ficha.pago} hacer={hacer}
         libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en} />}

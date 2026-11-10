@@ -10,7 +10,7 @@ import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
 import { cargarFicha } from '@/lib/fichaEnvio';
 import FichaEnvioCliente, { type EnvioCliente, type EnvioClienteBase } from '@/components/panel/FichaEnvioCliente';
-import FichaViaje, { type Viaje, type ParadaViaje } from '@/components/panel/FichaViaje';
+import FichaViaje, { type Viaje, type ParadaViaje, type CambioViaje } from '@/components/panel/FichaViaje';
 import OfertasAbiertas, { type Oferta } from '@/components/panel/OfertasAbiertas';
 
 export const dynamic = 'force-dynamic';
@@ -227,6 +227,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   }
   // Etapa C: el TRANSPORTISTA, su ficha de viaje y sus ofertas abiertas.
   let fichaViaje: Viaje | null = null, ofertas: Oferta[] = [];
+  let cambioViaje: CambioViaje | null = null;
   if (rol === 'transportista') {
     if (sp.ver) {
       fichaViaje = filas.find((x) => x.id === sp.ver) ?? null;
@@ -235,6 +236,15 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
         const { data } = await supabase.rpc('mis_viajes_por_ids', { p_ids: [sp.ver] });
         const x = (data ?? [])[0];
         fichaViaje = x ? { ...x, paradas: (x.paradas ?? []) as ParadaViaje[] } as Viaje : null;
+      }
+      // Propuesta de cambios de Dynamo PENDIENTE de aceptar (usuario, 2026-11-10).
+      if (fichaViaje) {
+        const { data: cv } = await supabase.from('envio_cambios_transportista')
+          .select('id, precio_antes, precio_ahora, detalle, creado_en')
+          .eq('envio_id', fichaViaje.id).eq('estado', 'pendiente')
+          .order('creado_en', { ascending: false }).limit(1).maybeSingle();
+        cambioViaje = cv ? { ...cv, precio_antes: cv.precio_antes != null ? Number(cv.precio_antes) : null,
+          precio_ahora: cv.precio_ahora != null ? Number(cv.precio_ahora) : null } : null;
       }
     }
     const { data } = await supabase.rpc('mis_ofertas');
@@ -269,7 +279,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
         vista={vistaCal ? 'calendario' : 'lista'} mes={mes} hoy={hoy} vistaTransportista={vista.tipo === 'transportista'} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} />}
-      {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} etapas={etapasVer} cerrarHref={cerrarHref} />}
+      {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} etapas={etapasVer} cerrarHref={cerrarHref} cambio={cambioViaje} />}
     </>
   );
 }

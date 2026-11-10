@@ -110,6 +110,19 @@ export async function cancelarEnvio(envio: string, motivo: string): Promise<Res>
   return { ok: true, aviso: r.penalizacion ? `Cancelado fuera de plazo con camión asignado: se ha generado la penalización de cancelación${r.importe != null ? ` (${euros(Number(r.importe))} sin IVA)` : ''}, pendiente de confirmar.` : 'Envío cancelado, sin coste para el cliente.' };
 }
 
+// Responder una propuesta de cambios EN NOMBRE del transportista (usuario, 2026-11-10:
+// tras llamarle y negociar por teléfono). El rechazo desasigna el envío automáticamente.
+export async function responderCambioEnNombre(cambio: string, acepta: boolean, motivo?: string): Promise<{ ok: true; aviso?: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#responderCambioEnNombre", [cambio, acepta, motivo]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo responde en nombre del transportista.' };
+  const { data, error } = await s.supabase.rpc('responder_cambio_transportista', { p_cambio: cambio, p_acepta: acepta, p_motivo: motivo ?? null, p_en_nombre: true });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { ok: boolean; resultado: string }) ?? { ok: false, resultado: '' };
+  if (!r.ok) return { ok: false, error: r.resultado === 'ya_respondido' ? 'Estos cambios ya estaban respondidos.' : 'No se ha podido guardar la respuesta.' };
+  return { ok: true, aviso: acepta ? 'Cambios aceptados en nombre del transportista.' : 'Rechazo registrado: el envío queda sin transportista.' };
+}
+
 export async function deshacerCancelacion(envio: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones#deshacerCancelacion", [envio]);
   const s = await soloDynamo();
