@@ -48,8 +48,6 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
       ? <> — con ella el primer día posible {altHoy ? <>es <strong>hoy mismo</strong> ({fmtFecha(altFirst)})</> : <>sería el <strong>{fmtFecha(altFirst)}</strong></>}, sin esperar al {fmtFecha(first)}</>
       : null}.</>
     : null;
-  // El corte solo decide el PRIMER día: quien carga más adelante elige su fecha y ya.
-  const futuro = <> <em>Para una fecha más adelante este corte no afecta: elige el día que quieras.</em></>;
 
   if (resta > 0) {
     const h = Math.floor(resta / 3600), mi = Math.floor((resta % 3600) / 60), sg = resta % 60;
@@ -62,7 +60,7 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
   }
   return (
     <div className="ptar-cutoff-note" role="status">
-      <IcoReloj />El corte de las {etiqueta} ya ha pasado. Primer día de carga posible: <strong>{fmtFecha(first)}</strong>{rango}.{guia}{futuro}
+      <IcoReloj />El corte de las {etiqueta} ya ha pasado. Primer día de carga posible: <strong>{fmtFecha(first)}</strong>{rango}.{guia}
     </div>
   );
 }
