@@ -457,6 +457,10 @@
     #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
     .goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner, .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
     iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
+    /* GT moderno con clases ofuscadas (VIpgJd-…): el mismo spinner colgado con otro nombre. */
+    .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf *, img.VIpgJd-ZVi9od-aZ2wEe,
+    .VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-yAWNEb-L7lbkb { display: none !important; }
+    .VIpgJd-ZVi9od-aZ2wEe-OiiCO { background: transparent !important; box-shadow: none !important; }
     /* Línea de aceptación implícita bajo el botón Aceptar carga (sustituye al
        antiguo check): texto + enlace a condiciones, sin casilla. */
     .terms-line { margin: 0.5rem auto 0.7rem; max-width: 640px; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); line-height: 1.5; text-align: center; }

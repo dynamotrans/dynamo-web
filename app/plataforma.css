@@ -92,3 +92,7 @@ body {
    arriba a la izquierda (bug conocido; ya lo escondimos igual en la web pública). */
 .goog-te-spinner-pos, #goog-gt-tt, .goog-te-balloon-frame,
 iframe.goog-te-banner-frame, iframe[id^=":"][src*="translate"] { display: none !important; }
+/* GT moderno con clases ofuscadas (VIpgJd-…): el mismo spinner colgado con otro nombre. */
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf *, img.VIpgJd-ZVi9od-aZ2wEe,
+.VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-yAWNEb-L7lbkb { display: none !important; }
+.VIpgJd-ZVi9od-aZ2wEe-OiiCO { background: transparent !important; box-shadow: none !important; }

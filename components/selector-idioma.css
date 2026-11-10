@@ -20,3 +20,7 @@ body { top: 0 !important; position: static !important; }
 #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
 .goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner, .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
 iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
+/* GT moderno con clases ofuscadas (VIpgJd-…): el mismo spinner colgado con otro nombre. */
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf *, img.VIpgJd-ZVi9od-aZ2wEe,
+.VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-yAWNEb-L7lbkb { display: none !important; }
+.VIpgJd-ZVi9od-aZ2wEe-OiiCO { background: transparent !important; box-shadow: none !important; }
