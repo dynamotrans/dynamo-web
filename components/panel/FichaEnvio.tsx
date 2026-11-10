@@ -36,6 +36,12 @@ import { CmrDigital } from './ficha/CmrDigital';
 import { Ofrecer } from './ficha/Ofrecer';
 
 // ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
+// Rótulo de los bloques DENTRO de la sección unificada «Envío» (usuario, 2026-11-10:
+// solicitud, ruta, mercancía y precio en un solo desplegable, ordenado y sin duplicar).
+function SubTit({ children, primero }: { children: React.ReactNode; primero?: boolean }) {
+  return <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--navy)', margin: primero ? '0 0 0.4rem' : '1rem 0 0.4rem' }}>{children}</div>;
+}
+
 function MasAcciones({ children }: { children: React.ReactNode }) {
   const [abierto, setAbierto] = useState(false);
   useEffect(() => {
@@ -308,25 +314,17 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </Secc>
       )}
 
-      <Secc k="solicitud" titulo="Solicitud" abiertas={abiertas} toggle={toggle}
-        resumen={<>{e.referencia_cliente ? `ref ${e.referencia_cliente} · ` : ''}creado {fecha(e.creado_en)} · {e.fecha_carga_real ? `carga real ${fecha(e.fecha_carga_real)}` : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</>}>
-        <div className="det-block"><div className="modal-info-grid">
-          <Celda l="Nº de envío">#{e.referencia_gx}</Celda>
-          <Celda l="Ref. cliente">{e.referencia_cliente || '—'}</Celda>
-          <Celda l="Cliente">{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</Celda>
-          <Celda l="Estado">{est[1]}</Celda>
-          {manual && <Celda l="Operador de transporte" span><span style={{ color: '#b45309', fontWeight: 700 }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</Celda>}
-          <Celda l="Creado">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
-          <Celda l="Última modificación">{e.modificado_en ? fechaHora(e.modificado_en) : '—'}</Celda>
-          <Celda l={e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
-          {/* El día que el transportista eligió dentro de la ventana, bien visible junto a
-              ella (usuario, 2026-11-09): con ventana no se veía la fecha asignada. */}
-          {!e.fecha_carga_real && e.fecha_carga_prevista && (
-            <Celda l="Fecha de carga asignada"><span style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></Celda>
-          )}
-          <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
-          {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
-        </div></div>
+      {/* Documentos PRIMERO de la lista de información y, detrás de Transporte y Ofertas,
+          TODOS los datos del envío (solicitud, ruta, mercancía y precio) en UN solo
+          desplegable, ordenados y sin repetir lo que ya dice la cabecera (usuario,
+          2026-11-10: «unifica en un desplegable; sintetiza, no dupliques»). */}
+      <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="adjuntos y copias">
+        <div className="det-block">
+          {/* TODO lo del CMR vive detrás del botón ámbar «eCMR + DeCA» de arriba. SIN
+              selector de tipo: se sube y punto (tipo «Otro»); la visibilidad la decide
+              la casilla «Lo ve el cliente» de cada fila. */}
+          <Documentos dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente tipos={['otro']} />
+        </div>
       </Secc>
 
       {!manual && (
@@ -393,14 +391,32 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </Secc>
       )}
 
-      <Secc k="ruta" titulo="Ruta" extra={ficha.paradas.length > 2 ? ficha.paradas.length : undefined} abiertas={abiertas} toggle={toggle} resumen={rutaCorta || undefined}>
+      <Secc k="envio" titulo="Envío" abiertas={abiertas} toggle={toggle}
+        resumen={[rutaCorta, mercResumen,
+          manual ? (e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : null) : pc != null ? euros(pc) : null,
+        ].filter(Boolean).join(' · ') || undefined}>
+        <SubTit primero>Solicitud</SubTit>
+        <div className="det-block"><div className="modal-info-grid">
+          <Celda l="Nº de envío">#{e.referencia_gx}</Celda>
+          <Celda l="Ref. cliente">{e.referencia_cliente || '—'}</Celda>
+          <Celda l="Cliente">{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</Celda>
+          <Celda l="Creado">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
+          {manual && <Celda l="Operador de transporte" span><span style={{ color: '#b45309', fontWeight: 700 }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</Celda>}
+          <Celda l={e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
+          {/* El día que el transportista eligió dentro de la ventana, junto a ella. */}
+          {!e.fecha_carga_real && e.fecha_carga_prevista
+            ? <Celda l="Fecha de carga asignada"><span style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></Celda>
+            : <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>}
+          {!e.fecha_carga_real && e.fecha_carga_prevista && <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>}
+          {e.modificado_en && <Celda l="Última modificación">{fechaHora(e.modificado_en)}</Celda>}
+          {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
+        </div></div>
+        <SubTit>Ruta{ficha.paradas.length > 2 ? ` (${ficha.paradas.length} paradas)` : ''}</SubTit>
         <div className="det-ruta">
           {recogidas.map((p, i) => <Punto key={p.id} p={p} cls="rec" num={i + 1} label={`Recogida ${i + 1}`} />)}
           {entregas.map((p, i) => <Punto key={p.id} p={p} cls="ent" num={i + 1} label={`Entrega ${i + 1}`} />)}
         </div>
-      </Secc>
-
-      <Secc k="mercancia" titulo="Mercancía" abiertas={abiertas} toggle={toggle} resumen={mercResumen || undefined}>
+        <SubTit>Mercancía</SubTit>
         <div className="det-block"><div className="modal-info-grid">
           <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
           <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
@@ -410,12 +426,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
           <DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} />
         </div></div>
-      </Secc>
-
-      <Secc k="precio" titulo="Precio" abiertas={abiertas} toggle={toggle}
-        resumen={manual
-          ? (e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado')
-          : pc == null ? 'Pendiente' : <>{euros(pc)} cliente{e.margen_euros != null ? <> · margen {euros(e.margen_euros)}</> : null}</>}>
+        <SubTit>Precio</SubTit>
         <div className="det-block">
           {manual ? (
             e.precio_acordado_operador != null ? (
@@ -455,17 +466,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           </div>
         </Secc>
       )}
-
-      <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="adjuntos y copias">
-        <div className="det-block">
-          {/* TODO lo del CMR vive detrás del botón ámbar «eCMR + DeCA» de arriba, y fuera
-              el «Guardar copia de la orden» (usuario, 2026-11-10: el PDF del menú se
-              genera al momento, la copia archivada no aportaba nada). SIN selector de
-              tipo: se sube y punto (tipo «Otro»); la visibilidad la decide la casilla
-              «Lo ve el cliente» de cada fila. */}
-          <Documentos dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente tipos={['otro']} />
-        </div>
-      </Secc>
 
       {e.valoracion_cliente != null && (
         <Secc k="valoracion" titulo="Valoración del cliente" abiertas={abiertas} toggle={toggle}
