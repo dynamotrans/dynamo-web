@@ -16,7 +16,7 @@ export type ParadaFicha = {
            contacto: { nombre: string | null; telefono: string | null; email: string | null } | null } | null;
 };
 export type HitoFicha = { id: number; hito: string; cuando: string; quien: string | null; origen: string | null;
-  datos: { motivo_cancelacion?: string; camion?: string; remolque?: string } | null };   // jsonb del hito
+  datos: { motivo_cancelacion?: string; camion?: string; remolque?: string; por?: string; rol?: string } | null };   // jsonb del hito
 export type PenalizacionFicha = { id: string; codigo: string; tipo: string; descripcion: string | null; importe_cliente: number | null; importe_transportista: number | null; estado: string; generada_auto: boolean };
 export type OfertaFicha = { id: string; token: string; canal: string; para: string | null; precio: number; banda_euros: number;
   banda_pct: number; pronto_pago: boolean; estado: string; enviada_en: string; caduca_en: string; aperturas: number; abierta_en: string | null };

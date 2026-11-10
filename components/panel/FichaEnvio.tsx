@@ -468,7 +468,11 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
             <div key={h.id} className="pen-sum-row">
               <span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span>
               <span className="v" style={{ textAlign: 'right' }}>
-                {HITOS[h.hito] ?? h.hito}
+                {/* La etapa anclada por una firma del CMR no es «a mano»: la firma de la
+                    recogida/entrega fija la hora real de esa parada (usuario, 2026-11-10). */}
+                {h.hito === 'etapa_corregida' && h.datos?.por === 'firma_cmr'
+                  ? `Parada completada: lo fija la firma del CMR (${{ remitente: 'cargador', transportista: 'transportista', destinatario: 'destinatario' }[h.datos.rol ?? ''] ?? 'firmante'})`
+                  : HITOS[h.hito] ?? h.hito}
                 {h.datos?.motivo_cancelacion && <> — «{h.datos.motivo_cancelacion}»</>}
                 {h.hito === 'matricula_asignada' && h.datos?.camion && <> — {h.datos.camion}{h.datos.remolque ? ` + ${h.datos.remolque}` : ''}</>}
                 <span style={{ color: 'var(--gray-500)', fontWeight: 500 }}>{h.quien ? ` · ${h.quien}` : ORIGEN[h.origen ?? ''] ? ` · ${ORIGEN[h.origen ?? '']}` : ''}</span>

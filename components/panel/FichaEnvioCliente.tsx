@@ -319,7 +319,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {(e.hitos ?? []).length > 0 && (
           <div className="pen-envio-sum">
             {e.hitos.filter((h) => HITOS[h.hito]).map((h) => (
-              <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{HITOS[h.hito]}</span></div>
+              <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{h.hito === 'etapa_corregida' ? 'Etapa del seguimiento actualizada' : HITOS[h.hito]}</span></div>
             ))}
           </div>
         )}
