@@ -97,15 +97,20 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       };
 
       // Nº de envío, en la franja blanca de arriba (no pisa el texto legal de la cabecera);
-      // con QR, el Nº se corre a la izquierda para dejarle el rincón.
+      // con QR, el Nº se corre a la izquierda para dejarle el rincón. El QR guarda ≥15pt
+      // (~5 mm) con los bordes y 4pt con el marco rojo del impreso (que empieza a ~76pt):
+      // una impresora estándar no recorta nada (usuario, 2026-11-10).
       if (qrImg) {
-        pg.drawImage(qrImg, { x: 517, y: A4.h - 4 - 58, width: 58, height: 58 });
-        t(517, 68, 'e-CMR', 6, true);
-        t(517, 75, 'Escanéalo con el móvil', 5, false, COLOR.gris);
+        const QR = 50, qx = A4.w - 18 - QR;
+        pg.drawImage(qrImg, { x: qx, y: A4.h - 15 - QR, width: QR, height: QR });
+        const rot = 'e-CMR', resto = ' · Escanéalo con el móvil', wRot = l.medida(rot, 5.5, true);
+        const xr = A4.w - 18 - wRot - l.medida(resto, 5, false);
+        t(xr, 72, rot, 5.5, true);
+        t(xr + wRot, 72, resto, 5, false, COLOR.gris);
       }
       t(qrImg ? 440 : 468, 40, `Nº ${e.referencia_gx ?? ''}`, 9);
       if (varias) t(qrImg ? 440 : 468, 51, `Carta ${nc + 1} de ${cartas.length}`, 7.5);
-      if (logo) { const h = 22, w = h * logo.width / logo.height; pg.drawImage(logo, { x: 36, y: A4.h - 12 - h, width: w, height: h }); }
+      if (logo) { const h = 22, w = h * logo.width / logo.height; pg.drawImage(logo, { x: 36, y: A4.h - 15 - h, width: w, height: h }); }
 
       // 1 Remitente
       dato(42, 110, [
@@ -262,25 +267,49 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     if (d.deca) {
       l.y += 6;
       const nUnico = d.deca.url.split('/').pop() ?? '';
-      const anchoTxt = l.ancho - (qrImg ? 100 : 0) - 20;
-      const partes: { t: string; s: number; b: boolean }[] = [];
-      for (const ln of l.partir('Este e-CMR hace también de documento de control (DeCA, Orden FOM/2861/2012) en los tramos nacionales.', 7.6, anchoTxt)) partes.push({ t: ln, s: 7.6, b: true });
-      const lineas = [
-        `Nº único del documento: ${nUnico} · creado el ${fechaHora(d.deca.creado_en)} · verificación en línea: ${d.deca.url}`,
+      // EL PORQUÉ LEGAL, CLARO Y EN NEGRITA (usuario, 2026-11-10): tres cajas —la ley que
+      // acepta el soporte electrónico, los datos exigidos y qué comprueba el QR— para que
+      // quien lo mire (conductor, agente, cliente) lo entienda de un vistazo.
+      const colAncho = l.ancho - (qrImg ? 100 : 0) - 16;
+      const cab = l.partir('Este e-CMR es también el documento de control (DeCA) del transporte nacional', 8.6, colAncho, true);
+      const cajas = [
+        { tit: 'La ley lo acepta en electrónico: Orden FOM/2861/2012, art. 6', txt: 'El documento de control (DeCA) puede llevarse en soporte electrónico: basta mostrar este e-CMR, en el móvil o impreso, en una inspección en carretera.' },
+        { tit: 'Con todos los datos que exige el art. 5', txt: 'Cargador contractual y transportista efectivo con su NIF, vehículo, naturaleza y peso de la carga, origen, destino y fechas: todos constan en este documento.' },
+        { tit: 'El QR lo verifica en línea', txt: 'Abre el e-CMR original, con su nº único, sus firmas y su registro, para comprobarlo al momento. En transporte internacional rigen el Convenio CMR y el Protocolo e-CMR (Ginebra, 2008).' },
+      ].map((c) => {
+        const tit = l.partir(c.tit, 7.4, colAncho - 18, true);
+        const txt = l.partir(c.txt, 6.6, colAncho - 18);
+        return { tit, txt, alto: 6 + tit.length * 9 + txt.length * 8 + 5 };
+      });
+      // Los datos del documento van bajo las cajas, ya por debajo del QR: a todo el ancho.
+      const datos = [
+        `Nº único del documento: ${nUnico} · creado el ${fechaHora(d.deca.creado_en)}`,
+        `Verificación en línea: ${d.deca.url}`,
         ...(!manual ? [`Cargador contractual: ${D.razon_social} · NIF ${D.cif}`
           + ([d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).length
             ? ` — Transportista efectivo: ${[d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).join(' · ')}` : '')
           + (e.matricula_camion ? ` · Matr. ${e.matricula_camion}` : '')] : []),
-      ];
-      for (const tx of lineas) for (const ln of l.partir(tx, 7.2, anchoTxt)) partes.push({ t: ln, s: 7.2, b: false });
-      const altoPanel = Math.max(partes.length * 10 + 16, qrImg ? 96 : 0);
+      ].flatMap((tx) => l.partir(tx, 6.8, l.ancho - 20));
+      const altoCajas = cajas.reduce((s, c) => s + c.alto + 5, 0);
+      const altoPanel = Math.max(9 + cab.length * 11 + 3 + altoCajas + 2 + datos.length * 9 + 8, qrImg ? 100 : 0);
       l.rect(l.x0, l.y, l.ancho, altoPanel, COLOR.fondo, COLOR.grisClaro);
       if (qrImg) {
-        l.pag.drawImage(qrImg, { x: A4.w - l.margen.der - 80, y: A4.h - (l.y + 8) - 70, width: 70, height: 70 });
-        l.textoDer(A4.w - l.margen.der - 10, l.y + 87, 'Escanéalo para verificar', 6.2, { color: COLOR.gris });
+        l.pag.drawImage(qrImg, { x: A4.w - l.margen.der - 80, y: A4.h - (l.y + 10) - 70, width: 70, height: 70 });
+        l.textoDer(A4.w - l.margen.der - 10, l.y + 89, 'Escanéalo para verificar', 6.2, { color: COLOR.gris });
       }
-      let yTxt = l.y + 8;
-      for (const p of partes) { l.texto(l.x0 + 10, yTxt + p.s, p.t, p.s, { bold: p.b, color: p.b ? COLOR.navy : COLOR.gris }); yTxt += 10; }
+      let yTxt = l.y + 9;
+      for (const ln of cab) { l.texto(l.x0 + 10, yTxt + 8.6, ln, 8.6, { bold: true, color: COLOR.navy }); yTxt += 11; }
+      yTxt += 3;
+      for (const c of cajas) {
+        l.rect(l.x0 + 10, yTxt, colAncho, c.alto, COLOR.blanco, COLOR.grisClaro);
+        l.rect(l.x0 + 10, yTxt, 3, c.alto, COLOR.morado);
+        let yC = yTxt + 6;
+        for (const ln of c.tit) { l.texto(l.x0 + 20, yC + 7.4, ln, 7.4, { bold: true, color: COLOR.navy }); yC += 9; }
+        for (const ln of c.txt) { l.texto(l.x0 + 20, yC + 6.6, ln, 6.6, { color: COLOR.gris }); yC += 8; }
+        yTxt += c.alto + 5;
+      }
+      yTxt += 2;
+      for (const ln of datos) { l.texto(l.x0 + 10, yTxt + 6.8, ln, 6.8, { color: COLOR.gris }); yTxt += 9; }
       l.y += altoPanel + 8;
     } else { l.y += 4; }
     if (!firmas.length) {
