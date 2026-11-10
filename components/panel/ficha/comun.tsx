@@ -90,7 +90,7 @@ export function Interruptor({ k, l, v, on }: { k: string; l: string; v: boolean;
   );
 }
 
-export type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer' | 'precio' | 'cmr';
+export type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer' | 'precio';
 
 export type SubProps = { ficha: Ficha; onVolver: () => void; trabajando: string | null;
   // El error de la última acción: los submodales (Asignar, Cancelar…) lo pintan DENTRO,

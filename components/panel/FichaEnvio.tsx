@@ -22,7 +22,7 @@ import PagoPrevio from './PagoPrevio';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
-import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, archivarPdf, responderCambioEnNombre } from '@/app/panel/(app)/envios/acciones';
+import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, responderCambioEnNombre } from '@/app/panel/(app)/envios/acciones';
 import { CANALES, Celda, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
@@ -74,7 +74,14 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const refrescar = useRefrescar();
   const e = ficha.envio;
   const [vista, setVista] = useState<Vista>('ficha');
-  const [verDocs, setVerDocs] = useState(0);   // para recargar la lista al guardar una copia
+  // Hoja del eCMR + DeCA (pegada al pie, como «Más acciones»): todo lo del CMR junto.
+  const [cmrAbierto, setCmrAbierto] = useState(false);
+  useEffect(() => {
+    if (!cmrAbierto) return;
+    const esc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setCmrAbierto(false); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [cmrAbierto]);
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
@@ -125,7 +132,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {/* eCMR + DeCA EL PRIMERO y siempre a mano (usuario, 2026-11-10): TODO lo del CMR
           unificado detrás de este botón (vista propia: firmar, compartir el enlace, el
           PDF relleno y el registro de firmas). Ámbar con el contador; verde al completarse. */}
-      <button type="button" className="btn-primary" onClick={() => setVista('cmr')}
+      <button type="button" className="btn-primary" onClick={() => setCmrAbierto(true)}
          title="Todo el eCMR + DeCA: firmar, compartir el enlace y el PDF relleno con el QR."
          style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
         <I d={ICO.doc} />eCMR + DeCA
@@ -181,16 +188,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
-  // TODO lo del eCMR + DeCA unificado en su vista (usuario, 2026-11-10): firmar,
-  // compartir el enlace, el PDF relleno y el registro de firmas, detrás del botón ámbar.
-  if (vista === 'cmr') return (
-    <Modal abierto onCerrar={() => setVista('ficha')} titulo="eCMR + DeCA" sub={`#${e.referencia_gx} · ${firmasHechas}/${firmasTotal} firmas`} icono={<I d={ICO.doc} />}
-      pie={<button className="btn-primary" onClick={() => setVista('ficha')}>Volver a la ficha</button>}>
-      {cancelado
-        ? <div className="pt-aviso info"><div>El envío está cancelado: no lleva CMR.</div></div>
-        : <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
-    </Modal>
-  );
 
   // ---- Cabecera «vital»: lo que se mira el 90 % de las veces, sin scroll ------------
   const rutaCorta = [recogidas[0]?.poblacion, entregas[entregas.length - 1]?.poblacion].filter(Boolean).join(' → ');
@@ -446,20 +443,12 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
 
       <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="adjuntos y copias">
         <div className="det-block">
-          {/* TODO lo del CMR vive detrás del botón ámbar «eCMR + DeCA» de arriba (usuario,
-              2026-11-10); aquí quedan la copia de la orden y los adjuntos. */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
-            {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
-              <button type="button" className="btn-ghost" disabled={!!trabajando}
-                onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
-                <I d={ICO.doc} />Guardar copia de la {'orden de carga'}
-              </button>
-            )}
-          </div>
-          {/* SIN selector de tipo (usuario, 2026-11-10): se sube y punto (tipo «Otro»). Los
-              documentos generados (orden de carga, CMR…) conservan su tipo, y la visibilidad
-              la decide la casilla «Lo ve el cliente» de cada fila. */}
-          <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente tipos={['otro']} />
+          {/* TODO lo del CMR vive detrás del botón ámbar «eCMR + DeCA» de arriba, y fuera
+              el «Guardar copia de la orden» (usuario, 2026-11-10: el PDF del menú se
+              genera al momento, la copia archivada no aportaba nada). SIN selector de
+              tipo: se sube y punto (tipo «Otro»); la visibilidad la decide la casilla
+              «Lo ve el cliente» de cada fila. */}
+          <Documentos dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente tipos={['otro']} />
         </div>
       </Secc>
 
@@ -504,6 +493,25 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </div>
         <Historial tabla="envios" id={e.id} />
       </Secc>
+      {/* HOJA del eCMR + DeCA pegada al pie (usuario, 2026-11-10): mismas piezas que el
+          menú «Más» (velo + hoja en portal sobre body), con todo lo del CMR dentro. */}
+      {cmrAbierto && createPortal(<>
+        <div className="ficha-mas-backdrop" onClick={() => setCmrAbierto(false)} />
+        <div className="ficha-mas-menu fm-hoja-cmr" role="dialog" aria-label="eCMR + DeCA">
+          <div className="fm-asa" aria-hidden="true" />
+          <div className="fm-cab">
+            <span>eCMR + DeCA · {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}</span>
+            <button type="button" className="fm-x" aria-label="Cerrar" onClick={() => setCmrAbierto(false)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div style={{ padding: '0 0.35rem 0.35rem' }}>
+            {cancelado
+              ? <div className="pt-aviso info"><div>El envío está cancelado: no lleva CMR.</div></div>
+              : <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
+          </div>
+        </div>
+      </>, document.body)}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

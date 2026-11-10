@@ -1319,6 +1319,10 @@ body.theme-dark .sidebar { background: #060116; }
 }
 .ficha-mas-menu .fm-x:hover { background: rgba(51,0,204,0.08); color: var(--purple); }
 .ficha-mas-menu .fm-lista { display: flex; flex-direction: column; gap: 2px; }
+/* Hoja del eCMR + DeCA: mismo armazón que el menú «Más», con contenido largo que
+   desplaza dentro; en escritorio, un panel algo más ancho. */
+.ficha-mas-menu.fm-hoja-cmr { max-height: 84vh; overflow-y: auto; overscroll-behavior: contain; }
+@media (min-width: 641px) { .ficha-mas-menu.fm-hoja-cmr { width: min(560px, calc(100vw - 2rem)); } }
 .ficha-mas-menu .fm-item {
     display: flex; align-items: center; gap: 0.55rem; width: 100%;
     padding: 0.85rem 0.9rem; border: 0; background: none; border-radius: 10px;
