@@ -617,7 +617,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const pesoTxt = optsPeso.find(([v]) => v === peso)?.[1] ?? '';
   // Resumen de la mercancía del paso 2 en UNA línea (usuario, 2026-11-10): prerrellena el
   // «detalle de mercancía» de cada parada del paso 4 (editable/borrable allí).
-  const mercResumen = [mlTxt.split(' ·')[0], paletizada ? 'Paletizada' : 'No paletizada', pesoTxt.split(' (')[0]].filter(Boolean).join(' - ');
+  // Formato elegido por el usuario (2026-11-10): «6 metros · Grupaje · De 800 kg a 1
+  // tonelada» / «13,30 metros · Tráiler completo · De 23 a 24 toneladas (máximo)».
+  const mercResumen = [mlTxt.split(' ·')[0], ml === '13.3' ? 'Tráiler completo' : 'Grupaje', pesoTxt].filter(Boolean).join(' · ');
   // La info del sitio va DEBAJO del resumen en el campo; al guardarla de vuelta en la
   // ficha del sitio se quita la línea del resumen (es de ESTE envío, no del sitio).
   const sinResumen = (s: string) => { const x = s.trim(); return mercResumen && x.startsWith(mercResumen) ? x.slice(mercResumen.length).trim() : x; };
