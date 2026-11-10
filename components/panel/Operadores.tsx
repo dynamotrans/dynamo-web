@@ -36,11 +36,11 @@ function Intro({ dynamo }: { dynamo: boolean }) {
     <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.9rem' }}>
       <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>{dynamo ? 'La agenda privada de transportistas de cada cliente' : 'Tu agenda privada de transportistas'}</div>
       <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
-        {dynamo ? 'Aquí cada cliente guarda' : 'Guarda aquí'} los transportistas con los que {dynamo ? 'ya trabaja' : 'ya trabajas'} por {dynamo ? 'su' : 'tu'} cuenta (empresas de transporte, operadores o autónomos) para {dynamo ? 'ver' : 'ver'} <strong>todos {dynamo ? 'sus' : 'tus'} envíos juntos en Envíos</strong>: los de Dynamo y los {dynamo ? 'suyos' : 'tuyos'}, en un solo sitio.
+        <strong>{dynamo ? 'Aquí cada cliente guarda' : 'Guarda aquí'} los transportistas con los que {dynamo ? 'ya trabaja' : 'ya trabajas'} por {dynamo ? 'su' : 'tu'} cuenta</strong> (empresas de transporte, operadores o autónomos) para ver <strong>todos {dynamo ? 'sus' : 'tus'} envíos juntos en Envíos</strong>: los de Dynamo y los {dynamo ? 'suyos' : 'tuyos'}, en un solo sitio.
       </p>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.4rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
         {punto(<><strong>Privado.</strong> {dynamo ? 'Cada cliente ve solo los suyos' : 'Solo lo ves tú y tu empresa'}: ningún otro cliente ni transportista de la plataforma tiene acceso.</>)}
-        {punto(<><strong>Dynamo no interviene.</strong> En los envíos con {dynamo ? 'sus' : 'tus'} transportistas no contactamos con ellos ni tocamos nada: ni precios, ni albaranes, ni condiciones. Es {dynamo ? 'su' : 'tu'} relación directa.</>)}
+        {punto(<><strong>Dynamo no interviene.</strong> En los envíos con {dynamo ? 'sus' : 'tus'} otros proveedores de transporte (agencias, empresas de transporte, autónomos transportistas) no contactamos con ellos ni tocamos nada: ni precios, ni albaranes, ni condiciones. Es {dynamo ? 'su' : 'tu'} relación directa.</>)}
         {punto(<><strong>Gratis y sin compromiso.</strong> Es solo una herramienta para {dynamo ? 'que tenga' : 'tener'} todo controlado. Se puede borrar cuando {dynamo ? 'quiera' : 'quieras'}.</>)}
       </ul>
     </div>
