@@ -91,12 +91,9 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const firmasTotal = ficha.paradas.length + 1;
 
   // Acordeón: abierta por defecto SOLO la sección que toca según el estado.
-  const inicial = e.estado === 'borrador' ? 'precio'
-    : cancelado ? 'solicitud'
-    : !manual && ficha.etapas.length > 0 && ['hacia_la_carga', 'cargando', 'en_ruta', 'descargando'].includes(e.estado) ? 'seguimiento'
-    : e.estado === 'entregado' ? 'documentos'
-    : manual ? 'solicitud' : 'transporte';
-  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set([inicial]));
+  // SIEMPRE todo plegado al abrir (usuario, 2026-11-10): la cabecera vital y los resúmenes
+  // de cada sección ya cuentan lo esencial; se abre solo lo que se toca.
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
   const toggle = (k: string) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   async function hacer(texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, okTxt?: string) {
