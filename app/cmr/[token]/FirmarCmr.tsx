@@ -23,7 +23,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // Firma EXTRA (usuario, 2026-11-09): hasta 3 además de las casillas de siempre. Se elige
   // la casilla y se abre la pantalla de firma normal; no ocupa la casilla ni anota reservas.
   const [eligiendoExtra, setEligiendoExtra] = useState(false);
-  const [terminado, setTerminado] = useState(false);
 
   if (cmr.resultado !== 'ok') {
     const t: Record<string, [string, string]> = {
@@ -45,26 +44,13 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
-  // «He terminado» (usuario, 2026-11-10): cada firma se guarda SOLA al firmar, así que no
-  // hay nada que guardar; el botón despide con un «todo guardado» y se intenta cerrar la
-  // pestaña (si el navegador no deja, queda la pantalla de despedida).
-  if (terminado) {
-    return (
-      <div className="card" style={{ textAlign: 'center' }}>
-        {!cmr.manual && <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>}
-        <div aria-hidden="true" style={{ fontSize: '3rem', lineHeight: 1, margin: '0.5rem 0', color: '#15803d' }}>✓</div>
-        <h1>Firmado y guardado</h1>
-        <p className="sub">Cada firma queda registrada en el CMR en el momento de firmar: no hay nada más que hacer. Ya puedes cerrar esta pestaña.</p>
-        <button type="button" className="firma-btn" style={{ width: '100%', marginTop: '0.8rem', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)' }}
-          onClick={() => setTerminado(false)}>Volver a las firmas</button>
-      </div>
-    );
-  }
+  // «Está todo guardado, salir» (usuario, 2026-11-10): cada firma se guarda SOLA al
+  // firmar, así que no hay nada que guardar; al salir, quien firma (normalmente un
+  // externo sin cuenta) aterriza en la WEB PÚBLICA de Dynamo, no en una página vacía.
   const btnFin = (
-    <button type="button" className="firma-btn" style={{ width: '100%', background: '#1d9e57' }}
-      onClick={() => { setTerminado(true); try { window.close(); } catch { /* el navegador decide */ } }}>
-      He terminado — está todo guardado
-    </button>
+    <a className="firma-btn" style={{ width: '100%', background: '#1d9e57', textAlign: 'center' }} href="/">
+      Está todo guardado, salir
+    </a>
   );
   const extras = (cmr.firmas ?? []).filter((f) => f.extra);
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;
