@@ -61,7 +61,6 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     return f ? { f, img: trazos.get(f) ?? null, x, top, ancho, alto: rol === 'destinatario' ? 24 : 40 } : null;
   });
   const enCasilla = new Set(cartas.flatMap((en) => casillasDe(en)).filter(Boolean).map((c) => c!.f));
-  const fueraDeCasilla = firmas.filter((f) => !enCasilla.has(f));
 
   for (let nc = 0; nc < cartas.length; nc++) {
     const entrega = cartas[nc];
@@ -158,8 +157,8 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       // 19 Estipulaciones particulares (con aviso de la hoja de firmas adjunta si la hay)
       dato(438, 532, [
         { t: e.discrecion_comercial ? 'Discreción comercial' : '', s: 7.8, b: false },
-        { t: fueraDeCasilla.length ? `Firmado electrónicamente: ${firmas.length} firmas según registro anexo (hoja final)` : '', s: 7, b: false, max: 2 },
-        { t: !e.discrecion_comercial && !fueraDeCasilla.length ? '—' : '', s: 7.8, b: false },
+        { t: firmas.length ? `Firmado electrónicamente: ${firmas.length} ${firmas.length === 1 ? 'firma' : 'firmas'} según registro anexo (hoja final)` : '', s: 7, b: false, max: 2 },
+        { t: !e.discrecion_comercial && !firmas.length ? '—' : '', s: 7.8, b: false },
       ], 34);
       // 14 Forma de pago
       dato(42, 660, [{ t: 'Porte pagado / Franco', s: 8, b: false }]);
@@ -188,10 +187,10 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     }
   }
 
-  // HOJA «REGISTRO DE FIRMAS»: el impreso solo admite UNA firma por casilla (22/23/24).
-  // Cuando hay más (varias recogidas/entregas o firmas extra), una hoja final lista TODAS
-  // las del CMR digital con su trazo, documento y hora del servidor.
-  if (fueraDeCasilla.length) {
+  // HOJA «REGISTRO DE FIRMAS»: SIEMPRE que haya alguna firma (usuario, 2026-11-10) — el
+  // GPS con su dirección y la huella SHA-256 solo se ven aquí, así que la hoja va al final
+  // del PDF con TODAS las firmas del CMR digital, quepan o no en las casillas 22/23/24.
+  if (firmas.length) {
     const ROL: Record<string, string> = { remitente: 'Remitente / cargador — casilla 22', transportista: 'Porteador / transportista — casilla 23', destinatario: 'Destinatario — casilla 24' };
     const paradaTxt = (id: string | null) => {
       const iR = rec.findIndex((p) => p.id === id);
