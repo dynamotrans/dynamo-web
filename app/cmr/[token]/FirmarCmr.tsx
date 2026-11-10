@@ -91,8 +91,10 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Remitente</dt><dd>{cmr.remitente || '—'}</dd>
         <dt>Porteador</dt><dd>{cmr.porteador || '—'}</dd>
         {(cmr.transportista || cmr.matricula) && <><dt>Transportista efectivo</dt><dd>{[cmr.transportista, cmr.matricula].filter(Boolean).join(' · ')}</dd></>}
-        <dt>Recogida</dt><dd>{rec.map(lugar).join(' / ') || '—'}</dd>
-        <dt>Entrega</dt><dd>{ent.map(lugar).join(' / ') || '—'}</dd>
+        {/* Cada parada en SU línea, numerada cuando hay varias (usuario, 2026-11-10):
+            nada de «A / B» corrido, que no se lee. */}
+        <dt>Recogida</dt><dd>{rec.length ? rec.map((p, i) => <div key={p.id}>{rec.length > 1 ? `${i + 1}. ` : ''}{lugar(p)}</div>) : '—'}</dd>
+        <dt>Entrega</dt><dd>{ent.length ? ent.map((p, i) => <div key={p.id}>{ent.length > 1 ? `${i + 1}. ` : ''}{lugar(p)}</div>) : '—'}</dd>
         <dt>Fecha de carga</dt><dd>{fecha(cmr.fecha_carga)}</dd>
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
