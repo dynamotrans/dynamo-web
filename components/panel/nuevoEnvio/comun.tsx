@@ -74,7 +74,7 @@ export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit, mer
       empresa: p.sitio.nombre_empresa, tipo: d?.tipo ?? p.sitio.tipo, nuevo: false, dynamo: !!p.sitio.es_almacen_dynamo,
       horario: d?.horario.length ? d.horario : HORARIO_POR_DEFECTO,
       contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contactoEmail: d?.contacto.email ?? '', contacto_id: d?.contacto.id ?? null,
-      notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '', mercancia: d?.mercancia_defecto ?? mercanciaDefecto,
+      notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '', mercancia: [mercanciaDefecto, d?.mercancia_defecto ?? ''].filter(Boolean).join('\n'),
     };
   } else if (p.nuevo) {
     const n = p.nuevo;

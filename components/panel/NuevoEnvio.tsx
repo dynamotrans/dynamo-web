@@ -446,7 +446,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
-          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? ((edicSitios[p.k]!.mercancia ?? '').trim() || null) : undefined,
+          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? (sinResumen(edicSitios[p.k]!.mercancia ?? '') || null) : undefined,
           horario_tramos: tramosDe(f.horario),
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
@@ -524,7 +524,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
-          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? ((edicSitios[p.k]!.mercancia ?? '').trim() || null) : undefined,
+          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? (sinResumen(edicSitios[p.k]!.mercancia ?? '') || null) : undefined,
           horario_tramos: tramosDe(f.horario),
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
@@ -539,7 +539,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       const cita = c?.cita ? ['CITA PREVIA' + (c.citaHora ? ` a las ${c.citaHora}` : ''), (c.citaDetalle ?? '').trim()].filter(Boolean).join(' · ') : '';
       // El detalle de mercancía RESUELTO: lo editado en el paso 4 o, si no se tocó, el
       // por defecto del sitio (usuario, 2026-11-10).
-      const merc = resolverFicha(p, datosSitios, c, mercResumen).mercancia.trim();
+      const merc = resolverFicha(p, datosSitios, c, mercResumen).mercancia.trim().replace(/\s*\n+\s*/g, ' · ');
       return [cita, merc ? `MERCANCÍA: ${merc}` : ''].filter(Boolean).join(' · ') || undefined;
     };
     const paradas: ParadaNueva[] = puntos.map((p, i) => {
@@ -617,6 +617,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Resumen de la mercancía del paso 2 en UNA línea (usuario, 2026-11-10): prerrellena el
   // «detalle de mercancía» de cada parada del paso 4 (editable/borrable allí).
   const mercResumen = [mlTxt.split(' (')[0].split(' — ')[0], paletizada ? 'Paletizada' : 'No paletizada', pesoTxt.split(' (')[0]].filter(Boolean).join(' - ');
+  // La info del sitio va DEBAJO del resumen en el campo; al guardarla de vuelta en la
+  // ficha del sitio se quita la línea del resumen (es de ESTE envío, no del sitio).
+  const sinResumen = (s: string) => { const x = s.trim(); return mercResumen && x.startsWith(mercResumen) ? x.slice(mercResumen.length).trim() : x; };
   const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
   // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;

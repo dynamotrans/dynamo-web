@@ -596,12 +596,12 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             mercancía» de la parada en Nuevo envío; editarlo allí actualiza este valor. */}
         <button type="button" className="campo-plegado" aria-expanded={abierto.merc} onClick={() => plegar('merc')}>
           <span className="cp-ico" aria-hidden="true">{abierto.merc ? '−' : '+'}</span>
-          <span className="cp-txt">Mercancía por defecto
+          <span className="cp-txt">Info mercancía por defecto
             {d.mercancia_defecto.trim() ? <span className="cp-val">· {d.mercancia_defecto.length > 42 ? d.mercancia_defecto.slice(0, 41) + '…' : d.mercancia_defecto}</span> : <span className="cp-val">· opcional</span>}</span>
         </button>
         {abierto.merc && (
           <div className="ptar-sitio-grid">
-            {campo('mercancia_defecto', <>Mercancía por defecto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sale prerrellena al crear envíos con este sitio</span></>, 'Ej. 4 palets de recambios, 1 caja de 2×1 m…', true)}
+            {campo('mercancia_defecto', <>Info mercancía por defecto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sale prerrellena al crear envíos con este sitio, debajo del resumen de la mercancía</span></>, 'Ej. 4 palets de recambios, 1 caja de 2×1 m…', true)}
           </div>
         )}
 
