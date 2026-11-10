@@ -20,12 +20,13 @@ const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
 );
 
-export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, faltas, cargaHoy }: {
+export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, faltas, cargaHoy, mercanciaDefecto }: {
   puntos: Punto[]; datos: DatosSitios; edic: Record<number, CardEdit>;
   setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>;
   fechaCargaTxt: string;
   faltas?: Set<number>;   // puntos con datos obligatorios sin rellenar (los marca el padre al crear)
   cargaHoy?: boolean;     // la carga empieza HOY: avisa si el sitio de recogida cierra pronto
+  mercanciaDefecto?: string;   // resumen del paso 2 («6 metros - Paletizada - …»): prerrellena el detalle de mercancía de cada parada (usuario, 2026-11-10)
 }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(new Set());
   // Campos opcionales REPLEGADOS (usuario, 2026-11-09): nombre de contacto, notas
@@ -62,7 +63,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
     <div className="ptar-sitios-list">
       {puntos.map((p, i) => {
         const rec = p.tipo === 'carga';
-        const f = resolverFicha(p, datos, edic[p.k]);
+        const f = resolverFicha(p, datos, edic[p.k], mercanciaDefecto);
         const dir = direccionCompleta((p.sitio ?? p.nuevo)!);
         const falta = f.nuevo && !f.empresa.trim();   // sitio nuevo sin nombre: datos obligatorios pendientes
         // Marcada por el padre al intentar crear: lo que siga vacío se pinta en rojo.

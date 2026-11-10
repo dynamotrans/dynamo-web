@@ -445,7 +445,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         return {
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
-          url_google_maps: f.maps || null, mercancia_defecto: f.mercancia.trim() || null, horario_tramos: tramosDe(f.horario),
+          url_google_maps: f.maps || null,
+          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? ((edicSitios[p.k]!.mercancia ?? '').trim() || null) : undefined,
+          horario_tramos: tramosDe(f.horario),
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
       });
@@ -521,7 +523,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         return {
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
-          url_google_maps: f.maps || null, mercancia_defecto: f.mercancia.trim() || null, horario_tramos: tramosDe(f.horario),
+          url_google_maps: f.maps || null,
+          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? ((edicSitios[p.k]!.mercancia ?? '').trim() || null) : undefined,
+          horario_tramos: tramosDe(f.horario),
           contactos_extra: (edicSitios[p.k]?.extra ?? []).filter((x) => x.nombre.trim() || x.telefono.trim() || x.email.trim()),
         };
       });
@@ -535,7 +539,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       const cita = c?.cita ? ['CITA PREVIA' + (c.citaHora ? ` a las ${c.citaHora}` : ''), (c.citaDetalle ?? '').trim()].filter(Boolean).join(' · ') : '';
       // El detalle de mercancía RESUELTO: lo editado en el paso 4 o, si no se tocó, el
       // por defecto del sitio (usuario, 2026-11-10).
-      const merc = resolverFicha(p, datosSitios, c).mercancia.trim();
+      const merc = resolverFicha(p, datosSitios, c, mercResumen).mercancia.trim();
       return [cita, merc ? `MERCANCÍA: ${merc}` : ''].filter(Boolean).join(' · ') || undefined;
     };
     const paradas: ParadaNueva[] = puntos.map((p, i) => {
@@ -610,6 +614,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   for (let lo = 1, hi = 3; lo < pesoMax; hi += 2) { if (hi > pesoMax) hi = pesoMax; optsPeso.push([String(hi), `De ${lo} a ${hi} toneladas${hi === pesoMax ? ' (máximo)' : ''}`]); if (hi === pesoMax) break; lo = hi; }
   const mlTxt = optsMl.find(([v]) => v === ml)?.[1] ?? '';
   const pesoTxt = optsPeso.find(([v]) => v === peso)?.[1] ?? '';
+  // Resumen de la mercancía del paso 2 en UNA línea (usuario, 2026-11-10): prerrellena el
+  // «detalle de mercancía» de cada parada del paso 4 (editable/borrable allí).
+  const mercResumen = [mlTxt.split(' (')[0].split(' — ')[0], paletizada ? 'Paletizada' : 'No paletizada', pesoTxt.split(' (')[0]].filter(Boolean).join(' - ');
   const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
   // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;
@@ -993,7 +1000,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 <h4 className="ptar-section-head" style={{ margin: '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
-                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} />
+                <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} />
                 {/* Tarjeta de la MERCANCÍA en azul marino (usuario, 2026-11-10): más
                     llamativa y legible que el gris de las demás. */}
                 <div className="sum2-box sum2-azul" style={{ marginTop: '0.6rem' }}>

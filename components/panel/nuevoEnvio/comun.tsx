@@ -57,7 +57,7 @@ export type ContactoExtra = { nombre: string; telefono: string; email: string };
 // Lo que se manda al servidor para guardar en la ficha del sitio al crear el envío.
 export type EdicionSitio = {
   sitio_id: string; contacto_id: string | null; contacto_nombre: string; contacto_telefono: string; contacto_email: string;
-  anotaciones: string; emails_avisos: string[]; url_google_maps: string | null; mercancia_defecto: string | null;
+  anotaciones: string; emails_avisos: string[]; url_google_maps: string | null; mercancia_defecto?: string | null;
   horario_tramos: { dia: number; abre: string; cierra: string }[];
   contactos_extra?: ContactoExtra[];
 };
@@ -66,7 +66,7 @@ export type FichaResuelta = {
   empresa: string; tipo: string | null; horario: GrupoHorario[]; contacto: string; telefono: string; contactoEmail: string;
   notas: string; emails: string; maps: string; mercancia: string; dynamo: boolean; nuevo: boolean; contacto_id: string | null;
 };
-export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit): FichaResuelta {
+export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit, mercanciaDefecto = ''): FichaResuelta {
   let base: FichaResuelta;
   if (p.sitio) {
     const d = datos[p.sitio.id];
@@ -74,17 +74,17 @@ export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit): Fi
       empresa: p.sitio.nombre_empresa, tipo: d?.tipo ?? p.sitio.tipo, nuevo: false, dynamo: !!p.sitio.es_almacen_dynamo,
       horario: d?.horario.length ? d.horario : HORARIO_POR_DEFECTO,
       contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contactoEmail: d?.contacto.email ?? '', contacto_id: d?.contacto.id ?? null,
-      notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '', mercancia: d?.mercancia_defecto ?? '',
+      notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '', mercancia: d?.mercancia_defecto ?? mercanciaDefecto,
     };
   } else if (p.nuevo) {
     const n = p.nuevo;
     base = { empresa: n.nombre_empresa, tipo: n.tipo_sitio, nuevo: true, dynamo: false, contacto_id: null,
-      horario: n.horario ?? HORARIO_POR_DEFECTO, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: '' };
+      horario: n.horario ?? HORARIO_POR_DEFECTO, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
   } else {
     // Punto aún sin sitio (ruta a medio rellenar): ficha vacía y SIN horario, para que
     // ningún aviso salte ni nada reviente (antes p.nuevo! con null tumbaba la pantalla).
     base = { empresa: '', tipo: 'almacen_nave', nuevo: true, dynamo: false, contacto_id: null,
-      horario: [], contacto: '', telefono: '', contactoEmail: '', notas: '', emails: '', maps: '', mercancia: '' };
+      horario: [], contacto: '', telefono: '', contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
   }
   if (!edic) return base;
   return {

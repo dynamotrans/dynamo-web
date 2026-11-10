@@ -374,9 +374,10 @@ export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{
     const { data: sit } = await s.supabase.from('sitios').select('id, es_almacen_dynamo').eq('id', c.sitio_id).maybeSingle();
     if (!sit || sit.es_almacen_dynamo) continue;
     const fila: Record<string, unknown> = { anotaciones: (c.anotaciones ?? '').trim() || null };
-    // Mercancía por defecto: lo que quede en el «detalle de mercancía» del paso 4 se
-    // guarda en la ficha del sitio (vaciarlo lo borra; usuario, 2026-11-10).
-    fila.mercancia_defecto = (c.mercancia_defecto ?? '').trim() || null;
+    // Mercancía por defecto: SOLO si el detalle de mercancía del paso 4 se editó a mano
+    // se guarda en la ficha del sitio (vaciarlo lo borra); el prerrelleno del envío no
+    // pisa la agenda por sí solo (usuario, 2026-11-10).
+    if (c.mercancia_defecto !== undefined) fila.mercancia_defecto = (c.mercancia_defecto ?? '').trim() || null;
     // Emails de avisos: si se ponen, se validan y sustituyen; vacío NO borra los que había.
     const emails = [...new Set((c.emails_avisos ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))];
     if (emails.length) {
