@@ -3432,6 +3432,8 @@ table.data td.actions { text-align: right; white-space: nowrap; }
 /* Icono del tipo de sitio dentro de la pastilla (blanco negativo). */
 .ptar-route-tag .rf-tipo-ico { margin: 0 0 0 0.35rem; }
 button.ptar-route-tag { cursor: pointer; }
+/* El sitio ya elegido se puede pulsar entero: quita y abre el desplegable. */
+.ptar-route-row .ptar-picked input[readonly] { cursor: pointer; }
 button.ptar-route-tag:hover { filter: brightness(0.92); }
 /* Botón "+" al final de la fila de origen/destino. */
 .ptar-route-add {

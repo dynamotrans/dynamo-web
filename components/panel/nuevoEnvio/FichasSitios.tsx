@@ -94,10 +94,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                 <span className="ptar-sitio-head-l1">
                   {/* La MISMA pastilla del paso 1 (usuario, 2026-11-10): nº · Recogida/Entrega
                       con el icono del tipo en blanco dentro. El nombre del tipo sigue al lado. */}
-                  <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`} style={{ marginRight: '0.45rem', verticalAlign: '-6px' }}>{i + 1} · {rec ? 'Recogida' : 'Entrega'}<IconoTipo tipo={f.tipo} blanco /></span>
-                  <span className={`ptar-sitio-head-tipo${f.tipo && f.tipo !== 'almacen_nave' ? ' esp' : ''}`}>
-                    <span>({nombreTipo(f.tipo)})</span>
-                  </span>
+                  {/* Sin el nombre del tipo al lado (usuario, 2026-11-10): el icono de la
+                      pastilla ya lo dice. */}
+                  <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`} style={{ marginRight: '0.45rem', verticalAlign: '-6px' }} title={nombreTipo(f.tipo)}>{i + 1} · {rec ? 'Recogida' : 'Entrega'}<IconoTipo tipo={f.tipo} blanco /></span>
                 </span>
                 {rec && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt}</span>}
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}

@@ -47,7 +47,12 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
             disabled={deshabilitado} readOnly={!!elegido}
             value={elegido ? textoSitio(elegido) + (punto.parada_id || !punto.nuevo ? '' : punto.nuevo.guardar ? ' (nuevo)' : ' (dirección suelta)') : q}
             onChange={(e) => { setQ(e.target.value); setAbierto(true); }}
-            onFocus={() => !elegido && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)} />
+            onFocus={() => !elegido && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)}
+            onClick={() => {
+              // Pulsar ENCIMA del sitio elegido = la ✕ y además abre el desplegable para
+              // elegir otro (usuario, 2026-11-10).
+              if (elegido && !deshabilitado) { onCambio({ sitio: null, nuevo: null }); setQ(''); setAbierto(true); }
+            }} />
           {elegido && <button type="button" className="ptar-clear" aria-label="Cambiar sitio" onClick={() => { onCambio({ sitio: null, nuevo: null }); setQ(''); }}>✕</button>}
           {abierto && !elegido && !deshabilitado && (
             <ul className="ptar-sug">
