@@ -4737,6 +4737,14 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3rem; }
 .campo-plegado .cp-val { color: var(--gray-500); font-weight: 600; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* Botón «Confirmar envío» del modal (usuario, 2026-11-10): igual de grande que
+   la acción principal de los pasos del asistente (64px, ancho completo) y en el
+   azul/morado de marca, no en navy. */
+.dash-modal-footer .btn-primary.btn-confirmar-xl {
+    background: var(--purple); border-color: var(--purple);
+    min-height: 64px; font-size: var(--fs-d1); font-weight: 800; border-radius: 14px;
+}
+.dash-modal-footer .btn-primary.btn-confirmar-xl:hover { background: #2a00a8; border-color: #2a00a8; }
 /* Modal «Confirmar envío» más FINO (usuario, 2026-11-10): mismos elementos y
    disposición, pero los avisos un punto más pequeños y recogidos (el .pt-aviso
    global va a fs-l, pensado para las pantallas de entrada). */

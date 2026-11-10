@@ -1060,7 +1060,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         titulo="Confirmar envío" sub="Revisa los costes de cancelación antes de crear el envío."
         pie={<>
           <button type="button" className="btn-ghost" onClick={() => setRevisarLegal(false)} disabled={enviando}>← Volver</button>
-          <button type="button" className="btn-primary" disabled={enviando}
+          <button type="button" className="btn-primary btn-confirmar-xl" disabled={enviando}
             onClick={() => { if (!aceptaLegal) { setFaltaLegal(true); return; } crear(); }}>{enviando ? 'Creando envío…' : 'Confirmar envío'}</button>
         </>}>
         <div className="confirm-fino">
