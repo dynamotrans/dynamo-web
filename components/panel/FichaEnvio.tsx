@@ -122,6 +122,16 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
     </>
   ) : (
     <>
+      {/* eCMR + DeCA relleno EL PRIMERO y siempre a mano (usuario, 2026-11-10): botón
+          destacado en ámbar con el contador de firmas, en verde cuando están todas. */}
+      <a className="btn-primary" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
+         title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."
+         style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
+        <I d={ICO.doc} />eCMR + DeCA
+        <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
+          {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
+        </span>
+      </a>
       {e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto') && (
         <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
@@ -142,16 +152,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {manual
         ? <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
         : <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar</a>}
-      {/* eCMR + DeCA relleno SIEMPRE a mano (usuario, 2026-11-10): botón destacado en
-          ámbar con el contador de firmas, en verde cuando están todas. */}
-      <a className="btn-primary" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
-         title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."
-         style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
-        <I d={ICO.doc} />eCMR + DeCA
-        <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
-          {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
-        </span>
-      </a>
       <MasAcciones>
         {!manual && ficha.transportista && e.estado !== 'entregado' && (
           <button className="fm-item" onClick={() => setVista('asignar')}><I d={ICO.camion} />Cambiar transportista</button>
