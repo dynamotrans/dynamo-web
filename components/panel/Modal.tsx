@@ -3,11 +3,12 @@
 // Ventana del panel: la misma de dashboard.html (#dashModal, clases dash-modal-*).
 import { useEffect } from 'react';
 
-export default function Modal({ titulo, sub, icono, abierto, onCerrar, pie, acciones, ancho, children }: {
+export default function Modal({ titulo, sub, icono, abierto, onCerrar, pie, acciones, ancho, envivo, children }: {
   titulo: string; sub?: React.ReactNode; icono?: React.ReactNode; abierto: boolean;
   onCerrar: () => void; pie?: React.ReactNode; children: React.ReactNode;
   acciones?: React.ReactNode;   // barra de acciones bajo el título (la del "Ver detalle" del mockup)
   ancho?: number;               // ancho máximo de la ventana, si hace falta más que el normal
+  envivo?: boolean;             // ventana de LECTURA (fichas): no bloquea el refresco en vivo
 }) {
   useEffect(() => {
     if (!abierto) return;
@@ -22,6 +23,7 @@ export default function Modal({ titulo, sub, icono, abierto, onCerrar, pie, acci
     // onMouseDown y se comprueba que el punto pulsado es el fondo o el contenedor, no la
     // tarjeta: así no se cierra sin querer al soltar fuera tras seleccionar texto dentro.
     <div className="dash-modal open" role="dialog" aria-modal="true" aria-labelledby="dashModalTitle"
+      data-envivo-permitir={envivo ? '' : undefined}
       onMouseDown={(ev) => { if (ev.button === 0 && ev.target === ev.currentTarget) onCerrar(); }}>
       <div className="dash-modal-backdrop" onMouseDown={(ev) => { if (ev.button === 0) onCerrar(); }} />
       <div className="dash-modal-card" role="document" style={ancho ? { maxWidth: ancho } : undefined}>

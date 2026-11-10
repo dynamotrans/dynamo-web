@@ -100,7 +100,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
   );
 
   return (
-    <Modal abierto ancho={760} onCerrar={cerrar} titulo={`Viaje #${e.referencia_gx}`}
+    <Modal abierto envivo ancho={760} onCerrar={cerrar} titulo={`Viaje #${e.referencia_gx}`}
       sub={<span className={`badge badge-${COLOR[e.estado] ?? 'prog'}`}>{nombreActual}</span>} icono={<I d={ICO.camion} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {trabajando && <Cargando texto={trabajando} />}

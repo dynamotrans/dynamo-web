@@ -82,7 +82,11 @@ export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marc
       if (tocada.current && tocada.current !== location.href) tocada.current = null;   // ya cambió de página o de búsqueda
       if (tocada.current) return 'escrito';
       if (document.hidden) return 'oculta';
-      if (document.querySelector('[aria-modal="true"]')) return 'ventana';
+      // Las fichas de LECTURA (detalle de envío, viaje…) llevan data-envivo-permitir: con
+      // ellas abiertas SÍ se refresca (p. ej. llega una firma del CMR y el contador se mueve
+      // solo); escribir dentro ya lo frenan los guardas de arriba. El resto de ventanas
+      // (formularios) sigue bloqueando.
+      if (document.querySelector('[aria-modal="true"]:not([data-envivo-permitir])')) return 'ventana';
       if (esCampo(document.activeElement)) return 'campo';
       if (Date.now() - ultimoGesto.current < QUIETO_MS) return 'gesto';
       return null;
