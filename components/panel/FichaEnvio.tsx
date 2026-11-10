@@ -216,8 +216,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {/* CABECERA EN CAJA (usuario, 2026-11-10: «esa info es un caos; ponlo en caja
           simple, ordenado, claro»): fecha, ruta con TODAS las paradas (CP, localidad,
           provincia y país), mercancía y precios, cada cosa en su fila. */}
-      <div className="det-block" style={{ marginBottom: '0.8rem' }}>
-        <div className="pen-envio-sum">
+      <div className="pen-envio-sum" style={{ marginBottom: '0.8rem' }}>
           <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fechaVital || '—'}</span></div>
           {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
             ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }) => (
@@ -226,16 +225,15 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
               <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}</span>
             </div>
           ))}
-          <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v" style={{ textAlign: 'right' }}>{mercResumen || '—'}</span></div>
+          <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}</span></div>
           {!manual && ficha.transportista && <div className="pen-sum-row"><span className="k">Transportista</span><span className="v" style={{ textAlign: 'right' }}>{ficha.transportista.nombre}</span></div>}
           {manual
             ? <div className="pen-sum-row"><span className="k">Precio acordado</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
-            : <div className="pen-sum-row"><span className="k">Precio</span><span className="v">
-                {pc != null ? <>Cliente <strong>{euros(pc)}</strong></> : 'Pendiente'}
-                {pt != null && <> · Transp. {euros(pt)}</>}
-                {e.margen_euros != null && <> · Margen <strong style={{ color: Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626' }}>{euros(e.margen_euros)}</strong></>}
-              </span></div>}
-        </div>
+            : <div className="pen-sum-row pen-sum-3">
+                <span className="p3"><span className="k">Precio cliente</span><span className="v">{pc != null ? euros(pc) : 'Pendiente'}</span></span>
+                {pt != null && <span className="p3"><span className="k">Transportista</span><span className="v">{euros(pt)}</span></span>}
+                {e.margen_euros != null && <span className="p3"><span className="k">Margen</span><span className="v" style={{ color: Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626' }}>{euros(e.margen_euros)}</span></span>}
+              </div>}
       </div>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {e.estado === 'borrador' && e.estado_solicitud === 'pendiente_precio' && (

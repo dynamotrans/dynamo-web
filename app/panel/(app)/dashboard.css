@@ -1560,6 +1560,15 @@ body.theme-dark .sidebar { background: #060116; }
 .pen-sum-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.15rem 1rem; font-size: var(--fs-m); padding: 0.15rem 0; }
 .pen-sum-row .k { color: var(--gray-500); font-weight: 600; min-width: 0; }
 .pen-sum-row .v { color: var(--navy); font-weight: 700; text-align: right; min-width: 0; margin-left: auto; }
+/* Fila APILADA para valores largos (mercancía, precios): etiqueta arriba y valor
+   debajo a la izquierda, en vez de un ajuste de línea a la derecha a trompicones. */
+.pen-sum-row.pen-sum-col { flex-direction: column; align-items: flex-start; gap: 0; }
+.pen-sum-row.pen-sum-col .v { margin-left: 0; text-align: left; }
+/* Fila de precios en MINI-COLUMNAS (Cliente / Transp. / Margen): cada una con su
+   etiqueta encima, para que no se parta un importe a la línea siguiente. */
+.pen-sum-row.pen-sum-3 { justify-content: flex-start; gap: 0.15rem 1.8rem; }
+.pen-sum-3 .p3 { display: flex; flex-direction: column; min-width: 0; }
+.pen-sum-3 .p3 .v { margin-left: 0; text-align: left; }
 /* Historial de cambios: fecha arriba y la acción (que puede ser larga) debajo, a ancho
    completo, para que no se solape con la fecha ni se salga de la ventana. */
 .hist-lista { display: flex; flex-direction: column; gap: 0.1rem; }
