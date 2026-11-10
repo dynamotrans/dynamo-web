@@ -6,6 +6,7 @@
 // abre el CMR digital para que firmen en el muelle.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { avisarNavegando } from './CargandoNavegacion';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
@@ -58,7 +59,10 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
-  const cerrar = () => router.push(cerrarHref, { scroll: false });
+  // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
+  // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
+  const [cerrando, setCerrando] = useState(false);
+  const cerrar = () => { setCerrando(true); avisarNavegando(); router.push(cerrarHref, { scroll: false }); };
   const paradas = e.paradas ?? [];
   const idx = ORDEN.indexOf(e.estado);
   // Siguiente paso, parada a parada si hay etapas (seguimiento): «He llegado: cargo en la 1.ª parada»,
@@ -103,6 +107,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref }: { e: Viaje; e
     </>
   );
 
+  if (cerrando) return null;
   return (
     <Modal abierto envivo ancho={760} onCerrar={cerrar} titulo={`Viaje #${e.referencia_gx}`}
       sub={<span className={`badge badge-${COLOR[e.estado] ?? 'prog'}`}>{nombreActual}</span>} icono={<I d={ICO.camion} />} acciones={acciones}

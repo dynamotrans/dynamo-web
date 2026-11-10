@@ -7,6 +7,7 @@
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { avisarNavegando } from './CargandoNavegacion';
 import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
 import Modal from './Modal';
@@ -75,7 +76,10 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [acepto, setAcepto] = useState(false);
   const [motivo, setMotivo] = useState('');
-  const cerrar = () => router.push(cerrarHref, { scroll: false });
+  // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
+  // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
+  const [cerrando, setCerrando] = useState(false);
+  const cerrar = () => { setCerrando(true); avisarNavegando(); router.push(cerrarHref, { scroll: false }); };
   const act = etapas.find((x) => x.actual);
   const ev = estadoVisual({ ...e, parada_actual: e.parada_actual ?? act?.parada ?? null, tipo_parada: e.tipo_parada ?? act?.tipo_parada ?? null });
   const manual = !!e.es_manual;
@@ -105,6 +109,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
     return r.ok;
   }
 
+  if (cerrando) return null;
   if (vista === 'condiciones') {
     return (
       <Modal abierto ancho={760} onCerrar={() => setVista('ficha')} titulo="Condiciones generales de transporte"

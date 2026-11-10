@@ -8,6 +8,7 @@
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { avisarNavegando } from './CargandoNavegacion';
 import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
 import Modal from './Modal';
@@ -59,7 +60,10 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const [verDocs, setVerDocs] = useState(0);   // para recargar la lista al guardar una copia
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
-  const cerrar = () => router.push(cerrarHref, { scroll: false });
+  // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
+  // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
+  const [cerrando, setCerrando] = useState(false);
+  const cerrar = () => { setCerrando(true); avisarNavegando(); router.push(cerrarHref, { scroll: false }); };
   const manual = !!e.es_manual;
   const cancelado = e.estado === 'cancelado';
   const est0 = ESTADOS.find(([k]) => k === e.estado) ?? ESTADOS[0];
@@ -159,6 +163,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const mercResumen = [e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas),
     e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ');
 
+  if (cerrando) return null;
   return (
     <Modal abierto envivo ancho={760} onCerrar={cerrar} titulo={`Detalle de envío #${e.referencia_gx}`}
       sub={<>

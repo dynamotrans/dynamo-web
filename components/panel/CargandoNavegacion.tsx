@@ -9,6 +9,11 @@ import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Cargando from '@/components/Cargando';
 
+// Para navegaciones por código (router.push): la fila que abre una ficha o la X que la
+// cierra avisan con esto y el cargador sale al instante (usuario, 2026-11-10: «no hay
+// spinner al abrir ni al cerrar el detalle»).
+export const avisarNavegando = () => { try { window.dispatchEvent(new Event('dynamo:navegando')); } catch { /* sin ventana */ } };
+
 export default function CargandoNavegacion() {
   const ruta = usePathname();
   const busqueda = useSearchParams();
@@ -27,9 +32,11 @@ export default function CargandoNavegacion() {
       if (url.pathname === location.pathname && url.search === location.search) return;   // misma pantalla (o solo #)
       setCargando(true);
     };
+    const porCodigo = () => setCargando(true);
     // En captura: los <Link> de Next.js cancelan el clic (preventDefault) antes de que llegue.
     document.addEventListener('click', clic, true);
-    return () => document.removeEventListener('click', clic, true);
+    window.addEventListener('dynamo:navegando', porCodigo);
+    return () => { document.removeEventListener('click', clic, true); window.removeEventListener('dynamo:navegando', porCodigo); };
   }, []);
 
   useEffect(() => {
