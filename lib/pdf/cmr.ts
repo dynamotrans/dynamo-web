@@ -158,7 +158,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       // 19 Estipulaciones particulares (con aviso de la hoja de firmas adjunta si la hay)
       dato(438, 532, [
         { t: e.discrecion_comercial ? 'Discreción comercial' : '', s: 7.8, b: false },
-        { t: fueraDeCasilla.length ? `Firmas: ${firmas.length} en total, registro completo en hoja adjunta` : '', s: 7, b: false, max: 2 },
+        { t: fueraDeCasilla.length ? `Firmado electrónicamente: ${firmas.length} firmas según registro anexo (hoja final)` : '', s: 7, b: false, max: 2 },
         { t: !e.discrecion_comercial && !fueraDeCasilla.length ? '—' : '', s: 7.8, b: false },
       ], 34);
       // 14 Forma de pago
@@ -168,6 +168,11 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       // (15 Reembolso y los gastos de la 20 quedan en blanco: el CMR no lleva precios.)
 
       // 22 · 23 · 24 Firmas (trazo + quién y cuándo). En la 24, además, lugar y fecha de recepción.
+      // Casilla 22 sin firma propia pero con firmas de carga en el registro (p. ej. firmó
+      // la recogida 2 y la 1 todavía no): constancia en la casilla, estilo e-CMR.
+      if (!casillas[0] && firmas.some((f) => f.rol === 'remitente' && !f.extra)) {
+        dato(38, 752, [{ t: 'Firmado electrónicamente: ver registro anexo', s: 6.2, b: false, max: 3 }], 24);
+      }
       for (const c of casillas) {
         if (!c) continue;
         if (c.img) {
