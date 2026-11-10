@@ -20,14 +20,14 @@ const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
 );
 
-export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, faltas, cargaHoy, mercanciaDefecto, fechasEntrega }: {
+export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, faltas, cargaHoy, mercanciaDefecto, fechasParada }: {
   puntos: Punto[]; datos: DatosSitios; edic: Record<number, CardEdit>;
   setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>;
   fechaCargaTxt: string;
   faltas?: Set<number>;   // puntos con datos obligatorios sin rellenar (los marca el padre al crear)
   cargaHoy?: boolean;     // la carga empieza HOY: avisa si el sitio de recogida cierra pronto
   mercanciaDefecto?: string;   // resumen del paso 2 («6 metros - Paletizada - …»): prerrellena el detalle de mercancía de cada parada (usuario, 2026-11-10)
-  fechasEntrega?: Record<number, string>;   // «Entrega estimada · …» por parada de entrega, por su k (usuario, 2026-11-10)
+  fechasParada?: Record<number, string>;   // «Recogida/Entrega estimada · …» de la 2.ª parada en adelante, por su k (usuario, 2026-11-10)
 }) {
   const [abiertas, setAbiertas] = useState<Set<number>>(new Set());
   // Campos opcionales REPLEGADOS (usuario, 2026-11-09): nombre de contacto, notas
@@ -100,8 +100,10 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                       pastilla ya lo dice. */}
                   <span className={`ptar-route-tag ${rec ? 'rec' : 'ent'}`} style={{ marginRight: '0.45rem', verticalAlign: '-6px' }} title={nombreTipo(f.tipo)}>{i + 1} · {rec ? 'Recogida' : 'Entrega'}<IconoTipo tipo={f.tipo} blanco /></span>
                 </span>
-                {rec && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt}</span>}
-                {!rec && fechasEntrega?.[p.k] && <span className="ptar-sitio-head-fecha shf-ent">{fechasEntrega[p.k]}</span>}
+                {/* Solo la 1.ª parada lleva la fecha de carga ELEGIDA; el resto va en
+                    cascada estimada (usuario, 2026-11-10). */}
+                {i === 0 && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt}</span>}
+                {i > 0 && fechasParada?.[p.k] && <span className={`ptar-sitio-head-fecha ${rec ? 'shf-rec' : 'shf-ent'}`}>{fechasParada[p.k]}</span>}
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}
                 {dir && <span className="ptar-sitio-head-dir">{dir}</span>}
                 {f.empresa && <span className="ptar-sitio-head-empn">{f.empresa}</span>}
@@ -198,10 +200,12 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
             <div className="ptar-sitio-merc">
               <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
                 <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
-                <span className="cp-txt">Añadir detalle de mercancía <Req si={false} />
-                  {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim()
-                    ? <span className="cp-val">· {f.mercancia.length > 42 ? f.mercancia.slice(0, 41) + '…' : f.mercancia}</span> : null}</span>
+                <span className="cp-txt">Añadir detalle de mercancía <Req si={false} /></span>
               </button>
+              {/* El detalle, si existe, ENTERO y en su propia línea debajo (usuario, 2026-11-10). */}
+              {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim() !== '' && (
+                <div className="ptar-sitio-merc-prev">{f.mercancia}</div>
+              )}
               {opcAbiertos.has(`${p.k}:merc`) && <div style={{ marginTop: '0.45rem' }}>
                 <textarea className="campo-texto" rows={2} value={f.mercancia}
                   placeholder={rec ? 'Ej. aquí se cargan 4 palets de recambios, 1 caja de 2×1 m…' : 'Ej. aquí se entregan 2 de los 6 palets…'}

@@ -4827,3 +4827,5 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .ptar-sitio-merc .campo-plegado:hover .cp-ico, .ptar-sitio-merc .campo-plegado[aria-expanded="true"] .cp-ico { color: var(--purple); }
 .ptar-sitio-merc .cp-ico svg { transition: transform 0.18s; }
 .ptar-sitio-merc .campo-plegado[aria-expanded="true"] .cp-ico svg { transform: rotate(180deg); }
+/* El detalle ya escrito/prerrelleno: entero, debajo del enlace, alineado con su texto. */
+.ptar-sitio-merc-prev { margin: 0.1rem 0 0.1rem calc(18px + 0.45rem + 0.1rem); font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.45; white-space: pre-line; }
