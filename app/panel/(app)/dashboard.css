@@ -1492,20 +1492,8 @@ body.theme-dark .sidebar { background: #060116; }
     border-bottom: 1px solid var(--gray-200);
 }
 .modal-section-title:first-child { margin-top: 0; }
-/* --- Detalle de envío: tarjeta compacta del transportista/vehículo --- */
-.det-transp-card {
-    border: 1px solid var(--gray-200); border-radius: 12px;
-    padding: 0.7rem 0.85rem; margin-top: 0.6rem; background: var(--gray-50);
-}
-.det-transp-card .dtc-main {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: var(--fs-l); color: var(--navy); margin-bottom: 0.5rem;
-}
-.det-transp-card .dtc-main svg { width: 17px; height: 17px; color: var(--purple); flex-shrink: 0; }
-.det-transp-card .dtc-row { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; }
-.dtc-item { display: flex; flex-direction: column; min-width: 0; }
-.dtc-item label { font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); }
-.dtc-item .dtc-v { font-size: var(--fs-m); font-weight: 600; color: var(--navy); }
+/* Matrícula en pastilla monoespaciada (la tarjeta aparte del transportista se fundió
+   en la caja de filas de la sección Transporte el 2026-11-10). */
 .dtc-mat {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     background: #fff; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0 0.4rem;
@@ -1517,7 +1505,6 @@ body.theme-dark .sidebar { background: #060116; }
     padding: 0.75rem 0.85rem; background: #fff; margin-top: 0.5rem;
 }
 .det-block > .modal-info-grid { margin-bottom: 0; }
-.det-block .det-transp-card { background: var(--gray-50); }
 .det-block .modal-file-drop { margin-top: 0.5rem; }
 /* --- Detalle de envío: puntos de ruta numerados (Recogida 1 / Entrega 1) --- */
 .det-ruta { display: grid; gap: 0.6rem; margin-top: 0.5rem; }

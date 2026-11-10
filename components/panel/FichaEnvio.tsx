@@ -342,27 +342,31 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           resumen={cancelado || e.estado === 'entregado'
             ? (ficha.transportista ? ficha.transportista.nombre : '—')
             : ficha.transportista ? <>Confirmado · {ficha.transportista.nombre}{pt != null ? ` · ${euros(pt)}` : ''}</> : 'Sin transportista todavía'}>
-          <div className="det-block">
-            <div className="modal-info-grid">
-              <Celda l="Estado asignación transportista" span>
+          <>
+            {/* Una sola caja de filas, como la de cabecera (usuario, 2026-11-10: «más simple,
+                cuadro, que encaje todo»). Sin transportista no se pintan filas en «Pendiente»:
+                solo el estado, el precio previsto si lo hay y el botón de asignar. */}
+            <div className="pen-envio-sum">
+              <div className="pen-sum-row"><span className="k">Estado</span><span className="v">
                 {cancelado || e.estado === 'entregado' ? '—' : ficha.transportista
                   ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
                   : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
-              </Celda>
-              <Celda l="Día previsto de carga">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : <Pend />}</Celda>
-              {/* Solo con transportista: si se quitó, su fecha no pinta nada (usuario, 2026-11-10). */}
-              <Celda l="Transportista asignado el">{ficha.transportista && e.asignado_en ? fechaHora(e.asignado_en) : <Pend />}</Celda>
-              <Celda l="Precio del transportista (sin IVA)">{pt != null ? euros(pt) : <Pend />}</Celda>
-            </div>
-            <div className="det-transp-card">
-              <div className="dtc-main"><I d={ICO.camion} /><strong>{ficha.transportista ? `${ficha.transportista.nombre} · ${ficha.transportista.cif}` : <Pend />}</strong></div>
-              <div className="dtc-row">
-                <span className="dtc-item"><label>Matrícula</label><span className="dtc-v">{e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : <Pend />}</span></span>
-                <span className="dtc-item"><label>Remolque</label><span className="dtc-v">{e.matricula_remolque ? <span className="dtc-mat">{e.matricula_remolque}</span> : '—'}</span></span>
-                <span className="dtc-item"><label>Conductor</label><span className="dtc-v">{e.conductor_nombre || <Pend />}</span></span>
-                <span className="dtc-item"><label>Teléfono</label><span className="dtc-v">{e.conductor_telefono ? <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a> : <Pend />}</span></span>
-              </div>
-              {e.requiere_nima && <div style={{ marginTop: '0.4rem', fontSize: 'var(--fs-m)' }}>NIMA del transportista: <strong>{e.transportista_nima || <Pend />}</strong></div>}
+              </span></div>
+              {ficha.transportista && <>
+                <div className="pen-sum-row"><span className="k">Transportista</span><span className="v" style={{ textAlign: 'right' }}>{ficha.transportista.nombre} · {ficha.transportista.cif}</span></div>
+                {e.asignado_en && <div className="pen-sum-row"><span className="k">Asignado el</span><span className="v">{fechaHora(e.asignado_en)}</span></div>}
+                <div className="pen-sum-row"><span className="k">Día previsto de carga</span><span className="v">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : '—'}</span></div>
+                <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
+                  {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : '—'}
+                  {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
+                </span></div>
+                <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
+                  {e.conductor_nombre || '—'}
+                  {e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
+                </span></div>
+                {e.requiere_nima && <div className="pen-sum-row"><span className="k">NIMA</span><span className="v">{e.transportista_nima || <Pend />}</span></div>}
+              </>}
+              {pt != null && <div className="pen-sum-row"><span className="k">Precio transportista (sin IVA)</span><span className="v">{euros(pt)}</span></div>}
             </div>
             {/* El botón de asignar/cambiar TAMBIÉN dentro de la sección (usuario, 2026-11-10):
                 quien mira aquí el estado no tiene que volver arriba a por la acción. */}
@@ -371,7 +375,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
                 <I d={ICO.camion} />{ficha.transportista ? 'Cambiar transportista' : 'Asignar transportista'}
               </button>
             )}
-          </div>
+          </>
         </Secc>
       )}
 
