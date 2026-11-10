@@ -155,7 +155,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         {(manual || ficha.transportista) && (
           <a className="fm-item" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga</a>
         )}
-        <a className="fm-item" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"><I d={ICO.doc} />CMR relleno</a>
         {/* Incidencia en cualquier estado del envío (decisión 2026-07-12); penalización en los de Dynamo. */}
         <a className="fm-item" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>
         {!manual && <a className="fm-item" href={`/panel/penalizaciones?nueva=${e.id}`}><I d={ICO.x} />Crear penalización</a>}
