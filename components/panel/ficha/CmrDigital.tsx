@@ -17,9 +17,11 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
   const total = recogidas.length + 1 + entregas.length;
   const lugar = (id: string | null) => { const p = ficha.paradas.find((x) => x.id === id); return p ? ` · ${p.nombre_empresa || p.poblacion || ''}` : ''; };
   const msg = enl ? `CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí: ${enlaceCmrUrl(enl.token)}` : '';
+  // Vive DENTRO de la sección Documentos de la ficha (usuario, 2026-11-10: «unificamos
+  // CMR en uno»): sub-bloque con el enlace de firma y el estado, junto al botón del PDF.
   return <>
-    <h4 className="modal-section-title">CMR digital</h4>
-    <div className="det-block">
+    <div className="det-block" style={{ margin: '0 0 0.8rem' }}>
+      <p style={{ margin: '0 0 0.5rem', fontSize: 'var(--fs-m)', fontWeight: 800, color: 'var(--navy)' }}>CMR digital — firma desde el móvil</p>
       {/* El enlace nace CON el envío (usuario, 2026-11-09): los avisos automáticos se lo
           mandarán a las partes, y aquí quedan siempre los botones para reenviarlo a mano.
           El botón de crear solo aparece si se retiró (o caducó) el enlace. */}
