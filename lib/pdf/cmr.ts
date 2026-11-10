@@ -276,6 +276,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         { tit: 'La ley lo acepta en electrónico: Orden FOM/2861/2012, art. 6', txt: 'El documento de control (DeCA) puede llevarse en soporte electrónico: basta mostrar este e-CMR, en el móvil o impreso, en una inspección en carretera.' },
         { tit: 'Con todos los datos que exige el art. 5', txt: 'Cargador contractual y transportista efectivo con su NIF, vehículo, naturaleza y peso de la carga, origen, destino y fechas: todos constan en este documento.' },
         { tit: 'El QR lo verifica en línea', txt: 'Abre el e-CMR original, con su nº único, sus firmas y su registro, para comprobarlo al momento. En transporte internacional rigen el Convenio CMR y el Protocolo e-CMR (Ginebra, 2008).' },
+        { tit: 'Las firmas valen: Reglamento eIDAS (UE 910/2014), art. 25', txt: 'Firma electrónica con evidencias de identidad, tiempo y ubicación (hora del servidor, GPS y huella SHA-256): no se le pueden negar efectos jurídicos y es admisible como prueba ante organismos, peritos y tribunales.' },
       ].map((c) => {
         const tit = l.partir(c.tit, 7.4, colAncho - 18, true);
         const txt = l.partir(c.txt, 6.6, colAncho - 18);
