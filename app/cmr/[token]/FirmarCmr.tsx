@@ -369,8 +369,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
               Refuerza la validez: queda registrado el punto exacto desde el que se firma. Tu navegador te pedirá permiso ahora
               — pulsa <strong>Permitir</strong>. Si prefieres no darla, la firma vale exactamente igual.
             </p>
-            <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.45rem' }} onClick={() => guardar(true)}>Sí, añadir mi ubicación</button>
-            <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)' }} onClick={() => guardar(false)}>Firmar sin ubicación</button>
+            <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.5rem', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
+              onClick={() => guardar(true)}>Sí, añadir mi ubicación</button>
+            <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
+              onClick={() => guardar(false)}>Firmar sin ubicación</button>
           </div>
         </div>
       )}
