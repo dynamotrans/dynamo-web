@@ -342,7 +342,7 @@ export async function datosEditablesDeSitios(ids: string[]): Promise<Record<stri
     s.supabase.from('sitio_horarios').select('sitio_id, dia_semana, abre, cierra').in('sitio_id', limpios).eq('temporada', 'general'),
   ]);
   const out: Record<string, SitioEditable> = {};
-  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], mercancia_defecto: x.mercancia_defecto, contacto: { id: null, nombre: '', telefono: '', email: '' }, horario: [] }; });
+  (sit.data ?? []).forEach((x) => { out[x.id] = { es_almacen_dynamo: !!x.es_almacen_dynamo, tipo: x.tipo, anotaciones: x.anotaciones, url_google_maps: x.url_google_maps, emails_avisos: x.emails_avisos ?? [], mercancia_defecto: x.mercancia_defecto, contacto: { id: null, nombre: '', telefono: '', email: '' }, contactos: [], horario: [] }; });
   // Horario general de cada sitio (filas de día → grupos de la ficha).
   const porSitio = new Map<string, FilaHorario[]>();
   (hor.data ?? []).forEach((r) => { const l = porSitio.get(r.sitio_id) ?? []; l.push({ dia_semana: r.dia_semana, abre: r.abre, cierra: r.cierra }); porSitio.set(r.sitio_id, l); });
@@ -352,8 +352,11 @@ export async function datosEditablesDeSitios(ids: string[]): Promise<Record<stri
   (con.data ?? []).forEach((c) => { const l = cont.get(c.sitio_id!) ?? []; l.push({ id: c.id, nombre: c.nombre ?? '', telefono: c.telefono ?? '', email: c.email ?? '', es_principal: !!c.es_principal, creado_en: String(c.creado_en) }); cont.set(c.sitio_id!, l); });
   cont.forEach((l, sid) => {
     if (!out[sid]) return;
-    const p = [...l].sort((a, b) => Number(b.es_principal) - Number(a.es_principal) || a.creado_en.localeCompare(b.creado_en))[0];
+    const orden = [...l].sort((a, b) => Number(b.es_principal) - Number(a.es_principal) || a.creado_en.localeCompare(b.creado_en));
+    const p = orden[0];
     if (p) out[sid].contacto = { id: p.id, nombre: p.nombre, telefono: p.telefono, email: p.email };
+    // Todos los contactos con teléfono (principal primero): la tarjeta del paso 4 los lista.
+    out[sid].contactos = orden.filter((c) => c.telefono).slice(0, 5).map((c) => ({ id: c.id, nombre: c.nombre, telefono: c.telefono }));
   });
   return out;
 }

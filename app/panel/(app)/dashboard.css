@@ -3763,6 +3763,7 @@ input::-webkit-date-and-time-value { text-align: left; }
 .ptar-sitio-head-dir { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 700; margin-top: 2px; }
 /* Nombre de empresa en la cabecera del sitio: SIN negrita (peso normal). */
 .ptar-sitio-head-empn { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 500; margin-top: 2px; }
+.ptar-sitio-head-tel { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 500; margin-top: 1px; }
 .ptar-sitio-chev {
     flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
     background: var(--gray-100); border: 1px solid var(--gray-200);

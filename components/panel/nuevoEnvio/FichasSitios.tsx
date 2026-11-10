@@ -107,6 +107,19 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}
                 {dir && <span className="ptar-sitio-head-dir">{dir}</span>}
                 {f.empresa && <span className="ptar-sitio-head-empn">{f.empresa}</span>}
+                {/* Teléfonos de contacto del sitio (usuario, 2026-11-10): el principal (con lo
+                    editado en la tarjeta), los demás guardados con teléfono y los añadidos aquí. */}
+                {(() => {
+                  const guardados = (p.sitio ? (datos[p.sitio.id]?.contactos ?? []) : []).filter((c) => c.id !== f.contacto_id);
+                  const tels = [
+                    ...(f.telefono.trim() ? [{ nombre: f.contacto.trim(), telefono: f.telefono.trim() }] : []),
+                    ...guardados.map((c) => ({ nombre: c.nombre.trim(), telefono: c.telefono.trim() })),
+                    ...(ed?.extra ?? []).filter((x) => x.telefono.trim()).map((x) => ({ nombre: x.nombre.trim(), telefono: x.telefono.trim() })),
+                  ];
+                  return tels.map((c, j) => (
+                    <span key={j} className="ptar-sitio-head-tel">Teléfono (contacto {j + 1}): {c.telefono}{c.nombre ? ` (${c.nombre})` : ''}</span>
+                  ));
+                })()}
                 {(falta || faltaCampos) && <span className="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>}
               </span>
               <Chevron />

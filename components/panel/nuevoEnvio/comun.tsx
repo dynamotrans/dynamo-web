@@ -41,6 +41,7 @@ export type SitioEditable = {
   anotaciones: string | null; url_google_maps: string | null; emails_avisos: string[];
   mercancia_defecto: string | null;   // prerrellena el «detalle de mercancía» del paso 4
   contacto: { id: string | null; nombre: string; telefono: string; email: string };   // el contacto principal
+  contactos: { id: string; nombre: string; telefono: string }[];   // TODOS los que tienen teléfono (principal primero): se listan en la tarjeta del paso 4
   horario: GrupoHorario[];                                             // temporada general
 };
 export type DatosSitios = Record<string, SitioEditable>;
