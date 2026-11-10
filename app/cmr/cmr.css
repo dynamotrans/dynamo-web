@@ -68,9 +68,10 @@
     .cmr-page .sig-msg.okv { display: block; color: var(--green-dark); }
     .cmr-page .sig-warn { margin-top: 0.5rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 9px; padding: 0.45rem 0.6rem; font-size: 0.78rem; font-weight: 700; }
     .cmr-page #sigCanvas { width: 100%; height: 220px; background: #fff; border: 2px dashed var(--gray-300); border-radius: 12px; touch-action: none; display: block; }
-    .cmr-page .sigbtns { display: flex; gap: 0.55rem; margin-top: 0.7rem; }
-    .cmr-page .sigbtns button { flex: 1; border-radius: 10px; padding: 0.75rem 0.5rem; font: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer; border: 1.5px solid var(--gray-300); background: #fff; color: var(--gray-700); }
-    .cmr-page .sigbtns .b-aceptar { background: var(--green); border-color: var(--green); color: #fff; }
+    /* Aceptar firma GRANDE en verde a lo ancho; Cancelar y Borrar en la fila de abajo. */
+    .cmr-page .sigbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; margin-top: 0.7rem; }
+    .cmr-page .sigbtns button { border-radius: 10px; padding: 0.75rem 0.5rem; font: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer; border: 1.5px solid var(--gray-300); background: #fff; color: var(--gray-700); }
+    .cmr-page .sigbtns .b-aceptar { grid-column: 1 / -1; background: var(--green); border-color: var(--green); color: #fff; padding: 0.95rem 0.5rem; font-size: 1.05rem; }
     .cmr-page .sigbtns .b-aceptar[disabled] { opacity: 0.45; cursor: default; }
     .cmr-page .sigbtns .b-borrar { color: var(--red); border-color: rgba(220,38,38,0.4); }
 

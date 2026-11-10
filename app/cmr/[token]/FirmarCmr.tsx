@@ -26,6 +26,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // Solo tras FIRMAR en esta visita (usuario, 2026-11-10): quien entra a mirar sin firmar
   // nada no ve el botón de salir.
   const [firmoAqui, setFirmoAqui] = useState(false);
+  const [compartido, setCompartido] = useState(false);   // «Enlace copiado ✓» del botón de compartir
 
   if (cmr.resultado !== 'ok') {
     const t: Record<string, [string, string]> = {
@@ -77,12 +78,22 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
-      {/* El PDF e-CMR / DeCA relleno, también desde aquí (usuario, 2026-11-10): botón
-          discreto en blanco. Abre /cmr/<token>/pdf, la ruta pública por el mismo enlace. */}
-      <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', margin: '0.8rem 0 0', background: '#fff',
-        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', textDecoration: 'none' }}>
-        Abrir el PDF e-CMR / DeCA
-      </a>
+      {/* Compartir ESTA página de firmas (usuario, 2026-11-10, en lugar del botón del PDF):
+          cargador, transportista y destinatario ya la recibieron igual que quien la abre, y
+          pueden firmar en este mismo móvil; el botón es para reenviársela a quien la quiera.
+          Con menú de compartir del sistema si lo hay; si no, copia el enlace. */}
+      <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.8rem 0 0', background: '#fff',
+        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center' }}
+        onClick={() => {
+          const url = window.location.href;
+          if (navigator.share) { navigator.share({ title: `Firmas del CMR ${cmr.referencia ?? ''}`.trim(), url }).catch(() => {}); }
+          else { navigator.clipboard?.writeText(url); setCompartido(true); setTimeout(() => setCompartido(false), 1800); }
+        }}>
+        {compartido ? 'Enlace copiado ✓' : 'Compartir esta página de firmas'}
+      </button>
+      <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--gray-500)', textAlign: 'center', lineHeight: 1.45 }}>
+        Cargador, transportista y destinatario ya la han recibido igual que tú, y también pueden firmar aquí, en tu móvil. Si alguien la quiere, mándasela.
+      </p>
       <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
       {firmoAqui && <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
       {bloques.map((b) => {
@@ -311,10 +322,11 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           como prueba de la carga o la entrega en el CMR (contrato de transporte y Convenio CMR), durante 6 años. Puedes ejercer tus derechos
           en {CONTACTO.email}. <button type="button" className="sig-link" onClick={() => setVerPrivacidad(true)}>Política de privacidad</button>.
         </p>
+        {/* Aceptar GRANDE y en verde arriba; Cancelar y Borrar debajo (usuario, 2026-11-10). */}
         <div className="sigbtns">
+          <button type="button" className="b-aceptar" disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>
           <button type="button" onClick={onCerrar} disabled={guardando}>Cancelar</button>
           <button type="button" className="b-borrar" onClick={preparar} disabled={guardando}>Borrar</button>
-          <button type="button" className="b-aceptar" disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>
         </div>
       </div>
       {/* NUESTRO aviso de ubicación, con diseño, ANTES del diálogo del sistema (que es
