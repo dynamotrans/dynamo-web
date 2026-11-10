@@ -142,6 +142,16 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {manual
         ? <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
         : <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar</a>}
+      {/* eCMR + DeCA relleno SIEMPRE a mano (usuario, 2026-11-10): botón destacado en
+          ámbar con el contador de firmas, en verde cuando están todas. */}
+      <a className="btn-primary" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
+         title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."
+         style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
+        <I d={ICO.doc} />eCMR + DeCA
+        <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
+          {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
+        </span>
+      </a>
       <MasAcciones>
         {!manual && ficha.transportista && e.estado !== 'entregado' && (
           <button className="fm-item" onClick={() => setVista('asignar')}><I d={ICO.camion} />Cambiar transportista</button>
@@ -426,20 +436,10 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       <Secc k="documentos" titulo="e-CMR / DeCA / Documentos" abiertas={abiertas} toggle={toggle}
         resumen={<>{firmasHechas}/{firmasTotal} firmas CMR{firmasHechas >= firmasTotal ? ' ✓' : ''} · adjuntos</>}>
         <div className="det-block">
-          {/* «Ver CMR» (usuario, 2026-11-09): el CMR relleno TAL CUAL está ahora (vacío, con una,
-              varias o todas las firmas), siempre visible. El contador va en naranja hasta que
-              están todas las firmas principales (paradas + porteador) y en verde al completarse.
-              Fuera el «Guardar copia del CMR»: el PDF en vivo lo sustituye. */}
+          {/* El botón del eCMR + DeCA relleno vive ARRIBA, con los botones siempre visibles
+              (usuario, 2026-11-10); aquí quedan el enlace de firma, la copia de la orden
+              y los adjuntos. */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.6rem' }}>
-            <a className="btn-ghost" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"
-               style={{ textDecoration: 'none' }} title="El CMR relleno tal y como está ahora mismo, con las firmas que haya.">
-              <I d={ICO.doc} />Ver/Descargar eCMR + DeCA relleno
-              <span style={{ marginLeft: '0.45rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800,
-                background: firmasHechas >= firmasTotal ? 'rgba(34,165,90,0.14)' : 'rgba(217,119,6,0.16)', color: firmasHechas >= firmasTotal ? 'var(--green-dark)' : '#b45309' }}>
-                {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
-              </span>
-            </a>
-            {firmasHechas >= firmasTotal && <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, color: 'var(--green-dark)' }}>eCMR completamente firmado</span>}
             {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
               <button type="button" className="btn-ghost" disabled={!!trabajando}
                 onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
