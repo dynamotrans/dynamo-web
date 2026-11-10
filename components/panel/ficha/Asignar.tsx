@@ -54,13 +54,17 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
   // Parámetros, km entre paradas, apertura de los sitios) calcula la llegada a la
   // última parada y se preselecciona. Si el admin ya eligió otra a mano, no se pisa.
   const sugRef = useRef<string | null>(null);
+  // «A mano» solo cuenta mientras no cambie el día de carga (usuario, 2026-11-10): al
+  // cambiarlo, la estimación anterior (guardada o elegida) es de OTRO día y se recalcula
+  // y aplica siempre. La fecha ya guardada del envío se respeta al abrir.
+  const manualRef = useRef<boolean>(!!e.fecha_entrega_estimada);
   useEffect(() => {
     if (!baseEntrega) return;
     let vivo = true;
     sugerirEntrega(e.id, baseEntrega).then((s) => {
       if (!vivo || !s) return;
-      setEntrega((prev) => (prev === '' || prev === sugRef.current) ? s : prev);
       sugRef.current = s;
+      setEntrega((prev) => (manualRef.current && prev) ? prev : s);
     }).catch(() => {});
     return () => { vivo = false; };
   }, [baseEntrega, e.id]);
@@ -144,18 +148,18 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="as-dia">Día en que carga {conVentana ? <Req /> : null}</label>
           {conVentana && dias.length > 0 ? (
-            <select id="as-dia" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)}>
+            <select id="as-dia" value={diaCarga} onChange={(ev) => { manualRef.current = false; setDiaCarga(ev.target.value); }}>
               <option value="">Elige el día de la ventana…</option>
               {dias.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)} · {DIAS[w]}{w === 0 || w === 6 ? ' (no circula)' : ''}</option>; })}
             </select>
           ) : conVentana ? (
-            <input id="as-dia" type="date" value={diaCarga} onChange={(ev) => setDiaCarga(ev.target.value)} />
+            <input id="as-dia" type="date" value={diaCarga} onChange={(ev) => { manualRef.current = false; setDiaCarga(ev.target.value); }} />
           ) : <div style={{ minHeight: 40, display: 'flex', alignItems: 'center', fontWeight: 700 }}>{fecha(dias[0])} (fecha fija)</div>}
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Con este día va el seguimiento automático: sale hacia la carga y llega a la 1.ª parada a la hora de Parámetros.</div>
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="as-ent">Día entrega (estimado) <Req /></label>
-          <select id="as-ent" value={opcionesEntrega.includes(entrega) ? entrega : ''} disabled={!baseEntrega} onChange={(ev) => setEntrega(ev.target.value)}>
+          <select id="as-ent" value={opcionesEntrega.includes(entrega) ? entrega : ''} disabled={!baseEntrega} onChange={(ev) => { manualRef.current = true; setEntrega(ev.target.value); }}>
             <option value="">{baseEntrega ? 'Elige el día de entrega…' : 'Elige antes el día en que carga'}</option>
             {opcionesEntrega.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d}>{fecha(d)} · {DIAS[w]}{d === baseEntrega ? ' (mismo día de carga)' : ''}{d === sugRef.current ? ' · sugerido' : ''}</option>; })}
           </select>
