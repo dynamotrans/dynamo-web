@@ -263,8 +263,12 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         {/* Las reservas son de la casilla principal: una firma extra no las anota. */}
         {!b.extra && <>
         <label className="sig-lbl" htmlFor="sigReservas">Reservas <Req si={false} /></label>
-        <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palets; 1 palet con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
-          style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit' }} />
+        {/* Una línea que crece sola con el texto hasta 5 líneas (luego, scroll) y máximo
+            300 caracteres (usuario, 2026-11-10). */}
+        <textarea id="sigReservas" rows={1} maxLength={300} placeholder="Ej. faltan 2 palets; film roto" value={reservas}
+          onChange={(e) => { setReservas(e.target.value.slice(0, 300)); const t = e.target; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 127)}px`; }}
+          style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit',
+            resize: 'none', overflowY: 'auto', lineHeight: 1.35 }} />
         {reservas.trim() && <>
           <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({CONTACTO.telefono}).</div>
           {/* Cámara y galería en la misma fila: las fotos se verán en la incidencia del envío. */}

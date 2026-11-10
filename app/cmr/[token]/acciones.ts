@@ -37,7 +37,8 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   if (!datos || datos.resultado !== 'ok') return { ok: false, error: datos?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- se separan las firmas para no devolverlas
   const { firmas: _f, ...contenido } = datos;
-  const reservas = d.extra ? '' : (d.reservas ?? '').trim().slice(0, 1000);
+  // Máximo 300 caracteres, como el campo de la pantalla (usuario, 2026-11-10).
+  const reservas = d.extra ? '' : (d.reservas ?? '').trim().slice(0, 300);
   const sha = createHash('sha256').update(JSON.stringify(reservas ? { ...contenido, reservas } : contenido)).digest('hex');
   // Reservas (protocolo de siniestro): se anotan antes de firmar y abren un siniestro para
   // Dynamo. Las FOTOS (ya subidas por la página a la carpeta de este enlace) se cuelgan de
