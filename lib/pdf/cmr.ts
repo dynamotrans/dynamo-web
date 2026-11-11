@@ -277,7 +277,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       // 13 Instrucciones del remitente: otras paradas y anotaciones
       const otras = [
         ...rec.slice(1).map((p) => `Otra carga: ${p.nombre_empresa ?? ''} ${lineaDir(p)}`),
-        ...(varias ? [`Expedición con ${ent.length} entregas — esta carta corresponde a la entrega ${nc + 1} (casilla 2)`] : []),
+        ...(varias ? [`Expedición con ${ent.length} entregas — esta carta corresponde a la parada ${rec.length + nc + 1} (casilla 2)`] : []),
       ];
       dato(42, 532, [...otras.map((o) => ({ t: o, s: 7.4, b: false })), { t: e.anotaciones_cliente || (otras.length ? '' : '—'), s: 7.8, b: false }], 50);
       // 19 Estipulaciones particulares (con aviso de la hoja de firmas adjunta si la hay)
@@ -339,11 +339,13 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       }
       return `Todas las cartas (1–${cartas.length})`;
     };
+    // Nº de PARADA correlativo del recorrido (usuario, 2026-11-11), tipología detrás.
     const paradaTxt = (id: string | null) => {
+      const tot = d.paradas.length;
       const iR = rec.findIndex((p) => p.id === id);
-      if (iR >= 0) return `${rec.length > 1 ? `Recogida ${iR + 1} de ${rec.length}` : 'Recogida'} · ${[rec[iR].nombre_empresa, lineaDir(rec[iR])].filter(Boolean).join(' · ')}`;
+      if (iR >= 0) return `${tot > 2 ? `Parada ${iR + 1} de ${tot} · ` : ''}Recogida · ${[rec[iR].nombre_empresa, lineaDir(rec[iR])].filter(Boolean).join(' · ')}`;
       const iE = ent.findIndex((p) => p.id === id);
-      if (iE >= 0) return `${ent.length > 1 ? `Entrega ${iE + 1} de ${ent.length}` : 'Entrega'} · ${[ent[iE].nombre_empresa, lineaDir(ent[iE])].filter(Boolean).join(' · ')}`;
+      if (iE >= 0) return `${tot > 2 ? `Parada ${rec.length + iE + 1} de ${tot} · ` : ''}Entrega · ${[ent[iE].nombre_empresa, lineaDir(ent[iE])].filter(Boolean).join(' · ')}`;
       return '';
     };
     const ordenRol: Record<string, number> = { remitente: 0, transportista: 1, destinatario: 2 };

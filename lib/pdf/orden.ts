@@ -166,7 +166,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   seccion(rec.length > 1 ? t.recogidas : t.recogida);
   rec.forEach((pa, i) => punto(pa, i + 1, true));
   seccion(ent.length > 1 ? t.entregas : t.entrega);
-  ent.forEach((pa, i) => punto(pa, i + 1, false));
+  // Nº de PARADA correlativo en todo (usuario, 2026-11-11): 1-2 recogidas → 3-4 entregas.
+  ent.forEach((pa, i) => punto(pa, rec.length + i + 1, false));
 
   // ---- Mercancía, vehículo y conductor ----
   const kv = (filas: [string, string, { bold?: boolean; rojo?: boolean }?][]) => {

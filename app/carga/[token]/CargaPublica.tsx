@@ -62,7 +62,7 @@ function Oferta({ o, completa }: { o: OfertaPublica | ReservaPublica; completa?:
       <div className="of-envio"><span className="of-envio-lbl">Envío</span><span>#{o.referencia}</span></div>
       <div id="viajeBox" className="viaje">
         <div className="of-route">
-          {[...rec.map((p, i) => ({ p, i, rec: true })), ...ent.map((p, i) => ({ p, i, rec: false }))].map(({ p, i, rec: r }) => (
+          {[...rec.map((p) => ({ p, rec: true })), ...ent.map((p) => ({ p, rec: false }))].map(({ p, rec: r }, i) => (
             <div key={p.orden} className={`of-pt ${r ? 'of-pt-rec' : 'of-pt-ent'}`}>
               <div className="of-pt-head">
                 <span className="of-pt-num">{i + 1}</span>

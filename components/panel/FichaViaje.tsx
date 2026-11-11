@@ -198,7 +198,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
             <div key={p.id} className="det-punto">
               <div className="det-punto-head">
                 <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`}>{n}</span>
-                <span className="det-punto-label">{rec ? `Recogida ${n}` : `Entrega ${n}`}</span>
+                <span className="det-punto-label">{rec ? 'Recogida' : 'Entrega'}</span>
                 {p.realizado_en && <span className="det-punto-tipo">Hecha: {fechaHora(p.realizado_en)}</span>}
               </div>
               <div className="det-punto-body">

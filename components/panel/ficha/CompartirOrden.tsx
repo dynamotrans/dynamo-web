@@ -59,8 +59,9 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const msg = [
     `ORDEN DE CARGA · Dynamo · #${e.referencia_gx}`,
     ficha.transportista ? `Transportista: ${ficha.transportista.nombre}` : null,
-    ...rec.map((p, i) => `Recogida${rec.length > 1 ? ` ${i + 1}` : ''}: ${dirCorta(p)} — ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`),
-    ...ent.map((p, i) => `Entrega${ent.length > 1 ? ` ${i + 1}` : ''}: ${dirCorta(p)}${e.fecha_entrega_estimada ? ` — estimada ${fecha(e.fecha_entrega_estimada)}` : ''}`),
+    // Nº de parada correlativo (2026-11-11): con más de 2 paradas, 1-2 recogidas → 3-4 entregas.
+    ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: ${dirCorta(p)} — ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`),
+    ...ent.map((p, i) => `Entrega${rec.length + ent.length > 2 ? ` ${rec.length + i + 1}` : ''}: ${dirCorta(p)}${e.fecha_entrega_estimada ? ` — estimada ${fecha(e.fecha_entrega_estimada)}` : ''}`),
     `Mercancía: ${[e.metros_lineales != null && `${e.metros_lineales} m`, e.toneladas != null && `${e.toneladas} Tn`,
       e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ')}`,
     matr ? `Matrículas autorizadas: ${matr}` : null,

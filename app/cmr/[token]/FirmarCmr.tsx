@@ -62,9 +62,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
   const lugar = (p: ParadaCmr | undefined) => [p?.nombre_empresa, [p?.codigo_postal, p?.poblacion].filter(Boolean).join(' '), p?.provincia !== p?.poblacion ? p?.provincia : null].filter(Boolean).join(' · ');
   const bloques: Bloque[] = [
-    ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello', firmante: 'Remitente / Cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
+    ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length + ent.length > 2 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello', firmante: 'Remitente / Cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
     { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello', firmante: 'Porteador / Transportista', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '', preEmail: cmr.transportista_email ?? '' },
-    ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${ent.length > 1 ? i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
+    ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${rec.length + ent.length > 2 ? rec.length + i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
   // «Está todo guardado, salir» (usuario, 2026-11-10): cada firma se guarda SOLA al
@@ -99,8 +99,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         {(cmr.transportista || cmr.matricula) && <><dt>Transportista efectivo</dt><dd>{[cmr.transportista, cmr.matricula].filter(Boolean).join(' · ')}</dd></>}
         {/* Cada parada en SU línea, numerada cuando hay varias (usuario, 2026-11-10):
             nada de «A / B» corrido, que no se lee. */}
-        <dt>Recogida</dt><dd>{rec.length ? rec.map((p, i) => <div key={p.id}>{rec.length > 1 ? `${i + 1}. ` : ''}{lugar(p)}</div>) : '—'}</dd>
-        <dt>Entrega</dt><dd>{ent.length ? ent.map((p, i) => <div key={p.id}>{ent.length > 1 ? `${i + 1}. ` : ''}{lugar(p)}</div>) : '—'}</dd>
+        <dt>Recogida</dt><dd>{rec.length ? rec.map((p, i) => <div key={p.id}>{rec.length + ent.length > 2 ? `${i + 1}. ` : ''}{lugar(p)}</div>) : '—'}</dd>
+        <dt>Entrega</dt><dd>{ent.length ? ent.map((p, i) => <div key={p.id}>{rec.length + ent.length > 2 ? `${rec.length + i + 1}. ` : ''}{lugar(p)}</div>) : '—'}</dd>
         <dt>Fecha de carga</dt><dd>{fecha(cmr.fecha_carga)}</dd>
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
