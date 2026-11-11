@@ -75,8 +75,16 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
       </button>
     );
   };
+  // La leyenda de colores sale ARRIBA (debajo del buscador) y también abajo (usuario,
+  // 2026-11-11): así se entiende el color de las fichitas sin bajar hasta el final.
+  const leyenda = (
+    <div className="cal-leyenda">
+      {LEYENDA.map(([c, t]) => <span key={t}><i style={{ background: c }} /> {t}</span>)}
+    </div>
+  );
   return (
     <div className="cal">
+      {leyenda}
       <div className="cal-head">
         <button type="button" className="cal-nav" disabled={offset <= -3} aria-label="Mes anterior"
           onClick={() => router.replace(urlMes(otroMes(-1)), { scroll: false })}>‹</button>
@@ -107,9 +115,7 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
           );
         })}
       </div>
-      <div className="cal-leyenda">
-        {LEYENDA.map(([c, t]) => <span key={t}><i style={{ background: c }} /> {t}</span>)}
-      </div>
+      {leyenda}
       <Modal abierto={!!diaNuevo} onCerrar={() => setDiaNuevo(null)} titulo="Crear un envío"
         pie={
           <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
