@@ -47,6 +47,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // nada no ve el botón de salir.
   const [firmoAqui, setFirmoAqui] = useState(false);
   const [compartido, setCompartido] = useState(false);   // «Enlace copiado ✓» del botón de compartir
+  const [masInfo, setMasInfo] = useState(false);          // despliegue del detalle legal (eIDAS / FOM)
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
   const [preFirma, setPreFirma] = useState<Bloque | null>(null);
@@ -144,6 +145,32 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
+      {/* Caja AZUL con la misma cabecera que la hoja del panel (usuario, 2026-11-11):
+          qué es esto y su validez legal, con el detalle eIDAS/FOM desplegable. */}
+      <div style={{ margin: '0.8rem 0 0', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, padding: '0.7rem 0.85rem', textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--navy)' }}>Firmen el CMR con el dedo desde el móvil, sin crear cuenta</p>
+        <button type="button" onClick={() => setMasInfo((v) => !v)} aria-expanded={masInfo}
+          style={{ margin: '0.25rem 0 0', padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--purple)' }}>
+          100% seguro, digital y legal. Protocolo eIDAS ~ Orden FOM/2861/2012. {masInfo ? '▴' : '▾'}
+        </button>
+        {masInfo && (
+          <div style={{ marginTop: '0.5rem', textAlign: 'left', fontSize: '0.78rem', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+            <p style={{ margin: '0 0 0.45rem' }}>
+              e-CMR con <strong>firma electrónica simple eIDAS</strong>, reforzada con evidencias de identidad, tiempo y ubicación (<strong>audit trail</strong>):
+              documento del firmante con letra validada, hora del servidor, IP, GPS con dirección y huella SHA-256 de lo firmado. El Reglamento eIDAS
+              (UE 910/2014, <strong>art. 25</strong>) impide negarle efectos jurídicos: es <strong>admisible como prueba ante organismos, peritos y
+              tribunales</strong>; y el <strong>Protocolo e-CMR</strong> (Ginebra, 2008), ratificado por España y decenas de países, reconoce
+              <strong> internacionalmente</strong> la carta de porte electrónica.
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong>Base legal:</strong> Orden FOM/2861/2012, de 13 de diciembre (documento de control administrativo del transporte público de mercancías
+              por carretera), <strong>art. 6</strong>: el documento de control puede llevarse en <strong>soporte electrónico</strong> siempre que recoja los
+              datos exigidos y pueda mostrarse en una inspección en carretera. Este eCMR los recoge todos, con el QR, el nº único y el registro de creación
+              y firmas dentro del PDF. En transporte <strong>internacional</strong> rige el Convenio CMR (Ginebra, 19-may-1956) y no se exige DeCA.
+            </p>
+          </div>
+        )}
+      </div>
       {/* Compartir ESTA página de firmas (usuario, 2026-11-10, en lugar del botón del PDF):
           cargador, transportista y destinatario ya la recibieron igual que quien la abre, y
           pueden firmar en este mismo móvil; el botón es para reenviársela a quien la quiera.
