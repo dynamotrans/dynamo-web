@@ -637,8 +637,10 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
               : 'No se ha podido guardar; contáctanos.' });
           }}>{sinCambios ? '✓ Guardado' : teniaDatos ? 'Actualizar vehículo y conductor' : 'Guardar vehículo y conductor'}</button>
           {/* Resultado BIEN VISIBLE (usuario, 2026-11-11): verde cuando está guardado y
-              sin cambios pendientes; rojo si el guardado falló. */}
-          {sinCambios && teniaDatos && !falta && (
+              sin cambios pendientes; rojo si el guardado falló. Un guardado que acaba de
+              salir bien se confirma SIEMPRE, aunque falte algún dato (p. ej. el teléfono):
+              lo guardado está guardado, y lo que falta ya lo dice el título en rojo. */}
+          {sinCambios && teniaDatos && (guardado?.ok || !falta) && (
             <div style={{ marginTop: '0.6rem', background: '#ecfdf5', border: '1px solid #b7ebcd', color: '#047857', fontWeight: 700, borderRadius: 10, padding: '0.55rem 0.8rem', textAlign: 'center' }}>
               ✓ {guardado?.ok ? guardado.txt : 'Estos datos ya están guardados.'}
             </div>
