@@ -190,78 +190,82 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         }
       };
 
-      // Nº de envío, en la franja blanca de arriba (no pisa el texto legal de la cabecera).
-      // El QR (o su hueco punteado) va a 56pt, el máximo que cabe: guarda ≥15pt (~5 mm)
-      // con el borde del papel y ~5pt con el marco rojo del impreso (que empieza a ~76pt),
-      // así una impresora estándar no recorta nada (usuario, 2026-11-10). El Nº, la carta
-      // y el rótulo se alinean A LA DERECHA con un hueco fijo de 14pt hasta el QR, para
-      // que el Nº nunca quede pegado al recuadro (usuario, 2026-11-11). DER = borde
-      // derecho del marco rojo (medido: 561pt): todo queda alineado con el marco.
-      const QR = 56, DER = 561, qx = DER - QR;
+      // CABECERA del impreso (usuario, 2026-11-11): a la imagen del impreso se le quitó
+      // una franja VACÍA de 34pt del final de la fila 6-12 (solo aire, nada se escala) y
+      // se le dio a la cabecera, que pasa de ~77 a ~111pt. Ahí vive la TARJETA del QR,
+      // igual que en la hoja de firmas: borde fino redondeado, título «QR e-CMR / DeCA»,
+      // el QR real (o su hueco punteado) y el rótulo debajo («Escanéalo con el móvil» /
+      // «Pendiente de asignar transporte»). Guarda 15pt (~5 mm) con el borde del papel y
+      // ~5pt con el marco rojo (que ahora empieza a ~111pt): nada se recorta al imprimir.
+      // El Nº y la carta, alineados a la derecha con 14pt de hueco fijo hasta la tarjeta.
+      // DER = borde derecho del marco rojo (medido: 561pt). Las casillas de la 1 a la 12
+      // bajan 34pt con la imagen; de la 13 para abajo nada se mueve.
+      const DER = 561;
       const esquina = !!qrImg || !conTransporte;
-      if (qrImg) {
-        pg.drawImage(qrImg, { x: qx, y: A4.h - 15 - QR, width: QR, height: QR });
-      } else if (!conTransporte) {
-        // Sin transportista o sin matrícula no hay DeCA ni QR (usuario, 2026-11-11):
-        // en su MISMO hueco, un marco punteado del tamaño del QR, y el porqué en el rótulo.
-        pg.drawRectangle({ x: qx, y: A4.h - 15 - QR, width: QR, height: QR, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
-        t(qx + (QR - l.medida('QR', 9, true)) / 2, 46, 'QR', 9, true, COLOR.gris);
+      if (esquina) {
+        const cw = 96, ch = 91, cx = DER - cw, ct = 15, r = 8;
+        pg.drawSvgPath(
+          `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${ch - r} Q ${cw} ${ch} ${cw - r} ${ch} H ${r} Q 0 ${ch} 0 ${ch - r} V ${r} Q 0 0 ${r} 0 Z`,
+          { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
+        const tTit = 'QR e-CMR / DeCA';
+        t(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, true, COLOR.navy);
+        if (qrImg) {
+          pg.drawImage(qrImg, { x: cx + (cw - 62) / 2, y: A4.h - (ct + 16) - 62, width: 62, height: 62 });
+        } else {
+          pg.drawRectangle({ x: cx + (cw - 58) / 2, y: A4.h - (ct + 18) - 58, width: 58, height: 58, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
+          t(cx + (cw - l.medida('QR', 9, true)) / 2, ct + 50, 'QR', 9, true, COLOR.gris);
+        }
+        const tPie = qrImg ? 'Escanéalo con el móvil' : 'Pendiente de asignar transporte';
+        t(cx + (cw - l.medida(tPie, 5.4, false)) / 2, ct + 86, tPie, 5.4, false, COLOR.gris);
       }
-      const finX = esquina ? qx - 14 : DER;
+      const finX = esquina ? DER - 96 - 14 : DER;
       const numTxt = `Nº ${e.referencia_gx ?? ''}`;
-      t(finX - (esquina ? l.medida(numTxt, 9, true) : 93), 40, numTxt, 9);
+      t(finX - (esquina ? l.medida(numTxt, 9, true) : 93), esquina ? 52 : 40, numTxt, 9);
       if (varias) {
         const cTxt = `Carta ${nc + 1} de ${cartas.length}`;
-        t(finX - (esquina ? l.medida(cTxt, 7.5, true) : 93), 51, cTxt, 7.5);
-      }
-      if (esquina) {
-        const rot = 'QR del e-CMR / DeCA', resto = qrImg ? ' · Escanéalo con el móvil' : ' · Pendiente de asignar transporte';
-        const wRot = l.medida(rot, 5.5, true);
-        const xr = finX - wRot - l.medida(resto, 5, false);
-        t(xr, 63, rot, 5.5, true);
-        t(xr + wRot, 63, resto, 5, false, COLOR.gris);
+        t(finX - (esquina ? l.medida(cTxt, 7.5, true) : 93), esquina ? 64 : 51, cTxt, 7.5);
       }
       if (logo) { const h = 22, w = h * logo.width / logo.height; pg.drawImage(logo, { x: 36, y: A4.h - 15 - h, width: w, height: h }); }
 
       // 1 Remitente
-      dato(42, 110, [
+      dato(42, 144, [
         { t: cli?.razon_social ?? '—', s: 8.8 },
         { t: `CIF ${cli?.cif ?? '—'}`, s: 7.6, b: false },
         { t: [cli?.direccion, [cli?.codigo_postal, cli?.poblacion].filter(Boolean).join(' '), cli?.pais].filter(Boolean).join(' · '), s: 7.6, b: false },
       ], 48);
       // 2 Destinatario
-      dato(42, 196, [{ t: entrega?.nombre_empresa || '—', s: 8.8, max: 1 }, { t: lineaDir(entrega), s: 7.6, b: false, max: 2 }], 56);
+      dato(42, 230, [{ t: entrega?.nombre_empresa || '—', s: 8.8, max: 1 }, { t: lineaDir(entrega), s: 7.6, b: false, max: 2 }], 56);
       // 3 Lugar de entrega
-      dato(42, 238, [{ t: lineaDir(entrega), s: 8, max: 2 }, { t: entrega?.horarios ? `Horario: ${entrega.horarios}` : '', s: 7.4, b: false, max: 1 }], 56);
+      dato(42, 272, [{ t: lineaDir(entrega), s: 8, max: 2 }, { t: entrega?.horarios ? `Horario: ${entrega.horarios}` : '', s: 7.4, b: false, max: 1 }], 56);
       // 4 Lugar y fecha de carga (caben DOS líneas antes del rótulo de la 5)
       const fCarga = e.fecha_carga_real ?? e.fecha_carga_desde;
-      dato(42, 288, [
+      dato(42, 322, [
         { t: [carga?.direccion, [carga?.codigo_postal, carga?.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', '), s: 7.8, max: 1 },
         { t: [carga?.provincia !== carga?.poblacion ? carga?.provincia : null, carga?.pais, fCarga ? fechaCorta(fCarga) : null].filter(Boolean).join(' · '), s: 7.4, b: false, max: 1 },
       ], 58);
       // 5 Documentos anexos (referencias)
       const refs = [e.referencia_cliente && `Ref. ${e.referencia_cliente}`, ...d.paradas.map((p) => p.referencia && `${p.tipo === 'carga' ? 'Carga' : 'Entrega'}: ${p.referencia}`)].filter(Boolean).join(' · ');
-      dato(42, 324, [{ t: refs || '—', s: 8, b: false }], 60);
+      dato(42, 358, [{ t: refs || '—', s: 8, b: false }], 60);
 
       // 16 Porteador: el texto fijo de Dynamo (usuario, 2026-11-11) — razón social, CIF
       // y la reserva online; en envíos MANUALES, el operador del cliente con CIF y teléfono.
       if (manual) {
         const nomLineas = l.partir(porteador.nombre, 8.4, 26 * 8.4 * 0.5, true).length;
-        dato(438, 190, [{ t: porteador.nombre, s: 8.4 }], 26);
-        dato(438, 190 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
+        dato(438, 224, [{ t: porteador.nombre, s: 8.4 }], 26);
+        dato(438, 224 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
       } else {
         // Compacto: razón social en UNA línea (7.6pt cabe entera) e interlineado de 9pt,
         // para que las 4 líneas queden dentro de la casilla sin pisar el borde de la 17.
         const nl16 = l.partir(D.razon_social, 7.6, 32 * 7.6 * 0.5, true).length;
-        dato(438, 186, [{ t: D.razon_social, s: 7.6 }], 32);
-        const y16 = 186 + nl16 * 10 - 1;
+        dato(438, 220, [{ t: D.razon_social, s: 7.6 }], 32);
+        const y16 = 220 + nl16 * 10 - 1;
         dato(438, y16, [{ t: `CIF ${D.cif}`, s: 6.8, b: false }], 40);
         dato(438, y16 + 9, [{ t: 'Reserva transporte ONLINE:', s: 6.8, b: false }], 40);
         dato(438, y16 + 18, [{ t: D.web, s: 7.2 }], 40);
       }
       // 17 Porteadores sucesivos: el transportista EFECTIVO con su CIF (DeCA: debe constar
       // frente al cargador contractual de la 16), su camión y su conductor.
-      dato(438, 236, [
+      dato(438, 270, [
         { t: manual ? '' : [d.porteador?.razon_social, d.porteador?.cif && `CIF ${d.porteador.cif}`].filter(Boolean).join(' · ') || '—', s: 7.8, max: 2 },
         { t: [e.matricula_camion && `Matr. ${e.matricula_camion}`, e.matricula_remolque && `Rem. ${e.matricula_remolque}`].filter(Boolean).join(' · '), s: 7.4, b: false },
         { t: e.conductor_nombre ? `Conductor: ${e.conductor_nombre}` : '', s: 7.4, b: false },
@@ -270,26 +274,27 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       const QUIEN: Record<string, string> = { remitente: 'Remitente', transportista: 'Porteador', destinatario: 'Destinatario' };
       // La casilla 18 empieza en x≈273 (no en 438): se usa el ancho ENTERO (2026-11-11;
       // el hueco de la izquierda no estaba reservado para nada).
-      dato(276, 290, [
+      dato(276, 324, [
         ...(e.adr ? [{ t: 'MERCANCÍA ADR (peligrosa) — Acuerdo ADR', s: 7.6, c: ROJA }] : []),
         ...(d.reservas ?? []).slice(0, 3).map((r) => ({ t: `Reservas (${QUIEN[r.rol] ?? r.rol}): ${r.texto}`, s: 6.8, c: ROJA, max: 3 })),
       ], 76);
 
-      // 6-12: tabla de la mercancía
-      dato(40, 385, [{ t: e.referencia_gx ?? '—', s: 7.2 }]);
-      dato(117, 385, [{ t: e.num_bultos != null ? String(e.num_bultos) : '—', s: 8, b: e.num_bultos != null }]);
-      dato(196, 385, [{ t: e.embalaje || (e.paletizado === false ? 'Sin paletizar' : 'Palets'), s: 7.4, b: false }]);
+      // 6-12: tabla de la mercancía. La fila es 34pt más baja desde 2026-11-11 (el aire
+      // sobrante se dio a la cabecera), así que las líneas van con tope y «…» por si acaso.
+      dato(40, 419, [{ t: e.referencia_gx ?? '—', s: 7.2 }]);
+      dato(117, 419, [{ t: e.num_bultos != null ? String(e.num_bultos) : '—', s: 8, b: e.num_bultos != null }]);
+      dato(196, 419, [{ t: e.embalaje || (e.paletizado === false ? 'Sin paletizar' : 'Palets'), s: 7.4, b: false }]);
       const mercEnt = varias ? entrega?.anotaciones?.match(/MERCANCÍA:\s*(.+)$/)?.[1] ?? '' : '';
-      dato(276, 385, [
-        { t: e.descripcion_mercancia || '—', s: 8 },
+      dato(276, 419, [
+        { t: e.descripcion_mercancia || '—', s: 8, max: 3 },
         { t: e.metros_lineales != null ? `Ocupación: ${metros(e.metros_lineales)} lineales` : '', s: 7, b: false },
-        { t: mercEnt ? `Esta entrega: ${mercEnt}` : '', s: 6.8, b: false, max: 4 },
-        { t: varias ? 'Totales de la expedición; reparto por entrega indicado en la carga' : '', s: 6.4, b: false, c: COLOR.gris, max: 3 },
+        { t: mercEnt ? `Esta entrega: ${mercEnt}` : '', s: 6.8, b: false, max: 2 },
+        { t: varias ? 'Totales de la expedición; reparto por entrega indicado en la carga' : '', s: 6.4, b: false, c: COLOR.gris, max: 2 },
         { t: e.adr ? 'MERCANCÍA ADR' : '', s: 7.4, c: ROJA },
       ], 24);
-      dato(388, 385, [{ t: '—', b: false }]);
-      dato(437, 385, [{ t: e.toneladas != null ? pesoKg(Number(e.toneladas) * 1000) : '—', s: 8 }]);
-      dato(508, 385, [{ t: e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : '—', s: 8, b: e.volumen_m3 != null }]);
+      dato(388, 419, [{ t: '—', b: false }]);
+      dato(437, 419, [{ t: e.toneladas != null ? pesoKg(Number(e.toneladas) * 1000) : '—', s: 8 }]);
+      dato(508, 419, [{ t: e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : '—', s: 8, b: e.volumen_m3 != null }]);
 
       // 13 Instrucciones del remitente: otras paradas y anotaciones
       const otras = [
@@ -373,6 +378,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     // CABECERA moderna (usuario, 2026-11-10): logo de Dynamo, título, nº en pastilla
     // morada y línea de acento; el bloque DeCA va en un panel claro con el QR dentro.
     l.nuevaPagina();
+    const pagsFirmas = [l.pag];
     const cabY = l.y;
     let xTit = l.x0;
     if (logo) {
@@ -483,6 +489,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     // Sin tope de firmas (usuario, 2026-11-10): si no caben (más destinos, extras…),
     // siguen en otra hoja, que lleva su propia cabecera de continuación.
     const cabCont = () => {
+      pagsFirmas.push(l.pag);
       if (logo) { const h = 14, w = h * logo.width / logo.height; l.pag.drawImage(logo, { x: l.x0, y: A4.h - l.y - h, width: w, height: h }); }
       l.texto(l.x0 + (logo ? 14 * logo.width / logo.height + 10 : 0), l.y + 11, 'Hoja de firmas eCMR / DeCA (continuación)', 11, { bold: true, color: COLOR.navy });
       l.textoDer(A4.w - l.margen.der, l.y + 11, `CMR Nº ${e.referencia_gx ?? ''}`, 8.5, { bold: true, color: COLOR.morado });
@@ -529,6 +536,16 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       let yR = l.y + (par ? 66 : 58);
       for (const ln of reservasF) { l.texto(tx, yR, ln, 6.8, { bold: true, color: ROJA }); yR += 9; }
       l.y += alto + 6;
+    }
+
+    // NUMERACIÓN DE LAS HOJAS DE FIRMAS (usuario, 2026-11-11): «Hoja N de M» y el total
+    // de firmas en el pie de CADA hoja — si alguien retirase la última, el propio pie de
+    // las anteriores lo delata («1 de 2» sin la 2, o menos firmas de las declaradas).
+    for (let nh = 0; nh < pagsFirmas.length; nh++) {
+      const pie = `Hoja de firmas ${nh + 1} de ${pagsFirmas.length} · ${lista.length} ${lista.length === 1 ? 'firma registrada' : 'firmas registradas'} en total · CMR Nº ${e.referencia_gx ?? ''}`;
+      const pagF = pagsFirmas[nh];
+      pagF.drawLine({ start: { x: l.x0, y: A4.h - 800 }, end: { x: A4.w - l.margen.der, y: A4.h - 800 }, color: COLOR.grisClaro, thickness: 0.8 });
+      l.texto((A4.w - l.medida(pie, 7, false)) / 2, 811, pie, 7, { color: COLOR.gris, pag: pagF });
     }
   }
 
