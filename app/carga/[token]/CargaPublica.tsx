@@ -548,11 +548,22 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
     setVeh((v) => ({ ...v, telefono: s.telefono ?? '' }));
     setBase((b) => ({ ...b, conductor: veh.conductor }));
   }
-  const [guardado, setGuardado] = useState<string | null>(null);
+  const [guardado, setGuardado] = useState<{ ok: boolean; txt: string } | null>(null);
   // Envío con ventana: el día en que cargas es obligatorio (con él va el seguimiento del viaje).
   const dias = diasEntre(c.fecha_carga_desde ?? null, c.fecha_carga_hasta ?? null);
   const [dia, setDia] = useState<string>(c.fecha_carga_prevista ?? '');
-  const falta = !c.matricula_camion || !c.conductor_nombre || !c.conductor_telefono || (dias.length > 1 && !c.fecha_carga_prevista);
+  // Instantánea de lo último GUARDADO (usuario, 2026-11-11: con todo relleno «parece que
+  // está sin guardar»): sin cambios respecto a ella, el botón dice «✓ Guardado» y se
+  // desactiva; con cambios sobre datos ya guardados, dice «Actualizar…».
+  const [salvo, setSalvo] = useState({ camion: c.matricula_camion ?? '', remolque: c.matricula_remolque ?? '',
+    conductor: c.conductor_nombre ?? '', telefono: c.conductor_telefono ?? '', dia: c.fecha_carga_prevista ?? '' });
+  const nMat = (x: string) => x.replace(/[\s-]/g, '').toUpperCase();
+  const nTel = (x: string) => x.replace(/[^0-9]/g, '');
+  const sinCambios = nMat(veh.camion) === nMat(salvo.camion) && nMat(veh.remolque) === nMat(salvo.remolque)
+    && veh.conductor.trim().toLowerCase() === salvo.conductor.trim().toLowerCase()
+    && nTel(veh.telefono) === nTel(salvo.telefono) && (dias.length <= 1 || dia === salvo.dia);
+  const teniaDatos = !!(salvo.camion || salvo.conductor);
+  const falta = !salvo.camion || !salvo.conductor || !salvo.telefono || (dias.length > 1 && !salvo.dia);
   const editable = ['programado', 'hacia_la_carga'].includes(c.estado ?? '');
   const pct = num(c.pronto_pago_pct) ?? 3, minimo = num(c.pronto_pago_minimo) ?? 20, precio = num(c.precio) ?? 0;
   const dto = Math.max(Math.round(precio * pct) / 100, minimo);
@@ -581,7 +592,9 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
       <div id="ok-resumen"><Oferta o={c} completa /></div>
       {editable && (
         <div className="fsec fsec-vehiculo" style={{ textAlign: 'left' }}>
-          <div className="sec-title">Vehículo y conductor {falta && <span style={{ color: 'var(--red)' }}>· faltan datos</span>}</div>
+          <div className="sec-title">Vehículo y conductor {falta
+            ? <span style={{ color: 'var(--red)' }}>· faltan datos</span>
+            : <span style={{ color: '#047857' }}>· guardado</span>}</div>
           <div className="row2">
             <div><label htmlFor="ok-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="ok-tractora" list="okfl-camiones" value={veh.camion} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} onBlur={alSalirCamion} /></div>
             <div><label htmlFor="ok-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="ok-remolque" list="okfl-remolques" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
@@ -598,24 +611,42 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
           </>}
           <label htmlFor="ok-chofer">Conductor <Req si={false} /></label><input type="text" id="ok-chofer" list="okfl-choferes" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />
           <label htmlFor="ok-tfno">Teléfono del conductor <Req si={false} /></label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
-          <button className="btn" onClick={async () => {
-            if (dias.length > 1 && !dia) { setGuardado('Elige el día en que cargas.'); avisaFaltas(['ok-dia']); return; }
+          <button className="btn" disabled={sinCambios} style={sinCambios ? { background: '#047857', opacity: 1 } : undefined} onClick={async () => {
+            if (dias.length > 1 && !dia) { setGuardado({ ok: false, txt: 'Elige el día en que cargas.' }); avisaFaltas(['ok-dia']); return; }
             const x = await completar(token, { ...veh, dia });
             if (x.resultado === 'guardado') {
               // Lo que ha quedado guardado de verdad (p. ej. el teléfono conocido de ese chófer).
               setVeh((v) => ({ ...v, conductor: x.conductor ?? '', telefono: x.telefono ?? '' }));
               setBase({ camion: veh.camion, conductor: x.conductor ?? '' });
+              setSalvo({ camion: veh.camion, remolque: veh.remolque, conductor: x.conductor ?? '', telefono: x.telefono ?? '', dia });
             }
             // Cada fallo con su mensaje (usuario, 2026-11-10: «no funciona bien» y el
             // genérico no decía POR QUÉ): sin cookie, reserva caída o envío cambiado.
-            setGuardado(x.resultado === 'guardado' ? 'Guardado. Gracias.' : x.resultado === 'falta_fecha_prevista' ? 'Elige el día en que cargas.'
+            setGuardado(x.resultado === 'guardado' ? { ok: true, txt: 'Vehículo y conductor guardados.' }
+              : { ok: false, txt: x.resultado === 'falta_fecha_prevista' ? 'Elige el día en que cargas.'
               : x.resultado === 'fecha_fuera_de_ventana' ? 'Ese día no está dentro de los días de recogida.'
               : x.resultado === 'sin_reserva' ? 'Este navegador ya no guarda tu acceso a esta carga: abre otra vez el enlace que te enviaron y vuelve a intentarlo.'
               : x.resultado === 'no_aceptada' || x.resultado === 'ya_no_se_puede' ? 'Este envío ha cambiado o ya no está contigo: recarga la página para ver cómo está, o llámanos.'
-              : 'No se ha podido guardar; contáctanos.');
-          }}>Guardar vehículo y conductor</button>
+              : 'No se ha podido guardar; contáctanos.' });
+          }}>{sinCambios ? '✓ Guardado' : teniaDatos ? 'Actualizar vehículo y conductor' : 'Guardar vehículo y conductor'}</button>
+          {/* Resultado BIEN VISIBLE (usuario, 2026-11-11): verde cuando está guardado y
+              sin cambios pendientes; rojo si el guardado falló. */}
+          {sinCambios && teniaDatos && !falta && (
+            <div style={{ marginTop: '0.6rem', background: '#ecfdf5', border: '1px solid #b7ebcd', color: '#047857', fontWeight: 700, borderRadius: 10, padding: '0.55rem 0.8rem', textAlign: 'center' }}>
+              ✓ {guardado?.ok ? guardado.txt : 'Estos datos ya están guardados.'}
+            </div>
+          )}
+          {!sinCambios && teniaDatos && (
+            <div style={{ marginTop: '0.6rem', background: '#fff7e6', border: '1px solid #ffd591', color: '#8a5a00', fontWeight: 700, borderRadius: 10, padding: '0.55rem 0.8rem', textAlign: 'center' }}>
+              Hay cambios sin guardar: pulsa «Actualizar vehículo y conductor».
+            </div>
+          )}
+          {guardado && !guardado.ok && (
+            <div role="alert" style={{ marginTop: '0.6rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#b42318', fontWeight: 700, borderRadius: 10, padding: '0.55rem 0.8rem', textAlign: 'center' }}>
+              {guardado.txt}
+            </div>
+          )}
           <p className="id-hint" style={{ textAlign: 'center' }}>Al poner una matrícula o un conductor, rellenamos sus datos de otras veces (si los tenemos). Si dejas un campo vacío, se mantiene el que ya había.</p>
-          {guardado && <p className="id-hint" style={{ textAlign: 'center' }}>{guardado}</p>}
         </div>
       )}
       {/* El aviso de dudas/incidencias va AL FINAL, junto al botón de dudas (usuario,

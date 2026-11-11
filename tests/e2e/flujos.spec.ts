@@ -131,8 +131,8 @@ test.describe.serial('flujos clave', () => {
     // Y el editor de vehículo FUNCIONA después de aceptar (usuario, 2026-11-10:
     // guardar devolvía el error genérico): se añade el remolque y se guarda.
     await t.fill('#ok-remolque', 'R1234BCD');
-    await t.getByRole('button', { name: 'Guardar vehículo y conductor' }).click();
-    await expect(t.getByText('Guardado. Gracias.')).toBeVisible();
+    await t.getByRole('button', { name: /(Guardar|Actualizar) vehículo y conductor/ }).click();
+    await expect(t.getByText('Vehículo y conductor guardados.')).toBeVisible();
     envioAceptado = id;
   });
   test('5 · se firma el CMR digital', async ({ page, browser }) => {
