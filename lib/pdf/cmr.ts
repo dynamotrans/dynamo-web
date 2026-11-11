@@ -190,34 +190,37 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         }
       };
 
-      // Nº de envío, en la franja blanca de arriba (no pisa el texto legal de la cabecera);
-      // con QR, el Nº se corre a la izquierda para dejarle el rincón. El QR guarda ≥15pt
-      // (~5 mm) con los bordes y 4pt con el marco rojo del impreso (que empieza a ~76pt):
-      // una impresora estándar no recorta nada (usuario, 2026-11-10).
+      // Nº de envío, en la franja blanca de arriba (no pisa el texto legal de la cabecera).
+      // El QR (o su hueco punteado) va a 56pt, el máximo que cabe: guarda ≥15pt (~5 mm)
+      // con el borde del papel y ~5pt con el marco rojo del impreso (que empieza a ~76pt),
+      // así una impresora estándar no recorta nada (usuario, 2026-11-10). El Nº, la carta
+      // y el rótulo se alinean A LA DERECHA con un hueco fijo de 14pt hasta el QR, para
+      // que el Nº nunca quede pegado al recuadro (usuario, 2026-11-11). DER = borde
+      // derecho del marco rojo (medido: 561pt): todo queda alineado con el marco.
+      const QR = 56, DER = 561, qx = DER - QR;
+      const esquina = !!qrImg || !conTransporte;
       if (qrImg) {
-        // DER = borde derecho del marco rojo del impreso (medido: 561pt): el QR y su
-        // rótulo quedan alineados con el marco, no con el filo del papel (usuario, 2026-11-10).
-        const QR = 50, DER = 561, qx = DER - QR;
         pg.drawImage(qrImg, { x: qx, y: A4.h - 15 - QR, width: QR, height: QR });
-        const rot = 'e-CMR', resto = ' · Escanéalo con el móvil', wRot = l.medida(rot, 5.5, true);
-        const xr = DER - wRot - l.medida(resto, 5, false);
-        t(xr, 72, rot, 5.5, true);
-        t(xr + wRot, 72, resto, 5, false, COLOR.gris);
       } else if (!conTransporte) {
         // Sin transportista o sin matrícula no hay DeCA ni QR (usuario, 2026-11-11):
-        // en su MISMO hueco, un marco punteado del tamaño del QR con el porqué debajo,
-        // con el mismo rótulo y colocación que cuando existe — así nada se pisa.
-        const QR = 50, DER = 561, qx = DER - QR;
+        // en su MISMO hueco, un marco punteado del tamaño del QR, y el porqué en el rótulo.
         pg.drawRectangle({ x: qx, y: A4.h - 15 - QR, width: QR, height: QR, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
-        t(qx + (QR - l.medida('QR', 9, true)) / 2, 43, 'QR', 9, true, COLOR.gris);
-        const rot = 'QR del e-CMR / DeCA', resto = ' · Pendiente de asignar transporte', wRot = l.medida(rot, 5.5, true);
-        const xr = DER - wRot - l.medida(resto, 5, false);
-        t(xr, 72, rot, 5.5, true);
-        t(xr + wRot, 72, resto, 5, false, COLOR.gris);
+        t(qx + (QR - l.medida('QR', 9, true)) / 2, 46, 'QR', 9, true, COLOR.gris);
       }
-      const esquina = !!qrImg || !conTransporte;
-      t(esquina ? 440 : 468, 40, `Nº ${e.referencia_gx ?? ''}`, 9);
-      if (varias) t(esquina ? 440 : 468, 51, `Carta ${nc + 1} de ${cartas.length}`, 7.5);
+      const finX = esquina ? qx - 14 : DER;
+      const numTxt = `Nº ${e.referencia_gx ?? ''}`;
+      t(finX - (esquina ? l.medida(numTxt, 9, true) : 93), 40, numTxt, 9);
+      if (varias) {
+        const cTxt = `Carta ${nc + 1} de ${cartas.length}`;
+        t(finX - (esquina ? l.medida(cTxt, 7.5, true) : 93), 51, cTxt, 7.5);
+      }
+      if (esquina) {
+        const rot = 'QR del e-CMR / DeCA', resto = qrImg ? ' · Escanéalo con el móvil' : ' · Pendiente de asignar transporte';
+        const wRot = l.medida(rot, 5.5, true);
+        const xr = finX - wRot - l.medida(resto, 5, false);
+        t(xr, 63, rot, 5.5, true);
+        t(xr + wRot, 63, resto, 5, false, COLOR.gris);
+      }
       if (logo) { const h = 22, w = h * logo.width / logo.height; pg.drawImage(logo, { x: 36, y: A4.h - 15 - h, width: w, height: h }); }
 
       // 1 Remitente
