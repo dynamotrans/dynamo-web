@@ -19,7 +19,7 @@ import { I, ICO } from './comun';
 
 type Que = 'conjunta' | 'operativa' | 'economica';
 const QUE: [Que, string, string][] = [
-  ['conjunta', 'Conjunta (operativa + económica)', 'Copia del conductor sin precios + copia de administración completa.'],
+  ['conjunta', 'Conjunta (operativa + económica)', 'DOS PDF separados: la copia del conductor sin precios y la de administración completa — que usen la que necesiten.'],
   ['operativa', 'Solo operativa', 'La copia del conductor: sin ninguna información económica.'],
   ['economica', 'Solo económica', 'La copia de administración: el documento completo, con el precio.'],
 ];
@@ -39,12 +39,16 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const [que, setQue] = useState<Que>('conjunta');
   const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copiado, setCopiado] = useState<'enlace' | 'mensaje' | null>(null);
+  const [copiado, setCopiado] = useState<string | null>(null);
   useEffect(() => { datosOrden(e.id).then((r) => { if (r.ok) setD(r); else setError(r.error); }); }, [e.id]);
 
   const token = ficha.cmrEnlace?.token ?? null;
   const origen = typeof window !== 'undefined' ? window.location.origin : '';
-  const enlace = token && d ? `${origen}/cmr/${token}/orden?copia=${que}${que !== 'operativa' ? `&clave=${d.clave}` : ''}` : '';
+  // La conjunta son DOS PDF separados (usuario, 2026-11-11: «que usen la que quieran»):
+  // un enlace por copia; las que llevan precio van con la clave.
+  const enlaceDe = (c: 'operativa' | 'economica') => token && d ? `${origen}/cmr/${token}/orden?copia=${c}${c !== 'operativa' ? `&clave=${d.clave}` : ''}` : '';
+  const enlOp = enlaceDe('operativa'), enlEc = enlaceDe('economica');
+  const enlace = que === 'operativa' ? enlOp : enlEc;
   const idioma = (d?.idioma ?? 'es') as IdiomaOrden;
   const idiomas = idioma !== 'es' ? `${NOMBRE_IDIOMA[idioma]} y español` : 'español';
 
@@ -63,8 +67,14 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     e.conductor_nombre ? `Conductor: ${[e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ')}` : null,
     que !== 'operativa' && pt != null ? `Precio acordado: ${euros(pt)} (sin IVA)` : null,
     '',
-    `ADJUNTA va la ORDEN DE CARGA en PDF (${QUE_TXT[que]}), en ${idiomas}, con todos los datos y las condiciones. Ábrela o descárgala aquí:`,
-    enlace,
+    ...(que === 'conjunta' ? [
+      `ADJUNTAS van las DOS copias de la ORDEN DE CARGA en PDF, en ${idiomas}, con todos los datos y las condiciones — abrid o descargad la que necesitéis:`,
+      `· Copia del CONDUCTOR (sin precios): ${enlOp}`,
+      `· Copia de ADMINISTRACIÓN (completa): ${enlEc}`,
+    ] : [
+      `ADJUNTA va la ORDEN DE CARGA en PDF (${QUE_TXT[que]}), en ${idiomas}, con todos los datos y las condiciones. Ábrela o descárgala aquí:`,
+      enlace,
+    ]),
     '',
     `Si cambian las matrículas o el conductor, avísanos ANTES de la carga. Urgencias e incidencias 24 h: ${telBonito(CONTACTO.telefono)}.`,
   ].filter((x) => x !== null).join('\n');
@@ -91,19 +101,38 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
       {token && (
         <>
           <div className="ptar-sitio-grid" style={{ marginTop: '0.7rem' }}>
-            <div style={{ gridColumn: '1/-1' }}>
-              <label htmlFor="ord-enlace">Enlace de descarga del PDF</label>
-              <input id="ord-enlace" readOnly value={enlace} onFocus={(ev) => ev.target.select()} />
-            </div>
+            {/* Conjunta = DOS PDF separados, un enlace por copia (usuario, 2026-11-11). */}
+            {(que === 'conjunta' ? [
+              ['op', 'PDF operativa · copia del conductor (sin precios)', enlOp],
+              ['ec', 'PDF económica · copia de administración (completa)', enlEc],
+            ] as const : [['un', 'Enlace de descarga del PDF', enlace]] as const).map(([k, lbl, url]) => (
+              <div key={k} style={{ gridColumn: '1/-1' }}>
+                <label htmlFor={`ord-enlace-${k}`}>{lbl}</label>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <input id={`ord-enlace-${k}`} readOnly value={url} onFocus={(ev) => ev.target.select()} style={{ flex: 1, minWidth: 0 }} />
+                  <button className="btn-secondary" style={{ padding: '0 0.7rem', whiteSpace: 'nowrap' }} title="Copiar este enlace"
+                    onClick={() => { navigator.clipboard?.writeText(url); setCopiado(k); }}>{copiado === k ? '✓' : 'Copiar'}</button>
+                </div>
+              </div>
+            ))}
             <div style={{ gridColumn: '1/-1' }}>
               <label htmlFor="ord-msg">Mensaje listo para enviar</label>
               <textarea id="ord-msg" readOnly rows={9} value={msg} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.45rem', marginTop: '0.8rem' }}>
-            <a className="btn-primary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={enlace} target="_blank" rel="noopener" title="Abrir el PDF en el visor">Abrir PDF</a>
-            <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title="Copiar el enlace de descarga del PDF"
-              onClick={() => { navigator.clipboard?.writeText(enlace); setCopiado('enlace'); }}>{copiado === 'enlace' ? 'Copiado ✓' : 'Enlace'}</button>
+            {que === 'conjunta' ? (
+              <>
+                <a className="btn-primary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={enlOp} target="_blank" rel="noopener" title="Abrir el PDF operativa (conductor)">Operativa</a>
+                <a className="btn-primary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={enlEc} target="_blank" rel="noopener" title="Abrir el PDF económica (administración)">Económica</a>
+              </>
+            ) : (
+              <>
+                <a className="btn-primary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={enlace} target="_blank" rel="noopener" title="Abrir el PDF en el visor">Abrir PDF</a>
+                <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title="Copiar el enlace de descarga del PDF"
+                  onClick={() => { navigator.clipboard?.writeText(enlace); setCopiado('un'); }}>{copiado === 'un' ? 'Copiado ✓' : 'Enlace'}</button>
+              </>
+            )}
             <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)}` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
               href={`https://wa.me/${waTel}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
             <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.email ? `Email a ${d.email}` : 'El transportista no tiene email en su ficha: se abre sin destinatario'}
@@ -111,7 +140,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
           </div>
           <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
             El email y el WhatsApp se abren con el transportista y el mensaje ya puestos; el PDF va como enlace de descarga.
-            La copia del conductor no lleva ninguna información económica; las variantes con precio solo se abren con este enlace completo.
+            La copia del conductor no lleva ninguna información económica; la económica solo se abre con su enlace completo (lleva la clave).
           </p>
         </>
       )}

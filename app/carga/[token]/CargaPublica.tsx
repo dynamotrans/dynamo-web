@@ -576,13 +576,16 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
           de esta cabecera van ALINEADAS a la izquierda y con el mismo ritmo de 0.7rem
           (usuario, 2026-11-11: «diseña bien esa pantalla, alinea, separaciones»); fuera
           el mensaje de «guarda esta página», que solo metía ruido. */}
+      {/* Tres líneas (usuario, 2026-11-11): etiqueta, nombre y fecha, cada una en la suya. */}
       <div className="oferta-para" style={{ margin: '0.7rem 0 0', textAlign: 'left' }}>
         <span className="op-lbl">Aceptado por</span>
-        <strong>{c.transportista}</strong>
+        <strong style={{ display: 'block' }}>{c.transportista}</strong>
         {c.aceptada_en && <div style={{ fontSize: 'var(--fs-m)', fontWeight: 600, color: 'var(--gray-500, #6b7280)', marginTop: 2 }}>{fechaHora(c.aceptada_en)}</div>}
       </div>
-      <div className="pago-contado" style={{ textAlign: 'left' }}>
-        Precio acordado: <span className="imp">{euros(precio)}</span> <span className="base-nota">· base imponible</span>
+      {/* Dos líneas y CENTRADO (usuario, 2026-11-11): «Precio acordado:» arriba, importe debajo. */}
+      <div className="pago-contado" style={{ textAlign: 'center' }}>
+        <span style={{ display: 'block' }}>Precio acordado:</span>
+        <span className="imp">{euros(precio)}</span> <span className="base-nota">· base imponible</span>
         {c.pronto_pago && <div className="base-nota" style={{ marginTop: 2 }}>Con pronto pago: cobras {euros(precio - dto)} a {txtNum(c.pronto_pago_dias)} días de la factura.</div>}
       </div>
       {c.estado !== 'cancelado' && (
