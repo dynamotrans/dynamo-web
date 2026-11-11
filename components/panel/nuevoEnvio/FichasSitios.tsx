@@ -183,7 +183,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
                   {/* La explicación del email va en un tooltip ⓘ (usuario, 2026-11-10). */}
                   <div><label>Email <Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></label>
-                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                    <input type="text" inputMode="email" value={f.contactoEmail} placeholder="Ej. nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
                   {/* Contactos ADICIONALES del sitio (usuario, 2026-11-10): mismo botón fino
                       que en la ficha de Sitios; se crean en la agenda del sitio al guardar. */}
                   {!f.nuevo && (ed?.extra ?? []).map((x, xi) => (
@@ -199,7 +199,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                         <div><label>Teléfono <Req si={false} /></label>
                           <CampoTelefono valor={x.telefono} onCambio={(v) => setExtra(p, xi, { telefono: v })} /></div>
                         <div><label>Email <Req si={false} /></label>
-                          <input type="text" inputMode="email" value={x.email} placeholder="nombre@empresa.com" onChange={(e) => setExtra(p, xi, { email: e.target.value })} /></div>
+                          <input type="text" inputMode="email" value={x.email} placeholder="Ej. nombre@empresa.com" onChange={(e) => setExtra(p, xi, { email: e.target.value })} /></div>
                       </div>
                     </div>
                   ))}

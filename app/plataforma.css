@@ -8,6 +8,9 @@
   --green: #22a55a; --green-dark: #157a3f; --yellow: #ffd400; --orange: #ff7a00; --red: #dc2626;
   --navy: #0a0230;
   --gray-50: #fbfbfc; --gray-100: #f7f8fa; --gray-200: #e8eaed; --gray-300: #d1d5db;
+  /* 400 y 600 se usaban por toda la web SIN estar definidas (2026-11-11): la variable
+     inválida hacía, p. ej., que los placeholders salieran del color del texto real. */
+  --gray-400: #9ca3af; --gray-600: #4b5563;
   --gray-500: #6b7280; --gray-700: #374151; --gray-900: #1f2937;
 }
 html, body { margin: 0; background: var(--gray-100); }
@@ -96,3 +99,7 @@ iframe.goog-te-banner-frame, iframe[id^=":"][src*="translate"] { display: none !
 .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf *, img.VIpgJd-ZVi9od-aZ2wEe,
 .VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-yAWNEb-L7lbkb { display: none !important; }
 .VIpgJd-ZVi9od-aZ2wEe-OiiCO { background: transparent !important; box-shadow: none !important; }
+
+/* Texto de sugerencia de los campos vacíos (usuario, 2026-11-11): SIEMPRE en gris
+   claro, bien distinto del negro del dato real; los ejemplos llevan «Ej. » delante. */
+input::placeholder, textarea::placeholder { color: var(--gray-400); opacity: 1; }

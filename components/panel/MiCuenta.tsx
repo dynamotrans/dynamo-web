@@ -288,7 +288,7 @@ function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; o
       </>}>
       <div className="ptar-sitio-grid">
         <div><label htmlFor="mv-mat">Matrícula{nuevo && <Req />}</label>
-          <input id="mv-mat" type="text" value={v.matricula} placeholder="1234 ABC" onChange={(e) => setV({ ...v, matricula: e.target.value.toUpperCase() })} /></div>
+          <input id="mv-mat" type="text" value={v.matricula} placeholder="Ej. 1234 ABC" onChange={(e) => setV({ ...v, matricula: e.target.value.toUpperCase() })} /></div>
         <div><label htmlFor="mv-tipo">Tipo</label>
           <select id="mv-tipo" className="ptar-select" value={v.tipo} onChange={(e) => setV({ ...v, tipo: e.target.value as MiVehiculo['tipo'] })}>
             <option value="tractora">Tractora</option><option value="remolque">Remolque</option><option value="rigido">Rígido</option>
@@ -333,7 +333,7 @@ function EditarConductor({ inicial, onCerrar, onHecho }: { inicial: MiConductor;
             {DOC_PAISES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select></div>
         <div><label htmlFor="mcd-doc">DNI / NIE / documento <Req si={false} /></label>
-          <input id="mcd-doc" type="text" value={c.documento} maxLength={30} placeholder="12345678Z" onChange={(e) => setC({ ...c, documento: e.target.value.toUpperCase() })} /></div>
+          <input id="mcd-doc" type="text" value={c.documento} maxLength={30} placeholder="Ej. 12345678Z" onChange={(e) => setC({ ...c, documento: e.target.value.toUpperCase() })} /></div>
         <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-tel">Teléfono móvil <Req si={false} /></label><CampoTelefono id="mcd-tel" valor={c.telefono} onCambio={(v) => setC({ ...c, telefono: v })} /></div>
       </div>
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}

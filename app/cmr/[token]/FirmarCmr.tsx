@@ -430,19 +430,19 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <select id="sigDocPais" aria-label="País del documento" value={pais} onChange={(e) => setPais(e.target.value)}>
             {DOC_PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </select>
-          <input type="text" id="sigDni" autoComplete="off" autoCapitalize="characters" placeholder="12345678Z" value={doc} onChange={(e) => setDoc(e.target.value)} className={v && !v.ok ? 'err' : undefined} />
+          <input type="text" id="sigDni" autoComplete="off" autoCapitalize="characters" placeholder="Ej. 12345678Z" value={doc} onChange={(e) => setDoc(e.target.value)} className={v && !v.ok ? 'err' : undefined} />
         </div>
         {v && <div className={`sig-msg ${!v.ok ? 'err' : v.soft ? 'warn' : 'okv'}`}>{!v.ok ? `⚠ ${v.msg}` : v.soft ? `⚠ ${v.soft}` : '✓ Documento válido'}</div>}
         <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos <Req /></label>
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /></label>
-        <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
             salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}
         {pideMatricula && <>
           <label className="sig-lbl" htmlFor="sigMatCam">Matrículas del camión {b.matObligatoria ? <Req /> : <Req si={false} />}</label>
           <div className="sig-row">
-            <input type="text" id="sigMatCam" autoComplete="off" autoCapitalize="characters" placeholder="Tractora · 1234 BCD"
+            <input type="text" id="sigMatCam" autoComplete="off" autoCapitalize="characters" placeholder="Tractora · Ej. 1234 BCD"
               value={matCam} onChange={(e) => setMatCam(e.target.value.toUpperCase())} />
             <input type="text" id="sigMatRem" autoComplete="off" autoCapitalize="characters" placeholder="Remolque (opcional)" aria-label="Matrícula del remolque (opcional)"
               value={matRem} onChange={(e) => setMatRem(e.target.value.toUpperCase())} />

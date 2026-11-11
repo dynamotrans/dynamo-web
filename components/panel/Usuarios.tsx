@@ -229,7 +229,7 @@ function Telefono({ id, valor, onCambio }: { id: string; valor: { pref: string; 
       <label htmlFor={id}>Teléfono <Req si={false} /></label>
       <div className="tel-group">
         <SelectorPais modo="prefijo" valor={valor.pref} onCambio={(v) => onCambio({ ...valor, pref: v })} />
-        <input id={id} type="tel" inputMode="tel" value={valor.num} placeholder="600 000 000" onChange={(e) => onCambio({ ...valor, num: e.target.value })} />
+        <input id={id} type="tel" inputMode="tel" value={valor.num} placeholder="Ej. 600 000 000" onChange={(e) => onCambio({ ...valor, num: e.target.value })} />
       </div>
     </div>
   );
@@ -344,18 +344,18 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
         </div>
         <div>
           <label htmlFor="usr-dni">DNI / NIE <Req si={false} /></label>
-          <input id="usr-dni" type="text" value={d.documento} placeholder="12345678Z" onChange={(e) => set('documento', e.target.value)} />
+          <input id="usr-dni" type="text" value={d.documento} placeholder="Ej. 12345678Z" onChange={(e) => set('documento', e.target.value)} />
         </div>
         <Telefono id="usr-tel" valor={tel} onCambio={setTel} />
         <div>
           <label htmlFor="usr-cargo">Cargo <Req si={false} /></label>
-          <input id="usr-cargo" type="text" value={d.cargo} placeholder="Jefe de tráfico, administración…" onChange={(e) => set('cargo', e.target.value)} />
+          <input id="usr-cargo" type="text" value={d.cargo} placeholder="Ej. jefe de tráfico, administración…" onChange={(e) => set('cargo', e.target.value)} />
         </div>
         <div />
         {u.rol === 'cliente' && <>{limite('limite_consultas_precio_diario', 'Límite de consultas de precio al día')}{limite('limite_envios_diario', 'Límite de envíos al día')}</>}
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="usr-copias">Enviar copia a <Req si={false} /> (si hay varios, sepáralos por comas; máx. 10)</label>
-          <input id="usr-copias" type="text" inputMode="email" value={d.copias} placeholder="logistica@empresa.com, almacen@empresa.com" onChange={(e) => set('copias', e.target.value)} />
+          <input id="usr-copias" type="text" inputMode="email" value={d.copias} placeholder="Ej. logistica@empresa.com, almacen@empresa.com" onChange={(e) => set('copias', e.target.value)} />
         </div>
         {!interno(u.rol) && (
           <div style={{ gridColumn: '1/-1' }}>
@@ -422,7 +422,7 @@ function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () =
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="email-nuevo">Email nuevo <Req /></label>
-          <input id="email-nuevo" type="email" inputMode="email" autoComplete="off" placeholder="nuevo@empresa.com" value={nuevo} onChange={(e) => setNuevo(e.target.value)} />
+          <input id="email-nuevo" type="email" inputMode="email" autoComplete="off" placeholder="Ej. nuevo@empresa.com" value={nuevo} onChange={(e) => setNuevo(e.target.value)} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="email-conf">Para confirmar, <strong>escribe el email actual</strong></label>
@@ -534,7 +534,7 @@ function Invitar({ yo, onCerrar, onHecho }: {
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="inv-email">Email (usuario de acceso) <Req /></label>
-          <input id="inv-email" type="email" inputMode="email" autoComplete="off" value={d.email} placeholder="nombre@empresa.com" onChange={(e) => setD({ ...d, email: e.target.value })} />
+          <input id="inv-email" type="email" inputMode="email" autoComplete="off" value={d.email} placeholder="Ej. nombre@empresa.com" onChange={(e) => setD({ ...d, email: e.target.value })} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="inv-nombre">Nombre y apellidos <Req /></label>
@@ -551,7 +551,7 @@ function Invitar({ yo, onCerrar, onHecho }: {
         <Telefono id="inv-tel" valor={tel} onCambio={setTel} />
         <div>
           <label htmlFor="inv-cargo">Cargo <Req si={false} /></label>
-          <input id="inv-cargo" type="text" value={d.cargo} placeholder="Jefe de tráfico, administración…" onChange={(e) => setD({ ...d, cargo: e.target.value })} />
+          <input id="inv-cargo" type="text" value={d.cargo} placeholder="Ej. jefe de tráfico, administración…" onChange={(e) => setD({ ...d, cargo: e.target.value })} />
         </div>
         <CampoConfirmo id="inv-confirmo" valor={conf} onCambio={(v) => { setConf(v); setError(null); }} />
       </div>

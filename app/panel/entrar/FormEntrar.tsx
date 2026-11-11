@@ -31,7 +31,7 @@ export default function FormEntrar({ caducada = false, baja = false }: { caducad
         <div className="portal-input-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 5L2 7" /></svg>
           <input id="portal-user" name="email" key={estado.email ?? ''} defaultValue={estado.email ?? ''} className="portal-input" type="email" inputMode="email"
-                 placeholder="tu@empresa.com" autoComplete="username" required />
+                 placeholder="Ej. tu@empresa.com" autoComplete="username" required />
         </div>
       </div>
 

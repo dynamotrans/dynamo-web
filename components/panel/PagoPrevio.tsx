@@ -59,7 +59,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
             {!pago.conCredito && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.3rem' }}>Ojo: este cliente no tiene crédito disponible en la plataforma. Hazlo solo si CESCE te lo ha confirmado.</div>}
             <label htmlFor="pp-motivo" style={{ fontWeight: 700 }}>Motivo (queda guardado) <Req /></label>
             <textarea id="pp-motivo" className="campo-texto" rows={3} value={motivo} onChange={(e) => { setMotivo(e.target.value); if (e.target.value.trim().length >= 3) setFalta(null); }} maxLength={500}
-              placeholder="P. ej. CESCE positivo, empresa conocida, cobro a 60 días" style={{ marginTop: '0.25rem' }} />
+              placeholder="Ej. CESCE positivo, empresa conocida, cobro a 60 días" style={{ marginTop: '0.25rem' }} />
             {falta && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.4rem' }}>⚠ {falta}</div>}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <button className="btn-primary"

@@ -166,7 +166,7 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
       <div className="ptar-admin-precio" style={{ margin: '0 0 0.9rem' }}>
         <div className="ptar-admin-precio-head">Línea total <span>· amplía o minora según tesorería</span></div>
         <label className="ptar-admin-precio-lbl" htmlFor="pp-linea">Línea total (€)</label>
-        <input id="pp-linea" type="text" inputMode="decimal" value={linea} placeholder="50.000,00" onChange={(e) => setLinea(e.target.value)} autoFocus />
+        <input id="pp-linea" type="text" inputMode="decimal" value={linea} placeholder="Ej. 50.000,00" onChange={(e) => setLinea(e.target.value)} autoFocus />
         <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.5rem 0 0' }}>Ahora mismo: <strong>{euros(pp.linea)}</strong> · anticipado en los últimos {pp.ventana_dias} días: <strong>{euros(pp.usado)}</strong>.</p>
         {fallo && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem' }}>

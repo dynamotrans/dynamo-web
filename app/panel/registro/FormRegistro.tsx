@@ -49,7 +49,7 @@ export default function FormRegistro() {
           <label className="portal-label" htmlFor="reg-email">Correo electrónico <Req /></label>
           <div className="portal-input-wrap"><IcoMail />
             <input id="reg-email" key={k('email')} name="email" defaultValue={ini.email} className="portal-input" style={rojo('email')}
-                   type="email" inputMode="email" placeholder="tu@empresa.com" autoComplete="email" required />
+                   type="email" inputMode="email" placeholder="Ej. tu@empresa.com" autoComplete="email" required />
           </div>
         </div>
         <div className="portal-field full">
@@ -63,7 +63,7 @@ export default function FormRegistro() {
           <label className="portal-label" htmlFor="reg-cif">CIF / NIF <Req /></label>
           <div className="portal-input-wrap"><IcoDoc />
             <input id="reg-cif" name="cif" value={cif} onChange={(e) => setCif(e.target.value)} className="portal-input" style={rojo('cif')}
-                   placeholder="B12345678 / 12345678Z" autoCapitalize="characters" required />
+                   placeholder="Ej. B12345678 / 12345678Z" autoCapitalize="characters" required />
           </div>
           <Feedback valor={cif} pais={pais} />
         </div>
@@ -81,16 +81,16 @@ export default function FormRegistro() {
         <div className="portal-field">
           <label className="portal-label" htmlFor="reg-cp">Código postal <Req /></label>
           <input id="reg-cp" key={k('codigo_postal')} name="codigo_postal" defaultValue={ini.codigo_postal} className="portal-input sin-ico" style={rojo('codigo_postal')}
-                 placeholder="41001" inputMode="numeric" autoComplete="postal-code" required />
+                 placeholder="Ej. 41001" inputMode="numeric" autoComplete="postal-code" required />
         </div>
         <div className="portal-field">
           <label className="portal-label" htmlFor="reg-pob">Población <Req /></label>
           <input id="reg-pob" key={k('poblacion')} name="poblacion" defaultValue={ini.poblacion} className="portal-input sin-ico" style={rojo('codigo_postal')}
-                 placeholder="Sevilla" autoComplete="address-level2" required />
+                 placeholder="Ej. Sevilla" autoComplete="address-level2" required />
         </div>
         <div className="portal-field full">
           <label className="portal-label" htmlFor="reg-prov">Provincia <Req si={false} /></label>
-          <input id="reg-prov" name="provincia" defaultValue={ini.provincia} className="portal-input sin-ico" placeholder="Sevilla" autoComplete="address-level1" />
+          <input id="reg-prov" name="provincia" defaultValue={ini.provincia} className="portal-input sin-ico" placeholder="Ej. Sevilla" autoComplete="address-level1" />
         </div>
         <div className="portal-field full">
           <label className="portal-label" htmlFor="reg-nombre">Tu nombre y apellidos <Req /></label>
@@ -102,7 +102,7 @@ export default function FormRegistro() {
         <div className="portal-field full">
           <label className="portal-label" htmlFor="reg-dni">DNI / NIE <Req si={false} /></label>
           <input id="reg-dni" name="dni" value={dni} onChange={(e) => setDni(e.target.value)} className="portal-input sin-ico" style={rojo('dni')}
-                 placeholder="12345678Z" autoCapitalize="characters" />
+                 placeholder="Ej. 12345678Z" autoCapitalize="characters" />
           {dni && <Feedback valor={dni} />}
         </div>
         <div className="portal-field full">
@@ -110,7 +110,7 @@ export default function FormRegistro() {
           <div className="reg-phone" style={rojo('telefono')}>
             <SelectorPais modo="prefijo" name="prefijo" valor={prefijo} onCambio={setPrefijo} />
             <input id="reg-tel" key={k('telefono')} name="telefono" defaultValue={ini.telefono} className="reg-phone-num"
-                   type="tel" inputMode="tel" placeholder="600 000 000" autoComplete="tel-national" required />
+                   type="tel" inputMode="tel" placeholder="Ej. 600 000 000" autoComplete="tel-national" required />
           </div>
         </div>
       </div>

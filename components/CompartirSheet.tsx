@@ -28,7 +28,7 @@ export default function CompartirSheet({ titulo, texto, url, onCerrar }: {
   if (!montado) return null;
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Compartir"
-      style={{ position: 'fixed', inset: 0, zIndex: 10050, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 100100, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}
       onClick={(ev) => { if (ev.target === ev.currentTarget) onCerrar(); }}>
       <div style={{ background: '#fff', borderRadius: 18, padding: '1.2rem 1.1rem', maxWidth: 380, width: '100%', boxShadow: '0 24px 60px rgba(10,2,48,0.35)' }}>
         <h2 style={{ margin: '0 0 0.15rem', fontSize: '1.05rem', color: '#0a0230' }}>Compartir</h2>

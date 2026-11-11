@@ -425,7 +425,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
           ) : (<>
             <label htmlFor="f-cif">Tu CIF / NIF, código de bolsa o el nombre de tu empresa <Req /></label>
             <div className="idrow">
-              <input type="text" id="f-cif" value={cif} placeholder="B12345678 o tu empresa" autoCapitalize="characters" autoComplete="off"
+              <input type="text" id="f-cif" value={cif} placeholder="Ej. B12345678 o tu empresa" autoCapitalize="characters" autoComplete="off"
                 onChange={(e) => { setCif(e.target.value); setAcAbierto(true); }}
                 onFocus={() => setAcAbierto(true)} onBlur={() => setTimeout(() => setAcAbierto(false), 150)} />
               <ul className={`ac-list${acAbierto && cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 4 && (buscando || sugs !== null) ? ' show' : ''}`} id="ac-buscar">
@@ -466,8 +466,8 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
           </select>
         </>}
         <div className="row2">
-          <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="f-tractora" list="fl-camiones" value={veh.camion} placeholder="1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
-          <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="f-remolque" list="fl-remolques" value={veh.remolque} placeholder="R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
+          <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="f-tractora" list="fl-camiones" value={veh.camion} placeholder="Ej. 1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
+          <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="f-remolque" list="fl-remolques" value={veh.remolque} placeholder="Ej. R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
           <datalist id="fl-camiones">{(flo?.camiones ?? []).map((m) => <option key={m} value={m} />)}</datalist>
           <datalist id="fl-remolques">{(flo?.remolques ?? []).map((m) => <option key={m} value={m} />)}</datalist>
           <datalist id="fl-choferes">{(flo?.conductores ?? []).map((m) => <option key={m} value={m} />)}</datalist>
@@ -713,11 +713,11 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       <div className="row2">
         <div><label htmlFor="al-bolsa">Bolsa de cargas</label>
           <select id="al-bolsa" value={d.bolsa} onChange={(e) => set('bolsa', e.target.value)}>{BOLSAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
-        <div><label htmlFor="al-cbolsa">Tu código en la bolsa <Req /></label><input type="text" id="al-cbolsa" value={d.codigo_bolsa} maxLength={30} placeholder="Ej.: 123456" onChange={(e) => set('codigo_bolsa', e.target.value)} /></div>
+        <div><label htmlFor="al-cbolsa">Tu código en la bolsa <Req /></label><input type="text" id="al-cbolsa" value={d.codigo_bolsa} maxLength={30} placeholder="Ej. 123456" onChange={(e) => set('codigo_bolsa', e.target.value)} /></div>
       </div>
       <div className="row2">
         <div><label htmlFor="al-pais">País</label><SelectorPais modo="pais" id="al-pais" valor={d.pais} onCambio={(v) => set('pais', v)} /></div>
-        <div><label htmlFor="al-cif">CIF / NIF <Req /></label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="B12345678 / 12345678Z" onChange={(e) => set('cif', e.target.value)} /></div>
+        <div><label htmlFor="al-cif">CIF / NIF <Req /></label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="Ej. B12345678 / 12345678Z" onChange={(e) => set('cif', e.target.value)} /></div>
       </div>
       <p className="id-hint" style={idf && !idf.ok ? { color: 'var(--red)' } : undefined}>
         {idf && !idf.ok

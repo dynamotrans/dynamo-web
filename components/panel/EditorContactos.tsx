@@ -79,7 +79,7 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
           <label htmlFor={`${id}-tel`}>Teléfono <Req si={obligatorios} /></label>
           <div className="tel-group">
             <SelectorPais modo="prefijo" valor={pref} onCambio={(v) => { setPref(v); ponTel(v, num); }} />
-            <input id={`${id}-tel`} type="tel" inputMode="tel" value={num} placeholder="600 000 000" onChange={(e) => ponTel(pref, e.target.value)} />
+            <input id={`${id}-tel`} type="tel" inputMode="tel" value={num} placeholder="Ej. 600 000 000" onChange={(e) => ponTel(pref, e.target.value)} />
           </div>
         </div>
         <div>
@@ -87,7 +87,7 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
           <label htmlFor={`${id}-email`}>Email {obligatorios
             ? <><Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></>
             : <Req si={false} />}</label>
-          <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
+          <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="Ej. nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
         </div>
         {roles ? (
           <div>
@@ -100,7 +100,7 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
         ) : conCargo && (
           <div>
             <label htmlFor={`${id}-cargo`}>Cargo <Req si={false} /></label>
-            <input id={`${id}-cargo`} type="text" value={c.cargo} placeholder="Jefe de almacén, tráfico…" onChange={(e) => onCambio({ ...c, cargo: e.target.value })} />
+            <input id={`${id}-cargo`} type="text" value={c.cargo} placeholder="Ej. jefe de almacén, tráfico…" onChange={(e) => onCambio({ ...c, cargo: e.target.value })} />
           </div>
         )}
         {conFuncion && !roles && (

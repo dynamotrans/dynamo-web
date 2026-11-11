@@ -177,12 +177,12 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
         </div>
         <div>
           <label htmlFor="as-camion">Matrícula camión / tractora <Req si={false} /></label>
-          <input id="as-camion" list="as-camiones" type="text" value={camion} placeholder="1234ABC" onChange={(ev) => setCamion(ev.target.value)} onBlur={alSalirCamion} />
+          <input id="as-camion" list="as-camiones" type="text" value={camion} placeholder="Ej. 1234ABC" onChange={(ev) => setCamion(ev.target.value)} onBlur={alSalirCamion} />
           <datalist id="as-camiones">{camiones.map((v) => <option key={v.matricula} value={v.matricula}>{v.tipo === 'rigido' ? 'Rígido' : 'Tractora'}</option>)}</datalist>
         </div>
         <div>
           <label htmlFor="as-remolque">Matrícula remolque (si es tráiler) <Req si={false} /></label>
-          <input id="as-remolque" list="as-remolques" type="text" value={remolque} placeholder="R1234BCD" onChange={(ev) => setRemolque(ev.target.value)} />
+          <input id="as-remolque" list="as-remolques" type="text" value={remolque} placeholder="Ej. R1234BCD" onChange={(ev) => setRemolque(ev.target.value)} />
           <datalist id="as-remolques">{remolques.map((v) => <option key={v.matricula} value={v.matricula} />)}</datalist>
         </div>
         <div>
