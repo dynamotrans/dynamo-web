@@ -1591,6 +1591,19 @@ body.theme-dark .sidebar { background: #060116; }
     box-shadow: 0 1px 6px rgba(51,0,204,0.08);
 }
 .tl-actual .tl-dot { top: 0.78rem; }
+/* Y PARPADEA (usuario, 2026-11-11: «o mejor, punto parpadeante»): un halo morado que
+   late saliendo del punto, como los puntos de los badges de fase. */
+.tl-actual .tl-dot::after {
+    content: ''; position: absolute; inset: -4px; border-radius: 50%;
+    border: 2px solid var(--purple); opacity: 0;
+    animation: tlDotPulse 1.6s ease-out infinite;
+}
+@keyframes tlDotPulse {
+    0% { transform: scale(0.55); opacity: 0.9; }
+    70% { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .tl-actual .tl-dot::after { animation: none; } }
 .tl-ahora {
     display: inline-block; margin-left: 0.45rem; padding: 0.08rem 0.55rem;
     border-radius: 99px; background: var(--purple); color: #fff;
