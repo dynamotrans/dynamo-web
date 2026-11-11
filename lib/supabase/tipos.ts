@@ -3287,6 +3287,7 @@ export type Database = {
       datos_cmr_envio: { Args: { p_envio: string | null }; Returns: Json }
       datos_dynamo: { Args: Record<PropertyKey, never>; Returns: Json }
       datos_orden_manual: { Args: { p_envio: string | null }; Returns: Json }
+      datos_orden_por_cmr: { Args: { p_token: string | null }; Returns: Json }
       datos_orden_publica: { Args: { p_reserva: string | null }; Returns: Json }
       datos_orden_transportista: { Args: { p_envio: string | null }; Returns: Json }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }

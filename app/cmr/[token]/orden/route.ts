@@ -1,6 +1,6 @@
-import { supabaseServicio } from '@/lib/supabase/servicio';
-import { pdfOrdenCompuesta } from '@/lib/pdf/generar';
-import type { QueOrden } from '@/lib/pdf/orden';
+import { supabasePublico } from '@/lib/supabase/publico';
+import { cargarDatosDocPorCmr } from '@/lib/pdf/datos';
+import { ordenCompuesta, type QueOrden } from '@/lib/pdf/orden';
 
 // ORDEN DE CARGA por el enlace público del envío (usuario, 2026-11-10): el enlace que
 // Dynamo comparte con el transportista por email o WhatsApp desde la ficha. La llave es
@@ -8,6 +8,10 @@ import type { QueOrden } from '@/lib/pdf/orden';
 // ?copia= (conjunta | operativa | economica) y, para las que llevan el precio, hace
 // falta además ?clave= (el id del transportista asignado: solo lo tiene quien recibió
 // el enlace de Dynamo; la operativa no lleva economía y no la necesita).
+// Con la CLAVE PÚBLICA y la función datos_orden_por_cmr (2026-11-11): la clave de
+// servicio no está en todos los despliegues (la preview) y aquí no hace falta — la
+// base de datos valida el token y aplica las reglas (ni revocados, ni cancelados, ni
+// manuales, ni envíos sin transportista).
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -16,28 +20,27 @@ const texto = (msg: string, status: number) => new Response(msg, { status, heade
 export async function GET(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(token)) return texto('Ese documento no existe.', 404);
-  const sv = supabaseServicio();
-  if (!sv) return texto('La plataforma no está conectada.', 503);
-  const { data: mant } = await sv.rpc('mantenimiento_activo');
+  const sb = supabasePublico();
+  if (!sb) return texto('La plataforma no está conectada.', 503);
+  const { data: mant } = await sb.rpc('mantenimiento_activo');
   if (mant) return texto('Plataforma en mantenimiento. Vuelve a intentarlo en un rato.', 503);
-  const { data: enl } = await sv.from('cmr_enlaces').select('envio_id').eq('token', token).eq('revocado', false).maybeSingle<{ envio_id: string }>();
-  if (!enl) return texto('Este enlace no es válido: ha caducado o se ha retirado.', 404);
-  const { data: env } = await sv.from('envios').select('estado, es_manual, transportista_id').eq('id', enl.envio_id)
-    .maybeSingle<{ estado: string; es_manual: boolean; transportista_id: string | null }>();
-  if (!env || env.estado === 'cancelado') return texto('Este envío está cancelado: ya no hace falta su orden.', 404);
-  if (env.es_manual) return texto('Los envíos manuales no tienen orden de Dynamo.', 404);
-  if (!env.transportista_id) return texto('Este envío aún no tiene transportista asignado.', 404);
 
   const url = new URL(req.url);
   const copia = url.searchParams.get('copia') ?? 'conjunta';
   if (!['conjunta', 'operativa', 'economica'].includes(copia)) return texto('Esa variante no existe.', 404);
-  if (copia !== 'operativa' && url.searchParams.get('clave') !== env.transportista_id) {
+
+  const r = await cargarDatosDocPorCmr(sb, token);
+  if (!r.datos) return texto(r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.', 404);
+  if (copia !== 'operativa' && url.searchParams.get('clave') !== r.transportista) {
     return texto('Esta variante lleva información económica: hace falta el enlace completo que te mandó Dynamo.', 403);
   }
 
-  const r = await pdfOrdenCompuesta(sv, enl.envio_id, copia as QueOrden);
-  if ('error' in r) return texto(r.error, 404);
-  return new Response(Buffer.from(r.bytes), {
-    headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="${r.nombre}"`, 'cache-control': 'private, no-store' },
+  const p = r.parametros;
+  const bytes = await ordenCompuesta(r.datos, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
+    dias: p.pronto_pago_dias ?? 5, plazo: p.plazo_pago_transportista_dias ?? 60 }, copia as QueOrden);
+  const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
+  const apellido = copia === 'operativa' ? '-conductor' : copia === 'economica' ? '-administracion' : '';
+  return new Response(Buffer.from(bytes), {
+    headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-carga-${ref}${apellido}.pdf"`, 'cache-control': 'private, no-store' },
   });
 }

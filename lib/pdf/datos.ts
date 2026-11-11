@@ -185,6 +185,18 @@ export async function cargarDatosDocPublica(sb: SB, reserva: string):
   return { error: null, ...ordenDesdeJson(data) };
 }
 
+// Lo mismo desde el enlace público del e-CMR (/cmr/<token>/orden, el que Dynamo
+// comparte con el transportista): la llave es el token vivo de cmr_enlaces, con la
+// clave pública (2026-11-11: antes iba con la clave de servicio, y donde no está
+// configurada —la preview— el enlace moría). Trae además el transportista_id, con el
+// que la ruta comprueba la clave de las copias con precio.
+export async function cargarDatosDocPorCmr(sb: SB, token: string):
+  Promise<{ datos: DatosDoc | null; transportista: string | null; parametros: Record<string, number>; error: string | null }> {
+  const { data, error } = await sb.rpc('datos_orden_por_cmr', { p_token: token });
+  if (error || !data) return { datos: null, transportista: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el envío.' };
+  return { error: null, transportista: (data as { transportista_id?: string }).transportista_id ?? null, ...ordenDesdeJson(data) };
+}
+
 // El JSON de datos_orden_*(): mismos nombres que las tablas.
 type EmpresaJson = { nombre: string; razon_social: string; cif: string | null; codigo?: string | null; direccion: string | null;
   codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;

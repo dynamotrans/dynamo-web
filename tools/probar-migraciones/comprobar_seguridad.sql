@@ -7267,3 +7267,54 @@ do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; r jsonb; begin
   raise notice 'OK 191 · CMR: sin transportista no se firma; al asignar (o reasignar) se reanuda y nada se pierde';
 end $$;
 reset role;
+
+-- ---- 192. Orden de carga por el enlace del e-CMR: con la clave pública ---------------
+-- La descarga /cmr/<token>/orden lee con datos_orden_por_cmr() y la clave pública
+-- (2026-11-11, antes clave de servicio): el token vivo devuelve el JSON de la orden con
+-- el transportista_id; un token revocado, uno inventado o un envío sin transportista, no.
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; j jsonb; begin
+  j := datos_orden_por_cmr(tok);
+  if j -> 'envio' ->> 'id' <> current_setting('prueba.e191') then raise exception 'FALLO 192 · el JSON no es del envío del enlace'; end if;
+  if j ->> 'transportista_id' <> current_setting('prueba.transp') then raise exception 'FALLO 192 · falta el transportista_id (la clave de las copias con precio)'; end if;
+  if j -> 'porteador' ->> 'razon_social' is null or j -> 'paradas' is null then raise exception 'FALLO 192 · el JSON no trae porteador o paradas'; end if;
+  begin
+    j := datos_orden_por_cmr(gen_random_uuid());
+    raise exception 'FALLO 192 · un token inventado devuelve la orden';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- Sin transportista no hay orden de carga que dar.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; begin r := quitar_transportista(current_setting('prueba.e191')::uuid); end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; j jsonb; begin
+  begin
+    j := datos_orden_por_cmr(tok);
+    raise exception 'FALLO 192 · sin transportista se sigue entregando la orden';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  perform asignar_transportista(current_setting('prueba.e191')::uuid, current_setting('prueba.transp')::uuid,
+    500, '0191 TST', null, 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Un enlace revocado tampoco la entrega (se restaura al terminar).
+update cmr_enlaces set revocado = true where token = current_setting('prueba.tok191')::uuid;
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; j jsonb; begin
+  begin
+    j := datos_orden_por_cmr(tok);
+    raise exception 'FALLO 192 · un enlace revocado sigue entregando la orden';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 192 · orden por el enlace del e-CMR: el token vivo la da; revocado, inventado o sin transportista, no';
+end $$;
+reset role;
+update cmr_enlaces set revocado = false where token = current_setting('prueba.tok191')::uuid;
