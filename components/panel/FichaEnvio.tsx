@@ -147,6 +147,14 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
         </span>
       </button>
+      {/* Orden de carga FUERA del menú «Más» (usuario, 2026-11-11): botón propio junto al
+          eCMR, visible solo cuando ya hay a quién mandarla (transportista asignado; en el
+          manual, el operador del cliente). */}
+      {manual ? (
+        <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga</a>
+      ) : ficha.transportista ? (
+        <button type="button" className="btn-secondary" onClick={() => setVista('orden')}><I d={ICO.doc} />Orden de carga</button>
+      ) : null}
       {e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto') && (
         <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
@@ -179,14 +187,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <a className="fm-item" href={`/panel/nuevo-envio?ruta=${e.id}`}><I d={ICO.ruta} />Cambiar ruta</a>
         )}
         {!manual && <a className="fm-item" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
-        {/* PDF: se generan al momento y se abren en el visor (regla 0-bis). La orden, cuando
-            ya hay a quién mandarla. */}
-        {manual ? (
-          <a className="fm-item" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga</a>
-        ) : ficha.transportista && (
-          /* Diálogo de compartir (usuario, 2026-11-10): qué variante y por dónde se envía. */
-          <button className="fm-item" onClick={() => setVista('orden')}><I d={ICO.doc} />Orden de carga</button>
-        )}
+        {/* La «Orden de carga» salió de aquí a botón propio junto al eCMR (usuario, 2026-11-11). */}
         {/* Incidencia en cualquier estado del envío (decisión 2026-07-12); penalización en los de Dynamo. */}
         <a className="fm-item" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>
         {!manual && <a className="fm-item" href={`/panel/penalizaciones?nueva=${e.id}`}><I d={ICO.x} />Crear penalización</a>}

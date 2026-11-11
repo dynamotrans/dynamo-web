@@ -54,6 +54,7 @@ export type TextosOrden = {
   importeL: string; pendiente: string; impuestosNo: string; formaPago: string; txtProntoPago: string; txtTransferencia: string;
   facturaL: string; txtFactura: string; txtDiscrecion: string; verCondEs: string;
   pagina: string; de: string; rango: string;
+  qrDeca: string; qrEscanea: string; qrPendiente: string;
 };
 
 export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
@@ -86,6 +87,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCRECIÓN COMERCIAL: en la carga no informes del destino, ni en la entrega del origen. No enseñes a nadie precios ni esta orden.',
     verCondEs: 'Condiciones de la orden: en las páginas en ESPAÑOL de este documento.',
     pagina: 'Página', de: 'de', rango: 'del {a} al {b}',
+    qrDeca: 'Documento de control del transporte (e-CMR / DeCA): el QR abre el documento completo, con la hoja de firmas, siempre al día.', qrEscanea: 'Escanéalo con el móvil', qrPendiente: 'Pendiente de asignar transporte',
   },
   en: {
     titulo: 'LOADING ORDER', subRef: 'Shipment reference', emitida: 'Issued on',
@@ -116,6 +118,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'COMMERCIAL DISCRETION: at loading do not disclose the destination, nor the origin at delivery. Do not show prices or this order to anyone.',
     verCondEs: 'Order conditions: see the SPANISH pages of this document.',
     pagina: 'Page', de: 'of', rango: '{a} – {b}',
+    qrDeca: 'Transport control document (e-CMR / DeCA): the QR opens the full document, with the signature sheet, always up to date.', qrEscanea: 'Scan it with your phone', qrPendiente: 'Transport pending assignment',
   },
   pt: {
     titulo: 'ORDEM DE CARGA', subRef: 'Referência do envio', emitida: 'Emitida em',
@@ -146,6 +149,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCRIÇÃO COMERCIAL: na carga não informe o destino, nem na entrega a origem. Não mostre a ninguém preços nem esta ordem.',
     verCondEs: 'Condições da ordem: nas páginas em ESPANHOL deste documento.',
     pagina: 'Página', de: 'de', rango: 'de {a} a {b}',
+    qrDeca: 'Documento de controlo do transporte (e-CMR / DeCA): o QR abre o documento completo, com a folha de assinaturas, sempre atualizado.', qrEscanea: 'Digitalize com o telemóvel', qrPendiente: 'Transporte pendente de atribuição',
   },
   fr: {
     titulo: 'ORDRE DE CHARGEMENT', subRef: 'Référence de l’envoi', emitida: 'Émis le',
@@ -176,6 +180,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCRÉTION COMMERCIALE : au chargement ne révélez pas la destination, ni l’origine à la livraison. Ne montrez à personne les prix ni cet ordre.',
     verCondEs: 'Conditions de l’ordre : voir les pages en ESPAGNOL de ce document.',
     pagina: 'Page', de: 'sur', rango: 'du {a} au {b}',
+    qrDeca: 'Document de contrôle du transport (e-CMR / DeCA) : le QR ouvre le document complet, avec la feuille de signatures, toujours à jour.', qrEscanea: 'Scannez-le avec le téléphone', qrPendiente: 'Transport en attente d\'affectation',
   },
   de: {
     titulo: 'LADEAUFTRAG', subRef: 'Sendungsreferenz', emitida: 'Ausgestellt am',
@@ -206,6 +211,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'VERTRAULICHKEIT: beim Laden das Ziel nicht nennen, bei der Lieferung nicht die Herkunft. Zeigen Sie niemandem Preise oder diesen Auftrag.',
     verCondEs: 'Auftragsbedingungen: siehe die SPANISCHEN Seiten dieses Dokuments.',
     pagina: 'Seite', de: 'von', rango: '{a} – {b}',
+    qrDeca: 'Transport-Kontrolldokument (e-CMR / DeCA): Der QR-Code öffnet das vollständige Dokument mit dem Unterschriftenblatt, immer aktuell.', qrEscanea: 'Mit dem Handy scannen', qrPendiente: 'Transport noch nicht zugewiesen',
   },
   it: {
     titulo: 'ORDINE DI CARICO', subRef: 'Riferimento spedizione', emitida: 'Emesso il',
@@ -236,6 +242,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'RISERVATEZZA COMMERCIALE: al carico non rivelare la destinazione, né l’origine alla consegna. Non mostrare a nessuno prezzi o quest’ordine.',
     verCondEs: 'Condizioni dell’ordine: nelle pagine in SPAGNOLO di questo documento.',
     pagina: 'Pagina', de: 'di', rango: 'dal {a} al {b}',
+    qrDeca: 'Documento di controllo del trasporto (e-CMR / DeCA): il QR apre il documento completo, con il foglio firme, sempre aggiornato.', qrEscanea: 'Scansionalo con il cellulare', qrPendiente: 'Trasporto in attesa di assegnazione',
   },
   nl: {
     titulo: 'LAADOPDRACHT', subRef: 'Zendingsreferentie', emitida: 'Uitgegeven op',
@@ -266,6 +273,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'COMMERCIËLE DISCRETIE: meld bij het laden de bestemming niet, noch de herkomst bij levering. Toon niemand prijzen of deze opdracht.',
     verCondEs: 'Voorwaarden van de opdracht: zie de SPAANSE pagina’s van dit document.',
     pagina: 'Pagina', de: 'van', rango: '{a} – {b}',
+    qrDeca: 'Controledocument van het vervoer (e-CMR / DeCA): de QR opent het volledige document, met het handtekeningenblad, altijd actueel.', qrEscanea: 'Scan met je telefoon', qrPendiente: 'Transport nog toe te wijzen',
   },
   pl: {
     titulo: 'ZLECENIE TRANSPORTOWE', subRef: 'Numer referencyjny przewozu', emitida: 'Wystawiono',
@@ -296,6 +304,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DYSKRECJA HANDLOWA: przy załadunku nie ujawniaj miejsca przeznaczenia, a przy rozładunku miejsca pochodzenia. Nie pokazuj nikomu cen ani tego zlecenia.',
     verCondEs: 'Warunki zlecenia: na stronach w języku HISZPAŃSKIM tego dokumentu.',
     pagina: 'Strona', de: 'z', rango: '{a} – {b}',
+    qrDeca: 'Dokument kontrolny przewozu (e-CMR / DeCA): kod QR otwiera pełny dokument z arkuszem podpisów, zawsze aktualny.', qrEscanea: 'Zeskanuj telefonem', qrPendiente: 'Transport oczekuje na przydział',
   },
   cs: {
     titulo: 'NAKLÁDKOVÝ PŘÍKAZ', subRef: 'Referenční číslo zásilky', emitida: 'Vystaveno',
@@ -326,6 +335,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'OBCHODNÍ DISKRÉTNOST: při nakládce nesdělujte místo určení, při vykládce místo původu. Nikomu neukazujte ceny ani tento příkaz.',
     verCondEs: 'Podmínky příkazu: na ŠPANĚLSKÝCH stránkách tohoto dokumentu.',
     pagina: 'Strana', de: 'z', rango: '{a} – {b}',
+    qrDeca: 'Kontrolní dokument přepravy (e-CMR / DeCA): QR kód otevře úplný dokument s listem podpisů, vždy aktuální.', qrEscanea: 'Naskenujte telefonem', qrPendiente: 'Doprava čeká na přidělení',
   },
   ro: {
     titulo: 'COMANDĂ DE ÎNCĂRCARE', subRef: 'Referința expedierii', emitida: 'Emisă la',
@@ -356,6 +366,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCREȚIE COMERCIALĂ: la încărcare nu dezvăluiți destinația, nici originea la livrare. Nu arătați nimănui prețurile sau această comandă.',
     verCondEs: 'Condițiile comenzii: pe paginile în SPANIOLĂ ale acestui document.',
     pagina: 'Pagina', de: 'din', rango: '{a} – {b}',
+    qrDeca: 'Document de control al transportului (e-CMR / DeCA): codul QR deschide documentul complet, cu fila de semnături, mereu actualizat.', qrEscanea: 'Scanează-l cu telefonul', qrPendiente: 'Transport în așteptarea alocării',
   },
 };
 

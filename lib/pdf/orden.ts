@@ -1,4 +1,5 @@
 import { telBonito } from '@/lib/paises';
+import QRCode from 'qrcode';
 import { pesoTn, tipoCargaTxt } from '@/lib/formato';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -121,6 +122,36 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     partesFranja[i].forEach((ln, j) => l.texto(x, l.y + 26 + j * 12, ln, 9.5, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
   });
   l.y += hFranja + 14;
+
+  // ---- Tarjeta del QR del e-CMR / DeCA (usuario, 2026-11-11) ----
+  // La tarjeta va SIEMPRE, con el mismo diseño que el impreso del CMR: con transportista
+  // y matrícula lleva el QR real (abre el PDF COMPLETO del CMR-DeCA con la hoja de
+  // firmas); si aún no hay transporte, el hueco punteado con «Pendiente de asignar
+  // transporte» — así el diseño no cambia cuando se asigna.
+  {
+    let qrImg: PDFImage | null = null;
+    if (d.deca && p && e.matricula_camion) {
+      try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; }
+    }
+    l.sitio(104);
+    const cw = 96, ch = 91, cx = der - cw, ct = l.y, r = 8;
+    l.pag.drawSvgPath(
+      `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${ch - r} Q ${cw} ${ch} ${cw - r} ${ch} H ${r} Q 0 ${ch} 0 ${ch - r} V ${r} Q 0 0 ${r} 0 Z`,
+      { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
+    const tTit = manual ? 'QR e-CMR' : 'QR e-CMR / DeCA';
+    l.texto(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, { bold: true, color: COLOR.navy });
+    if (qrImg) {
+      l.pag.drawImage(qrImg, { x: cx + (cw - 62) / 2, y: A4.h - (ct + 16) - 62, width: 62, height: 62 });
+    } else {
+      l.pag.drawRectangle({ x: cx + (cw - 58) / 2, y: A4.h - (ct + 18) - 58, width: 58, height: 58, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
+      l.texto(cx + (cw - l.medida('QR', 9, true)) / 2, ct + 50, 'QR', 9, { bold: true, color: COLOR.gris });
+    }
+    const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
+    l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + 86, tPie, 5.4, { color: COLOR.gris });
+    l.y = ct + 30;
+    l.parrafo(t.qrDeca, 8.5, { bold: true, x: l.x0, ancho: l.ancho - cw - 16, color: COLOR.navy });
+    l.y = ct + ch + 12;
+  }
 
   // ---- Recogidas y entregas ----
   const seccion = (titulo: string) => {
