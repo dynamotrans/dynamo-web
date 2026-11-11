@@ -240,10 +240,22 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       const refs = [e.referencia_cliente && `Ref. ${e.referencia_cliente}`, ...d.paradas.map((p) => p.referencia && `${p.tipo === 'carga' ? 'Carga' : 'Entrega'}: ${p.referencia}`)].filter(Boolean).join(' · ');
       dato(42, 324, [{ t: refs || '—', s: 8, b: false }], 60);
 
-      // 16 Porteador (nombre y, en una línea pequeña, CIF y teléfono)
-      const nomLineas = l.partir(porteador.nombre, 8.4, 26 * 8.4 * 0.5, true).length;
-      dato(438, 190, [{ t: porteador.nombre, s: 8.4 }], 26);
-      dato(438, 190 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
+      // 16 Porteador: el texto fijo de Dynamo (usuario, 2026-11-11) — razón social, CIF
+      // y la reserva online; en envíos MANUALES, el operador del cliente con CIF y teléfono.
+      if (manual) {
+        const nomLineas = l.partir(porteador.nombre, 8.4, 26 * 8.4 * 0.5, true).length;
+        dato(438, 190, [{ t: porteador.nombre, s: 8.4 }], 26);
+        dato(438, 190 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
+      } else {
+        // Compacto: razón social en UNA línea (7.6pt cabe entera) e interlineado de 9pt,
+        // para que las 4 líneas queden dentro de la casilla sin pisar el borde de la 17.
+        const nl16 = l.partir(D.razon_social, 7.6, 32 * 7.6 * 0.5, true).length;
+        dato(438, 186, [{ t: D.razon_social, s: 7.6 }], 32);
+        const y16 = 186 + nl16 * 10 - 1;
+        dato(438, y16, [{ t: `CIF ${D.cif}`, s: 6.8, b: false }], 40);
+        dato(438, y16 + 9, [{ t: 'Reserva transporte ONLINE:', s: 6.8, b: false }], 40);
+        dato(438, y16 + 18, [{ t: D.web, s: 7.2 }], 40);
+      }
       // 17 Porteadores sucesivos: el transportista EFECTIVO con su CIF (DeCA: debe constar
       // frente al cargador contractual de la 16), su camión y su conductor.
       dato(438, 236, [
