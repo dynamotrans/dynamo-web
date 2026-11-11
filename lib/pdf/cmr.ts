@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
 import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
-import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros } from '@/lib/formato';
+import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros, ventana } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 
 // CMR (carta de porte internacional) RELLENO, copiado del mockup: los 4 ejemplares del
@@ -65,8 +65,102 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
 
   // QR del e-CMR (el enlace https ÚNICO del documento): va en la cabecera de TODAS las
   // páginas (usuario, 2026-11-10), con tamaño legible con el móvil, y en la hoja de firmas.
+  // SOLO existe con transportista y matrícula asignados (usuario, 2026-11-11): sin ellos
+  // el DeCA no puede generarse ni mostrarse — en su rincón va el porqué, en «pendiente».
+  const conTransporte = !!(d.porteador && e.matricula_camion);
   let qrImg: PDFImage | null = null;
-  if (d.deca) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
+  if (d.deca && conTransporte) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
+
+  // HOJA DeCA INDEPENDIENTE, PRIMERA del PDF (usuario, 2026-11-11): aunque el propio
+  // e-CMR ya vale como documento de control, delante va un DeCA aparte con los datos del
+  // art. 5 de la Orden FOM/2861/2012, con nuestro estilo. Solo puede existir con
+  // transportista y matrícula, y nunca en envíos manuales (ahí Dynamo no es el operador).
+  const hojaDeca = !manual && !!d.deca && conTransporte && !!qrImg;
+  if (hojaDeca && d.deca) {
+    const der = A4.w - l.margen.der;
+    const cabY = l.y;
+    let xTit = l.x0;
+    if (logo) { const h = 20, w = h * logo.width / logo.height; l.pag.drawImage(logo, { x: l.x0, y: A4.h - cabY - 1 - h, width: w, height: h }); xTit = l.x0 + w + 12; }
+    l.texto(xTit, cabY + 16, 'Documento de control · DeCA', 15, { bold: true, color: COLOR.navy });
+    const numE = `Envío Nº ${e.referencia_gx ?? ''}`;
+    const anchoNum = l.medida(numE, 9, true) + 16;
+    l.rect(der - anchoNum, cabY + 1, anchoNum, 20, COLOR.moradoSuave);
+    l.textoDer(der - 8, cabY + 15, numE, 9, { bold: true, color: COLOR.morado });
+    l.y = cabY + 28;
+    l.linea(l.x0, l.y, der, l.y, COLOR.morado, 1.4);
+    l.y += 8;
+    const introD = 'Documento de control administrativo del transporte público de mercancías por carretera (Orden FOM/2861/2012), con los '
+      + 'datos que exige su art. 5. En soporte electrónico (art. 6): basta mostrarlo, en el móvil o impreso, en una inspección en '
+      + 'carretera. Acompaña al e-CMR de este envío (hojas siguientes), que recoge las firmas y hace también de documento de control.';
+    for (const ln of l.partir(introD, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
+    l.y += 5;
+    // Identificación del documento (nº único, creación y verificación), con el QR dentro.
+    const nUnico = d.deca.url.split('/').pop() ?? '';
+    const altoId = 92;
+    l.rect(l.x0, l.y, l.ancho, altoId, COLOR.fondo, COLOR.grisClaro);
+    l.pag.drawImage(qrImg!, { x: der - 82, y: A4.h - (l.y + 10) - 72, width: 72, height: 72 });
+    l.textoDer(der - 10, l.y + 90, 'Escanéalo para verificar', 6.2, { color: COLOR.gris });
+    const wId = l.ancho - 100 - 24;
+    let yId = l.y + 9;
+    for (const [k, v, b] of [
+      ['Nº único del documento', nUnico, true],
+      ['Creado el', fechaHora(d.deca.creado_en), false],
+      ['Verificación en línea', d.deca.url, false],
+    ] as const) {
+      l.texto(l.x0 + 12, yId + 6.2, k.toUpperCase(), 6.2, { bold: true, color: COLOR.gris });
+      yId += 9;
+      for (const ln of l.partir(v, 8, wId, b)) { l.texto(l.x0 + 12, yId + 8, ln, 8, { bold: b, color: COLOR.navy }); yId += 11; }
+      yId += 3;
+    }
+    l.y += altoId + 6;
+    // Secciones con los datos del art. 5, en filas etiqueta · valor (nuestro estilo).
+    const sec = (titulo: string) => {
+      l.y += 5;
+      l.texto(l.x0, l.y + 8, titulo, 8, { bold: true, color: COLOR.morado });
+      l.y += 12;
+      l.linea(l.x0, l.y, der, l.y, COLOR.grisClaro, 0.8);
+      l.y += 4;
+    };
+    const filaD = (k: string, v: string | null | undefined, b = false) => {
+      if (!v) return;
+      const xV = l.x0 + 160;
+      l.texto(l.x0, l.y + 8, k, 7.2, { color: COLOR.gris });
+      for (const ln of l.partir(v, 8.2, der - xV, b)) { l.texto(xV, l.y + 8.2, ln, 8.2, { bold: b, color: COLOR.tinta }); l.y += 11; }
+      l.y += 1;
+    };
+    const p = d.porteador!;
+    sec('CARGADOR CONTRACTUAL · OPERADOR DE TRANSPORTE');
+    filaD('Razón social', D.razon_social, true);
+    filaD('NIF', D.cif);
+    filaD('Domicilio', [D.direccion, [D.codigo_postal, D.poblacion].filter(Boolean).join(' '), D.pais].filter(Boolean).join(', '));
+    filaD('Autorización', `Operador de transporte · O.T. ${D.tarjeta_ot}`);
+    sec('TRANSPORTISTA EFECTIVO');
+    filaD('Razón social', p.razon_social, true);
+    filaD('NIF', p.cif);
+    filaD('Domicilio', [p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.pais].filter(Boolean).join(', ') || null);
+    filaD('Contacto', [p.contacto, p.telefono && telBonito(p.telefono), p.email].filter(Boolean).join(' · ') || null);
+    sec('VEHÍCULO Y CONDUCTOR');
+    filaD('Matrícula tractora', e.matricula_camion, true);
+    filaD('Matrícula remolque', e.matricula_remolque);
+    filaD('Conductor', e.conductor_nombre ? [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') : null);
+    sec('NATURALEZA Y PESO DE LA CARGA');
+    filaD('Mercancía', [e.descripcion_mercancia || (e.paletizado === false ? 'Mercancía sin paletizar' : 'Mercancía paletizada'),
+      e.adr ? 'ADR (peligrosa)' : null].filter(Boolean).join(' · '), true);
+    filaD('Peso', e.toneladas != null ? pesoKg(Number(e.toneladas) * 1000) : 'Por determinar');
+    filaD('Ocupación', [e.metros_lineales != null && `${metros(e.metros_lineales)} lineales`, e.num_bultos != null && `${e.num_bultos} bultos`,
+      e.volumen_m3 != null && `${num(e.volumen_m3)} m³`].filter(Boolean).join(' · ') || null);
+    sec('ORIGEN · LUGAR Y FECHA DE CARGA');
+    filaD('Lugar', [carga?.nombre_empresa, lineaDir(carga)].filter(Boolean).join(' · ') || '—', true);
+    filaD('Fecha de carga', e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta) || null);
+    sec('DESTINO · LUGAR Y FECHA DE ENTREGA');
+    const ultEnt = ent[ent.length - 1];
+    filaD('Lugar', [ultEnt?.nombre_empresa, lineaDir(ultEnt)].filter(Boolean).join(' · ') || '—', true);
+    filaD('Fecha de entrega', e.fecha_entrega_estimada ? `Estimada: ${fecha(e.fecha_entrega_estimada)}` : null);
+    if (d.paradas.length > 2) {
+      filaD('Paradas', `${rec.length} ${rec.length === 1 ? 'recogida' : 'recogidas'} · ${ent.length} ${ent.length === 1 ? 'entrega' : 'entregas'} — detalle completo en el e-CMR`);
+    }
+    if (e.referencia_cliente) { sec('REFERENCIAS'); filaD('Ref. del cliente', e.referencia_cliente); }
+  }
 
   for (let nc = 0; nc < cartas.length; nc++) {
     const entrega = cartas[nc];
@@ -74,7 +168,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     const varias = cartas.length > 1;
     // Una página por ejemplar, con los mismos datos.
     for (let i = 0; i < 4; i++) {
-      const pg: PDFPage = nc === 0 && i === 0 ? l.pag : l.doc.addPage([A4.w, A4.h]);
+      const pg: PDFPage = nc === 0 && i === 0 && !hojaDeca ? l.pag : l.doc.addPage([A4.w, A4.h]);
       pg.drawImage(fondos[i], { x: 0, y: 0, width: A4.w, height: A4.h });
       const t = (x: number, top: number, s: unknown, size: number, bold = true, color: RGB = TINTA) =>
         l.texto(x, top, s, size, { bold, color, pag: pg });
@@ -109,9 +203,18 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         const xr = DER - wRot - l.medida(resto, 5, false);
         t(xr, 72, rot, 5.5, true);
         t(xr + wRot, 72, resto, 5, false, COLOR.gris);
+      } else if (!conTransporte) {
+        // Sin transportista o sin matrícula no hay DeCA ni QR (usuario, 2026-11-11):
+        // en su rincón, el porqué, para que nadie busque un QR que no puede existir.
+        const DER = 561, t1 = 'QR del e-CMR / DeCA', t2 = 'Pendiente de asignar transporte';
+        const w = Math.max(l.medida(t1, 6, true), l.medida(t2, 6, false)) + 14, alto = 22, top = 12;
+        pg.drawRectangle({ x: DER - w, y: A4.h - top - alto, width: w, height: alto, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 0.8 });
+        t(DER - w + 7, top + 9, t1, 6, true, COLOR.navy);
+        t(DER - w + 7, top + 17.5, t2, 6, false, COLOR.gris);
       }
-      t(qrImg ? 440 : 468, 40, `Nº ${e.referencia_gx ?? ''}`, 9);
-      if (varias) t(qrImg ? 440 : 468, 51, `Carta ${nc + 1} de ${cartas.length}`, 7.5);
+      const esquina = !!qrImg || !conTransporte;
+      t(esquina ? 440 : 468, 40, `Nº ${e.referencia_gx ?? ''}`, 9);
+      if (varias) t(esquina ? 440 : 468, 51, `Carta ${nc + 1} de ${cartas.length}`, 7.5);
       if (logo) { const h = 22, w = h * logo.width / logo.height; pg.drawImage(logo, { x: 36, y: A4.h - 15 - h, width: w, height: h }); }
 
       // 1 Remitente
@@ -266,7 +369,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     const intro = 'Las casillas 22, 23 y 24 del impreso solo admiten una firma cada una. Esta hoja forma parte del CMR y recoge TODAS las '
       + 'firmas del CMR digital, con su trazo, el documento de quien firma y la fecha y hora del servidor en el momento de firmar.';
     for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
-    if (d.deca) {
+    if (d.deca && conTransporte) {
       l.y += 6;
       const nUnico = d.deca.url.split('/').pop() ?? '';
       // EL PORQUÉ LEGAL, CLARO Y EN NEGRITA (usuario, 2026-11-10): tres cajas —la ley que
@@ -314,6 +417,13 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       yTxt += 2;
       for (const ln of datos) { l.texto(l.x0 + 10, yTxt + 6.8, ln, 6.8, { color: COLOR.gris }); yTxt += 9; }
       l.y += altoPanel + 8;
+    } else if (!conTransporte) {
+      // Sin transportista o sin matrícula el DeCA no existe todavía (usuario, 2026-11-11).
+      l.y += 6;
+      for (const ln of l.partir('Documento de control (DeCA): pendiente. Se genera, con su QR de verificación, cuando el envío tiene transportista y matrícula asignados (Orden FOM/2861/2012, art. 5).', 7.4, l.ancho)) {
+        l.texto(l.x0, l.y + 8, ln, 7.4, { color: COLOR.gris }); l.y += 10;
+      }
+      l.y += 4;
     } else { l.y += 4; }
     if (!firmas.length) {
       l.texto(l.x0, l.y + 10, 'Aún no hay ninguna firma registrada.', 9, { bold: true });
