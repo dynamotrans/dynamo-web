@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // Ventana de COMPARTIR propia de Dynamo (usuario, 2026-11-11): el mismo diseño sencillo
 // en cualquier aparato (móvil, escritorio, tableta), en vez de la hoja del sistema, que
@@ -12,6 +13,11 @@ export default function CompartirSheet({ titulo, texto, url, onCerrar }: {
   titulo: string; texto: string; url: string; onCerrar: () => void;
 }) {
   const [copiado, setCopiado] = useState(false);
+  // En PORTAL al body (2026-11-11): dentro de otra ventana (el modal del panel), la
+  // animación/transform de la tarjeta atrapa al position:fixed y la hoja salía recortada
+  // y mal colocada. Montada en el body, pinta entera y por encima de todo.
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
   const cuerpo = `${texto}\n${url}`;
   const enc = encodeURIComponent(cuerpo);
   const opcion: React.CSSProperties = {
@@ -19,9 +25,10 @@ export default function CompartirSheet({ titulo, texto, url, onCerrar }: {
     width: '100%', padding: '0.85rem 1rem', borderRadius: 12, fontSize: '1rem', fontWeight: 800,
     textDecoration: 'none', border: 'none', cursor: 'pointer', boxSizing: 'border-box',
   };
-  return (
+  if (!montado) return null;
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Compartir"
-      style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 10050, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}
       onClick={(ev) => { if (ev.target === ev.currentTarget) onCerrar(); }}>
       <div style={{ background: '#fff', borderRadius: 18, padding: '1.2rem 1.1rem', maxWidth: 380, width: '100%', boxShadow: '0 24px 60px rgba(10,2,48,0.35)' }}>
         <h2 style={{ margin: '0 0 0.15rem', fontSize: '1.05rem', color: '#0a0230' }}>Compartir</h2>
@@ -44,6 +51,7 @@ export default function CompartirSheet({ titulo, texto, url, onCerrar }: {
           <button type="button" style={{ ...opcion, background: 'none', color: '#6b7280', fontWeight: 700, padding: '0.6rem 1rem' }} onClick={onCerrar}>Cancelar</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
