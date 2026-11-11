@@ -20,6 +20,7 @@ type Bloque = { clave: string; titulo: string; casilla: string; firmante: string
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
   const [abierto, setAbierto] = useState<Bloque | null>(null);
+  const [fin, setFin] = useState(false);   // pantalla de gracias tras «Está todo guardado»
   // Firma EXTRA (usuario, 2026-11-09): hasta 3 además de las casillas de siempre. Se elige
   // la casilla y se abre la pantalla de firma normal; no ocupa la casilla ni anota reservas.
   const [eligiendoExtra, setEligiendoExtra] = useState(false);
@@ -67,15 +68,32 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${rec.length + ent.length > 2 ? rec.length + i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
-  // «Está todo guardado, salir» (usuario, 2026-11-10): cada firma se guarda SOLA al
-  // firmar, así que no hay nada que guardar; al salir, quien firma (normalmente un
-  // externo sin cuenta) aterriza en la WEB PÚBLICA de Dynamo, no en una página vacía.
-  // Grande y bien visible, y solo después de haber firmado en esta visita.
-  const btnFin = (
-    <a className="firma-btn" href="/" style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
-      padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
-      ✓ Está todo guardado, salir
-    </a>
+  // «Está todo guardado» (usuario, 2026-11-11): ya NO se lleva a nadie a la web pública.
+  // Al pulsarlo, AQUÍ mismo sale la pantalla de gracias con un botón bien llamativo que
+  // abre el PDF del eCMR al día, con las firmas actuales. Solo tras firmar en esta visita.
+  const btnFin = fin ? (
+    <div style={{ background: '#ecfdf5', border: '2px solid #1d9e57', borderRadius: 14, padding: '1.2rem 1rem', textAlign: 'center' }}>
+      <div aria-hidden="true" style={{ width: 54, height: 54, margin: '0 auto 0.6rem', borderRadius: '50%', background: '#1d9e57', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 800 }}>✓</div>
+      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46' }}>Todo guardado. ¡Gracias!</div>
+      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el eCMR al momento.</p>
+      <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
+        padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
+        Ver el CMR en PDF · con las firmas actuales
+      </a>
+      {/* Salir SÍ lleva a la web de Dynamo, pero solo desde aquí (usuario, 2026-11-11). */}
+      <a href="/" style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center', textDecoration: 'none',
+        background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem' }}>
+        Salir · He terminado, gracias
+      </a>
+      <button type="button" onClick={() => setFin(false)} style={{ marginTop: '0.7rem', background: 'none', border: 'none', color: '#047857', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
+        Volver a las firmas
+      </button>
+    </div>
+  ) : (
+    <button type="button" className="firma-btn" onClick={() => setFin(true)} style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center',
+      padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)', border: 'none', cursor: 'pointer' }}>
+      ✓ Está todo guardado · Terminar
+    </button>
   );
   const extras = (cmr.firmas ?? []).filter((f) => f.extra);
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;

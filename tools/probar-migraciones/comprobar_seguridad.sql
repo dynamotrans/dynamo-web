@@ -7388,3 +7388,25 @@ do $$ declare j jsonb; n int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 194. En vivo: ninguna tabla de negocio con envio_id se queda muda ---------------
+-- cmr_reservas nació después de la lista de la plataforma en vivo y no mandaba señal
+-- (2026-11-11: «subo una reserva y no se actualiza»). Barrido para que no se repita:
+-- toda tabla con envio_id lleva los 3 disparadores de señal, o está aquí a propósito.
+reset role;
+do $$ declare faltan text; begin
+  select string_agg(c.relname, ', ') into faltan
+    from pg_class c
+   where c.relnamespace = 'public'::regnamespace and c.relkind = 'r'
+     and exists (select 1 from pg_attribute a where a.attrelid = c.oid and a.attname = 'envio_id' and not a.attisdropped)
+     and c.relname not in ('intentos_carga_publica',   -- control de abusos del enlace: no se pinta en el panel
+                           'contraoferta_intentos',    -- ídem (tope de contraofertas)
+                           'consultas_precio',         -- histórico interno del tarifador
+                           'pin_intentos',             -- control de abusos del PIN: no se pinta en el panel
+                           'auditoria')                -- registro inmutable: se consulta, no se mira en vivo
+     and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
+  if faltan is not null then
+    raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
+  end if;
+  raise notice 'OK 194 · en vivo: todas las tablas de negocio con envio_id mandan señal (cmr_reservas incluida)';
+end $$;

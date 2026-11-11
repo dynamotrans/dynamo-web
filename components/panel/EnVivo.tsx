@@ -120,7 +120,10 @@ export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marc
     };
     // Lo que quedó esperando se aplica en cuanto se pueda.
     const revisar = setInterval(() => { if (pendiente.current) refrescar(); }, REVISAR_MS);
-    const alVolver = () => { if (!document.hidden && pendiente.current) refrescar(); };
+    // Al VOLVER a la pestaña se pone al día SIEMPRE, hubiera o no señal pendiente
+    // (usuario, 2026-11-11: una reserva desde el móvil no aparecía): con la pestaña
+    // dormida el navegador puede cortar el websocket y las señales se pierden.
+    const alVolver = () => { if (!document.hidden) { pendiente.current = true; refrescar(); } };
     document.addEventListener('visibilitychange', alVolver);
 
     let vivo = true;
