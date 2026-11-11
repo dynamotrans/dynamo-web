@@ -1149,27 +1149,34 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> revisas las condiciones y queda <strong>programado con este precio</strong> (base sin IVA). Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</p>}
               </div>}
               {aviso && !revisarLegal && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
-              <div className="ptar-actions ptar-actions-confirm">
-                {/* Doble confirmación con los costes de cancelación y las condiciones generales:
-                    la llevan Dynamo y también el CLIENTE (su envío nace ya con precio y compromiso;
-                    la base de datos apunta condiciones_aceptadas_en). Al editar se guarda directo:
-                    no hay nada nuevo que aceptar. */}
-                <button type="button" className="btn-primary"
-                  onClick={() => {
-                    const faltas = sitiosConFaltas();
-                    if (faltas.size) { avisarFaltasSitios(faltas); return; }
-                    if (editar) { guardarEdicion(); return; }
-                    for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
-                    setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
-                  }}
-                  data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
-                {/* Proforma ORIENTATIVA del cálculo (usuario, 2026-11-11): en blanco, debajo
-                    de Crear envío. No crea nada y va sin datos de pago. */}
-                {!manual && !editar && (esCliente ? (tarifa?.neto ?? 0) : importe) > 0 && (
-                  <button type="button" className="btn-secondary" onClick={() => setVerProforma(true)} disabled={enviando}>Ver proforma</button>
-                )}
-                <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
-              </div>
+              {(() => {
+                // Proforma ORIENTATIVA del cálculo (usuario, 2026-11-11): cuando hay precio,
+                // «Ver proforma» va PRIMERO como botón grande, y «Crear envío» debajo en
+                // blanco/gris discreto. Sin proforma (manual, editar, sin precio), Crear
+                // envío / Guardar cambios sigue siendo el botón principal.
+                const hayProforma = !manual && !editar && (esCliente ? (tarifa?.neto ?? 0) : importe) > 0;
+                return (
+                  <div className="ptar-actions ptar-actions-confirm">
+                    {hayProforma && (
+                      <button type="button" className="btn-primary" onClick={() => setVerProforma(true)} disabled={enviando}>Ver proforma</button>
+                    )}
+                    {/* Doble confirmación con los costes de cancelación y las condiciones generales:
+                        la llevan Dynamo y también el CLIENTE (su envío nace ya con precio y compromiso;
+                        la base de datos apunta condiciones_aceptadas_en). Al editar se guarda directo:
+                        no hay nada nuevo que aceptar. */}
+                    <button type="button" className={hayProforma ? 'btn-secondary' : 'btn-primary'}
+                      onClick={() => {
+                        const faltas = sitiosConFaltas();
+                        if (faltas.size) { avisarFaltasSitios(faltas); return; }
+                        if (editar) { guardarEdicion(); return; }
+                        for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
+                        setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
+                      }}
+                      data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
+                    <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
+                  </div>
+                );
+              })()}
               {/* FUERA de la botonera: las reglas de ancho de .ptar-actions no deben
                   alcanzar a los botones de esta ventana. */}
               <Modal abierto={verProforma} onCerrar={() => setVerProforma(false)} titulo="Proforma del cálculo" ancho={580}
