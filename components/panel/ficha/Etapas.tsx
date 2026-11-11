@@ -72,7 +72,9 @@ export default function Etapas({ etapas, pausado, paradas, fichaParada }: {
                 {(sub || x.marcada) && (
                   <span className="tl-sub" style={{ color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>
                     {sub}
-                    {x.marcada && <span style={{ color: '#b45309', fontWeight: 700 }}>{sub ? ' · ' : ''}marcada a mano</span>}
+                    {/* El ancla puede venir de una firma del CMR (disparador), no de la mano
+                        de nadie: se dice cada cosa con su nombre (usuario, 2026-11-11). */}
+                    {x.marcada && <span style={{ color: x.firma ? 'var(--purple)' : '#b45309', fontWeight: 700 }}>{sub ? ' · ' : ''}{x.firma ? 'la fija la firma del CMR' : 'marcada a mano'}</span>}
                   </span>
                 )}
                 {card && <div className="tl-card">{card}</div>}

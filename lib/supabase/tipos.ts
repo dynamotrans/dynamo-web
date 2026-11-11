@@ -3366,7 +3366,7 @@ export type Database = {
       es_equipo_dynamo: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_servidor: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_solo_lectura: { Args: Record<PropertyKey, never>; Returns: boolean }
-      etapas_envio: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean; hecha: boolean; actual: boolean; marcada: boolean }[] }
+      etapas_envio: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean; hecha: boolean; actual: boolean; marcada: boolean; firma: boolean }[] }
       euros_texto: { Args: { p: number | null }; Returns: string }
       exportar_datos_usuario: { Args: { p_usuario?: string | null }; Returns: Json }
       factor_automatico: { Args: { p_cliente: string | null }; Returns: number }

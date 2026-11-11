@@ -7410,3 +7410,94 @@ do $$ declare faltan text; begin
   end if;
   raise notice 'OK 194 · en vivo: todas las tablas de negocio con envio_id mandan señal (cmr_reservas incluida)';
 end $$;
+
+-- ---- 195. La parada firmada más avanzada manda en el seguimiento ---------------------
+-- Ruta C1, C2, D3. Se firma C2 (→ en ruta a la 3.ª, paso 5); Dynamo marca a mano HACIA
+-- ATRÁS «cargando la 1.ª» (paso 2, eso sigue siendo libre); llega la firma olvidada de
+-- C1 → el ancla vuelve al paso 5 (la parada firmada más avanzada) con la HORA de la
+-- firma de C2, nunca al paso 3 de C1. etapas_envio enseña que esa marca la fijó una
+-- firma (columna firma). Y al firmar el destinatario de la última entrega → ENTREGADO.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A195', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'B195', 'codigo_postal', '14001', 'poblacion', 'Córdoba'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'C195', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  perform set_config('prueba.e195', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare tok uuid; i int; begin
+  select token into strict tok from cmr_enlaces where envio_id = current_setting('prueba.e195')::uuid and not revocado;
+  perform set_config('prueba.tok195', tok::text, false);
+  perform set_config('prueba.c1_195', (select id::text from envio_paradas where envio_id = current_setting('prueba.e195')::uuid and orden = 1), false);
+  perform set_config('prueba.c2_195', (select id::text from envio_paradas where envio_id = current_setting('prueba.e195')::uuid and orden = 2), false);
+  perform set_config('prueba.d3_195', (select id::text from envio_paradas where envio_id = current_setting('prueba.e195')::uuid and orden = 3), false);
+  for i in 1..3 loop
+    insert into storage.objects (bucket_id, name, metadata)
+    values ('documentos', 'cmr/' || tok::text || '/t195-' || i || '.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000));
+  end loop;
+end $$;
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok195')::uuid; r jsonb; begin
+  -- Firma de la 2.ª recogida (la 1.ª «se olvida»): en ruta a la 3.ª parada (paso 5).
+  r := firmar_cmr_publico(tok, current_setting('prueba.c2_195')::uuid, 'remitente', 'Marta Muelle', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t195-1.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 195 · no firma la 2.ª recogida: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e195')::uuid; begin
+  if (select ancla_paso from envios where id = e) <> 5 then
+    raise exception 'FALLO 195 · la firma de la 2.ª recogida no ancla el paso 5: %', (select ancla_paso from envios where id = e);
+  end if;
+end $$;
+-- Dynamo marca HACIA ATRÁS «cargando la 1.ª» (libre a propósito: corrige lo que sea).
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := marcar_etapa_envio(current_setting('prueba.e195')::uuid, 2::smallint);
+  if r->>'resultado' <> 'marcada' then raise exception 'FALLO 195 · no deja marcar hacia atrás: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok195')::uuid; r jsonb; begin
+  -- Llega la firma OLVIDADA de la 1.ª recogida: el ancla debe volver a la parada firmada
+  -- MÁS AVANZADA (paso 5, hora de la firma de C2), nunca quedarse en la 1.ª (paso 3).
+  r := firmar_cmr_publico(tok, current_setting('prueba.c1_195')::uuid, 'remitente', 'Lucía Muelle', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t195-2.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 195 · no firma la 1.ª recogida: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e195')::uuid; v_hc2 timestamptz; begin
+  select firmado_en into strict v_hc2 from firmas_cmr where envio_id = e and parada_id = current_setting('prueba.c2_195')::uuid and not extra;
+  if (select ancla_paso from envios where id = e) <> 5 then
+    raise exception 'FALLO 195 · la firma tardía de la 1.ª recogida no vuelve a la parada firmada más avanzada (paso 5): %', (select ancla_paso from envios where id = e);
+  end if;
+  if (select ancla_hora from envios where id = e) <> v_hc2 then
+    raise exception 'FALLO 195 · el ancla no lleva la hora de la firma de la parada más avanzada';
+  end if;
+end $$;
+-- etapas_envio dice que la marca la fijó una firma (columna firma), visto como Dynamo.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from etapas_envio(current_setting('prueba.e195')::uuid) t where t.marcada and t.firma) then
+    raise exception 'FALLO 195 · etapas_envio no dice que la etapa marcada la fijó una firma del CMR';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok195')::uuid; r jsonb; begin
+  r := firmar_cmr_publico(tok, current_setting('prueba.d3_195')::uuid, 'destinatario', 'Pepe Receptor', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t195-3.png', null, 'prueba', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 195 · no firma el destinatario: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e195')::uuid; begin
+  if (select estado from envios where id = e) <> 'entregado' then
+    raise exception 'FALLO 195 · con la última entrega firmada el envío no queda entregado: %', (select estado from envios where id = e);
+  end if;
+  raise notice 'OK 195 · la parada firmada más avanzada manda: la firma tardía de una recogida no retrocede nada, etapas_envio marca «lo fija la firma» y la última entrega firmada deja el envío entregado';
+end $$;
