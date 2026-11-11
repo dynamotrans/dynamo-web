@@ -1633,7 +1633,7 @@ do $$ declare e uuid; r jsonb; v text; begin
   )).id into e;
   -- Sin transportista no puede ir hacia la carga (regla de la fase 1): se le asigna uno. Con la
   -- carga a 20 días, cancelar sigue sin coste.
-  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado = 'hacia_la_carga' where id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado = 'hacia_la_carga', matricula_camion = '1065 TST' where id = e;
   r := cancelar_envio(e, 'El cliente ya no tiene la mercancía');
   if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 58 · no se ha cancelado'; end if;
   if not exists (select 1 from envio_hitos where envio_id = e and hito = 'incidencia'
@@ -4817,7 +4817,7 @@ do $$ declare e uuid := current_setting('prueba.env133')::uuid; t uuid; tok uuid
   select transportista_id into t from envios where id = e;
   update conductores set documento = '13513513B', documento_pais = 'ES' where transportista_id = t and nombre = 'Ana Conocida';
   update conductores set documento = null where transportista_id = t and nombre = 'Nuevo Sin Telefono';
-  update envios set conductor_nombre = 'Ana Conocida', conductor_telefono = '+34600888888' where id = e;
+  update envios set conductor_nombre = 'Ana Conocida', conductor_telefono = '+34600888888', matricula_camion = '1135 TST' where id = e;
   update cmr_enlaces set revocado = true where envio_id = e;
   insert into cmr_enlaces (envio_id) values (e) returning token into tok;
   insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/a.png'), ('documentos', 'cmr/' || tok || '/b.png');
@@ -6574,7 +6574,7 @@ do $$ declare e uuid; begin
     jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A176', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B176', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
-  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, matricula_camion = '1176 TST' where id = e;
   perform set_config('prueba.e176', e::text, false);
 end $$;
 reset role;
@@ -6631,7 +6631,7 @@ do $$ declare sa uuid; sb uuid; t uuid; e uuid; begin
     jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'sitio_id', sa, 'nombre_empresa', 'Muelle A177', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'descarga', 'sitio_id', sb, 'nombre_empresa', 'Nave B177', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
-  update envios set transportista_id = t where id = e;
+  update envios set transportista_id = t, matricula_camion = '1177 TST' where id = e;
   perform set_config('prueba.e177', e::text, false);
   perform set_config('prueba.sa177', sa::text, false);
   perform set_config('prueba.sb177', sb::text, false);
@@ -7425,7 +7425,7 @@ do $$ declare e uuid; begin
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A195', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'B195', 'codigo_postal', '14001', 'poblacion', 'Córdoba'),
                       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'C195', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
-  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, matricula_camion = '1195 TST' where id = e;
   perform set_config('prueba.e195', e::text, false);
 end $$;
 reset role;
@@ -7652,4 +7652,68 @@ do $$ declare e uuid := current_setting('prueba.e195')::uuid; n int; begin
     raise exception 'FALLO 199 · una segunda pasada vuelve a mover envíos (no es idempotente)';
   end if;
   raise notice 'OK 199 · reanclaje: la pasada devuelve a entregado el envío firmado que se quedó atrás, es idempotente y un cliente no puede ejecutarla';
+end $$;
+
+-- ---- 200. Matrículas al firmar el eCMR: se piden en la cabecera y luego ya no se tocan ------
+-- El DeCA debe existir antes de salir de la 1.ª parada: la firma PRINCIPAL del
+-- transportista o del cargador de la 1.ª parada exige la matrícula si el envío no la
+-- tiene, la deja corregir, y en las demás casillas (ya en tránsito) el parámetro se
+-- ignora. cmr_publico la devuelve por separado para precargarla.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 6, 'fecha_carga_desde', current_date + 28, 'importe_cliente', 600, 'importe_transportista', 450),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A200', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B200', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;   -- SIN matrícula a propósito
+  perform set_config('prueba.e200', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare tok uuid; i int; begin
+  select token into strict tok from cmr_enlaces where envio_id = current_setting('prueba.e200')::uuid and not revocado;
+  perform set_config('prueba.tok200', tok::text, false);
+  perform set_config('prueba.c1_200', (select id::text from envio_paradas where envio_id = current_setting('prueba.e200')::uuid and orden = 1), false);
+  perform set_config('prueba.d2_200', (select id::text from envio_paradas where envio_id = current_setting('prueba.e200')::uuid and orden = 2), false);
+  for i in 1..4 loop
+    insert into storage.objects (bucket_id, name, metadata)
+    values ('documentos', 'cmr/' || tok::text || '/t200-' || i || '.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000));
+  end loop;
+end $$;
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok200')::uuid; r jsonb; v jsonb; begin
+  -- Sin matrícula en el envío, el cargador de la 1.ª parada no puede firmar sin ponerla.
+  r := firmar_cmr_publico(tok, current_setting('prueba.c1_200')::uuid, 'remitente', 'Carga 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-1.png', null, 'prueba', null);
+  if r->>'resultado' <> 'faltan_matriculas' then raise exception 'FALLO 200 · firma la 1.ª parada sin matrícula: %', r; end if;
+  -- Una matrícula que no es una matrícula tampoco cuela.
+  r := firmar_cmr_publico(tok, current_setting('prueba.c1_200')::uuid, 'remitente', 'Carga 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-1.png', null, 'prueba', null,
+         false, null, null, null, null, null, '@@@@', null);
+  if r->>'resultado' <> 'matricula_no_valida' then raise exception 'FALLO 200 · acepta una matrícula imposible: %', r; end if;
+  -- Con la matrícula, firma y queda guardada en el envío.
+  r := firmar_cmr_publico(tok, current_setting('prueba.c1_200')::uuid, 'remitente', 'Carga 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-1.png', null, 'prueba', null,
+         false, null, null, null, null, null, '1234 bcd', 'r-5678-x');
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 200 · no firma con matrícula: %', r; end if;
+  v := cmr_publico(tok);
+  if v->>'matricula_camion' <> '1234 BCD' or v->>'matricula_remolque' <> 'R-5678-X' then
+    raise exception 'FALLO 200 · cmr_publico no devuelve las matrículas guardadas: %', v->>'matricula_camion';
+  end if;
+  -- El transportista (cabecera) todavía puede CORREGIRLA con su firma principal.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Chofer 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-2.png', null, 'prueba', null,
+         false, null, null, null, null, null, '9999 ZZZ', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 200 · el transportista no puede corregir la matrícula: %', r; end if;
+  -- El destinatario (en tránsito) NO la toca: su parámetro se ignora.
+  r := firmar_cmr_publico(tok, current_setting('prueba.d2_200')::uuid, 'destinatario', 'Destino 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-3.png', null, 'prueba', null,
+         false, null, null, null, null, null, '0000 NO', null);
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 200 · no firma el destinatario: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e200')::uuid; begin
+  if (select matricula_camion from envios where id = e) <> '9999 ZZZ' then
+    raise exception 'FALLO 200 · la matrícula buena no es la del transportista (cabecera): %', (select matricula_camion from envios where id = e);
+  end if;
+  if (select matricula_remolque from envios where id = e) is not null then
+    raise exception 'FALLO 200 · corregir sin remolque no lo quita';
+  end if;
+  raise notice 'OK 200 · matrículas al firmar: la cabecera (1.ª parada o transportista) las exige y corrige, el resto ya no las toca y cmr_publico las devuelve por separado';
 end $$;

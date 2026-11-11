@@ -69,7 +69,9 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   // el DeCA no puede generarse ni mostrarse — en su rincón va el porqué, en «pendiente».
   const conTransporte = !!(d.porteador && e.matricula_camion);
   let qrImg: PDFImage | null = null;
-  if (d.deca && conTransporte) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(d.deca.url, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
+  // El QR abre el PDF del e-CMR relleno (usuario, 2026-11-11: «esté donde esté el QR»),
+  // no la página de firmas; el texto de verificación en línea sigue siendo la página.
+  if (d.deca && conTransporte) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
 
   // HOJA DeCA INDEPENDIENTE, PRIMERA del PDF (usuario, 2026-11-11): aunque el propio
   // e-CMR ya vale como documento de control, delante va un DeCA aparte con los datos del

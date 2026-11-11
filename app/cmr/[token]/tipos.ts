@@ -16,6 +16,8 @@ export type CmrPublico = {
   resultado?: string; manual?: boolean; html?: string | null; referencia?: string | null;
   remitente?: string | null; porteador?: string | null; transportista?: string | null;
   transportista_email?: string | null; matricula?: string | null;
+  // Por separado (2026-11-11): la ventana de firma de la cabecera las precarga y edita.
+  matricula_camion?: string | null; matricula_remolque?: string | null;
   conductor?: string | null; fecha_carga?: string | null; mercancia?: string | null;
   metros_lineales?: Num; toneladas?: Num; adr?: boolean | null;
   paradas?: ParadaCmr[]; firmas?: FirmaCmr[]; reservas?: ReservaCmr[];

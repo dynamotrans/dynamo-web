@@ -11,7 +11,10 @@ export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transpo
   reservas?: string;     // daños o faltantes: van ANTES de la firma y entran en su huella
   fotos?: string[];      // fotos de las reservas, ya subidas a cmr/<token>/… (máx. 6)
   extra?: boolean;       // firma AÑADIDA (máx. 3 por envío): no ocupa la casilla ni anota reservas
-  gps?: { lat: number; lon: number; precision_m?: number; direccion?: string } | null };   // ubicación VIVA del dispositivo al pulsar firmar, si dio permiso
+  gps?: { lat: number; lon: number; precision_m?: number; direccion?: string } | null;   // ubicación VIVA del dispositivo al pulsar firmar, si dio permiso
+  // Matrículas al firmar (2026-11-11): solo las manda la CABECERA (transportista o
+  // cargador de la 1.ª parada); la base de datos las exige, valida y guarda.
+  matricula_camion?: string; matricula_remolque?: string };
 
 // Firmar una casilla del CMR. La validez del documento la decide AQUÍ el servidor (la
 // pantalla solo avisa); la hora la pone la base de datos; el trazo va al almacén privado,
@@ -69,6 +72,8 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     // El MISMO PNG, también en la fila de la firma (2026-11-11): de ahí lo leen la
     // página y el PDF públicos sin clave de servicio.
     p_trazo_png: m![1],
+    p_matricula_camion: (d.matricula_camion ?? '').trim().toUpperCase().slice(0, 16) || null,
+    p_matricula_remolque: (d.matricula_remolque ?? '').trim().toUpperCase().slice(0, 16) || null,
   });
   if (error) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   const r = (data as { resultado: string }).resultado;
@@ -77,6 +82,8 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     ya_firmada: 'Esta casilla ya está firmada.', demasiadas_firmas: 'Ya hay 3 firmas extra en este CMR: no caben más.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
     parada_no_valida: 'Esa casilla no corresponde a este envío.', faltan_datos: 'Indica el documento y el nombre y apellidos.', falta_trazo: 'Falta la firma.',
     sin_transportista: 'El envío no tiene transportista asignado ahora mismo: no se puede firmar hasta que se asigne.',
+    faltan_matriculas: 'Falta la matrícula del camión: ponla en la ventana de firma (sin ella no se puede salir de la 1.ª parada).',
+    matricula_no_valida: 'La matrícula no es válida: solo letras, números, espacios y guiones (de 2 a 16).',
   };
   return { ok: false, error: msg[r] ?? 'No se ha podido guardar la firma.' };
 }

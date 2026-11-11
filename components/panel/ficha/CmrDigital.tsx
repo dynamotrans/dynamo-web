@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { fechaHora } from '@/lib/formato';
 import type { Ficha } from '@/lib/fichaEnvio';
 import { enlaceCmr } from '@/app/panel/(app)/envios/acciones';
+import CompartirSheet from '@/components/CompartirSheet';
 import { I, ICO, ROL_CMR, enlaceCmrUrl } from './comun';
 
 // ---- CMR digital ------------------------------------------------------------------
@@ -11,13 +12,14 @@ import { I, ICO, ROL_CMR, enlaceCmrUrl } from './comun';
 // (sin cuenta). Las firmas quedan en el CMR relleno y no se borran nunca.
 export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
   const e = ficha.envio;
-  const [copiado, setCopiado] = useState(false);
+  const [compartir, setCompartir] = useState(false);   // ventana de compartir propia (mismo diseño en cualquier aparato)
   const [masInfo, setMasInfo] = useState(false);   // explicación + base legal, plegadas
   const enl = ficha.cmrEnlace;
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga'), entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
   const total = recogidas.length + 1 + entregas.length;
   const lugar = (id: string | null) => { const p = ficha.paradas.find((x) => x.id === id); return p ? ` · ${p.nombre_empresa || p.poblacion || ''}` : ''; };
-  const msg = enl ? `CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí: ${enlaceCmrUrl(enl.token)}` : '';
+  // Mensaje corto para compartir (la ventana propia añade el enlace al final).
+  const msg = `CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí:`;
   // Vive DENTRO de la sección Documentos de la ficha (usuario, 2026-11-10: «unificamos
   // CMR en uno»): sub-bloque con el enlace de firma y el estado, junto al botón del PDF.
   return <>
@@ -49,15 +51,15 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
               PDF relleno con el QR. Sin hoja de compartir, copia el mensaje. */}
           <a className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: '0.45rem' }} href={`/cmr/${enl.token}`} target="_blank" rel="noopener"
              title="Abre la página de firma: cargador, transportista y destinatario firman desde el móvil."><I d={ICO.firma} />Abrir la página de firma</a>
+          {compartir && (
+            <CompartirSheet onCerrar={() => setCompartir(false)} url={enlaceCmrUrl(enl.token)}
+              titulo={`CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}`}
+              texto={msg} />
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.45rem' }}>
             <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
               title="Compartir por WhatsApp, email, SMS o copiar el enlace"
-              onClick={() => {
-                const url = enlaceCmrUrl(enl.token);
-                const titulo = `CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}`;
-                if (navigator.share) { navigator.share({ title: titulo, text: `${titulo}\nFirma tu casilla con el dedo aquí:`, url }).catch(() => {}); }
-                else { navigator.clipboard?.writeText(msg); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }
-              }}>{copiado ? 'Mensaje copiado ✓' : 'Compartir página de firmas'}</button>
+              onClick={() => setCompartir(true)}>Compartir página de firmas</button>
             <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`/panel/envios/${ficha.envio.id}/cmr`} target="_blank" rel="noopener"
                title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."><I d={ICO.ojo} />Abrir PDF eCMR</a>
           </div>

@@ -11,6 +11,7 @@ import { firmar, type DatosFirma } from './acciones';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
+import CompartirSheet from '@/components/CompartirSheet';
 
 // Botón discreto «¿Necesitas ayuda? · Contáctanos» (usuario, 2026-11-11): al principio y
 // al final de la página de firmas; al pulsarlo se despliegan llamar, WhatsApp y email.
@@ -34,7 +35,10 @@ import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 
-type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; preEmail: string; lugar?: string; extra?: boolean };
+type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; preEmail: string; lugar?: string; extra?: boolean;
+  // Matrículas al firmar (usuario, 2026-11-11): solo la CABECERA (transportista o
+  // cargador de la 1.ª parada) las ve, verifica y corrige; obligatorias salvo manuales.
+  conMatricula?: boolean; matObligatoria?: boolean; matCam?: string; matRem?: string };
 
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
@@ -46,7 +50,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // Solo tras FIRMAR en esta visita (usuario, 2026-11-10): quien entra a mirar sin firmar
   // nada no ve el botón de salir.
   const [firmoAqui, setFirmoAqui] = useState(false);
-  const [compartido, setCompartido] = useState(false);   // «Enlace copiado ✓» del botón de compartir
+  const [compartir, setCompartir] = useState(false);     // ventana de compartir propia (mismo diseño en cualquier aparato)
   const [masInfo, setMasInfo] = useState(false);          // despliegue del detalle legal (eIDAS / FOM)
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
@@ -82,9 +86,14 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   const paradas: ParadaCmr[] = cmr.paradas ?? [];
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
   const lugar = (p: ParadaCmr | undefined) => [p?.nombre_empresa, [p?.codigo_postal, p?.poblacion].filter(Boolean).join(' '), p?.provincia !== p?.poblacion ? p?.provincia : null].filter(Boolean).join(' · ');
+  // Matrículas al firmar (usuario, 2026-11-11): la CABECERA — el cargador de la 1.ª
+  // parada del recorrido y el transportista — las verifica, corrige o, si faltan, las
+  // pone (obligatorias salvo en envíos manuales). El resto ya está en tránsito.
+  const primera = paradas[0]?.id ?? null;
+  const mat = { conMatricula: true, matObligatoria: !cmr.manual, matCam: cmr.matricula_camion ?? '', matRem: cmr.matricula_remolque ?? '' };
   const bloques: Bloque[] = [
-    ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length + ent.length > 2 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello', firmante: 'Remitente / Cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
-    { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello', firmante: 'Porteador / Transportista', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '', preEmail: cmr.transportista_email ?? '' },
+    ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length + ent.length > 2 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello', firmante: 'Remitente / Cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p), ...(p.id === primera ? mat : {}) })),
+    { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello', firmante: 'Porteador / Transportista', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '', preEmail: cmr.transportista_email ?? '', lugar: cmr.transportista ?? undefined, ...mat },
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${rec.length + ent.length > 2 ? rec.length + i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
@@ -129,10 +138,13 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   return (
     <div className="card">
       {!cmr.manual && <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>}
-      <h1>CMR digital</h1>
-      <p className="sub">Carta de porte del envío <strong>{cmr.referencia}</strong> · firma cada parte con el dedo</p>
-      {/* Qué es esta página, en claro (usuario, 2026-11-11). */}
-      <p className="sub" style={{ marginTop: '0.15rem', color: 'var(--gray-500)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.72rem' }}>Hoja de firmas</p>
+      {/* Cabecera en caja gris suave y formal (usuario, 2026-11-11). */}
+      <div className="cab-caja">
+        <h1>CMR digital</h1>
+        <p className="sub">Carta de porte del envío <strong>{cmr.referencia}</strong> · firma cada parte con el dedo</p>
+        {/* Qué es esta página, en claro (usuario, 2026-11-11). */}
+        <p className="sub" style={{ marginTop: '0.15rem', color: 'var(--gray-500)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.72rem' }}>Hoja de firmas</p>
+      </div>
       <dl className="cmrbox">
         <dt>Remitente</dt><dd>{cmr.remitente || '—'}</dd>
         <dt>Porteador</dt><dd>{cmr.porteador || '—'}</dd>
@@ -151,18 +163,17 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           Con menú de compartir del sistema si lo hay; si no, copia el mensaje. */}
       <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.8rem 0 0', background: '#fff',
         color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
-        onClick={() => {
-          // Mensaje CORTO (usuario, 2026-11-11): «CMR del envío #… · Dynamo — Firma tu
-          // casilla con el dedo aquí:» y el enlace. La hoja de compartir del sistema deja
-          // elegir WhatsApp, email, SMS o copiar; sin hoja (escritorio), se copia el mensaje.
-          const url = window.location.href;
-          const titulo = `CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`;
-          const texto = `${titulo}\nFirma tu casilla con el dedo aquí:`;
-          if (navigator.share) { navigator.share({ title: titulo, text: texto, url }).catch(() => {}); }
-          else { navigator.clipboard?.writeText(`${texto}\n${url}`); setCompartido(true); setTimeout(() => setCompartido(false), 1800); }
-        }}>
-        {compartido ? 'Mensaje copiado ✓' : 'Compartir esta página de firmas'}
+        onClick={() => setCompartir(true)}>
+        Compartir esta página de firmas
       </button>
+      {/* Ventana de compartir PROPIA (usuario, 2026-11-11): mismo diseño sencillo en
+          cualquier aparato — WhatsApp, Email, SMS, Copiar y «Más opciones…» si el
+          aparato tiene hoja de compartir del sistema. Mensaje corto. */}
+      {compartir && (
+        <CompartirSheet onCerrar={() => setCompartir(false)} url={window.location.href}
+          titulo={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`}
+          texto={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí:`} />
+      )}
       {/* Caja AZUL con la misma cabecera que la hoja del panel (usuario, 2026-11-11):
           qué es esto y su validez legal, con el detalle eIDAS/FOM desplegable. */}
       <div style={{ margin: '0.45rem 0 0', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, padding: '0.7rem 0.85rem', textAlign: 'center' }}>
@@ -217,6 +228,11 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
                 title={sinTransportista ? 'No se puede firmar hasta que haya transportista asignado' : undefined}
                 onClick={() => setPreFirma(b)}>Firmar</button>}
             </div>
+            {/* El transportista con sus matrículas a la vista (usuario, 2026-11-11):
+                arriba ya sale su nombre y aquí también; si faltan, en rojo. */}
+            {b.rol === 'transportista' && (cmr.matricula_camion
+              ? <div className="firma-estado">Matrículas: <strong>{[cmr.matricula_camion, cmr.matricula_remolque].filter(Boolean).join(' / ')}</strong></div>
+              : !cmr.manual && <div className="firma-estado" style={{ color: '#b91c1c', fontWeight: 800 }}>⚠ Faltan matrículas — se piden al firmar</div>)}
             {f ? <>
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
               <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
@@ -305,6 +321,12 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   // Precargado con el del primer contacto de la ficha (sitio de la parada o transportista);
   // si la ficha no tenía ninguno y quien firma lo escribe, el servidor lo guarda en ella.
   const [email, setEmail] = useState(b.preEmail);
+  // Matrículas (usuario, 2026-11-11): solo la cabecera (transportista o cargador de la
+  // 1.ª parada) las ve — precargadas si el envío ya las tiene, editables, y obligatoria
+  // la tractora salvo en envíos manuales. En firmas extra no salen: ya está en tránsito.
+  const pideMatricula = !!b.conMatricula && !b.extra;
+  const [matCam, setMatCam] = useState(b.matCam ?? '');
+  const [matRem, setMatRem] = useState(b.matRem ?? '');
   const [reservas, setReservas] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -351,6 +373,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     setAviso(null);
     if (!doc.trim() || !nombre.trim()) { setAviso('Indica el documento y el nombre y apellidos de quien firma.'); avisaFaltas([!doc.trim() && 'sigDni', !nombre.trim() && 'sigNombre'].filter(Boolean) as string[]); return; }
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
+    if (pideMatricula && b.matObligatoria && !matCam.trim()) {
+      setAviso('Pon la matrícula del camión (tractora): sin ella no se puede salir de la 1.ª parada.');
+      avisaFaltas(['sigMatCam']); return;
+    }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     // El diálogo de ubicación del SISTEMA es obligatorio (una web no puede darse permiso
     // sola), pero antes sale el NUESTRO, con diseño y explicación (usuario, 2026-11-10).
@@ -389,7 +415,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     })();
     const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
       reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
-      gps });
+      gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula ? matRem : undefined });
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
     onFirmado();
@@ -411,6 +437,22 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
+            salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}
+        {pideMatricula && <>
+          <label className="sig-lbl" htmlFor="sigMatCam">Matrículas del camión {b.matObligatoria ? <Req /> : <Req si={false} />}</label>
+          <div className="sig-row">
+            <input type="text" id="sigMatCam" autoComplete="off" autoCapitalize="characters" placeholder="Tractora · 1234 BCD"
+              value={matCam} onChange={(e) => setMatCam(e.target.value.toUpperCase())} />
+            <input type="text" id="sigMatRem" autoComplete="off" autoCapitalize="characters" placeholder="Remolque (opcional)" aria-label="Matrícula del remolque (opcional)"
+              value={matRem} onChange={(e) => setMatRem(e.target.value.toUpperCase())} />
+          </div>
+          <div className="sig-msg warn">
+            {b.matCam
+              ? 'Verifica que las matrículas son las del camión que se lleva la mercancía; aquí puedes corregirlas. Después ya no se pueden cambiar.'
+              : 'El envío aún no tiene matrículas: ponlas aquí. Sin ellas el camión no puede salir de la 1.ª parada (documento de control DeCA).'}
+          </div>
+        </>}
         {/* Las reservas son de la casilla principal: una firma extra no las anota. */}
         {!b.extra && <>
         <label className="sig-lbl" htmlFor="sigReservas">Reservas <Req si={false} /></label>

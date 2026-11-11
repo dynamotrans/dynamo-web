@@ -34,6 +34,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   if (copia !== 'operativa' && url.searchParams.get('clave') !== r.transportista) {
     return texto('Esta variante lleva información económica: hace falta el enlace completo que te mandó Dynamo.', 403);
   }
+  // El QR del e-CMR/DeCA en la tarjeta de la orden (2026-11-11): esta ruta ABRE por el
+  // propio enlace del CMR, así que el deca siempre se puede montar — sin él, la orden
+  // salía con el hueco «Pendiente de asignar transporte» aunque hubiera matrículas.
+  r.datos.deca = { url: `${url.origin}/cmr/${token}`, creado_en: new Date().toISOString() };
 
   const p = r.parametros;
   const bytes = await ordenCompuesta(r.datos, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
