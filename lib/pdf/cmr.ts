@@ -385,9 +385,27 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     l.y = cabY + 28;
     l.linea(l.x0, l.y, A4.w - l.margen.der, l.y, COLOR.morado, 1.4);
     l.y += 8;
+    // Caja del QR ARRIBA, con su espacio (usuario, 2026-11-11): borde fino redondeado,
+    // título «QR e-CMR / DeCA» y el hueco punteado con «Pendiente» mientras no exista;
+    // los párrafos de la izquierda le dejan el sitio.
+    const cajaQR = !conTransporte;
+    const qrCardW = 112, qrCardH = 114, qrCardX = A4.w - l.margen.der - qrCardW, qrCardTop = l.y;
+    if (cajaQR) {
+      const r = 8;
+      l.pag.drawSvgPath(
+        `M ${r} 0 H ${qrCardW - r} Q ${qrCardW} 0 ${qrCardW} ${r} V ${qrCardH - r} Q ${qrCardW} ${qrCardH} ${qrCardW - r} ${qrCardH} H ${r} Q 0 ${qrCardH} 0 ${qrCardH - r} V ${r} Q 0 0 ${r} 0 Z`,
+        { x: qrCardX, y: A4.h - qrCardTop, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
+      const tQ = 'QR e-CMR / DeCA';
+      l.texto(qrCardX + (qrCardW - l.medida(tQ, 6.8, true)) / 2, qrCardTop + 14, tQ, 6.8, { bold: true, color: COLOR.navy });
+      l.pag.drawRectangle({ x: qrCardX + 21, y: A4.h - (qrCardTop + 21) - 70, width: 70, height: 70, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
+      l.texto(qrCardX + (qrCardW - l.medida('QR', 10, true)) / 2, qrCardTop + 60, 'QR', 10, { bold: true, color: COLOR.gris });
+      const tP = 'Pendiente';
+      l.texto(qrCardX + (qrCardW - l.medida(tP, 6.2, false)) / 2, qrCardTop + 103, tP, 6.2, { color: COLOR.gris });
+    }
+    const anchoIntro = cajaQR ? l.ancho - qrCardW - 14 : l.ancho;
     const intro = 'Las casillas 22, 23 y 24 del impreso solo admiten una firma cada una. Esta hoja forma parte del CMR y recoge TODAS las '
       + 'firmas del CMR digital, con su trazo, el documento de quien firma y la fecha y hora del servidor en el momento de firmar.';
-    for (const ln of l.partir(intro, 8, l.ancho)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
+    for (const ln of l.partir(intro, 8, anchoIntro)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
     if (d.deca && conTransporte) {
       l.y += 6;
       const nUnico = d.deca.url.split('/').pop() ?? '';
@@ -437,17 +455,12 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       for (const ln of datos) { l.texto(l.x0 + 10, yTxt + 6.8, ln, 6.8, { color: COLOR.gris }); yTxt += 9; }
       l.y += altoPanel + 8;
     } else if (!conTransporte) {
-      // Sin transportista o sin matrícula el DeCA no existe todavía (usuario, 2026-11-11):
-      // el hueco del QR queda RESERVADO con un marco punteado, como en el impreso.
-      l.y += 6;
-      const qx = A4.w - l.margen.der - 50, yQ = l.y;
-      l.pag.drawRectangle({ x: qx, y: A4.h - yQ - 50, width: 50, height: 50, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
-      l.texto(qx + (50 - l.medida('QR', 9, true)) / 2, yQ + 28, 'QR', 9, { bold: true, color: COLOR.gris });
-      let yT = l.y;
-      for (const ln of l.partir('Documento de control (DeCA): pendiente. Se genera, con su QR de verificación, cuando el envío tiene transportista y matrícula asignados (Orden FOM/2861/2012, art. 5).', 7.4, l.ancho - 62)) {
-        l.texto(l.x0, yT + 8, ln, 7.4, { color: COLOR.gris }); yT += 10;
+      // El porqué del DeCA pendiente, a la izquierda de la caja del QR de arriba.
+      l.y += 4;
+      for (const ln of l.partir('Documento de control (DeCA): pendiente. Se genera, con su QR de verificación, cuando el envío tiene transportista y matrícula asignados (Orden FOM/2861/2012, art. 5).', 7.4, anchoIntro)) {
+        l.texto(l.x0, l.y + 8, ln, 7.4, { color: COLOR.gris }); l.y += 10;
       }
-      l.y = Math.max(yT, yQ + 50) + 6;
+      l.y = Math.max(l.y, qrCardTop + qrCardH) + 8;
     } else { l.y += 4; }
     if (!firmas.length) {
       l.texto(l.x0, l.y + 10, 'Aún no hay ninguna firma registrada.', 9, { bold: true });
