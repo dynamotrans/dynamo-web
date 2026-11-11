@@ -2992,7 +2992,14 @@ table.data .route .arrow { color: var(--gray-500); margin: 0 0.35rem; }
 table.data td.route-full { color: var(--gray-700); min-width: 190px; white-space: nowrap; }
 table.data td.route-full .rf-line { display: flex; align-items: flex-start; gap: 0.4rem; line-height: 1.3; }
 table.data td.route-full .rf-line + .rf-line { margin-top: 0.28rem; }
-table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: calc((var(--rl) - 7px) / 2); }
+/* Círculo NUMERADO (2026-11-11: «esos puntos, con el número de parada dentro»):
+   mismo naranja/verde, con el nº en blanco, como los badges de la ruta. */
+table.data td.route-full .rf-dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    margin-top: calc((var(--rl) - 16px) / 2);
+    color: #fff; font-size: 0.62rem; font-weight: 800; line-height: 1;
+}
 table.data td.route-full .rf-dot.orig { background: var(--orange); }
 table.data td.route-full .rf-dot.dest { background: var(--green); }
 /* Parada donde está el camión AHORA (cargando/entregando): parpadea */

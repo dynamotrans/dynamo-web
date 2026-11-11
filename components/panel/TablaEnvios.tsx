@@ -191,10 +191,12 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
   );
 }
 
-function Parada({ p, fechaTxt, tipo }: { p: Parada; fechaTxt: string; tipo: 'orig' | 'dest' }) {
+function Parada({ p, fechaTxt, tipo, n }: { p: Parada; fechaTxt: string; tipo: 'orig' | 'dest'; n: number }) {
   return (
     <div className="rf-stop"><div className="rf-line">
-      <span className={`rf-dot ${tipo}`} />
+      {/* Círculo numerado (usuario, 2026-11-11): el nº de la parada dentro del punto,
+          naranja recogidas y verde entregas, como en las fichas de la ruta. */}
+      <span className={`rf-dot ${tipo}`} aria-label={`${tipo === 'orig' ? 'Recogida' : 'Entrega'} ${n}`}>{n}</span>
       <span className="rf-txt">
         <span className="rf-fecha"><strong>{fechaTxt}</strong></span>
         <span className="rf-dir">{dirParada(p) || '—'}</span>
@@ -243,10 +245,10 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         )}
       </td>
       <td className="route-full route-rec"><div className="rf-stops"><div className="rf-col">
-        {recogidas.map((p, i) => <Parada key={i} p={p} fechaTxt={fc} tipo="orig" />)}
+        {recogidas.map((p, i) => <Parada key={i} p={p} fechaTxt={fc} tipo="orig" n={i + 1} />)}
       </div></div></td>
       <td className="route-full route-ent"><div className="rf-stops"><div className="rf-col">
-        {entregas.map((p, i) => <Parada key={i} p={p} fechaTxt={fe} tipo="dest" />)}
+        {entregas.map((p, i) => <Parada key={i} p={p} fechaTxt={fe} tipo="dest" n={i + 1} />)}
       </div></div></td>
       {dynamo && (
         <td className="cliente-col">
