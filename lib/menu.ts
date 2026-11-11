@@ -74,20 +74,20 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
         { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
       ] },
     ] },
+    // Sin submenú desplegable (usuario, 2026-11-11: «quita submenú, directo lo de
+    // abajo»): los enlaces cuelgan directos del separador, en este orden.
     { sep: 'Gestión interna · Admin', items: [
-      { grupo: 'admin', titulo: 'Gestión interna', icono: 'capas', enlaces: [
-        { slug: 'clientes', titulo: 'Clientes', icono: 'clientes' },
-        { slug: 'riesgos', titulo: 'CESCE - Riesgos', icono: 'escudo' },
-        { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
-        { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
-        { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },
-        { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
-        { slug: 'proteccion-datos', titulo: 'Protección de datos', icono: 'escudo' },
-        { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
-        { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
-        { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
-        { slug: 'mantenimiento', titulo: 'Modo mantenimiento', icono: 'mantenimiento' },
-      ] },
+      { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
+      { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
+      { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
+      { slug: 'clientes', titulo: 'Clientes', icono: 'clientes' },
+      { slug: 'riesgos', titulo: 'CESCE - Riesgos', icono: 'escudo' },
+      { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
+      { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
+      { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },
+      { slug: 'proteccion-datos', titulo: 'Protección de datos', icono: 'escudo' },
+      { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
+      { slug: 'mantenimiento', titulo: 'Modo mantenimiento', icono: 'mantenimiento' },
     ] },
   ];
 }
