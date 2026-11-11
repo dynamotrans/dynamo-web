@@ -205,12 +205,15 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         t(xr + wRot, 72, resto, 5, false, COLOR.gris);
       } else if (!conTransporte) {
         // Sin transportista o sin matrícula no hay DeCA ni QR (usuario, 2026-11-11):
-        // en su rincón, el porqué, para que nadie busque un QR que no puede existir.
-        const DER = 561, t1 = 'QR del e-CMR / DeCA', t2 = 'Pendiente de asignar transporte';
-        const w = Math.max(l.medida(t1, 6, true), l.medida(t2, 6, false)) + 14, alto = 22, top = 12;
-        pg.drawRectangle({ x: DER - w, y: A4.h - top - alto, width: w, height: alto, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 0.8 });
-        t(DER - w + 7, top + 9, t1, 6, true, COLOR.navy);
-        t(DER - w + 7, top + 17.5, t2, 6, false, COLOR.gris);
+        // en su MISMO hueco, un marco punteado del tamaño del QR con el porqué debajo,
+        // con el mismo rótulo y colocación que cuando existe — así nada se pisa.
+        const QR = 50, DER = 561, qx = DER - QR;
+        pg.drawRectangle({ x: qx, y: A4.h - 15 - QR, width: QR, height: QR, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
+        t(qx + (QR - l.medida('QR', 9, true)) / 2, 43, 'QR', 9, true, COLOR.gris);
+        const rot = 'QR del e-CMR / DeCA', resto = ' · Pendiente de asignar transporte', wRot = l.medida(rot, 5.5, true);
+        const xr = DER - wRot - l.medida(resto, 5, false);
+        t(xr, 72, rot, 5.5, true);
+        t(xr + wRot, 72, resto, 5, false, COLOR.gris);
       }
       const esquina = !!qrImg || !conTransporte;
       t(esquina ? 440 : 468, 40, `Nº ${e.referencia_gx ?? ''}`, 9);
