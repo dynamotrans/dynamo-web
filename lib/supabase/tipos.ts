@@ -3476,6 +3476,7 @@ export type Database = {
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
       quitar_transportista: { Args: { p_envio: string | null }; Returns: Json }
+      reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_cambio_email: { Args: { p_usuario: string | null; p_antes: string | null; p_despues: string | null }; Returns: undefined }
       registrar_hito: { Args: { p_envio: string | null; p_hito: Database["public"]["Enums"]["tipo_hito"] | null; p_parada?: string | null; p_oferta?: string | null; p_datos?: Json | null; p_origen?: string | null }; Returns: undefined }

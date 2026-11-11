@@ -7612,3 +7612,44 @@ do $$ declare j jsonb; n int; otro uuid := gen_random_uuid(); begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 199. Reanclar el seguimiento de envíos ya firmados (pasada de mantenimiento) -----------
+-- El envío de la 195 quedó ENTREGADO con todo firmado. Dynamo lo marca a mano HACIA
+-- ATRÁS (libre a propósito) y, sin firmas nuevas que lo recoloquen,
+-- reanclar_seguimiento_firmas() lo devuelve a entregado con la regla de la parada
+-- firmada más avanzada. Un cliente no puede ejecutar la pasada.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := marcar_etapa_envio(current_setting('prueba.e195')::uuid, 2::smallint);
+  if r->>'resultado' <> 'marcada' then raise exception 'FALLO 199 · no deja marcar hacia atrás un entregado: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e195')::uuid; begin
+  if (select estado from envios where id = e) = 'entregado' then
+    raise exception 'FALLO 199 · la marca hacia atrás no ha movido el estado (la prueba no prueba nada)';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform reanclar_seguimiento_firmas();
+    raise exception 'FALLO 199 · un cliente puede ejecutar la pasada de reanclaje';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e195')::uuid; n int; begin
+  n := reanclar_seguimiento_firmas();
+  if n < 1 then raise exception 'FALLO 199 · la pasada no ha movido ningún envío (esperaba al de la 195)'; end if;
+  if (select estado from envios where id = e) <> 'entregado' then
+    raise exception 'FALLO 199 · el envío con la última entrega firmada no vuelve a entregado: %', (select estado from envios where id = e);
+  end if;
+  if reanclar_seguimiento_firmas() <> 0 then
+    raise exception 'FALLO 199 · una segunda pasada vuelve a mover envíos (no es idempotente)';
+  end if;
+  raise notice 'OK 199 · reanclaje: la pasada devuelve a entregado el envío firmado que se quedó atrás, es idempotente y un cliente no puede ejecutarla';
+end $$;
