@@ -189,6 +189,25 @@ body {
 .med-panel table.data td { padding: 0.55rem 0.2rem; white-space: normal; }
 .med-panel table.data td:first-child { color: var(--gray-600); }
 .med-panel table.data td:last-child { text-align: right; color: var(--navy); font-weight: 800; white-space: nowrap; }
+/* --- ESTILO BASE de TODOS los campos del panel (2026-11-11: «todos los campos con el
+   mismo diseño de la web», nada de esquinas chatas ni letra de máquina de escribir).
+   Cualquier input/select/textarea sin contenedor propio sale ya con este aspecto; las
+   reglas por contenedor (.modal-form-row, .alm-field, .ptar-sitio-grid…) lo afinan
+   porque tienen más peso. Va ANTES que todas ellas a propósito. --- */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']),
+select, textarea {
+    font: inherit; font-size: var(--fs-m); color: var(--navy);
+    background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px;
+    padding: 0.55rem 0.7rem; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+textarea { resize: vertical; font-family: inherit; }
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):hover,
+select:hover, textarea:hover { border-color: var(--purple); }
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):focus,
+select:focus, textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.12); }
+input::placeholder, textarea::placeholder { color: var(--gray-400); font-family: inherit; }
+
 /* CUBICADOR */
 .cub-textarea {
     width: 100%; min-height: 200px; resize: vertical; font-family: inherit;
