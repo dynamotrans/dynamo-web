@@ -947,10 +947,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         <div className="ptar-pair">
                           <Interruptor titulo="Plataforma elevadora" valor={plataforma}
                             onCambio={(v) => {
-                              setPlataforma(v); setMl(v ? '8' : '13.3'); setPeso(v ? '14' : '24');
+                              // Los metros y el peso elegidos SE MANTIENEN (usuario, 2026-11-11):
+                              // solo se recortan si superan el máximo del rígido (8 m / 14 Tn);
+                              // al quitarla no se toca nada (el 14 Tn pasa a su tramo de tráiler).
+                              setPlataforma(v);
+                              const mlN = Number(ml) || 0, pesoN = Number(peso) || 0;
+                              const recorta = v && (mlN > 8 || pesoN > 14);
+                              if (v) { if (mlN > 8) setMl('8'); if (pesoN > 14) setPeso('14'); }
+                              else if (peso === '14') setPeso('15');
                               avisar(v
-                                ? 'Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m y 14 Tn (metros y peso ajustados).'
-                                : 'Sin plataforma vuelves a TRÁILER completo: máximo 13,3 m y 24 Tn. Si tu carga ocupa menos, ajústalo en metros y peso.');
+                                ? `Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m y 14 Tn${recorta ? ' (metros y peso ajustados a ese máximo)' : ''}.`
+                                : 'Sin plataforma vuelves a TRÁILER: máximo 13,3 m y 24 Tn. Tus metros y peso se mantienen.');
                             }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
