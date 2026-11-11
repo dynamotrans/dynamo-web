@@ -4,6 +4,17 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 
+- [ ] 🤖 **CHATBOT DE IA SOBRE LA BASE DE DATOS, POR ROL (usuario, 2026-11-11)**: botón flotante en el panel
+      con el icono de IA (estrella/sparkle ✦) que abre un chat; la pregunta va al servidor, el servidor llama a
+      la **API de Claude** (Haiku por coste; Sonnet si hace falta) con el **diccionario de datos** ya existente
+      (`diccionario_datos()`, `funciones_api()`) y herramientas de consulta de SOLO LECTURA, y las consultas se
+      ejecutan **con la sesión del usuario que pregunta** (RLS manda: el cliente jamás ve datos de otros, aunque
+      pregunte por «la competencia»). **Respuestas CONCISAS, BREVES y NUMÉRICAS** (usuario: «no quiero textos
+      largos, quiero datos objetivos») — cifras, listas cortas, nada de párrafos. Fases: (1) solo Dynamo (admin,
+      lectura, empleados) con auditoría de preguntas; (2) clientes con herramientas cerradas (sus envíos,
+      presupuestos y facturas). Falta del usuario: crear la clave en console.anthropic.com y ponerla en Vercel
+      como `ANTHROPIC_API_KEY` (Sensitive, solo servidor; nunca en el repo ni en el navegador).
+
 - [ ] 🗺️ **Google Places del buscador de sitios (usuario, 2026-11-09)**: el «Buscar para autorrellenar» de Nuevo sitio ya funciona como el mockup (agenda + Google + dirección OSM + comparador de duplicados), pero el nivel Google usa la LISTA DE EJEMPLO del mockup hasta que se pague la API. Cuando toque: crear la clave en Google Cloud (Places API New), ponerla en Vercel como `GOOGLE_MAPS_API_KEY` (Sensitive, sin NEXT_PUBLIC_) y los resultados salen reales solos (la rama real ya está escrita en `buscarSitiosGoogle`).
 
 - [ ] 🚦 **PRUEBAS DE CARGA (k6) ANTES DE PASAR A PRODUCCIÓN (usuario, 2026-11-09)** — decidido al hilo de un
