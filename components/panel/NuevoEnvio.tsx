@@ -724,7 +724,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // El aviso del tráiler va con la tarjeta del camión/mercancía, encima del precio
   // (usuario, 2026-11-11), no con los demás avisos del paso 4.
   const avisoTrailer = !plataforma && (
-    <div className="pt-aviso" style={{ marginBottom: '0.6rem' }}><IcoAviso /><div>
+    // Mismo tamaño de letra que los avisos del corte y del grupaje (usuario, 2026-11-11).
+    <div className="pt-aviso" style={{ marginBottom: '0.6rem', fontSize: 'var(--fs-s)', lineHeight: 1.4, padding: '0.55rem 0.7rem' }}><IcoAviso /><div>
       <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
       <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
     </div></div>
@@ -1040,12 +1041,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {fechaLibre && fecha && dias[0] && fecha < dias[0] && (
                     <div className="ptar-field-full"><div className="wiz-warn show" role="alert">⚠ <strong>Fuera de las reglas de corte:</strong> esta fecha no se podría elegir normalmente (fija desde mañana con su corte · cada ventana con su hora de corte — la elegida, las {corteDe(urgencia, esGrupaje, cortes)}:00). Úsalo solo para urgencias o imprevistos: la recogida dependerá de encontrar camión a tiempo.</div></div>
                   )}
-                  {/* El aviso del tráiler y la tarjeta del camión/mercancía, DEBAJO del bloque
-                      de la fecha de recogida (usuario, 2026-11-11), no en la columna del precio. */}
-                  <div className="ptar-field-full" style={{ marginTop: '0.4rem' }}>
-                    {avisoTrailer}
-                    {tarjetaMercancia}
-                  </div>
                 </>)}
               </div>
             </div>
@@ -1069,13 +1064,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {navBotones}
                   </>
                 ) : esCliente ? (<>
+                  {/* La tarjeta del camión/mercancía y el aviso del tráiler, ENCIMA del
+                      desglose del importe (usuario, 2026-11-11): lo que se cotiza, a la vista. */}
                   <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
-                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
+                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
+                    encima={<>{avisoTrailer}{tarjetaMercancia}</>} onElegir={elegirAlternativa} />
                   <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en firme en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
                   {navBotones}
                 </>) : <>
                 <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
-                  cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
+                  cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
+                  encima={<>{avisoTrailer}{tarjetaMercancia}</>} onElegir={elegirAlternativa} />
                 {navBotones}
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
                   <div className="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
@@ -1150,21 +1149,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               </div>}
               {aviso && !revisarLegal && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
               {(() => {
-                // Proforma ORIENTATIVA del cálculo (usuario, 2026-11-11): cuando hay precio,
-                // «Ver proforma» va PRIMERO como botón grande, y «Crear envío» debajo en
-                // blanco/gris discreto. Sin proforma (manual, editar, sin precio), Crear
-                // envío / Guardar cambios sigue siendo el botón principal.
+                // Proforma ORIENTATIVA del cálculo. Botonera (usuario, 2026-11-11, «al
+                // revés»): «Crear envío» ARRIBA, grande y en azul (principal), y «Ver
+                // proforma» debajo, discreto en blanco.
                 const hayProforma = !manual && !editar && (esCliente ? (tarifa?.neto ?? 0) : importe) > 0;
                 return (
                   <div className="ptar-actions ptar-actions-confirm">
-                    {hayProforma && (
-                      <button type="button" className="btn-primary" onClick={() => setVerProforma(true)} disabled={enviando}>Ver proforma</button>
-                    )}
                     {/* Doble confirmación con los costes de cancelación y las condiciones generales:
                         la llevan Dynamo y también el CLIENTE (su envío nace ya con precio y compromiso;
                         la base de datos apunta condiciones_aceptadas_en). Al editar se guarda directo:
                         no hay nada nuevo que aceptar. */}
-                    <button type="button" className={hayProforma ? 'btn-secondary' : 'btn-primary'}
+                    <button type="button" className="btn-primary"
                       onClick={() => {
                         const faltas = sitiosConFaltas();
                         if (faltas.size) { avisarFaltasSitios(faltas); return; }
@@ -1173,6 +1168,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
                       }}
                       data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
+                    {hayProforma && (
+                      <button type="button" className="btn-secondary" onClick={() => setVerProforma(true)} disabled={enviando}>Ver proforma</button>
+                    )}
                     <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
                   </div>
                 );

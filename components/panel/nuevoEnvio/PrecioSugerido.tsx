@@ -50,7 +50,7 @@ const IcoVentCal = () => (
   </svg>
 );
 
-export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, ivaPct, pasada, fechaFija, corta = false, onElegir }: {
+export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, ivaPct, pasada, fechaFija, corta = false, encima = null, onElegir }: {
   tarifa: Tarifa | null;
   km: number | null; kmEstimado: boolean;
   cargando: boolean;
@@ -59,6 +59,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   pasada: boolean;                      // fecha ya pasada (registro a posteriori del Admin Master)
   fechaFija: string | null;             // la fecha elegida cuando es fecha fija (para la cabecera)
   corta?: boolean;                      // la ventana corta de grupaje (1 a 2 días) está elegida
+  encima?: React.ReactNode;             // lo que se cotiza (tarjeta del camión/mercancía), justo encima del desglose
   onElegir: (urgencia: 'dia' | 'estandar' | 'corta', fecha: string) => void;
 }) {
   const neto = usePrecioAnimado(tarifa?.neto ?? null);
@@ -94,6 +95,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
         <div className="eta-pasada"><strong>Registro a posteriori</strong>: estás dando de alta un envío con <strong>fecha ya pasada</strong>{fechaFija ? <> ({fmtFecha(fechaFija)})</> : null}. Se registra tal cual, sin suplementos de fecha fija ni avisos de plazo.</div>
       )}
 
+      {encima}
       <div className="alm-price ptar-eta-pricebox">
         {tarifa.lineas.map((l, i) => (
           <div key={i} className="alm-price-row"><span className="k">{l.k}</span><span className="v" style={l.v < 0 ? { color: 'var(--green-dark, #157a3f)' } : undefined}>{euros(l.v)}</span></div>
