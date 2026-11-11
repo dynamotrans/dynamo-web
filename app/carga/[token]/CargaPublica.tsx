@@ -649,10 +649,13 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
           <p className="id-hint" style={{ textAlign: 'center' }}>Al poner una matrícula o un conductor, rellenamos sus datos de otras veces (si los tenemos). Si dejas un campo vacío, se mantiene el que ya había.</p>
         </div>
       )}
-      {/* El aviso de dudas/incidencias va AL FINAL, junto al botón de dudas (usuario,
-          2026-11-10): arriba estorbaba entre el precio y la orden de carga. */}
-      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <div style={{ textAlign: 'left', marginTop: '0.7rem' }}><AvisoSiniestro /></div>}
-      <Dudas />
+      {/* El aviso de dudas/incidencias va AL FINAL (usuario, 2026-11-10) y SUSTITUYE al
+          botón «¿Dudas?» (usuario, 2026-11-11: duplicaba los mismos contactos). El botón
+          solo queda en los estados sin aviso (entregado o cancelado), que si no se
+          quedarían sin contacto. */}
+      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '')
+        ? <div style={{ textAlign: 'left', marginTop: '0.7rem' }}><AvisoSiniestro /></div>
+        : <Dudas />}
     </div>
   );
 }
