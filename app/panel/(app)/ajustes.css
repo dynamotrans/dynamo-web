@@ -149,8 +149,36 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
   #sec-parametros .prm-indice { position: static; }
   #sec-parametros .prm-seccion { scroll-margin-top: 5rem; }
 }
-#sec-parametros .prm-sub { margin: 0 0 0.8rem 0; padding-left: 0.7rem; border-left: 3px solid rgba(51,0,204,0.18); }
+#sec-parametros .prm-sub { margin: 0 0 0.8rem 0; padding-left: 0.7rem; border-left: 3px solid rgba(51,0,204,0.18); scroll-margin-top: 13rem; }
 #sec-parametros .prm-sub-titulo { font-size: var(--fs-m); font-weight: 800; color: var(--navy); margin-bottom: 0.35rem; }
+@media (max-width: 768px) { #sec-parametros .prm-sub { scroll-margin-top: 5rem; } }
+/* Índice con TODAS las secciones y apartados (usuario, 2026-11-11): el chip morado es
+   la sección y los finos grises, sus apartados; cada uno salta a su sitio. */
+#sec-parametros .prm-salto-grupo { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-right: 0.45rem; }
+#sec-parametros .prm-salto-sub { color: var(--gray-600); border-color: var(--gray-300); background: var(--gray-50, #f7f8fa); font-weight: 600; }
+#sec-parametros .prm-salto-sub:hover { background: #fff; border-color: var(--purple); color: var(--purple); }
+
+/* «Uso de Dynamo» (usuario, 2026-11-11): barras de uso al estilo del panel de Claude —
+   etiqueta y detalle a la izquierda, barra fina redondeada y «X de Y · Z %» al final. */
+#sec-uso .uso-grupo { background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 1rem 1.2rem; margin-bottom: 1rem; max-width: 860px; }
+#sec-uso .uso-grupo-tit { margin: 0 0 0.15rem; font-size: var(--fs-l); font-weight: 800; color: var(--navy); }
+#sec-uso .uso-grupo-sub { margin: 0 0 0.8rem; font-size: var(--fs-s); color: var(--gray-500); }
+#sec-uso .uso-fila { display: grid; grid-template-columns: minmax(130px, 200px) 1fr auto; align-items: center; gap: 0.9rem; padding: 0.5rem 0; }
+#sec-uso .uso-fila + .uso-fila { border-top: 1px solid var(--gray-100, #f1f2f5); }
+#sec-uso .uso-tit { font-weight: 700; color: var(--navy); font-size: var(--fs-m); }
+#sec-uso .uso-sub { font-size: var(--fs-s); color: var(--gray-500); }
+#sec-uso .uso-barra { height: 9px; border-radius: 999px; background: var(--gray-100, #eef0f4); overflow: hidden; }
+#sec-uso .uso-fill { display: block; height: 100%; border-radius: 999px; background: var(--purple); transition: width 0.4s ease; }
+#sec-uso .uso-fill.ojo { background: #f59e0b; }
+#sec-uso .uso-fill.mal { background: #dc2626; }
+#sec-uso .uso-der { font-size: var(--fs-s); font-weight: 700; color: var(--gray-600); white-space: nowrap; }
+#sec-uso .uso-der.ojo { color: #b45309; }
+#sec-uso .uso-der.mal { color: #b91c1c; }
+#sec-uso .uso-nota { font-size: var(--fs-s); color: var(--gray-500); line-height: 1.5; margin: 0.4rem 0 0; }
+@media (max-width: 560px) {
+  #sec-uso .uso-fila { grid-template-columns: 1fr auto; }
+  #sec-uso .uso-barra { grid-column: 1 / -1; }
+}
 /* Pendientes del Dashboard admin: filas de las ventanas de cada caja (antes «Para hoy»). */
 .ph-caja .ph-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
 .ph-caja .ph-fila { display: grid; grid-template-columns: 1fr auto; gap: 0 0.6rem; padding: 0.45rem 0.5rem; border-radius: 8px; text-decoration: none; color: inherit; }

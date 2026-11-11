@@ -7540,3 +7540,39 @@ do $$ declare tok uuid := current_setting('prueba.tok195')::uuid; r jsonb; j jso
   raise notice 'OK 196 · PDF del e-CMR por su enlace: JSON con la clave pública (documento enmascarado, sin importes) y el trazo guardado en la firma';
 end $$;
 reset role;
+
+-- ---- 197. «Uso de Dynamo»: el cliente ve lo que lleva contra las reglas de suspensión -------
+-- mi_autosuspension() devuelve al PROPIO cliente sus contadores (mismos recuentos que
+-- autosuspension_motivos) con los límites vivos de Parámetros; a una cuenta que no es
+-- de cliente, nada. El contador de consultas se mueve al momento.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare j jsonb; begin
+  j := mi_autosuspension();
+  if j is null then raise exception 'FALLO 197 · el cliente no ve su uso'; end if;
+  if (j -> 'consultas' ->> 'max_hoy')::int <= 0 or (j -> 'cancelaciones' ->> 'max_recientes')::int <= 0 then
+    raise exception 'FALLO 197 · faltan los límites vivos: %', j;
+  end if;
+  perform set_config('prueba.uso_hoy', j -> 'consultas' ->> 'hoy', false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into consultas_precio (usuario_id, cliente_id, origen)
+values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid, 'solicitud');
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare j jsonb; begin
+  j := mi_autosuspension();
+  if (j -> 'consultas' ->> 'hoy')::int <> current_setting('prueba.uso_hoy')::int + 1 then
+    raise exception 'FALLO 197 · el contador de consultas no se mueve al momento: % (antes %)', j -> 'consultas' ->> 'hoy', current_setting('prueba.uso_hoy');
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if mi_autosuspension() is not null then raise exception 'FALLO 197 · una cuenta que no es de cliente ve contadores de uso'; end if;
+  raise notice 'OK 197 · uso de Dynamo: el cliente ve sus contadores con los límites vivos, se mueven al momento y las demás cuentas no ven nada';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -133,7 +133,13 @@ export type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos
   operadores?: { id: string; nombre: string; cif?: string | null; contacto?: string | null }[];   // el catálogo de transportistas del cliente (envío manual)
   esMaster?: boolean;                                 // Admin Master: cualquier fecha, también pasada
   fechaInicial?: string | null;                       // fecha de recogida ya elegida (p. ej. al pulsar un día en la vista calendario)
+  autosusp?: MiAutosusp | null;                       // lo que el cliente lleva contra los límites de uso (mi_autosuspension)
   reglas?: ReglasPrecio | null };                     // antelación máxima y precio provisional (parámetros)
+// Lo que devuelve mi_autosuspension(): límites de uso vigentes y lo que lleva el cliente.
+export type MiAutosusp = { activa: boolean;
+  consultas: { hoy: number; max_hoy: number; semana: number; max_semana: number; mes: number; max_mes: number };
+  cancelaciones: { propias: number; envios: number; max_pct: number; min_envios: number;
+    recientes: number; max_recientes: number; dias_recientes: number } };
 export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number;
   // Horas de corte: la de fecha fija y una POR VENTANA (1-2, 1-3 y 1-4 días; usuario, 2026-11-10).
   corte_fija_hora?: number; corte_ventana_1_2_hora?: number; corte_ventana_1_3_hora?: number; corte_ventana_1_4_hora?: number };

@@ -3420,6 +3420,7 @@ export type Database = {
       marcar_pin_enviado: { Args: { p_parada: string | null; p_destino: string | null }; Returns: undefined }
       marcar_sitio_principal: { Args: { p_cliente: string | null; p_sitio: string | null }; Returns: undefined }
       metricas_usuarios: { Args: Record<PropertyKey, never>; Returns: { id: string; consultas: number; min_dia: number; min_semana: number; ultimo_latido: string }[] }
+      mi_autosuspension: { Args: Record<PropertyKey, never>; Returns: Json }
       mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean }[] }
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }

@@ -3,7 +3,7 @@ import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
-import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base, type ReglasPrecio } from '@/components/panel/NuevoEnvio';
+import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base, type ReglasPrecio, type MiAutosusp } from '@/components/panel/NuevoEnvio';
 import { CONTACTO } from '@/lib/atencion';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     if (perfil.rol !== 'cliente') {
       return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Esta pantalla es para los clientes.</div></div></section>;
     }
-    const [emp, lug, fes, ops, reg] = await Promise.all([
+    const [emp, lug, fes, ops, reg, susp] = await Promise.all([
       supabase.rpc('mi_empresa').maybeSingle(),
       leerTodo(supabase.from('sitios')
         .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
@@ -37,6 +37,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
       supabase.from('operadores').select('id, razon_social, cif, persona_contacto').eq('borrado', false).order('razon_social'),
       supabase.rpc('reglas_precio_envio'),
+      supabase.rpc('mi_autosuspension'),
     ]);
     const e = emp.data;
     if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a {CONTACTO.email}.</div></div></section>;
@@ -55,7 +56,8 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
-      operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
+      operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))}
+      autosusp={(susp.data ?? null) as MiAutosusp | null} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
   }
 
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).

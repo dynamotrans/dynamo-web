@@ -16,7 +16,7 @@ import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
 import { CONTACTO } from '@/lib/atencion';
 import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
-export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio } from './nuevoEnvio/comun';
+export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
 import AvisoCorte from './nuevoEnvio/AvisoCorte';
 import PistaScroll from './nuevoEnvio/PistaScroll';
@@ -31,7 +31,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, reglas = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, autosusp = null, reglas = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
@@ -1201,9 +1201,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
         </div></div>
-        {/* En caja GRIS, como la verde de arriba pero neutra (usuario, 2026-11-10). */}
+        {/* En caja GRIS, como la verde de arriba pero neutra (usuario, 2026-11-10). Los
+            límites salen VIVOS de Parámetros vía mi_autosuspension (usuario, 2026-11-11:
+            el «3 en 10» a pelo se quedaba viejo), con lo que lleva el cliente debajo. */}
         <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
-          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo (por encima de 3 cancelaciones en los últimos 10 envíos confirmados).
+          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo
+          {autosusp
+            ? <> (desde <strong>{autosusp.cancelaciones.max_recientes} cancelaciones con coste en {autosusp.cancelaciones.dias_recientes} días</strong>, o el <strong>{autosusp.cancelaciones.max_pct} %</strong> de tus envíos a partir de {autosusp.cancelaciones.min_envios}). Solo cuentan las que hacen daño: con camión asignado, o tarde.</>
+            : <> (los límites exactos viven en los parámetros de la plataforma y pueden ajustarse).</>}
+          {autosusp?.activa && (
+            <span style={{ display: 'block', marginTop: '0.45rem', color: 'var(--navy)' }}>
+              <strong>Tu cuenta ahora mismo:</strong> {autosusp.cancelaciones.recientes} de {autosusp.cancelaciones.max_recientes} cancelaciones
+              con coste en {autosusp.cancelaciones.dias_recientes} días · {autosusp.cancelaciones.propias} de {autosusp.cancelaciones.envios} envíos
+              {autosusp.cancelaciones.envios >= autosusp.cancelaciones.min_envios
+                ? <> ({Math.round(autosusp.cancelaciones.propias * 100 / Math.max(autosusp.cancelaciones.envios, 1))} %, límite {autosusp.cancelaciones.max_pct} %)</> : null}
+              {' '}· consultas de precio: {autosusp.consultas.hoy} de {autosusp.consultas.max_hoy} hoy. Lo tienes al detalle en el menú de tu
+              usuario, en <strong>«Uso de Dynamo»</strong>.
+            </span>
+          )}
         </div>
         <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}

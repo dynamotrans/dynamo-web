@@ -85,20 +85,22 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
     const porClave = new Map(filas.map((p) => [p.clave, p]));
     const b = norm(q.trim());
     const casa = (p: ParametroFila, ...extra: string[]) => !b || norm([p.clave, p.descripcion, AYUDA[p.clave]?.titulo ?? '', AYUDA[p.clave]?.explica ?? '', ...extra].join(' ')).includes(b);
-    const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !p.clave.startsWith('autosusp_'));
+    // OJO: el prefijo REAL es autosuspension_ (homogeneización de nombres); con el viejo
+    // autosusp_ estas filas caían en «Otros · Sin clasificar» (usuario, 2026-11-11).
+    const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !p.clave.startsWith('autosuspension_'));
     const lista = [...SECCIONES, ...(otros.length ? [{ id: 'otros', titulo: 'Otros', intro: 'Parámetros sin sección todavía.', subs: [{ titulo: 'Sin clasificar', claves: otros.map((p) => p.clave) }] } as Seccion] : [])];
     return lista.map((s) => {
       if (s.especial === 'autosusp') {
-        const f = filas.filter((p) => p.clave.startsWith('autosusp_'));
+        const f = filas.filter((p) => p.clave.startsWith('autosuspension_'));
         const ver = f.length > 0 && (!b || norm(s.titulo + ' ' + s.intro + ' suspender cancelaciones consultas').includes(b) || f.some((p) => casa(p, ETIQUETAS[p.clave]?.[0] ?? '')));
-        return { ...s, filasEsp: f, subsV: [] as { titulo: string; filas: ParametroFila[]; banco?: boolean }[], ver };
+        return { ...s, filasEsp: f, subsV: [] as { titulo: string; id: string; filas: ParametroFila[]; banco?: boolean }[], ver };
       }
       const enSec = !!b && norm(s.titulo + ' ' + s.intro).includes(b);
       const subsV = s.subs.map((u) => {
         const enSub = enSec || (!!b && norm(u.titulo).includes(b));
         const fs = u.claves.map((k) => porClave.get(k)).filter((p): p is ParametroFila => !!p).filter((p) => enSub || casa(p, s.titulo, u.titulo));
         const banco = !!u.banco && filas.some((p) => BANCO.includes(p.clave)) && (!b || enSub || norm('banco iban bic cuenta bancaria').includes(b));
-        return { titulo: u.titulo, filas: fs, banco };
+        return { titulo: u.titulo, id: `${s.id}-${norm(u.titulo).replace(/[^a-z0-9]+/g, '-')}`, filas: fs, banco };
       }).filter((u) => u.filas.length > 0 || u.banco);
       return { ...s, filasEsp: [] as ParametroFila[], subsV, ver: subsV.length > 0 };
     }).filter((s) => s.ver);
@@ -120,8 +122,15 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
         <input type="search" className="param-input" placeholder="Buscar: «negociación», «PIN», «IBAN», «días»…" value={q}
           onChange={(e) => setQ(e.target.value)} aria-label="Buscar parámetro" style={{ maxWidth: 360, width: '100%' }} />
         {q && <span className="meta">{total ? `${total} encontrado${total === 1 ? '' : 's'}` : 'Nada con esa palabra'}</span>}
+        {/* TODAS las secciones y subsecciones (usuario, 2026-11-11: «faltan algunos como
+            pronto pago»): el chip gordo lleva a la sección y los finos a cada apartado. */}
         <nav className="prm-saltos" aria-label="Secciones de parámetros">
-          {secciones.map((s) => <a key={s.id} href={`#prm-${s.id}`} className="prm-salto">{s.titulo}</a>)}
+          {secciones.map((s) => (
+            <span key={s.id} className="prm-salto-grupo">
+              <a href={`#prm-${s.id}`} className="prm-salto">{s.titulo}</a>
+              {s.subsV.map((u) => <a key={u.id} href={`#prm-${u.id}`} className="prm-salto prm-salto-sub">{u.titulo}</a>)}
+            </span>
+          ))}
         </nav>
       </div>
 
@@ -132,7 +141,7 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
           {s.especial === 'autosusp'
             ? <ReglasAutosuspension filas={s.filasEsp} candidatos={candidatos} esAdmin={esAdmin} />
             : s.subsV.map((u) => (
-              <div key={u.titulo} className="prm-sub">
+              <div key={u.titulo} id={`prm-${u.id}`} className="prm-sub">
                 <div className="prm-sub-titulo">{u.titulo}</div>
                 {u.banco && <CuentaBancaria filas={filas} />}
                 {u.filas.length > 0 && <TablaParametros filas={u.filas} esAdmin={esAdmin} />}
