@@ -43,16 +43,23 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
       </>}
       {enl ? (
         <>
-          {/* La acción principal, a lo ancho: FIRMAR. Debajo, UNA sola fila de 3 iguales
-              (usuario, 2026-11-10): compartir el enlace y el PDF relleno con el QR. */}
+          {/* La acción principal, a lo ancho: FIRMAR. Debajo, DOS iguales (usuario,
+              2026-11-11): COMPARTIR la página de firmas con la hoja del sistema
+              (WhatsApp, email, SMS, copiar — como en la propia página pública) y el
+              PDF relleno con el QR. Sin hoja de compartir, copia el mensaje. */}
           <a className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: '0.45rem' }} href={`/cmr/${enl.token}`} target="_blank" rel="noopener"
              title="Abre la página de firma: cargador, transportista y destinatario firman desde el móvil."><I d={ICO.firma} />Abrir la página de firma</a>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem' }}>
-            <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title="Copiar el enlace de firma"
-              onClick={() => { navigator.clipboard?.writeText(enlaceCmrUrl(enl.token)); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>{copiado ? 'Copiado ✓' : 'Copiar enlace'}</button>
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.45rem' }}>
+            <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
+              title="Compartir por WhatsApp, email, SMS o copiar el enlace"
+              onClick={() => {
+                const url = enlaceCmrUrl(enl.token);
+                const titulo = `CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}`;
+                if (navigator.share) { navigator.share({ title: titulo, text: `${titulo}\nFirma tu casilla con el dedo aquí:`, url }).catch(() => {}); }
+                else { navigator.clipboard?.writeText(msg); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }
+              }}>{copiado ? 'Mensaje copiado ✓' : 'Compartir página de firmas'}</button>
             <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`/panel/envios/${ficha.envio.id}/cmr`} target="_blank" rel="noopener"
-               title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."><I d={ICO.ojo} />PDF relleno</a>
+               title="El CMR relleno tal y como está ahora mismo, con las firmas que haya; lleva el QR del DeCA."><I d={ICO.ojo} />Abrir PDF eCMR</a>
           </div>
         </>
       ) : (
