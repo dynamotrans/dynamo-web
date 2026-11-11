@@ -145,9 +145,27 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
+      {/* Compartir ESTA página de firmas, lo PRIMERO (usuario, 2026-11-11): cargador,
+          transportista y destinatario ya la recibieron igual que quien la abre, y pueden
+          firmar en este mismo móvil; el botón es para reenviársela a quien la quiera.
+          Con menú de compartir del sistema si lo hay; si no, copia el mensaje. */}
+      <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.8rem 0 0', background: '#fff',
+        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
+        onClick={() => {
+          // Mensaje CORTO (usuario, 2026-11-11): «CMR del envío #… · Dynamo — Firma tu
+          // casilla con el dedo aquí:» y el enlace. La hoja de compartir del sistema deja
+          // elegir WhatsApp, email, SMS o copiar; sin hoja (escritorio), se copia el mensaje.
+          const url = window.location.href;
+          const titulo = `CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`;
+          const texto = `${titulo}\nFirma tu casilla con el dedo aquí:`;
+          if (navigator.share) { navigator.share({ title: titulo, text: texto, url }).catch(() => {}); }
+          else { navigator.clipboard?.writeText(`${texto}\n${url}`); setCompartido(true); setTimeout(() => setCompartido(false), 1800); }
+        }}>
+        {compartido ? 'Mensaje copiado ✓' : 'Compartir esta página de firmas'}
+      </button>
       {/* Caja AZUL con la misma cabecera que la hoja del panel (usuario, 2026-11-11):
           qué es esto y su validez legal, con el detalle eIDAS/FOM desplegable. */}
-      <div style={{ margin: '0.8rem 0 0', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, padding: '0.7rem 0.85rem', textAlign: 'center' }}>
+      <div style={{ margin: '0.45rem 0 0', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, padding: '0.7rem 0.85rem', textAlign: 'center' }}>
         <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--navy)' }}>Firmen el CMR con el dedo desde el móvil, sin crear cuenta</p>
         <button type="button" onClick={() => setMasInfo((v) => !v)} aria-expanded={masInfo}
           style={{ margin: '0.25rem 0 0', padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--purple)' }}>
@@ -171,24 +189,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         )}
       </div>
-      {/* Compartir ESTA página de firmas (usuario, 2026-11-10, en lugar del botón del PDF):
-          cargador, transportista y destinatario ya la recibieron igual que quien la abre, y
-          pueden firmar en este mismo móvil; el botón es para reenviársela a quien la quiera.
-          Con menú de compartir del sistema si lo hay; si no, copia el enlace. */}
-      <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.8rem 0 0', background: '#fff',
-        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
-        onClick={() => {
-          // Mensaje CORTO (usuario, 2026-11-11): «CMR del envío #… · Dynamo — Firma tu
-          // casilla con el dedo aquí:» y el enlace. La hoja de compartir del sistema deja
-          // elegir WhatsApp, email, SMS o copiar; sin hoja (escritorio), se copia el mensaje.
-          const url = window.location.href;
-          const titulo = `CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`;
-          const texto = `${titulo}\nFirma tu casilla con el dedo aquí:`;
-          if (navigator.share) { navigator.share({ title: titulo, text: texto, url }).catch(() => {}); }
-          else { navigator.clipboard?.writeText(`${texto}\n${url}`); setCompartido(true); setTimeout(() => setCompartido(false), 1800); }
-        }}>
-        {compartido ? 'Mensaje copiado ✓' : 'Compartir esta página de firmas'}
-      </button>
       {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11). */}
       <div style={{ margin: '0.45rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
         padding: '0.65rem 0.85rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
