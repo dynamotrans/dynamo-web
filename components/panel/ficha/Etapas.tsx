@@ -42,7 +42,12 @@ export default function Etapas({ etapas, pausado, paradas, fichaParada }: {
       {pausado && <div className="pen-sum-row" style={{ marginBottom: '0.4rem' }}><span className="k" style={{ color: '#b45309', fontWeight: 800 }}>Seguimiento automático en pausa</span><span className="v">El estado solo cambia a mano</span></div>}
       <div className="tl">
         {etapas.map((x) => {
-          const color = x.actual ? 'var(--purple)' : x.hecha ? '#047857' : 'var(--gray-500)';
+          // El chip del hito actual según el momento (usuario, 2026-11-11): antes de
+          // entrar en el flujo, «Programado»; durante, «Ahora»; y al acabar,
+          // «Finalizado» en verde y sin parpadeo (un envío del 29/07 no es «ahora»).
+          const fin = x.actual && x.estado === 'entregado';
+          const ini = x.actual && x.paso === 0;
+          const color = x.actual && !fin ? 'var(--purple)' : x.hecha || fin ? '#047857' : 'var(--gray-500)';
           // Hito EN una parada (cargando o descargando): lleva su ficha incrustada.
           const card = fichaParada && x.estado === 'cargando' && x.parada ? fichaParada(x.parada) : null;
           // Sin fichas incrustadas, la dirección en una línea de texto (fichas de cliente
@@ -54,14 +59,14 @@ export default function Etapas({ etapas, pausado, paradas, fichaParada }: {
             x.km != null ? `${Math.round(Number(x.km))} km${x.km_estimado ? ' (estimados)' : ''}` : '',
           ].filter(Boolean).join(' · ');
           return (
-            <div key={x.paso} className={`tl-item${x.actual ? ' tl-actual' : ''}${x.hecha ? ' tl-hecha' : ''}`} aria-current={x.actual ? 'step' : undefined}>
+            <div key={x.paso} className={`tl-item${x.actual ? ' tl-actual' : ''}${fin ? ' tl-fin' : ''}${x.hecha ? ' tl-hecha' : ''}`} aria-current={x.actual ? 'step' : undefined}>
               <span className="tl-dot" aria-hidden="true" />
               {/* El hito ACTUAL va en un cuadro sombreado con el chip «Ahora» (usuario,
                   2026-11-11: «no queda claro dónde está actualmente»). */}
               <div className="tl-cont">
                 <span className="tl-tit" style={{ color, fontWeight: x.actual ? 800 : 600 }}>
                   {dir ? nombreEtapa({ ...x, poblacion: '' }) : nombreEtapa(x)}
-                  {x.actual && <span className="tl-ahora">Ahora</span>}
+                  {x.actual && <span className={`tl-ahora${fin ? ' fin' : ini ? ' ini' : ''}`}>{fin ? 'Finalizado' : ini ? 'Sin empezar' : 'Ahora'}</span>}
                 </span>
                 {dir && <span className="tl-sub" style={{ fontWeight: 600, color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>{dir}</span>}
                 {(sub || x.marcada) && (

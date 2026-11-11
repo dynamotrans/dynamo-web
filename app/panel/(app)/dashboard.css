@@ -1623,6 +1623,12 @@ body.theme-dark .sidebar { background: #060116; }
     100% { transform: scale(1.5); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .tl-actual .tl-dot::after { animation: none; } }
+.tl-ahora.fin { background: #047857; }
+.tl-ahora.ini { background: var(--navy); }
+/* Hito FINAL (Entregado) como actual: terminado, no «ahora» — verde, sin pulso. */
+.tl-fin .tl-cont { background: #ecfdf5; border-color: #b7ebcd; box-shadow: none; }
+.tl-fin .tl-dot { background: #047857; box-shadow: inset 0 0 0 2px #047857; }
+.tl-fin .tl-dot::after { content: none; }
 .tl-ahora {
     display: inline-block; margin-left: 0.45rem; padding: 0.08rem 0.55rem;
     border-radius: 99px; background: var(--purple); color: #fff;
