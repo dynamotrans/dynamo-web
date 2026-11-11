@@ -4043,6 +4043,19 @@ input::-webkit-date-and-time-value { text-align: left; }
 }
 .ptar-cutoff-note strong { color: #094d29; }
 .ptar-cutoff-note em { font-style: normal; font-weight: 700; color: #b25500; }
+/* Caja naranja clara del GRUPAJE bajo el aviso del corte: por qué no hay fecha fija y
+   cuándo se recoge normalmente (el texto cambia con la ventana 1-2 / 1-4 elegida). */
+.ptar-grupaje-note {
+    margin-top: 0.45rem;
+    padding: 0.55rem 0.7rem;
+    background: #fff7ed;
+    color: #9a4d10;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    font-size: var(--fs-s);
+    line-height: 1.4;
+}
+.ptar-grupaje-note strong { color: #7c3d0c; }
 /* Aviso de pago por adelantado (sin crédito) bajo Fecha de envío. */
 .ptar-prepago-warn {
     margin-top: 0.45rem;

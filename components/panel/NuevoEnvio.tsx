@@ -997,6 +997,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {!manual && !fechaPasada && (
                     <div className="ptar-field-full">
                       <AvisoCorte urgencia={urgencia} festivos={festivos} ventana={ventanaDias} grupaje={esGrupaje} cortes={cortes} />
+                      {/* Por qué el grupaje no tiene fecha fija, con la pauta real de recogida
+                          según la ventana elegida (usuario, 2026-11-11). */}
+                      {esGrupaje && (
+                        <div className="ptar-grupaje-note" role="status">
+                          <strong>El grupaje no admite fecha fija:</strong> tu mercancía comparte camión y la recogida se
+                          coordina con las demás recogidas y entregas de la ruta. Normalmente el <strong>80&nbsp;% de las
+                          recogidas</strong> las hacemos {urgencia === 'corta'
+                            ? <><strong>el primer día</strong> de la ventana de 1 a 2 días</>
+                            : <><strong>en los 2 primeros días</strong> de la ventana de 1 a 4 días</>}.
+                        </div>
+                      )}
                     </div>
                   )}
                   {fechaLibre && fecha && dias[0] && fecha < dias[0] && (
