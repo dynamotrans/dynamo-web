@@ -178,13 +178,13 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.8rem 0 0', background: '#fff',
         color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
         onClick={() => {
-          // Lo compartido lleva SU explicación (usuario, 2026-11-10): qué es y para qué
-          // sirve, para que a quien le llegue no le aterrice un enlace pelado.
+          // Mensaje CORTO (usuario, 2026-11-11): «CMR del envío #… · Dynamo — Firma tu
+          // casilla con el dedo aquí:» y el enlace. La hoja de compartir del sistema deja
+          // elegir WhatsApp, email, SMS o copiar; sin hoja (escritorio), se copia el mensaje.
           const url = window.location.href;
-          const texto = `CMR digital del envío ${cmr.referencia ?? ''}: la página para firmar la carta de porte con el dedo, sin crear cuenta. `
-            + 'Firman cargador, transportista y destinatario, cada uno su casilla, y cada firma queda registrada con su fecha y hora. '
-            + 'Abre el enlace y pulsa Firmar en la tuya:';
-          if (navigator.share) { navigator.share({ title: `Firmas del CMR ${cmr.referencia ?? ''}`.trim(), text: texto, url }).catch(() => {}); }
+          const titulo = `CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`;
+          const texto = `${titulo}\nFirma tu casilla con el dedo aquí:`;
+          if (navigator.share) { navigator.share({ title: titulo, text: texto, url }).catch(() => {}); }
           else { navigator.clipboard?.writeText(`${texto}\n${url}`); setCompartido(true); setTimeout(() => setCompartido(false), 1800); }
         }}>
         {compartido ? 'Mensaje copiado ✓' : 'Compartir esta página de firmas'}
