@@ -193,8 +193,12 @@ body {
    mismo diseño de la web», nada de esquinas chatas ni letra de máquina de escribir).
    Cualquier input/select/textarea sin contenedor propio sale ya con este aspecto; las
    reglas por contenedor (.modal-form-row, .alm-field, .ptar-sitio-grid…) lo afinan
-   porque tienen más peso. Va ANTES que todas ellas a propósito. --- */
-input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']),
+   porque tienen más peso. Va ANTES que todas ellas a propósito.
+   Los :not() van dentro de :where() — pesan CERO (2026-11-11: cada :not([type=…])
+   sumaba especificidad y esta regla GANABA a las de contenedor como
+   .ptar-input-wrap input, pintando una píldora blanca propia dentro de los campos
+   compuestos; la ✕ de borrar sitio montaba sobre ese borde que no debía existir). --- */
+input:where(:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button'])),
 select, textarea {
     font: inherit; font-size: var(--fs-m); color: var(--navy);
     background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px;
@@ -202,9 +206,9 @@ select, textarea {
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 textarea { resize: vertical; font-family: inherit; }
-input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):hover,
+input:where(:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button'])):hover,
 select:hover, textarea:hover { border-color: var(--purple); }
-input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):focus,
+input:where(:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button'])):focus,
 select:focus, textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.12); }
 input::placeholder, textarea::placeholder { color: var(--gray-400); font-family: inherit; }
 
