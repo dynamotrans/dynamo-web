@@ -20,7 +20,7 @@ export default function Confirmar() {
       const q = new URLSearchParams(window.location.search);
       const h = new URLSearchParams(window.location.hash.slice(1));
       if (h.get('error') || q.get('error')) {
-        setError('Este enlace ya no vale: ha caducado o ya se usó. Pide otro desde «¿Olvidaste tu contraseña?» o a Dynamo.');
+        setError('Este enlace ya no vale: ha caducado o ya se usó (a veces lo «abre» antes el propio correo). No pasa nada: el mismo email trae un código de 6 cifras que puedes escribir a mano, o pide otro desde «¿Olvidaste tu contraseña?».');
         return;
       }
       let r: { error: { message: string } | null } = { error: { message: 'sin datos' } };
@@ -32,7 +32,7 @@ export default function Confirmar() {
         r = await sb.auth.exchangeCodeForSession(q.get('code')!);
       }
       if (r.error) {
-        setError('Este enlace ya no vale: ha caducado o ya se usó. Pide otro desde «¿Olvidaste tu contraseña?» o a Dynamo.');
+        setError('Este enlace ya no vale: ha caducado o ya se usó (a veces lo «abre» antes el propio correo). No pasa nada: el mismo email trae un código de 6 cifras que puedes escribir a mano, o pide otro desde «¿Olvidaste tu contraseña?».');
         return;
       }
       // Recarga completa: así el servidor ya ve la sesión en las cookies.

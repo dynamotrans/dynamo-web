@@ -7,18 +7,12 @@ import Cargando from '@/components/Cargando';
 import Req from '@/components/Req';
 
 export default function FormOlvido() {
+  // Al enviar, la acción redirige a /panel/olvido/codigo: el email trae enlace Y código
+  // de 6 cifras (doble vía, usuario 2026-11-11), y allí se teclea el código.
   const [estado, accion, enviando] = useActionState(pedirEnlace, { enviado: false, error: null } as EstadoOlvido);
-  if (estado.enviado) {
-    return (
-      <div className="pt-aviso info" role="status"><div>
-        Si <strong>{estado.email}</strong> tiene cuenta en la plataforma, en unos minutos le llega un email con el enlace para
-        crear una contraseña nueva. Mira también en <strong>spam</strong>. El enlace caduca en una hora.
-      </div></div>
-    );
-  }
   return (
     <form action={accion} noValidate>
-      {enviando && <Cargando texto="Enviando el enlace" />}
+      {enviando && <Cargando texto="Enviando el email" />}
       {estado.error && <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>}
       <div className="portal-field">
         <label className="portal-label" htmlFor="olvido-email">Correo electrónico <Req /></label>
@@ -28,7 +22,7 @@ export default function FormOlvido() {
                  type="email" inputMode="email" placeholder="Ej. tu@empresa.com" autoComplete="username" required />
         </div>
       </div>
-      <button type="submit" className="portal-submit" disabled={enviando}>{enviando ? 'Enviando…' : 'Enviarme el enlace'}</button>
+      <button type="submit" className="portal-submit" disabled={enviando}>{enviando ? 'Enviando…' : 'Enviarme el enlace y el código'}</button>
     </form>
   );
 }
