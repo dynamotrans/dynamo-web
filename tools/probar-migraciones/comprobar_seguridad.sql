@@ -3144,7 +3144,14 @@ do $$ declare e uuid; i int; begin
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
     update envios set estado = 'programado' where id = e;
-    if i <= 2 then update envios set estado = 'cancelado' where id = e; end if;   -- 2 de 5 = 40 %
+    -- 2 de 5 = 40 %. CON CAMIÓN ASIGNADO: así la cancelación cuenta SIEMPRE (la regla es
+    -- «con camión, o tarde»), a cualquier hora. La vía del corte horario («carga hoy,
+    -- cancelar es tardío») bailaba al cruzar la medianoche: el CI de las 00:38 (hora de
+    -- Madrid) cazó un FALLO 95 que de día no salía.
+    if i <= 2 then
+      update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+      update envios set estado = 'cancelado' where id = e;
+    end if;
   end loop;
   perform set_config('request.jwt.claim.sub', '', false);
 end $$;
