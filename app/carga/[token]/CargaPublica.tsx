@@ -572,14 +572,18 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
       <h1 style={{ margin: 0 }}><span className="ok-aceptada">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
         {c.estado === 'cancelado' ? ' Envío cancelado por el cliente' : ' ¡Envío aceptado!'}</span></h1>
-      {/* Caja destacada (usuario, 2026-11-09): quién lo aceptó y cuándo, bien visible. */}
-      <div className="oferta-para" style={{ marginTop: '0.5rem' }}><span className="op-lbl">Aceptado por</span><strong>{c.transportista}</strong>{c.aceptada_en ? <> · {fechaHora(c.aceptada_en)}</> : null}</div>
+      {/* Caja destacada (usuario, 2026-11-09): quién lo aceptó y cuándo. Todas las cajas
+          de esta cabecera van ALINEADAS a la izquierda y con el mismo ritmo de 0.7rem
+          (usuario, 2026-11-11: «diseña bien esa pantalla, alinea, separaciones»); fuera
+          el mensaje de «guarda esta página», que solo metía ruido. */}
+      <div className="oferta-para" style={{ margin: '0.7rem 0 0', textAlign: 'left' }}>
+        <span className="op-lbl">Aceptado por</span>
+        <strong>{c.transportista}</strong>
+        {c.aceptada_en && <div style={{ fontSize: 'var(--fs-m)', fontWeight: 600, color: 'var(--gray-500, #6b7280)', marginTop: 2 }}>{fechaHora(c.aceptada_en)}</div>}
+      </div>
       <div className="pago-contado" style={{ textAlign: 'left' }}>
         Precio acordado: <span className="imp">{euros(precio)}</span> <span className="base-nota">· base imponible</span>
         {c.pronto_pago && <div className="base-nota" style={{ marginTop: 2 }}>Con pronto pago: cobras {euros(precio - dto)} a {txtNum(c.pronto_pago_dias)} días de la factura.</div>}
-      </div>
-      <div className="pago-contado" style={{ background: 'rgba(51,0,204,0.06)', borderColor: 'rgba(51,0,204,0.28)', color: 'var(--navy)', fontWeight: 700, textAlign: 'left' }}>
-        Aquí tienes la <strong>orden de carga</strong> con todos estos datos. Guarda esta página: siempre puedes volver a ella con el mismo enlace.
       </div>
       {c.estado !== 'cancelado' && (
         <a className="btn" href={`/carga/${token}/orden-de-carga`} target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxSizing: 'border-box', marginTop: '0.7rem' }}>
