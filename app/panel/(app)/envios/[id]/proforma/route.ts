@@ -44,12 +44,27 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const cuando = e.fecha_carga_desde ? `carga ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}` : '';
   const medidas = medidasTxt(e.metros_lineales, e.toneladas);
 
+  // A MÁS de N días de la carga la proforma va SIN datos de pago (usuario, 2026-11-11):
+  // las tarifas son dinámicas y el precio se revisa al llegar a N días de la primera
+  // parada, así que todavía no es pagadera. Desde N días (o si no hay fecha que mirar),
+  // sale completa con la transferencia.
+  const { data: reg } = await sb.rpc('reglas_precio_envio');
+  const cerrado = Number((reg as { cerrado_dias?: number } | null)?.cerrado_dias ?? 7);
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+  const diasHastaCarga = e.fecha_carga_desde ? Math.round((Date.parse(e.fecha_carga_desde) - Date.parse(hoy)) / 86400000) : null;
+  const lejos = diasHastaCarga != null && diasHastaCarga > cerrado;
+
   const bytes = await proforma({
     codigo: p.referencia_gx, referencia_cliente: p.referencia_cliente, creado_en: e.creado_en ?? new Date().toISOString(),
     cliente: { razon_social: c?.razon_social ?? '—', cif: c?.cif ?? '—', direccion: c?.direccion ?? null, codigo_postal: c?.codigo_postal ?? null, poblacion: c?.poblacion ?? null, pais: nombrePais(c?.pais_codigo_iso) },
     conceptos: [{ titulo: `Transporte ${p.referencia_gx}${ruta ? ` · ${ruta}` : ''}`, sub: [cuando, medidas, e.descripcion_mercancia].filter(Boolean).join(' · '), importe: Number(p.base) }],
     iva: Number(p.iva),
-    condiciones: 'El envío no se asigna a ningún transportista hasta validar el pago (por transferencia, la validación puede tardar hasta 24 h; con tarjeta, al momento). Si la fecha de carga ya no se puede cumplir cuando llegue el pago, te propondremos otra.',
+    sinPago: lejos ? { aviso: `El precio de este envío todavía NO está fijado: las tarifas son dinámicas y se revisará al llegar a ${cerrado} `
+      + `días de la primera parada, con el precio válido para el día de carga. Por eso esta proforma no lleva datos de pago: la proforma `
+      + `pagadera, con la transferencia, saldrá aquí mismo cuando queden ${cerrado} días o menos.` } : null,
+    condiciones: lejos
+      ? `Precio pendiente de fijar: se actualizará al llegar a ${cerrado} días de la carga. El envío no se asigna a ningún transportista hasta validar el pago.`
+      : 'El envío no se asigna a ningún transportista hasta validar el pago (por transferencia, la validación puede tardar hasta 24 h; con tarjeta, al momento). Si la fecha de carga ya no se puede cumplir cuando llegue el pago, te propondremos otra.',
     dynamo: await datosDynamo(sb),
   });
   return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',

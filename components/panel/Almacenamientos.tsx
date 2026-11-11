@@ -61,7 +61,9 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
   const [pestana, setPestana] = useState<EstadoAlm | 'todos' | 'pago'>(pestanaInicial ?? 'pendiente_confirmar');
   const [fr, setFr] = useState('');
   const [q, setQ] = useState('');
-  const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(abrir ? { fila: null } : null);
+  // El cliente no crea almacenamientos por ahora (usuario, 2026-11-11): los gestiona el
+  // equipo de Dynamo. Solo ve los suyos; ?abrir=1 tampoco le abre el formulario.
+  const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(abrir && !modoCliente ? { fila: null } : null);
 
   const cuenta = useMemo(() => {
     const c: Record<string, number> = { todos: filas.length };
@@ -91,9 +93,9 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
     <section className="section active" id="sec-almacenes">
       <div className="sec-header">
         <h2>Almacenamientos</h2>
-        <button className="btn-primary" onClick={() => setFicha({ fila: null })}>{modoCliente ? '+ Pedir almacenamiento' : '+ Nuevo almacenamiento'}</button>
+        {!modoCliente && <button className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Nuevo almacenamiento</button>}
       </div>
-      {modoCliente && <p style={{ fontSize: 'var(--fs-l)', color: 'var(--gray-700)', margin: '-0.4rem 0 0.9rem' }}>Almacenamiento de corta estancia (1 a 7 días) en un almacén Dynamo, con reparto urbano posterior si lo necesitas. Lo pides aquí y te lo confirmamos.</p>}
+      {modoCliente && <p style={{ fontSize: 'var(--fs-l)', color: 'var(--gray-700)', margin: '-0.4rem 0 0.9rem' }}>Almacenamiento de corta estancia (1 a 7 días) en un almacén Dynamo, con reparto urbano posterior si lo necesitas. Lo gestiona el equipo de Dynamo: llámanos o escríbenos y te lo montamos; aquí ves los tuyos.</p>}
       <div className="tabs">
         {ESTADOS.map(([k, t]) => <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta[k] ?? 0})</button>)}
         <button className={`tab${pestana === 'pago' ? ' active' : ''}`} onClick={() => setPestana('pago')}>Pendiente de pago ({cuenta.pago})</button>
@@ -113,7 +115,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
           <tbody>
             {lista.length === 0 ? (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length ? 'Sin almacenamientos que coincidan con el filtro.' : modoCliente ? 'Aún no has pedido ningún almacenamiento. Pídelo con «+ Pedir almacenamiento».' : 'Aún no hay almacenamientos. Crea uno con «+ Nuevo almacenamiento».'}
+                {filas.length ? 'Sin almacenamientos que coincidan con el filtro.' : modoCliente ? 'Aún no tienes almacenamientos. Para pedir uno, llámanos o escríbenos y te lo montamos.' : 'Aún no hay almacenamientos. Crea uno con «+ Nuevo almacenamiento».'}
               </td></tr>
             ) : lista.map((f) => {
               const est = ESTADOS.find(([k]) => k === f.estado)!;

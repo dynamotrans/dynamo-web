@@ -17,6 +17,10 @@ export type DatosProforma = {
   // Otros conceptos (p. ej. un envío con pago previo): si vienen, sustituyen a los del almacenamiento.
   conceptos?: { titulo: string; sub: string; importe: number }[];
   condiciones?: string;
+  // SIN datos de pago (usuario, 2026-11-11): proforma SOLO INFORMATIVA — la de la
+  // calculadora de precios (no crea envío) o la de un envío cuyo precio aún se revisará
+  // (a más de N días de la carga). No lleva IBAN ni transferencia: no es pagadera.
+  sinPago?: { aviso: string } | null;
   dynamo: DatosDynamo;
 };
 
@@ -34,7 +38,7 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   } catch { l.texto(mL, 34, 'dynamo', 23, { bold: true, color: blanco }); }
   l.texto(mL + 2, 63, 'Operador Logístico', 9, { color: blanco });
   l.textoDer(mR, 33, 'FACTURA PROFORMA', 14, { bold: true, color: blanco });
-  l.textoDer(mR, 50, 'Documento no contable · pago por adelantado', 8, { color: blanco });
+  l.textoDer(mR, 50, d.sinPago ? 'Documento informativo · sin valor contable' : 'Documento no contable · pago por adelantado', 8, { color: blanco });
 
   // Emisor y cliente
   const c = d.cliente, dy = d.dynamo;
@@ -79,9 +83,18 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   l.texto(360, y + 8, 'Base imponible', 9.5, { color: gris }); l.textoDer(mR - 10, y + 8, eur(base), 9.5);
   l.texto(360, y + 24, `IVA (${porcentaje(d.iva)})`, 9.5, { color: gris }); l.textoDer(mR - 10, y + 24, eur(iva), 9.5);
   l.rect(348, y + 32, mR - 348, 26, morado);
-  l.texto(360, y + 49, 'TOTAL A PAGAR', 10.5, { bold: true, color: blanco }); l.textoDer(mR - 10, y + 50, eur(total), 12, { bold: true, color: blanco });
+  l.texto(360, y + 49, d.sinPago ? 'TOTAL (IVA incluido)' : 'TOTAL A PAGAR', 10.5, { bold: true, color: blanco }); l.textoDer(mR - 10, y + 50, eur(total), 12, { bold: true, color: blanco });
   y += 84;
 
+  if (d.sinPago) {
+    // Proforma solo informativa: en el sitio de la transferencia va el PORQUÉ no lleva
+    // datos de pago (tarifas dinámicas / documento de la calculadora).
+    const avL = l.partir(d.sinPago.aviso, 7.8, mR - mL - 20);
+    l.rect(mL, y, mR - mL, 18 + avL.length * 10.5, COLOR.ambarSuave);
+    l.texto(mL + 10, y + 12, 'SIN DATOS DE PAGO · DOCUMENTO INFORMATIVO', 8, { bold: true, color: COLOR.ambar });
+    avL.forEach((t, i) => l.texto(mL + 10, y + 24 + i * 10.5, t, 7.8, { color: navy }));
+    y += 30 + avL.length * 10.5;
+  } else {
   // Datos para la transferencia
   l.texto(mL, y, 'DATOS PARA LA TRANSFERENCIA', 9, { bold: true, color: morado });
   l.linea(mL, y + 6, mR, y + 6);
@@ -100,6 +113,7 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   l.texto(mL + 10, y + 12, 'SEGURIDAD', 8, { bold: true, color: COLOR.ambar });
   segL.forEach((t, i) => l.texto(mL + 10, y + 24 + i * 10.5, t, 7.8, { color: navy }));
   y += 30 + segL.length * 10.5;
+  }
 
   // Condiciones
   l.y = y;
@@ -109,7 +123,7 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   l.linea(mL, 806, mR, 806);
   const pie1 = `${dy.razon_social} · CIF ${dy.cif} · ${dy.email} · ${dy.telefono} · ${dy.web}`;
   l.texto((W - l.medida(pie1, 7.5)) / 2, 818, pie1, 7.5, { color: gris });
-  const pie2 = 'Documento proforma sin valor contable. Se emitirá factura al validar el pago.';
+  const pie2 = d.sinPago ? 'Documento informativo sin valor contable: no es pagadero.' : 'Documento proforma sin valor contable. Se emitirá factura al validar el pago.';
   l.texto((W - l.medida(pie2, 7.5)) / 2, 829, pie2, 7.5, { color: gris });
   return l.guardar();
 }

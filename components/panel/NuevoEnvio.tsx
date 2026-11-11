@@ -147,6 +147,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Doble confirmación al crear un envío (Dynamo): modal con costes de cancelación +
   // condiciones generales, como en el mockup. Hay que marcar el check para confirmar.
   const [revisarLegal, setRevisarLegal] = useState(false);
+  const [verProforma, setVerProforma] = useState(false);   // proforma orientativa del cálculo (sin crear el envío)
   const [aceptaLegal, setAceptaLegal] = useState(false);
   // Se pulsó «Confirmar envío» sin marcar la casilla: la casilla y su texto se ponen en rojo.
   const [faltaLegal, setFaltaLegal] = useState(false);
@@ -728,9 +729,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
     </div></div>
   );
-  // Tarjeta azul del camión y la mercancía: va encima del precio en el paso 3 (Fecha y
-  // precio) Y en el paso 4 (Revisión) — usuario, 2026-11-11: lo que se cotiza, a la vista
-  // junto a la base imponible.
+  // Tarjeta azul del camión y la mercancía: en el paso 3 va DEBAJO del bloque de la fecha
+  // de recogida y en el paso 4 (Revisión) encima del precio — usuario, 2026-11-11: lo que
+  // se cotiza, a la vista.
   const tarjetaMercancia = (
     <div className="sum2-box sum2-azul" style={{ marginBottom: '0.6rem' }}>
       <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
@@ -1039,16 +1040,18 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {fechaLibre && fecha && dias[0] && fecha < dias[0] && (
                     <div className="ptar-field-full"><div className="wiz-warn show" role="alert">⚠ <strong>Fuera de las reglas de corte:</strong> esta fecha no se podría elegir normalmente (fija desde mañana con su corte · cada ventana con su hora de corte — la elegida, las {corteDe(urgencia, esGrupaje, cortes)}:00). Úsalo solo para urgencias o imprevistos: la recogida dependerá de encontrar camión a tiempo.</div></div>
                   )}
+                  {/* El aviso del tráiler y la tarjeta del camión/mercancía, DEBAJO del bloque
+                      de la fecha de recogida (usuario, 2026-11-11), no en la columna del precio. */}
+                  <div className="ptar-field-full" style={{ marginTop: '0.4rem' }}>
+                    {avisoTrailer}
+                    {tarjetaMercancia}
+                  </div>
                 </>)}
               </div>
             </div>
 
             {paso === 3 && (
               <div className="form-2col-side">
-                {/* El aviso del tráiler y la tarjeta del camión/mercancía, encima del
-                    precio — igual que en el paso 4 (usuario, 2026-11-11). */}
-                {avisoTrailer}
-                {tarjetaMercancia}
                 {/* La fecha elegida ya se ve en el desplegable; aquí solo los avisos si los hay. */}
                 {((maxFecha && fecha > maxFecha) || avisoProvisional) && (
                   <div className="ptar-field ptar-field-full">
@@ -1160,7 +1163,38 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
                   }}
                   data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
+                {/* Proforma ORIENTATIVA del cálculo (usuario, 2026-11-11): en blanco, debajo
+                    de Crear envío. No crea nada y va sin datos de pago. */}
+                {!manual && !editar && (esCliente ? (tarifa?.neto ?? 0) : importe) > 0 && (
+                  <button type="button" className="btn-secondary" onClick={() => setVerProforma(true)} disabled={enviando}>Ver proforma</button>
+                )}
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
+                <Modal abierto={verProforma} onCerrar={() => setVerProforma(false)} titulo="Proforma del cálculo" ancho={580}
+                  sub="Un documento con el precio, para verlo o guardarlo. No crea ningún envío."
+                  pie={(() => {
+                    const baseP = esCliente ? (tarifa?.neto ?? 0) : importe;
+                    const rutaTxt = puntos.map((p) => p.sitio?.poblacion ?? p.nuevo?.poblacion ?? '').filter(Boolean).join(' → ');
+                    const detTxt = [fechaTxt ? `carga ${fechaTxt}` : '', camionTxt, `${mlTxt.split(' ·')[0]} · ${pesoTxt}`].filter(Boolean).join(' · ');
+                    const url = `/panel/nuevo-envio/proforma?base=${encodeURIComponent(baseP)}&ruta=${encodeURIComponent(rutaTxt)}&det=${encodeURIComponent(detTxt)}`
+                      + (esCliente || !cliente ? '' : `&cliente=${cliente.id}`);
+                    return (
+                      <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        <button type="button" className="btn-secondary" onClick={() => setVerProforma(false)}>Cerrar</button>
+                        <a className="btn-primary" href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
+                      </div>
+                    );
+                  })()}>
+                  <p style={{ margin: 0 }}>
+                    Este precio es <strong>orientativo: solo es válido al crear y confirmar el envío</strong>. Las tarifas son
+                    dinámicas: el precio <strong>se fija al confirmar el envío a menos de {reglas?.cerrado_dias ?? 7} días de la
+                    carga</strong>. Con más antelación, se actualizará al llegar a {reglas?.cerrado_dias ?? 7} días de la primera
+                    parada, con el precio válido para el día de carga.
+                  </p>
+                  <p style={{ margin: '0.6rem 0 0', color: 'var(--gray-500)', fontSize: '0.85rem' }}>
+                    El PDF va <strong>sin datos de pago</strong>: no es pagadero y no genera ningún envío ni reserva. La proforma
+                    pagadera, con la transferencia, sale al crear el envío y quedar pendiente de pago, con el precio ya fijado.
+                  </p>
+                </Modal>
               </div>
             </div>
           </div>

@@ -107,8 +107,14 @@ export type PeticionAlm = {
   sitio_entrega_id: string | null; descripcion: string; referencia_cliente: string;
 };
 const cliente = async () => (await soloCliente())?.supabase ?? null;
+// CERRADO AL CLIENTE por ahora (usuario, 2026-11-11): los almacenamientos los gestiona solo
+// el equipo de Dynamo; el cliente ve los suyos pero no los pide ni los cancela desde el
+// panel. Cuando se le den permisos, poner esto a true (la pantalla ya vuelve sola).
+const ALMACENAMIENTO_CLIENTE_ABIERTO = false;
+const CERRADO_MSG = 'De momento los almacenamientos los gestiona el equipo de Dynamo: llámanos o escríbenos y te lo montamos.';
 export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Promise<Res> {
   comprobarEntrada("app/panel/(app)/almacenamientos/acciones#pedirAlmacenamiento", [id, d]);
+  if (!ALMACENAMIENTO_CLIENTE_ABIERTO) return { ok: false, error: CERRADO_MSG };
   const sb = await cliente();
   if (!sb) return { ok: false, error: 'Tu sesión ha caducado o tu cuenta no está activa.' };
   if (!d.almacen_id) return { ok: false, error: 'Elige el almacén Dynamo.' };
@@ -132,6 +138,7 @@ export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Pr
 }
 export async function cancelarMiAlmacenamiento(id: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/almacenamientos/acciones#cancelarMiAlmacenamiento", [id]);
+  if (!ALMACENAMIENTO_CLIENTE_ABIERTO) return { ok: false, error: CERRADO_MSG };
   const sb = await cliente();
   if (!sb) return { ok: false, error: 'Tu sesión ha caducado o tu cuenta no está activa.' };
   const { data, error } = await sb.from('almacenamientos').update({ estado: 'cancelado' }).eq('id', id).eq('estado', 'pendiente_confirmar').select('id');
