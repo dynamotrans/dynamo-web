@@ -19,7 +19,7 @@ const lineaDir = (p: ParadaDoc | undefined) => p
   ? [p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia !== p.poblacion ? p.provincia : null, p.pais].filter(Boolean).join(', ')
   : '';
 
-export async function cmr(d: DatosDoc): Promise<Uint8Array> {
+export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<Uint8Array> {
   const e = d.envio, manual = d.manual;
   const D = d.dynamo ?? DYNAMO;
   const l = await Lienzo.crear();
@@ -77,7 +77,9 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   // e-CMR ya vale como documento de control, delante va un DeCA aparte con los datos del
   // art. 5 de la Orden FOM/2861/2012, con nuestro estilo. Solo puede existir con
   // transportista y matrícula, y nunca en envíos manuales (ahí Dynamo no es el operador).
-  const hojaDeca = !manual && !!d.deca && conTransporte && !!qrImg;
+  // Con sinDeca, la hoja DeCA no se pinta: la ORDEN DE CARGA operativa va delante
+  // del impreso y hace su papel (usuario, 2026-11-11).
+  const hojaDeca = !op.sinDeca && !manual && !!d.deca && conTransporte && !!qrImg;
   if (hojaDeca && d.deca) {
     const der = A4.w - l.margen.der;
     const cabY = l.y;

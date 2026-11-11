@@ -124,11 +124,12 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   l.y += hFranja + 14;
 
   // ---- Tarjeta del QR del e-CMR / DeCA (usuario, 2026-11-11) ----
-  // La tarjeta va SIEMPRE, con el mismo diseño que el impreso del CMR: con transportista
-  // y matrícula lleva el QR real (abre el PDF COMPLETO del CMR-DeCA con la hoja de
-  // firmas); si aún no hay transporte, el hueco punteado con «Pendiente de asignar
-  // transporte» — así el diseño no cambia cuando se asigna.
-  {
+  // SOLO en la copia OPERATIVA (sin información económica): la económica no lleva el QR
+  // para que no se enseñe a nadie con los precios delante (usuario, 2026-11-11). En la
+  // operativa, con transportista y matrícula lleva el QR real (abre el PDF COMPLETO del
+  // CMR-DeCA con la hoja de firmas); si aún no hay transporte, el hueco punteado con
+  // «Pendiente de asignar transporte» — así el diseño no cambia cuando se asigna.
+  if (copia === 'operativa') {
     let qrImg: PDFImage | null = null;
     if (d.deca && p && e.matricula_camion) {
       try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; }

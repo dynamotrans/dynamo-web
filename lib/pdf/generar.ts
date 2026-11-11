@@ -1,7 +1,27 @@
 import type { SB } from '@/lib/supabase/cliente';
 import { cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, datosDynamo } from './datos';
-import { ordenDeCarga } from './orden';
+import { PDFDocument } from 'pdf-lib';
+import { ordenDeCarga, ordenCompuesta } from './orden';
+import type { DatosDoc } from './datos';
 import { cmr } from './cmr';
+
+// El PDF del eCMR empieza por la ORDEN DE CARGA SIN datos económicos (usuario,
+// 2026-11-11: hace el papel de la hoja DeCA, que ya no se pinta aparte) — en el idioma
+// del transportista y luego en español — y siguen el impreso del CMR y la hoja de
+// firmas. Sin porteador no hay orden que poner (como antes no había hoja DeCA).
+async function cmrConOrden(d: DatosDoc): Promise<Uint8Array> {
+  const cuerpo = await cmr(d, { sinDeca: true });
+  if (!d.porteador) return cuerpo;
+  // La copia operativa no lleva ninguna sección económica: los parámetros de pago no se usan.
+  const orden = await ordenCompuesta(d, { pct: 0, minimo: 0, dias: 0, plazo: 0 }, 'operativa');
+  const doc = await PDFDocument.create();
+  for (const b of [orden, cuerpo]) {
+    const src = await PDFDocument.load(b);
+    (await doc.copyPages(src, src.getPageIndices())).forEach((p) => doc.addPage(p));
+  }
+  doc.setTitle(`CMR ${d.envio.referencia_gx ?? ''}`);
+  return doc.save();
+}
 
 // La orden de carga (o de transporte, si es manual) y el CMR de un envío, como los ve
 // Dynamo. La usan el visor (/panel/envios/<id>/<documento>) y «Guardar copia» de la ficha.
@@ -17,7 +37,7 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
     // su fecha de creación (Orden FOM/2861/2012, art. 6).
     const { data: enl } = await sb.from('cmr_enlaces').select('token, creado_en').eq('envio_id', id).eq('revocado', false)
       .order('creado_en', { ascending: false }).limit(1).maybeSingle();
-    bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string; parada_id: string | null; creado_en: string }[],
+    bytes = await cmrConOrden({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string; parada_id: string | null; creado_en: string }[],
       deca: enl ? { url: `${origen ?? 'https://www.dynamotrans.com'}/cmr/${enl.token}`, creado_en: enl.creado_en } : null });
   }
   else {
@@ -43,7 +63,7 @@ export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
   Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {
   const r = await cargarDatosCmrPorToken(sb, token);
   if (!r.datos) return { error: r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.' };
-  const bytes = await cmr({ ...r.datos,
+  const bytes = await cmrConOrden({ ...r.datos,
     deca: r.decaCreado ? { url: `${origen}/cmr/${token}`, creado_en: r.decaCreado } : null });
   const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
   return { bytes, nombre: `CMR-${ref}.pdf` };
