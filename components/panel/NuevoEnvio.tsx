@@ -720,14 +720,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   })();
   const IcoAviso = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>);
   const IcoSol = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2" /><line x1="12" y1="2.5" x2="12" y2="4.5" /><line x1="12" y1="19.5" x2="12" y2="21.5" /><line x1="4.6" y1="4.6" x2="6" y2="6" /><line x1="18" y1="18" x2="19.4" y2="19.4" /><line x1="2.5" y1="12" x2="4.5" y2="12" /><line x1="19.5" y1="12" x2="21.5" y2="12" /><line x1="4.6" y1="19.4" x2="6" y2="18" /><line x1="18" y1="6" x2="19.4" y2="4.6" /></svg>);
+  // El aviso del tráiler va con la tarjeta del camión/mercancía, encima del precio
+  // (usuario, 2026-11-11), no con los demás avisos del paso 4.
+  const avisoTrailer = !plataforma && (
+    <div className="pt-aviso" style={{ marginBottom: '0.6rem' }}><IcoAviso /><div>
+      <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
+      <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
+    </div></div>
+  );
   const avisosPaso4 = (
     <>
-      {!plataforma && (
-        <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
-          <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
-          <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
-        </div></div>
-      )}
       {veranoSitios.some((x) => x.con) && (
         <div className="pt-aviso info" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoSol /><div>
           <strong>Horario de verano:</strong> {veranoSitios.filter((x) => x.con).map((x) => `${x.nombre}: ${x.resumen ?? 'horario de verano'}`).join(' · ')}.
@@ -1083,20 +1085,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
-                {/* Tarjeta de la MERCANCÍA en azul marino (usuario, 2026-11-10): más
-                    llamativa y legible que el gris de las demás. */}
-                <div className="sum2-box sum2-azul" style={{ marginTop: '0.6rem' }}>
-                  <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
-                  <div className="sum2-grid">
-                    <div className="sum2-cell"><div className="sum2-k">Metros lineales</div><div className="sum2-v">{ml === '13.3' ? '13,30 metros · Tráiler completo' : mlTxt.split(' ·')[0]}</div></div>
-                    <div className="sum2-cell"><div className="sum2-k">Peso</div><div className="sum2-v">{pesoTxt}</div></div>
-                    <div className="sum2-cell"><div className="sum2-k">Tipo de carga</div><div className="sum2-v">{forma}</div></div>
-                    <div className="sum2-cell"><div className="sum2-k">Tipo</div><div className="sum2-v">{paletizada ? 'Paletizada' : 'No paletizada'}</div></div>
-                    {nima && <div className="sum2-cell"><div className="sum2-k">Requiere NIMA</div><div className="sum2-v">Sí</div></div>}
-                    {adr && <div className="sum2-cell"><div className="sum2-k">Mercancía ADR</div><div className="sum2-v">Sí</div></div>}
-                  </div>
-                  {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div className="sum2-notas">{notasEnvio}</div></div>}
-                </div>
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar
                     envío, solo en la vista de admin. */}
@@ -1107,6 +1095,23 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               </div>
             </div>
             <div className="form-2col-side">
+              {/* Tarjeta de la MERCANCÍA en azul marino (usuario, 2026-11-10), colocada
+                  justo ANTES del precio (usuario, 2026-11-11): camión y mercancía se
+                  repasan de un vistazo junto a la base imponible, con el aviso del
+                  tráiler delante. */}
+              {avisoTrailer}
+              <div className="sum2-box sum2-azul" style={{ marginBottom: '0.6rem' }}>
+                <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
+                <div className="sum2-grid">
+                  <div className="sum2-cell"><div className="sum2-k">Metros lineales</div><div className="sum2-v">{ml === '13.3' ? '13,30 metros · Tráiler completo' : mlTxt.split(' ·')[0]}</div></div>
+                  <div className="sum2-cell"><div className="sum2-k">Peso</div><div className="sum2-v">{pesoTxt}</div></div>
+                  <div className="sum2-cell"><div className="sum2-k">Tipo de carga</div><div className="sum2-v">{forma}</div></div>
+                  <div className="sum2-cell"><div className="sum2-k">Tipo</div><div className="sum2-v">{paletizada ? 'Paletizada' : 'No paletizada'}</div></div>
+                  {nima && <div className="sum2-cell"><div className="sum2-k">Requiere NIMA</div><div className="sum2-v">Sí</div></div>}
+                  {adr && <div className="sum2-cell"><div className="sum2-k">Mercancía ADR</div><div className="sum2-v">Sí</div></div>}
+                </div>
+                {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div className="sum2-notas">{notasEnvio}</div></div>}
+              </div>
               {manual
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
                 : esCliente
