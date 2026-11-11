@@ -7717,3 +7717,57 @@ do $$ declare e uuid := current_setting('prueba.e200')::uuid; begin
   end if;
   raise notice 'OK 200 · matrículas al firmar: la cabecera (1.ª parada o transportista) las exige y corrige, el resto ya no las toca y cmr_publico las devuelve por separado';
 end $$;
+
+-- ---- 201. Límite individual de envíos al día (regla 6, al momento) --------------------
+-- usuarios.limite_envios_diario: vacío = sin tope; con número, el envío que pasa del
+-- límite se crea y la cuenta cae suspendida en ese instante (como las consultas).
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; i int; u record; begin
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid and estado <> 'activa';
+  update usuarios set autosuspension_desde_en = now(), limite_envios_diario = 2
+   where id = current_setting('prueba.u_cli')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  -- 2 envíos (el límite justo): sigue activa. Nacen borrador y se confirman, como en el panel.
+  for i in 1..2 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+  end loop;
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
+    raise exception 'FALLO 201 · suspende sin pasar del límite (2 envíos, límite 2)';
+  end if;
+  -- El 3.º pasa del límite: el envío SE CREA y la cuenta cae al confirmarse (salir de borrador).
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
+    raise exception 'FALLO 201 · un borrador no debe contar para el límite';
+  end if;
+  update envios set estado = 'programado' where id = e;
+  select estado, suspension_motivo into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if u.estado <> 'suspendida' or u.suspension_motivo not like 'Automática (al momento) · Regla 6%' then
+    raise exception 'FALLO 201 · el 3.er envío no suspende al momento: % %', u.estado, u.suspension_motivo;
+  end if;
+  if (select estado from envios where id = e) <> 'programado' then
+    raise exception 'FALLO 201 · el envío que pasa del límite no se queda creado';
+  end if;
+  -- Sin límite individual (vacío) no hay tope: reactivada, otro envío no la suspende.
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  update usuarios set limite_envios_diario = null where id = current_setting('prueba.u_cli')::uuid;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
+    raise exception 'FALLO 201 · sin límite individual no debe suspender (no hay parámetro general)';
+  end if;
+  update usuarios set autosuspension_desde_en = now() where id = current_setting('prueba.u_cli')::uuid;
+  raise notice 'OK 201 · límite de envíos al día: 2 de 2 pasa, el 3.º se crea y suspende al momento (regla 6); borradores no cuentan; vacío = sin tope';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
