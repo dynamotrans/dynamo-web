@@ -209,6 +209,14 @@ select.portal-input { appearance: none; -webkit-appearance: none; padding-right:
     color: #7a5c00; line-height: 1.55; text-align: left;
 }
 .reg-fraude strong { color: #92400e; }
+/* Caja azul del atajo (un compañero te añade desde su cuenta, sin esperas). */
+.reg-atajo {
+    margin: 0 0 1rem; padding: 0.7rem 0.85rem;
+    background: #eef2ff; border: 1px solid #c7d2fe;
+    border-radius: 11px; font-size: var(--fs-m); font-weight: 500;
+    color: #1e3a8a; line-height: 1.55; text-align: left;
+}
+.reg-atajo strong { color: #1e40af; }
 .reg-phone {
     display: flex; align-items: stretch;
     border-radius: 11px; border: 1.5px solid var(--gray-200); background: white;
@@ -223,6 +231,12 @@ select.portal-input { appearance: none; -webkit-appearance: none; padding-right:
     border-radius: 11px 0 0 11px; padding: 0 0.7rem; font-size: 16px; font-weight: 800; color: var(--purple);
     min-height: 50px; width: auto;
 }
+/* País del documento delante del DNI (mismo patrón que el prefijo del teléfono). */
+.reg-phone .reg-doc-pais {
+    border: none; border-right: 1.5px solid var(--gray-200); background: var(--gray-100); box-shadow: none;
+    border-radius: 11px 0 0 11px; padding: 0 0.7rem; min-height: 50px; width: auto; max-width: 150px;
+}
+.reg-phone .reg-doc-pais .pf-code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 800; color: var(--purple); }
 .reg-phone-num {
     flex: 1; min-width: 0; border: none; background: transparent;
     padding: 0.85rem 0.9rem; font-size: 16px; font-weight: 600; color: var(--navy); outline: none;

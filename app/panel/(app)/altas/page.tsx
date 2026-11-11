@@ -53,7 +53,7 @@ export default async function PaginaAltas() {
     const m = (a.datos ?? {}) as Record<string, unknown>;
     const t = (k: string) => (typeof m[k] === 'string' ? m[k] : '') as string;
     return {
-      id: a.id, email: a.email, nombre: a.nombre ?? t('nombre'), telefono: a.telefono ?? t('telefono'), documento: a.documento ?? t('dni'),
+      id: a.id, email: a.email, nombre: a.nombre ?? t('nombre'), telefono: a.telefono ?? t('telefono'), documento: a.documento ?? t('dni'), documento_pais: t('dni_pais'),
       solicitada_en: a.solicitada_en, confirmado_email: a.confirmado_email,
       empresa: t('empresa') || t('razon_social'), cif: t('cif'), direccion: t('direccion'), codigo_postal: t('codigo_postal'),
       poblacion: t('poblacion'), provincia: t('provincia'), pais: t('pais') || 'ES',

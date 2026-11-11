@@ -6,16 +6,16 @@
 // aquí: la asocia o la crea el equipo de Dynamo en «Altas» al activar la cuenta.
 import { useActionState, useState } from 'react';
 import { registrar, type EstadoAlta, type DatosAlta } from './acciones';
-import { validaIdFiscal } from '@/lib/idFiscal';
+import { validaIdFiscalPais } from '@/lib/idFiscal';
 import SelectorPais from '@/components/SelectorPais';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
 import Req from '@/components/Req';
 
-const VACIO: DatosAlta = { email: '', nombre: '', dni: '', prefijo: '+34', telefono: '' };
+const VACIO: DatosAlta = { email: '', nombre: '', dni_pais: 'ES', dni: '', prefijo: '+34', telefono: '' };
 
-function Feedback({ valor }: { valor: string }) {
-  const r = validaIdFiscal(valor);
+function Feedback({ valor, pais }: { valor: string; pais: string }) {
+  const r = validaIdFiscalPais(valor, pais);
   if (!r) return <div className="fiscal-fb" />;
   if (r.soft) return <div className="fiscal-fb soft">{r.tipo}: formato correcto (se verificará al activar la cuenta)</div>;
   if (r.ok) return <div className="fiscal-fb ok">{r.tipo} válido</div>;
@@ -29,12 +29,15 @@ export default function FormRegistro() {
   const [estado, accion, enviando] = useActionState(registrar, { error: null } as EstadoAlta);
   const ini = estado.datos ?? VACIO;
   const [dni, setDni] = useState(ini.dni);
+  const [dniPais, setDniPais] = useState(ini.dni_pais);
   const [prefijo, setPrefijo] = useState(ini.prefijo);
   const k = (c: string) => `${c}-${estado.campo === c ? 'mal' : 'ok'}-${estado.error ?? ''}`;
   const rojo = (c: string) => (estado.campo === c ? { borderColor: '#dc2626' } : undefined);
 
   return (
-    <form action={accion} noValidate autoComplete="on">
+    // autoComplete OFF en todo (usuario, 2026-11-11): el autorrelleno de contactos de
+    // Safari se abría encima del formulario y molestaba; estos datos se escriben a mano.
+    <form action={accion} noValidate autoComplete="off">
       {enviando && <Cargando texto="Creando tu cuenta" />}
       {estado.error && <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>}
       <div className="reg-grid">
@@ -42,36 +45,48 @@ export default function FormRegistro() {
           <label className="portal-label" htmlFor="reg-email">Correo electrónico <Req /></label>
           <div className="portal-input-wrap"><IcoMail />
             <input id="reg-email" key={k('email')} name="email" defaultValue={ini.email} className="portal-input" style={rojo('email')}
-                   type="email" inputMode="email" placeholder="Ej. tu@empresa.com" autoComplete="email" required />
+                   type="email" inputMode="email" placeholder="Ej. tu@empresa.com" autoComplete="off" required />
           </div>
         </div>
         <div className="portal-field full">
           <label className="portal-label" htmlFor="reg-nombre">Tu nombre y apellidos <Req /></label>
           <div className="portal-input-wrap"><IcoPersona />
             <input id="reg-nombre" key={k('nombre')} name="nombre" defaultValue={ini.nombre} className="portal-input" style={rojo('nombre')}
-                   placeholder="La persona que usará la cuenta" autoComplete="name" required />
+                   placeholder="La persona que usará la cuenta" autoComplete="off" required />
           </div>
         </div>
         <div className="portal-field full">
-          <label className="portal-label" htmlFor="reg-dni">DNI / NIE <Req si={false} /></label>
-          <input id="reg-dni" name="dni" value={dni} onChange={(e) => setDni(e.target.value)} className="portal-input sin-ico" style={rojo('dni')}
-                 placeholder="Ej. 12345678Z" autoCapitalize="characters" />
-          {dni && <Feedback valor={dni} />}
+          <label className="portal-label" htmlFor="reg-dni">DNI / NIE <Req /></label>
+          {/* País del documento DELANTE (usuario, 2026-11-11), como el prefijo del
+              teléfono: España valida la letra de control en vivo; otros países, formato. */}
+          <div className="reg-phone" style={rojo('dni')}>
+            <SelectorPais name="dni_pais" valor={dniPais} onCambio={setDniPais} ariaLabel="País del documento" className="reg-doc-pais" />
+            <input id="reg-dni" name="dni" value={dni} onChange={(e) => setDni(e.target.value)} className="reg-phone-num"
+                   placeholder="Ej. 12345678Z" autoCapitalize="characters" required />
+          </div>
+          {dni && <Feedback valor={dni} pais={dniPais} />}
         </div>
         <div className="portal-field full">
           <label className="portal-label" htmlFor="reg-tel">Teléfono <Req /></label>
           <div className="reg-phone" style={rojo('telefono')}>
             <SelectorPais modo="prefijo" name="prefijo" valor={prefijo} onCambio={setPrefijo} />
             <input id="reg-tel" key={k('telefono')} name="telefono" defaultValue={ini.telefono} className="reg-phone-num"
-                   type="tel" inputMode="tel" placeholder="Ej. 600 000 000" autoComplete="tel-national" required />
+                   type="tel" inputMode="tel" placeholder="Ej. 600 000 000" autoComplete="off" required />
           </div>
         </div>
       </div>
 
       <div className="reg-fraude">
         <strong>Verificación de identidad.</strong> Te enviaremos un <strong>código</strong> al email para comprobar que
-        eres su titular, y el equipo de Dynamo revisará los datos de la empresa antes de activar la cuenta.
-        La suplantación de identidad es un delito.
+        eres el titular de ese e-mail, y el equipo de Dynamo revisará los datos de la empresa antes de activar la
+        cuenta: esperamos que en <strong>menos de 24 h</strong>. La suplantación de identidad es un delito.
+      </div>
+
+      {/* Atajo sin esperas (usuario, 2026-11-11): un compañero que ya esté dentro te
+          añade él mismo y la cuenta queda autorizada al instante. */}
+      <div className="reg-atajo">
+        ¿Un <strong>compañero de tu empresa</strong> ya está dentro de la plataforma? Puede <strong>añadirte desde su
+        cuenta</strong> con tu email y darte de alta él directamente, autorizándote. Es <strong>instantáneo, sin esperas</strong>.
       </div>
 
       <label className="reg-terms" style={estado.campo === 'acepto' ? { color: '#dc2626' } : undefined}>

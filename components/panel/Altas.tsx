@@ -19,7 +19,7 @@ import SelectorPais from '@/components/SelectorPais';
 import Req from '@/components/Req';
 
 export type AltaFila = {
-  id: string; email: string; nombre: string; telefono: string; documento: string; solicitada_en: string; confirmado_email: boolean;
+  id: string; email: string; nombre: string; telefono: string; documento: string; documento_pais: string; solicitada_en: string; confirmado_email: boolean;
   empresa: string; cif: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string;
 };
 // Transportista dado de alta online desde el enlace de una carga (solo bolsas Alpega).
@@ -245,7 +245,7 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
         {fila('Email (usuario)', <><strong>{a.email}</strong>{a.confirmado_email ? '' : ' · aún no ha confirmado el email'}</>)}
         {fila('Tipo de cuenta', <Chip />)}
         {fila('Nombre y apellidos', a.nombre)}
-        {fila('DNI', a.documento)}
+        {fila('DNI / NIE', a.documento ? `${a.documento}${a.documento_pais ? ` (${a.documento_pais})` : ''}` : '')}
         {fila('Teléfono', a.telefono ? telBonito(a.telefono) : '')}
         {fila('Empresa / Razón social', a.empresa)}
         {fila('CIF', a.cif)}

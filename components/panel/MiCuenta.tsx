@@ -7,7 +7,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { cambiarMiClave, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { cambiarMiClave, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 
 import { paisDe, telBonito } from '@/lib/paises';
@@ -51,6 +51,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
   const [cambiaClave, setCambiaClave] = useState(false);
   const [claveCambiada, setClaveCambiada] = useState(false);
   const [baja, setBaja] = useState(false);
+  const [companero, setCompanero] = useState(false);
+  const [companeroOk, setCompaneroOk] = useState(false);
   const [vehiculo, setVehiculo] = useState<MiVehiculo | null>(null);
   const [conductor, setConductor] = useState<MiConductor | null>(null);
   const hecho = () => { setEditaTransp(false); setVehiculo(null); setConductor(null); refrescar(); };
@@ -81,6 +83,14 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             <button type="button" className="btn-ghost" style={{ marginTop: '0.8rem', color: 'var(--red)', borderColor: 'transparent', padding: '0.35rem 0' }} onClick={() => setBaja(true)}>Darme de baja</button>
           )}
         </div>
+        {(rol === 'cliente' || rol === 'transportista') && (
+          <div className="account-card">
+            <h3 className="account-card-title">Tu equipo</h3>
+            <p className="account-card-desc">¿Un compañero de tu empresa necesita acceso? Añádelo con su email y queda <strong>autorizado al instante</strong>, con tu mismo rol. Le llega un email para crear su contraseña.</p>
+            <button className="btn-ghost account-edit" onClick={() => { setCompaneroOk(false); setCompanero(true); }}>+ Añadir un compañero</button>
+            {companeroOk && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Invitación enviada: ya puede crear su contraseña desde su email.</p>}
+          </div>
+        )}
         {empresa && (
           <div className="account-card">
             <h3 className="account-card-title">Datos fiscales</h3>
@@ -132,6 +142,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
         </>)}
       </div>
       {cambiaClave && <CambiarClave onCerrar={() => setCambiaClave(false)} onHecho={() => { setCambiaClave(false); setClaveCambiada(true); }} />}
+      {companero && <AnadirCompanero empresa={empresa?.razon_social ?? 'tu empresa'} onCerrar={() => setCompanero(false)} onHecho={() => { setCompanero(false); setCompaneroOk(true); }} />}
       {baja && <DarmeDeBaja onCerrar={() => setBaja(false)} transportista={rol === 'transportista'} />}
       {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); refrescar(); }} />}
       {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '', compania: transporte.seguro_cmr_compania ?? '', poliza: transporte.seguro_cmr_poliza ?? '', vence: transporte.seguro_cmr_vence ?? '' }}
@@ -191,6 +202,34 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
       </p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {guardando && <Cargando texto="Guardando tus datos" />}
+    </Modal>
+  );
+}
+
+// ---- Añadir un compañero (cliente o transportista activos) ------------------------------
+// Entra en TU misma empresa y con tu mismo rol, activo al instante, sin pasar por Altas
+// (usuario, 2026-11-11). Le llega un email para crear su contraseña.
+function AnadirCompanero({ empresa, onCerrar, onHecho }: { empresa: string; onCerrar: () => void; onHecho: () => void }) {
+  const [email, setEmail] = useState('');
+  const [nombre, setNombre] = useState('');
+  const g = useGuardar(onHecho);
+  const vale = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()) && nombre.trim().length >= 3;
+  return (
+    <Modal abierto titulo="Añadir un compañero" sub={`Acceso a ${empresa}, autorizado al instante`} icono={ICO_PERSONA} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={() => g.correr('Enviando la invitación', () => anadirCompanero({ email: email.trim(), nombre: nombre.trim() }))} disabled={!!g.trabajando || !vale}>Añadir y autorizar</button>
+      </>}>
+      <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div><label htmlFor="comp-email">Su correo electrónico <Req /></label>
+          <input id="comp-email" type="email" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+        <div><label htmlFor="comp-nombre">Su nombre y apellidos <Req /></label>
+          <input id="comp-nombre" placeholder="La persona que usará la cuenta" value={nombre} onChange={(e) => setNombre(e.target.value)} /></div>
+      </div>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0', lineHeight: 1.5 }}>
+        Entrará en tu misma empresa y con tu mismo rol, y le llegará un email para crear su contraseña. Al añadirlo respondes de que es un compañero de tu empresa.</p>
+      {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
+      {g.trabajando && <Cargando texto={g.trabajando} />}
     </Modal>
   );
 }

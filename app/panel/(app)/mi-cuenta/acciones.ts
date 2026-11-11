@@ -7,6 +7,8 @@ import { claveValida } from '@/lib/clave';
 import { sesion } from '@/lib/sesion';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { supabasePublico } from '@/lib/supabase/publico';
+import { supabaseServicio } from '@/lib/supabase/servicio';
+import { origen } from '@/lib/origen';
 import { soloTransportista } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { CONTACTO } from '@/lib/atencion';
@@ -145,5 +147,40 @@ export async function darmeDeBaja(clave: string, motivo: string): Promise<Res> {
   if (r.resultado === 'ya_suspendida') return { ok: false, error: 'Tu cuenta ya está suspendida o dada de baja.' };
   if (r.resultado !== 'ok') return { ok: false, error: 'No se ha podido hacer la baja. Llámanos y la hacemos nosotros.' };
   await s.supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+  return { ok: true };
+}
+
+export type Companero = { email: string; nombre: string };
+
+// AÑADIR UN COMPAÑERO de tu misma empresa (usuario, 2026-11-11: «puede añadirte en su
+// cuenta añadiendo tu email y darte de alta él directamente, es instantáneo, sin
+// esperas»). Solo cliente o transportista ACTIVO, y el compañero entra SIEMPRE en la
+// misma empresa y con el mismo rol que quien lo añade (no se puede elegir otra): quien
+// ya está dentro responde por él. Supabase le manda el email para crear su contraseña.
+export async function anadirCompanero(d: Companero): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#anadirCompanero", [d]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const p = s.perfil;
+  const empresa = p.rol === 'cliente' ? { cliente_id: p.cliente_id } : p.rol === 'transportista' ? { transportista_id: p.transportista_id } : null;
+  if (p.estado !== 'activa' || !empresa || !(empresa.cliente_id ?? empresa.transportista_id)) {
+    return { ok: false, error: 'Solo una cuenta activa de cliente o transportista puede añadir compañeros de su empresa.' };
+  }
+  const email = d.email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, error: 'El email no es válido.' };
+  if (d.nombre.trim().length < 3) return { ok: false, error: 'Pon su nombre y apellidos.' };
+  const servicio = supabaseServicio();
+  if (!servicio) return { ok: false, error: `Falta conectar el envío de invitaciones: llámanos al ${CONTACTO.telefono} y lo damos de alta nosotros.` };
+  const { data: ya } = await servicio.from('usuarios').select('id').ilike('email', email).maybeSingle();
+  if (ya) return { ok: false, error: 'Ya existe una cuenta con ese email.' };
+  const { data, error } = await servicio.auth.admin.inviteUserByEmail(email, {
+    data: { nombre: d.nombre.trim(), anadido_por: p.id }, redirectTo: `${await origen()}/panel/confirmar`,
+  });
+  if (error || !data.user) return { ok: false, error: mensajeError(error?.message ?? 'No se ha podido enviar la invitación.') };
+  // Misma empresa y mismo rol que quien añade, ACTIVA al instante (sin pasar por Altas).
+  // Con la clave de servicio: el RLS no deja a un cliente escribir en usuarios.
+  const { error: e2 } = await servicio.from('usuarios')
+    .update({ nombre: d.nombre.trim(), rol: p.rol, estado: 'activa', ...empresa }).eq('id', data.user.id);
+  if (e2) return { ok: false, error: `La invitación ha salido, pero no se ha podido activar: ${mensajeError(e2.message)}. Llámanos y lo rematamos.` };
   return { ok: true };
 }

@@ -3,8 +3,8 @@
 import { redirect } from 'next/navigation';
 import { supabaseServidor } from '@/lib/supabase/server';
 import { origen } from '@/lib/origen';
-import { validaIdFiscal } from '@/lib/idFiscal';
-import { PREFIJOS, normalizaTel } from '@/lib/paises';
+import { validaIdFiscalPais } from '@/lib/idFiscal';
+import { esPaisValido, PREFIJOS, normalizaTel } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
@@ -16,7 +16,7 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 // SOLO LA CUENTA (usuario, 2026-11-11: «1º cuenta aquí más simple»): email, nombre, DNI
 // opcional y teléfono. La empresa (razón social, CIF, dirección…) NO se pide aquí: la
 // asocia o la crea el equipo de Dynamo en «Altas» al activar la cuenta.
-export type DatosAlta = { email: string; nombre: string; dni: string; prefijo: string; telefono: string };
+export type DatosAlta = { email: string; nombre: string; dni_pais: string; dni: string; prefijo: string; telefono: string };
 export type EstadoAlta = { error: string | null; campo?: keyof DatosAlta | 'acepto'; datos?: DatosAlta };
 
 const limpio = (v: FormDataEntryValue | null, max = 160) => String(v ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
@@ -25,13 +25,18 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
   comprobarEntrada("app/panel/registro/acciones#registrar", [_prev, f]);
   const d: DatosAlta = {
     email: limpio(f.get('email'), 254).toLowerCase(), nombre: limpio(f.get('nombre')),
-    dni: limpio(f.get('dni'), 30).toUpperCase(), prefijo: limpio(f.get('prefijo'), 6) || '+34', telefono: limpio(f.get('telefono'), 30),
+    dni_pais: limpio(f.get('dni_pais'), 2).toUpperCase() || 'ES', dni: limpio(f.get('dni'), 30).toUpperCase(),
+    prefijo: limpio(f.get('prefijo'), 6) || '+34', telefono: limpio(f.get('telefono'), 30),
   };
   const mal = (campo: EstadoAlta['campo'], error: string): EstadoAlta => ({ error, campo, datos: d });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) return mal('email', 'Escribe un email válido: ahí te llega el código para entrar.');
   if (d.nombre.length < 3) return mal('nombre', 'Escribe tu nombre y apellidos (la persona que usará la cuenta).');
   if (!PREFIJOS.some(([p]) => p === d.prefijo)) return mal('telefono', 'Elige el prefijo del teléfono.');
-  if (d.dni) { const r = validaIdFiscal(d.dni); if (!r || !r.ok) return mal('dni', 'El DNI / NIE no es válido. Revísalo o déjalo en blanco.'); }
+  // DNI / NIE obligatorio (usuario, 2026-11-11), validado según el país del documento:
+  // España con la letra de control; otros países, formato razonable (letras y números).
+  if (!esPaisValido(d.dni_pais)) return mal('dni', 'Elige el país del documento.');
+  const doc = validaIdFiscalPais(d.dni, d.dni_pais);
+  if (!doc || !doc.ok) return mal('dni', `El documento no es válido${doc?.tipo ? ` (${doc.tipo}: ${doc.msg})` : ''}. Revísalo.`);
   const tel = normalizaTel(d.prefijo + d.telefono);
   if (!/^\+[0-9]{8,15}$/.test(tel)) return mal('telefono', 'Escribe un teléfono de contacto (móvil, a ser posible).');
   if (f.get('acepto') !== 'on') return mal('acepto', 'Para crear la cuenta tienes que aceptar el Aviso legal y la Política de privacidad.');
@@ -44,7 +49,7 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
       shouldCreateUser: true,
       emailRedirectTo: `${await origen()}/panel/confirmar`,
       data: {
-        tipo_usuario: 'cliente', nombre: d.nombre, dni: d.dni.replace(/[\s.\-]/g, ''), telefono: tel,
+        tipo_usuario: 'cliente', nombre: d.nombre, dni: d.dni.replace(/[\s.\-]/g, ''), dni_pais: d.dni_pais, telefono: tel,
         condiciones_aceptadas_en: new Date().toISOString(),
       },
     },
