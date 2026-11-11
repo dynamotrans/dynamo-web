@@ -126,7 +126,16 @@ jobs:
           npm run build
           nohup npx next start -p 3000 > /tmp/next.log 2>&1 &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/panel/entrar && break; sleep 2; done
-      - run: npx playwright install --with-deps chromium
+      # Las librerías del navegador ya vienen en ubuntu-24.04; lo único que añadía
+      # «--with-deps» eran 9 paquetes de FUENTES vía apt, y el espejo de paquetes de Azure
+      # se cae a rachas (2026-11-11: dos intentos rotos por «Temporary failure resolving
+      # azure.archive.ubuntu.com» sin arrancar ni una prueba). El navegador se instala
+      # SIEMPRE (lo sirve Playwright, no apt) y las fuentes quedan como mejora opcional:
+      # si apt falla, las pruebas corren igual (no comprueban texto chino ni emoji).
+      - name: Navegador de Playwright
+        run: npx playwright install chromium
+      - name: Fuentes del navegador (opcional)
+        run: npx playwright install-deps chromium || echo "::warning::Fuentes del navegador sin instalar (espejo apt caído); las pruebas corren sin ellas"
       - name: Pruebas en navegador
         run: npx playwright test
         env:
