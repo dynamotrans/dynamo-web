@@ -56,15 +56,22 @@ export default function Etapas({ etapas, pausado, paradas, fichaParada }: {
           return (
             <div key={x.paso} className={`tl-item${x.actual ? ' tl-actual' : ''}${x.hecha ? ' tl-hecha' : ''}`} aria-current={x.actual ? 'step' : undefined}>
               <span className="tl-dot" aria-hidden="true" />
-              <span className="tl-tit" style={{ color, fontWeight: x.actual ? 800 : 600 }}>{dir ? nombreEtapa({ ...x, poblacion: '' }) : nombreEtapa(x)}</span>
-              {dir && <span className="tl-sub" style={{ fontWeight: 600, color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>{dir}</span>}
-              {(sub || x.marcada) && (
-                <span className="tl-sub" style={{ color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>
-                  {sub}
-                  {x.marcada && <span style={{ color: '#b45309', fontWeight: 700 }}>{sub ? ' · ' : ''}marcada a mano</span>}
+              {/* El hito ACTUAL va en un cuadro sombreado con el chip «Ahora» (usuario,
+                  2026-11-11: «no queda claro dónde está actualmente»). */}
+              <div className="tl-cont">
+                <span className="tl-tit" style={{ color, fontWeight: x.actual ? 800 : 600 }}>
+                  {dir ? nombreEtapa({ ...x, poblacion: '' }) : nombreEtapa(x)}
+                  {x.actual && <span className="tl-ahora">Ahora</span>}
                 </span>
-              )}
-              {card && <div className="tl-card">{card}</div>}
+                {dir && <span className="tl-sub" style={{ fontWeight: 600, color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>{dir}</span>}
+                {(sub || x.marcada) && (
+                  <span className="tl-sub" style={{ color: x.hecha ? 'var(--navy)' : 'var(--gray-500)' }}>
+                    {sub}
+                    {x.marcada && <span style={{ color: '#b45309', fontWeight: 700 }}>{sub ? ' · ' : ''}marcada a mano</span>}
+                  </span>
+                )}
+                {card && <div className="tl-card">{card}</div>}
+              </div>
             </div>
           );
         })}
