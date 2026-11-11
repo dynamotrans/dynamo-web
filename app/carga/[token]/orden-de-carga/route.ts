@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { cookieReserva } from '@/lib/cargaPublica';
 import { cargarDatosDocPublica } from '@/lib/pdf/datos';
-import { ordenDeCarga } from '@/lib/pdf/orden';
+import { ordenCompuesta } from '@/lib/pdf/orden';
 import { CONTACTO } from '@/lib/atencion';
 
 // /carga/<enlace>/orden-de-carga: la orden de carga en PDF para el transportista que
@@ -23,8 +23,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const r = await cargarDatosDocPublica(sb, reserva);
   if (!r.datos) return texto(`Esta orden de carga ya no está disponible. Llámanos al ${CONTACTO.telefono}.`, 403);
   const p = r.parametros;
-  const bytes = await ordenDeCarga(r.datos, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
-    dias: p.pronto_pago_dias ?? 5, plazo: p.plazo_pago_transportista_dias ?? 60 });
+  // La orden del transportista sale COMPUESTA (2026-11-10): copia del conductor sin
+  // economía + copia completa, en su idioma y en español.
+  const bytes = await ordenCompuesta(r.datos, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
+    dias: p.pronto_pago_dias ?? 5, plazo: p.plazo_pago_transportista_dias ?? 60 }, 'conjunta');
   const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
   return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',
     'content-disposition': `inline; filename="Orden-de-carga-${ref}.pdf"`, 'cache-control': 'private, no-store' } });

@@ -34,6 +34,7 @@ import { PonerPrecio } from './ficha/PonerPrecio';
 import { Valoracion } from './ficha/Valoracion';
 import { CmrDigital } from './ficha/CmrDigital';
 import { Ofrecer } from './ficha/Ofrecer';
+import { CompartirOrden } from './ficha/CompartirOrden';
 
 // ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
 // Rótulo de los bloques DENTRO de la sección unificada «Envío» (usuario, 2026-11-10:
@@ -180,8 +181,11 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         {!manual && <a className="fm-item" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
         {/* PDF: se generan al momento y se abren en el visor (regla 0-bis). La orden, cuando
             ya hay a quién mandarla. */}
-        {(manual || ficha.transportista) && (
+        {manual ? (
           <a className="fm-item" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga</a>
+        ) : ficha.transportista && (
+          /* Diálogo de compartir (usuario, 2026-11-10): qué variante y por dónde se envía. */
+          <button className="fm-item" onClick={() => setVista('orden')}><I d={ICO.doc} />Orden de carga</button>
         )}
         {/* Incidencia en cualquier estado del envío (decisión 2026-07-12); penalización en los de Dynamo. */}
         <a className="fm-item" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>
@@ -198,6 +202,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
+  if (vista === 'orden') return <CompartirOrden ficha={ficha} onVolver={() => setVista('ficha')} />;
 
   // ---- Cabecera «vital»: lo que se mira el 90 % de las veces, sin scroll ------------
   const rutaCorta = [recogidas[0]?.poblacion, entregas[entregas.length - 1]?.poblacion].filter(Boolean).join(' → ');

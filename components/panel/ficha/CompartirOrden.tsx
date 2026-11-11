@@ -1,0 +1,120 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Modal from '../Modal';
+import { euros, ventana, fecha } from '@/lib/formato';
+import { telBonito } from '@/lib/paises';
+import { CONTACTO } from '@/lib/atencion';
+import { NOMBRE_IDIOMA, type IdiomaOrden } from '@/lib/pdf/ordenTextos';
+import type { Ficha, ParadaFicha } from '@/lib/fichaEnvio';
+import { datosOrden } from '@/app/panel/(app)/envios/acciones';
+import { I, ICO } from './comun';
+
+// ---- Compartir la ORDEN DE CARGA (usuario, 2026-11-10) ------------------------------
+// Al pulsar «Orden de carga» en la ficha ya no se abre el PDF a secas: este diálogo
+// pregunta QUÉ se comparte (conjunta = operativa + económica · solo operativa · solo
+// económica) y CÓMO (email al transportista, WhatsApp al transportista, o copiar el
+// enlace de descarga), con un mensaje ordenado tipo orden de carga que deja claro que
+// lleva la orden en PDF. El PDF sale en el idioma del transportista y en español.
+
+type Que = 'conjunta' | 'operativa' | 'economica';
+const QUE: [Que, string, string][] = [
+  ['conjunta', 'Conjunta (operativa + económica)', 'Copia del conductor sin precios + copia de administración completa.'],
+  ['operativa', 'Solo operativa', 'La copia del conductor: sin ninguna información económica.'],
+  ['economica', 'Solo económica', 'La copia de administración: el documento completo, con el precio.'],
+];
+const QUE_TXT: Record<Que, string> = {
+  conjunta: 'copia del conductor sin precios + copia de administración completa',
+  operativa: 'copia del conductor, sin información económica',
+  economica: 'copia de administración, completa',
+};
+
+function dirCorta(p: ParadaFicha): string {
+  const prov = p.provincia && p.provincia !== p.poblacion ? p.provincia : null;
+  return [[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), prov, (p.pais_codigo_iso ?? 'ES').toUpperCase()].filter(Boolean).join(', ');
+}
+
+export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
+  const e = ficha.envio;
+  const [que, setQue] = useState<Que>('conjunta');
+  const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState<'enlace' | 'mensaje' | null>(null);
+  useEffect(() => { datosOrden(e.id).then((r) => { if (r.ok) setD(r); else setError(r.error); }); }, [e.id]);
+
+  const token = ficha.cmrEnlace?.token ?? null;
+  const origen = typeof window !== 'undefined' ? window.location.origin : '';
+  const enlace = token && d ? `${origen}/cmr/${token}/orden?copia=${que}${que !== 'operativa' ? `&clave=${d.clave}` : ''}` : '';
+  const idioma = (d?.idioma ?? 'es') as IdiomaOrden;
+  const idiomas = idioma !== 'es' ? `${NOMBRE_IDIOMA[idioma]} y español` : 'español';
+
+  const rec = ficha.paradas.filter((p) => p.tipo === 'carga'), ent = ficha.paradas.filter((p) => p.tipo === 'descarga');
+  const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
+  const pt = e.importe_transportista != null ? Number(e.importe_transportista) : null;
+  // Mensaje ordenado tipo orden de carga, diciendo claro que lleva la orden en PDF.
+  const msg = [
+    `ORDEN DE CARGA · Dynamo · #${e.referencia_gx}`,
+    ficha.transportista ? `Transportista: ${ficha.transportista.nombre}` : null,
+    ...rec.map((p, i) => `Recogida${rec.length > 1 ? ` ${i + 1}` : ''}: ${dirCorta(p)} — ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`),
+    ...ent.map((p, i) => `Entrega${ent.length > 1 ? ` ${i + 1}` : ''}: ${dirCorta(p)}${e.fecha_entrega_estimada ? ` — estimada ${fecha(e.fecha_entrega_estimada)}` : ''}`),
+    `Mercancía: ${[e.metros_lineales != null && `${e.metros_lineales} m`, e.toneladas != null && `${e.toneladas} Tn`,
+      e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ')}`,
+    matr ? `Matrículas autorizadas: ${matr}` : null,
+    e.conductor_nombre ? `Conductor: ${[e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ')}` : null,
+    que !== 'operativa' && pt != null ? `Precio acordado: ${euros(pt)} (sin IVA)` : null,
+    '',
+    `ADJUNTA va la ORDEN DE CARGA en PDF (${QUE_TXT[que]}), en ${idiomas}, con todos los datos y las condiciones. Ábrela o descárgala aquí:`,
+    enlace,
+    '',
+    `Si cambian las matrículas o el conductor, avísanos ANTES de la carga. Urgencias e incidencias 24 h: ${telBonito(CONTACTO.telefono)}.`,
+  ].filter((x) => x !== null).join('\n');
+
+  const waTel = (d?.telefono ?? '').replace(/[^0-9]/g, '');
+  return (
+    <Modal abierto onCerrar={onVolver} titulo={`Orden de carga · #${e.referencia_gx}`}
+      sub={ficha.transportista ? `${ficha.transportista.nombre}${d && idioma !== 'es' ? ` · el PDF sale en ${idiomas}` : ''}` : undefined}
+      icono={<I d={ICO.doc} />} pie={<button className="btn-ghost" onClick={onVolver}>Volver a la ficha</button>}>
+      {error && <div className="pt-aviso error" role="alert"><div>{error}</div></div>}
+      {/* QUÉ se comparte: preguntar SIEMPRE antes de enviar (usuario, 2026-11-10). */}
+      <div className="pen-envio-sum" role="radiogroup" aria-label="Qué se comparte">
+        {QUE.map(([k, tit, det]) => (
+          <label key={k} className="pen-sum-row" style={{ alignItems: 'flex-start', gap: '0.5rem', justifyContent: 'flex-start', cursor: 'pointer', padding: '0.3rem 0' }}>
+            <input type="radio" name="orden-que" checked={que === k} onChange={() => { setQue(k); setCopiado(null); }} style={{ marginTop: 3 }} />
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontWeight: 700, color: 'var(--navy)' }}>{tit}</span>
+              <span style={{ display: 'block', fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>{det}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {!token && <div className="modal-warn-box" style={{ marginTop: '0.6rem' }}><strong>El enlace del envío está retirado.</strong> Crea el enlace del CMR de nuevo (en Documentos) para poder compartir la orden.</div>}
+      {token && (
+        <>
+          <div className="ptar-sitio-grid" style={{ marginTop: '0.7rem' }}>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="ord-enlace">Enlace de descarga del PDF</label>
+              <input id="ord-enlace" readOnly value={enlace} onFocus={(ev) => ev.target.select()} />
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="ord-msg">Mensaje listo para enviar</label>
+              <textarea id="ord-msg" readOnly rows={9} value={msg} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.45rem', marginTop: '0.8rem' }}>
+            <a className="btn-primary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={enlace} target="_blank" rel="noopener" title="Abrir el PDF en el visor">Abrir PDF</a>
+            <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title="Copiar el enlace de descarga del PDF"
+              onClick={() => { navigator.clipboard?.writeText(enlace); setCopiado('enlace'); }}>{copiado === 'enlace' ? 'Copiado ✓' : 'Enlace'}</button>
+            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)}` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
+              href={`https://wa.me/${waTel}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
+            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.email ? `Email a ${d.email}` : 'El transportista no tiene email en su ficha: se abre sin destinatario'}
+              href={`mailto:${d?.email ?? ''}?subject=${encodeURIComponent(`Orden de carga #${e.referencia_gx} · Dynamo`)}&body=${encodeURIComponent(msg)}`}>Email</a>
+          </div>
+          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
+            El email y el WhatsApp se abren con el transportista y el mensaje ya puestos; el PDF va como enlace de descarga.
+            La copia del conductor no lleva ninguna información económica; las variantes con precio solo se abren con este enlace completo.
+          </p>
+        </>
+      )}
+    </Modal>
+  );
+}

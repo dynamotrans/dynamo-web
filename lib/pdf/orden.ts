@@ -2,45 +2,66 @@ import { telBonito } from '@/lib/paises';
 import { pesoTn, tipoCargaTxt } from '@/lib/formato';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { rgb, type PDFImage } from 'pdf-lib';
+import { PDFDocument, rgb, type PDFImage } from 'pdf-lib';
 import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from './lienzo';
 import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
+import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrden } from './ordenTextos';
 
 // ORDEN DE CARGA que Dynamo manda al transportista (el contenido y las condiciones son los
 // de la orden que se manda hoy por email, p. ej. la GX61034 de febrero de 2026).
 // En un envío MANUAL (el cliente con su propio operador) sale como ORDEN DE CARGA del
 // cliente a su operador, SIN ninguna mención a Dynamo (como en el mockup).
+//
+// Desde 2026-11-10 la orden sale en DOS COPIAS (usuario: «separa en 2»):
+//   · operativa  → COPIA CONDUCTOR, sin información económica (sin la sección IMPORTE)
+//   · economica  → COPIA ADMINISTRACIÓN, el documento completo
+// y en el IDIOMA del transportista además del español (ordenCompuesta): primero su idioma,
+// luego el español. Las CONDICIONES legales solo van en las páginas en español (que
+// acompañan siempre); las traducidas remiten a ellas y dicen que la española prevalece.
 
 export type ParamsPago = { pct: number; minimo: number; dias: number; plazo: number };
+export type CopiaOrden = 'operativa' | 'economica';
+export type QueOrden = 'conjunta' | 'operativa' | 'economica';
 
 const NARANJA = rgb(0.98, 0.45, 0.09);
 
-export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8Array> {
+export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: CopiaOrden; idioma?: IdiomaOrden } = {}): Promise<Uint8Array> {
   const e = d.envio, manual = d.manual;
+  const copia: CopiaOrden = op.copia ?? 'economica';
+  const idioma: IdiomaOrden = op.idioma ?? 'es';
+  const t = ORDEN_TXT[idioma], esES = idioma === 'es';
   const D = d.dynamo ?? DYNAMO;
-  const l = await Lienzo.crear();
+  const l = await Lienzo.crear({ unicode: !esES });
   let logo: PDFImage | null = null;
   if (!manual) logo = await l.doc.embedPng(await readFile(path.join(process.cwd(), 'images', '2.png')));
   const ref = e.referencia_gx ?? '';
   const emitida = ahoraMadrid();
+  const ventanaCarga = esES ? ventanaTxt(e.fecha_carga_desde, e.fecha_carga_hasta) : ventanaLoc(e.fecha_carga_desde, e.fecha_carga_hasta, idioma, t);
+  const fEntrega = e.fecha_entrega_estimada ? (esES ? fechaCorta(e.fecha_entrega_estimada) : fechaLoc(e.fecha_entrega_estimada, idioma)) : null;
+
+  // ---- Banda de la copia (usuario, 2026-11-10: como el diseño aprobado) ----
+  const der = A4.w - l.margen.der;
+  l.rect(l.x0, 36, l.ancho, 18, COLOR.fondo);
+  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? t.copiaConductor : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
+  l.textoDer(der - 8, 48.5, copia === 'operativa' ? t.sinEco : t.completa, 7.5, { color: COLOR.gris });
 
   // ---- Cabecera (solo en la 1ª página) ----
   if (logo) {
     const h = 30, w = h * logo.width / logo.height;
-    l.pag.drawImage(logo, { x: l.x0, y: A4.h - 40 - h, width: w, height: h });
+    l.pag.drawImage(logo, { x: l.x0, y: A4.h - 64 - h, width: w, height: h });
   } else {
-    l.texto(l.x0, 58, d.cliente?.razon_social ?? '', 15, { bold: true });
-    l.texto(l.x0, 72, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
+    l.texto(l.x0, 82, d.cliente?.razon_social ?? '', 15, { bold: true });
+    l.texto(l.x0, 96, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
   }
-  const der = A4.w - l.margen.der;
-  l.textoDer(der, 52, 'ORDEN DE CARGA', 16, { bold: true, color: COLOR.morado });
-  l.textoDer(der, 66, `Referencia de envío: ${ref}`, 10, { bold: true });
-  l.textoDer(der, 78, `Emitida el ${emitida}`, 8, { color: COLOR.gris });
-  l.y = 92;
+  l.textoDer(der, 76, t.titulo, 16, { bold: true, color: COLOR.morado });
+  l.textoDer(der, 90, `${t.subRef}: ${ref}`, 10, { bold: true });
+  l.textoDer(der, 102, `${t.emitida} ${emitida}`, 8, { color: COLOR.gris });
+  l.y = 116;
   if (!manual) {
     l.parrafo(`${D.razon_social} · CIF ${D.cif} · Wtransnet ${D.wtransnet} · ${D.direccion}, ${D.codigo_postal} ${D.poblacion} · ${D.email} · ${telBonito(D.telefono)}`, 7.5, { color: COLOR.gris });
   }
+  if (!esES) l.parrafo(t.prevalece, 7.5, { color: COLOR.gris });
   l.linea(l.x0, l.y + 2, der, l.y + 2, COLOR.grisClaro, 1);
   l.y += 12;
 
@@ -52,20 +73,20 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
     izq.push([[p.cif ? `CIF ${p.cif}` : null, p.codigo ? `Código ${p.codigo}` : null].filter(Boolean).join(' · '), 8.5, false]);
     izq.push([[p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia !== p.poblacion ? p.provincia : null].filter(Boolean).join(', '), 8, false]);
     izq.push([[p.contacto, p.telefono && telBonito(p.telefono), p.email].filter(Boolean).join(' · '), 8, false]);
-  } else izq.push(['PENDIENTE DE ASIGNAR TRANSPORTISTA', 10, true]);
-  const dchaTit = manual ? 'ORDENANTE' : 'GESTIONADA POR';
+  } else izq.push([t.pendienteTransp, 10, true]);
+  const dchaTit = manual ? t.ordenante : t.gestionadaPor;
   const dcha: [string, number, boolean][] = manual
     ? [[d.cliente?.razon_social ?? '', 10, true], [d.cliente?.cif ? `CIF ${d.cliente.cif}` : '', 8.5, false],
        [[d.cliente?.contacto, d.cliente?.telefono && telBonito(d.cliente.telefono), d.cliente?.email].filter(Boolean).join(' · '), 8, false]]
-    : [[`Operador de tráfico: ${d.gestor?.nombre ?? 'Dynamo'}`, 9.5, true],
+    : [[`${t.operadorTrafico}: ${d.gestor?.nombre ?? 'Dynamo'}`, 9.5, true],
        [[d.gestor?.telefono && telBonito(d.gestor.telefono), d.gestor?.email ?? D.email].filter(Boolean).join(' · '), 8, false],
-       [`Urgencias e incidencias 24 h: ${telBonito(D.telefono)}`, 8, true],
-       [`Operador autorizado de transporte · O.T. ${D.tarjeta_ot}`, 8, false]];
-  const alto = (filas: [string, number, boolean][], w: number) => filas.reduce((a, [t, s, b]) => a + (t ? l.partir(t, s, w, b).length * s * 1.3 : 0), 0);
+       [`${t.urgencias}: ${telBonito(D.telefono)}`, 8, true],
+       [`${t.operadorAut} ${D.tarjeta_ot}`, 8, false]];
+  const alto = (filas: [string, number, boolean][], w: number) => filas.reduce((a, [tx, s, b]) => a + (tx ? l.partir(tx, s, w, b).length * s * 1.3 : 0), 0);
   const hCaja = Math.max(alto(izq, mitad - 20), alto(dcha, mitad - 20)) + 30;
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
   l.rect(xb, l.y, mitad, hCaja, COLOR.fondo);
-  l.texto(l.x0 + 10, l.y + 14, manual ? 'TRANSPORTISTA' : 'TRANSPORTISTA (realiza el servicio)', 7.5, { bold: true, color: COLOR.gris });
+  l.texto(l.x0 + 10, l.y + 14, manual ? t.transp : t.transpRealiza, 7.5, { bold: true, color: COLOR.gris });
   // Envío manual: el logo del operador (si el cliente lo subió), arriba a la derecha de su caja.
   if (manual && d.logoPorteador) {
     try {
@@ -79,17 +100,17 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
   const top0 = l.y;
   for (const [x, filas] of [[l.x0 + 10, izq], [xb + 10, dcha]] as const) {
     l.y = top0 + 22;
-    for (const [t, s, b] of filas) if (t) l.parrafo(t, s, { bold: b, x, ancho: mitad - 20 });
+    for (const [tx, s, b] of filas) if (tx) l.parrafo(tx, s, { bold: b, x, ancho: mitad - 20 });
   }
   l.y = top0 + hCaja + 14;
 
   // ---- Resumen en una franja ----
   const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
   const franja: [string, string][] = [
-    ['Nº DE ENVÍO', ref], ['FECHA DE CARGA', ventanaTxt(e.fecha_carga_desde, e.fecha_carga_hasta)],
-    ['MATRÍCULAS AUTORIZADAS', matr || 'PENDIENTE DE ASIGNAR'],
+    [t.nEnvio, ref], [t.fechaCargaL, ventanaCarga],
+    [t.matriculasAutL, matr || t.pendAsignar],
   ];
-  if (e.referencia_cliente) franja.push(['REFERENCIA', e.referencia_cliente]);
+  if (e.referencia_cliente) franja.push([t.referenciaL, e.referencia_cliente]);
   const wCol = l.ancho / franja.length;
   const partesFranja = franja.map(([, v]) => l.partir(v, 9.5, wCol - 14, true).slice(0, 2));
   const hFranja = 22 + Math.max(...partesFranja.map((x) => x.length)) * 12;
@@ -110,39 +131,41 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
   };
   const punto = (pa: ParadaDoc, n: number, recogida: boolean) => {
     const filas: [string, string, boolean?][] = [];
-    filas.push(['Fecha', recogida ? `${ventanaTxt(e.fecha_carga_desde, e.fecha_carga_hasta)}` : (e.fecha_entrega_estimada ? `${fechaCorta(e.fecha_entrega_estimada)} (estimada)` : 'Por confirmar'), true]);
-    filas.push(['Horario (hora local)', pa.horarios || 'Consultar con Dynamo', true]);
-    filas.push(['Empresa', pa.nombre_empresa || 'FALTAN DATOS DE EMPRESA / ALMACÉN', true]);
-    filas.push(['Dirección', [pa.direccion, [pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.provincia !== pa.poblacion ? pa.provincia : null, pa.pais].filter(Boolean).join(', ')]);
-    if (pa.contacto?.telefono || pa.contacto?.nombre) filas.push(['Contacto', [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': ')]);
-    if (pa.referencia) filas.push(['Referencia', pa.referencia, true]);
-    if (pa.tipo_sitio) filas.push(['Tipo de sitio', nombreTipo(pa.tipo_sitio)]);
-    const avisos = [pa.requiere_cita && 'Con cita previa', !pa.tiene_medios_carga && 'Sin medios de carga: el camión debe llevar plataforma elevadora'].filter(Boolean) as string[];
-    if (avisos.length) filas.push(['Atención', avisos.join(' · '), true]);
+    filas.push([t.fecha, recogida ? ventanaCarga : (fEntrega ? `${fEntrega} ${t.estimada}` : t.porConfirmar), true]);
+    filas.push([t.horario, pa.horarios || t.consultaDynamo, true]);
+    filas.push([t.empresa, pa.nombre_empresa || t.faltanEmpresa, true]);
+    filas.push([t.direccion, [pa.direccion, [pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.provincia !== pa.poblacion ? pa.provincia : null, pa.pais].filter(Boolean).join(', ')]);
+    if (pa.contacto?.telefono || pa.contacto?.nombre) filas.push([t.contacto, [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': ')]);
+    if (pa.referencia) filas.push([t.referencia, pa.referencia, true]);
+    if (pa.tipo_sitio) filas.push([t.tipoSitio, nombreTipo(pa.tipo_sitio)]);
+    const avisos = [pa.requiere_cita && t.citaPrevia, !pa.tiene_medios_carga && t.sinMedios].filter(Boolean) as string[];
+    if (avisos.length) filas.push([t.atencion, avisos.join(' · '), true]);
     if (pa.url_google_maps) filas.push(['Google Maps', pa.url_google_maps]);
-    for (const n2 of [pa.notas_sitio, pa.anotaciones].filter(Boolean) as string[]) filas.push(['Indicaciones', n2]);
+    for (const n2 of [pa.notas_sitio, pa.anotaciones].filter(Boolean) as string[]) filas.push([t.indicaciones, n2]);
 
     const xK = l.x0 + 16, xV = l.x0 + 128, wV = der - xV - 6;
-    const lineas = filas.map(([k, v, b]) => ({ k, v: l.partir(v, 8.8, wV, b), b }));
-    const h = 22 + lineas.reduce((a, f) => a + f.v.length * 11.6 + 2, 0) + 6;
+    // La clave también se parte (los idiomas con etiquetas largas no deben pisar el valor).
+    const lineas = filas.map(([k, v, b]) => ({ k0: k, k: l.partir(k, 8, xV - xK - 8, true), v: l.partir(v, 8.8, wV, b), b }));
+    const altoF = (f: { k: string[]; v: string[] }) => Math.max(f.v.length * 11.6, f.k.length * 10.4);
+    const h = 22 + lineas.reduce((a, f) => a + altoF(f) + 2, 0) + 6;
     l.sitio(Math.min(h, 300));
     const color = recogida ? NARANJA : COLOR.verde;
     l.rect(l.x0, l.y, 3, h - 4, color);
-    l.texto(xK, l.y + 12, `${n} · ${recogida ? 'RECOGIDA' : 'ENTREGA'}`, 9, { bold: true, color });
+    l.texto(xK, l.y + 12, `${n} · ${recogida ? t.recogida : t.entrega}`, 9, { bold: true, color });
     l.y += 22;
     for (const f of lineas) {
-      l.sitio(f.v.length * 11.6);
-      l.texto(xK, l.y + 8.8, f.k, 8, { bold: true, color: COLOR.gris });
-      const rojo = f.k === 'Empresa' && !pa.nombre_empresa || f.k === 'Atención';
+      l.sitio(altoF(f));
+      f.k.forEach((ln, i) => l.texto(xK, l.y + 8.8 + i * 10.4, ln, 8, { bold: true, color: COLOR.gris }));
+      const rojo = f.k0 === t.empresa && !pa.nombre_empresa || f.k0 === t.atencion;
       f.v.forEach((ln, i) => l.texto(xV, l.y + 8.8 + i * 11.6, ln, 8.8, { bold: f.b, color: rojo ? COLOR.rojo : COLOR.navy }));
-      l.y += f.v.length * 11.6 + 2;
+      l.y += altoF(f) + 2;
     }
     l.y += 10;
   };
   const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
-  seccion(rec.length > 1 ? 'RECOGIDAS' : 'RECOGIDA');
+  seccion(rec.length > 1 ? t.recogidas : t.recogida);
   rec.forEach((pa, i) => punto(pa, i + 1, true));
-  seccion(ent.length > 1 ? 'ENTREGAS' : 'ENTREGA');
+  seccion(ent.length > 1 ? t.entregas : t.entrega);
   ent.forEach((pa, i) => punto(pa, i + 1, false));
 
   // ---- Mercancía, vehículo y conductor ----
@@ -150,66 +173,74 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
     const xV = l.x0 + 128, wV = der - xV;
     for (const [k, v, o] of filas) {
       if (!v) continue;
+      const ks = l.partir(k, 8, xV - l.x0 - 8, true);          // la clave también se parte
       const ls = l.partir(v, 8.8, wV, o?.bold);
-      l.sitio(ls.length * 11.6 + 3);
-      l.texto(l.x0, l.y + 8.8, k, 8, { bold: true, color: COLOR.gris });
+      const alto = Math.max(ls.length * 11.6, ks.length * 10.4);
+      l.sitio(alto + 3);
+      ks.forEach((ln, i) => l.texto(l.x0, l.y + 8.8 + i * 10.4, ln, 8, { bold: true, color: COLOR.gris }));
       ls.forEach((ln, i) => l.texto(xV, l.y + 8.8 + i * 11.6, ln, 8.8, { bold: o?.bold, color: o?.rojo ? COLOR.rojo : COLOR.navy }));
-      l.y += ls.length * 11.6 + 3;
+      l.y += alto + 3;
     }
     l.y += 8;
   };
-  seccion('MERCANCÍA Y VEHÍCULO');
-  const forma = [e.carga_lateral && 'lateral', e.carga_trasera && 'trasera', e.carga_techo && 'por techo'].filter(Boolean).join(', ');
+  seccion(t.secMercancia);
+  const forma = [e.carga_lateral && t.cargaLateral, e.carga_trasera && t.cargaTrasera, e.carga_techo && t.cargaTecho].filter(Boolean).join(' · ');
+  const tipoCarga = esES ? tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora)
+    : e.tipo_carga === 'completa' ? (e.requiere_plataforma_elevadora ? t.rigidoCompleto : t.cargaCompleta) : e.tipo_carga === 'grupaje' ? t.grupaje : '';
   kv([
-    ['Mercancía', [e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada'),
-      e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} metros lineales` : null,
-      e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? 'bulto' : 'bultos'}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
+    [t.mercancia, [e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada),
+      e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} ${t.metrosLineales}` : null,
+      e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? t.bulto : t.bultos}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
       e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), { bold: true }],
-    ['Tipo de transporte', e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora' : 'Tráiler tauliner (lona corredera)'],
-    ['Tipo de carga', `${tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || 'Grupaje'}${forma ? ` · carga ${forma}` : ''}`],
-    ['Requisitos', [e.requiere_nima && `Requiere NIMA${e.transportista_nima ? ` (${e.transportista_nima})` : ''}`, e.adr && 'MERCANCÍA ADR (peligrosa)'].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
-    ['Importante', 'El transportista solo está autorizado a recoger la mercancía descrita en esta orden. Si el cargador quiere cargar otra mercancía, avísanos antes para autorizarla. No está permitido el transbordo: si lo necesitas, avísanos antes para consultarlo con el cliente.'],
+    [t.tipoTransporte, e.requiere_plataforma_elevadora ? t.rigido : t.tauliner],
+    [t.tipoCarga, [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ')],
+    [t.requisitos, [e.requiere_nima && `${t.requiereNima}${e.transportista_nima ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
+    [t.importante, t.txtImportante],
   ]);
-  seccion('MATRÍCULAS Y CONDUCTOR');
+  seccion(t.secMatr);
   kv([
-    ['Matrículas autorizadas', matr || 'PENDIENTE DE ASIGNAR: envíanoslas antes de la carga', { bold: true, rojo: !matr }],
-    ['Conductor', [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || 'Pendiente de comunicar'],
-    ['', 'Solo pueden cargar las matrículas autorizadas. Si cambian, avísanos antes de llegar a la carga.'],
+    [t.matriculasAutL, matr || t.pendMatrEnvia, { bold: true, rojo: !matr }],
+    [t.conductor, [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar],
+    ['', t.txtSoloMatr],
   ]);
 
-  // ---- Importe ----
+  // ---- Importe (SOLO en la copia completa; la del conductor va sin economía) ----
   const precio = manual ? e.precio_acordado_operador : e.importe_transportista;
-  if (precio != null || !manual) {
-    seccion('IMPORTE');
-    const filas: [string, string, { bold?: boolean }?][] = [['Importe', precio != null ? `${eur(precio)}  (impuestos aplicables no incluidos)` : 'Pendiente', { bold: true }]];
+  if (copia === 'economica' && (precio != null || !manual)) {
+    seccion(t.secImporte);
+    const filas: [string, string, { bold?: boolean }?][] = [[t.importeL, precio != null ? `${eur(precio)}  ${t.impuestosNo}` : t.pendiente, { bold: true }]];
     if (!manual) {
       if (d.pronto_pago && precio != null) {
         const dto = Math.max(Math.round(Number(precio) * pago.pct) / 100, pago.minimo);
-        filas.push(['Forma de pago', `PRONTO PAGO: transferencia a ${pago.dias} días de la fecha de factura con un descuento del ${num(pago.pct)} % (mínimo ${eur(pago.minimo)}). Cobrarás ${eur(Number(precio) - dto)}.`, { bold: true }]);
+        filas.push([t.formaPago, rellena(t.txtProntoPago, { dias: String(pago.dias), pct: num(pago.pct), min: eur(pago.minimo), neto: eur(Number(precio) - dto) }), { bold: true }]);
       } else {
-        filas.push(['Forma de pago', `Transferencia a ${e.plazo_pago_transportista ?? pago.plazo} días de la fecha de factura.`]);
+        filas.push([t.formaPago, rellena(t.txtTransferencia, { dias: String(e.plazo_pago_transportista ?? pago.plazo) })]);
       }
-      filas.push(['Factura', `Indica en tu factura nuestra REFERENCIA DE VIAJE: ${ref}. Envía la factura, los albaranes y los certificados por email a ${D.email}: te contestaremos con un «RECIBIDO».`, { bold: true }]);
+      filas.push([t.facturaL, rellena(t.txtFactura, { ref, email: D.email }), { bold: true }]);
     }
     kv(filas);
   }
 
   if (e.discrecion_comercial && !manual) {
     l.sitio(46);
-    const t = 'DISCRECIÓN COMERCIAL: en la carga no informes del destino, ni en la entrega del origen. No enseñes a nadie precios ni esta orden.';
-    const ls = l.partir(t, 8.8, l.ancho - 20, true);
+    const tx = t.txtDiscrecion;
+    const ls = l.partir(tx, 8.8, l.ancho - 20, true);
     l.rect(l.x0, l.y, l.ancho, ls.length * 11.6 + 14, COLOR.ambarSuave, rgb(1, 0.84, 0.57));
     ls.forEach((ln, i) => l.texto(l.x0 + 10, l.y + 15 + i * 11.6, ln, 8.8, { bold: true, color: COLOR.ambar }));
     l.y += ls.length * 11.6 + 26;
   }
 
-  // ---- Condiciones (solo en la orden de Dynamo) ----
-  if (!manual) {
-    seccion('CONDICIONES DE LA ORDEN DE CARGA');
+  // ---- Condiciones: solo en las páginas en ESPAÑOL (las traducidas remiten a ellas) ----
+  if (!manual && !esES) {
+    l.sitio(30);
+    l.parrafo(`${t.verCondEs} ${t.prevalece}`, 8, { bold: true, color: COLOR.navy, despues: 6 });
+  }
+  if (!manual && esES) {
+    seccion(t.secCond);
     // Cada condición: su título en negrita y el texto debajo.
-    const c = (t: string) => {
-      const i = t.indexOf('. ');
-      const [tit, cuerpo] = i > 0 && i < 40 ? [t.slice(0, i), t.slice(i + 2)] : ['', t];
+    const c = (tx: string) => {
+      const i = tx.indexOf('. ');
+      const [tit, cuerpo] = i > 0 && i < 40 ? [tx.slice(0, i), tx.slice(i + 2)] : ['', tx];
       if (tit) { l.sitio(30); l.parrafo(tit, 7.8, { bold: true, despues: 0.5 }); }
       l.parrafo(cuerpo, 7.6, { color: COLOR.navy, despues: 5 });
     };
@@ -227,13 +258,33 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
   pags.forEach((pg, i) => {
     const pie = manual
       ? `Orden de carga ${ref} · emitida por ${d.cliente?.razon_social ?? ''} · ${emitida}`
-      : `${D.razon_social} · CIF ${D.cif} · O.T. ${D.tarjeta_ot} · Urgencias 24 h ${telBonito(D.telefono)} · ${ref}`;
+      : `${D.razon_social} · CIF ${D.cif} · O.T. ${D.tarjeta_ot} · ${t.urgencias} ${telBonito(D.telefono)} · ${ref}`;
     pg.drawLine({ start: { x: l.x0, y: 40 }, end: { x: der, y: 40 }, thickness: 0.6, color: COLOR.grisClaro });
     l.texto(l.x0, A4.h - 28, pie, 7, { color: COLOR.gris, pag: pg });
-    const n = `Página ${i + 1} de ${pags.length}`;
+    const n = `${t.pagina} ${i + 1} ${t.de} ${pags.length}`;
     l.texto(der - l.medida(n, 7), A4.h - 28, n, 7, { color: COLOR.gris, pag: pg });
   });
-  l.doc.setTitle(`${'Orden de carga'} ${ref}`);
+  l.doc.setTitle(`${t.titulo} ${ref}`);
   l.doc.setAuthor(manual ? d.cliente?.razon_social ?? '' : D.razon_social);
   return l.guardar();
+}
+
+// La orden COMPUESTA que se comparte con el transportista (usuario, 2026-11-10):
+// las copias pedidas (conjunta = conductor + administración), primero en el idioma del
+// transportista y después en español. Con idioma español, solo las páginas en español.
+export async function ordenCompuesta(d: DatosDoc, pago: ParamsPago, que: QueOrden, idioma?: IdiomaOrden): Promise<Uint8Array> {
+  const idi: IdiomaOrden = idioma ?? idiomaDePais(d.porteador?.pais_iso);
+  const idiomas: IdiomaOrden[] = idi !== 'es' ? [idi, 'es'] : ['es'];
+  const copias: CopiaOrden[] = que === 'conjunta' ? ['operativa', 'economica'] : [que === 'operativa' ? 'operativa' : 'economica'];
+  const partes: Uint8Array[] = [];
+  for (const i of idiomas) for (const c of copias) partes.push(await ordenDeCarga(d, pago, { copia: c, idioma: i }));
+  if (partes.length === 1) return partes[0];
+  const doc = await PDFDocument.create();
+  for (const b of partes) {
+    const src = await PDFDocument.load(b);
+    (await doc.copyPages(src, src.getPageIndices())).forEach((pg) => doc.addPage(pg));
+  }
+  doc.setTitle(`${ORDEN_TXT.es.titulo} ${d.envio.referencia_gx ?? ''}`);
+  doc.setAuthor((d.dynamo ?? DYNAMO).razon_social);
+  return doc.save();
 }

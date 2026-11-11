@@ -10,6 +10,7 @@ import { CONTACTO } from '@/lib/atencion';
 export type Empresa = {
   nombre: string; razon_social: string; cif: string | null; codigo?: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null;
+  pais_iso?: string | null;              // ISO-3166 (para el idioma de la orden de carga)
   telefono: string | null; email: string | null; contacto?: string | null;
 };
 export type ParadaDoc = {
@@ -143,7 +144,7 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   } else if (t) {
     const ctoT = de('transportista_id', e.transportista_id);
     porteador = { nombre: t.nombre_visible || t.razon_social, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo,
-      direccion: t.direccion, codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
+      direccion: t.direccion, codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso), pais_iso: t.pais_codigo_iso,
       telefono: ctoT?.telefono ?? null, email: ctoT?.email ?? null, contacto: ctoT?.nombre ?? null };
   }
 
@@ -210,7 +211,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
       envio: j.envio, manual: false, cliente: null, dynamo,
       porteador: { nombre: t.nombre, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo, direccion: t.direccion,
         codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
-        telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null },
+        pais_iso: t.pais_codigo_iso, telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null },
       paradas: (j.paradas ?? []).map((p) => ({
         id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,

@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb, type RGB } from 'pdf-lib';
 
 // Ayudas comunes para escribir los PDF de la plataforma con pdf-lib: coordenadas desde
@@ -32,14 +34,41 @@ export class Lienzo {
   y = 0;                                  // cursor, en puntos desde ARRIBA
   margen = { izq: 40, der: 40, arriba: 40, abajo: 56 };
   alNuevaPagina: ((l: Lienzo) => void) | null = null;
+  /** Con fuente Unicode: los puntos de código que la fuente sabe pintar (null = WinAnsi). */
+  private glifos: Set<number> | null = null;
 
-  static async crear(): Promise<Lienzo> {
+  // `unicode` incrusta Liberation Sans (misma métrica que Helvetica) para idiomas que
+  // WinAnsi no cubre (polaco, checo, rumano): la orden de carga en el idioma del
+  // transportista. El resto de documentos siguen con las fuentes estándar (más ligeras).
+  static async crear(op?: { unicode?: boolean }): Promise<Lienzo> {
     const l = new Lienzo();
     l.doc = await PDFDocument.create();
-    l.f = await l.doc.embedFont(StandardFonts.Helvetica);
-    l.fb = await l.doc.embedFont(StandardFonts.HelveticaBold);
+    if (op?.unicode) {
+      const fontkit = (await import('@pdf-lib/fontkit')).default;
+      l.doc.registerFontkit(fontkit);
+      const dir = path.join(process.cwd(), 'lib', 'pdf', 'recursos');
+      l.f = await l.doc.embedFont(await readFile(path.join(dir, 'LiberationSans-Regular.ttf')), { subset: true });
+      l.fb = await l.doc.embedFont(await readFile(path.join(dir, 'LiberationSans-Bold.ttf')), { subset: true });
+      l.glifos = new Set([...l.f.getCharacterSet()].filter((c) => l.fb.getCharacterSet().includes(c)));
+    } else {
+      l.f = await l.doc.embedFont(StandardFonts.Helvetica);
+      l.fb = await l.doc.embedFont(StandardFonts.HelveticaBold);
+    }
     l.nuevaPagina();
     return l;
+  }
+  // Lo que esta instancia puede escribir: con fuente Unicode se conservan los diacríticos
+  // que la fuente tenga; sin ella, el plegado WinAnsi de siempre.
+  limpia(s: unknown): string {
+    if (!this.glifos) return limpio(s);
+    const t = String(s ?? '').replace(/[\r\t]/g, ' ').replace(/ /g, ' ');
+    let o = '';
+    for (const ch of t) {
+      if (ch === '\n' || this.glifos.has(ch.codePointAt(0)!)) { o += ch; continue; }
+      const base = ch.normalize('NFKD').replace(/[̀-ͯ]/g, '');
+      o += base && [...base].every((b) => this.glifos!.has(b.codePointAt(0)!)) ? base : '?';
+    }
+    return o;
   }
   get ancho() { return A4.w - this.margen.izq - this.margen.der; }
   get x0() { return this.margen.izq; }
@@ -51,9 +80,9 @@ export class Lienzo {
   // Si no caben `alto` puntos más, pasa de página.
   sitio(alto: number) { if (this.y + alto > A4.h - this.margen.abajo) this.nuevaPagina(); }
 
-  medida(s: string, size: number, bold = false) { return (bold ? this.fb : this.f).widthOfTextAtSize(limpio(s), size); }
+  medida(s: string, size: number, bold = false) { return (bold ? this.fb : this.f).widthOfTextAtSize(this.limpia(s), size); }
   texto(x: number, top: number, s: unknown, size: number, o: { bold?: boolean; color?: RGB; pag?: PDFPage } = {}) {
-    const t = limpio(s).replace(/\n/g, ' ');
+    const t = this.limpia(s).replace(/\n/g, ' ');
     if (!t) return;
     (o.pag ?? this.pag).drawText(t, { x, y: A4.h - top, size, font: o.bold ? this.fb : this.f, color: o.color ?? COLOR.navy });
   }
@@ -69,7 +98,7 @@ export class Lienzo {
   // Corta un texto en líneas que caben en `ancho` (respeta los saltos de línea propios).
   partir(s: unknown, size: number, ancho: number, bold = false): string[] {
     const out: string[] = [];
-    for (const parrafo of limpio(s).split('\n')) {
+    for (const parrafo of this.limpia(s).split('\n')) {
       let cur = '';
       for (const w of parrafo.split(/ +/)) {
         const t = cur ? cur + ' ' + w : w;
