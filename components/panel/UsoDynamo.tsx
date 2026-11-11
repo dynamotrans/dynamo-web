@@ -22,12 +22,18 @@ function Fila({ titulo, sub, valor, max }: { titulo: string; sub: string; valor:
   );
 }
 
-export default function UsoDynamo({ datos }: { datos: MiAutosusp | null }) {
+export default function UsoDynamo({ datos, empresa = null, equipoSinVista = false }: { datos: MiAutosusp | null; empresa?: string | null; equipoSinVista?: boolean }) {
   if (!datos) {
     return (
       <section className="section active">
         <div className="sec-header"><h2>Uso de Dynamo</h2></div>
-        <div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Esta pantalla es para las cuentas de cliente.</div></div>
+        <div className="pt-aviso info" style={{ maxWidth: 640 }}><div>
+          {equipoSinVista
+            ? <>Esta pantalla enseña el uso de UN cliente: elige arriba <strong>«Ver como»</strong> un cliente concreto y vuelve aquí (al cliente le sale en su menú de usuario, debajo de Soporte).</>
+            : empresa
+            ? <>Esta empresa todavía no tiene ninguna cuenta de usuario de cliente, así que no hay uso que enseñar.</>
+            : <>Esta pantalla es para las cuentas de cliente.</>}
+        </div></div>
       </section>
     );
   }
@@ -35,7 +41,10 @@ export default function UsoDynamo({ datos }: { datos: MiAutosusp | null }) {
   const pctEnv = k.envios > 0 ? Math.round((k.propias / k.envios) * 100) : 0;
   return (
     <section className="section active" id="sec-uso">
-      <div className="sec-header"><h2>Uso de Dynamo</h2></div>
+      <div className="sec-header"><h2>Uso de Dynamo{empresa ? ` · ${empresa}` : ''}</h2></div>
+      {empresa && <div className="pt-aviso info" style={{ maxWidth: 760, marginBottom: '0.8rem' }}><div>
+        Estás viendo el uso de <strong>{empresa}</strong> («Ver como»): los contadores de su titular, tal y como los ve él.
+      </div></div>}
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 1rem', maxWidth: 760 }}>
         Límites de uso de la plataforma, con los valores vigentes (pueden cambiar). Pasarse de alguno puede conllevar la
         <strong> suspensión temporal o definitiva</strong> de la cuenta; si llegas al límite por trabajo real, escríbenos y lo ampliamos.

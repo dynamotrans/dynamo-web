@@ -4634,27 +4634,40 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     padding-top: 1.2rem; border-top: 1px solid var(--gray-200);
     flex-wrap: wrap;
 }
-.ptar-actions .btn-primary,
-.ptar-actions .btn-secondary { flex: 1; min-width: 180px; }
-.ptar-actions .btn-ghost { flex: 0 0 auto; }
+/* OJO: hijos DIRECTOS (>): dentro de la botonera puede vivir una ventana
+   (.dash-modal, p. ej. la de la proforma) y estas reglas de ancho/alto no
+   deben alcanzar a sus botones (2026-11-11: salían apilados a lo ancho). */
+.ptar-actions > .btn-primary,
+.ptar-actions > .btn-secondary { flex: 1; min-width: 180px; }
+.ptar-actions > .btn-ghost { flex: 0 0 auto; }
 /* Confirmación: apiladas — «Crear envío» grande (morado) arriba como
    acción principal y «← Editar datos» debajo. */
 .ptar-actions-confirm { flex-direction: column; gap: 0.6rem; }
-.ptar-actions-confirm .btn-primary {
+.ptar-actions-confirm > .btn-primary {
     flex: none; width: 100%; min-height: 64px;
     font-size: var(--fs-d1); font-weight: 800; border-radius: 14px;
 }
-.ptar-actions-confirm .btn-ghost { flex: none; width: 100%; }
+.ptar-actions-confirm > .btn-ghost { flex: none; width: 100%; }
+/* «Ver proforma» (usuario, 2026-11-11): botón CLARO en blanco entre «Crear
+   envío» y «← Editar datos» — aquí el btn-secondary no es el verde del panel. */
+.ptar-actions-confirm > .btn-secondary {
+    flex: none; width: 100%; min-width: 0;
+    background: #fff; color: var(--navy);
+    border: 1.5px solid var(--gray-300); font-weight: 700;
+}
+.ptar-actions-confirm > .btn-secondary:hover {
+    background: #fff; color: var(--purple); border-color: var(--purple);
+}
 /* Acciones del form de crear envío: 2 columnas (Crear envío | Guardar
    presupuesto) más altas para pulsar sin errar, y Cancelar a lo ancho
    debajo con la misma altura. */
 .ptar-actions-main { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
-.ptar-actions-main .btn-primary,
-.ptar-actions-main .btn-secondary {
+.ptar-actions-main > .btn-primary,
+.ptar-actions-main > .btn-secondary {
     flex: none; min-width: 0; min-height: 60px;
     font-size: var(--fs-d1); font-weight: 800;
 }
-.ptar-actions-main .btn-ghost {
+.ptar-actions-main > .btn-ghost {
     grid-column: 1 / -1; width: 100%; min-height: 52px; font-size: var(--fs-l);
 }
 /* Modo de entrada al formulario: si se entra desde "Nuevo presupuesto",
@@ -4724,7 +4737,7 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     .ptar-input-wrap input,
     .ptar-select, .ptar-date { font-size: 16px; }
     .ptar-actions { flex-direction: column; }
-    .ptar-actions .btn-ghost { width: 100%; }
+    .ptar-actions > .btn-ghost { width: 100%; }
     /* Compactación móvil: que el formulario entre sin scroll.
        En móvil los 3 toggles se apilan (1 col) para que quepa el texto. */
     .ptar-pair { grid-template-columns: 1fr; gap: 0.5rem; }

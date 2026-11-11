@@ -3307,7 +3307,7 @@ export type Database = {
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       cliente_texto_busqueda: { Args: { k: Database["public"]["Tables"]["clientes"]["Row"] | null }; Returns: string }
-      clientes_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
+      clientes_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_orden?: string | null }; Returns: { id: string; total: number }[] }
       cmr_envio_de_token: { Args: { p_token: string | null }; Returns: string }
       cmr_publico: { Args: { p_token: string | null }; Returns: Json }
       cmr_ruta_permitida: { Args: { p_name: string | null }; Returns: boolean }
@@ -3420,7 +3420,7 @@ export type Database = {
       marcar_pin_enviado: { Args: { p_parada: string | null; p_destino: string | null }; Returns: undefined }
       marcar_sitio_principal: { Args: { p_cliente: string | null; p_sitio: string | null }; Returns: undefined }
       metricas_usuarios: { Args: Record<PropertyKey, never>; Returns: { id: string; consultas: number; min_dia: number; min_semana: number; ultimo_latido: string }[] }
-      mi_autosuspension: { Args: Record<PropertyKey, never>; Returns: Json }
+      mi_autosuspension: { Args: { p_cliente?: string | null }; Returns: Json }
       mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean }[] }
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }
@@ -3515,6 +3515,7 @@ export type Database = {
       transportistas_flota: { Args: { p_ids: string[] | null }; Returns: { transportista_id: string; tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] }[] }
       transportistas_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_adr?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
       unaccent_simple: { Args: { t: string | null }; Returns: string }
+      uso_clientes: { Args: { p_ids: string[] | null }; Returns: { cliente_id: string; consultas_hoy: number; consultas_semana: number; consultas_mes: number; envios: number; canceladas: number; recientes: number; usuarios_suspendidos: number }[] }
       uso_envios_usuarios: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; envios: number; cancelados: number; cancelados_ult10: number }[] }
       usuarios_conteos: { Args: Record<PropertyKey, never>; Returns: { total: number; activa: number; pendiente: number; suspendida: number; suspendida_auto: number; invitacion: number }[] }
       usuarios_pagina: { Args: { p_q?: string | null; p_rol?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; empresa: string; total: number }[] }

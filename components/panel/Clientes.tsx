@@ -19,10 +19,17 @@ import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 
+// Contadores de uso del cliente (uso_clientes): consultas de precio y cancelaciones
+// con coste, los mismos criterios que la suspensión automática (usuario, 2026-11-11).
+export type UsoCliente = {
+  consultas_hoy: number; consultas_semana: number; consultas_mes: number;
+  envios: number; canceladas: number; recientes: number; usuarios_suspendidos: number;
+};
 export type ClienteFila = ClienteDatos & {
   id: string; codigo: string; nombre_visible: string;
   creado_en: string; modificado_en: string | null;
   envios_que_cuentan: number;
+  uso: UsoCliente | null;
 };
 // Regla del descuento de bienvenida (tabla `parametros`, migración factor_bienvenida).
 export type Bienvenida = { pct: number; envios: number };
@@ -55,13 +62,14 @@ const NUEVO: ClienteDatos = {
 type Empleado = { id: string; nombre: string };
 
 // Lo que la página ha pedido a la base de datos (filtros de la URL y total de la búsqueda).
-export type ListaClientes = { q: string; estado: string; pagina: number; porPagina: number; total: number };
+export type ListaClientes = { q: string; estado: string; orden: string; pagina: number; porPagina: number; total: number };
 
 export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [], lista }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[]; lista: ListaClientes }) {
   const refrescar = useRefrescar();
   const url = (p: number) => {
     const u = new URLSearchParams();
     if (lista.q) u.set('q', lista.q); if (lista.estado) u.set('estado', lista.estado);
+    if (lista.orden) u.set('orden', lista.orden);
     if (p > 1) u.set('p', String(p)); if (lista.porPagina !== 20) u.set('n', String(lista.porPagina));
     const s = u.toString(); return `/panel/clientes${s ? `?${s}` : ''}`;
   };
@@ -87,6 +95,11 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
           <option value="pendiente_verificacion">Pendiente de verificar</option>
           <option value="suspendida">Suspendida</option>
         </select>
+        <select name="orden" defaultValue={lista.orden} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Ordenar la lista">
+          <option value="">Orden: nombre</option>
+          <option value="consultas">Orden: más consultas (30 días)</option>
+          <option value="canceladas">Orden: más cancelaciones</option>
+        </select>
         {lista.porPagina !== 20 && <input type="hidden" name="n" value={lista.porPagina} />}
       </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los clientes: {error}</div>}
@@ -96,11 +109,12 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
           <thead><tr>
             <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th>
             <th>Factor<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>solo admin</span></th>
+            <th>Uso<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>consultas · cancelaciones</span></th>
             <th>Creado · Modificado</th><th>Estado</th>
           </tr></thead>
           <tbody>
             {filas.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {!lista.q && !lista.estado ? 'Todavía no hay clientes. Da de alta el primero con «+ Nuevo cliente».' : 'Sin clientes que coincidan'}
               </td></tr>
             ) : filas.map((c) => {
@@ -114,6 +128,16 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
                     <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {euros(dyn)}</div></td>
                   <td><Factor v={Number(c.factor_tarifa_pct)} /><div className="meta">{c.factor_fijado_a_mano ? 'fijado a mano' : 'automático'}</div></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{c.uso
+                    ? <>
+                        <span style={{ fontWeight: 700 }}>{numero(c.uso.consultas_mes, 0)}</span> consultas<span className="meta" style={{ display: 'inline' }}> /30d</span>
+                        <div className="meta">{c.uso.consultas_hoy} hoy · {c.uso.consultas_semana} en 7 días</div>
+                        <div className="meta" style={c.uso.canceladas > 0 ? { color: '#c0392b', fontWeight: 700 } : undefined}>
+                          {c.uso.canceladas} cancel. con coste{c.uso.recientes > 0 ? ` (${c.uso.recientes} rec.)` : ''}
+                        </div>
+                        {c.uso.usuarios_suspendidos > 0 && <div><span className="badge badge-red">Usuario suspendido</span></div>}
+                      </>
+                    : <span className="meta">—</span>}</td>
                   <td>{fechaHora(c.creado_en)}{c.modificado_en && <div className="meta">Modif. {fechaHora(c.modificado_en)}</div>}</td>
                   <td><span className={`badge badge-${est[2]}`}>{est[1]}</span></td>
                 </tr>

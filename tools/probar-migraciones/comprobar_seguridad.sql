@@ -7576,3 +7576,39 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 198. Uso de clientes para Dynamo: «Ver como» y columnas de la lista --------------------
+-- mi_autosuspension(p_cliente): el equipo ve los contadores del titular de esa empresa;
+-- un cliente que pase p_cliente ajeno sigue viendo SOLO lo suyo. uso_clientes y el orden
+-- por uso de clientes_pagina son solo del equipo.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare j jsonb; n int; begin
+  j := mi_autosuspension(current_setting('prueba.cliente')::uuid);
+  if j is null then raise exception 'FALLO 198 · el equipo no ve el uso del cliente con «Ver como»'; end if;
+  if (j -> 'consultas' ->> 'hoy')::int < 1 then
+    raise exception 'FALLO 198 · el uso visto por el equipo no trae la consulta de la prueba 197: %', j;
+  end if;
+  select count(*) into n from uso_clientes(array[current_setting('prueba.cliente')::uuid]) u
+   where u.cliente_id = current_setting('prueba.cliente')::uuid and u.consultas_mes >= 1;
+  if n <> 1 then raise exception 'FALLO 198 · uso_clientes no devuelve los contadores del cliente'; end if;
+  select count(*) into n from clientes_pagina(null, null, 1, 50, 'consultas');
+  if n < 1 then raise exception 'FALLO 198 · clientes_pagina con orden por consultas no devuelve filas'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare j jsonb; n int; otro uuid := gen_random_uuid(); begin
+  -- El cliente con p_cliente ajeno: se ignora y ve lo suyo (no lo del otro).
+  j := mi_autosuspension(otro);
+  if j is null or (j -> 'consultas' ->> 'hoy')::int < 1 then
+    raise exception 'FALLO 198 · el cliente con p_cliente ajeno no ve lo suyo: %', j;
+  end if;
+  select count(*) into n from uso_clientes(array[current_setting('prueba.cliente')::uuid]);
+  if n <> 0 then raise exception 'FALLO 198 · un cliente lee uso_clientes (es solo del equipo)'; end if;
+  select count(*) into n from clientes_pagina(null, null, 1, 50, 'consultas');
+  if n <> 0 then raise exception 'FALLO 198 · un cliente lee la lista de clientes ordenada por uso'; end if;
+  raise notice 'OK 198 · uso para el equipo: «Ver como» ve los contadores del cliente, la lista trae el uso y el cliente solo lo suyo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

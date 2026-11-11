@@ -1169,7 +1169,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <button type="button" className="btn-secondary" onClick={() => setVerProforma(true)} disabled={enviando}>Ver proforma</button>
                 )}
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
-                <Modal abierto={verProforma} onCerrar={() => setVerProforma(false)} titulo="Proforma del cálculo" ancho={580}
+              </div>
+              {/* FUERA de la botonera: las reglas de ancho de .ptar-actions no deben
+                  alcanzar a los botones de esta ventana. */}
+              <Modal abierto={verProforma} onCerrar={() => setVerProforma(false)} titulo="Proforma del cálculo" ancho={580}
                   sub="Un documento con el precio, para verlo o guardarlo. No crea ningún envío."
                   pie={(() => {
                     const baseP = esCliente ? (tarifa?.neto ?? 0) : importe;
@@ -1195,7 +1198,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     pagadera, con la transferencia, sale al crear el envío y quedar pendiente de pago, con el precio ya fijado.
                   </p>
                 </Modal>
-              </div>
             </div>
           </div>
         </div>

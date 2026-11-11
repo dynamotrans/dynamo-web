@@ -386,8 +386,9 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
                   Soporte
                 </Link>
-                {/* Lo que lleva el cliente contra los límites de uso (usuario, 2026-11-11). */}
-                {rol === 'cliente' && (
+                {/* Lo que lleva el cliente contra los límites de uso (usuario, 2026-11-11).
+                    También para el equipo con «Ver como» un cliente: el uso de ese cliente. */}
+                {visto === 'cliente' && (
                   <Link href="/panel/uso" className="user-menu-item" role="menuitem">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" /></svg>
                     Uso de Dynamo
