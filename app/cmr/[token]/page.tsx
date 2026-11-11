@@ -28,14 +28,22 @@ export default async function PaginaCmr({ params }: { params: Promise<{ token: s
       const { data, error } = await sb.rpc('cmr_publico', { p_token: token });
       if (!error && data) cmr = data as CmrPublico;
       if (cmr) { const { data: rs } = await sb.rpc('reservas_cmr_publico', { p_token: token }); cmr = { ...cmr, reservas: (rs ?? []) as ReservaCmr[] }; }
-      // Las imágenes de las firmas ya hechas: enlaces firmados de 10 minutos. El almacén ya no
-      // se deja leer sin sesión (las rutas llevan las llaves de los CMR): se firman con la
-      // clave de servicio, solo las rutas que la base de datos ha devuelto para ESTA llave.
+      // Las imágenes de las firmas ya hechas. Primero con la clave de servicio (enlaces
+      // firmados de 10 minutos); donde no está configurada (la preview, 2026-11-11), el
+      // trazo viene en la PROPIA FIRMA (datos_cmr_por_token, en base64: se guarda en la
+      // fila al firmar) y va incrustado en la página. Las firmas de antes de hoy no lo
+      // tienen y salen sin dibujo, con su registro entero igualmente.
       const sv = supabaseServicio();
       const rutas: string[] = (cmr.firmas ?? []).map((f) => f.ruta).filter((r: unknown) => typeof r === 'string' && r.startsWith(`cmr/${token}/`));
       if (sv && rutas.length) {
         const { data: urls } = await sv.storage.from('documentos').createSignedUrls(rutas, 600);
         (urls ?? []).forEach((u) => { if (u.signedUrl && u.path) trazos[u.path] = u.signedUrl; });
+      } else if (rutas.length) {
+        const { data: dj } = await sb.rpc('datos_cmr_por_token', { p_token: token });
+        const fs = (dj as { firmas?: { ruta?: string | null; trazo?: string | null }[] } | null)?.firmas ?? [];
+        for (const f of fs) {
+          if (f.trazo && typeof f.ruta === 'string' && f.ruta.startsWith(`cmr/${token}/`)) trazos[f.ruta] = `data:image/png;base64,${f.trazo}`;
+        }
       }
     }
   } else if (sb) cmr = { resultado: 'enlace_no_valido' };

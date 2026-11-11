@@ -237,6 +237,56 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
   };
 }
 
+// El CMR ENTERO desde el enlace público (/cmr/<token>/pdf), con la clave pública
+// (2026-11-11: antes iba con la clave de servicio, y donde no está configurada —la
+// preview— el PDF moría con «La plataforma no está conectada»). datos_cmr_por_token
+// valida el token vivo y devuelve envío (lista blanca, sin importes), cliente,
+// porteador (o el operador en los manuales), paradas, firmas con el documento ya
+// enmascarado, reservas y la fecha del enlace (nº único del DeCA); los trazos se bajan
+// del almacén con la regla «trazos del cmr por su enlace vivo».
+export async function cargarDatosCmrPorToken(sb: SB, token: string):
+  Promise<{ datos: DatosDoc | null; decaCreado: string | null; error: string | null }> {
+  const { data, error } = await sb.rpc('datos_cmr_por_token', { p_token: token });
+  if (error || !data) return { datos: null, decaCreado: null, error: error?.message ?? 'No se ha podido leer el envío.' };
+  const j = data as OrdenJson & { manual?: boolean; cliente?: EmpresaJson;
+    firmas?: (Omit<FirmaDoc, 'png'> & { ruta: string; trazo: string | null })[];
+    reservas?: { rol: string; texto: string; parada_id: string | null; creado_en: string }[];
+    deca?: { creado_en: string } };
+  const c = j.cliente ?? ({} as EmpresaJson), t = j.porteador ?? null;
+  // El trazo viene en base64 dentro de la propia firma; las firmas de antes del
+  // 2026-11-11 no lo tienen y salen sin dibujo (su registro va entero igualmente).
+  const firmas: FirmaDoc[] = (j.firmas ?? []).map((f) => ({
+    rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
+    extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion,
+    sha256: f.sha256, png: f.trazo ? new Uint8Array(Buffer.from(f.trazo, 'base64')) : null }));
+  let dynamo: DatosDynamo | undefined;
+  if (j.dynamo) {
+    const o: Record<string, string> = { ...DYNAMO };
+    Object.keys(DYNAMO).forEach((k) => { if (j.dynamo?.[k]) o[k] = String(j.dynamo[k]); });
+    dynamo = o as DatosDynamo;
+  }
+  return {
+    error: null, decaCreado: j.deca?.creado_en ?? null,
+    datos: {
+      envio: j.envio, manual: !!j.manual, dynamo,
+      cliente: { nombre: c.nombre, razon_social: c.razon_social, cif: c.cif, direccion: c.direccion, codigo_postal: c.codigo_postal,
+        poblacion: c.poblacion, provincia: c.provincia, pais: nombrePais(c.pais_codigo_iso), telefono: null, email: null, contacto: null },
+      porteador: t ? { nombre: t.nombre, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo, direccion: t.direccion,
+        codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
+        pais_iso: t.pais_codigo_iso, telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null } : null,
+      paradas: (j.paradas ?? []).map((p) => ({
+        id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
+        poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
+        horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,
+        requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
+        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
+      })),
+      firmas, reservas: j.reservas ?? [],
+      pronto_pago: false, gestor: null,
+    },
+  };
+}
+
 // La orden de carga de un envío MANUAL, para el CLIENTE (datos_orden_manual(): su
 // empresa, su operador y las paradas; nada de Dynamo).
 export async function cargarDatosDocManual(sb: SB, id: string): Promise<{ datos: DatosDoc | null; error: string | null }> {

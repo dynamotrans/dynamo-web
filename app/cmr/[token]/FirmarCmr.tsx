@@ -11,6 +11,25 @@ import { firmar, type DatosFirma } from './acciones';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
+
+// Botón discreto «¿Necesitas ayuda? · Contáctanos» (usuario, 2026-11-11): al principio y
+// al final de la página de firmas; al pulsarlo se despliegan llamar, WhatsApp y email.
+function Ayuda() {
+  const [abierta, setAbierta] = useState(false);
+  const chip: React.CSSProperties = { background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)',
+    borderRadius: 10, padding: '0.55rem 0.9rem', font: 'inherit', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none', cursor: 'pointer' };
+  return (
+    <div style={{ margin: '0.7rem 0', textAlign: 'center' }}>
+      {!abierta
+        ? <button type="button" style={chip} onClick={() => setAbierta(true)}>¿Necesitas ayuda? · Contáctanos</button>
+        : <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a style={chip} href={CONTACTO.telHref}>Llamar · {CONTACTO.telefono}</a>
+            <a style={chip} href={CONTACTO.waHref} target="_blank" rel="noreferrer">WhatsApp</a>
+            <a style={chip} href={`mailto:${CONTACTO.email}`}>Email</a>
+          </div>}
+    </div>
+  );
+}
 import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -111,6 +130,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {!cmr.manual && <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>}
       <h1>CMR digital</h1>
       <p className="sub">Carta de porte del envío <strong>{cmr.referencia}</strong> · firma cada parte con el dedo</p>
+      {/* Qué es esta página, en claro (usuario, 2026-11-11). */}
+      <p className="sub" style={{ marginTop: '0.15rem', color: 'var(--gray-500)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.72rem' }}>Hoja de firmas</p>
       <dl className="cmrbox">
         <dt>Remitente</dt><dd>{cmr.remitente || '—'}</dd>
         <dt>Porteador</dt><dd>{cmr.porteador || '—'}</dd>
@@ -141,9 +162,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         }}>
         {compartido ? 'Mensaje copiado ✓' : 'Compartir esta página de firmas'}
       </button>
-      <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--gray-500)', textAlign: 'center', lineHeight: 1.45 }}>
+      {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11). */}
+      <div style={{ margin: '0.45rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
+        padding: '0.65rem 0.85rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
         Cargador, transportista y destinatario ya la han recibido igual que tú, y también pueden firmar aquí, en tu móvil. Si alguien la quiere, mándasela.
-      </p>
+      </div>
+      <Ayuda />
       <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
       {sinTransportista && hechas < bloques.length && (
         <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
@@ -213,6 +237,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
       {firmoAqui && <div style={{ margin: '0.8rem 0 0' }}>{btnFin}</div>}
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó (y tu ubicación GPS si das permiso). Firma electrónica simple (Reglamento eIDAS).</p>
+      <Ayuda />
       {preFirma && (
         <div role="alertdialog" aria-modal="true" aria-label="Aviso antes de firmar"
           style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}>
@@ -222,10 +247,13 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
             </svg>
             <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.05rem' }}>Vas a firmar como {preFirma.firmante}</h2>
             <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: 'var(--gray-500)' }}>{preFirma.titulo}{preFirma.lugar ? ` · ${preFirma.lugar}` : ''}</p>
-            <p style={{ margin: '0 0 0.9rem', fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, textAlign: 'left' }}>
+            <p style={{ margin: '0 0 0.6rem', fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, textAlign: 'left' }}>
               La firma queda asociada a tu persona de forma inequívoca: se registran <strong>tu dispositivo</strong>, la <strong>fecha y hora</strong> y el
-              <strong> nombre y documento</strong> que pongas. <strong>Si no eres tú quien debe firmar, no firmes:</strong> el dispositivo queda registrado y
-              firmar por otra persona te haría responsable en caso de fraude.
+              <strong> nombre y documento</strong> que pongas.
+            </p>
+            <p style={{ margin: '0 0 0.9rem', fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, textAlign: 'left' }}>
+              <strong>Si no eres tú quien debe firmar, no firmes:</strong>{' '}
+              <strong style={{ color: '#b91c1c' }}>el dispositivo queda registrado y firmar por otra persona te haría responsable en caso de fraude.</strong>
             </p>
             <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.5rem', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
               onClick={() => { setAbierto(preFirma); setPreFirma(null); }}>Firmar</button>

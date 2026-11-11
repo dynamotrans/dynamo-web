@@ -7501,3 +7501,42 @@ do $$ declare e uuid := current_setting('prueba.e195')::uuid; begin
   end if;
   raise notice 'OK 195 · la parada firmada más avanzada manda: la firma tardía de una recogida no retrocede nada, etapas_envio marca «lo fija la firma» y la última entrega firmada deja el envío entregado';
 end $$;
+
+-- ---- 196. PDF del e-CMR por su enlace: datos con la clave pública y trazo en la firma --------
+-- Reusa el envío de la 195 (token vivo, 3 firmas). El token vivo da el JSON entero con
+-- el documento de cada firmante ENMASCARADO y SIN importes; un token inventado, no. Una
+-- firma nueva con p_trazo_png guarda el PNG en la fila y el JSON lo devuelve en base64
+-- (el almacén sigue cerrado a anon: lo vigilan las pruebas 135 y 140).
+set role anon;
+do $$ declare j jsonb; begin
+  j := datos_cmr_por_token(current_setting('prueba.tok195')::uuid);
+  if j -> 'cliente' ->> 'razon_social' is null then raise exception 'FALLO 196 · el JSON no trae el cliente'; end if;
+  if jsonb_array_length(j -> 'firmas') <> 3 then raise exception 'FALLO 196 · esperaba 3 firmas: %', jsonb_array_length(j -> 'firmas'); end if;
+  if j -> 'firmas' -> 0 ->> 'documento' !~ '^•••' then raise exception 'FALLO 196 · el documento del firmante no va enmascarado'; end if;
+  if j -> 'envio' ? 'importe_cliente' or j -> 'envio' ? 'importe_transportista' then
+    raise exception 'FALLO 196 · el JSON público lleva importes';
+  end if;
+  if (j -> 'porteador' ->> 'razon_social') is null then raise exception 'FALLO 196 · falta el porteador'; end if;
+  begin
+    j := datos_cmr_por_token(gen_random_uuid());
+    raise exception 'FALLO 196 · un token inventado devuelve datos';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+insert into storage.objects (bucket_id, name, metadata)
+values ('documentos', 'cmr/' || current_setting('prueba.tok195') || '/t196-1.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000));
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok195')::uuid; r jsonb; j jsonb; begin
+  -- Firma EXTRA con el PNG del trazo en base64 (cabecera PNG + relleno, ≥200 bytes).
+  r := firmar_cmr_publico(tok, current_setting('prueba.c1_195')::uuid, 'remitente', 'Trazo Prueba', '12345678Z', 'ES', true, null,
+         'cmr/' || tok::text || '/t196-1.png', null, 'prueba', null, true, null, null, null, null,
+         encode('\x89504e470d0a1a0a'::bytea || decode(repeat('00', 250), 'hex'), 'base64'));
+  if r->>'resultado' <> 'firmada' then raise exception 'FALLO 196 · no firma con trazo en base64: %', r; end if;
+  j := datos_cmr_por_token(tok);
+  if not exists (select 1 from jsonb_array_elements(j -> 'firmas') f where f ->> 'nombre' = 'Trazo Prueba' and length(f ->> 'trazo') > 100) then
+    raise exception 'FALLO 196 · el JSON no devuelve el trazo de la firma nueva';
+  end if;
+  raise notice 'OK 196 · PDF del e-CMR por su enlace: JSON con la clave pública (documento enmascarado, sin importes) y el trazo guardado en la firma';
+end $$;
+reset role;

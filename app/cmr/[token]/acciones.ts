@@ -66,6 +66,9 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     p_lat: g?.lat ?? null, p_lon: g?.lon ?? null,
     p_gps_precision_m: g && Number.isFinite(g.precision_m) ? Math.max(0, Math.min(100000, Math.round(g.precision_m!))) : null,
     p_gps_direccion: g?.direccion ? String(g.direccion).trim().slice(0, 300) : null,
+    // El MISMO PNG, también en la fila de la firma (2026-11-11): de ahí lo leen la
+    // página y el PDF públicos sin clave de servicio.
+    p_trazo_png: m![1],
   });
   if (error) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   const r = (data as { resultado: string }).resultado;

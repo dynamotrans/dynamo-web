@@ -1,5 +1,5 @@
 import type { SB } from '@/lib/supabase/cliente';
-import { cargarDatosDoc, cargarFirmasCmr, cargarLogoOperador, datosDynamo } from './datos';
+import { cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, datosDynamo } from './datos';
 import { ordenDeCarga } from './orden';
 import { cmr } from './cmr';
 
@@ -35,3 +35,16 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
 
 // (La orden COMPUESTA del enlace público /cmr/<token>/orden vive en su ruta, con la
 // clave pública y datos_orden_por_cmr — 2026-11-11: antes iba con la clave de servicio.)
+
+// El CMR relleno por su ENLACE público (/cmr/<token>/pdf): la verificación en línea que
+// promete el QR del documento. Con la clave pública y datos_cmr_por_token (2026-11-11:
+// antes iba con la clave de servicio y en la preview moría).
+export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
+  Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {
+  const r = await cargarDatosCmrPorToken(sb, token);
+  if (!r.datos) return { error: r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.' };
+  const bytes = await cmr({ ...r.datos,
+    deca: r.decaCreado ? { url: `${origen}/cmr/${token}`, creado_en: r.decaCreado } : null });
+  const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
+  return { bytes, nombre: `CMR-${ref}.pdf` };
+}
