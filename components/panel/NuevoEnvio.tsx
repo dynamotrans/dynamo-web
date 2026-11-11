@@ -1177,38 +1177,40 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   </div>
                 );
               })()}
-              {/* FUERA de la botonera: las reglas de ancho de .ptar-actions no deben
-                  alcanzar a los botones de esta ventana. */}
-              <Modal abierto={verProforma} onCerrar={() => setVerProforma(false)} titulo="Proforma del cálculo" ancho={580}
-                  sub="Un documento con el precio, para verlo o guardarlo. No crea ningún envío."
-                  pie={(() => {
-                    const baseP = esCliente ? (tarifa?.neto ?? 0) : importe;
-                    const rutaTxt = puntos.map((p) => p.sitio?.poblacion ?? p.nuevo?.poblacion ?? '').filter(Boolean).join(' → ');
-                    const detTxt = [fechaTxt ? `carga ${fechaTxt}` : '', camionTxt, `${mlTxt.split(' ·')[0]} · ${pesoTxt}`].filter(Boolean).join(' · ');
-                    const url = `/panel/nuevo-envio/proforma?base=${encodeURIComponent(baseP)}&ruta=${encodeURIComponent(rutaTxt)}&det=${encodeURIComponent(detTxt)}`
-                      + (esCliente || !cliente ? '' : `&cliente=${cliente.id}`);
-                    return (
-                      <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                        <button type="button" className="btn-secondary" onClick={() => setVerProforma(false)}>Cerrar</button>
-                        <a className="btn-primary" href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
-                      </div>
-                    );
-                  })()}>
-                  <p style={{ margin: 0 }}>
-                    Este precio es <strong>orientativo: solo es válido al crear y confirmar el envío</strong>. Las tarifas son
-                    dinámicas: el precio <strong>se fija al confirmar el envío a menos de {reglas?.cerrado_dias ?? 7} días de la
-                    carga</strong>. Con más antelación, se actualizará al llegar a {reglas?.cerrado_dias ?? 7} días de la primera
-                    parada, con el precio válido para el día de carga.
-                  </p>
-                  <p style={{ margin: '0.6rem 0 0', color: 'var(--gray-500)', fontSize: '0.85rem' }}>
-                    El PDF va <strong>sin datos de pago</strong>: no es pagadero y no genera ningún envío ni reserva. La proforma
-                    pagadera, con la transferencia, sale al crear el envío y quedar pendiente de pago, con el precio ya fijado.
-                  </p>
-                </Modal>
             </div>
           </div>
         </div>
       )}
+
+      {/* Ventana de la proforma del cálculo: en la RAÍZ del componente, como los demás
+          modales (2026-11-11: anidada en la tarjeta del paso 4, un ancestro con contexto
+          de apilamiento la dejaba DEBAJO de los círculos del asistente). */}
+      <Modal abierto={verProforma} onCerrar={() => setVerProforma(false)} titulo="Proforma del cálculo" ancho={580}
+        sub="Un documento con el precio, para verlo o guardarlo. No crea ningún envío."
+        pie={(() => {
+          const baseP = esCliente ? (tarifa?.neto ?? 0) : importe;
+          const rutaTxt = puntos.map((p) => p.sitio?.poblacion ?? p.nuevo?.poblacion ?? '').filter(Boolean).join(' → ');
+          const detTxt = [fechaTxt ? `carga ${fechaTxt}` : '', camionTxt, `${mlTxt.split(' ·')[0]} · ${pesoTxt}`].filter(Boolean).join(' · ');
+          const url = `/panel/nuevo-envio/proforma?base=${encodeURIComponent(baseP)}&ruta=${encodeURIComponent(rutaTxt)}&det=${encodeURIComponent(detTxt)}`
+            + (esCliente || !cliente ? '' : `&cliente=${cliente.id}`);
+          return (
+            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button type="button" className="btn-secondary" onClick={() => setVerProforma(false)}>Cerrar</button>
+              <a className="btn-primary" href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
+            </div>
+          );
+        })()}>
+        <p style={{ margin: 0 }}>
+          Este precio es <strong>orientativo: solo es válido al crear y confirmar el envío</strong>. Las tarifas son
+          dinámicas: el precio <strong>se fija al confirmar el envío a menos de {reglas?.cerrado_dias ?? 7} días de la
+          carga</strong>. Con más antelación, se actualizará al llegar a {reglas?.cerrado_dias ?? 7} días de la primera
+          parada, con el precio válido para el día de carga.
+        </p>
+        <p style={{ margin: '0.6rem 0 0', color: 'var(--gray-500)', fontSize: '0.85rem' }}>
+          El PDF va <strong>sin datos de pago</strong>: no es pagadero y no genera ningún envío ni reserva. La proforma
+          pagadera, con la transferencia, sale al crear el envío y quedar pendiente de pago, con el precio ya fijado.
+        </p>
+      </Modal>
 
       {/* Doble confirmación (Dynamo): costes de cancelación + condiciones generales. */}
       <Modal abierto={revisarLegal} onCerrar={() => { if (!enviando) setRevisarLegal(false); }} ancho={620}
