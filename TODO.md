@@ -12,8 +12,12 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       pregunte por «la competencia»). **Respuestas CONCISAS, BREVES y NUMÉRICAS** (usuario: «no quiero textos
       largos, quiero datos objetivos») — cifras, listas cortas, nada de párrafos. Fases: (1) solo Dynamo (admin,
       lectura, empleados) con auditoría de preguntas; (2) clientes con herramientas cerradas (sus envíos,
-      presupuestos y facturas). Falta del usuario: crear la clave en console.anthropic.com y ponerla en Vercel
-      como `ANTHROPIC_API_KEY` (Sensitive, solo servidor; nunca en el repo ni en el navegador).
+      presupuestos y facturas). **Preguntas de seguimiento sugeridas** (usuario, 2026-11-11): bajo cada
+      respuesta, 2-3 consultas que el propio agente propone según lo que se acaba de preguntar (p. ej. tras
+      «envíos de esta semana» → «¿Y el desglose por cliente?» / «¿Comparado con la semana pasada?»), como
+      **chips clicables** y también eligiendo por letra (A/B/C) escribiendo. Falta del usuario: crear la clave
+      en console.anthropic.com y ponerla en Vercel como `ANTHROPIC_API_KEY` (Sensitive, solo servidor; nunca en
+      el repo ni en el navegador).
 
 - [ ] 🗺️ **Google Places del buscador de sitios (usuario, 2026-11-09)**: el «Buscar para autorrellenar» de Nuevo sitio ya funciona como el mockup (agenda + Google + dirección OSM + comparador de duplicados), pero el nivel Google usa la LISTA DE EJEMPLO del mockup hasta que se pague la API. Cuando toque: crear la clave en Google Cloud (Places API New), ponerla en Vercel como `GOOGLE_MAPS_API_KEY` (Sensitive, sin NEXT_PUBLIC_) y los resultados salen reales solos (la rama real ya está escrita en `buscarSitiosGoogle`).
 
