@@ -3,8 +3,8 @@
 import { redirect } from 'next/navigation';
 import { supabaseServidor } from '@/lib/supabase/server';
 import { origen } from '@/lib/origen';
-import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
-import { esPaisValido, PREFIJOS, normalizaTel } from '@/lib/paises';
+import { validaIdFiscal } from '@/lib/idFiscal';
+import { PREFIJOS, normalizaTel } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
@@ -13,10 +13,10 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 // contraseña. La cuenta nace como CLIENTE y PENDIENTE DE VERIFICAR (lo impone la base de
 // datos, fn_crear_perfil_usuario): no ve nada hasta que Dynamo la activa en «Altas».
 // Lo que escribe aquí va en los metadatos de Auth; solo Dynamo lo lee (altas_pendientes).
-export type DatosAlta = {
-  email: string; empresa: string; cif: string; pais: string; direccion: string; codigo_postal: string;
-  poblacion: string; provincia: string; nombre: string; dni: string; prefijo: string; telefono: string;
-};
+// SOLO LA CUENTA (usuario, 2026-11-11: «1º cuenta aquí más simple»): email, nombre, DNI
+// opcional y teléfono. La empresa (razón social, CIF, dirección…) NO se pide aquí: la
+// asocia o la crea el equipo de Dynamo en «Altas» al activar la cuenta.
+export type DatosAlta = { email: string; nombre: string; dni: string; prefijo: string; telefono: string };
 export type EstadoAlta = { error: string | null; campo?: keyof DatosAlta | 'acepto'; datos?: DatosAlta };
 
 const limpio = (v: FormDataEntryValue | null, max = 160) => String(v ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
@@ -24,21 +24,13 @@ const limpio = (v: FormDataEntryValue | null, max = 160) => String(v ?? '').trim
 export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoAlta> {
   comprobarEntrada("app/panel/registro/acciones#registrar", [_prev, f]);
   const d: DatosAlta = {
-    email: limpio(f.get('email'), 254).toLowerCase(), empresa: limpio(f.get('empresa')), cif: limpio(f.get('cif'), 30).toUpperCase(),
-    pais: limpio(f.get('pais'), 2).toUpperCase() || 'ES', direccion: limpio(f.get('direccion')), codigo_postal: limpio(f.get('codigo_postal'), 12),
-    poblacion: limpio(f.get('poblacion')), provincia: limpio(f.get('provincia')), nombre: limpio(f.get('nombre')),
+    email: limpio(f.get('email'), 254).toLowerCase(), nombre: limpio(f.get('nombre')),
     dni: limpio(f.get('dni'), 30).toUpperCase(), prefijo: limpio(f.get('prefijo'), 6) || '+34', telefono: limpio(f.get('telefono'), 30),
   };
   const mal = (campo: EstadoAlta['campo'], error: string): EstadoAlta => ({ error, campo, datos: d });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) return mal('email', 'Escribe un email válido: ahí te llega el código para entrar.');
-  if (d.empresa.length < 2) return mal('empresa', 'Escribe el nombre de la empresa o, si eres autónomo, tu nombre completo.');
-  const id = validaIdFiscalPais(d.cif, d.pais);
-  if (!id || !id.ok) return mal('cif', `El CIF / NIF no es válido${id?.tipo ? ` (${id.tipo}: ${id.msg})` : ''}. Revísalo: se usa para facturar.`);
-  if (!esPaisValido(d.pais)) return mal('pais', 'Elige el país de la empresa.');
-  if (!PREFIJOS.some(([p]) => p === d.prefijo)) return mal('telefono', 'Elige el prefijo del teléfono.');
-  if (d.direccion.length < 3) return mal('direccion', 'Escribe la dirección fiscal (calle y número).');
-  if (!d.codigo_postal || !d.poblacion) return mal('codigo_postal', 'Escribe el código postal y la población.');
   if (d.nombre.length < 3) return mal('nombre', 'Escribe tu nombre y apellidos (la persona que usará la cuenta).');
+  if (!PREFIJOS.some(([p]) => p === d.prefijo)) return mal('telefono', 'Elige el prefijo del teléfono.');
   if (d.dni) { const r = validaIdFiscal(d.dni); if (!r || !r.ok) return mal('dni', 'El DNI / NIE no es válido. Revísalo o déjalo en blanco.'); }
   const tel = normalizaTel(d.prefijo + d.telefono);
   if (!/^\+[0-9]{8,15}$/.test(tel)) return mal('telefono', 'Escribe un teléfono de contacto (móvil, a ser posible).');
@@ -52,9 +44,8 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
       shouldCreateUser: true,
       emailRedirectTo: `${await origen()}/panel/confirmar`,
       data: {
-        tipo_usuario: 'cliente', empresa: d.empresa, cif: d.cif.replace(/[\s.\-]/g, ''), pais: d.pais, direccion: d.direccion,
-        codigo_postal: d.codigo_postal, poblacion: d.poblacion, provincia: d.provincia, nombre: d.nombre,
-        dni: d.dni.replace(/[\s.\-]/g, ''), telefono: tel, condiciones_aceptadas_en: new Date().toISOString(),
+        tipo_usuario: 'cliente', nombre: d.nombre, dni: d.dni.replace(/[\s.\-]/g, ''), telefono: tel,
+        condiciones_aceptadas_en: new Date().toISOString(),
       },
     },
   });
