@@ -42,10 +42,19 @@ function empresaDe(rol: Rol, cliente_id: string, transportista_id: string) {
   };
 }
 
-export async function guardarUsuario(id: string, rol: Rol, d: UsuarioDatos): Promise<Res> {
-  comprobarEntrada("app/panel/(app)/usuarios/acciones#guardarUsuario", [id, rol, d]);
+export async function guardarUsuario(id: string, rol: Rol, d: UsuarioDatos, confirmacion = ''): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#guardarUsuario", [id, rol, d, confirmacion]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
+  // Cambiar la EMPRESA de una cuenta es tan delicado como cambiar el rol (usuario,
+  // 2026-11-11): también aquí, no solo en la ventana, se exige escribir «Confirmo».
+  const { data: actual } = await s.supabase.from('usuarios').select('cliente_id, transportista_id').eq('id', id).single();
+  const emp = empresaDe(rol, d.cliente_id, d.transportista_id);
+  const empresaCambia = !!actual && ((emp.cliente_id ?? null) !== (actual.cliente_id ?? null)
+    || (emp.transportista_id ?? null) !== (actual.transportista_id ?? null));
+  if (empresaCambia && !confirmado(confirmacion)) {
+    return { ok: false, error: 'Vas a cambiar la empresa de esta cuenta: escribe «Confirmo» para hacerlo.' };
+  }
   const tel = normalizaTel(d.telefono);
   const copias = d.copias.split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
   if (copias.length > 10) return { ok: false, error: `Máximo 10 emails de copia (has puesto ${copias.length}).` };

@@ -7771,3 +7771,38 @@ do $$ declare e uuid; i int; u record; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 202. mi_autosuspension trae los envíos de hoy y su límite (pre-aviso 80 %) -------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; j jsonb; begin
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid and estado <> 'activa';
+  update usuarios set autosuspension_desde_en = now(), limite_envios_diario = 5 where id = current_setting('prueba.u_cli')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare j jsonb; begin
+  j := mi_autosuspension();
+  if (j -> 'envios_dia' ->> 'hoy')::int <> 1 or (j -> 'envios_dia' ->> 'max_hoy')::int <> 5 then
+    raise exception 'FALLO 202 · envios_dia no cuadra: %', j -> 'envios_dia';
+  end if;
+end $$;
+reset role;
+do $$ declare j jsonb; begin
+  update usuarios set limite_envios_diario = null where id = current_setting('prueba.u_cli')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  j := mi_autosuspension();
+  if j -> 'envios_dia' ->> 'max_hoy' is not null then
+    raise exception 'FALLO 202 · sin límite individual, max_hoy debe ser null: %', j -> 'envios_dia';
+  end if;
+  update usuarios set autosuspension_desde_en = now() where id = current_setting('prueba.u_cli')::uuid;
+  raise notice 'OK 202 · mi_autosuspension trae envíos de hoy con su límite individual (y null = sin tope), para el pre-aviso del 80 %%';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

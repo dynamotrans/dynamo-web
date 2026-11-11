@@ -138,6 +138,7 @@ export type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos
 // Lo que devuelve mi_autosuspension(): límites de uso vigentes y lo que lleva el cliente.
 export type MiAutosusp = { activa: boolean;
   consultas: { hoy: number; max_hoy: number; semana: number; max_semana: number; mes: number; max_mes: number };
+  envios_dia?: { hoy: number; max_hoy: number | null };   // límite individual de envíos (regla 6); null = sin tope
   cancelaciones: { propias: number; envios: number; max_pct: number; min_envios: number;
     recientes: number; max_recientes: number; dias_recientes: number } };
 export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number;

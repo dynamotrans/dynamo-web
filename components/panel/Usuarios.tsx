@@ -65,11 +65,11 @@ const ROLES_ELEGIBLES = ROLES.filter(([k]) => k !== 'admin');
 const confirmado = (t: string) => t.trim().toLowerCase() === 'confirmo';
 
 // Campo «escribe Confirmo» que valida la elección de un tipo de usuario.
-function CampoConfirmo({ id, valor, onCambio }: { id: string; valor: string; onCambio: (v: string) => void }) {
+function CampoConfirmo({ id, valor, onCambio, texto }: { id: string; valor: string; onCambio: (v: string) => void; texto?: React.ReactNode }) {
   const ok = confirmado(valor);
   return (
     <div style={{ gridColumn: '1/-1' }}>
-      <label htmlFor={id}>Para seleccionar este rol, <strong>escribe «Confirmo»</strong></label>
+      <label htmlFor={id}>{texto ?? <>Para seleccionar este rol, <strong>escribe «Confirmo»</strong></>}</label>
       <input id={id} type="text" autoComplete="off" spellCheck={false} placeholder="Confirmo" value={valor} onChange={(e) => onCambio(e.target.value)}
         style={ok ? { borderColor: 'var(--green)', boxShadow: '0 0 0 3px rgba(34,165,90,0.15)' } : undefined} />
     </div>
@@ -192,9 +192,11 @@ export default function Usuarios({ filas, yo, error, conteos, lista }: {
 }
 
 // ---- Selector de empresa según el rol (buscador servidor, no desplegable de miles) ------
-function SelectorEmpresa({ rol, cliente_id, transportista_id, onCambio, id }: {
+function SelectorEmpresa({ rol, cliente_id, transportista_id, onCambio, onNombre, id }: {
   rol: Rol; cliente_id: string; transportista_id: string;
-  onCambio: (c: { cliente_id: string; transportista_id: string }) => void; id: string;
+  onCambio: (c: { cliente_id: string; transportista_id: string }) => void;
+  onNombre?: (nombre: string) => void;   // el nombre elegido, para la confirmación en rojo
+  id: string;
 }) {
   const esCli = rol === 'cliente';
   const actual = esCli ? cliente_id : transportista_id;
@@ -217,7 +219,7 @@ function SelectorEmpresa({ rol, cliente_id, transportista_id, onCambio, id }: {
       <label htmlFor={id}>{esCli ? 'Cliente' : 'Transportista'} <Req /></label>
       <Buscador id={id} valor={sel}
         buscar={async (q) => { const r = esCli ? await buscarClientes(q) : await buscarTransportistas(q); return r.map((o) => ({ id: o.id, nombre: o.nombre, cif: o.cif })); }}
-        onElegir={(o) => { setSel(o); onCambio(esCli ? { cliente_id: o?.id ?? '', transportista_id: '' } : { cliente_id: '', transportista_id: o?.id ?? '' }); }}
+        onElegir={(o) => { setSel(o); onNombre?.(o?.nombre ?? ''); onCambio(esCli ? { cliente_id: o?.id ?? '', transportista_id: '' } : { cliente_id: '', transportista_id: o?.id ?? '' }); }}
         placeholder={esCli ? 'Busca el cliente por nombre o CIF…' : 'Busca el transportista por nombre o CIF…'}
         vacio={esCli ? 'Ningún cliente coincide.' : 'Ningún transportista coincide.'} />
     </div>
@@ -251,12 +253,18 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
   const [tel, setTel] = useState(partirTel(u.telefono));
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
+  // Cambiar la EMPRESA es tan delicado como cambiar el rol (usuario, 2026-11-11: «como
+  // admin es peligroso, puedo equivocarme»): ventana roja aparte + escribir «Confirmo».
+  const [nuevaEmp, setNuevaEmp] = useState('');
+  const [pideConfEmp, setPideConfEmp] = useState(false);
+  const [confEmp, setConfEmp] = useState('');
+  const empresaCambia = (d.cliente_id || '') !== (u.cliente_id || '') || (d.transportista_id || '') !== (u.transportista_id || '');
   const set = <K extends keyof UsuarioDatos>(k: K, v: UsuarioDatos[K]) => setD((x) => ({ ...x, [k]: v }));
   const m = metricas(u);
 
-  async function guardar() {
+  async function guardar(confirmacion = '') {
     setError(null); setTrabajando('Guardando cambios');
-    const r = await guardarUsuario(u.id, u.rol, { ...d, telefono: telDe(tel) });
+    const r = await guardarUsuario(u.id, u.rol, { ...d, telefono: telDe(tel) }, confirmacion);
     setTrabajando(null);
     if (!r.ok) { setError(r.error); return; }
     onHecho(`Cambios de ${u.email} guardados.`);
@@ -277,14 +285,14 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
   );
   const fila = (k: string, v: React.ReactNode) => <div className="pen-sum-row"><span className="k">{k}</span><span className="v">{v}</span></div>;
 
-  return (
+  return (<>
     <Modal abierto titulo="Editar usuario" sub={u.email} icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
         <a className="btn-ghost" href={`/panel/usuarios/${u.id}/datos`} download title="RGPD: lo que la plataforma guarda de esta persona (JSON)">Exportar datos</a>
         {onAnonimizar && <button className="btn-ghost" style={{ color: 'var(--red)' }} onClick={onAnonimizar} disabled={!!trabajando}>Anonimizar…</button>}
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         {!u.email_confirmado && <button className="btn-secondary" onClick={reenviar} disabled={!!trabajando}>Reenviar invitación</button>}
-        <button className="btn-primary" onClick={guardar} disabled={!!trabajando}>Guardar cambios</button>
+        <button className="btn-primary" onClick={() => { if (empresaCambia) { setConfEmp(''); setPideConfEmp(true); } else void guardar(); }} disabled={!!trabajando}>Guardar cambios</button>
       </>}>
       <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
         Creado: {fechaHora(u.creado_en)}{u.modificado_en ? ` · Última modificación: ${fechaHora(u.modificado_en)}` : ''}
@@ -331,7 +339,7 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
           </div>
         )}
         <SelectorEmpresa id="usr-empresa" rol={u.rol} cliente_id={d.cliente_id} transportista_id={d.transportista_id}
-          onCambio={(c) => setD((x) => ({ ...x, ...c }))} />
+          onCambio={(c) => setD((x) => ({ ...x, ...c }))} onNombre={setNuevaEmp} />
         <div>
           <label htmlFor="usr-idioma">Idioma (portal y avisos)</label>
           <select id="usr-idioma" value={d.idioma} onChange={(e) => set('idioma', e.target.value)}>
@@ -393,7 +401,35 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
-  );
+    {/* La confirmación en ROJO del cambio de empresa, HERMANA de la ficha (no anidada:
+        la animación de la tarjeta crea contexto de apilamiento y la atraparía). */}
+    {pideConfEmp && (
+        <Modal abierto titulo="Cambiar la empresa de esta cuenta" sub={u.email} icono={<IcoUsuario />} ancho={600}
+          onCerrar={() => setPideConfEmp(false)}
+          pie={<>
+            <button className="btn-ghost" onClick={() => setPideConfEmp(false)} disabled={!!trabajando}>Cancelar</button>
+            <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => guardar(confEmp)}
+              disabled={!!trabajando || !confirmado(confEmp)}>Cambiar la empresa</button>
+          </>}>
+          <div style={{ background: '#fee2e2', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '0.9rem 1rem', color: '#b42318', lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900 }}>⚠ Vas a cambiar la empresa de esta cuenta</p>
+            <p style={{ margin: '0.55rem 0 0', fontWeight: 800 }}>
+              De: {u.empresa || 'Sin empresa'}<br />A: {nuevaEmp || 'Sin empresa'}
+            </p>
+            <p style={{ margin: '0.55rem 0 0' }}>
+              Desde ese momento este usuario verá <strong>todos los envíos, precios y documentos de la empresa
+              nueva</strong> y dejará de ver los de la actual. Un error aquí enseña los datos de un cliente a otro.
+            </p>
+          </div>
+          <div style={{ marginTop: '0.8rem' }}>
+            <CampoConfirmo id="emp-confirmo" valor={confEmp} onCambio={setConfEmp}
+              texto={<>Para cambiar la empresa, <strong>escribe «Confirmo»</strong></>} />
+          </div>
+        {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+        {trabajando && <Cargando texto={trabajando} />}
+      </Modal>
+    )}
+  </>);
 }
 
 // ---- Cambiar el rol (acción deliberada) ---------------------------------------------

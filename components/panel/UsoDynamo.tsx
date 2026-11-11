@@ -59,6 +59,15 @@ export default function UsoDynamo({ datos, empresa = null, equipoSinVista = fals
         <Fila titulo="Este mes" sub="Últimos 30 días" valor={c.mes} max={c.max_mes} />
       </div>
 
+      {/* Solo si la cuenta tiene límite individual de envíos (regla 6); sin tope, nada. */}
+      {datos.envios_dia?.max_hoy != null && (
+        <div className="uso-grupo">
+          <h3 className="uso-grupo-tit">Envíos creados</h3>
+          <p className="uso-grupo-sub">Envíos efectivos creados por esta cuenta (los borradores no cuentan).</p>
+          <Fila titulo="Hoy" sub="Últimas 24 horas" valor={datos.envios_dia.hoy} max={datos.envios_dia.max_hoy} />
+        </div>
+      )}
+
       <div className="uso-grupo">
         <h3 className="uso-grupo-tit">Cancelaciones con coste</h3>
         <p className="uso-grupo-sub">

@@ -34,7 +34,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   const vista = await vistaDe(supabase, perfil?.rol);
   const vCli = dynamo && vista.tipo === 'cliente' ? vista.id : null;
   const vTra = dynamo && vista.tipo === 'transportista' ? vista.id : null;
-  const [mantR, cont, cob, fes] = await Promise.all([
+  const [mantR, cont, cob, fes, usoR] = await Promise.all([
     supabase.rpc('mantenimiento_activo'),
     activa ? supabase.rpc('contadores_panel', { p_cliente: vCli, p_transportista: vTra }) : Promise.resolve({ data: null }),
     activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_cobertura_credito')
@@ -43,7 +43,24 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
             .then((r) => ({ data: !r.data ? null : r.data.riesgo_efectivo_euros == null ? 'sinclasif' : r.data.riesgo_efectivo_euros === 0 ? 'nulo' : 'disponible' }))
         : Promise.resolve({ data: null }),
     supabase.rpc('festivos_entre', { p_desde: hoyMadrid(), p_hasta: hoyMadrid(15) }),
+    // Para el pre-aviso del 80 % del cupo del día (solo clientes).
+    activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_autosuspension', { p_cliente: null }) : Promise.resolve({ data: null }),
   ]);
+  // PRE-AVISO al 80 % del cupo del día (usuario, 2026-11-11): que la suspensión
+  // automática (reglas 3 y 6) nunca pille por sorpresa a un cliente legítimo. Los
+  // números no son secreto para él: su página «Uso de Dynamo» ya se los enseña.
+  let avisoLimite: string | null = null;
+  {
+    const uso = (usoR?.data ?? null) as { activa?: boolean; consultas?: { hoy: number; max_hoy: number }; envios_dia?: { hoy: number; max_hoy: number | null } } | null;
+    if (uso?.activa) {
+      const partes: string[] = [];
+      const c = uso.consultas;
+      if (c && c.max_hoy > 0 && c.hoy >= Math.ceil(c.max_hoy * 0.8)) partes.push(`consultas de precio (${c.hoy} de ${c.max_hoy})`);
+      const e = uso.envios_dia;
+      if (e && e.max_hoy != null && e.max_hoy > 0 && e.hoy >= Math.ceil(e.max_hoy * 0.8)) partes.push(`envíos (${e.hoy} de ${e.max_hoy})`);
+      if (partes.length) avisoLimite = `Estás cerca del límite diario de ${partes.join(' y de ')}. Si lo superas, la cuenta se suspende automáticamente hasta que la revisemos.`;
+    }
+  }
   const mant = mantR.data;
   // Modo mantenimiento (lo enciende Dynamo): clientes y transportistas no entran.
   if (mant && !dynamo) return <PantallaMantenimiento />;
@@ -66,6 +83,11 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       {mant && (
         <div className="pt-aviso error" style={{ marginBottom: '0.9rem' }}>
           <div><strong>Modo mantenimiento ACTIVADO:</strong> clientes y transportistas no pueden entrar ni aceptar cargas. <Link href="/panel/mantenimiento" style={{ color: 'inherit', fontWeight: 800 }}>Desactivarlo →</Link></div>
+        </div>
+      )}
+      {avisoLimite && (
+        <div className="pt-aviso" role="alert" style={{ marginBottom: '0.9rem', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.5)', color: '#7a5c00' }}>
+          <div><strong>⚠ {avisoLimite}</strong> <Link href="/panel/uso" style={{ color: 'inherit', fontWeight: 800 }}>Ver mi uso →</Link></div>
         </div>
       )}
       {children}
