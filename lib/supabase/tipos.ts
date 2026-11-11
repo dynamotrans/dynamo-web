@@ -2006,6 +2006,50 @@ export type Database = {
           },
         ]
       }
+      ia_consultas: {
+        Row: {
+          id: string
+          usuario_id: string
+          rol: string
+          pregunta: string
+          respuesta: string | null
+          consultas: Json
+          tokens_entrada: number | null
+          tokens_salida: number | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          usuario_id: string
+          rol: string
+          pregunta: string
+          respuesta?: string | null
+          consultas?: Json
+          tokens_entrada?: number | null
+          tokens_salida?: number | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          usuario_id?: string
+          rol?: string
+          pregunta?: string
+          respuesta?: string | null
+          consultas?: Json
+          tokens_entrada?: number | null
+          tokens_salida?: number | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_consultas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidencias: {
         Row: {
           id: string
@@ -3355,6 +3399,7 @@ export type Database = {
       horario_del_dia: { Args: { p_sitio: string | null; p_fecha: string | null }; Returns: { abre: string; cierra: string; temporada: string }[] }
       horario_sitio_texto: { Args: { p_sitio: string | null; p_fecha: string | null }; Returns: string }
       horario_texto: { Args: { p_sitio: string | null; p_temporada?: string | null }; Returns: string }
+      ia_consulta_sql: { Args: { p_sql: string | null }; Returns: Json }
       km_cp: { Args: { p_pais_codigo_iso_origen: string | null; p_codigo_postal_origen: string | null; p_pais_codigo_iso_destino: string | null; p_codigo_postal_destino: string | null; p_max_edad?: string | null }; Returns: number }
       km_sitios: { Args: { p_origen: string | null; p_destino: string | null; p_max_edad?: string | null }; Returns: number }
       latido: { Args: Record<PropertyKey, never>; Returns: undefined }

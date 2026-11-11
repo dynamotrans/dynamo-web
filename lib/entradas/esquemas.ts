@@ -68,6 +68,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones-transportista#responderCambioTransportista": z.tuple([z.string().max(1000), z.boolean(), z.string().max(5000).optional()]),
   "app/panel/(app)/exportaciones/acciones#marcarExportados": z.tuple([z.enum(["venta", "compra", "bolsa"]), z.array(z.string().max(1000)).max(10000), z.boolean().optional()]),
   "app/panel/(app)/exportaciones/acciones#marcarFacturados": z.tuple([z.enum(["venta", "compra"]), z.array(z.string().max(1000)).max(10000), z.boolean()]),
+  "app/panel/(app)/ia/acciones#preguntarIA": z.tuple([z.array(z.object({ de: z.string().max(1000), texto: z.string().max(5000) })).max(10000), z.string().max(1000)]),
   "app/panel/(app)/incidencias/acciones#guardarIncidencia": z.tuple([z.string().uuid().or(z.literal('')).nullable(), z.object({ envio_id: z.string().uuid().or(z.literal('')).nullable(), cliente_id: z.string().uuid().or(z.literal('')).nullable(), tipo_id: z.string().uuid().or(z.literal('')), estado: z.enum(["cancelado", "abierto", "en_curso", "resuelto"]), prioridad: z.enum(["baja", "media", "alta", "critica"]), titulo: z.string().max(1000), detalle: z.string().max(5000), resolucion: z.string().max(1000) })]),
   "app/panel/(app)/mantenimiento/acciones#borrarArchivosSueltos": z.tuple([]),
   "app/panel/(app)/mantenimiento/acciones#contarArchivosSueltos": z.tuple([]),

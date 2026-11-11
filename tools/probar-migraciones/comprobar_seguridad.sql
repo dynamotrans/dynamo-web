@@ -7318,3 +7318,73 @@ do $$ declare tok uuid := current_setting('prueba.tok191')::uuid; j jsonb; begin
 end $$;
 reset role;
 update cmr_enlaces set revocado = false where token = current_setting('prueba.tok191')::uuid;
+
+-- ---- 193. Asistente de IA: consultas de solo lectura con los permisos de quien llama --
+-- ia_consulta_sql (2026-11-11) no amplía permisos (SECURITY INVOKER): el equipo Dynamo
+-- consulta en JSON, el cliente no puede usarla, y cualquier escritura —directa o colada
+-- en un CTE— muere. La auditoría ia_consultas solo la ve y escribe el equipo, y es
+-- inmutable (sin update ni delete).
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare j jsonb; n int; begin
+  j := ia_consulta_sql('select count(*)::int as n from envios');
+  if jsonb_typeof(j) <> 'array' or jsonb_array_length(j) <> 1 or (j -> 0 ->> 'n') is null then
+    raise exception 'FALLO 193 · la consulta de lectura no devuelve filas JSON: %', j; end if;
+  begin
+    j := ia_consulta_sql('update envios set referencia_cliente = null where false');
+    raise exception 'FALLO 193 · se cuela un UPDATE directo';
+  exception when raise_exception then
+    if sqlerrm !~ 'lectura' then raise; end if;
+  end;
+  begin
+    j := ia_consulta_sql('select 1; select 2');
+    raise exception 'FALLO 193 · se cuelan dos consultas con punto y coma';
+  exception when raise_exception then
+    if sqlerrm !~ 'punto y coma' then raise; end if;
+  end;
+  begin
+    j := ia_consulta_sql('with x as (update envios set referencia_cliente = null where false returning 1) select * from x');
+    raise exception 'FALLO 193 · una escritura en un CTE no muere';
+  -- Doble barrera: el envoltorio lo anida (un CTE con escritura no puede anidarse:
+  -- feature_not_supported) y, si algo llegara a correr, la transacción es de solo
+  -- lectura (read_only_sql_transaction). Cualquiera de las dos vale.
+  exception when read_only_sql_transaction or feature_not_supported then null; end;
+  -- Y la transacción queda de verdad en solo lectura mientras corre la consulta.
+  j := ia_consulta_sql('select current_setting(''transaction_read_only'') as ro');
+  if (j -> 0 ->> 'ro') <> 'on' then raise exception 'FALLO 193 · la transacción no queda en solo lectura: %', j; end if;
+end $$;
+-- La auditoría va en OTRO bloque: el solo-lectura local dura hasta el final de la
+-- transacción del bloque anterior (en la web no pasa: cada petición es la suya).
+do $$ declare n int; begin
+  -- Auditoría: el equipo escribe la suya y la lee.
+  insert into ia_consultas (usuario_id, rol, pregunta, respuesta, consultas)
+  values (current_setting('prueba.u_admin')::uuid, 'admin', '¿Cuántos envíos hay?', '42', '["select count(*) from envios"]');
+  select count(*)::int into n from ia_consultas;
+  if n < 1 then raise exception 'FALLO 193 · el equipo no ve la auditoría'; end if;
+  begin
+    update ia_consultas set respuesta = 'manipulada';
+    if found then raise exception 'FALLO 193 · la auditoría se puede manipular'; end if;
+  exception when insufficient_privilege then null; end;
+  begin
+    delete from ia_consultas;
+    if found then raise exception 'FALLO 193 · la auditoría se puede borrar'; end if;
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare j jsonb; n int; begin
+  begin
+    j := ia_consulta_sql('select 1 as uno');
+    raise exception 'FALLO 193 · un cliente puede usar el asistente';
+  exception when insufficient_privilege then null; end;
+  select count(*)::int into n from ia_consultas;
+  if n <> 0 then raise exception 'FALLO 193 · un cliente ve la auditoría del asistente'; end if;
+  begin
+    insert into ia_consultas (usuario_id, rol, pregunta) values (current_setting('prueba.u_cli')::uuid, 'cliente', 'hola');
+    raise exception 'FALLO 193 · un cliente escribe en la auditoría';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 193 · asistente de IA: lectura JSON con los permisos de quien llama; sin escrituras, sin clientes, auditoría inmutable';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -4,6 +4,13 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 
+- [ ] 🤖 **CHATBOT DE IA — FASE 1 HECHA (2026-11-11), falta SOLO la clave**: montado el asistente para el
+      equipo Dynamo (botón ✦ flotante del panel, migración `asistente_ia` con `ia_consulta_sql` SECURITY
+      INVOKER + auditoría `ia_consultas`, prueba 193; agente en `lib/ia/agente.ts` con claude-opus-5-5 —
+      cambiable con `IA_MODELO`—, respuestas numéricas y chips A/B/C). **Falta del usuario**: crear la clave en
+      console.anthropic.com y pegarla en Vercel como `ANTHROPIC_API_KEY` (Sensitive); hasta entonces el chat
+      avisa de que no está configurado. **Fase 2 pendiente**: clientes con herramientas cerradas. Especificación
+      original ↓
 - [ ] 🤖 **CHATBOT DE IA SOBRE LA BASE DE DATOS, POR ROL (usuario, 2026-11-11)**: botón flotante en el panel
       con el icono de IA (estrella/sparkle ✦) que abre un chat; la pregunta va al servidor, el servidor llama a
       la **API de Claude** (Haiku por coste; Sonnet si hace falta) con el **diccionario de datos** ya existente

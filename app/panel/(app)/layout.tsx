@@ -8,6 +8,7 @@ import { vistaDe } from '@/lib/vista';
 import Marco, { type Contadores, type Cobertura } from '@/components/panel/Marco';
 import TirarParaRecargar from '@/components/panel/TirarParaRecargar';
 import BotonArriba from '@/components/panel/BotonArriba';
+import ChatIA from '@/components/panel/ChatIA';
 import EnVivo from '@/components/panel/EnVivo';
 import CargandoNavegacion from '@/components/panel/CargandoNavegacion';
 import { Suspense } from 'react';
@@ -54,6 +55,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     <RefrescoProvider>
     <TirarParaRecargar />
     <BotonArriba />
+    {/* Asistente de IA (2026-11-11), fase 1: solo equipo Dynamo con la cuenta activa. */}
+    {dynamo && activa && <ChatIA />}
     <EnVivo canales={canales} marca={Date.now()} />
     <Suspense fallback={null}><CargandoNavegacion /></Suspense>
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
