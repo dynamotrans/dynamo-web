@@ -253,10 +253,12 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       ], 34);
       // 18 Reservas y observaciones del porteador
       const QUIEN: Record<string, string> = { remitente: 'Remitente', transportista: 'Porteador', destinatario: 'Destinatario' };
-      dato(438, 290, [
+      // La casilla 18 empieza en x≈273 (no en 438): se usa el ancho ENTERO (2026-11-11;
+      // el hueco de la izquierda no estaba reservado para nada).
+      dato(276, 290, [
         ...(e.adr ? [{ t: 'MERCANCÍA ADR (peligrosa) — Acuerdo ADR', s: 7.6, c: ROJA }] : []),
         ...(d.reservas ?? []).slice(0, 3).map((r) => ({ t: `Reservas (${QUIEN[r.rol] ?? r.rol}): ${r.texto}`, s: 6.8, c: ROJA, max: 3 })),
-      ], 34);
+      ], 76);
 
       // 6-12: tabla de la mercancía
       dato(40, 385, [{ t: e.referencia_gx ?? '—', s: 7.2 }]);
@@ -423,12 +425,17 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       for (const ln of datos) { l.texto(l.x0 + 10, yTxt + 6.8, ln, 6.8, { color: COLOR.gris }); yTxt += 9; }
       l.y += altoPanel + 8;
     } else if (!conTransporte) {
-      // Sin transportista o sin matrícula el DeCA no existe todavía (usuario, 2026-11-11).
+      // Sin transportista o sin matrícula el DeCA no existe todavía (usuario, 2026-11-11):
+      // el hueco del QR queda RESERVADO con un marco punteado, como en el impreso.
       l.y += 6;
-      for (const ln of l.partir('Documento de control (DeCA): pendiente. Se genera, con su QR de verificación, cuando el envío tiene transportista y matrícula asignados (Orden FOM/2861/2012, art. 5).', 7.4, l.ancho)) {
-        l.texto(l.x0, l.y + 8, ln, 7.4, { color: COLOR.gris }); l.y += 10;
+      const qx = A4.w - l.margen.der - 50, yQ = l.y;
+      l.pag.drawRectangle({ x: qx, y: A4.h - yQ - 50, width: 50, height: 50, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
+      l.texto(qx + (50 - l.medida('QR', 9, true)) / 2, yQ + 28, 'QR', 9, { bold: true, color: COLOR.gris });
+      let yT = l.y;
+      for (const ln of l.partir('Documento de control (DeCA): pendiente. Se genera, con su QR de verificación, cuando el envío tiene transportista y matrícula asignados (Orden FOM/2861/2012, art. 5).', 7.4, l.ancho - 62)) {
+        l.texto(l.x0, yT + 8, ln, 7.4, { color: COLOR.gris }); yT += 10;
       }
-      l.y += 4;
+      l.y = Math.max(yT, yQ + 50) + 6;
     } else { l.y += 4; }
     if (!firmas.length) {
       l.texto(l.x0, l.y + 10, 'Aún no hay ninguna firma registrada.', 9, { bold: true });
@@ -455,13 +462,26 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       l.linea(l.x0, l.y, A4.w - l.margen.der, l.y, COLOR.morado, 1);
       l.y += 8;
     };
+    // Cada reserva con SU firmante (usuario, 2026-11-11: en la casilla 18 van mezcladas
+    // sin identificar): la reserva se anota al firmar, así que se asigna a la firma de su
+    // rol y parada más cercana en el tiempo y se enseña, en rojo, dentro de su tarjeta.
+    const resDe = new Map<FirmaDoc, string[]>();
+    for (const rsv of d.reservas ?? []) {
+      const candidatas = lista.filter((x) => x.rol === rsv.rol && (rsv.rol === 'transportista' || !rsv.parada_id || x.parada_id === rsv.parada_id));
+      if (!candidatas.length) continue;
+      const tRes = rsv.creado_en ? Date.parse(rsv.creado_en) : 0;
+      const f = candidatas.reduce((a, b) => Math.abs(Date.parse(a.firmado_en) - tRes) <= Math.abs(Date.parse(b.firmado_en) - tRes) ? a : b);
+      resDe.set(f, [...(resDe.get(f) ?? []), rsv.texto]);
+    }
     for (const f of lista) {
+      const reservasF = (resDe.get(f) ?? []).flatMap((txv) => l.partir(`Reservas: ${txv}`, 6.8, anchoTexto, true));
+      const alto = ALTO + (reservasF.length ? reservasF.length * 9 + 4 : 0);
       const pgAntes = l.pag;
-      l.sitio(ALTO + 6);
+      l.sitio(alto + 6);
       if (l.pag !== pgAntes) cabCont();
-      l.rect(l.x0, l.y, l.ancho, ALTO, COLOR.blanco, COLOR.grisClaro);
+      l.rect(l.x0, l.y, l.ancho, alto, COLOR.blanco, COLOR.grisClaro);
       // Barra de acento: morada (impresa en su casilla), gris (solo registro), ámbar (extra).
-      l.rect(l.x0, l.y, 3, ALTO, f.extra ? COLOR.ambar : enCasilla.has(f) ? COLOR.morado : COLOR.gris);
+      l.rect(l.x0, l.y, 3, alto, f.extra ? COLOR.ambar : enCasilla.has(f) ? COLOR.morado : COLOR.gris);
       const img = trazos.get(f);
       if (img) {
         const k = Math.min(126 / img.width, (ALTO - 10) / img.height), w = img.width * k, h = img.height * k;
@@ -478,7 +498,9 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
         l.texto(tx, l.y + (par ? 46 : 38), corta(gpsTxt, 6.8), 6.8, { color: COLOR.gris });
       }
       if (f.sha256) l.texto(tx, l.y + (par ? 56 : 48), `Huella SHA-256 de lo firmado: ${f.sha256}`, 5.4, { color: COLOR.gris });
-      l.y += ALTO + 6;
+      let yR = l.y + (par ? 66 : 58);
+      for (const ln of reservasF) { l.texto(tx, yR, ln, 6.8, { bold: true, color: ROJA }); yR += 9; }
+      l.y += alto + 6;
     }
   }
 

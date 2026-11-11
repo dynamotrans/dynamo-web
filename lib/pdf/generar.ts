@@ -12,12 +12,12 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
   let bytes: Uint8Array;
   datos.dynamo = await datosDynamo(sb);
   if (documento === 'cmr') {
-    const { data: rs } = await sb.from('cmr_reservas').select('rol, texto').eq('envio_id', id).order('creado_en');
+    const { data: rs } = await sb.from('cmr_reservas').select('rol, texto, parada_id, creado_en').eq('envio_id', id).order('creado_en');
     // El enlace vivo del CMR digital hace de nº único del DeCA: va en el PDF como QR con
     // su fecha de creación (Orden FOM/2861/2012, art. 6).
     const { data: enl } = await sb.from('cmr_enlaces').select('token, creado_en').eq('envio_id', id).eq('revocado', false)
       .order('creado_en', { ascending: false }).limit(1).maybeSingle();
-    bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string }[],
+    bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string; parada_id: string | null; creado_en: string }[],
       deca: enl ? { url: `${origen ?? 'https://www.dynamotrans.com'}/cmr/${enl.token}`, creado_en: enl.creado_en } : null });
   }
   else {

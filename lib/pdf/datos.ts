@@ -33,7 +33,7 @@ export type DatosDoc = {
   pronto_pago: boolean;
   gestor: { nombre: string; telefono: string | null; email: string | null } | null;
   firmas?: FirmaDoc[];                   // CMR digital (solo para el CMR)
-  reservas?: { rol: string; texto: string }[];   // reservas anotadas al firmar el CMR (casilla 18)
+  reservas?: { rol: string; texto: string; parada_id?: string | null; creado_en?: string }[];   // reservas anotadas al firmar (casilla 18 y hoja de firmas)
   logoPorteador?: Uint8Array | null;     // envío manual: el logo del operador del cliente (si lo subió)
   deca?: { url: string; creado_en: string } | null;   // enlace público del CMR digital: nº único, QR y fecha de creación (el e-CMR hace de DeCA)
   dynamo?: DatosDynamo;                  // los datos fijos de Dynamo (de Parámetros)
