@@ -728,6 +728,23 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
     </div></div>
   );
+  // Tarjeta azul del camión y la mercancía: va encima del precio en el paso 3 (Fecha y
+  // precio) Y en el paso 4 (Revisión) — usuario, 2026-11-11: lo que se cotiza, a la vista
+  // junto a la base imponible.
+  const tarjetaMercancia = (
+    <div className="sum2-box sum2-azul" style={{ marginBottom: '0.6rem' }}>
+      <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
+      <div className="sum2-grid">
+        <div className="sum2-cell"><div className="sum2-k">Metros lineales</div><div className="sum2-v">{ml === '13.3' ? '13,30 metros · Tráiler completo' : mlTxt.split(' ·')[0]}</div></div>
+        <div className="sum2-cell"><div className="sum2-k">Peso</div><div className="sum2-v">{pesoTxt}</div></div>
+        <div className="sum2-cell"><div className="sum2-k">Tipo de carga</div><div className="sum2-v">{forma}</div></div>
+        <div className="sum2-cell"><div className="sum2-k">Tipo</div><div className="sum2-v">{paletizada ? 'Paletizada' : 'No paletizada'}</div></div>
+        {nima && <div className="sum2-cell"><div className="sum2-k">Requiere NIMA</div><div className="sum2-v">Sí</div></div>}
+        {adr && <div className="sum2-cell"><div className="sum2-k">Mercancía ADR</div><div className="sum2-v">Sí</div></div>}
+      </div>
+      {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div className="sum2-notas">{notasEnvio}</div></div>}
+    </div>
+  );
   const avisosPaso4 = (
     <>
       {veranoSitios.some((x) => x.con) && (
@@ -1028,6 +1045,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
             {paso === 3 && (
               <div className="form-2col-side">
+                {/* El aviso del tráiler y la tarjeta del camión/mercancía, encima del
+                    precio — igual que en el paso 4 (usuario, 2026-11-11). */}
+                {avisoTrailer}
+                {tarjetaMercancia}
                 {/* La fecha elegida ya se ve en el desplegable; aquí solo los avisos si los hay. */}
                 {((maxFecha && fecha > maxFecha) || avisoProvisional) && (
                   <div className="ptar-field ptar-field-full">
@@ -1102,23 +1123,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               </div>
             </div>
             <div className="form-2col-side">
-              {/* Tarjeta de la MERCANCÍA en azul marino (usuario, 2026-11-10), colocada
-                  justo ANTES del precio (usuario, 2026-11-11): camión y mercancía se
-                  repasan de un vistazo junto a la base imponible, con el aviso del
-                  tráiler delante. */}
+              {/* El aviso del tráiler y la tarjeta del camión/mercancía, encima del
+                  precio (usuario, 2026-11-11): lo que se confirma, a la vista junto a
+                  la base imponible. */}
               {avisoTrailer}
-              <div className="sum2-box sum2-azul" style={{ marginBottom: '0.6rem' }}>
-                <div className="sum2-cell sum2-full"><div className="sum2-k">Tipo de camión</div><div className="sum2-v">{camionTxt}</div></div>
-                <div className="sum2-grid">
-                  <div className="sum2-cell"><div className="sum2-k">Metros lineales</div><div className="sum2-v">{ml === '13.3' ? '13,30 metros · Tráiler completo' : mlTxt.split(' ·')[0]}</div></div>
-                  <div className="sum2-cell"><div className="sum2-k">Peso</div><div className="sum2-v">{pesoTxt}</div></div>
-                  <div className="sum2-cell"><div className="sum2-k">Tipo de carga</div><div className="sum2-v">{forma}</div></div>
-                  <div className="sum2-cell"><div className="sum2-k">Tipo</div><div className="sum2-v">{paletizada ? 'Paletizada' : 'No paletizada'}</div></div>
-                  {nima && <div className="sum2-cell"><div className="sum2-k">Requiere NIMA</div><div className="sum2-v">Sí</div></div>}
-                  {adr && <div className="sum2-cell"><div className="sum2-k">Mercancía ADR</div><div className="sum2-v">Sí</div></div>}
-                </div>
-                {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div className="sum2-notas">{notasEnvio}</div></div>}
-              </div>
+              {tarjetaMercancia}
               {manual
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
                 : esCliente
