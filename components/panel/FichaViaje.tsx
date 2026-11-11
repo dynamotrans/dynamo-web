@@ -192,7 +192,8 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
       <div className="det-ruta">
         {paradas.map((p) => {
           const rec = p.tipo === 'carga';
-          const n = paradas.filter((x) => x.tipo === p.tipo).indexOf(p) + 1;
+          // Nº de PARADA del recorrido, continuo (2026-11-11); la tipología va aparte.
+          const n = paradas.indexOf(p) + 1;
           return (
             <div key={p.id} className="det-punto">
               <div className="det-punto-head">

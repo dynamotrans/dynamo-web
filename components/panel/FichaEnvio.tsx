@@ -333,8 +333,10 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
             fichaParada={(n) => {
               const p = ficha.paradas[n - 1];
               if (!p) return null;
-              const rec = p.tipo === 'carga', lista = rec ? recogidas : entregas, i = lista.findIndex((z) => z.id === p.id) + 1;
-              return <Punto p={p} cls={rec ? 'rec' : 'ent'} num={i} label={`${rec ? 'Recogida' : 'Entrega'} ${i}`} />;
+              // Nº de PARADA del recorrido, continuo (usuario, 2026-11-11: «parada 1 y
+              // parada 2»); la tipología (recogida/entrega) va en la etiqueta y el color.
+              const rec = p.tipo === 'carga';
+              return <Punto p={p} cls={rec ? 'rec' : 'ent'} num={n} label={rec ? 'Recogida' : 'Entrega'} />;
             }} />
           <div style={{ marginTop: '0.6rem' }}>
             <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
@@ -361,8 +363,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         {!conSeguimiento && <>
           <SubTit>Ruta{ficha.paradas.length > 2 ? ` (${ficha.paradas.length} paradas)` : ''}</SubTit>
           <div className="det-ruta">
-            {recogidas.map((p, i) => <Punto key={p.id} p={p} cls="rec" num={i + 1} label={`Recogida ${i + 1}`} />)}
-            {entregas.map((p, i) => <Punto key={p.id} p={p} cls="ent" num={i + 1} label={`Entrega ${i + 1}`} />)}
+            {ficha.paradas.map((p, i) => <Punto key={p.id} p={p} cls={p.tipo === 'carga' ? 'rec' : 'ent'} num={i + 1} label={p.tipo === 'carga' ? 'Recogida' : 'Entrega'} />)}
           </div>
         </>}
         <SubTit>Mercancía</SubTit>

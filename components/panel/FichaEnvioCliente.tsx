@@ -261,7 +261,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       <Secc k="ruta" titulo="Ruta" extra={paradas.length} abiertas={abiertas} toggle={toggle}
         resumen={`${recogidas[0]?.poblacion ?? ''} → ${entregas[entregas.length - 1]?.poblacion ?? ''}`}>
       <div className="det-ruta">
-        {[...recogidas.map((p, i) => ({ p, cls: 'rec', num: i + 1, label: `Recogida ${i + 1}` })), ...entregas.map((p, i) => ({ p, cls: 'ent', num: i + 1, label: `Entrega ${i + 1}` }))].map(({ p, cls, num, label }) => (
+        {[...recogidas.map((p, i) => ({ p, cls: 'rec', num: i + 1, label: 'Recogida' })), ...entregas.map((p, i) => ({ p, cls: 'ent', num: recogidas.length + i + 1, label: 'Entrega' }))].map(({ p, cls, num, label }) => (
           <div key={p.id} className="det-punto">
             <div className="det-punto-head"><span className={`ptar-route-num ${cls}`}>{num}</span><span className="det-punto-label">{label}</span></div>
             <div className="det-punto-body">
