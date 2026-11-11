@@ -132,6 +132,7 @@ export type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos
   clienteFijo?: boolean;                              // «Ver como» un cliente: el cliente ya viene decidido y el campo no se enseña
   operadores?: { id: string; nombre: string; cif?: string | null; contacto?: string | null }[];   // el catálogo de transportistas del cliente (envío manual)
   esMaster?: boolean;                                 // Admin Master: cualquier fecha, también pasada
+  fechaInicial?: string | null;                       // fecha de recogida ya elegida (p. ej. al pulsar un día en la vista calendario)
   reglas?: ReglasPrecio | null };                     // antelación máxima y precio provisional (parámetros)
 export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number;
   // Horas de corte: la de fecha fija y una POR VENTANA (1-2, 1-3 y 1-4 días; usuario, 2026-11-10).

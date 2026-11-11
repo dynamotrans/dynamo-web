@@ -31,7 +31,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, reglas = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, reglas = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
@@ -123,7 +123,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar' | 'corta'>(urgenciaIni);
-  const [fecha, setFecha] = useState(editar ? (be?.fecha_carga_desde ?? '') : '');
+  // La fecha puede venir ya elegida desde fuera (pulsar un día en la vista calendario);
+  // si no cumple las reglas (muy pronto, festivo…), el ajuste automático de abajo la corrige.
+  const [fecha, setFecha] = useState(editar ? (be?.fecha_carga_desde ?? '') : (fechaInicial ?? ''));
   const [faltaFecha, setFaltaFecha] = useState(false);   // se intentó avanzar sin elegir fecha → marca el campo en rojo
   // El precio SUGERIDO del tarifador (borrador) rellena estos campos por defecto; en cuanto
   // Dynamo teclea uno a mano, ese ya no se vuelve a pisar.
@@ -316,10 +318,19 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     // Si se cambia el sitio, ya no es la parada que había (en «Cambiar ruta»).
     setPuntos((l) => l.map((x) => (x.k === p.k ? { ...x, ...cambios, ...('sitio' in cambios || 'nuevo' in cambios ? { parada_id: undefined } : {}) } : x)));
   }
+  // Una parada se puede quitar siempre que quede al menos otra de su tipo y la ruta siga
+  // empezando en recogida y acabando en entrega (usuario, 2026-11-11: también la última
+  // entrega, si hay dos o más; la única recogida o la única entrega, nunca).
+  const quitable = (p: Punto) => {
+    if (puntos.filter((x) => x.tipo === p.tipo).length < 2) return false;
+    const c = puntos.filter((x) => x.k !== p.k);
+    return c.length >= 2 && c[0].tipo === 'carga' && c[c.length - 1].tipo === 'descarga';
+  };
   function quitar(p: Punto) {
     setPuntos((l) => {
-      const i = l.findIndex((x) => x.k === p.k);
-      return i > 0 && i < l.length - 1 ? l.filter((x) => x.k !== p.k) : l;   // la 1.ª y la última no se quitan
+      if (l.filter((x) => x.tipo === p.tipo).length < 2) return l;
+      const c = l.filter((x) => x.k !== p.k);
+      return c.length >= 2 && c[0].tipo === 'carga' && c[c.length - 1].tipo === 'descarga' ? c : l;
     });
   }
   // Pulsar la pastilla del nº alterna la parada entre recogida y entrega EN SU SITIO.
@@ -871,7 +882,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                           : i === puntos.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente')
                           : p.tipo === 'carga' ? 'Otra recogida · busca en la agenda' : 'Otra entrega · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)}
-                        onQuitar={i > 0 && i < puntos.length - 1 ? () => quitar(p) : undefined}
+                        onQuitar={quitable(p) ? () => quitar(p) : undefined}
                         onAnadir={total < 4 ? () => nuevaParada(p) : undefined}
                         onAlternar={i > 0 && i < puntos.length - 1 ? () => alternarTipo(p) : undefined} />
                       {i === 0 && p.sitio && cliente?.principal_id === p.sitio.id && (

@@ -12,8 +12,10 @@ export const dynamic = 'force-dynamic';
 // Etapa A: lo crea el equipo de Dynamo para un cliente, con el precio puesto a mano.
 // ?repetir=<envío> abre el asistente relleno con otro envío (sin fecha); ?ruta=<envío>
 // abre solo la ruta de un envío ya creado para cambiarla.
-export default async function PaginaNuevoEnvio({ searchParams }: { searchParams: Promise<{ repetir?: string; ruta?: string; editar?: string }> }) {
+export default async function PaginaNuevoEnvio({ searchParams }: { searchParams: Promise<{ repetir?: string; ruta?: string; editar?: string; fecha?: string }> }) {
   const sp = await searchParams;
+  // ?fecha=YYYY-MM-DD: la fecha de recogida ya elegida (pulsar un día en la vista calendario).
+  const fechaInicial = sp.fecha && /^\d{4}-\d{2}-\d{2}$/.test(sp.fecha) ? sp.fecha : null;
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
@@ -50,7 +52,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
-    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
+    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
       operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
@@ -102,5 +104,5 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
 
   return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} clienteFijo={vistaCliente}
     operadores={((ops.data ?? []) as { id: string; razon_social: string; cif: string | null; persona_contacto: string | null }[]).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))}
-    esMaster={perfil.rol === 'admin'} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
+    esMaster={perfil.rol === 'admin'} fechaInicial={fechaInicial} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
 }

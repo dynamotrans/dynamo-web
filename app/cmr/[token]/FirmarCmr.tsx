@@ -154,8 +154,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {firmoAqui && <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
       {bloques.map((b) => {
         const f = firmas.get(b.clave);
+        // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
+        // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
+        const pulsable = !f && !sinTransportista;
         return (
-          <div key={b.clave} className={`firma${f ? ' firmada' : ''}`}>
+          <div key={b.clave} className={`firma${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
+            onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) setPreFirma(b); } : undefined}>
             <div className="firma-head">
               <div className="firma-tit">{b.titulo}<span className="cas-quien">Firma: {b.firmante}</span><span className="cas">{b.casilla}{b.lugar ? ` · ${b.lugar}` : ''}</span></div>
               {!f && <button type="button" className="firma-btn" disabled={sinTransportista}

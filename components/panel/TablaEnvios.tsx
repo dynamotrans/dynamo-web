@@ -104,7 +104,8 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         operadores={operadores} creadores={creadores} mostrarEstado={!vistaCal && f === 'programada'}
         placeholder={rol === 'transportista' ? 'Buscar: nº, matrícula, conductor, población…' : 'Buscar por cualquier dato: nº, empresa, dirección, matrícula, población, mercancía…'} />
       {vistaCal && (
-        <CalendarioEnvios filas={filas} mes={mes || (hoy || hoyISO()).slice(0, 7)} hoy={hoy || hoyISO()} q={q} op={op} por={por} />
+        <CalendarioEnvios filas={filas} mes={mes || (hoy || hoyISO()).slice(0, 7)} hoy={hoy || hoyISO()} q={q} op={op} por={por}
+          puedeCrear={rol !== 'transportista' && !vistaTransportista} />
       )}
       {!vistaCal && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '-0.3rem 0 0.8rem', fontSize: 'var(--fs-s)' }}>
         {(() => {

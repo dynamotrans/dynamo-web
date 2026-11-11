@@ -3149,6 +3149,9 @@ body.theme-dark .op-chip2-otro { background: rgba(190,140,90,0.15); color: #d8b4
 .cal-envio:hover { filter: brightness(0.95); }
 .cal-envio-extra { display: none; }
 .cal-open .cal-envio-extra { display: block; }
+/* Día pulsable (hoy o futuro, cuentas que crean envíos): ofrece crear un envío con esa fecha. */
+.cal-pulsable { cursor: pointer; }
+.cal-pulsable:hover { border-color: var(--purple); box-shadow: 0 0 0 1px var(--purple) inset; }
 .cal-more { display: block; width: 100%; border: none; background: none; color: var(--purple); font-size: var(--fs-s); font-weight: 800; cursor: pointer; text-align: left; padding: 1px 4px; }
 @media (max-width: 700px) {
     .cal-grid { gap: 3px; }
@@ -3708,7 +3711,9 @@ body.ptar-dragging-active { user-select: none; -webkit-user-select: none; }
 .ptar-sug .sug-dir { display: block; font-size: var(--fs-m); color: var(--gray-500); }
 /* Botón × para borrar de golpe el campo de recogida/entrega */
 .ptar-clear {
-    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    /* right 6→12px (usuario, 2026-11-11): a 6px el círculo se pisaba con la esquina
+       redondeada del borde del campo. */
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     width: 22px; height: 22px; border-radius: 50%; border: none;
     background: var(--gray-200); color: var(--gray-600, #4b5563);
     font-size: var(--fs-m); line-height: 1; cursor: pointer; padding: 0;

@@ -31,6 +31,9 @@
     .cmr-page .prog .done-all { color: var(--green-dark); }
     /* Bloques de firma (casillas del CMR) */
     .cmr-page .firma { border: 1.5px dashed var(--gray-300); border-radius: 12px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; }
+    /* Toda la caja de una firma pendiente es pulsable: abre lo mismo que el botón «Firmar». */
+    .cmr-page .firma-pulsable { cursor: pointer; }
+    .cmr-page .firma-pulsable:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); }
     .cmr-page .firma.firmada { border-style: solid; border-color: var(--green); background: rgba(34,165,90,0.05); }
     .cmr-page .firma-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
     .cmr-page .firma-tit { font-size: 0.9rem; font-weight: 800; }
