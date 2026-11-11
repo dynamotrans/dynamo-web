@@ -1,6 +1,11 @@
 /* Pantalla de entrada: COPIA EXACTA del diseño de portal.html (regla 0-quater).
    Los estilos vienen tal cual de ese archivo; si se cambia allí, cambiar aquí. */
 .portal-page { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column;
+  /* width/flex: al llegar aquí NAVEGANDO desde el panel (sesión caducada), Next deja
+     cargado dashboard.css, cuyo body{display:flex} convertía esta página en un item
+     que se encogía a su contenido: la tarjeta salía pegada a la izquierda. Con ancho
+     completo la tarjeta queda centrada entre por donde se entre. */
+  width: 100%; flex: 1 1 auto;
   color: var(--navy); -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom); }
 :where(.portal-page *, .portal-page *::before, .portal-page *::after) { margin: 0; padding: 0; box-sizing: border-box; }
 :root { --fs-s: 0.82rem; --fs-d4: 1.7rem; --gray-200: #e8eaed; }
