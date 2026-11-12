@@ -638,7 +638,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const mercResumen = [mlTxt.split(' ·')[0], ml === '13.3' ? 'Tráiler completo' : 'Grupaje', pesoTxt].filter(Boolean).join(' · ');
   // La info del sitio va DEBAJO del resumen en el campo; al guardarla de vuelta en la
   // ficha del sitio se quita la línea del resumen (es de ESTE envío, no del sitio).
-  const sinResumen = (s: string) => { const x = s.trim(); return mercResumen && x.startsWith(mercResumen) ? x.slice(mercResumen.length).trim() : x; };
+  const sinResumen = (s: string) => {
+    const x = s.trim();
+    for (const pre of [`Parte de: ${mercResumen}`, mercResumen]) {
+      if (pre && x.startsWith(pre)) return x.slice(pre.length).trim();
+    }
+    return x;
+  };
   const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
   // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;

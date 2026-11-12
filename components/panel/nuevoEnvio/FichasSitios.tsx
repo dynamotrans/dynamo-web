@@ -61,11 +61,16 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
   const setExtra = (p: Punto, i: number, cambios: Partial<ContactoExtra>) =>
     setEdic((prev) => { const e = prev[p.k] ?? {}; const l = [...(e.extra ?? [])]; l[i] = { ...l[i], ...cambios }; return { ...prev, [p.k]: { ...e, extra: l } }; });
 
+  // Con varias paradas del MISMO tipo, cada una lleva solo una parte del total: su
+  // resumen de mercancía va con «Parte de: » delante (usuario, 2026-11-12).
+  const nRec = puntos.filter((x) => x.tipo === 'carga').length;
+  const nEnt = puntos.filter((x) => x.tipo === 'descarga').length;
   return (
     <div className="ptar-sitios-list">
       {puntos.map((p, i) => {
         const rec = p.tipo === 'carga';
-        const f = resolverFicha(p, datos, edic[p.k], mercanciaDefecto);
+        const defectoMerc = mercanciaDefecto && (rec ? nRec : nEnt) > 1 ? `Parte de: ${mercanciaDefecto}` : mercanciaDefecto;
+        const f = resolverFicha(p, datos, edic[p.k], defectoMerc);
         const dir = direccionCompleta((p.sitio ?? p.nuevo)!);
         const falta = f.nuevo && !f.empresa.trim();   // sitio nuevo sin nombre: datos obligatorios pendientes
         // Marcada por el padre al intentar crear: lo que siga vacío se pinta en rojo.
