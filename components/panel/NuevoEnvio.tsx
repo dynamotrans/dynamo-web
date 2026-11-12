@@ -106,7 +106,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // La CITA PREVIA vive ahora POR SITIO en el paso 4 (usuario, 2026-11-09): su texto va
   // a las anotaciones de esa parada, no a las del envío.
   const notasEnvio = notas;
-  const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente)));
+  const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente || be.discrecion_comercial)));
 
   // ---- Paso 3: fecha y precio
   // Al EDITAR, el tipo de fecha sale de la ventana guardada (un día → fija; 2 días hábiles
@@ -932,14 +932,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       )}
                     </div>
                   ))}
-                  {/* Discreción comercial en el paso 1, tras los sitios de la ruta
-                      (usuario, 2026-11-10); antes vivía en el paso de confirmar. */}
-                  <div className="ptar-discrecion" style={{ marginTop: '0.5rem' }}>
-                    <label className="ptar-confirm-check">
-                      <input type="checkbox" checked={discrecion} onChange={(e) => setDiscrecion(e.target.checked)} />
-                      <span><strong>Discreción comercial</strong> (opcional): el conductor no dirá en la carga a quién va la mercancía ni en la entrega de dónde viene.</span>
-                    </label>
-                  </div>
                   {!manual && <div className="ptar-verif-note" style={{ marginTop: '0.5rem' }}>
                     <IcoEscudo />
                     <span>Todos nuestros transportistas están <strong>verificados</strong> y con la <strong>documentación en vigor</strong>.</span>
@@ -982,11 +974,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-notes-wrap ptar-field-full">
                     <button type="button" className="ptar-notes-toggle" aria-expanded={notasAbiertas} onClick={() => setNotasAbiertas((v) => !v)}>
                       <span className="pnt-icon" aria-hidden="true">{notasAbiertas ? '−' : '+'}</span>
-                      <strong>Añadir notas/nº de pedido, plataforma elevadora o NIMA</strong> (opcional)
+                      <strong>Añadir notas/nº de pedido, plataforma elevadora, NIMA o discreción comercial</strong> (opcional)
                     </button>
                     {notasAbiertas && (
                       <div className="ptar-notes-body">
-                        <div className="ptar-pair">
+                        <div className="ptar-field">
+                          <label className="ptar-label" htmlFor="ne-ref">Nº de pedido / Anotaciones <Req si={false} /></label>
+                          <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234, instrucciones breves…" value={refCli} onChange={(e) => setRefCli(e.target.value)} />
+                        </div>
+                        <div className="ptar-pair" style={{ marginTop: '0.9rem' }}>
                           <Interruptor titulo="Plataforma elevadora" valor={plataforma}
                             onCambio={(v) => {
                               // Los metros y el peso elegidos SE MANTIENEN (usuario, 2026-11-11):
@@ -1004,9 +1000,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
                         </div>
-                        <div className="ptar-field" style={{ marginTop: '0.9rem' }}>
-                          <label className="ptar-label" htmlFor="ne-ref">Notas/Nº de pedido <Req si={false} /></label>
-                          <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234, instrucciones breves…" value={refCli} onChange={(e) => setRefCli(e.target.value)} />
+                        {/* Discreción comercial DENTRO del desplegable (usuario, 2026-11-12);
+                            antes iba suelta en el paso 1. */}
+                        <div className="ptar-discrecion" style={{ marginTop: '0.9rem' }}>
+                          <label className="ptar-confirm-check">
+                            <input type="checkbox" checked={discrecion} onChange={(e) => setDiscrecion(e.target.checked)} />
+                            <span><strong>Discreción comercial</strong> (opcional): el conductor no dirá en la carga a quién va la mercancía ni en la entrega de dónde viene.</span>
+                          </label>
                         </div>
                       </div>
                     )}
