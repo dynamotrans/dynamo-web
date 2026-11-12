@@ -1214,10 +1214,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           const detTxt = [fechaTxt ? `carga ${fechaTxt}` : '', camionTxt, `${mlTxt.split(' ·')[0]} · ${pesoTxt}`].filter(Boolean).join(' · ');
           const url = `/panel/nuevo-envio/proforma?base=${encodeURIComponent(baseP)}&ruta=${encodeURIComponent(rutaTxt)}&det=${encodeURIComponent(detTxt)}`
             + (esCliente || !cliente ? '' : `&cliente=${cliente.id}`);
+          // Botones a lo ancho, grandes y apilados (usuario, 2026-11-12): el principal
+          // (descargar) arriba y Cerrar debajo, los dos del mismo tamaño.
           return (
-            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <button type="button" className="btn-secondary" onClick={() => setVerProforma(false)}>Cerrar</button>
-              <a className="btn-primary" href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', width: '100%' }}>
+              <a className="btn-primary" style={{ width: '100%', minHeight: 52, justifyContent: 'center' }} href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
+              <button type="button" className="btn-secondary" style={{ width: '100%', minHeight: 52, justifyContent: 'center' }} onClick={() => setVerProforma(false)}>Cerrar</button>
             </div>
           );
         })()}>
@@ -1227,7 +1229,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           carga</strong>. Con más antelación, se actualizará al llegar a {reglas?.cerrado_dias ?? 7} días de la primera
           parada, con el precio válido para el día de carga.
         </p>
-        <p style={{ margin: '0.6rem 0 0', color: 'var(--gray-500)', fontSize: '0.85rem' }}>
+        <p style={{ margin: '0.6rem 0 0', color: 'var(--gray-500)' }}>
           El PDF va <strong>sin datos de pago</strong>: no es pagadero y no genera ningún envío ni reserva. La proforma
           pagadera, con la transferencia, sale al crear el envío y quedar pendiente de pago, con el precio ya fijado.
         </p>
