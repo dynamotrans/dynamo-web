@@ -139,11 +139,10 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     <div className="card">
       {!cmr.manual && <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>}
       {/* Cabecera en caja gris suave y formal (usuario, 2026-11-11). */}
+      {/* Cabecera corta (usuario, 2026-11-12): título y nº de envío, sin más. */}
       <div className="cab-caja">
         <h1>CMR digital</h1>
-        <p className="sub">Carta de porte del envío <strong>{cmr.referencia}</strong> · firma cada parte con el dedo</p>
-        {/* Qué es esta página, en claro (usuario, 2026-11-11). */}
-        <p className="sub" style={{ marginTop: '0.15rem', color: 'var(--gray-500)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.72rem' }}>Hoja de firmas</p>
+        <p className="sub">Envío <strong>{cmr.referencia}</strong></p>
       </div>
       <dl className="cmrbox">
         <dt>Remitente</dt><dd>{cmr.remitente || '—'}</dd>
