@@ -10,6 +10,7 @@ import { fecha, ventana, medidasTxt } from '@/lib/formato';
 import { FLOTA_HTML } from '@/lib/dashboardContenido';
 import { CONTACTO } from '@/lib/atencion';
 import { ESTADOS_ENVIO } from '@/lib/estados';
+import { CajaBuscadorGlobal } from './BuscadorGlobal';
 
 // «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
 // 2026-11-03). Para volver a enseñarlos basta con poner esto a true.
@@ -83,6 +84,8 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
       <div className="dash-top-row dash-top-2">
         <div className="dash-left-col">
           <div className="dash-cta-stack">
+            {/* Buscador global ENCIMA de «Nuevo envío» (usuario, 2026-11-12). */}
+            <CajaBuscadorGlobal />
             <Link className="dash-cta dash-cta-purple" href="/panel/nuevo-envio">
               <div className="dash-cta-icon"><Svg size={28}><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></div>
               <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicita un transporte</p></div>

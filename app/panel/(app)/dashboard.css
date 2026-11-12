@@ -5098,3 +5098,41 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .ia-entrada { display: flex; gap: 0.45rem; padding: 0.6rem; border-top: 1px solid var(--gray-200); background: #fff; }
 .ia-entrada input { flex: 1; min-width: 0; }
 .ia-enviar { padding: 0 0.9rem; white-space: nowrap; }
+
+/* ---- Buscador global (usuario, 2026-11-12): caja del dashboard + paleta Cmd/Ctrl+K ---- */
+.bgq-caja {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%; min-height: 52px;
+    padding: 0 0.9rem; background: #fff; border: 1px solid var(--gray-300); border-radius: 12px;
+    color: var(--gray-500); font-size: var(--fs-m); cursor: pointer; text-align: left;
+}
+.bgq-caja:hover { border-color: var(--purple); color: var(--navy); }
+.bgq-caja svg { width: 18px; height: 18px; flex: none; }
+.bgq-caja span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bgq-caja kbd {
+    flex: none; padding: 0.12rem 0.45rem; border: 1px solid var(--gray-300); border-radius: 6px;
+    background: var(--gray-50); font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
+    font-family: inherit;
+}
+@media (hover: none) { .bgq-caja kbd { display: none; } }
+.bgq-fondo {
+    position: fixed; inset: 0; z-index: 140; background: rgba(10,2,48,0.45);
+    display: flex; justify-content: center; align-items: flex-start; padding: min(12vh, 110px) 0.8rem 0.8rem;
+}
+.bgq-panel {
+    width: min(640px, 100%); background: #fff; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(10,2,48,0.35); display: flex; flex-direction: column; max-height: min(70vh, 560px);
+}
+.bgq-barra { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.9rem; border-bottom: 1px solid var(--gray-200); }
+.bgq-barra svg { width: 18px; height: 18px; color: var(--gray-500); flex: none; }
+.bgq-barra input { flex: 1; min-width: 0; border: none; outline: none; min-height: 52px; font-size: 1rem; color: var(--navy); background: transparent; }
+.bgq-cerrar { background: none; border: none; color: var(--gray-500); font-size: 1rem; cursor: pointer; padding: 0.3rem 0.4rem; }
+.bgq-lista { overflow-y: auto; padding: 0.35rem 0.45rem 0.6rem; }
+.bgq-pista { padding: 0.9rem 0.6rem; color: var(--gray-500); font-size: var(--fs-m); }
+.bgq-grupo { padding: 0.55rem 0.6rem 0.2rem; font-size: 0.72rem; font-weight: 800; color: var(--gray-500); text-transform: none; letter-spacing: 0; }
+.bgq-item {
+    display: flex; align-items: baseline; gap: 0.55rem; width: 100%; text-align: left;
+    padding: 0.55rem 0.6rem; border: none; background: none; border-radius: 9px; cursor: pointer;
+}
+.bgq-item.activo { background: rgba(51,0,204,0.08); }
+.bgq-tit { font-weight: 800; color: var(--navy); font-size: var(--fs-m); white-space: nowrap; }
+.bgq-sub { color: var(--gray-500); font-size: var(--fs-s); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

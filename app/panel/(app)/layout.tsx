@@ -14,6 +14,7 @@ import CargandoNavegacion from '@/components/panel/CargandoNavegacion';
 import { Suspense } from 'react';
 import './dashboard.css';
 import './ajustes.css';
+import BuscadorGlobal from '@/components/panel/BuscadorGlobal';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,6 +91,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
           <div><strong>⚠ {avisoLimite}</strong> <Link href="/panel/uso" style={{ color: 'inherit', fontWeight: 800 }}>Ver mi uso →</Link></div>
         </div>
       )}
+      {/* Buscador global (usuario, 2026-11-12): Cmd/Ctrl+K desde cualquier pantalla. */}
+      <BuscadorGlobal gestor={dynamo} />
       {children}
     </Marco>
     </RefrescoProvider>
