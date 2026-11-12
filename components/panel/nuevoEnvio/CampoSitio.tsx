@@ -24,6 +24,9 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
     return sitios.filter((s) => !w || norm([s.nombre_empresa, s.direccion, s.codigo_postal, s.poblacion, s.provincia].filter(Boolean).join(' ')).includes(w)).slice(0, 8);
   }, [sitios, q]);
   const rec = punto.tipo === 'carga';
+  // Al elegir un sitio (o abrir «Crear nuevo sitio») el buscador suelta el foco: si no,
+  // en el móvil el teclado se queda abierto tapando media pantalla (usuario, 2026-11-12).
+  const soltarFoco = () => setTimeout(() => (document.activeElement as HTMLElement | null)?.blur?.(), 0);
   // Icono del TIPO de sitio en blanco dentro de la pastilla (usuario, 2026-11-10):
   // fábrica · cono de obra · edificios · espiga, tras «Recogida»/«Entrega».
   const tipoSel = punto.sitio ? punto.sitio.tipo : punto.nuevo?.tipo_sitio;
@@ -55,7 +58,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
           {abierto && !elegido && !deshabilitado && (
             <ul className="ptar-sug">
               {lista.map((s) => (
-                <li key={s.id} onMouseDown={(e) => { e.preventDefault(); onCambio({ sitio: s, nuevo: null }); setAbierto(false); }}>
+                <li key={s.id} onMouseDown={(e) => { e.preventDefault(); onCambio({ sitio: s, nuevo: null }); setAbierto(false); soltarFoco(); }}>
                   {s.es_almacen_dynamo
                     ? <span className="sug-chip sug-chip-dynamo">Almacén</span>
                     : <span className="sug-chip sug-chip-saved">Guardado</span>}
@@ -64,7 +67,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
                 </li>
               ))}
               {lista.length === 0 && <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Este cliente aún no tiene sitios con ese nombre.</li>}
-              <li onMouseDown={(e) => { e.preventDefault(); setCrear(true); setAbierto(false); }}>
+              <li onMouseDown={(e) => { e.preventDefault(); setCrear(true); setAbierto(false); soltarFoco(); }}>
                 <strong style={{ color: 'var(--purple)' }}>+ Crear nuevo sitio</strong>
               </li>
             </ul>
