@@ -60,7 +60,7 @@ function SubTit({ children, primero }: { children: React.ReactNode; primero?: bo
 // El envío del cliente: la fila de la lista (o de mis_envios()) con lo que se le junta en la página.
 type MiEnvio = Funcion<'mis_envios'>[number];
 export type EnvioClienteBase = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiEnvio, keyof EnvioFila>>
-  & { paradas: (Parada & { id?: string; referencia?: string | null })[] };
+  & { paradas: (Parada & { id?: string; referencia?: string | null; anotaciones?: string | null; notas_sitio?: string | null })[] };
 export type EnvioCliente = EnvioClienteBase & {
   hitos: Funcion<'mis_hitos'>; valoracion: Funcion<'mi_valoracion_envio'>[number] | null;
   pago: Funcion<'pagos_envio'>[number] | null; contraoferta: Funcion<'mi_contraoferta'>[number] | null;
@@ -128,6 +128,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {p.nombre_empresa && <><strong>{p.nombre_empresa}</strong><br /></>}
         {[p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ')}
         {p.referencia && <div style={{ fontSize: 'var(--fs-m)', marginTop: 2 }}>Referencia: <strong>{p.referencia}</strong></div>}
+        {/* Las notas fijas de la ficha del sitio y las anotaciones de la parada, en caja
+            ámbar como en la ficha de admin (usuario, 2026-11-12). */}
+        {[p.notas_sitio, p.anotaciones].filter(Boolean).map((n, i) => (
+          <div key={i} style={{ fontSize: 'var(--fs-m)', color: '#b45309', background: '#fef3c7', borderRadius: 8, padding: '0.35rem 0.5rem', marginTop: 4 }}>⚠ {n}</div>
+        ))}
       </div>
     </div>
   );

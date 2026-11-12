@@ -8025,3 +8025,31 @@ do $$ declare e uuid; t uuid; c uuid; v record; n int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 207. Las notas fijas del sitio llegan al cliente en paradas_json -----------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; s uuid; v jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into sitios (nombre_empresa, tipo, poblacion, provincia, pais_codigo_iso, cliente_id, anotaciones)
+    values ('Muelle Diez SL', 'almacen_nave', 'Sevilla', 'Sevilla', 'ES', current_setting('prueba.cliente')::uuid,
+            'Cargar siempre por el muelle 10') returning id into s;
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', s, '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  v := paradas_json(e);
+  if v -> 0 ->> 'notas_sitio' <> 'Cargar siempre por el muelle 10' then
+    raise exception 'FALLO 207 · paradas_json no trae las notas fijas del sitio: %', v -> 0;
+  end if;
+  if v -> 1 ? 'notas_sitio' and v -> 1 ->> 'notas_sitio' is not null then
+    raise exception 'FALLO 207 · una parada sin sitio inventa notas';
+  end if;
+  raise notice 'OK 207 · paradas_json lleva al cliente las notas fijas de la ficha del sitio, leídas en vivo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
