@@ -8053,3 +8053,101 @@ do $$ declare e uuid; s uuid; v jsonb; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+
+-- ---- 209. Borrar transportistas: lógico, fuera de lista y ofertas; con envíos vivos no --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare ta uuid; tb uuid; e uuid; begin
+  insert into transportistas (razon_social, cif, nima, reparto_urbano)
+    values ('Transp Borrable 209 SL', 'B20900001', 'NIMA-209A', true) returning id into ta;
+  insert into transportistas (razon_social, cif, nima)
+    values ('Transp Ocupado 209 SL', 'B20900002', 'NIMA-209B') returning id into tb;
+  if not (select reparto_urbano from transportistas where id = ta) then
+    raise exception 'FALLO 209 · reparto_urbano no se guarda';
+  end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set transportista_id = tb where id = e;
+  perform set_config('prueba.t209a', ta::text, false);
+  perform set_config('prueba.t209b', tb::text, false);
+  perform set_config('prueba.e209', e::text, false);
+end $$;
+-- Ni un cliente NI un empleado gestor borran transportistas: solo el Admin Master.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  begin
+    r := borrar_transportista(current_setting('prueba.t209a')::uuid);
+    raise exception 'FALLO 209 · un cliente borra transportistas';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_emp84'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  begin
+    r := borrar_transportista(current_setting('prueba.t209a')::uuid);
+    raise exception 'FALLO 209 · un empleado gestor borra transportistas (solo Admin Master)';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- El admin: con envíos vivos NO deja; sin ellos borra, caduca sus ofertas y lo esconde.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare ta uuid := current_setting('prueba.t209a')::uuid; tb uuid := current_setting('prueba.t209b')::uuid;
+            e uuid := current_setting('prueba.e209')::uuid; e2 uuid; r jsonb; o uuid; begin
+  r := borrar_transportista(tb);
+  if r ->> 'resultado' <> 'con_envios_vivos' then
+    raise exception 'FALLO 209 · se borra un transportista con envíos en marcha: %', r;
+  end if;
+  -- Un 2.º envío SIN transportista: para la oferta viva de ta y la prueba del disparador.
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3,
+                       'fecha_carga_desde', current_date + 5, 'importe_cliente', 900, 'importe_transportista', 700),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Carga 209b SL',   'direccion', 'C/ Uno 1', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 209b SA', 'direccion', 'C/ Dos 2', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e2;
+  o := ofertar_envio(e2, ta, 'email', 500);
+  r := borrar_transportista(ta);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 209 · no se borra: %', r; end if;
+  if (select caduca_en from envio_ofertas where id = o) > now() then
+    raise exception 'FALLO 209 · la oferta viva del borrado no se caduca';
+  end if;
+  if exists (select 1 from transportistas_pagina('Borrable 209') p
+              where p.id = ta) then
+    raise exception 'FALLO 209 · el borrado sigue saliendo en la lista';
+  end if;
+  if exists (select 1 from buscar_transportistas('Borrable 209') b where b.id = ta) then
+    raise exception 'FALLO 209 · el borrado sigue saliendo en el buscador';
+  end if;
+  if not exists (select 1 from buscar_transportistas('zzz-nada', 12, ta) b where b.id = ta) then
+    raise exception 'FALLO 209 · el ya asignado (p_incluir) no sale aunque esté borrado';
+  end if;
+  begin
+    o := ofertar_envio(e2, ta, 'email', 500);
+    raise exception 'FALLO 209 · se oferta a un transportista borrado';
+  exception
+    when insufficient_privilege then null;   -- lo corta el disparador de borrados
+    when others then
+      if sqlerrm like 'FALLO 209%' then raise; end if;   -- o el chequeo de «no activo»: también vale
+  end;
+  -- Y el disparador aguanta hasta un insert directo que se salte ofertar_envio.
+  begin
+    insert into envio_ofertas (envio_id, transportista_id, canal, precio_ofertado, banda_pct, pronto_pago, caduca_en)
+    values (e2, ta, 'email', 500, 10, false, now() + interval '2 days');
+    raise exception 'FALLO 209 · un insert directo oferta a un borrado';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 209 · borrar transportistas: solo Admin Master, lógico, fuera de lista/buscador/ofertas (vivas caducadas); con envíos en marcha no deja; reparto_urbano en la ficha';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

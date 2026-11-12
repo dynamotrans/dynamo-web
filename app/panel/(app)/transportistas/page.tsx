@@ -55,5 +55,5 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
       envios: envios.get(t.id) ?? 0,
     })).sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
   }
-  return <Transportistas filas={filas} error={error} abrirId={ver} lista={{ q, estado, adr, pagina, porPagina, total }} />;
+  return <Transportistas filas={filas} error={error} abrirId={ver} admin={perfil.rol === 'admin'} lista={{ q, estado, adr, pagina, porPagina, total }} />;
 }

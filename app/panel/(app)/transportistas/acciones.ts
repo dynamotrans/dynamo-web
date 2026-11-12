@@ -13,7 +13,7 @@ export type TransportistaDatos = {
   bolsa: string; codigo_bolsa: string;
   direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
   plazo_pago_dias: number; pronto_pago: boolean; iva_pct: number; retencion_pct: number;
-  nima: string; tiene_almacen: boolean; tipo_camion_defecto: string;
+  nima: string; tiene_almacen: boolean; reparto_urbano: boolean; tipo_camion_defecto: string;
   seguro_cmr_compania: string; seguro_cmr_poliza: string; seguro_cmr_vence: string;
   cuenta_contable: string; holded_forma_pago_ref: string; anotaciones: string; anotaciones_incidencias: string;
   // Personas de contacto (tabla contactos): tráfico, contabilidad, conductores…
@@ -52,7 +52,7 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
     provincia: vacio(d.provincia), pais_codigo_iso: d.pais_codigo_iso || 'ES',
     plazo_pago_dias: d.plazo_pago_dias, pronto_pago: d.pronto_pago,
     iva_pct: d.iva_pct, retencion_pct: d.retencion_pct,
-    nima: vacio(d.nima), tiene_almacen: d.tiene_almacen, tipo_camion_defecto: d.tipo_camion_defecto || null,
+    nima: vacio(d.nima), tiene_almacen: d.tiene_almacen, reparto_urbano: d.reparto_urbano, tipo_camion_defecto: d.tipo_camion_defecto || null,
     seguro_cmr_compania: vacio(d.seguro_cmr_compania), seguro_cmr_poliza: vacio(d.seguro_cmr_poliza),
     seguro_cmr_vence: d.seguro_cmr_vence || null,
     cuenta_contable: vacio(d.cuenta_contable), holded_forma_pago_ref: vacio(d.holded_forma_pago_ref),
@@ -68,4 +68,21 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
   const e2 = await guardarContactos(s.supabase, { transportista_id: tid }, contactos);
   if (e2) return { ok: false, error: traducir(e2) };
   return { ok: true, id: tid };
+}
+
+// ---- Borrar (lógico) — solo el Admin Master (usuario, 2026-11-12) --------------------
+export async function borrarTransportista(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/transportistas/acciones#borrarTransportista", [id]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'admin') {
+    return { ok: false, error: 'Solo el Admin Master borra transportistas.' };
+  }
+  const { data, error } = await s.supabase.rpc('borrar_transportista', { p_id: id });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = data as { resultado: string; envios?: number };
+  if (r.resultado === 'ok' || r.resultado === 'ya_borrado') return { ok: true };
+  if (r.resultado === 'con_envios_vivos') {
+    return { ok: false, error: `No se puede borrar: tiene ${r.envios ?? 'varios'} envío(s) en marcha asignados. Reasígnalos o espera a que terminen.` };
+  }
+  return { ok: false, error: 'No se ha podido borrar el transportista.' };
 }

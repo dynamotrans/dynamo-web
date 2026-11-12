@@ -10,7 +10,8 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
+import { SIN_CONEXION } from '@/lib/mensajeError';
+import { borrarTransportista, guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
 
 import { fecha as fmtFecha, fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
@@ -67,7 +68,7 @@ const NUEVO: TransportistaDatos = {
   razon_social: '', nombre_comercial: '', cif: '', estado_operativo: 'activo', bolsa: 'wtransnet', codigo_bolsa: '',
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 60, pronto_pago: true, iva_pct: 21, retencion_pct: 0,
-  nima: '', tiene_almacen: false, tipo_camion_defecto: '',
+  nima: '', tiene_almacen: false, reparto_urbano: false, tipo_camion_defecto: '',
   seguro_cmr_compania: '', seguro_cmr_poliza: '', seguro_cmr_vence: '',
   cuenta_contable: '', holded_forma_pago_ref: '', anotaciones: '', anotaciones_incidencias: '',
   contactos: [CONTACTO_VACIO('trafico')],
@@ -76,7 +77,7 @@ const NUEVO: TransportistaDatos = {
 // Lo que la página ha pedido a la base de datos (filtros de la URL y total de la búsqueda).
 export type ListaTransportistas = { q: string; estado: string; adr: string; pagina: number; porPagina: number; total: number };
 
-export default function Transportistas({ filas, error, abrirId, lista }: { filas: TransportistaFila[]; error: string | null; abrirId?: string; lista: ListaTransportistas }) {
+export default function Transportistas({ filas, error, abrirId, lista, admin }: { filas: TransportistaFila[]; error: string | null; abrirId?: string; lista: ListaTransportistas; admin?: boolean }) {
   const refrescar = useRefrescar();
   const url = (p: number, cambios: Partial<ListaTransportistas> = {}) => {
     const v = { ...lista, ...cambios };
@@ -151,14 +152,14 @@ export default function Transportistas({ filas, error, abrirId, lista }: { filas
       <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={(p) => url(p)} nombre="transportistas" nombreUno="transportista" />
 
       {ficha && (
-        <FichaTransportista fila={ficha.fila} onCerrar={() => setFicha(null)}
+        <FichaTransportista fila={ficha.fila} admin={admin} onCerrar={() => setFicha(null)}
           onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
   );
 }
 
-function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: TransportistaFila | null; onCerrar: () => void; onGuardado: () => void }) {
+function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: TransportistaFila | null; admin?: boolean; onCerrar: () => void; onGuardado: () => void }) {
   const [d, setD] = useState<TransportistaDatos>(() => {
     if (!fila) return { ...NUEVO };
     const o: Record<string, unknown> = {};
@@ -168,6 +169,18 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
   const [textos, setTextos] = useState({ iva: String(d.iva_pct), ret: String(d.retencion_pct) });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Borrado lógico (solo Admin Master): ventana roja y hay que escribir «confirmar».
+  const [pideBorrar, setPideBorrar] = useState(false);
+  const [txtBorrar, setTxtBorrar] = useState('');
+  const [borrando, setBorrando] = useState(false);
+  async function borrar() {
+    if (!fila || txtBorrar.trim().toLowerCase() !== 'confirmar') return;
+    setBorrando(true); setError(null);
+    const r = await borrarTransportista(fila.id).catch(() => ({ ok: false as const, error: SIN_CONEXION }));
+    setBorrando(false);
+    if (!r.ok) { setError(r.error); return; }
+    onGuardado();
+  }
   const set = <K extends keyof TransportistaDatos>(k: K, v: TransportistaDatos[K]) => setD((x) => ({ ...x, [k]: v }));
 
   async function guardar() {
@@ -195,7 +208,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
         onChange={(e) => set(id, e.target.value as never)} />
     </div>
   );
-  const interruptor = (k: 'pronto_pago' | 'tiene_almacen', label: string, ayuda?: string) => (
+  const interruptor = (k: 'pronto_pago' | 'tiene_almacen' | 'reparto_urbano', label: string, ayuda?: string) => (
     <div>
       <label>{label}</label>
       <label className="ptar-tramp-box">
@@ -218,12 +231,27 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
       icono={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>}
       onCerrar={onCerrar}
       pie={<>
-        <button className="btn-ghost" onClick={onCerrar} disabled={guardando}>Cancelar</button>
-        <button className="btn-primary" onClick={guardar} disabled={guardando}>{fila ? 'Guardar cambios' : 'Crear transportista'}</button>
+        <button className="btn-ghost" onClick={onCerrar} disabled={guardando || borrando}>Cancelar</button>
+        {fila && admin && <button className="btn-ghost" style={{ color: '#dc2626' }} disabled={guardando || borrando}
+          onClick={() => { setPideBorrar(true); setTxtBorrar(''); setTimeout(() => document.getElementById('tra-borrar-confirm')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0); }}>Borrar</button>}
+        <button className="btn-primary" onClick={guardar} disabled={guardando || borrando}>{fila ? 'Guardar cambios' : 'Crear transportista'}</button>
       </>}>
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
           Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
+        </div>
+      )}
+      {pideBorrar && fila && (
+        <div id="tra-borrar-confirm" style={{ margin: '0 0 0.9rem', padding: '0.8rem 0.9rem', border: '1.5px solid #f5b5b5', borderRadius: 10, background: '#fdecec', color: '#b42318', fontSize: 'var(--fs-m)', lineHeight: 1.5 }}>
+          <strong>¿Borrar este transportista?</strong> Desaparece de la lista, del buscador y de las ofertas (las vivas se caducan al momento). Sus envíos y documentos ya hechos <strong>conservan todos los datos</strong>. Con envíos en marcha asignados no se puede borrar.
+          <div style={{ marginTop: '0.6rem' }}>
+            <label htmlFor="tra-borrar-txt" style={{ color: '#b42318', fontWeight: 800 }}>Escribe <strong>confirmar</strong> para activar el botón</label>
+            <input id="tra-borrar-txt" value={txtBorrar} onChange={(e) => setTxtBorrar(e.target.value)} placeholder="confirmar" autoComplete="off" style={{ display: 'block', width: '100%', marginTop: 4 }} />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+            <button className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} disabled={borrando || txtBorrar.trim().toLowerCase() !== 'confirmar'} onClick={borrar}>{borrando ? 'Borrando…' : 'Borrar definitivamente'}</button>
+            <button className="btn-ghost" onClick={() => setPideBorrar(false)} disabled={borrando}>No, volver</button>
+          </div>
         </div>
       )}
       <div className="ptar-sitio-grid">
@@ -286,7 +314,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
           </select>
         </div>
         {interruptor('tiene_almacen', 'Tiene almacén logístico')}
-        <div />
+        {interruptor('reparto_urbano', 'Reparto urbano (camión pequeño)')}
         {campo('seguro_cmr_compania', <>Seguro CMR · compañía <Req si={false} /></>, 'Ej. Mapfre')}
         {campo('seguro_cmr_poliza', <>Seguro CMR · nº de póliza <Req si={false} /></>, 'Ej. 0961-…')}
         <div>

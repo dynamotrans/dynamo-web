@@ -2836,6 +2836,9 @@ export type Database = {
           valoracion_clientes: number | null
           valoracion_clientes_votos: number
           texto_busqueda: string | null
+          borrado: boolean
+          borrado_en: string | null
+          reparto_urbano: boolean
         }
         Insert: {
           id?: string
@@ -2877,6 +2880,9 @@ export type Database = {
           valoracion_clientes?: number | null
           valoracion_clientes_votos?: number
           texto_busqueda?: string | null
+          borrado?: boolean
+          borrado_en?: string | null
+          reparto_urbano?: boolean
         }
         Update: {
           id?: string
@@ -2918,6 +2924,9 @@ export type Database = {
           valoracion_clientes?: number | null
           valoracion_clientes_votos?: number
           texto_busqueda?: string | null
+          borrado?: boolean
+          borrado_en?: string | null
+          reparto_urbano?: boolean
         }
         Relationships: [
         ]
@@ -3348,6 +3357,7 @@ export type Database = {
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
+      borrar_transportista: { Args: { p_id: string | null }; Returns: Json }
       buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string; nima_por_defecto: boolean }[] }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }
       buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null; p_operador?: string | null; p_creado_por?: string | null; p_estado?: string | null }; Returns: { id: string; total: number }[] }
