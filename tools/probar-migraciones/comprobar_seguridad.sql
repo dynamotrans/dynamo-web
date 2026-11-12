@@ -3136,6 +3136,13 @@ select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; i int; begin
   -- Contador desde cero para el cliente de prueba (como si Dynamo lo acabara de reactivar).
   update usuarios set autosuspension_desde_en = now(), estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  -- Interruptor APAGADO durante la siembra: desde la regla 6 (límite de envíos/día) cada
+  -- borrador→programado revisa al creador AL MOMENTO, y en la 5.ª iteración u_cli ya
+  -- cumple la regla 4 (2 de 5 = 40 %) → quedaba suspendida en mitad de la siembra y
+  -- autosuspension_candidatos() (que solo lista cuentas activas) salía vacía. Aquí se
+  -- prueba el circuito a mano (candidatos + autosuspender_cuentas); el «al momento» tiene
+  -- su prueba propia más abajo. Se reenciende justo después de sembrar.
+  update parametros set valor = 'false' where clave = 'autosuspension_activa';
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   for i in 1..5 loop
     -- Carga hoy: cancelar es tardío (pasado el corte de las 9:00 del día hábil anterior) y cuenta.
@@ -3154,6 +3161,7 @@ do $$ declare e uuid; i int; begin
     end if;
   end loop;
   perform set_config('request.jwt.claim.sub', '', false);
+  update parametros set valor = 'true' where clave = 'autosuspension_activa';
 end $$;
 -- El cliente no se puede quitar la suspensión automática, ni lanzar el proceso, ni escribir consultas.
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);

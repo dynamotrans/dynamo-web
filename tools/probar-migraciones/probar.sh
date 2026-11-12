@@ -45,7 +45,9 @@ echo
 SALIDA="$(su postgres -c "$PGBIN/psql -X -q -h $DATOS -p $PUERTO -d postgres -v ON_ERROR_STOP=0 -f $AQUI/comprobar_seguridad.sql" 2>&1 || true)"
 echo "$SALIDA" | sed -n 's/^.*NOTICE:  /  ✓ /p; s/^.*ERROR:  /  ✗ /p'
 echo
-if echo "$SALIDA" | grep -q "ERROR:"; then
-  echo "RESULTADO: HAY FALLOS — no desplegar"; exit 1
-fi
+# OJO: nada de `echo "$SALIDA" | grep -q` aquí — con pipefail, grep -q corta la tubería
+# al primer match, echo muere por SIGPIPE y el if daba «todo correcto» CON fallos (a ratos).
+case "$SALIDA" in
+  *"ERROR:"*) echo "RESULTADO: HAY FALLOS — no desplegar"; exit 1;;
+esac
 echo "RESULTADO: todo correcto"
