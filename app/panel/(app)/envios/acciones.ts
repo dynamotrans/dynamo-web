@@ -44,7 +44,13 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
-  if (r.ok) return { ok: true };
+  if (r.ok) {
+    // Email de ORDEN DE CARGA al transportista (usuario, 2026-11-12): con el PDF
+    // adjunto y los enlaces de descarga. Nunca rompe la asignación.
+    const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
+    await avisoOrdenCarga(s.supabase, s.user.id, envio).catch(() => {});
+    return { ok: true };
+  }
   return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',
     importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.',
     falta_fecha_prevista: 'Elige el día en que carga: el envío tiene varios días de recogida.', fecha_fuera_de_ventana: 'El día de carga tiene que estar dentro de los días de recogida.',

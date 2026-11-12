@@ -77,7 +77,13 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   });
   if (error) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   const r = (data as { resultado: string }).resultado;
-  if (r === 'firmada') return { ok: true };
+  if (r === 'firmada') {
+    // Aviso por email de la firma (y, con todas, el eCMR en PDF a las partes —
+    // usuario, 2026-11-12). Nunca rompe la firma.
+    const { avisosFirmaCmr } = await import('@/lib/servidor/avisosEnvio');
+    await avisosFirmaCmr(token).catch(() => {});
+    return { ok: true };
+  }
   const msg: Record<string, string> = {
     ya_firmada: 'Esta casilla ya está firmada.', demasiadas_firmas: 'Ya hay 3 firmas extra en este CMR: no caben más.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
     parada_no_valida: 'Esa casilla no corresponde a este envío.', faltan_datos: 'Indica el documento y el nombre y apellidos.', falta_trazo: 'Falta la firma.',
