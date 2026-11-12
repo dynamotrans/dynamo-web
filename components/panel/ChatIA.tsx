@@ -102,7 +102,7 @@ export default function ChatIA() {
                 Pregunta sobre los datos de la plataforma y te respondo con cifras.
                 <div className="ia-chips">
                   {/* Preguntas de ejemplo REALES de operativa (usuario, 2026-11-12). */}
-                  {['¿Matrículas y datos de conductor de los envíos de hoy?', '¿A qué hora llegan los transportes de hoy?', '¿Qué envíos tengo programados?', '¿Estado de los envíos programados?'].map((s) => (
+                  {['¿Matrículas y datos de conductor de los envíos en estos días?', '¿A qué hora llegan los transportes de hoy?', '¿Qué envíos tengo programados en estos días?', '¿Estado de los envíos programados en estos días?'].map((s) => (
                     <button key={s} type="button" className="ia-chip" onClick={() => void enviar(s)} disabled={cargando}>{s}</button>
                   ))}
                 </div>
