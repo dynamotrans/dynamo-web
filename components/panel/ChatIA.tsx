@@ -17,11 +17,40 @@ export default function ChatIA() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [texto, setTexto] = useState('');
   const [cargando, setCargando] = useState(false);
-  const finRef = useRef<HTMLDivElement>(null);
+  const msgsRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { finRef.current?.scrollIntoView({ block: 'end' }); }, [msgs, cargando, abierto]);
-  useEffect(() => { if (abierto) inputRef.current?.focus(); }, [abierto, cargando]);
+  // Bajar al final DENTRO del panel (scrollIntoView movía también la página de detrás).
+  useEffect(() => { const el = msgsRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs, cargando, abierto]);
+  // Auto-enfocar solo con teclado físico: en el móvil saltaba el teclado en pantalla al
+  // abrir el chat y lo descuadraba (usuario, 2026-11-12).
+  useEffect(() => {
+    if (abierto && window.matchMedia('(hover: hover) and (pointer: fine)').matches) inputRef.current?.focus();
+  }, [abierto, cargando]);
+  // TECLADO DEL MÓVIL (usuario, 2026-11-12): en iOS el teclado no encoge la pantalla,
+  // la desplaza — y la cabecera (con la ✕) se salía por arriba dejando un vacío blanco.
+  // El panel se re-encaja en el viewport VISUAL cada vez que el teclado aparece o se va.
+  useEffect(() => {
+    if (!abierto) return;
+    const vv = window.visualViewport, el = panelRef.current;
+    if (!vv || !el) return;
+    const ajustar = () => {
+      const margen = 12;
+      const alto = Math.min(620, vv.height - margen * 2);
+      el.style.height = `${alto}px`;
+      el.style.top = `${vv.offsetTop + vv.height - alto - margen}px`;
+      el.style.bottom = 'auto';
+    };
+    ajustar();
+    vv.addEventListener('resize', ajustar);
+    vv.addEventListener('scroll', ajustar);
+    return () => {
+      vv.removeEventListener('resize', ajustar);
+      vv.removeEventListener('scroll', ajustar);
+      el.style.height = ''; el.style.top = ''; el.style.bottom = '';
+    };
+  }, [abierto]);
 
   const enviar = async (pregunta: string) => {
     const p = pregunta.trim();
@@ -61,13 +90,13 @@ export default function ChatIA() {
         <Estrella />
       </button>
       {abierto && (
-        <section className="ia-panel" role="dialog" aria-label="Asistente de datos">
+        <section ref={panelRef} className="ia-panel" role="dialog" aria-label="Asistente de datos">
           <header className="ia-head">
             <span className="ia-head-ico"><Estrella /></span>
             <span className="ia-head-tit">Asistente de datos<span className="ia-beta">beta</span></span>
             <button type="button" className="ia-cerrar" onClick={() => setAbierto(false)} aria-label="Cerrar">✕</button>
           </header>
-          <div className="ia-msgs">
+          <div ref={msgsRef} className="ia-msgs">
             {!msgs.length && (
               <div className="ia-vacio">
                 Pregunta sobre los datos de la plataforma y te respondo con cifras.
@@ -91,7 +120,6 @@ export default function ChatIA() {
               </div>
             )}
             {cargando && <div className="ia-msg ia ia-pensando" aria-label="Pensando"><span /><span /><span /></div>}
-            <div ref={finRef} />
           </div>
           <div className="ia-entrada">
             <input ref={inputRef} type="text" value={texto} onChange={(e) => setTexto(e.target.value)}
