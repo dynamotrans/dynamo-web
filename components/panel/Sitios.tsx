@@ -574,7 +574,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           desplegado y sin el campo Cargo. */}
       <div className="ptar-section-head" style={{ marginTop: '0.9rem' }}>Contacto de sitio <Req /></div>
       <div className="ptar-sitio-grid">
-        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} conAvisos={dynamo} obligatorios />
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conCargo={false} conAvisos={dynamo} obligatorios max={5} />
       </div>
 
       {/* Lo demás PLEGADO con su resumen a la vista (usuario, 2026-11-08: ficha compacta). */}

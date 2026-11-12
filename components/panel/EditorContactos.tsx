@@ -10,8 +10,11 @@ import SelectorPais from '@/components/SelectorPais';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 
-export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, obligatorios = false, roles, funcionNueva = 'general', ayuda }: {
+export default function EditorContactos({ valor, onCambio, conFuncion = false, conCargo = true, conAvisos = true, obligatorios = false, roles, funcionNueva = 'general', ayuda, max }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
+  // max: tope de contactos (usuario, 2026-11-12: sitios a 5); al llegar, el botón de
+  // añadir desaparece y se dice el límite.
+  max?: number;
   // conAvisos: enseña el conmutador «Recibe los avisos». En los SITIOS solo lo ve Dynamo:
   // el cliente no; todo contacto nuevo nace recibiendo avisos (CONTACTO_VACIO).
   // obligatorios (modo sitios): Teléfono obligatorio, Email «Muy útil» y nombre replegado
@@ -33,10 +36,12 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
       <div>
         {/* Botón FINO y discreto (usuario, 2026-11-10): misma fila que los campos
             replegados, con borde discontinuo de «añadir». */}
-        <button type="button" className="campo-plegado btn-mas-contacto" onClick={() => onCambio([...valor, CONTACTO_VACIO(funcionNueva)])}>
-          <span className="cp-ico" aria-hidden="true">+</span>
-          <span className="cp-txt">{valor.length ? 'Añadir contacto adicional' : 'Añadir contacto'}</span>
-        </button>
+        {max != null && valor.length >= max
+          ? <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Máximo {max} contactos.</div>
+          : <button type="button" className="campo-plegado btn-mas-contacto" onClick={() => onCambio([...valor, CONTACTO_VACIO(funcionNueva)])}>
+              <span className="cp-ico" aria-hidden="true">+</span>
+              <span className="cp-txt">{valor.length ? 'Añadir contacto adicional' : 'Añadir contacto'}</span>
+            </button>}
       </div>
       {ayuda && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.5 }}>{ayuda}</div>}
     </div>

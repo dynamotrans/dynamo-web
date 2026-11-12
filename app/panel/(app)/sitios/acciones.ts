@@ -80,6 +80,8 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
     if (malV) return { ok: false, error: `Horario de verano: ${malV.charAt(0).toLowerCase()}${malV.slice(1)}` };
   }
   const contactos = sinVacios(d.contactos);
+  // Máximo 5 contactos por sitio (usuario, 2026-11-12) — el editor ya no deja añadir más.
+  if (contactos.length > 5) return { ok: false, error: 'Un sitio puede tener como mucho 5 contactos: quita alguno.' };
   const malContacto = validarContactos(contactos);
   if (malContacto) return { ok: false, error: malContacto };
 
