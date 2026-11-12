@@ -38,8 +38,13 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   const { data: cmr } = await sb.rpc('cmr_publico', { p_token: token });
   const datos = cmr as { resultado?: string; firmas?: unknown; [campo: string]: unknown } | null;
   if (!datos || datos.resultado !== 'ok') return { ok: false, error: datos?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- se separan las firmas para no devolverlas
   const { firmas: _f, ...contenido } = datos;
+  // Casilla ya firmada: se corta AQUÍ, antes de subir el trazo. Cada subida cuenta para
+  // el tope de ficheros del enlace, así que no se sube un trazo condenado de antemano.
+  const firmasPrevias = (_f as { parada_id: string | null; rol: string; extra: boolean }[] | null) ?? [];
+  if (!d.extra && firmasPrevias.some((f) => !f.extra && f.rol === d.rol && (f.parada_id ?? null) === (d.parada_id ?? null))) {
+    return { ok: false, error: 'Esta casilla ya está firmada.' };
+  }
   // Máximo 300 caracteres, como el campo de la pantalla (usuario, 2026-11-10).
   const reservas = d.extra ? '' : (d.reservas ?? '').trim().slice(0, 300);
   const sha = createHash('sha256').update(JSON.stringify(reservas ? { ...contenido, reservas } : contenido)).digest('hex');
@@ -55,7 +60,10 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
 
   const ruta = `cmr/${token}/${randomUUID()}.png`;
   const { error: e1 } = await sb.storage.from('documentos').upload(ruta, png, { contentType: 'image/png', upsert: false });
-  if (e1) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
+  if (e1) {
+    console.error('[cmr/firmar] fallo al subir el trazo', { token, rol: d.rol, mensaje: e1.message });
+    return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
+  }
 
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
@@ -75,8 +83,21 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     p_matricula_camion: (d.matricula_camion ?? '').trim().toUpperCase().slice(0, 16) || null,
     p_matricula_remolque: (d.matricula_remolque ?? '').trim().toUpperCase().slice(0, 16) || null,
   });
-  if (error) return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
-  const r = (data as { resultado: string }).resultado;
+  const r = error ? null : (data as { resultado: string }).resultado;
+  if (r !== null && r !== 'firmada') {
+    // La firma NO ha quedado registrada (resultado definitivo): el trazo recién subido se
+    // borra (con la clave de servicio, si la hay) para que los intentos fallidos no llenen
+    // el tope de ficheros del enlace. Con un fallo de transporte no se borra: la firma
+    // podría haberse registrado igualmente y su trazo debe quedarse.
+    try {
+      const { supabaseServicio } = await import('@/lib/supabase/servicio');
+      await supabaseServicio()?.storage.from('documentos').remove([ruta]);
+    } catch { /* mejor un huérfano que romper el aviso de error */ }
+  }
+  if (error) {
+    console.error('[cmr/firmar] fallo en firmar_cmr_publico', { token, rol: d.rol, parada: d.parada_id, codigo: error.code, mensaje: error.message, detalle: error.details, pista: error.hint });
+    return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
+  }
   if (r === 'firmada') {
     // Aviso por email de la firma (y, con todas, el eCMR en PDF a las partes —
     // usuario, 2026-11-12). Nunca rompe la firma.
@@ -91,5 +112,5 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     faltan_matriculas: 'Falta la matrícula del camión: ponla en la ventana de firma (sin ella no se puede salir de la 1.ª parada).',
     matricula_no_valida: 'La matrícula no es válida: solo letras, números, espacios y guiones (de 2 a 16).',
   };
-  return { ok: false, error: msg[r] ?? 'No se ha podido guardar la firma.' };
+  return { ok: false, error: msg[r ?? ''] ?? 'No se ha podido guardar la firma.' };
 }

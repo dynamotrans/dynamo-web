@@ -7937,3 +7937,41 @@ do $$ declare e uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; be
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 205. Tope de ficheros por enlace del CMR: 60, y con 20 ya NO se rechaza ----------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; tok uuid; i int; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- El enlace nace solo con el envio (20261109160000): se coge el vivo.
+  select token into strict tok from cmr_enlaces where envio_id = e and not revocado;
+  perform set_config('prueba.tok205', tok::text, false);
+  -- 59 ficheros ya en la carpeta (como deja una tarde de reintentos): se siembran sin política.
+  for i in 1..59 loop
+    insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/' || gen_random_uuid() || '.png');
+  end loop;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok205')::uuid; begin
+  -- Con 59 (muy por encima del viejo tope de 20) la subida nº 60 todavía entra…
+  insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/' || gen_random_uuid() || '.png');
+  -- …y la nº 61 ya no: el tope de 60 sigue acotando el abuso.
+  begin
+    insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/' || gen_random_uuid() || '.png');
+    raise exception 'FALLO 205 · se supera el tope de 60 ficheros por enlace';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 205 · tope de ficheros por enlace del CMR: con 59 aun se firma (el viejo tope de 20 ahogaba) y en 60 se corta';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
