@@ -3976,7 +3976,8 @@ do $$ declare faltan text; begin
      and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
                            'recargos_tipo_sitio', 'restricciones_servicio', 'distancias_cp', 'distancias_sitios',
                            'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
-                           'datos_de_prueba_peticiones')   -- encargos de datos de prueba: solo consola, no es negocio
+                           'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
+                           'emails_enviados')              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -7418,7 +7419,8 @@ do $$ declare faltan text; begin
                            'contraoferta_intentos',    -- ídem (tope de contraofertas)
                            'consultas_precio',         -- histórico interno del tarifador
                            'pin_intentos',             -- control de abusos del PIN: no se pinta en el panel
-                           'auditoria')                -- registro inmutable: se consulta, no se mira en vivo
+                           'auditoria',                -- registro inmutable: se consulta, no se mira en vivo
+                           'emails_enviados')          -- registro/cola de emails operativos: Dynamo lo repasa en frío
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
     raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
@@ -7818,6 +7820,79 @@ do $$ declare j jsonb; begin
   end if;
   update usuarios set autosuspension_desde_en = now() where id = current_setting('prueba.u_cli')::uuid;
   raise notice 'OK 202 · mi_autosuspension trae envíos de hoy con su límite individual (y null = sin tope), para el pre-aviso del 80 %%';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 203. Emails operativos: encola sin duplicar y el registro es solo de Dynamo ------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; begin
+  -- Siembra: envío de Dynamo de HOY, con transportista, SIN matrícula y con cita de
+  -- carga dentro de 1 hora en la 1.ª parada → el aviso de matrículas está «en ventana»
+  -- a cualquier hora a la que corra la suite.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, fecha_desde)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES', now() + interval '1 hour');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  perform set_config('prueba.e203', e::text, false);
+
+  perform encolar_avisos_operativos();
+  if not exists (select 1 from emails_enviados where clave = 'matriculas:' || e and tipo = 'matriculas') then
+    raise exception 'FALLO 203 · no encola el aviso de matrículas a 1 hora de la carga';
+  end if;
+  perform encolar_avisos_operativos();
+  if (select count(*) from emails_enviados where envio_id = e and tipo = 'matriculas') <> 1 then
+    raise exception 'FALLO 203 · el aviso de matrículas se duplica al volver a encolar';
+  end if;
+  -- El enlace del email apunta al CMR del envío (se crea solo si no había uno vivo).
+  if not exists (select 1 from cmr_enlaces where envio_id = e and not revocado and caduca_en > now()) then
+    raise exception 'FALLO 203 · encolar no deja un enlace de CMR vivo para anotar las matrículas';
+  end if;
+  -- Sin pg_net ni Vault (este PostgreSQL local), mandar no hace nada y no revienta.
+  if enviar_emails_pendientes() <> 0 then
+    raise exception 'FALLO 203 · enviar_emails_pendientes debería no hacer nada sin pg_net';
+  end if;
+  if procesar_emails_operativos() <> 0 then
+    raise exception 'FALLO 203 · procesar_emails_operativos debería no mandar nada sin pg_net';
+  end if;
+end $$;
+-- El registro es SOLO de Dynamo: un cliente ni lo ve, ni escribe, ni lanza las funciones.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from emails_enviados) then
+    raise exception 'FALLO 203 · un cliente ve el registro de emails operativos';
+  end if;
+  begin
+    insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html)
+      values ('x:x', 'vispera', 'a@b.cd', 'x', 'x');
+    raise exception 'FALLO 203 · un cliente escribe en el registro de emails';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform encolar_avisos_operativos();
+    raise exception 'FALLO 203 · un cliente lanza el encolado de emails';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform enviar_emails_pendientes();
+    raise exception 'FALLO 203 · un cliente lanza el envío de emails';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from emails_enviados where clave = 'matriculas:' || current_setting('prueba.e203')) then
+    raise exception 'FALLO 203 · Dynamo no ve el registro de emails operativos';
+  end if;
+  raise notice 'OK 203 · emails operativos: matrículas a 2 h de la carga encoladas una sola vez, con enlace del CMR; sin pg_net no-op; el registro, solo para Dynamo';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

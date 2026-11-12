@@ -1050,6 +1050,62 @@ export type Database = {
           },
         ]
       }
+      emails_enviados: {
+        Row: {
+          id: string
+          clave: string
+          tipo: string
+          envio_id: string | null
+          destinatario: string
+          asunto: string
+          cuerpo_html: string
+          estado: string
+          error: string | null
+          peticion_id: number | null
+          postmark_id: string | null
+          creado_en: string
+          enviado_en: string | null
+        }
+        Insert: {
+          id?: string
+          clave: string
+          tipo: string
+          envio_id?: string | null
+          destinatario: string
+          asunto: string
+          cuerpo_html: string
+          estado?: string
+          error?: string | null
+          peticion_id?: number | null
+          postmark_id?: string | null
+          creado_en?: string
+          enviado_en?: string | null
+        }
+        Update: {
+          id?: string
+          clave?: string
+          tipo?: string
+          envio_id?: string | null
+          destinatario?: string
+          asunto?: string
+          cuerpo_html?: string
+          estado?: string
+          error?: string | null
+          peticion_id?: number | null
+          postmark_id?: string | null
+          creado_en?: string
+          enviado_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_enviados_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       envio_cambios_transportista: {
         Row: {
           id: string
@@ -3348,10 +3404,12 @@ export type Database = {
       email_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       emails_validos: { Args: { p: string[] | null }; Returns: boolean }
       en_temporada: { Args: { p_fecha: string | null; p_desde: string | null; p_hasta: string | null }; Returns: boolean }
+      encolar_avisos_operativos: { Args: Record<PropertyKey, never>; Returns: number }
       enlace_carga_caduca_en: { Args: { p_envio: string | null }; Returns: string }
       enlace_carga_vigente: { Args: { p_envio: string | null }; Returns: boolean }
       enlace_cmr_publico: { Args: { p_reserva: string | null }; Returns: string }
       entrega_estimada_sugerida: { Args: { p_envio: string | null; p_dia: string | null }; Returns: string }
+      enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_cliente: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
@@ -3370,6 +3428,7 @@ export type Database = {
       es_equipo_dynamo: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_servidor: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_solo_lectura: { Args: Record<PropertyKey, never>; Returns: boolean }
+      escapar_html: { Args: { t: string | null }; Returns: string }
       etapas_envio: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean; hecha: boolean; actual: boolean; marcada: boolean; firma: boolean }[] }
       euros_texto: { Args: { p: number | null }; Returns: string }
       exportar_datos_usuario: { Args: { p_usuario?: string | null }; Returns: Json }
@@ -3467,6 +3526,7 @@ export type Database = {
       preparar_pines_envio: { Args: { p_envio: string | null }; Returns: number }
       primera_carga_posible: { Args: { p_envio: string | null }; Returns: string }
       primera_fecha_carga: { Args: { p_fija: boolean | null; p_instante?: string | null; p_ventana_dias?: number | null }; Returns: string }
+      procesar_emails_operativos: { Args: Record<PropertyKey, never>; Returns: number }
       pronto_pago_anticipos: { Args: { p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { cuando: string; envio: string; transportista: string; importe: number; descuento: number; anticipado: number; total: number }[] }
       pronto_pago_descuento: { Args: { p_importe: number | null }; Returns: number }
       pronto_pago_estado: { Args: Record<PropertyKey, never>; Returns: Json }
