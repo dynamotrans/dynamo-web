@@ -13,7 +13,7 @@ import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import CompartirSheet from '@/components/CompartirSheet';
 
-// Botón discreto «¿Necesitas ayuda? · Contáctanos» (usuario, 2026-11-11): al principio y
+// Botón discreto «¿Necesitas ayuda? · Contáctanos» (usuario, 2026-11-11; solo al pie desde el 2026-11-12):
 // al final de la página de firmas; al pulsarlo se despliegan llamar, WhatsApp y email.
 function Ayuda() {
   const [abierta, setAbierta] = useState(false);
@@ -184,7 +184,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         </strong>{' '}
         Si alguien la quiere, mándasela.
       </div>
-      <Ayuda />
       {/* Con TODO firmado, el contador va en caja verde y debajo se repite la de
           «CMR completamente firmado» (usuario, 2026-11-12) — la del pie se queda. */}
       {hechas === bloques.length && bloques.length > 0 ? <>
