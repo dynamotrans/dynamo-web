@@ -447,7 +447,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos <Req /></label>
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         {/* Con el porqué (usuario, 2026-11-12): quien deja su email recibe copia del eCMR. */}
-        <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /> <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>(se te enviará copia del eCMR)</span></label>
+        <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(se te enviará copia del eCMR)</strong></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
             salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}
