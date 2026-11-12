@@ -191,17 +191,6 @@ export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | '
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
 }
 
-// Dynamo pone precio a la solicitud de un cliente (el cliente lo acepta después).
-export async function proponerPrecio(envio: string, importe: number, importeT: number | null): Promise<{ ok: true; aviso?: string } | { ok: false; error: string }> {
-  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#proponerPrecio", [envio, importe, importeT]);
-  const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo Dynamo pone precio.' };
-  if (!(importe > 0)) return { ok: false, error: 'Pon el precio del cliente (base sin IVA).' };
-  if (importeT != null && !(importeT >= 0)) return { ok: false, error: 'El precio del transportista no es válido.' };
-  const { error } = await s.supabase.rpc('proponer_precio_solicitud', { p_envio: envio, p_importe: importe, p_importe_transportista: importeT });
-  return error ? { ok: false, error: traducir(error.message) } : { ok: true, aviso: 'Precio enviado al cliente: lo verá en su panel para aceptarlo.' };
-}
-
 // Envío con un operador PROPIO del cliente (manual, Dynamo no interviene): lo crea el
 // cliente, o un gestor de Dynamo con «Ver como» ese cliente (la vista decide p_cliente).
 export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'> & { operador_id: string; precio_acordado_operador: number | null }, paradas: ParadaNueva[]):

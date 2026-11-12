@@ -3465,7 +3465,6 @@ export type Database = {
       conexiones_usuarios: { Args: Record<PropertyKey, never>; Returns: { id: string; ultima_conexion: string; email_confirmado: boolean }[] }
       contacto_transportista_oculto: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_entrega: string | null }; Returns: boolean }
       contadores_panel: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: Json }
-      contraofertar_precio_solicitud: { Args: { p_envio: string | null; p_importe: number | null }; Returns: Json }
       corte_cancelacion: { Args: { p_fecha_carga: string | null; p_pais?: string | null; p_region?: string | null }; Returns: string }
       crear_aviso: { Args: { p_para: string | null; p_cliente: string | null; p_transportista: string | null; p_tipo: string | null; p_nivel: string | null; p_titulo: string | null; p_texto: string | null; p_enlace: string | null; p_envio: string | null }; Returns: undefined }
       crear_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
@@ -3625,7 +3624,6 @@ export type Database = {
       pronto_pago_estado: { Args: Record<PropertyKey, never>; Returns: Json }
       pronto_pago_estado_interno: { Args: Record<PropertyKey, never>; Returns: Json }
       proponer_cambio_transportista: { Args: { p_envio: string | null; p_precio_antes: number | null; p_precio_ahora: number | null; p_detalle: string | null }; Returns: Json }
-      proponer_precio_solicitud: { Args: { p_envio: string | null; p_importe: number | null; p_importe_transportista?: number | null }; Returns: undefined }
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
       quitar_transportista: { Args: { p_envio: string | null }; Returns: Json }
@@ -3641,7 +3639,6 @@ export type Database = {
       resolver_contraoferta: { Args: { p_reserva: string | null; p_acepta: boolean | null }; Returns: Json }
       resolver_contraoferta_cliente: { Args: { p_envio: string | null; p_acepta: boolean | null }; Returns: Json }
       responder_cambio_transportista: { Args: { p_cambio: string | null; p_acepta: boolean | null; p_motivo?: string | null; p_en_nombre?: boolean | null }; Returns: Json }
-      responder_precio_solicitud: { Args: { p_envio: string | null; p_acepta: boolean | null; p_precio_visto?: number | null }; Returns: string }
       restriccion_punto: { Args: { p_pais: string | null; p_cp: string | null; p_tipo_parada?: string | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null; p_fecha?: string | null }; Returns: { nombre: string; efecto: string; mensaje: string }[] }
       restricciones_ruta: { Args: { p_envio: string | null }; Returns: { orden: number; punto: string; tipo: string; nombre: string; efecto: string; mensaje: string }[] }
       revisar_precio_envio: { Args: { p_envio: string | null; p_nuevo: number | null }; Returns: Json }

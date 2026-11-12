@@ -22,7 +22,7 @@ import PagoPrevio from './PagoPrevio';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
-import { deshacerCancelacion, revocarOferta, resolverContraoferta, resolverContraofertaCliente, responderCambioEnNombre } from '@/app/panel/(app)/envios/acciones';
+import { deshacerCancelacion, revocarOferta, resolverContraoferta, responderCambioEnNombre } from '@/app/panel/(app)/envios/acciones';
 import { CANALES, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
@@ -30,7 +30,6 @@ import { Estado } from './ficha/Estado';
 import Etapas from './ficha/Etapas';
 import { Cancelar } from './ficha/Cancelar';
 import { Modificar } from './ficha/Modificar';
-import { PonerPrecio } from './ficha/PonerPrecio';
 import { Valoracion } from './ficha/Valoracion';
 import { CmrDigital } from './ficha/CmrDigital';
 import { Ofrecer } from './ficha/Ofrecer';
@@ -155,9 +154,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       ) : ficha.transportista ? (
         <button type="button" className="btn-secondary" onClick={() => setVista('orden')}><I d={ICO.doc} />Orden de carga</button>
       ) : null}
-      {e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto') && (
-        <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
-      )}
       {/* Pendiente de pago: ni ofertar ni asignar hasta que se pague (la base de datos lo
           rechaza igualmente); la caja naranja del pago ya explica qué hacer. El precio
           PROVISIONAL no bloquea nada (usuario, 2026-11-09): se oferta y se asigna
@@ -201,7 +197,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (vista === 'estado') return <Estado ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'cancelar') return <Cancelar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
-  if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
   if (vista === 'orden') return <CompartirOrden ficha={ficha} onVolver={() => setVista('ficha')} />;
 
@@ -243,26 +238,8 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
               </div>}
       </div>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
-      {e.estado === 'borrador' && e.estado_solicitud === 'pendiente_precio' && (
-        <div className="modal-warn-box"><strong>Solicitud del cliente esperando precio.</strong> Pónselo con «Poner precio»: lo verá en su panel para aceptarlo (prometemos menos de 25 minutos en horario de oficina).</div>
-      )}
-      {e.estado === 'borrador' && e.estado_solicitud === 'contraoferta' && e.importe_contraoferta_cliente != null && (
-        <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
-          <strong>Contraoferta del cliente:</strong> propone <strong>{euros(Number(e.importe_contraoferta_cliente))}</strong> (sin IVA) frente a nuestros {euros(e.importe_cliente)}
-          {e.importe_cliente ? <> ({Math.round((1 - Number(e.importe_contraoferta_cliente) / Number(e.importe_cliente)) * 1000) / 10} % menos)</> : null}
-          {e.importe_transportista != null && <> · coste del transporte previsto {euros(e.importe_transportista)}, margen con su precio {euros(Number(e.importe_contraoferta_cliente) - Number(e.importe_transportista))}</>}.
-          Ya aceptó las condiciones al proponerlo.
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={() => hacer('Aprobando', () => resolverContraofertaCliente(e.id, true))}>Aprobar su precio y confirmar el envío</button>
-            <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => hacer('Rechazando', () => resolverContraofertaCliente(e.id, false))}>Rechazar (vuelve a ver nuestro precio)</button>
-          </div>
-        </div>
-      )}
       {e.importe_cliente_inicial != null && e.importe_contraoferta_cliente != null && e.estado_solicitud === 'aceptada' && (
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Precio conseguido por <strong>contraoferta del cliente</strong>: {euros(e.importe_cliente)} (le dimos {euros(e.importe_cliente_inicial)}).</div></div>
-      )}
-      {e.estado === 'borrador' && e.estado_solicitud === 'precio_propuesto' && (
-        <div className="pt-aviso info"><div>Precio enviado al cliente: <strong>{euros(e.importe_cliente)}</strong>{e.precio_caduca_en ? <> · válido hasta el {fechaHora(e.precio_caduca_en)}</> : null}. Esperando su respuesta.</div></div>
       )}
       {e.estado_solicitud === 'aceptada' && e.condiciones_aceptadas_en && (
         <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {fechaHora(e.condiciones_aceptadas_en)}.</div></div>

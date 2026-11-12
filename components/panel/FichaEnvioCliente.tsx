@@ -14,11 +14,11 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
-import { euros, fecha, ventana, aNumero, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
 import { estadoVisual, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
-import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
+import { cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio } from './CambiosEnvio';
 import { Secc } from './ficha/comun';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
@@ -63,7 +63,7 @@ export type EnvioClienteBase = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiEnvio
   & { paradas: (Parada & { id?: string; referencia?: string | null; anotaciones?: string | null; notas_sitio?: string | null })[] };
 export type EnvioCliente = EnvioClienteBase & {
   hitos: Funcion<'mis_hitos'>; valoracion: Funcion<'mi_valoracion_envio'>[number] | null;
-  pago: Funcion<'pagos_envio'>[number] | null; contraoferta: Funcion<'mi_contraoferta'>[number] | null;
+  pago: Funcion<'pagos_envio'>[number] | null;
   cambio: Funcion<'mi_cambio_envio'>[number] | null; revision: Revision | null; corte: string | null;
   tarjeta: boolean; pagoVuelta: string | null;
 };
@@ -75,7 +75,6 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar'>('ficha');
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
-  const [acepto, setAcepto] = useState(false);
   const [motivo, setMotivo] = useState('');
   // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
   // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
@@ -88,12 +87,6 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const recogidas = paradas.filter((p) => p.tipo === 'carga'), entregas = paradas.filter((p) => p.tipo === 'descarga');
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
   const iva = Number(e.iva_pct ?? 21);
-  const pendientePrecio = e.estado === 'borrador' && e.estado_solicitud === 'pendiente_precio';
-  const porAceptar = e.estado === 'borrador' && e.estado_solicitud === 'precio_propuesto';
-  const enContraoferta = e.estado === 'borrador' && e.estado_solicitud === 'contraoferta';
-  const [miPrecio, setMiPrecio] = useState('');
-  const [proponer, setProponer] = useState(false);
-  const caducado = porAceptar && e.precio_caduca_en && new Date(e.precio_caduca_en) < new Date();
   const cancelable = ['borrador', 'programado'].includes(e.estado);
   // SIEMPRE todo plegado al abrir (usuario, 2026-11-10), como la ficha de Dynamo.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -119,7 +112,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const mercResumen = [e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas),
     e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ');
   const precioTxt = manual ? (e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : null)
-    : pc != null ? euros(pc) : pendientePrecio ? 'calculando' : null;
+    : pc != null ? euros(pc) : null;
   // La tarjeta de una parada (la del cliente: sin ficha de sitio, con su referencia).
   const puntoCli = (p: (typeof paradas)[number], cls: 'rec' | 'ent', num: number, label: string) => (
     <div key={p.id ?? num} className="det-punto">
@@ -182,7 +175,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
       {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
-      {!pendientePrecio && !porAceptar && <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
+      {<a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
       {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
     </>
   );
@@ -207,7 +200,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}</span></div>
         {manual
           ? <div className="pen-sum-row"><span className="k">Precio acordado</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
-          : <div className="pen-sum-row"><span className="k">Precio (sin IVA)</span><span className="v">{pc != null ? euros(pc) : pendientePrecio ? 'Lo estamos calculando' : <Pend />}</span></div>}
+          : <div className="pen-sum-row"><span className="k">Precio (sin IVA)</span><span className="v">{pc != null ? euros(pc) : <Pend />}</span></div>}
       </div>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {manual && e.estado !== 'cancelado' && (
@@ -223,48 +216,6 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
       {!manual && <PedirCambio e={e} cambio={e.cambio} hacer={hacer} onLlamar={() => setVista('llamar')} />}
       {!manual && ['cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro quien="cliente" incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
-      {enContraoferta && (
-        <div className="pt-aviso info"><div><strong>Has propuesto {euros(Number(e.contraoferta?.propuesta ?? 0))}</strong> (sin IVA) frente a nuestros {euros(pc)}. Lo estamos revisando y te contestamos aquí. Si no la aceptamos, volverás a ver nuestro precio para aceptarlo o cancelar sin coste.</div></div>
-      )}
-      {pendientePrecio && (
-        <div className="pt-aviso info"><div><strong>Estamos calculando tu precio.</strong> Te lo pasamos en menos de 25 minutos (en horario de oficina) y te aparecerá aquí para aceptarlo. Hasta que lo aceptes no hay ningún compromiso.</div></div>
-      )}
-      {porAceptar && (
-        <div className="det-block" style={{ borderColor: 'var(--purple)' }}>
-          <div className="alm-price" style={{ margin: 0 }}>
-            <div className="alm-price-row alm-price-base"><span className="k">Precio de tu envío (base imponible)</span><span className="v">{euros(pc)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(iva)})</span><span className="v">{euros((pc ?? 0) * iva / 100)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros((pc ?? 0) * (1 + iva / 100))}</span></div>
-          </div>
-          {caducado ? (
-            <div className="pt-aviso" style={{ marginTop: '0.7rem', marginBottom: 0 }}><div>Este precio ha <strong>caducado</strong> (los precios del transporte cambian cada día). Pulsa «Aceptar» y te pasamos uno nuevo al momento, o llámanos.</div></div>
-          ) : e.precio_caduca_en && (
-            <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Precio válido hasta el {fechaHora(e.precio_caduca_en)}.</p>
-          )}
-          <label className="ptar-confirm-check" style={{ marginTop: '0.7rem' }}>
-            <input type="checkbox" checked={acepto} onChange={(ev) => setAcepto(ev.target.checked)} />
-            <span>He leído y acepto las <a href="#" className="ptar-inline-link" onClick={(ev) => { ev.preventDefault(); setVista('condiciones'); }}>condiciones generales de transporte</a>. Al aceptar, el envío queda <strong>programado</strong> y buscamos el camión.</span>
-          </label>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" disabled={!acepto || !!trabajando} onClick={() => hacer('Confirmando el envío', () => responderPrecio(e.id, true, pc))}><I d={ICO.check} />Aceptar precio y confirmar envío</button>
-            <button className="btn-ghost" disabled={!!trabajando} onClick={() => hacer('Rechazando', () => responderPrecio(e.id, false))}>Rechazar</button>
-            {e.contraoferta?.permitida && !caducado && !proponer && <button className="btn-ghost" disabled={!!trabajando} onClick={() => setProponer(true)}>Proponer otro precio</button>}
-          </div>
-          {proponer && (
-            <div style={{ marginTop: '0.8rem', paddingTop: '0.7rem', borderTop: '1px solid var(--gray-200)' }}>
-              <label htmlFor="cf-precio" style={{ fontWeight: 700 }}>Tu precio (sin IVA, €) <Req /></label>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input id="cf-precio" type="text" inputMode="decimal" value={miPrecio} onChange={(ev) => setMiPrecio(ev.target.value)} placeholder="Ej. 950" style={{ maxWidth: 160 }} />
-                <button className="btn-primary" disabled={!acepto || !!trabajando || !((aNumero(miPrecio) ?? 0) > 0)}
-                  onClick={() => hacer('Enviando tu propuesta', () => contraofertarPrecio(e.id, aNumero(miPrecio) as number))}>Enviar mi propuesta</button>
-                <button className="btn-ghost" onClick={() => setProponer(false)}>Volver</button>
-              </div>
-              <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.4rem 0 0' }}>Marca antes la casilla de las condiciones. Si tu precio se acerca al nuestro, se acepta al momento; si no, lo revisamos y te contestamos aquí. Hasta entonces, el nuestro sigue en pie.</p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ENVÍO Y SEGUIMIENTO unificados, lo primero del acordeón — el mismo esqueleto
           que la ficha de Dynamo (usuario, 2026-11-12). */}
       <Secc k="envio" titulo="Envío y seguimiento" abiertas={abiertas} toggle={toggle}
@@ -304,13 +255,13 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           {e.anotaciones_cliente && <div className="pen-sum-row pen-sum-col"><span className="k">Anotaciones</span><span className="v">{e.anotaciones_cliente}</span></div>}
           {e.estado !== 'cancelado' && <div className="modal-info-grid" style={{ marginTop: '0.2rem' }}><DatosCmr envioId={e.id} puedeEditar={['borrador', 'programado', 'hacia_la_carga'].includes(e.estado)} bloquearSiFirmado /></div>}
         </div>
-        {!porAceptar && <>
+        {<>
           <SubTit>Precio</SubTit>
           <div className="pen-envio-sum">
             {manual ? (
               <div className="pen-sum-row"><span className="k">Precio acordado con tu transportista (sin IVA)</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
             ) : pc == null ? (
-              <div className="pen-sum-row"><span className="k">Precio</span><span className="v">{pendientePrecio ? 'Lo estamos calculando' : <Pend />}</span></div>
+              <div className="pen-sum-row"><span className="k">Precio</span><span className="v"><Pend /></span></div>
             ) : (
               <>
                 <div className="pen-sum-row"><span className="k" style={{ color: 'var(--navy)', fontWeight: 800 }}>Base imponible</span><span className="v" style={{ color: 'var(--purple)', fontSize: 'var(--fs-l)', fontWeight: 800 }}>{euros(pc)}</span></div>
@@ -323,7 +274,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         </>}
       </Secc>
 
-      {!pendientePrecio && !porAceptar && (
+      {(
         <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="albarán y CMR firmado">
           <div className="det-block">
             <Documentos dueno={{ campo: 'envio_id', id: e.id }} tipos={['albaran', 'cmr_firmado', 'otro']} editable={false}
@@ -332,7 +283,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         </Secc>
       )}
 
-      {!manual && !pendientePrecio && !porAceptar && e.estado !== 'cancelado' && (
+      {!manual && e.estado !== 'cancelado' && (
         <Secc k="transporte" titulo="Transporte" abiertas={abiertas} toggle={toggle}
           resumen={e.matricula_camion ? <>{e.matricula_camion}{e.conductor_nombre ? ` · ${e.conductor_nombre}` : ''}</> : 'Sin camión todavía'}>
           <div className="pen-envio-sum">

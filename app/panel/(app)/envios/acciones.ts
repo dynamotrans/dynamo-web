@@ -423,20 +423,6 @@ export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | '
   }[accion] };
 }
 
-// Contraoferta del CLIENTE: Dynamo la aprueba (el envío queda confirmado a ese precio) o
-// la rechaza (vuelve a nuestro precio, con la validez renovada).
-export async function resolverContraofertaCliente(envio: string, aprobar: boolean): Promise<Res> {
-  comprobarEntrada("app/panel/(app)/envios/acciones#resolverContraofertaCliente", [envio, aprobar]);
-  const s = await soloDynamo();
-  if (!s) return { ok: false, error: 'Solo Dynamo resuelve las contraofertas.' };
-  const { data, error } = await s.supabase.rpc('resolver_contraoferta_cliente', { p_envio: envio, p_acepta: aprobar });
-  if (error) return { ok: false, error: traducir(error.message) };
-  const r = (data as { resultado: string }).resultado;
-  if (r === 'no_pendiente') return { ok: false, error: 'Esa contraoferta ya no está pendiente.' };
-  if (r === 'fecha_pasada') return { ok: false, error: 'La fecha de recogida ya ha pasado: no se puede confirmar.' };
-  return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el envío queda programado a su precio.' : 'Contraoferta rechazada: el cliente vuelve a ver nuestro precio para aceptarlo o cancelar.' };
-}
-
 // Cambio pedido por el CLIENTE: Dynamo lo acepta (se aplican las fechas pedidas; la ruta y
 // el precio se cambian en la ficha) o lo rechaza, con una nota para el cliente.
 export async function resolverCambio(envio: string, aceptar: boolean, nota: string): Promise<Res> {

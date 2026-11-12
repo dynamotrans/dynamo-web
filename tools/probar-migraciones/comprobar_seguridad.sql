@@ -2223,48 +2223,31 @@ do $$ begin
 end $$;
 reset role;
 
--- ---- 72. Etapa B: Dynamo pone precio a una solicitud y el cliente acepta --------------
--- La solicitud se siembra DIRECTA (superusuario): crear_solicitud_envio ya no existe
--- (regla «solo envíos confirmados», migración 20261110080000) y la web confirma en la
--- misma transacción con crear_envio_cliente.
+-- ---- 72. Etapa B: el flujo de solicitudes está RETIRADO; cancelar el suyo, gratis ----
+-- El tarifador es automático: el cliente crea el envío YA preciado y programado
+-- (crear_envio_cliente). Aquí: las funciones del flujo viejo no existen, el cliente ve
+-- su envío, lo cancela gratis sin camión, y un entregado no se puede cancelar.
 reset role;
 do $$ declare e uuid; begin
-  insert into envios (cliente_id, metros_lineales, toneladas, fecha_carga_desde, fecha_carga_hasta, estado_solicitud)
-  values (current_setting('prueba.cliente')::uuid, 4, 3, current_date + 10, current_date + 12, 'pendiente_precio') returning id into e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista,
+                      fecha_carga_desde, fecha_carga_hasta, estado_solicitud, condiciones_aceptadas_en)
+  values (current_setting('prueba.cliente')::uuid, 4, 3, 640, 520, current_date + 10, current_date + 12, 'aceptada', now()) returning id into e;
   insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', 'Mi almacén 72', '41001', 'Sevilla', 'ES');
   insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', 'Mi cliente 72', '46001', 'Valencia', 'ES');
+  update envios set estado = 'programado' where id = e;
   perform set_config('prueba.e72', e::text, false);
 end $$;
-select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
-set role authenticated;
-do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; begin
-  select * into v from mis_envios() m where m.id = e;
-  if v.estado <> 'borrador' or v.estado_solicitud <> 'pendiente_precio' or v.importe_cliente is not null then raise exception 'FALLO 72 · la solicitud no nace bien: %', v; end if;
-  -- La puerta está CERRADA: la función de crear solicitudes sin precio ya no existe.
-  if exists (select 1 from pg_proc where proname = 'crear_solicitud_envio') then
-    raise exception 'FALLO 72 · crear_solicitud_envio sigue existiendo (los borradores están prohibidos)'; end if;
-  -- El cliente no se pone precio.
-  begin
-    perform proponer_precio_solicitud(e, 1);
-    raise exception 'FALLO 72 · el cliente se pone el precio';
-  exception when insufficient_privilege then null;
-  end;
-end $$;
-reset role;
-select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
-set role authenticated;
 do $$ begin
-  perform proponer_precio_solicitud(current_setting('prueba.e72')::uuid, 640, 520);
+  -- La puerta está CERRADA: las CUATRO funciones del flujo viejo ya no existen.
+  if exists (select 1 from pg_proc where proname in ('crear_solicitud_envio', 'proponer_precio_solicitud', 'responder_precio_solicitud', 'contraofertar_precio_solicitud')) then
+    raise exception 'FALLO 72 · sigue existiendo alguna función del flujo viejo de solicitudes';
+  end if;
 end $$;
-reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; r text; j jsonb; begin
+do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; j jsonb; begin
   select * into v from mis_envios() m where m.id = e;
-  if v.importe_cliente <> 640 or v.estado_solicitud <> 'precio_propuesto' then raise exception 'FALLO 72 · el cliente no ve el precio propuesto'; end if;
-  r := responder_precio_solicitud(e, true);
-  select * into v from mis_envios() m where m.id = e;
-  if r <> 'aceptada' or v.estado <> 'programado' or v.condiciones_aceptadas_en is null then raise exception 'FALLO 72 · aceptar no programa el envío (%): %', r, v; end if;
+  if v.estado <> 'programado' or v.importe_cliente <> 640 or v.condiciones_aceptadas_en is null then raise exception 'FALLO 72 · el cliente no ve su envío preciado: %', v; end if;
   -- Y lo cancela (aún sin camión): gratis.
   j := cancelar_mi_envio(e, 'Ya no hace falta');
   if (j ->> 'penalizacion')::boolean or (select estado from mis_envios() m where m.id = e) <> 'cancelado' then raise exception 'FALLO 72 · cancelar sin camión no queda gratis: %', j; end if;
@@ -2275,7 +2258,7 @@ do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; r text; j
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
   end;
   if exists (select 1 from mis_penalizaciones() where importe_cliente is null) then raise exception 'FALLO 72 · penalización sin importe'; end if;
-  raise notice 'OK 72 · etapa B: precio de Dynamo a una solicitud, aceptar (programa) y cancelar el suyo; crear_solicitud_envio ya no existe';
+  raise notice 'OK 72 · etapa B: el flujo viejo de solicitudes no existe; su envío preciado se ve y se cancela gratis sin camión';
 end $$;
 reset role;
 
@@ -3465,7 +3448,10 @@ do $$ declare e uuid := current_setting('prueba.e100')::uuid; begin
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 
--- ---- 101. Contraoferta del cliente -----------------------------------------------------
+-- ---- 101. Contraoferta del cliente: flujo viejo retirado; la columna sigue con RLS ---
+-- (Las semillas e101_* las usa la prueba 103 con mi_contraoferta, que SE CONSERVA junto
+-- a resolver_contraoferta_cliente y los interruptores por si la contraoferta vuelve
+-- sobre el flujo nuevo del tarifador.)
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
@@ -3484,47 +3470,17 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ begin
-  if (contraofertar_precio_solicitud(current_setting('prueba.e101_1')::uuid, 980))->>'resultado' <> 'no_permitida' then
-    raise exception 'FALLO 101 · contraoferta un cliente que no la tiene permitida';
-  end if;
+  -- El cliente no escribe su contraoferta a mano (RLS); la función de contraofertar ya
+  -- no existe (guard de la prueba 72).
   begin
     update envios set importe_contraoferta_cliente = 1 where id = current_setting('prueba.e101_1')::uuid;
     if found then raise exception 'FALLO 101 · el cliente escribe su contraoferta a mano'; end if;
   exception when insufficient_privilege then null; end;
-end $$;
-reset role;
-update clientes set permite_contraoferta = true where id = current_setting('prueba.cliente')::uuid;
-set role authenticated;
-do $$ declare r jsonb; begin
-  -- 2 % de rebaja (auto 5 %): aceptada al instante a su precio.
-  r := contraofertar_precio_solicitud(current_setting('prueba.e101_1')::uuid, 980);
-  if r->>'resultado' <> 'aceptada' then raise exception 'FALLO 101 · una rebaja pequeña no se acepta sola: %', r; end if;
-  -- 10 %: a revisión de Dynamo.
-  r := contraofertar_precio_solicitud(current_setting('prueba.e101_2')::uuid, 900);
-  if r->>'resultado' <> 'pendiente_revision' then raise exception 'FALLO 101 · una rebaja media no va a revisión: %', r; end if;
-  -- 20 % (máximo 15 %): no se admite. Ni subir el precio.
-  if (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 800))->>'resultado' <> 'demasiado_lejos' then raise exception 'FALLO 101 · admite una rebaja por encima del máximo'; end if;
-  if (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 1100))->>'resultado' <> 'no_es_rebaja' then raise exception 'FALLO 101 · admite una «contraoferta» al alza'; end if;
-  begin perform resolver_contraoferta_cliente(current_setting('prueba.e101_2')::uuid, true); raise exception 'FALLO 101 · el cliente aprueba su propia contraoferta';
-  exception when insufficient_privilege then null; end;
-end $$;
-reset role;
-do $$ begin
-  if (select (estado, importe_cliente, importe_cliente_inicial)::text from envios where id = current_setting('prueba.e101_1')::uuid) <> '(programado,980.00,1000.00)' then
-    raise exception 'FALLO 101 · la aceptada al instante no queda confirmada a su precio: %', (select (estado, importe_cliente, importe_cliente_inicial)::text from envios where id = current_setting('prueba.e101_1')::uuid);
-  end if;
-end $$;
-select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
-set role authenticated;
-do $$ begin
-  if (resolver_contraoferta_cliente(current_setting('prueba.e101_2')::uuid, true))->>'resultado' <> 'ok' then raise exception 'FALLO 101 · Dynamo no aprueba'; end if;
-  if (select (estado, importe_cliente)::text from envios where id = current_setting('prueba.e101_2')::uuid) <> '(programado,900.00)' then
-    raise exception 'FALLO 101 · aprobada no queda confirmada a 900';
-  end if;
-  raise notice 'OK 101 · contraoferta del cliente: solo si la tiene permitida, solo a la baja; poca rebaja se acepta sola, media la revisa Dynamo, mucha no se admite';
+  raise notice 'OK 101 · contraoferta del cliente: el flujo viejo está retirado y la columna sigue protegida por RLS';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+update clientes set permite_contraoferta = true where id = current_setting('prueba.cliente')::uuid;
 
 -- ---- 102. Estado de la cuenta: ni la propia, ni un Admin Master, ni volver a pendiente --
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
@@ -3558,9 +3514,6 @@ set role authenticated;
 do $$ begin
   if (select permitida from mi_contraoferta(current_setting('prueba.e101_3')::uuid)) then
     raise exception 'FALLO 103 · con el general apagado, el cliente ve la contraoferta';
-  end if;
-  if (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 990))->>'resultado' <> 'no_permitida' then
-    raise exception 'FALLO 103 · con el general apagado, el cliente contraoferta';
   end if;
 end $$;
 reset role;
@@ -4266,20 +4219,6 @@ do $$ begin
   end if;
   raise notice 'OK 120 · horario de verano en los envíos: cada parada lleva el horario de su fecha';
 end $$;
-
--- ---- 121. Contraoferta del cliente: no se puede ir probando hasta dar con el % máximo -------
-reset role;
-select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
-set role authenticated;
-do $$ declare r text; k int; begin
-  for k in 1..4 loop
-    r := (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 700 + k))->>'resultado';
-  end loop;
-  if r <> 'demasiados_intentos' then raise exception 'FALLO 121 · se pueden hacer propuestas demasiado bajas sin límite: %', r; end if;
-  raise notice 'OK 121 · contraoferta del cliente: a la 3.ª propuesta demasiado baja en 24 h, no admite más ese día';
-end $$;
-reset role;
-select set_config('request.jwt.claim.sub', '', false);
 
 -- ---- 122. RGPD: exportar, anonimizar y limpieza automática ---------------------------------
 reset role;
@@ -5004,37 +4943,15 @@ do $$ declare c uuid; e uuid; begin
   perform set_config('prueba.e139p', e::text, false);
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
--- Solicitudes: rechazar no cuenta; aceptar solo el precio visto; deshacer vuelve a solicitud.
-do $$ declare a uuid; b uuid; begin
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, estado_solicitud, precio_caduca_en)
-    values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, current_date + 3, 'precio_propuesto', now() + interval '2 hours') returning id into a;
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, estado_solicitud, precio_caduca_en)
-    values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, current_date + 3, 'precio_propuesto', now() + interval '2 hours') returning id into b;
-  perform set_config('prueba.s139a', a::text, false);
-  perform set_config('prueba.s139b', b::text, false);
-end $$;
-select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
-set role authenticated;
-do $$ begin
-  if responder_precio_solicitud(current_setting('prueba.s139b')::uuid, true, 400) <> 'precio_cambiado' then raise exception 'FALLO 139 · el cliente acepta un precio que no ha visto'; end if;
-  perform responder_precio_solicitud(current_setting('prueba.s139a')::uuid, false);
-end $$;
-reset role;
-select set_config('request.jwt.claim.sub', '', false);
-do $$ begin
-  if not (select cancelacion_sin_coste from envios where id = current_setting('prueba.s139a')::uuid) then raise exception 'FALLO 139 · rechazar el precio de una solicitud cuenta como cancelación'; end if;
-  if (select confirmado_en from envios where id = current_setting('prueba.s139a')::uuid) is not null then raise exception 'FALLO 139 · cancelar una solicitud la da por confirmada'; end if;
-end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
 do $$ begin
-  if deshacer_cancelacion(current_setting('prueba.s139a')::uuid) <> 'borrador' then raise exception 'FALLO 139 · deshacer una solicitud rechazada la pasa a programada'; end if;
   if (marcar_pago_envio(current_setting('prueba.e139p')::uuid, 'tarjeta')) ->> 'resultado' <> 'ok' then raise exception 'FALLO 139 · Dynamo no puede dar por pagado un cobro con tarjeta no aplicado'; end if;
   begin
     update envios set importe_cliente = 1400 where id = current_setting('prueba.e139p')::uuid;
     raise exception 'FALLO 139 · se cambia el precio de un envío pagado';
   exception when insufficient_privilege then null; end;
-  raise notice 'OK 139 · lógica: tablón sin oferta, cobro con tarjeta no aplicado (avisa, no anula, se da por pagado), precio fijo tras pagar, rechazar no cuenta, precio visto, deshacer solicitud, plazo de pago en día hábil';
+  raise notice 'OK 139 · lógica: tablón sin oferta, cobro con tarjeta no aplicado (avisa, no anula, se da por pagado), precio fijo tras pagar, plazo de pago en día hábil';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

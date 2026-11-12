@@ -44,10 +44,6 @@ export type EnvioFila = {
 export const esPendientePago = (e: { estado: string; estado_pago_previo?: string | null }) =>
   e.estado === 'programado' && e.estado_pago_previo === 'pendiente';
 
-// Solicitud del cliente esperando precio (de Dynamo) o respuesta (del cliente).
-export const esSolicitudAbierta = (e: { estado: string; estado_solicitud?: string | null }) =>
-  e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto' || e.estado_solicitud === 'contraoferta');
-
 // Estado del envío (badge de la 1ª columna).
 export function estadoVisual(e: EnvioFila): { label: string; color: string } {
   switch (e.estado) {
@@ -77,16 +73,15 @@ export function asignacion(e: EnvioFila): { key: string; label: string } | null 
 }
 
 // Pestañas de la tabla (las del mockup).
-export type Pestana = 'solicitudes' | 'sin-pagar' | 'sin-asignar' | 'programada' | 'entregada' | 'cancelada' | 'todas';
+export type Pestana = 'sin-pagar' | 'sin-asignar' | 'programada' | 'entregada' | 'cancelada' | 'todas';
 const VIVOS = ['borrador', 'programado', 'hacia_la_carga', 'cargando', 'en_ruta'];
 export function enPestana(e: EnvioFila, p: Pestana): boolean {
   if (p === 'todas') return true;
   if (p === 'entregada') return e.estado === 'entregado';
   if (p === 'cancelada') return e.estado === 'cancelado';
-  if (p === 'solicitudes') return esSolicitudAbierta(e);
   if (p === 'sin-pagar') return esPendientePago(e);
   if (p === 'sin-asignar') return e.estado === 'programado' && !e.es_manual && !e.transportista_asignado && !esPendientePago(e);
-  return VIVOS.includes(e.estado) && !esSolicitudAbierta(e);
+  return VIVOS.includes(e.estado);
 }
 
 // --- Fechas -------------------------------------------------------------------------
