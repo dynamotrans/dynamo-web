@@ -26,13 +26,14 @@
 }
 .portal-wrap {
     position: relative; z-index: 1;
-    flex: 1; display: flex;
-    /* "safe center": centra solo si el contenido cabe en el viewport.
-       Si es mas alto que la pantalla, cae a flex-start y se scrollea
-       (asi en movil con login + extras no se corta el fondo) */
-    align-items: safe center; justify-content: center;
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    /* Centrado "seguro" SIN la palabra safe: Safari iOS no la soporta, descartaba
+       la declaración y el login quedaba descolgado en el iPhone (usuario,
+       2026-11-12). Columna + márgenes auto en la tarjeta: si cabe, centrada;
+       si no cabe, arranca arriba y se scrollea sin cortes. */
     padding: 2rem 1.2rem;
 }
+.portal-wrap > .portal-card { margin-top: auto; margin-bottom: auto; }
 .portal-card {
     width: 100%; max-width: 440px;
     background: white;
