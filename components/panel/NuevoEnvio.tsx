@@ -645,7 +645,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     }
     return x;
   };
-  const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
+  const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,60 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
   // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;
   const provisional = !!reglas && !!fecha && diasHasta > reglas.cerrado_dias;
@@ -959,6 +959,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     <select id="ne-ml" className="ptar-select" value={ml} onChange={(e) => setMl(e.target.value)}>
                       {optsMl.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
                     </select>
+                    {/* Altura máxima SIEMPRE visible (usuario, 2026-11-12): que el cliente sepa
+                        el espacio que contrata. Tráiler 2,70 m; con plataforma elevadora va en
+                        camión rígido y baja a 2,60 m. */}
+                    <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600, marginTop: '0.25rem' }}>
+                      Altura máxima de la mercancía: <strong>{plataforma ? '2,60 m' : '2,70 m'}</strong>{plataforma ? ' (camión rígido con plataforma elevadora)' : ' (tráiler)'}
+                    </div>
                   </div>
                   <div className="ptar-field-full">
                     <label className="ptar-mlabel" htmlFor="ne-peso">Peso de la mercancía</label>
@@ -991,8 +997,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                               if (v) { if (mlN > 8) setMl('8'); if (pesoN > 14) setPeso('14'); }
                               else if (peso === '14') setPeso('15');
                               avisar(v
-                                ? `Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m y 14 Tn${recorta ? ' (metros y peso ajustados a ese máximo)' : ''}.`
-                                : 'Sin plataforma vuelves a TRÁILER: máximo 13,3 m y 24 Tn. Tus metros y peso se mantienen.');
+                                ? `Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m, 14 Tn y 2,60 m de altura${recorta ? ' (metros y peso ajustados a ese máximo)' : ''}.`
+                                : 'Sin plataforma vuelves a TRÁILER: máximo 13,3 m, 24 Tn y 2,70 m de altura. Tus metros y peso se mantienen.');
                             }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
