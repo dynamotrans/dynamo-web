@@ -336,6 +336,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const [reservas, setReservas] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [lento, setLento] = useState(false);   // la subida tarda: aviso de conexión lenta
   const [preGps, setPreGps] = useState(false);   // nuestro aviso de ubicación, ANTES del diálogo del sistema
   // Fotos de las reservas (usuario, 2026-11-09): cámara o galería, se suben al momento a
   // la carpeta de este enlace (la política del almacén solo admite enlaces vivos) y al
@@ -419,9 +420,21 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         return g;
       } catch { return null; }
     })();
-    const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
-      reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
-      gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula ? matRem : undefined });
+    // CONEXIÓN LENTA (usuario, 2026-11-12): si la subida tarda más de ~3 s (muelles con
+    // mala cobertura), se dice en claro que se está guardando — que nadie machaque el
+    // botón ni cierre la página. Los reintentos del servidor ya trabajan por dentro.
+    const tLento = setTimeout(() => setLento(true), 3000);
+    let r: Awaited<ReturnType<typeof firmar>>;
+    try {
+      r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
+        reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
+        gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula ? matRem : undefined });
+    } catch {
+      // La red se cayó del todo (antes esto dejaba el botón en «Guardando…» para siempre).
+      r = { ok: false, error: 'No hay cobertura suficiente en esta zona. Muévete unos metros y vuelve a pulsar «Aceptar firma»: tu firma sigue en la pantalla, no se ha perdido.' };
+    }
+    clearTimeout(tLento);
+    setLento(false);
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
     onFirmado();
@@ -512,6 +525,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <strong>Protección de datos:</strong> Dynamo guarda estos datos y tu firma como prueba del CMR durante 6 años.
           Derechos: {CONTACTO.email} · <button type="button" className="sig-link" onClick={() => setVerPrivacidad(true)}>Política de privacidad</button>.
         </p>
+        {guardando && lento && (
+          <div className="sig-msg warn" role="status" aria-live="polite">⏳ Conexión lenta en esta zona… guardando tu firma, no cierres la página.</div>
+        )}
         {/* Aceptar GRANDE y en verde arriba; Cancelar y Borrar debajo (usuario, 2026-11-10). */}
         <div className="sigbtns">
           <button type="button" className="b-aceptar" disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>
