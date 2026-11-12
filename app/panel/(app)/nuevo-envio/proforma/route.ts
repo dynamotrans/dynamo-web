@@ -51,7 +51,7 @@ export async function GET(req: Request) {
     sinPago: { aviso: 'Este documento NO crea ningún envío ni reserva: es solo el precio calculado hoy, para que lo veas. '
       + 'Por eso no lleva datos de pago. La proforma pagadera, con los datos de la transferencia, sale al crear el envío '
       + 'y quedar pendiente de pago, con el precio ya fijado.' },
-    condiciones: `Precio orientativo: solo es válido al crear y confirmar el envío. Las tarifas son dinámicas: el precio se fija al `
+    condiciones: `Precio válido al crear y confirmar el envío ahora. Las tarifas son dinámicas: el precio se fija al `
       + `confirmar el envío a menos de ${cerrado} días de la carga. Con más antelación, el precio se actualizará al llegar a `
       + `${cerrado} días de la primera parada, con el precio válido para el día de carga.`,
     dynamo: await datosDynamo(sb),

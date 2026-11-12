@@ -2,9 +2,9 @@
 // (public/dashboard.html), portado tal cual a la plataforma. TODOS los números son
 // PROVISIONALES (MOCK) hasta que llegue la tarifa real del usuario; entonces los
 // coeficientes pasarán a la carpeta `tarifa` de la base de datos y aquí quedará solo
-// el cálculo. El precio sugerido SOLO rellena por defecto los precios internos de
-// Dynamo (editables) y, al cliente, se le enseña como orientativo: el que vale es el
-// que confirma Dynamo.
+// el cálculo. El precio sugerido rellena por defecto los precios internos de Dynamo
+// (editables) y, al cliente, se le enseña como SU precio (usuario, 2026-11-12): el del
+// tarifador es el que se aplica al crear el envío, igual que en admin.
 //
 // Esquema del cálculo:
 //   envío base   = 700 € FIJO para todos (venta) y 600 € (compra) — relleno plano a propósito

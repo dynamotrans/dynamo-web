@@ -1069,7 +1069,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
                     encima={<>{avisoTrailer}{tarjetaMercancia}</>} onElegir={elegirAlternativa} />
-                  <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en firme en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
+                  {/* Fuera la caja de «precio en firme en 25 minutos» (usuario, 2026-11-12):
+                      el precio del tarifador ya es el definitivo, igual que en admin. */}
                   {navBotones}
                 </>) : <>
                 <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
@@ -1199,7 +1200,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           );
         })()}>
         <p style={{ margin: 0 }}>
-          Este precio es <strong>orientativo: solo es válido al crear y confirmar el envío</strong>. Las tarifas son
+          Este precio es <strong>el que se aplica al crear y confirmar el envío ahora</strong>. Las tarifas son
           dinámicas: el precio <strong>se fija al confirmar el envío a menos de {reglas?.cerrado_dias ?? 7} días de la
           carga</strong>. Con más antelación, se actualizará al llegar a {reglas?.cerrado_dias ?? 7} días de la primera
           parada, con el precio válido para el día de carga.
@@ -1252,16 +1253,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           {autosusp
             ? <> (desde <strong>{autosusp.cancelaciones.max_recientes} cancelaciones con coste en {autosusp.cancelaciones.dias_recientes} días</strong>, o el <strong>{autosusp.cancelaciones.max_pct} %</strong> de tus envíos a partir de {autosusp.cancelaciones.min_envios}). Solo cuentan las que hacen daño: con camión asignado, o tarde.</>
             : <> (los límites exactos viven en los parámetros de la plataforma y pueden ajustarse).</>}
-          {autosusp?.activa && (
-            <span style={{ display: 'block', marginTop: '0.45rem', color: 'var(--navy)' }}>
-              <strong>Tu cuenta ahora mismo:</strong> {autosusp.cancelaciones.recientes} de {autosusp.cancelaciones.max_recientes} cancelaciones
-              con coste en {autosusp.cancelaciones.dias_recientes} días · {autosusp.cancelaciones.propias} de {autosusp.cancelaciones.envios} envíos
-              {autosusp.cancelaciones.envios >= autosusp.cancelaciones.min_envios
-                ? <> ({Math.round(autosusp.cancelaciones.propias * 100 / Math.max(autosusp.cancelaciones.envios, 1))} %, límite {autosusp.cancelaciones.max_pct} %)</> : null}
-              {' '}· consultas de precio: {autosusp.consultas.hoy} de {autosusp.consultas.max_hoy} hoy. Lo tienes al detalle en el menú de tu
-              usuario, en <strong>«Uso de Dynamo»</strong>.
-            </span>
-          )}
+          {/* Sin el «Tu cuenta ahora mismo: …» (usuario, 2026-11-12): sobraba en el modal
+              de confirmar; el detalle vivo sigue en «Uso de Dynamo». */}
         </div>
         <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}

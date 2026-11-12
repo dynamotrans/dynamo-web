@@ -54,7 +54,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   tarifa: Tarifa | null;
   km: number | null; kmEstimado: boolean;
   cargando: boolean;
-  paraCliente: boolean;                 // true: lo ve el cliente (precio orientativo)
+  paraCliente: boolean;                 // true: lo ve el cliente (su precio, con entrega estimada y alternativas)
   ivaPct: number;
   pasada: boolean;                      // fecha ya pasada (registro a posteriori del Admin Master)
   fechaFija: string | null;             // la fecha elegida cuando es fecha fija (para la cabecera)
@@ -66,7 +66,8 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   if (cargando) {
     return (
       <div className="ptar-field ptar-field-full ptar-sug-card">
-        {paraCliente && <div className="ptar-sug-head">Precio orientativo <span>· borrador del tarifador</span></div>}
+        {/* Sin «orientativo» (usuario, 2026-11-12): el precio del tarifador es el que vale. */}
+        {paraCliente && <div className="ptar-sug-head">Precio del envío <span>· con tu tarifa</span></div>}
         <div className="ptar-sug-skel" aria-hidden="true" />
       </div>
     );
@@ -79,7 +80,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
           entrega estimada y el «Grupaje · km» no hacen falta aquí (la tabla de precios
           internos viene justo debajo). El cliente conserva su bloque completo. */}
       {paraCliente && <>
-      <div className="ptar-sug-head">Precio orientativo <span>· borrador del tarifador</span></div>
+      <div className="ptar-sug-head">Precio del envío <span>· con tu tarifa</span></div>
 
       <dl className="ptar-eta-data">
         <dt>Fecha entrega estimada</dt>
@@ -132,7 +133,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
       )}
 
       {paraCliente && <p className="ptar-admin-precio-note" style={{ marginTop: '0.5rem' }}>
-        Precio <strong>orientativo</strong> con la información de la ruta y la mercancía: el precio en firme te lo confirma Dynamo con tu tarifa.
+        Precio calculado con <strong>tu tarifa</strong> y la información de la ruta y la mercancía: es el que se aplica al crear el envío.
       </p>}
     </div>
   );
