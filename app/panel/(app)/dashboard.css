@@ -205,7 +205,9 @@ select, textarea {
     padding: 0.55rem 0.7rem; outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
-textarea { resize: vertical; font-family: inherit; }
+/* A lo ancho SIEMPRE (2026-11-12: el Motivo de «Cancelar envío» salía enano): los
+   contenedores que fijan otro ancho siguen ganando por peso. */
+textarea { resize: vertical; font-family: inherit; width: 100%; }
 input:where(:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button'])):hover,
 select:hover, textarea:hover { border-color: var(--purple); }
 input:where(:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button'])):focus,

@@ -161,7 +161,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
             : <>Cancelar es <strong>gratis hasta las 9:00 del día hábil anterior</strong> a la carga. Después, si ya hay camión asignado, puede conllevar el <strong>coste del servicio completo</strong> (por ley, el transportista está en su derecho de cobrarlo). Si tienes dudas, llámanos al <a href={CONTACTO.telHref} style={{ fontWeight: 700 }}>{CONTACTO.telefono}</a>.</>}
         </div>
         <label htmlFor="cc-motivo" style={{ display: 'block', marginTop: '0.8rem' }}>Motivo <Req si={false} /></label>
-        <textarea id="cc-motivo" rows={3} maxLength={500} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Cuéntanos por qué (nos ayuda a mejorar)" />
+        <textarea id="cc-motivo" rows={3} maxLength={500} style={{ display: 'block', width: '100%', minHeight: 84, marginTop: 4 }} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Cuéntanos por qué (nos ayuda a mejorar)" />
         {aviso && !aviso.ok && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{aviso.txt}</div></div>}
       </Modal>
     );
