@@ -16,6 +16,22 @@ export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transpo
   // cargador de la 1.ª parada); la base de datos las exige, valida y guarda.
   matricula_camion?: string; matricula_remolque?: string };
 
+// Fallos PASAJEROS del servicio (pool de conexiones agotado, 5xx, red): la firma del
+// conductor no puede caerse por un pico de 2 segundos, así que se reintenta hasta 3
+// veces con una pequeña espera creciente. Cualquier otro fallo (permiso, tope, datos
+// malos) sale a la primera: reintentarlo no lo arregla.
+const FALLO_PASAJERO = /too many connections|internal server error|timeout|timed out|fetch failed|network|socket|econn|statuscode.*5\d\d/i;
+async function reintentando<T>(fn: () => PromiseLike<T>, mensajeFallo: (r: T) => string | null): Promise<T> {
+  let r = await fn();
+  for (let i = 1; i <= 2; i++) {
+    const msg = mensajeFallo(r);
+    if (msg === null || !FALLO_PASAJERO.test(msg)) return r;
+    await new Promise((listo) => setTimeout(listo, 500 * i + Math.floor(Math.random() * 400)));
+    r = await fn();
+  }
+  return r;
+}
+
 // Firmar una casilla del CMR. La validez del documento la decide AQUÍ el servidor (la
 // pantalla solo avisa); la hora la pone la base de datos; el trazo va al almacén privado,
 // en la carpeta de este enlace; y se guarda la huella de los datos del CMR que se firmaron.
@@ -35,8 +51,13 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   if (!png || png.length < 200 || png.length > 600_000 || png.subarray(0, 4).toString('hex') !== '89504e47') return { ok: false, error: 'Falta la firma: firma con el dedo dentro del recuadro.' };
 
   // Lo que había en pantalla al firmar (sin las firmas): su huella prueba QUÉ se firmó.
-  const { data: cmr } = await sb.rpc('cmr_publico', { p_token: token });
-  const datos = cmr as { resultado?: string; firmas?: unknown; [campo: string]: unknown } | null;
+  const rCmr = await reintentando(() => sb.rpc('cmr_publico', { p_token: token }), (x) => x.error?.message ?? null);
+  if (rCmr.error) {
+    // Fallo de transporte (p. ej. pool de conexiones agotado): NO es un enlace caducado.
+    console.error('[cmr/firmar] fallo al leer la hoja', { token, rol: d.rol, mensaje: rCmr.error.message });
+    return { ok: false, error: 'Ahora mismo no se puede cargar la hoja. Espera unos segundos y vuelve a intentarlo.' };
+  }
+  const datos = rCmr.data as { resultado?: string; firmas?: unknown; [campo: string]: unknown } | null;
   if (!datos || datos.resultado !== 'ok') return { ok: false, error: datos?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
   const { firmas: _f, ...contenido } = datos;
   // Casilla ya firmada: se corta AQUÍ, antes de subir el trazo. Cada subida cuenta para
@@ -59,7 +80,13 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   }
 
   const ruta = `cmr/${token}/${randomUUID()}.png`;
-  const { error: e1 } = await sb.storage.from('documentos').upload(ruta, png, { contentType: 'image/png', upsert: false });
+  let { error: e1 } = await reintentando(
+    () => sb.storage.from('documentos').upload(ruta, png, { contentType: 'image/png', upsert: false }),
+    (x) => x.error?.message ?? null,
+  );
+  // Si un intento anterior llegó al servidor pero su respuesta se perdió, el reintento
+  // choca con su propio fichero (la ruta es un UUID recién generado): eso ES haber subido.
+  if (e1 && /duplicate|already exists/i.test(e1.message ?? '')) e1 = null;
   if (e1) {
     console.error('[cmr/firmar] fallo al subir el trazo', { token, rol: d.rol, mensaje: e1.message });
     return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
