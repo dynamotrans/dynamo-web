@@ -1078,14 +1078,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       desglose del importe (usuario, 2026-11-11): lo que se cotiza, a la vista. */}
                   <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
-                    encima={<>{avisoTrailer}{tarjetaMercancia}</>} onElegir={elegirAlternativa} />
+                    encima={tarjetaMercancia} onElegir={elegirAlternativa} />
                   {/* Fuera la caja de «precio en firme en 25 minutos» (usuario, 2026-11-12):
                       el precio del tarifador ya es el definitivo, igual que en admin. */}
                   {navBotones}
                 </>) : <>
                 <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
                   cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
-                  encima={<>{avisoTrailer}{tarjetaMercancia}</>} onElegir={elegirAlternativa} />
+                  encima={tarjetaMercancia} onElegir={elegirAlternativa} />
                 {navBotones}
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
                   <div className="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
