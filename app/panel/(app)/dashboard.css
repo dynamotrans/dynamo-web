@@ -3178,7 +3178,8 @@ body.theme-dark .op-chip2-otro { background: rgba(190,140,90,0.15); color: #d8b4
 .cal-leyenda span { display: inline-flex; align-items: center; gap: 0.38rem; }
 .cal-leyenda i { width: 11px; height: 11px; border-radius: 3px; flex: none; }
 /* Selector «Vista: Lista / Calendario» de la cabecera */
-.vista-select { height: 44px; padding: 0 0.7rem; border: 1.5px solid var(--gray-300); border-radius: 10px; background: #fff; font: inherit; font-size: var(--fs-m); font-weight: 800; color: var(--navy); cursor: pointer; }
+/* Misma altura y letra que el CTA «Nuevo envío» de la cabecera (usuario, 2026-11-12). */
+.vista-select { height: 56px; padding: 0 0.8rem; border: 1.5px solid var(--gray-300); border-radius: 12px; background: #fff; font: inherit; font-size: var(--fs-d1); font-weight: 800; color: var(--navy); cursor: pointer; }
 .vista-select:hover, .vista-select:focus { outline: none; border-color: var(--purple); }
 /* Fecha/hora de creación: pequeñita y en UNA línea */
 table.data td.ref .ref-creado { display: block; font-size: var(--fs-s); color: var(--gray-400); white-space: nowrap; margin-top: 2px; }

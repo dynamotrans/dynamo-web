@@ -7975,3 +7975,53 @@ do $$ declare tok uuid := current_setting('prueba.tok205')::uuid; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 206. La firma del transportista pisa al conductor del envío si el DNI difiere ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; t uuid; c uuid; v record; n int; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  t := current_setting('prueba.transp')::uuid;
+  insert into conductores (transportista_id, nombre, documento, documento_pais)
+    values (t, 'Alberto Anotado', 'PT2060010A', 'PT') returning id into c;
+  update envios set transportista_id = t, conductor_id = c, conductor_nombre = 'Alberto Anotado' where id = e;
+
+  -- La firma del DESTINATARIO no toca al conductor.
+  insert into firmas_cmr (envio_id, rol, nombre, documento, firma_storage_ruta)
+    values (e, 'destinatario', 'Dani Destino', 'X7654321G', 'firmas/f206a.png');
+  -- Una firma EXTRA del transportista tampoco.
+  insert into firmas_cmr (envio_id, rol, nombre, documento, extra, firma_storage_ruta)
+    values (e, 'transportista', 'Extra Uno', 'X1111111H', true, 'firmas/f206b.png');
+  select conductor_id, conductor_nombre into v from envios where id = e;
+  if v.conductor_id is distinct from c or v.conductor_nombre <> 'Alberto Anotado' then
+    raise exception 'FALLO 206 · destinatario o firma extra tocan al conductor del envío';
+  end if;
+  -- La casilla PRINCIPAL del transportista con OTRO documento: el firmante se pone en su
+  -- lugar — nombre, y ficha nueva del transportista con ese documento.
+  insert into firmas_cmr (envio_id, rol, nombre, documento, documento_pais, firma_storage_ruta)
+    values (e, 'transportista', 'Berta Bolante', 'PT2060020B', 'PT', 'firmas/f206c.png');
+  select conductor_id, conductor_nombre into v from envios where id = e;
+  if v.conductor_nombre <> 'Berta Bolante' then
+    raise exception 'FALLO 206 · la firma del transportista no pisa el nombre del conductor: %', v.conductor_nombre;
+  end if;
+  if v.conductor_id is null or upper((select documento from conductores where id = v.conductor_id)) <> 'PT2060020B'
+     or (select transportista_id from conductores where id = v.conductor_id) is distinct from t then
+    raise exception 'FALLO 206 · el envío no queda vinculado a la ficha del firmante';
+  end if;
+  -- Y la ficha no se duplica si vuelve a firmar en otro envío: casa por documento.
+  select count(*) into n from conductores where transportista_id = t
+    and normalizar_id_fiscal(documento) = 'PT2060020B';
+  if n <> 1 then raise exception 'FALLO 206 · fichas duplicadas del mismo documento: %', n; end if;
+  raise notice 'OK 206 · la firma principal del transportista con otro DNI pisa nombre y ficha del conductor del envío; destinatario y extra, no';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
