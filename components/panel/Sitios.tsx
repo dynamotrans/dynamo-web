@@ -397,7 +397,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       icono={<IcoPin />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
-        {fila && <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => setConfirmarBorrado(true)} disabled={!!trabajando}>Borrar</button>}
+        {fila && <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => { setConfirmarBorrado(true); setTimeout(() => document.getElementById('sitio-borrar-confirm')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0); }} disabled={!!trabajando}>Borrar</button>}
         <button className="btn-primary" onClick={() => guardar(false)} disabled={!!trabajando || sinAbrir}
           title={sinAbrir ? 'Busca primero arriba (o elige «¿No lo encuentras? + Crear un sitio nuevo» en el desplegable)' : undefined}>{fila ? 'Guardar cambios' : `Crear ${que}`}</button>
       </>}>
@@ -408,7 +408,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         </div>
       )}
       {confirmarBorrado && (
-        <div className="modal-warn-box">
+        <div className="modal-warn-box" id="sitio-borrar-confirm">
           <strong>¿Borrar este {que}?</strong> Desaparece {almacen ? 'del catálogo y de los desplegables' : 'de la agenda y del buscador de envíos'}. Lo ya creado <strong>conserva la dirección</strong>.
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={borrar}>Sí, borrar</button>
@@ -584,12 +584,12 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             van a los CONTACTOS (todos nacen recibiéndolos; Dynamo puede apagarlos). */}
         <button type="button" className="campo-plegado" aria-expanded={abierto.avisos} onClick={() => plegar('avisos')}>
           <span className="cp-ico" aria-hidden="true">{abierto.avisos ? '−' : '+'}</span>
-          <span className="cp-txt">Notas internas del sitio
-            {d.anotaciones.trim() ? <span className="cp-val">· {d.anotaciones.length > 42 ? d.anotaciones.slice(0, 41) + '…' : d.anotaciones}</span> : <span className="cp-val">· privadas · opcional</span>}</span>
+          <span className="cp-txt">Indicaciones del sitio
+            {d.anotaciones.trim() ? <span className="cp-val">· {d.anotaciones.length > 42 ? d.anotaciones.slice(0, 41) + '…' : d.anotaciones}</span> : <span className="cp-val">· las ven transportista y cliente · opcional</span>}</span>
         </button>
         {abierto.avisos && (
           <div className="ptar-sitio-grid">
-            {campo('anotaciones', <>Notas internas del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· privadas</span></>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
+            {campo('anotaciones', <>Indicaciones del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· salen SIEMPRE con este sitio: orden de carga del transportista y ficha del envío</span></>, 'Ej. cargar siempre por el muelle 10, pedir cita, báscula…', true)}
           </div>
         )}
 
@@ -602,7 +602,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         </button>
         {abierto.merc && (
           <div className="ptar-sitio-grid">
-            {campo('mercancia_defecto', <>Info mercancía por defecto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sale prerrellena al crear envíos con este sitio, debajo del resumen de la mercancía</span></>, 'Ej. 4 palets de recambios, 1 caja de 2×1 m…', true)}
+            {campo('mercancia_defecto', <>Info mercancía por defecto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sale prerrellena al crear envíos con este sitio, debajo del resumen de la mercancía</span></>, 'Ej. Requerimos 14 cintas de amarre.', true)}
           </div>
         )}
 
