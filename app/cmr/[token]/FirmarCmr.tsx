@@ -172,13 +172,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <strong style={{ background: '#c6f2d9', color: '#0b5c31', padding: '0.05rem 0.3rem', borderRadius: 6, fontWeight: 800 }}>
           también pueden firmar aquí, en tu móvil.
         </strong>{' '}
-        Si alguien la quiere, mándasela.
-        {/* El botón de compartir, DENTRO de la caja y tras el texto (usuario, 2026-11-12):
-            abre la hoja de compartir (WhatsApp, Email, SMS, Copiar…). */}
-        <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.6rem 0 0', background: '#fff',
-          color: '#0f6b3a', border: '1.5px solid var(--green)', textAlign: 'center', padding: '0.85rem 1rem', fontSize: '1rem', fontWeight: 800, borderRadius: 10 }}
-          onClick={() => setCompartir(true)}>
-          Compartir esta página de firmas
+        Si alguien quiere firmar en su móvil, mándasela{' '}
+        {/* «pulsando aquí» abre la hoja de compartir (WhatsApp, Email, SMS, Copiar…);
+            sin botón aparte (usuario, 2026-11-12). */}
+        <button type="button" onClick={() => setCompartir(true)}
+          style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', color: '#0b5c31', fontWeight: 800, textDecoration: 'underline' }}>
+          pulsando aquí.
         </button>
       </div>
       {/* Con TODO firmado, el contador va en caja verde y debajo se repite la de
