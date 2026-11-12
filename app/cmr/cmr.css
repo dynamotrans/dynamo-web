@@ -36,6 +36,8 @@
     .cmr-page .adr { margin-top: 0.7rem; background: #fdecec; border: 1.5px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.55rem 0.7rem; font-size: 0.85rem; font-weight: 800; }
     .cmr-page .prog { text-align: center; font-size: 0.82rem; font-weight: 800; color: var(--gray-700); margin: 0.4rem 0 0.8rem; }
     .cmr-page .prog .done-all { color: var(--green-dark); }
+    /* El contador con todo firmado, en caja verde (usuario, 2026-11-12). */
+    .cmr-page .prog.prog-caja { background: rgba(34,165,90,0.12); border: 1.5px solid var(--green); color: var(--green-dark); border-radius: 12px; padding: 0.8rem 0.9rem; font-size: 0.95rem; margin: 0.4rem 0 0.5rem; }
     /* Bloques de firma (casillas del CMR) */
     .cmr-page .firma { border: 1.5px dashed var(--gray-300); border-radius: 12px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; }
     /* Toda la caja de una firma pendiente es pulsable: abre lo mismo que el botón «Firmar». */

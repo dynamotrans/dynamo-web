@@ -185,7 +185,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         Si alguien la quiere, mándasela.
       </div>
       <Ayuda />
-      <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
+      {/* Con TODO firmado, el contador va en caja verde y debajo se repite la de
+          «CMR completamente firmado» (usuario, 2026-11-12) — la del pie se queda. */}
+      {hechas === bloques.length && bloques.length > 0 ? <>
+        <div className="prog prog-caja">✓ {hechas} de {bloques.length} firmas completadas</div>
+        <div className="banner-ok show" style={{ marginTop: 0, marginBottom: '0.8rem' }}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
+      </> : <div className="prog">{hechas} de {bloques.length} firmas completadas</div>}
       {sinTransportista && hechas < bloques.length && (
         <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
           Todavía no se puede firmar: el envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
