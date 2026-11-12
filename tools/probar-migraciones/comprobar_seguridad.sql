@@ -7896,3 +7896,44 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 204. La primera firma del cargador/transportista fija la fecha de carga real ------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+
+  -- La firma del DESTINATARIO sola no fija nada.
+  insert into firmas_cmr (envio_id, rol, nombre, documento, firma_storage_ruta)
+    values (e, 'destinatario', 'Dani Destino', '12345678Z', 'firmas/f204a.png');
+  if (select fecha_carga_real from envios where id = e) is not null then
+    raise exception 'FALLO 204 · la firma del destinatario fija la fecha de carga real (no debe)';
+  end if;
+  -- La PRIMERA del cargador (o transportista) sí: fecha de la firma, hora de Madrid.
+  insert into firmas_cmr (envio_id, rol, nombre, documento, firma_storage_ruta)
+    values (e, 'remitente', 'Carmen Cargadora', '12345678Z', 'firmas/f204b.png');
+  if (select fecha_carga_real from envios where id = e) is distinct from hoy then
+    raise exception 'FALLO 204 · la primera firma del cargador no fija la fecha de carga real: %',
+      (select fecha_carga_real from envios where id = e);
+  end if;
+  -- Las siguientes ya no la mueven (ni aunque firme el transportista después).
+  update envios set fecha_carga_real = hoy - 1 where id = e;   -- la mueve Dynamo a mano…
+  insert into firmas_cmr (envio_id, rol, nombre, documento, firma_storage_ruta)
+    values (e, 'transportista', 'Tono Transportista', 'X1234567L', 'firmas/f204c.png');
+  if (select fecha_carga_real from envios where id = e) is distinct from (hoy - 1) then
+    raise exception 'FALLO 204 · una firma posterior pisa la fecha (solo la primera debe fijarla)';
+  end if;
+  raise notice 'OK 204 · la primera firma del cargador/transportista fija la fecha de carga real; destinatario y siguientes, no';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
