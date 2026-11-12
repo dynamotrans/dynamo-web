@@ -58,8 +58,8 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   if (!esAlmacen && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es el sitio.' };
   const precioMal = [d.almacen?.precio_almacenamiento_semana, d.almacen?.precio_reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0));
   if (precioMal) return { ok: false, error: 'Los precios tienen que ser un número (o vacíos para usar los de por defecto).' };
-  if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
-    return { ok: false, error: 'Empresa, dirección, código postal y población son obligatorios.' };
+  if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim() || !d.provincia.trim()) {
+    return { ok: false, error: 'Empresa, dirección, código postal, población y provincia son obligatorios.' };
   }
 
   // Emails de avisos: varios separados por comas, cada uno válido, máximo 10.

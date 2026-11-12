@@ -2660,7 +2660,11 @@ input.alm-f-err, .dash-modal input.alm-f-err {
    de .filters, selector de vista y botones de cabecera/acción — todo
    a la misma altura para que las filas queden alineadas. */
 .sec-header > .btn-primary,
-.sec-header-actions .btn-primary { flex: 1; width: 100%; min-height: 44px; }
+/* Más alto y con texto bien visible (usuario, 2026-11-12), igual en TODAS las
+   secciones: es la acción principal de la pantalla. */
+.sec-header-actions .btn-primary,
+.sec-header > .btn-primary { flex: 1; width: 100%; min-height: 56px;
+    font-size: var(--fs-d1); font-weight: 800; border-radius: 12px; }
 .btn-primary, .btn-secondary, .btn-ghost {
     padding: 0.55rem 1rem; border-radius: 10px; min-height: 44px;
     font-size: var(--fs-m); font-weight: 700;
@@ -2673,10 +2677,14 @@ input.alm-f-err, .dash-modal input.alm-f-err {
     background: var(--purple); color: white;
 }
 .btn-primary:hover { background: var(--purple-light); }
+/* Secundario NEUTRO en todo el panel (usuario, 2026-11-12: «mismo diseño correcto
+   para todos»): gris claro con borde, como en las barras de los modales. El verde
+   de marca queda para acentos, no para botones de acción. */
 .btn-secondary {
-    background: var(--green); color: white;
+    background: var(--gray-100); color: var(--navy);
+    border: 1px solid var(--gray-200);
 }
-.btn-secondary:hover { background: #29b366; }
+.btn-secondary:hover { background: var(--gray-200); border-color: var(--gray-300); }
 .btn-ghost {
     background: var(--gray-100); color: var(--gray-700);
     border: 1px solid var(--gray-200);

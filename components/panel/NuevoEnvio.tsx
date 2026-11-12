@@ -899,6 +899,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {puntos.map((p, i) => (
                     <div key={p.k} data-parada={p.k} className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
                       <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p)}
+                        cliente={cliente} dynamo={!esCliente}
+                        onCreado={async (id) => {
+                          // El sitio recién creado en la ventana de Crear sitio: recargar la
+                          // agenda del cliente y dejarlo elegido en ESTA parada.
+                          if (!cliente) return;
+                          const suyos = await sitiosDelCliente(cliente.id).catch(() => [] as typeof sitiosIni);
+                          if (suyos.length) setSitios((l) => [...l.filter((x) => x.cliente_id !== cliente.id), ...suyos]);
+                          const sit = suyos.find((x) => x.id === id);
+                          if (sit) cambiar(p, { sitio: sit, nuevo: null });
+                        }}
                         placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente')
                           : i === puntos.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente')
                           : p.tipo === 'carga' ? 'Otra recogida · busca en la agenda' : 'Otra entrega · busca en la agenda'}

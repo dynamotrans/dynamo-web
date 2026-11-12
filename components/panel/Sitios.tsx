@@ -194,7 +194,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   // «Ver como» un cliente: el sitio es SIEMPRE de ese cliente, así que el campo Cliente no sale.
   clienteFijo?: boolean;
   almacen?: { precioSemana: number; precioReparto: number };
-  onCerrar: () => void; onAbrir: (id: string) => void; onGuardado: () => void;
+  onCerrar: () => void; onAbrir: (id: string) => void; onGuardado: (id?: string) => void;
 }) {
   const [d, setD] = useState<SitioDatos>(() => datosDeFicha(fila, veranoDefecto, !!almacen,
     clientes.length === 1 || clienteFijo ? clientes[0]?.id ?? '' : ''));
@@ -276,10 +276,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     const base: SitioDatos = { ...d, requiere_cita: false, tiene_medios_carga: false };
     const datos: SitioDatos = almacen ? { ...base, almacen: { disponible: d.almacen?.disponible ?? true, precio_almacenamiento_semana: semana, precio_reparto: reparto } } : base;
     if (!d.tipo) { setError('Elige el tipo de sitio.'); avisaFaltas(['sitio-tipo']); return; }
-    if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
-      setError('Empresa, dirección, código postal y población son obligatorios.');
+    if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim() || !d.provincia.trim()) {
+      setError('Empresa, dirección, código postal, población y provincia son obligatorios.');
       avisaFaltas([!d.nombre_empresa.trim() && 'sitio-nombre_empresa', !d.direccion.trim() && 'sitio-direccion',
-        !d.codigo_postal.trim() && 'sitio-codigo_postal', !d.poblacion.trim() && 'sitio-poblacion'].filter(Boolean) as string[]);
+        !d.codigo_postal.trim() && 'sitio-codigo_postal', !d.poblacion.trim() && 'sitio-poblacion',
+        !d.provincia.trim() && 'sitio-provincia'].filter(Boolean) as string[]);
       return;
     }
     if (!almacen && !d.contactos.some((x) => x.telefono.trim())) {
@@ -310,7 +311,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       }
       setError(r.error); return;
     }
-    onGuardado();
+    onGuardado(r.id);
   }
   async function borrar() {
     if (!fila) return;
@@ -328,7 +329,6 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         onChange={(e) => set(id, e.target.value as never)} {...extra} />
     </div>
   );
-  const opc = <Req si={false} />;
   const obl = <Req />;
   // Cliente del sitio: en una ficha existente viene con la página; en una nueva se elige con
   // el buscador (los clientes ya no viajan todos a la pantalla).
@@ -352,7 +352,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     const r = await guardarSitio(comparar.id, datos);
     setTrabajando(null);
     if (!r.ok) { setError(r.error); setComparar(null); return; }
-    onGuardado();
+    onGuardado(r.id);
   }
   if (comparar) {
     const propios: Record<string, string> = {
@@ -537,7 +537,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         {/* Provincia y País SIEMPRE en la misma fila (también en el móvil), como rejilla
             ANIDADA de la estándar: mismos estilos, tamaños y separación que el resto. */}
         <div className="ptar-sitio-grid" style={{ gridColumn: '1/-1', gridTemplateColumns: '1fr 1fr' }}>
-          {campo('provincia', <>Provincia {opc}</>, 'Sevilla')}
+          {/* Provincia obligatoria (usuario, 2026-11-12). */}
+          {campo('provincia', <>Provincia {obl}</>, 'Sevilla')}
           <div>
             <label htmlFor="sitio-pais">País</label>
             <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />

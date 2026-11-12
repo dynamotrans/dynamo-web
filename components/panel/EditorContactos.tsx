@@ -76,9 +76,14 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
                     <span className="cp-ico" aria-hidden="true">−</span><span className="cp-txt">Nombre y apellidos <Req si={false} /></span></button>
                 : <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>}
               <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
-          : <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>
-              <span className="cp-ico" aria-hidden="true">+</span>
-              <span className="cp-txt">Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <span className="cp-val">· {c.nombre}</span> : null}</span></button>}
+          : <>
+              {/* Etiqueta fantasma: ocupa la fila de la etiqueta para que la píldora
+                  alinee con el campo de teléfono de al lado (usuario, 2026-11-12). */}
+              <label aria-hidden="true" style={{ visibility: 'hidden' }}>Nombre</label>
+              <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>
+                <span className="cp-ico" aria-hidden="true">+</span>
+                <span className="cp-txt">Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <span className="cp-val">· {c.nombre}</span> : null}</span></button>
+            </>}
         </div>
         <div>
           <label htmlFor={`${id}-tel`}>Teléfono <Req si={obligatorios} /></label>
