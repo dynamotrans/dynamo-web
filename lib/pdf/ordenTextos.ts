@@ -47,7 +47,7 @@ export type TextosOrden = {
   tipoSitio: string; atencion: string; indicaciones: string;
   estimada: string; porConfirmar: string; consultaDynamo: string; faltanEmpresa: string; citaPrevia: string; sinMedios: string;
   mercancia: string; tipoTransporte: string; tipoCarga: string; requisitos: string; importante: string; txtImportante: string;
-  paletizada: string; noPaletizada: string; bulto: string; bultos: string; metrosLineales: string; rigido: string; tauliner: string;
+  paletizada: string; noPaletizada: string; bulto: string; bultos: string; metrosLineales: string; rigido: string; tauliner: string; alturaMax: string;
   cargaCompleta: string; rigidoCompleto: string; grupaje: string; cargaLateral: string; cargaTrasera: string; cargaTecho: string;
   requiereNima: string; adr: string;
   pendMatrEnvia: string; conductor: string; pendComunicar: string; txtSoloMatr: string;
@@ -75,7 +75,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Mercancía', tipoTransporte: 'Tipo de transporte', tipoCarga: 'Tipo de carga', requisitos: 'Requisitos', importante: 'Importante',
     txtImportante: 'El transportista solo está autorizado a recoger la mercancía descrita en esta orden. Si el cargador quiere cargar otra mercancía, avísanos antes para autorizarla. No está permitido el transbordo: si lo necesitas, avísanos antes para consultarlo con el cliente.',
     paletizada: 'Paletizada', noPaletizada: 'No paletizada', bulto: 'bulto', bultos: 'bultos', metrosLineales: 'metros lineales',
-    rigido: 'Camión rígido con plataforma elevadora', tauliner: 'Tráiler tauliner (lona corredera)',
+    rigido: 'Camión rígido con plataforma elevadora', tauliner: 'Tráiler tauliner (lona corredera)', alturaMax: 'altura máxima {m} m',
     cargaCompleta: 'Tráiler completo', rigidoCompleto: 'Rígido completo', grupaje: 'Grupaje', cargaLateral: 'carga lateral', cargaTrasera: 'carga trasera', cargaTecho: 'carga por techo',
     requiereNima: 'Requiere NIMA', adr: 'MERCANCÍA ADR (peligrosa)',
     pendMatrEnvia: 'PENDIENTE DE ASIGNAR: envíanoslas antes de la carga', conductor: 'Conductor', pendComunicar: 'Pendiente de comunicar',
@@ -106,7 +106,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Goods', tipoTransporte: 'Type of transport', tipoCarga: 'Type of load', requisitos: 'Requirements', importante: 'Important',
     txtImportante: 'The carrier is only authorised to collect the goods described in this order. If the shipper wants to load other goods, tell us first so we can authorise them. Transhipment is not allowed: if you need it, tell us first so we can check with the customer.',
     paletizada: 'Palletised', noPaletizada: 'Not palletised', bulto: 'package', bultos: 'packages', metrosLineales: 'loading metres',
-    rigido: 'Rigid truck with tail lift', tauliner: 'Tautliner trailer (sliding curtain)',
+    rigido: 'Rigid truck with tail lift', tauliner: 'Tautliner trailer (sliding curtain)', alturaMax: 'maximum height {m} m',
     cargaCompleta: 'Full trailer load (FTL)', rigidoCompleto: 'Full rigid load', grupaje: 'Groupage', cargaLateral: 'side loading', cargaTrasera: 'rear loading', cargaTecho: 'top loading',
     requiereNima: 'NIMA required', adr: 'ADR GOODS (dangerous)',
     pendMatrEnvia: 'TO BE ASSIGNED: send them to us before loading', conductor: 'Driver', pendComunicar: 'To be communicated',
@@ -137,7 +137,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Mercadoria', tipoTransporte: 'Tipo de transporte', tipoCarga: 'Tipo de carga', requisitos: 'Requisitos', importante: 'Importante',
     txtImportante: 'O transportador só está autorizado a recolher a mercadoria descrita nesta ordem. Se o carregador quiser carregar outra mercadoria, avise-nos antes para a autorizarmos. Não é permitido o transbordo: se precisar, avise-nos antes para o consultarmos com o cliente.',
     paletizada: 'Paletizada', noPaletizada: 'Não paletizada', bulto: 'volume', bultos: 'volumes', metrosLineales: 'metros lineares',
-    rigido: 'Camião rígido com plataforma elevatória', tauliner: 'Reboque tautliner (lona corrediça)',
+    rigido: 'Camião rígido com plataforma elevatória', tauliner: 'Reboque tautliner (lona corrediça)', alturaMax: 'altura máxima {m} m',
     cargaCompleta: 'Camião completo (FTL)', rigidoCompleto: 'Rígido completo', grupaje: 'Grupagem', cargaLateral: 'carga lateral', cargaTrasera: 'carga traseira', cargaTecho: 'carga pelo teto',
     requiereNima: 'Requer NIMA', adr: 'MERCADORIA ADR (perigosa)',
     pendMatrEnvia: 'POR ATRIBUIR: envie-nos as matrículas antes da carga', conductor: 'Motorista', pendComunicar: 'Por comunicar',
@@ -168,7 +168,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Marchandise', tipoTransporte: 'Type de transport', tipoCarga: 'Type de chargement', requisitos: 'Exigences', importante: 'Important',
     txtImportante: 'Le transporteur n’est autorisé à enlever que la marchandise décrite dans cet ordre. Si le chargeur veut charger une autre marchandise, prévenez-nous avant pour l’autoriser. Le transbordement est interdit : si vous en avez besoin, prévenez-nous avant pour le voir avec le client.',
     paletizada: 'Palettisée', noPaletizada: 'Non palettisée', bulto: 'colis', bultos: 'colis', metrosLineales: 'mètres de plancher',
-    rigido: 'Porteur avec hayon élévateur', tauliner: 'Semi-remorque tautliner (rideaux coulissants)',
+    rigido: 'Porteur avec hayon élévateur', tauliner: 'Semi-remorque tautliner (rideaux coulissants)', alturaMax: 'hauteur maximale {m} m',
     cargaCompleta: 'Camion complet (FTL)', rigidoCompleto: 'Porteur complet', grupaje: 'Groupage', cargaLateral: 'chargement latéral', cargaTrasera: 'chargement arrière', cargaTecho: 'chargement par le toit',
     requiereNima: 'NIMA requis', adr: 'MARCHANDISE ADR (dangereuse)',
     pendMatrEnvia: 'À ASSIGNER : envoyez-les-nous avant le chargement', conductor: 'Conducteur', pendComunicar: 'À communiquer',
@@ -199,7 +199,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Ware', tipoTransporte: 'Transportart', tipoCarga: 'Ladungsart', requisitos: 'Anforderungen', importante: 'Wichtig',
     txtImportante: 'Der Frachtführer darf nur die in diesem Auftrag beschriebene Ware übernehmen. Will der Verlader andere Ware laden, informieren Sie uns vorher zur Freigabe. Umladen ist nicht erlaubt: falls nötig, vorher melden, damit wir es mit dem Kunden klären.',
     paletizada: 'Palettiert', noPaletizada: 'Nicht palettiert', bulto: 'Packstück', bultos: 'Packstücke', metrosLineales: 'Lademeter',
-    rigido: 'Motorwagen mit Ladebordwand', tauliner: 'Tautliner-Auflieger (Schiebeplane)',
+    rigido: 'Motorwagen mit Ladebordwand', tauliner: 'Tautliner-Auflieger (Schiebeplane)', alturaMax: 'maximale Höhe {m} m',
     cargaCompleta: 'Komplettladung (FTL)', rigidoCompleto: 'Komplett (Motorwagen)', grupaje: 'Teilladung', cargaLateral: 'Seitenbeladung', cargaTrasera: 'Heckbeladung', cargaTecho: 'Beladung von oben',
     requiereNima: 'NIMA erforderlich', adr: 'ADR-GUT (Gefahrgut)',
     pendMatrEnvia: 'NOCH ZUZUWEISEN: vor der Beladung an uns senden', conductor: 'Fahrer', pendComunicar: 'Noch mitzuteilen',
@@ -230,7 +230,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Merce', tipoTransporte: 'Tipo di trasporto', tipoCarga: 'Tipo di carico', requisitos: 'Requisiti', importante: 'Importante',
     txtImportante: 'Il trasportatore è autorizzato a ritirare solo la merce descritta in questo ordine. Se il caricatore vuole caricare altra merce, avvisaci prima per autorizzarla. Il trasbordo non è consentito: se ti serve, avvisaci prima per verificarlo con il cliente.',
     paletizada: 'Pallettizzata', noPaletizada: 'Non pallettizzata', bulto: 'collo', bultos: 'colli', metrosLineales: 'metri lineari',
-    rigido: 'Motrice con sponda idraulica', tauliner: 'Semirimorchio tautliner (telone scorrevole)',
+    rigido: 'Motrice con sponda idraulica', tauliner: 'Semirimorchio tautliner (telone scorrevole)', alturaMax: 'altezza massima {m} m',
     cargaCompleta: 'Carico completo (FTL)', rigidoCompleto: 'Motrice completa', grupaje: 'Groupage', cargaLateral: 'carico laterale', cargaTrasera: 'carico posteriore', cargaTecho: 'carico dall’alto',
     requiereNima: 'NIMA richiesto', adr: 'MERCE ADR (pericolosa)',
     pendMatrEnvia: 'DA ASSEGNARE: inviacele prima del carico', conductor: 'Autista', pendComunicar: 'Da comunicare',
@@ -261,7 +261,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Goederen', tipoTransporte: 'Type vervoer', tipoCarga: 'Type lading', requisitos: 'Vereisten', importante: 'Belangrijk',
     txtImportante: 'De vervoerder mag alleen de in deze opdracht beschreven goederen ophalen. Wil de verlader andere goederen laden, meld het ons vooraf voor toestemming. Overladen is niet toegestaan: indien nodig, meld het vooraf zodat wij het met de klant afstemmen.',
     paletizada: 'Gepalletiseerd', noPaletizada: 'Niet gepalletiseerd', bulto: 'collo', bultos: 'colli', metrosLineales: 'laadmeters',
-    rigido: 'Bakwagen met laadklep', tauliner: 'Tautliner-oplegger (schuifzeil)',
+    rigido: 'Bakwagen met laadklep', tauliner: 'Tautliner-oplegger (schuifzeil)', alturaMax: 'maximale hoogte {m} m',
     cargaCompleta: 'Volle lading (FTL)', rigidoCompleto: 'Volle bakwagen', grupaje: 'Groupage', cargaLateral: 'zijlading', cargaTrasera: 'achterlading', cargaTecho: 'lading via het dak',
     requiereNima: 'NIMA vereist', adr: 'ADR-GOEDEREN (gevaarlijk)',
     pendMatrEnvia: 'NOG TOE TE WIJZEN: stuur ze ons vóór het laden', conductor: 'Chauffeur', pendComunicar: 'Nog mee te delen',
@@ -292,7 +292,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Towar', tipoTransporte: 'Rodzaj transportu', tipoCarga: 'Rodzaj ładunku', requisitos: 'Wymagania', importante: 'Ważne',
     txtImportante: 'Przewoźnik jest upoważniony do odbioru wyłącznie towaru opisanego w niniejszym zleceniu. Jeżeli załadowca chce załadować inny towar, należy nas wcześniej powiadomić w celu uzyskania zgody. Przeładunek jest niedozwolony: jeżeli okaże się konieczny, należy nas wcześniej powiadomić w celu uzgodnienia z klientem.',
     paletizada: 'Paletyzowany', noPaletizada: 'Niepaletyzowany', bulto: 'sztuka', bultos: 'sztuk', metrosLineales: 'metrów ładownych',
-    rigido: 'Pojazd z windą załadowczą', tauliner: 'Naczepa typu firanka (tautliner)',
+    rigido: 'Pojazd z windą załadowczą', tauliner: 'Naczepa typu firanka (tautliner)', alturaMax: 'maksymalna wysokość {m} m',
     cargaCompleta: 'Ładunek całopojazdowy (FTL)', rigidoCompleto: 'Pojazd solo (pełny)', grupaje: 'Drobnica', cargaLateral: 'załadunek boczny', cargaTrasera: 'załadunek tylny', cargaTecho: 'załadunek od góry',
     requiereNima: 'Wymagany NIMA', adr: 'TOWAR ADR (niebezpieczny)',
     pendMatrEnvia: 'DO PRZYDZIELENIA: prosimy przesłać przed załadunkiem', conductor: 'Kierowca', pendComunicar: 'Do przekazania',
@@ -323,7 +323,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Zboží', tipoTransporte: 'Druh dopravy', tipoCarga: 'Druh nákladu', requisitos: 'Požadavky', importante: 'Důležité',
     txtImportante: 'Dopravce je oprávněn převzít pouze zboží popsané v tomto příkazu. Chce-li nakládající naložit jiné zboží, informujte nás předem kvůli schválení. Překládka není povolena: pokud ji potřebujete, informujte nás předem, abychom ji projednali se zákazníkem.',
     paletizada: 'Paletizované', noPaletizada: 'Nepaletizované', bulto: 'kus', bultos: 'kusů', metrosLineales: 'ložných metrů',
-    rigido: 'Vozidlo s hydraulickým čelem', tauliner: 'Návěs tautliner (shrnovací plachta)',
+    rigido: 'Vozidlo s hydraulickým čelem', tauliner: 'Návěs tautliner (shrnovací plachta)', alturaMax: 'maximální výška {m} m',
     cargaCompleta: 'Celovozová přeprava (FTL)', rigidoCompleto: 'Celé sólo vozidlo', grupaje: 'Dokládka', cargaLateral: 'boční nakládka', cargaTrasera: 'zadní nakládka', cargaTecho: 'nakládka shora',
     requiereNima: 'Vyžadováno NIMA', adr: 'ZBOŽÍ ADR (nebezpečné)',
     pendMatrEnvia: 'BUDE PŘIDĚLENO: zašlete nám je před nakládkou', conductor: 'Řidič', pendComunicar: 'Bude sděleno',
@@ -354,7 +354,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     mercancia: 'Marfă', tipoTransporte: 'Tip de transport', tipoCarga: 'Tip de încărcătură', requisitos: 'Cerințe', importante: 'Important',
     txtImportante: 'Transportatorul este autorizat să ridice doar marfa descrisă în această comandă. Dacă încărcătorul vrea să încarce altă marfă, anunțați-ne înainte pentru autorizare. Transbordarea nu este permisă: dacă este necesară, anunțați-ne înainte pentru a o verifica cu clientul.',
     paletizada: 'Paletizată', noPaletizada: 'Nepaletizată', bulto: 'colet', bultos: 'colete', metrosLineales: 'metri liniari',
-    rigido: 'Camion rigid cu lift hidraulic', tauliner: 'Semiremorcă tautliner (prelată culisantă)',
+    rigido: 'Camion rigid cu lift hidraulic', tauliner: 'Semiremorcă tautliner (prelată culisantă)', alturaMax: 'înălțime maximă {m} m',
     cargaCompleta: 'Camion complet (FTL)', rigidoCompleto: 'Rigid complet', grupaje: 'Grupaj', cargaLateral: 'încărcare laterală', cargaTrasera: 'încărcare prin spate', cargaTecho: 'încărcare pe sus',
     requiereNima: 'Necesită NIMA', adr: 'MARFĂ ADR (periculoasă)',
     pendMatrEnvia: 'DE ALOCAT: trimiteți-ni-le înainte de încărcare', conductor: 'Șofer', pendComunicar: 'De comunicat',

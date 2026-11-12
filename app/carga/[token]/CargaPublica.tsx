@@ -10,7 +10,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, sugerirTransportistas, flotaPublica, type AltaTransportista, type SugerenciaT, type FlotaPublica } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
-import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, diasEntre } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, alturaMaxTxt, diasEntre } from '@/lib/formato';
 
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
@@ -90,7 +90,7 @@ function Oferta({ o, completa }: { o: OfertaPublica | ReservaPublica; completa?:
           <div className="of-chips">
             {o.metros_lineales != null && <div className="of-chip"><span className="of-chip-k">Metros</span><span className="of-chip-v">{metros(o.metros_lineales)}</span></div>}
             {o.toneladas != null && <div className="of-chip"><span className="of-chip-k">Peso</span><span className="of-chip-v">{pesoTn(o.toneladas)}</span></div>}
-            <div className="of-chip"><span className="of-chip-k">Tipo de carga</span><span className="of-chip-v">{tipoCargaTxt(o.tipo_carga, o.requiere_plataforma_elevadora) || 'Grupaje'}</span></div>
+            <div className="of-chip"><span className="of-chip-k">Tipo de carga</span><span className="of-chip-v">{[tipoCargaTxt(o.tipo_carga, o.requiere_plataforma_elevadora) || 'Grupaje', alturaMaxTxt(o.requiere_plataforma_elevadora)].join(' · ')}</span></div>
             {forma && <div className="of-chip"><span className="of-chip-k">Carga por</span><span className="of-chip-v">{forma}</span></div>}
             {o.requiere_plataforma_elevadora && <div className="of-chip"><span className="of-chip-k">Camión</span><span className="of-chip-v">Con plataforma elevadora</span></div>}
             {o.requiere_nima && <div className="of-chip"><span className="of-chip-k">Residuos</span><span className="of-chip-v">Requiere NIMA</span></div>}

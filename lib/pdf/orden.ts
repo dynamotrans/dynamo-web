@@ -225,7 +225,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} ${t.metrosLineales}` : null,
       e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? t.bulto : t.bultos}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
       e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), { bold: true }],
-    [t.tipoTransporte, e.requiere_plataforma_elevadora ? t.rigido : t.tauliner],
+    // Altura máxima del hueco (usuario, 2026-11-12): que cliente y transportista la
+    // vean en la orden. Tráiler 2,70 m; rígido con plataforma 2,60 m.
+    [t.tipoTransporte, `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.60' : '2.70') : (e.requiere_plataforma_elevadora ? '2,60' : '2,70') })}`],
     [t.tipoCarga, [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ')],
     [t.requisitos, [e.requiere_nima && `${t.requiereNima}${e.transportista_nima ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
     [t.importante, t.txtImportante],

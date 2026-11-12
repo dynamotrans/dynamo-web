@@ -15,7 +15,7 @@ import DatosCmr from './DatosCmr';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha } from '@/lib/fichaEnvio';
 import PagoPrevio from './PagoPrevio';
@@ -371,7 +371,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         <div className="pen-envio-sum">
           <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v" style={{ textAlign: 'right' }}>{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</span></div>
           <div className="pen-sum-row"><span className="k">Medidas</span><span className="v">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</span></div>
-          <div className="pen-sum-row"><span className="k">Tipo de carga</span><span className="v">{tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora) || '—'}</span></div>
+          <div className="pen-sum-row"><span className="k">Tipo de carga</span><span className="v">{[tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora), alturaMaxTxt(e.requiere_plataforma_elevadora)].filter(Boolean).join(' · ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Forma de carga</span><span className="v">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v" style={{ textAlign: 'right' }}>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</span></div>
           {e.anotaciones_cliente && <div className="pen-sum-row pen-sum-col"><span className="k">Anotaciones</span><span className="v">{e.anotaciones_cliente}</span></div>}
