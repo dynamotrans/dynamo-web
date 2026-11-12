@@ -5100,20 +5100,28 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .ia-enviar { padding: 0 0.9rem; white-space: nowrap; }
 
 /* ---- Buscador global (usuario, 2026-11-12): caja del dashboard + paleta Cmd/Ctrl+K ---- */
+.bgq-wrap { position: relative; }
 .bgq-caja {
     display: flex; align-items: center; gap: 0.6rem; width: 100%; min-height: 52px;
     padding: 0 0.9rem; background: #fff; border: 1px solid var(--gray-300); border-radius: 12px;
-    color: var(--gray-500); font-size: var(--fs-m); cursor: pointer; text-align: left;
+    color: var(--gray-500);
 }
-.bgq-caja:hover { border-color: var(--purple); color: var(--navy); }
+.bgq-caja:focus-within { border-color: var(--purple); }
+.bgq-caja.abierta { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .bgq-caja svg { width: 18px; height: 18px; flex: none; }
-.bgq-caja span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bgq-caja kbd {
-    flex: none; padding: 0.12rem 0.45rem; border: 1px solid var(--gray-300); border-radius: 6px;
-    background: var(--gray-50); font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
-    font-family: inherit;
+.bgq-caja input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; min-height: 50px; font-size: var(--fs-m); color: var(--navy); }
+.bgq-drop {
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 60;
+    background: #fff; border: 1px solid var(--purple); border-top: none;
+    border-radius: 0 0 12px 12px; box-shadow: 0 18px 40px rgba(10,2,48,0.18);
+    max-height: min(55vh, 420px); overflow-y: auto;
 }
-@media (hover: none) { .bgq-caja kbd { display: none; } }
+.bgq-rueda {
+    flex: none; width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--gray-300); border-top-color: var(--purple);
+    animation: bgqGira 0.7s linear infinite;
+}
+@keyframes bgqGira { to { transform: rotate(360deg); } }
 .bgq-fondo {
     position: fixed; inset: 0; z-index: 140; background: rgba(10,2,48,0.45);
     display: flex; justify-content: center; align-items: flex-start; padding: min(12vh, 110px) 0.8rem 0.8rem;

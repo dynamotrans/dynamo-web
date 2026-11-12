@@ -23,21 +23,22 @@ export async function busquedaGlobal(q: string): Promise<BusquedaGlobal> {
   if (q.length < 2) return VACIA;
   const sb = s.supabase;
   const gestor = esGestor(s.perfil.rol);
-  const [ids, cli, tra] = await Promise.all([
-    sb.rpc('buscar_envios', { p_q: q, p_limite: 6 }),
+  // Envíos en UNA sola consulta (antes eran dos viajes: ids por RPC y luego los datos,
+  // y se notaba lento — usuario, 2026-11-12): mismas reglas que buscar_envios (todas
+  // las palabras, sin tildes, sobre texto_busqueda, por RLS) pero trayendo ya lo que
+  // se pinta, más recientes primero.
+  const palabras = q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .split(/\s+/).filter(Boolean).slice(0, 6)
+    .map((w) => `%${w.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`);
+  let qe = sb.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino, estado');
+  for (const w of palabras) qe = qe.ilike('texto_busqueda', w);
+  const [env, cli, tra] = await Promise.all([
+    qe.order('creado_en', { ascending: false }).limit(6),
     gestor ? sb.rpc('buscar_clientes', { p_q: q, p_limite: 4 }) : Promise.resolve({ data: null }),
     gestor ? sb.rpc('buscar_transportistas', { p_q: q, p_limite: 4 }) : Promise.resolve({ data: null }),
   ]);
-  const idList = ((ids.data ?? []) as string[]).slice(0, 6);
-  let envios: BusquedaGlobal['envios'] = [];
-  if (idList.length) {
-    const { data } = await sb.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino, estado').in('id', idList);
-    const por = new Map((data ?? []).map((e) => [e.id, e]));
-    envios = idList.flatMap((id) => {
-      const e = por.get(id);
-      return e ? [{ id: e.id, ref: e.referencia_gx ?? '', ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → '), estado: e.estado }] : [];
-    });
-  }
+  const envios: BusquedaGlobal['envios'] = (env.data ?? []).map((e) => ({
+    id: e.id, ref: e.referencia_gx ?? '', ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → '), estado: e.estado }));
   type Fila = { id: string; nombre: string; cif: string };
   return {
     envios,
