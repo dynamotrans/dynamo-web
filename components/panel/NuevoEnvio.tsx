@@ -31,7 +31,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, autosusp = null, reglas = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, reglas = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
@@ -1264,13 +1264,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         {/* En caja GRIS, como la verde de arriba pero neutra (usuario, 2026-11-10). Los
             límites salen VIVOS de Parámetros vía mi_autosuspension (usuario, 2026-11-11:
             el «3 en 10» a pelo se quedaba viejo), con lo que lleva el cliente debajo. */}
+        {/* Frase corta, sin números ni coletillas (usuario, 2026-11-12); el detalle
+            vivo de los límites sigue en «Uso de Dynamo». */}
         <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
-          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo
-          {autosusp
-            ? <> (desde <strong>{autosusp.cancelaciones.max_recientes} cancelaciones con coste en {autosusp.cancelaciones.dias_recientes} días</strong>, o el <strong>{autosusp.cancelaciones.max_pct} %</strong> de tus envíos a partir de {autosusp.cancelaciones.min_envios}). Solo cuentan las que hacen daño: con camión asignado, o tarde.</>
-            : <> (los límites exactos viven en los parámetros de la plataforma y pueden ajustarse).</>}
-          {/* Sin el «Tu cuenta ahora mismo: …» (usuario, 2026-11-12): sobraba en el modal
-              de confirmar; el detalle vivo sigue en «Uso de Dynamo». */}
+          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
         </div>
         <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}
