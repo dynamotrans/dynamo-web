@@ -174,9 +174,29 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           titulo={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`}
           texto={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí:`} />
       )}
-      {/* Caja AZUL con la misma cabecera que la hoja del panel (usuario, 2026-11-11):
-          qué es esto y su validez legal, con el detalle eIDAS/FOM desplegable. */}
-      <div style={{ margin: '0.45rem 0 0', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, padding: '0.7rem 0.85rem', textAlign: 'center' }}>
+      {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
+          lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
+      <div style={{ margin: '0.45rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
+        padding: '0.65rem 0.85rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
+        Cargador, transportista y destinatario ya la han recibido igual que tú, y{' '}
+        <strong style={{ background: '#c6f2d9', color: '#0b5c31', padding: '0.05rem 0.3rem', borderRadius: 6, fontWeight: 800 }}>
+          también pueden firmar aquí, en tu móvil.
+        </strong>{' '}
+        Si alguien la quiere, mándasela.
+      </div>
+      <Ayuda />
+      <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
+      {sinTransportista && hechas < bloques.length && (
+        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
+          Todavía no se puede firmar: el envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
+          En cuanto se asigne, las firmas se abren solas en esta misma página.
+        </div>
+      )}
+      {firmoAqui && <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
+      {/* Caja AZUL con la misma cabecera que la hoja del panel: qué es esto y su validez
+          legal, con el detalle eIDAS/FOM desplegable. JUSTO delante de la primera caja
+          de firma (usuario, 2026-11-12), que es cuando toca leerla. */}
+      <div style={{ margin: '0 0 0.8rem', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, padding: '0.7rem 0.85rem', textAlign: 'center' }}>
         <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--navy)' }}>Firmen el CMR con el dedo desde el móvil, sin crear cuenta</p>
         <button type="button" onClick={() => setMasInfo((v) => !v)} aria-expanded={masInfo}
           style={{ margin: '0.25rem 0 0', padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--purple)' }}>
@@ -200,20 +220,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         )}
       </div>
-      {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11). */}
-      <div style={{ margin: '0.45rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
-        padding: '0.65rem 0.85rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
-        Cargador, transportista y destinatario ya la han recibido igual que tú, y también pueden firmar aquí, en tu móvil. Si alguien la quiere, mándasela.
-      </div>
-      <Ayuda />
-      <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>
-      {sinTransportista && hechas < bloques.length && (
-        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
-          Todavía no se puede firmar: el envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
-          En cuanto se asigne, las firmas se abren solas en esta misma página.
-        </div>
-      )}
-      {firmoAqui && <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
       {bloques.map((b) => {
         const f = firmas.get(b.clave);
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
