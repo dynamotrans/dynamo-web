@@ -157,15 +157,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
-      {/* Compartir ESTA página de firmas, lo PRIMERO (usuario, 2026-11-11): cargador,
-          transportista y destinatario ya la recibieron igual que quien la abre, y pueden
-          firmar en este mismo móvil; el botón es para reenviársela a quien la quiera.
-          Con menú de compartir del sistema si lo hay; si no, copia el mensaje. */}
-      <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.8rem 0 0', background: '#fff',
-        color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', textAlign: 'center', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
-        onClick={() => setCompartir(true)}>
-        Compartir esta página de firmas
-      </button>
       {/* Ventana de compartir PROPIA (usuario, 2026-11-11): mismo diseño sencillo en
           cualquier aparato — WhatsApp, Email, SMS, Copiar y «Más opciones…» si el
           aparato tiene hoja de compartir del sistema. Mensaje corto. */}
@@ -176,13 +167,20 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       )}
       {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
           lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
-      <div style={{ margin: '0.45rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
+      <div style={{ margin: '0.8rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
         padding: '0.65rem 0.85rem', fontSize: '0.95rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
         Cargador, transportista y destinatario ya la han recibido igual que tú, y{' '}
         <strong style={{ background: '#c6f2d9', color: '#0b5c31', padding: '0.05rem 0.3rem', borderRadius: 6, fontWeight: 800 }}>
           también pueden firmar aquí, en tu móvil.
         </strong>{' '}
         Si alguien la quiere, mándasela.
+        {/* El botón de compartir, DENTRO de la caja y tras el texto (usuario, 2026-11-12):
+            abre la hoja de compartir (WhatsApp, Email, SMS, Copiar…). */}
+        <button type="button" className="firma-btn" style={{ display: 'block', width: '100%', margin: '0.6rem 0 0', background: '#fff',
+          color: '#0f6b3a', border: '1.5px solid var(--green)', textAlign: 'center', padding: '0.85rem 1rem', fontSize: '1rem', fontWeight: 800, borderRadius: 10 }}
+          onClick={() => setCompartir(true)}>
+          Compartir esta página de firmas
+        </button>
       </div>
       {/* Con TODO firmado, el contador va en caja verde y debajo se repite la de
           «CMR completamente firmado» (usuario, 2026-11-12) — la del pie se queda. */}
