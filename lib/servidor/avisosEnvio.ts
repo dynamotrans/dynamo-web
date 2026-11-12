@@ -112,6 +112,10 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
           const t = await emailTransportista(sbs, ev.transportista_id);
           if (t) destinos.add(t);
         }
+        // Los FIRMANTES que dejaron su email también reciben la copia: la ventana de
+        // firma lo promete («se te enviará copia del eCMR», usuario 2026-11-12).
+        const { data: fs } = await sbs.from('firmas_cmr').select('email').eq('envio_id', envioId).not('email', 'is', null);
+        (fs ?? []).forEach((f) => { if (f.email) destinos.add(f.email); });
       }
       let adjuntos: AdjuntoEmail[] | undefined;
       const pdf = await pdfCmrPorToken(sbp, token, origen);
