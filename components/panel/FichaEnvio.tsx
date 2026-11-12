@@ -446,6 +446,18 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
                 {e.requiere_nima && <div className="pen-sum-row"><span className="k">NIMA</span><span className="v">{e.transportista_nima || <Pend />}</span></div>}
               </>}
               {pt != null && <div className="pen-sum-row"><span className="k">Precio transportista (sin IVA)</span><span className="v">{euros(pt)}</span></div>}
+              {/* Oferta escalonada (usuario, 2026-11-12): su estado se ve aquí sin abrir el
+                  modal de ofrecer; se actualiza en vivo con cada email que sale. */}
+              {!ficha.transportista && ficha.difusion?.estado === 'activa' && (
+                <div className="pen-sum-row"><span className="k">Oferta escalonada</span><span className="v" style={{ color: 'var(--purple)', fontWeight: 800 }}>
+                  En marcha · {ficha.difusion.contactados} de {ficha.difusion.max_contactados} contactados
+                </span></div>
+              )}
+              {!ficha.transportista && ficha.difusion?.estado === 'agotada' && (
+                <div className="pen-sum-row"><span className="k">Oferta escalonada</span><span className="v" style={{ color: '#b45309', fontWeight: 700 }}>
+                  Terminada sin aceptación ({ficha.difusion.contactados} contactados)
+                </span></div>
+              )}
             </div>
             {/* El botón de asignar/cambiar TAMBIÉN dentro de la sección (usuario, 2026-11-10):
                 quien mira aquí el estado no tiene que volver arriba a por la acción. */}

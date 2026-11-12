@@ -6,7 +6,7 @@ import Cargando from '@/components/Cargando';
 import { euros, numero } from '@/lib/formato';
 import { NEGOCIACION } from '@/lib/envios';
 import type { Ficha } from '@/lib/fichaEnvio';
-import { ofrecerCarga } from '@/app/panel/(app)/envios/acciones';
+import { ofrecerCarga, iniciarDifusion, pararDifusion } from '@/app/panel/(app)/envios/acciones';
 import { I, ICO, Interruptor, aNum, enlaceOferta, mensajeOferta } from './comun';
 
 // ---- Ofrecer carga ------------------------------------------------------------------
@@ -31,6 +31,9 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
     abierta ? { token: abierta.token, precio: Number(abierta.precio) } : null);
   const [copiado, setCopiado] = useState(false);
   const [copiadoEnlace, setCopiadoEnlace] = useState(false);
+  // Oferta escalonada (usuario, 2026-11-12): el estado viene con la ficha (en vivo).
+  const dif = ficha.difusion;
+  const [difMsg, setDifMsg] = useState<string | null>(null);
   const pv = aNum(precio);
   const bandaEur = pv && banda ? Math.max(10, Math.round((pv * banda) / 100 / 10) * 10) : 0;
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
@@ -43,6 +46,25 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     setHecho({ token: r.token, precio: pv });
+  }
+
+  async function lanzarEscalonada() {
+    setError(null); setDifMsg(null);
+    if (pv == null || Number.isNaN(pv) || pv <= 0) { setError('Pon el precio que se ofrece al transportista.'); return; }
+    setTrabajando(true);
+    const r = await iniciarDifusion(e.id, { precio: pv, banda_pct: banda, pronto_pago: pronto });
+    setTrabajando(false);
+    if (!r.ok) { setError(r.error); return; }
+    setDifMsg('Oferta escalonada lanzada: el primer email sale ya (de 5:00 a 23:00) y la ficha va contando los contactados.');
+  }
+
+  async function pararEscalonada() {
+    setError(null); setDifMsg(null);
+    setTrabajando(true);
+    const r = await pararDifusion(e.id);
+    setTrabajando(false);
+    if (!r.ok) { setError(r.error); return; }
+    setDifMsg('Oferta escalonada parada: no se contacta a nadie más (las ofertas ya enviadas siguen su curso).');
   }
 
   if (hecho) {
@@ -102,8 +124,37 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
         </div>
         <Interruptor k="of-pronto" l="Ofrecer pronto pago" v={pronto} on={setPronto} />
       </div>
+      {/* Oferta ESCALONADA por email (usuario, 2026-11-12): con el mismo precio, banda y
+          pronto pago de arriba, la plataforma manda un email cada pocos minutos (de 5:00
+          a 23:00) a transportistas con sede en la provincia del origen o que ya hicieron
+          la ruta — favoritos y mejor valorados primero — y para en cuanto uno acepta. */}
+      <div style={{ marginTop: '0.9rem', padding: '0.8rem 0.9rem', border: '1px solid var(--gray-200)', borderRadius: 12, background: 'var(--gray-50)' }}>
+        <div style={{ fontWeight: 800, marginBottom: '0.25rem' }}>Oferta escalonada por email</div>
+        {dif?.estado === 'activa' ? (
+          <>
+            <div style={{ fontSize: 'var(--fs-s)', color: 'var(--purple)', fontWeight: 800 }}>
+              En marcha · {dif.contactados} de {dif.max_contactados} transportistas contactados · {euros(dif.precio)} + IVA
+            </div>
+            <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0.5rem' }}>
+              Un email cada {dif.minutos_entre_emails} min (de 5:00 a 23:00) a transportistas de la zona del origen o que ya hicieron la ruta. Para sola en cuanto uno acepte o asignes a mano.
+            </div>
+            <button type="button" className="btn-ghost" style={{ color: '#dc2626', fontWeight: 700 }} onClick={pararEscalonada} disabled={trabajando}>Parar la oferta escalonada</button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginBottom: '0.5rem' }}>
+              Con este mismo precio, la plataforma manda un email cada pocos minutos (de 5:00 a 23:00) a transportistas con sede en la provincia del origen o que ya hicieron esta ruta — favoritos y mejor valorados primero — y <strong>para en cuanto uno acepta</strong> o asignes a mano.
+            </div>
+            {dif && dif.estado !== 'aceptada' && dif.fin_motivo && (
+              <div style={{ fontSize: 'var(--fs-s)', color: '#b45309', marginBottom: '0.5rem' }}>Última: {dif.fin_motivo} ({dif.contactados} contactados)</div>
+            )}
+            <button type="button" className="btn-secondary" onClick={lanzarEscalonada} disabled={trabajando}>Lanzar oferta escalonada</button>
+          </>
+        )}
+      </div>
+      {difMsg && <div role="status" style={{ marginTop: '0.6rem', padding: '0.6rem 0.75rem', background: '#e8f6ee', border: '1px solid #b7e2c8', borderRadius: 9, color: '#0f6b3a', fontSize: 'var(--fs-m)', fontWeight: 700 }}>{difMsg}</div>}
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
-      {trabajando && <Cargando texto="Creando la oferta" />}
+      {trabajando && <Cargando texto="Un momento" />}
     </Modal>
   );
 }

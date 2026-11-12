@@ -205,6 +205,44 @@ export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok:
   return of ? { ok: true, token: of.token as string } : { ok: false, error: 'La oferta se ha creado, pero no se encuentra su enlace.' };
 }
 
+// Oferta ESCALONADA por email (usuario, 2026-11-12): la base de datos va mandando un
+// email cada pocos minutos (solo de 5:00 a 23:00) a transportistas de la zona del origen
+// o que ya hicieron la ruta, por ranking interno, hasta que uno acepta o se para.
+export async function iniciarDifusion(envio: string, o: { precio: number; banda_pct: number; pronto_pago: boolean }): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#iniciarDifusion", [envio, o]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo lanza ofertas escalonadas.' };
+  if (!Number.isFinite(o.precio) || o.precio <= 0) return { ok: false, error: 'Pon el precio que se ofrece a los transportistas.' };
+  if (![0, 5, 10, 30].includes(o.banda_pct)) return { ok: false, error: 'La negociación solo puede ser 0, 5, 10 o 30 %.' };
+  const { data, error } = await s.supabase.rpc('iniciar_difusion', {
+    p_envio: envio, p_precio: o.precio, p_banda_pct: o.banda_pct, p_pronto_pago: o.pronto_pago,
+  });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado?: string } | null)?.resultado;
+  if (r !== 'ok') {
+    const msg: Record<string, string> = {
+      no_existe: 'Ese envío no existe.',
+      no_programado: 'El envío no está programado: no se puede ofrecer.',
+      ya_asignado: 'El envío ya tiene transportista.',
+      precio_no_valido: 'Pon el precio que se ofrece a los transportistas.',
+      ya_activa: 'Este envío ya tiene una oferta escalonada en marcha.',
+    };
+    return { ok: false, error: msg[r ?? ''] ?? 'No se ha podido lanzar la oferta escalonada.' };
+  }
+  return { ok: true };
+}
+
+export async function pararDifusion(envio: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#pararDifusion", [envio]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo para ofertas escalonadas.' };
+  const { data, error } = await s.supabase.rpc('parar_difusion', { p_envio: envio });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado?: string } | null)?.resultado;
+  if (r !== 'ok') return { ok: false, error: 'Este envío no tiene ninguna oferta escalonada en marcha.' };
+  return { ok: true };
+}
+
 // Para el diálogo de compartir la ORDEN DE CARGA (usuario, 2026-11-10): el contacto del
 // transportista asignado (email y teléfono, el de tráfico o el principal), su idioma por
 // país y la clave de las variantes con precio (su id: solo lo tiene quien recibe el enlace).

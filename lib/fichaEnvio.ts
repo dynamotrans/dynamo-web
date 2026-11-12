@@ -29,6 +29,8 @@ export type TransportistaOpcion = { id: string; nombre: string; cif: string; est
   telefono: string | null; email: string | null;
   vehiculos?: { matricula: string; tipo: string }[]; conductores?: { nombre: string; telefono: string | null }[] };
 export type FlotaTransportista = { vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] };
+export type DifusionFicha = { id: string; estado: string; precio: number; contactados: number; max_contactados: number;
+  minutos_entre_emails: number; ultimo_email_en: string | null; fin_motivo: string | null };
 export type Ficha = {
   // El envío con sus columnas tipadas (tabla envios) más los datos que se le juntan.
   envio: Tabla<'envios'> & { clientes: { id: string; nombre_visible: string | null; cif: string; riesgo_efectivo_euros: number | null } | null;
@@ -41,6 +43,7 @@ export type Ficha = {
   cmrEnlace: { id: string; token: string; caduca_en: string } | null;   // solo lo ve Dynamo
   firmasCmr: FirmaCmrFicha[];
   cambioTransportista: CambioTransportistaFicha | null;   // última propuesta de cambios al transportista
+  difusion: DifusionFicha | null;   // última oferta escalonada del envío (activa o terminada)
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
   enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Previo pago (null = no lo necesita y nunca lo necesitó).
@@ -56,7 +59,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   if (error) return { ficha: null, error: mensajeError(error.message) };
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
-  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam] = await Promise.all([
+  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam, dif] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, sitios(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
@@ -68,6 +71,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     sb.rpc('reglas_precio_envio'),
     sb.rpc('etapas_envio', { p_envio: id }),
     sb.from('envio_cambios_transportista').select('id, estado, precio_antes, precio_ahora, detalle, creado_en, respondido_en, en_nombre, motivo_rechazo')
+      .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+    sb.from('difusiones').select('id, estado, precio, contactados, max_contactados, minutos_entre_emails, ultimo_email_en, fin_motivo')
       .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
   ]);
   const pg = pag.data;
@@ -116,6 +121,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
       firmasCmr: (fir.data ?? []).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
       cambioTransportista: cam.data ? { ...cam.data, precio_antes: cam.data.precio_antes != null ? Number(cam.data.precio_antes) : null,
         precio_ahora: cam.data.precio_ahora != null ? Number(cam.data.precio_ahora) : null } : null,
+      difusion: dif.data ? { ...dif.data, precio: Number(dif.data.precio) } : null,
       corte,
       pago: pg ? { estado: pg.estado_pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
         base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional } : null,

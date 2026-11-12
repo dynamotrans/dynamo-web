@@ -810,6 +810,85 @@ export type Database = {
         Relationships: [
         ]
       }
+      difusiones: {
+        Row: {
+          id: string
+          envio_id: string
+          estado: string
+          precio: number
+          banda_pct: number
+          pronto_pago: boolean
+          minutos_entre_emails: number
+          max_contactados: number
+          contactados: number
+          ultimo_email_en: string | null
+          terminada_en: string | null
+          fin_motivo: string | null
+          creado_en: string
+          creado_por: string | null
+          modificado_en: string | null
+          modificado_por: string | null
+        }
+        Insert: {
+          id?: string
+          envio_id: string
+          estado?: string
+          precio: number
+          banda_pct?: number
+          pronto_pago?: boolean
+          minutos_entre_emails: number
+          max_contactados: number
+          contactados?: number
+          ultimo_email_en?: string | null
+          terminada_en?: string | null
+          fin_motivo?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          modificado_en?: string | null
+          modificado_por?: string | null
+        }
+        Update: {
+          id?: string
+          envio_id?: string
+          estado?: string
+          precio?: number
+          banda_pct?: number
+          pronto_pago?: boolean
+          minutos_entre_emails?: number
+          max_contactados?: number
+          contactados?: number
+          ultimo_email_en?: string | null
+          terminada_en?: string | null
+          fin_motivo?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          modificado_en?: string | null
+          modificado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "difusiones_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "difusiones_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: true
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "difusiones_modificado_por_fkey"
+            columns: ["modificado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distancias_cp: {
         Row: {
           id: string
@@ -3453,6 +3532,7 @@ export type Database = {
       flota_publica: { Args: { p_reserva: string | null; p_cif?: string | null }; Returns: Json }
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
+      fn_difusion_paso: { Args: { p_difusion: string | null }; Returns: undefined }
       fuera_de_cobertura: { Args: { p_pais: string | null }; Returns: string }
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
       guardar_horario: { Args: { p_sitio: string | null; p_tramos: Json | null; p_temporada?: string | null }; Returns: undefined }
@@ -3473,6 +3553,7 @@ export type Database = {
       horario_sitio_texto: { Args: { p_sitio: string | null; p_fecha: string | null }; Returns: string }
       horario_texto: { Args: { p_sitio: string | null; p_temporada?: string | null }; Returns: string }
       ia_consulta_sql: { Args: { p_sql: string | null }; Returns: Json }
+      iniciar_difusion: { Args: { p_envio: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null }; Returns: Json }
       km_cp: { Args: { p_pais_codigo_iso_origen: string | null; p_codigo_postal_origen: string | null; p_pais_codigo_iso_destino: string | null; p_codigo_postal_destino: string | null; p_max_edad?: string | null }; Returns: number }
       km_sitios: { Args: { p_origen: string | null; p_destino: string | null; p_max_edad?: string | null }; Returns: number }
       latido: { Args: Record<PropertyKey, never>; Returns: undefined }
@@ -3526,6 +3607,7 @@ export type Database = {
       paradas_viaje_json: { Args: { p_envio: string | null }; Returns: Json }
       parametro: { Args: { p_clave: string | null }; Returns: Json }
       parametro_num: { Args: { p_clave: string | null; p_defecto: number | null }; Returns: number }
+      parar_difusion: { Args: { p_envio: string | null }; Returns: Json }
       patrones_busqueda: { Args: { p_q: string | null }; Returns: string[] }
       pausar_seguimiento_envio: { Args: { p_envio: string | null; p_pausar: boolean | null }; Returns: Json }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
@@ -3536,6 +3618,7 @@ export type Database = {
       preparar_pines_envio: { Args: { p_envio: string | null }; Returns: number }
       primera_carga_posible: { Args: { p_envio: string | null }; Returns: string }
       primera_fecha_carga: { Args: { p_fija: boolean | null; p_instante?: string | null; p_ventana_dias?: number | null }; Returns: string }
+      procesar_difusiones: { Args: Record<PropertyKey, never>; Returns: undefined }
       procesar_emails_operativos: { Args: Record<PropertyKey, never>; Returns: number }
       pronto_pago_anticipos: { Args: { p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { cuando: string; envio: string; transportista: string; importe: number; descuento: number; anticipado: number; total: number }[] }
       pronto_pago_descuento: { Args: { p_importe: number | null }; Returns: number }
