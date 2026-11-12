@@ -733,7 +733,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const avisoTrailer = !plataforma && (
     // Mismo tamaño de letra que los avisos del corte y del grupaje (usuario, 2026-11-11).
     <div className="pt-aviso" style={{ marginBottom: '0.6rem', fontSize: 'var(--fs-s)', lineHeight: 1.4, padding: '0.55rem 0.7rem' }}><IcoAviso /><div>
-      <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
+      <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
       <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
     </div></div>
   );
