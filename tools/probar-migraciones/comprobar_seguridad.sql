@@ -8229,3 +8229,49 @@ begin
   end if;
   raise notice 'OK 210 · reglas_precio_envio devuelve el descuento de bienvenida del parámetro';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 211 · camión + remolque corrige una ficha de flota que decía «rígido»
+-- =====================================================================================
+do $$
+declare tr uuid; v uuid; v2 uuid; e uuid; r jsonb;
+begin
+  insert into transportistas (razon_social, cif, nima)
+    values ('Transp Rigido 211 SL', 'B21100001', 'NIMA-211') returning id into tr;
+  insert into vehiculos (transportista_id, matricula, tipo) values (tr, '2111 LBC', 'rigido') returning id into v;
+
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+
+  -- Dynamo asigna ESA matrícula («rígido» en la ficha) CON remolque: debe pasar y la
+  -- ficha corregirse sola a tractora (usuario, 2026-11-13: antes bloqueaba).
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := asignar_transportista(e, tr, 700, '2111LBC', 'R2111BCD');
+  if not (r ->> 'ok')::boolean then
+    raise exception 'FALLO 211 · camión con ficha de rígido + remolque no se deja asignar: %', r;
+  end if;
+  if (select tipo from vehiculos where id = v) <> 'tractora' then
+    raise exception 'FALLO 211 · la ficha del vehículo no se corrige a tractora';
+  end if;
+  if (select vehiculo_camion_id from envios where id = e) is distinct from v then
+    raise exception 'FALLO 211 · el camión no queda enlazado a su ficha';
+  end if;
+
+  -- La última red sigue viva: enlazar por ID un rígido a un envío con remolque, no.
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into vehiculos (transportista_id, matricula, tipo) values (tr, '2112 LBC', 'rigido') returning id into v2;
+  begin
+    update envios set vehiculo_camion_id = v2 where id = e;
+    raise exception 'FALLO 211 · se enlaza por id un rígido a un envío con remolque';
+  exception when others then
+    if sqlerrm like 'FALLO 211%' then raise; end if;
+  end;
+  raise notice 'OK 211 · lo tecleado pisa a la ficha: rígido + remolque pasa a tractora; el enlace por id sigue vigilado';
+end $$;
