@@ -81,11 +81,12 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
         </div>
       )}
 
+      {/* Buscador global a lo ancho, encima de todo (usuario, 2026-11-13: dentro de la
+          rejilla de botones quedaba a media anchura y descuadrado), como en el admin. */}
+      <div style={{ marginBottom: '0.8rem' }}><CajaBuscadorGlobal /></div>
       <div className="dash-top-row dash-top-2">
         <div className="dash-left-col">
           <div className="dash-cta-stack">
-            {/* Buscador global ENCIMA de «Nuevo envío» (usuario, 2026-11-12). */}
-            <CajaBuscadorGlobal />
             <Link className="dash-cta dash-cta-purple" href="/panel/nuevo-envio">
               <div className="dash-cta-icon"><Svg size={28}><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></div>
               <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicita un transporte</p></div>
