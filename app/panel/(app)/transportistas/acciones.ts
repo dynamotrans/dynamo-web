@@ -14,7 +14,6 @@ export type TransportistaDatos = {
   direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
   plazo_pago_dias: number; pronto_pago: boolean; iva_pct: number; retencion_pct: number;
   nima: string; tiene_almacen: boolean; reparto_urbano: boolean;
-  seguro_cmr_compania: string; seguro_cmr_poliza: string; seguro_cmr_vence: string;
   cuenta_contable: string; holded_forma_pago_ref: string; anotaciones: string; anotaciones_incidencias: string;
   // Personas de contacto (tabla contactos): tráfico, contabilidad, conductores…
   contactos: ContactoDatos[];
@@ -53,8 +52,6 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
     plazo_pago_dias: d.plazo_pago_dias, pronto_pago: d.pronto_pago,
     iva_pct: d.iva_pct, retencion_pct: d.retencion_pct,
     nima: vacio(d.nima), tiene_almacen: d.tiene_almacen, reparto_urbano: d.reparto_urbano,
-    seguro_cmr_compania: vacio(d.seguro_cmr_compania), seguro_cmr_poliza: vacio(d.seguro_cmr_poliza),
-    seguro_cmr_vence: d.seguro_cmr_vence || null,
     cuenta_contable: vacio(d.cuenta_contable), holded_forma_pago_ref: vacio(d.holded_forma_pago_ref),
     anotaciones: vacio(d.anotaciones), anotaciones_incidencias: vacio(d.anotaciones_incidencias),
   };

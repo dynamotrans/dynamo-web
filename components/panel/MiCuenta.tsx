@@ -105,11 +105,9 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           <div className="account-card">
             <h3 className="account-card-title">Empresa de transporte</h3>
             {fila('NIMA', transporte.nima)}
-            {fila('Seguro CMR', [transporte.seguro_cmr_compania, transporte.seguro_cmr_poliza && `póliza ${transporte.seguro_cmr_poliza}`].filter(Boolean).join(' · '))}
-            <div className="account-row"><span className="account-row-label">Seguro CMR vence</span><span className="account-row-value"><Vence f={transporte.seguro_cmr_vence} /></span></div>
             {fila('Bolsa de carga', [transporte.bolsa, transporte.codigo_bolsa].filter(Boolean).join(' · '))}
             {fila('Plazo de pago', transporte.plazo_pago_dias != null ? `${transporte.plazo_pago_dias} días` : '')}
-            <button className="btn-ghost account-edit" onClick={() => setEditaTransp(true)}>Editar NIMA y seguro</button>
+            <button className="btn-ghost account-edit" onClick={() => setEditaTransp(true)}>Editar NIMA</button>
             <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>La razón social, el CIF, la dirección fiscal y la bolsa de carga los cambiamos nosotros: escríbenos si algo ha cambiado. Sube el seguro renovado en <strong>Documentación</strong>.</p>
           </div>
           <div className="account-card">
@@ -259,18 +257,14 @@ function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: str
   const [d, setD] = useState(inicial);
   const g = useGuardar(onHecho);
   return (
-    <Modal abierto titulo="Empresa de transporte" sub="NIMA y seguro CMR" icono={ICO_CAMION} onCerrar={onCerrar}
+    <Modal abierto titulo="Empresa de transporte" sub="NIMA (residuos)" icono={ICO_CAMION} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
         <button className="btn-primary" onClick={() => g.correr('Guardando', () => guardarMiTransporte(d))} disabled={!!g.trabajando}>Guardar cambios</button>
       </>}>
       <div className="ptar-sitio-grid">
         <div><label htmlFor="mt-nima">NIMA <Req si={false} /></label><input id="mt-nima" type="text" value={d.nima} maxLength={40} placeholder="Solo si transportas residuos" onChange={(e) => setD({ ...d, nima: e.target.value })} /></div>
-        <div><label htmlFor="mt-comp">Compañía del seguro CMR <Req si={false} /></label><input id="mt-comp" type="text" value={d.compania} maxLength={120} placeholder="Ej. Mapfre" onChange={(e) => setD({ ...d, compania: e.target.value })} /></div>
-        <div><label htmlFor="mt-pol">Nº de póliza <Req si={false} /></label><input id="mt-pol" type="text" value={d.poliza} maxLength={60} onChange={(e) => setD({ ...d, poliza: e.target.value })} /></div>
-        {fechaCampo('mt-vence', 'Vence el', d.vence, (v) => setD({ ...d, vence: v }))}
       </div>
-      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Recuerda subir la póliza renovada en Documentación.</p>
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
       {g.trabajando && <Cargando texto={g.trabajando} />}
     </Modal>

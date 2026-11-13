@@ -13,7 +13,7 @@ import Cargando from '@/components/Cargando';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { borrarTransportista, guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
 
-import { fecha as fmtFecha, fechaHora, numero } from '@/lib/formato';
+import { fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -42,18 +42,6 @@ const num = (s: string) => { const t = String(s ?? '').trim(); if (!t) return nu
 const bolsaDe = (b: string | null) => BOLSAS.find(([k]) => k === (b ?? ''))?.[1] ?? '';
 
 // Días hasta que vence el seguro CMR (negativo = vencido).
-function diasSeguro(v: string | null | undefined): number | null {
-  if (!v) return null;
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  return Math.round((new Date(v + 'T00:00:00').getTime() - hoy.getTime()) / 86400000);
-}
-function AvisoSeguro({ vence, ficha }: { vence: string | null | undefined; ficha?: boolean }) {
-  const d = diasSeguro(vence);
-  if (d == null || d > 30) return null;
-  return <div className={ficha ? undefined : 'meta'} style={{ color: d < 0 ? '#b42318' : '#b45309', fontWeight: 700, ...(ficha ? { fontSize: 'var(--fs-s)', marginTop: '0.25rem' } : {}) }}>
-    {d < 0 ? `Seguro CMR vencido (${fmtFecha(vence!)})` : `Seguro CMR vence en ${d} día${d === 1 ? '' : 's'}`}
-  </div>;
-}
 function Estado({ e }: { e: TransportistaDatos['estado_operativo'] }) {
   const x = ESTADOS.find(([k]) => k === e) ?? ESTADOS[0];
   return <span className="badge" style={{ background: x[3].bg, color: x[3].fg, border: `1px solid ${x[3].bd}` }}>{x[2]}</span>;
@@ -68,7 +56,6 @@ const NUEVO: TransportistaDatos = {
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 60, pronto_pago: true, iva_pct: 21, retencion_pct: 0,
   nima: '', tiene_almacen: false, reparto_urbano: false,
-  seguro_cmr_compania: '', seguro_cmr_poliza: '', seguro_cmr_vence: '',
   cuenta_contable: '', holded_forma_pago_ref: '', anotaciones: '', anotaciones_incidencias: '',
   contactos: [CONTACTO_VACIO('trafico')],
 };
@@ -132,7 +119,6 @@ export default function Transportistas({ filas, error, abrirId, lista, admin }: 
                 <tr key={t.id} onClick={() => setFicha({ fila: t })} style={{ cursor: 'pointer' }}>
                   <td><strong>{t.nombre_visible}</strong> <Estado e={t.estado_operativo} />
                     <div className="meta">{t.cif}{t.poblacion ? ` · ${t.poblacion}` : ''}</div>
-                    <AvisoSeguro vence={t.seguro_cmr_vence} />
                   </td>
                   <td>{(() => { const k = principal(t.contactos, 'trafico') ?? principal(t.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{t.contactos.length > 1 && <div className="meta">+{t.contactos.length - 1} contacto{t.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{t.codigo_bolsa ? <><span className="dtc-mat">{t.codigo_bolsa}</span><div className="meta">{bolsaDe(t.bolsa)}</div></> : t.bolsa ? <span className="meta">{bolsaDe(t.bolsa)} · sin código</span> : '—'}</td>
@@ -311,13 +297,6 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
             matrícula (trampilla → rígido, remolque → tractora) y se ve en «Flota». */}
         {interruptor('tiene_almacen', 'Tiene almacén logístico')}
         {interruptor('reparto_urbano', 'Reparto urbano (camión pequeño)')}
-        {campo('seguro_cmr_compania', <>Seguro CMR · compañía <Req si={false} /></>, 'Ej. Mapfre')}
-        {campo('seguro_cmr_poliza', <>Seguro CMR · nº de póliza <Req si={false} /></>, 'Ej. 0961-…')}
-        <div>
-          <label htmlFor="tra-vence">Seguro CMR · vence <Req si={false} /></label>
-          <input id="tra-vence" type="date" value={d.seguro_cmr_vence ?? ''} onChange={(e) => set('seguro_cmr_vence', e.target.value)} />
-          <AvisoSeguro vence={d.seguro_cmr_vence} ficha />
-        </div>
         <div />
         {fila && (
           <div style={{ gridColumn: '1/-1' }}>
