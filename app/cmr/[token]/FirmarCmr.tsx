@@ -229,7 +229,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           <div key={b.clave} className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
             onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) setPreFirma(b); } : undefined}>
             <div className="firma-head">
-              <div className="firma-tit">{b.titulo}<span className="cas-quien">Firma: {b.firmante}</span><span className="cas">{b.casilla}{b.lugar ? ` · ${b.lugar}` : ''}</span></div>
+              <div className="firma-tit">{b.titulo}<span className="cas-quien"><span className="cas-firma">Firma:</span> {b.firmante}</span><span className="cas">{b.casilla}{b.lugar ? ` · ${b.lugar}` : ''}</span></div>
               {!f && <button type="button" className="firma-btn" disabled={sinTransportista}
                 title={sinTransportista ? 'No se puede firmar hasta que haya transportista asignado' : undefined}
                 onClick={() => setPreFirma(b)}>Firmar</button>}
@@ -252,7 +252,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {extras.map((f, i) => (
         <div key={`x${i}`} className="firma firmada">
           <div className="firma-head">
-            <div className="firma-tit">Firma extra {extras.length > 1 ? i + 1 : ''}<span className="cas-quien">Firma: {nombreBloque(f)}</span><span className="cas">Añadida a las casillas del CMR</span></div>
+            <div className="firma-tit">Firma extra {extras.length > 1 ? i + 1 : ''}<span className="cas-quien"><span className="cas-firma">Firma:</span> {nombreBloque(f)}</span><span className="cas">Añadida a las casillas del CMR</span></div>
           </div>
           {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
           <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>

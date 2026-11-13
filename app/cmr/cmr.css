@@ -50,7 +50,10 @@
     .cmr-page .firma-tit { font-size: 0.9rem; font-weight: 800; }
     .cmr-page .firma-tit .cas { font-size: 0.68rem; font-weight: 700; color: var(--gray-500); display: block; }
     /* Quién firma cada casilla, bien visible (usuario, 2026-11-09). */
-    .cmr-page .firma-tit .cas-quien { font-size: 0.78rem; font-weight: 900; color: var(--purple); display: block; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.02em; }
+    /* El ROL es lo protagonista, más grande y en su color; el «Firma:» de delante va
+       discreto en gris (usuario, 2026-11-13: el botón ya dice Firmar). */
+    .cmr-page .firma-tit .cas-quien { font-size: 0.92rem; font-weight: 900; color: var(--purple); display: block; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.02em; }
+    .cmr-page .firma-tit .cas-firma { font-size: 0.7rem; font-weight: 700; color: var(--gray-500); }
     /* Color por ROL (usuario, 2026-11-13), el mismo criterio de toda la plataforma:
        recogidas en naranja, entregas en verde y el transportista en morado. */
     .cmr-page .firma-rol-remitente { border-color: #f0b27a; }
