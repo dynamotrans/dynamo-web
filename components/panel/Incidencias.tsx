@@ -10,6 +10,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
+import EstadoVacio from './EstadoVacio';
 import BuscaEnvio from './BuscaEnvio';
 import BarraFiltros from './BarraFiltros';
 import { opcionesFecha } from './FiltrosEnvios';
@@ -105,7 +106,10 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
           <tbody>
             {lista.length === 0 ? (
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length ? 'Sin incidencias en este filtro' : 'Aún no hay incidencias. Abre una con «+ Reportar incidencia».'}
+                {filas.length ? 'Sin incidencias en este filtro'
+                  : <EstadoVacio titulo="Sin incidencias — buena señal"
+                      texto="Si algo va mal en un envío (retraso, daño, falta de documentación…), repórtalo aquí o desde la ficha del propio envío y se sigue hasta resolverlo."
+                      accion={<button type="button" className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Reportar incidencia</button>} />}
               </td></tr>
             ) : lista.map((x) => {
               const est = ESTADOS.find(([k]) => k === x.estado) ?? ESTADOS[0];

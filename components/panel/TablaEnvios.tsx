@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import EstadoVacio from './EstadoVacio';
 import FilaEnlace from './FilaEnlace';
 import FiltrosEnvios, { type OpcionFiltro } from './FiltrosEnvios';
 import CalendarioEnvios from './CalendarioEnvios';
@@ -152,7 +153,14 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
           <tbody>
             {trozo.length === 0 ? (
               <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {modoBusqueda ? 'Ningún envío coincide (en todos los años).' : (enBd ? (conteos!.todas ?? 0) === 0 : filas.length === 0) ? 'Todavía no hay envíos.' : 'Sin envíos en este filtro'}
+                {modoBusqueda ? 'Ningún envío coincide (en todos los años).'
+                  : (enBd ? (conteos!.todas ?? 0) === 0 : filas.length === 0)
+                  ? (rol === 'transportista' || vistaTransportista
+                    ? <EstadoVacio titulo="Todavía no hay envíos" texto="Aquí saldrán los envíos que Dynamo te asigne o te ofrezca, con su orden de carga, el estado y el eCMR para firmar." />
+                    : <EstadoVacio titulo="Todavía no hay envíos"
+                        texto="Crea tu primer envío en 2 minutos: origen, destino y fecha — el precio sale al momento, sin llamadas ni esperas."
+                        accion={<Link className="btn-primary" href="/panel/nuevo-envio">+ Crear tu primer envío</Link>} />)
+                  : 'Sin envíos en este filtro'}
               </td></tr>
             ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={url({ p: pag, ver: e.id })} />)}
           </tbody>

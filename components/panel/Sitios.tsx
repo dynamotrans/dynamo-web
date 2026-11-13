@@ -6,6 +6,7 @@
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Paginador from './Paginador';
+import EstadoVacio from './EstadoVacio';
 import { BuscadorUrl } from './BuscadorUrl';
 import Buscador from './Buscador';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -143,7 +144,11 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
           <tbody>
             {filas.length === 0 ? (
               <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {!lista.q && !lista.cliente ? 'Todavía no hay sitios. Crea el primero con «+ Crear sitio» (o se guardan solos al crear un envío).' : 'Sin sitios que coincidan'}
+                {!lista.q && !lista.cliente
+                  ? <EstadoVacio titulo={dynamo ? 'Todavía no hay sitios' : 'Tu agenda de sitios está vacía'}
+                      texto="Guarda tus almacenes habituales y los de tus clientes y proveedores, y no vuelvas a escribir una dirección: en cada envío los eliges con un clic. También se guardan solos al crear un envío."
+                      accion={<button type="button" className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Crear tu primer sitio</button>} />
+                  : 'Sin sitios que coincidan'}
               </td></tr>
             ) : filas.map((f) => {
               const prin = esPrincipal(f);
