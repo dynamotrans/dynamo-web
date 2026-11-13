@@ -37,7 +37,6 @@ const ESTADOS: [TransportistaDatos['estado_operativo'], string, string, { bg: st
 ];
 const BOLSAS: [string, string][] = [['wtransnet', 'Wtransnet'], ['teleroute', 'Teleroute'], ['bursa_transport', 'Bursa Transport'], ['123cargo', '123cargo'], ['', 'Ninguna']];
 const PLAZOS: [number, string][] = [[0, 'Contado (0 días)'], [30, '30 días'], [60, '60 días · por defecto'], [90, '90 días']];
-const CAMIONES: [string, string][] = [['', 'Sin preferencia'], ['trailer_tauliner', 'Tráiler tauliner (lona)'], ['rigido_plataforma', 'Rígido con plataforma']];
 
 const num = (s: string) => { const t = String(s ?? '').trim(); if (!t) return null; const v = Number(t.replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
 const bolsaDe = (b: string | null) => BOLSAS.find(([k]) => k === (b ?? ''))?.[1] ?? '';
@@ -68,7 +67,7 @@ const NUEVO: TransportistaDatos = {
   razon_social: '', nombre_comercial: '', cif: '', estado_operativo: 'activo', bolsa: 'wtransnet', codigo_bolsa: '',
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 60, pronto_pago: true, iva_pct: 21, retencion_pct: 0,
-  nima: '', tiene_almacen: false, reparto_urbano: false, tipo_camion_defecto: '',
+  nima: '', tiene_almacen: false, reparto_urbano: false,
   seguro_cmr_compania: '', seguro_cmr_poliza: '', seguro_cmr_vence: '',
   cuenta_contable: '', holded_forma_pago_ref: '', anotaciones: '', anotaciones_incidencias: '',
   contactos: [CONTACTO_VACIO('trafico')],
@@ -307,12 +306,9 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
 
         {titulo('Operativa')}
         {campo('nima', <>Nº de NIMA (residuos) <Req si={false} /></>, 'Texto libre, como lo dé el transportista')}
-        <div>
-          <label htmlFor="tra-camion">Camión habitual</label>
-          <select id="tra-camion" value={d.tipo_camion_defecto ?? ''} onChange={(e) => set('tipo_camion_defecto', e.target.value)}>
-            {CAMIONES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
-          </select>
-        </div>
+        {/* El «Camión habitual» declarado se quitó (usuario, 2026-11-13): el tipo de
+            camión no es uno por transportista — se aprende de lo que carga cada
+            matrícula (trampilla → rígido, remolque → tractora) y se ve en «Flota». */}
         {interruptor('tiene_almacen', 'Tiene almacén logístico')}
         {interruptor('reparto_urbano', 'Reparto urbano (camión pequeño)')}
         {campo('seguro_cmr_compania', <>Seguro CMR · compañía <Req si={false} /></>, 'Ej. Mapfre')}
