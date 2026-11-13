@@ -8280,3 +8280,21 @@ begin
   end;
   raise notice 'OK 211 · lo tecleado pisa a la ficha: rígido + remolque pasa a tractora; el enlace por id sigue vigilado';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 212 · el registro de emails admite el aviso de entrega al destinatario
+-- =====================================================================================
+do $$
+declare x uuid;
+begin
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html, estado)
+    values ('prueba212:aviso', 'aviso_entrega', 'almacen212@prueba.invalid', 'a', 'b', 'error')
+    returning id into x;
+  delete from emails_enviados where id = x;
+  begin
+    insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html, estado)
+      values ('prueba212:malo', 'tipo_inventado', 'x@prueba.invalid', 'a', 'b', 'error');
+    raise exception 'FALLO 212 · el registro de emails acepta un tipo inventado';
+  exception when check_violation then null; end;
+  raise notice 'OK 212 · emails_enviados admite aviso_entrega y sigue rechazando tipos desconocidos';
+end $$;
