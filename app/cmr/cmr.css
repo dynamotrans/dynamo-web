@@ -31,7 +31,7 @@
     .cmr-page .cmrbox { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.22rem 0.75rem; align-items: baseline;
       background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.65rem 0.8rem; margin: 0 0 0.7rem; }
     .cmr-page .cmrbox dt { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); margin: 0; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
-    .cmr-page .cmrbox dd { font-size: 0.84rem; font-weight: 700; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+    .cmr-page .cmrbox dd { font-size: 0.92rem; font-weight: 800; color: var(--navy); margin: 0; min-width: 0; overflow-wrap: anywhere; }
     .cmr-page .cmrbox .adr { grid-column: 1 / -1; }
     .cmr-page .adr { margin-top: 0.7rem; background: #fdecec; border: 1.5px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.55rem 0.7rem; font-size: 0.85rem; font-weight: 800; }
     /* Mientras FALTAN firmas, el contador va en naranja y negrita, al mismo tamano que
