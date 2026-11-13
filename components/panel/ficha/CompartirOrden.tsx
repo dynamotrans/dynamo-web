@@ -24,11 +24,6 @@ const QUE: [Que, string, string][] = [
   ['operativa', 'Solo operativa', 'La copia del conductor: sin ninguna información económica.'],
   ['economica', 'Solo económica', 'La copia de administración: el documento completo, con el precio.'],
 ];
-const QUE_TXT: Record<Que, string> = {
-  conjunta: 'copia del conductor sin precios + copia de administración completa',
-  operativa: 'copia del conductor, sin información económica',
-  economica: 'copia de administración, completa',
-};
 
 // «cp población, país (tipo de sitio)» — el mismo estilo de la proforma (usuario, 2026-11-13).
 function dirCorta(p: ParadaFicha): string {
@@ -64,10 +59,14 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const cargaTxt = e.fecha_carga_prevista ? `el ${fecha(e.fecha_carga_prevista)}`
     : e.fecha_carga_hasta && e.fecha_carga_hasta !== e.fecha_carga_desde ? ventana(e.fecha_carga_desde, e.fecha_carga_hasta) : `el ${fecha(e.fecha_carga_desde)}`;
   const camionTxt = e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,60 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
-  const lineaEcmr = token ? `· Copia e-CMR/DeCA DIGITAL (firmen el CMR con el DEDO desde el móvil, sin crear cuenta. 100 % seguro, digital y legal. Protocolo eIDAS ~ Orden FOM/2861/2012.): ${origen}/cmr/${token}` : null;
+  // El enlace de firma va ARRIBA (lo primero que se ve) y repetido en la lista de abajo
+  // (usuario, 2026-11-13); las órdenes van como PDF ADJUNTOS, sin enlace.
+  const lineaFirma = token ? `Firma en este enlace tu e-CMR/DeCA DIGITAL EN RUTA (Para móvil/ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): ${origen}/cmr/${token}` : null;
   const msg = [
     `ORDEN DE CARGA · Dynamo · #${e.referencia_gx}`,
     '',
+    lineaFirma,
+    lineaFirma ? '' : null,
     ...(ficha.transportista ? [
       'Transportista:',
       `${ficha.transportista.nombre}${ficha.transportista.cif ? ` · NIF/CIF ${ficha.transportista.cif}` : ''}`,
@@ -91,14 +90,11 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     e.conductor_nombre ? `Conductor: ${[e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ')}` : null,
     que !== 'operativa' && pt != null ? `Precio acordado: ${euros(pt)} (sin IVA)` : null,
     '',
-    que === 'conjunta'
-      ? `Adjuntamos en PDF las DOS copias de la ORDEN DE CARGA, en ${idiomas}, con todos los datos y las condiciones:`
-      : `Adjuntamos en PDF la ORDEN DE CARGA (${QUE_TXT[que]}), en ${idiomas}, con todos los datos y las condiciones:`,
+    lineaFirma ? `· ${lineaFirma}` : null,
+    lineaFirma ? '' : null,
+    ...(que !== 'operativa' ? ['· PDF ADJUNTO DE ORDEN DE CARGA PARA ADMINISTRACIÓN (con precios)'] : []),
+    ...(que !== 'economica' ? ['· PDF ADJUNTO DE ORDEN DE CARGA PARA CONDUCTOR (sin precios)'] : []),
     '',
-    lineaEcmr,
-    lineaEcmr ? '' : null,
-    ...(que !== 'operativa' ? ['· Copia de ADMINISTRACIÓN (completa)', ''] : []),
-    ...(que !== 'economica' ? ['· Copia del CONDUCTOR (sin precios)', ''] : []),
     `Si cambian las matrículas o el conductor, avísanos ANTES de la carga. Urgencias e incidencias 24 h: ${telBonito(CONTACTO.telefono)}.`,
   ].filter((x) => x !== null).join('\n');
 

@@ -112,17 +112,17 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   l.y = top0 + hCaja + 14;
 
   // ---- Resumen + QR en UNA banda compacta (usuario, 2026-11-13) ----
-  // En la copia operativa, la franja morada (nº, fecha, matrículas) va a la IZQUIERDA
-  // con el texto del documento de control debajo, y la tarjeta del QR a la DERECHA a la
-  // misma altura: fuera el hueco vacío que dejaba el QR suelto. La copia económica no
-  // lleva QR (los precios no se enseñan) y mantiene la franja a lo ancho.
+  // La franja morada (nº, fecha, matrículas) va a la IZQUIERDA con el texto del
+  // documento de control debajo, y la tarjeta del QR a la DERECHA a la misma altura.
+  // EN LAS DOS COPIAS (usuario, 2026-11-13: «con precio o sin precios, ambas deben
+  // llevar el DeCA QR»): el QR abre el eCMR/DeCA público, que no enseña precios.
   const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
   const franja: [string, string][] = [
     [t.nEnvio, ref], [t.fechaCargaL, ventanaCarga],
     [t.matriculasAutL, matr || t.pendAsignar],
   ];
   if (e.referencia_cliente) franja.push([t.referenciaL, e.referencia_cliente]);
-  if (copia === 'operativa') {
+  {
     const cw = 96, ch = 91;
     const wIzq = l.ancho - cw - 12;
     const wCol = wIzq / franja.length;
@@ -162,17 +162,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + 86, tPie, 5.4, { color: COLOR.gris });
     l.y = Math.max(finIzq, ct + ch) + 12;
-  } else {
-    const wCol = l.ancho / franja.length;
-    const partesFranja = franja.map(([, v]) => l.partir(v, 9.5, wCol - 14, true).slice(0, 2));
-    const hFranja = 22 + Math.max(...partesFranja.map((x) => x.length)) * 12;
-    l.rect(l.x0, l.y, l.ancho, hFranja, COLOR.moradoSuave);
-    franja.forEach(([k], i) => {
-      const x = l.x0 + 10 + i * wCol;
-      l.texto(x, l.y + 13, k, 7, { bold: true, color: COLOR.gris });
-      partesFranja[i].forEach((ln, j) => l.texto(x, l.y + 26 + j * 12, ln, 9.5, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
-    });
-    l.y += hFranja + 14;
   }
 
   // ---- Recogidas y entregas ----
