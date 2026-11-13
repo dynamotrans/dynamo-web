@@ -13,7 +13,7 @@ import { CONTACTO, HORARIO_ONLINE, estadoAtencion, horarioTelefono } from '@/lib
 import { useIdiomaGT } from '@/components/SelectorIdioma';
 import ModalHorarios from './ModalHorarios';
 import { EVENTO_RECARGAR } from './TirarParaRecargar';
-import SelectorVista, { VISTA_TXT } from './SelectorVista';
+import SelectorVista from './SelectorVista';
 import { VISTA_ADMIN, inicioDe, type Vista } from '@/lib/vistaTipo';
 import { misAvisos, marcarAvisosVistos, type Aviso } from '@/app/panel/avisos';
 
@@ -431,24 +431,12 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
               </div>
             </div>
           )}
-          {vista.tipo !== 'admin' && <AvisoVista vista={vista} rolTxt={ROL_TXT[rol]} onCambiar={() => setMenu('vista')} />}
           {children}
         </div>
       </div>
       <div id="google_translate_element" style={{ display: 'none' }} />
       {horarios && <ModalHorarios onCerrar={() => setHorarios(false)} />}
     </>
-  );
-}
-
-// Recordatorio arriba del contenido: estás viendo la plataforma como otro perfil.
-function AvisoVista({ vista, rolTxt, onCambiar }: { vista: Vista; rolTxt: string; onCambiar: () => void }) {
-  return (
-    <div className={`vista-aviso vista-${vista.tipo}`} role="note">
-      <span className={`vista-ico vista-${vista.tipo}`} aria-hidden="true" />
-      <span>Estás viendo la plataforma como <strong>{VISTA_TXT[vista.tipo].toLowerCase()} {vista.nombre}</strong>: su menú y solo sus datos. Sigues siendo <strong>{rolTxt}</strong>: lo que cambies, cambia de verdad.</span>
-      <button type="button" className="btn-secondary" onClick={(e) => { e.stopPropagation(); onCambiar(); }}>Cambiar de vista</button>
-    </div>
   );
 }
 
