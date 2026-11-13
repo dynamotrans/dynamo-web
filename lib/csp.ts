@@ -26,6 +26,9 @@ const comunes = [
 ];
 const TRADUCTOR = 'https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com';
 const VERCEL = 'https://vercel.live';   // barra de comentarios de las vistas previas de Vercel
+// Captcha de registro y olvido (tarea 76): su script se inyecta desde el bundle (lo
+// permite 'strict-dynamic'), pero el widget pinta un iframe de este dominio.
+const TURNSTILE = 'https://challenges.cloudflare.com';
 const SENTRY = 'https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io';   // aviso de errores
 
 export function cspPlataforma(nonce: string, desarrollo = false): string {
@@ -36,7 +39,7 @@ export function cspPlataforma(nonce: string, desarrollo = false): string {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
     `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org ${TRADUCTOR} ${VERCEL} ${SENTRY} wss://ws-us3.pusher.com`,
-    `frame-src 'self' ${TRADUCTOR} ${VERCEL}`,
+    `frame-src 'self' ${TRADUCTOR} ${VERCEL} ${TURNSTILE}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "base-uri 'none'",

@@ -11,6 +11,7 @@ import SelectorPais from '@/components/SelectorPais';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
 import Req from '@/components/Req';
+import Turnstile from '@/components/Turnstile';
 
 const VACIO: DatosAlta = { email: '', nombre: '', dni_pais: 'ES', dni: '', prefijo: '+34', telefono: '' };
 
@@ -97,6 +98,7 @@ export default function FormRegistro() {
 
       <p className="reg-helper">Te enviaremos un enlace y un código al email para confirmar el alta. La contraseña la eliges después.</p>
 
+      <Turnstile />
       <button type="submit" className="portal-submit" disabled={enviando}>{enviando ? 'Enviando…' : 'Continuar'}</button>
     </form>
   );

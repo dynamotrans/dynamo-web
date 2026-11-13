@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { supabaseServidor } from '@/lib/supabase/server';
 import { origen } from '@/lib/origen';
+import { turnstileOk } from '@/lib/servidor/turnstile';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type EstadoOlvido = { enviado: boolean; error: string | null; email?: string };
@@ -11,6 +12,8 @@ export async function pedirEnlace(_prev: EstadoOlvido, datos: FormData): Promise
   comprobarEntrada("app/panel/olvido/acciones#pedirEnlace", [_prev, datos]);
   const email = String(datos.get('email') || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { enviado: false, error: 'Escribe tu email.', email };
+  // Captcha (Cloudflare Turnstile, tarea 76): protege la cuota de emails frente a bots.
+  if (!(await turnstileOk(datos))) return { enviado: false, error: 'No hemos podido comprobar que no eres un robot. Recarga la página y vuelve a intentarlo.', email };
   const supabase = await supabaseServidor();
   if (!supabase) return { enviado: false, error: 'La plataforma no está conectada a la base de datos.', email };
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${await origen()}/panel/confirmar` });

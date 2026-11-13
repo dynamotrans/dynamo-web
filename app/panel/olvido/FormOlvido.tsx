@@ -5,6 +5,7 @@ import { pedirEnlace, type EstadoOlvido } from './acciones';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
 import Req from '@/components/Req';
+import Turnstile from '@/components/Turnstile';
 
 export default function FormOlvido() {
   // Al enviar, la acción redirige a /panel/olvido/codigo: el email trae enlace Y código
@@ -22,6 +23,7 @@ export default function FormOlvido() {
                  type="email" inputMode="email" placeholder="Ej. tu@empresa.com" autoComplete="username" required />
         </div>
       </div>
+      <Turnstile />
       <button type="submit" className="portal-submit" disabled={enviando}>{enviando ? 'Enviando…' : 'Enviarme el enlace y el código'}</button>
     </form>
   );

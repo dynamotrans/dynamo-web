@@ -6,6 +6,7 @@ import { origen } from '@/lib/origen';
 import { validaIdFiscalPais } from '@/lib/idFiscal';
 import { esPaisValido, PREFIJOS, normalizaTel } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
+import { turnstileOk } from '@/lib/servidor/turnstile';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // ALTA DE CLIENTE desde el portal. No hay contraseña en este paso: Supabase manda al email
@@ -40,6 +41,8 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
   const tel = normalizaTel(d.prefijo + d.telefono);
   if (!/^\+[0-9]{8,15}$/.test(tel)) return mal('telefono', 'Escribe un teléfono de contacto (móvil, a ser posible).');
   if (f.get('acepto') !== 'on') return mal('acepto', 'Para crear la cuenta tienes que aceptar el Aviso legal y la Política de privacidad.');
+  // Captcha (Cloudflare Turnstile, tarea 76): protege la cuota de emails frente a bots.
+  if (!(await turnstileOk(f))) return mal(undefined, 'No hemos podido comprobar que no eres un robot. Recarga la página y vuelve a intentarlo.');
 
   const supabase = await supabaseServidor(true);
   if (!supabase) return mal(undefined, 'La plataforma no está conectada a la base de datos.');
