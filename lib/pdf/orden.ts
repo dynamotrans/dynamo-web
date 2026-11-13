@@ -179,7 +179,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const avisos = [pa.requiere_cita && t.citaPrevia, !pa.tiene_medios_carga && t.sinMedios].filter(Boolean) as string[];
     if (avisos.length) filas.push([t.atencion, avisos.join(' · '), true]);
     if (pa.url_google_maps) filas.push(['Google Maps', pa.url_google_maps]);
-    for (const n2 of [pa.notas_sitio, pa.anotaciones].filter(Boolean) as string[]) filas.push([t.indicaciones, n2]);
+    // El DETALLE DE MERCANCÍA de la parada (el campo «A recoger / A entregar» de Nuevo
+    // envío: «Parte de: …» por defecto con varias paradas, o lo escrito a mano) sale con
+    // su propia etiqueta «Mercancía», no como una indicación más (usuario, 2026-11-13).
+    const notas: string[] = [];
+    let merc: string | null = null;
+    for (const n2 of [pa.notas_sitio, pa.anotaciones].filter(Boolean) as string[]) {
+      const m = n2.match(/(?:^|\n)MERCANCÍA:\s*([^\n]+)/);
+      if (m && merc == null) {
+        merc = m[1].trim();
+        const resto = n2.replace(m[0], '\n').replace(/\n{2,}/g, '\n').trim();
+        if (resto) notas.push(resto);
+      } else notas.push(n2);
+    }
+    if (merc) filas.push([t.mercancia, merc, true]);
+    for (const n2 of notas) filas.push([t.indicaciones, n2]);
 
     const xK = l.x0 + 16, xV = l.x0 + 128, wV = der - xV - 6;
     // La clave también se parte (los idiomas con etiquetas largas no deben pisar el valor).
