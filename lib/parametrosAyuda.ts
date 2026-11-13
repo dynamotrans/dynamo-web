@@ -64,7 +64,7 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Hora de Madrid a la que CIERRA esa ventana diaria. Si un envío se programa después del cierre, su primer aviso sale al día siguiente dentro de la ventana.',
     ejemplo: (v) => `Con ${v}: después de las ${v}:00 ya no sale ningún aviso de víspera ni de 2 días antes hasta mañana.` },
   aviso_parada_hora_mismo_dia: { titulo: 'Avisos a los sitios: hora del mismo día',
-    explica: 'Hora de Madrid a partir de la cual se manda el aviso del MISMO día de la recogida o la entrega. Solo se avisa con transportista asignado; con discreción comercial no se avisa nunca.',
+    explica: 'Hora de Madrid a partir de la cual se manda el aviso del MISMO día de la recogida o la entrega. Solo se avisa con transportista asignado; con discreción comercial se avisa igual pero sin nombrar al cliente.',
     ejemplo: (v) => `Con ${v}: el día de la carga, el almacén recibe su aviso a partir de las ${v}:00.` },
   envio_antelacion_max_dias: { titulo: 'Antelación máxima para programar',
     explica: 'Con cuántos días de antelación como máximo puede programar un cliente un envío. Más lejos, el asistente no le deja y le pide que llame. Dynamo no tiene límite. 0 = sin límite.',

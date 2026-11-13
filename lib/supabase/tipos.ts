@@ -3651,7 +3651,7 @@ export type Database = {
       sumar_dias_habiles: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       tarifa_almacen: { Args: { p_almacen: string | null }; Returns: { semana: number; reparto: number }[] }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
-      texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null }; Returns: string }
+      texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null; p_discreto?: boolean | null }; Returns: string }
       transportista_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       transportista_texto_busqueda: { Args: { t: Database["public"]["Tables"]["transportistas"]["Row"] | null }; Returns: string }
       transportistas_flota: { Args: { p_ids: string[] | null }; Returns: { transportista_id: string; tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] }[] }

@@ -8344,7 +8344,7 @@ begin
     raise exception 'FALLO 213 · el aviso de recogida de la víspera no es el esperado';
   end if;
 
-  -- (c) DISCRECIÓN comercial: jamás se avisa.
+  -- (c) DISCRECIÓN comercial: se avisa IGUAL, pero sin nombrar al cliente.
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, discrecion_comercial)
     values (cli, 13.30, 20, 900, hoy + 2, true) returning id into e2;
@@ -8355,8 +8355,17 @@ begin
   perform set_config('request.jwt.claim.sub', '', false);
   update envios set estado = 'programado', transportista_id = tr, fecha_entrega_estimada = hoy + 2 where id = e2;
   perform encolar_avisos_paradas();
-  if exists (select 1 from emails_enviados where clave like 'aviso_parada:' || e2 || ':%') then
-    raise exception 'FALLO 213 · avisa con discreción comercial';
+  select count(*) into n from emails_enviados where clave like 'aviso_parada:' || e2 || ':%';
+  if n <> 2 then raise exception 'FALLO 213 · con discreción esperaba 2 avisos (sin nombrar al cliente) y hay %', n; end if;
+  if exists (select 1 from emails_enviados x, clientes c
+              where x.clave like 'aviso_parada:' || e2 || ':%' and c.id = cli
+                and (x.asunto like '%' || c.razon_social || '%' or x.cuerpo_html like '%' || escapar_html(c.razon_social) || '%')) then
+    raise exception 'FALLO 213 · el aviso con discreción nombra al cliente';
+  end if;
+  if not exists (select 1 from emails_enviados x, clientes c
+                  where x.clave like 'aviso_parada:' || e1 || ':%' and c.id = cli
+                    and x.cuerpo_html like '%De parte de <strong>' || escapar_html(c.razon_social) || '%') then
+    raise exception 'FALLO 213 · sin discreción el aviso debía decir «de parte de» el cliente';
   end if;
 
   -- (d) VENTANA cerrada: el envío a 2 días espera; al abrirla, salen los d2.
@@ -8400,9 +8409,19 @@ begin
   select count(*) into n from emails_enviados where clave like 'aviso_parada_cancelada:' || e3 || ':%';
   if n <> 1 then raise exception 'FALLO 213 · la anulación de parada quitada debía ser solo una y hay %', n; end if;
 
+  -- (g) Anulación CON discreción: tampoco nombra al cliente.
+  update envios set estado = 'cancelado' where id = e2;
+  if exists (select 1 from emails_enviados x, clientes c
+              where x.clave like 'aviso_parada_cancelada:' || e2 || ':%' and c.id = cli
+                and (x.asunto like '%' || c.razon_social || '%' or x.cuerpo_html like '%' || escapar_html(c.razon_social) || '%')) then
+    raise exception 'FALLO 213 · la anulación con discreción nombra al cliente';
+  end if;
+  select count(*) into n from emails_enviados where clave like 'aviso_parada_cancelada:' || e2 || ':%';
+  if n <> 2 then raise exception 'FALLO 213 · con discreción esperaba 2 anulaciones y hay %', n; end if;
+
   -- Los parámetros, como estaban.
   update parametros set valor = '10' where clave = 'aviso_parada_ventana_inicio';
   update parametros set valor = '16' where clave = 'aviso_parada_ventana_fin';
   update parametros set valor = '8'  where clave = 'aviso_parada_hora_mismo_dia';
-  raise notice 'OK 213 · avisos a los sitios: solo con transportista, por tramos sin repetirse, ventana horaria, discreción fuera, y anulaciones al cancelar o quitar paradas';
+  raise notice 'OK 213 · avisos a los sitios: solo con transportista, por tramos sin repetirse, ventana horaria, con discreción sin nombrar al cliente, y anulaciones al cancelar o quitar paradas';
 end $$;
