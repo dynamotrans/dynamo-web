@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { crearClienteRapido } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearClienteRapido, clientesActivos } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { buscarClientes } from '@/app/panel/(app)/sitios/acciones';
 import SelectorPais from '@/components/SelectorPais';
 import { ClienteOpcion, IcoCliente, norm } from './comun';
@@ -22,6 +22,15 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
   // nombre, CIF, población, contactos…); mientras no se escribe, los pocos que ya vienen
   // con la pantalla (el de la vista o del envío base, o los dados de alta aquí).
   const [encontrados, setEncontrados] = useState<ClienteOpcion[] | null>(null);
+  // Los 8 clientes MÁS ACTIVOS (con más envíos en los últimos 30 días) se enseñan nada
+  // más enfocar, sin escribir nada (usuario, 2026-11-13): suelen repetirse, y así lo
+  // normal es tocar en vez de teclear. Solo llega con datos para Dynamo.
+  const [activos, setActivos] = useState<ClienteOpcion[]>([]);
+  useEffect(() => {
+    clientesActivos()
+      .then((r) => setActivos(r.map((c) => ({ id: c.id, nombre: c.nombre, cif: c.cif, principal_id: c.principal_id, iva: c.iva_pct, nima: c.nima_por_defecto }))))
+      .catch(() => {});
+  }, []);
   const ultima = useRef(0);
   useEffect(() => {
     const w = q.trim();
@@ -36,10 +45,12 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
   const lista = useMemo(() => {
     const w = norm(q.trim());
     const locales = clientes.filter((c) => !w || norm(c.nombre + ' ' + c.cif).includes(w));
-    if (!w || !encontrados) return locales.slice(0, 8);
-    const ids = new Set(locales.map((c) => c.id));
-    return [...locales, ...encontrados.filter((c) => !ids.has(c.id))].slice(0, 12);
-  }, [clientes, q, encontrados]);
+    const idsLoc = new Set(locales.map((c) => c.id));
+    const fondo = [...locales, ...activos.filter((c) => !idsLoc.has(c.id) && (!w || norm(c.nombre + ' ' + c.cif).includes(w)))];
+    if (!w || !encontrados) return fondo.slice(0, 8);
+    const ids = new Set(fondo.map((c) => c.id));
+    return [...fondo, ...encontrados.filter((c) => !ids.has(c.id))].slice(0, 12);
+  }, [clientes, q, encontrados, activos]);
 
   async function guardar() {
     const faltan = [!rs.trim() && 'ne-rs', !cif.trim() && 'ne-cif'].filter(Boolean) as string[];

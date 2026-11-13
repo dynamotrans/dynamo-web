@@ -21,6 +21,11 @@ export default function CodigoOtp({ email, comprobar, reenviar: reenviarAccion }
 
   useEffect(() => { cajas.current[0]?.focus(); }, []);
   useEffect(() => { if (reenvio.reenviado) setEspera(60); }, [reenvio]);
+  // Código erróneo o caducado: las cajitas se VACÍAN y el foco vuelve a la primera
+  // (usuario, 2026-11-13) — dejar el código malo puesto solo invitaba a re-verificarlo.
+  useEffect(() => {
+    if (estado.error) { setCifras(['', '', '', '', '', '']); cajas.current[0]?.focus(); }
+  }, [estado]);
   useEffect(() => {
     if (espera <= 0) return;
     const t = setTimeout(() => setEspera((s) => s - 1), 1000);
