@@ -26,6 +26,8 @@ import { RevisionCliente, SelloPrecio, type Revision } from './RevisionPrecio';
 import Historial from './Historial';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 import { CONTACTO } from '@/lib/atencion';
+import Tip from '@/components/Tip';
+import { SIGLAS } from '@/lib/siglas';
 import { ESTADOS_ENVIO, FASES_ENVIO, type Etapa } from '@/lib/estados';
 import Etapas from './ficha/Etapas';
 import Req from '@/components/Req';
@@ -251,7 +253,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           <div className="pen-sum-row"><span className="k">Medidas</span><span className="v">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Tipo de carga</span><span className="v">{[tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora), alturaMaxTxt(e.requiere_plataforma_elevadora)].filter(Boolean).join(' · ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Forma de carga</span><span className="v">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</span></div>
-          <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v" style={{ textAlign: 'right' }}>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</span></div>
+          <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v" style={{ textAlign: 'right' }}>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}{e.requiere_nima && <> <Tip texto={SIGLAS.NIMA} aria="Qué significa NIMA" /></>}{e.adr && <> <Tip texto={SIGLAS.ADR} aria="Qué significa ADR" /></>}</span></div>
           {e.anotaciones_cliente && <div className="pen-sum-row pen-sum-col"><span className="k">Anotaciones</span><span className="v">{e.anotaciones_cliente}</span></div>}
           {e.estado !== 'cancelado' && <div className="modal-info-grid" style={{ marginTop: '0.2rem' }}><DatosCmr envioId={e.id} puedeEditar={['borrador', 'programado', 'hacia_la_carga'].includes(e.estado)} bloquearSiFirmado /></div>}
         </div>

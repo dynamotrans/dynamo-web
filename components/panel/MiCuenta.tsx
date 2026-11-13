@@ -17,6 +17,8 @@ import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import MedidorClave, { claveValida } from '@/components/MedidorClave';
 import { CONTACTO } from '@/lib/atencion';
+import Tip from '@/components/Tip';
+import { SIGLAS } from '@/lib/siglas';
 
 // Los mismos idiomas que el selector de la web (y que usarán los avisos automáticos).
 const IDIOMAS: [string, string][] = [
@@ -55,7 +57,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
   const [vehiculo, setVehiculo] = useState<MiVehiculo | null>(null);
   const [conductor, setConductor] = useState<MiConductor | null>(null);
   const hecho = () => { setEditaTransp(false); setVehiculo(null); setConductor(null); refrescar(); };
-  const fila = (k: string, v: React.ReactNode) => <div className="account-row"><span className="account-row-label">{k}</span><span className="account-row-value">{v || '—'}</span></div>;
+  const fila = (k: React.ReactNode, v: React.ReactNode) => <div className="account-row"><span className="account-row-label">{k}</span><span className="account-row-value">{v || '—'}</span></div>;
   return (
     <section className="section active" id="sec-mi-cuenta">
       <div className="sec-header"><h2>Mi cuenta</h2></div>
@@ -103,7 +105,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
         {transporte && (<>
           <div className="account-card">
             <h3 className="account-card-title">Empresa de transporte</h3>
-            {fila('NIMA', transporte.nima)}
+            {fila(<>NIMA <Tip texto={SIGLAS.NIMA} aria="Qué significa NIMA" /></>, transporte.nima)}
             {fila('Bolsa de carga', [transporte.bolsa, transporte.codigo_bolsa].filter(Boolean).join(' · '))}
             {fila('Plazo de pago', transporte.plazo_pago_dias != null ? `${transporte.plazo_pago_dias} días` : '')}
             <button className="btn-ghost account-edit" onClick={() => setEditaTransp(true)}>Editar NIMA</button>

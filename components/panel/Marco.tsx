@@ -15,6 +15,8 @@ import ModalHorarios from './ModalHorarios';
 import { EVENTO_RECARGAR } from './TirarParaRecargar';
 import SelectorVista from './SelectorVista';
 import { VISTA_ADMIN, inicioDe, type Vista } from '@/lib/vistaTipo';
+import Tip from '@/components/Tip';
+import { SIGLAS } from '@/lib/siglas';
 import { misAvisos, marcarAvisosVistos, type Aviso } from '@/app/panel/avisos';
 
 // Idiomas del menú del usuario (los del mockup). Banderas: excepción de la regla 0-ter.
@@ -337,7 +339,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                 <div className={`cesce-menu${menu === 'cesce' ? ' open' : ''}`} role="menu" aria-hidden={menu !== 'cesce'}>
                   <div className="cesce-menu-head">
                     <img className="cesce-menu-logo" src="/images/cesce-azul.webp" alt="CESCE" />
-                    <div><div className="cesce-menu-head-t">Cobertura de crédito</div><div className="cesce-menu-head-s">Asegurada por CESCE</div></div>
+                    <div><div className="cesce-menu-head-t">Cobertura de crédito</div><div className="cesce-menu-head-s">Asegurada por CESCE <Tip texto={SIGLAS.CESCE} aria="Qué es CESCE" /></div></div>
                   </div>
                   <div className={`cesce-menu-badge ${COBERTURA[cobertura].badge}`}><span className="dot" />{COBERTURA[cobertura].label}</div>
                   <div className="cesce-rows"><div className="cesce-row"><span className="k">Clasificación</span><span className={`v ${COBERTURA[cobertura].clasifCls}`}>{COBERTURA[cobertura].clasif}</span></div></div>

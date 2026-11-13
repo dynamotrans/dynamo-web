@@ -15,6 +15,7 @@ import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
 import { CONTACTO } from '@/lib/atencion';
+import { SIGLAS } from '@/lib/siglas';
 import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
@@ -1064,8 +1065,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                                 ? `Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m, 14 Tn y 2,60 m de altura${recorta ? ' (metros y peso ajustados a ese máximo)' : ''}.`
                                 : 'Sin plataforma vuelves a TRÁILER: máximo 13,3 m, 24 Tn y 2,70 m de altura. Tus metros y peso se mantienen.');
                             }} />
-                          <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
-                          <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
+                          <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} tip={SIGLAS.NIMA} />
+                          <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} tip={SIGLAS.ADR} />
                         </div>
                         {/* Discreción comercial DENTRO del desplegable (usuario, 2026-11-12);
                             antes iba suelta en el paso 1. */}
