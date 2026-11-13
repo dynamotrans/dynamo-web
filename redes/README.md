@@ -14,4 +14,5 @@
 ## Anuncio de artículos del blog (tarea "Publicar blog Dynamo", lunes y viernes)
 - El día que se publica un artículo del blog, a las **11:00** sale un post en Instagram + Facebook anunciándolo.
 - Imagen 1080×1350: `python3 redes/render_blog.py --title "...<em>clave</em>..." --hook "..." --lead "..." --date "D de mes de AAAA" --minutes N --out images/redes/AAAA-MM-DD-blog-slug.jpg` (plantilla `redes/plantilla-blog.html`).
+- Además, a la misma hora, una HISTORIA (Instagram + Facebook) con la misma ficha: `render_blog.py ... --format story --out images/redes/AAAA-MM-DD-blog-slug-story.jpg` (1080×1920, sin texto).
 - El texto enlaza a la portada del blog (`dynamotrans.com/blog`), nunca al artículo. En Instagram: "enlace en nuestra bio"; en Facebook la URL completa (es clicable).
