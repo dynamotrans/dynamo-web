@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--purple:#3300cc;--purple2:#4a1ae0;--navy:#0a0230;--green:#85d85a;--yellow:#e3dc0e;--orange:#ff6a13;--green2:#00c060}
+body{width:1080px;height:1350px;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#fff;position:relative;background:var(--navy)}
+.photo{position:absolute;left:0;right:0;top:0;height:760px;background:url("../images/hero-camiones-dynamo.jpg") center 60%/cover no-repeat}
+.veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(51,0,204,.85) 0%,rgba(51,0,204,.7) 22%,rgba(30,8,130,.9) 40%,rgba(20,6,90,.95) 52%,var(--navy) 62%)}
+.glow{position:absolute;inset:0;background:radial-gradient(700px 500px at 90% 95%,rgba(74,26,224,.55),transparent 70%)}
+.logo{position:absolute;top:72px;left:80px;width:270px}
+.claim{position:absolute;top:84px;right:80px;font-weight:700;font-size:26px;opacity:.9}
+.pill{position:absolute;top:250px;left:80px;display:flex;align-items:center;gap:14px;background:var(--green);color:var(--navy);font-weight:900;font-size:28px;letter-spacing:2px;text-transform:uppercase;padding:16px 28px;border-radius:999px;box-shadow:0 10px 30px rgba(133,216,90,.35)}
+.pill i{width:14px;height:14px;border-radius:50%;background:var(--navy)}
+.hook{position:absolute;top:350px;left:80px;right:80px;font-weight:800;font-size:46px;line-height:1.15;letter-spacing:-1px}
+.card{position:absolute;left:60px;right:60px;top:500px;background:#fff;color:var(--navy);border-radius:40px;padding:56px 60px 48px;box-shadow:0 40px 90px rgba(0,0,0,.45)}
+.card:before{content:"";position:absolute;left:60px;top:-1px;width:120px;height:8px;border-radius:0 0 8px 8px;background:linear-gradient(90deg,var(--purple),var(--green));display:none}
+.meta{display:flex;gap:18px;align-items:center;font-weight:700;font-size:24px;color:#5b5878}
+.meta .tag{background:#efeaff;color:var(--purple);padding:8px 18px;border-radius:999px;font-weight:800}
+.title{margin-top:30px;font-weight:900;font-size:64px;line-height:1.06;letter-spacing:-2px}
+.title em{font-style:normal;color:var(--purple);background:linear-gradient(transparent 68%,rgba(133,216,90,.6) 68%)}
+.lead{margin-top:26px;font-weight:500;font-size:29px;line-height:1.4;color:#45425f}
+.author{margin-top:38px;padding-top:30px;border-top:2px solid #eeedf4;display:flex;align-items:center;gap:20px}
+.author img{width:78px;height:78px;border-radius:50%}
+.author b{display:block;font-size:27px;font-weight:800}
+.author span{font-size:23px;color:#6b6888;font-weight:600}
+.author .rt{margin-left:auto;font-size:23px;font-weight:700;color:var(--purple)}
+.foot{position:absolute;left:80px;right:80px;bottom:62px;display:flex;justify-content:space-between;align-items:center}
+.foot .site{font-weight:900;font-size:36px}.foot .site em{font-style:normal;color:var(--green)}
+.foot .go{font-weight:800;font-size:26px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);padding:14px 26px;border-radius:999px}
+.bar{position:absolute;left:0;right:0;bottom:0;height:14px;display:flex}
+.bar i{flex:1}.bar i:nth-child(1){background:var(--yellow)}.bar i:nth-child(2){background:var(--green2)}.bar i:nth-child(3){background:var(--orange)}
+</style></head><body>
+<div class="photo"></div><div class="veil"></div><div class="glow"></div>
+<img class="logo" src="../images/4.png"><div class="claim">Always Moving.</div>
+<div class="pill"><i></i>Nuevo en el blog</div>
+<div class="hook">{{HOOK}}</div>
+<div class="card">
+  <div class="meta"><span class="tag">{{TAG}}</span><span>{{DATE}}</span></div>
+  <div class="title">{{TITLE}}</div>
+  <div class="lead">{{LEAD}}</div>
+  <div class="author"><img src="../images/ALVARO_circular_ZOOM.png"><div><b>Álvaro Blanco</b><span>Dynamo Trans · Sevilla</span></div><div class="rt">{{MIN}} min de lectura</div></div>
+</div>
+<div class="foot"><div class="site">dynamotrans.com<em>/blog</em></div><div class="go">Enlace en la bio →</div></div>
+<div class="bar"><i></i><i></i><i></i></div>
+</body></html>
