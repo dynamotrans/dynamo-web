@@ -40,18 +40,20 @@ body.story{height:1920px}
 .story .card{top:720px}
 .story .foot{bottom:150px;flex-direction:column;align-items:flex-start;gap:34px}
 .story .foot .go{font-size:32px;padding:20px 34px;background:var(--green);color:var(--navy);border-color:var(--green)}
-/* ---------- Franja de llamada a la acción ---------- */
-.band{position:absolute;left:0;right:0;bottom:14px;height:150px;background:var(--orange);color:var(--purple);display:flex;align-items:center;gap:26px;padding:0 70px 0 76px;z-index:6;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
-.band .clk{position:static;width:78px;height:78px;flex:0 0 78px}
+/* ---------- Franja de llamada a la acción (pegada al pie) ---------- */
+.bar{display:none}
+.band{position:absolute;left:0;right:0;bottom:0;height:130px;background:#fff;color:var(--purple);display:flex;align-items:center;gap:22px;padding:6px 64px 0 72px;z-index:6}
+.band:before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(90deg,var(--yellow) 0 33.34%,var(--green2) 33.34% 66.67%,var(--orange) 66.67%)}
+.band .clk{position:static;width:60px;height:60px;flex:0 0 60px}
 .band .bt{display:flex;flex-direction:column;gap:4px}
-.band b{font-weight:900;font-size:56px;line-height:1;letter-spacing:-1.5px}
-.band span{font-weight:800;font-size:27px;color:var(--navy)}
-.band .go{margin-left:auto;width:84px;height:84px;border-radius:50%;background:var(--purple);color:#fff;font-style:normal;font-weight:900;font-size:46px;display:flex;align-items:center;justify-content:center}
-.foot{bottom:186px}
+.band b{font-weight:900;font-size:44px;line-height:1;letter-spacing:-1px}
+.band span{font-weight:700;font-size:24px;color:#6b6888}
+.band .go{margin-left:auto;width:68px;height:68px;border-radius:50%;background:var(--purple);color:#fff;font-style:normal;font-weight:900;font-size:36px;display:flex;align-items:center;justify-content:center}
+.story .band{height:160px}
+.story .band b{font-size:50px}.story .band span{font-size:27px}
+.foot{bottom:170px}
 body:not(.story) .logo{top:56px}body:not(.story) .claim{top:68px}body:not(.story) .pill{top:200px}body:not(.story) .hook{top:296px}body:not(.story) .card{top:440px}
-.story .band{bottom:250px}
-.story .foot{bottom:440px}
-.story .pill{top:360px}.story .hook{top:470px}.story .card{top:650px}
+.story .foot{bottom:220px}
 </style></head><body class="{{FORMAT}}">
 <div class="photo"></div><div class="veil"></div><div class="glow"></div>
 <img class="logo" src="../images/4.png"><div class="claim">Always Moving.</div>

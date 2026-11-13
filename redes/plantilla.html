@@ -79,22 +79,24 @@ svg{position:absolute}
 .story.v4 .list{top:900px;right:84px;font-size:38px}
 .story.v4 .map{right:40px;bottom:450px;width:300px}
 .story .cta{display:none}.story .cta.on{display:flex}
-/* ---------- Franja de llamada a la acción ---------- */
-.band{position:absolute;left:0;right:0;bottom:14px;height:150px;background:var(--orange);color:var(--purple);display:flex;align-items:center;gap:26px;padding:0 70px 0 76px;z-index:6;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
-.band .clk{position:static;width:78px;height:78px;flex:0 0 78px}
+/* ---------- Franja de llamada a la acción (pegada al pie) ---------- */
+.bar{display:none}
+.band{position:absolute;left:0;right:0;bottom:0;height:130px;background:#fff;color:var(--purple);display:flex;align-items:center;gap:22px;padding:6px 64px 0 72px;z-index:6}
+.band:before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(90deg,var(--yellow) 0 33.34%,var(--green2) 33.34% 66.67%,var(--orange) 66.67%)}
+.band .clk{position:static;width:60px;height:60px;flex:0 0 60px}
 .band .bt{display:flex;flex-direction:column;gap:4px}
-.band b{font-weight:900;font-size:56px;line-height:1;letter-spacing:-1.5px}
-.band span{font-weight:800;font-size:27px;color:var(--navy)}
-.band .go{margin-left:auto;width:84px;height:84px;border-radius:50%;background:var(--purple);color:#fff;font-style:normal;font-weight:900;font-size:46px;display:flex;align-items:center;justify-content:center}
+.band b{font-weight:900;font-size:44px;line-height:1;letter-spacing:-1px}
+.band span{font-weight:700;font-size:24px;color:#6b6888}
+.band .go{margin-left:auto;width:68px;height:68px;border-radius:50%;background:var(--purple);color:#fff;font-style:normal;font-weight:900;font-size:36px;display:flex;align-items:center;justify-content:center}
+.story .band{height:160px}
+.story .band b{font-size:50px}.story .band span{font-size:27px}
 /* sitio para la franja */
-.v1 .truck{bottom:182px}.v1 .road{bottom:170px}
-.v2 .pallets{bottom:180px}
-.v4 .map{bottom:178px;width:300px}
-.story .band{bottom:250px}
-.story .cta{bottom:440px}
-.story.v1 .truck{bottom:560px}.story.v1 .road{bottom:548px}
-.story.v2 .pallets{bottom:540px}
-.story.v4 .map{bottom:530px}
+.v1 .truck{bottom:172px}.v1 .road{bottom:160px}
+.v2 .pallets{bottom:170px}
+.v4 .map{bottom:168px;width:300px}
+.v4 .band .clk g{stroke:var(--green)}.v4 .band .clk path:last-child{fill:#fff;stroke:var(--purple)}
+.v4 .band{background:var(--purple);color:#fff}.v4 .band span{color:rgba(255,255,255,.8)}.v4 .band .go{background:var(--green2)}
+.story .cta{bottom:300px}
 </style></head>
 <body class="{{VARIANT}} {{FORMAT}}">
 <div class="bg"></div>
