@@ -158,6 +158,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [verProforma, cliente?.id, esCliente]);
+  // PANTALLA DE ÉXITO (tarea 81, usuario 2026-11-13): al confirmar un envío no se suelta
+  // al usuario en la lista — se le dice QUÉ PASA AHORA y a dónde ir.
+  const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual' } | null>(null);
   const [aceptaLegal, setAceptaLegal] = useState(false);
   // Se pulsó «Confirmar envío» sin marcar la casilla: la casilla y su texto se ponen en rojo.
   const [faltaLegal, setFaltaLegal] = useState(false);
@@ -602,7 +605,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
-      router.push(`/panel/envios?f=programada&nuevo=${encodeURIComponent(rm.referencia_gx)}&manual=1`);
+      setEnviando(false); setRevisarLegal(false);
+      setCreado({ ref: rm.referencia_gx, id: rm.id, modo: 'manual' });
       refrescar();
       return;
     }
@@ -619,7 +623,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
-      router.push(`/panel/envios?f=programada&nuevo=${encodeURIComponent(rs.referencia_gx)}`);
+      setEnviando(false); setRevisarLegal(false);
+      setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente' });
       refrescar();
       return;
     }
@@ -634,7 +639,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio, negociacion_pct: neg,
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
-    router.push(`/panel/envios?f=sin-asignar&nuevo=${encodeURIComponent(r.referencia_gx)}`);
+    setEnviando(false); setRevisarLegal(false);
+    setCreado({ ref: r.referencia_gx, id: r.id, modo: 'admin' });
     refrescar();
   }
 
@@ -850,6 +856,50 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
     </div>
   );
+
+  // Pantalla de éxito: sustituye al asistente entero una vez creado el envío.
+  if (creado) {
+    const pasosExito = creado.modo === 'cliente' ? [
+      <>Tu envío está <strong>programado con el precio cerrado</strong> que acabas de confirmar. Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</>,
+      <>Dynamo asigna el camión: la <strong>matrícula y el conductor</strong> aparecerán en la ficha del envío y te avisaremos por la <strong>campana</strong>.</>,
+      <>El día de la carga podrás seguir el <strong>estado en vivo</strong>; al entregar tendrás el <strong>eCMR firmado</strong> en Documentos.</>,
+    ] : creado.modo === 'manual' ? [
+      <>El envío queda <strong>programado con tu operador</strong>: Dynamo no interviene en nada.</>,
+      <>Desde la ficha puedes sacar la <strong>orden de carga en PDF</strong> y apuntar matrícula y conductor.</>,
+      <>El seguimiento y el eCMR funcionan igual que en cualquier envío.</>,
+    ] : [
+      <>El envío queda <strong>programado y pendiente de transportista</strong>.</>,
+      <>Asígnalo desde la ficha: a mano, por <strong>enlace</strong> o con la <strong>oferta escalonada por email</strong>.</>,
+      <>Con transportista y día de carga, la <strong>orden de carga</strong> le llega sola por email y el almacén de entrega recibe su aviso.</>,
+    ];
+    const btnAncho = { width: '100%', minHeight: 52, justifyContent: 'center' } as const;
+    return (
+      <section className="section active" id="sec-nueva-carga">
+        <div className="ptar-card" style={{ maxWidth: 560, margin: '0 auto' }}>
+          <div aria-hidden style={{ width: 64, height: 64, margin: '0.4rem auto 0.8rem', borderRadius: '50%', background: 'rgba(34,165,90,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+          <h2 style={{ margin: '0 0 0.25rem', textAlign: 'center' }}>¡Envío #{creado.ref} creado!</h2>
+          <p style={{ margin: '0 0 1.1rem', color: 'var(--gray-500)', textAlign: 'center' }}>Esto es lo que pasa ahora:</p>
+          <ol style={{ margin: '0 0 1.3rem', padding: 0, listStyle: 'none', display: 'grid', gap: '0.65rem' }}>
+            {pasosExito.map((t, i) => (
+              <li key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+                <span aria-hidden style={{ flex: 'none', width: 26, height: 26, borderRadius: '50%', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-s)' }}>{i + 1}</span>
+                <span style={{ fontSize: 'var(--fs-m)', color: 'var(--navy)', lineHeight: 1.45 }}>{t}</span>
+              </li>
+            ))}
+          </ol>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+            <button type="button" className="btn-primary" style={btnAncho}
+              onClick={() => router.push(creado.id ? `/panel/envios?ver=${creado.id}` : `/panel/envios?nuevo=${encodeURIComponent(creado.ref)}`)}>
+              {creado.modo === 'admin' ? 'Abrir el envío (asignar transportista)' : 'Ver mi envío'}</button>
+            <button type="button" className="btn-secondary" style={btnAncho} onClick={() => window.location.assign('/panel/nuevo-envio')}>Crear otro envío</button>
+            <button type="button" className="btn-ghost" style={{ ...btnAncho, minHeight: 48 }} onClick={() => router.push('/panel/envios')}>Ir a la lista de envíos</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">

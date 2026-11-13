@@ -73,7 +73,7 @@ function traducir(msg: string): string {
 }
 
 export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
-  Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  Promise<{ ok: true; referencia_gx: string; id: string | null } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvio", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
@@ -93,7 +93,7 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
     await s.supabase.from('envios').update({ negociacion_pct }).eq('id', fila.id);
   }
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas);
-  return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
+  return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null };
 }
 
 // Alta rápida de cliente desde el envío (la ficha completa llegará con la pantalla de
@@ -178,7 +178,7 @@ export async function guardarEdicionEnvio(envio: string,
 // no hay solicitudes de precio). Nace programado; el previo pago decide crédito o pago.
 // La base de datos fuerza que sea de SU empresa y con SUS sitios.
 export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_transportista'>, paradas: ParadaNueva[]):
-  Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  Promise<{ ok: true; referencia_gx: string; id: string | null } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvioCliente", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
@@ -188,13 +188,13 @@ export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | '
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
-  return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
+  return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null };
 }
 
 // Envío con un operador PROPIO del cliente (manual, Dynamo no interviene): lo crea el
 // cliente, o un gestor de Dynamo con «Ver como» ese cliente (la vista decide p_cliente).
 export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'> & { operador_id: string; precio_acordado_operador: number | null }, paradas: ParadaNueva[]):
-  Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  Promise<{ ok: true; referencia_gx: string; id: string | null } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvioManual", [envio, paradas]);
   const s = await sesion();
   const dynamo = esGestor(s?.perfil?.rol);
@@ -207,7 +207,7 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
-  return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
+  return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null };
 }
 
 // Días de la semana en que abre cada sitio, en su horario general y en el de verano (para
