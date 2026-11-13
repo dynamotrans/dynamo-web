@@ -26,8 +26,10 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const base = Number((u.searchParams.get('base') ?? '').replace(',', '.'));
   if (!Number.isFinite(base) || base <= 0 || base > 100000) return texto('Falta el importe del cálculo.', 400);
-  const ruta = (u.searchParams.get('ruta') ?? '').slice(0, 160);
-  const det = (u.searchParams.get('det') ?? '').slice(0, 240);
+  // Ruta y detalle vienen en LÍNEAS (una parada por línea; fecha+ventana, camión y
+  // medidas), el mismo estilo que el email de la proforma (usuario, 2026-11-13).
+  const ruta = (u.searchParams.get('ruta') ?? '').slice(0, 600).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 6);
+  const det = (u.searchParams.get('det') ?? '').slice(0, 400).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 4);
 
   // El cliente siempre es ÉL MISMO; Dynamo pasa el cliente elegido en el asistente.
   let c: ClienteProforma | null = null;
@@ -46,7 +48,7 @@ export async function GET(req: Request) {
     codigo: 'CALCULO', referencia_cliente: null, creado_en: new Date().toISOString(),
     cliente: { razon_social: c.razon_social ?? '—', cif: c.cif ?? '—', direccion: c.direccion ?? null,
       codigo_postal: c.codigo_postal ?? null, poblacion: c.poblacion ?? null, pais: nombrePais(c.pais_codigo_iso) },
-    conceptos: [{ titulo: `Transporte${ruta ? ` · ${ruta}` : ''}`, sub: det, importe: base }],
+    conceptos: [{ titulo: 'Transporte', lineas: [...ruta, ...det], importe: base }],
     iva: Number(c.iva_pct ?? 21),
     sinPago: { aviso: 'Este documento NO crea ningún envío ni reserva: es solo el precio calculado hoy, para que lo veas. '
       + 'Por eso no lleva datos de pago. La proforma pagadera, con los datos de la transferencia, sale al crear el envío '

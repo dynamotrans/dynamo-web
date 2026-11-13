@@ -16,6 +16,8 @@ import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
 import { CONTACTO } from '@/lib/atencion';
 import { SIGLAS } from '@/lib/siglas';
+import { paisDe as nombrePais } from '@/lib/paises';
+import { nombreTipo } from './TipoSitio';
 import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
@@ -150,15 +152,21 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [revisarLegal, setRevisarLegal] = useState(false);
   const [verProforma, setVerProforma] = useState(false);   // proforma orientativa del cálculo (sin crear el envío)
   // Email del cliente para el botón «Enviar por email a:» de la proforma (usuario,
-  // 2026-11-13). Se pide al abrir la ventana; si no tiene ninguno, el botón no sale.
+  // 2026-11-13). Se pide YA al elegir el cliente — pedirlo al abrir la ventana hacía
+  // que el botón tardara 2-4 s en aparecer — y se recuerda por cliente. Sin email, no sale.
   const [emailCli, setEmailCli] = useState<string | null>(null);
+  const emailsCli = useRef(new Map<string, string | null>());
   useEffect(() => {
-    if (!verProforma || esCliente || !cliente) { setEmailCli(null); return; }
+    if (esCliente || !cliente) { setEmailCli(null); return; }
+    const id = cliente.id;
+    const visto = emailsCli.current.get(id);
+    if (visto !== undefined) { setEmailCli(visto); return; }
+    setEmailCli(null);
     let vivo = true;
-    emailDeCliente(cliente.id).then((e) => { if (vivo) setEmailCli(e); }).catch(() => {});
+    emailDeCliente(id).then((e) => { emailsCli.current.set(id, e); if (vivo) setEmailCli(e); }).catch(() => {});
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [verProforma, cliente?.id, esCliente]);
+  }, [cliente?.id, esCliente]);
   // PANTALLA DE ÉXITO (tarea 81, usuario 2026-11-13): al confirmar un envío no se suelta
   // al usuario en la lista — se le dice QUÉ PASA AHORA y a dónde ir.
   const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual' } | null>(null);
@@ -1287,8 +1295,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         pie={(() => {
           const baseP = esCliente ? (tarifa?.neto ?? 0) : importe;
           const rutaTxt = puntos.map((p) => p.sitio?.poblacion ?? p.nuevo?.poblacion ?? '').filter(Boolean).join(' → ');
-          const detTxt = [fechaTxt ? `carga ${fechaTxt}` : '', camionTxt, `${mlTxt.split(' ·')[0]} · ${pesoTxt}`].filter(Boolean).join(' · ');
-          const url = `/panel/nuevo-envio/proforma?base=${encodeURIComponent(baseP)}&ruta=${encodeURIComponent(rutaTxt)}&det=${encodeURIComponent(detTxt)}`
+          // RUTA una parada por línea (cp población, país y tipo de sitio) y DETALLE en
+          // 3 líneas — fecha con su ventana, camión, y metros y peso —, el mismo estilo
+          // en el email y en el PDF de la proforma (usuario, 2026-11-13).
+          const lineasRuta = puntos.map((p) => {
+            const cp = p.sitio?.codigo_postal ?? p.nuevo?.codigo_postal ?? '';
+            const pob = p.sitio?.poblacion ?? p.nuevo?.poblacion ?? '';
+            if (!cp && !pob) return '';
+            const pais = nombrePais(p.sitio?.pais_codigo_iso ?? p.nuevo?.pais_codigo_iso ?? '');
+            const tipo = nombreTipo(p.sitio?.tipo ?? p.nuevo?.tipo_sitio);
+            return `${[[cp, pob].filter(Boolean).join(' '), pais].filter(Boolean).join(', ')} (${tipo})`;
+          }).filter(Boolean);
+          const notaVentana = urgencia === 'dia' ? 'fecha fija' : urgencia === 'corta' ? 'ventana corta de 1 a 2 días' : 'ventana flexible, la más económica';
+          const lineasDetalle = [
+            fechaTxt ? `Carga ${fechaTxt} (${notaVentana})` : '',
+            camionTxt,
+            `${mlTxt.split(' ·')[0]} · ${pesoTxt}`,
+          ].filter(Boolean);
+          const url = `/panel/nuevo-envio/proforma?base=${encodeURIComponent(baseP)}&ruta=${encodeURIComponent(lineasRuta.join('\n'))}&det=${encodeURIComponent(lineasDetalle.join('\n'))}`
             + (esCliente || !cliente ? '' : `&cliente=${cliente.id}`);
           // Botones a lo ancho, grandes y apilados (usuario, 2026-11-12): el principal
           // (descargar) arriba y Cerrar debajo, los dos del mismo tamaño.
@@ -1298,7 +1322,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           // cálculo escrito; el PDF, si se quiere adjuntar, se descarga con el botón de
           // arriba. Saltos CRLF: Gmail móvil se come los LF a secas.
           const cuerpo = ['Buenos días,', '', 'Le hacemos llegar el precio solicitado:', '']
-            .concat(rutaTxt ? [`RUTA: ${rutaTxt}`] : []).concat(detTxt ? [`DETALLE: ${detTxt}`] : [])
+            .concat(lineasRuta.length ? ['RUTA:', ...lineasRuta, ''] : [])
+            .concat(lineasDetalle.length ? ['DETALLE:', ...lineasDetalle, ''] : [])
             .concat([`BASE IMPONIBLE: ${eur(baseP)}`, `IVA (${porcentaje(ivaPct)}): ${eur(baseP * ivaPct / 100)}`, `TOTAL (IVA incl.): ${eur(baseP * (1 + ivaPct / 100))}`, '',
               'Precio orientativo, sin compromiso: se fija al confirmar el envío.', '', 'Un saludo,', 'Dynamo'])
             .join('\r\n');

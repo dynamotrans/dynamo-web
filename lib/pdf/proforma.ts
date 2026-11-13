@@ -15,7 +15,7 @@ export type DatosProforma = {
   num_repartos?: number; entrega?: string | null;
   importe_almacenaje?: number; importe_reparto?: number; iva: number;   // % de IVA
   // Otros conceptos (p. ej. un envío con pago previo): si vienen, sustituyen a los del almacenamiento.
-  conceptos?: { titulo: string; sub: string; importe: number }[];
+  conceptos?: { titulo: string; sub?: string; lineas?: string[]; importe: number }[];
   condiciones?: string;
   // SIN datos de pago (usuario, 2026-11-11): proforma SOLO INFORMATIVA — la de la
   // calculadora de precios (no crea envío) o la de un envío cuyo precio aún se revisará
@@ -60,14 +60,17 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   l.rect(mL, 214, mR - mL, 20, navy);
   l.texto(mL + 10, 228, 'CONCEPTO', 8.5, { bold: true, color: blanco }); l.textoDer(mR - 10, 228, 'IMPORTE', 8.5, { bold: true, color: blanco });
   let y = 254;
-  const linea = (t: string, sub: string, imp: number) => {
+  // Un concepto puede traer VARIAS líneas de detalle (la proforma del cálculo: la ruta
+  // parada a parada y el detalle en 3 líneas, usuario 2026-11-13) o el sub de siempre.
+  const linea = (t: string, sub: string, imp: number, lineas?: string[]) => {
     l.texto(mL + 10, y, t, 10, { bold: true }); l.textoDer(mR - 10, y, eur(imp), 10, { bold: true });
-    l.texto(mL + 10, y + 13, sub, 8.5, { color: gris });
-    y += 32;
+    const ls = (lineas?.length ? lineas : [sub]).filter(Boolean);
+    ls.forEach((x, i) => l.texto(mL + 10, y + 13 + i * 11, x.slice(0, 120), 8.5, { color: gris }));
+    y += 21 + Math.max(ls.length, 1) * 11;
   };
   let base = 0;
   if (d.conceptos) {
-    for (const c of d.conceptos) { linea(c.titulo.slice(0, 90), c.sub.slice(0, 120), c.importe); base += c.importe; }
+    for (const c of d.conceptos) { linea(c.titulo.slice(0, 90), (c.sub ?? '').slice(0, 120), c.importe, c.lineas); base += c.importe; }
   } else {
     const nt = d.num_trailers ?? 0, nr = d.num_repartos ?? 0;
     linea(`Almacenamiento ${d.codigo} · ${d.almacen ?? ''}`,
