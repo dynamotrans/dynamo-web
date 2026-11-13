@@ -48,7 +48,10 @@
     .cmr-page .firma.firmada { border-style: solid; border-color: var(--green); background: rgba(34,165,90,0.05); }
     .cmr-page .firma-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
     .cmr-page .firma-tit { font-size: 0.9rem; font-weight: 800; }
-    .cmr-page .firma-tit .cas { font-size: 0.68rem; font-weight: 700; color: var(--gray-500); display: block; }
+    /* QUIÉN firma, lo más visible de la tarjeta (usuario, 2026-11-13): la empresa en
+       grande y oscuro, en su propia línea; la casilla queda pequeña en gris. */
+    .cmr-page .firma-tit .cas-lugar { display: block; font-size: 1rem; font-weight: 800; color: var(--navy); margin-top: 4px; line-height: 1.3; }
+    .cmr-page .firma-tit .cas { font-size: 0.68rem; font-weight: 700; color: var(--gray-500); display: block; margin-top: 2px; }
     /* Quién firma cada casilla, bien visible (usuario, 2026-11-09). */
     /* El ROL es lo protagonista, más grande y en su color; el «Firma:» de delante va
        discreto en gris (usuario, 2026-11-13: el botón ya dice Firmar). */

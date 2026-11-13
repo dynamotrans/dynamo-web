@@ -229,7 +229,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           <div key={b.clave} className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
             onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) setPreFirma(b); } : undefined}>
             <div className="firma-head">
-              <div className="firma-tit">{b.titulo}<span className="cas-quien"><span className="cas-firma">Firma:</span> {b.firmante}</span><span className="cas">{b.casilla}{b.lugar ? ` · ${b.lugar}` : ''}</span></div>
+              <div className="firma-tit">{b.titulo}<span className="cas-quien"><span className="cas-firma">Firma:</span> {b.firmante}</span>{b.lugar && <span className="cas-lugar">{b.lugar}</span>}<span className="cas">{b.casilla}</span></div>
               {!f && <button type="button" className="firma-btn" disabled={sinTransportista}
                 title={sinTransportista ? 'No se puede firmar hasta que haya transportista asignado' : undefined}
                 onClick={() => setPreFirma(b)}>Firmar</button>}
