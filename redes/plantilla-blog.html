@@ -30,7 +30,17 @@ body{width:1080px;height:1350px;overflow:hidden;font-family:Inter,system-ui,sans
 .foot .go{font-weight:800;font-size:26px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);padding:14px 26px;border-radius:999px}
 .bar{position:absolute;left:0;right:0;bottom:0;height:14px;display:flex}
 .bar i{flex:1}.bar i:nth-child(1){background:var(--yellow)}.bar i:nth-child(2){background:var(--green2)}.bar i:nth-child(3){background:var(--orange)}
-</style></head><body>
+/* ---------- Historia 1080x1920 ---------- */
+body.story{height:1920px}
+.story .photo{height:1080px}
+.story .veil{background:linear-gradient(180deg,rgba(51,0,204,.85) 0%,rgba(51,0,204,.7) 20%,rgba(30,8,130,.9) 38%,rgba(20,6,90,.95) 50%,var(--navy) 58%)}
+.story .logo{top:150px}.story .claim{top:162px}
+.story .pill{top:420px}
+.story .hook{top:530px;font-size:52px}
+.story .card{top:720px}
+.story .foot{bottom:150px;flex-direction:column;align-items:flex-start;gap:34px}
+.story .foot .go{font-size:32px;padding:20px 34px;background:var(--green);color:var(--navy);border-color:var(--green)}
+</style></head><body class="{{FORMAT}}">
 <div class="photo"></div><div class="veil"></div><div class="glow"></div>
 <img class="logo" src="../images/4.png"><div class="claim">Always Moving.</div>
 <div class="pill"><i></i>Nuevo en el blog</div>
@@ -41,6 +51,6 @@ body{width:1080px;height:1350px;overflow:hidden;font-family:Inter,system-ui,sans
   <div class="lead">{{LEAD}}</div>
   <div class="author"><img src="../images/ALVARO_circular_ZOOM.png"><div><b>Álvaro Blanco</b><span>Dynamo Trans · Sevilla</span></div><div class="rt">{{MIN}} min de lectura</div></div>
 </div>
-<div class="foot"><div class="site">dynamotrans.com<em>/blog</em></div><div class="go">Enlace en la bio →</div></div>
+<div class="foot"><div class="site">dynamotrans.com<em>/blog</em></div><div class="go">{{GO}}</div></div>
 <div class="bar"><i></i><i></i><i></i></div>
 </body></html>
