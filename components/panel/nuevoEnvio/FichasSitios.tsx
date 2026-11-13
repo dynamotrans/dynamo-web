@@ -225,7 +225,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
             <div className="ptar-sitio-merc">
               <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
                 <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
-                <span className="cp-txt">Añadir detalle de mercancía a {rec ? 'recoger' : 'entregar'} <Req si={false} /></span>
+                <span className="cp-txt">A {rec ? 'recoger' : 'entregar'} (Añadir detalle de mercancía) <Req si={false} /></span>
               </button>
               {/* El detalle, si existe, ENTERO y en su propia línea debajo (usuario, 2026-11-10). */}
               {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim() !== '' && (
