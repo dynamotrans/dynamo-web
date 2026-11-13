@@ -132,6 +132,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // está EN VIVO: al asignar (o reasignar) transportista se desbloquea sola. En envíos
   // manuales el porteador es el operador del cliente: no aplica.
   const sinTransportista = !cmr.manual && !cmr.transportista;
+  // Ventana al pulsar una firma en gris (usuario, 2026-11-13): el aviso, en claro.
+  const [avisoSinTra, setAvisoSinTra] = useState(false);
   const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
     ?? (f.rol === 'remitente' ? 'Recogida' : f.rol === 'transportista' ? 'Transportista' : 'Entrega');
 
@@ -157,6 +159,21 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {/* Ventana de compartir PROPIA (usuario, 2026-11-11): mismo diseño sencillo en
           cualquier aparato — WhatsApp, Email, SMS, Copiar y «Más opciones…» si el
           aparato tiene hoja de compartir del sistema. Mensaje corto. */}
+      {avisoSinTra && (
+        <div role="alertdialog" aria-modal="true" aria-label="Todavía no se puede firmar" onClick={() => setAvisoSinTra(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 18, padding: '1.3rem 1.2rem', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(10,2,48,0.35)' }}>
+            <div style={{ fontSize: '1.8rem', marginBottom: '0.25rem' }} aria-hidden="true">⚠️</div>
+            <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem' }}>Todavía no se puede firmar</h2>
+            <p style={{ margin: '0 0 0.9rem', fontSize: '0.9rem', color: '#4b5563', lineHeight: 1.5 }}>
+              El envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
+              En cuanto se asigne, las firmas se abren solas en esta misma página.
+            </p>
+            <button type="button" className="firma-btn" style={{ width: '100%', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
+              onClick={() => setAvisoSinTra(false)}>De acuerdo</button>
+          </div>
+        </div>
+      )}
       {compartir && (
         <CompartirSheet onCerrar={() => setCompartir(false)} url={window.location.href}
           titulo={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`}
@@ -222,21 +239,22 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         const f = firmas.get(b.clave);
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
-        const pulsable = !f && !sinTransportista;
+        const pulsable = !f;
         return (
           <div key={b.clave} className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
-            onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) setPreFirma(b); } : undefined}>
+            onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) { if (sinTransportista) setAvisoSinTra(true); else setPreFirma(b); } } : undefined}>
             <div className="firma-head">
               <div className="firma-tit">{b.titulo}<span className="cas-quien"><span className="cas-firma">Firma:</span> {b.firmante}</span>{b.lugar && <span className="cas-lugar">{b.lugar}</span>}<span className="cas">{b.casilla}</span></div>
-              {!f && <button type="button" className="firma-btn" disabled={sinTransportista}
-                title={sinTransportista ? 'No se puede firmar hasta que haya transportista asignado' : undefined}
-                onClick={() => setPreFirma(b)}>Firmar</button>}
+              {!f && <button type="button" className={`firma-btn${sinTransportista ? ' firma-btn-gris' : ''}`}
+                onClick={() => { if (sinTransportista) setAvisoSinTra(true); else setPreFirma(b); }}>Firmar</button>}
             </div>
             {/* El transportista con sus matrículas a la vista (usuario, 2026-11-11):
                 arriba ya sale su nombre y aquí también; si faltan, en rojo. */}
-            {b.rol === 'transportista' && (cmr.matricula_camion
-              ? <div className="firma-estado">Matrículas: <strong>{[cmr.matricula_camion, cmr.matricula_remolque].filter(Boolean).join(' / ')}</strong></div>
-              : !cmr.manual && <div className="firma-estado" style={{ color: '#b91c1c', fontWeight: 800 }}>⚠ Faltan matrículas — se piden al firmar</div>)}
+            {b.rol === 'transportista' && (sinTransportista
+              ? <div className="firma-estado" style={{ color: '#b91c1c', fontWeight: 800 }}>⚠ Falta transportista</div>
+              : cmr.matricula_camion
+                ? <div className="firma-estado">Matrículas: <strong>{[cmr.matricula_camion, cmr.matricula_remolque].filter(Boolean).join(' / ')}</strong></div>
+                : !cmr.manual && <div className="firma-estado" style={{ color: '#b91c1c', fontWeight: 800 }}>⚠ Faltan matrículas — se piden al firmar</div>)}
             {f ? <>
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
               <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
@@ -274,9 +292,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           ) : (
             <div className="firma-head">
               <div className="firma-tit">Firma extra<span className="cas">Otra persona que también firma (hasta 3): elige su casilla y firma como siempre</span></div>
-              <button type="button" className="firma-btn" disabled={sinTransportista}
-                title={sinTransportista ? 'No se puede firmar hasta que haya transportista asignado' : undefined}
-                onClick={() => setEligiendoExtra(true)}>+ Añadir</button>
+              <button type="button" className={`firma-btn${sinTransportista ? ' firma-btn-gris' : ''}`}
+                onClick={() => { if (sinTransportista) setAvisoSinTra(true); else setEligiendoExtra(true); }}>+ Añadir</button>
             </div>
           )}
         </div>
