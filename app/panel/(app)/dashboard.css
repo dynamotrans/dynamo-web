@@ -3546,6 +3546,30 @@ table.data td.actions { text-align: right; white-space: nowrap; }
     font: inherit; color: var(--gray-900); font-size: var(--fs-l);
     cursor: pointer; transition: border-color 0.18s, box-shadow 0.18s;
 }
+/* Flecha PROPIA de los selects nativos, siempre centrada en vertical: la del navegador
+   (iOS sobre todo) se coloca a su aire y se tiñe del color del texto, y en los selects
+   coloreados salía descolocada (usuario, 2026-11-13, pantallazo). Solo <select>: el
+   botón del tipo de fecha (.ptar-urg-btn) ya trae su propia flecha SVG. */
+select.ptar-select {
+    -webkit-appearance: none; appearance: none;
+    padding-right: 2.1rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 14px 14px;
+}
+/* La misma flecha en el color del texto de cada variante. */
+select.ptar-select.ptar-dia-naranja {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff7a00' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+select.ptar-select.ptar-urg-rojo {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+select.ptar-select.ptar-urg-verde {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23157a3f' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+/* Sin fecha elegida el texto va en gris: la flecha, también. */
+select.ptar-select.ptar-select-warn {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
 /* Select pequeño (Tipo origen / Tipo destino). Va en la misma línea,
    a la derecha del input de origen/destino (no en una fila debajo). */
 .ptar-select-sm {
