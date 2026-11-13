@@ -8298,3 +8298,111 @@ begin
   exception when check_violation then null; end;
   raise notice 'OK 212 · emails_enviados admite aviso_entrega y sigue rechazando tipos desconocidos';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 213 · avisos de recogida/entrega a los sitios: solo con transportista, por
+-- tramos sin repetirse, ventana horaria, discreción y anulaciones
+-- =====================================================================================
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid;
+        hoy date := (now() at time zone 'Europe/Madrid')::date;
+        s1 uuid; s2 uuid; e1 uuid; e2 uuid; e3 uuid; p1c uuid; p3d uuid; tr uuid; n int;
+begin
+  -- Ventanas abiertas de par en par: la prueba no depende de la hora a la que corra.
+  update parametros set valor = '0'  where clave = 'aviso_parada_ventana_inicio';
+  update parametros set valor = '24' where clave = 'aviso_parada_ventana_fin';
+  update parametros set valor = '0'  where clave = 'aviso_parada_hora_mismo_dia';
+  insert into transportistas (razon_social, cif) values ('Transp Avisos 213 SL', 'B21300001') returning id into tr;
+  insert into sitios (nombre_empresa, cliente_id, emails_avisos) values ('Almacen Carga 213', cli, array['carga213@prueba.invalid']) returning id into s1;
+  insert into sitios (nombre_empresa, cliente_id, emails_avisos) values ('Almacen Entrega 213', cli, array['entrega213@prueba.invalid']) returning id into s2;
+
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde)
+    values (cli, 13.30, 20, 900, hoy + 1) returning id into e1;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e1, 1, 'carga', '41001', 'Sevilla', 'ES', s1, 'Almacen Carga 213') returning id into p1c;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e1, 2, 'descarga', '28001', 'Madrid', 'ES', s2, 'Almacen Entrega 213');
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado', fecha_entrega_estimada = hoy + 1 where id = e1;
+
+  -- (a) SIN transportista: aunque cargue mañana, ni un aviso.
+  perform encolar_avisos_paradas();
+  if exists (select 1 from emails_enviados where clave like 'aviso_parada:' || e1 || ':%') then
+    raise exception 'FALLO 213 · avisa sin transportista asignado';
+  end if;
+
+  -- (b) Con transportista: la víspera (d1), recogida Y entrega, UNA sola vez.
+  update envios set transportista_id = tr where id = e1;
+  perform encolar_avisos_paradas();
+  perform encolar_avisos_paradas();
+  select count(*) into n from emails_enviados where clave like 'aviso_parada:' || e1 || ':%';
+  if n <> 2 then raise exception 'FALLO 213 · esperaba 2 avisos de víspera (recogida y entrega) y hay %', n; end if;
+  if not exists (select 1 from emails_enviados
+                  where clave = 'aviso_parada:' || e1 || ':' || p1c || ':d1:' || (hoy + 1)
+                    and destinatario = 'carga213@prueba.invalid' and cuerpo_html like '%recoger mercancía%') then
+    raise exception 'FALLO 213 · el aviso de recogida de la víspera no es el esperado';
+  end if;
+
+  -- (c) DISCRECIÓN comercial: jamás se avisa.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, discrecion_comercial)
+    values (cli, 13.30, 20, 900, hoy + 2, true) returning id into e2;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e2, 1, 'carga', '41001', 'Sevilla', 'ES', s1, 'Almacen Carga 213');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e2, 2, 'descarga', '28001', 'Madrid', 'ES', s2, 'Almacen Entrega 213');
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado', transportista_id = tr, fecha_entrega_estimada = hoy + 2 where id = e2;
+  perform encolar_avisos_paradas();
+  if exists (select 1 from emails_enviados where clave like 'aviso_parada:' || e2 || ':%') then
+    raise exception 'FALLO 213 · avisa con discreción comercial';
+  end if;
+
+  -- (d) VENTANA cerrada: el envío a 2 días espera; al abrirla, salen los d2.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde)
+    values (cli, 13.30, 20, 900, hoy + 2) returning id into e3;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e3, 1, 'carga', '41001', 'Sevilla', 'ES', s1, 'Almacen Carga 213');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e3, 2, 'descarga', '28001', 'Madrid', 'ES', s2, 'Almacen Entrega 213');
+  -- Tercera parada (otra entrega): es la que luego se QUITA — la ruta exige mínimo 2.
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e3, 3, 'descarga', '40001', 'Segovia', 'ES', s2, 'Almacen Entrega 213') returning id into p3d;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado', transportista_id = tr, fecha_entrega_estimada = hoy + 2 where id = e3;
+  update parametros set valor = '23' where clave = 'aviso_parada_ventana_inicio';
+  update parametros set valor = '23' where clave = 'aviso_parada_ventana_fin';
+  perform encolar_avisos_paradas();
+  if exists (select 1 from emails_enviados where clave like 'aviso_parada:' || e3 || ':%') then
+    raise exception 'FALLO 213 · avisa fuera de la ventana horaria';
+  end if;
+  update parametros set valor = '0'  where clave = 'aviso_parada_ventana_inicio';
+  update parametros set valor = '24' where clave = 'aviso_parada_ventana_fin';
+  perform encolar_avisos_paradas();
+  select count(*) into n from emails_enviados where clave like 'aviso_parada:' || e3 || ':%:d2:%';
+  if n <> 3 then raise exception 'FALLO 213 · esperaba 3 avisos d2 al abrir la ventana y hay %', n; end if;
+
+  -- (e) ENVÍO CANCELADO: anulación a los dos sitios avisados y sus pendientes en omitido.
+  update envios set estado = 'cancelado' where id = e1;
+  select count(*) into n from emails_enviados where clave like 'aviso_parada_cancelada:' || e1 || ':%';
+  if n <> 2 then raise exception 'FALLO 213 · esperaba 2 anulaciones al cancelar y hay %', n; end if;
+  if exists (select 1 from emails_enviados where clave like 'aviso_parada:' || e1 || ':%' and estado = 'pendiente') then
+    raise exception 'FALLO 213 · los avisos del envío cancelado siguen pendientes';
+  end if;
+
+  -- (f) PARADA QUITADA de un envío vivo: anulación solo a ese sitio.
+  delete from envio_paradas where id = p3d;
+  if not exists (select 1 from emails_enviados where clave = 'aviso_parada_cancelada:' || e3 || ':' || p3d) then
+    raise exception 'FALLO 213 · quitar una parada avisada no genera su anulación';
+  end if;
+  select count(*) into n from emails_enviados where clave like 'aviso_parada_cancelada:' || e3 || ':%';
+  if n <> 1 then raise exception 'FALLO 213 · la anulación de parada quitada debía ser solo una y hay %', n; end if;
+
+  -- Los parámetros, como estaban.
+  update parametros set valor = '10' where clave = 'aviso_parada_ventana_inicio';
+  update parametros set valor = '16' where clave = 'aviso_parada_ventana_fin';
+  update parametros set valor = '8'  where clave = 'aviso_parada_hora_mismo_dia';
+  raise notice 'OK 213 · avisos a los sitios: solo con transportista, por tramos sin repetirse, ventana horaria, discreción fuera, y anulaciones al cancelar o quitar paradas';
+end $$;

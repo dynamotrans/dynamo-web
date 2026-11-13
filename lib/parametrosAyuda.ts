@@ -57,6 +57,15 @@ export const AYUDA: Record<string, Ayuda> = {
     ejemplo: (v) => `Con ${v}: pedida el martes a las ${Math.max(Number(v) - 1, 0)}:30 → la ventana puede empezar ese mismo martes; a las ${v}:05 → el miércoles.` },
   // Al pagar y liberar rigen los MISMOS cortes que al pedir (usuario, 2026-11-10): los
   // dos parámetros de corte «al pagar» se quitaron.
+  aviso_parada_ventana_inicio: { titulo: 'Avisos a los sitios: ventana diaria, desde',
+    explica: 'Hora de Madrid a la que ABRE la ventana diaria en la que se mandan los avisos de recogida/entrega a los sitios de la ruta (los de 2 días antes y los de la víspera). El del mismo día va aparte.',
+    ejemplo: (v) => `Con ${v}: los avisos de víspera y de 2 días antes salen a partir de las ${v}:00.` },
+  aviso_parada_ventana_fin: { titulo: 'Avisos a los sitios: ventana diaria, hasta',
+    explica: 'Hora de Madrid a la que CIERRA esa ventana diaria. Si un envío se programa después del cierre, su primer aviso sale al día siguiente dentro de la ventana.',
+    ejemplo: (v) => `Con ${v}: después de las ${v}:00 ya no sale ningún aviso de víspera ni de 2 días antes hasta mañana.` },
+  aviso_parada_hora_mismo_dia: { titulo: 'Avisos a los sitios: hora del mismo día',
+    explica: 'Hora de Madrid a partir de la cual se manda el aviso del MISMO día de la recogida o la entrega. Solo se avisa con transportista asignado; con discreción comercial no se avisa nunca.',
+    ejemplo: (v) => `Con ${v}: el día de la carga, el almacén recibe su aviso a partir de las ${v}:00.` },
   envio_antelacion_max_dias: { titulo: 'Antelación máxima para programar',
     explica: 'Con cuántos días de antelación como máximo puede programar un cliente un envío. Más lejos, el asistente no le deja y le pide que llame. Dynamo no tiene límite. 0 = sin límite.',
     ejemplo: (v) => `Con ${v}: hoy puede programar como mucho a ${v} días vista.` },

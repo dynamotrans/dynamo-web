@@ -13,7 +13,7 @@ import { CONTACTO } from '@/lib/atencion';
 export type AdjuntoEmail = { nombre: string; base64: string; tipo: string };
 
 export async function enviarEmailOperativo(d: {
-  clave: string; tipo: 'orden_carga' | 'firma_cmr' | 'cmr_completo' | 'aviso_entrega';
+  clave: string; tipo: 'orden_carga' | 'firma_cmr' | 'cmr_completo';
   envioId?: string | null; para: string | null; asunto: string; html: string; adjuntos?: AdjuntoEmail[];
 }): Promise<void> {
   try {

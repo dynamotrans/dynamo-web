@@ -47,10 +47,8 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   if (r.ok) {
     // Email de ORDEN DE CARGA al transportista (usuario, 2026-11-12): con el PDF
     // adjunto y los enlaces de descarga. Nunca rompe la asignación.
-    const { avisoOrdenCarga, avisoEntregaDestinatario } = await import('@/lib/servidor/avisosEnvio');
+    const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
     await avisoOrdenCarga(s.supabase, s.user.id, envio).catch(() => {});
-    // Aviso de ENTREGA al destinatario (tarea 88): transaccional, al sitio de descarga.
-    await avisoEntregaDestinatario(s.supabase, envio).catch(() => {});
     return { ok: true };
   }
   return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',

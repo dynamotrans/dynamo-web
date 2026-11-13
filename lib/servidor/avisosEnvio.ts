@@ -7,7 +7,6 @@ import { pdfDeEnvioDynamo, pdfCmrPorToken } from '@/lib/pdf/generar';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { CONTACTO } from '@/lib/atencion';
-import { fecha as fmtFecha } from '@/lib/formato';
 import type { CmrPublico } from '@/app/cmr/[token]/tipos';
 
 // ---- Avisos de EVENTO por email (usuario, 2026-11-12) --------------------------------
@@ -130,38 +129,4 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
       });
     }
   } catch { /* el aviso nunca rompe la firma */ }
-}
-
-// ---- 3. Aviso de entrega al destinatario (tarea 88, usuario 2026-11-13) --------------
-// Al asignar transportista, cada sitio de ENTREGA con emails de aviso recibe un email
-// TRANSACCIONAL, como los avisos de los courier: quién le envía (el cliente), cuándo
-// está prevista la entrega y la matrícula si ya se sabe — para que el almacén organice
-// la descarga. Ni una palabra comercial (solo el pie de marca, que es identificación
-// del remitente); con DISCRECIÓN COMERCIAL no se manda nada. Clave única por envío y
-// parada: no se repite jamás.
-export async function avisoEntregaDestinatario(sb: SB, envio: string): Promise<void> {
-  try {
-    const { data: e } = await sb.from('envios')
-      .select('referencia_gx, transportista_id, es_manual, discrecion_comercial, fecha_entrega_estimada, matricula_camion, clientes(razon_social)')
-      .eq('id', envio).maybeSingle();
-    if (!e?.transportista_id || e.es_manual || e.discrecion_comercial) return;
-    const { data: ps } = await sb.from('envio_paradas').select('id, nombre_empresa, poblacion, sitio_id')
-      .eq('envio_id', envio).eq('tipo', 'descarga').not('sitio_id', 'is', null);
-    if (!ps?.length) return;
-    const { data: ls } = await sb.from('sitios').select('id, emails_avisos').in('id', ps.map((p) => p.sitio_id!));
-    const emailsDe = new Map((ls ?? []).map((l) => [l.id, (l.emails_avisos ?? []).filter(Boolean)]));
-    const cliente = e.clientes?.razon_social ?? 'Un cliente nuestro';
-    const f = e.fecha_entrega_estimada ? fmtFecha(e.fecha_entrega_estimada) : null;
-    for (const p of ps) {
-      const para = (emailsDe.get(p.sitio_id!) ?? []).join(',');
-      if (!para) continue;
-      const html = `<p>Hola,</p>
-<p>Somos <strong>Dynamo</strong>, operador de transporte. <strong>${esc(cliente)}</strong> os envía mercancía a vuestras instalaciones de <strong>${esc(p.nombre_empresa)}</strong>${p.poblacion ? ` (${esc(p.poblacion)})` : ''}.</p>
-<p>${f ? `Entrega prevista: <strong>${esc(f)}</strong>` : 'La entrega está prevista para los próximos días'}${e.matricula_camion ? `, camión con matrícula <strong>${esc(e.matricula_camion)}</strong>` : ''}. La fecha es estimada y puede moverse ligeramente.</p>
-<p>Os lo adelantamos para que podáis organizar la descarga. Si ese día hay algún impedimento (horario, acceso, cita previa), respondednos a este correo o llamadnos y lo cuadramos.</p>
-${pie}`;
-      await enviarEmailOperativo({ clave: `aviso_entrega:${envio}:${p.id}`, tipo: 'aviso_entrega', envioId: envio, para,
-        asunto: f ? `Entrega prevista ${f} · mercancía de ${cliente} · Dynamo` : `Aviso de entrega · mercancía de ${cliente} · Dynamo`, html });
-    }
-  } catch { /* el aviso nunca rompe la asignación */ }
 }
