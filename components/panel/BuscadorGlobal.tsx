@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { busquedaGlobal, type BusquedaGlobal } from '@/app/panel/(app)/buscador/acciones';
+import { busquedaGlobal, muestraGlobal, type BusquedaGlobal } from '@/app/panel/(app)/buscador/acciones';
 import { nombreEstado } from '@/lib/estados';
 
 // BUSCADOR GLOBAL (usuario, 2026-11-12): en el dashboard es un AUTOCOMPLETADO en el
@@ -12,12 +12,14 @@ import { nombreEstado } from '@/lib/estados';
 // de lo ya buscado y sin parpadeos: mientras llega la respuesta se sigue viendo la
 // anterior.
 
-type Item = { tipo: 'envio' | 'cliente' | 'transportista'; titulo: string; sub: string; href: string };
-const TITULOS: Record<Item['tipo'], string> = { envio: 'Envíos', cliente: 'Clientes', transportista: 'Transportistas' };
+type Item = { tipo: 'envio' | 'sitio' | 'cliente' | 'transportista'; titulo: string; sub: string; href: string };
+const TITULOS: Record<Item['tipo'], string> = { envio: 'Envíos', sitio: 'Sitios', cliente: 'Clientes', transportista: 'Transportistas' };
 
 function aItems(res: BusquedaGlobal): Item[] {
   return [
     ...res.envios.map((e) => ({ tipo: 'envio' as const, titulo: `#${e.ref}`, sub: [e.ruta, nombreEstado(e.estado)].filter(Boolean).join(' · '), href: `/panel/envios?ver=${e.id}` })),
+    // Un sitio se abre en su lista, buscado por su nombre (la ficha vive en esa pantalla).
+    ...res.sitios.map((x) => ({ tipo: 'sitio' as const, titulo: x.nombre, sub: x.direccion, href: `/panel/sitios?q=${encodeURIComponent(x.nombre)}` })),
     ...res.clientes.map((c) => ({ tipo: 'cliente' as const, titulo: c.nombre, sub: c.cif, href: `/panel/clientes?ver=${c.id}` })),
     ...res.transportistas.map((t) => ({ tipo: 'transportista' as const, titulo: t.nombre, sub: t.cif, href: `/panel/transportistas?ver=${t.id}` })),
   ];
@@ -25,29 +27,32 @@ function aItems(res: BusquedaGlobal): Item[] {
 
 // La búsqueda compartida: espera corta al teclear, caché por texto y respuesta más
 // reciente solamente (una lenta antigua no pisa a una nueva).
-function useBusqueda(q: string) {
+function useBusqueda(q: string, activo: boolean) {
   const [items, setItems] = useState<Item[]>([]);
   const [cargando, setCargando] = useState(false);
   const cache = useRef(new Map<string, Item[]>());
   const seq = useRef(0);
   useEffect(() => {
+    if (!activo) { setCargando(false); return; }
     const texto = q.trim();
-    if (texto.length < 2) { setItems([]); setCargando(false); return; }
-    const guardado = cache.current.get(texto);
+    // Sin texto (o con 1 letra), la MUESTRA (usuario, 2026-11-13): al pulsar la caja ya
+    // salen los últimos de cada grupo. Se cachea con la clave vacía.
+    const clave = texto.length < 2 ? '' : texto;
+    const guardado = cache.current.get(clave);
     if (guardado) { setItems(guardado); setCargando(false); return; }
     setCargando(true);
     const mio = ++seq.current;
     const t = setTimeout(() => {
-      busquedaGlobal(texto)
+      (clave === '' ? muestraGlobal() : busquedaGlobal(clave))
         .then((r) => {
           const its = aItems(r);
-          cache.current.set(texto, its);
+          cache.current.set(clave, its);
           if (seq.current === mio) { setItems(its); setCargando(false); }
         })
         .catch(() => { if (seq.current === mio) setCargando(false); });
-    }, 180);
+    }, clave === '' ? 0 : 180);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [q, activo]);
   return { items, cargando };
 }
 
@@ -57,7 +62,7 @@ function Lista({ q, items, cargando, sel, setSel, elegir }: {
   const texto = q.trim();
   return (
     <div className="bgq-lista">
-      {texto.length < 2 && <div className="bgq-pista">Escribe al menos 2 letras: un nº de envío, una población, un CIF, una matrícula…</div>}
+      {texto.length < 2 && <div className="bgq-pista">{items.length ? 'Lo último de tu cuenta — o escribe: un nº de envío, una población, un CIF, una matrícula…' : 'Escribe al menos 2 letras: un nº de envío, una población, un CIF, una matrícula…'}</div>}
       {texto.length >= 2 && !cargando && items.length === 0 && <div className="bgq-pista">Nada casa con «{texto}».</div>}
       {texto.length >= 2 && cargando && items.length === 0 && <div className="bgq-pista">Buscando…</div>}
       {items.map((it, i) => (
@@ -86,9 +91,10 @@ export function CajaBuscadorGlobal() {
   const [q, setQ] = useState('');
   const [foco, setFoco] = useState(false);
   const [sel, setSel] = useState(0);
-  const { items, cargando } = useBusqueda(foco ? q : '');
+  const { items, cargando } = useBusqueda(q, foco);
   const elegir = (it: Item) => { setQ(''); setFoco(false); router.push(it.href); };
-  const abierto = foco && q.trim().length >= 1;
+  // Abierto desde el FOCO: al pulsar la caja ya se despliega la muestra (usuario, 2026-11-13).
+  const abierto = foco;
   return (
     <div className="bgq-wrap">
       <div className={`bgq-caja${abierto ? ' abierta' : ''}`}>
@@ -115,7 +121,7 @@ export default function BuscadorGlobal({ gestor }: { gestor: boolean }) {
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { items, cargando } = useBusqueda(abierto ? q : '');
+  const { items, cargando } = useBusqueda(q, abierto);
 
   useEffect(() => {
     const teclas = (e: KeyboardEvent) => {
