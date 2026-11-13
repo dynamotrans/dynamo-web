@@ -88,7 +88,12 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
     // OJO: el prefijo REAL es autosuspension_ (homogeneización de nombres); con el viejo
     // autosusp_ estas filas caían en «Otros · Sin clasificar» (usuario, 2026-11-11).
     const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !p.clave.startsWith('autosuspension_'));
-    const lista = [...SECCIONES, ...(otros.length ? [{ id: 'otros', titulo: 'Otros', intro: 'Parámetros sin sección todavía.', subs: [{ titulo: 'Sin clasificar', claves: otros.map((p) => p.clave) }] } as Seccion] : [])];
+    // Orden ALFABÉTICO (usuario, 2026-11-13): las secciones entre sí y las subsecciones
+    // dentro de cada una — tanto en los chips de arriba como en el listado. «Otros»
+    // (sin clasificar) se queda siempre al final.
+    const azOrd = (a: string, b2: string) => a.localeCompare(b2, 'es', { sensitivity: 'base' });
+    const lista = [...[...SECCIONES].sort((a, b2) => azOrd(a.titulo, b2.titulo)).map((s) => ({ ...s, subs: [...s.subs].sort((a, b2) => azOrd(a.titulo, b2.titulo)) })),
+      ...(otros.length ? [{ id: 'otros', titulo: 'Otros', intro: 'Parámetros sin sección todavía.', subs: [{ titulo: 'Sin clasificar', claves: otros.map((p) => p.clave) }] } as Seccion] : [])];
     return lista.map((s) => {
       if (s.especial === 'autosusp') {
         const f = filas.filter((p) => p.clave.startsWith('autosuspension_'));
