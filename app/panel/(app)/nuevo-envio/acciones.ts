@@ -250,6 +250,40 @@ export async function ultimosPreciosRuta(cliente: string | null, cpO: string, pa
 // línea recta × 1,25 con las coordenadas de los sitios; sin nada, 300 km por tramo (el
 // mismo por-defecto que el seguimiento). Solo orienta: el precio bueno lo confirma Dynamo.
 export type PuntoKm = { sitio_id: string | null; cp: string | null; pais: string | null; lat: number | null; lon: number | null };
+// El email del cliente para el botón «Enviar por email a:» de la proforma (usuario,
+// 2026-11-13): el del contacto principal con email o, si no tiene, el primero que tenga
+// alguno. Solo Dynamo; sin email, la pantalla esconde el botón.
+export async function emailDeCliente(p_cliente: string): Promise<string | null> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#emailDeCliente", [p_cliente]);
+  const s = await sesion();
+  if (!s?.perfil || !esGestor(s.perfil.rol)) return null;
+  const { data } = await s.supabase.from('contactos').select('email, es_principal')
+    .eq('cliente_id', p_cliente).not('email', 'is', null)
+    .order('es_principal', { ascending: false }).order('creado_en', { ascending: true }).limit(1);
+  return data?.[0]?.email ?? null;
+}
+
+// Los clientes MÁS ACTIVOS (envíos de los últimos 30 días), para enseñarlos nada más
+// abrir el buscador de cliente de Nuevo envío (usuario, 2026-11-13): suelen repetirse
+// y así no hay que teclear. Solo Dynamo.
+export async function clientesActivos(): Promise<{ id: string; nombre: string; cif: string; principal_id: string | null; iva_pct: number; nima_por_defecto: boolean }[]> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#clientesActivos", []);
+  const s = await sesion();
+  if (!s?.perfil || !esGestor(s.perfil.rol)) return [];
+  const desde = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { data: env } = await s.supabase.from('envios').select('cliente_id').gte('creado_en', desde).not('cliente_id', 'is', null).limit(3000);
+  const cuenta = new Map<string, number>();
+  for (const e of env ?? []) cuenta.set(e.cliente_id!, (cuenta.get(e.cliente_id!) ?? 0) + 1);
+  const ids = [...cuenta.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id]) => id);
+  if (!ids.length) return [];
+  const { data: cli } = await s.supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct, nima_por_defecto').in('id', ids);
+  const por = new Map((cli ?? []).map((c) => [c.id, c]));
+  return ids.flatMap((id) => {
+    const c = por.get(id);
+    return c ? [{ id: c.id, nombre: c.nombre_visible ?? '', cif: c.cif, principal_id: c.sitio_principal_id, iva_pct: Number(c.iva_pct ?? 21), nima_por_defecto: !!c.nima_por_defecto }] : [];
+  });
+}
+
 export async function kmRuta(puntos: PuntoKm[]): Promise<{ km: number; estimado: boolean }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#kmRuta", [puntos]);
   const s = await sesion();

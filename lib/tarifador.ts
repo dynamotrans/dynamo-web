@@ -206,6 +206,20 @@ export function combinaciones(e: EntradaTarifa): Combinacion[] {
   return out;
 }
 
+// Descuento de bienvenida sobre una tarifa ya calculada (parámetro factor_bienvenida_pct,
+// −7 % de serie): el de un cliente nuevo y el del tarifador público sin registro. Lo usa
+// el panel al calcular un precio SIN cliente elegido (usuario, 2026-11-13). Se añade como
+// línea propia al desglose (para que se vea por qué baja) y los ahorros de las
+// alternativas se escalan igual, para que todo siga cuadrando.
+export function aplicarDescuentoTarifa(t: Tarifa, pct: number): Tarifa {
+  if (!pct) return t;
+  const neto = r10(t.neto * (1 + pct / 100));
+  const etiqueta = pct < 0 ? `Descuento de bienvenida (−${Math.abs(pct)} %)` : `Recargo sin cliente (+${pct} %)`;
+  return { ...t, neto,
+    lineas: [...t.lineas, { k: etiqueta, v: neto - t.neto }],
+    alternativas: t.alternativas.map((a) => ({ ...a, ahorro: r10(a.ahorro * (1 + pct / 100)) })) };
+}
+
 // Precio del transportista sugerido: margen objetivo PROVISIONAL del 15 %.
 export const precioTransportistaSugerido = (neto: number) => r10(neto * 0.85);
 

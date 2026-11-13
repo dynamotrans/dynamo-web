@@ -7,8 +7,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
-import { calcularTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
+import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
@@ -148,6 +148,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // condiciones generales, como en el mockup. Hay que marcar el check para confirmar.
   const [revisarLegal, setRevisarLegal] = useState(false);
   const [verProforma, setVerProforma] = useState(false);   // proforma orientativa del cálculo (sin crear el envío)
+  // Email del cliente para el botón «Enviar por email a:» de la proforma (usuario,
+  // 2026-11-13). Se pide al abrir la ventana; si no tiene ninguno, el botón no sale.
+  const [emailCli, setEmailCli] = useState<string | null>(null);
+  useEffect(() => {
+    if (!verProforma || esCliente || !cliente) { setEmailCli(null); return; }
+    let vivo = true;
+    emailDeCliente(cliente.id).then((e) => { if (vivo) setEmailCli(e); }).catch(() => {});
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verProforma, cliente?.id, esCliente]);
   const [aceptaLegal, setAceptaLegal] = useState(false);
   // Se pulsó «Confirmar envío» sin marcar la casilla: la casilla y su texto se ponen en rojo.
   const [faltaLegal, setFaltaLegal] = useState(false);
@@ -270,13 +280,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [claveRuta, rutaCompleta, cliente?.id]);
   const tarifa = useMemo(() => {
     if (!kmInfo || !rutaCompleta || manual) return null;
-    return calcularTarifa({ km: kmInfo.km, puntos: puntosRuta.length,
+    const t = calcularTarifa({ km: kmInfo.km, puntos: puntosRuta.length,
       tiposSitio: puntosRuta.map((p) => p.sitio?.tipo ?? p.nuevo?.tipo_sitio ?? 'almacen_nave'),
       ml: Number(ml) || 0, peso: Number(peso) || 0, mlMax, pesoMax,
       paletizada, techo: forma.toLowerCase().includes('techo'), plataforma, nima, adr,
       urgencia, fecha: fecha || null, primerDia: dias[0], hoy: hoyMadrid(), festivos });
+    // SIN cliente elegido (solo pasa en la vista de Dynamo): el precio que se da es el
+    // del tarifador público — con el descuento de bienvenida de Parámetros aplicado
+    // (usuario, 2026-11-13: para dar precio a quien llama a preguntar, sin alta).
+    return (!esCliente && !cliente) ? aplicarDescuentoTarifa(t, Number(reglas?.bienvenida_pct ?? -7)) : t;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos]);
+  }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos, cliente]);
   // Tabla «Precios internos» (mockup): compra del tarifador (mock 72-84 % por hash de la
   // ruta), «Aplicado · media auto» y margen. Y el autorrelleno: venta = Aplicado, compra =
   // la más baja de la tabla; lo tecleado a mano no se pisa.
@@ -378,7 +392,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ---- Validación por paso
   function errorPaso(n: number): string | null {
     if (n === 1) {
-      if (!cliente) return 'Elige el cliente del envío.';
+      // Dynamo puede avanzar SIN cliente para calcular solo el precio (usuario,
+      // 2026-11-13); crear el envío sí lo exige (aviso en el propio botón).
+      if (!cliente && sinCampoCliente) return 'Elige el cliente del envío.';
       const todos = puntos;
       if (todos.some((p) => !p.sitio && !p.nuevo)) return 'Elige la recogida y la entrega (de la lista o creando el sitio).';
     }
@@ -890,6 +906,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         if (prin) setPuntos((l) => l.map((p, i) => (i === 0 && !p.nuevo && !p.sitio?.es_almacen_dynamo ? { ...p, sitio: prin } : p)));
                       }}
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); setNima(false); }} />}
+                    {!cliente && !enRuta && !editar && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Sin cliente también puedes seguir y <strong>calcular el precio</strong>: se aplica el <strong>descuento de bienvenida</strong> (el de cliente nuevo, el mismo del tarifador público). Para <strong>crear el envío</strong> sí hay que elegirlo.</p>}
                   </div>
                   </>}
 
@@ -1188,6 +1205,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         const faltas = sitiosConFaltas();
                         if (faltas.size) { avisarFaltasSitios(faltas); return; }
                         if (editar) { guardarEdicion(); return; }
+                        if (!cliente) { setAviso('Para crear el envío hace falta el cliente: elígelo o dalo de alta en el paso 1. Sin cliente, esta pantalla solo calcula el precio.'); setPaso(1); return; }
                         for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
                         setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
                       }}
@@ -1217,10 +1235,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             + (esCliente || !cliente ? '' : `&cliente=${cliente.id}`);
           // Botones a lo ancho, grandes y apilados (usuario, 2026-11-12): el principal
           // (descargar) arriba y Cerrar debajo, los dos del mismo tamaño.
+          // Enviar por EMAIL (usuario, 2026-11-13): un botón con el email del cliente ya
+          // puesto y otro a cualquier dirección (el gestor de correo del dispositivo se
+          // abre y el destinatario se rellena a mano). El cuerpo lleva el resumen del
+          // cálculo escrito; el PDF, si se quiere adjuntar, se descarga con el botón de
+          // arriba. Saltos CRLF: Gmail móvil se come los LF a secas.
+          const cuerpo = ['Buenos días,', '', 'Le hacemos llegar el precio solicitado:', '']
+            .concat(rutaTxt ? [`RUTA: ${rutaTxt}`] : []).concat(detTxt ? [`DETALLE: ${detTxt}`] : [])
+            .concat([`BASE IMPONIBLE: ${eur(baseP)}`, `IVA (${porcentaje(ivaPct)}): ${eur(baseP * ivaPct / 100)}`, `TOTAL (IVA incl.): ${eur(baseP * (1 + ivaPct / 100))}`, '',
+              'Precio orientativo, sin compromiso: se fija al confirmar el envío.', '', 'Un saludo,', 'Dynamo'])
+            .join('\r\n');
+          const mailto = (a: string) => `mailto:${a}?subject=${encodeURIComponent(`Precio de transporte${rutaTxt ? ` — ${rutaTxt}` : ''}`)}&body=${encodeURIComponent(cuerpo)}`;
+          const btnAncho = { width: '100%', minHeight: 52, justifyContent: 'center' } as const;
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', width: '100%' }}>
-              <a className="btn-primary" style={{ width: '100%', minHeight: 52, justifyContent: 'center' }} href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
-              <button type="button" className="btn-secondary" style={{ width: '100%', minHeight: 52, justifyContent: 'center' }} onClick={() => setVerProforma(false)}>Cerrar</button>
+              <a className="btn-primary" style={btnAncho} href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
+              {emailCli && <a className="btn-secondary" style={btnAncho} href={mailto(emailCli)}>Enviar por email a {emailCli}</a>}
+              <a className="btn-secondary" style={btnAncho} href={mailto('')}>Enviar a otro email</a>
+              <button type="button" className="btn-secondary" style={btnAncho} onClick={() => setVerProforma(false)}>Cerrar</button>
             </div>
           );
         })()}>

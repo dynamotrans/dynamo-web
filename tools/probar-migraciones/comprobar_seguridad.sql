@@ -8214,3 +8214,18 @@ do $$ declare ta uuid := current_setting('prueba.t209a')::uuid; tb uuid := curre
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- PRUEBA 210 · reglas_precio_envio devuelve el descuento de bienvenida (cálculo sin cliente)
+-- =====================================================================================
+do $$
+begin
+  if (reglas_precio_envio() ->> 'bienvenida_pct') is null then
+    raise exception 'FALLO 210 · reglas_precio_envio no devuelve bienvenida_pct';
+  end if;
+  if (reglas_precio_envio() ->> 'bienvenida_pct')::numeric
+     <> (parametro('factor_bienvenida_pct') #>> '{}')::numeric then
+    raise exception 'FALLO 210 · bienvenida_pct no sale del parámetro factor_bienvenida_pct';
+  end if;
+  raise notice 'OK 210 · reglas_precio_envio devuelve el descuento de bienvenida del parámetro';
+end $$;
