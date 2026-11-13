@@ -5151,3 +5151,10 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .bgq-item.activo { background: rgba(51,0,204,0.08); }
 .bgq-tit { font-weight: 800; color: var(--navy); font-size: var(--fs-m); white-space: nowrap; }
 .bgq-sub { color: var(--gray-500); font-size: var(--fs-s); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Accesos rápidos del Dashboard admin (usuario, 2026-11-13): 5 iguales a lo ancho ---- */
+.dashadm-accesos { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; margin-bottom: 0.9rem; }
+@media (max-width: 860px) { .dashadm-accesos { grid-template-columns: repeat(2, 1fr); } .dashadm-accesos > :first-child { grid-column: 1 / -1; } }
+.dash-cta-mini.primario { background: linear-gradient(135deg, var(--purple), #4b16e0); border-color: var(--purple); color: #fff; }
+.dash-cta-mini.primario .dash-cta-mini-ico { background: rgba(255,255,255,0.16); color: #fff; }
+.dash-cta-mini.primario:hover { border-color: var(--purple); box-shadow: 0 6px 18px rgba(51,0,204,0.25); }

@@ -48,6 +48,10 @@ function Cifra({ href, label, valor, aviso }: { href: string; label: string; val
   );
 }
 
+const Svg = ({ children }: { children: React.ReactNode }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+
 export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoPago, errorPP, cuadro }: {
   enCurso: number; bloques: Bloque[]; errorBloques: string | null;
   prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode;
@@ -60,6 +64,15 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
         Indicadores internos de gestión: cada caja abre su ventana con lo pendiente, y la línea de <strong>pronto pago a transportistas</strong>.
       </p>
       {errorBloques && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se ha podido cargar todo: {errorBloques}</div></div>}
+      {/* Accesos rápidos del dashboard principal, también aquí (usuario, 2026-11-13):
+          una fila a lo ancho con los cinco botones del mismo tamaño. */}
+      <div className="dashadm-accesos">
+        <Link className="dash-cta-mini primario" href="/panel/nuevo-envio"><span className="dash-cta-mini-ico"><Svg><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></span><span>Nuevo envío</span></Link>
+        <Link className="dash-cta-mini" href="/panel/incidencias?abrir=1"><span className="dash-cta-mini-ico"><Svg><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></Svg></span><span>Reportar incidencia</span></Link>
+        <Link className="dash-cta-mini" href="/panel/sitios"><span className="dash-cta-mini-ico"><Svg><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></Svg></span><span>Crear sitio</span></Link>
+        <Link className="dash-cta-mini" href="/panel/nuevo-envio"><span className="dash-cta-mini-ico"><Svg><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="11" x2="8.01" y2="11" /><line x1="12" y1="11" x2="12.01" y2="11" /><line x1="16" y1="11" x2="16.01" y2="11" /><line x1="8" y1="15" x2="8.01" y2="15" /><line x1="12" y1="15" x2="12.01" y2="15" /><line x1="16" y1="15" x2="16" y2="18" /></Svg></span><span>Calculadora de precios</span></Link>
+        <Link className="dash-cta-mini" href="/panel/administracion"><span className="dash-cta-mini-ico"><Svg><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="16" y2="17" /><line x1="8" y1="9" x2="10" y2="9" /></Svg></span><span>Administración</span></Link>
+      </div>
       <div className="stats-row stats-compactas" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
         <Cifra href="/panel/envios?f=programada" label="Envíos en curso" valor={enCurso} />
         {bloques.map((b) => <BloqueCard key={b.id} b={b} />)}
