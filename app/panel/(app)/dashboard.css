@@ -5109,7 +5109,14 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .bgq-caja:focus-within { border-color: var(--purple); }
 .bgq-caja.abierta { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .bgq-caja svg { width: 18px; height: 18px; flex: none; }
-.bgq-caja input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; min-height: 50px; font-size: var(--fs-m); color: var(--navy); }
+.bgq-caja input,
+.bgq-caja input:hover,
+.bgq-caja input:focus {
+    flex: 1; min-width: 0; min-height: 50px; font-size: var(--fs-m); color: var(--navy);
+    /* El campo de DENTRO no pinta campo propio (usuario, 2026-11-13: se veía doble):
+       fuera el borde, el fondo y el anillo morado de foco del estilo global. */
+    border: none; outline: none; background: transparent; box-shadow: none; border-radius: 0; padding: 0;
+}
 .bgq-drop {
     position: absolute; left: 0; right: 0; top: 100%; z-index: 60;
     background: #fff; border: 1px solid var(--purple); border-top: none;
