@@ -11,9 +11,9 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { SIN_CONEXION } from '@/lib/mensajeError';
-import { borrarTransportista, guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
+import { borrarTransportista, guardarTransportista, flotaDetalle, type TransportistaDatos, type FlotaDetalle } from '@/app/panel/(app)/transportistas/acciones';
 
-import { fechaHora, numero } from '@/lib/formato';
+import { fecha as fmtFecha, fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -158,6 +158,10 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
   const [pideBorrar, setPideBorrar] = useState(false);
   const [txtBorrar, setTxtBorrar] = useState('');
   const [borrando, setBorrando] = useState(false);
+  // FLOTA al detalle (usuario, 2026-11-13): la caja de la flota se pulsa y despliega
+  // debajo los vehículos (matrículas, vencimientos, ADR, plataforma) y los chóferes.
+  const [verFlota, setVerFlota] = useState(false);
+  const [flotaD, setFlotaD] = useState<FlotaDetalle | null>(null);
   async function borrar() {
     if (!fila || txtBorrar.trim().toLowerCase() !== 'confirmar') return;
     setBorrando(true); setError(null);
@@ -301,11 +305,43 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
         {fila && (
           <div style={{ gridColumn: '1/-1' }}>
             <label>Flota (de los vehículos dados de alta)</label>
-            <div style={{ ...caja, fontWeight: 700 }}>
-              {f && f.tractoras + f.rigidos + f.remolques
+            <button type="button" aria-expanded={verFlota}
+              style={{ ...caja, fontWeight: 700, width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}
+              onClick={() => { setVerFlota((v) => !v); if (!flotaD && fila) flotaDetalle(fila.id).then(setFlotaD).catch(() => setFlotaD({ vehiculos: [], conductores: [] })); }}>
+              <span>{f && f.tractoras + f.rigidos + f.remolques
                 ? <>{f.tractoras} tractora{f.tractoras === 1 ? '' : 's'} · {f.rigidos} rígido{f.rigidos === 1 ? '' : 's'} · {f.remolques} remolque{f.remolques === 1 ? '' : 's'}{f.adr ? ' · con ADR' : ''} · {fila.envios} envío{fila.envios === 1 ? '' : 's'}</>
-                : <>Aún sin vehículos dados de alta · {fila.envios} envío{fila.envios === 1 ? '' : 's'}</>}
-            </div>
+                : <>Aún sin vehículos dados de alta · {fila.envios} envío{fila.envios === 1 ? '' : 's'}</>}</span>
+              <span style={{ color: 'var(--purple)', fontWeight: 800, whiteSpace: 'nowrap' }}>{verFlota ? 'Ocultar ▴' : 'Ver la flota ▾'}</span>
+            </button>
+            {verFlota && (
+              <div style={{ ...caja, marginTop: '0.45rem' }}>
+                {!flotaD ? <p style={{ margin: 0, color: 'var(--gray-500)' }}>Cargando la flota…</p> : <>
+                  <div style={{ fontWeight: 800 }}>Vehículos ({flotaD.vehiculos.length})</div>
+                  {flotaD.vehiculos.length === 0 && <p style={{ margin: '0.3rem 0 0', color: 'var(--gray-500)' }}>Ninguno todavía: se dan de alta solos al asignar envíos.</p>}
+                  {flotaD.vehiculos.map((v) => {
+                    const hoy = new Date().toISOString().slice(0, 10);
+                    const vto = (txt: string, fch: string | null) => fch
+                      ? <span key={txt} style={fch < hoy ? { color: '#b42318', fontWeight: 700 } : undefined}>{txt}: {fmtFecha(fch)}{fch < hoy ? ' ⚠ vencida' : ''}</span>
+                      : null;
+                    const vtos = [vto('ITV', v.itv_vence), vto('Seguro', v.seguro_vence), vto('Tarjeta', v.tarjeta_transporte_vence)].filter(Boolean);
+                    return (
+                      <div key={v.matricula} style={{ padding: '0.4rem 0', borderTop: '1px solid var(--gray-200)' }}>
+                        <strong>{v.matricula}</strong> · {v.tipo === 'rigido' ? 'Rígido' : v.tipo === 'remolque' ? 'Remolque' : 'Tractora'}{v.plataforma ? ' · plataforma elevadora' : ''}{v.adr ? ' · ADR' : ''}
+                        <div className="meta">{vtos.length ? vtos.map((x, i) => <span key={i}>{i > 0 && ' · '}{x}</span>) : 'Sin vencimientos anotados'}</div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ fontWeight: 800, margin: '0.8rem 0 0' }}>Chóferes ({flotaD.conductores.length})</div>
+                  {flotaD.conductores.length === 0 && <p style={{ margin: '0.3rem 0 0', color: 'var(--gray-500)' }}>Ninguno todavía: se apuntan solos al asignar envíos o al firmar.</p>}
+                  {flotaD.conductores.map((c, i) => (
+                    <div key={i} style={{ padding: '0.4rem 0', borderTop: '1px solid var(--gray-200)' }}>
+                      <strong>{c.nombre}</strong>
+                      <div className="meta">{[c.telefono && telBonito(c.telefono), c.documento].filter(Boolean).join(' · ') || 'Sin teléfono ni documento anotados'}</div>
+                    </div>
+                  ))}
+                </>}
+              </div>
+            )}
             {nota('No se edita aquí: los vehículos se dan de alta al aceptar los envíos (matrícula, ITV, seguro).')}
           </div>
         )}

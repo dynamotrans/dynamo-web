@@ -30,6 +30,29 @@ function traducir(msg: string): string {
 }
 const vacio = (s: string) => (s ?? '').trim() || null;
 
+// La FLOTA al detalle para la ficha (usuario, 2026-11-13): los vehículos dados de alta
+// (con sus vencimientos) y los chóferes conocidos de ese transportista. Solo Dynamo.
+export type FlotaDetalle = {
+  vehiculos: { matricula: string; tipo: string; itv_vence: string | null; seguro_vence: string | null; tarjeta_transporte_vence: string | null; adr: boolean; plataforma: boolean }[];
+  conductores: { nombre: string; telefono: string | null; documento: string | null }[];
+};
+export async function flotaDetalle(p_transportista: string): Promise<FlotaDetalle> {
+  comprobarEntrada("app/panel/(app)/transportistas/acciones#flotaDetalle", [p_transportista]);
+  const s = await sesion();
+  if (!s?.perfil || !esGestor(s.perfil.rol) || !/^[0-9a-f-]{36}$/i.test(p_transportista)) return { vehiculos: [], conductores: [] };
+  const [veh, con] = await Promise.all([
+    s.supabase.from('vehiculos').select('matricula, tipo, itv_vence, seguro_vence, tarjeta_transporte_vence, adr, tiene_plataforma_elevadora')
+      .eq('transportista_id', p_transportista).eq('activo', true).order('matricula').limit(500),
+    s.supabase.from('conductores').select('nombre, telefono, documento')
+      .eq('transportista_id', p_transportista).eq('activo', true).order('nombre').limit(500),
+  ]);
+  return {
+    vehiculos: (veh.data ?? []).map((v) => ({ matricula: v.matricula, tipo: v.tipo, itv_vence: v.itv_vence, seguro_vence: v.seguro_vence,
+      tarjeta_transporte_vence: v.tarjeta_transporte_vence, adr: !!v.adr, plataforma: !!v.tiene_plataforma_elevadora })),
+    conductores: con.data ?? [],
+  };
+}
+
 export async function guardarTransportista(id: string | null, d: TransportistaDatos):
   Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/transportistas/acciones#guardarTransportista", [id, d]);
