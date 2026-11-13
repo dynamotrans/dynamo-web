@@ -1,6 +1,7 @@
 'use server';
 
 import { sesion, esGestor } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // BUSCADOR GLOBAL del panel (usuario, 2026-11-12): una sola búsqueda desde cualquier
@@ -22,7 +23,12 @@ export async function busquedaGlobal(q: string): Promise<BusquedaGlobal> {
   q = (q ?? '').trim().slice(0, 120);
   if (q.length < 2) return VACIA;
   const sb = s.supabase;
-  const gestor = esGestor(s.perfil.rol);
+  // La VISTA manda (usuario, 2026-11-13): con «Ver como» un cliente o un transportista,
+  // el buscador solo encuentra lo de ESA empresa (filtrarVista, como la lista de Envíos)
+  // y no busca clientes ni transportistas. Una cuenta real de cliente o transportista ya
+  // está limitada a lo suyo por RLS en la base de datos, se mire como se mire.
+  const vista = await vistaDe(sb, s.perfil.rol);
+  const gestor = esGestor(s.perfil.rol) && vista.tipo === 'admin';
   // Envíos en UNA sola consulta (antes eran dos viajes: ids por RPC y luego los datos,
   // y se notaba lento — usuario, 2026-11-12): mismas reglas que buscar_envios (todas
   // las palabras, sin tildes, sobre texto_busqueda, por RLS) pero trayendo ya lo que
@@ -30,7 +36,7 @@ export async function busquedaGlobal(q: string): Promise<BusquedaGlobal> {
   const palabras = q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .split(/\s+/).filter(Boolean).slice(0, 6)
     .map((w) => `%${w.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`);
-  let qe = sb.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino, estado');
+  let qe = filtrarVista(sb.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino, estado'), vista);
   for (const w of palabras) qe = qe.ilike('texto_busqueda', w);
   const [env, cli, tra] = await Promise.all([
     qe.order('creado_en', { ascending: false }).limit(6),

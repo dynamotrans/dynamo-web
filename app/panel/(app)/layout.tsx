@@ -92,7 +92,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         </div>
       )}
       {/* Buscador global (usuario, 2026-11-12): Cmd/Ctrl+K desde cualquier pantalla. */}
-      <BuscadorGlobal gestor={dynamo} />
+      <BuscadorGlobal gestor={dynamo && vista.tipo === 'admin'} />
       {children}
     </Marco>
     </RefrescoProvider>
