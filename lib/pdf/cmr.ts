@@ -155,7 +155,8 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       e.volumen_m3 != null && `${num(e.volumen_m3)} m³`].filter(Boolean).join(' · ') || null);
     sec('ORIGEN · LUGAR Y FECHA DE CARGA');
     filaD('Lugar', [carga?.nombre_empresa, lineaDir(carga)].filter(Boolean).join(' · ') || '—', true);
-    filaD('Fecha de carga', e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta) || null);
+    // El día REAL si ya se cargó; si no, el día ELEGIDO al asignar; y si no, la ventana.
+    filaD('Fecha de carga', (e.fecha_carga_real ?? e.fecha_carga_prevista) ? fecha(e.fecha_carga_real ?? e.fecha_carga_prevista) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta) || null);
     sec('DESTINO · LUGAR Y FECHA DE ENTREGA');
     const ultEnt = ent[ent.length - 1];
     filaD('Lugar', [ultEnt?.nombre_empresa, lineaDir(ultEnt)].filter(Boolean).join(' · ') || '—', true);
@@ -242,7 +243,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       // 3 Lugar de entrega
       dato(42, 272, [{ t: lineaDir(entrega), s: 8, max: 2 }, { t: entrega?.horarios ? `Horario: ${entrega.horarios}` : '', s: 7.4, b: false, max: 1 }], 56);
       // 4 Lugar y fecha de carga (caben DOS líneas antes del rótulo de la 5)
-      const fCarga = e.fecha_carga_real ?? e.fecha_carga_desde;
+      const fCarga = e.fecha_carga_real ?? e.fecha_carga_prevista ?? e.fecha_carga_desde;
       dato(42, 322, [
         { t: [carga?.direccion, [carga?.codigo_postal, carga?.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', '), s: 7.8, max: 1 },
         { t: [carga?.provincia !== carga?.poblacion ? carga?.provincia : null, carga?.pais, fCarga ? fechaCorta(fCarga) : null].filter(Boolean).join(' · '), s: 7.4, b: false, max: 1 },

@@ -8435,3 +8435,38 @@ begin
   update parametros set valor = '8'  where clave = 'aviso_parada_hora_mismo_dia';
   raise notice 'OK 213 · avisos a los sitios: solo con transportista, por tramos sin repetirse, ventana horaria, cliente nombrado siempre (también con discreción, que solo protege la ruta), y anulaciones al cancelar o quitar paradas';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 214 · el día de carga ELEGIDO al asignar (fecha_carga_prevista) viaja en los
+-- documentos públicos: orden_carga_json, cmr_publico y datos_cmr_por_token
+-- =====================================================================================
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid;
+        hoy date := (now() at time zone 'Europe/Madrid')::date;
+        tr uuid; e1 uuid; tok uuid;
+begin
+  insert into transportistas (razon_social, cif) values ('Transp Fecha 214 SL', 'B21400001') returning id into tr;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 900, hoy + 1, hoy + 3) returning id into e1;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, nombre_empresa)
+    values (e1, 1, 'carga', '41001', 'Sevilla', 'ES', 'Carga 214');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, nombre_empresa)
+    values (e1, 2, 'descarga', '28001', 'Madrid', 'ES', 'Entrega 214');
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado', transportista_id = tr,
+         fecha_carga_prevista = hoy + 2, fecha_entrega_estimada = hoy + 4 where id = e1;
+
+  if (orden_carga_json(e1)->'envio'->>'fecha_carga_prevista') is distinct from (hoy + 2)::text then
+    raise exception 'FALLO 214 · orden_carga_json no lleva el día de carga elegido';
+  end if;
+  select token into tok from cmr_enlaces where envio_id = e1 and not revocado limit 1;
+  if tok is null then insert into cmr_enlaces (envio_id) values (e1) returning token into tok; end if;
+  if (cmr_publico(tok)->>'fecha_carga') is distinct from (hoy + 2)::text then
+    raise exception 'FALLO 214 · cmr_publico no enseña el día elegido en fecha_carga';
+  end if;
+  if (datos_cmr_por_token(tok)->'envio'->>'fecha_carga_prevista') is distinct from (hoy + 2)::text then
+    raise exception 'FALLO 214 · datos_cmr_por_token no lleva el día de carga elegido';
+  end if;
+  raise notice 'OK 214 · el día de carga elegido al asignar sale en la orden por enlace, la página de firmas y el PDF del e-CMR';
+end $$;
