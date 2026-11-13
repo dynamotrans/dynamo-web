@@ -12,9 +12,6 @@ body{width:1080px;height:1080px;overflow:hidden;font-family:Inter,system-ui,sans
 .foot{position:absolute;left:84px;right:84px;bottom:60px;display:flex;justify-content:space-between;align-items:flex-end;z-index:4}
 .foot .site{font-weight:900;font-size:30px}.foot .tag{font-weight:700;font-size:22px;opacity:.85}
 em{font-style:normal;color:var(--green)}
-.ctag{display:inline-flex;align-items:center;gap:12px;background:#fff;color:var(--purple);font-weight:800;font-size:26px;padding:12px 26px 12px 18px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.28);white-space:nowrap}
-.ctag .clk{position:static;width:34px;height:34px;flex:0 0 34px}
-.v4 .ctag{background:var(--purple);color:#fff}
 svg{position:absolute}
 .kicker,.list,.photo,.veil,.grid,.truck,.road,.pallets,.map{display:none}
 .v1 .truck,.v1 .road,.v2 .grid,.v2 .kicker,.v2 .pallets,.v3 .photo,.v3 .veil,.v4 .list,.v4 .map{display:block}
@@ -82,6 +79,22 @@ svg{position:absolute}
 .story.v4 .list{top:900px;right:84px;font-size:38px}
 .story.v4 .map{right:40px;bottom:450px;width:300px}
 .story .cta{display:none}.story .cta.on{display:flex}
+/* ---------- Franja de llamada a la acción ---------- */
+.band{position:absolute;left:0;right:0;bottom:14px;height:150px;background:var(--orange);color:var(--purple);display:flex;align-items:center;gap:26px;padding:0 70px 0 76px;z-index:6;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+.band .clk{position:static;width:78px;height:78px;flex:0 0 78px}
+.band .bt{display:flex;flex-direction:column;gap:4px}
+.band b{font-weight:900;font-size:56px;line-height:1;letter-spacing:-1.5px}
+.band span{font-weight:800;font-size:27px;color:var(--navy)}
+.band .go{margin-left:auto;width:84px;height:84px;border-radius:50%;background:var(--purple);color:#fff;font-style:normal;font-weight:900;font-size:46px;display:flex;align-items:center;justify-content:center}
+/* sitio para la franja */
+.v1 .truck{bottom:182px}.v1 .road{bottom:170px}
+.v2 .pallets{bottom:180px}
+.v4 .map{bottom:178px;width:300px}
+.story .band{bottom:250px}
+.story .cta{bottom:440px}
+.story.v1 .truck{bottom:560px}.story.v1 .road{bottom:548px}
+.story.v2 .pallets{bottom:540px}
+.story.v4 .map{bottom:530px}
 </style></head>
 <body class="{{VARIANT}} {{FORMAT}}">
 <div class="bg"></div>
@@ -130,6 +143,6 @@ svg{position:absolute}
 </svg>
 
 <div class="cta {{CTAON}}"><span>{{CTA}}</span></div>
-<div class="foot"><div class="site">dynamotrans.com</div><div class="ctag"><svg class="clk" viewBox="0 0 32 32" fill="none"><g stroke="#00c060" stroke-width="2.4" stroke-linecap="round"><path d="M11 1.5v3.2"/><path d="M3.5 9h3.2"/><path d="M5.6 3.6l2.2 2.2"/><path d="M16.4 3.6l-2.2 2.2"/></g><path d="M11 9v18l4.5-4.5 3 6.5 3-1.3-2.9-6.4h5.9z" fill="currentColor" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>Pide transporte online</div></div>
+<div class="band"><svg class="clk" viewBox="0 0 32 32" fill="none"><g stroke="#3300cc" stroke-width="2.6" stroke-linecap="round"><path d="M11 1.5v3.2"/><path d="M3.5 9h3.2"/><path d="M5.6 3.6l2.2 2.2"/><path d="M16.4 3.6l-2.2 2.2"/></g><path d="M11 9v18l4.5-4.5 3 6.5 3-1.3-2.9-6.4h5.9z" fill="#3300cc" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg><div class="bt"><b>Pide transporte online</b><span>en dynamotrans.com</span></div><i class="go">→</i></div>
 <div class="bar"><i></i><i></i><i></i></div>
 </body></html>
