@@ -72,6 +72,12 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 .vista-btn.vista-cliente { background: #eff6ff; border-color: #bfdbfe; }
 .vista-btn.vista-transportista { background: #fff4e8; border-color: #fdd2a6; }
 .vista-btn.vista-admin { background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.2); }
+/* Dentro del BOTÓN de la barra, el círculo del icono tiene que caber en la píldora
+   (34px de alto con padding; 32px en móvil): a 34px fijos desbordaba y la píldora se
+   veía deformada, sobre todo en estrecho al quedarse solo el icono (usuario,
+   2026-11-13, pantallazo). En el menú desplegado sigue a 30px. */
+.vista-btn .vista-ico { width: 26px; height: 26px; }
+@media (max-width: 768px) { .vista-btn .vista-ico { width: 24px; height: 24px; } }
 .vista-btn:hover, .vista-btn:focus-visible, .vista-btn[aria-expanded="true"] { border-color: rgba(51,0,204,0.45); box-shadow: 0 8px 22px rgba(10,2,48,0.12), 0 0 0 3px rgba(51,0,204,0.15); }
 .vista-nombre { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 .vista-menu { min-width: 300px; max-width: 340px; left: 0; right: auto; transform-origin: top left; }
