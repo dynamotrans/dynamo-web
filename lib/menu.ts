@@ -70,7 +70,6 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
         { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
         { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
         { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
-        { slug: 'sitios', titulo: 'Sitios de los clientes', icono: 'sitios' },
         { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
       ] },
     ] },
@@ -84,6 +83,9 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'riesgos', titulo: 'CESCE - Riesgos', icono: 'escudo' },
       { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
       { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
+      // Debajo de los transportistas de clientes (usuario, 2026-11-13): la agenda de
+      // sitios de TODOS los clientes (tabla con columna Cliente; duplicados permitidos).
+      { slug: 'sitios', titulo: 'Sitios de clientes', icono: 'sitios' },
       { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },
       { slug: 'proteccion-datos', titulo: 'Protección de datos', icono: 'escudo' },
       { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
