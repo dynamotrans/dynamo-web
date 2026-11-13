@@ -111,37 +111,43 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   }
   l.y = top0 + hCaja + 14;
 
-  // ---- Resumen en una franja ----
+  // ---- Resumen + QR en UNA banda compacta (usuario, 2026-11-13) ----
+  // En la copia operativa, la franja morada (nº, fecha, matrículas) va a la IZQUIERDA
+  // con el texto del documento de control debajo, y la tarjeta del QR a la DERECHA a la
+  // misma altura: fuera el hueco vacío que dejaba el QR suelto. La copia económica no
+  // lleva QR (los precios no se enseñan) y mantiene la franja a lo ancho.
   const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
   const franja: [string, string][] = [
     [t.nEnvio, ref], [t.fechaCargaL, ventanaCarga],
     [t.matriculasAutL, matr || t.pendAsignar],
   ];
   if (e.referencia_cliente) franja.push([t.referenciaL, e.referencia_cliente]);
-  const wCol = l.ancho / franja.length;
-  const partesFranja = franja.map(([, v]) => l.partir(v, 9.5, wCol - 14, true).slice(0, 2));
-  const hFranja = 22 + Math.max(...partesFranja.map((x) => x.length)) * 12;
-  l.rect(l.x0, l.y, l.ancho, hFranja, COLOR.moradoSuave);
-  franja.forEach(([k], i) => {
-    const x = l.x0 + 10 + i * wCol;
-    l.texto(x, l.y + 13, k, 7, { bold: true, color: COLOR.gris });
-    partesFranja[i].forEach((ln, j) => l.texto(x, l.y + 26 + j * 12, ln, 9.5, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
-  });
-  l.y += hFranja + 14;
-
-  // ---- Tarjeta del QR del e-CMR / DeCA (usuario, 2026-11-11) ----
-  // SOLO en la copia OPERATIVA (sin información económica): la económica no lleva el QR
-  // para que no se enseñe a nadie con los precios delante (usuario, 2026-11-11). En la
-  // operativa, con transportista y matrícula lleva el QR real (abre el PDF COMPLETO del
-  // CMR-DeCA con la hoja de firmas); si aún no hay transporte, el hueco punteado con
-  // «Pendiente de asignar transporte» — así el diseño no cambia cuando se asigna.
   if (copia === 'operativa') {
+    const cw = 96, ch = 91;
+    const wIzq = l.ancho - cw - 12;
+    const wCol = wIzq / franja.length;
+    const partesFranja = franja.map(([, v]) => l.partir(v, 9.5, wCol - 14, true).slice(0, 2));
+    const hFranja = 22 + Math.max(...partesFranja.map((x) => x.length)) * 12;
+    l.sitio(Math.max(ch, hFranja + 30) + 8);
+    const ct = l.y;
+    l.rect(l.x0, ct, wIzq, hFranja, COLOR.moradoSuave);
+    franja.forEach(([k], i) => {
+      const x = l.x0 + 10 + i * wCol;
+      l.texto(x, ct + 13, k, 7, { bold: true, color: COLOR.gris });
+      partesFranja[i].forEach((ln, j) => l.texto(x, ct + 26 + j * 12, ln, 9.5, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
+    });
+    // El texto del documento de control, debajo de la franja (misma columna izquierda).
+    l.y = ct + hFranja + 10;
+    l.parrafo(t.qrDeca, 8, { bold: true, x: l.x0, ancho: wIzq - 4, color: COLOR.navy });
+    const finIzq = l.y;
+    // Tarjeta del QR a la derecha, alineada arriba con la franja. Con transportista y
+    // matrícula lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de
+    // firmas); si no, el hueco punteado — el diseño no cambia al asignar.
     let qrImg: PDFImage | null = null;
     if (d.deca && p && e.matricula_camion) {
       try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; }
     }
-    l.sitio(104);
-    const cw = 96, ch = 91, cx = der - cw, ct = l.y, r = 8;
+    const cx = der - cw, r = 8;
     l.pag.drawSvgPath(
       `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${ch - r} Q ${cw} ${ch} ${cw - r} ${ch} H ${r} Q 0 ${ch} 0 ${ch - r} V ${r} Q 0 0 ${r} 0 Z`,
       { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
@@ -155,9 +161,18 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + 86, tPie, 5.4, { color: COLOR.gris });
-    l.y = ct + 30;
-    l.parrafo(t.qrDeca, 8.5, { bold: true, x: l.x0, ancho: l.ancho - cw - 16, color: COLOR.navy });
-    l.y = ct + ch + 12;
+    l.y = Math.max(finIzq, ct + ch) + 12;
+  } else {
+    const wCol = l.ancho / franja.length;
+    const partesFranja = franja.map(([, v]) => l.partir(v, 9.5, wCol - 14, true).slice(0, 2));
+    const hFranja = 22 + Math.max(...partesFranja.map((x) => x.length)) * 12;
+    l.rect(l.x0, l.y, l.ancho, hFranja, COLOR.moradoSuave);
+    franja.forEach(([k], i) => {
+      const x = l.x0 + 10 + i * wCol;
+      l.texto(x, l.y + 13, k, 7, { bold: true, color: COLOR.gris });
+      partesFranja[i].forEach((ln, j) => l.texto(x, l.y + 26 + j * 12, ln, 9.5, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
+    });
+    l.y += hFranja + 14;
   }
 
   // ---- Recogidas y entregas ----
