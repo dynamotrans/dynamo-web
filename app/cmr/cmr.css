@@ -51,6 +51,13 @@
     .cmr-page .firma-tit .cas { font-size: 0.68rem; font-weight: 700; color: var(--gray-500); display: block; }
     /* Quién firma cada casilla, bien visible (usuario, 2026-11-09). */
     .cmr-page .firma-tit .cas-quien { font-size: 0.78rem; font-weight: 900; color: var(--purple); display: block; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.02em; }
+    /* Color por ROL (usuario, 2026-11-13), el mismo criterio de toda la plataforma:
+       recogidas en naranja, entregas en verde y el transportista en morado. */
+    .cmr-page .firma-rol-remitente { border-color: #f0b27a; }
+    .cmr-page .firma-rol-remitente .firma-tit .cas-quien { color: #c05600; }
+    .cmr-page .firma-rol-transportista { border-color: #b9a6ff; }
+    .cmr-page .firma-rol-destinatario { border-color: #93d8b2; }
+    .cmr-page .firma-rol-destinatario .firma-tit .cas-quien { color: #0f6b3a; }
     .cmr-page .firma-btn { flex: none; background: var(--purple); color: #fff; border: none; border-radius: 9px; padding: 0.5rem 0.9rem; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
     .cmr-page .firma-btn:hover { background: var(--purple-light); }
     /* Bloqueado (p. ej. sin transportista asignado): en gris y sin reaccionar. */

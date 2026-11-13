@@ -226,7 +226,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
         const pulsable = !f && !sinTransportista;
         return (
-          <div key={b.clave} className={`firma${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
+          <div key={b.clave} className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
             onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) setPreFirma(b); } : undefined}>
             <div className="firma-head">
               <div className="firma-tit">{b.titulo}<span className="cas-quien">Firma: {b.firmante}</span><span className="cas">{b.casilla}{b.lugar ? ` · ${b.lugar}` : ''}</span></div>
