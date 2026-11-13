@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Modal from '../Modal';
-import { euros, ventana, fecha } from '@/lib/formato';
-import { telBonito } from '@/lib/paises';
+import { euros, ventana, fecha, metros, pesoTn } from '@/lib/formato';
+import { telBonito, paisDe as nombrePais } from '@/lib/paises';
+import { nombreTipo } from '../TipoSitio';
 import { CONTACTO } from '@/lib/atencion';
 import { NOMBRE_IDIOMA, type IdiomaOrden } from '@/lib/pdf/ordenTextos';
 import type { Ficha, ParadaFicha } from '@/lib/fichaEnvio';
@@ -29,15 +30,16 @@ const QUE_TXT: Record<Que, string> = {
   economica: 'copia de administración, completa',
 };
 
+// «cp población, país (tipo de sitio)» — el mismo estilo de la proforma (usuario, 2026-11-13).
 function dirCorta(p: ParadaFicha): string {
-  const prov = p.provincia && p.provincia !== p.poblacion ? p.provincia : null;
-  return [[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), prov, (p.pais_codigo_iso ?? 'ES').toUpperCase()].filter(Boolean).join(', ');
+  const pais = nombrePais((p.pais_codigo_iso ?? 'ES').toUpperCase());
+  return `${[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), pais].filter(Boolean).join(', ')} (${nombreTipo(p.sitio?.tipo)})`;
 }
 
 export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
   const e = ficha.envio;
   const [que, setQue] = useState<Que>('conjunta');
-  const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string } | null>(null);
+  const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string; bolsa: string | null; codigoBolsa: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState<string | null>(null);
   useEffect(() => { datosOrden(e.id).then((r) => { if (r.ok) setD(r); else setError(r.error); }); }, [e.id]);
@@ -55,28 +57,48 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const rec = ficha.paradas.filter((p) => p.tipo === 'carga'), ent = ficha.paradas.filter((p) => p.tipo === 'descarga');
   const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
   const pt = e.importe_transportista != null ? Number(e.importe_transportista) : null;
-  // Mensaje ordenado tipo orden de carga, diciendo claro que lleva la orden en PDF.
+  // Mensaje con aire y por bloques (usuario, 2026-11-13): Transportista con CIF, bolsa y
+  // contacto · RUTA una parada por línea (cp población, país y tipo de sitio) · DETALLE en
+  // líneas · y las copias LISTADAS SIN ENLACE (van adjuntas en PDF al email), con el
+  // e-CMR/DeCA digital PRIMERO, que es el único que lleva URL (es una página, no un PDF).
+  const cargaTxt = e.fecha_carga_prevista ? `el ${fecha(e.fecha_carga_prevista)}`
+    : e.fecha_carga_hasta && e.fecha_carga_hasta !== e.fecha_carga_desde ? ventana(e.fecha_carga_desde, e.fecha_carga_hasta) : `el ${fecha(e.fecha_carga_desde)}`;
+  const camionTxt = e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,60 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
+  const lineaEcmr = token ? `· Copia e-CMR/DeCA DIGITAL (firmen el CMR con el DEDO desde el móvil, sin crear cuenta. 100 % seguro, digital y legal. Protocolo eIDAS ~ Orden FOM/2861/2012.): ${origen}/cmr/${token}` : null;
   const msg = [
     `ORDEN DE CARGA · Dynamo · #${e.referencia_gx}`,
-    ficha.transportista ? `Transportista: ${ficha.transportista.nombre}` : null,
+    '',
+    ...(ficha.transportista ? [
+      'Transportista:',
+      `${ficha.transportista.nombre}${ficha.transportista.cif ? ` · NIF/CIF ${ficha.transportista.cif}` : ''}`,
+      d?.bolsa || d?.codigoBolsa ? `Bolsa: ${[d?.bolsa, d?.codigoBolsa ? `código ${d.codigoBolsa}` : null].filter(Boolean).join(' · ')}` : null,
+      d?.email ?? null,
+      d?.telefono ? telBonito(d.telefono) : null,
+      '',
+    ] : []),
+    'RUTA:',
     // Nº de parada correlativo (2026-11-11): con más de 2 paradas, 1-2 recogidas → 3-4 entregas.
-    ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: ${dirCorta(p)} — ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`),
-    ...ent.map((p, i) => `Entrega${rec.length + ent.length > 2 ? ` ${rec.length + i + 1}` : ''}: ${dirCorta(p)}${e.fecha_entrega_estimada ? ` — estimada ${fecha(e.fecha_entrega_estimada)}` : ''}`),
-    `Mercancía: ${[e.metros_lineales != null && `${e.metros_lineales} m`, e.toneladas != null && `${e.toneladas} Tn`,
-      e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ')}`,
+    ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: ${dirCorta(p)}`),
+    ...ent.map((p, i) => `Entrega${rec.length + ent.length > 2 ? ` ${rec.length + i + 1}` : ''}: ${dirCorta(p)}`),
+    '',
+    'DETALLE:',
+    `Carga ${cargaTxt}`,
+    e.fecha_entrega_estimada ? `Entrega estimada ${fecha(e.fecha_entrega_estimada)}` : null,
+    camionTxt,
+    [e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas),
+      e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · '),
     matr ? `Matrículas autorizadas: ${matr}` : null,
     e.conductor_nombre ? `Conductor: ${[e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ')}` : null,
     que !== 'operativa' && pt != null ? `Precio acordado: ${euros(pt)} (sin IVA)` : null,
     '',
-    ...(que === 'conjunta' ? [
-      `Las DOS copias de la ORDEN DE CARGA en PDF, en ${idiomas}, con todos los datos y las condiciones — abrid o descargad la que necesitéis:`,
-      `· Copia del CONDUCTOR (sin precios): ${enlOp}`,
-      `· Copia de ADMINISTRACIÓN (completa): ${enlEc}`,
-    ] : [
-      `La ORDEN DE CARGA en PDF (${QUE_TXT[que]}), en ${idiomas}, con todos los datos y las condiciones. Ábrela o descárgala aquí:`,
-      enlace,
-    ]),
+    que === 'conjunta'
+      ? `Adjuntamos en PDF las DOS copias de la ORDEN DE CARGA, en ${idiomas}, con todos los datos y las condiciones:`
+      : `Adjuntamos en PDF la ORDEN DE CARGA (${QUE_TXT[que]}), en ${idiomas}, con todos los datos y las condiciones:`,
     '',
+    lineaEcmr,
+    lineaEcmr ? '' : null,
+    ...(que !== 'operativa' ? ['· Copia de ADMINISTRACIÓN (completa)', ''] : []),
+    ...(que !== 'economica' ? ['· Copia del CONDUCTOR (sin precios)', ''] : []),
     `Si cambian las matrículas o el conductor, avísanos ANTES de la carga. Urgencias e incidencias 24 h: ${telBonito(CONTACTO.telefono)}.`,
   ].filter((x) => x !== null).join('\n');
 

@@ -246,12 +246,12 @@ export async function pararDifusion(envio: string): Promise<{ ok: true } | { ok:
 // Para el diálogo de compartir la ORDEN DE CARGA (usuario, 2026-11-10): el contacto del
 // transportista asignado (email y teléfono, el de tráfico o el principal), su idioma por
 // país y la clave de las variantes con precio (su id: solo lo tiene quien recibe el enlace).
-export async function datosOrden(envio: string): Promise<{ ok: true; email: string | null; telefono: string | null; idioma: string; clave: string } | { ok: false; error: string }> {
+export async function datosOrden(envio: string): Promise<{ ok: true; email: string | null; telefono: string | null; idioma: string; clave: string; bolsa: string | null; codigoBolsa: string | null } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/envios/acciones#datosOrden", [envio]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo comparte la orden de carga.' };
-  const { data: e } = await s.supabase.from('envios').select('transportista_id, transportistas(pais_codigo_iso)')
-    .eq('id', envio).maybeSingle<{ transportista_id: string | null; transportistas: { pais_codigo_iso: string | null } | null }>();
+  const { data: e } = await s.supabase.from('envios').select('transportista_id, transportistas(pais_codigo_iso, bolsa, codigo_bolsa)')
+    .eq('id', envio).maybeSingle<{ transportista_id: string | null; transportistas: { pais_codigo_iso: string | null; bolsa: string | null; codigo_bolsa: string | null } | null }>();
   if (!e?.transportista_id) return { ok: false, error: 'Este envío no tiene transportista asignado.' };
   const { data: c } = await s.supabase.from('contactos').select('nombre, email, telefono, funcion, es_principal')
     .eq('transportista_id', e.transportista_id)
@@ -259,7 +259,8 @@ export async function datosOrden(envio: string): Promise<{ ok: true; email: stri
   const cto = (c ?? []).sort((a, b) => Number(b.funcion === 'trafico') - Number(a.funcion === 'trafico'))[0] ?? null;
   const { idiomaDePais } = await import('@/lib/pdf/ordenTextos');
   return { ok: true, email: cto?.email ?? null, telefono: cto?.telefono ?? null,
-    idioma: idiomaDePais(e.transportistas?.pais_codigo_iso), clave: e.transportista_id };
+    idioma: idiomaDePais(e.transportistas?.pais_codigo_iso), clave: e.transportista_id,
+    bolsa: e.transportistas?.bolsa ?? null, codigoBolsa: e.transportistas?.codigo_bolsa ?? null };
 }
 
 export async function revocarOferta(oferta: string): Promise<Res> {
