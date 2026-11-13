@@ -8,7 +8,7 @@ Mezcla: intención informativa (qué es / cuánto cuesta / cómo funciona) + loc
 ## Capacidad, medidas y vehículos
 - [x] ¿Cuántos palets caben en un tráiler? Tauliner, rígido y cómo calcularlo (2026-11-05, cuantos-palets-caben-en-un-trailer)
 - [x] ¿Qué es un metro lineal de camión y cómo se cotiza el grupaje por metros? (2026-11-09, que-es-un-metro-lineal)
-- [ ] Peso máximo de un camión en España: carga útil real de un tráiler y de un rígido
+- [x] Peso máximo de un camión en España: carga útil real de un tráiler y de un rígido (2026-11-13, peso-maximo-camion)
 - [ ] Tauliner, rígido con plataforma, piso móvil, frigorífico: qué camión necesita tu mercancía
 - [ ] Trampilla elevadora: cuándo la necesitas y cuánto encarece el porte
 - [ ] Carga por techo (grúa) frente a carga lateral: cómo se carga una lona corredera

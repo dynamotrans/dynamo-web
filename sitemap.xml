@@ -56,7 +56,7 @@
   </url>
   <url>
     <loc>https://www.dynamotrans.com/blog/</loc>
-    <lastmod>2026-11-09</lastmod>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -69,6 +69,12 @@
   <url>
     <loc>https://www.dynamotrans.com/blog/que-es-un-metro-lineal</loc>
     <lastmod>2026-11-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.dynamotrans.com/blog/peso-maximo-camion</loc>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
