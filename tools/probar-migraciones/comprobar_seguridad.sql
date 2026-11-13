@@ -2756,8 +2756,8 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
 set role authenticated;
 do $$ declare v uuid; c uuid; begin
-  -- Su NIMA y su seguro: sí.
-  perform guardar_mis_datos_transporte('NIMA-88', 'Mapfre', 'POL-88', date '2027-01-31');
+  -- Su NIMA: sí (el seguro CMR dejó de ser dato escrito el 2026-11-13: va en PDF).
+  perform guardar_mis_datos_transporte('NIMA-88');
   -- Su flota: alta de camión y conductor, cambio y baja: sí.
   v := guardar_mi_vehiculo(null, '0088 bcd', 'rigido', date '2027-03-01', null, null, false, true);
   perform guardar_mi_vehiculo(v, '0088 BCD', 'rigido', date '2027-04-01', null, null, false, true);
@@ -2796,7 +2796,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ begin
   begin
-    perform guardar_mis_datos_transporte('X', null, null, null);
+    perform guardar_mis_datos_transporte('X');
     raise exception 'FALLO 88 · un cliente cambia datos de un transportista';
   exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
@@ -2804,9 +2804,14 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin
-  if not exists (select 1 from transportistas where id = current_setting('prueba.transp')::uuid and nima = 'NIMA-88' and seguro_cmr_poliza = 'POL-88'
+  if not exists (select 1 from transportistas where id = current_setting('prueba.transp')::uuid and nima = 'NIMA-88'
                  and razon_social <> 'Me cambio el nombre' and plazo_pago_dias <> 0) then
-    raise exception 'FALLO 88 · el guardado de NIMA/seguro no ha quedado bien';
+    raise exception 'FALLO 88 · el guardado del NIMA no ha quedado bien';
+  end if;
+  -- Las columnas del seguro CMR escrito y el camión habitual ya no existen (2026-11-13).
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'transportistas'
+              and column_name in ('seguro_cmr_compania', 'seguro_cmr_poliza', 'seguro_cmr_vence', 'tipo_camion_defecto')) then
+    raise exception 'FALLO 88 · las columnas del seguro CMR escrito o tipo_camion_defecto siguen en transportistas';
   end if;
   if not exists (select 1 from vehiculos where normalizar_matricula(matricula) = normalizar_matricula('0088 BCD') and itv_vence = date '2027-04-01'
                  and modificado_por = current_setting('prueba.u_transp')::uuid) then

@@ -27,7 +27,6 @@ const IDIOMAS: [string, string][] = [
 // Lo del TRANSPORTISTA: su empresa de transporte (NIMA, seguro, bolsa), su flota y su documentación.
 export type TransporteDatos = {
   id: string; nima: string | null; bolsa: string | null; codigo_bolsa: string | null; plazo_pago_dias: number | null;
-  seguro_cmr_compania: string | null; seguro_cmr_poliza: string | null; seguro_cmr_vence: string | null;
   vehiculos: { id: string; matricula: string; tipo: string; itv_vence: string | null; seguro_vence: string | null; tarjeta_transporte_vence: string | null; adr: boolean; tiene_plataforma_elevadora: boolean }[];
   conductores: { id: string; nombre: string; telefono: string | null; documento: string | null; documento_pais: string | null }[];
 };
@@ -143,7 +142,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
       {companero && <AnadirCompanero empresa={empresa?.razon_social ?? 'tu empresa'} onCerrar={() => setCompanero(false)} onHecho={() => { setCompanero(false); setCompaneroOk(true); }} />}
       {baja && <DarmeDeBaja onCerrar={() => setBaja(false)} transportista={rol === 'transportista'} />}
       {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); refrescar(); }} />}
-      {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '', compania: transporte.seguro_cmr_compania ?? '', poliza: transporte.seguro_cmr_poliza ?? '', vence: transporte.seguro_cmr_vence ?? '' }}
+      {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '' }}
         onCerrar={() => setEditaTransp(false)} onHecho={hecho} />}
       {vehiculo && <EditarVehiculo inicial={vehiculo} onCerrar={() => setVehiculo(null)} onHecho={hecho} />}
       {conductor && <EditarConductor inicial={conductor} onCerrar={() => setConductor(null)} onHecho={hecho} />}
@@ -253,7 +252,7 @@ const fechaCampo = (id: string, label: string, valor: string, onCambio: (v: stri
   <div><label htmlFor={id}>{label} <Req si={false} /></label><input id={id} type="date" value={valor} onChange={(e) => onCambio(e.target.value)} /></div>
 );
 
-function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: string; compania: string; poliza: string; vence: string }; onCerrar: () => void; onHecho: () => void }) {
+function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: string }; onCerrar: () => void; onHecho: () => void }) {
   const [d, setD] = useState(inicial);
   const g = useGuardar(onHecho);
   return (

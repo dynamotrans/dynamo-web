@@ -29,7 +29,6 @@ export default async function PaginaMiCuenta() {
         supabase.from('conductores').select('id, nombre, telefono, documento, documento_pais').eq('activo', true).order('nombre'),
       ]);
       transporte = { id: t.id, nima: t.nima, bolsa: t.bolsa, codigo_bolsa: t.codigo_bolsa, plazo_pago_dias: t.plazo_pago_dias,
-        seguro_cmr_compania: t.seguro_cmr_compania, seguro_cmr_poliza: t.seguro_cmr_poliza, seguro_cmr_vence: t.seguro_cmr_vence,
         vehiculos: veh.data ?? [], conductores: con.data ?? [] };
     }
   }

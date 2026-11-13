@@ -2895,10 +2895,6 @@ export type Database = {
           nima: string | null
           codigo_bolsa: string | null
           tiene_almacen: boolean
-          tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"] | null
-          seguro_cmr_compania: string | null
-          seguro_cmr_poliza: string | null
-          seguro_cmr_vence: string | null
           estado_operativo: Database["public"]["Enums"]["estado_operativo_transportista"]
           valoracion_dynamo: number | null
           valoracion_dynamo_votos: number
@@ -2939,10 +2935,6 @@ export type Database = {
           nima?: string | null
           codigo_bolsa?: string | null
           tiene_almacen?: boolean
-          tipo_camion_defecto?: Database["public"]["Enums"]["tipo_camion"] | null
-          seguro_cmr_compania?: string | null
-          seguro_cmr_poliza?: string | null
-          seguro_cmr_vence?: string | null
           estado_operativo?: Database["public"]["Enums"]["estado_operativo_transportista"]
           valoracion_dynamo?: number | null
           valoracion_dynamo_votos?: number
@@ -2983,10 +2975,6 @@ export type Database = {
           nima?: string | null
           codigo_bolsa?: string | null
           tiene_almacen?: boolean
-          tipo_camion_defecto?: Database["public"]["Enums"]["tipo_camion"] | null
-          seguro_cmr_compania?: string | null
-          seguro_cmr_poliza?: string | null
-          seguro_cmr_vence?: string | null
           estado_operativo?: Database["public"]["Enums"]["estado_operativo_transportista"]
           valoracion_dynamo?: number | null
           valoracion_dynamo_votos?: number
@@ -3540,7 +3528,7 @@ export type Database = {
       guardar_km_sitios: { Args: { p_origen: string | null; p_destino: string | null; p_km: number | null; p_minutos?: number | null; p_proveedor?: string | null }; Returns: string }
       guardar_mi_conductor: { Args: { p_id: string | null; p_nombre: string | null; p_documento: string | null; p_documento_pais: string | null; p_telefono: string | null }; Returns: string }
       guardar_mi_vehiculo: { Args: { p_id: string | null; p_matricula: string | null; p_tipo: Database["public"]["Enums"]["tipo_vehiculo"] | null; p_itv_vence: string | null; p_seguro_vence: string | null; p_tarjeta_transporte_vence: string | null; p_adr: boolean | null; p_plataforma_elevadora: boolean | null }; Returns: string }
-      guardar_mis_datos_transporte: { Args: { p_nima: string | null; p_seguro_compania: string | null; p_seguro_poliza: string | null; p_seguro_vence: string | null }; Returns: undefined }
+      guardar_mis_datos_transporte: { Args: { p_nima: string | null }; Returns: undefined }
       guardar_nota_interna: { Args: { p_tabla: string | null; p_campo: string | null; p_id: string | null; p_texto: string | null }; Returns: undefined }
       guia_automatizaciones: { Args: Record<PropertyKey, never>; Returns: string }
       historial_campos_cliente: { Args: Record<PropertyKey, never>; Returns: string[] }
@@ -3574,7 +3562,7 @@ export type Database = {
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }
       mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number; nima_por_defecto: boolean }[] }
-      mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string; seguro_cmr_compania: string; seguro_cmr_poliza: string; seguro_cmr_vence: string }[] }
+      mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string }[] }
       mi_enlace_cmr: { Args: { p_envio: string | null }; Returns: string }
       mi_valoracion_envio: { Args: { p_envio: string | null }; Returns: { puede: boolean; nota: number; comentario: string; valorado_en: string; editable: boolean }[] }
       mis_avisos: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; tipo: string; nivel: string; titulo: string; texto: string; enlace: string; creado_en: string; nuevo: boolean }[] }

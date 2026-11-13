@@ -69,13 +69,11 @@ const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const fechaOnull = (f: string) => (FECHA.test(f) ? f : null);
 const limpiaError = (m: string) => mensajeError(m.replace(/^.*?ERROR:\s*/i, ''));
 
-export async function guardarMiTransporte(d: { nima: string; compania: string; poliza: string; vence: string }): Promise<Res> {
+export async function guardarMiTransporte(d: { nima: string }): Promise<Res> {
   comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarMiTransporte", [d]);
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar estos datos.' };
-  const { error } = await s.supabase.rpc('guardar_mis_datos_transporte', {
-    p_nima: d.nima, p_seguro_compania: d.compania, p_seguro_poliza: d.poliza, p_seguro_vence: fechaOnull(d.vence),
-  });
+  const { error } = await s.supabase.rpc('guardar_mis_datos_transporte', { p_nima: d.nima });
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };
 }
 
