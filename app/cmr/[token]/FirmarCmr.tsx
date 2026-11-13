@@ -55,6 +55,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
   const [preFirma, setPreFirma] = useState<Bloque | null>(null);
+  // Ventana al pulsar una firma en gris (usuario, 2026-11-13): el aviso, en claro.
+  const [avisoSinTra, setAvisoSinTra] = useState(false);
   // Con una ventana abierta, el FONDO no scrollea. En iOS Safari «overflow: hidden» no
   // basta (el teclado sobre la pantalla de firma scrolleaba la página de detrás y le
   // dejaba un hueco enorme al final; usuario, 2026-11-10 ×2): se FIJA el body en su
@@ -132,8 +134,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // está EN VIVO: al asignar (o reasignar) transportista se desbloquea sola. En envíos
   // manuales el porteador es el operador del cliente: no aplica.
   const sinTransportista = !cmr.manual && !cmr.transportista;
-  // Ventana al pulsar una firma en gris (usuario, 2026-11-13): el aviso, en claro.
-  const [avisoSinTra, setAvisoSinTra] = useState(false);
   const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
     ?? (f.rol === 'remitente' ? 'Recogida' : f.rol === 'transportista' ? 'Transportista' : 'Entrega');
 
