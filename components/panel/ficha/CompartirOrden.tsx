@@ -34,7 +34,10 @@ function dirCorta(p: ParadaFicha): string {
 export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
   const e = ficha.envio;
   const [que, setQue] = useState<Que>('conjunta');
-  const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string; bolsa: string | null; codigoBolsa: string | null } | null>(null);
+  const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string; bolsa: string | null; codigoBolsa: string | null; clienteEmail: string | null; clienteTelefono: string | null } | null>(null);
+  // DOS secciones (usuario, 2026-11-13): al TRANSPORTISTA (orden en PDF, precio, firma)
+  // y al CLIENTE (resumen sin precios ni datos internos del transportista).
+  const [para, setPara] = useState<'transportista' | 'cliente'>('transportista');
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState<string | null>(null);
   useEffect(() => { datosOrden(e.id).then((r) => { if (r.ok) setD(r); else setError(r.error); }); }, [e.id]);
@@ -62,6 +65,18 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   // El enlace de firma va ARRIBA (lo primero que se ve) y repetido en la lista de abajo
   // (usuario, 2026-11-13); las órdenes van como PDF ADJUNTOS, sin enlace.
   const lineaFirma = token ? `Firma en este enlace tu e-CMR/DeCA DIGITAL EN RUTA (Para móvil/ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): ${origen}/cmr/${token}` : null;
+  // Nº de parada correlativo (2026-11-11): con más de 2 paradas, 1-2 recogidas → 3-4 entregas.
+  const lineasRuta = [
+    ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: ${dirCorta(p)}`),
+    ...ent.map((p, i) => `Entrega${rec.length + ent.length > 2 ? ` ${rec.length + i + 1}` : ''}: ${dirCorta(p)}`),
+  ];
+  const lineasDetalle = [
+    `Carga ${cargaTxt}`,
+    e.fecha_entrega_estimada ? `Entrega estimada ${fecha(e.fecha_entrega_estimada)}` : null,
+    camionTxt,
+    [e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas),
+      e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · '),
+  ].filter((x) => x !== null) as string[];
   const msg = [
     `ORDEN DE CARGA · Dynamo · #${e.referencia_gx}`,
     '',
@@ -76,16 +91,10 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
       '',
     ] : []),
     'RUTA:',
-    // Nº de parada correlativo (2026-11-11): con más de 2 paradas, 1-2 recogidas → 3-4 entregas.
-    ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: ${dirCorta(p)}`),
-    ...ent.map((p, i) => `Entrega${rec.length + ent.length > 2 ? ` ${rec.length + i + 1}` : ''}: ${dirCorta(p)}`),
+    ...lineasRuta,
     '',
     'DETALLE:',
-    `Carga ${cargaTxt}`,
-    e.fecha_entrega_estimada ? `Entrega estimada ${fecha(e.fecha_entrega_estimada)}` : null,
-    camionTxt,
-    [e.metros_lineales != null && metros(e.metros_lineales), e.toneladas != null && pesoTn(e.toneladas),
-      e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · '),
+    ...lineasDetalle,
     matr ? `Matrículas autorizadas: ${matr}` : null,
     e.conductor_nombre ? `Conductor: ${[e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ')}` : null,
     que !== 'operativa' && pt != null ? `Precio acordado: ${euros(pt)} (sin IVA)` : null,
@@ -98,8 +107,31 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     `Si cambian las matrículas o el conductor, avísanos ANTES de la carga. Urgencias e incidencias 24 h: ${telBonito(CONTACTO.telefono)}.`,
   ].filter((x) => x !== null).join('\n');
 
+  // Mensaje para el CLIENTE (usuario, 2026-11-13): su resumen del envío SIN precios y
+  // SIN los datos del transportista (solo matrículas y conductor), con el enlace de
+  // firma — su almacén firma la casilla del cargador desde ahí.
+  const msgCli = [
+    `TU ENVÍO · Dynamo · #${e.referencia_gx}`,
+    '',
+    'Tu envío ya tiene camión asignado. Te pasamos el resumen:',
+    '',
+    lineaFirma,
+    lineaFirma ? '' : null,
+    'RUTA:',
+    ...lineasRuta,
+    '',
+    'DETALLE:',
+    ...lineasDetalle,
+    matr ? `Matrículas: ${matr}` : null,
+    e.conductor_nombre ? `Conductor: ${[e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ')}` : null,
+    '',
+    `Seguimiento al minuto, documentos y eCMR en tu panel de dynamotrans.com. Cualquier duda o cambio: ${CONTACTO.email} · ${telBonito(CONTACTO.telefono)}.`,
+  ].filter((x) => x !== null).join('\n');
+
   const waTel = (d?.telefono ?? '').replace(/[^0-9]/g, '');
   const mailtoHref = `mailto:${d?.email ?? ''}?subject=${encodeURIComponent(`Orden de carga #${e.referencia_gx} · Dynamo`)}&body=${encodeURIComponent(msg)}`;
+  const waTelCli = (d?.clienteTelefono ?? '').replace(/[^0-9]/g, '');
+  const mailtoCli = `mailto:${d?.clienteEmail ?? ''}?subject=${encodeURIComponent(`Tu envío #${e.referencia_gx} · Dynamo`)}&body=${encodeURIComponent(msgCli.replace(/\n/g, '\r\n'))}`;
 
   // ---- Enviar con los PDF ADJUNTOS (usuario, 2026-11-11: «no solo enlaces») ----------
   // La hoja de compartir del sistema (navigator.share con archivos) adjunta los PDF de
@@ -140,6 +172,36 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
       sub={ficha.transportista ? `${ficha.transportista.nombre}${d && idioma !== 'es' ? ` · el PDF sale en ${idiomas}` : ''}` : undefined}
       icono={<I d={ICO.doc} />} pie={<button className="btn-ghost" onClick={onVolver}>Volver a la ficha</button>}>
       {error && <div className="pt-aviso error" role="alert"><div>{error}</div></div>}
+      {/* A QUIÉN va (usuario, 2026-11-13): transportista o cliente, cada uno con su mensaje. */}
+      <div className="tabs" style={{ marginBottom: '0.7rem' }}>
+        <button type="button" className={`tab${para === 'transportista' ? ' active' : ''}`} onClick={() => { setPara('transportista'); setCopiado(null); }}>Para el transportista</button>
+        <button type="button" className={`tab${para === 'cliente' ? ' active' : ''}`} onClick={() => { setPara('cliente'); setCopiado(null); }}>Para el cliente</button>
+      </div>
+      {para === 'cliente' && (
+        <>
+          <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-600)', margin: '0 0 0.6rem' }}>
+            El resumen del envío para <strong>el cliente</strong>: sin precios y sin los datos del transportista
+            (solo matrículas y conductor), con su enlace de firma del eCMR.
+          </p>
+          <div className="ptar-sitio-grid">
+            <div style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="ord-msg-cli">Mensaje listo para enviar</label>
+              <textarea id="ord-msg-cli" readOnly rows={11} value={msgCli} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem', marginTop: '0.55rem' }}>
+            <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
+              onClick={() => { navigator.clipboard?.writeText(msgCli); setCopiado('cli'); }}>{copiado === 'cli' ? 'Copiado ✓' : 'Copiar mensaje'}</button>
+            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
+              title={d?.clienteTelefono ? `WhatsApp a ${telBonito(d.clienteTelefono)}` : 'El cliente no tiene teléfono en sus contactos: se abre sin destinatario'}
+              href={`https://wa.me/${waTelCli}?text=${encodeURIComponent(msgCli)}`} target="_blank" rel="noopener">WhatsApp</a>
+            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
+              title={d?.clienteEmail ? `Email a ${d.clienteEmail}` : 'El cliente no tiene email en sus contactos: se abre sin destinatario'}
+              href={mailtoCli}>Email</a>
+          </div>
+        </>
+      )}
+      {para === 'transportista' && (<>
       {/* QUÉ se comparte: preguntar SIEMPRE antes de enviar (usuario, 2026-11-10). */}
       <div className="pen-envio-sum" role="radiogroup" aria-label="Qué se comparte">
         {QUE.map(([k, tit, det]) => (
@@ -206,6 +268,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
           </p>
         </>
       )}
+      </>)}
     </Modal>
   );
 }
