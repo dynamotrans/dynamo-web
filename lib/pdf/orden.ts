@@ -38,7 +38,13 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (!manual) logo = await l.doc.embedPng(await readFile(path.join(process.cwd(), 'images', '2.png')));
   const ref = e.referencia_gx ?? '';
   const emitida = ahoraMadrid();
-  const ventanaCarga = esES ? ventanaTxt(e.fecha_carga_desde, e.fecha_carga_hasta) : ventanaLoc(e.fecha_carga_desde, e.fecha_carga_hasta, idioma, t);
+  // Con el día de carga YA ELEGIDO (al asignar el transportista), la orden enseña ESA
+  // fecha — en cabecera y en las recogidas —, no la ventana (usuario, 2026-11-13). Las
+  // entregas siguen con su fecha estimada, calculada desde ese día. Sin día elegido, la
+  // ventana, como siempre.
+  const ventanaCarga = e.fecha_carga_prevista
+    ? (esES ? fechaCorta(e.fecha_carga_prevista) : fechaLoc(e.fecha_carga_prevista, idioma))
+    : esES ? ventanaTxt(e.fecha_carga_desde, e.fecha_carga_hasta) : ventanaLoc(e.fecha_carga_desde, e.fecha_carga_hasta, idioma, t);
   const fEntrega = e.fecha_entrega_estimada ? (esES ? fechaCorta(e.fecha_entrega_estimada) : fechaLoc(e.fecha_entrega_estimada, idioma)) : null;
 
   // ---- Banda de la copia (usuario, 2026-11-10: como el diseño aprobado) ----
