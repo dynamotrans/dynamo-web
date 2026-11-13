@@ -775,6 +775,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         {adr && <div className="sum2-cell"><div className="sum2-k">Mercancía ADR</div><div className="sum2-v">Sí</div></div>}
       </div>
       {notasEnvio && <div className="sum2-cell sum2-full"><div className="sum2-k">Anotaciones de la mercancía</div><div className="sum2-notas">{notasEnvio}</div></div>}
+      {/* Aviso en color cuando la discreción está activada (usuario, 2026-11-13). */}
+      {discrecion && (
+        <div className="modal-warn-box" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+          <strong>Discreción comercial activada:</strong> el conductor no dirá en la carga a quién va la mercancía ni en la entrega de dónde viene — la orden de carga se lo recuerda en su idioma.
+        </div>
+      )}
     </div>
   );
   const avisosPaso4 = (
