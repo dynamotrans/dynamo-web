@@ -13,6 +13,7 @@ import Cargando from '@/components/Cargando';
 import Modal from './Modal';
 import { guardarLineaProntoPago, encenderProntoPago, anticiposProntoPago, type AnticipoPP } from '@/app/panel/(app)/dashboard-admin/acciones';
 import { euros, importe, fechaHora, numero } from '@/lib/formato';
+import { CajaBuscadorGlobal } from './BuscadorGlobal';
 
 export type ProntoPago = {
   linea: number; encendido: boolean; ventana_dias: number; usado: number; disponible: number; activo: boolean;
@@ -64,6 +65,9 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
         Indicadores internos de gestión: cada caja abre su ventana con lo pendiente, y la línea de <strong>pronto pago a transportistas</strong>.
       </p>
       {errorBloques && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se ha podido cargar todo: {errorBloques}</div></div>}
+      {/* El buscador global, también aquí (usuario, 2026-11-13): la misma caja del
+          dashboard principal, encima de los accesos. */}
+      <div style={{ marginBottom: '0.8rem' }}><CajaBuscadorGlobal /></div>
       {/* Accesos rápidos del dashboard principal, también aquí (usuario, 2026-11-13):
           una fila a lo ancho con los cinco botones del mismo tamaño. */}
       <div className="dashadm-accesos">
