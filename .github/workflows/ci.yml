@@ -140,6 +140,17 @@ jobs:
         run: npx playwright test
         env:
           E2E_URL: http://localhost:3000
+      # Prueba de CARGA (k6, perfil humo; tarea 67): canario de regresiones gordas de
+      # rendimiento contra la misma pila local, con la caché de Next ya caliente por las
+      # pruebas de navegador. El examen fino (perfiles carga/estres) se hace a mano
+      # contra la preview: tools/k6/README.md.
+      - name: Prueba de carga (k6, humo)
+        run: |
+          for i in 1 2 3; do
+            curl -fsSL https://github.com/grafana/k6/releases/download/v1.3.0/k6-v1.3.0-linux-amd64.tar.gz | tar xz --strip-components=1 -C /tmp && break
+            [ "$i" = 3 ] && exit 1; sleep 15
+          done
+          BASE_URL=http://localhost:3000 SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY="$ANON_KEY" /tmp/k6 run tools/k6/carga.js
       - name: Informe (si falla)
         if: failure()
         uses: actions/upload-artifact@v4
