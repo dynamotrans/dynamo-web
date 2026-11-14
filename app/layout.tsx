@@ -17,7 +17,10 @@ export const metadata: Metadata = {
 // campo es pequeña): en toda la plataforma, como ya se decidió en el mockup (anti-zoom iOS,
 // 2026-06-22). iOS sigue dejando ampliar con dos dedos.
 export const viewport: Viewport = {
-  width: 'device-width', initialScale: 1, maximumScale: 1, viewportFit: 'cover',
+  // Sin maximum-scale (auditoría de accesibilidad 2026-11-14, WCAG 1.4.4): el zoom de
+  // pellizco debe funcionar. El auto-zoom de iOS al tocar un campo se evita como manda:
+  // campos a 16px en pantallas táctiles (regla en las hojas de estilo), no bloqueando el zoom.
+  width: 'device-width', initialScale: 1, viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

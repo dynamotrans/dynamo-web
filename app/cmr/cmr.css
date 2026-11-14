@@ -5,7 +5,7 @@
         --purple: #3300cc; --purple-light: #5b2be0; --navy: #0a0230;
         --green: #22a55a; --green-dark: #157a3f; --orange: #ff7a00;
         --gray-100: #f7f8fa; --gray-200: #e8eaed; --gray-300: #d5d9e0;
-        --gray-500: #7a8194; --gray-700: #3f4759; --red: #dc2626;
+        --gray-500: #6b7280; /* igual que el panel; el antiguo #7a8194 no llegaba al contraste 4,5:1 */ --gray-700: #3f4759; --red: #dc2626;
     }
     .cmr-page, .cmr-page * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
     .cmr-page {
@@ -135,3 +135,9 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
 .cmr-page .campo-oblig { color: #dc2626; font-weight: 700; font-size: 0.82rem; text-transform: none; letter-spacing: 0; }
 .cmr-page .campo-opc { color: var(--gray-700); font-weight: 500; font-size: 0.82rem; text-transform: none; letter-spacing: 0; }
 .cmr-page .campo-falta, .cmr-page .campo-falta input, .cmr-page .campo-falta select, .cmr-page .campo-falta textarea { border-color: #dc2626 !important; }
+
+/* Táctil: campos a 16px para que iOS no haga auto-zoom al enfocarlos (el zoom de
+   pellizco queda LIBRE, exigencia de accesibilidad; auditoría 2026-11-14). */
+@media (hover: none) and (pointer: coarse) {
+  input, select, textarea { font-size: 16px; }
+}
