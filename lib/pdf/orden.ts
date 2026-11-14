@@ -96,7 +96,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Banda de la copia (usuario, 2026-11-10: como el diseño aprobado) ----
   const der = A4.w - l.margen.der;
   l.rect(l.x0, 36, l.ancho, 18, COLOR.fondo);
-  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? `${t.copiaConductor} · ${DECA_NOMBRE}` : esCli ? 'COPIA CLIENTE' : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
+  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? `DeCA · ${DECA_NOMBRE}` : esCli ? 'COPIA CLIENTE' : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
   l.textoDer(der - 8, 48.5, copia === 'operativa' ? t.sinEco : esCli ? 'CON TU PRECIO · SIN DATOS DEL PORTEADOR' : t.completa, 7.5, { color: COLOR.gris });
 
   // ---- Cabecera (solo en la 1ª página) ----
