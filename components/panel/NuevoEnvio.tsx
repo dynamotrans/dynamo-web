@@ -961,7 +961,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       onElegir={async (c) => {
                         setCliente(c);
                         setNima(!!c?.nima);   // la preferencia NIMA del cliente elegido
-                        setPuntos((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null })));
+                        // Al elegir cliente se limpian también las DIRECCIONES sueltas del modo
+                        // sin cliente (nuevo con guardar:false): la ruta pasa a ser de su agenda.
+                        setPuntos((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null, nuevo: null })));
                         if (!c) return;
                         // Sus sitios se piden ahora; su almacén principal pasa a la primera recogida.
                         const suyos = sitiosRef.current.some((x) => x.cliente_id === c.id) ? [] : await sitiosDelCliente(c.id).catch(() => [] as typeof sitiosIni);
@@ -971,7 +973,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         if (prin) setPuntos((l) => l.map((p, i) => (i === 0 && !p.nuevo && !p.sitio?.es_almacen_dynamo ? { ...p, sitio: prin } : p)));
                       }}
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); setNima(false); }} />}
-                    {!cliente && !enRuta && !editar && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Sin cliente también puedes seguir y <strong>calcular el precio</strong>: se aplica el <strong>descuento de bienvenida</strong> (el de cliente nuevo, el mismo del tarifador público). Para <strong>crear el envío</strong> sí hay que elegirlo.</p>}
+                    {!cliente && !enRuta && !editar && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Sin cliente también puedes seguir y <strong>calcular el precio</strong>: escribe las direcciones en la ruta (se autocompletan solas) y se aplica el <strong>descuento de bienvenida</strong> (el de cliente nuevo, el mismo del tarifador público). Para <strong>crear el envío</strong> sí hay que elegirlo.</p>}
                   </div>
                   </>}
 
@@ -987,7 +989,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   <div className="ptar-section-head">Ruta</div>
                   {puntos.map((p, i) => (
                     <div key={p.k} data-parada={p.k} className={`ptar-field ptar-field-full${arrastrando === p.k ? ' ptar-dragging' : ''}`}>
-                      <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente} asa={asaDe(p)}
+                      <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={false} modoDireccion={!cliente} asa={asaDe(p)}
                         cliente={cliente} dynamo={!esCliente}
                         onCreado={async (id) => {
                           // El sitio recién creado en la ventana de Crear sitio: recargar la
@@ -998,7 +1000,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                           const sit = suyos.find((x) => x.id === id);
                           if (sit) cambiar(p, { sitio: sit, nuevo: null });
                         }}
-                        placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente')
+                        placeholder={!cliente ? (p.tipo === 'carga' ? 'Recogida · escribe la dirección o población' : 'Entrega · escribe la dirección o población')
+                          : i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente')
                           : i === puntos.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente')
                           : p.tipo === 'carga' ? 'Otra recogida · busca en la agenda' : 'Otra entrega · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)}

@@ -57,8 +57,8 @@ function datosDeFicha(fila: SitioFila | null, veranoDefecto: FechasVerano, almac
 
 // Direcciones de OpenStreetMap (Nominatim) para el nivel «Dirección» del buscador: gratis
 // y sin clave, como en la web pública. Si falla, el buscador sigue con agenda + Google.
-type DirOSM = { etiqueta: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string };
-async function buscarDireccionesOSM(q: string): Promise<DirOSM[]> {
+export type DirOSM = { etiqueta: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string };
+export async function buscarDireccionesOSM(q: string): Promise<DirOSM[]> {
   try {
     const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=3&accept-language=es&q=${encodeURIComponent(q)}`);
     if (!r.ok) return [];

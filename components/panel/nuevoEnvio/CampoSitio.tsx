@@ -1,23 +1,35 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IconoTipo } from '../TipoSitio';
-import { FichaSitio } from '../Sitios';
-import { ClienteOpcion, IcoMenos, Punto, SitioOpcion, direccionCompleta, norm, textoSitio } from './comun';
+import { FichaSitio, buscarDireccionesOSM, type DirOSM } from '../Sitios';
+import { ClienteOpcion, IcoMenos, Punto, SitioOpcion, VACIO, direccionCompleta, norm, textoSitio } from './comun';
 
 // ---- Buscador de sitio de la agenda del cliente (con sitio nuevo) -----------------
 // «+ Crear nuevo sitio» abre LA MISMA ventana que Crear sitio de la sección Sitios
 // (usuario, 2026-11-12: «lo veo muy extenso… hazlo igual que crear sitio»): una sola
 // ficha de sitio en toda la plataforma. El sitio se guarda en la agenda al momento
 // (ya no hay casilla: siempre se guarda) y queda elegido en la parada.
-export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, cliente = null, dynamo = false, onCreado, onCambio, onQuitar, onAnadir, onAlternar, asa }: {
+// `modoDireccion` (usuario, 2026-11-14): SIN cliente elegido, el campo no se bloquea —
+// se escribe la dirección y se autocompleta con OpenStreetMap (gratis, sin clave, el
+// mismo de Crear sitio y del tarifador público) para poder CALCULAR EL PRECIO. Cuando
+// haya GOOGLE_MAPS_API_KEY, este mismo nivel pasará a Google Places (tarea 79).
+export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, cliente = null, dynamo = false, modoDireccion = false, onCreado, onCambio, onQuitar, onAnadir, onAlternar, asa }: {
   punto: Punto; numero: number; sitios: SitioOpcion[]; deshabilitado: boolean; placeholder: string;
-  cliente?: ClienteOpcion | null; dynamo?: boolean; onCreado?: (id: string) => void;
+  cliente?: ClienteOpcion | null; dynamo?: boolean; modoDireccion?: boolean; onCreado?: (id: string) => void;
   onCambio: (c: Partial<Punto>) => void; onQuitar?: () => void; onAnadir?: () => void; onAlternar?: () => void; asa?: React.ReactNode;
 }) {
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
   const [crear, setCrear] = useState(false);
+  const [dirs, setDirs] = useState<DirOSM[]>([]);
+  useEffect(() => {
+    if (!modoDireccion) return;
+    const texto = q.trim();
+    if (texto.length < 3) { setDirs([]); return; }
+    const t = setTimeout(() => { buscarDireccionesOSM(texto).then(setDirs).catch(() => {}); }, 350);
+    return () => clearTimeout(t);
+  }, [q, modoDireccion]);
   const elegido = punto.sitio ?? punto.nuevo;
   const lista = useMemo(() => {
     const w = norm(q.trim());
@@ -55,7 +67,26 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
               if (elegido && !deshabilitado) { onCambio({ sitio: null, nuevo: null }); setQ(''); setAbierto(true); }
             }} />
           {elegido && <button type="button" className="ptar-clear" aria-label="Cambiar sitio" onClick={() => { onCambio({ sitio: null, nuevo: null }); setQ(''); }}>✕</button>}
-          {abierto && !elegido && !deshabilitado && (
+          {abierto && !elegido && !deshabilitado && modoDireccion && (
+            <ul className="ptar-sug">
+              {q.trim().length < 3 && <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Escribe la dirección o la población (mínimo 3 letras)…</li>}
+              {dirs.map((x, i) => (
+                <li key={i} onMouseDown={(e) => {
+                  e.preventDefault();
+                  onCambio({ sitio: null, nuevo: { ...VACIO, nombre_empresa: x.poblacion || x.etiqueta, direccion: x.direccion,
+                    codigo_postal: x.codigo_postal, poblacion: x.poblacion, provincia: x.provincia,
+                    pais_codigo_iso: (x.pais || 'ES').toUpperCase(), guardar: false } });
+                  setAbierto(false); soltarFoco();
+                }}>
+                  <span className="sug-chip sug-chip-addr">Dirección</span>
+                  <strong>{[x.codigo_postal, x.poblacion].filter(Boolean).join(' ') || x.etiqueta}</strong>
+                  <span className="sug-dir">{x.etiqueta}</span>
+                </li>
+              ))}
+              {q.trim().length >= 3 && dirs.length === 0 && <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Sin resultados: prueba con «población» o «calle, población».</li>}
+            </ul>
+          )}
+          {abierto && !elegido && !deshabilitado && !modoDireccion && (
             <ul className="ptar-sug">
               {lista.map((s) => (
                 <li key={s.id} onMouseDown={(e) => { e.preventDefault(); onCambio({ sitio: s, nuevo: null }); setAbierto(false); soltarFoco(); }}>
