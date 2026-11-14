@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument, rgb, type PDFImage, type RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from './lienzo';
-import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
+import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrden } from './ordenTextos';
 
@@ -58,9 +58,11 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const conFirmas = copia === 'operativa' && !manual;
   const firmaDe = (rol: string, parada: string | null) =>
     (d.firmas ?? []).find((f) => !f.extra && f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
-  const trazos = new Map<string, PDFImage>();
+  // El mapa de trazos va POR FIRMA, no por casilla: una firma extra de la misma casilla
+  // pisaba el trazo de la principal (bug visto por el usuario el 2026-11-14).
+  const trazos = new Map<FirmaDoc, PDFImage>();
   if (conFirmas) for (const f of d.firmas ?? []) {
-    if (f.png) { try { trazos.set(`${f.rol}:${f.parada_id ?? ''}`, await l.doc.embedPng(f.png)); } catch { /* sin trazo */ } }
+    if (f.png) { try { trazos.set(f, await l.doc.embedPng(f.png)); } catch { /* sin trazo */ } }
   }
   // REJILLA DE FIRMAS al pie del DeCA (usuario, 2026-11-14): cuadros seguidos de
   // izquierda a derecha, 4 por fila a lo ancho escribible; con más de 4 siguen en la
@@ -68,8 +70,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // («RECOGIDA 1 · CARGADOR», «ENTREGA 1 · DESTINATARIO», numerados por tipo, y el del
   // transportista) y la empresa del sitio. Con firma digital del e-CMR, el trazo queda
   // estampado dentro; sin ella, el recuadro en blanco sirve para firmar A MANO el impreso.
-  const cuadroFirma = (x: number, w: number, hB: number, rol: string, parada: string | null, titulo: string, empresa: string, color: RGB) => {
-    const f = firmaDe(rol, parada);
+  const cuadroFirma = (x: number, w: number, hB: number, f: FirmaDoc | undefined, rol: string, titulo: string, empresa: string, color: RGB) => {
     const casilla = rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24';
     const yB = l.y;
     l.rect(x, yB, w, hB, COLOR.blanco, COLOR.grisClaro);
@@ -78,7 +79,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.texto(x + 6, yB + 18.5, l.partir(empresa, 6.2, w - 12)[0] ?? '', 6.2, { color: COLOR.gris });
     l.linea(x + 5, yB + 22.5, x + w - 5, yB + 22.5);
     if (f) {
-      const img = trazos.get(`${f.rol}:${f.parada_id ?? ''}`);
+      const img = trazos.get(f);
       if (img) {
         const h = 22, wTr = Math.min(w - 14, h * img.width / img.height);
         l.pag.drawImage(img, { x: x + 7, y: A4.h - (yB + 26) - h, width: wTr, height: h });
@@ -356,17 +357,27 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   ]);
 
   // ---- Firmas (solo en el DeCA): rejilla al pie, casillas 22/23/24 del e-CMR ----
+  // Primero los huecos normales en orden de recorrido (recogidas → transportista →
+  // entregas) y AL FINAL las firmas extra, en el orden en que se hicieron, cada una
+  // diciendo a qué casilla se añadió (usuario, 2026-11-14).
   if (conFirmas) {
     seccion(t.secFirmas);
-    const huecos: { rol: string; parada: string | null; titulo: string; empresa: string; color: RGB }[] = [
-      ...rec.map((pa, i) => ({ rol: 'remitente', parada: pa.id, titulo: `${t.recogida} ${i + 1} · ${t.cargadorRol}`, empresa: pa.nombre_empresa || '', color: NARANJA })),
-      { rol: 'transportista', parada: null, titulo: t.transp, empresa: d.porteador?.razon_social ?? e.conductor_nombre ?? '', color: COLOR.navy },
-      ...ent.map((pa, i) => ({ rol: 'destinatario', parada: pa.id, titulo: `${t.entrega} ${i + 1} · ${t.destinatarioRol}`, empresa: pa.nombre_empresa || '', color: COLOR.verde })),
+    const base: { f: FirmaDoc | undefined; rol: string; parada: string | null; titulo: string; empresa: string; color: RGB }[] = [
+      ...rec.map((pa, i) => ({ f: firmaDe('remitente', pa.id), rol: 'remitente', parada: pa.id, titulo: `${t.recogida} ${i + 1} · ${t.cargadorRol}`, empresa: pa.nombre_empresa || '', color: NARANJA })),
+      { f: firmaDe('transportista', null), rol: 'transportista', parada: null, titulo: t.transp, empresa: d.porteador?.razon_social ?? e.conductor_nombre ?? '', color: COLOR.navy },
+      ...ent.map((pa, i) => ({ f: firmaDe('destinatario', pa.id), rol: 'destinatario', parada: pa.id, titulo: `${t.entrega} ${i + 1} · ${t.destinatarioRol}`, empresa: pa.nombre_empresa || '', color: COLOR.verde })),
     ];
+    const extras = (d.firmas ?? []).filter((f) => f.extra)
+      .sort((a, b) => (a.firmado_en < b.firmado_en ? -1 : 1));
+    const huecos = [...base, ...extras.map((f, i) => {
+      const b = base.find((h) => h.rol === f.rol && (f.rol === 'transportista' || h.parada === f.parada_id));
+      return { f, rol: f.rol, parada: f.parada_id, titulo: `${t.firmaExtra}${extras.length > 1 ? ` ${i + 1}` : ''}`,
+        empresa: [b?.titulo, b?.empresa].filter(Boolean).join(' · '), color: b?.color ?? COLOR.navy };
+    })];
     const gap = 6, wC = (l.ancho - 3 * gap) / 4, hC = 66;
     for (let i = 0; i < huecos.length; i += 4) {
       l.sitio(hC + 4);
-      huecos.slice(i, i + 4).forEach((hu, j) => cuadroFirma(l.x0 + j * (wC + gap), wC, hC, hu.rol, hu.parada, hu.titulo, hu.empresa, hu.color));
+      huecos.slice(i, i + 4).forEach((hu, j) => cuadroFirma(l.x0 + j * (wC + gap), wC, hC, hu.f, hu.rol, hu.titulo, hu.empresa, hu.color));
       l.y += hC + gap;
     }
     l.y += 4;

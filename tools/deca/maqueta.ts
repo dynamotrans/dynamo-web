@@ -45,6 +45,8 @@ async function main() {
     { rol: 'remitente', parada_id: 'p1', nombre: 'Jean Petit', documento: '···123T', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(1) },
     { rol: 'remitente', parada_id: 'p2', nombre: 'Lucía Romero', documento: '···456W', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(2) },
     { rol: 'transportista', parada_id: null, nombre: 'Adrián Aguirre Etxeberria', documento: '···309K', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(3) },
+    // Firma EXTRA de la recogida 1 (una segunda persona firmando la misma casilla).
+    { rol: 'remitente', parada_id: 'p1', nombre: 'Marie Dubois', documento: '···771B', firmado_en: ahora, extra: true, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(4) },
   ];
   const envio = {
     referencia_gx: 'GX102345256', referencia_cliente: 'PED-7741', fecha_carga_prevista: '2026-11-12',
