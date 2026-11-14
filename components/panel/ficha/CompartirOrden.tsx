@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import Modal from '../Modal';
 import { euros, ventana, fecha, metros, pesoTn } from '@/lib/formato';
 import { telBonito, paisDe as nombrePais } from '@/lib/paises';
@@ -17,6 +17,15 @@ import { I, ICO } from './comun';
 // Dos secciones (2026-11-13): al TRANSPORTISTA (orden en PDF + firma) y al CLIENTE
 // (resumen sin precios ni datos internos del transportista). La vía preferida es el
 // EMAIL DESDE LA PLATAFORMA, que adjunta el PDF de verdad (mailto no puede).
+// Simplificado (usuario, 2026-11-14): por pestaña, UNA fila con el email azul y el
+// WhatsApp al número de cada uno, más «Abrir el PDF» (solo transportista). Fuera el
+// campo del enlace con Copiar, el botón de mailto y el parrafón de explicación.
+
+// Botones de la fila: el texto (con el email o el teléfono) puede ocupar 2 líneas.
+const btnPar: CSSProperties = {
+  whiteSpace: 'normal', height: 'auto', minHeight: 46, padding: '0.55rem 0.5rem',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', lineHeight: 1.25,
+};
 
 // «cp población, país (tipo de sitio)» — el mismo estilo de la proforma (usuario, 2026-11-13).
 function dirCorta(p: ParadaFicha): string {
@@ -28,7 +37,6 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const e = ficha.envio;
   const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string; bolsa: string | null; codigoBolsa: string | null; clienteEmail: string | null; clienteTelefono: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copiado, setCopiado] = useState<string | null>(null);
   const [para, setPara] = useState<'transportista' | 'cliente'>('transportista');
   // El email desde la plataforma: en marcha y su resultado (se enseña en pantalla).
   const [mandando, setMandando] = useState(false);
@@ -115,9 +123,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   ].filter((x) => x !== null).join('\n');
 
   const waTel = (d?.telefono ?? '').replace(/[^0-9]/g, '');
-  const mailtoHref = `mailto:${d?.email ?? ''}?subject=${encodeURIComponent(`Orden de carga #${e.referencia_gx} · Dynamo`)}&body=${encodeURIComponent(msg)}`;
   const waTelCli = (d?.clienteTelefono ?? '').replace(/[^0-9]/g, '');
-  const mailtoCli = `mailto:${d?.clienteEmail ?? ''}?subject=${encodeURIComponent(`Tu envío #${e.referencia_gx} · Dynamo`)}&body=${encodeURIComponent(msgCli.replace(/\n/g, '\r\n'))}`;
 
   // El PDF se DESCARGA al pulsar WhatsApp o Email (usuario, 2026-11-13): ninguno de los
   // dos deja adjuntar desde un enlace, así que se descarga y se adjunta ahí a mano.
@@ -148,8 +154,8 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
       {error && <div className="pt-aviso error" role="alert"><div>{error}</div></div>}
       {/* A QUIÉN va (usuario, 2026-11-13): transportista o cliente, cada uno con su mensaje. */}
       <div className="tabs" style={{ marginBottom: '0.7rem' }}>
-        <button type="button" className={`tab${para === 'transportista' ? ' active' : ''}`} onClick={() => { setPara('transportista'); setCopiado(null); setAvisoMail(null); }}>Para el transportista</button>
-        <button type="button" className={`tab${para === 'cliente' ? ' active' : ''}`} onClick={() => { setPara('cliente'); setCopiado(null); setAvisoMail(null); }}>Para el cliente</button>
+        <button type="button" className={`tab${para === 'transportista' ? ' active' : ''}`} onClick={() => { setPara('transportista'); setAvisoMail(null); }}>Para el transportista</button>
+        <button type="button" className={`tab${para === 'cliente' ? ' active' : ''}`} onClick={() => { setPara('cliente'); setAvisoMail(null); }}>Para el cliente</button>
       </div>
       {!token && <div className="modal-warn-box" style={{ marginTop: '0.6rem' }}><strong>El enlace del envío está retirado.</strong> Crea el enlace del CMR de nuevo (en Documentos) para poder compartir la orden.</div>}
 
@@ -159,58 +165,43 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
             El resumen del envío para <strong>el cliente</strong>: sin precios y sin los datos del transportista
             (solo matrículas y conductor), con su enlace de firma del eCMR.
           </p>
-          <button type="button" className="btn-primary" style={{ width: '100%' }} disabled={mandando || !d?.clienteEmail}
-            title={d?.clienteEmail ? `Se envía a ${d.clienteEmail}` : 'El cliente no tiene email en sus contactos'}
-            onClick={() => mandarDesdePlataforma('cliente')}>
-            {mandando ? 'Enviando…' : `Enviar email desde la plataforma${d?.clienteEmail ? ` a ${d.clienteEmail}` : ''}`}
-          </button>
-          {avisoMail && <div className={`pt-aviso${avisoMail.ok ? ' info' : ' error'}`} role="status" style={{ marginTop: '0.5rem' }}><div>{avisoMail.txt}</div></div>}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem', marginTop: '0.55rem' }}>
-            <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
-              onClick={() => { navigator.clipboard?.writeText(msgCli); setCopiado('cli'); }}>{copiado === 'cli' ? 'Copiado ✓' : 'Copiar mensaje'}</button>
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+            <button type="button" className="btn-primary" style={btnPar} disabled={mandando || !d?.clienteEmail}
+              title={d?.clienteEmail ? `Se envía a ${d.clienteEmail}` : 'El cliente no tiene email en sus contactos'}
+              onClick={() => mandarDesdePlataforma('cliente')}>
+              {mandando ? 'Enviando…' : `Enviar email${d?.clienteEmail ? ` a ${d.clienteEmail}` : ''}`}
+            </button>
+            <a className="btn-secondary" style={btnPar}
               title={d?.clienteTelefono ? `WhatsApp a ${telBonito(d.clienteTelefono)}` : 'El cliente no tiene teléfono en sus contactos: se abre sin destinatario'}
-              href={`https://wa.me/${waTelCli}?text=${encodeURIComponent(msgCli)}`} target="_blank" rel="noopener">WhatsApp</a>
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
-              title={d?.clienteEmail ? `Email a ${d.clienteEmail}` : 'El cliente no tiene email en sus contactos: se abre sin destinatario'}
-              href={mailtoCli}>Email</a>
+              href={`https://wa.me/${waTelCli}?text=${encodeURIComponent(msgCli)}`} target="_blank" rel="noopener">
+              WhatsApp{d?.clienteTelefono ? ` · ${telBonito(d.clienteTelefono)}` : ''}
+            </a>
           </div>
+          {avisoMail && <div className={`pt-aviso${avisoMail.ok ? ' info' : ' error'}`} role="status" style={{ marginTop: '0.5rem' }}><div>{avisoMail.txt}</div></div>}
         </>
       )}
 
       {para === 'transportista' && token && (
         <>
           {/* La vía preferida: el email lo manda LA PLATAFORMA con el PDF adjunto de verdad. */}
-          <button type="button" className="btn-primary" style={{ width: '100%' }} disabled={mandando || !d?.email}
-            title={d?.email ? `Se envía a ${d.email} con la orden en PDF adjunta` : 'El transportista no tiene email en su ficha'}
-            onClick={() => mandarDesdePlataforma('transportista')}>
-            {mandando ? 'Enviando…' : `Enviar email con el PDF adjunto${d?.email ? ` a ${d.email}` : ''}`}
-          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+            <button type="button" className="btn-primary" style={btnPar} disabled={mandando || !d?.email}
+              title={d?.email ? `Se envía a ${d.email} con la orden en PDF adjunta` : 'El transportista no tiene email en su ficha'}
+              onClick={() => mandarDesdePlataforma('transportista')}>
+              {mandando ? 'Enviando…' : `Enviar email con el PDF${d?.email ? ` a ${d.email}` : ''}`}
+            </button>
+            <a className="btn-secondary" style={btnPar}
+              title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)} (el PDF se descarga al pulsar, para adjuntarlo ahí)` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
+              onClick={() => descargarPdf()}
+              href={`https://wa.me/${waTel}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">
+              WhatsApp{d?.telefono ? ` · ${telBonito(d.telefono)}` : ''}
+            </a>
+          </div>
           {avisoMail && <div className={`pt-aviso${avisoMail.ok ? ' info' : ' error'}`} role="status" style={{ marginTop: '0.5rem' }}><div>{avisoMail.txt}</div></div>}
-          <div className="ptar-sitio-grid" style={{ marginTop: '0.7rem' }}>
-            <div style={{ gridColumn: '1/-1' }}>
-              <label htmlFor="ord-enlace">Enlace de descarga del PDF (lleva la clave: solo para el transportista)</label>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <input id="ord-enlace" readOnly value={enlace} onFocus={(ev) => ev.target.select()} style={{ flex: 1, minWidth: 0 }} />
-                <button className="btn-secondary" style={{ padding: '0 0.7rem', whiteSpace: 'nowrap' }} title="Copiar este enlace"
-                  onClick={() => { navigator.clipboard?.writeText(enlace); setCopiado('un'); }}>{copiado === 'un' ? '✓' : 'Copiar'}</button>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem', marginTop: '0.55rem' }}>
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={enlace} target="_blank" rel="noopener" title="Abrir el PDF en el visor">Abrir PDF</a>
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)} (el PDF se descarga al pulsar)` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
-              onClick={() => descargarPdf()}
-              href={`https://wa.me/${waTel}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.email ? `Email a ${d.email} (el PDF se descarga al pulsar)` : 'El transportista no tiene email en su ficha: se abre sin destinatario'}
-              onClick={() => descargarPdf()}
-              href={mailtoHref}>Email</a>
-          </div>
-          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
-            Hay UNA sola orden de carga: el documento completo, en {idiomas}. <strong>«Enviar email con el PDF adjunto»</strong> lo
-            manda la plataforma con el PDF adjunto de verdad. Los botones de WhatsApp y Email abren el mensaje con el
-            transportista ya puesto y <strong>descargan el PDF</strong> para adjuntarlo ahí a mano (ninguno de los dos deja
-            adjuntarlo solo). El PDF solo se abre con su enlace completo: lleva la clave.
+          <a className="btn-secondary" style={{ ...btnPar, marginTop: '0.55rem' }} href={enlace} target="_blank" rel="noopener"
+            title="Abrir la orden en PDF en el navegador (el enlace lleva la clave: solo para el transportista)">Abrir el PDF en el navegador</a>
+          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>
+            La orden completa en {idiomas}. El email la adjunta en PDF; WhatsApp abre el chat y la descarga para adjuntarla ahí a mano.
           </p>
         </>
       )}
