@@ -108,14 +108,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.pag.drawSvgPath(`M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`,
       { x, y: A4.h - top, color: fill, borderColor: border, borderWidth: border ? 1 : 0 });
   };
-  // PLAQUITA de matrícula: banda azul UE con la «E» y el número sobre fondo blanco.
+  // PLAQUITA de matrícula, versión lineal (usuario, 2026-11-14): borde fino, filete
+  // azul UE a la izquierda y el número. Compacta para que quepan dos apiladas (camión
+  // y remolque) en la caja de datos del camión.
   const AZUL_UE = rgb(0, 0.2, 0.6);
   const plaquita = (x: number, top: number, txt: string) => {
-    const w = 13 + l.medida(txt, 9, true) + 12;
-    cajaR(x, top, w, 17, COLOR.blanco, COLOR.navy, 3);
-    l.pag.drawRectangle({ x: x + 1, y: A4.h - top - 16, width: 9, height: 15, color: AZUL_UE });
-    l.texto(x + 3.4, top + 12.5, 'E', 6, { bold: true, color: COLOR.blanco });
-    l.texto(x + 15, top + 12.5, txt, 9, { bold: true, color: COLOR.tinta });
+    const w = 10 + l.medida(txt, 8.5, true) + 10;
+    cajaR(x, top, w, 14, COLOR.blanco, COLOR.grisClaro, 2.5);
+    l.pag.drawRectangle({ x: x + 1, y: A4.h - top - 13, width: 3, height: 12, color: AZUL_UE });
+    l.texto(x + 10, top + 10.2, txt, 8.5, { bold: true, color: COLOR.tinta });
     return w;
   };
   // Tintes suaves de las tarjetas de recogida (naranja) y entrega (verde).
@@ -275,7 +276,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       { k: t.matriculasAutL, v: matr ? [] : l.partir(t.pendAsignar, 7.4, wDatos - 14, true).slice(0, 2), placas: !!matr, rojo: !matr },
       { k: t.conductor, v: l.partir([e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar, 7.4, wDatos - 14, true).slice(0, 3) },
     ];
-    const hDatos = !wDatos ? 0 : 10 + datosIt.reduce((a, it) => a + 9 + (it.placas ? placas.length * 21 + 1 : it.v.length * 9) + 6, 0);
+    const hDatos = !wDatos ? 0 : 10 + datosIt.reduce((a, it) => a + 9 + (it.placas ? placas.length * 17 + 1 : it.v.length * 9) + 6, 0);
     // En el DeCA, la caja del cargador reserva sitio para la SUB-CAJA de la referencia.
     const hRef = copia === 'operativa' ? 40 : 0;
     const hFila = Math.max(96, hDatos,
@@ -305,7 +306,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         l.texto(xDat + 7, yD + 7, l.partir(it.k.toUpperCase(), 6, wDatos - 12, true)[0] ?? '', 6, { bold: true, color: COLOR.gris });
         if (it.placas) {
           let yP = yD + 11;
-          for (const m of placas) { plaquita(xDat + 7, yP, m); yP += 21; }
+          for (const m of placas) { plaquita(xDat + 7, yP, m); yP += 17; }
           yD = yP + 7;
         } else {
           it.v.forEach((ln, j) => l.texto(xDat + 7, yD + 16 + j * 9, ln, 7.4, { bold: true, color: it.rojo ? COLOR.rojo : COLOR.navy }));
