@@ -18,7 +18,9 @@ async function crearEnvioDeCliente(page: Page) {
   await page.getByRole('button', { name: /Siguiente/ }).click();
   await page.locator('select').filter({ has: page.locator('option', { hasText: 'Elige la fecha de recogida' }) }).selectOption({ index: 1 });
   await page.getByRole('button', { name: /Ver resumen/ }).click();
-  await expect(page.locator('.ptar-sug-sub')).toBeVisible();   // el tarifador ya ha calculado
+  // El tarifador ya ha calculado: la caja de importes (en Revisión va en modo solo
+  // importes, sin la línea «Camión completo · km» de antes — usuario, 2026-11-14).
+  await expect(page.locator('.ptar-sug-card .alm-price-base')).toBeVisible();
   await page.getByRole('button', { name: 'Crear envío' }).click();
   await page.locator('.dash-modal-card input[type=checkbox]').check();   // condiciones + cancelación
   await page.getByRole('button', { name: 'Confirmar envío' }).click();
