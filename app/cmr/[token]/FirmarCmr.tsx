@@ -168,15 +168,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
-      {/* El PDF SIEMPRE a mano (usuario, 2026-11-14): cualquiera con el enlace puede
-          abrir el CMR con las firmas de ESTE momento; la página va en vivo. */}
-      <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#fff', border: '2px solid #1d9e57', color: '#065f46', textAlign: 'center', textDecoration: 'none', padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, fontWeight: 800, margin: '0.2rem 0 0.45rem' }}>
-        Abrir el CMR en PDF · con las firmas actuales
-      </a>
-      <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: '#4b5563', lineHeight: 1.5 }}>
-        Esta página se actualiza <strong>en tiempo real</strong> con cada firma. Al firmar, si dejas tu email, te enviamos <strong>tu copia del CMR</strong> al momento;
-        cuando firmen todas las partes, la <strong>copia final completa</strong> se envía por email al cliente del envío, al transportista y a quienes firmaron dejando su email.
-      </p>
       {/* Ventana de compartir PROPIA (usuario, 2026-11-11): mismo diseño sencillo en
           cualquier aparato — WhatsApp, Email, SMS, Copiar y «Más opciones…» si el
           aparato tiene hoja de compartir del sistema. Mensaje corto. */}
@@ -256,22 +247,24 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         )}
       </div>
-      {[...pendientesVista, ...firmadasVista].map((b, idx) => {
+      {[...pendientesVista, ...firmadasVista].map((b) => {
         const f = firmas.get(b.clave);
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
         const pulsable = !f;
         // El PDF «con las firmas actuales» justo delante de la primera firmada (usuario,
-        // 2026-11-14): pendientes → botón del PDF → ya firmadas.
-        const btnPdf = f && idx === pendientesVista.length ? (
-          <a key="pdf" className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener"
+        // 2026-11-14): pendientes → botón del PDF → ya firmadas. Sin ninguna firma aún,
+        // tras la última pendiente, para que el PDF siga siempre a mano.
+        const btnPdf = b.clave === (firmadasVista[0] ?? pendientesVista[pendientesVista.length - 1])?.clave ? (
+          <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener"
             style={{ display: 'block', margin: '0 0 0.7rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
               padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, boxShadow: '0 3px 10px rgba(29,158,87,0.3)' }}>
-            Ver el CMR en PDF · con las firmas actuales
+            Abrir el CMR en PDF · con las firmas actuales
           </a>
         ) : null;
+        const antes = !!firmadasVista.length;   // con firmadas va DELANTE de la 1.ª; sin ellas, DETRÁS de la última pendiente
         return (<Fragment key={b.clave}>
-          {btnPdf}
+          {antes && btnPdf}
           <div className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
             onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) { if (sinTransportista) setAvisoSinTra(true); else setPreFirma(b); } } : undefined}>
             <div className="firma-head">
@@ -294,6 +287,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>
             ))}
           </div>
+          {!antes && btnPdf}
         </Fragment>);
       })}
       {extras.map((f, i) => (
