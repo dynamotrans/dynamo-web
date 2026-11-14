@@ -213,8 +213,10 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
 }
 
 function Tabla({ cab, filas, nota }: { cab: string[]; filas: (string | number | React.ReactNode)[][]; nota?: string }) {
+  // tabIndex: la zona con scroll debe poder recorrerse con el teclado (axe,
+  // scrollable-region-focusable) — con las flechas una vez enfocada con Tab.
   return (
-    <div className="table-wrap" style={{ marginTop: '0.4rem' }}>
+    <div className="table-wrap" tabIndex={0} aria-label={cab.join(', ')} style={{ marginTop: '0.4rem' }}>
       <table className="data" style={{ minWidth: 0 }}>
         <thead><tr>{cab.map((c, i) => <th key={c} style={i ? { textAlign: 'right' } : undefined}>{c}</th>)}</tr></thead>
         <tbody>{filas.map((f, i) => <tr key={i}>{f.map((c, j) => <td key={j} style={j ? { textAlign: 'right', whiteSpace: 'nowrap' } : undefined}>{c}</td>)}</tr>)}</tbody>

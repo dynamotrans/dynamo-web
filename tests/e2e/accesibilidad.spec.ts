@@ -12,7 +12,10 @@ import { entrar } from './ayudas';
 
 async function auditar(page: Page, url: string) {
   await page.goto(url);
-  await page.waitForLoadState('networkidle');
+  // 'networkidle' NUNCA llega en el panel: la conexión «en vivo» (websocket de Supabase)
+  // queda abierta a propósito. Carga + un respiro para lo que pinta el cliente.
+  await page.waitForLoadState('load');
+  await page.waitForTimeout(600);
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   const graves = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
   const leves = r.violations.filter((v) => !graves.includes(v));

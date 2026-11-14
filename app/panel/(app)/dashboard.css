@@ -5197,3 +5197,20 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
    mismo diseño en todos los navegadores — estas reglas van al final para ganar a las
    de cada contenedor, que fijan su padding en bloque). */
 .filters select, .vista-select, .ptar-sitio-grid select { padding-right: 2.1rem; }
+
+/* ============ ACCESIBILIDAD (auditoría axe del CI, 2026-11-14) ============ */
+/* Un menú cerrado no puede contener elementos enfocables (regla aria-hidden-focus):
+   cerrado queda también visibility:hidden — fuera del orden de tabulación — con un
+   retardo igual al desvanecimiento para no perder la animación de cierre. */
+.cesce-menu, .bell-menu, .topbar-contact-menu, .user-menu, .vista-menu {
+    visibility: hidden;
+    transition-property: opacity, transform, visibility;
+    transition-delay: 0s, 0s, 0.18s;
+}
+.cesce-menu.open, .bell-menu.open, .topbar-contact-menu.open, .user-menu.open, .vista-menu.open {
+    visibility: visible; transition-delay: 0s;
+}
+/* Contrastes por debajo de 4,5:1 en texto pequeño (regla color-contrast). */
+.sidebar-sep span { color: var(--gray-500); }                 /* era gray-400 (2,5:1) */
+.topbar-contact-label .t-pre { color: var(--gray-700); }      /* gris sobre lila (4,0:1) */
+.dash-flota-eyebrow { color: var(--green-dark); }             /* verde sobre gris (3,0:1) */
