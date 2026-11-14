@@ -8690,3 +8690,41 @@ begin
   delete from bloqueos_alta where motivo = 'prueba 218' or valor like '%bloqueo218.prueba';
   raise notice 'OK 218 · lista de bloqueo de altas: email y dominio, defensa en el alta y bloqueo al anonimizar';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 219 · cambiar el email de acceso: un email vetado se rechaza en la base de
+-- datos, uno libre se sincroniza al perfil y los usos del usuario no se reinician
+-- =====================================================================================
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare b uuid := current_setting('prueba.u_cli_b')::uuid;
+        v_antes text; v_consultas int; v_desde timestamptz;
+begin
+  select email into v_antes from usuarios where id = b;
+  select count(*) into v_consultas from consultas_precio where usuario_id = b;
+  select autosuspension_desde_en into v_desde from usuarios where id = b;
+  insert into bloqueos_alta (tipo, valor, motivo) values ('email', 'nuevo219@vetado.prueba', 'prueba 219');
+  -- A un email de la lista de bloqueo NO se puede cambiar, ni llamando al acceso directo.
+  begin
+    update auth.users set email = 'nuevo219@vetado.prueba' where id = b;
+    raise exception 'FALLO 219 · se ha podido cambiar el email a uno vetado';
+  exception when insufficient_privilege then null; end;
+  if (select email from usuarios where id = b) <> v_antes then
+    raise exception 'FALLO 219 · el cambio rechazado ha tocado el perfil igualmente';
+  end if;
+  -- A uno libre sí, y el perfil se sincroniza solo.
+  update auth.users set email = 'nuevo219@libre.prueba' where id = b;
+  if (select email from usuarios where id = b) <> 'nuevo219@libre.prueba' then
+    raise exception 'FALLO 219 · el email nuevo no se ha sincronizado al perfil';
+  end if;
+  -- Y los usos NO se reinician: mismas consultas y misma fecha de arranque del contador.
+  if (select count(*) from consultas_precio where usuario_id = b) <> v_consultas
+     or (select autosuspension_desde_en from usuarios where id = b) is distinct from v_desde then
+    raise exception 'FALLO 219 · cambiar el email ha reiniciado los usos del usuario';
+  end if;
+  -- Se deja todo como estaba.
+  update auth.users set email = v_antes where id = b;
+  delete from bloqueos_alta where motivo = 'prueba 219';
+  raise notice 'OK 219 · el cambio de email respeta la lista de bloqueo, sincroniza el perfil y no reinicia los usos';
+end $$;

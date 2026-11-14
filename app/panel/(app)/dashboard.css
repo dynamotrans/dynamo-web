@@ -202,6 +202,18 @@ select, textarea {
     background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px;
     padding: 0.55rem 0.7rem; outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
+    /* Siempre NUESTRO diseño, en cualquier navegador (usuario, 2026-11-14: Safari pintaba
+       sus campos y desplegables nativos, con degradado y flecha doble): fuera la
+       apariencia del sistema en todos los campos. Checkbox/radio/range… quedan fuera
+       del :where() de arriba y conservan la suya. */
+    -webkit-appearance: none; appearance: none;
+}
+/* Todo <select> del panel lleva nuestra flecha (la nativa desaparece con appearance:none).
+   Los .ptar-select y variantes coloreadas re-declaran la suya más abajo y siguen ganando. */
+select {
+    padding-right: 2.1rem; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 14px 14px;
 }
 /* A lo ancho SIEMPRE (2026-11-12: el Motivo de «Cancelar envío» salía enano): los
    contenedores que fijan otro ancho siguen ganando por peso. */
@@ -2743,14 +2755,14 @@ input.alm-f-err, .dash-modal input.alm-f-err {
    alto 44px, borde 1.5px, radio 10px, fondo blanco, hover/focus morado. */
 .filters input, .filters select {
     height: 44px; padding: 0 0.8rem; border-radius: 10px;
-    border: 1.5px solid var(--gray-200); background: white;
+    border: 1.5px solid var(--gray-200); background-color: white;
     font-size: var(--fs-l); color: var(--navy);
     font-family: inherit;
     min-width: 0; max-width: 100%;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 .filters input:hover, .filters select:hover { border-color: var(--purple); }
-.filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); background: white; }
+.filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); background-color: white; }
 .filters input[type="search"] { flex: 1 1 240px; min-width: 180px; }
 /* Botón Exportar (a la derecha de los filtros, misma altura 44px) */
 .filters .btn-export {
@@ -3179,7 +3191,7 @@ body.theme-dark .op-chip2-otro { background: rgba(190,140,90,0.15); color: #d8b4
 .cal-leyenda i { width: 11px; height: 11px; border-radius: 3px; flex: none; }
 /* Selector «Vista: Lista / Calendario» de la cabecera */
 /* Misma altura y letra que el CTA «Nuevo envío» de la cabecera (usuario, 2026-11-12). */
-.vista-select { height: 56px; padding: 0 0.8rem; border: 1.5px solid var(--gray-300); border-radius: 12px; background: #fff; font: inherit; font-size: var(--fs-d1); font-weight: 800; color: var(--navy); cursor: pointer; }
+.vista-select { height: 56px; padding: 0 0.8rem; border: 1.5px solid var(--gray-300); border-radius: 12px; background-color: #fff; font: inherit; font-size: var(--fs-d1); font-weight: 800; color: var(--navy); cursor: pointer; }
 .vista-select:hover, .vista-select:focus { outline: none; border-color: var(--purple); }
 /* Fecha/hora de creación: pequeñita y en UNA línea */
 table.data td.ref .ref-creado { display: block; font-size: var(--fs-s); color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
@@ -3815,7 +3827,7 @@ input::-webkit-date-and-time-value { text-align: left; }
 .ptar-sitio-grid label { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
 /* Mismo estándar que el resto del panel: borde 1.5px, radio 10px,
    hover/focus morado con anillo. */
-.ptar-sitio-grid input, .ptar-sitio-grid select, .ptar-sitio-grid textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font: inherit; font-size: var(--fs-m); color: var(--navy); background: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.ptar-sitio-grid input, .ptar-sitio-grid select, .ptar-sitio-grid textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font: inherit; font-size: var(--fs-m); color: var(--navy); background-color: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
 /* ESTÁNDAR DE ALTURA DE CAMPOS (usuario, 2026-11-09): 44px en toda la plataforma,
    el mismo de .ptar-input-wrap, .ptar-select, .ptar-date y el selector de país.
    Los textareas crecen libres; checkbox/radio/color no son campos de texto. */
@@ -3911,7 +3923,7 @@ input::-webkit-date-and-time-value { text-align: left; }
    ya lo tienen); se ajusta en la confirmación. En PRESUPUESTO sí sale. */
 #sec-nueva-carga[data-entry-mode="envio"] .ptar-route-row .ptar-select-sm { display: none; }
 /* Tipo de lugar editable en las fichas de la confirmación */
-.ptar-sitio-grid select.sitio-f-tipo { background: #fff; }
+.ptar-sitio-grid select.sitio-f-tipo { background-color: #fff; }
 /* Campo bloqueado (solo lectura) en las fichas de lugares: la
    dirección define la ruta y no se edita aquí. */
 .ptar-sitio-grid input.sitio-f-lock,
@@ -4112,11 +4124,11 @@ input::-webkit-date-and-time-value { text-align: left; }
     background: #ecfdf5; color: #047857; border: 1px solid #b7ebcd;
     border-radius: 8px; font-size: var(--fs-s); line-height: 1.4;
 }
-.ptar-select.ptar-select-error { border-color: var(--red); background: #fef2f2; }
+.ptar-select.ptar-select-error { border-color: var(--red); background-color: #fef2f2; }
 .ptar-select.ptar-select-error:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.10); }
 /* Aviso NARANJA: fecha de recogida aún sin seleccionar (no es error,
    es "te falta elegirla"); se quita solo al elegir una fecha. */
-.ptar-select.ptar-select-warn { border-color: var(--orange); background: rgba(255,122,0,0.05); }
+.ptar-select.ptar-select-warn { border-color: var(--orange); background-color: rgba(255,122,0,0.05); }
 .ptar-select.ptar-select-warn:focus { box-shadow: 0 0 0 3px rgba(255,122,0,0.12); }
 .ptar-field-hint {
     font-size: var(--fs-s); color: var(--gray-500);
@@ -5180,3 +5192,8 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .dash-cta-mini.primario { background: linear-gradient(135deg, var(--purple), #4b16e0); border-color: var(--purple); color: #fff; }
 .dash-cta-mini.primario .dash-cta-mini-ico { background: rgba(255,255,255,0.16); color: #fff; }
 .dash-cta-mini.primario:hover { border-color: var(--purple); box-shadow: 0 6px 18px rgba(51,0,204,0.25); }
+
+/* Los selects con padding propio dejan sitio a la flecha común (usuario, 2026-11-14:
+   mismo diseño en todos los navegadores — estas reglas van al final para ganar a las
+   de cada contenedor, que fijan su padding en bloque). */
+.filters select, .vista-select, .ptar-sitio-grid select { padding-right: 2.1rem; }
