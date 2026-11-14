@@ -152,6 +152,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [preguntaCancelar, setPreguntaCancelar] = useState(false);
+  const [preguntaResolver, setPreguntaResolver] = useState(false);
   // Adjuntos elegidos ANTES de crear la incidencia (usuario, 2026-11-10): foto con la
   // cámara o galería/archivos; se suben nada más crearla. Si una subida falla, la
   // incidencia ya existe: idCreada hace que el reintento actualice en vez de duplicar.
@@ -201,6 +202,24 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
     onHecho();
   }
 
+  // Resolver va por su botón verde (usuario, 2026-11-14): fuera el desplegable de estado.
+  if (preguntaResolver) {
+    return (
+      <Modal abierto titulo="Resolver incidencia" sub="Queda marcada como Resuelta" icono={<IcoAviso />} onCerrar={() => setPreguntaResolver(false)}
+        pie={<>
+          <button className="btn-ghost" onClick={() => setPreguntaResolver(false)}>No, volver</button>
+          <button className="btn-primary" style={{ background: 'var(--green)' }} disabled={!!trabajando} onClick={() => guardar({ estado: 'resuelto' }, 'Resolviendo incidencia')}>Marcar resuelta</button>
+        </>}>
+        <div className="modal-form-row">
+          <label htmlFor="inc-res">Cómo se ha resuelto <Req si={false} /></label>
+          <textarea id="inc-res" value={d.resolucion} onChange={(e) => set('resolucion', e.target.value)} placeholder="Qué se hizo para cerrarla (abono, reenvío, albarán recibido…)" autoFocus />
+        </div>
+        <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.4rem 0 0' }}>El cliente verá el estado Resuelta y la resolución en su ficha.</p>
+        {trabajando && <Cargando texto={trabajando} />}
+      </Modal>
+    );
+  }
+
   if (preguntaCancelar) {
     return (
       <Modal abierto titulo="Cancelar incidencia" sub="Quedará retirada (se conserva en el histórico)" icono={<IcoAviso />} onCerrar={() => setPreguntaCancelar(false)}
@@ -220,6 +239,11 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cerrar</button>
         {fila && abierta(fila.estado) && !soloLectura && <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setPreguntaCancelar(true)} disabled={!!trabajando}>{esCliente ? 'Retirar incidencia' : 'Cancelar incidencia'}</button>}
+        {fila && abierta(fila.estado) && !esCliente && !esTransportista && !vistaTransportista &&
+          <button className="btn-primary" style={{ background: 'var(--green)' }} onClick={() => setPreguntaResolver(true)} disabled={!!trabajando}>Resolver incidencia</button>}
+        {/* Resuelta o cancelada: solo el equipo de Dynamo puede recuperarla — vuelve a ABIERTA. */}
+        {fila && !abierta(fila.estado) && !esCliente && !esTransportista && !vistaTransportista &&
+          <button className="btn-primary" onClick={() => guardar({ estado: 'abierto' }, 'Recuperando incidencia')} disabled={!!trabajando}>Recuperar (volver a Abierta)</button>}
         {!soloLectura && <button className="btn-primary" onClick={() => guardar()} disabled={!!trabajando}>{fila ? 'Guardar incidencia' : 'Enviar incidencia'}</button>}
       </>}>
       {fila && (
@@ -255,14 +279,13 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
             {fila.resolucion && <> · Resolución: {fila.resolucion}</>}
           </div>
         )) : <>
-        <div>
-          <label htmlFor="inc-estado">Estado</label>
-          {/* Solo Abierta y Resuelta (usuario, 2026-11-10). «Cancelada» va por su botón, y
-              una antigua «En curso» conserva su opción para no cambiarla sin querer. */}
-          <select id="inc-estado" className="ptar-select" value={d.estado} onChange={(e) => set('estado', e.target.value as IncidenciaDatos['estado'])}>
-            {ESTADOS.filter(([k]) => k === 'abierto' || k === 'resuelto' || k === d.estado).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
-          </select>
-        </div>
+        {/* El estado ya no se elige en un desplegable (usuario, 2026-11-14): se cambia con
+            los botones de abajo (Resolver en verde, Cancelar, Recuperar). Aquí solo se ve. */}
+        {fila && (
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
+            Estado:&nbsp;<strong>{ESTADOS.find(([k]) => k === fila.estado)?.[1] ?? fila.estado}</strong>
+          </div>
+        )}
         <div>
           <label htmlFor="inc-pri">Prioridad</label>
           <select id="inc-pri" className="ptar-select" value={d.prioridad} onChange={(e) => set('prioridad', e.target.value as IncidenciaDatos['prioridad'])}>
@@ -275,10 +298,10 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         <label htmlFor="inc-det">Detalle de la incidencia <Req /></label>
         <textarea id="inc-det" value={d.detalle} onChange={(e) => set('detalle', e.target.value)} placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…" />
       </div>
-      {!esCliente && (d.estado === 'resuelto' || d.resolucion) && (
+      {!esCliente && fila && (fila.estado === 'resuelto' || d.resolucion) && (
         <div className="modal-form-row">
-          <label htmlFor="inc-res">Cómo se ha resuelto <Req si={false} /></label>
-          <textarea id="inc-res" value={d.resolucion} onChange={(e) => set('resolucion', e.target.value)} placeholder="Qué se hizo para cerrarla (abono, reenvío, albarán recibido…)" />
+          <label htmlFor="inc-res2">Cómo se ha resuelto <Req si={false} /></label>
+          <textarea id="inc-res2" value={d.resolucion} onChange={(e) => set('resolucion', e.target.value)} placeholder="Qué se hizo para cerrarla (abono, reenvío, albarán recibido…)" />
         </div>
       )}
       <div className="modal-form-row">
