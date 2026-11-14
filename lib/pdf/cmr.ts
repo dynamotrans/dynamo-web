@@ -6,6 +6,7 @@ import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
 import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
 import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros, ventana } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
+import { plumaAzul } from './plumaAzul';
 
 // CMR (carta de porte internacional) RELLENO, copiado del mockup: los 4 ejemplares del
 // impreso OFICIAL (remitente rojo · destinatario azul · porteador verde · administración
@@ -53,7 +54,8 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   const trazos = new Map<FirmaDoc, PDFImage | null>();
   for (const f of firmas) {
     let img: PDFImage | null = null;
-    if (f.png) { try { img = await l.doc.embedPng(f.png); } catch { img = null; } }
+    // Trazo siempre en azul bolígrafo al imprimir (usuario, 2026-11-14).
+    if (f.png) { try { img = await l.doc.embedPng(plumaAzul(f.png)); } catch { img = null; } }
     trazos.set(f, img);
   }
   const firmaDe = (rol: string, parada: string | null | undefined) => firmas.find((f) => !f.extra && f.rol === rol && (rol === 'transportista' || f.parada_id === parada));

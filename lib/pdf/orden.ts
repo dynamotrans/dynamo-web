@@ -8,6 +8,7 @@ import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from
 import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrden } from './ordenTextos';
+import { plumaAzul } from './plumaAzul';
 
 // ORDEN DE CARGA que Dynamo manda al transportista (el contenido y las condiciones son los
 // de la orden que se manda hoy por email, p. ej. la GX61034 de febrero de 2026).
@@ -62,7 +63,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // pisaba el trazo de la principal (bug visto por el usuario el 2026-11-14).
   const trazos = new Map<FirmaDoc, PDFImage>();
   if (conFirmas) for (const f of d.firmas ?? []) {
-    if (f.png) { try { trazos.set(f, await l.doc.embedPng(f.png)); } catch { /* sin trazo */ } }
+    // Trazo siempre en azul bolígrafo al imprimir (usuario, 2026-11-14).
+    if (f.png) { try { trazos.set(f, await l.doc.embedPng(plumaAzul(f.png))); } catch { /* sin trazo */ } }
   }
   // REJILLA DE FIRMAS al pie del DeCA (usuario, 2026-11-14): cuadros seguidos de
   // izquierda a derecha, 4 por fila a lo ancho escribible; con más de 4 siguen en la

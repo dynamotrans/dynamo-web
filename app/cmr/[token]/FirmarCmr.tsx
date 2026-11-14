@@ -409,7 +409,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     const dpr = window.devicePixelRatio || 1, r = c.getBoundingClientRect();
     c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
     const x = c.getContext('2d')!; x.scale(dpr, dpr);
-    x.lineWidth = 2.6; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0a0230'; x.fillStyle = '#fff';
+    // Azul bolígrafo (usuario, 2026-11-14): la firma se ve y se guarda en azul, como a mano.
+    x.lineWidth = 2.6; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#1b3fa0'; x.fillStyle = '#fff';
     x.fillRect(0, 0, r.width, r.height);
     ctx.current = x; setDibujado(false);
   }
