@@ -38,9 +38,9 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
         {' '}<strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido. Los importes se cambian en la ficha del cliente.
       </p>
       <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem', marginBottom: '0.9rem' }}>
-        <div className="table-wrap" style={{ padding: '0.8rem 1rem' }}><div className="meta">Crédito concedido (límites)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.limite)}</div></div>
-        <div className="table-wrap" style={{ padding: '0.8rem 1rem' }}><div className="meta">Riesgo asumido ({dias} días)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.asumido)}</div></div>
-        <div className="table-wrap" style={{ padding: '0.8rem 1rem' }}><div className="meta">Clientes por encima de su límite</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: totales.pasados ? '#dc2626' : '#0f6b3a' }}>{totales.pasados}</div></div>
+        <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Crédito concedido (límites)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.limite)}</div></div>
+        <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Riesgo asumido ({dias} días)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.asumido)}</div></div>
+        <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Clientes por encima de su límite</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: totales.pasados ? '#dc2626' : '#0f6b3a' }}>{totales.pasados}</div></div>
       </div>
       <BuscadorUrl accion="/panel/riesgos" valor={lista.q} placeholder="Buscar cliente o CIF…" campos={<>
         <select name="f" defaultValue={lista.filtro} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Filtrar">
@@ -54,7 +54,7 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
         {lista.porPagina !== 50 && <input type="hidden" name="n" value={lista.porPagina} />}
       </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los riesgos: {error}</div>}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>Cliente</th><th className="amount">CESCE</th><th className="amount">Manual (Álvaro)</th><th className="amount">Límite</th>

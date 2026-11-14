@@ -21,7 +21,7 @@ export default function MisPenalizaciones({ filas, error, esTransportista = fals
             Si no estás conforme con alguna, abre una <Link href="/panel/incidencias?abrir=1" style={{ color: 'var(--purple)', fontWeight: 700 }}>incidencia</Link> y la revisamos.</>}
       </p>
       {error && <div className="pt-aviso error">No se han podido cargar las penalizaciones: {error}</div>}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr><th>Penalización</th><th>Envío</th><th>Tipo</th><th>Importe<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>base sin IVA</span></th><th>Fecha</th></tr></thead>
           <tbody>

@@ -104,7 +104,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
       </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los clientes: {error}</div>}
 
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th>

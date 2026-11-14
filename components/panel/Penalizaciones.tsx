@@ -91,7 +91,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error 
         </select>
       </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar las penalizaciones: {error}</div>}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data data-penalizaciones">
           <thead><tr>
             <th>Penalización</th><th>Envío</th><th>Tipo</th><th>Transportista</th>

@@ -102,7 +102,7 @@ export default function Transportistas({ filas, error, abrirId, lista, admin }: 
       </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los transportistas: {error}</div>}
 
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>Transportista</th><th>Contacto</th><th>Código bolsa de carga</th><th>Puntuación</th><th>Flota</th><th>Creado · Modificado</th>

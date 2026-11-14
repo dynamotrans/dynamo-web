@@ -42,7 +42,7 @@ export default function ProteccionDatos() {
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>{error}</div></div>}
       {filas && filas.length === 0 && <div className="pt-aviso"><div>No hay ninguna ficha con eso.</div></div>}
       {filas && filas.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table className="data">
             <thead><tr><th>Ficha</th><th>Persona</th><th>Empresa</th><th></th></tr></thead>
             <tbody>
@@ -114,7 +114,7 @@ function BloqueosAlta() {
       </div>
       {filas && filas.length === 0 && <div className="pt-aviso"><div>No hay ningún bloqueo. Al anonimizar una cuenta puedes bloquear su email ahí mismo.</div></div>}
       {filas && filas.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table className="data">
             <thead><tr><th>Bloqueado</th><th>Motivo</th><th>Desde</th><th></th></tr></thead>
             <tbody>

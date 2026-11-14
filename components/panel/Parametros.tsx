@@ -448,7 +448,7 @@ function Control({ p, esAdmin, etiqueta }: { p: ParametroFila; esAdmin: boolean;
 
 function TablaParametros({ filas, esAdmin }: { filas: ParametroFila[]; esAdmin: boolean }) {
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" tabIndex={0}>
       <table className="data">
         <thead><tr><th style={{ width: '45%' }}>Para qué sirve</th><th>Valor</th><th>Último cambio</th></tr></thead>
         <tbody>{filas.map((p) => <Fila key={p.clave} p={p} esAdmin={esAdmin} />)}</tbody>

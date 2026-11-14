@@ -138,7 +138,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
       {nota && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>{nota}</div></div>}
 
       {!vistaCal && <>
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>Envío</th><th>Recogida</th><th>Entrega</th>

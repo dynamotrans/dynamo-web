@@ -42,7 +42,7 @@ const ROLES: [Rol, string][] = [['admin', 'Admin Master'], ['admin_lectura', 'Ad
 const ROL_COLOR: Record<Rol, [string, string]> = {
   admin: ['rgba(51,0,204,0.10)', 'var(--purple)'], empleado: ['rgba(15,23,42,0.08)', 'var(--navy)'],
   admin_lectura: ['rgba(51,0,204,0.05)', '#5b3fd6'], empleado_lectura: ['rgba(15,23,42,0.04)', 'var(--gray-700)'],
-  cliente: ['rgba(15,107,58,0.10)', '#0f6b3a'], transportista: ['rgba(255,122,0,0.12)', '#b45309'],
+  cliente: ['rgba(15,107,58,0.10)', '#0f6b3a'], transportista: ['rgba(255,122,0,0.12)', '#9a3412'],  /* #b45309 daba 4,46:1, justo bajo el mínimo (axe) */
 };
 // Qué puede hacer cada rol: se enseña ANTES de confirmar un cambio (mockup).
 const ROL_DESC: Record<Rol, string> = {
@@ -139,7 +139,7 @@ export default function Usuarios({ filas, yo, error, conteos, lista }: {
       {error && <div className="pt-aviso error">No se han podido cargar los usuarios: {error}</div>}
       {aviso && <div className="pt-aviso info">{aviso}</div>}
 
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>Email · usuario</th><th>Tipo</th><th>Estado</th><th>Nombre y apellidos</th><th>DNI</th><th>Teléfono</th>

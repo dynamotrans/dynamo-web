@@ -96,7 +96,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
         </select>
       </div>
       {error && <div className="pt-aviso error">No se han podido cargar las altas: {error}</div>}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr><th>Tipo · usuario</th><th>Empresa · CIF</th><th>Nombre · bolsa</th><th>Teléfono</th><th>Estado</th><th>Solicitada</th><th style={{ minWidth: 150 }}>Tiempo</th></tr></thead>
           <tbody>

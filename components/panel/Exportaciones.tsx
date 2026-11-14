@@ -110,7 +110,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
         {fichero !== 'bolsa' && pestana === 'hechos' && <button className="btn-ghost" disabled={sinFacturar.size === refs.length || trabajando} onClick={() => setConfirmar('desfacturar')}>Quitar facturado</button>}
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>{F.columnas.map(([, t]) => <th key={t}>{t}</th>)}<th>Situación</th></tr></thead>
           <tbody>

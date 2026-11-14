@@ -91,7 +91,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
         {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
 
         {pestana === 'proformas' ? (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table className="data">
               <thead><tr><th>Proforma</th>{dynamo && <th>Cliente</th>}<th>Concepto</th><th>Base (sin IVA)</th><th>Total (IVA incl.)</th><th>Pago</th><th /></tr></thead>
               <tbody>
@@ -124,7 +124,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
             </table>
           </div>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table className="data">
               <thead><tr><th>Envío</th><th>Documento</th><th>Subido</th>{dynamo && <th>Lo ve el cliente</th>}<th /></tr></thead>
               <tbody>

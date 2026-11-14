@@ -12,7 +12,7 @@ export default function OfertasAbiertas({ ofertas }: { ofertas: Oferta[] }) {
   return (
     <section className="section active" style={{ paddingBottom: 0 }}>
       <div className="sec-header"><h2>Cargas que te ofrecemos</h2></div>
-      <div className="table-wrap" style={{ marginBottom: '1.2rem' }}>
+      <div className="table-wrap" tabIndex={0} style={{ marginBottom: '1.2rem' }}>
         <table className="data">
           <thead><tr><th>Carga</th><th>Ruta</th><th>Recogida</th><th>m · Tn</th><th>Precio<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>base sin IVA</span></th><th></th></tr></thead>
           <tbody>

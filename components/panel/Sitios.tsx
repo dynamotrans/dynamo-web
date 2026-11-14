@@ -137,7 +137,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
       {error && <div className="pt-aviso error">No se han podido cargar los sitios: {error}</div>}
       {aviso && <div className="pt-aviso error">{aviso}</div>}
 
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>Empresa</th>{dynamo && <th>Cliente</th>}<th>Dirección</th><th>Horario</th><th>Contacto</th><th>Notas</th>
@@ -377,7 +377,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         <div className="modal-warn-box">
           Si creas uno nuevo tendrás <strong>dos registros del mismo sitio</strong>. Lo normal es <strong>actualizar el que ya tienes</strong> (puede llevar anotaciones o el teléfono bueno): edita sus campos o cópialos con el botón <strong>→</strong>. Solo pulsa <strong>Crear igualmente</strong> si de verdad es otro sitio distinto (p. ej. otra nave o muelle en la misma dirección).
         </div>
-        <div className="table-wrap"><table className="data cmp-table">
+        <div className="table-wrap" tabIndex={0}><table className="data cmp-table">
           <thead><tr><th></th><th>Datos que ibas a crear</th><th>Tu registro</th></tr></thead>
           <tbody>
             {FILAS.map(([f, label]) => (

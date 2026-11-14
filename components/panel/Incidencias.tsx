@@ -99,7 +99,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
         </select>
       </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar las incidencias: {error}</div>}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>F. registro</th><th>Descripción</th><th>Nº envío</th><th>Ref. cliente</th><th>F. carga · Días de recogida</th><th>Ruta</th><th>m · Tn</th><th>Estado</th>

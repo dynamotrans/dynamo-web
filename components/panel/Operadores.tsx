@@ -36,7 +36,7 @@ const CHECK = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke
 function Intro({ dynamo }: { dynamo: boolean }) {
   const punto = (t: React.ReactNode) => <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>{CHECK}<span>{t}</span></li>;
   return (
-    <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.9rem' }}>
+    <div className="table-wrap" tabIndex={0} style={{ padding: '0.9rem 1rem', marginBottom: '0.9rem' }}>
       <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>{dynamo ? 'La agenda privada de transportistas de cada cliente' : 'Tu agenda privada de transportistas'}</div>
       <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
         <strong>{dynamo ? 'Aquí cada cliente guarda' : 'Guarda aquí'} los transportistas con los que {dynamo ? 'ya trabaja' : 'ya trabajas'} por {dynamo ? 'su' : 'tu'} cuenta</strong> (empresas de transporte, operadores o autónomos) para ver <strong>todos {dynamo ? 'sus' : 'tus'} envíos juntos en Envíos</strong>: los de Dynamo y los {dynamo ? 'suyos' : 'tuyos'}, en un solo sitio.
@@ -81,7 +81,7 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
         )}
       </div>
       {error && <div className="pt-aviso error">No se han podido cargar los transportistas: {error}</div>}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr><th>Operador</th>{dynamo && <th>Cliente</th>}<th>Teléfono</th><th>Email</th><th>Contacto</th><th>Notas</th></tr></thead>
           <tbody>

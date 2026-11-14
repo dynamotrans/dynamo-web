@@ -45,7 +45,7 @@ export default function Almacenes({ filas, precios, error, veranoDefecto }: { fi
       </div>
       {error && <div className="pt-aviso error">No se han podido cargar los almacenes: {error}</div>}
 
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
             <th>Empresa</th><th>Dirección</th><th>Horario</th>

@@ -109,7 +109,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
         </select>
       </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar los almacenamientos: {error}</div>}
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0}>
         <table className="data data-almacenes">
           <thead><tr><th>Almacenamiento</th><th>Almacén</th><th>Entrada</th><th>Salida</th><th>Reparto urbano</th><th>Total (sin IVA)</th><th>Estado</th></tr></thead>
           <tbody>
