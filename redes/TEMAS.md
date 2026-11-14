@@ -28,7 +28,7 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 | 5 | Ventana de carga 1–2 días | Por qué es más económica que fecha fija |
 | 6 | Seguro MAPFRE 250.000 € | Mercancía protegida además del seguro del camión — PUBLICADO 12/11/2026 |
 | 7 | Rígido con plataforma | 8 m / 14 Tn / transpaleta: entregas urbanas sin muelle |
-| 8 | Import/Export Europa | Portugal, Francia, Alemania, Italia, Benelux, Austria, Polonia, Chequia |
+| 8 | Import/Export Europa | Portugal, Francia, Alemania, Italia, Benelux, Austria, Polonia, Chequia — PUBLICADO 14/11/2026 |
 | 9 | Pedir tarifa bien | Los 3 datos: tipo de mercancía, metros/peso, CP origen y destino |
 | 10 | Mercancía no paletizada | Maquinaria, tubos, balas: cómo se carga y qué avisar |
 | 11 | Operador autorizado | Tarjeta OT: qué significa trabajar con un operador de transporte |
@@ -59,3 +59,4 @@ Formato: fecha — tema — estilo — tipo de titular — **titular** — **enf
 - 2026-11-07 — Tema 2 (medios de carga y descarga) — estilo v3 (v2 sin cifra natural para el tema, se salta a v3; foto por defecto) — titular dato — titular «33 palets no se bajan a mano» — enfoque: confirmar carretilla, muelle o trampilla en origen y destino antes de pedir el camión — `images/redes/2026-11-07-medios-de-carga.jpg` — Metricool post 419570301 (IG + FB)
 - 2026-11-10 — Tema 4 (qué es un tauliner) — enfoque: qué es y medidas — estilo v4 — titular consejo: "Lo que debes saber del tauliner" — `images/redes/2026-11-10-que-es-un-tauliner.jpg` — Metricool 422596804 (IG + FB)
 - 2026-11-12 — Tema 6 (seguro MAPFRE 250.000 €) — enfoque: doble cobertura del envío — estilo v1 — titular pregunta: "¿Tu mercancía va asegurada?" — `images/redes/2026-11-12-seguro-mapfre.jpg` — Metricool 425140344 (IG + FB)
+- 2026-11-14 — Tema 8 (Import/Export Europa) — enfoque: a qué países llegamos — estilo v2 — titular dato: "12 países de Europa, un único interlocutor" — `images/redes/2026-11-14-import-export-europa.jpg` — Metricool pendiente
