@@ -82,6 +82,44 @@ function insistir(lang: string, veces = 24) {
   const t = setInterval(() => { n++; if (aplicar(lang) || n >= veces) clearInterval(t); }, 250);
 }
 
+// ---- Re-traducir lo que se monta DESPUÉS (ventanas emergentes, cascadas) -------------
+// El widget de Google traduce la página en su pasada inicial, pero NO traduce de forma
+// fiable los nodos añadidos más tarde: una ventana emergente condicional (la política de
+// privacidad de la firma del CMR, un diálogo en cascada, un error) podía quedarse en
+// español con la página en polaco (usuario, 2026-11-14). Vigilamos el DOM: cuando
+// aparece contenido nuevo con texto, se vuelve a disparar la traducción re-poniendo el
+// idioma en el combo de Google (el mismo truco de insistir(), que re-escanea toda la
+// página). Las mutaciones del propio traductor (FONT, iframes, .skiptranslate) se
+// ignoran para no entrar en bucle.
+let vigilanteGT: MutationObserver | null = null;
+let langVigilado = 'es';
+function vigilarContenidoNuevo(lang: string) {
+  langVigilado = lang;
+  if (vigilanteGT || typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+  let tmr: ReturnType<typeof setTimeout> | null = null;
+  const esDelTraductor = (el: Element | null) => !!el?.closest('font, .skiptranslate, #google_translate_element');
+  vigilanteGT = new MutationObserver((muts) => {
+    if (langVigilado === 'es') return;
+    let hay = false;
+    for (const m of muts) {
+      for (const n of m.addedNodes) {
+        if (n.nodeType === Node.TEXT_NODE) {
+          if ((n.textContent ?? '').trim() !== '' && !esDelTraductor(n.parentElement)) { hay = true; break; }
+        } else if (n.nodeType === Node.ELEMENT_NODE) {
+          const el = n as Element;
+          if (['FONT', 'SCRIPT', 'STYLE', 'IFRAME', 'LINK'].includes(el.tagName) || esDelTraductor(el)) continue;
+          if ((el.textContent ?? '').trim() !== '') { hay = true; break; }
+        }
+      }
+      if (hay) break;
+    }
+    if (!hay) return;
+    if (tmr) clearTimeout(tmr);
+    tmr = setTimeout(() => { if (langVigilado !== 'es' && !aplicar(langVigilado)) insistir(langVigilado, 8); }, 350);
+  });
+  vigilanteGT.observe(document.body, { childList: true, subtree: true });
+}
+
 /** El motor del selector, para otros diseños (el menú del usuario del panel). */
 export function useIdiomaGT(codigos: string[]): [string, (lang: string) => void] {
   const [actual, setActual] = useState('es');
@@ -93,16 +131,17 @@ export function useIdiomaGT(codigos: string[]): [string, (lang: string) => void]
     setActual(lang);
     // El traductor de Google solo se carga si hay otro idioma elegido (o al elegirlo):
     // en español no se carga ningún script de terceros.
-    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); }
+    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); vigilarContenidoNuevo(lang); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const elegir = (lang: string) => {
     if (lang === actual) return;
     setActual(lang);
-    if (lang === 'es') { volverAEspanol(); return; }
+    if (lang === 'es') { langVigilado = 'es'; volverAEspanol(); return; }
     ponerCookie(`/es/${lang}`);
     cargarGT();
     if (!aplicar(lang)) insistir(lang);
+    vigilarContenidoNuevo(lang);
   };
   return [actual, elegir];
 }
@@ -119,7 +158,7 @@ export default function SelectorIdioma() {
     setActual(lang);
     // El traductor de Google solo se carga si hay otro idioma elegido (o al elegirlo):
     // en español no se carga ningún script de terceros.
-    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); }
+    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); vigilarContenidoNuevo(lang); }
   }, []);
   useEffect(() => {
     if (!abierto) return;
@@ -132,10 +171,11 @@ export default function SelectorIdioma() {
     setAbierto(false);
     if (lang === actual) return;
     setActual(lang);
-    if (lang === 'es') { volverAEspanol(); return; }
+    if (lang === 'es') { langVigilado = 'es'; volverAEspanol(); return; }
     ponerCookie(`/es/${lang}`);
     cargarGT();
     if (!aplicar(lang)) insistir(lang);
+    vigilarContenidoNuevo(lang);
   };
   const [, bandera, codigo] = IDIOMAS.find(([c]) => c === actual) ?? IDIOMAS[0];
   return (

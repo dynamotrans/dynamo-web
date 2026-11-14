@@ -572,8 +572,12 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           </div>
         </div>
       )}
-      {verPrivacidad && (
+      {/* Siempre montada (oculta con CSS): así la primera pasada del traductor de Google
+          la traduce con el resto de la página, sin depender del vigilante de contenido
+          nuevo (usuario, 2026-11-14: salía en español con la página en polaco). */}
+      {(
         <div className="privov" role="dialog" aria-modal="true" aria-label="Política de privacidad"
+          style={verPrivacidad ? undefined : { display: 'none' }}
           onClick={(e) => { if (e.target === e.currentTarget) setVerPrivacidad(false); }}>
           <div className="privcard">
             <button type="button" className="priv-x" aria-label="Cerrar" onClick={() => setVerPrivacidad(false)}>✕</button>
