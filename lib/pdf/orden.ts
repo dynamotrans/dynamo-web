@@ -520,8 +520,12 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     });
     l.y = rt2 + hRes + 10;
   }
-  aviso(t.importante, t.txtImportante, NARANJA);
-  aviso(t.matriculasAutL, t.txtSoloMatr, COLOR.navy);
+  // Los dos avisos NO van en el DeCA (usuario, 2026-11-14): son instrucciones de la
+  // orden de carga, no del documento de control. Las demás copias los conservan.
+  if (copia !== 'operativa') {
+    aviso(t.importante, t.txtImportante, NARANJA);
+    aviso(t.matriculasAutL, t.txtSoloMatr, COLOR.navy);
+  }
 
   // ---- Firmas (solo en el DeCA): rejilla al pie, casillas 22/23/24 del e-CMR ----
   // Primero los huecos normales en orden de recorrido (recogidas → transportista →
