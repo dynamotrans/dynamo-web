@@ -314,7 +314,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {(e.hitos ?? []).length > 0 && (
           <div className="pen-envio-sum">
             {e.hitos.filter((h) => HITOS[h.hito]).map((h) => (
-              <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{h.hito === 'etapa_corregida' ? 'Etapa del seguimiento actualizada' : HITOS[h.hito]}</span></div>
+              // Apilado y a la izquierda (usuario, 2026-11-14), como en la ficha de admin.
+              <div key={h.id} className="pen-sum-row pen-sum-col"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v">{h.hito === 'etapa_corregida' ? 'Etapa del seguimiento actualizada' : HITOS[h.hito]}</span></div>
             ))}
           </div>
         )}

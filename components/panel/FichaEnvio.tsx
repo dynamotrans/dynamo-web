@@ -531,10 +531,12 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         resumen={ficha.hitos.length ? `último ${fechaHora(ficha.hitos[ficha.hitos.length - 1].cuando)}` : 'Sin movimientos'}>
         <div className="pen-envio-sum">
           {ficha.hitos.length === 0 && <div className="pen-sum-row"><span className="k">Sin movimientos</span><span className="v" /></div>}
+          {/* Apilado y TODO a la izquierda (usuario, 2026-11-14): alineado a la derecha,
+              las líneas largas bailaban en móvil y se leía mal. */}
           {ficha.hitos.map((h) => (
-            <div key={h.id} className="pen-sum-row">
+            <div key={h.id} className="pen-sum-row pen-sum-col">
               <span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span>
-              <span className="v" style={{ textAlign: 'right' }}>
+              <span className="v">
                 {/* La etapa anclada por una firma del CMR no es «a mano»: la firma de la
                     recogida/entrega fija la hora real de esa parada (usuario, 2026-11-10). */}
                 {h.hito === 'etapa_corregida' && h.datos?.por === 'firma_cmr'
