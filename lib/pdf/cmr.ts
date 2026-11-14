@@ -133,6 +133,31 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       for (const ln of l.partir(v, 8.2, der - xV, b)) { l.texto(xV, l.y + 8.2, ln, 8.2, { bold: b, color: COLOR.tinta }); l.y += 11; }
       l.y += 1;
     };
+    // Firmas del e-CMR estampadas TAMBIÉN aquí (usuario, 2026-11-14): el mismo trazo de
+    // las casillas 22/23/24, junto a cada sitio; sin firma todavía, el hueco en
+    // «pendiente». La firma pertenece al CMR (su régimen la valida); aquí queda como
+    // constancia a la vista del inspector.
+    const filaFirma = (rol: string, parada?: string | null) => {
+      const f = firmaDe(rol, parada ?? null);
+      const xV = l.x0 + 160;
+      l.texto(l.x0, l.y + 9, 'Firma', 7.2, { color: COLOR.gris });
+      if (f) {
+        const img = trazos.get(f);
+        let xTxt = xV;
+        if (img) {
+          const h = 22, w = Math.min(95, h * img.width / img.height);
+          l.pag.drawImage(img, { x: xV, y: A4.h - l.y - 1 - h, width: w, height: h });
+          xTxt = xV + w + 10;
+        }
+        l.texto(xTxt, l.y + 9, `${f.nombre} · ${f.documento}`, 8, { bold: true, color: COLOR.tinta });
+        l.texto(xTxt, l.y + 19, `Firmado el ${fechaFirma(f.firmado_en)} (e-CMR, casillas ${rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24'})`, 6.8, { color: COLOR.gris });
+        l.y += 26;
+      } else {
+        l.rect(xV, l.y, 190, 20, COLOR.fondo, COLOR.grisClaro);
+        l.texto(xV + 8, l.y + 13, 'Pendiente · se firma con el dedo desde el QR', 7, { color: COLOR.gris });
+        l.y += 24;
+      }
+    };
     const p = d.porteador!;
     sec('CARGADOR CONTRACTUAL Y CARGADOR · OPERADOR DE TRANSPORTE');
     filaD('Razón social', D.razon_social, true);
@@ -144,6 +169,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     filaD('NIF', p.cif);
     filaD('Domicilio', [p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.pais].filter(Boolean).join(', ') || null);
     filaD('Contacto', [p.contacto, p.telefono && telBonito(p.telefono), p.email].filter(Boolean).join(' · ') || null);
+    filaFirma('transportista');
     sec('VEHÍCULO Y CONDUCTOR');
     filaD('Matrícula tractora', e.matricula_camion, true);
     filaD('Matrícula remolque', e.matricula_remolque);
@@ -158,10 +184,12 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     filaD('Lugar', [carga?.nombre_empresa, lineaDir(carga)].filter(Boolean).join(' · ') || '—', true);
     // El día REAL si ya se cargó; si no, el día ELEGIDO al asignar; y si no, la ventana.
     filaD('Fecha de carga', (e.fecha_carga_real ?? e.fecha_carga_prevista) ? fecha(e.fecha_carga_real ?? e.fecha_carga_prevista) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta) || null);
+    filaFirma('remitente', carga?.id);
     sec('DESTINO · LUGAR Y FECHA DE ENTREGA');
     const ultEnt = ent[ent.length - 1];
     filaD('Lugar', [ultEnt?.nombre_empresa, lineaDir(ultEnt)].filter(Boolean).join(' · ') || '—', true);
     filaD('Fecha de entrega', e.fecha_entrega_estimada ? `Estimada: ${fecha(e.fecha_entrega_estimada)}` : null);
+    filaFirma('destinatario', ultEnt?.id);
     if (d.paradas.length > 2) {
       filaD('Paradas', `${rec.length} ${rec.length === 1 ? 'recogida' : 'recogidas'} · ${ent.length} ${ent.length === 1 ? 'entrega' : 'entregas'} — detalle completo en el e-CMR`);
     }
