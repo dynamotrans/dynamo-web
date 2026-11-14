@@ -158,11 +158,11 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
        [[d.cliente?.contacto, d.cliente?.telefono && telBonito(d.cliente.telefono), d.cliente?.email].filter(Boolean).join(' · '), 8, false]]
     // En el DeCA, la figura legal a secas: razón social, CIF, urgencias y autorización
     // (texto fijado por el usuario, 2026-11-14 — fuera «operador de tráfico» y el email).
+    // Solo razón social y CIF (usuario, 2026-11-14: fuera urgencias y O.T. — el teléfono
+    // de urgencias ya va en el pie de todas las páginas).
     : copia === 'operativa'
     ? [[D.razon_social, 9.5, true],
-       [`CIF: ${D.cif}`, 8.5, true],
-       [`${t.urgencias}: ${telBonito(D.telefono)}`, 8, true],
-       [`${t.operadorAut} ${D.tarjeta_ot}`, 8, false]]
+       [`CIF: ${D.cif}`, 8.5, true]]
     : [[`${t.operadorTrafico}: ${d.gestor?.nombre ?? 'Dynamo'}`, 9.5, true],
        [[d.gestor?.telefono && telBonito(d.gestor.telefono), d.gestor?.email ?? D.email].filter(Boolean).join(' · '), 8, false],
        [`${t.urgencias}: ${telBonito(D.telefono)}`, 8, true],
