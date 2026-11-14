@@ -165,32 +165,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   l.y = 142;
   if (!esES) l.parrafo(t.prevalece, 7.5, { color: COLOR.gris });
 
-  // ---- Barra de ruta (diseño antiguo): ORIGEN → DESTINO · SALIDA + recuento ----
+  // (La barra de ruta ORIGEN → DESTINO · SALIDA se quitó el 2026-11-14: la ruta completa
+  // ya está en las tarjetas de parada y la fecha en su fila «Fecha».)
   const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
-  {
-    const lugarCorto = (pa?: ParadaDoc) => pa ? [[pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.pais].filter(Boolean).join(' · ') : '—';
-    const rt = l.y, hR = 34;
-    cajaR(l.x0, rt, l.ancho, hR, COLOR.blanco, COLOR.grisClaro, 6);
-    const xO = l.x0 + 12, xD = l.x0 + l.ancho * 0.40;
-    const wSal = Math.max(l.medida(ventanaCarga, 9, true), l.medida(esp(t.salidaL), 5.4, true)) + 14;
-    l.texto(xO, rt + 13, esp(t.origenL), 5.4, { bold: true, color: COLOR.gris });
-    l.pag.drawCircle({ x: xO + 3, y: A4.h - rt - 23, size: 2.6, color: NARANJA });
-    l.texto(xO + 9, rt + 26, l.partir(lugarCorto(rec[0]), 9, xD - xO - 38, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
-    {  // flecha dibujada (la «→» no está en la codificación del tipo de letra)
-      const ay = A4.h - rt - 22, ax = xD - 26;
-      l.pag.drawLine({ start: { x: ax, y: ay }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
-      l.pag.drawLine({ start: { x: ax + 9, y: ay + 3.2 }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
-      l.pag.drawLine({ start: { x: ax + 9, y: ay - 3.2 }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
-    }
-    l.texto(xD, rt + 13, esp(t.destinoL), 5.4, { bold: true, color: COLOR.gris });
-    l.pag.drawCircle({ x: xD + 3, y: A4.h - rt - 23, size: 2.6, color: COLOR.verde });
-    l.texto(xD + 9, rt + 26, l.partir(lugarCorto(ent[ent.length - 1]), 9, der - wSal - xD - 24, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
-    l.textoDer(der - 12, rt + 13, esp(t.salidaL), 5.4, { bold: true, color: COLOR.gris });
-    l.textoDer(der - 12, rt + 26, ventanaCarga, 9, { bold: true, color: COLOR.navy });
-    l.y = rt + hR + 5;
-    l.texto(l.x0 + 2, l.y + 7, `${rec.length} ${(rec.length === 1 ? t.recogida : t.recogidas).toLowerCase()} · ${ent.length} ${(ent.length === 1 ? t.entrega : t.entregas).toLowerCase()}`, 6.6, { bold: true, color: COLOR.gris });
-    l.y += 15;
-  }
+  l.y += 4;
 
   // ---- Transportista | Gestionada por ----
   const p = d.porteador, mitad = l.ancho / 2 - 8, xb = l.x0 + l.ancho / 2 + 8;
