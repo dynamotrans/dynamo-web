@@ -5,7 +5,7 @@ import { pesoTn, metros, fecha, fechaHora } from '@/lib/formato';
 // CMR digital, copiado de firmar-cmr.html: resumen del CMR, un bloque por casilla (22 cada
 // recogida · 23 transportista · 24 cada entrega) y la pantalla de firma con el dedo, con el
 // documento de identidad validado por país. La firma la guarda el servidor (acciones.ts).
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { firmar, type DatosFirma } from './acciones';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
@@ -106,9 +106,11 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
   // Las PENDIENTES arriba y las ya firmadas debajo (usuario, 2026-11-14), cada grupo en
-  // su orden de recorrido (recogidas → transportista → entregas). El selector de la
-  // firma extra sigue listando las casillas en el orden natural del recorrido.
-  const bloquesVista = [...bloques.filter((b) => !firmas.has(b.clave)), ...bloques.filter((b) => firmas.has(b.clave))];
+  // su orden de recorrido (recogidas → transportista → entregas), con el botón del PDF
+  // «con las firmas actuales» entre ambos grupos. El selector de la firma extra sigue
+  // listando las casillas en el orden natural del recorrido.
+  const pendientesVista = bloques.filter((b) => !firmas.has(b.clave));
+  const firmadasVista = bloques.filter((b) => firmas.has(b.clave));
   // «Está todo guardado» (usuario, 2026-11-11): ya NO se lleva a nadie a la web pública.
   // Al pulsarlo, AQUÍ mismo sale la pantalla de gracias con un botón bien llamativo que
   // abre el PDF del eCMR al día, con las firmas actuales. Solo tras firmar en esta visita.
@@ -254,13 +256,23 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         )}
       </div>
-      {bloquesVista.map((b) => {
+      {[...pendientesVista, ...firmadasVista].map((b, idx) => {
         const f = firmas.get(b.clave);
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
         const pulsable = !f;
-        return (
-          <div key={b.clave} className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
+        // El PDF «con las firmas actuales» justo delante de la primera firmada (usuario,
+        // 2026-11-14): pendientes → botón del PDF → ya firmadas.
+        const btnPdf = f && idx === pendientesVista.length ? (
+          <a key="pdf" className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener"
+            style={{ display: 'block', margin: '0 0 0.7rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
+              padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, boxShadow: '0 3px 10px rgba(29,158,87,0.3)' }}>
+            Ver el CMR en PDF · con las firmas actuales
+          </a>
+        ) : null;
+        return (<Fragment key={b.clave}>
+          {btnPdf}
+          <div className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
             onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) { if (sinTransportista) setAvisoSinTra(true); else setPreFirma(b); } } : undefined}>
             <div className="firma-head">
               <div className="firma-tit">{b.titulo}<span className="cas-quien"><span className="cas-firma">Firma:</span> {b.firmante}</span>{b.lugar && <span className="cas-lugar">{b.lugar}</span>}<span className="cas">{b.casilla}</span></div>
@@ -282,7 +294,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>
             ))}
           </div>
-        );
+        </Fragment>);
       })}
       {extras.map((f, i) => (
         <div key={`x${i}`} className="firma firmada">
