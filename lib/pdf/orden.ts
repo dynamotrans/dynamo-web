@@ -118,7 +118,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   l.textoDer(der, 90, `${t.subRef}: ${ref}`, 10, { bold: true });
   l.textoDer(der, 102, `${t.emitida} ${emitida}`, 8, { color: COLOR.gris });
   l.y = 112;
-  if (!manual) {
+  // En el DeCA la línea de datos de Dynamo sobra (usuario, 2026-11-14): ya van en la
+  // caja CARGADOR CONTRACTUAL. En las demás copias se mantiene (dirección y Wtransnet
+  // no salen en ningún otro sitio de esas páginas).
+  if (!manual && copia !== 'operativa') {
     l.parrafo(`${D.razon_social} · CIF ${D.cif} · Wtransnet ${D.wtransnet} · ${D.direccion}, ${D.codigo_postal} ${D.poblacion} · ${D.email} · ${telBonito(D.telefono)}`, 7.5, { color: COLOR.gris });
   }
   if (!esES) l.parrafo(t.prevalece, 7.5, { color: COLOR.gris });

@@ -451,7 +451,27 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     setComprobando(false);
     const malos = r.filter((x) => x.efecto === 'bloquea' || (x.efecto === 'solo_admin' && esCliente));
     if (!malos.length) return null;
-    return `Esta ruta no la podemos hacer: ${[...new Set(malos.map((x) => `${x.punto}: ${x.mensaje}`))].join(' · ')}`;
+    // Países fuera de cobertura en UN solo aviso claro (usuario, 2026-11-14): «Envío no
+    // disponible con origen/destino: Panamá. Trabajamos en España, …» — el país ofensor
+    // una vez (con su nombre, no el código ISO) y la lista de países una sola vez. Las
+    // restricciones con mensaje propio (zonas, islas, solo completo…) siguen como antes.
+    const fuera: string[] = []; let lista = ''; const otros: string[] = [];
+    for (const x of malos) {
+      const m = x.mensaje.match(/^No trabajamos en (.+?)\. Trabajamos en (.+)\. Escríbenos/);
+      if (m) {
+        let n = m[1];
+        if (/^[A-Z]{2}$/.test(n)) { try { n = new Intl.DisplayNames(['es'], { type: 'region' }).of(n) ?? n; } catch { /* el código tal cual */ } }
+        if (!fuera.includes(n)) fuera.push(n);
+        lista = m[2];
+      } else otros.push(`${x.punto}: ${x.mensaje}`);
+    }
+    const partes: string[] = [];
+    if (fuera.length) {
+      const quien = fuera.length > 1 ? `${fuera.slice(0, -1).join(', ')} y ${fuera[fuera.length - 1]}` : fuera[0];
+      partes.push(`Envío no disponible con origen/destino: ${quien}.\n\nTrabajamos en ${lista}.`);
+    }
+    if (otros.length) partes.push(`Esta ruta no la podemos hacer: ${[...new Set(otros)].join(' · ')}`);
+    return partes.join('\n\n');
   }
   async function siguiente() {
     const e = errorPaso(paso) ?? await coberturaError(paso);
