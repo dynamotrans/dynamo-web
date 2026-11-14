@@ -23,7 +23,7 @@ import PagoPrevio from './PagoPrevio';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
-import { deshacerCancelacion, revocarOferta, resolverContraoferta, responderCambioEnNombre } from '@/app/panel/(app)/envios/acciones';
+import { deshacerCancelacion, revocarOferta, resolverContraoferta, responderCambioEnNombre, ponerCamionManual } from '@/app/panel/(app)/envios/acciones';
 import { CANALES, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
@@ -84,6 +84,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   // Hoja del eCMR + DeCA (pegada al pie, como «Más acciones»): todo lo del CMR junto.
   const [cmrAbierto, setCmrAbierto] = useState(false);
   const [cmrNoDisp, setCmrNoDisp] = useState(false);   // manual: ventana «solo con Dynamo»
+  const [camionAbierto, setCamionAbierto] = useState(false);   // manual: camión y conductor
   useEffect(() => {
     if (!cmrAbierto) return;
     const esc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setCmrAbierto(false); };
@@ -150,6 +151,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
         </span>}
       </button>
+      {camionAbierto && <CamionManual e={e} onCerrar={() => setCamionAbierto(false)} onHecho={() => { setCamionAbierto(false); refrescar(); }} />}
       {cmrNoDisp && (
         <Modal abierto titulo="eCMR digital no disponible" sub="Envío con tu transportista propio" onCerrar={() => setCmrNoDisp(false)}
           pie={<button className="btn-ghost" onClick={() => setCmrNoDisp(false)}>Cerrar</button>}>
@@ -346,6 +348,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <div className="pen-sum-row"><span className="k">Cliente</span><span className="v" style={{ textAlign: 'right' }}>{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Creado</span><span className="v" style={{ textAlign: 'right' }}>{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</span></div>
           {manual && <div className="pen-sum-row pen-sum-col"><span className="k">Operador de transporte</span><span className="v">{e.operador_id && <LogoOperador id={e.operador_id} />}<span style={{ color: '#b45309' }}>{ficha.operador ?? '—'}</span> · envío registrado a mano — Dynamo no interviene; el CMR y el DeCA se gestionan directamente con él</span></div>}
+          {/* Camión y conductor del manual (usuario, 2026-11-14): editable en cualquier
+              momento salvo cancelado — si se olvidó al crear, se completa aquí y la
+              orden/CMR que se generen después salen completos. */}
+          {manual && <div className="pen-sum-row"><span className="k">Camión y conductor</span><span className="v" style={{ textAlign: 'right' }}>
+            {[[e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / '), e.conductor_nombre].filter(Boolean).join(' · ') || <Pend />}
+            {e.estado !== 'cancelado' && <button type="button" className="btn-ghost" style={{ padding: '0.15rem 0.6rem', marginLeft: '0.5rem' }} onClick={() => setCamionAbierto(true)}>{e.matricula_camion ? 'Cambiar' : 'Rellenar'}</button>}
+          </span></div>}
           <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {/* El día que el transportista eligió dentro de la ventana, junto a ella. */}
           {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}
@@ -575,4 +584,43 @@ function LogoOperador({ id }: { id: string }) {
   }, [id]);
   if (!doc) return null;
   return <img src={`/panel/documentos/${doc}`} alt="" aria-hidden="true" style={{ width: 26, height: 26, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--gray-200)', background: '#fff', verticalAlign: -8, marginRight: '0.45rem', display: 'inline-block' }} />;
+}
+
+// Camión y conductor del envío MANUAL (usuario, 2026-11-14): el dueño los pone o cambia
+// en cualquier momento salvo cancelado; los documentos generados después los recogen.
+function CamionManual({ e, onCerrar, onHecho }: { e: Ficha['envio']; onCerrar: () => void; onHecho: () => void }) {
+  const [d, setD] = useState({ matricula_camion: e.matricula_camion ?? '', matricula_remolque: e.matricula_remolque ?? '',
+    conductor_nombre: e.conductor_nombre ?? '', conductor_telefono: e.conductor_telefono ?? '' });
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  const set = (k: keyof typeof d, v: string) => setD((x) => ({ ...x, [k]: v }));
+  async function guardar() {
+    setError(null); setTrabajando(true);
+    const r = await ponerCamionManual(e.id, d);
+    setTrabajando(false);
+    if (!r.ok) { setError(r.error); return; }
+    onHecho();
+  }
+  return (
+    <Modal abierto titulo="Camión y conductor" sub="De tu transportista — salen en la orden y en el CMR" onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={guardar} disabled={trabajando}>{trabajando ? 'Guardando…' : 'Guardar'}</button>
+      </>}>
+      <div className="ptar-sitio-grid">
+        <div><label htmlFor="cm-mc">Matrícula del camión</label>
+          <input id="cm-mc" value={d.matricula_camion} placeholder="Ej. 1234 BCD" onChange={(ev) => set('matricula_camion', ev.target.value.toUpperCase())} /></div>
+        <div><label htmlFor="cm-mr">Matrícula del remolque</label>
+          <input id="cm-mr" value={d.matricula_remolque} placeholder="Ej. R 1234 XYZ" onChange={(ev) => set('matricula_remolque', ev.target.value.toUpperCase())} /></div>
+        <div><label htmlFor="cm-cn">Conductor</label>
+          <input id="cm-cn" value={d.conductor_nombre} placeholder="Nombre y apellidos" onChange={(ev) => set('conductor_nombre', ev.target.value)} /></div>
+        <div><label htmlFor="cm-ct">Teléfono del conductor</label>
+          <input id="cm-ct" value={d.conductor_telefono} placeholder="+34 600 000 000" onChange={(ev) => set('conductor_telefono', ev.target.value)} /></div>
+      </div>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>
+        Puedes cambiarlo en cualquier momento (se te olvidó al crear, cambió el camión…): la orden de transporte y el CMR que
+        generes después salen con los datos nuevos. Un campo vacío se quita.</p>
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+    </Modal>
+  );
 }

@@ -3638,6 +3638,7 @@ export type Database = {
       pausar_seguimiento_envio: { Args: { p_envio: string | null; p_pausar: boolean | null }; Returns: Json }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
       pin_aleatorio: { Args: { p_cifras: number | null }; Returns: string }
+      poner_camion_mi_envio_manual: { Args: { p_envio: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_conductor_telefono: string | null }; Returns: Json }
       poner_datos_cmr: { Args: { p_envio: string | null; p_bultos: number | null; p_embalaje: string | null; p_volumen: number | null }; Returns: undefined }
       poner_horario_por_defecto: { Args: { p_sitio: string | null }; Returns: undefined }
       precio_por_revisar: { Args: { p: string | null }; Returns: boolean }

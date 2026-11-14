@@ -50,6 +50,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones#ofrecerCarga": z.tuple([z.string().uuid().or(z.literal('')), z.object({ transportista_id: z.string().uuid().or(z.literal('')).nullable(), canal: z.string().max(1000), precio: z.number().or(z.nan()), banda_pct: z.number().or(z.nan()), pronto_pago: z.boolean() })]),
   "app/panel/(app)/envios/acciones#pararDifusion": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#pausarSeguimiento": z.tuple([z.string().uuid().or(z.literal('')), z.boolean()]),
+  "app/panel/(app)/envios/acciones#ponerCamionManual": z.tuple([z.string().uuid().or(z.literal('')), z.object({ matricula_camion: z.string().max(1000), matricula_remolque: z.string().max(1000), conductor_nombre: z.string().max(1000), conductor_telefono: z.string().max(1000) })]),
   "app/panel/(app)/envios/acciones#quitarTransportista": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#resolverCambio": z.tuple([z.string().uuid().or(z.literal('')), z.boolean(), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones#resolverContraoferta": z.tuple([z.string().uuid().or(z.literal('')), z.boolean()]),

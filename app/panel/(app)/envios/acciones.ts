@@ -148,6 +148,26 @@ export type DatosEnvio = {
   paradas: { id: string; referencia: string; anotaciones: string }[];
 };
 
+// Camión y conductor del envío MANUAL (usuario, 2026-11-14): el dueño (o Dynamo) los
+// pone o cambia en cualquier momento salvo cancelado; la orden de transporte y el CMR
+// que se generen después los recogen (si se olvidaron al crear, se completan aquí).
+export async function ponerCamionManual(envio: string, d: { matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string }): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#ponerCamionManual", [envio, d]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu cuenta no está activa.' };
+  const { data, error } = await s.supabase.rpc('poner_camion_mi_envio_manual', {
+    p_envio: envio, p_matricula_camion: d.matricula_camion, p_matricula_remolque: d.matricula_remolque,
+    p_conductor_nombre: d.conductor_nombre, p_conductor_telefono: d.conductor_telefono,
+  });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data ?? {}) as { resultado?: string };
+  if (r.resultado === 'cancelado') return { ok: false, error: 'El envío está cancelado: ya no se cambia su camión.' };
+  if (r.resultado === 'matricula_no_valida') return { ok: false, error: 'La matrícula es demasiado larga: revísala.' };
+  if (r.resultado === 'conductor_no_valido') return { ok: false, error: 'El nombre o el teléfono del conductor no son válidos.' };
+  if (r.resultado !== 'ok') return { ok: false, error: 'No se ha podido guardar.' };
+  return { ok: true };
+}
+
 export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: number | null): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones#modificarEnvio", [envio, d, precioAntes]);
   const s = await soloDynamo();

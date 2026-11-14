@@ -8833,3 +8833,47 @@ do $$ declare n int; begin
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 221 · suspensión en dos niveles: solo lectura / total, y la reactivación lo devuelve todo';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 222 · el camión del envío manual se pone y cambia en cualquier momento
+-- =====================================================================================
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; r jsonb; v record; begin
+  -- El manual de la prueba 220 (del cliente de u_cli), sin matrícula todavía.
+  select x.id into e from envios x where x.es_manual and x.operador_id in (select id from operadores where razon_social = 'Transportes Guardia 220') limit 1;
+  if e is null then raise exception 'FALLO 222 · no está el envío manual de la 220'; end if;
+  -- Su dueño lo rellena…
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  r := poner_camion_mi_envio_manual(e, ' 1234 bcd ', '', 'Juan Conductor', '+34 600 111 222');
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 222 · el dueño no puede poner el camión: %', r; end if;
+  select matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono into v from envios where id = e;
+  if v.matricula_camion <> '1234 BCD' or v.matricula_remolque is not null
+     or v.conductor_nombre <> 'Juan Conductor' or v.conductor_telefono <> '+34600111222' then
+    raise exception 'FALLO 222 · los datos no se guardan normalizados: %', v;
+  end if;
+  -- …lo cambia después (y el remolque entra ahora)…
+  r := poner_camion_mi_envio_manual(e, '5678CDF', 'r9999zz', 'Ana Conductora', null);
+  if r ->> 'resultado' <> 'ok' or (select matricula_remolque from envios where id = e) <> 'R9999ZZ' then
+    raise exception 'FALLO 222 · no se puede cambiar después: %', r;
+  end if;
+  if (select conductor_telefono from envios where id = e) is not null then
+    raise exception 'FALLO 222 · vacío no quita el teléfono';
+  end if;
+  -- …y la orden de transporte lo recoge.
+  if (select datos_orden_manual(e)::text) !~ '5678CDF' then
+    raise exception 'FALLO 222 · la orden del manual no recoge la matrícula nueva';
+  end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- Otro cliente, no; un envío de Dynamo, tampoco.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  begin
+    r := poner_camion_mi_envio_manual(e, '0000XXX', null, null, null);
+    raise exception 'FALLO 222 · otro cliente ha podido cambiar el camión ajeno';
+  exception when insufficient_privilege then null; end;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  r := poner_camion_mi_envio_manual(current_setting('prueba.envio')::uuid, '0000XXX', null, null, null);
+  if r ->> 'resultado' <> 'solo_manuales' then raise exception 'FALLO 222 · un envío de Dynamo acepta el camión manual: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 222 · el camión del envío manual se pone y cambia en cualquier momento (dueño o Dynamo; normalizado; la orden lo recoge)';
+end $$;
