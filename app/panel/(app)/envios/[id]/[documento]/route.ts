@@ -1,7 +1,7 @@
 import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
 import { cargarDatosDocTransportista, cargarDatosDocManual, cargarLogoOperador, datosDynamo } from '@/lib/pdf/datos';
-import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
+import { pdfDeEnvioDynamo, pdfCmrManualCliente } from '@/lib/pdf/generar';
 import { ordenDeCarga } from '@/lib/pdf/orden';
 
 // PDF de un envío: /panel/envios/<id>/orden-de-carga y /panel/envios/<id>/cmr.
@@ -33,8 +33,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const refT = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
     return new Response(Buffer.from(bytesT), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-carga-${refT}.pdf"`, 'cache-control': 'private, no-store' } });
   }
-  // El CLIENTE: la orden de carga de SUS envíos manuales (sin nada de Dynamo).
+  // El CLIENTE: la orden de carga de SUS envíos manuales (sin nada de Dynamo) y, desde
+  // 2026-11-14, también el CMR de esos manuales PARA IMPRIMIR (sin QR ni firma digital:
+  // se firma a mano — el eCMR digital es solo de los envíos con Dynamo).
   if (yo.rol === 'cliente') {
+    if (documento === 'cmr') {
+      const rm = await pdfCmrManualCliente(sb, id);
+      if ('error' in rm) return texto(rm.error, 404);
+      return new Response(Buffer.from(rm.bytes), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="${rm.nombre}"`, 'cache-control': 'private, no-store' } });
+    }
     if (documento !== 'orden-de-carga') return texto('No tienes permiso para ver este documento.', 403);
     const r = await cargarDatosDocManual(sb, id);
     if (!r.datos) return texto(r.error ?? 'No se ha podido leer el envío.', 404);

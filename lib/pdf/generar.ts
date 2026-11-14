@@ -1,5 +1,5 @@
 import type { SB } from '@/lib/supabase/cliente';
-import { cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, datosDynamo } from './datos';
+import { cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, datosDynamo, cargarDatosDocManual } from './datos';
 import { PDFDocument } from 'pdf-lib';
 import { ordenDeCarga, ordenCompuesta } from './orden';
 import type { DatosDoc } from './datos';
@@ -83,13 +83,20 @@ export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, cop
 // El CMR relleno por su ENLACE público (/cmr/<token>/pdf): la verificación en línea que
 // promete el QR del documento. Con la clave pública y datos_cmr_por_token (2026-11-11:
 // antes iba con la clave de servicio y en la preview moría).
+// CMR para IMPRIMIR de un envío MANUAL, para su propio cliente (usuario, 2026-11-14):
+// sin QR, sin hoja de firmas digitales, sin DeCA y sin nada de Dynamo — se firma a mano.
+export async function pdfCmrManualCliente(sb: SB, id: string): Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {
+  const r = await cargarDatosDocManual(sb, id);
+  if (!r.datos) return { error: r.error ?? 'No se ha podido leer el envío.' };
+  const bytes = await cmrConOrden({ ...r.datos, firmas: [], deca: null });
+  const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
+  return { bytes, nombre: `CMR-${ref}.pdf` };
+}
+
 export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
   Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {
   const r = await cargarDatosCmrPorToken(sb, token);
   if (!r.datos) return { error: r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.' };
-  // Envío manual (usuario, 2026-11-14): sin CMR digital — la plataforma no emite ni
-  // archiva documentación de transportes en los que no interviene.
-  if (r.datos.manual) return { error: 'La carta de porte de este envío se gestiona directamente entre el ordenante y su transportista: no hay CMR digital que mostrar.' };
   const bytes = await cmrConOrden({ ...r.datos,
     deca: r.decaCreado ? { url: `${origen}/cmr/${token}`, creado_en: r.decaCreado } : null });
   const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');

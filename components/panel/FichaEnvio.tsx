@@ -83,6 +83,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const [vista, setVista] = useState<Vista>('ficha');
   // Hoja del eCMR + DeCA (pegada al pie, como «Más acciones»): todo lo del CMR junto.
   const [cmrAbierto, setCmrAbierto] = useState(false);
+  const [cmrNoDisp, setCmrNoDisp] = useState(false);   // manual: ventana «solo con Dynamo»
   useEffect(() => {
     if (!cmrAbierto) return;
     const esc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setCmrAbierto(false); };
@@ -139,16 +140,29 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {/* eCMR + DeCA EL PRIMERO y siempre a mano (usuario, 2026-11-10): TODO lo del CMR
           unificado detrás de este botón (vista propia: firmar, compartir el enlace, el
           PDF relleno y el registro de firmas). Ámbar con el contador; verde al completarse. */}
-      {/* Envío manual (usuario, 2026-11-14): SIN eCMR ni DeCA — contratación directa,
-          el CMR y el documento de control se gestionan con su transportista. */}
-      {!manual && <button type="button" className="btn-primary" onClick={() => setCmrAbierto(true)}
-         title="Todo el eCMR + DeCA: firmar, compartir el enlace y el PDF relleno con el QR."
-         style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
+      {/* Envío manual (usuario, 2026-11-14): el botón se queda, BLOQUEADO en gris — al
+          pulsarlo, la ventana explica que el eCMR digital solo va con envíos de Dynamo. */}
+      <button type="button" className="btn-primary" onClick={() => (manual ? setCmrNoDisp(true) : setCmrAbierto(true))}
+         title={manual ? 'Solo disponible en envíos contratados con Dynamo' : 'Todo el eCMR + DeCA: firmar, compartir el enlace y el PDF relleno con el QR.'}
+         style={{ background: manual ? 'var(--gray-400)' : firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
         <I d={ICO.doc} />eCMR + DeCA
-        <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
+        {!manual && <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
           {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
-        </span>
-      </button>}
+        </span>}
+      </button>
+      {cmrNoDisp && (
+        <Modal abierto titulo="eCMR digital no disponible" sub="Envío con tu transportista propio" onCerrar={() => setCmrNoDisp(false)}
+          pie={<button className="btn-ghost" onClick={() => setCmrNoDisp(false)}>Cerrar</button>}>
+          <div className="pt-aviso info"><div>
+            El <strong>eCMR digital con firma</strong> (y el documento de control DeCA) solo está disponible en los envíos <strong>contratados con Dynamo</strong>.
+            Este envío es con <strong>tu transportista propio</strong>: el CMR y el DeCA se gestionan directamente con él.
+          </div></div>
+          <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-700)', margin: '0.8rem 0 0', lineHeight: 1.55 }}>
+            Si lo necesitas, <a href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener" style={{ color: 'var(--purple)', fontWeight: 700 }}>descarga el CMR en PDF</a> para
+            imprimirlo y firmarlo a mano — sale sin QR, sin firma digital y sin mención a Dynamo.
+          </p>
+        </Modal>
+      )}
       {/* Orden de carga FUERA del menú «Más» (usuario, 2026-11-11): botón propio junto al
           eCMR, visible solo cuando ya hay a quién mandarla (transportista asignado; en el
           manual, el operador del cliente). */}

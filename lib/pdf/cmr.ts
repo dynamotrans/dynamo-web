@@ -71,7 +71,8 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   let qrImg: PDFImage | null = null;
   // El QR abre el PDF del e-CMR relleno (usuario, 2026-11-11: «esté donde esté el QR»),
   // no la página de firmas; el texto de verificación en línea sigue siendo la página.
-  if (d.deca && conTransporte) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
+  // Envío manual (usuario, 2026-11-14): NUNCA QR — el impreso se firma a mano.
+  if (d.deca && conTransporte && !manual) { try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; } }
 
   // HOJA DeCA INDEPENDIENTE, PRIMERA del PDF (usuario, 2026-11-11): aunque el propio
   // e-CMR ya vale como documento de control, delante va un DeCA aparte con los datos del
@@ -206,7 +207,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       // DER = borde derecho del marco rojo (medido: 561pt). Las casillas de la 1 a la 12
       // bajan 34pt con la imagen; de la 13 para abajo nada se mueve.
       const DER = 561;
-      const esquina = !!qrImg || !conTransporte;
+      const esquina = !manual && (!!qrImg || !conTransporte);
       if (esquina) {
         const cw = 96, ch = 91, cx = DER - cw, ct = 15, r = 8;
         pg.drawSvgPath(
@@ -352,7 +353,10 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   // «que se sepa que existe esa hoja») — el GPS con su dirección y la huella SHA-256 solo
   // se ven aquí. Va al final del PDF con TODAS las firmas del CMR digital, quepan o no en
   // las casillas 22/23/24; sin firmas, lo dice y explica qué quedará registrado.
-  {
+  // Envío manual sin firmas digitales (lo normal desde 2026-11-14, con la firma
+  // bloqueada): SIN hoja de firmas — el impreso se firma a mano. Si un manual antiguo
+  // llegó a firmarse en digital, su hoja se conserva (las firmas son prueba).
+  if (!manual || firmas.length) {
     const ROL: Record<string, string> = { remitente: 'Remitente / cargador', transportista: 'Porteador / transportista', destinatario: 'Destinatario' };
     const CASILLA: Record<string, number> = { remitente: 22, transportista: 23, destinatario: 24 };
     // A qué carta corresponde la firma (usuario, 2026-11-10: con varias partidas en el
@@ -420,7 +424,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     const intro = 'Las casillas 22, 23 y 24 del impreso solo admiten una firma cada una. Esta hoja forma parte del CMR y recoge TODAS las '
       + 'firmas del CMR digital, con su trazo, el documento de quien firma y la fecha y hora del servidor en el momento de firmar.';
     for (const ln of l.partir(intro, 8, anchoIntro)) { l.texto(l.x0, l.y + 8, ln, 8, { color: COLOR.gris }); l.y += 11; }
-    if (d.deca && conTransporte) {
+    if (d.deca && conTransporte && !manual) {
       l.y += 6;
       const nUnico = d.deca.url.split('/').pop() ?? '';
       // EL PORQUÉ LEGAL, CLARO Y EN NEGRITA (usuario, 2026-11-10): tres cajas —la ley que
