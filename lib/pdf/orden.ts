@@ -159,6 +159,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   }
   // En el DeCA no hay título grande, referencia ni emisión bajo el logo (usuario,
   // 2026-11-14): la referencia ya va en la barra superior. La cabecera se compacta.
+  // A cambio, «DeCA» en negrita azul a la derecha del todo, a la altura del logo
+  // y con un tamaño a juego con él (usuario, 2026-11-14).
+  if (copia === 'operativa') l.textoDer(der, 96, 'DeCA', 34, { bold: true, color: COLOR.navy });
   if (copia !== 'operativa') {
     l.textoDer(der, 81, t.titulo, 17, { bold: true, color: COLOR.navy });
     l.textoDer(der, 92, esp(t.subConfirmado), 5, { bold: true, color: COLOR.gris });
