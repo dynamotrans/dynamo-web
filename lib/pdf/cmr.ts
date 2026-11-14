@@ -28,12 +28,16 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
 
   const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
   const carga = rec[0];
-  // UNA CARTA POR ENTREGA (art. 5.2 del Convenio CMR: cada destinatario firma el recibí
-  // de SU lote, así que con varias entregas salen cartas 1/N, 2/N… en el mismo PDF). El
-  // reparto exacto de la mercancía por entrega no viaja en la plataforma (se le indica al
-  // conductor en la carga): las casillas 6-12 llevan los TOTALES de la expedición con esa
-  // nota, más el detalle de mercancía propio de la entrega si la parada lo tiene.
-  const cartas: (ParadaDoc | undefined)[] = ent.length ? ent : [undefined];
+  // UNA CARTA POR CADA RECOGIDA × ENTREGA (usuario, 2026-11-14; art. 5.2 del Convenio
+  // CMR): el impreso solo tiene un hueco de cargador (22) y otro de destinatario (24),
+  // así que cada combinación lleva su propia carta — con 3 recogidas y 1 entrega salen
+  // cartas 1/3, 2/3 y 3/3 en el mismo PDF, cada una con la firma de SU cargador y SU
+  // destinatario (antes solo había una carta por entrega y firmaba siempre la 1.ª
+  // recogida). El reparto exacto de la mercancía por parada no viaja en la plataforma
+  // (se le indica al conductor en la carga): las casillas 6-12 llevan los TOTALES de la
+  // expedición con esa nota, más el detalle de mercancía propio de cada parada si lo hay.
+  const cartas: { cga: ParadaDoc | undefined; entrega: ParadaDoc | undefined }[] =
+    (rec.length ? rec : [undefined]).flatMap((r) => (ent.length ? ent : [undefined]).map((en) => ({ cga: r, entrega: en })));
   const cli = d.cliente;
   const porteador = manual
     ? { nombre: d.porteador?.razon_social ?? '—', cif: d.porteador?.cif ?? null, tel: d.porteador?.telefono ?? null }
@@ -41,9 +45,9 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   const hoy = fecha(hoyMadrid());
   const ROJA = COLOR.rojo, TINTA = COLOR.tinta;
 
-  // Firmas del CMR digital: en el impreso, 22 la PRIMERA recogida, 23 el transportista y
-  // 24 la ÚLTIMA entrega (la firma PRINCIPAL de cada casilla, nunca una extra). Las demás
-  // (paradas intermedias y extras) van en la hoja «Registro de firmas» del final.
+  // Firmas del CMR digital: en cada carta, 22 la recogida DE ESA CARTA, 23 el
+  // transportista y 24 la entrega DE ESA CARTA (la firma PRINCIPAL de cada casilla,
+  // nunca una extra). Las extras van en la hoja «Registro de firmas» del final.
   const fechaFirma = (iso: string) => fechaHora(iso);
   const firmas = d.firmas ?? [];
   const trazos = new Map<FirmaDoc, PDFImage | null>();
@@ -53,15 +57,15 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     trazos.set(f, img);
   }
   const firmaDe = (rol: string, parada: string | null | undefined) => firmas.find((f) => !f.extra && f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
-  const casillasDe = (entrega: ParadaDoc | undefined) => ([
-    ['remitente', carga?.id, 38, 742, 150],
+  const casillasDe = (cga: ParadaDoc | undefined, entrega: ParadaDoc | undefined) => ([
+    ['remitente', cga?.id, 38, 742, 150],
     ['transportista', null, 195, 742, 165],
     ['destinatario', entrega?.id, 369, 765, 185],
   ] as const).map(([rol, parada, x, top, ancho]) => {
     const f = firmaDe(rol, parada);
     return f ? { f, img: trazos.get(f) ?? null, x, top, ancho, alto: rol === 'destinatario' ? 24 : 40 } : null;
   });
-  const enCasilla = new Set(cartas.flatMap((en) => casillasDe(en)).filter(Boolean).map((c) => c!.f));
+  const enCasilla = new Set(cartas.flatMap((c) => casillasDe(c.cga, c.entrega)).filter(Boolean).map((c) => c!.f));
 
   // QR del e-CMR (el enlace https ÚNICO del documento): va en la cabecera de TODAS las
   // páginas (usuario, 2026-11-10), con tamaño legible con el móvil, y en la hoja de firmas.
@@ -197,8 +201,8 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   }
 
   for (let nc = 0; nc < cartas.length; nc++) {
-    const entrega = cartas[nc];
-    const casillas = casillasDe(entrega);
+    const { cga, entrega } = cartas[nc];
+    const casillas = casillasDe(cga, entrega);
     const varias = cartas.length > 1;
     // Una página por ejemplar, con los mismos datos.
     for (let i = 0; i < 4; i++) {
@@ -274,8 +278,8 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       // 4 Lugar y fecha de carga (caben DOS líneas antes del rótulo de la 5)
       const fCarga = e.fecha_carga_real ?? e.fecha_carga_prevista ?? e.fecha_carga_desde;
       dato(42, 322, [
-        { t: [carga?.direccion, [carga?.codigo_postal, carga?.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', '), s: 7.8, max: 1 },
-        { t: [carga?.provincia !== carga?.poblacion ? carga?.provincia : null, carga?.pais, fCarga ? fechaCorta(fCarga) : null].filter(Boolean).join(' · '), s: 7.4, b: false, max: 1 },
+        { t: [cga?.direccion, [cga?.codigo_postal, cga?.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', '), s: 7.8, max: 1 },
+        { t: [cga?.provincia !== cga?.poblacion ? cga?.provincia : null, cga?.pais, fCarga ? fechaCorta(fCarga) : null].filter(Boolean).join(' · '), s: 7.4, b: false, max: 1 },
       ], 58);
       // 5 Documentos anexos (referencias)
       const refs = [e.referencia_cliente && `Ref. ${e.referencia_cliente}`, ...d.paradas.map((p) => p.referencia && `${p.tipo === 'carga' ? 'Carga' : 'Entrega'}: ${p.referencia}`)].filter(Boolean).join(' · ');
@@ -319,21 +323,24 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       dato(117, 419, [{ t: e.num_bultos != null ? String(e.num_bultos) : '—', s: 8, b: e.num_bultos != null }]);
       dato(196, 419, [{ t: e.embalaje || (e.paletizado === false ? 'Sin paletizar' : 'Palets'), s: 7.4, b: false }]);
       const mercEnt = varias ? entrega?.anotaciones?.match(/MERCANCÍA:\s*(.+)$/)?.[1] ?? '' : '';
+      const mercRec = varias ? cga?.anotaciones?.match(/MERCANCÍA:\s*(.+)$/)?.[1] ?? '' : '';
       dato(276, 419, [
         { t: e.descripcion_mercancia || '—', s: 8, max: 3 },
         { t: e.metros_lineales != null ? `Ocupación: ${metros(e.metros_lineales)} lineales` : '', s: 7, b: false },
+        { t: mercRec ? `Esta carga: ${mercRec}` : '', s: 6.8, b: false, max: 2 },
         { t: mercEnt ? `Esta entrega: ${mercEnt}` : '', s: 6.8, b: false, max: 2 },
-        { t: varias ? 'Totales de la expedición; reparto por entrega indicado en la carga' : '', s: 6.4, b: false, c: COLOR.gris, max: 2 },
+        { t: varias ? 'Totales de la expedición; reparto por parada indicado en la carga' : '', s: 6.4, b: false, c: COLOR.gris, max: 2 },
         { t: e.adr ? 'MERCANCÍA ADR' : '', s: 7.4, c: ROJA },
       ], 24);
       dato(388, 419, [{ t: '—', b: false }]);
       dato(437, 419, [{ t: e.toneladas != null ? pesoKg(Number(e.toneladas) * 1000) : '—', s: 8 }]);
       dato(508, 419, [{ t: e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : '—', s: 8, b: e.volumen_m3 != null }]);
 
-      // 13 Instrucciones del remitente: otras paradas y anotaciones
+      // 13 Instrucciones del remitente: a qué recogida y entrega corresponde esta carta,
+      // las demás cargas de la expedición y las anotaciones del cliente.
       const otras = [
-        ...rec.slice(1).map((p) => `Otra carga: ${p.nombre_empresa ?? ''} ${lineaDir(p)}`),
-        ...(varias ? [`Expedición con ${ent.length} entregas — esta carta corresponde a la parada ${rec.length + nc + 1} (casilla 2)`] : []),
+        ...rec.filter((p) => p !== cga).map((p) => `Otra carga de la expedición: ${p.nombre_empresa ?? ''} ${lineaDir(p)}`),
+        ...(varias ? [`Expedición con ${rec.length} ${rec.length === 1 ? 'recogida' : 'recogidas'} y ${ent.length} ${ent.length === 1 ? 'entrega' : 'entregas'} — esta carta: carga en ${cga?.nombre_empresa ?? '—'} (casilla 4) y entrega en ${entrega?.nombre_empresa ?? '—'} (casilla 2)`] : []),
       ];
       dato(42, 532, [...otras.map((o) => ({ t: o, s: 7.4, b: false })), { t: e.anotaciones_cliente || (otras.length ? '' : '—'), s: 7.8, b: false }], 50);
       // 19 Estipulaciones particulares (con aviso de la hoja de firmas adjunta si la hay)
@@ -348,12 +355,10 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       dato(42, 714, [{ t: `${cli?.poblacion ?? '—'} · ${hoy}`, s: 8, b: false }]);
       // (15 Reembolso y los gastos de la 20 quedan en blanco: el CMR no lleva precios.)
 
-      // 22 · 23 · 24 Firmas (trazo + quién y cuándo). En la 24, además, lugar y fecha de recepción.
-      // Casilla 22 sin firma propia pero con firmas de carga en el registro (p. ej. firmó
-      // la recogida 2 y la 1 todavía no): constancia en la casilla, estilo e-CMR.
-      if (!casillas[0] && firmas.some((f) => f.rol === 'remitente' && !f.extra)) {
-        dato(38, 752, [{ t: 'Firmado electrónicamente: ver registro anexo', s: 6.2, b: false, max: 3 }], 24);
-      }
+      // 22 · 23 · 24 Firmas (trazo + quién y cuándo). En la 24, además, lugar y fecha de
+      // recepción. Cada carta lleva la firma de SU recogida y SU entrega: si la suya no
+      // está, la casilla queda en blanco (se firmará en digital o a mano) — la antigua
+      // nota «ver registro anexo» era del modelo de carta única y aquí engañaría.
       for (const c of casillas) {
         if (!c) continue;
         if (c.img) {

@@ -7464,7 +7464,8 @@ do $$ declare j jsonb; begin
   j := datos_cmr_por_token(current_setting('prueba.tok195')::uuid);
   if j -> 'cliente' ->> 'razon_social' is null then raise exception 'FALLO 196 · el JSON no trae el cliente'; end if;
   if jsonb_array_length(j -> 'firmas') <> 3 then raise exception 'FALLO 196 · esperaba 3 firmas: %', jsonb_array_length(j -> 'firmas'); end if;
-  if j -> 'firmas' -> 0 ->> 'documento' !~ '^•••' then raise exception 'FALLO 196 · el documento del firmante no va enmascarado'; end if;
+  -- Documento COMPLETO desde 2026-11-14 (usuario): como en el CMR firmado a mano.
+  if j -> 'firmas' -> 0 ->> 'documento' ~ '^•••' or (j -> 'firmas' -> 0 ->> 'documento') is null then raise exception 'FALLO 196 · el documento del firmante debe ir completo (sin enmascarar): %', j -> 'firmas' -> 0 ->> 'documento'; end if;
   if j -> 'envio' ? 'importe_cliente' or j -> 'envio' ? 'importe_transportista' then
     raise exception 'FALLO 196 · el JSON público lleva importes';
   end if;
@@ -7489,7 +7490,7 @@ do $$ declare tok uuid := current_setting('prueba.tok195')::uuid; r jsonb; j jso
   if not exists (select 1 from jsonb_array_elements(j -> 'firmas') f where f ->> 'nombre' = 'Trazo Prueba' and length(f ->> 'trazo') > 100) then
     raise exception 'FALLO 196 · el JSON no devuelve el trazo de la firma nueva';
   end if;
-  raise notice 'OK 196 · PDF del e-CMR por su enlace: JSON con la clave pública (documento enmascarado, sin importes) y el trazo guardado en la firma';
+  raise notice 'OK 196 · PDF del e-CMR por su enlace: JSON con la clave pública (documento completo como a mano, sin importes) y el trazo guardado en la firma';
 end $$;
 reset role;
 

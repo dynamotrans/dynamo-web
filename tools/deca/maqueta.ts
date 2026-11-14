@@ -1,11 +1,13 @@
 // MAQUETA del DeCA (copia del conductor) con datos de MENTIRA, para diseñar el PDF
 // viéndolo en local sin base de datos. Uso:
-//   npx tsx tools/deca/maqueta.ts /ruta/salida.pdf [firmas|sinfirmas]
+//   npx tsx tools/deca/maqueta.ts /ruta/salida.pdf [firmas|sinfirmas] [orden|cmr]
+// (con `cmr` saca el impreso del CMR —una carta por recogida × entrega— en vez del DeCA)
 // Luego: pdftoppm -png -r 110 salida.pdf pagina
 // El trazo de las firmas se dibuja con Chromium (canvas) para que parezca uno real.
 import { writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { ordenDeCarga } from '@/lib/pdf/orden';
+import { cmr } from '@/lib/pdf/cmr';
 import type { DatosDoc, EnvioDoc, ParadaDoc, FirmaDoc } from '@/lib/pdf/datos';
 import { DYNAMO } from '@/lib/pdf/datos';
 
@@ -69,7 +71,9 @@ async function main() {
     deca: { url: 'https://www.dynamotrans.com/cmr/a3853c97-be09-4213-9c99-c13000d5a0fe', creado_en: ahora },
     dynamo: DYNAMO,
   };
-  const bytes = await ordenDeCarga(d, { pct: 0, minimo: 0, dias: 0, plazo: 0 }, { copia: 'operativa' });
+  const bytes = (process.argv[4] ?? 'orden') === 'cmr'
+    ? await cmr(d, { sinDeca: true })
+    : await ordenDeCarga(d, { pct: 0, minimo: 0, dias: 0, plazo: 0 }, { copia: 'operativa' });
   await writeFile(salida, bytes);
   console.log('PDF escrito en', salida);
 }
