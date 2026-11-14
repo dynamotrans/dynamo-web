@@ -33,6 +33,12 @@ export type QueOrden = 'conjunta' | 'operativa' | 'economica' | 'cliente';
 
 const NARANJA = rgb(0.98, 0.45, 0.09);
 
+// La copia del CONDUCTOR es, legalmente, la copia del DeCA que debe llevar a bordo
+// (Resolución de 5-jun-2026, apdo. séptimo): su título es «DeCA» —no «orden de carga»—
+// y la banda lleva el nombre oficial completo (usuario, 2026-11-14). El nombre es el del
+// documento español: no se traduce.
+const DECA_NOMBRE = 'Documento electrónico de Control Administrativo';
+
 export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: CopiaOrden; idioma?: IdiomaOrden } = {}): Promise<Uint8Array> {
   const e = d.envio, manual = d.manual;
   const copia: CopiaOrden = op.copia ?? 'economica';
@@ -57,7 +63,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Banda de la copia (usuario, 2026-11-10: como el diseño aprobado) ----
   const der = A4.w - l.margen.der;
   l.rect(l.x0, 36, l.ancho, 18, COLOR.fondo);
-  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? t.copiaConductor : esCli ? 'COPIA CLIENTE' : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
+  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? `${t.copiaConductor} · ${DECA_NOMBRE}` : esCli ? 'COPIA CLIENTE' : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
   l.textoDer(der - 8, 48.5, copia === 'operativa' ? t.sinEco : esCli ? 'CON TU PRECIO · SIN DATOS DEL PORTEADOR' : t.completa, 7.5, { color: COLOR.gris });
 
   // ---- Cabecera (solo en la 1ª página) ----
@@ -68,7 +74,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.texto(l.x0, 82, d.cliente?.razon_social ?? '', 15, { bold: true });
     l.texto(l.x0, 96, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
   }
-  l.textoDer(der, 76, t.titulo, 16, { bold: true, color: COLOR.morado });
+  l.textoDer(der, 76, copia === 'operativa' ? 'DeCA' : t.titulo, 16, { bold: true, color: COLOR.morado });
   l.textoDer(der, 90, `${t.subRef}: ${ref}`, 10, { bold: true });
   l.textoDer(der, 102, `${t.emitida} ${emitida}`, 8, { color: COLOR.gris });
   l.y = 116;
@@ -365,7 +371,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const n = `${t.pagina} ${i + 1} ${t.de} ${pags.length}`;
     l.texto(der - l.medida(n, 7), A4.h - 28, n, 7, { color: COLOR.gris, pag: pg });
   });
-  l.doc.setTitle(`${t.titulo} ${ref}`);
+  l.doc.setTitle(`${copia === 'operativa' ? 'DeCA' : t.titulo} ${ref}`);
   l.doc.setAuthor(manual ? d.cliente?.razon_social ?? '' : D.razon_social);
   return l.guardar();
 }
