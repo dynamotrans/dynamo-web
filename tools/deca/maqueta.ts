@@ -54,6 +54,7 @@ async function main() {
     matricula_camion: '1681LXC', matricula_remolque: 'R0494BCB', conductor_nombre: 'Adrián Aguirre Etxeberria', conductor_telefono: '+34606402438',
     metros_lineales: 13.3, toneladas: 24, paletizado: true, descripcion_mercancia: 'Mercancía general',
     tipo_carga: 'grupaje', requiere_plataforma_elevadora: false, adr: false, carga_lateral: true, carga_techo: false, carga_trasera: true,
+    importe_transportista: 850, importe_cliente: 980, iva_pct: 21, plazo_pago_transportista: 60,
   } as unknown as EnvioDoc;
   const d: DatosDoc = {
     envio, manual: false, pronto_pago: false,
@@ -73,9 +74,11 @@ async function main() {
     deca: { url: 'https://www.dynamotrans.com/cmr/a3853c97-be09-4213-9c99-c13000d5a0fe', creado_en: ahora },
     dynamo: DYNAMO,
   };
+  // 4.º argumento: orden (por defecto) o cmr. 5.º (solo orden): operativa | economica | cliente.
   const bytes = (process.argv[4] ?? 'orden') === 'cmr'
     ? await cmr(d, { sinDeca: true })
-    : await ordenDeCarga(d, { pct: 0, minimo: 0, dias: 0, plazo: 0 }, { copia: 'operativa' });
+    : await ordenDeCarga(d, { pct: 3, minimo: 20, dias: 5, plazo: 60 },
+        { copia: (process.argv[5] as 'operativa' | 'economica' | 'cliente') ?? 'operativa' });
   await writeFile(salida, bytes);
   console.log('PDF escrito en', salida);
 }

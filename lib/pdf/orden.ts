@@ -100,33 +100,95 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     : esES ? ventanaTxt(e.fecha_carga_desde, e.fecha_carga_hasta) : ventanaLoc(e.fecha_carga_desde, e.fecha_carga_hasta, idioma, t);
   const fEntrega = e.fecha_entrega_estimada ? (esES ? fechaCorta(e.fecha_entrega_estimada) : fechaLoc(e.fecha_entrega_estimada, idioma)) : null;
 
-  // ---- Banda de la copia (usuario, 2026-11-10: como el diseño aprobado) ----
+  // ---- Piezas de diseño (usuario, 2026-11-14: el encaje de la orden antigua —líneas,
+  // cajas con borde fino, etiquetas espaciadas— mezclado con las cajas suaves) ----
   const der = A4.w - l.margen.der;
-  l.rect(l.x0, 36, l.ancho, 18, COLOR.fondo);
-  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? `DeCA · ${DECA_NOMBRE}` : esCli ? 'COPIA CLIENTE' : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
-  l.textoDer(der - 8, 48.5, copia === 'operativa' ? t.sinEco : esCli ? 'CON TU PRECIO · SIN DATOS DEL PORTEADOR' : t.completa, 7.5, { color: COLOR.gris });
+  const esp = (s2: string) => s2.toUpperCase().split('').join(' ');
+  const cajaR = (x: number, top: number, w: number, h: number, fill: RGB, border?: RGB, r = 8) => {
+    l.pag.drawSvgPath(`M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`,
+      { x, y: A4.h - top, color: fill, borderColor: border, borderWidth: border ? 1 : 0 });
+  };
+  // PLAQUITA de matrícula: banda azul UE con la «E» y el número sobre fondo blanco.
+  const AZUL_UE = rgb(0, 0.2, 0.6);
+  const plaquita = (x: number, top: number, txt: string) => {
+    const w = 13 + l.medida(txt, 9, true) + 12;
+    cajaR(x, top, w, 17, COLOR.blanco, COLOR.navy, 3);
+    l.pag.drawRectangle({ x: x + 1, y: A4.h - top - 16, width: 9, height: 15, color: AZUL_UE });
+    l.texto(x + 3.4, top + 12.5, 'E', 6, { bold: true, color: COLOR.blanco });
+    l.texto(x + 15, top + 12.5, txt, 9, { bold: true, color: COLOR.tinta });
+    return w;
+  };
+  // Tintes suaves de las tarjetas de recogida (naranja) y entrega (verde).
+  const TINTE_REC = rgb(1, 0.972, 0.945), TINTE_ENT = rgb(0.953, 0.982, 0.962);
+  // Caja de AVISO del diseño antiguo: borde fino, barra de acento y la palabra clave en
+  // negrita seguida del texto en la misma línea.
+  const aviso = (lead: string, cuerpo: string, acento: RGB) => {
+    const wT = l.ancho - 24, leadTxt = `${lead}. `, wLead = l.medida(`${lead}.`, 7.6, true) + 3.5;
+    const palabras = cuerpo.split(/\s+/).filter(Boolean);
+    let primera = '';
+    while (palabras.length && l.medida(`${primera}${primera ? ' ' : ''}${palabras[0]}`, 7.6) <= wT - wLead) primera += `${primera ? ' ' : ''}${palabras.shift()}`;
+    const lineas = l.partir(palabras.join(' '), 7.6, wT);
+    const hA = 13 + (1 + (palabras.length ? lineas.length : 0)) * 9.6;
+    l.sitio(hA + 8);
+    const at = l.y;
+    cajaR(l.x0, at, l.ancho, hA, COLOR.blanco, COLOR.grisClaro, 6);
+    l.pag.drawRectangle({ x: l.x0 + 1.2, y: A4.h - at - hA + 5, width: 3, height: hA - 10, color: acento });
+    l.texto(l.x0 + 12, at + 14, leadTxt, 7.6, { bold: true, color: COLOR.navy });
+    l.texto(l.x0 + 12 + wLead, at + 14, primera, 7.6, { color: COLOR.tinta });
+    if (palabras.length) lineas.forEach((ln, i) => l.texto(l.x0 + 12, at + 14 + (i + 1) * 9.6, ln, 7.6, { color: COLOR.tinta }));
+    l.y = at + hA + 8;
+  };
 
-  // ---- Cabecera (solo en la 1ª página) ----
+  // ---- Banda de la copia (rediseño 2026-11-14: la caja fina con el tic del diseño antiguo) ----
+  cajaR(l.x0, 36, l.ancho, 18, COLOR.blanco, COLOR.grisClaro, 4);
+  l.pag.drawRectangle({ x: l.x0 + 8, y: A4.h - 50.5, width: 3, height: 10, color: COLOR.navy });
+  l.texto(l.x0 + 17, 48, esp(copia === 'operativa' ? 'DeCA' : esCli ? 'Copia cliente' : t.copiaAdmin), 6.8, { bold: true, color: COLOR.navy });
+  l.textoDer(der - 10, 48, esp(copia === 'operativa' ? t.sinEco : esCli ? 'Con tu precio · sin porteador' : t.completa), 5.4, { bold: true, color: COLOR.gris });
+
+  // ---- Cabecera: logo a la izquierda; a la derecha título, subtítulo espaciado,
+  // referencia en grande y emisión. Debajo, la regla con la cinta tricolor. ----
   if (logo) {
-    const h = 30, w = h * logo.width / logo.height;
-    l.pag.drawImage(logo, { x: l.x0, y: A4.h - 64 - h, width: w, height: h });
+    const h = 34, w = h * logo.width / logo.height;
+    l.pag.drawImage(logo, { x: l.x0, y: A4.h - 66 - h, width: w, height: h });
   } else {
-    l.texto(l.x0, 82, d.cliente?.razon_social ?? '', 15, { bold: true });
-    l.texto(l.x0, 96, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
+    l.texto(l.x0, 84, d.cliente?.razon_social ?? '', 15, { bold: true });
+    l.texto(l.x0, 98, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
   }
-  l.textoDer(der, 76, copia === 'operativa' ? 'DeCA' : t.titulo, 16, { bold: true, color: COLOR.morado });
-  l.textoDer(der, 90, `${t.subRef}: ${ref}`, 10, { bold: true });
-  l.textoDer(der, 102, `${t.emitida} ${emitida}`, 8, { color: COLOR.gris });
-  l.y = 112;
-  // En el DeCA la línea de datos de Dynamo sobra (usuario, 2026-11-14): ya van en la
-  // caja CARGADOR CONTRACTUAL. En las demás copias se mantiene (dirección y Wtransnet
-  // no salen en ningún otro sitio de esas páginas).
-  if (!manual && copia !== 'operativa') {
-    l.parrafo(`${D.razon_social} · CIF ${D.cif} · Wtransnet ${D.wtransnet} · ${D.direccion}, ${D.codigo_postal} ${D.poblacion} · ${D.email} · ${telBonito(D.telefono)}`, 7.5, { color: COLOR.gris });
-  }
+  l.textoDer(der, 81, copia === 'operativa' ? 'DeCA' : t.titulo, 17, { bold: true, color: COLOR.navy });
+  l.textoDer(der, 92, esp(copia === 'operativa' ? DECA_NOMBRE : t.subConfirmado), 5, { bold: true, color: COLOR.gris });
+  l.textoDer(der, 104, esp(t.subRef), 5.4, { bold: true, color: COLOR.gris });
+  l.textoDer(der, 117, ref || '—', 12, { bold: true, color: COLOR.navy });
+  l.textoDer(der, 127, `${t.emitida} ${emitida}`, 6.4, { color: COLOR.gris });
+  l.linea(l.x0, 134, der, 134, COLOR.grisClaro, 1.2);
+  [COLOR.morado, COLOR.verde, NARANJA].forEach((c2, i2) =>
+    l.pag.drawRectangle({ x: l.x0 + i2 * 18, y: A4.h - 135.5, width: 16, height: 3, color: c2 }));
+  l.y = 142;
   if (!esES) l.parrafo(t.prevalece, 7.5, { color: COLOR.gris });
-  l.linea(l.x0, l.y + 2, der, l.y + 2, COLOR.grisClaro, 1);
-  l.y += 8;
+
+  // ---- Barra de ruta (diseño antiguo): ORIGEN → DESTINO · SALIDA + recuento ----
+  const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
+  {
+    const lugarCorto = (pa?: ParadaDoc) => pa ? [[pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.pais].filter(Boolean).join(' · ') : '—';
+    const rt = l.y, hR = 34;
+    cajaR(l.x0, rt, l.ancho, hR, COLOR.blanco, COLOR.grisClaro, 6);
+    const xO = l.x0 + 12, xD = l.x0 + l.ancho * 0.40;
+    const wSal = Math.max(l.medida(ventanaCarga, 9, true), l.medida(esp(t.salidaL), 5.4, true)) + 14;
+    l.texto(xO, rt + 13, esp(t.origenL), 5.4, { bold: true, color: COLOR.gris });
+    l.texto(xO, rt + 26, l.partir(lugarCorto(rec[0]), 9, xD - xO - 30, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
+    {  // flecha dibujada (la «→» no está en la codificación del tipo de letra)
+      const ay = A4.h - rt - 22, ax = xD - 26;
+      l.pag.drawLine({ start: { x: ax, y: ay }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
+      l.pag.drawLine({ start: { x: ax + 9, y: ay + 3.2 }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
+      l.pag.drawLine({ start: { x: ax + 9, y: ay - 3.2 }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
+    }
+    l.texto(xD, rt + 13, esp(t.destinoL), 5.4, { bold: true, color: COLOR.gris });
+    l.texto(xD, rt + 26, l.partir(lugarCorto(ent[ent.length - 1]), 9, der - wSal - xD - 16, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
+    l.textoDer(der - 12, rt + 13, esp(t.salidaL), 5.4, { bold: true, color: COLOR.gris });
+    l.textoDer(der - 12, rt + 26, ventanaCarga, 9, { bold: true, color: COLOR.navy });
+    l.y = rt + hR + 5;
+    l.texto(l.x0 + 2, l.y + 7, `${rec.length} ${(rec.length === 1 ? t.recogida : t.recogidas).toLowerCase()} · ${ent.length} ${(ent.length === 1 ? t.entrega : t.entregas).toLowerCase()}`, 6.6, { bold: true, color: COLOR.gris });
+    l.y += 15;
+  }
 
   // ---- Transportista | Gestionada por ----
   const p = d.porteador, mitad = l.ancho / 2 - 8, xb = l.x0 + l.ancho / 2 + 8;
@@ -195,69 +257,45 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + chX - 5, tPie, 5.4, { color: COLOR.gris });
   };
 
-  // ---- Piezas de diseño (usuario, 2026-11-14: «cajas de color suave, plaquitas, todo
-  // más organizado y profesional») ----
-  const cajaR = (x: number, top: number, w: number, h: number, fill: RGB, border?: RGB, r = 8) => {
-    l.pag.drawSvgPath(`M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`,
-      { x, y: A4.h - top, color: fill, borderColor: border, borderWidth: border ? 1 : 0 });
-  };
-  // Chip tipo pastilla (fondo suave, texto corto). Devuelve el ancho que ocupa.
-  const chip = (x: number, top: number, txt: string, fg: RGB, bg: RGB, size = 7.2) => {
-    const w = l.medida(txt, size, true) + 12;
-    cajaR(x, top, w, 14, bg, undefined, 7);
-    l.texto(x + 6, top + 10, txt, size, { bold: true, color: fg });
-    return w;
-  };
-  // PLAQUITA de matrícula: banda azul UE con la «E» y el número sobre fondo blanco.
-  const AZUL_UE = rgb(0, 0.2, 0.6);
-  const plaquita = (x: number, top: number, txt: string) => {
-    const w = 13 + l.medida(txt, 9, true) + 12;
-    cajaR(x, top, w, 17, COLOR.blanco, COLOR.navy, 3);
-    l.pag.drawRectangle({ x: x + 1, y: A4.h - top - 16, width: 9, height: 15, color: AZUL_UE });
-    l.texto(x + 3.4, top + 12.5, 'E', 6, { bold: true, color: COLOR.blanco });
-    l.texto(x + 15, top + 12.5, txt, 9, { bold: true, color: COLOR.tinta });
-    return w;
-  };
-  // Tintes suaves de las tarjetas de recogida (naranja) y entrega (verde) y sus chips.
-  const TINTE_REC = rgb(1, 0.972, 0.945), TINTE_ENT = rgb(0.953, 0.982, 0.962);
-  const CHIP_REC = rgb(1, 0.918, 0.843), CHIP_ENT = rgb(0.867, 0.953, 0.898);
-
-  if (copia === 'operativa' && !manual) {
-    // ---- CABECERA DEL DeCA EN UNA SOLA FRANJA (usuario, 2026-11-14): cuatro bloques en
-    // la misma fila — transportista efectivo · cargador contractual (Dynamo) · datos del
-    // envío (nº, fecha, matrículas, referencia) · tarjeta del QR. El texto del documento
-    // de control va debajo, a todo lo ancho.
+  if (!manual) {
+    // ---- FRANJA DE CUATRO BLOQUES (usuario, 2026-11-14), en todas las copias: las dos
+    // partes · datos del envío (matrículas como plaquitas, referencia, conductor) ·
+    // tarjeta del QR. El texto del documento de control va debajo, a todo lo ancho.
     const gap = 8, cw = 96, wDatos = 108, wCaja = (l.ancho - cw - wDatos - 3 * gap) / 2;
     const x2 = l.x0 + wCaja + gap, x3 = x2 + wCaja + gap;
-    const datosF: [string, string][] = [[t.nEnvio, ref], [t.fechaCargaL, ventanaCarga], [t.matriculasAutL, matr || t.pendAsignar]];
+    const datosF: [string, string][] = [[t.matriculasAutL, matr || t.pendAsignar]];
     if (e.referencia_cliente) datosF.push([t.referenciaL, e.referencia_cliente]);
+    if (e.conductor_nombre) datosF.push([t.conductor, e.conductor_nombre]);
     const datosParts = datosF.map(([, v]) => l.partir(v, 8.6, wDatos - 14, true).slice(0, 2));
     const placas = [e.matricula_camion, e.matricula_remolque].filter(Boolean) as string[];
-    const tit1 = l.partir(esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`, 6.8, wCaja - 16, true).slice(0, 2);
-    const tit2 = l.partir(esES ? 'CARGADOR CONTRACTUAL' : `CARGADOR CONTRACTUAL · ${t.gestionadaPor}`, 6.8, wCaja - 16, true).slice(0, 2);
-    const hDatos = 10 + datosParts.reduce((a, ps, i) => a + (i === 2 && matr ? 11 + placas.length * 21 + 4 : 17 + (ps.length - 1) * 10 + 8), 0);
+    const titIzq = esCli ? 'Cliente · Ordenante del transporte'
+      : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
+      : t.transpRealiza;
+    const tit1 = l.partir(titIzq, 6.8, wCaja - 16, true).slice(0, 2);
+    const tit2 = l.partir(dchaTit, 6.8, wCaja - 16, true).slice(0, 2);
+    const hDatos = 10 + datosParts.reduce((a, ps, i) => a + (i === 0 && matr ? 11 + placas.length * 21 + 4 : 17 + (ps.length - 1) * 10 + 8), 0);
     const hFila = Math.max(96, hDatos,
       12 + tit1.length * 8 + alto(izq, wCaja - 16) + 10,
       12 + tit2.length * 8 + alto(dcha, wCaja - 16) + 10);
     const ct = l.y;
-    l.rect(l.x0, ct, wCaja, hFila, COLOR.fondo);
-    l.rect(x2, ct, wCaja, hFila, COLOR.fondo);
-    l.rect(x3, ct, wDatos, hFila, COLOR.moradoSuave);
+    cajaR(l.x0, ct, wCaja, hFila, COLOR.fondo);
+    cajaR(x2, ct, wCaja, hFila, COLOR.fondo);
+    cajaR(x3, ct, wDatos, hFila, COLOR.moradoSuave);
     for (const [x, tit, filas] of [[l.x0, tit1, izq], [x2, tit2, dcha]] as const) {
-      tit.forEach((ln, i) => l.texto(x + 8, ct + 12 + i * 8, ln, 6.8, { bold: true, color: COLOR.gris }));
-      l.y = ct + 12 + tit.length * 8 + 2;
+      tit.forEach((ln, i) => l.texto(x + 8, ct + 13 + i * 8, ln, 6.8, { bold: true, color: COLOR.gris }));
+      l.y = ct + 13 + tit.length * 8 + 2;
       for (const [tx, s, b] of filas) if (tx) l.parrafo(tx, s, { bold: b, x: x + 8, ancho: wCaja - 16 });
     }
-    let yD = ct + 10;
+    let yD = ct + 11;
     datosF.forEach(([k], i) => {
       l.texto(x3 + 7, yD + 7, l.partir(k, 6.4, wDatos - 12, true)[0] ?? '', 6.4, { bold: true, color: COLOR.gris });
-      if (i === 2 && matr) {
+      if (i === 0 && matr) {
         // Las matrículas como PLAQUITAS, una por línea.
         let yP = yD + 11;
         for (const m of placas) { plaquita(x3 + 7, yP, m); yP += 21; }
         yD = yP + 4;
       } else {
-        datosParts[i].forEach((ln, j) => l.texto(x3 + 7, yD + 17 + j * 10, ln, 8.6, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
+        datosParts[i].forEach((ln, j) => l.texto(x3 + 7, yD + 17 + j * 10, ln, 8.6, { bold: true, color: i === 0 && !matr ? COLOR.rojo : COLOR.navy }));
         yD += 17 + (datosParts[i].length - 1) * 10 + 8;
       }
     });
@@ -342,24 +380,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.linea(l.x0, l.y + 13, der, l.y + 13);
     l.y += 19;
   };
-  // TARJETA de parada (usuario, 2026-11-14: «cajas de color suave, bien organizado,
-  // profesional»): caja redondeada con tinte suave, chip de color con el nº y el tipo,
-  // la EMPRESA como titular, la FECHA en una placa blanca a la derecha, y debajo las
-  // filas clave-valor de siempre.
-  const punto = (pa: ParadaDoc, n: number, recogida: boolean) => {
-    const fechaTxt = recogida ? ventanaCarga : (fEntrega ? `${fEntrega} ${t.estimada}` : t.porConfirmar);
-    const filas: [string, string, boolean?][] = [];
-    filas.push([t.horario, pa.horarios || t.consultaDynamo, true]);
-    filas.push([t.direccion, [pa.direccion, [pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.provincia !== pa.poblacion ? pa.provincia : null, pa.pais].filter(Boolean).join(', '), true]);
-    if (pa.contacto?.telefono || pa.contacto?.nombre) filas.push([t.contacto, [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': ')]);
-    if (pa.referencia) filas.push([t.referencia, pa.referencia, true]);
-    if (pa.tipo_sitio) filas.push([t.tipoSitio, nombreTipo(pa.tipo_sitio)]);
-    const avisos = [pa.requiere_cita && t.citaPrevia, !pa.tiene_medios_carga && t.sinMedios].filter(Boolean) as string[];
-    if (avisos.length) filas.push([t.atencion, avisos.join(' · '), true]);
-    if (pa.url_google_maps) filas.push(['Google Maps', pa.url_google_maps]);
+  // ---- TARJETAS DE PARADA EN COLUMNAS (usuario, 2026-11-14: el encaje de la orden
+  // antigua): hasta 3 por fila, cada una con su chip de color, la EMPRESA de titular,
+  // la dirección en gris y debajo las filas clave-valor. Tinte suave naranja/verde.
+  type FilaT = { k: string; v: string; b?: boolean; rojo?: boolean };
+  const filasDe = (pa: ParadaDoc, recogida: boolean): FilaT[] => {
+    const fs: FilaT[] = [];
+    fs.push({ k: t.fecha, v: recogida ? ventanaCarga : (fEntrega ? `${fEntrega} ${t.estimada}` : t.porConfirmar), b: true });
+    fs.push({ k: t.horario, v: pa.horarios || t.consultaDynamo, b: true });
+    if (pa.contacto?.telefono || pa.contacto?.nombre) fs.push({ k: t.contacto, v: [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': '), b: true });
+    if (pa.referencia) fs.push({ k: t.referencia, v: pa.referencia, b: true });
+    if (pa.tipo_sitio) fs.push({ k: t.tipoSitio, v: nombreTipo(pa.tipo_sitio) });
+    const avisosP = [pa.requiere_cita && t.citaPrevia, !pa.tiene_medios_carga && t.sinMedios].filter(Boolean) as string[];
+    if (avisosP.length) fs.push({ k: t.atencion, v: avisosP.join(' · '), b: true, rojo: true });
     // El DETALLE DE MERCANCÍA de la parada (el campo «A recoger / A entregar» de Nuevo
-    // envío: «Parte de: …» por defecto con varias paradas, o lo escrito a mano) sale con
-    // su propia etiqueta «Mercancía», no como una indicación más (usuario, 2026-11-13).
+    // envío) sale con su etiqueta «Mercancía», no como una indicación más (2026-11-13).
     const notas: string[] = [];
     let merc: string | null = null;
     for (const n2 of [pa.notas_sitio, pa.anotaciones].filter(Boolean) as string[]) {
@@ -370,44 +405,55 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         if (resto) notas.push(resto);
       } else notas.push(n2);
     }
-    if (merc) filas.push([t.mercancia, merc, true]);
-    for (const n2 of notas) filas.push([t.indicaciones, n2]);
-
-    const xK = l.x0 + 14, xV = l.x0 + 126, wV = der - xV - 12;
-    // La clave también se parte (los idiomas con etiquetas largas no deben pisar el valor).
-    const lineas = filas.map(([k, v, b]) => ({ k0: k, k: l.partir(k, 7.6, xV - xK - 8, true), v: l.partir(v, 8.4, wV, b), b }));
-    const altoF = (f: { k: string[]; v: string[] }) => Math.max(f.v.length * 10.8, f.k.length * 9.8);
-    const hCab = 28;
-    const h = hCab + lineas.reduce((a, f) => a + altoF(f) + 1.6, 0) + 9;
-    l.sitio(Math.min(h + 4, 320));
-    const color = recogida ? NARANJA : COLOR.verde;
-    const top = l.y;
-    cajaR(l.x0, top, l.ancho, h, recogida ? TINTE_REC : TINTE_ENT, COLOR.grisClaro);
-    const cw2 = chip(l.x0 + 10, top + 7, `${n} · ${recogida ? t.recogida : t.entrega}`, color, recogida ? CHIP_REC : CHIP_ENT);
-    // La fecha, en una placa blanca a la derecha de la cabecera.
-    const fW = l.medida(fechaTxt, 7.6, true) + 14;
-    cajaR(der - 10 - fW, top + 6, fW, 16, COLOR.blanco, COLOR.grisClaro, 8);
-    l.texto(der - 10 - fW + 7, top + 17, fechaTxt, 7.6, { bold: true, color: COLOR.navy });
-    // El titular: la empresa del sitio (en rojo si falta).
-    const titW = (der - 10 - fW) - (l.x0 + 10 + cw2 + 8) - 6;
-    l.texto(l.x0 + 10 + cw2 + 8, top + 17.5, l.partir(pa.nombre_empresa || t.faltanEmpresa, 9.5, titW, true)[0] ?? '', 9.5,
-      { bold: true, color: pa.nombre_empresa ? COLOR.navy : COLOR.rojo });
-    l.y = top + hCab;
-    for (const f of lineas) {
-      l.sitio(altoF(f));
-      f.k.forEach((ln, i) => l.texto(xK, l.y + 8.4 + i * 9.8, ln, 7.6, { bold: true, color: COLOR.gris }));
-      const rojo = f.k0 === t.atencion;
-      f.v.forEach((ln, i) => l.texto(xV, l.y + 8.4 + i * 10.8, ln, 8.4, { bold: f.b, color: rojo ? COLOR.rojo : COLOR.navy }));
-      l.y += altoF(f) + 1.6;
-    }
-    l.y += 9 + 7;
+    if (merc) fs.push({ k: t.mercancia, v: merc, b: true });
+    for (const n2 of notas) fs.push({ k: t.indicaciones, v: n2 });
+    if (pa.url_google_maps) fs.push({ k: 'Google Maps', v: pa.url_google_maps });
+    return fs;
   };
-  const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
-  seccion(rec.length > 1 ? t.recogidas : t.recogida);
-  rec.forEach((pa, i) => punto(pa, i + 1, true));
-  seccion(ent.length > 1 ? t.entregas : t.entrega);
-  // Nº de PARADA correlativo en todo (usuario, 2026-11-11): 1-2 recogidas → 3-4 entregas.
-  ent.forEach((pa, i) => punto(pa, rec.length + i + 1, false));
+  {
+    const todas = [
+      ...rec.map((pa, i) => ({ pa, recogida: true, titulo: rec.length > 1 ? `${t.recogida} ${i + 1}/${rec.length}` : t.recogida })),
+      ...ent.map((pa, i) => ({ pa, recogida: false, titulo: ent.length > 1 ? `${t.entrega} ${i + 1}/${ent.length}` : t.entrega })),
+    ];
+    const porFila = todas.length <= 2 ? Math.max(todas.length, 1) : todas.length === 4 ? 2 : 3;
+    const gapT = 8, wTar = (l.ancho - (porFila - 1) * gapT) / porFila;
+    const xIn = 9, wIn = wTar - xIn * 2, kCol = 44, wVal = wIn - kCol - 4;
+    const medir = (c: typeof todas[number]) => {
+      const emp = l.partir(c.pa.nombre_empresa || t.faltanEmpresa, 8.6, wIn, true).slice(0, 2);
+      const dir = l.partir([c.pa.direccion, [c.pa.codigo_postal, c.pa.poblacion].filter(Boolean).join(' '), c.pa.provincia !== c.pa.poblacion ? c.pa.provincia : null, c.pa.pais].filter(Boolean).join(', '), 7, wIn).slice(0, 4);
+      const filasT = filasDe(c.pa, c.recogida).map((f) => ({ ...f, kl: l.partir(f.k, 6.1, kCol - 2, true), vl: l.partir(f.v, 7.1, wVal, f.b) }));
+      const hFilas = filasT.reduce((a, f) => a + Math.max(f.kl.length * 7.6, f.vl.length * 8.8) + 3, 0);
+      return { emp, dir, filasT, h: 24 + emp.length * 10.4 + dir.length * 8.6 + 8 + hFilas + 8 };
+    };
+    const dibuja = (c: typeof todas[number], m: ReturnType<typeof medir>, x: number, top: number, h: number) => {
+      cajaR(x, top, wTar, h, c.recogida ? TINTE_REC : TINTE_ENT, COLOR.grisClaro, 7);
+      // cabecera: punto de color + etiqueta espaciada + regla
+      l.pag.drawCircle({ x: x + xIn + 3, y: A4.h - top - 12.5, size: 2.6, color: c.recogida ? NARANJA : COLOR.verde });
+      l.texto(x + xIn + 9, top + 15, esp(c.titulo), 6, { bold: true, color: c.recogida ? NARANJA : COLOR.verde });
+      l.linea(x + xIn, top + 20, x + wTar - xIn, top + 20, COLOR.grisClaro, 0.7);
+      let y2 = top + 24;
+      m.emp.forEach((ln) => { l.texto(x + xIn, y2 + 8, ln, 8.6, { bold: true, color: c.pa.nombre_empresa ? COLOR.navy : COLOR.rojo }); y2 += 10.4; });
+      m.dir.forEach((ln) => { l.texto(x + xIn, y2 + 7, ln, 7, { color: COLOR.gris }); y2 += 8.6; });
+      y2 += 3;
+      l.linea(x + xIn, y2, x + wTar - xIn, y2, COLOR.grisClaro, 0.7);
+      y2 += 5;
+      for (const f of m.filasT) {
+        f.kl.forEach((ln, i) => l.texto(x + xIn, y2 + 6.6 + i * 7.6, ln, 6.1, { bold: true, color: COLOR.gris }));
+        f.vl.forEach((ln, i) => l.texto(x + xIn + kCol + 4, y2 + 7 + i * 8.8, ln, 7.1, { bold: f.b, color: f.rojo ? COLOR.rojo : COLOR.navy }));
+        y2 += Math.max(f.kl.length * 7.6, f.vl.length * 8.8) + 3;
+      }
+    };
+    for (let i = 0; i < todas.length; i += porFila) {
+      const fila = todas.slice(i, i + porFila);
+      const medidas = fila.map(medir);
+      const hT = Math.max(...medidas.map((m) => m.h));
+      l.sitio(Math.min(hT + 6, 420));
+      const top = l.y;
+      fila.forEach((c, j) => dibuja(c, medidas[j], l.x0 + j * (wTar + gapT), top, hT));
+      l.y = top + hT + gapT;
+    }
+    l.y += 4;
+  }
 
   // ---- Mercancía, vehículo y conductor ----
   const kv = (filas: [string, string, { bold?: boolean; rojo?: boolean }?][]) => {
@@ -424,37 +470,55 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     l.y += 8;
   };
-  seccion(t.secMercancia);
+  // ---- TABLA RESUMEN (usuario, 2026-11-14: como la orden antigua): mercancía · tipo de
+  // transporte · tipo de carga · requisitos · matrículas (plaquitas) · conductor, en una
+  // caja con separadores finos. Los textos largos van en cajas de aviso con acento.
   const forma = [e.carga_lateral && t.cargaLateral, e.carga_trasera && t.cargaTrasera, e.carga_techo && t.cargaTecho].filter(Boolean).join(' · ');
   const tipoCarga = esES ? tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora)
     : e.tipo_carga === 'completa' ? (e.requiere_plataforma_elevadora ? t.rigidoCompleto : t.cargaCompleta) : e.tipo_carga === 'grupaje' ? t.grupaje : '';
-  kv([
-    [t.mercancia, [e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada),
-      e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} ${t.metrosLineales}` : null,
-      e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? t.bulto : t.bultos}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
-      e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), { bold: true }],
-    // Altura máxima del hueco (usuario, 2026-11-12): que cliente y transportista la
-    // vean en la orden. Tráiler 2,70 m; rígido con plataforma 2,60 m.
-    [t.tipoTransporte, `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.60' : '2.70') : (e.requiere_plataforma_elevadora ? '2,60' : '2,70') })}`],
-    [t.tipoCarga, [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ')],
-    [t.requisitos, [e.requiere_nima && `${t.requiereNima}${e.transportista_nima && !esCli ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
-    [t.importante, t.txtImportante],
-  ]);
-  seccion(t.secMatr);
-  // Las matrículas como PLAQUITAS (usuario, 2026-11-14), en fila junto a su etiqueta.
-  if (matr) {
-    l.sitio(26);
-    const ks = l.partir(t.matriculasAutL, 8, 118, true);
-    ks.forEach((ln, i) => l.texto(l.x0, l.y + 12 + i * 10.4, ln, 8, { bold: true, color: COLOR.gris }));
-    let xP = l.x0 + 128;
-    for (const m of [e.matricula_camion, e.matricula_remolque].filter(Boolean) as string[]) xP += plaquita(xP, l.y + 3, m) + 8;
-    l.y += Math.max(24, ks.length * 10.4 + 6);
+  {
+    const conductorTxt = [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ');
+    const requisitos = [e.requiere_nima && `${t.requiereNima}${e.transportista_nima && !esCli ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · ');
+    const resumen: { k: string; v: string; b?: boolean; rojo?: boolean; placas?: boolean }[] = [
+      { k: t.mercancia, v: [e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada),
+        e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} ${t.metrosLineales}` : null,
+        e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? t.bulto : t.bultos}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
+        e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), b: true },
+      // Altura máxima del hueco (2026-11-12): que cliente y transportista la vean.
+      { k: t.tipoTransporte, v: `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.60' : '2.70') : (e.requiere_plataforma_elevadora ? '2,60' : '2,70') })}` },
+      { k: t.tipoCarga, v: [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ') },
+      ...(requisitos ? [{ k: t.requisitos, v: requisitos, b: true, rojo: !!e.adr }] : []),
+      { k: t.matriculasAutL, v: matr || t.pendMatrEnvia, placas: !!matr, b: true, rojo: !matr },
+      { k: t.conductor, v: conductorTxt || t.pendComunicar, b: !!conductorTxt },
+    ];
+    const xL2 = l.x0 + 12, xVr = l.x0 + 150, wVr = der - xVr - 12;
+    const medR = resumen.map((r) => {
+      const kl = l.partir(r.k.toUpperCase(), 6.2, 130, true);
+      if (r.placas) return { kl, vl: [] as string[], h: Math.max(27, kl.length * 8 + 10) };
+      const vl = l.partir(r.v, 8.2, wVr, r.b);
+      return { kl, vl, h: Math.max(vl.length * 10.2, kl.length * 8) + 9 };
+    });
+    const hRes = medR.reduce((a, m) => a + m.h, 0) + 8;
+    l.sitio(Math.min(hRes + 6, 340));
+    const rt2 = l.y;
+    cajaR(l.x0, rt2, l.ancho, hRes, COLOR.blanco, COLOR.grisClaro, 6);
+    let yR = rt2 + 4;
+    resumen.forEach((r, i) => {
+      const m = medR[i];
+      m.kl.forEach((ln, j) => l.texto(xL2, yR + 12 + j * 8, ln, 6.2, { bold: true, color: COLOR.gris }));
+      if (r.placas) {
+        let xP = xVr;
+        for (const m2 of [e.matricula_camion, e.matricula_remolque].filter(Boolean) as string[]) xP += plaquita(xP, yR + 4, m2) + 8;
+      } else {
+        m.vl.forEach((ln, j) => l.texto(xVr, yR + 12.6 + j * 10.2, ln, 8.2, { bold: r.b, color: r.rojo ? COLOR.rojo : COLOR.navy }));
+      }
+      yR += m.h;
+      if (i < resumen.length - 1) l.linea(xL2, yR, der - 12, yR, COLOR.grisClaro, 0.6);
+    });
+    l.y = rt2 + hRes + 10;
   }
-  kv([
-    ...(matr ? [] : [[t.matriculasAutL, t.pendMatrEnvia, { bold: true, rojo: true }] as [string, string, { bold?: boolean; rojo?: boolean }]]),
-    [t.conductor, [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar],
-    ['', t.txtSoloMatr],
-  ]);
+  aviso(t.importante, t.txtImportante, NARANJA);
+  aviso(t.matriculasAutL, t.txtSoloMatr, COLOR.navy);
 
   // ---- Firmas (solo en el DeCA): rejilla al pie, casillas 22/23/24 del e-CMR ----
   // Primero los huecos normales en orden de recorrido (recogidas → transportista →
@@ -546,13 +610,17 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Pie en todas las páginas ----
   const pags = l.doc.getPages();
   pags.forEach((pg, i) => {
-    const pie = manual
-      ? `Orden de carga ${ref} · emitida por ${d.cliente?.razon_social ?? ''} · ${emitida}`
-      : `${D.razon_social} · CIF ${D.cif} · O.T. ${D.tarjeta_ot} · ${t.urgencias} ${telBonito(D.telefono)} · ${ref}`;
-    pg.drawLine({ start: { x: l.x0, y: 40 }, end: { x: der, y: 40 }, thickness: 0.6, color: COLOR.grisClaro });
-    l.texto(l.x0, A4.h - 28, pie, 7, { color: COLOR.gris, pag: pg });
-    const n = `${t.pagina} ${i + 1} ${t.de} ${pags.length}`;
-    l.texto(der - l.medida(n, 7), A4.h - 28, n, 7, { color: COLOR.gris, pag: pg });
+    // Pie a DOS líneas como la orden antigua (2026-11-14): datos completos de Dynamo
+    // (con dirección, email y Wtransnet, que ya no van en la cabecera) + ref y página.
+    pg.drawLine({ start: { x: l.x0, y: 44 }, end: { x: der, y: 44 }, thickness: 0.6, color: COLOR.grisClaro });
+    if (manual) {
+      l.texto(l.x0, A4.h - 34, `Orden de carga ${ref} · emitida por ${d.cliente?.razon_social ?? ''} · ${emitida}`, 6.6, { color: COLOR.gris, pag: pg });
+    } else {
+      l.texto(l.x0, A4.h - 34, `${D.razon_social} · ${D.direccion}, ${D.codigo_postal} ${D.poblacion} · ${D.email} · ${telBonito(D.telefono)}`, 6.6, { color: COLOR.gris, pag: pg });
+      l.texto(l.x0, A4.h - 25, `CIF ${D.cif} · O.T. ${D.tarjeta_ot} · Wtransnet ${D.wtransnet} · ${t.urgencias}: ${telBonito(D.telefono)}`, 6.6, { color: COLOR.gris, pag: pg });
+    }
+    const n = `${ref} · ${t.pagina} ${i + 1} ${t.de} ${pags.length}`;
+    l.texto(der - l.medida(n, 6.6), A4.h - 34, n, 6.6, { color: COLOR.gris, pag: pg });
   });
   l.doc.setTitle(`${copia === 'operativa' ? 'DeCA' : t.titulo} ${ref}`);
   l.doc.setAuthor(manual ? d.cliente?.razon_social ?? '' : D.razon_social);
