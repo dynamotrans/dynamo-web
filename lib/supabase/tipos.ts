@@ -3467,7 +3467,7 @@ export type Database = {
       datos_cmr_por_token: { Args: { p_token: string | null }; Returns: Json }
       datos_dynamo: { Args: Record<PropertyKey, never>; Returns: Json }
       datos_orden_manual: { Args: { p_envio: string | null }; Returns: Json }
-      datos_orden_por_cmr: { Args: { p_token: string | null }; Returns: Json }
+      datos_orden_por_cmr: { Args: { p_token: string | null; p_clave?: string | null }; Returns: Json }
       datos_orden_publica: { Args: { p_reserva: string | null }; Returns: Json }
       datos_orden_transportista: { Args: { p_envio: string | null }; Returns: Json }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }
@@ -3585,6 +3585,7 @@ export type Database = {
       oferta_publica: { Args: { p_token: string | null }; Returns: Json }
       ofertar_envio: { Args: { p_envio: string | null; p_transportista: string | null; p_canal: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null }; Returns: string }
       orden_carga_json: { Args: { p_envio: string | null }; Returns: Json }
+      orden_sin_economia_cliente: { Args: { p_json: Json | null }; Returns: Json }
       otras_cargas_publicas: { Args: { p_token: string | null }; Returns: Json }
       pago_envio_importes: { Args: { p_envio: string | null }; Returns: { base: number; iva: number; total: number }[] }
       pago_envio_stripe: { Args: { p_envio: string | null; p_pago: string | null; p_centimos: number | null }; Returns: Json }

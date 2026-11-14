@@ -31,12 +31,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   // copia del conductor, sin precios) sigue funcionando para los enlaces ya enviados.
   let copia = url.searchParams.get('copia') ?? 'economica';
   if (copia === 'conjunta') copia = 'economica';
-  if (!['operativa', 'economica'].includes(copia)) return texto('Esa variante no existe.', 404);
+  if (!['operativa', 'economica', 'cliente'].includes(copia)) return texto('Esa variante no existe.', 404);
 
-  const r = await cargarDatosDocPorCmr(sb, token);
+  // La clave viaja en el enlace y la valida la BD (2026-11-14): con la del transportista
+  // el JSON trae su importe (rol transportista); con la del cliente, el suyo con IVA
+  // (rol cliente). Sin la clave buena no llega ninguna economía.
+  const clave = url.searchParams.get('clave');
+  const r = await cargarDatosDocPorCmr(sb, token, clave && /^[0-9a-f-]{36}$/i.test(clave) ? clave : null);
   if (!r.datos) return texto(r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.', 404);
-  if (copia !== 'operativa' && url.searchParams.get('clave') !== r.transportista) {
+  if (copia === 'economica' && r.rol !== 'transportista') {
     return texto('Esta variante lleva información económica: hace falta el enlace completo que te mandó Dynamo.', 403);
+  }
+  if (copia === 'cliente' && r.rol !== 'cliente') {
+    return texto('Esta copia lleva el precio del cliente: hace falta el enlace completo que te mandó Dynamo.', 403);
   }
   // El QR del e-CMR/DeCA en la tarjeta de la orden (2026-11-11): esta ruta ABRE por el
   // propio enlace del CMR, así que el deca siempre se puede montar — sin él, la orden
@@ -47,7 +54,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   const bytes = await ordenCompuesta(r.datos, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
     dias: p.pronto_pago_dias ?? 5, plazo: p.plazo_pago_transportista_dias ?? 60 }, copia as QueOrden);
   const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
-  const apellido = copia === 'operativa' ? '-conductor' : copia === 'economica' ? '-administracion' : '';
+  const apellido = copia === 'operativa' ? '-conductor' : copia === 'cliente' ? '-cliente' : copia === 'economica' ? '-administracion' : '';
   return new Response(Buffer.from(bytes), {
     headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-carga-${ref}${apellido}.pdf"`, 'cache-control': 'private, no-store' },
   });

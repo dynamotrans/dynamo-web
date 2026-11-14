@@ -8470,3 +8470,61 @@ begin
   end if;
   raise notice 'OK 214 · el día de carga elegido al asignar sale en la orden por enlace, la página de firmas y el PDF del e-CMR';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 215 · copia cliente de la orden: orden_carga_json lleva los dos importes y el
+-- bloque del cliente, y datos_orden_por_cmr solo suelta la economía de su clave
+-- =====================================================================================
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid;
+        hoy date := (now() at time zone 'Europe/Madrid')::date;
+        tr uuid; e1 uuid; tok uuid; j jsonb;
+begin
+  insert into transportistas (razon_social, cif) values ('Transp Copia 215 SL', 'B21500001') returning id into tr;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 950, hoy + 1, hoy + 3) returning id into e1;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, nombre_empresa)
+    values (e1, 1, 'carga', '41001', 'Sevilla', 'ES', 'Carga 215');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, nombre_empresa)
+    values (e1, 2, 'descarga', '28001', 'Madrid', 'ES', 'Entrega 215');
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado', transportista_id = tr, importe_transportista = 700, iva_pct = 21 where id = e1;
+
+  j := orden_carga_json(e1);
+  if (j->'envio'->>'importe_cliente')::numeric is distinct from 950
+     or (j->'envio'->>'iva_pct')::numeric is distinct from 21
+     or (j->'envio'->>'importe_transportista')::numeric is distinct from 700
+     or (j->'cliente'->>'razon_social') is null then
+    raise exception 'FALLO 215 · orden_carga_json no lleva los dos importes o el bloque del cliente';
+  end if;
+
+  select token into tok from cmr_enlaces where envio_id = e1 and not revocado limit 1;
+  if tok is null then insert into cmr_enlaces (envio_id) values (e1) returning token into tok; end if;
+  -- Sin clave (o con una ajena): ninguna economía y ningún id.
+  j := datos_orden_por_cmr(tok);
+  if j->'envio' ? 'importe_transportista' or j->'envio' ? 'importe_cliente' or j ? 'cliente'
+     or j ? 'transportista_id' or j ? 'cliente_id' or (j->>'clave_rol') is not null then
+    raise exception 'FALLO 215 · sin clave, datos_orden_por_cmr suelta economía o ids';
+  end if;
+  j := datos_orden_por_cmr(tok, e1);   -- una clave ajena (el propio id del envío) no abre nada
+  if j->'envio' ? 'importe_transportista' or j->'envio' ? 'importe_cliente' or (j->>'clave_rol') is not null then
+    raise exception 'FALLO 215 · una clave ajena abre economía en datos_orden_por_cmr';
+  end if;
+  -- Con la clave del transportista: su importe sí; el del cliente, no.
+  j := datos_orden_por_cmr(tok, tr);
+  if (j->'envio'->>'importe_transportista')::numeric is distinct from 700
+     or j->'envio' ? 'importe_cliente' or j ? 'cliente' or (j->>'clave_rol') is distinct from 'transportista' then
+    raise exception 'FALLO 215 · con la clave del transportista no sale (solo) su importe';
+  end if;
+  -- Con la clave del cliente: su importe con IVA y su bloque; el del transportista, no.
+  j := datos_orden_por_cmr(tok, cli);
+  if (j->'envio'->>'importe_cliente')::numeric is distinct from 950
+     or (j->'envio'->>'iva_pct')::numeric is distinct from 21
+     or (j->'cliente'->>'razon_social') is null
+     or j->'envio' ? 'importe_transportista' or j ? 'porteador' or j ? 'pronto_pago'
+     or j->'envio' ? 'plazo_pago_transportista' or (j->>'clave_rol') is distinct from 'cliente' then
+    raise exception 'FALLO 215 · con la clave del cliente no sale (solo) su importe con IVA, o se cuela el porteador';
+  end if;
+  raise notice 'OK 215 · copia cliente: los dos importes viajan en el JSON interno y la clave decide qué economía suelta el enlace público';
+end $$;

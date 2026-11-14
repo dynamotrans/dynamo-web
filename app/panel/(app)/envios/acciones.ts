@@ -246,7 +246,7 @@ export async function pararDifusion(envio: string): Promise<{ ok: true } | { ok:
 // Para el diálogo de compartir la ORDEN DE CARGA (usuario, 2026-11-10): el contacto del
 // transportista asignado (email y teléfono, el de tráfico o el principal), su idioma por
 // país y la clave de las variantes con precio (su id: solo lo tiene quien recibe el enlace).
-export async function datosOrden(envio: string): Promise<{ ok: true; email: string | null; telefono: string | null; idioma: string; clave: string; bolsa: string | null; codigoBolsa: string | null; clienteEmail: string | null; clienteTelefono: string | null } | { ok: false; error: string }> {
+export async function datosOrden(envio: string): Promise<{ ok: true; email: string | null; telefono: string | null; idioma: string; clave: string; claveCliente: string | null; bolsa: string | null; codigoBolsa: string | null; clienteEmail: string | null; clienteTelefono: string | null } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/envios/acciones#datosOrden", [envio]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo comparte la orden de carga.' };
@@ -267,6 +267,7 @@ export async function datosOrden(envio: string): Promise<{ ok: true; email: stri
   const { idiomaDePais } = await import('@/lib/pdf/ordenTextos');
   return { ok: true, email: cto?.email ?? null, telefono: cto?.telefono ?? null,
     idioma: idiomaDePais(e.transportistas?.pais_codigo_iso), clave: e.transportista_id,
+    claveCliente: e.cliente_id,   // la clave de la COPIA CLIENTE del enlace público (2026-11-14)
     bolsa: e.transportistas?.bolsa ?? null, codigoBolsa: e.transportistas?.codigo_bolsa ?? null,
     clienteEmail: ccli?.email ?? null, clienteTelefono: ccli?.telefono ?? null };
 }
@@ -274,7 +275,8 @@ export async function datosOrden(envio: string): Promise<{ ok: true; email: stri
 // Enviar la orden (o el resumen del cliente) POR EMAIL DESDE LA PLATAFORMA, con el PDF
 // adjunto de verdad (usuario, 2026-11-13: «mailto no puede autoadjuntar»). Va por
 // Postmark con el registro de siempre; al transportista se adjunta LA orden de carga
-// (documento completo — una sola orden, usuario 2026-11-14); al cliente, solo el mensaje.
+// (documento completo — una sola orden, usuario 2026-11-14) y al cliente SU copia (con
+// su precio + IVA y sin los datos ni el precio del transportista, usuario 2026-11-14).
 export async function emailOrdenPlataforma(envio: string, para: 'transportista' | 'cliente', mensaje: string):
   Promise<{ ok: true; para: string } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/envios/acciones#emailOrdenPlataforma", [envio, para, mensaje]);
@@ -288,13 +290,10 @@ export async function emailOrdenPlataforma(envio: string, para: 'transportista' 
   const { data: e } = await s.supabase.from('envios').select('referencia_gx').eq('id', envio).maybeSingle();
   const ref = e?.referencia_gx ?? '';
   const [{ enviarEmailOperativo, escaparHtml }, { origen }] = await Promise.all([import('@/lib/servidor/emailOperativo'), import('@/lib/origen')]);
-  let adjuntos: { nombre: string; base64: string; tipo: string }[] | undefined;
-  if (para === 'transportista') {
-    const { pdfsOrdenDynamo } = await import('@/lib/pdf/generar');
-    const pd = await pdfsOrdenDynamo(s.supabase, envio, s.user.id, ['economica'], await origen());
-    if ('error' in pd) return { ok: false, error: pd.error };
-    adjuntos = pd.pdfs.map((x) => ({ nombre: x.nombre, base64: Buffer.from(x.bytes).toString('base64'), tipo: 'application/pdf' }));
-  }
+  const { pdfsOrdenDynamo } = await import('@/lib/pdf/generar');
+  const pd = await pdfsOrdenDynamo(s.supabase, envio, s.user.id, [para === 'transportista' ? 'economica' : 'cliente'], await origen());
+  if ('error' in pd) return { ok: false, error: pd.error };
+  const adjuntos = pd.pdfs.map((x) => ({ nombre: x.nombre, base64: Buffer.from(x.bytes).toString('base64'), tipo: 'application/pdf' }));
   // El mensaje de la pantalla, línea a línea, con los enlaces clicables.
   const html = mensaje.slice(0, 4000).split('\n')
     .map((ln) => ln.trim() === '' ? '<br>' : `<p style="margin:0 0 2px">${escaparHtml(ln).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')}</p>`)

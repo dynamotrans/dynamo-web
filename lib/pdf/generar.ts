@@ -55,7 +55,7 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
 
 // Las copias de la orden en PDF para ADJUNTARLAS a un email desde la plataforma
 // (usuario, 2026-11-13: «mailto no puede autoadjuntar; que lo mande la plataforma»).
-export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, copias: ('operativa' | 'economica')[], origen?: string):
+export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, copias: ('operativa' | 'economica' | 'cliente')[], origen?: string):
   Promise<{ pdfs: { bytes: Uint8Array; nombre: string }[] } | { error: string }> {
   const { datos, error } = await cargarDatosDoc(sb, id, usuarioId);
   if (!datos) return { error: error ?? 'No se ha podido leer el envío.' };
@@ -72,7 +72,7 @@ export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, cop
   const ref = String(datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
   const pdfs: { bytes: Uint8Array; nombre: string }[] = [];
   for (const c of copias) {
-    pdfs.push({ bytes: await ordenDeCarga(datos, pago, { copia: c }), nombre: `Orden-${ref}-${c === 'operativa' ? 'conductor' : 'administracion'}.pdf` });
+    pdfs.push({ bytes: await ordenDeCarga(datos, pago, { copia: c }), nombre: `Orden-${ref}-${c === 'operativa' ? 'conductor' : c === 'cliente' ? 'cliente' : 'administracion'}.pdf` });
   }
   return { pdfs };
 }

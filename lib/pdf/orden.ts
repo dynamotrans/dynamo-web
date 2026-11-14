@@ -20,17 +20,24 @@ import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrde
 // y en el IDIOMA del transportista además del español (ordenCompuesta): primero su idioma,
 // luego el español. Las CONDICIONES legales solo van en las páginas en español (que
 // acompañan siempre); las traducidas remiten a ellas y dicen que la española prevalece.
+// Desde 2026-11-14 hay además la copia CLIENTE (usuario: «los precios a cliente no son
+// lo mismo que a transportista»): el mismo documento pero con el precio DEL CLIENTE
+// (importe_cliente + IVA) y SIN los datos ni el precio del transportista — en su caja
+// va el cliente como ordenante y del transporte solo quedan matrículas y conductor.
+// Siempre en español (el cliente contrata en español) y sin las condiciones del
+// transportista (al cliente le aplican las aceptadas al confirmar el envío).
 
 export type ParamsPago = { pct: number; minimo: number; dias: number; plazo: number };
-export type CopiaOrden = 'operativa' | 'economica';
-export type QueOrden = 'conjunta' | 'operativa' | 'economica';
+export type CopiaOrden = 'operativa' | 'economica' | 'cliente';
+export type QueOrden = 'conjunta' | 'operativa' | 'economica' | 'cliente';
 
 const NARANJA = rgb(0.98, 0.45, 0.09);
 
 export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: CopiaOrden; idioma?: IdiomaOrden } = {}): Promise<Uint8Array> {
   const e = d.envio, manual = d.manual;
   const copia: CopiaOrden = op.copia ?? 'economica';
-  const idioma: IdiomaOrden = op.idioma ?? 'es';
+  const esCli = copia === 'cliente';           // la copia del cliente, siempre en español
+  const idioma: IdiomaOrden = esCli ? 'es' : op.idioma ?? 'es';
   const t = ORDEN_TXT[idioma], esES = idioma === 'es';
   const D = d.dynamo ?? DYNAMO;
   const l = await Lienzo.crear({ unicode: !esES });
@@ -50,8 +57,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Banda de la copia (usuario, 2026-11-10: como el diseño aprobado) ----
   const der = A4.w - l.margen.der;
   l.rect(l.x0, 36, l.ancho, 18, COLOR.fondo);
-  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? t.copiaConductor : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
-  l.textoDer(der - 8, 48.5, copia === 'operativa' ? t.sinEco : t.completa, 7.5, { color: COLOR.gris });
+  l.texto(l.x0 + 8, 48.5, copia === 'operativa' ? t.copiaConductor : esCli ? 'COPIA CLIENTE' : t.copiaAdmin, 8, { bold: true, color: COLOR.navy });
+  l.textoDer(der - 8, 48.5, copia === 'operativa' ? t.sinEco : esCli ? 'CON TU PRECIO · SIN DATOS DEL PORTEADOR' : t.completa, 7.5, { color: COLOR.gris });
 
   // ---- Cabecera (solo en la 1ª página) ----
   if (logo) {
@@ -75,7 +82,16 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Transportista | Gestionada por ----
   const p = d.porteador, mitad = l.ancho / 2 - 8, xb = l.x0 + l.ancho / 2 + 8;
   const izq: [string, number, boolean][] = [];
-  if (p) {
+  // Copia CLIENTE: su caja lleva al CLIENTE como ordenante — del transportista no sale
+  // ni el nombre (criterio de la plataforma: el cliente solo ve matrículas y conductor).
+  if (esCli) {
+    const cl = d.cliente;
+    if (cl) {
+      izq.push([cl.razon_social, 10, true]);
+      if (cl.cif) izq.push([`CIF ${cl.cif}`, 8.5, false]);
+      izq.push([[cl.direccion, [cl.codigo_postal, cl.poblacion].filter(Boolean).join(' '), cl.provincia !== cl.poblacion ? cl.provincia : null].filter(Boolean).join(', '), 8, false]);
+    } else izq.push(['Cliente', 10, true]);
+  } else if (p) {
     izq.push([p.razon_social, 10, true]);
     izq.push([[p.cif ? `CIF ${p.cif}` : null, p.codigo ? `Código ${p.codigo}` : null].filter(Boolean).join(' · '), 8.5, false]);
     izq.push([[p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia !== p.poblacion ? p.provincia : null].filter(Boolean).join(', '), 8, false]);
@@ -93,7 +109,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const hCaja = Math.max(alto(izq, mitad - 20), alto(dcha, mitad - 20)) + 30;
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
   l.rect(xb, l.y, mitad, hCaja, COLOR.fondo);
-  l.texto(l.x0 + 10, l.y + 14, manual ? t.transp : t.transpRealiza, 7.5, { bold: true, color: COLOR.gris });
+  l.texto(l.x0 + 10, l.y + 14, esCli ? 'Cliente · Ordenante del transporte' : manual ? t.transp : t.transpRealiza, 7.5, { bold: true, color: COLOR.gris });
   // Envío manual: el logo del operador (si el cliente lo subió), arriba a la derecha de su caja.
   if (manual && d.logoPorteador) {
     try {
@@ -144,7 +160,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     // matrícula lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de
     // firmas); si no, el hueco punteado — el diseño no cambia al asignar.
     let qrImg: PDFImage | null = null;
-    if (d.deca && p && e.matricula_camion) {
+    // En la copia cliente el porteador no viaja en los datos (solo matrículas y
+    // conductor): con matrícula ya hay transporte asignado y el QR va igual.
+    if (d.deca && (p || esCli) && e.matricula_camion) {
       try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; }
     }
     const cx = der - cw, r = 8;
@@ -253,7 +271,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     // vean en la orden. Tráiler 2,70 m; rígido con plataforma 2,60 m.
     [t.tipoTransporte, `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.60' : '2.70') : (e.requiere_plataforma_elevadora ? '2,60' : '2,70') })}`],
     [t.tipoCarga, [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ')],
-    [t.requisitos, [e.requiere_nima && `${t.requiereNima}${e.transportista_nima ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
+    [t.requisitos, [e.requiere_nima && `${t.requiereNima}${e.transportista_nima && !esCli ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
     [t.importante, t.txtImportante],
   ]);
   seccion(t.secMatr);
@@ -264,6 +282,14 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   ]);
 
   // ---- Importe (SOLO en la copia completa; la del conductor va sin economía) ----
+  // La copia CLIENTE lleva SU precio (importe_cliente + IVA), nunca el del transportista.
+  if (esCli && !manual) {
+    seccion(t.secImporte);
+    const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
+    kv([[t.importeL, pc != null ? `${eur(pc)} + IVA (${num(e.iva_pct != null ? Number(e.iva_pct) : 21)} %)` : t.pendiente, { bold: true }]]);
+    l.sitio(24);
+    l.parrafo('Aplican los Términos y condiciones aceptados al confirmar el envío en dynamotrans.com.', 8, { color: COLOR.gris, despues: 6 });
+  }
   const precio = manual ? e.precio_acordado_operador : e.importe_transportista;
   if (copia === 'economica' && (precio != null || !manual)) {
     seccion(t.secImporte);
@@ -294,7 +320,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.sitio(30);
     l.parrafo(`${t.verCondEs} ${t.prevalece}`, 8, { bold: true, color: COLOR.navy, despues: 6 });
   }
-  if (!manual && esES) {
+  // Las condiciones del TRANSPORTISTA no van en la copia del cliente (a él le aplican
+  // las condiciones generales aceptadas al confirmar el envío).
+  if (!manual && esES && !esCli) {
     seccion(t.secCond);
     // Cada condición: su título en negrita y el texto debajo.
     const c = (tx: string) => {
@@ -333,8 +361,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
 // transportista y después en español. Con idioma español, solo las páginas en español.
 export async function ordenCompuesta(d: DatosDoc, pago: ParamsPago, que: QueOrden, idioma?: IdiomaOrden): Promise<Uint8Array> {
   const idi: IdiomaOrden = idioma ?? idiomaDePais(d.porteador?.pais_iso);
-  const idiomas: IdiomaOrden[] = idi !== 'es' ? [idi, 'es'] : ['es'];
-  const copias: CopiaOrden[] = que === 'conjunta' ? ['operativa', 'economica'] : [que === 'operativa' ? 'operativa' : 'economica'];
+  // La copia CLIENTE va siempre y solo en español (el cliente contrata en español).
+  const idiomas: IdiomaOrden[] = que === 'cliente' || idi === 'es' ? ['es'] : [idi, 'es'];
+  const copias: CopiaOrden[] = que === 'conjunta' ? ['operativa', 'economica'] : [que];
   const partes: Uint8Array[] = [];
   for (const i of idiomas) for (const c of copias) partes.push(await ordenDeCarga(d, pago, { copia: c, idioma: i }));
   if (partes.length === 1) return partes[0];

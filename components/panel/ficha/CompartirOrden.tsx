@@ -35,7 +35,7 @@ function dirCorta(p: ParadaFicha): string {
 
 export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
   const e = ficha.envio;
-  const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string; bolsa: string | null; codigoBolsa: string | null; clienteEmail: string | null; clienteTelefono: string | null } | null>(null);
+  const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string; claveCliente: string | null; bolsa: string | null; codigoBolsa: string | null; clienteEmail: string | null; clienteTelefono: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [para, setPara] = useState<'transportista' | 'cliente'>('transportista');
   // El email desde la plataforma: en marcha y su resultado (se enseña en pantalla).
@@ -46,6 +46,9 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const token = ficha.cmrEnlace?.token ?? null;
   const origen = typeof window !== 'undefined' ? window.location.origin : '';
   const enlace = token && d ? `${origen}/cmr/${token}/orden?copia=economica&clave=${d.clave}` : '';
+  // La COPIA CLIENTE (usuario, 2026-11-14): el mismo documento con SU precio (+ IVA) y
+  // sin los datos ni el precio del transportista. Su clave es el id del cliente.
+  const enlaceCli = token && d?.claveCliente ? `${origen}/cmr/${token}/orden?copia=cliente&clave=${d.claveCliente}` : '';
   const idioma = (d?.idioma ?? 'es') as IdiomaOrden;
   const idiomas = idioma !== 'es' ? `${NOMBRE_IDIOMA[idioma]} y español` : 'español';
 
@@ -101,9 +104,10 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     `Si cambian las matrículas o el conductor, avísanos ANTES de la carga. Urgencias e incidencias 24 h: ${telBonito(CONTACTO.telefono)}.`,
   ].filter((x) => x !== null).join('\n');
 
-  // Mensaje para el CLIENTE (usuario, 2026-11-13): su resumen del envío SIN precios y
-  // SIN los datos del transportista (solo matrículas y conductor), con el enlace de
-  // firma — su almacén firma la casilla del cargador desde ahí.
+  // Mensaje para el CLIENTE (usuario, 2026-11-13): su resumen del envío SIN los datos
+  // del transportista (solo matrículas y conductor), con el enlace de firma — su
+  // almacén firma la casilla del cargador desde ahí — y, desde 2026-11-14, con el
+  // enlace de SU copia de la orden en PDF (con su precio; por email va además adjunta).
   const msgCli = [
     `TU ENVÍO · Dynamo · #${e.referencia_gx}`,
     '',
@@ -119,21 +123,24 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     matr ? `Matrículas: ${matr}` : null,
     e.conductor_nombre ? `Conductor: ${[e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ')}` : null,
     '',
+    enlaceCli ? `· TU ORDEN DE CARGA EN PDF (con tu precio; por email va además adjunta): ${enlaceCli}`
+      : '· PDF ADJUNTO: TU ORDEN DE CARGA (con tu precio)',
+    '',
     `Seguimiento al minuto, documentos y eCMR en tu panel de dynamotrans.com. Cualquier duda o cambio: ${CONTACTO.email} · ${telBonito(CONTACTO.telefono)}.`,
   ].filter((x) => x !== null).join('\n');
 
   const waTel = (d?.telefono ?? '').replace(/[^0-9]/g, '');
   const waTelCli = (d?.clienteTelefono ?? '').replace(/[^0-9]/g, '');
 
-  // El PDF se DESCARGA al pulsar WhatsApp o Email (usuario, 2026-11-13): ninguno de los
-  // dos deja adjuntar desde un enlace, así que se descarga y se adjunta ahí a mano.
-  function descargarPdf() {
+  // El PDF se DESCARGA al pulsar WhatsApp (usuario, 2026-11-13): WhatsApp no deja
+  // adjuntar desde un enlace, así que se descarga y se adjunta ahí a mano.
+  function descargarPdf(url: string, nombre: string) {
     (async () => {
       try {
-        const r = await fetch(enlace);
+        const r = await fetch(url);
         if (!r.ok) return;
         const u = URL.createObjectURL(await r.blob());
-        const a = document.createElement('a'); a.href = u; a.download = `Orden-de-carga-${e.referencia_gx}.pdf`; a.click();
+        const a = document.createElement('a'); a.href = u; a.download = nombre; a.click();
         URL.revokeObjectURL(u);
       } catch { /* la descarga nunca rompe la apertura del mensaje */ }
     })();
@@ -143,7 +150,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   async function mandarDesdePlataforma(aQuien: 'transportista' | 'cliente') {
     setAvisoMail(null); setMandando(true);
     const r = await emailOrdenPlataforma(e.id, aQuien, aQuien === 'transportista' ? msg : msgCli).catch(() => ({ ok: false as const, error: 'No se ha podido enviar.' }));
-    setAvisoMail(r.ok ? { ok: true, txt: `Email enviado a ${r.para}${aQuien === 'transportista' ? ' con la orden en PDF adjunta' : ''}.` } : { ok: false, txt: r.error });
+    setAvisoMail(r.ok ? { ok: true, txt: `Email enviado a ${r.para} con la orden en PDF adjunta.` } : { ok: false, txt: r.error });
     setMandando(false);
   }
 
@@ -162,22 +169,25 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
       {para === 'cliente' && (
         <>
           <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-600)', margin: '0 0 0.6rem' }}>
-            El resumen del envío para <strong>el cliente</strong>: sin precios y sin los datos del transportista
-            (solo matrículas y conductor), con su enlace de firma del eCMR.
+            La orden para <strong>el cliente</strong>: con <strong>su precio</strong> (+ IVA) y sin los datos ni el
+            precio del transportista (solo matrículas y conductor), con su enlace de firma del eCMR.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
             <button type="button" className="btn-primary" style={btnPar} disabled={mandando || !d?.clienteEmail}
-              title={d?.clienteEmail ? `Se envía a ${d.clienteEmail}` : 'El cliente no tiene email en sus contactos'}
+              title={d?.clienteEmail ? `Se envía a ${d.clienteEmail} con su orden en PDF adjunta` : 'El cliente no tiene email en sus contactos'}
               onClick={() => mandarDesdePlataforma('cliente')}>
-              {mandando ? 'Enviando…' : `Enviar email${d?.clienteEmail ? ` a ${d.clienteEmail}` : ''}`}
+              {mandando ? 'Enviando…' : `Enviar email con el PDF${d?.clienteEmail ? ` a ${d.clienteEmail}` : ''}`}
             </button>
             <a className="btn-secondary" style={btnPar}
-              title={d?.clienteTelefono ? `WhatsApp a ${telBonito(d.clienteTelefono)}` : 'El cliente no tiene teléfono en sus contactos: se abre sin destinatario'}
+              title={d?.clienteTelefono ? `WhatsApp a ${telBonito(d.clienteTelefono)} (su PDF se descarga al pulsar, para adjuntarlo ahí)` : 'El cliente no tiene teléfono en sus contactos: se abre sin destinatario'}
+              onClick={() => { if (enlaceCli) descargarPdf(enlaceCli, `Orden-${e.referencia_gx}-cliente.pdf`); }}
               href={`https://wa.me/${waTelCli}?text=${encodeURIComponent(msgCli)}`} target="_blank" rel="noopener">
               WhatsApp{d?.clienteTelefono ? ` · ${telBonito(d.clienteTelefono)}` : ''}
             </a>
           </div>
           {avisoMail && <div className={`pt-aviso${avisoMail.ok ? ' info' : ' error'}`} role="status" style={{ marginTop: '0.5rem' }}><div>{avisoMail.txt}</div></div>}
+          {enlaceCli && <a className="btn-secondary" style={{ ...btnPar, marginTop: '0.55rem' }} href={enlaceCli} target="_blank" rel="noopener"
+            title="Abrir la copia del cliente en PDF en el navegador (el enlace lleva su clave)">Abrir el PDF en el navegador</a>}
         </>
       )}
 
@@ -192,7 +202,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
             </button>
             <a className="btn-secondary" style={btnPar}
               title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)} (el PDF se descarga al pulsar, para adjuntarlo ahí)` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
-              onClick={() => descargarPdf()}
+              onClick={() => descargarPdf(enlace, `Orden-de-carga-${e.referencia_gx}.pdf`)}
               href={`https://wa.me/${waTel}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">
               WhatsApp{d?.telefono ? ` · ${telBonito(d.telefono)}` : ''}
             </a>

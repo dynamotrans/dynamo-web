@@ -190,11 +190,15 @@ export async function cargarDatosDocPublica(sb: SB, reserva: string):
 // clave pública (2026-11-11: antes iba con la clave de servicio, y donde no está
 // configurada —la preview— el enlace moría). Trae además el transportista_id, con el
 // que la ruta comprueba la clave de las copias con precio.
-export async function cargarDatosDocPorCmr(sb: SB, token: string):
-  Promise<{ datos: DatosDoc | null; transportista: string | null; parametros: Record<string, number>; error: string | null }> {
-  const { data, error } = await sb.rpc('datos_orden_por_cmr', { p_token: token });
-  if (error || !data) return { datos: null, transportista: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el envío.' };
-  return { error: null, transportista: (data as { transportista_id?: string }).transportista_id ?? null, ...ordenDesdeJson(data) };
+export async function cargarDatosDocPorCmr(sb: SB, token: string, clave?: string | null):
+  Promise<{ datos: DatosDoc | null; rol: 'transportista' | 'cliente' | null; parametros: Record<string, number>; error: string | null }> {
+  // La BD recorta la economía según la clave (2026-11-14): con la del transportista
+  // llega su importe (rol transportista); con la del cliente, el suyo con IVA y su
+  // bloque (rol cliente); sin clave o con una ajena, ninguna economía (rol null).
+  const { data, error } = await sb.rpc('datos_orden_por_cmr', { p_token: token, p_clave: clave ?? undefined });
+  if (error || !data) return { datos: null, rol: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el envío.' };
+  const rol = (data as { clave_rol?: string }).clave_rol;
+  return { error: null, rol: rol === 'transportista' || rol === 'cliente' ? rol : null, ...ordenDesdeJson(data) };
 }
 
 // El JSON de datos_orden_*(): mismos nombres que las tablas.
@@ -220,10 +224,15 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
   return {
     parametros,
     datos: {
-      envio: j.envio, manual: false, cliente: null, dynamo,
-      porteador: { nombre: t.nombre, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo, direccion: t.direccion,
+      envio: j.envio, manual: false, dynamo,
+      cliente: j.cliente ? { nombre: j.cliente.nombre, razon_social: j.cliente.razon_social, cif: j.cliente.cif,
+        direccion: j.cliente.direccion, codigo_postal: j.cliente.codigo_postal, poblacion: j.cliente.poblacion,
+        provincia: j.cliente.provincia, pais: nombrePais(j.cliente.pais_codigo_iso), pais_iso: j.cliente.pais_codigo_iso,
+        telefono: j.cliente.telefono ?? null, email: j.cliente.email ?? null, contacto: j.cliente.contacto ?? null } : null,
+      // Sin bloque porteador (la clave del cliente lo recorta) queda null, no un objeto vacío.
+      porteador: j.porteador ? { nombre: t.nombre, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo, direccion: t.direccion,
         codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
-        pais_iso: t.pais_codigo_iso, telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null },
+        pais_iso: t.pais_codigo_iso, telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null } : null,
       paradas: (j.paradas ?? []).map((p) => ({
         id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
