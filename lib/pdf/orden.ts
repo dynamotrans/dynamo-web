@@ -260,16 +260,12 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   };
 
   if (!manual) {
-    // ---- FRANJA DE CUATRO BLOQUES (usuario, 2026-11-14), en todas las copias: las dos
-    // partes · datos del envío (matrículas como plaquitas, referencia, conductor) ·
-    // tarjeta del QR. El texto del documento de control va debajo, a todo lo ancho.
-    const gap = 8, cw = 96, wDatos = 108, wCaja = (l.ancho - cw - wDatos - 3 * gap) / 2;
-    const x2 = l.x0 + wCaja + gap, x3 = x2 + wCaja + gap;
-    const datosF: [string, string][] = [[t.matriculasAutL, matr || t.pendAsignar]];
-    if (e.referencia_cliente) datosF.push([t.referenciaL, e.referencia_cliente]);
-    if (e.conductor_nombre) datosF.push([t.conductor, e.conductor_nombre]);
-    const datosParts = datosF.map(([, v]) => l.partir(v, 8.6, wDatos - 14, true).slice(0, 2));
-    const placas = [e.matricula_camion, e.matricula_remolque].filter(Boolean) as string[];
+    // ---- FRANJA DE TRES BLOQUES (usuario, 2026-11-14), en todas las copias: las dos
+    // partes y la tarjeta del QR. Las matrículas, la referencia y el conductor ya van en
+    // la tabla resumen de abajo (fuera el bloque de datos, que los repetía). El texto
+    // del documento de control va debajo, a todo lo ancho.
+    const gap = 8, cw = 96, wCaja = (l.ancho - cw - 2 * gap) / 2;
+    const x2 = l.x0 + wCaja + gap;
     const titIzq = esCli ? 'Cliente · Ordenante del transporte'
       : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
       : t.transpRealiza;
@@ -282,14 +278,12 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     };
     const [base1, sub1] = parteTit(titIzq), [base2, sub2] = parteTit(dchaTit);
     const hTit = (sub: string[]) => 14 + 8 + sub.length * 7.2 + 2;
-    const hDatos = 10 + datosParts.reduce((a, ps, i) => a + (i === 0 && matr ? 11 + placas.length * 21 + 4 : 17 + (ps.length - 1) * 10 + 8), 0);
-    const hFila = Math.max(96, hDatos,
+    const hFila = Math.max(96,
       hTit(sub1) + alto(izq, wCaja - 16) + 10,
       hTit(sub2) + alto(dcha, wCaja - 16) + 10);
     const ct = l.y;
     cajaR(l.x0, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
     cajaR(x2, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
-    cajaR(x3, ct, wDatos, hFila, COLOR.moradoSuave, undefined, 7);
     for (const [x, base, sub, filas] of [[l.x0, base1, sub1, izq], [x2, base2, sub2, dcha]] as const) {
       const sTit = l.medida(esp(base), 5.2, true) > wCaja - 16 ? 4.6 : 5.2;
       l.texto(x + 8, ct + 14, esp(base), sTit, { bold: true, color: COLOR.gris });
@@ -297,19 +291,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       l.y = ct + hTit(sub);
       for (const [tx, s, b] of filas) if (tx) l.parrafo(tx, s, { bold: b, x: x + 8, ancho: wCaja - 16 });
     }
-    let yD = ct + 11;
-    datosF.forEach(([k], i) => {
-      l.texto(x3 + 7, yD + 7, l.partir(k, 6.4, wDatos - 12, true)[0] ?? '', 6.4, { bold: true, color: COLOR.gris });
-      if (i === 0 && matr) {
-        // Las matrículas como PLAQUITAS, una por línea.
-        let yP = yD + 11;
-        for (const m of placas) { plaquita(x3 + 7, yP, m); yP += 21; }
-        yD = yP + 4;
-      } else {
-        datosParts[i].forEach((ln, j) => l.texto(x3 + 7, yD + 17 + j * 10, ln, 8.6, { bold: true, color: i === 0 && !matr ? COLOR.rojo : COLOR.navy }));
-        yD += 17 + (datosParts[i].length - 1) * 10 + 8;
-      }
-    });
     await tarjetaQr(ct, cw, hFila);
     l.y = ct + hFila + 8;
     l.parrafo(t.qrDeca, 8, { bold: true, color: COLOR.navy });
