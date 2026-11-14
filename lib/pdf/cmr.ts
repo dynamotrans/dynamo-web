@@ -560,5 +560,12 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
 
   l.doc.setTitle(limpio(`CMR ${e.referencia_gx ?? ''}`));
   l.doc.setAuthor(manual ? cli?.razon_social ?? '' : D.razon_social);
+  // Metadatos del fichero (Resolución de 5-jun-2026, apdo. segundo.1): la fecha de
+  // CREACIÓN del documento de control (cuando nació su nº único, antes del servicio) y la
+  // de última modificación de los datos — nunca el momento de esta descarga.
+  const creadoDoc = d.deca?.creado_en ?? e.creado_en;
+  if (creadoDoc) l.doc.setCreationDate(new Date(creadoDoc));
+  const modDoc = e.modificado_en ?? creadoDoc;
+  if (modDoc) l.doc.setModificationDate(new Date(modDoc));
   return l.guardar();
 }

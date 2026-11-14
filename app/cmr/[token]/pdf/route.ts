@@ -18,9 +18,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   if (!/^[0-9a-f-]{36}$/i.test(token)) return texto('Ese documento no existe.', 404);
   const sb = supabasePublico();
   if (!sb) return texto('La plataforma no está conectada.', 503);
-  const { data: mant } = await sb.rpc('mantenimiento_activo');
-  if (mant) return texto('Plataforma en mantenimiento. Vuelve a intentarlo en un rato.', 503);
-
+  // SIN corte por mantenimiento (Resolución de 5-jun-2026, apdo. tercero.3): esta URL es
+  // la del QR del DeCA y un agente debe poder descargar el PDF en una inspección en
+  // carretera en cualquier momento. Es solo lectura: el mantenimiento no la afecta.
   const r = await pdfCmrPorToken(sb, token, new URL(req.url).origin);
   if ('error' in r) return texto(r.error, 404);
   return new Response(Buffer.from(r.bytes), {
