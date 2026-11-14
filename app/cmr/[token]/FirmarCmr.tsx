@@ -496,9 +496,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         {v && <div className={`sig-msg ${!v.ok ? 'err' : v.soft ? 'warn' : 'okv'}`}>{!v.ok ? `⚠ ${v.msg}` : v.soft ? `⚠ ${v.soft}` : '✓ Documento válido'}</div>}
         <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos <Req /></label>
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        {/* OBLIGATORIO (usuario, 2026-11-14): a ese email va la copia del documento firmado.
-            El porqué lo explica la caja verde de encima de «Aceptar firma». */}
-        <label className="sig-lbl" htmlFor="sigEmail">Email <Req /></label>
+        {/* OBLIGATORIO (usuario, 2026-11-14): a ese email va la copia del documento firmado,
+            con el porqué entre paréntesis y en la caja verde de encima de «Aceptar firma». */}
+        <label className="sig-lbl" htmlFor="sigEmail">Email <Req /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
             salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}
