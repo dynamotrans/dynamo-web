@@ -501,12 +501,14 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({CONTACTO.telefono}).</div>
           {/* Cámara y galería en la misma fila: las fotos se verán en la incidencia del envío. */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <label className="sig-foto-btn">
+            <label className="sig-foto-btn" onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); if (!subiendo && fotos.length < 6) void subirFotos(e.dataTransfer.files); }}>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
               Cámara
               <input type="file" accept="image/*" capture="environment" hidden disabled={subiendo || fotos.length >= 6} onChange={(e) => { void subirFotos(e.target.files); e.target.value = ''; }} />
             </label>
-            <label className="sig-foto-btn">
+            <label className="sig-foto-btn" onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); if (!subiendo && fotos.length < 6) void subirFotos(e.dataTransfer.files); }}>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
               Galería
               <input type="file" accept="image/*" multiple hidden disabled={subiendo || fotos.length >= 6} onChange={(e) => { void subirFotos(e.target.files); e.target.value = ''; }} />

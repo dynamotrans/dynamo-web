@@ -128,9 +128,7 @@ body {
 .sidebar-link.active { background: rgba(51,0,204,0.09); color: var(--purple); }
 /* Envíos resaltado: fondo verde suave + texto verde en negrita, para
    que destaque como acción principal (se mantiene incluso al hover). */
-.sidebar-link-featured { background: rgba(34,165,90,0.10); color: var(--green-dark); font-weight: 800; }
-.sidebar-link-featured:hover { background: rgba(34,165,90,0.16); color: var(--green-dark); }
-.sidebar-link-featured.active { background: rgba(34,165,90,0.18); color: var(--green-dark); }
+/* El verde fijo de «Envíos» se quitó (usuario, 2026-11-14): solo el morado activo. */
 .sidebar-link svg { flex-shrink: 0; }
 .sidebar-link .badge {
     margin-left: auto; background: var(--orange); color: white;

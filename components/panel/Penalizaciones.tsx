@@ -4,10 +4,11 @@
 // dashboard.html (pestañas Pendientes de confirmar · Confirmadas · Canceladas · Todas;
 // columnas Penalización · Envío · Tipo · Transportista · P. cliente · P. transportista ·
 // Margen · Fecha; ventana con «Envío referenciado» y su resumen).
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
+import CajaSubir from './CajaSubir';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
 import BarraFiltros from './BarraFiltros';
@@ -143,8 +144,6 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
   // penalización ya existe: idCreada hace que el reintento actualice en vez de duplicar.
   const [pendientes, setPendientes] = useState<File[]>([]);
   const [idCreada, setIdCreada] = useState<string | null>(null);
-  const inFoto = useRef<HTMLInputElement>(null);
-  const inGal = useRef<HTMLInputElement>(null);
   const anadirPendientes = (lista: FileList) => {
     setError(null);
     const nuevos: File[] = [];
@@ -260,26 +259,7 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
         {fila ? <Documentos dueno={{ campo: 'penalizacion_id', id: fila.id }} tipos={['gps_tacografo', 'albaran', 'cmr_firmado', 'foto_incidencia', 'otro']}
           ayuda={<>P. ej. el <strong>GPS o tacógrafo del camión</strong> para justificar esperas en carga o descarga, fotos, albaranes u otros documentos.</>} />
           : <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <div className="modal-file-drop" role="button" tabIndex={0} onClick={() => inFoto.current?.click()}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inFoto.current?.click(); } }}>
-                <div>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>{' '}
-                  Hacer foto
-                </div>
-              </div>
-              <div className="modal-file-drop" role="button" tabIndex={0} onClick={() => inGal.current?.click()}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inGal.current?.click(); } }}>
-                <div>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>{' '}
-                  Galería o archivo
-                </div>
-              </div>
-            </div>
-            <input ref={inFoto} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
-              onChange={(e) => { if (e.target.files?.length) anadirPendientes(e.target.files); e.target.value = ''; }} />
-            <input ref={inGal} type="file" multiple accept={ACEPTA} style={{ display: 'none' }}
-              onChange={(e) => { if (e.target.files?.length) anadirPendientes(e.target.files); e.target.value = ''; }} />
+            <CajaSubir onFiles={(f) => anadirPendientes(f)} accept={ACEPTA} />
             {pendientes.length > 0 && (
               <ul className="modal-file-list">
                 {pendientes.map((f, i) => (

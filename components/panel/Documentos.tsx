@@ -1,13 +1,14 @@
 'use client';
 
 import { fechaHora } from '@/lib/formato';
+import CajaSubir from './CajaSubir';
 
 // Documentos de una ficha (envío, incidencia, penalización, transportista, almacenamiento,
 // operador o usuario), con el diseño de los adjuntos del mockup (.modal-file-drop y
 // .modal-file-list). El fichero va DIRECTO del navegador al bucket privado de Supabase
 // (sin pasar por Vercel) y luego se registra su fila con su huella sha256. Abrir = enlace
 // firmado de un minuto, en el visor (regla 0-bis). Quitar = borrado suave.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { documentosDe, rutaDeSubida, registrarDocumento, quitarDocumento, visibleParaCliente, type Dueno, type DocumentoFila } from '@/app/panel/(app)/documentos/acciones';
 
@@ -49,8 +50,6 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
   const [subiendo, setSubiendo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [quitar, setQuitar] = useState<DocumentoFila | null>(null);
-  const [encima, setEncima] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
 
   const cargar = useCallback(() => { documentosDe(dueno).then((d) => { setDocs(d); onCambio?.(); }); }, [dueno.campo, dueno.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { cargar(); }, [cargar]);
@@ -84,20 +83,10 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
               </select>
             </div>
           )}
-          <div className={`modal-file-drop${lleno || subiendo ? ' is-disabled' : ''}`} role="button" tabIndex={0}
-            style={encima ? { borderColor: 'var(--purple)', background: 'rgba(51,0,204,0.04)', color: 'var(--purple)' } : undefined}
-            onClick={() => { if (!lleno && !subiendo) input.current?.click(); }}
-            onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !lleno && !subiendo) { e.preventDefault(); input.current?.click(); } }}
-            onDragOver={(e) => { e.preventDefault(); setEncima(true); }} onDragLeave={() => setEncima(false)}
-            onDrop={(e) => { e.preventDefault(); setEncima(false); if (!lleno && !subiendo && e.dataTransfer.files.length) subir(e.dataTransfer.files); }}>
-            <div>
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>{' '}
-              {subiendo ? `Subiendo «${subiendo}»…` : lleno ? `Máximo ${max} documentos` : 'Selecciona archivos o arrástralos aquí'}
-            </div>
-            <div className="modal-file-drop-sub">{soloImagen ? 'JPG, PNG o WEBP' : 'PDF, JPG, PNG, WEBP o HEIC'} · máx. 25 MB cada uno{max ? ` · hasta ${max}` : ''}</div>
-          </div>
-          <input ref={input} type="file" multiple={!max || max > 1} accept={soloImagen ? 'image/jpeg,image/png,image/webp' : ACEPTA} style={{ display: 'none' }}
-            onChange={(e) => { if (e.target.files?.length) subir(e.target.files); e.target.value = ''; }} />
+          <CajaSubir onFiles={(f) => subir(f)} accept={soloImagen ? 'image/jpeg,image/png,image/webp' : ACEPTA}
+            multiple={!max || max > 1} disabled={lleno || !!subiendo}
+            sub={<>{subiendo ? <strong>Subiendo «{subiendo}»… · </strong> : lleno ? <strong>Máximo {max} documentos · </strong> : null}
+              {soloImagen ? 'JPG, PNG o WEBP' : 'PDF, JPG, PNG, WEBP o HEIC'} · máx. 25 MB cada uno{max ? ` · hasta ${max}` : ''}</>} />
         </>
       )}
       {ayuda && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.35rem', lineHeight: 1.45 }}>{ayuda}</div>}

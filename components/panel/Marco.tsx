@@ -153,7 +153,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
     ns.map((b, i) => <span key={i} className={`badge${b.rojo ? ' sb-red' : ''}`} title={b.t} aria-label={`${b.n} · ${b.t}`}>{b.n}</span>);
   const enlace = (e: Enlace) => (
     <Link key={e.slug} href={`/panel/${e.slug}`}
-          className={`sidebar-link${e.destacado ? ' sidebar-link-featured' : ''}${activo(e.slug) ? ' active' : ''}`}
+          className={`sidebar-link${activo(e.slug) ? ' active' : ''}`}
           aria-current={activo(e.slug) ? 'page' : undefined}>
       <Ico k={e.icono} />
       <span className="sl-txt">{e.titulo}</span>

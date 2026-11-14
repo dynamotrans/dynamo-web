@@ -3,7 +3,8 @@
 // Recursos: el diseño de #sec-recursos de dashboard.html (tarjetas .rec-card) y su ventana
 // «Medidas de los camiones» (.med-tabs). Las medidas son las OFICIALES (regla 0-quinquies
 // de CLAUDE.md): si cambian, cambiarlas también en index.html, en las hojas de sección y aquí.
-import { useRef, useState } from 'react';
+import { useState } from 'react';
+import CajaSubir from './CajaSubir';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
@@ -136,7 +137,6 @@ function SubirRecurso({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
   const [archivo, setArchivo] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
-  const input = useRef<HTMLInputElement>(null);
   function elegir(f: File | undefined) {
     setError(null);
     document.getElementById('rec-arch')?.classList.remove('campo-falta');
@@ -172,13 +172,8 @@ function SubirRecurso({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label>Archivo <Req /></label>
-          <div id="rec-arch" className="modal-file-drop" role="button" tabIndex={0} onClick={() => input.current?.click()}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.current?.click(); } }}
-            onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); elegir(e.dataTransfer.files[0]); }}>
-            <div>{archivo ? `«${archivo.name}»` : 'Selecciona el archivo o arrástralo aquí'}</div>
-            <div className="modal-file-drop-sub">PDF, JPG, PNG, WEBP o HEIC · máx. 25 MB</div>
-          </div>
-          <input ref={input} type="file" accept={ACEPTA} hidden onChange={(e) => { elegir(e.target.files?.[0]); e.target.value = ''; }} />
+          <CajaSubir onFiles={(f) => elegir(f[0])} accept={ACEPTA} multiple={false}
+            sub={<>{archivo ? <strong>«{archivo.name}» · </strong> : null}PDF, JPG, PNG, WEBP o HEIC · máx. 25 MB</>} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="rec-tit">Título <Req /></label>
