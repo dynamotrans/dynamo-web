@@ -133,38 +133,24 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const waTelCli = (d?.clienteTelefono ?? '').replace(/[^0-9]/g, '');
   const mailtoCli = `mailto:${d?.clienteEmail ?? ''}?subject=${encodeURIComponent(`Tu envío #${e.referencia_gx} · Dynamo`)}&body=${encodeURIComponent(msgCli.replace(/\n/g, '\r\n'))}`;
 
-  // ---- Enviar con los PDF ADJUNTOS (usuario, 2026-11-11: «no solo enlaces») ----------
-  // La hoja de compartir del sistema (navigator.share con archivos) adjunta los PDF de
-  // verdad en WhatsApp, Mail, etc. (móvil y buena parte de escritorio). Donde no existe,
-  // los PDF se descargan y se abre el email con el mensaje, para adjuntarlos a mano.
-  const [compartiendo, setCompartiendo] = useState(false);
-  const [avisoShare, setAvisoShare] = useState<string | null>(null);
-  async function compartirConPdf() {
-    setAvisoShare(null); setCompartiendo(true);
-    try {
-      const lista: [string, string][] = que === 'conjunta'
-        ? [[enlOp, 'conductor'], [enlEc, 'administracion']]
-        : [[enlace, que === 'operativa' ? 'conductor' : 'administracion']];
-      const files = await Promise.all(lista.map(async ([url, suf]) => {
+  // ---- Los PDF se DESCARGAN al pulsar WhatsApp o Email (usuario, 2026-11-13) ---------
+  // Fuera el botón de la hoja de compartir del sistema: en escritorio no adjuntaba.
+  // Ni el email ni WhatsApp dejan adjuntar un archivo desde un enlace, así que al pulsar
+  // cualquiera de los dos se DESCARGAN los PDF de la copia elegida y se abre el mensaje
+  // con el transportista ya puesto — los PDF descargados se adjuntan ahí arrastrándolos.
+  function descargarPdfs() {
+    const lista: [string, string][] = que === 'conjunta'
+      ? [[enlOp, 'conductor'], [enlEc, 'administracion']]
+      : [[enlace, que === 'operativa' ? 'conductor' : 'administracion']];
+    lista.forEach(async ([url, suf]) => {
+      try {
         const r = await fetch(url);
-        if (!r.ok) throw new Error('No se ha podido generar el PDF de la orden.');
-        return new File([await r.blob()], `Orden-${e.referencia_gx}-${suf}.pdf`, { type: 'application/pdf' });
-      }));
-      if (typeof navigator.canShare === 'function' && navigator.canShare({ files })) {
-        await navigator.share({ files, title: `Orden de carga #${e.referencia_gx} · Dynamo`, text: msg });
-      } else {
-        for (const f of files) {
-          const u = URL.createObjectURL(f);
-          const a = document.createElement('a'); a.href = u; a.download = f.name; a.click();
-          URL.revokeObjectURL(u);
-        }
-        window.location.href = mailtoHref;
-        setAvisoShare('Este navegador no deja adjuntar directamente: los PDF se han DESCARGADO y se ha abierto el email con el mensaje — arrastra los PDF descargados al email antes de enviarlo.');
-      }
-    } catch (err) {
-      if ((err as { name?: string })?.name !== 'AbortError') setAvisoShare('No se ha podido compartir. Usa los botones de abajo: el PDF irá como enlace de descarga.');
-    }
-    setCompartiendo(false);
+        if (!r.ok) return;
+        const u = URL.createObjectURL(await r.blob());
+        const a = document.createElement('a'); a.href = u; a.download = `Orden-${e.referencia_gx}-${suf}.pdf`; a.click();
+        URL.revokeObjectURL(u);
+      } catch { /* la descarga nunca rompe la apertura del mensaje */ }
+    });
   }
 
   return (
@@ -183,13 +169,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
             El resumen del envío para <strong>el cliente</strong>: sin precios y sin los datos del transportista
             (solo matrículas y conductor), con su enlace de firma del eCMR.
           </p>
-          <div className="ptar-sitio-grid">
-            <div style={{ gridColumn: '1/-1' }}>
-              <label htmlFor="ord-msg-cli">Mensaje listo para enviar</label>
-              <textarea id="ord-msg-cli" readOnly rows={11} value={msgCli} />
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem', marginTop: '0.55rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem' }}>
             <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
               onClick={() => { navigator.clipboard?.writeText(msgCli); setCopiado('cli'); }}>{copiado === 'cli' ? 'Copiado ✓' : 'Copiar mensaje'}</button>
             <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
@@ -232,17 +212,8 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
                 </div>
               </div>
             ))}
-            <div style={{ gridColumn: '1/-1' }}>
-              <label htmlFor="ord-msg">Mensaje listo para enviar</label>
-              <textarea id="ord-msg" readOnly rows={9} value={msg} />
-            </div>
           </div>
-          {/* Enviar con los PDF adjuntos: la vía preferida (usuario, 2026-11-11). */}
-          <button type="button" className="btn-primary" style={{ width: '100%', marginTop: '0.8rem' }} onClick={compartirConPdf} disabled={compartiendo}>
-            {compartiendo ? 'Preparando los PDF…' : `Enviar con ${que === 'conjunta' ? 'los PDF adjuntos' : 'el PDF adjunto'} (WhatsApp, email…)`}
-          </button>
-          {avisoShare && <div className="modal-warn-box" style={{ marginTop: '0.5rem' }}>{avisoShare}</div>}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.45rem', marginTop: '0.55rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.45rem', marginTop: '0.8rem' }}>
             {que === 'conjunta' ? (
               <>
                 <a className="btn-primary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={enlOp} target="_blank" rel="noopener" title="Abrir el PDF operativa (conductor)">Operativa</a>
@@ -255,16 +226,18 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
                   onClick={() => { navigator.clipboard?.writeText(enlace); setCopiado('un'); }}>{copiado === 'un' ? 'Copiado ✓' : 'Enlace'}</button>
               </>
             )}
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)}` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
+            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)} (los PDF se descargan al pulsar)` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
+              onClick={() => descargarPdfs()}
               href={`https://wa.me/${waTel}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
-            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.email ? `Email a ${d.email}` : 'El transportista no tiene email en su ficha: se abre sin destinatario'}
+            <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} title={d?.email ? `Email a ${d.email} (los PDF se descargan al pulsar)` : 'El transportista no tiene email en su ficha: se abre sin destinatario'}
+              onClick={() => descargarPdfs()}
               href={mailtoHref}>Email</a>
           </div>
           <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
-            <strong>«Enviar con el PDF adjunto»</strong> abre la hoja de compartir del sistema con los PDF de verdad adjuntos
-            (elige ahí WhatsApp, Mail…). Los botones de WhatsApp y Email de abajo se abren con el transportista y el mensaje ya
-            puestos, pero el PDF va como enlace de descarga (ni el email ni WhatsApp dejan adjuntar desde un enlace).
-            La copia del conductor no lleva ninguna información económica; la económica solo se abre con su enlace completo (lleva la clave).
+            Al pulsar <strong>WhatsApp</strong> o <strong>Email</strong> se <strong>descargan los PDF</strong> de la copia
+            elegida y se abre el mensaje con el transportista ya puesto: <strong>adjunta ahí los PDF descargados</strong>
+            (ni el email ni WhatsApp dejan adjuntarlos solos). La copia del conductor no lleva ninguna información económica;
+            la económica solo se abre con su enlace completo (lleva la clave).
           </p>
         </>
       )}
