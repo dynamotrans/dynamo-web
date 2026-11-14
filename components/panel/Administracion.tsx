@@ -89,11 +89,11 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
         {pestana === 'proformas' ? (
           <div className="table-wrap">
             <table className="data">
-              <thead><tr><th>Proforma</th>{dynamo && <th>Cliente</th>}<th>Almacenamiento</th><th>Base (sin IVA)</th><th>Total (IVA incl.)</th><th>Pago</th><th /></tr></thead>
+              <thead><tr><th>Proforma</th>{dynamo && <th>Cliente</th>}<th>Concepto</th><th>Base (sin IVA)</th><th>Total (IVA incl.)</th><th>Pago</th><th /></tr></thead>
               <tbody>
                 {lista.length === 0 ? (
                   <tr><td colSpan={dynamo ? 7 : 6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                    {proformas.length ? 'No hay proformas con este filtro.' : 'Aún no hay proformas. Salen solas de los almacenamientos con pago por adelantado.'}
+                    {proformas.length ? 'No hay proformas con este filtro.' : 'Aún no hay proformas. Salen solas de los envíos con pago por adelantado; también las tienes en la ficha de cada envío.'}
                   </td></tr>
                 ) : (lista as ProformaFila[]).map((p) => (
                   <tr key={p.id}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { fechaHora } from '@/lib/formato';
+import EstadoVacio from './EstadoVacio';
 import CajaSubir from './CajaSubir';
 
 // Transportistas propios del cliente (catálogo PRIVADO, tabla `operadores`), con el diseño
@@ -42,7 +43,7 @@ function Intro({ dynamo }: { dynamo: boolean }) {
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.4rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
         {punto(<><strong>Privado.</strong> {dynamo ? 'Cada cliente ve solo los suyos' : 'Solo lo ves tú y tu empresa'}: ningún otro cliente ni transportista de la plataforma tiene acceso.</>)}
         {punto(<><strong>Dynamo no interviene.</strong> En los envíos con {dynamo ? 'sus' : 'tus'} otros proveedores de transporte (agencias, empresas de transporte, autónomos transportistas) <strong>no contactamos con ellos ni tocamos nada:</strong> ni precios, ni albaranes, ni condiciones. Es {dynamo ? 'su' : 'tu'} relación directa.</>)}
-        {punto(<><strong>Gratis y sin compromiso.</strong> Es solo una herramienta para {dynamo ? 'que tenga' : 'tener'} todo controlado. Se puede borrar cuando {dynamo ? 'quiera' : 'quieras'}.</>)}
+        {punto(<><strong>Gratis y sin compromiso.</strong> Es solo una herramienta para {dynamo ? 'que tenga' : 'tener'} todo controlado en una misma plataforma de envíos. Se puede borrar cuando {dynamo ? 'quiera' : 'quieras'}.</>)}
       </ul>
     </div>
   );
@@ -101,7 +102,10 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
             </tr>
             {lista.length === 0 ? (
               <tr><td colSpan={cols} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length ? 'Sin transportistas que coincidan con la búsqueda.' : dynamo ? 'Ningún cliente ha añadido todavía transportistas propios.' : 'Aún no has añadido transportistas propios. Añade uno con «+ Nuevo transportista».'}
+                {filas.length ? 'Sin transportistas que coincidan con la búsqueda.' : dynamo ? 'Ningún cliente ha añadido todavía transportistas propios.'
+                  : <EstadoVacio titulo="Aún no has añadido transportistas propios"
+                      texto="Tu catálogo privado: todos los envíos juntos en Envíos, los de Dynamo y los tuyos con otros transportistas/agencias que trabajes. Solo lo ve tu empresa."
+                      accion={<button type="button" className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Crear tu primer transportista</button>} />}
               </td></tr>
             ) : lista.map((o) => (
               <tr key={o.id} onClick={() => setFicha({ fila: o })} style={{ cursor: 'pointer' }}>
@@ -232,7 +236,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         <button className="btn-primary" onClick={guardar} disabled={!!trabajando}>{fila ? 'Guardar cambios' : 'Crear transportista'}</button>
       </>}>
-      {!fila && <div style={{ marginBottom: '0.8rem', padding: '0.65rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.2)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}><strong>Privado, gratis y sin intervención de Dynamo.</strong> Sirve para tener <strong>centralizada la logística y el transporte de {dynamo ? 'su' : 'tu'} empresa en un mismo lugar</strong>: todos los envíos juntos en Envíos, los de Dynamo y los {dynamo ? 'suyos' : 'tuyos'}. Solo lo ve {dynamo ? 'ese cliente' : 'tu empresa'}; no contactamos con este transportista ni tocamos precios, albaranes ni condiciones.</div>}
+      {!fila && <div style={{ marginBottom: '0.8rem', padding: '0.65rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.2)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}><strong>Privado, gratis y sin intervención de Dynamo.</strong> Sirve para tener <strong>centralizada la logística y el transporte de {dynamo ? 'su' : 'tu'} empresa en un mismo lugar</strong>: todos los envíos juntos en Envíos, los de Dynamo y los {dynamo ? 'suyos' : 'tuyos'}. Solo lo ve {dynamo ? 'ese cliente' : 'tu empresa'}; no contactamos con este transportista ni tocamos precios, albaranes ni condiciones. Es privado.</div>}
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
           Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}

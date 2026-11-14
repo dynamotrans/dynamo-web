@@ -12,6 +12,17 @@ import type { Tabla, TablaUpdate } from '@/lib/supabase/tipos';
 import type { SitioOpcion, SitioEditable, EdicionSitio } from '@/components/panel/nuevoEnvio/comun';
 import { HORARIO_VERANO_POR_DEFECTO, MMDD, VERANO_GENERICO, gruposDe, type FilaHorario } from '@/lib/horarios';
 
+// El tarifador ENSEÑA un precio al cliente → se registra UNA consulta (usuario,
+// 2026-11-14): el contador de «Uso de Dynamo» y los límites de la regla 3 se quedaron a
+// cero cuando se retiró el flujo viejo de solicitudes de precio. La web llama una vez
+// por ruta consultada (no por cada ajuste); la base de datos ignora al equipo de Dynamo.
+export async function registrarConsultaPrecio(): Promise<void> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#registrarConsultaPrecio", []);
+  const s = await sesion();
+  if (!s) return;
+  await s.supabase.rpc('registrar_consulta_precio');
+}
+
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
   sitio_id?: string | null;

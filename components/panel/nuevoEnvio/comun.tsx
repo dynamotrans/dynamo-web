@@ -83,7 +83,7 @@ export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit, mer
   } else if (p.nuevo) {
     const n = p.nuevo;
     base = { empresa: n.nombre_empresa, tipo: n.tipo_sitio, nuevo: true, dynamo: false, contacto_id: null,
-      horario: n.horario ?? HORARIO_POR_DEFECTO, verano: VERANO_VACIO, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
+      horario: n.horario ?? HORARIO_POR_DEFECTO, verano: { ...VERANO_VACIO, activo: true }, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
   } else {
     // Punto aún sin sitio (ruta a medio rellenar): ficha vacía y SIN horario, para que
     // ningún aviso salte ni nada reviente (antes p.nuevo! con null tumbaba la pantalla).

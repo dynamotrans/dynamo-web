@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
@@ -54,6 +54,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   };
   const router = useRouter();
   const refrescar = useRefrescar();
+  // Una CONSULTA DE PRECIO por ruta enseñada (usuario, 2026-11-14): alimenta «Uso de
+  // Dynamo» y los límites de uso. Solo cuentan los clientes (la BD ignora al equipo), y
+  // la firma de la ruta evita contar cada ajuste de mercancía, fecha o ventana.
+  const consultaReg = useRef<string | null>(null);
   const fest = useMemo(() => new Set(festivos), [festivos]);
   // Los sitios que hay en pantalla: los almacenes de Dynamo y los del cliente elegido (los
   // de cada cliente se piden al elegirlo; en la vista del cliente ya vienen todos los suyos).
@@ -303,6 +307,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return (!esCliente && !cliente) ? aplicarDescuentoTarifa(t, Number(reglas?.bienvenida_pct ?? -7)) : t;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos, cliente]);
+  useEffect(() => {
+    // Registrar la consulta cuando el tarifador ENSEÑA precio a un cliente: una por
+    // ruta (claveRuta), nunca al editar un envío ya creado.
+    if (!esCliente || editar || !tarifa || !rutaCompleta) return;
+    if (consultaReg.current === claveRuta) return;
+    consultaReg.current = claveRuta;
+    void registrarConsultaPrecio().catch(() => { /* contar la consulta nunca rompe el tarifador */ });
+  }, [esCliente, editar, tarifa, rutaCompleta, claveRuta]);
   // Tabla «Precios internos» (mockup): compra del tarifador (mock 72-84 % por hash de la
   // ruta), «Aplicado · media auto» y margen. Y el autorrelleno: venta = Aplicado, compra =
   // la más baja de la tabla; lo tecleado a mano no se pisa.
@@ -1176,7 +1188,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     <div className="ptar-admin-precio-head">Precio con {nombreOp}</div>
                     <label className="ptar-admin-precio-lbl" htmlFor="ne-pop">Precio acordado con tu transportista (sin IVA) <Req si={false} /></label>
                     <input id="ne-pop" type="text" inputMode="decimal" placeholder="Ej. 450,00" value={precioOp} onChange={(ev) => setPrecioOp(ev.target.value)} />
-                    <p className="ptar-admin-precio-note">Solo para tu control y para la orden de carga. Dynamo no lo ve en ningún precio suyo.</p>
+                    <p className="ptar-admin-precio-note">Solo para tu control y para la orden de carga. Dynamo no interviene.</p>
                   </div>
                   {navBotones}
                   </>
@@ -1368,11 +1380,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
       {/* Doble confirmación (Dynamo): costes de cancelación + condiciones generales. */}
       <Modal abierto={revisarLegal} onCerrar={() => { if (!enviando) setRevisarLegal(false); }} ancho={620}
-        titulo="Confirmar envío" sub="Revisa los costes de cancelación antes de crear el envío."
+        titulo="Confirmar envío" sub={manual ? 'Confirma los datos antes de crear el envío.' : 'Revisa los costes de cancelación antes de crear el envío.'}
         pie={<>
           <button type="button" className="btn-ghost" onClick={() => setRevisarLegal(false)} disabled={enviando}>← Volver</button>
           <button type="button" className="btn-primary btn-confirmar-xl" disabled={enviando}
-            onClick={() => { if (!aceptaLegal) { setFaltaLegal(true); return; } crear(); }}>{enviando ? 'Creando envío…' : 'Confirmar envío'}</button>
+            onClick={() => { if (!manual && !aceptaLegal) { setFaltaLegal(true); return; } crear(); }}>{enviando ? 'Creando envío…' : 'Confirmar envío'}</button>
         </>}>
         <div className="confirm-fino">
         {esHoy && (
@@ -1397,9 +1409,18 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           const fs = resolverFicha(pt, datosSitios, edicSitios[pt.k]);
           return fs.horario.length > 0 ? <AvisoCierreSitio key={pt.k} empresa={fs.empresa || 'El sitio de recogida'} horario={fs.horario} repercusion /> : null;
         })}
-        <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
+        {/* Con transportista PROPIO del cliente (manual) el modal es BÁSICO (usuario,
+            2026-11-14): nada de costes de cancelación, suspensión ni condiciones de
+            Dynamo — Dynamo no interviene en ese transporte. */}
+        {manual && (
+          <div className="pt-aviso info" style={{ marginTop: 0, marginBottom: 0 }}><div>
+            El envío queda <strong>programado con tu transportista</strong>{nombreOp ? <> (<strong>{nombreOp}</strong>)</> : null}. Dynamo no interviene:
+            es solo para tu control y podrás sacar la <strong>orden de carga</strong> desde el envío.
+          </div></div>
+        )}
+        {!manual && <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
-        </div></div>
+        </div></div>}
         {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): si no aplica, no
             se dice nada. */}
         {esCliente && pagoPrevio && !manual && (
@@ -1414,21 +1435,21 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             el «3 en 10» a pelo se quedaba viejo), con lo que lleva el cliente debajo. */}
         {/* Frase corta, sin números ni coletillas (usuario, 2026-11-12); el detalle
             vivo de los límites sigue en «Uso de Dynamo». */}
-        <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+        {!manual && <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
           La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
-        </div>
-        <div style={{ marginTop: '0.6rem' }}>
+        </div>}
+        {!manual && <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}
             style={{ background: 'none', border: 'none', padding: 0, color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', font: 'inherit', fontSize: 'var(--fs-m)', textDecoration: 'underline' }}>
             {verCondiciones ? '▾' : '▸'} {verCondiciones ? 'Ocultar' : 'Ver'} condiciones generales de transporte
           </button>
           {verCondiciones && <div className="ptar-terms-scroll" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem', marginTop: '0.4rem' }}><CondicionesGenerales /></div>}
-        </div>
-        <label className={`ptar-confirm-check${faltaLegal && !aceptaLegal ? ' ptar-check-err' : ''}`} style={{ marginTop: '0.9rem' }}>
+        </div>}
+        {!manual && <label className={`ptar-confirm-check${faltaLegal && !aceptaLegal ? ' ptar-check-err' : ''}`} style={{ marginTop: '0.9rem' }}>
           <input type="checkbox" checked={aceptaLegal} onChange={(e) => { setAceptaLegal(e.target.checked); if (e.target.checked) setFaltaLegal(false); }} />
           <span>He leído los <strong>costes de cancelación</strong> y las <strong>condiciones generales de transporte</strong>.</span>
-        </label>
-        {faltaLegal && !aceptaLegal && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.5rem' }}>⚠ Marca la casilla de arriba para poder confirmar el envío.</div>}
+        </label>}
+        {!manual && faltaLegal && !aceptaLegal && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.5rem' }}>⚠ Marca la casilla de arriba para poder confirmar el envío.</div>}
         {aviso && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {aviso}</div>}
         </div>
       </Modal>

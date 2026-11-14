@@ -8,9 +8,9 @@ export const DIAS: [number, string, string][] = [
   [1, 'L', 'Lunes'], [2, 'M', 'Martes'], [3, 'X', 'Miércoles'], [4, 'J', 'Jueves'],
   [5, 'V', 'Viernes'], [6, 'S', 'Sábado'], [7, 'D', 'Domingo'],
 ];
-// El horario por defecto del usuario (2026-11-03), el mismo que pone la base de datos.
+// El horario por defecto del usuario (2026-11-14), el mismo que pone la base de datos.
 export const HORARIO_POR_DEFECTO: GrupoHorario[] = [
-  { dias: [1, 2, 3, 4], tramos: [{ abre: '08:00', cierra: '14:00' }, { abre: '15:00', cierra: '17:30' }] },
+  { dias: [1, 2, 3, 4], tramos: [{ abre: '08:00', cierra: '14:00' }, { abre: '15:30', cierra: '17:30' }] },
   { dias: [5], tramos: [{ abre: '08:00', cierra: '14:00' }] },
 ];
 
@@ -94,9 +94,9 @@ export function diasCerrado(abiertos: number[] | null | undefined, dias: string[
 // (verano_sitios_desde / verano_sitios_hasta); estas son las de reserva si faltan.
 export type Verano = { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
 export type FechasVerano = { desde: string; hasta: string };
-export const VERANO_GENERICO: FechasVerano = { desde: '05-25', hasta: '09-15' };
+export const VERANO_GENERICO: FechasVerano = { desde: '06-01', hasta: '09-15' };
 // Al activar el de verano, por defecto: lunes a viernes de 7:30 a 15:00.
-export const HORARIO_VERANO_POR_DEFECTO: GrupoHorario[] = [{ dias: [1, 2, 3, 4, 5], tramos: [{ abre: '07:30', cierra: '15:00' }] }];
+export const HORARIO_VERANO_POR_DEFECTO: GrupoHorario[] = [{ dias: [1, 2, 3, 4, 5], tramos: [{ abre: '07:00', cierra: '15:00' }] }];
 export const MMDD = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 /** '05-25' → '25 de mayo' */

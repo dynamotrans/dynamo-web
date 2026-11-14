@@ -539,7 +539,7 @@ end $$;
 reset role;
 do $$ begin
   if (select horarios from sitios where id = current_setting('prueba.sitio_a')::uuid)
-     is distinct from 'Lunes a jueves 8:00–14:00 y 15:00–17:30 · viernes 8:00–14:00' then
+     is distinct from 'Lunes a jueves 8:00–14:00 y 15:30–17:30 · viernes 8:00–14:00' then
     raise exception 'FALLO 22 · el horario de la ficha de A ha cambiado';
   end if;
   if (select anotaciones from sitios where id = current_setting('prueba.sitio_a')::uuid) not like 'Manolo%' then
@@ -1537,17 +1537,27 @@ set role authenticated;
 do $$ declare l uuid; begin
   insert into sitios (nombre_empresa, codigo_postal) values ('Nave con horario', '41001') returning id into l;
   perform set_config('prueba.sitio_horario', l::text, false);
-  if (select count(*) from sitio_horarios where sitio_id = l) <> 9 then
+  -- (2026-11-14: general con tarde 15:30 y VERANO activado por defecto, 1 jun - 15 sep.)
+  if (select count(*) from sitio_horarios where sitio_id = l and temporada = 'general') <> 9 then
     raise exception 'FALLO 56 · el sitio no ha nacido con el horario por defecto';
   end if;
-  if (select horarios from sitios where id = l) <> 'Lunes a jueves 8:00–14:00 y 15:00–17:30 · viernes 8:00–14:00' then
+  if (select horarios from sitios where id = l) <> 'Lunes a jueves 8:00–14:00 y 15:30–17:30 · viernes 8:00–14:00' then
     raise exception 'FALLO 56 · resumen: %', (select horarios from sitios where id = l);
+  end if;
+  if (select count(*) from sitio_horarios where sitio_id = l and temporada = 'verano' and abre = '07:00' and cierra = '15:00') <> 5 then
+    raise exception 'FALLO 56 · el sitio no ha nacido con el horario de verano por defecto';
+  end if;
+  if not exists (select 1 from sitios where id = l and verano_activo and verano_desde = '06-01' and verano_hasta = '09-15') then
+    raise exception 'FALLO 56 · el verano no nace activado del 1-jun al 15-sep';
+  end if;
+  if (select horarios_verano from sitios where id = l) <> 'Lunes a viernes 7:00–15:00' then
+    raise exception 'FALLO 56 · resumen del verano: %', (select horarios_verano from sitios where id = l);
   end if;
   -- El cliente cambia su horario: el viernes también por la tarde, y abre el sábado.
   delete from sitio_horarios where sitio_id = l and dia_semana = 5;
   insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values
-    (l, 5, '08:00', '14:00'), (l, 5, '15:00', '17:30'), (l, 6, '09:00', '13:00');
-  if (select horarios from sitios where id = l) <> 'Lunes a viernes 8:00–14:00 y 15:00–17:30 · sábado 9:00–13:00' then
+    (l, 5, '08:00', '14:00'), (l, 5, '15:30', '17:30'), (l, 6, '09:00', '13:00');
+  if (select horarios from sitios where id = l) <> 'Lunes a viernes 8:00–14:00 y 15:30–17:30 · sábado 9:00–13:00' then
     raise exception 'FALLO 56 · resumen tras cambiar: %', (select horarios from sitios where id = l);
   end if;
   begin
@@ -1611,7 +1621,7 @@ do $$ declare a uuid; begin
     raise exception 'FALLO 57 · un sitio de cliente ha guardado precio de almacen';
   exception when check_violation then null;
   end;
-  if (select count(*) from sitio_horarios where sitio_id = a) <> 9 then
+  if (select count(*) from sitio_horarios where sitio_id = a and temporada = 'general') <> 9 then
     raise exception 'FALLO 57 · el almacen no ha nacido con el horario por defecto';
   end if;
   raise notice 'OK 57 · almacenes Dynamo: precio propio opcional, por defecto en parametros, solo en almacenes';
@@ -4172,6 +4182,9 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare l uuid := current_setting('prueba.sitio_a')::uuid; begin
+  -- (2026-11-14: los sitios nacen con el verano ACTIVADO por defecto — para probar el
+  -- caso «sin activar» primero se apaga.)
+  perform guardar_horario_verano(l, false, null, null, null);
   -- Sin activar: el general todo el año.
   if exists (select 1 from horario_del_dia(l, make_date(2027, 7, 14)) where temporada = 'verano') then
     raise exception 'FALLO 119 · sin activar, usa un horario de verano';
@@ -8527,4 +8540,32 @@ begin
     raise exception 'FALLO 215 · con la clave del cliente no sale (solo) su importe con IVA, o se cuela el porteador';
   end if;
   raise notice 'OK 215 · copia cliente: los dos importes viajan en el JSON interno y la clave decide qué economía suelta el enlace público';
+end $$;
+
+-- =====================================================================================
+-- PRUEBA 216 · el tarifador vuelve a contar consultas de precio (registrar_consulta_precio)
+-- =====================================================================================
+do $$
+declare u_cli uuid := current_setting('prueba.u_cli')::uuid; n0 int; n1 int; j jsonb;
+begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  select count(*) into n0 from consultas_precio where usuario_id = u_cli;
+  perform registrar_consulta_precio();
+  select count(*) into n1 from consultas_precio where usuario_id = u_cli;
+  if n1 <> n0 + 1 then raise exception 'FALLO 216 · la consulta del cliente no se registra'; end if;
+  if (select origen from consultas_precio where usuario_id = u_cli order by cuando desc, id desc limit 1) <> 'tarifador' then
+    raise exception 'FALLO 216 · la consulta no queda con origen tarifador';
+  end if;
+  j := mi_autosuspension();
+  if coalesce((j->'consultas'->>'hoy')::int, 0) < 1 then
+    raise exception 'FALLO 216 · mi_autosuspension no cuenta la consulta del tarifador: %', j;
+  end if;
+  -- El equipo de Dynamo no cuenta: la función no registra nada.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  select count(*) into n0 from consultas_precio;
+  perform registrar_consulta_precio();
+  select count(*) into n1 from consultas_precio;
+  if n1 <> n0 then raise exception 'FALLO 216 · una consulta del equipo de Dynamo se ha registrado'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 216 · el tarifador registra la consulta del cliente (y del equipo no), y mi_autosuspension la cuenta';
 end $$;

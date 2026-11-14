@@ -49,7 +49,8 @@ function datosDeFicha(fila: SitioFila | null, veranoDefecto: FechasVerano, almac
   if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { w[k] = fila[k] ?? NUEVO[k]; });
   if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
   const v = fila?.verano;
-  o.verano = { activo: !!v?.activo, desde: v?.desde ?? veranoDefecto.desde, hasta: v?.hasta ?? veranoDefecto.hasta,
+  // Verano ACTIVADO por defecto en los sitios nuevos (usuario, 2026-11-14).
+  o.verano = { activo: fila ? !!v?.activo : true, desde: v?.desde ?? veranoDefecto.desde, hasta: v?.hasta ?? veranoDefecto.hasta,
                horario: v?.horario?.length ? v.horario : HORARIO_VERANO_POR_DEFECTO.map((g) => ({ dias: [...g.dias], tramos: g.tramos.map((t) => ({ ...t })) })) };
   if (almacen) o.almacen = fila?.almacen ?? { disponible: true, precio_almacenamiento_semana: null, precio_reparto: null };
   return o as SitioDatos;
@@ -575,6 +576,16 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           </div>
         )}
       </div>
+      {/* SOLO en sitios nuevos (usuario, 2026-11-14): el horario (el por defecto o el que
+          llegue de Google) es una PROPUESTA — avisar de que hay que confirmarlo. */}
+      {!fila && (
+        <div className="modal-warn-box" style={{ marginTop: '0.55rem', marginBottom: 0 }}>
+          <strong>Horario propuesto — revísalo y confírmalo con el sitio.</strong> Lo ponemos por defecto (o llega
+          sugerido de Google) para ir rápido, pero <strong>verificar que es el real es tu responsabilidad</strong>:
+          si un camión llega dentro del horario indicado y el sitio está cerrado por un error de horario, las
+          posibles penalizaciones corren a cargo del cliente asociado a tu usuario.
+        </div>
+      )}
 
       {/* El contacto del sitio es OBLIGATORIO (usuario, 2026-11-09): va tras el horario,
           desplegado y sin el campo Cargo. */}

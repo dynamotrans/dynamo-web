@@ -205,7 +205,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
     { href: '/panel/incidencias', t: 'Incidencias abiertas', s: 'Pendientes de resolver', cero: 'Sin incidencias abiertas', n: contadores.incidencias ?? 0, color: 'inc', ico: ICO_AVISO },
     { href: '/panel/penalizaciones', t: 'Penalizaciones abiertas', s: 'Pendientes de confirmar', cero: 'Ninguna pendiente', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO },
     ...(visto !== 'transportista' ? [{ href: '/panel/envios?f=sin-pagar', t: 'Envíos pendientes de pago', s: 'Se asignan a un camión al pagar', cero: 'Ninguno pendiente de pago', n: contadores.envios_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
-    ...(visto !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Almacenamientos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
+    ...(visto !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Envíos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(visto === 'admin' ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
   ];
   const pendientes = avisos.reduce((a, x) => a + x.n, 0);
