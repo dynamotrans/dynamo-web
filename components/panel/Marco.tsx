@@ -369,10 +369,10 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                 <Chev cls="topbar-user-arrow" />
               </button>
               <div className={`user-menu${menu === 'usuario' ? ' open' : ''}`} role="menu" aria-hidden={menu !== 'usuario'}>
+                {/* Sin repetir avatar y nombre (usuario, 2026-11-14): el botón que abre
+                    este menú ya los enseña — queda el email y el rol. */}
                 <div className="user-menu-head">
-                  <div className="user-menu-head-avatar">{iniciales}</div>
                   <div className="user-menu-head-body">
-                    <div className="user-menu-head-name">{nombre}</div>
                     <div className="user-menu-head-email">{email}</div>
                     <span className="user-menu-role">{ROL_TXT[rol]}</span>
                   </div>

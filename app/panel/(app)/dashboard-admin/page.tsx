@@ -62,7 +62,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
   const cnt = { count: 'exact' as const };
   // OJO: las solicitudes «esperando precio» y las revisiones de precio NO salen (decisión
   // del usuario 2026-11-08): el precio es del tarifador automático, no depende del equipo.
-  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, alm] = await Promise.all([
+  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, alm, susp24, suspTotal] = await Promise.all([
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).in('estado', ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'])),
     supabase.rpc('pronto_pago_estado'),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
@@ -75,7 +75,12 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     supabase.from('penalizaciones').select('id, importe_cliente, importe_transportista, creado_en, envios(referencia_gx), tipos_penalizacion(nombre)', cnt)
       .eq('estado', 'pendiente_confirmar').order('creado_en').limit(MAX),
     supabase.from('usuarios').select('id, email, nombre, rol, creado_en', cnt).eq('estado', 'pendiente_verificacion').is('cliente_id', null).is('transportista_id', null).order('creado_en').limit(MAX),
-    supabase.from('almacenamientos').select('id, codigo, fecha_entrada, creado_en, clientes(nombre_visible)', cnt).eq('estado', 'pendiente_confirmar').order('fecha_entrada').limit(MAX),
+    supabase.from('almacenamientos').select('id, codigo, fecha_entrada, creado_en, clientes(nombre_visible)', cnt).eq('estado', 'pendiente_confirmar').order('fecha_entrada').limit(MAX),,
+    // Cuentas suspendidas por el sistema o a mano (usuario, 2026-11-14): las últimas
+    // 24 h y el total histórico, con enlace a Usuarios filtrado por suspendidas.
+    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('estado', 'suspendida')
+      .gte('suspendida_en', new Date(Date.now() - 24 * 3600 * 1000).toISOString())),
+    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('estado', 'suspendida'))
   ]);
   const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
   const ficha = (id: string) => `/panel/envios?ver=${id}`;
@@ -123,7 +128,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     supabase.rpc('cuadro_mando', { p_desde: per.desde, p_hasta: per.hasta, p_comp_desde: per.cDesde, p_comp_hasta: per.cHasta }),
     supabase.rpc('cuadro_mando_sectores', { p_desde: per.desde, p_hasta: per.hasta }),
   ]);
-  return <DashboardAdmin enCurso={enCurso} bloques={bloques} errorBloques={errores[0] ?? null}
+  return <DashboardAdmin enCurso={enCurso} susp24={susp24} suspTotal={suspTotal} bloques={bloques} errorBloques={errores[0] ?? null}
     prontoPago={(pp.data as ProntoPago) ?? null} errorPP={pp.error?.message ?? null}
     cuadro={<CuadroMando datos={(cm.data as unknown as Cuadro | null) ?? null} periodo={per.p} error={cm.error?.message ?? null} sectores={(sec.data ?? []) as Sector[]} />} />;
 }

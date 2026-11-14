@@ -53,9 +53,9 @@ const Svg = ({ children }: { children: React.ReactNode }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
 );
 
-export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoPago, errorPP, cuadro }: {
+export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoPago, errorPP, cuadro, susp24 = 0, suspTotal = 0 }: {
   enCurso: number; bloques: Bloque[]; errorBloques: string | null;
-  prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode;
+  prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode; susp24?: number; suspTotal?: number;
 }) {
   return (
     <section className="section active" id="sec-dashboard-admin">
@@ -80,6 +80,13 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
       <div className="stats-row stats-compactas" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
         <Cifra href="/panel/envios?f=programada" label="Envíos en curso" valor={enCurso} />
         {bloques.map((b) => <BloqueCard key={b.id} b={b} />)}
+        {/* Cuentas suspendidas (usuario, 2026-11-14): últimas 24 h en grande y el total
+            histórico debajo; abre Usuarios ya filtrado por suspendidas. */}
+        <Link href="/panel/usuarios?estado=suspendida" className="stat-card stat-card-link" style={{ textDecoration: 'none' }}>
+          <span className="stat-card-label">Suspendidos · últimas 24 h</span>
+          <span className="stat-card-value" style={susp24 > 0 ? { color: 'var(--red)' } : undefined}>{susp24}</span>
+          <span className="stat-card-trend" style={{ color: 'var(--gray-500)' }}>{suspTotal} suspendidas en total</span>
+        </Link>
         <LineaProntoPago pp={prontoPago} error={errorPP} />
       </div>
       {cuadro}

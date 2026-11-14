@@ -8569,3 +8569,65 @@ begin
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 216 · el tarifador registra la consulta del cliente (y del equipo no), y mi_autosuspension la cuenta';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 217 · regla 4 ESTRICTA (en el límite no suspende; por encima sí) y email al
+-- buzón de Dynamo en cada suspensión automática
+-- =====================================================================================
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare b uuid := current_setting('prueba.u_cli_b')::uuid;
+        cli_b uuid; e uuid; i int; pct_antes jsonb;
+begin
+  select id into cli_b from clientes where cif = 'B44444444';
+  -- La suspensión del cliente A en la prueba 95 (barrido) tuvo que encolar su email.
+  if not exists (select 1 from emails_enviados where tipo = 'cuenta_suspendida'
+                   and clave like 'cuenta_suspendida:' || current_setting('prueba.u_cli') || ':%') then
+    raise exception 'FALLO 217 · la suspensión automática no encola el email al buzón de Dynamo';
+  end if;
+  -- Límite al 20 % para reproducir el caso del usuario (1 de 5 = 20 % NO debe suspender).
+  select valor into pct_antes from parametros where clave = 'autosuspension_cancel_pct';
+  update parametros set valor = '20' where clave = 'autosuspension_cancel_pct';
+  update usuarios set autosuspension_desde_en = now(), estado = 'activa' where id = b;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  for i in 1..5 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (cli_b, 13.30, 20, 1000, 800, current_date) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+    if i = 1 then
+      update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+      update envios set estado = 'cancelado' where id = e;
+    end if;
+  end loop;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- 1 de 5 = 20 % con límite 20 %: EN el límite, ni en la lista ni suspendida (antes caía).
+  if exists (select 1 from autosuspension_motivos(b) where motivo like 'Regla 4%') then
+    raise exception 'FALLO 217 · la regla 4 suspende AL LLEGAR al límite (1 de 5 con 20 %%)';
+  end if;
+  if (select estado from usuarios where id = b) <> 'activa' then
+    raise exception 'FALLO 217 · la cuenta cayó suspendida en el límite exacto';
+  end if;
+  -- Una cancelación más (2 de 5 = 40 %): ahora sí, y al momento llega su email a Dynamo.
+  select x.id into e from envios x where x.cliente_id = cli_b and x.estado = 'programado' and x.creado_por = b order by x.creado_en desc limit 1;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  -- La cancela EL USUARIO (con su jwt): el hito lleva su quien y la regla 4 la cuenta.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  update envios set estado = 'cancelado' where id = e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  perform autosuspension_revisar(b);
+  if (select estado from usuarios where id = b) <> 'suspendida'
+     or (select suspension_motivo from usuarios where id = b) not like 'Automática (al momento) · Regla 4%' then
+    raise exception 'FALLO 217 · por encima del límite no suspende al momento: %', (select suspension_motivo from usuarios where id = b);
+  end if;
+  if not exists (select 1 from emails_enviados where tipo = 'cuenta_suspendida'
+                   and clave like 'cuenta_suspendida:' || b || ':%') then
+    raise exception 'FALLO 217 · la suspensión al momento no encola el email al buzón de Dynamo';
+  end if;
+  -- Se deja todo como estaba: cuenta activa y límite anterior.
+  update usuarios set estado = 'activa' where id = b;
+  update parametros set valor = pct_antes where clave = 'autosuspension_cancel_pct';
+  raise notice 'OK 217 · regla 4 estricta (en el límite no, por encima sí) y email a Dynamo en cada suspensión automática';
+end $$;
