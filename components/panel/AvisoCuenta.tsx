@@ -56,7 +56,8 @@ function Suspendida({ perfil }: { perfil: Perfil }) {
   );
   return (
     <section className="section active">
-      <div className="account-card" style={{ maxWidth: 640, borderColor: '#fca5a5' }}>
+      {/* Centrada en la pantalla (usuario, 2026-11-14): es lo único que se ve. */}
+      <div className="account-card" style={{ maxWidth: 640, borderColor: '#fca5a5', margin: '10vh auto 0' }}>
         <div className="account-card-title" style={{ color: '#b42318' }}>{deBaja ? 'Tu cuenta está dada de baja' : 'Tu cuenta está suspendida'}</div>
         <p className="account-card-desc" style={{ marginBottom: '0.6rem' }}>
           Mientras esté {deBaja ? 'de baja' : 'suspendida'} no puedes ver ni crear envíos.{perfil.suspendida_en ? <> {deBaja ? 'Baja' : 'Suspendida'} el {fechaHora(perfil.suspendida_en)}.</> : null}
