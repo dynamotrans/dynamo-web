@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { IconoTipo } from '../TipoSitio';
+import { IconoTipo, TIPOS_SITIO } from '../TipoSitio';
 import { FichaSitio, buscarDireccionesOSM, type DirOSM } from '../Sitios';
 import { ClienteOpcion, IcoMenos, Punto, SitioOpcion, VACIO, direccionCompleta, norm, textoSitio } from './comun';
 
@@ -67,6 +67,18 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
               if (elegido && !deshabilitado) { onCambio({ sitio: null, nuevo: null }); setQ(''); setAbierto(true); }
             }} />
           {elegido && <button type="button" className="ptar-clear" aria-label="Cambiar sitio" onClick={() => { onCambio({ sitio: null, nuevo: null }); setQ(''); }}>✕</button>}
+          {/* Dirección suelta (sin cliente): no sabemos si es almacén, obra o finca — se
+              elige aquí y el tarifador aplica su recargo (usuario, 2026-11-14). En los
+              sitios de la agenda el tipo ya viene de la ficha. */}
+          {elegido && modoDireccion && punto.nuevo && !punto.parada_id && (
+            <select className={`ptar-select${punto.nuevo.tipo_sitio !== 'almacen_nave' ? ' ptar-urg-rojo' : ''}`}
+              aria-label="Tipo de sitio" title="Tipo de sitio (los tipos distintos de Almacén/Nave llevan recargo)"
+              style={{ display: 'block', width: '100%', marginTop: 6, ...(punto.nuevo.tipo_sitio !== 'almacen_nave' ? { color: '#dc2626', fontWeight: 600 } : {}) }}
+              value={punto.nuevo.tipo_sitio}
+              onChange={(ev) => onCambio({ nuevo: { ...punto.nuevo!, tipo_sitio: ev.target.value } })}>
+              {TIPOS_SITIO.map(([k, n]) => <option key={k} value={k}>{`Tipo de sitio: ${n}`}</option>)}
+            </select>
+          )}
           {abierto && !elegido && !deshabilitado && modoDireccion && (
             <ul className="ptar-sug">
               {q.trim().length < 3 && <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Escribe la dirección o la población (mínimo 3 letras)…</li>}
