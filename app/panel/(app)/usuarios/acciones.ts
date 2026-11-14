@@ -11,7 +11,7 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type UsuarioDatos = {
   nombre: string; documento: string; telefono: string; cargo: string; idioma: string;
-  estado: 'activa' | 'pendiente_verificacion' | 'suspendida';
+  estado: 'activa' | 'pendiente_verificacion' | 'suspendida' | 'suspendida_total';
   cliente_id: string; transportista_id: string;
   limite_consultas_precio_diario: number | null; limite_envios_diario: number | null;
   anotaciones: string;

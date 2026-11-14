@@ -1,5 +1,5 @@
 import { leerTodo } from '@/lib/leerTodo';
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Almacenamientos, { type AlmacenamientoFila, type AlmacenOpcion } from '@/components/panel/Almacenamientos';
@@ -14,7 +14,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   const sp = await searchParams;
   // Módulo v3 (usuario, 2026-11-14): los almacenamientos quedan SOLO para el equipo de
   // Dynamo — a clientes y transportistas se les oculta entero (tampoco por URL).

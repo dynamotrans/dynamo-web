@@ -1,6 +1,7 @@
 import { hoyMadrid } from '@/lib/formato';
 import Link from 'next/link';
-import { sesion, iniciales, esDynamo } from '@/lib/sesion';
+import { sesion, iniciales, esDynamo, soloMirar } from '@/lib/sesion';
+import { CONTACTO } from '@/lib/atencion';
 import PantallaMantenimiento from '@/components/PantallaMantenimiento';
 import SinConfigurar from '@/components/SinConfigurar';
 import { RefrescoProvider } from '@/lib/useRefrescar';
@@ -93,6 +94,13 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       )}
       {/* Buscador global (usuario, 2026-11-12): Cmd/Ctrl+K desde cualquier pantalla. */}
       <BuscadorGlobal gestor={dynamo && vista.tipo === 'admin'} />
+      {/* Suspensión en solo lectura (usuario, 2026-11-14): banda fija mientras dure. */}
+      {soloMirar(perfil) && (
+        <div className="pt-aviso error" role="status" style={{ margin: '0 0 1rem' }}>
+          <div><strong>Cuenta suspendida — solo lectura.</strong> Puedes consultarlo todo, pero no crear ni cambiar nada.
+            Para reactivarla, llámanos al {CONTACTO.telefono} o escribe a {CONTACTO.email}.</div>
+        </div>
+      )}
       {children}
     </Marco>
     </RefrescoProvider>

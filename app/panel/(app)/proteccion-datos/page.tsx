@@ -1,4 +1,4 @@
-import { sesion } from '@/lib/sesion';
+import { sesion, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import ProteccionDatos from '@/components/panel/ProteccionDatos';
 
@@ -9,7 +9,7 @@ export default async function PaginaProteccionDatos() {
   const s = await sesion();
   if (!s) return null;
   const { perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   if (perfil.rol !== 'admin') {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del administrador (Admin Master).</div></div></section>;
   }

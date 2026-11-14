@@ -1,5 +1,5 @@
 import { leerTodo } from '@/lib/leerTodo';
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Incidencias, { type IncidenciaFila } from '@/components/panel/Incidencias';
@@ -14,7 +14,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   const sp = await searchParams;
   // ---- Etapa B: el CLIENTE ve y abre las suyas (la base de datos solo le deja las suyas)
   if (!esDynamo(perfil.rol)) {

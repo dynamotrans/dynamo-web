@@ -1,5 +1,5 @@
 import { leerTodo } from '@/lib/leerTodo';
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Penalizaciones, { type PenalizacionFila } from '@/components/panel/Penalizaciones';
@@ -14,7 +14,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   if (!esDynamo(perfil.rol)) {
     // Etapa B: el cliente ve las suyas (solo su importe). El transportista, en la etapa C.
     if (perfil.rol === 'cliente') {

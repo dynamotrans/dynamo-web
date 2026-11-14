@@ -1,5 +1,5 @@
 import { leerTodo } from '@/lib/leerTodo';
-import { sesion, esDynamo, esGestor } from '@/lib/sesion';
+import { sesion, esDynamo, esGestor, sinAcceso } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Administracion, { type ProformaFila, type AlbaranFila } from '@/components/panel/Administracion';
@@ -15,7 +15,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   const dynamo = esDynamo(perfil.rol);
   if (!dynamo && perfil.rol !== 'cliente') {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes y del equipo de Dynamo.</div></div></section>;

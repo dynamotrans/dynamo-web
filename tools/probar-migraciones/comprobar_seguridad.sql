@@ -7670,17 +7670,22 @@ do $$ declare e uuid := current_setting('prueba.e200')::uuid; begin
   raise notice 'OK 200 · matrículas al firmar: la cabecera (1.ª parada o transportista) las exige y corrige, el resto ya no las toca y cmr_publico las devuelve por separado';
 end $$;
 
--- ---- 201. Límite individual de envíos al día (regla 6, al momento) --------------------
--- usuarios.limite_envios_diario: vacío = sin tope; con número, el envío que pasa del
--- límite se crea y la cuenta cae suspendida en ese instante (como las consultas).
+-- ---- 201. Límite individual de envíos al día (regla 6: el que pasa SE RECHAZA) -------
+-- usuarios.limite_envios_diario: vacío = sin tope; con número, el envío que pasaría del
+-- límite NO SE CREA (se rechaza con su mensaje) y la cuenta sigue activa — la suspensión
+-- automática ya no salta nunca al crear (decisión del usuario, 2026-11-14).
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; i int; u record; begin
+  -- Los disparadores viejos (crear revisaba la suspensión) ya no existen.
+  if exists (select 1 from pg_trigger where tgname in ('tg_envios_autosuspension', 'tg_envios_autosuspension_confirmar')) then
+    raise exception 'FALLO 201 · crear un envío sigue disparando la revisión de suspensión';
+  end if;
   update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid and estado <> 'activa';
   update usuarios set autosuspension_desde_en = now(), limite_envios_diario = 2
    where id = current_setting('prueba.u_cli')::uuid;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
-  -- 2 envíos (el límite justo): sigue activa. Nacen borrador y se confirman, como en el panel.
+  -- 2 envíos (el límite justo): pasan. Nacen borrador y se confirman, como en el panel.
   for i in 1..2 loop
     insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
       values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
@@ -7691,35 +7696,30 @@ do $$ declare e uuid; i int; u record; begin
   if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
     raise exception 'FALLO 201 · suspende sin pasar del límite (2 envíos, límite 2)';
   end if;
-  -- El 3.º pasa del límite: el envío SE CREA y la cuenta cae al confirmarse (salir de borrador).
+  -- El 3.º: el borrador nace (no cuenta), pero CONFIRMARLO se rechaza y no suspende.
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
     values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
-  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
-    raise exception 'FALLO 201 · un borrador no debe contar para el límite';
+  begin
+    update envios set estado = 'programado' where id = e;
+    raise exception 'FALLO 201 · el envío que pasa del límite se ha creado igualmente';
+  exception when insufficient_privilege then null; end;
+  if (select estado from envios where id = e) <> 'borrador' then
+    raise exception 'FALLO 201 · el envío rechazado no se ha quedado en borrador';
   end if;
-  update envios set estado = 'programado' where id = e;
   select estado, suspension_motivo into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
-  if u.estado <> 'suspendida' or u.suspension_motivo not like 'Automática (al momento) · Regla 6%' then
-    raise exception 'FALLO 201 · el 3.er envío no suspende al momento: % %', u.estado, u.suspension_motivo;
+  if u.estado <> 'activa' then
+    raise exception 'FALLO 201 · el rechazo del tope diario ha suspendido la cuenta: % %', u.estado, u.suspension_motivo;
   end if;
-  if (select estado from envios where id = e) <> 'programado' then
-    raise exception 'FALLO 201 · el envío que pasa del límite no se queda creado';
-  end if;
-  -- Sin límite individual (vacío) no hay tope: reactivada, otro envío no la suspende.
-  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  -- Sin límite individual (vacío) no hay tope: el mismo borrador se confirma sin más.
   update usuarios set limite_envios_diario = null where id = current_setting('prueba.u_cli')::uuid;
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
-    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
-  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
   update envios set estado = 'programado' where id = e;
-  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
-    raise exception 'FALLO 201 · sin límite individual no debe suspender (no hay parámetro general)';
+  if (select estado from envios where id = e) <> 'programado' then
+    raise exception 'FALLO 201 · sin límite individual no debe haber tope';
   end if;
   update usuarios set autosuspension_desde_en = now() where id = current_setting('prueba.u_cli')::uuid;
-  raise notice 'OK 201 · límite de envíos al día: 2 de 2 pasa, el 3.º se crea y suspende al momento (regla 6); borradores no cuentan; vacío = sin tope';
+  raise notice 'OK 201 · tope de envíos al día: 2 de 2 pasa, el 3.º SE RECHAZA sin crear ni suspender; vacío = sin tope; crear ya no dispara la revisión';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -8779,4 +8779,57 @@ begin
     raise exception 'FALLO 220 · la lectura pública del manual ha dejado de funcionar: %', r;
   end if;
   raise notice 'OK 220 · el CMR digital es solo de Dynamo: el manual ni firma ni reserva, pero se sigue leyendo';
+end $$;
+
+-- =====================================================================================
+-- PRUEBA 221 · suspensión en dos niveles: «suspendida» entra y LEE pero no escribe
+-- (solo lectura); «suspendida_total» ni lee; reactivada, todo vuelve
+-- =====================================================================================
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  update usuarios set estado = 'suspendida', suspension_motivo = 'Prueba 221'
+   where id = current_setting('prueba.u_cli')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  -- SOLO LECTURA: sus ayudantes de RLS responden y ve sus envíos…
+  if cliente_del_usuario() is null then raise exception 'FALLO 221 · la cuenta suspendida no puede ni leer (cliente_del_usuario nulo)'; end if;
+  select count(*) into n from mis_envios();
+  if n = 0 then raise exception 'FALLO 221 · la cuenta suspendida no ve sus envíos'; end if;
+  -- …pero NO escribe: el cerrojo central corta cualquier escritura (RLS la dejaría pasar).
+  begin
+    insert into sitios (nombre_empresa, cliente_id) values ('Nave suspendida 221', cliente_del_usuario());
+    raise exception 'FALLO 221 · una cuenta suspendida ha podido crear un sitio';
+  exception when insufficient_privilege then null; end;
+  begin
+    update envios set referencia_cliente = 'PED-221' where creado_por = auth.uid() and estado = 'programado';
+    if found then raise exception 'FALLO 221 · una cuenta suspendida ha podido editar un envío'; end if;
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 221a · suspendida = solo lectura: lee lo suyo y toda escritura se corta';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  update usuarios set estado = 'suspendida_total' where id = current_setting('prueba.u_cli')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  -- TOTAL: ni lectura (la web además la expulsa de la sesión).
+  if cliente_del_usuario() is not null then raise exception 'FALLO 221 · la suspensión total sigue leyendo'; end if;
+  select count(*) into n from mis_envios();
+  if n <> 0 then raise exception 'FALLO 221 · la suspensión total ve envíos'; end if;
+  raise notice 'OK 221b · suspendida_total: ni lectura';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare n int; begin
+  update usuarios set estado = 'activa', suspension_motivo = null where id = current_setting('prueba.u_cli')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  select count(*) into n from mis_envios();
+  if n = 0 then raise exception 'FALLO 221 · reactivada no recupera sus envíos'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 221 · suspensión en dos niveles: solo lectura / total, y la reactivación lo devuelve todo';
 end $$;

@@ -1,4 +1,4 @@
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Transportistas, { type TransportistaFila } from '@/components/panel/Transportistas';
 import { contactosDe, type FilaContacto } from '@/lib/contactos';
@@ -14,7 +14,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }

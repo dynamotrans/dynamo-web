@@ -1,4 +1,4 @@
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Usuarios, { type UsuarioFila, type Conteos } from '@/components/panel/Usuarios';
 import { notasInternas } from '@/lib/notasInternas';
@@ -13,22 +13,24 @@ export default async function PaginaUsuarios({ searchParams }: { searchParams: P
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().slice(0, 200);
   const rol = ['admin', 'empleado', 'admin_lectura', 'empleado_lectura', 'cliente', 'transportista'].includes(sp.rol ?? '') ? sp.rol! : '';
-  const estado = ['activa', 'pendiente_verificacion', 'suspendida', 'suspendida_auto', 'invitacion'].includes(sp.estado ?? '') ? sp.estado! : '';
+  const estado = ['activa', 'pendiente_verificacion', 'suspendida', 'suspendida_auto', 'suspendida_total', 'invitacion'].includes(sp.estado ?? '') ? sp.estado! : '';
   const { pagina, porPagina } = paginaDe(sp, 50);
 
-  const [pg, cnt, con, env, met] = await Promise.all([
+  const [pg, cnt, con, env, met, cTotal] = await Promise.all([
     supabase.rpc('usuarios_pagina', { p_q: q || null, p_rol: rol || null, p_estado: estado || null, p_pagina: pagina, p_por_pagina: porPagina }),
     supabase.rpc('usuarios_conteos'),
     supabase.rpc('conexiones_usuarios'),
     supabase.rpc('uso_envios_usuarios'),
     supabase.rpc('metricas_usuarios'),
+    // Conteo de la suspensión total (usuario, 2026-11-14): usuarios_conteos no la trae.
+    supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('estado', 'suspendida_total'),
   ]);
   const ids = (pg.data ?? []).map((x) => x.id);
   const total = Number(pg.data?.[0]?.total ?? 0);
@@ -67,7 +69,7 @@ export default async function PaginaUsuarios({ searchParams }: { searchParams: P
   const c0 = (cnt.data ?? [])[0] as Conteos | undefined;
   const conteos: Conteos = {
     total: Number(c0?.total ?? 0), activa: Number(c0?.activa ?? 0), pendiente: Number(c0?.pendiente ?? 0),
-    suspendida: Number(c0?.suspendida ?? 0), suspendida_auto: Number(c0?.suspendida_auto ?? 0), invitacion: Number(c0?.invitacion ?? 0),
+    suspendida: Number(c0?.suspendida ?? 0), suspendida_auto: Number(c0?.suspendida_auto ?? 0), suspendida_total: Number(cTotal?.count ?? 0), invitacion: Number(c0?.invitacion ?? 0),
   };
   return <Usuarios filas={filas} yo={{ id: perfil.id, rol: perfil.rol }} error={error}
     conteos={conteos} lista={{ q, rol, estado, pagina, porPagina, total }} />;

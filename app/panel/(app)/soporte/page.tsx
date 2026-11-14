@@ -1,4 +1,4 @@
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { vistaDe } from '@/lib/vista';
 import { inicioDe } from '@/lib/vistaTipo';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -12,7 +12,7 @@ export default async function PaginaSoporte() {
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   const vista = await vistaDe(supabase, perfil.rol);
   const inicio = esDynamo(perfil.rol) ? inicioDe(vista.tipo) : perfil.rol === 'transportista' ? '/panel/envios' : '/panel/dashboard';
   return <Soporte inicio={inicio} />;

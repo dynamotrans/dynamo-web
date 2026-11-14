@@ -1,4 +1,4 @@
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import DashboardCliente, { type MiniEnvio } from '@/components/panel/DashboardCliente';
@@ -16,7 +16,7 @@ export default async function PaginaDashboard() {
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   const dynamo = esDynamo(perfil.rol);
 
   // Solo hacen falta 3 envíos y dos cuentas: la base de datos cuenta, la web no descarga la lista.

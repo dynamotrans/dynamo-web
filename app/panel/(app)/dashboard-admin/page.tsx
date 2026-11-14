@@ -1,4 +1,4 @@
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import DashboardAdmin, { type Bloque, type ProntoPago } from '@/components/panel/DashboardAdmin';
 import CuadroMando, { type Cuadro, type Periodo, type Sector } from '@/components/panel/CuadroMando';
@@ -39,7 +39,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
@@ -77,9 +77,9 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     supabase.from('usuarios').select('id, email, nombre, rol, creado_en', cnt).eq('estado', 'pendiente_verificacion').is('cliente_id', null).is('transportista_id', null).order('creado_en').limit(MAX),
     // Cuentas suspendidas por el sistema o a mano (usuario, 2026-11-14): las últimas
     // 24 h y el total histórico, con enlace a Usuarios filtrado por suspendidas.
-    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('estado', 'suspendida')
+    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).in('estado', ['suspendida', 'suspendida_total'])
       .gte('suspendida_en', new Date(Date.now() - 24 * 3600 * 1000).toISOString())),
-    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('estado', 'suspendida'))
+    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).in('estado', ['suspendida', 'suspendida_total']))
   ]);
   const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
   const ficha = (id: string) => `/panel/envios?ver=${id}`;

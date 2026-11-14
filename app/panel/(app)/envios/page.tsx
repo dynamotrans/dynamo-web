@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { hoyMadrid } from '@/lib/formato';
 import { rangoRapido } from '@/lib/envios';
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import type { EnvioFila, Parada, Pestana } from '@/lib/envios';
@@ -26,7 +26,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
-  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
 
   const rol = perfil.rol;
   const dynamo = esDynamo(rol);

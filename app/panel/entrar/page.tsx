@@ -25,7 +25,7 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
           <h1 id="portal-title" className="portal-title">Acceso al portal</h1>
           <p className="portal-subtitle">Área privada para <strong>clientes</strong> de Dynamo</p>
 
-          <FormEntrar caducada={caducada} baja={sp === 'baja'} />
+          <FormEntrar caducada={caducada} baja={sp === 'baja'} suspendidaTotal={sp === 'suspendida_total'} />
           <CrearCuenta />
 
           <a href="/" className="portal-back">

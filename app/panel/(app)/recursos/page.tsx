@@ -1,4 +1,4 @@
-import { sesion, esGestor, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Recursos from '@/components/panel/Recursos';
 import type { RecursoSubido } from './acciones';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export default async function PaginaRecursos() {
   const s = await sesion();
   if (!s) return null;
-  if (!s.perfil || s.perfil.estado !== 'activa') return <AvisoCuenta perfil={s.perfil} />;
+  if (sinAcceso(s.perfil)) return <AvisoCuenta perfil={s.perfil} />;
   // Solo para el equipo de Dynamo (usuario, 2026-11-14): clientes y transportistas no lo ven.
   if (!esDynamo(s.perfil.rol)) {
     return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Esta sección aún no está disponible.</div></div></section>;

@@ -24,7 +24,7 @@ import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 
 export type Empresa = { id: string; nombre: string; cif: string };
-export type Conteos = { total: number; activa: number; pendiente: number; suspendida: number; suspendida_auto: number; invitacion: number };
+export type Conteos = { total: number; activa: number; pendiente: number; suspendida: number; suspendida_auto: number; invitacion: number; suspendida_total?: number };
 export type ListaUsuarios = { q: string; rol: string; estado: string; pagina: number; porPagina: number; total: number };
 export type UsuarioFila = UsuarioDatos & {
   id: string; email: string; rol: Rol; creado_en: string; modificado_en: string | null;
@@ -53,7 +53,7 @@ const ROL_DESC: Record<Rol, string> = {
   cliente: 'Solo SUS envíos, almacenamientos, facturas, albaranes e incidencias. No ve precios de compra, márgenes ni datos de otros clientes.',
   transportista: 'Solo los envíos que se le asignen y su documentación. No crea envíos ni ve datos de clientes.',
 };
-const ESTADOS: [UsuarioDatos['estado'], string][] = [['activa', 'Activa'], ['suspendida', 'Suspendida'], ['pendiente_verificacion', 'Pendiente de verificación']];
+const ESTADOS: [UsuarioDatos['estado'], string][] = [['activa', 'Activa'], ['suspendida', 'Suspendida · solo lectura'], ['suspendida_total', 'Suspendida TOTAL · sin acceso'], ['pendiente_verificacion', 'Pendiente de verificación']];
 const IDIOMAS: [string, string][] = [['es', 'Español'], ['pt', 'Portugués'], ['fr', 'Francés'], ['en', 'Inglés'], ['de', 'Alemán'], ['it', 'Italiano'], ['nl', 'Neerlandés'], ['pl', 'Polaco'], ['ro', 'Rumano'], ['uk', 'Ucraniano'], ['zh-CN', 'Chino']];
 
 const nombreRol = (r: Rol) => ROLES.find(([k]) => k === r)?.[1] ?? r;
@@ -131,6 +131,7 @@ export default function Usuarios({ filas, yo, error, conteos, lista }: {
           <option value="pendiente_verificacion">Pendiente de verificación ({conteos.pendiente})</option>
           <option value="suspendida">Suspendida ({conteos.suspendida})</option>
           <option value="suspendida_auto">Suspendida automáticamente ({conteos.suspendida_auto})</option>
+          <option value="suspendida_total">Suspendida total ({conteos.suspendida_total ?? 0})</option>
           <option value="invitacion">Invitación sin aceptar ({conteos.invitacion})</option>
         </select>
         {lista.porPagina !== 50 && <input type="hidden" name="n" value={lista.porPagina} />}
@@ -155,9 +156,10 @@ export default function Usuarios({ filas, yo, error, conteos, lista }: {
                   <td><ChipRol rol={u.rol} /></td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {u.estado === 'activa' ? <span className="badge badge-green">Activa</span>
+                      : u.estado === 'suspendida_total' ? <span className="badge badge-red" title={u.suspension_motivo ?? undefined}>Suspendida TOTAL</span>
                       : u.estado === 'suspendida' ? <span className="badge badge-red" title={u.suspension_motivo ?? undefined}>{u.suspension_motivo?.startsWith('Automática') ? 'Suspendida (auto)' : u.suspension_motivo?.startsWith('Baja a petición') ? 'De baja (la pidió)' : 'Suspendida'}</span>
                       : <span className="badge badge-orange">Pendiente verif.</span>}
-                    {u.estado === 'suspendida' && u.suspendida_en && <div className="meta">desde {fechaHora(u.suspendida_en)}</div>}
+                    {(u.estado === 'suspendida' || u.estado === 'suspendida_total') && u.suspendida_en && <div className="meta">desde {fechaHora(u.suspendida_en)}</div>}
                     {!u.email_confirmado && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Invitación sin aceptar</div>}
                   </td>
                   <td>{u.nombre || '—'}{u.cargo && <div className="meta">{u.cargo}</div>}</td>
@@ -332,6 +334,12 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
             </select>
           )}
         </div>
+        {d.estado === 'suspendida' && (
+          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>Solo lectura: entra y lo consulta todo, pero no puede crear ni cambiar nada.</p>
+        )}
+        {d.estado === 'suspendida_total' && (
+          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--red)', fontWeight: 700, margin: '0.3rem 0 0' }}>Sin acceso: no podrá ni entrar, y si tiene una sesión abierta se le expulsa al siguiente clic.</p>
+        )}
         {u.estado === 'suspendida' && u.suspension_motivo && (
           <div style={{ gridColumn: '1/-1' }} className="modal-warn-box">
             <strong>{u.suspension_motivo.startsWith('Automática') ? 'Suspendida automáticamente' : 'Suspendida'}{u.suspendida_en ? ` el ${fechaHora(u.suspendida_en)}` : ''}.</strong> {u.suspension_motivo.replace(/^Automática · /, '')}

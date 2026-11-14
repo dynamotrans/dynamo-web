@@ -3712,7 +3712,7 @@ export type Database = {
     Enums: {
       estado_almacenamiento: "pendiente_confirmar" | "confirmado" | "en_almacen" | "finalizado" | "cancelado"
       estado_asignacion: "sin_asignar" | "ofertada" | "reservada" | "confirmada"
-      estado_cuenta: "activa" | "suspendida" | "pendiente_verificacion"
+      estado_cuenta: "activa" | "suspendida" | "pendiente_verificacion" | "suspendida_total"
       estado_envio: "borrador" | "programado" | "hacia_la_carga" | "cargando" | "en_ruta" | "entregado" | "cancelado"
       estado_incidencia: "abierto" | "en_curso" | "resuelto" | "cancelado"
       estado_operativo_transportista: "activo" | "no_ofertar" | "suspendido"

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { CONTACTO } from '@/lib/atencion';
 import { useActionState } from 'react';
 import { entrar, type EstadoEntrar } from '../acciones';
 import { IcoAviso } from '@/components/Iconos';
@@ -12,13 +13,17 @@ const inicial: EstadoEntrar = { error: null };
 
 // caducada: viene del middleware al pasar los días de Parámetros sin escribir la contraseña.
 // baja: acaba de darse de baja desde «Mi cuenta».
-export default function FormEntrar({ caducada = false, baja = false }: { caducada?: boolean; baja?: boolean }) {
+export default function FormEntrar({ caducada = false, baja = false, suspendidaTotal = false }: { caducada?: boolean; baja?: boolean; suspendidaTotal?: boolean }) {
   const [estado, accion, enviando] = useActionState(entrar, inicial);
   return (
     <form action={accion} noValidate>
       {enviando && <Cargando texto="Entrando" />}
       {caducada && !estado.error && (
         <div className="pt-aviso info" role="status"><div>Por seguridad, hace tiempo que no escribías tu contraseña: vuelve a entrar.</div></div>
+      )}
+      {/* Suspensión total (usuario, 2026-11-14): el acceso está desactivado del todo. */}
+      {suspendidaTotal && !estado.error && (
+        <div className="pt-aviso error" role="alert"><div><strong>Tu cuenta está suspendida y el acceso está desactivado.</strong> Para cualquier gestión, llámanos al {CONTACTO.telefono} o escribe a {CONTACTO.email}.</div></div>
       )}
       {baja && !estado.error && (
         <div className="pt-aviso info" role="status"><div>Tu cuenta está dada de baja y hemos cerrado tus sesiones. Tus envíos y documentos se conservan. Si quieres volver, escríbenos.</div></div>
