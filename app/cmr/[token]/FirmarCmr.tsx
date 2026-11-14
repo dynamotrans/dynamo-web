@@ -112,7 +112,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     <div style={{ background: '#ecfdf5', border: '2px solid #1d9e57', borderRadius: 14, padding: '1.2rem 1rem', textAlign: 'center' }}>
       <div aria-hidden="true" style={{ width: 54, height: 54, margin: '0 auto 0.6rem', borderRadius: '50%', background: '#1d9e57', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 800 }}>✓</div>
       <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46' }}>Todo guardado. ¡Gracias!</div>
-      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el eCMR al momento.</p>
+      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el eCMR al momento. Si dejaste tu email, tu copia va de camino; al completarse todas las firmas, la copia final llegará por email a todas las partes.</p>
       <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
         padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
         Ver el CMR en PDF · con las firmas actuales
@@ -162,6 +162,15 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
+      {/* El PDF SIEMPRE a mano (usuario, 2026-11-14): cualquiera con el enlace puede
+          abrir el CMR con las firmas de ESTE momento; la página va en vivo. */}
+      <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#fff', border: '2px solid #1d9e57', color: '#065f46', textAlign: 'center', textDecoration: 'none', padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, fontWeight: 800, margin: '0.2rem 0 0.45rem' }}>
+        Abrir el CMR en PDF · con las firmas actuales
+      </a>
+      <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: '#4b5563', lineHeight: 1.5 }}>
+        Esta página se actualiza <strong>en tiempo real</strong> con cada firma. Al firmar, si dejas tu email, te enviamos <strong>tu copia del CMR</strong> al momento;
+        cuando firmen todas las partes, la <strong>copia final completa</strong> se envía por email al cliente del envío, al transportista y a quienes firmaron dejando su email.
+      </p>
       {/* Ventana de compartir PROPIA (usuario, 2026-11-11): mismo diseño sencillo en
           cualquier aparato — WhatsApp, Email, SMS, Copiar y «Más opciones…» si el
           aparato tiene hoja de compartir del sistema. Mensaje corto. */}
@@ -476,7 +485,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos <Req /></label>
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         {/* Con el porqué (usuario, 2026-11-12): quien deja su email recibe copia del eCMR. */}
-        <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(se te enviará copia del eCMR)</strong></label>
+        <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
             salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}

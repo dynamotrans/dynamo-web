@@ -100,6 +100,28 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
       });
     }
 
+    // (a-bis) La COPIA del firmante AL MOMENTO (usuario, 2026-11-14): quien firma y deja
+    // su email recibe ya el PDF con las firmas de este instante — la página lo promete.
+    // La copia final completa llegará aparte cuando firmen todas las partes.
+    if (ultima && sbs && envioId) {
+      let q = sbs.from('firmas_cmr').select('email, nombre').eq('envio_id', envioId).eq('rol', ultima.rol).eq('extra', false);
+      q = ultima.parada_id ? q.eq('parada_id', ultima.parada_id) : q.is('parada_id', null);
+      const { data: ff } = await q.order('firmado_en', { ascending: false }).limit(1).maybeSingle();
+      if (ff?.email) {
+        let adj: AdjuntoEmail[] | undefined;
+        const pdfF = await pdfCmrPorToken(sbp, token, origen);
+        if (!('error' in pdfF)) adj = [{ nombre: pdfF.nombre, base64: Buffer.from(pdfF.bytes).toString('base64'), tipo: 'application/pdf' }];
+        await enviarEmailOperativo({
+          clave: `firma_cmr:copia:${token}:${ultima.rol}:${ultima.parada_id ?? 'cabecera'}`, tipo: 'firma_cmr', envioId,
+          para: ff.email, asunto: `Tu copia del CMR · envío #${ref} · firma ${hechas} de ${total}`,
+          html: `<p>Hola${ff.nombre ? ` ${esc(ff.nombre)}` : ''},</p>
+<p>Tu firma del CMR del envío <strong>#${esc(ref)}</strong> ha quedado registrada (van <strong>${hechas} de ${total}</strong> firmas). Va adjunta <strong>tu copia en PDF</strong> con las firmas de este momento.</p>
+<p>Cuando firmen todas las partes te llegará la <strong>copia final completa</strong>. Mientras tanto puedes seguirlo en vivo y abrir el PDF actualizado: <a href="${origen}/cmr/${token}">hoja de firmas</a> · <a href="${origen}/cmr/${token}/pdf">PDF</a>.</p>${pie}`,
+          adjuntos: adj,
+        });
+      }
+    }
+
     // (b) TODAS las firmas → el eCMR en PDF a Dynamo, al creador del envío y al transportista.
     if (hechas >= total) {
       const destinos = new Set<string>([CONTACTO.email]);
