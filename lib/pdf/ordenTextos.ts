@@ -38,6 +38,7 @@ export function ventanaLoc(desde: string | null, hasta: string | null, idioma: I
 export type TextosOrden = {
   titulo: string; subRef: string; emitida: string;
   copiaConductor: string; copiaAdmin: string; sinEco: string; completa: string; prevalece: string;
+  firma: string; firmaPend: string;
   transpRealiza: string; transp: string; gestionadaPor: string; ordenante: string; pendienteTransp: string;
   operadorTrafico: string; urgencias: string; operadorAut: string;
   nEnvio: string; fechaCargaL: string; matriculasAutL: string; referenciaL: string; pendAsignar: string;
@@ -61,6 +62,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   es: {
     titulo: 'ORDEN DE CARGA', subRef: 'Referencia de envío', emitida: 'Emitida el',
     copiaConductor: 'COPIA CONDUCTOR', copiaAdmin: 'COPIA ADMINISTRACIÓN', sinEco: 'SIN INFORMACIÓN ECONÓMICA', completa: 'DOCUMENTO COMPLETO',
+    firma: 'Firma', firmaPend: 'Pendiente · se firma con el dedo desde el QR',
     prevalece: 'En caso de discrepancia entre versiones, prevalece la versión en español.',
     transpRealiza: 'TRANSPORTISTA (realiza el servicio)', transp: 'TRANSPORTISTA', gestionadaPor: 'GESTIONADA POR', ordenante: 'ORDENANTE',
     pendienteTransp: 'PENDIENTE DE ASIGNAR TRANSPORTISTA', operadorTrafico: 'Operador de tráfico',
@@ -93,6 +95,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   en: {
     titulo: 'LOADING ORDER', subRef: 'Shipment reference', emitida: 'Issued on',
     copiaConductor: 'DRIVER COPY', copiaAdmin: 'ADMINISTRATION COPY', sinEco: 'NO FINANCIAL INFORMATION', completa: 'FULL DOCUMENT',
+    firma: 'Signature', firmaPend: 'Pending · sign with your finger via the QR',
     prevalece: 'In case of discrepancy between versions, the Spanish version prevails.',
     transpRealiza: 'CARRIER (performs the service)', transp: 'CARRIER', gestionadaPor: 'MANAGED BY', ordenante: 'ORDERING PARTY',
     pendienteTransp: 'CARRIER TO BE ASSIGNED', operadorTrafico: 'Traffic operator',
@@ -125,6 +128,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   pt: {
     titulo: 'ORDEM DE CARGA', subRef: 'Referência do envio', emitida: 'Emitida em',
     copiaConductor: 'CÓPIA DO MOTORISTA', copiaAdmin: 'CÓPIA DA ADMINISTRAÇÃO', sinEco: 'SEM INFORMAÇÃO FINANCEIRA', completa: 'DOCUMENTO COMPLETO',
+    firma: 'Assinatura', firmaPend: 'Pendente · assina-se com o dedo através do QR',
     prevalece: 'Em caso de divergência entre versões, prevalece a versão em espanhol.',
     transpRealiza: 'TRANSPORTADOR (realiza o serviço)', transp: 'TRANSPORTADOR', gestionadaPor: 'GERIDA POR', ordenante: 'ORDENANTE',
     pendienteTransp: 'TRANSPORTADOR POR ATRIBUIR', operadorTrafico: 'Operador de tráfego',
@@ -157,6 +161,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   fr: {
     titulo: 'ORDRE DE CHARGEMENT', subRef: 'Référence de l’envoi', emitida: 'Émis le',
     copiaConductor: 'COPIE CONDUCTEUR', copiaAdmin: 'COPIE ADMINISTRATION', sinEco: 'SANS INFORMATION FINANCIÈRE', completa: 'DOCUMENT COMPLET',
+    firma: 'Signature', firmaPend: 'En attente · se signe au doigt via le QR',
     prevalece: 'En cas de divergence entre versions, la version espagnole prévaut.',
     transpRealiza: 'TRANSPORTEUR (réalise le service)', transp: 'TRANSPORTEUR', gestionadaPor: 'GÉRÉ PAR', ordenante: 'DONNEUR D’ORDRE',
     pendienteTransp: 'TRANSPORTEUR À ASSIGNER', operadorTrafico: 'Exploitant transport',
@@ -189,6 +194,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   de: {
     titulo: 'LADEAUFTRAG', subRef: 'Sendungsreferenz', emitida: 'Ausgestellt am',
     copiaConductor: 'FAHRERKOPIE', copiaAdmin: 'VERWALTUNGSKOPIE', sinEco: 'OHNE FINANZINFORMATIONEN', completa: 'VOLLSTÄNDIGES DOKUMENT',
+    firma: 'Unterschrift', firmaPend: 'Ausstehend · wird per QR mit dem Finger unterschrieben',
     prevalece: 'Bei Abweichungen zwischen den Fassungen gilt die spanische Fassung.',
     transpRealiza: 'FRACHTFÜHRER (führt den Transport aus)', transp: 'FRACHTFÜHRER', gestionadaPor: 'VERWALTET VON', ordenante: 'AUFTRAGGEBER',
     pendienteTransp: 'FRACHTFÜHRER NOCH ZUZUWEISEN', operadorTrafico: 'Disponent',
@@ -221,6 +227,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   it: {
     titulo: 'ORDINE DI CARICO', subRef: 'Riferimento spedizione', emitida: 'Emesso il',
     copiaConductor: 'COPIA AUTISTA', copiaAdmin: 'COPIA AMMINISTRAZIONE', sinEco: 'SENZA INFORMAZIONI ECONOMICHE', completa: 'DOCUMENTO COMPLETO',
+    firma: 'Firma', firmaPend: 'In attesa · si firma con il dito tramite il QR',
     prevalece: 'In caso di discrepanza tra le versioni, prevale la versione spagnola.',
     transpRealiza: 'TRASPORTATORE (esegue il servizio)', transp: 'TRASPORTATORE', gestionadaPor: 'GESTITO DA', ordenante: 'COMMITTENTE',
     pendienteTransp: 'TRASPORTATORE DA ASSEGNARE', operadorTrafico: 'Operatore del traffico',
@@ -253,6 +260,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   nl: {
     titulo: 'LAADOPDRACHT', subRef: 'Zendingsreferentie', emitida: 'Uitgegeven op',
     copiaConductor: 'KOPIE CHAUFFEUR', copiaAdmin: 'KOPIE ADMINISTRATIE', sinEco: 'ZONDER FINANCIËLE INFORMATIE', completa: 'VOLLEDIG DOCUMENT',
+    firma: 'Handtekening', firmaPend: 'In afwachting · onderteken met je vinger via de QR',
     prevalece: 'Bij verschillen tussen versies geldt de Spaanse versie.',
     transpRealiza: 'VERVOERDER (voert de dienst uit)', transp: 'VERVOERDER', gestionadaPor: 'BEHEERD DOOR', ordenante: 'OPDRACHTGEVER',
     pendienteTransp: 'VERVOERDER NOG TOE TE WIJZEN', operadorTrafico: 'Planner',
@@ -285,6 +293,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   pl: {
     titulo: 'ZLECENIE TRANSPORTOWE', subRef: 'Numer referencyjny przewozu', emitida: 'Wystawiono',
     copiaConductor: 'KOPIA DLA KIEROWCY', copiaAdmin: 'KOPIA DLA ADMINISTRACJI', sinEco: 'BEZ INFORMACJI FINANSOWYCH', completa: 'PEŁNY DOKUMENT',
+    firma: 'Podpis', firmaPend: 'Oczekuje · podpisuje się palcem przez kod QR',
     prevalece: 'W razie rozbieżności między wersjami obowiązuje wersja hiszpańska.',
     transpRealiza: 'PRZEWOŹNIK (wykonuje usługę)', transp: 'PRZEWOŹNIK', gestionadaPor: 'ZARZĄDZANE PRZEZ', ordenante: 'ZLECENIODAWCA',
     pendienteTransp: 'PRZEWOŹNIK DO PRZYDZIELENIA', operadorTrafico: 'Spedytor',
@@ -317,6 +326,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   cs: {
     titulo: 'NAKLÁDKOVÝ PŘÍKAZ', subRef: 'Referenční číslo zásilky', emitida: 'Vystaveno',
     copiaConductor: 'KOPIE PRO ŘIDIČE', copiaAdmin: 'KOPIE PRO ADMINISTRATIVU', sinEco: 'BEZ FINANČNÍCH INFORMACÍ', completa: 'ÚPLNÝ DOKUMENT',
+    firma: 'Podpis', firmaPend: 'Čeká · podepisuje se prstem přes QR kód',
     prevalece: 'V případě rozporu mezi verzemi platí španělská verze.',
     transpRealiza: 'DOPRAVCE (provádí službu)', transp: 'DOPRAVCE', gestionadaPor: 'SPRAVUJE', ordenante: 'OBJEDNATEL',
     pendienteTransp: 'DOPRAVCE BUDE PŘIDĚLEN', operadorTrafico: 'Dispečer',
@@ -349,6 +359,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   ro: {
     titulo: 'COMANDĂ DE ÎNCĂRCARE', subRef: 'Referința expedierii', emitida: 'Emisă la',
     copiaConductor: 'COPIE ȘOFER', copiaAdmin: 'COPIE ADMINISTRAȚIE', sinEco: 'FĂRĂ INFORMAȚII FINANCIARE', completa: 'DOCUMENT COMPLET',
+    firma: 'Semnătură', firmaPend: 'În așteptare · se semnează cu degetul prin QR',
     prevalece: 'În caz de neconcordanță între versiuni, prevalează versiunea în spaniolă.',
     transpRealiza: 'TRANSPORTATOR (execută serviciul)', transp: 'TRANSPORTATOR', gestionadaPor: 'GESTIONATĂ DE', ordenante: 'ORDONATOR',
     pendienteTransp: 'TRANSPORTATOR DE ALOCAT', operadorTrafico: 'Operator de trafic',

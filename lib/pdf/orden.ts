@@ -1,6 +1,6 @@
 import { telBonito } from '@/lib/paises';
 import QRCode from 'qrcode';
-import { pesoTn, tipoCargaTxt } from '@/lib/formato';
+import { pesoTn, tipoCargaTxt, fechaHora } from '@/lib/formato';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument, rgb, type PDFImage } from 'pdf-lib';
@@ -51,6 +51,39 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (!manual) logo = await l.doc.embedPng(await readFile(path.join(process.cwd(), 'images', '2.png')));
   const ref = e.referencia_gx ?? '';
   const emitida = ahoraMadrid();
+  // FIRMAS ESTAMPADAS EN EL DeCA (usuario, 2026-11-14): en la copia del conductor —que
+  // es el DeCA— el trazo de cada firma del e-CMR queda estampado junto a su sitio (y el
+  // del transportista junto a la banda), con un hueco «pendiente» mientras no exista.
+  // El acto de firmar sigue siendo único y del e-CMR (QR); esto es la constancia.
+  const conFirmas = copia === 'operativa' && !manual;
+  const firmaDe = (rol: string, parada: string | null) =>
+    (d.firmas ?? []).find((f) => !f.extra && f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
+  const trazos = new Map<string, PDFImage>();
+  if (conFirmas) for (const f of d.firmas ?? []) {
+    if (f.png) { try { trazos.set(`${f.rol}:${f.parada_id ?? ''}`, await l.doc.embedPng(f.png)); } catch { /* sin trazo */ } }
+  }
+  const filaFirma = (rol: string, parada: string | null, x: number, xV: number, wMax: number) => {
+    const f = firmaDe(rol, parada);
+    l.sitio(30);
+    l.texto(x, l.y + 10, t.firma, 8, { bold: true, color: COLOR.gris });
+    if (f) {
+      const img = trazos.get(`${f.rol}:${f.parada_id ?? ''}`);
+      let xT = xV;
+      if (img) {
+        const h = 24, w = Math.min(100, h * img.width / img.height);
+        l.pag.drawImage(img, { x: xV, y: A4.h - l.y - 2 - h, width: w, height: h });
+        xT = xV + w + 10;
+      }
+      l.texto(xT, l.y + 10, `${f.nombre} · ${f.documento}`, 8.4, { bold: true, color: COLOR.navy });
+      l.texto(xT, l.y + 21, `${fechaHora(f.firmado_en)} · e-CMR ${rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24'}`, 7, { color: COLOR.gris });
+      l.y += 30;
+    } else {
+      const w = Math.min(230, wMax);
+      l.rect(xV, l.y, w, 21, COLOR.fondo, COLOR.grisClaro);
+      l.texto(xV + 8, l.y + 13.5, t.firmaPend, 7, { color: COLOR.gris });
+      l.y += 26;
+    }
+  };
   // Con el día de carga YA ELEGIDO (al asignar el transportista), la orden enseña ESA
   // fecha — en cabecera y en las recogidas —, no la ventana (usuario, 2026-11-13). Las
   // entregas siguen con su fecha estimada, calculada desde ese día. Sin día elegido, la
@@ -209,6 +242,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     l.y = manual ? finIzq + 8 : Math.max(finIzq, ct + ch) + 12;
   }
+  if (conFirmas) filaFirma('transportista', null, l.x0, l.x0 + 128, der - (l.x0 + 128) - 6);
 
   // ---- Recogidas y entregas ----
   const seccion = (titulo: string) => {
@@ -262,6 +296,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       f.v.forEach((ln, i) => l.texto(xV, l.y + 8.8 + i * 11.6, ln, 8.8, { bold: f.b, color: rojo ? COLOR.rojo : COLOR.navy }));
       l.y += altoF(f) + 2;
     }
+    if (conFirmas) { l.y += 2; filaFirma(recogida ? 'remitente' : 'destinatario', pa.id, xK, xV, wV); }
     l.y += 10;
   };
   const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
