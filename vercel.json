@@ -90,6 +90,10 @@
       "destination": "/contacto.html"
     },
     {
+      "source": "/blog/pagina/:n(\\d+)",
+      "destination": "/blog/pagina/:n.html"
+    },
+    {
       "source": "/blog/:slug([a-z0-9-]+)",
       "destination": "/blog/:slug.html"
     }
