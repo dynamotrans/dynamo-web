@@ -490,7 +490,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         </>}
         {/* Las reservas son de la casilla principal: una firma extra no las anota. */}
         {!b.extra && <>
-        <label className="sig-lbl" htmlFor="sigReservas">Reservas <Req si={false} /></label>
+        <label className="sig-lbl" htmlFor="sigReservas">Anotaciones/ Reservas <Req si={false} /></label>
         {/* Una línea que crece sola con el texto hasta 5 líneas (luego, scroll) y máximo
             300 caracteres (usuario, 2026-11-10). */}
         <textarea id="sigReservas" rows={1} maxLength={300} placeholder="Ej. Recibo 3 europalet; faltan 5 cajas; film roto; etc." value={reservas}
