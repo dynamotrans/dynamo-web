@@ -12,13 +12,17 @@ import { CONTACTO } from '@/lib/atencion';
 
 export type AdjuntoEmail = { nombre: string; base64: string; tipo: string };
 
+// Devuelve cómo fue, para los envíos MANUALES que lo enseñan en pantalla (el diálogo de
+// la orden); los avisos automáticos ignoran el resultado, como siempre.
+export type ResultadoEmail = { estado: 'enviado' | 'error'; error?: string };
+
 export async function enviarEmailOperativo(d: {
   clave: string; tipo: 'orden_carga' | 'firma_cmr' | 'cmr_completo';
   envioId?: string | null; para: string | null; asunto: string; html: string; adjuntos?: AdjuntoEmail[];
-}): Promise<void> {
+}): Promise<ResultadoEmail> {
   try {
     const sb = supabaseServicio();
-    if (!sb) return;   // sin clave de servicio (p. ej. local sin configurar): sin aviso
+    if (!sb) return { estado: 'error', error: 'Falta la clave de servicio en el servidor (Vercel).' };
     // El registro primero: si la clave ya existe, este aviso ya se mandó (o está en
     // ello) y NO se repite — el insert falla por la clave única y aquí se acaba.
     const { data: fila, error } = await sb.from('emails_enviados').insert({
@@ -27,11 +31,12 @@ export async function enviarEmailOperativo(d: {
       estado: d.para ? 'pendiente' : 'error',
       error: d.para ? null : 'Sin destinatario con email: avisar a mano.',
     }).select('id').single();
-    if (error || !fila || !d.para) return;
+    if (error) return { estado: 'error', error: 'Este aviso ya se mandó (clave repetida).' };
+    if (!fila || !d.para) return { estado: 'error', error: 'Sin destinatario con email.' };
     const token = process.env.POSTMARK_SERVER_TOKEN;
     if (!token) {
       await sb.from('emails_enviados').update({ estado: 'error', error: 'Falta POSTMARK_SERVER_TOKEN en el servidor.' }).eq('id', fila.id);
-      return;
+      return { estado: 'error', error: 'Falta configurar el envío de email (claves de Postmark en Vercel): el email queda registrado pero SIN enviar.' };
     }
     const res = await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
@@ -44,10 +49,12 @@ export async function enviarEmailOperativo(d: {
     const cuerpo = await res.json().catch(() => null) as { MessageID?: string } | null;
     if (res.ok) {
       await sb.from('emails_enviados').update({ estado: 'enviado', enviado_en: new Date().toISOString(), postmark_id: cuerpo?.MessageID ?? 'ok' }).eq('id', fila.id);
-    } else {
-      await sb.from('emails_enviados').update({ estado: 'error', error: `Postmark ${res.status}: ${JSON.stringify(cuerpo ?? {}).slice(0, 400)}` }).eq('id', fila.id);
+      return { estado: 'enviado' };
     }
+    await sb.from('emails_enviados').update({ estado: 'error', error: `Postmark ${res.status}: ${JSON.stringify(cuerpo ?? {}).slice(0, 400)}` }).eq('id', fila.id);
+    return { estado: 'error', error: `El servidor de email ha devuelto un error (${res.status}).` };
   } catch { /* nada: el aviso no puede romper la acción que lo dispara */ }
+  return { estado: 'error', error: 'No se ha podido enviar.' };
 }
 
 // Escape mínimo para incrustar textos de datos en el HTML del email.

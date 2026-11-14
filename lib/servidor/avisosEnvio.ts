@@ -53,15 +53,17 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string):
       token = (await sb.from('cmr_enlaces').insert({ envio_id: envio }).select('token').single()).data?.token ?? null;
     }
     const origen = await origenActual();
-    const enlOp = token ? `${origen}/cmr/${token}/orden?copia=operativa` : null;
+    // UNA sola orden (usuario, 2026-11-14): el documento completo; su enlace lleva la clave.
     const enlEc = token ? `${origen}/cmr/${token}/orden?copia=economica&clave=${e.transportista_id}` : null;
+    const enlFirma = token ? `${origen}/cmr/${token}` : null;
     let adjuntos: AdjuntoEmail[] | undefined;
     const pdf = await pdfDeEnvioDynamo(sb, envio, 'orden-de-carga', usuarioId, origen);
     if (!('error' in pdf)) adjuntos = [{ nombre: pdf.nombre, base64: Buffer.from(pdf.bytes).toString('base64'), tipo: 'application/pdf' }];
     const fecha = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? null;
     const html = `<p>Hola,</p>
-<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fecha)}</strong>)` : ''}. Va adjunta la <strong>orden de carga en PDF</strong> con todos los datos y las condiciones.</p>
-${enlOp && enlEc ? `<p>También podéis abrirla o descargarla aquí:<br>· Copia del conductor (sin precios): <a href="${enlOp}">${enlOp}</a><br>· Copia de administración (completa): <a href="${enlEc}">${enlEc}</a></p>` : ''}
+<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fecha)}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos y las condiciones.</p>
+${enlFirma ? `<p>Firma en este enlace tu e-CMR/DeCA DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}
+${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
 <p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
 ${pie}`;
     await enviarEmailOperativo({ clave: `orden_carga:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,

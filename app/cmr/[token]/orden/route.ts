@@ -26,8 +26,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   if (mant) return texto('Plataforma en mantenimiento. Vuelve a intentarlo en un rato.', 503);
 
   const url = new URL(req.url);
-  const copia = url.searchParams.get('copia') ?? 'conjunta';
-  if (!['conjunta', 'operativa', 'economica'].includes(copia)) return texto('Esa variante no existe.', 404);
+  // UNA sola orden (usuario, 2026-11-14): el documento completo («economica») es el que
+  // se comparte. «conjunta» de los enlaces viejos pasa a ser lo mismo; «operativa» (la
+  // copia del conductor, sin precios) sigue funcionando para los enlaces ya enviados.
+  let copia = url.searchParams.get('copia') ?? 'economica';
+  if (copia === 'conjunta') copia = 'economica';
+  if (!['operativa', 'economica'].includes(copia)) return texto('Esa variante no existe.', 404);
 
   const r = await cargarDatosDocPorCmr(sb, token);
   if (!r.datos) return texto(r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.', 404);

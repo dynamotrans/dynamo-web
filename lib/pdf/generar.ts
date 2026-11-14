@@ -53,6 +53,30 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
   return { bytes, nombre, manual: datos.manual };
 }
 
+// Las copias de la orden en PDF para ADJUNTARLAS a un email desde la plataforma
+// (usuario, 2026-11-13: «mailto no puede autoadjuntar; que lo mande la plataforma»).
+export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, copias: ('operativa' | 'economica')[], origen?: string):
+  Promise<{ pdfs: { bytes: Uint8Array; nombre: string }[] } | { error: string }> {
+  const { datos, error } = await cargarDatosDoc(sb, id, usuarioId);
+  if (!datos) return { error: error ?? 'No se ha podido leer el envío.' };
+  if (datos.manual) return { error: 'Los envíos manuales no llevan orden de carga de Dynamo.' };
+  datos.dynamo = await datosDynamo(sb);
+  const { data: enl } = await sb.from('cmr_enlaces').select('token, creado_en').eq('envio_id', id).eq('revocado', false)
+    .order('creado_en', { ascending: false }).limit(1).maybeSingle();
+  if (enl) datos.deca = { url: `${origen ?? 'https://www.dynamotrans.com'}/cmr/${enl.token}`, creado_en: enl.creado_en };
+  const { data: ps } = await sb.from('parametros').select('clave, valor')
+    .in('clave', ['pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'plazo_pago_transportista_dias']);
+  const p = new Map((ps ?? []).map((x) => [x.clave, Number(x.valor)]));
+  const pago = { pct: p.get('pronto_pago_pct') ?? 3, minimo: p.get('pronto_pago_minimo') ?? 20,
+    dias: p.get('pronto_pago_dias') ?? 5, plazo: p.get('plazo_pago_transportista_dias') ?? 60 };
+  const ref = String(datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
+  const pdfs: { bytes: Uint8Array; nombre: string }[] = [];
+  for (const c of copias) {
+    pdfs.push({ bytes: await ordenDeCarga(datos, pago, { copia: c }), nombre: `Orden-${ref}-${c === 'operativa' ? 'conductor' : 'administracion'}.pdf` });
+  }
+  return { pdfs };
+}
+
 // (La orden COMPUESTA del enlace público /cmr/<token>/orden vive en su ruta, con la
 // clave pública y datos_orden_por_cmr — 2026-11-11: antes iba con la clave de servicio.)
 

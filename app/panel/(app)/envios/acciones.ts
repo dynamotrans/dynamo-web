@@ -271,6 +271,42 @@ export async function datosOrden(envio: string): Promise<{ ok: true; email: stri
     clienteEmail: ccli?.email ?? null, clienteTelefono: ccli?.telefono ?? null };
 }
 
+// Enviar la orden (o el resumen del cliente) POR EMAIL DESDE LA PLATAFORMA, con el PDF
+// adjunto de verdad (usuario, 2026-11-13: «mailto no puede autoadjuntar»). Va por
+// Postmark con el registro de siempre; al transportista se adjunta LA orden de carga
+// (documento completo — una sola orden, usuario 2026-11-14); al cliente, solo el mensaje.
+export async function emailOrdenPlataforma(envio: string, para: 'transportista' | 'cliente', mensaje: string):
+  Promise<{ ok: true; para: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#emailOrdenPlataforma", [envio, para, mensaje]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo comparte la orden de carga.' };
+  if (!/^[0-9a-f-]{36}$/i.test(envio) || !['transportista', 'cliente'].includes(para)) return { ok: false, error: 'Petición no válida.' };
+  const r = await datosOrden(envio);
+  if (!r.ok) return r;
+  const dest = para === 'transportista' ? r.email : r.clienteEmail;
+  if (!dest) return { ok: false, error: para === 'transportista' ? 'El transportista no tiene email en su ficha.' : 'El cliente no tiene email en sus contactos.' };
+  const { data: e } = await s.supabase.from('envios').select('referencia_gx').eq('id', envio).maybeSingle();
+  const ref = e?.referencia_gx ?? '';
+  const [{ enviarEmailOperativo, escaparHtml }, { origen }] = await Promise.all([import('@/lib/servidor/emailOperativo'), import('@/lib/origen')]);
+  let adjuntos: { nombre: string; base64: string; tipo: string }[] | undefined;
+  if (para === 'transportista') {
+    const { pdfsOrdenDynamo } = await import('@/lib/pdf/generar');
+    const pd = await pdfsOrdenDynamo(s.supabase, envio, s.user.id, ['economica'], await origen());
+    if ('error' in pd) return { ok: false, error: pd.error };
+    adjuntos = pd.pdfs.map((x) => ({ nombre: x.nombre, base64: Buffer.from(x.bytes).toString('base64'), tipo: 'application/pdf' }));
+  }
+  // El mensaje de la pantalla, línea a línea, con los enlaces clicables.
+  const html = mensaje.slice(0, 4000).split('\n')
+    .map((ln) => ln.trim() === '' ? '<br>' : `<p style="margin:0 0 2px">${escaparHtml(ln).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')}</p>`)
+    .join('');
+  const res = await enviarEmailOperativo({
+    clave: `orden_manual:${envio}:${para}:${Date.now()}`, tipo: 'orden_carga', envioId: envio, para: dest,
+    asunto: para === 'transportista' ? `Orden de carga #${ref} · Dynamo` : `Tu envío #${ref} · Dynamo`,
+    html, adjuntos,
+  });
+  return res.estado === 'enviado' ? { ok: true, para: dest } : { ok: false, error: res.error ?? 'No se ha podido enviar.' };
+}
+
 export async function revocarOferta(oferta: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones#revocarOferta", [oferta]);
   const s = await soloDynamo();
