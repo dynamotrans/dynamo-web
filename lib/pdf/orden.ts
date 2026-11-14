@@ -195,6 +195,33 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + chX - 5, tPie, 5.4, { color: COLOR.gris });
   };
 
+  // ---- Piezas de diseño (usuario, 2026-11-14: «cajas de color suave, plaquitas, todo
+  // más organizado y profesional») ----
+  const cajaR = (x: number, top: number, w: number, h: number, fill: RGB, border?: RGB, r = 8) => {
+    l.pag.drawSvgPath(`M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`,
+      { x, y: A4.h - top, color: fill, borderColor: border, borderWidth: border ? 1 : 0 });
+  };
+  // Chip tipo pastilla (fondo suave, texto corto). Devuelve el ancho que ocupa.
+  const chip = (x: number, top: number, txt: string, fg: RGB, bg: RGB, size = 7.2) => {
+    const w = l.medida(txt, size, true) + 12;
+    cajaR(x, top, w, 14, bg, undefined, 7);
+    l.texto(x + 6, top + 10, txt, size, { bold: true, color: fg });
+    return w;
+  };
+  // PLAQUITA de matrícula: banda azul UE con la «E» y el número sobre fondo blanco.
+  const AZUL_UE = rgb(0, 0.2, 0.6);
+  const plaquita = (x: number, top: number, txt: string) => {
+    const w = 13 + l.medida(txt, 9, true) + 12;
+    cajaR(x, top, w, 17, COLOR.blanco, COLOR.navy, 3);
+    l.pag.drawRectangle({ x: x + 1, y: A4.h - top - 16, width: 9, height: 15, color: AZUL_UE });
+    l.texto(x + 3.4, top + 12.5, 'E', 6, { bold: true, color: COLOR.blanco });
+    l.texto(x + 15, top + 12.5, txt, 9, { bold: true, color: COLOR.tinta });
+    return w;
+  };
+  // Tintes suaves de las tarjetas de recogida (naranja) y entrega (verde) y sus chips.
+  const TINTE_REC = rgb(1, 0.972, 0.945), TINTE_ENT = rgb(0.953, 0.982, 0.962);
+  const CHIP_REC = rgb(1, 0.918, 0.843), CHIP_ENT = rgb(0.867, 0.953, 0.898);
+
   if (copia === 'operativa' && !manual) {
     // ---- CABECERA DEL DeCA EN UNA SOLA FRANJA (usuario, 2026-11-14): cuatro bloques en
     // la misma fila — transportista efectivo · cargador contractual (Dynamo) · datos del
@@ -205,9 +232,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const datosF: [string, string][] = [[t.nEnvio, ref], [t.fechaCargaL, ventanaCarga], [t.matriculasAutL, matr || t.pendAsignar]];
     if (e.referencia_cliente) datosF.push([t.referenciaL, e.referencia_cliente]);
     const datosParts = datosF.map(([, v]) => l.partir(v, 8.6, wDatos - 14, true).slice(0, 2));
+    const placas = [e.matricula_camion, e.matricula_remolque].filter(Boolean) as string[];
     const tit1 = l.partir(esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`, 6.8, wCaja - 16, true).slice(0, 2);
     const tit2 = l.partir(esES ? 'CARGADOR CONTRACTUAL' : `CARGADOR CONTRACTUAL · ${t.gestionadaPor}`, 6.8, wCaja - 16, true).slice(0, 2);
-    const hDatos = 10 + datosParts.reduce((a, ps) => a + 17 + (ps.length - 1) * 10 + 8, 0);
+    const hDatos = 10 + datosParts.reduce((a, ps, i) => a + (i === 2 && matr ? 11 + placas.length * 21 + 4 : 17 + (ps.length - 1) * 10 + 8), 0);
     const hFila = Math.max(96, hDatos,
       12 + tit1.length * 8 + alto(izq, wCaja - 16) + 10,
       12 + tit2.length * 8 + alto(dcha, wCaja - 16) + 10);
@@ -223,8 +251,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     let yD = ct + 10;
     datosF.forEach(([k], i) => {
       l.texto(x3 + 7, yD + 7, l.partir(k, 6.4, wDatos - 12, true)[0] ?? '', 6.4, { bold: true, color: COLOR.gris });
-      datosParts[i].forEach((ln, j) => l.texto(x3 + 7, yD + 17 + j * 10, ln, 8.6, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
-      yD += 17 + (datosParts[i].length - 1) * 10 + 8;
+      if (i === 2 && matr) {
+        // Las matrículas como PLAQUITAS, una por línea.
+        let yP = yD + 11;
+        for (const m of placas) { plaquita(x3 + 7, yP, m); yP += 21; }
+        yD = yP + 4;
+      } else {
+        datosParts[i].forEach((ln, j) => l.texto(x3 + 7, yD + 17 + j * 10, ln, 8.6, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
+        yD += 17 + (datosParts[i].length - 1) * 10 + 8;
+      }
     });
     await tarjetaQr(ct, cw, hFila);
     l.y = ct + hFila + 8;
@@ -307,12 +342,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.linea(l.x0, l.y + 13, der, l.y + 13);
     l.y += 19;
   };
+  // TARJETA de parada (usuario, 2026-11-14: «cajas de color suave, bien organizado,
+  // profesional»): caja redondeada con tinte suave, chip de color con el nº y el tipo,
+  // la EMPRESA como titular, la FECHA en una placa blanca a la derecha, y debajo las
+  // filas clave-valor de siempre.
   const punto = (pa: ParadaDoc, n: number, recogida: boolean) => {
+    const fechaTxt = recogida ? ventanaCarga : (fEntrega ? `${fEntrega} ${t.estimada}` : t.porConfirmar);
     const filas: [string, string, boolean?][] = [];
-    filas.push([t.fecha, recogida ? ventanaCarga : (fEntrega ? `${fEntrega} ${t.estimada}` : t.porConfirmar), true]);
     filas.push([t.horario, pa.horarios || t.consultaDynamo, true]);
-    filas.push([t.empresa, pa.nombre_empresa || t.faltanEmpresa, true]);
-    filas.push([t.direccion, [pa.direccion, [pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.provincia !== pa.poblacion ? pa.provincia : null, pa.pais].filter(Boolean).join(', ')]);
+    filas.push([t.direccion, [pa.direccion, [pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.provincia !== pa.poblacion ? pa.provincia : null, pa.pais].filter(Boolean).join(', '), true]);
     if (pa.contacto?.telefono || pa.contacto?.nombre) filas.push([t.contacto, [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': ')]);
     if (pa.referencia) filas.push([t.referencia, pa.referencia, true]);
     if (pa.tipo_sitio) filas.push([t.tipoSitio, nombreTipo(pa.tipo_sitio)]);
@@ -335,24 +373,34 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     if (merc) filas.push([t.mercancia, merc, true]);
     for (const n2 of notas) filas.push([t.indicaciones, n2]);
 
-    const xK = l.x0 + 16, xV = l.x0 + 128, wV = der - xV - 6;
+    const xK = l.x0 + 14, xV = l.x0 + 126, wV = der - xV - 12;
     // La clave también se parte (los idiomas con etiquetas largas no deben pisar el valor).
     const lineas = filas.map(([k, v, b]) => ({ k0: k, k: l.partir(k, 7.6, xV - xK - 8, true), v: l.partir(v, 8.4, wV, b), b }));
     const altoF = (f: { k: string[]; v: string[] }) => Math.max(f.v.length * 10.8, f.k.length * 9.8);
-    const h = 18 + lineas.reduce((a, f) => a + altoF(f) + 1.6, 0) + 5;
-    l.sitio(Math.min(h, 320));
+    const hCab = 28;
+    const h = hCab + lineas.reduce((a, f) => a + altoF(f) + 1.6, 0) + 9;
+    l.sitio(Math.min(h + 4, 320));
     const color = recogida ? NARANJA : COLOR.verde;
-    l.rect(l.x0, l.y, 2.5, h - 4, color);
-    l.texto(xK, l.y + 11, `${n} · ${recogida ? t.recogida : t.entrega}`, 8.6, { bold: true, color });
-    l.y += 18;
+    const top = l.y;
+    cajaR(l.x0, top, l.ancho, h, recogida ? TINTE_REC : TINTE_ENT, COLOR.grisClaro);
+    const cw2 = chip(l.x0 + 10, top + 7, `${n} · ${recogida ? t.recogida : t.entrega}`, color, recogida ? CHIP_REC : CHIP_ENT);
+    // La fecha, en una placa blanca a la derecha de la cabecera.
+    const fW = l.medida(fechaTxt, 7.6, true) + 14;
+    cajaR(der - 10 - fW, top + 6, fW, 16, COLOR.blanco, COLOR.grisClaro, 8);
+    l.texto(der - 10 - fW + 7, top + 17, fechaTxt, 7.6, { bold: true, color: COLOR.navy });
+    // El titular: la empresa del sitio (en rojo si falta).
+    const titW = (der - 10 - fW) - (l.x0 + 10 + cw2 + 8) - 6;
+    l.texto(l.x0 + 10 + cw2 + 8, top + 17.5, l.partir(pa.nombre_empresa || t.faltanEmpresa, 9.5, titW, true)[0] ?? '', 9.5,
+      { bold: true, color: pa.nombre_empresa ? COLOR.navy : COLOR.rojo });
+    l.y = top + hCab;
     for (const f of lineas) {
       l.sitio(altoF(f));
       f.k.forEach((ln, i) => l.texto(xK, l.y + 8.4 + i * 9.8, ln, 7.6, { bold: true, color: COLOR.gris }));
-      const rojo = f.k0 === t.empresa && !pa.nombre_empresa || f.k0 === t.atencion;
+      const rojo = f.k0 === t.atencion;
       f.v.forEach((ln, i) => l.texto(xV, l.y + 8.4 + i * 10.8, ln, 8.4, { bold: f.b, color: rojo ? COLOR.rojo : COLOR.navy }));
       l.y += altoF(f) + 1.6;
     }
-    l.y += 6;
+    l.y += 9 + 7;
   };
   const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
   seccion(rec.length > 1 ? t.recogidas : t.recogida);
@@ -393,8 +441,17 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     [t.importante, t.txtImportante],
   ]);
   seccion(t.secMatr);
+  // Las matrículas como PLAQUITAS (usuario, 2026-11-14), en fila junto a su etiqueta.
+  if (matr) {
+    l.sitio(26);
+    const ks = l.partir(t.matriculasAutL, 8, 118, true);
+    ks.forEach((ln, i) => l.texto(l.x0, l.y + 12 + i * 10.4, ln, 8, { bold: true, color: COLOR.gris }));
+    let xP = l.x0 + 128;
+    for (const m of [e.matricula_camion, e.matricula_remolque].filter(Boolean) as string[]) xP += plaquita(xP, l.y + 3, m) + 8;
+    l.y += Math.max(24, ks.length * 10.4 + 6);
+  }
   kv([
-    [t.matriculasAutL, matr || t.pendMatrEnvia, { bold: true, rojo: !matr }],
+    ...(matr ? [] : [[t.matriculasAutL, t.pendMatrEnvia, { bold: true, rojo: true }] as [string, string, { bold?: boolean; rojo?: boolean }]]),
     [t.conductor, [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar],
     ['', t.txtSoloMatr],
   ]);
