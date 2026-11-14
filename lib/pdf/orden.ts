@@ -103,7 +103,13 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     izq.push([[p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia !== p.poblacion ? p.provincia : null].filter(Boolean).join(', '), 8, false]);
     izq.push([[p.contacto, p.telefono && telBonito(p.telefono), p.email].filter(Boolean).join(' · '), 8, false]);
   } else izq.push([t.pendienteTransp, 10, true]);
-  const dchaTit = manual ? t.ordenante : t.gestionadaPor;
+  // En el DeCA (copia del conductor) las partes van con sus FIGURAS LEGALES (usuario,
+  // 2026-11-14): Dynamo es «cargador contractual y cargador» (como operador asume la
+  // posición de cargador frente al transportista efectivo). En las páginas traducidas se
+  // mantiene el término legal español delante de la etiqueta del idioma.
+  const dchaTit = manual ? t.ordenante
+    : copia === 'operativa' ? (esES ? 'CARGADOR CONTRACTUAL Y CARGADOR' : `CARGADOR CONTRACTUAL Y CARGADOR · ${t.gestionadaPor}`)
+    : t.gestionadaPor;
   const dcha: [string, number, boolean][] = manual
     ? [[d.cliente?.razon_social ?? '', 10, true], [d.cliente?.cif ? `CIF ${d.cliente.cif}` : '', 8.5, false],
        [[d.cliente?.contacto, d.cliente?.telefono && telBonito(d.cliente.telefono), d.cliente?.email].filter(Boolean).join(' · '), 8, false]]
@@ -115,7 +121,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const hCaja = Math.max(alto(izq, mitad - 20), alto(dcha, mitad - 20)) + 30;
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
   l.rect(xb, l.y, mitad, hCaja, COLOR.fondo);
-  l.texto(l.x0 + 10, l.y + 14, esCli ? 'Cliente · Ordenante del transporte' : manual ? t.transp : t.transpRealiza, 7.5, { bold: true, color: COLOR.gris });
+  l.texto(l.x0 + 10, l.y + 14, esCli ? 'Cliente · Ordenante del transporte' : manual ? t.transp
+    : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
+    : t.transpRealiza, 7.5, { bold: true, color: COLOR.gris });
   // Envío manual: el logo del operador (si el cliente lo subió), arriba a la derecha de su caja.
   if (manual && d.logoPorteador) {
     try {

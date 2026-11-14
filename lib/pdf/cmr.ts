@@ -134,7 +134,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       l.y += 1;
     };
     const p = d.porteador!;
-    sec('CARGADOR CONTRACTUAL · OPERADOR DE TRANSPORTE');
+    sec('CARGADOR CONTRACTUAL Y CARGADOR · OPERADOR DE TRANSPORTE');
     filaD('Razón social', D.razon_social, true);
     filaD('NIF', D.cif);
     filaD('Domicilio', [D.direccion, [D.codigo_postal, D.poblacion].filter(Boolean).join(' '), D.pais].filter(Boolean).join(', '));
