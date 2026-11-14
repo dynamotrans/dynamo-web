@@ -19,4 +19,4 @@
 
 ## Zonas seguras (no poner nada importante fuera)
 - Post 1080×1350: la miniatura del perfil recorta ~35 px por cada lado.
-- Historia 1080×1920: Instagram tapa ~250 px arriba (nombre de la cuenta) y ~250 px abajo (barra «Enviar mensaje»). La franja «Pide transporte online» va a 250 px del borde inferior.
+- Historia 1080×1920: Instagram tapa ~250 px arriba (nombre de la cuenta) y ~250 px abajo (barra «Enviar mensaje»). La franja «Pide transporte online» va pegada al pie; por eso el vídeo de la historia no lleva zoom (el zoom la recortaba).
