@@ -8728,3 +8728,55 @@ begin
   delete from bloqueos_alta where motivo = 'prueba 219';
   raise notice 'OK 219 · el cambio de email respeta la lista de bloqueo, sincroniza el perfil y no reinicia los usos';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 220 · el CMR digital es solo de Dynamo: un envío MANUAL no se puede firmar ni
+-- anotar reservas aunque se llame a las funciones públicas con su token
+-- =====================================================================================
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid;
+        op uuid; e uuid; tok uuid; par uuid; r jsonb; i0 int; ruta text;
+begin
+  -- El envío manual se crea como lo hace la web (crear_envio_manual exige el jwt del cliente).
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into operadores (cliente_id, razon_social, cif) values (cli, 'Transportes Guardia 220', 'B22000220') returning id into op;
+  select s.id into e from crear_envio_manual(
+    jsonb_build_object('operador_id', op, 'metros_lineales', 5, 'fecha_carga_desde', current_date, 'precio_acordado_operador', 300),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 220', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 220', 'codigo_postal', '28001', 'poblacion', 'Madrid'))) s;
+  perform set_config('request.jwt.claim.sub', '', false);
+  select id into par from envio_paradas where envio_id = e and tipo = 'carga' limit 1;
+  -- crear_envio_manual ya deja su enlace vivo (uno por envío): se usa ese.
+  select token into tok from cmr_enlaces where envio_id = e and not revocado limit 1;
+  if tok is null then raise exception 'FALLO 220 · el envío manual no tiene enlace de CMR'; end if;
+  -- El trazo subido de verdad en la carpeta del enlace (como exige la firma): la llamada
+  -- pasa todas las validaciones y solo la frena el cerrojo del disparador.
+  ruta := 'cmr/' || tok || '/' || gen_random_uuid() || '.png';
+  insert into storage.objects (bucket_id, name) values ('documentos', ruta);
+  -- Firmar: rechazado y sin dejar nada.
+  begin
+    r := firmar_cmr_publico(tok, par, 'remitente', 'Prueba Manual', '12345678Z', 'ES', true, null, ruta, '127.0.0.1'::inet, 'prueba', repeat('a', 64));
+    raise exception 'FALLO 220 · un envío manual se ha podido firmar en digital: %', r;
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from firmas_cmr where envio_id = e) then
+    raise exception 'FALLO 220 · la firma del envío manual se ha guardado igualmente';
+  end if;
+  -- Reservas: rechazadas, y la incidencia de la misma llamada se deshace con el rechazo.
+  select count(*) into i0 from incidencias;
+  begin
+    r := anotar_reservas_cmr_publico(tok, par, 'remitente', 'Reserva de prueba 220');
+    raise exception 'FALLO 220 · un envío manual ha podido anotar reservas: %', r;
+  exception when insufficient_privilege then null; end;
+  if (select count(*) from incidencias) <> i0 or exists (select 1 from cmr_reservas where envio_id = e) then
+    raise exception 'FALLO 220 · la reserva del manual ha dejado rastro (incidencia o reserva)';
+  end if;
+  -- La hoja pública se sigue pudiendo LEER (para el aviso y el PDF imprimible).
+  r := cmr_publico(tok);
+  if r ->> 'resultado' <> 'ok' or not coalesce((r ->> 'manual')::boolean, false) then
+    raise exception 'FALLO 220 · la lectura pública del manual ha dejado de funcionar: %', r;
+  end if;
+  raise notice 'OK 220 · el CMR digital es solo de Dynamo: el manual ni firma ni reserva, pero se sigue leyendo';
+end $$;
