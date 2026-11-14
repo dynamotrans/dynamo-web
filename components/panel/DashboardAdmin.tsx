@@ -78,9 +78,6 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
         <Link className="dash-cta-mini" href="/panel/administracion"><span className="dash-cta-mini-ico"><Svg><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="16" y2="17" /><line x1="8" y1="9" x2="10" y2="9" /></Svg></span><span>Administración</span></Link>
       </div>
       <div className="stats-row stats-compactas" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
-        {/* «Envíos programados» (usuario, 2026-11-14): la cifra junta los programados y
-            los que ya van en ruta — todo lo vivo, como la pestaña a la que enlaza. */}
-        <Cifra href="/panel/envios?f=programada" label="Envíos programados" valor={enCurso} />
         {bloques.map((b) => <BloqueCard key={b.id} b={b} />)}
         {/* Cuentas suspendidas (usuario, 2026-11-14): últimas 24 h en grande y el total
             histórico debajo; abre Usuarios ya filtrado por suspendidas. */}
@@ -89,6 +86,9 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
           <span className="stat-card-value" style={susp24 > 0 ? { color: 'var(--red)' } : undefined}>{susp24}</span>
           <span className="stat-card-trend" style={{ color: 'var(--gray-500)' }}>{suspTotal} suspendidas en total</span>
         </Link>
+        {/* «Envíos programados» (usuario, 2026-11-14): la cifra junta los programados y
+            los que ya van en ruta — todo lo vivo, como la pestaña a la que enlaza. */}
+        <Cifra href="/panel/envios?f=programada" label="Envíos programados" valor={enCurso} />
         <LineaProntoPago pp={prontoPago} error={errorPP} />
       </div>
       {cuadro}

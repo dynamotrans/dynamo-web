@@ -62,7 +62,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
   const cnt = { count: 'exact' as const };
   // OJO: las solicitudes «esperando precio» y las revisiones de precio NO salen (decisión
   // del usuario 2026-11-08): el precio es del tarifador automático, no depende del equipo.
-  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, alm, susp24, suspTotal] = await Promise.all([
+  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, susp24, suspTotal] = await Promise.all([
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).in('estado', ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'])),
     supabase.rpc('pronto_pago_estado'),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
@@ -75,7 +75,6 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     supabase.from('penalizaciones').select('id, importe_cliente, importe_transportista, creado_en, envios(referencia_gx), tipos_penalizacion(nombre)', cnt)
       .eq('estado', 'pendiente_confirmar').order('creado_en').limit(MAX),
     supabase.from('usuarios').select('id, email, nombre, rol, creado_en', cnt).eq('estado', 'pendiente_verificacion').is('cliente_id', null).is('transportista_id', null).order('creado_en').limit(MAX),
-    supabase.from('almacenamientos').select('id, codigo, fecha_entrada, creado_en, clientes(nombre_visible)', cnt).eq('estado', 'pendiente_confirmar').order('fecha_entrada').limit(MAX),,
     // Cuentas suspendidas por el sistema o a mano (usuario, 2026-11-14): las últimas
     // 24 h y el total histórico, con enlace a Usuarios filtrado por suspendidas.
     cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('estado', 'suspendida')
@@ -92,38 +91,35 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     || (PRIO[a.prioridad] ?? 9) - (PRIO[b.prioridad] ?? 9) || a.creado_en.localeCompare(b.creado_en)).slice(0, MAX);
 
   const bloques: Bloque[] = [
-    // Las ALTAS, lo primero (decisión del usuario 2026-11-08): un cliente nuevo esperando
-    // la revisión es lo que antes hay que atender.
+    // Orden de las cajas fijado por el usuario (2026-11-14): Contraofertas · Altas ·
+    // Hoy/mañana sin camión · Esperando el pago · Incidencias · Penalizaciones. La de
+    // Almacenamientos se quitó (módulo v3, oculto a clientes).
+    { id: 'contraofertas-transportistas', nivel: 'aviso', corto: 'Contraofertas', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
+      sub: 'Transportistas que proponen otro precio: se aceptan o rechazan en la ficha del envío.',
+      filas: (cofTra.data ?? []).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
+        s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
     { id: 'altas', nivel: 'aviso', corto: 'Altas pendientes', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
       sub: 'Usuarios nuevos esperando la revisión del equipo.',
       filas: (altas.data ?? []).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
-    // Hasta que el cliente no paga, el envío no avanza (no se asigna camión).
-    { id: 'sin-pagar', nivel: 'aviso', corto: 'Esperando el pago', titulo: 'Envíos esperando el pago del cliente', total: sinPagar.count ?? 0, todo: '/panel/envios?f=sin-pagar',
-      sub: 'Hasta que el cliente no paga, el envío no avanza (no se asigna camión). Si paga por transferencia, márcalo al recibirla.',
-      filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.modificado_en ?? e.creado_en })) },
     { id: 'sin-camion', nivel: 'urgente', corto: 'Hoy/mañana sin camión', titulo: 'Cargan hoy o mañana y no tienen camión', total: sinCamion.count ?? 0, todo: '/panel/envios?f=sin-asignar',
       sub: 'Envíos que cargan hoy o mañana y aún no tienen transportista asignado.',
       filas: (sinCamion.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
         urgente: (e.fecha_carga_desde ?? '') <= hoy })) },
+    { id: 'sin-pagar', nivel: 'aviso', corto: 'Esperando el pago', titulo: 'Envíos esperando el pago del cliente', total: sinPagar.count ?? 0, todo: '/panel/envios?f=sin-pagar',
+      sub: 'Hasta que el cliente no paga, el envío no avanza (no se asigna camión). Si paga por transferencia, márcalo al recibirla.',
+      filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.modificado_en ?? e.creado_en })) },
     { id: 'incidencias', nivel: incs.some((i) => i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica') ? 'urgente' : 'aviso',
       corto: 'Incidencias abiertas', titulo: 'Incidencias abiertas', total: inc.count ?? 0, todo: '/panel/incidencias',
       sub: 'Abiertas o en curso; primero los siniestros y las críticas.',
       filas: incs.map((i) => ({ href: '/panel/incidencias', t: `${i.tipos_incidencia?.clave === 'siniestro' ? 'SINIESTRO · ' : ''}${i.titulo}`,
         s: [i.envios?.referencia_gx && `#${i.envios.referencia_gx}`, i.tipos_incidencia?.nombre, `prioridad ${i.prioridad}`].filter(Boolean).join(' · '), desde: i.creado_en,
         urgente: i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica' })) },
-    { id: 'contraofertas-transportistas', nivel: 'aviso', corto: 'Contraofertas', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
-      sub: 'Transportistas que proponen otro precio: se aceptan o rechazan en la ficha del envío.',
-      filas: (cofTra.data ?? []).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
-        s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
     { id: 'penalizaciones', nivel: 'info', corto: 'Penalizaciones', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
       sub: 'Penalizaciones registradas pendientes de confirmar.',
       filas: (pen.data ?? []).map((p) => ({ href: '/panel/penalizaciones', t: `${p.tipos_penalizacion?.nombre ?? 'Penalización'}${p.envios?.referencia_gx ? ` · #${p.envios.referencia_gx}` : ''}`,
         s: [p.importe_cliente != null && `Cliente ${euros(p.importe_cliente)}`, p.importe_transportista != null && `Transportista ${euros(p.importe_transportista)}`].filter(Boolean).join(' · '), desde: p.creado_en })) },
-    { id: 'almacenamientos', nivel: 'info', corto: 'Almacenamientos', titulo: 'Almacenamientos por confirmar', total: alm.count ?? 0, todo: '/panel/almacenamientos',
-      sub: 'Almacenamientos pedidos pendientes de confirmar.',
-      filas: (alm.data ?? []).map((a) => ({ href: '/panel/almacenamientos', t: `${a.codigo ?? 'Almacenamiento'} · ${cli(a)}`, s: `Entrada ${ventana(a.fecha_entrada, null)}`, desde: a.creado_en })) },
   ];
-  const errores = [sinCamion, cofTra, sinPagar, inc, pen, altas, alm].map((r) => r.error?.message).filter(Boolean);
+  const errores = [sinCamion, cofTra, sinPagar, inc, pen, altas].map((r) => r.error?.message).filter(Boolean);
   const [cm, sec] = await Promise.all([
     supabase.rpc('cuadro_mando', { p_desde: per.desde, p_hasta: per.hasta, p_comp_desde: per.cDesde, p_comp_hasta: per.cHasta }),
     supabase.rpc('cuadro_mando_sectores', { p_desde: per.desde, p_hasta: per.hasta }),
