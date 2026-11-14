@@ -208,15 +208,14 @@ export function combinaciones(e: EntradaTarifa): Combinacion[] {
 
 // Descuento de bienvenida sobre una tarifa ya calculada (parámetro factor_bienvenida_pct,
 // −7 % de serie): el de un cliente nuevo y el del tarifador público sin registro. Lo usa
-// el panel al calcular un precio SIN cliente elegido (usuario, 2026-11-13). Se añade como
-// línea propia al desglose (para que se vea por qué baja) y los ahorros de las
-// alternativas se escalan igual, para que todo siga cuadrando.
+// el panel al calcular un precio SIN cliente elegido (usuario, 2026-11-13). NO sale como
+// línea del desglose (usuario, 2026-11-14: «el precio ya con el descuento»): se funde en
+// «Importe del envío», y los ahorros de las alternativas se escalan igual para cuadrar.
 export function aplicarDescuentoTarifa(t: Tarifa, pct: number): Tarifa {
   if (!pct) return t;
   const neto = r10(t.neto * (1 + pct / 100));
-  const etiqueta = pct < 0 ? `Descuento de bienvenida (−${Math.abs(pct)} %)` : `Recargo sin cliente (+${pct} %)`;
   return { ...t, neto,
-    lineas: [...t.lineas, { k: etiqueta, v: neto - t.neto }],
+    lineas: t.lineas.map((l, i) => (i === 0 ? { ...l, v: l.v + (neto - t.neto) } : l)),
     alternativas: t.alternativas.map((a) => ({ ...a, ahorro: r10(a.ahorro * (1 + pct / 100)) })) };
 }
 
