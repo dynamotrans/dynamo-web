@@ -143,7 +143,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   cajaR(l.x0, 36, l.ancho, 18, COLOR.blanco, COLOR.grisClaro, 4);
   l.pag.drawRectangle({ x: l.x0 + 8, y: A4.h - 50.5, width: 3, height: 10, color: COLOR.navy });
   l.texto(l.x0 + 17, 48, esp(copia === 'operativa' ? 'DeCA' : esCli ? 'Copia cliente' : t.copiaAdmin), 6.8, { bold: true, color: COLOR.navy });
-  l.textoDer(der - 10, 48, esp(copia === 'operativa' ? t.sinEco : esCli ? 'Con tu precio · sin porteador' : t.completa), 5.4, { bold: true, color: COLOR.gris });
+  // En el DeCA, el nombre oficial completo vive AQUÍ, en la banda (usuario, 2026-11-14),
+  // y no bajo el título.
+  l.textoDer(der - 10, 48, esp(copia === 'operativa' ? DECA_NOMBRE : esCli ? 'Con tu precio · sin porteador' : t.completa), 5.4, { bold: true, color: COLOR.gris });
 
   // ---- Cabecera: logo a la izquierda; a la derecha título, subtítulo espaciado,
   // referencia en grande y emisión. Debajo, la regla con la cinta tricolor. ----
@@ -155,7 +157,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.texto(l.x0, 98, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
   }
   l.textoDer(der, 81, copia === 'operativa' ? 'DeCA' : t.titulo, 17, { bold: true, color: COLOR.navy });
-  l.textoDer(der, 92, esp(copia === 'operativa' ? DECA_NOMBRE : t.subConfirmado), 5, { bold: true, color: COLOR.gris });
+  if (copia !== 'operativa') l.textoDer(der, 92, esp(t.subConfirmado), 5, { bold: true, color: COLOR.gris });
   l.textoDer(der, 104, esp(t.subRef), 5.4, { bold: true, color: COLOR.gris });
   l.textoDer(der, 117, ref || '—', 12, { bold: true, color: COLOR.navy });
   l.textoDer(der, 127, `${t.emitida} ${emitida}`, 6.4, { color: COLOR.gris });
