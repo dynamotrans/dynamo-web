@@ -7,7 +7,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { cambiarMiClave, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { cambiarMiClave, cambiarMiEmail, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 
 import { paisDe, telBonito } from '@/lib/paises';
@@ -51,6 +51,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
   const [editaTransp, setEditaTransp] = useState(false);
   const [cambiaClave, setCambiaClave] = useState(false);
   const [claveCambiada, setClaveCambiada] = useState(false);
+  const [cambiaEmail, setCambiaEmail] = useState(false);
+  const [emailPedido, setEmailPedido] = useState<string | null>(null);
   const [baja, setBaja] = useState(false);
   const [companero, setCompanero] = useState(false);
   const [companeroOk, setCompaneroOk] = useState(false);
@@ -79,7 +81,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           {fila('Última conexión', ultimaConexion ? fechaHora(ultimaConexion) : '')}
           <button className="btn-ghost account-edit" onClick={() => { setClaveCambiada(false); setCambiaClave(true); }}>Cambiar contraseña</button>
           {claveCambiada && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Contraseña cambiada.</p>}
-          <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para cambiar el <strong>email</strong> con el que entras, escríbenos a {CONTACTO.email}: es tu usuario y lo cambiamos nosotros.</p>
+          <button className="btn-ghost account-edit" style={{ marginTop: '0.5rem' }} onClick={() => { setEmailPedido(null); setCambiaEmail(true); }}>Cambiar email</button>
+          {emailPedido && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Te hemos enviado un enlace a {emailPedido} (y otro a tu correo actual, por seguridad). El email cambia al confirmarlos; hasta entonces sigues entrando con el actual.</p>}
           {(rol === 'cliente' || rol === 'transportista') && (
             <button type="button" className="btn-ghost" style={{ marginTop: '0.8rem', color: 'var(--red)', borderColor: 'transparent', padding: '0.35rem 0' }} onClick={() => setBaja(true)}>Darme de baja</button>
           )}
@@ -141,6 +144,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
         </>)}
       </div>
       {cambiaClave && <CambiarClave onCerrar={() => setCambiaClave(false)} onHecho={() => { setCambiaClave(false); setClaveCambiada(true); }} />}
+      {cambiaEmail && <CambiarEmail actual={email} onCerrar={() => setCambiaEmail(false)} onHecho={(e) => { setCambiaEmail(false); setEmailPedido(e); }} />}
       {companero && <AnadirCompanero empresa={empresa?.razon_social ?? 'tu empresa'} onCerrar={() => setCompanero(false)} onHecho={() => { setCompanero(false); setCompaneroOk(true); }} />}
       {baja && <DarmeDeBaja onCerrar={() => setBaja(false)} transportista={rol === 'transportista'} />}
       {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); refrescar(); }} />}
@@ -297,6 +301,36 @@ function CambiarClave({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
       <div style={{ marginTop: '0.5rem' }}><MedidorClave clave={nueva} /></div>
       <button type="button" className="btn-ghost" style={{ padding: '0.35rem 0.8rem' }} onClick={() => setVer((v) => !v)}>{ver ? 'Ocultar contraseñas' : 'Ver contraseñas'}</button>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>¿No recuerdas la actual? Sal y usa «¿Olvidaste tu contraseña?» en la entrada.</p>
+      {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
+      {g.trabajando && <Cargando texto={g.trabajando} />}
+    </Modal>
+  );
+}
+
+// Ventana «Cambiar email» (usuario, 2026-11-14): el email nuevo y la contraseña. Supabase
+// manda enlaces de confirmación al correo nuevo y al actual; el cambio se aplica al
+// confirmarlos y desde entonces se entra con el nuevo (avisos incluidos).
+function CambiarEmail({ actual, onCerrar, onHecho }: { actual: string; onCerrar: () => void; onHecho: (nuevo: string) => void }) {
+  const [nuevo, setNuevo] = useState('');
+  const [clave, setClave] = useState('');
+  const g = useGuardar(() => onHecho(nuevo.trim().toLowerCase()));
+  const vale = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(nuevo.trim()) && !!clave;
+  return (
+    <Modal abierto titulo="Cambiar email" sub="El correo con el que entras y recibes los avisos" icono={ICO_CANDADO} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={() => g.correr('Enviando la confirmación', () => cambiarMiEmail(nuevo.trim(), clave))} disabled={!!g.trabajando || !vale}>Enviar confirmación</button>
+      </>}>
+      <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div><label>Email actual</label><input type="email" value={actual} disabled /></div>
+        <div><label htmlFor="ce-nuevo">Email nuevo <Req /></label>
+          <input id="ce-nuevo" type="email" inputMode="email" autoComplete="email" placeholder="Ej. nombre@empresa-nueva.com" value={nuevo} onChange={(e) => setNuevo(e.target.value)} /></div>
+        <div><label htmlFor="ce-clave">Tu contraseña, para confirmar <Req /></label>
+          <input id="ce-clave" type="password" autoComplete="current-password" value={clave} onChange={(e) => setClave(e.target.value)} /></div>
+      </div>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0', lineHeight: 1.5 }}>
+        Te enviaremos un <strong>enlace de confirmación al correo nuevo</strong> y otro al actual, por seguridad. El cambio se aplica al confirmarlos:
+        desde ese momento entras con el nuevo y los avisos llegan al nuevo. Tu contraseña y todo lo demás se quedan igual.</p>
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
       {g.trabajando && <Cargando texto={g.trabajando} />}
     </Modal>

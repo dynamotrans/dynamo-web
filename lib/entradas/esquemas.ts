@@ -76,6 +76,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/mantenimiento/acciones#contarArchivosSueltos": z.tuple([]),
   "app/panel/(app)/mi-cuenta/acciones#anadirCompanero": z.tuple([z.object({ email: z.string().max(1000), nombre: z.string().max(1000) })]),
   "app/panel/(app)/mi-cuenta/acciones#cambiarMiClave": z.tuple([z.string().max(1000), z.string().max(1000)]),
+  "app/panel/(app)/mi-cuenta/acciones#cambiarMiEmail": z.tuple([z.string().max(1000), z.string().max(1000)]),
   "app/panel/(app)/mi-cuenta/acciones#darDeBajaFlota": z.tuple([z.enum(["conductor", "vehiculo"]), z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/mi-cuenta/acciones#darmeDeBaja": z.tuple([z.string().max(1000), z.string().max(5000)]),
   "app/panel/(app)/mi-cuenta/acciones#guardarMiConductor": z.tuple([z.object({ id: z.string().uuid().or(z.literal('')).nullable(), nombre: z.string().max(1000), documento: z.string().max(1000), pais: z.string().max(1000), telefono: z.string().max(1000) })]),

@@ -61,6 +61,37 @@ export async function cambiarMiClave(actual: string, nueva: string): Promise<{ o
   return { ok: true };
 }
 
+// CAMBIAR MI EMAIL de acceso (usuario, 2026-11-14: «¿y si su empresa cambia de dominio?»).
+// Pide la contraseña actual (como cambiarla: una sesión olvidada no basta) y Supabase manda
+// enlaces de confirmación al correo nuevo y al actual (cambio seguro): el email cambia al
+// confirmarlos, y desde entonces se entra con el nuevo y los avisos llegan al nuevo. El
+// perfil se sincroniza solo (tg_sincronizar_email_usuario). La lista de bloqueo de altas
+// también aplica aquí: a un email o dominio vetado no se puede saltar cambiándose el correo.
+export async function cambiarMiEmail(nuevo: string, clave: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#cambiarMiEmail", [nuevo, clave]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const email = nuevo.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, error: 'El email nuevo no es válido.' };
+  if (!clave) return { ok: false, error: 'Escribe tu contraseña para confirmar.' };
+  const { data: { user } } = await s.supabase.auth.getUser();
+  const pub = supabasePublico();
+  if (!user?.email || !pub) return { ok: false, error: 'No se ha podido comprobar tu cuenta. Vuelve a entrar.' };
+  if (email === user.email.toLowerCase()) return { ok: false, error: 'Ese ya es tu email actual.' };
+  const prueba = await pub.auth.signInWithPassword({ email: user.email, password: clave });
+  if (prueba.error) return { ok: false, error: 'La contraseña no es correcta.' };
+  await pub.auth.signOut({ scope: 'local' }).catch(() => {});
+  const { data: vetado } = await s.supabase.rpc('alta_bloqueada', { p_email: email });
+  if (vetado) return { ok: false, error: 'Ese email no se puede usar en la plataforma.' };
+  const { error } = await s.supabase.auth.updateUser({ email }, { emailRedirectTo: `${await origen()}/panel` });
+  if (error) {
+    if (/already.*registered|already.*exists|duplicate/i.test(error.message)) return { ok: false, error: 'Ya existe una cuenta con ese email.' };
+    if (/rate limit|too many|security purposes/i.test(error.message)) return { ok: false, error: 'Se han pedido varios cambios seguidos. Espera unos minutos y vuelve a probar.' };
+    return { ok: false, error: mensajeError(error.message) };
+  }
+  return { ok: true };
+}
+
 // ---- El TRANSPORTISTA cambia lo operativo de su empresa y su flota -----------------------
 // Lo fiscal (razón social, CIF, dirección), la bolsa y el plazo de pago solo los cambia
 // Dynamo: lo impone la base de datos (funciones mi_* con lista cerrada de campos).
