@@ -143,9 +143,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   cajaR(l.x0, 36, l.ancho, 18, COLOR.blanco, COLOR.grisClaro, 4);
   l.pag.drawRectangle({ x: l.x0 + 8, y: A4.h - 50.5, width: 3, height: 10, color: COLOR.navy });
   l.texto(l.x0 + 17, 48, esp(copia === 'operativa' ? 'DeCA' : esCli ? 'Copia cliente' : t.copiaAdmin), 6.8, { bold: true, color: COLOR.navy });
-  // En el DeCA, la REFERENCIA va en la propia barra junto a «DeCA» (usuario, 2026-11-14),
-  // y el nombre oficial completo a la derecha.
-  if (copia === 'operativa') l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48.2, ref || '—', 8.4, { bold: true, color: COLOR.navy });
+  // En el DeCA, la barra lleva la EMISIÓN junto a «DeCA» (usuario, 2026-11-14: la
+  // referencia baja a la caja del cargador contractual) y el nombre oficial a la derecha.
+  if (copia === 'operativa') l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48, `${t.emitida} ${emitida}`, 6.6, { color: COLOR.gris });
   l.textoDer(der - 10, 48, esp(copia === 'operativa' ? DECA_NOMBRE : esCli ? 'Con tu precio · sin porteador' : t.completa), 5.4, { bold: true, color: COLOR.gris });
 
   // ---- Cabecera: logo a la izquierda; a la derecha título, subtítulo espaciado,
@@ -273,9 +273,11 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       { k: t.conductor, v: l.partir([e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar, 7.4, wDatos - 14, true).slice(0, 3) },
     ];
     const hDatos = !wDatos ? 0 : 10 + datosIt.reduce((a, it) => a + 9 + (it.placas ? placas.length * 21 + 1 : it.v.length * 9) + 6, 0);
+    // En el DeCA, la caja del cargador reserva sitio para la SUB-CAJA de la referencia.
+    const hRef = copia === 'operativa' ? 40 : 0;
     const hFila = Math.max(96, hDatos,
       hTit(sub1) + alto(izq, wCaja - 16) + 10,
-      hTit(sub2) + alto(dcha, wCaja - 16) + 10);
+      hTit(sub2) + alto(dcha, wCaja - 16) + 10 + hRef);
     const ct = l.y;
     cajaR(l.x0, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
     cajaR(x2, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
@@ -285,6 +287,13 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       sub.forEach((ln, i) => l.texto(x + 8, ct + 22 + i * 7.2, ln, 5.8, { color: COLOR.gris }));
       l.y = ct + hTit(sub);
       for (const [tx, s, b] of filas) if (tx) l.parrafo(tx, s, { bold: b, x: x + 8, ancho: wCaja - 16 });
+    }
+    if (hRef) {
+      // REFERENCIA DE ENVÍO destacada: sub-caja morada dentro del cargador contractual.
+      const yRef = ct + hTit(sub2) + alto(dcha, wCaja - 16) + 8;
+      cajaR(x2 + 8, yRef, wCaja - 16, 32, COLOR.moradoSuave, undefined, 6);
+      l.texto(x2 + 15, yRef + 12, esp(t.subRef), 5, { bold: true, color: COLOR.gris });
+      l.texto(x2 + 15, yRef + 25, ref || '—', 10.5, { bold: true, color: COLOR.navy });
     }
     if (wDatos) {
       cajaR(xDat, ct, wDatos, hFila, COLOR.moradoSuave, undefined, 7);
