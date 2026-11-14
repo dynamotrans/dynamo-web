@@ -85,6 +85,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     return <div className="card"><div className="brand"><img src="/images/2.png" alt="Dynamo" /></div><h1>{h}</h1><p className="sub">{p}</p></div>;
   }
 
+  // Envío manual (usuario, 2026-11-14): sin firma digital de CMR — la plataforma no
+  // archiva documentación de transportes en los que no interviene. Sin marca de Dynamo.
+  if (cmr.manual) {
+    return <div className="card"><h1>Firma digital no disponible</h1><p className="sub">Este envío es una contratación directa entre el ordenante y su transportista: la carta de porte (CMR) y el documento de control (DeCA) se gestionan entre las partes, fuera de esta plataforma.</p></div>;
+  }
+
   const paradas: ParadaCmr[] = cmr.paradas ?? [];
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
   const lugar = (p: ParadaCmr | undefined) => [p?.nombre_empresa, [p?.codigo_postal, p?.poblacion].filter(Boolean).join(' '), p?.provincia !== p?.poblacion ? p?.provincia : null].filter(Boolean).join(' · ');

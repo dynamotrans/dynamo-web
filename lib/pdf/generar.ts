@@ -87,6 +87,9 @@ export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
   Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {
   const r = await cargarDatosCmrPorToken(sb, token);
   if (!r.datos) return { error: r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.' };
+  // Envío manual (usuario, 2026-11-14): sin CMR digital — la plataforma no emite ni
+  // archiva documentación de transportes en los que no interviene.
+  if (r.datos.manual) return { error: 'La carta de porte de este envío se gestiona directamente entre el ordenante y su transportista: no hay CMR digital que mostrar.' };
   const bytes = await cmrConOrden({ ...r.datos,
     deca: r.decaCreado ? { url: `${origen}/cmr/${token}`, creado_en: r.decaCreado } : null });
   const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');

@@ -139,14 +139,16 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {/* eCMR + DeCA EL PRIMERO y siempre a mano (usuario, 2026-11-10): TODO lo del CMR
           unificado detrás de este botón (vista propia: firmar, compartir el enlace, el
           PDF relleno y el registro de firmas). Ámbar con el contador; verde al completarse. */}
-      <button type="button" className="btn-primary" onClick={() => setCmrAbierto(true)}
+      {/* Envío manual (usuario, 2026-11-14): SIN eCMR ni DeCA — contratación directa,
+          el CMR y el documento de control se gestionan con su transportista. */}
+      {!manual && <button type="button" className="btn-primary" onClick={() => setCmrAbierto(true)}
          title="Todo el eCMR + DeCA: firmar, compartir el enlace y el PDF relleno con el QR."
          style={{ background: firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
         <I d={ICO.doc} />eCMR + DeCA
         <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
           {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
         </span>
-      </button>
+      </button>}
       {/* Orden de carga FUERA del menú «Más» (usuario, 2026-11-11): botón propio junto al
           eCMR, visible solo cuando ya hay a quién mandarla (transportista asignado; en el
           manual, el operador del cliente). */}
@@ -329,7 +331,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <div className="pen-sum-row"><span className="k">Ref. cliente</span><span className="v">{e.referencia_cliente || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Cliente</span><span className="v" style={{ textAlign: 'right' }}>{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Creado</span><span className="v" style={{ textAlign: 'right' }}>{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</span></div>
-          {manual && <div className="pen-sum-row pen-sum-col"><span className="k">Operador de transporte</span><span className="v">{e.operador_id && <LogoOperador id={e.operador_id} />}<span style={{ color: '#b45309' }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</span></div>}
+          {manual && <div className="pen-sum-row pen-sum-col"><span className="k">Operador de transporte</span><span className="v">{e.operador_id && <LogoOperador id={e.operador_id} />}<span style={{ color: '#b45309' }}>{ficha.operador ?? '—'}</span> · envío registrado a mano — Dynamo no interviene; el CMR y el DeCA se gestionan directamente con él</span></div>}
           <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {/* El día que el transportista eligió dentro de la ventana, junto a ella. */}
           {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}

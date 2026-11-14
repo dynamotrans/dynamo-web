@@ -54,7 +54,7 @@ export type TextosOrden = {
   importeL: string; pendiente: string; impuestosNo: string; formaPago: string; txtProntoPago: string; txtTransferencia: string;
   facturaL: string; txtFactura: string; txtDiscrecion: string; verCondEs: string;
   pagina: string; de: string; rango: string;
-  qrDeca: string; qrEscanea: string; qrPendiente: string;
+  qrDeca: string; decaManual: string; qrEscanea: string; qrPendiente: string;
 };
 
 export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
@@ -88,6 +88,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Condiciones de la orden: en las páginas en ESPAÑOL de este documento.',
     pagina: 'Página', de: 'de', rango: 'del {a} al {b}',
     qrDeca: 'Documento de control del transporte (e-CMR / DeCA): el QR abre el documento completo, con la hoja de firmas, siempre al día.', qrEscanea: 'Escanéalo con el móvil', qrPendiente: 'Pendiente de asignar transporte',
+    decaManual: 'Documento de control (DeCA) y carta de porte (CMR): transporte contratado directamente entre el ordenante y el transportista — se gestionan entre las partes. Esta orden no incluye QR de firma digital ni archivo del CMR.',
   },
   en: {
     titulo: 'LOADING ORDER', subRef: 'Shipment reference', emitida: 'Issued on',
@@ -119,6 +120,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Order conditions: see the SPANISH pages of this document.',
     pagina: 'Page', de: 'of', rango: '{a} – {b}',
     qrDeca: 'Transport control document (e-CMR / DeCA): the QR opens the full document, with the signature sheet, always up to date.', qrEscanea: 'Scan it with your phone', qrPendiente: 'Transport pending assignment',
+    decaManual: 'Control document (DeCA) and consignment note (CMR): transport contracted directly between the ordering party and the carrier — handled between the parties. This order includes no digital-signature QR and no CMR filing.',
   },
   pt: {
     titulo: 'ORDEM DE CARGA', subRef: 'Referência do envio', emitida: 'Emitida em',
@@ -150,6 +152,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Condições da ordem: nas páginas em ESPANHOL deste documento.',
     pagina: 'Página', de: 'de', rango: 'de {a} a {b}',
     qrDeca: 'Documento de controlo do transporte (e-CMR / DeCA): o QR abre o documento completo, com a folha de assinaturas, sempre atualizado.', qrEscanea: 'Digitalize com o telemóvel', qrPendiente: 'Transporte pendente de atribuição',
+    decaManual: 'Documento de controlo (DeCA) e guia de transporte (CMR): transporte contratado diretamente entre o ordenante e o transportador — geridos entre as partes. Esta ordem não inclui QR de assinatura digital nem arquivo do CMR.',
   },
   fr: {
     titulo: 'ORDRE DE CHARGEMENT', subRef: 'Référence de l’envoi', emitida: 'Émis le',
@@ -181,6 +184,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Conditions de l’ordre : voir les pages en ESPAGNOL de ce document.',
     pagina: 'Page', de: 'sur', rango: 'du {a} au {b}',
     qrDeca: 'Document de contrôle du transport (e-CMR / DeCA) : le QR ouvre le document complet, avec la feuille de signatures, toujours à jour.', qrEscanea: 'Scannez-le avec le téléphone', qrPendiente: 'Transport en attente d\'affectation',
+    decaManual: 'Document de contrôle (DeCA) et lettre de voiture (CMR) : transport contracté directement entre le donneur d\'ordre et le transporteur — gérés entre les parties. Cet ordre n\'inclut ni QR de signature numérique ni archivage du CMR.',
   },
   de: {
     titulo: 'LADEAUFTRAG', subRef: 'Sendungsreferenz', emitida: 'Ausgestellt am',
@@ -212,6 +216,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Auftragsbedingungen: siehe die SPANISCHEN Seiten dieses Dokuments.',
     pagina: 'Seite', de: 'von', rango: '{a} – {b}',
     qrDeca: 'Transport-Kontrolldokument (e-CMR / DeCA): Der QR-Code öffnet das vollständige Dokument mit dem Unterschriftenblatt, immer aktuell.', qrEscanea: 'Mit dem Handy scannen', qrPendiente: 'Transport noch nicht zugewiesen',
+    decaManual: 'Kontrolldokument (DeCA) und Frachtbrief (CMR): Transport direkt zwischen Auftraggeber und Frachtführer vereinbart — beides regeln die Parteien untereinander. Dieser Auftrag enthält keinen QR zur digitalen Unterschrift und kein CMR-Archiv.',
   },
   it: {
     titulo: 'ORDINE DI CARICO', subRef: 'Riferimento spedizione', emitida: 'Emesso il',
@@ -243,6 +248,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Condizioni dell’ordine: nelle pagine in SPAGNOLO di questo documento.',
     pagina: 'Pagina', de: 'di', rango: 'dal {a} al {b}',
     qrDeca: 'Documento di controllo del trasporto (e-CMR / DeCA): il QR apre il documento completo, con il foglio firme, sempre aggiornato.', qrEscanea: 'Scansionalo con il cellulare', qrPendiente: 'Trasporto in attesa di assegnazione',
+    decaManual: 'Documento di controllo (DeCA) e lettera di vettura (CMR): trasporto contrattato direttamente tra committente e vettore — gestiti tra le parti. Quest\'ordine non include QR di firma digitale né archiviazione del CMR.',
   },
   nl: {
     titulo: 'LAADOPDRACHT', subRef: 'Zendingsreferentie', emitida: 'Uitgegeven op',
@@ -274,6 +280,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Voorwaarden van de opdracht: zie de SPAANSE pagina’s van dit document.',
     pagina: 'Pagina', de: 'van', rango: '{a} – {b}',
     qrDeca: 'Controledocument van het vervoer (e-CMR / DeCA): de QR opent het volledige document, met het handtekeningenblad, altijd actueel.', qrEscanea: 'Scan met je telefoon', qrPendiente: 'Transport nog toe te wijzen',
+    decaManual: 'Controledocument (DeCA) en vrachtbrief (CMR): vervoer rechtstreeks overeengekomen tussen opdrachtgever en vervoerder — onderling te regelen. Deze opdracht bevat geen QR voor digitale ondertekening en geen CMR-archief.',
   },
   pl: {
     titulo: 'ZLECENIE TRANSPORTOWE', subRef: 'Numer referencyjny przewozu', emitida: 'Wystawiono',
@@ -305,6 +312,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Warunki zlecenia: na stronach w języku HISZPAŃSKIM tego dokumentu.',
     pagina: 'Strona', de: 'z', rango: '{a} – {b}',
     qrDeca: 'Dokument kontrolny przewozu (e-CMR / DeCA): kod QR otwiera pełny dokument z arkuszem podpisów, zawsze aktualny.', qrEscanea: 'Zeskanuj telefonem', qrPendiente: 'Transport oczekuje na przydział',
+    decaManual: 'Dokument kontrolny (DeCA) i list przewozowy (CMR): transport zakontraktowany bezpośrednio między zleceniodawcą a przewoźnikiem — strony załatwiają je między sobą. To zlecenie nie zawiera kodu QR do podpisu cyfrowego ani archiwum CMR.',
   },
   cs: {
     titulo: 'NAKLÁDKOVÝ PŘÍKAZ', subRef: 'Referenční číslo zásilky', emitida: 'Vystaveno',
@@ -336,6 +344,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Podmínky příkazu: na ŠPANĚLSKÝCH stránkách tohoto dokumentu.',
     pagina: 'Strana', de: 'z', rango: '{a} – {b}',
     qrDeca: 'Kontrolní dokument přepravy (e-CMR / DeCA): QR kód otevře úplný dokument s listem podpisů, vždy aktuální.', qrEscanea: 'Naskenujte telefonem', qrPendiente: 'Doprava čeká na přidělení',
+    decaManual: 'Kontrolní dokument (DeCA) a nákladní list (CMR): přeprava sjednána přímo mezi objednatelem a dopravcem — řeší se mezi stranami. Tato objednávka neobsahuje QR pro digitální podpis ani archiv CMR.',
   },
   ro: {
     titulo: 'COMANDĂ DE ÎNCĂRCARE', subRef: 'Referința expedierii', emitida: 'Emisă la',
@@ -367,6 +376,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     verCondEs: 'Condițiile comenzii: pe paginile în SPANIOLĂ ale acestui document.',
     pagina: 'Pagina', de: 'din', rango: '{a} – {b}',
     qrDeca: 'Document de control al transportului (e-CMR / DeCA): codul QR deschide documentul complet, cu fila de semnături, mereu actualizat.', qrEscanea: 'Scanează-l cu telefonul', qrPendiente: 'Transport în așteptarea alocării',
+    decaManual: 'Document de control (DeCA) și scrisoare de transport (CMR): transport contractat direct între ordonator și transportator — se gestionează între părți. Această comandă nu include QR de semnătură digitală și nici arhivarea CMR.',
   },
 };
 

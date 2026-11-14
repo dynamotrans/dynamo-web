@@ -140,7 +140,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (e.referencia_cliente) franja.push([t.referenciaL, e.referencia_cliente]);
   {
     const cw = 96, ch = 91;
-    const wIzq = l.ancho - cw - 12;
+    // Envío manual (usuario, 2026-11-14): SIN tarjeta de QR — la franja ocupa todo el
+    // ancho y debajo va una caja de aviso (el DeCA y el CMR se gestionan entre las partes).
+    const wIzq = manual ? l.ancho : l.ancho - cw - 12;
     const wCol = wIzq / franja.length;
     const partesFranja = franja.map(([, v]) => l.partir(v, 9.5, wCol - 14, true).slice(0, 2));
     const hFranja = 22 + Math.max(...partesFranja.map((x) => x.length)) * 12;
@@ -154,11 +156,22 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     });
     // El texto del documento de control, debajo de la franja (misma columna izquierda).
     l.y = ct + hFranja + 10;
-    l.parrafo(t.qrDeca, 8, { bold: true, x: l.x0, ancho: wIzq - 4, color: COLOR.navy });
+    if (manual) {
+      const lineas = l.partir(t.decaManual, 8, wIzq - 20, true);
+      const hAviso = lineas.length * 10.6 + 14;
+      l.sitio(hAviso + 6);
+      const cy = l.y + 2;
+      l.pag.drawRectangle({ x: l.x0, y: A4.h - cy - hAviso, width: wIzq, height: hAviso, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1 });
+      lineas.forEach((ln, i) => l.texto(l.x0 + 10, cy + 15 + i * 10.6, ln, 8, { bold: true, color: COLOR.navy }));
+      l.y = cy + hAviso + 4;
+    } else {
+      l.parrafo(t.qrDeca, 8, { bold: true, x: l.x0, ancho: wIzq - 4, color: COLOR.navy });
+    }
     const finIzq = l.y;
     // Tarjeta del QR a la derecha, alineada arriba con la franja. Con transportista y
     // matrícula lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de
     // firmas); si no, el hueco punteado — el diseño no cambia al asignar.
+    if (!manual) {
     let qrImg: PDFImage | null = null;
     // En la copia cliente el porteador no viaja en los datos (solo matrículas y
     // conductor): con matrícula ya hay transporte asignado y el QR va igual.
@@ -169,7 +182,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.pag.drawSvgPath(
       `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${ch - r} Q ${cw} ${ch} ${cw - r} ${ch} H ${r} Q 0 ${ch} 0 ${ch - r} V ${r} Q 0 0 ${r} 0 Z`,
       { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
-    const tTit = manual ? 'QR e-CMR' : 'QR e-CMR / DeCA';
+    const tTit = 'QR e-CMR / DeCA';
     l.texto(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, { bold: true, color: COLOR.navy });
     if (qrImg) {
       l.pag.drawImage(qrImg, { x: cx + (cw - 62) / 2, y: A4.h - (ct + 16) - 62, width: 62, height: 62 });
@@ -179,7 +192,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + 86, tPie, 5.4, { color: COLOR.gris });
-    l.y = Math.max(finIzq, ct + ch) + 12;
+    }
+    l.y = manual ? finIzq + 8 : Math.max(finIzq, ct + ch) + 12;
   }
 
   // ---- Recogidas y entregas ----
