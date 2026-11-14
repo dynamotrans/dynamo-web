@@ -143,8 +143,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   cajaR(l.x0, 36, l.ancho, 18, COLOR.blanco, COLOR.grisClaro, 4);
   l.pag.drawRectangle({ x: l.x0 + 8, y: A4.h - 50.5, width: 3, height: 10, color: COLOR.navy });
   l.texto(l.x0 + 17, 48, esp(copia === 'operativa' ? 'DeCA' : esCli ? 'Copia cliente' : t.copiaAdmin), 6.8, { bold: true, color: COLOR.navy });
-  // En el DeCA, el nombre oficial completo vive AQUÍ, en la banda (usuario, 2026-11-14),
-  // y no bajo el título.
+  // En el DeCA, la REFERENCIA va en la propia barra junto a «DeCA» (usuario, 2026-11-14),
+  // y el nombre oficial completo a la derecha.
+  if (copia === 'operativa') l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48.2, ref || '—', 8.4, { bold: true, color: COLOR.navy });
   l.textoDer(der - 10, 48, esp(copia === 'operativa' ? DECA_NOMBRE : esCli ? 'Con tu precio · sin porteador' : t.completa), 5.4, { bold: true, color: COLOR.gris });
 
   // ---- Cabecera: logo a la izquierda; a la derecha título, subtítulo espaciado,
@@ -156,15 +157,20 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.texto(l.x0, 84, d.cliente?.razon_social ?? '', 15, { bold: true });
     l.texto(l.x0, 98, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
   }
-  l.textoDer(der, 81, copia === 'operativa' ? 'DeCA' : t.titulo, 17, { bold: true, color: COLOR.navy });
-  if (copia !== 'operativa') l.textoDer(der, 92, esp(t.subConfirmado), 5, { bold: true, color: COLOR.gris });
-  l.textoDer(der, 104, esp(t.subRef), 5.4, { bold: true, color: COLOR.gris });
-  l.textoDer(der, 117, ref || '—', 12, { bold: true, color: COLOR.navy });
-  l.textoDer(der, 127, `${t.emitida} ${emitida}`, 6.4, { color: COLOR.gris });
-  l.linea(l.x0, 134, der, 134, COLOR.grisClaro, 1.2);
+  // En el DeCA no hay título grande, referencia ni emisión bajo el logo (usuario,
+  // 2026-11-14): la referencia ya va en la barra superior. La cabecera se compacta.
+  if (copia !== 'operativa') {
+    l.textoDer(der, 81, t.titulo, 17, { bold: true, color: COLOR.navy });
+    l.textoDer(der, 92, esp(t.subConfirmado), 5, { bold: true, color: COLOR.gris });
+    l.textoDer(der, 104, esp(t.subRef), 5.4, { bold: true, color: COLOR.gris });
+    l.textoDer(der, 117, ref || '—', 12, { bold: true, color: COLOR.navy });
+    l.textoDer(der, 127, `${t.emitida} ${emitida}`, 6.4, { color: COLOR.gris });
+  }
+  const yRegla = copia === 'operativa' ? 110 : 134;
+  l.linea(l.x0, yRegla, der, yRegla, COLOR.grisClaro, 1.2);
   [COLOR.morado, COLOR.verde, NARANJA].forEach((c2, i2) =>
-    l.pag.drawRectangle({ x: l.x0 + i2 * 18, y: A4.h - 135.5, width: 16, height: 3, color: c2 }));
-  l.y = 142;
+    l.pag.drawRectangle({ x: l.x0 + i2 * 18, y: A4.h - yRegla - 1.5, width: 16, height: 3, color: c2 }));
+  l.y = yRegla + 8;
   if (!esES) l.parrafo(t.prevalece, 7.5, { color: COLOR.gris });
 
   // (La barra de ruta ORIGEN → DESTINO · SALIDA se quitó el 2026-11-14: la ruta completa
@@ -240,12 +246,13 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   };
 
   if (!manual) {
-    // ---- FRANJA DE TRES BLOQUES (usuario, 2026-11-14), en todas las copias: las dos
-    // partes y la tarjeta del QR. Las matrículas, la referencia y el conductor ya van en
-    // la tabla resumen de abajo (fuera el bloque de datos, que los repetía). El texto
-    // del documento de control va debajo, a todo lo ancho.
-    const gap = 8, cw = 96, wCaja = (l.ancho - cw - 2 * gap) / 2;
-    const x2 = l.x0 + wCaja + gap;
+    // ---- FRANJA de partes y QR (usuario, 2026-11-14). En el DeCA son CUATRO bloques en
+    // este orden: transportista efectivo · datos del camión (tipo, matrículas, conductor)
+    // · cargador contractual · QR. En las demás copias, tres (los datos van en su tabla).
+    const gap = 8, cw = 96, wDatos = copia === 'operativa' ? 116 : 0;
+    const wCaja = (l.ancho - cw - wDatos - (wDatos ? 3 : 2) * gap) / 2;
+    const xDat = l.x0 + wCaja + gap;
+    const x2 = wDatos ? xDat + wDatos + gap : xDat;
     const titIzq = esCli ? 'Cliente · Ordenante del transporte'
       : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
       : t.transpRealiza;
@@ -258,7 +265,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     };
     const [base1, sub1] = parteTit(titIzq), [base2, sub2] = parteTit(dchaTit);
     const hTit = (sub: string[]) => 14 + 8 + sub.length * 7.2 + 2;
-    const hFila = Math.max(96,
+    // Bloque de DATOS DEL CAMIÓN del DeCA: tipo de camión → matrículas → conductor.
+    const placas = [e.matricula_camion, e.matricula_remolque].filter(Boolean) as string[];
+    const datosIt: { k: string; v: string[]; placas?: boolean; rojo?: boolean }[] = !wDatos ? [] : [
+      { k: t.tipoTransporte, v: l.partir(e.requiere_plataforma_elevadora ? t.rigido : t.tauliner, 7.4, wDatos - 14, true).slice(0, 3) },
+      { k: t.matriculasAutL, v: matr ? [] : l.partir(t.pendAsignar, 7.4, wDatos - 14, true).slice(0, 2), placas: !!matr, rojo: !matr },
+      { k: t.conductor, v: l.partir([e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar, 7.4, wDatos - 14, true).slice(0, 3) },
+    ];
+    const hDatos = !wDatos ? 0 : 10 + datosIt.reduce((a, it) => a + 9 + (it.placas ? placas.length * 21 + 1 : it.v.length * 9) + 6, 0);
+    const hFila = Math.max(96, hDatos,
       hTit(sub1) + alto(izq, wCaja - 16) + 10,
       hTit(sub2) + alto(dcha, wCaja - 16) + 10);
     const ct = l.y;
@@ -270,6 +285,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       sub.forEach((ln, i) => l.texto(x + 8, ct + 22 + i * 7.2, ln, 5.8, { color: COLOR.gris }));
       l.y = ct + hTit(sub);
       for (const [tx, s, b] of filas) if (tx) l.parrafo(tx, s, { bold: b, x: x + 8, ancho: wCaja - 16 });
+    }
+    if (wDatos) {
+      cajaR(xDat, ct, wDatos, hFila, COLOR.moradoSuave, undefined, 7);
+      let yD = ct + 11;
+      for (const it of datosIt) {
+        l.texto(xDat + 7, yD + 7, l.partir(it.k.toUpperCase(), 6, wDatos - 12, true)[0] ?? '', 6, { bold: true, color: COLOR.gris });
+        if (it.placas) {
+          let yP = yD + 11;
+          for (const m of placas) { plaquita(xDat + 7, yP, m); yP += 21; }
+          yD = yP + 7;
+        } else {
+          it.v.forEach((ln, j) => l.texto(xDat + 7, yD + 16 + j * 9, ln, 7.4, { bold: true, color: it.rojo ? COLOR.rojo : COLOR.navy }));
+          yD += 9 + it.v.length * 9 + 6;
+        }
+      }
     }
     await tarjetaQr(ct, cw, hFila);
     l.y = ct + hFila + 8;
