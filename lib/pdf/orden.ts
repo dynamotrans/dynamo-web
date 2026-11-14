@@ -335,14 +335,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.y += ls.length * 11.6 + 26;
   }
 
-  // ---- Condiciones: solo en las páginas en ESPAÑOL (las traducidas remiten a ellas) ----
-  if (!manual && !esES) {
+  // ---- Condiciones: SOLO en la copia ADMINISTRACIÓN (usuario, 2026-11-14) y en sus
+  // páginas en español (las traducidas remiten a ellas). Son condiciones contractuales
+  // de la orden de carga: en la copia del conductor (el DeCA, documento de control) no
+  // proceden, y en la del cliente ya regían sus condiciones generales.
+  if (!manual && copia === 'economica' && !esES) {
     l.sitio(30);
     l.parrafo(`${t.verCondEs} ${t.prevalece}`, 8, { bold: true, color: COLOR.navy, despues: 6 });
   }
-  // Las condiciones del TRANSPORTISTA no van en la copia del cliente (a él le aplican
-  // las condiciones generales aceptadas al confirmar el envío).
-  if (!manual && esES && !esCli) {
+  if (!manual && copia === 'economica' && esES) {
     seccion(t.secCond);
     // Cada condición: su título en negrita y el texto debajo.
     const c = (tx: string) => {
