@@ -10,11 +10,13 @@ import Cargando from '@/components/Cargando';
 import Modal from './Modal';
 import { avisarNavegando } from '@/components/panel/CargandoNavegacion';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
+import { marcarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
 import { euros, fecha } from '@/lib/formato';
 
 export type ProformaFila = {
-  id: string; codigo: string; referencia_cliente: string; cliente: string | null; estado: string;
-  fecha_entrada: string; fecha_salida: string; base: number; total: number; pagado_en: string | null; creado_en: string;
+  // Proformas de ENVÍOS y de almacenamientos en la misma lista (usuario, 2026-11-14).
+  id: string; tipo: 'almacenamiento' | 'envio'; codigo: string; referencia_cliente: string; cliente: string | null;
+  concepto: string; base: number; total: number; pagado_en: string | null; creado_en: string | null;
 };
 export type AlbaranFila = {
   id: string; tipo: string; nombre: string; envio_id: string; creado_en: string; visible_cliente: boolean; gx: string | null; ruta: string;
@@ -45,14 +47,16 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
     const casa = (t: string) => w.every((x) => norm(t).includes(x));
     if (pestana === 'proformas') {
       return proformas.filter((p) => (filtro === 'todas' || (filtro === 'pagadas') === !!p.pagado_en)
-        && casa([p.codigo, p.cliente, p.referencia_cliente, euros(p.total)].filter(Boolean).join(' ')));
+        && casa([p.codigo, p.cliente, p.referencia_cliente, p.concepto, euros(p.total)].filter(Boolean).join(' ')));
     }
     return albaranes.filter((a) => casa([a.gx, a.ruta, a.nombre].filter(Boolean).join(' ')));
   }, [pestana, filtro, q, proformas, albaranes]);
 
   async function pagar(p: ProformaFila, pagado: boolean) {
     setAviso(null); setTrabajando(pagado ? 'Marcando como pagada' : 'Quitando el pago');
-    const r = await marcarPagadoAlmacenamiento(p.id, pagado);
+    // El pago de un ENVÍO se marca con su propia acción (transferencia recibida /
+    // deshacer); tarjeta y exento viven en la ficha del envío, con sus motivos.
+    const r = p.tipo === 'envio' ? await marcarPagoEnvio(p.id, pagado ? 'transferencia' : 'deshacer') : await marcarPagadoAlmacenamiento(p.id, pagado);
     setTrabajando(null);
     if (!r.ok) { setAviso(r.error); return; }
     refrescar();
@@ -97,9 +101,9 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                   </td></tr>
                 ) : (lista as ProformaFila[]).map((p) => (
                   <tr key={p.id}>
-                    <td className="ref"><strong>#{p.codigo}</strong><div className="meta">Emitida el {fecha(diaMadrid(p.creado_en))}{p.referencia_cliente ? ` · ${p.referencia_cliente}` : ''}</div></td>
+                    <td className="ref"><strong>#{p.codigo}</strong><div className="meta">{p.creado_en ? `Emitida el ${fecha(diaMadrid(p.creado_en))}` : ''}{p.referencia_cliente ? `${p.creado_en ? ' · ' : ''}${p.referencia_cliente}` : ''}</div></td>
                     {dynamo && <td>{p.cliente ?? '—'}</td>}
-                    <td>{fecha(p.fecha_entrada)} – {fecha(p.fecha_salida)}</td>
+                    <td>{p.concepto}</td>
                     <td>{euros(p.base)}</td>
                     <td><strong>{euros(p.total)}</strong></td>
                     <td>{p.pagado_en
@@ -107,12 +111,12 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                       : <span className="badge badge-red">Sin pagar</span>}
                       {gestor && <div style={{ marginTop: '0.3rem' }}>
                         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', fontSize: 'var(--fs-s)' }} onClick={() => pagar(p, !p.pagado_en)}>
-                          {p.pagado_en ? 'Quitar pago' : 'Marcar pagada'}
+                          {p.pagado_en ? 'Quitar pago' : p.tipo === 'envio' ? 'Transferencia recibida' : 'Marcar pagada'}
                         </button>
                       </div>}
                     </td>
                     <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                      <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem' }} onClick={() => abrir(`/panel/almacenamientos/${p.id}/proforma`)}>Ver PDF</button>
+                      <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem' }} onClick={() => abrir(`/panel/${p.tipo === 'envio' ? 'envios' : 'almacenamientos'}/${p.id}/proforma`)}>Ver PDF</button>
                     </td>
                   </tr>
                 ))}
