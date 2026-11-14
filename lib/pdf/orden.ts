@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { pesoTn, tipoCargaTxt, fechaHora } from '@/lib/formato';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { PDFDocument, rgb, type PDFImage } from 'pdf-lib';
+import { PDFDocument, rgb, type PDFImage, type RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from './lienzo';
 import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
@@ -62,30 +62,33 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (conFirmas) for (const f of d.firmas ?? []) {
     if (f.png) { try { trazos.set(`${f.rol}:${f.parada_id ?? ''}`, await l.doc.embedPng(f.png)); } catch { /* sin trazo */ } }
   }
-  // Caja de firma SIEMPRE visible (usuario, 2026-11-14): con firma digital, el trazo
-  // dentro; sin ella, el recuadro en blanco sirve para firmar A MANO el impreso.
-  const filaFirma = (rol: string, parada: string | null, x: number, xV: number, wMax: number) => {
+  // REJILLA DE FIRMAS al pie del DeCA (usuario, 2026-11-14): cuadros seguidos de
+  // izquierda a derecha, 4 por fila a lo ancho escribible; con más de 4 siguen en la
+  // fila de abajo, empezando por la izquierda. Cada cuadro lleva PREIMPRESOS su papel
+  // («RECOGIDA 1 · CARGADOR», «ENTREGA 1 · DESTINATARIO», numerados por tipo, y el del
+  // transportista) y la empresa del sitio. Con firma digital del e-CMR, el trazo queda
+  // estampado dentro; sin ella, el recuadro en blanco sirve para firmar A MANO el impreso.
+  const cuadroFirma = (x: number, w: number, hB: number, rol: string, parada: string | null, titulo: string, empresa: string, color: RGB) => {
     const f = firmaDe(rol, parada);
     const casilla = rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24';
-    const w = Math.min(265, wMax), hB = 34;
-    l.sitio(hB + 8);
-    l.texto(x, l.y + 11, t.firma, 7.6, { bold: true, color: COLOR.gris });
-    l.texto(x, l.y + 20, `e-CMR ${casilla}`, 6.4, { color: COLOR.gris });
-    l.rect(xV, l.y, w, hB, COLOR.blanco, COLOR.grisClaro);
+    const yB = l.y;
+    l.rect(x, yB, w, hB, COLOR.blanco, COLOR.grisClaro);
+    l.texto(x + 6, yB + 10, l.partir(titulo, 6.5, w - 42, true)[0] ?? '', 6.5, { bold: true, color });
+    l.textoDer(x + w - 5, yB + 10, `e-CMR ${casilla}`, 5.4, { color: COLOR.gris });
+    l.texto(x + 6, yB + 18.5, l.partir(empresa, 6.2, w - 12)[0] ?? '', 6.2, { color: COLOR.gris });
+    l.linea(x + 5, yB + 22.5, x + w - 5, yB + 22.5);
     if (f) {
       const img = trazos.get(`${f.rol}:${f.parada_id ?? ''}`);
-      let xT = xV + 9;
       if (img) {
-        const h = 26, wTr = Math.min(92, h * img.width / img.height);
-        l.pag.drawImage(img, { x: xV + 6, y: A4.h - (l.y + 4) - h, width: wTr, height: h });
-        xT = xV + 6 + wTr + 9;
+        const h = 22, wTr = Math.min(w - 14, h * img.width / img.height);
+        l.pag.drawImage(img, { x: x + 7, y: A4.h - (yB + 26) - h, width: wTr, height: h });
       }
-      l.texto(xT, l.y + 15, `${f.nombre} · ${f.documento}`, 8, { bold: true, color: COLOR.navy });
-      l.texto(xT, l.y + 25, fechaHora(f.firmado_en), 6.6, { color: COLOR.gris });
+      l.texto(x + 6, yB + hB - 12, l.partir(`${f.nombre} · ${f.documento}`, 6.3, w - 12, true)[0] ?? '', 6.3, { bold: true, color: COLOR.navy });
+      l.texto(x + 6, yB + hB - 5, fechaHora(f.firmado_en), 5.6, { color: COLOR.gris });
     } else {
-      l.texto(xV + 8, l.y + hB - 7, t.firmaPend, 6.2, { color: COLOR.gris });
+      const ps = l.partir(t.firmaPend, 5.2, w - 12).slice(0, 2);
+      ps.forEach((ln, i) => l.texto(x + 6, yB + hB - 13 + i * 6.5, ln, 5.2, { color: COLOR.gris }));
     }
-    l.y += hB + 6;
   };
   // Con el día de carga YA ELEGIDO (al asignar el transportista), la orden enseña ESA
   // fecha — en cabecera y en las recogidas —, no la ventana (usuario, 2026-11-13). Las
@@ -252,7 +255,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     l.y = manual ? finIzq + 8 : Math.max(finIzq, ct + ch) + 8;
   }
-  if (conFirmas) filaFirma('transportista', null, l.x0, l.x0 + 128, der - (l.x0 + 128) - 6);
 
   // ---- Recogidas y entregas ----
   const seccion = (titulo: string) => {
@@ -293,8 +295,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     // La clave también se parte (los idiomas con etiquetas largas no deben pisar el valor).
     const lineas = filas.map(([k, v, b]) => ({ k0: k, k: l.partir(k, 7.6, xV - xK - 8, true), v: l.partir(v, 8.4, wV, b), b }));
     const altoF = (f: { k: string[]; v: string[] }) => Math.max(f.v.length * 10.8, f.k.length * 9.8);
-    // Con firma, la caja va DENTRO del alto reservado: tarjeta y firma no se separan de página.
-    const h = 18 + lineas.reduce((a, f) => a + altoF(f) + 1.6, 0) + 5 + (conFirmas ? 44 : 0);
+    const h = 18 + lineas.reduce((a, f) => a + altoF(f) + 1.6, 0) + 5;
     l.sitio(Math.min(h, 320));
     const color = recogida ? NARANJA : COLOR.verde;
     l.rect(l.x0, l.y, 2.5, h - 4, color);
@@ -307,7 +308,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       f.v.forEach((ln, i) => l.texto(xV, l.y + 8.4 + i * 10.8, ln, 8.4, { bold: f.b, color: rojo ? COLOR.rojo : COLOR.navy }));
       l.y += altoF(f) + 1.6;
     }
-    if (conFirmas) { l.y += 2; filaFirma(recogida ? 'remitente' : 'destinatario', pa.id, xK, xV, wV); }
     l.y += 6;
   };
   const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
@@ -354,6 +354,23 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     [t.conductor, [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar],
     ['', t.txtSoloMatr],
   ]);
+
+  // ---- Firmas (solo en el DeCA): rejilla al pie, casillas 22/23/24 del e-CMR ----
+  if (conFirmas) {
+    seccion(t.secFirmas);
+    const huecos: { rol: string; parada: string | null; titulo: string; empresa: string; color: RGB }[] = [
+      ...rec.map((pa, i) => ({ rol: 'remitente', parada: pa.id, titulo: `${t.recogida} ${i + 1} · ${t.cargadorRol}`, empresa: pa.nombre_empresa || '', color: NARANJA })),
+      { rol: 'transportista', parada: null, titulo: t.transp, empresa: d.porteador?.razon_social ?? e.conductor_nombre ?? '', color: COLOR.navy },
+      ...ent.map((pa, i) => ({ rol: 'destinatario', parada: pa.id, titulo: `${t.entrega} ${i + 1} · ${t.destinatarioRol}`, empresa: pa.nombre_empresa || '', color: COLOR.verde })),
+    ];
+    const gap = 6, wC = (l.ancho - 3 * gap) / 4, hC = 66;
+    for (let i = 0; i < huecos.length; i += 4) {
+      l.sitio(hC + 4);
+      huecos.slice(i, i + 4).forEach((hu, j) => cuadroFirma(l.x0 + j * (wC + gap), wC, hC, hu.rol, hu.parada, hu.titulo, hu.empresa, hu.color));
+      l.y += hC + gap;
+    }
+    l.y += 4;
+  }
 
   // ---- Importe (SOLO en la copia completa; la del conductor va sin economía) ----
   // La copia CLIENTE lleva SU precio (importe_cliente + IVA), nunca el del transportista.
