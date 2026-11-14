@@ -418,7 +418,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     if (merc) fs.push({ k: t.mercancia, v: merc, b: true });
     for (const n2 of notas) fs.push({ k: t.indicaciones, v: n2 });
-    if (pa.url_google_maps) fs.push({ k: 'Google Maps', v: pa.url_google_maps });
+    // Sin línea de Google Maps en los sitios (usuario, 2026-11-14).
     return fs;
   };
   {
