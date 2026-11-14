@@ -459,7 +459,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const forma = [e.carga_lateral && t.cargaLateral, e.carga_trasera && t.cargaTrasera, e.carga_techo && t.cargaTecho].filter(Boolean).join(' · ');
   const tipoCarga = esES ? tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora)
     : e.tipo_carga === 'completa' ? (e.requiere_plataforma_elevadora ? t.rigidoCompleto : t.cargaCompleta) : e.tipo_carga === 'grupaje' ? t.grupaje : '';
-  {
+  // La tabla resumen NO va en el DeCA (usuario, 2026-11-14): sus datos viven en el
+  // documento completo del QR (el CMR lleva mercancía, matrículas y conductor).
+  if (copia !== 'operativa') {
     const conductorTxt = [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ');
     const requisitos = [e.requiere_nima && `${t.requiereNima}${e.transportista_nima && !esCli ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · ');
     const resumen: { k: string; v: string; b?: boolean; rojo?: boolean; placas?: boolean }[] = [
