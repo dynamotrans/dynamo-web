@@ -52,7 +52,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
         { slug: 'operadores', titulo: 'Transportistas', icono: 'camion' },
         { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
         { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
-        { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
+        // «Almacenamientos» oculto a clientes (usuario, 2026-11-14): los almacenes
+        // Dynamo y el almacenaje son módulo v3 — de momento solo lo ve el equipo.
         { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
       ] },
       { slug: 'soporte', titulo: 'Soporte', icono: 'soporte', listo: true },

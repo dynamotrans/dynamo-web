@@ -5,7 +5,7 @@ import { fechaHora } from '@/lib/formato';
 // Transportistas propios del cliente (catálogo PRIVADO, tabla `operadores`), con el diseño
 // de #sec-operadores de dashboard.html: Dynamo como fila fija arriba (no editable), y
 // debajo los del cliente. Dynamo ve los de todos los clientes, con su columna de cliente.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
 import Modal from './Modal';
@@ -133,6 +133,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
   // Logo elegido YA en el alta (usuario, 2026-11-09): se crea el transportista y se sube
   // seguido, sin tener que volver a abrir su ficha.
   const [logo, setLogo] = useState<File | null>(null);
+  const inLogo = useRef<HTMLInputElement>(null);
   // Vista previa del logo en cuadro 1:1 (usuario, 2026-11-09): se usará en webs y
   // documentos, así que se enseña tal cual quedará. En el alta, el archivo elegido; en
   // la edición, el guardado. El visor /panel/documentos/<id> no se puede usar de src
@@ -269,14 +270,32 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         )}
         {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen onCambio={() => setLogoVez((v) => v + 1)} />
           : <>
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" aria-label="Logo del transportista"
+              {/* La caja moderna de subir archivos, como en todo el panel (usuario,
+                  2026-11-14): fuera el input nativo de «Seleccionar archivo». */}
+              <div className="modal-file-drop" role="button" tabIndex={0} aria-label="Logo del transportista"
+                onClick={() => inLogo.current?.click()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inLogo.current?.click(); } }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0] ?? null;
+                  if (f && f.size > 25 * 1024 * 1024) { setError('El logo pasa de 25 MB.'); return; }
+                  if (f) { setError(null); setLogo(f); }
+                }}>
+                <div>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -2 }}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>{' '}
+                  {logo ? `«${logo.name}»` : 'Selecciona el logo o arrástralo aquí'}
+                </div>
+                <div className="modal-file-drop-sub">JPG, PNG, WEBP o HEIC · máx. 25 MB</div>
+              </div>
+              <input ref={inLogo} type="file" hidden accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null;
                   if (f && f.size > 25 * 1024 * 1024) { setError('El logo pasa de 25 MB.'); e.target.value = ''; return; }
                   setError(null); setLogo(f);
                 }} />
               <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>
-                {logo ? <>Se subirá <strong>{logo.name}</strong> al crear el transportista.</> : 'Una imagen (JPG, PNG, WEBP…), opcional: sale en su orden de carga.'}
+                {logo ? <>Se subirá <strong>{logo.name}</strong> al crear el transportista.</> : 'Opcional: sale en su orden de carga.'}
               </p>
             </>}
       </div>

@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
+import Modal from './Modal';
 import { avisarNavegando } from '@/components/panel/CargandoNavegacion';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
 import { euros, fecha } from '@/lib/formato';
@@ -29,6 +30,8 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   proformas: ProformaFila[]; albaranes: AlbaranFila[]; dynamo: boolean; gestor: boolean; pestanaInicial: Pestana; error: string | null;
 }) {
   const router = useRouter();
+  // Al pulsar un albarán se elige qué abrir (usuario, 2026-11-14): 1º ver el PDF, 2º el envío.
+  const [elegirAlb, setElegirAlb] = useState<AlbaranFila | null>(null);
   const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial);
   const [filtro, setFiltro] = useState<'sin_pagar' | 'pagadas' | 'todas'>('sin_pagar');
@@ -128,13 +131,13 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                 ) : (lista as AlbaranFila[]).map((a) => (
                   // La ficha se abre con ?ver=: /panel/envios/<id> a secas NO existe y daba
                   // 404 al tocar la fila (usuario, 2026-11-10).
-                  <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => { avisarNavegando(); router.push(`/panel/envios?ver=${a.envio_id}`, { scroll: false }); }}>
+                  <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => setElegirAlb(a)}>
                     <td className="ref"><strong>{a.gx ? `#${a.gx}` : 'Envío'}</strong>{a.ruta && <div className="meta">{a.ruta}</div>}</td>
                     <td>{a.tipo === 'cmr_firmado' ? 'CMR firmado' : 'Albarán'}<div className="meta">{a.nombre}</div></td>
                     <td>{fecha(diaMadrid(a.creado_en))}</td>
                     {dynamo && <td>{a.visible_cliente ? 'Sí' : 'No'}</td>}
                     <td style={{ textAlign: 'right' }}>
-                      <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem' }} onClick={(ev) => { ev.stopPropagation(); abrir(`/panel/documentos/${a.id}`); }}>Ver</button>
+                      <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem' }} onClick={(ev) => { ev.stopPropagation(); setElegirAlb(a); }}>Ver</button>
                     </td>
                   </tr>
                 ))}
@@ -144,6 +147,23 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
         )}
       </>}
       {trabajando && <Cargando texto={trabajando} />}
+      {elegirAlb && (
+        <Modal abierto onCerrar={() => setElegirAlb(null)}
+          titulo={`${elegirAlb.tipo === 'cmr_firmado' ? 'CMR firmado' : 'Albarán'} · ${elegirAlb.gx ? `#${elegirAlb.gx}` : 'envío'}`}
+          sub={elegirAlb.nombre}
+          pie={<button type="button" className="btn-ghost" onClick={() => setElegirAlb(null)}>Cancelar</button>}>
+          <div style={{ display: 'grid', gap: '0.55rem' }}>
+            <button type="button" className="btn-primary" style={{ minHeight: 48 }}
+              onClick={() => { abrir(`/panel/documentos/${elegirAlb.id}`); setElegirAlb(null); }}>
+              Ver {elegirAlb.tipo === 'cmr_firmado' ? 'el CMR firmado' : 'el albarán'} (PDF)
+            </button>
+            <button type="button" className="btn-secondary" style={{ minHeight: 48 }}
+              onClick={() => { const id = elegirAlb.envio_id; setElegirAlb(null); avisarNavegando(); router.push(`/panel/envios?ver=${id}`, { scroll: false }); }}>
+              Abrir el envío relacionado
+            </button>
+          </div>
+        </Modal>
+      )}
     </section>
   );
 }

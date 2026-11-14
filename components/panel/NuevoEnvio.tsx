@@ -34,7 +34,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, reglas = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, pagoPrevio = false, reglas = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
@@ -616,7 +616,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
       setEnviando(false); setRevisarLegal(false);
       setCreado({ ref: rm.referencia_gx, id: rm.id, modo: 'manual' });
-      refrescar();
+      router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
       return;
     }
     if (esCliente) {
@@ -634,7 +634,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
       setEnviando(false); setRevisarLegal(false);
       setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente' });
-      refrescar();
+      router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
       return;
     }
     const r = await crearEnvio({
@@ -650,7 +650,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
     setEnviando(false); setRevisarLegal(false);
     setCreado({ ref: r.referencia_gx, id: r.id, modo: 'admin' });
-    refrescar();
+    router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
   }
 
   // ---- Opciones de los desplegables (las del mockup)
@@ -875,7 +875,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Pantalla de éxito: sustituye al asistente entero una vez creado el envío.
   if (creado) {
     const pasosExito = creado.modo === 'cliente' ? [
-      <>Tu envío está <strong>programado con el precio cerrado</strong> que acabas de confirmar. Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</>,
+      <>Tu envío está <strong>programado con el precio cerrado</strong> que acabas de confirmar.</>,
       <>Dynamo asigna el camión: la <strong>matrícula y el conductor</strong> aparecerán en la ficha del envío y te avisaremos por la <strong>campana</strong>.</>,
       <>El día de la carga podrás seguir el <strong>estado en vivo</strong>; al entregar tendrás el <strong>eCMR firmado</strong> en Documentos.</>,
     ] : creado.modo === 'manual' ? [
@@ -896,6 +896,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           </div>
           <h2 style={{ margin: '0 0 0.25rem', textAlign: 'center' }}>¡Envío #{creado.ref} creado!</h2>
           <p style={{ margin: '0 0 1.1rem', color: 'var(--gray-500)', textAlign: 'center' }}>Esto es lo que pasa ahora:</p>
+          {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): caja roja; si
+              no aplica, no se dice nada del pago. */}
+          {pagoPrevio && creado.modo === 'cliente' && (
+            <div className="pt-aviso error" role="alert" style={{ marginBottom: '1rem' }}><div>
+              <strong>Pendiente de pago.</strong> Hasta que no se abone, <strong>no se procesa ninguna reserva de
+              transporte</strong>. La <strong>fecha y la ventana de carga empiezan a contar a partir del pago</strong>
+              {' '}(te mandamos la proforma por email).
+            </div></div>
+          )}
           <ol style={{ margin: '0 0 1.3rem', padding: 0, listStyle: 'none', display: 'grid', gap: '0.65rem' }}>
             {pasosExito.map((t, i) => (
               <li key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
@@ -1224,6 +1233,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
+                {/* El aviso del tráiler va A CONTINUACIÓN de las paradas, debajo de la
+                    última (usuario, 2026-11-14): habla de los sitios, así que al lado
+                    de los sitios. */}
+                <div style={{ marginTop: '0.6rem' }}>{avisoTrailer}</div>
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar
                     envío, solo en la vista de admin. */}
@@ -1234,27 +1247,27 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               </div>
             </div>
             <div className="form-2col-side">
-              {/* El aviso del tráiler y la tarjeta del camión/mercancía, encima del
-                  precio (usuario, 2026-11-11): lo que se confirma, a la vista junto a
-                  la base imponible. */}
-              {avisoTrailer}
+              {/* La tarjeta del camión/mercancía, encima del precio (usuario,
+                  2026-11-11): lo que se confirma, a la vista junto a la base
+                  imponible. El aviso del tráiler pasó junto a las paradas. */}
               {tarjetaMercancia}
               {manual
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
                 : esCliente
                 ? <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
-                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} onElegir={elegirAlternativa} />
+                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} soloImportes onElegir={elegirAlternativa} />
                 : <>{cajaPrecio}{resumenCambioPrecio}</>}
               {avisoProvisional}
               {/* En la vista de administración normal no hace falta explicar qué hace el
                   botón (usuario, 2026-11-10): solo quedan los textos de editar, manual
                   y cliente. */}
-              {(editar || manual || esCliente) && <div className="ptar-terms-box">
+              {/* El texto genérico de «Al pulsar Crear envío…» del cliente se quitó
+                  (usuario, 2026-11-14): las condiciones y, si procede, el pago por
+                  adelantado se avisan en la ventana de confirmación. */}
+              {(editar || manual) && <div className="ptar-terms-box">
                 {editar
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza el envío #{be!.referencia_gx}. Si no has tocado nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong>: solo cambia si lo cambias tú.</p>
-                  : manual
-                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>
-                  : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> revisas las condiciones y queda <strong>programado con este precio</strong> (base sin IVA). Si tu cuenta paga por adelantado, el camión se asigna al recibir el pago.</p>}
+                  : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>}
               </div>}
               {aviso && !revisarLegal && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
               {(() => {
@@ -1387,6 +1400,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
         </div></div>
+        {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): si no aplica, no
+            se dice nada. */}
+        {esCliente && pagoPrevio && !manual && (
+          <div className="modal-warn-box" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
+            <strong>Pago por adelantado.</strong> Tu cuenta opera con pago previo: al confirmar, el envío queda
+            <strong> pendiente de pago</strong> y te mandamos la <strong>proforma</strong>. El camión se asigna al
+            <strong> recibir el pago</strong> y la fecha de carga se calcula desde ese momento.
+          </div>
+        )}
         {/* En caja GRIS, como la verde de arriba pero neutra (usuario, 2026-11-10). Los
             límites salen VIVOS de Parámetros vía mi_autosuspension (usuario, 2026-11-11:
             el «3 en 10» a pelo se quedaba viejo), con lo que lleva el cliente debajo. */}
