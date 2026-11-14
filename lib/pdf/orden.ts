@@ -225,6 +225,27 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
        [`${t.operadorAut} ${D.tarjeta_ot}`, 8, false]];
   const alto = (filas: [string, number, boolean][], w: number) => filas.reduce((a, [tx, s, b]) => a + (tx ? l.partir(tx, s, w, b).length * s * 1.3 : 0), 0);
   const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
+  // RESUMEN del transporte: mercancía · tipo de transporte · tipo de carga · requisitos ·
+  // matrículas · conductor. En las copias no operativas va DENTRO de la franja, en el
+  // sitio de la antigua caja «Gestionada por» (usuario, 2026-11-14: los datos de Dynamo
+  // ya están en el pie de todas las páginas).
+  const forma = [e.carga_lateral && t.cargaLateral, e.carga_trasera && t.cargaTrasera, e.carga_techo && t.cargaTecho].filter(Boolean).join(' · ');
+  const tipoCarga = esES ? tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora)
+    : e.tipo_carga === 'completa' ? (e.requiere_plataforma_elevadora ? t.rigidoCompleto : t.cargaCompleta) : e.tipo_carga === 'grupaje' ? t.grupaje : '';
+  const conductorTxt = [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ');
+  const requisitos = [e.requiere_nima && `${t.requiereNima}${e.transportista_nima && !esCli ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · ');
+  const resumen: { k: string; v: string; b?: boolean; rojo?: boolean; placas?: boolean }[] = [
+    { k: t.mercancia, v: [e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada),
+      e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} ${t.metrosLineales}` : null,
+      e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? t.bulto : t.bultos}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
+      e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), b: true },
+    // Altura máxima del hueco (2026-11-12): que cliente y transportista la vean.
+    { k: t.tipoTransporte, v: `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.60' : '2.70') : (e.requiere_plataforma_elevadora ? '2,60' : '2,70') })}` },
+    { k: t.tipoCarga, v: [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ') },
+    ...(requisitos ? [{ k: t.requisitos, v: requisitos, b: true, rojo: !!e.adr }] : []),
+    { k: t.matriculasAutL, v: matr || t.pendMatrEnvia, placas: !!matr, b: true, rojo: !matr },
+    { k: t.conductor, v: conductorTxt || t.pendComunicar, b: !!conductorTxt },
+  ];
   // Tarjeta del QR (compartida por las dos cabeceras). Con transportista y matrícula
   // lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de firmas); si no,
   // el hueco punteado — el diseño no cambia al asignar.
@@ -279,15 +300,27 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       { k: t.conductor, v: l.partir([e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar, 7.4, wDatos - 14, true).slice(0, 3) },
     ];
     const hDatos = !wDatos ? 0 : 10 + datosIt.reduce((a, it) => a + 9 + (it.placas ? placas.length * 17 + 1 : it.v.length * 9) + 6, 0);
+    // En las copias NO operativas, la caja derecha deja de ser «Gestionada por» (esos
+    // datos ya van en el pie) y lleva el RESUMEN del transporte (usuario, 2026-11-14):
+    // etiqueta arriba y valor debajo, con las plaquitas en la fila de matrículas.
+    const resFil = copia === 'operativa' ? [] : resumen.map((r) => ({
+      k: l.partir(r.k.toUpperCase(), 6, wCaja - 16, true).slice(0, 2),
+      v: r.placas ? [] : l.partir(r.v, 7.4, wCaja - 16, r.b).slice(0, 4),
+      placas: r.placas, rojo: r.rojo, b: r.b,
+    }));
+    const hRes2 = !resFil.length ? 0 : 12 + resFil.reduce((a, it) => a + it.k.length * 8 + (it.placas ? 17 : it.v.length * 9) + 7, 0);
     // En el DeCA, la caja del cargador reserva sitio para la SUB-CAJA de la referencia.
     const hRef = copia === 'operativa' ? 40 : 0;
-    const hFila = Math.max(96, hDatos,
+    const hFila = Math.max(96, hDatos, hRes2,
       hTit(sub1) + alto(izq, wCaja - 16) + 10,
-      hTit(sub2) + alto(dcha, wCaja - 16) + 10 + hRef);
+      copia === 'operativa' ? hTit(sub2) + alto(dcha, wCaja - 16) + 10 + hRef : 0);
     const ct = l.y;
     cajaR(l.x0, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
     cajaR(x2, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
-    for (const [x, base, sub, filas] of [[l.x0, base1, sub1, izq], [x2, base2, sub2, dcha]] as const) {
+    const cajasTx = copia === 'operativa'
+      ? ([[l.x0, base1, sub1, izq], [x2, base2, sub2, dcha]] as const)
+      : ([[l.x0, base1, sub1, izq]] as const);
+    for (const [x, base, sub, filas] of cajasTx) {
       const sTit = l.medida(esp(base), 5.2, true) > wCaja - 16 ? 4.6 : 5.2;
       l.texto(x + 8, ct + 14, esp(base), sTit, { bold: true, color: COLOR.gris });
       sub.forEach((ln, i) => l.texto(x + 8, ct + 22 + i * 7.2, ln, 5.8, { color: COLOR.gris }));
@@ -300,6 +333,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       cajaR(x2 + 8, yRef, wCaja - 16, 32, COLOR.moradoSuave, undefined, 6);
       l.texto(x2 + 15, yRef + 12, esp(t.subRef), 5, { bold: true, color: COLOR.gris });
       l.texto(x2 + 15, yRef + 25, ref || '—', 10.5, { bold: true, color: COLOR.navy });
+    }
+    if (resFil.length) {
+      let yD = ct + 7;
+      for (const it of resFil) {
+        it.k.forEach((ln, j) => l.texto(x2 + 8, yD + 7 + j * 8, ln, 6, { bold: true, color: COLOR.gris }));
+        const yV = yD + it.k.length * 8;
+        if (it.placas) {
+          let xP = x2 + 8;
+          for (const m of placas) xP += plaquita(xP, yV + 3, m) + 6;
+          yD = yV + 17 + 7;
+        } else {
+          it.v.forEach((ln, j) => l.texto(x2 + 8, yV + 9 + j * 9, ln, 7.4, { bold: it.b, color: it.rojo ? COLOR.rojo : COLOR.navy }));
+          yD = yV + it.v.length * 9 + 7;
+        }
+      }
     }
     if (wDatos) {
       cajaR(xDat, ct, wDatos, hFila, COLOR.moradoSuave, undefined, 7);
@@ -498,29 +546,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     if (sub) l.textoDer(der - 12, it + 55, sub, 6.6, { color: COLOR.gris });
     l.y = it + hBox + 12;
   };
-  // ---- TABLA RESUMEN (usuario, 2026-11-14: como la orden antigua): mercancía · tipo de
-  // transporte · tipo de carga · requisitos · matrículas (plaquitas) · conductor, en una
-  // caja con separadores finos. Los textos largos van en cajas de aviso con acento.
-  const forma = [e.carga_lateral && t.cargaLateral, e.carga_trasera && t.cargaTrasera, e.carga_techo && t.cargaTecho].filter(Boolean).join(' · ');
-  const tipoCarga = esES ? tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora)
-    : e.tipo_carga === 'completa' ? (e.requiere_plataforma_elevadora ? t.rigidoCompleto : t.cargaCompleta) : e.tipo_carga === 'grupaje' ? t.grupaje : '';
-  // La tabla resumen NO va en el DeCA (usuario, 2026-11-14): sus datos viven en el
-  // documento completo del QR (el CMR lleva mercancía, matrículas y conductor).
-  if (copia !== 'operativa') {
-    const conductorTxt = [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ');
-    const requisitos = [e.requiere_nima && `${t.requiereNima}${e.transportista_nima && !esCli ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · ');
-    const resumen: { k: string; v: string; b?: boolean; rojo?: boolean; placas?: boolean }[] = [
-      { k: t.mercancia, v: [e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada),
-        e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} ${t.metrosLineales}` : null,
-        e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? t.bulto : t.bultos}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
-        e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), b: true },
-      // Altura máxima del hueco (2026-11-12): que cliente y transportista la vean.
-      { k: t.tipoTransporte, v: `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.60' : '2.70') : (e.requiere_plataforma_elevadora ? '2,60' : '2,70') })}` },
-      { k: t.tipoCarga, v: [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ') },
-      ...(requisitos ? [{ k: t.requisitos, v: requisitos, b: true, rojo: !!e.adr }] : []),
-      { k: t.matriculasAutL, v: matr || t.pendMatrEnvia, placas: !!matr, b: true, rojo: !matr },
-      { k: t.conductor, v: conductorTxt || t.pendComunicar, b: !!conductorTxt },
-    ];
+  // (La tabla resumen de ancho completo se quitó el 2026-11-14: el resumen vive en la
+  // franja, en la caja derecha, en el sitio de la antigua «Gestionada por». El envío
+  // MANUAL no lleva esa franja, así que conserva la tabla.)
+  if (manual && copia !== 'operativa') {
     const xL2 = l.x0 + 12, xVr = l.x0 + 150, wVr = der - xVr - 12;
     const medR = resumen.map((r) => {
       const kl = l.partir(r.k.toUpperCase(), 6.2, 130, true);
