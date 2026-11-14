@@ -90,7 +90,13 @@ export async function muestraGlobal(): Promise<BusquedaGlobal> {
   const a = await alcance();
   if (!a) return VACIA;
   const { sb, vista, gestor } = a;
-  let qs = a.conSitios ? sb.from('sitios').select('id').order('creado_en', { ascending: false }).limit(2) : null;
+  // Mismos filtros que la pantalla de Sitios (sitios_pagina): ni borrados ni almacenes
+  // Dynamo. Sin esto, la muestra enseñaba por RLS sitios que la página no lista — un
+  // cliente con la agenda a cero veía sugerencias (usuario, 2026-11-14, pantallazo).
+  let qs = a.conSitios
+    ? sb.from('sitios').select('id').eq('borrado', false).eq('es_almacen_dynamo', false)
+        .order('creado_en', { ascending: false }).limit(2)
+    : null;
   if (qs && a.clienteSitios) qs = qs.eq('cliente_id', a.clienteSitios);
   const [env, sit, cli, tra] = await Promise.all([
     filtrarVista(sb.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino, estado'), vista)

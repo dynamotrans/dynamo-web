@@ -160,6 +160,15 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
                     : <EstadoVacio titulo="Todavía no hay envíos"
                         texto="Crea tu primer envío en 2 minutos: origen, destino y fecha — el precio sale al momento, sin llamadas ni esperas."
                         accion={<Link className="btn-primary" href="/panel/nuevo-envio">+ Crear tu primer envío</Link>} />)
+                  // La pestaña Programados a cero con envíos antiguos en otras pestañas
+                  // (usuario, 2026-11-14): mismo estilo que el vacío de Sitios, con el
+                  // botón de crear (salvo transportista, que no crea envíos).
+                  : f === 'programada'
+                  ? (rol === 'transportista' || vistaTransportista
+                    ? <EstadoVacio titulo="Nada programado ahora mismo" texto="Aquí saldrán los envíos que Dynamo te asigne o te ofrezca, con su orden de carga, el estado y el eCMR para firmar." />
+                    : <EstadoVacio titulo={dynamo ? 'No hay envíos programados' : 'No tienes envíos programados'}
+                        texto="Crea un envío nuevo y síguelo aquí de principio a fin: el precio sale al momento, sin llamadas ni esperas."
+                        accion={<Link className="btn-primary" href="/panel/nuevo-envio">+ Crear nuevo envío</Link>} />)
                   : 'Sin envíos en este filtro'}
               </td></tr>
             ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={url({ p: pag, ver: e.id })} />)}
