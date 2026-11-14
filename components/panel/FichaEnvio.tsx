@@ -14,6 +14,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
 import Modal from './Modal';
 import Documentos from './Documentos';
+import { documentosDe } from '@/app/panel/(app)/documentos/acciones';
 import Cargando from '@/components/Cargando';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
@@ -328,7 +329,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <div className="pen-sum-row"><span className="k">Ref. cliente</span><span className="v">{e.referencia_cliente || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Cliente</span><span className="v" style={{ textAlign: 'right' }}>{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Creado</span><span className="v" style={{ textAlign: 'right' }}>{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</span></div>
-          {manual && <div className="pen-sum-row pen-sum-col"><span className="k">Operador de transporte</span><span className="v"><span style={{ color: '#b45309' }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</span></div>}
+          {manual && <div className="pen-sum-row pen-sum-col"><span className="k">Operador de transporte</span><span className="v">{e.operador_id && <LogoOperador id={e.operador_id} />}<span style={{ color: '#b45309' }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</span></div>}
           <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {/* El día que el transportista eligió dentro de la ventana, junto a ella. */}
           {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}
@@ -545,4 +546,17 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );
+}
+
+// El logo del transportista propio del cliente, junto a su nombre en la ficha (usuario,
+// 2026-11-14: el logo sale en la plataforma; en el PDF de su orden ya salia, sin Dynamo).
+function LogoOperador({ id }: { id: string }) {
+  const [doc, setDoc] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    documentosDe({ campo: 'operador_id', id }).then((ds) => { if (vivo) setDoc(ds.find((x) => x.tipo === 'logo')?.id ?? null); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [id]);
+  if (!doc) return null;
+  return <img src={`/panel/documentos/${doc}`} alt="" aria-hidden="true" style={{ width: 26, height: 26, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--gray-200)', background: '#fff', verticalAlign: -8, marginRight: '0.45rem', display: 'inline-block' }} />;
 }

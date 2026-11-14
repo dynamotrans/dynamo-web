@@ -21,18 +21,22 @@ export default async function PaginaOperadores() {
   // Con «Ver como» un cliente, la pantalla es LA DEL CLIENTE: sin selector de cliente
   // (todo lo que se cree aquí es de ese cliente; lo resuelve la acción por la vista).
   const uiDynamo = dynamo && vista.tipo === 'admin';
-  const [ops, envs, clis] = await Promise.all([
+  const [ops, envs, clis, logos] = await Promise.all([
     leerTodo(filtrarVista(supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, creado_en, modificado_en, clientes(nombre_visible)'), vista, { transportista: null })
       .eq('borrado', false).order('razon_social'), 10000),
     supabase.rpc('envios_por_empresa', { p_campo: 'operador' }),
     uiDynamo ? leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000) : Promise.resolve({ data: [] as { id: string; nombre_visible: string }[] }),
+    // El logo de cada transportista, para enseñarlo en el listado (usuario, 2026-11-14).
+    leerTodo(supabase.from('documentos').select('id, operador_id, creado_en').eq('tipo', 'logo').eq('borrado', false).not('operador_id', 'is', null).order('creado_en', { ascending: false }), 10000),
   ]);
+  const logoDe = new Map<string, string>();
+  ((logos.data ?? []) as { id: string; operador_id: string | null }[]).forEach((l) => { if (l.operador_id && !logoDe.has(l.operador_id)) logoDe.set(l.operador_id, l.id); });
   const usos = new Map<string, number>();
   ((envs.data ?? []) as { id: string; envios: number }[]).forEach((e) => usos.set(e.id, Number(e.envios)));
   const filas: OperadorFila[] = (ops.data ?? []).map((o) => ({
     id: o.id, cliente_id: o.cliente_id, cliente: o.clientes?.nombre_visible ?? null, razon_social: o.razon_social, cif: o.cif,
     telefono: o.telefono ?? '', email: o.email ?? '', persona_contacto: o.persona_contacto ?? '', web: o.web ?? '', anotaciones: o.anotaciones ?? '',
-    creado_en: o.creado_en, modificado_en: o.modificado_en, envios: usos.get(o.id) ?? 0,
+    creado_en: o.creado_en, modificado_en: o.modificado_en, envios: usos.get(o.id) ?? 0, logo: logoDe.get(o.id) ?? null,
   }));
   return <Operadores filas={filas} dynamo={uiDynamo} clientes={clis.data ?? []} error={ops.error?.message ?? null} />;
 }

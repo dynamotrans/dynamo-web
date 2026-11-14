@@ -11,10 +11,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
 import Modal from './Modal';
-import Documentos from './Documentos';
+import { subirDocumentoDirecto } from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel/(app)/operadores/acciones';
-import { rutaDeSubida, registrarDocumento, documentosDe } from '@/app/panel/(app)/documentos/acciones';
+import { rutaDeSubida, registrarDocumento, documentosDe, quitarDocumento } from '@/app/panel/(app)/documentos/acciones';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
@@ -25,6 +25,7 @@ import CampoTelefono from '@/components/CampoTelefono';
 
 export type OperadorFila = OperadorDatos & {
   id: string; cliente: string | null; creado_en: string; modificado_en: string | null; envios: number;
+  logo: string | null;   // id del documento del logo, para enseñarlo en el listado
 };
 type Cliente = { id: string; nombre_visible: string };
 
@@ -109,7 +110,11 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
               </td></tr>
             ) : lista.map((o) => (
               <tr key={o.id} onClick={() => setFicha({ fila: o })} style={{ cursor: 'pointer' }}>
-                <td className="ref"><strong>{o.razon_social}</strong><div className="meta">{o.cif || 'Sin CIF'}{o.envios ? ` · ${o.envios} envío${o.envios > 1 ? 's' : ''}` : ''}</div></td>
+                <td className="ref"><div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                  {/* Su logo también en el listado (usuario, 2026-11-14). */}
+                  {o.logo && <img src={`/panel/documentos/${o.logo}`} alt="" aria-hidden="true" style={{ width: 34, height: 34, objectFit: 'contain', borderRadius: 8, border: '1px solid var(--gray-200)', background: '#fff', flex: 'none' }} />}
+                  <div><strong>{o.razon_social}</strong><div className="meta">{o.cif || 'Sin CIF'}{o.envios ? ` · ${o.envios} envío${o.envios > 1 ? 's' : ''}` : ''}</div></div>
+                </div></td>
                 {dynamo && <td>{o.cliente ?? '—'}</td>}
                 <td>{o.telefono ? telBonito(o.telefono) : '—'}</td>
                 <td>{o.email || '—'}</td>
@@ -146,6 +151,8 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoCargando, setLogoCargando] = useState(false);
   const [logoVez, setLogoVez] = useState(0);
+  const [logoDocId, setLogoDocId] = useState<string | null>(null);
+  const [logoSubiendo, setLogoSubiendo] = useState(false);
   const filaId = fila?.id ?? null;
   useEffect(() => {
     if (!filaId) {
@@ -161,6 +168,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
       try {
         const docs = await documentosDe({ campo: 'operador_id', id: filaId });
         const l = docs.find((x) => x.tipo === 'logo');
+        if (vivo) setLogoDocId(l?.id ?? null);
         if (!l) { if (vivo) setLogoUrl(null); return; }
         const r = await fetch(`/panel/documentos/${l.id}`);
         if (!r.ok) { if (vivo) setLogoUrl(null); return; }
@@ -264,29 +272,58 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga <Req si={false} /></label>
         {(logoUrl || logoCargando) && (
           <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', margin: '0.2rem 0 0.55rem' }}>
-            <div style={{ width: 112, height: 112, flex: 'none', border: '1px solid var(--gray-200)', borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', width: 112, height: 112, flex: 'none', border: '1px solid var(--gray-200)', borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
               {logoUrl
-                ? <img src={logoUrl} alt="Logo del transportista" style={{ maxWidth: '92%', maxHeight: '92%', objectFit: 'contain' }} />
+                ? <img src={logoUrl} alt="Logo del transportista" style={{ maxWidth: '92%', maxHeight: '92%', objectFit: 'contain', borderRadius: 10 }} />
                 : <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Cargando…</span>}
+              {/* La ✕ va ENCIMA del logo (usuario, 2026-11-14): más intuitivo que una fila
+                  de documento debajo. Borra el logo; subir otro lo sustituye sin más. */}
+              {!fila && logo && (
+                <button type="button" aria-label="Quitar el logo elegido" title="Quitar el logo elegido"
+                  style={{ position: 'absolute', top: -9, right: -9, width: 24, height: 24, borderRadius: '50%', border: '1.5px solid var(--gray-200)', background: '#fff', color: 'var(--red)', fontWeight: 800, fontSize: 15, lineHeight: 1, cursor: 'pointer', boxShadow: '0 1px 4px rgba(10,2,48,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => { setError(null); setLogo(null); }}>×</button>
+              )}
+              {fila && logoUrl && logoDocId && (
+                <button type="button" aria-label="Quitar el logo" title="Quitar el logo" disabled={logoSubiendo}
+                  style={{ position: 'absolute', top: -9, right: -9, width: 24, height: 24, borderRadius: '50%', border: '1.5px solid var(--gray-200)', background: '#fff', color: 'var(--red)', fontWeight: 800, fontSize: 15, lineHeight: 1, cursor: 'pointer', boxShadow: '0 1px 4px rgba(10,2,48,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={async () => {
+                    setError(null); setLogoSubiendo(true);
+                    const r = await quitarDocumento(logoDocId);
+                    setLogoSubiendo(false);
+                    if (!r.ok) { setError(r.error); return; }
+                    setLogoVez((x) => x + 1);
+                  }}>×</button>
+              )}
             </div>
-            <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>Vista previa en cuadro 1:1 — así quedará en la orden de carga y en los demás sitios donde se use.</div>
+            <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>Vista previa en cuadro 1:1 — así quedará en la orden de carga y en los demás sitios donde se use.{fila && logoUrl ? ' Para cambiarlo, sube otro (sustituye a este) o quítalo con la ✕.' : ''}</div>
           </div>
         )}
-        {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen onCambio={() => setLogoVez((v) => v + 1)} />
-          : <>
-              {/* La caja de subida de toda la plataforma (usuario, 2026-11-14): triple
-                  vía — cámara, galería/archivo y arrastrar y soltar. */}
-              <CajaSubir multiple={false} accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                onFiles={(fs) => {
-                  const f = fs[0] ?? null;
-                  if (f && f.size > 25 * 1024 * 1024) { setError('El logo pasa de 25 MB.'); return; }
-                  setError(null); setLogo(f);
-                }}
-                sub="JPG, PNG, WEBP o HEIC · máx. 25 MB" />
-              <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>
-                {logo ? <>Se subirá <strong>{logo.name}</strong> al crear el transportista.</> : 'Opcional: sale en su orden de carga.'}
-              </p>
-            </>}
+        {/* La caja de subida de toda la plataforma: triple vía. En una ficha existente sube
+            al momento y MACHACA el logo anterior (usuario, 2026-11-14); en una nueva se
+            guarda al crear el transportista. */}
+        <CajaSubir multiple={false} accept="image/jpeg,image/png,image/webp,image/heic,image/heif" disabled={logoSubiendo}
+          onFiles={async (fs) => {
+            const f = fs[0] ?? null;
+            if (!f) return;
+            if (f.size > 25 * 1024 * 1024) { setError('El logo pasa de 25 MB.'); return; }
+            setError(null);
+            if (!fila) { setLogo(f); return; }
+            setLogoSubiendo(true);
+            if (logoDocId) {
+              const q = await quitarDocumento(logoDocId);
+              if (!q.ok) { setLogoSubiendo(false); setError(q.error); return; }
+            }
+            const r = await subirDocumentoDirecto({ campo: 'operador_id', id: fila.id }, f, 'logo');
+            setLogoSubiendo(false);
+            if (!r.ok) { setError(r.error); return; }
+            setLogoVez((x) => x + 1);
+          }}
+          sub={logoSubiendo ? <strong>Guardando el logo…</strong> : 'JPG, PNG, WEBP o HEIC · máx. 25 MB · si ya hay logo, el nuevo lo sustituye'} />
+        {!fila && (
+          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>
+            {logo ? <>Se subirá <strong>{logo.name}</strong> al crear el transportista.</> : 'Opcional: sale en su orden de carga.'}
+          </p>
+        )}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {fila?.id && <Historial tabla="operadores" id={fila.id} />}
