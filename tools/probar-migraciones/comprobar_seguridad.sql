@@ -8631,3 +8631,62 @@ begin
   update parametros set valor = pct_antes where clave = 'autosuspension_cancel_pct';
   raise notice 'OK 217 · regla 4 estricta (en el límite no, por encima sí) y email a Dynamo en cada suspensión automática';
 end $$;
+
+-- =====================================================================================
+-- PRUEBA 218 · lista de bloqueo de altas: email y dominio, defensa en el alta y bloqueo
+-- opcional al anonimizar
+-- =====================================================================================
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare uid uuid; n int;
+begin
+  -- El Admin Master bloquea una dirección y un dominio entero.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  insert into bloqueos_alta (tipo, valor, motivo) values ('email', 'molesto@acme.prueba', 'prueba 218');
+  insert into bloqueos_alta (tipo, valor, motivo) values ('dominio', 'spamcorp.prueba', 'prueba 218');
+  reset role;
+  -- Un cliente ni ve la lista ni puede escribir en ella (RLS).
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  select count(*) into n from bloqueos_alta;
+  if n <> 0 then raise exception 'FALLO 218 · un cliente ve la lista de bloqueo'; end if;
+  begin
+    insert into bloqueos_alta (tipo, valor) values ('email', 'colado@porcliente.prueba');
+    raise exception 'FALLO 218 · un cliente ha podido bloquear un alta';
+  exception when insufficient_privilege then null; end;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- alta_bloqueada: la dirección exacta (da igual mayúsculas), cualquier buzón del
+  -- dominio bloqueado, y nada más.
+  if not alta_bloqueada('molesto@acme.prueba') then raise exception 'FALLO 218 · la dirección bloqueada no se detecta'; end if;
+  if not alta_bloqueada('  MOLESTO@ACME.PRUEBA ') then raise exception 'FALLO 218 · el bloqueo distingue mayúsculas o espacios'; end if;
+  if alta_bloqueada('otro@acme.prueba') then raise exception 'FALLO 218 · bloquear una dirección bloquea a sus compañeros de dominio'; end if;
+  if not alta_bloqueada('cualquiera@spamcorp.prueba') then raise exception 'FALLO 218 · el dominio bloqueado no se detecta'; end if;
+  if alta_bloqueada('cualquiera@otraempresa.prueba') then raise exception 'FALLO 218 · se bloquea un dominio que no está en la lista'; end if;
+  -- Defensa en el propio alta: aunque se esquive la web, la cuenta no se crea.
+  begin
+    insert into auth.users (email) values ('nuevo@spamcorp.prueba');
+    raise exception 'FALLO 218 · un email de dominio bloqueado ha podido darse de alta';
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from usuarios where email = 'nuevo@spamcorp.prueba') then
+    raise exception 'FALLO 218 · el perfil del alta bloqueada se ha creado igualmente';
+  end if;
+  -- Anonimizar con las dos opciones: el email real y su dominio quedan bloqueados.
+  insert into auth.users (email) values ('borrame@bloqueo218.prueba') returning id into uid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  if (select j->>'resultado' from anonimizar_usuario(uid, true, true) j) <> 'ok' then
+    raise exception 'FALLO 218 · anonimizar con bloqueo no devuelve ok';
+  end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if not alta_bloqueada('borrame@bloqueo218.prueba') or not alta_bloqueada('otronuevo@bloqueo218.prueba') then
+    raise exception 'FALLO 218 · anonimizar con bloqueo no apunta el email o el dominio en la lista';
+  end if;
+  if (select email from usuarios where id = uid) not like '%@anonimo.invalid' then
+    raise exception 'FALLO 218 · la cuenta anonimizada conserva su email';
+  end if;
+  -- Se deja la lista limpia para no estorbar a otras pasadas.
+  delete from bloqueos_alta where motivo = 'prueba 218' or valor like '%bloqueo218.prueba';
+  raise notice 'OK 218 · lista de bloqueo de altas: email y dominio, defensa en el alta y bloqueo al anonimizar';
+end $$;

@@ -233,6 +233,41 @@ export type Database = {
           },
         ]
       }
+      bloqueos_alta: {
+        Row: {
+          id: string
+          tipo: string
+          valor: string
+          motivo: string | null
+          creado_por: string | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          tipo: string
+          valor: string
+          motivo?: string | null
+          creado_por?: string | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          tipo?: string
+          valor?: string
+          motivo?: string | null
+          creado_por?: string | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueos_alta_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           id: string
@@ -3407,12 +3442,13 @@ export type Database = {
       aceptar_reserva: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario?: string | null; p_precio?: number | null }; Returns: Json }
       activar_rastro: { Args: { p_tabla: string | null }; Returns: undefined }
       almacenes_dynamo_tarifa: { Args: Record<PropertyKey, never>; Returns: { id: string; nombre: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; disponible: boolean; semana: number; reparto: number }[] }
+      alta_bloqueada: { Args: { p_email: string | null }; Returns: boolean }
       alta_transportista_publica: { Args: { p_reserva: string | null; p_bolsa: string | null; p_codigo_bolsa: string | null; p_pais: string | null; p_cif: string | null; p_telefono: string | null; p_precio?: number | null; p_pronto_pago?: boolean | null; p_ip?: string | null }; Returns: Json }
       altas_pendientes: { Args: Record<PropertyKey, never>; Returns: { id: string; email: string; nombre: string; telefono: string; documento: string; solicitada_en: string; confirmado_email: boolean; datos: Json }[] }
       ampliar_plazo_pago: { Args: { p_envio: string | null }; Returns: Json }
       anonimizar_conductor: { Args: { p_conductor: string | null }; Returns: Json }
       anonimizar_contacto: { Args: { p_contacto: string | null }; Returns: Json }
-      anonimizar_usuario: { Args: { p_usuario: string | null }; Returns: Json }
+      anonimizar_usuario: { Args: { p_usuario: string | null; p_bloquear_email?: boolean | null; p_bloquear_dominio?: boolean | null }; Returns: Json }
       anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null; p_fotos?: string[] | null }; Returns: Json }
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }
       asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null; p_fecha_entrega_estimada?: string | null }; Returns: Json }

@@ -173,8 +173,8 @@ export async function cambiarEmail(id: string, nuevo: string, emailConfirmacion:
 // qué se borró, sin los valores. Lo que es prueba (firmas del CMR, envíos) se conserva.
 // Solo el Admin Master, tecleando el email actual. Con la clave de servicio, además se
 // cambia el email de acceso en Supabase Auth y se bloquea la entrada.
-export async function anonimizarUsuario(id: string, emailConfirmacion: string): Promise<Res & { aviso?: string }> {
-  comprobarEntrada("app/panel/(app)/usuarios/acciones#anonimizarUsuario", [id, emailConfirmacion]);
+export async function anonimizarUsuario(id: string, emailConfirmacion: string, bloquearEmail = false, bloquearDominio = false): Promise<Res & { aviso?: string }> {
+  comprobarEntrada("app/panel/(app)/usuarios/acciones#anonimizarUsuario", [id, emailConfirmacion, bloquearEmail, bloquearDominio]);
   const s = await soloDynamo();
   if (!s || s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el administrador anonimiza cuentas.' };
   const { data: u } = await s.supabase.from('usuarios').select('email, rol').eq('id', id).single();
@@ -182,7 +182,7 @@ export async function anonimizarUsuario(id: string, emailConfirmacion: string): 
   if (emailConfirmacion.trim().toLowerCase() !== String(u.email).toLowerCase()) {
     return { ok: false, error: 'El email no coincide. Escríbelo exactamente para confirmar.' };
   }
-  const { data, error } = await s.supabase.rpc('anonimizar_usuario', { p_usuario: id });
+  const { data, error } = await s.supabase.rpc('anonimizar_usuario', { p_usuario: id, p_bloquear_email: bloquearEmail, p_bloquear_dominio: bloquearDominio });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = data as { resultado: string; email_anonimo?: string };
   if (r.resultado === 'solo_clientes_y_transportistas') return { ok: false, error: 'Solo se anonimizan cuentas de clientes y transportistas.' };

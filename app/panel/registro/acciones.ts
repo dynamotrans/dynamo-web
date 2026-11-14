@@ -46,6 +46,11 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
 
   const supabase = await supabaseServidor(true);
   if (!supabase) return mal(undefined, 'La plataforma no está conectada a la base de datos.');
+  // Lista de bloqueo de altas (bloqueos_alta): mensaje neutro, sin revelar el bloqueo ni
+  // dar vía de contacto (decisión del usuario, 2026-11-14). La base de datos lo rechaza
+  // igualmente aunque alguien esquive este paso.
+  const { data: bloqueada } = await supabase.rpc('alta_bloqueada', { p_email: d.email });
+  if (bloqueada) return mal(undefined, 'Actualmente no estamos dando de alta nuevos usuarios. Sentimos las molestias.');
   const { error } = await supabase.auth.signInWithOtp({
     email: d.email,
     options: {
