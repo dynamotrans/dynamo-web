@@ -105,6 +105,10 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     ...ent.map((p, i) => ({ clave: `destinatario:${p.id}`, titulo: `Entrega ${rec.length + ent.length > 2 ? rec.length + i + 1 : ''}`.trim(), casilla: 'Casilla 24 · recibí de la mercancía', firmante: 'Destinatario', rol: 'destinatario' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p) })),
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
+  // Las PENDIENTES arriba y las ya firmadas debajo (usuario, 2026-11-14), cada grupo en
+  // su orden de recorrido (recogidas → transportista → entregas). El selector de la
+  // firma extra sigue listando las casillas en el orden natural del recorrido.
+  const bloquesVista = [...bloques.filter((b) => !firmas.has(b.clave)), ...bloques.filter((b) => firmas.has(b.clave))];
   // «Está todo guardado» (usuario, 2026-11-11): ya NO se lleva a nadie a la web pública.
   // Al pulsarlo, AQUÍ mismo sale la pantalla de gracias con un botón bien llamativo que
   // abre el PDF del eCMR al día, con las firmas actuales. Solo tras firmar en esta visita.
@@ -250,7 +254,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         )}
       </div>
-      {bloques.map((b) => {
+      {bloquesVista.map((b) => {
         const f = firmas.get(b.clave);
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
