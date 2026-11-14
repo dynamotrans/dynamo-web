@@ -168,6 +168,69 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
        [`${t.urgencias}: ${telBonito(D.telefono)}`, 8, true],
        [`${t.operadorAut} ${D.tarjeta_ot}`, 8, false]];
   const alto = (filas: [string, number, boolean][], w: number) => filas.reduce((a, [tx, s, b]) => a + (tx ? l.partir(tx, s, w, b).length * s * 1.3 : 0), 0);
+  const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
+  // Tarjeta del QR (compartida por las dos cabeceras). Con transportista y matrícula
+  // lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de firmas); si no,
+  // el hueco punteado — el diseño no cambia al asignar.
+  const tarjetaQr = async (ct: number, cw: number, chX: number) => {
+    let qrImg: PDFImage | null = null;
+    // En la copia cliente el porteador no viaja en los datos (solo matrículas y
+    // conductor): con matrícula ya hay transporte asignado y el QR va igual.
+    if (d.deca && (p || esCli) && e.matricula_camion) {
+      try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; }
+    }
+    const cx = der - cw, r = 8;
+    l.pag.drawSvgPath(
+      `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${chX - r} Q ${cw} ${chX} ${cw - r} ${chX} H ${r} Q 0 ${chX} 0 ${chX - r} V ${r} Q 0 0 ${r} 0 Z`,
+      { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
+    const tTit = 'QR e-CMR / DeCA';
+    l.texto(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, { bold: true, color: COLOR.navy });
+    if (qrImg) {
+      l.pag.drawImage(qrImg, { x: cx + (cw - 62) / 2, y: A4.h - (ct + 16) - 62, width: 62, height: 62 });
+    } else {
+      l.pag.drawRectangle({ x: cx + (cw - 58) / 2, y: A4.h - (ct + 18) - 58, width: 58, height: 58, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
+      l.texto(cx + (cw - l.medida('QR', 9, true)) / 2, ct + 50, 'QR', 9, { bold: true, color: COLOR.gris });
+    }
+    const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
+    l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + chX - 5, tPie, 5.4, { color: COLOR.gris });
+  };
+
+  if (copia === 'operativa' && !manual) {
+    // ---- CABECERA DEL DeCA EN UNA SOLA FRANJA (usuario, 2026-11-14): cuatro bloques en
+    // la misma fila — transportista efectivo · cargador contractual (Dynamo) · datos del
+    // envío (nº, fecha, matrículas, referencia) · tarjeta del QR. El texto del documento
+    // de control va debajo, a todo lo ancho.
+    const gap = 8, cw = 96, wDatos = 108, wCaja = (l.ancho - cw - wDatos - 3 * gap) / 2;
+    const x2 = l.x0 + wCaja + gap, x3 = x2 + wCaja + gap;
+    const datosF: [string, string][] = [[t.nEnvio, ref], [t.fechaCargaL, ventanaCarga], [t.matriculasAutL, matr || t.pendAsignar]];
+    if (e.referencia_cliente) datosF.push([t.referenciaL, e.referencia_cliente]);
+    const datosParts = datosF.map(([, v]) => l.partir(v, 8.6, wDatos - 14, true).slice(0, 2));
+    const tit1 = l.partir(esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`, 6.8, wCaja - 16, true).slice(0, 2);
+    const tit2 = l.partir(esES ? 'CARGADOR CONTRACTUAL' : `CARGADOR CONTRACTUAL · ${t.gestionadaPor}`, 6.8, wCaja - 16, true).slice(0, 2);
+    const hDatos = 10 + datosParts.reduce((a, ps) => a + 17 + (ps.length - 1) * 10 + 8, 0);
+    const hFila = Math.max(96, hDatos,
+      12 + tit1.length * 8 + alto(izq, wCaja - 16) + 10,
+      12 + tit2.length * 8 + alto(dcha, wCaja - 16) + 10);
+    const ct = l.y;
+    l.rect(l.x0, ct, wCaja, hFila, COLOR.fondo);
+    l.rect(x2, ct, wCaja, hFila, COLOR.fondo);
+    l.rect(x3, ct, wDatos, hFila, COLOR.moradoSuave);
+    for (const [x, tit, filas] of [[l.x0, tit1, izq], [x2, tit2, dcha]] as const) {
+      tit.forEach((ln, i) => l.texto(x + 8, ct + 12 + i * 8, ln, 6.8, { bold: true, color: COLOR.gris }));
+      l.y = ct + 12 + tit.length * 8 + 2;
+      for (const [tx, s, b] of filas) if (tx) l.parrafo(tx, s, { bold: b, x: x + 8, ancho: wCaja - 16 });
+    }
+    let yD = ct + 10;
+    datosF.forEach(([k], i) => {
+      l.texto(x3 + 7, yD + 7, l.partir(k, 6.4, wDatos - 12, true)[0] ?? '', 6.4, { bold: true, color: COLOR.gris });
+      datosParts[i].forEach((ln, j) => l.texto(x3 + 7, yD + 17 + j * 10, ln, 8.6, { bold: true, color: !matr && i === 2 ? COLOR.rojo : COLOR.navy }));
+      yD += 17 + (datosParts[i].length - 1) * 10 + 8;
+    });
+    await tarjetaQr(ct, cw, hFila);
+    l.y = ct + hFila + 8;
+    l.parrafo(t.qrDeca, 8, { bold: true, color: COLOR.navy });
+    l.y += 4;
+  } else {
   const hCaja = Math.max(alto(izq, mitad - 20), alto(dcha, mitad - 20)) + 26;
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
   l.rect(xb, l.y, mitad, hCaja, COLOR.fondo);
@@ -196,7 +259,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // documento de control debajo, y la tarjeta del QR a la DERECHA a la misma altura.
   // EN LAS DOS COPIAS (usuario, 2026-11-13: «con precio o sin precios, ambas deben
   // llevar el DeCA QR»): el QR abre el eCMR/DeCA público, que no enseña precios.
-  const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
   const franja: [string, string][] = [
     [t.nEnvio, ref], [t.fechaCargaL, ventanaCarga],
     [t.matriculasAutL, matr || t.pendAsignar],
@@ -232,32 +294,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       l.parrafo(t.qrDeca, 8, { bold: true, x: l.x0, ancho: wIzq - 4, color: COLOR.navy });
     }
     const finIzq = l.y;
-    // Tarjeta del QR a la derecha, alineada arriba con la franja. Con transportista y
-    // matrícula lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de
-    // firmas); si no, el hueco punteado — el diseño no cambia al asignar.
-    if (!manual) {
-    let qrImg: PDFImage | null = null;
-    // En la copia cliente el porteador no viaja en los datos (solo matrículas y
-    // conductor): con matrícula ya hay transporte asignado y el QR va igual.
-    if (d.deca && (p || esCli) && e.matricula_camion) {
-      try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; }
-    }
-    const cx = der - cw, r = 8;
-    l.pag.drawSvgPath(
-      `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${ch - r} Q ${cw} ${ch} ${cw - r} ${ch} H ${r} Q 0 ${ch} 0 ${ch - r} V ${r} Q 0 0 ${r} 0 Z`,
-      { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
-    const tTit = 'QR e-CMR / DeCA';
-    l.texto(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, { bold: true, color: COLOR.navy });
-    if (qrImg) {
-      l.pag.drawImage(qrImg, { x: cx + (cw - 62) / 2, y: A4.h - (ct + 16) - 62, width: 62, height: 62 });
-    } else {
-      l.pag.drawRectangle({ x: cx + (cw - 58) / 2, y: A4.h - (ct + 18) - 58, width: 58, height: 58, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
-      l.texto(cx + (cw - l.medida('QR', 9, true)) / 2, ct + 50, 'QR', 9, { bold: true, color: COLOR.gris });
-    }
-    const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
-    l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + 86, tPie, 5.4, { color: COLOR.gris });
-    }
+    // Tarjeta del QR a la derecha, alineada arriba con la franja.
+    if (!manual) await tarjetaQr(ct, cw, ch);
     l.y = manual ? finIzq + 8 : Math.max(finIzq, ct + ch) + 8;
+  }
   }
 
   // ---- Recogidas y entregas ----
