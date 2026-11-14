@@ -146,6 +146,26 @@ export function useIdiomaGT(codigos: string[]): [string, (lang: string) => void]
   return [actual, elegir];
 }
 
+// ---- Autodetección del idioma del navegador (tarea 82, 2026-11-14) ------------------
+// Primera visita de estas páginas públicas (sin cookie googtrans y sin haber detectado
+// antes): el chófer polaco o portugués que abre el enlace en un muelle ve la página en SU
+// idioma sin tocar nada. Mismo criterio que la web pública (2026-06-25): navegador en
+// español → nada; en un idioma del selector → ese; en otro (croata, ruso…) → inglés.
+// Solo UNA vez (cookie dynamo_lang_detected, 1 año): si luego vuelve al español a mano,
+// no se le vuelve a traducir.
+function detectarIdioma(): string | null {
+  if (document.cookie.includes('dynamo_lang_detected=')) return null;
+  document.cookie = `dynamo_lang_detected=1; path=/; max-age=31536000`;
+  const nav = (navigator.languages?.length ? navigator.languages : [navigator.language || '']).map((l) => l.toLowerCase());
+  for (const l of nav) {
+    if (l.startsWith('es')) return null;
+    if (l.startsWith('zh')) return 'zh-CN';
+    const corto = l.split('-')[0];
+    if (IDIOMAS.some(([c]) => c === corto)) return corto;
+  }
+  return nav.some(Boolean) ? 'en' : null;
+}
+
 export default function SelectorIdioma() {
   const [actual, setActual] = useState('es');
   const [abierto, setAbierto] = useState(false);
@@ -154,7 +174,9 @@ export default function SelectorIdioma() {
   useEffect(() => {
     parcheReact();
     const m = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
-    const lang = m?.[1] && IDIOMAS.some(([c]) => c === m[1]) ? m[1] : 'es';
+    let lang = m?.[1] && IDIOMAS.some(([c]) => c === m[1]) ? m[1] : 'es';
+    // Sin idioma elegido todavía: se mira el del navegador (solo la primera visita).
+    if (!m) { const d = detectarIdioma(); if (d) { lang = d; ponerCookie(`/es/${d}`); } }
     setActual(lang);
     // El traductor de Google solo se carga si hay otro idioma elegido (o al elegirlo):
     // en español no se carga ningún script de terceros.
