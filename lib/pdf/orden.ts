@@ -73,7 +73,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const cuadroFirma = (x: number, w: number, hB: number, f: FirmaDoc | undefined, rol: string, titulo: string, empresa: string, color: RGB) => {
     const casilla = rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24';
     const yB = l.y;
-    l.rect(x, yB, w, hB, COLOR.blanco, COLOR.grisClaro);
+    cajaR(x, yB, w, hB, COLOR.blanco, COLOR.grisClaro, 6);
     l.texto(x + 6, yB + 10, l.partir(titulo, 6.5, w - 42, true)[0] ?? '', 6.5, { bold: true, color });
     l.textoDer(x + w - 5, yB + 10, `e-CMR ${casilla}`, 5.4, { color: COLOR.gris });
     l.texto(x + 6, yB + 18.5, l.partir(empresa, 6.2, w - 12)[0] ?? '', 6.2, { color: COLOR.gris });
@@ -174,7 +174,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const xO = l.x0 + 12, xD = l.x0 + l.ancho * 0.40;
     const wSal = Math.max(l.medida(ventanaCarga, 9, true), l.medida(esp(t.salidaL), 5.4, true)) + 14;
     l.texto(xO, rt + 13, esp(t.origenL), 5.4, { bold: true, color: COLOR.gris });
-    l.texto(xO, rt + 26, l.partir(lugarCorto(rec[0]), 9, xD - xO - 30, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
+    l.pag.drawCircle({ x: xO + 3, y: A4.h - rt - 23, size: 2.6, color: NARANJA });
+    l.texto(xO + 9, rt + 26, l.partir(lugarCorto(rec[0]), 9, xD - xO - 38, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
     {  // flecha dibujada (la «→» no está en la codificación del tipo de letra)
       const ay = A4.h - rt - 22, ax = xD - 26;
       l.pag.drawLine({ start: { x: ax, y: ay }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
@@ -182,7 +183,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       l.pag.drawLine({ start: { x: ax + 9, y: ay - 3.2 }, end: { x: ax + 13, y: ay }, thickness: 1.1, color: COLOR.gris });
     }
     l.texto(xD, rt + 13, esp(t.destinoL), 5.4, { bold: true, color: COLOR.gris });
-    l.texto(xD, rt + 26, l.partir(lugarCorto(ent[ent.length - 1]), 9, der - wSal - xD - 16, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
+    l.pag.drawCircle({ x: xD + 3, y: A4.h - rt - 23, size: 2.6, color: COLOR.verde });
+    l.texto(xD + 9, rt + 26, l.partir(lugarCorto(ent[ent.length - 1]), 9, der - wSal - xD - 24, true)[0] ?? '—', 9, { bold: true, color: COLOR.navy });
     l.textoDer(der - 12, rt + 13, esp(t.salidaL), 5.4, { bold: true, color: COLOR.gris });
     l.textoDer(der - 12, rt + 26, ventanaCarga, 9, { bold: true, color: COLOR.navy });
     l.y = rt + hR + 5;
@@ -271,19 +273,28 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const titIzq = esCli ? 'Cliente · Ordenante del transporte'
       : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
       : t.transpRealiza;
-    const tit1 = l.partir(titIzq, 6.8, wCaja - 16, true).slice(0, 2);
-    const tit2 = l.partir(dchaTit, 6.8, wCaja - 16, true).slice(0, 2);
+    // El título de cada caja se parte en BASE espaciada + coletilla en gris pequeño
+    // («TRANSPORTISTA EFECTIVO» / «(realiza el servicio)»).
+    const parteTit = (s3: string): [string, string[]] => {
+      const m = s3.match(/^([^(·]+?)\s*((?:\(|·).+)?$/);
+      const base = m?.[1]?.trim() ?? s3;
+      return [base, m?.[2] ? l.partir(m[2].trim(), 5.8, wCaja - 16).slice(0, 2) : []];
+    };
+    const [base1, sub1] = parteTit(titIzq), [base2, sub2] = parteTit(dchaTit);
+    const hTit = (sub: string[]) => 14 + 8 + sub.length * 7.2 + 2;
     const hDatos = 10 + datosParts.reduce((a, ps, i) => a + (i === 0 && matr ? 11 + placas.length * 21 + 4 : 17 + (ps.length - 1) * 10 + 8), 0);
     const hFila = Math.max(96, hDatos,
-      12 + tit1.length * 8 + alto(izq, wCaja - 16) + 10,
-      12 + tit2.length * 8 + alto(dcha, wCaja - 16) + 10);
+      hTit(sub1) + alto(izq, wCaja - 16) + 10,
+      hTit(sub2) + alto(dcha, wCaja - 16) + 10);
     const ct = l.y;
-    cajaR(l.x0, ct, wCaja, hFila, COLOR.fondo);
-    cajaR(x2, ct, wCaja, hFila, COLOR.fondo);
-    cajaR(x3, ct, wDatos, hFila, COLOR.moradoSuave);
-    for (const [x, tit, filas] of [[l.x0, tit1, izq], [x2, tit2, dcha]] as const) {
-      tit.forEach((ln, i) => l.texto(x + 8, ct + 13 + i * 8, ln, 6.8, { bold: true, color: COLOR.gris }));
-      l.y = ct + 13 + tit.length * 8 + 2;
+    cajaR(l.x0, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
+    cajaR(x2, ct, wCaja, hFila, COLOR.blanco, COLOR.grisClaro, 7);
+    cajaR(x3, ct, wDatos, hFila, COLOR.moradoSuave, undefined, 7);
+    for (const [x, base, sub, filas] of [[l.x0, base1, sub1, izq], [x2, base2, sub2, dcha]] as const) {
+      const sTit = l.medida(esp(base), 5.2, true) > wCaja - 16 ? 4.6 : 5.2;
+      l.texto(x + 8, ct + 14, esp(base), sTit, { bold: true, color: COLOR.gris });
+      sub.forEach((ln, i) => l.texto(x + 8, ct + 22 + i * 7.2, ln, 5.8, { color: COLOR.gris }));
+      l.y = ct + hTit(sub);
       for (const [tx, s, b] of filas) if (tx) l.parrafo(tx, s, { bold: b, x: x + 8, ancho: wCaja - 16 });
     }
     let yD = ct + 11;
@@ -376,7 +387,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Recogidas y entregas ----
   const seccion = (titulo: string) => {
     l.sitio(90);   // que el título no se quede solo al pie de la página
-    l.texto(l.x0, l.y + 9, titulo, 9, { bold: true, color: COLOR.morado });
+    l.texto(l.x0, l.y + 9, esp(titulo), 7, { bold: true, color: COLOR.navy });
     l.linea(l.x0, l.y + 13, der, l.y + 13);
     l.y += 19;
   };
@@ -455,20 +466,31 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.y += 4;
   }
 
-  // ---- Mercancía, vehículo y conductor ----
-  const kv = (filas: [string, string, { bold?: boolean; rojo?: boolean }?][]) => {
-    const xV = l.x0 + 128, wV = der - xV;
-    for (const [k, v, o] of filas) {
-      if (!v) continue;
-      const ks = l.partir(k, 8, xV - l.x0 - 8, true);          // la clave también se parte
-      const ls = l.partir(v, 8.8, wV, o?.bold);
-      const alto = Math.max(ls.length * 11.6, ks.length * 10.4);
-      l.sitio(alto + 3);
-      ks.forEach((ln, i) => l.texto(l.x0, l.y + 8.8 + i * 10.4, ln, 8, { bold: true, color: COLOR.gris }));
-      ls.forEach((ln, i) => l.texto(xV, l.y + 8.8 + i * 11.6, ln, 8.8, { bold: o?.bold, color: o?.rojo ? COLOR.rojo : COLOR.navy }));
-      l.y += alto + 3;
+  // ---- Caja de IMPORTE estilo «tarifa» del diseño antiguo (2026-11-14): a la derecha
+  // el precio en grande con acento navy arriba; a la izquierda, las condiciones.
+  const cajaImporte = (precioTxt: string, sub: string, lineasIzq: [string, string][]) => {
+    const wBox = 185;
+    const izqLs = lineasIzq.filter(([, v]) => v).map(([k, v]) => ({ k, ls: l.partir(v, 7.2, l.ancho - wBox - 34) }));
+    const hIzq = 10 + izqLs.reduce((a, x) => a + 9 + x.ls.length * 9 + 5, 0);
+    const hBox = Math.max(62, hIzq);
+    l.sitio(hBox + 14);
+    const it = l.y;
+    if (izqLs.length) {
+      cajaR(l.x0, it, l.ancho - wBox - 10, hBox, COLOR.blanco, COLOR.grisClaro, 6);
+      let yI = it + 8;
+      for (const x of izqLs) {
+        l.texto(l.x0 + 12, yI + 7, x.k.toUpperCase(), 5.8, { bold: true, color: COLOR.gris });
+        x.ls.forEach((ln, i) => l.texto(l.x0 + 12, yI + 16 + i * 9, ln, 7.2, { color: COLOR.tinta }));
+        yI += 9 + x.ls.length * 9 + 5;
+      }
     }
-    l.y += 8;
+    const xB = izqLs.length ? der - wBox : l.x0;
+    cajaR(xB, it, izqLs.length ? wBox : l.ancho, hBox, COLOR.blanco, COLOR.grisClaro, 6);
+    l.pag.drawRectangle({ x: xB + 6, y: A4.h - it - 3.6, width: (izqLs.length ? wBox : l.ancho) - 12, height: 2.4, color: COLOR.navy });
+    l.textoDer(der - 12, it + 18, esp(t.secImporte), 5.6, { bold: true, color: COLOR.gris });
+    l.textoDer(der - 12, it + 42, precioTxt, 19, { bold: true, color: COLOR.navy });
+    if (sub) l.textoDer(der - 12, it + 55, sub, 6.6, { color: COLOR.gris });
+    l.y = it + hBox + 12;
   };
   // ---- TABLA RESUMEN (usuario, 2026-11-14: como la orden antigua): mercancía · tipo de
   // transporte · tipo de carga · requisitos · matrículas (plaquitas) · conductor, en una
@@ -550,26 +572,23 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Importe (SOLO en la copia completa; la del conductor va sin economía) ----
   // La copia CLIENTE lleva SU precio (importe_cliente + IVA), nunca el del transportista.
   if (esCli && !manual) {
-    seccion(t.secImporte);
     const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
-    kv([[t.importeL, pc != null ? `${eur(pc)} + IVA (${num(e.iva_pct != null ? Number(e.iva_pct) : 21)} %)` : t.pendiente, { bold: true }]]);
-    l.sitio(24);
-    l.parrafo('Aplican los Términos y condiciones aceptados al confirmar el envío en dynamotrans.com.', 8, { color: COLOR.gris, despues: 6 });
+    cajaImporte(pc != null ? eur(pc) : t.pendiente, pc != null ? `+ IVA (${num(e.iva_pct != null ? Number(e.iva_pct) : 21)} %)` : '',
+      [['Condiciones', 'Aplican los Términos y condiciones aceptados al confirmar el envío en dynamotrans.com.']]);
   }
   const precio = manual ? e.precio_acordado_operador : e.importe_transportista;
   if (copia === 'economica' && (precio != null || !manual)) {
-    seccion(t.secImporte);
-    const filas: [string, string, { bold?: boolean }?][] = [[t.importeL, precio != null ? `${eur(precio)}  ${t.impuestosNo}` : t.pendiente, { bold: true }]];
+    const lineasIzq: [string, string][] = [];
     if (!manual) {
       if (d.pronto_pago && precio != null) {
         const dto = Math.max(Math.round(Number(precio) * pago.pct) / 100, pago.minimo);
-        filas.push([t.formaPago, rellena(t.txtProntoPago, { dias: String(pago.dias), pct: num(pago.pct), min: eur(pago.minimo), neto: eur(Number(precio) - dto) }), { bold: true }]);
+        lineasIzq.push([t.formaPago, rellena(t.txtProntoPago, { dias: String(pago.dias), pct: num(pago.pct), min: eur(pago.minimo), neto: eur(Number(precio) - dto) })]);
       } else {
-        filas.push([t.formaPago, rellena(t.txtTransferencia, { dias: String(e.plazo_pago_transportista ?? pago.plazo) })]);
+        lineasIzq.push([t.formaPago, rellena(t.txtTransferencia, { dias: String(e.plazo_pago_transportista ?? pago.plazo) })]);
       }
-      filas.push([t.facturaL, rellena(t.txtFactura, { ref, email: D.email }), { bold: true }]);
+      lineasIzq.push([t.facturaL, rellena(t.txtFactura, { ref, email: D.email })]);
     }
-    kv(filas);
+    cajaImporte(precio != null ? eur(precio) : t.pendiente, precio != null ? t.impuestosNo : '', lineasIzq);
   }
 
   if (e.discrecion_comercial && !manual) {
