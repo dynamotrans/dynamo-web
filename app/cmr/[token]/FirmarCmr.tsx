@@ -420,6 +420,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     setAviso(null);
     if (!doc.trim() || !nombre.trim()) { setAviso('Indica el documento y el nombre y apellidos de quien firma.'); avisaFaltas([!doc.trim() && 'sigDni', !nombre.trim() && 'sigNombre'].filter(Boolean) as string[]); return; }
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
+    // Email OBLIGATORIO (usuario, 2026-11-14): a esa dirección va la copia del firmado.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { setAviso('Pon tu email: te enviaremos la copia del documento firmado.'); avisaFaltas(['sigEmail']); return; }
     if (pideMatricula && b.matObligatoria && !matCam.trim()) {
       setAviso('Pon la matrícula del camión (tractora): sin ella no se puede salir de la 1.ª parada.');
       avisaFaltas(['sigMatCam']); return;
@@ -494,8 +496,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         {v && <div className={`sig-msg ${!v.ok ? 'err' : v.soft ? 'warn' : 'okv'}`}>{!v.ok ? `⚠ ${v.msg}` : v.soft ? `⚠ ${v.soft}` : '✓ Documento válido'}</div>}
         <label className="sig-lbl" htmlFor="sigNombre">Nombre y apellidos <Req /></label>
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        {/* Con el porqué (usuario, 2026-11-12): quien deja su email recibe copia del eCMR. */}
-        <label className="sig-lbl" htmlFor="sigEmail">Email <Req si={false} /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
+        {/* OBLIGATORIO (usuario, 2026-11-14): a ese email va la copia del documento firmado.
+            El porqué lo explica la caja verde de encima de «Aceptar firma». */}
+        <label className="sig-lbl" htmlFor="sigEmail">Email <Req /></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
             salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}
@@ -570,6 +573,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         {guardando && lento && (
           <div className="sig-msg warn" role="status" aria-live="polite">⏳ Conexión lenta en esta zona… guardando tu firma, no cierres la página.</div>
         )}
+        {/* Caja verde con el porqué del email obligatorio (usuario, 2026-11-14). */}
+        <div style={{ margin: '0.7rem 0 0.1rem', background: '#ecfdf5', border: '1.5px solid #6ee7b7', borderRadius: 10, padding: '0.55rem 0.7rem', fontSize: '0.8rem', lineHeight: 1.45, color: '#065f46', fontWeight: 600 }}>
+          📩 Al aceptar, te enviaremos a <strong>tu email</strong> una copia del documento firmado, con tu firma y las que ya trae. Por eso el email es obligatorio.
+        </div>
         {/* Aceptar GRANDE y en verde arriba; Cancelar y Borrar debajo (usuario, 2026-11-10). */}
         <div className="sigbtns">
           <button type="button" className="b-aceptar" disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>

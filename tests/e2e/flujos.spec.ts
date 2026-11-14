@@ -156,6 +156,8 @@ test.describe.serial('flujos clave', () => {
     await f.getByRole('alertdialog').getByRole('button', { name: 'Firmar' }).click();
     await f.fill('#sigNombre', 'Pedro Cargador');
     await f.fill('#sigDni', '12345678Z');
+    // El email es obligatorio desde 2026-11-14: a esa dirección va la copia del firmado.
+    await f.fill('#sigEmail', 'pedro.cargador@prueba.invalid');
     const lienzo = await f.locator('#sigCanvas').boundingBox();
     expect(lienzo).not.toBeNull();
     const { x, y, width: w, height: h } = lienzo!;
