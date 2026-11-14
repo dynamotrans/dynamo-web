@@ -434,6 +434,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       }
       if (!esCliente && !manual && !(importe > 0)) return 'Pon el precio del cliente (base sin IVA).';
       if (!esCliente && !manual && importeT !== null && !(importeT >= 0)) return 'El precio del transportista no es un número válido.';
+      // Sin cliente se puede llegar hasta aquí para CALCULAR el precio (2026-11-13), pero
+      // Confirmar ya es crear el envío: sin este freno, el paso 4 salía en blanco
+      // (usuario, 2026-11-14).
+      if (!esCliente && !cliente) return 'Para pasar a Confirmar, elige el cliente del envío (está en el paso 1 · Ruta). Sin cliente puedes calcular el precio, pero no crear el envío.';
     }
     return null;
   }
