@@ -512,6 +512,19 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     ls.forEach((ln, i) => l.texto(l.x0 + 10, l.y + 15 + i * 11.6, ln, 8.8, { bold: true, color: COLOR.ambar }));
     l.y += ls.length * 11.6 + despues;
   };
+  // ---- FALTAN LAS MATRÍCULAS (solo en la orden del transportista; usuario, 2026-11-15) ----
+  // Cuadro llamativo, antes de las recogidas / entregas, mientras el envío no tenga las
+  // matrículas (o le falte la del semirremolque): se piden y se deja constancia de quién
+  // gestiona el DeCA si no llegan.
+  if (copia === 'economica' && !manual && (!e.matricula_camion || faltaRem)) {
+    const ls = l.partir(t.txtSinMatriculas, 8.8, l.ancho - 26, true);
+    const h = ls.length * 11.6 + 16;
+    l.sitio(h + 12);
+    l.rect(l.x0, l.y, l.ancho, h, rgb(1, 0.91, 0.91), COLOR.rojo);
+    l.pag.drawRectangle({ x: l.x0, y: A4.h - l.y - h, width: 5, height: h, color: COLOR.rojo });
+    ls.forEach((ln, i) => l.texto(l.x0 + 14, l.y + 16 + i * 11.6, ln, 8.8, { bold: true, color: COLOR.rojo }));
+    l.y += h + 10;
+  }
   if (copia === 'economica') avisoDiscrecion(22);
 
   // ---- Recogidas y entregas ----
