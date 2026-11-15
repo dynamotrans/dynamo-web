@@ -620,6 +620,35 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.y += 4;
   }
 
+  // ---- Panel de MODIFICACIONES del documento de control (solo en el DeCA) ----
+  // Resolución de 5 de junio de 2026, apartado quinto: el documento electrónico deja
+  // constancia de sus modificaciones. Cada cambio con su fecha y hora (España) y un
+  // detalle corto; sin ninguno, se dice expresamente («Sin modificaciones desde la
+  // emisión»). Salen las 6 últimas; si hay más, una línea lo cuenta.
+  if (copia === 'operativa' && !manual) {
+    seccion(t.modifTitulo);
+    const mods = d.modificaciones ?? [];
+    if (!mods.length) {
+      l.sitio(16);
+      l.parrafo(t.modifNinguna, 7.6, { color: COLOR.gris, despues: 8 });
+    } else {
+      const ult = mods.slice(-6);
+      if (mods.length > ult.length) {
+        l.sitio(13);
+        l.parrafo(rellena(t.modifMas, { n: String(mods.length - ult.length) }), 6.8, { color: COLOR.gris, despues: 2.5 });
+      }
+      for (const m of ult) {
+        const et = m.hito === 'ruta_cambiada' ? t.modifRuta
+          : m.hito === 'fecha_carga_movida' ? t.modifFecha
+          : m.hito === 'matricula_asignada' ? t.modifMatricula
+          : m.hito === 'transportista_quitado' ? t.modifTransQuitado : t.modifTransNuevo;
+        l.sitio(13);
+        l.parrafo(`${m.cuando} · ${et}${m.detalle ? ` · ${m.detalle}` : ''}`, 7.4, { color: COLOR.navy, despues: 2.5 });
+      }
+      l.y += 6;
+    }
+  }
+
   // ---- Importe (SOLO en la copia completa; la del conductor va sin economía) ----
   // La copia CLIENTE lleva SU precio (importe_cliente + IVA), nunca el del transportista.
   if (esCli && !manual) {

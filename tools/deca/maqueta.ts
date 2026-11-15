@@ -73,6 +73,12 @@ async function main() {
     firmas,
     deca: { url: 'https://www.dynamotrans.com/cmr/a3853c97-be09-4213-9c99-c13000d5a0fe', creado_en: ahora },
     dynamo: DYNAMO,
+    // Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto): muestra.
+    modificaciones: [
+      { cuando: '12/11/2026 09:41', hito: 'fecha_carga_movida', detalle: '13/11/2026 → 14/11/2026' },
+      { cuando: '13/11/2026 17:05', hito: 'ruta_cambiada', detalle: '94150 Rungis → 41703 Dos Hermanas → 28021 Madrid → 46469 Beniparrell' },
+      { cuando: '14/11/2026 08:12', hito: 'matricula_asignada', detalle: '4788MLN + R1102BBC' },
+    ],
   };
   // 4.º argumento: orden (por defecto) o cmr. 5.º (solo orden): operativa | economica | cliente.
   const bytes = (process.argv[4] ?? 'orden') === 'cmr'

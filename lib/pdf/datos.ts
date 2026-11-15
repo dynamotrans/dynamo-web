@@ -36,6 +36,9 @@ export type DatosDoc = {
   reservas?: { rol: string; texto: string; parada_id?: string | null; creado_en?: string }[];   // reservas anotadas al firmar (casilla 18 y hoja de firmas)
   logoPorteador?: Uint8Array | null;     // envío manual: el logo del operador del cliente (si lo subió)
   deca?: { url: string; creado_en: string } | null;   // enlace público del CMR digital: nº único, QR y fecha de creación (el e-CMR hace de DeCA)
+  // Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto): cada cambio
+  // del documento de control con su fecha/hora española ya formateada y un detalle corto.
+  modificaciones?: { cuando: string; hito: string; detalle: string | null }[];
   dynamo?: DatosDynamo;                  // los datos fijos de Dynamo (de Parámetros)
 };
 
@@ -104,7 +107,7 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   if (error) return { datos: null, error: mensajeError(error.message) };
   if (!e) return { datos: null, error: 'Ese envío no existe.' };
 
-  const [par, ctos, res, yo] = await Promise.all([
+  const [par, ctos, res, yo, mods] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
       'sitios(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden').overrideTypes<FilaParadaDoc[], { merge: false }>(),
     sb.from('contactos').select('cliente_id, transportista_id, sitio_id, nombre, telefono, email, funcion, es_principal')
@@ -115,6 +118,7 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
           .order('cerrada_en', { ascending: false }).limit(1).maybeSingle<{ pronto_pago: boolean | null }>()
       : Promise.resolve({ data: null }),
     sb.from('usuarios').select('nombre, email, telefono').eq('id', usuarioId).maybeSingle<{ nombre: string | null; email: string; telefono: string | null }>(),
+    sb.rpc('modificaciones_deca', { p_envio: id }),
   ]);
 
   const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean) as string[];
@@ -164,6 +168,7 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
       })),
       pronto_pago: !!res.data?.pronto_pago,
       gestor: yo.data ? { nombre: yo.data.nombre || yo.data.email, telefono: yo.data.telefono, email: yo.data.email } : null,
+      modificaciones: (mods.data ?? []) as DatosDoc['modificaciones'],
     },
   };
 }
@@ -210,7 +215,8 @@ type ParadaJson = Omit<ParadaDoc, 'pais' | 'tipo_sitio' | 'contacto' | 'requiere
   pais_codigo_iso: string | null; requiere_cita?: boolean | null; tiene_medios_carga?: boolean | null;
   contacto_nombre?: string | null; contacto_telefono?: string | null };
 type OrdenJson = { envio: EnvioDoc; porteador?: EmpresaJson; cliente?: EmpresaJson; paradas?: ParadaJson[];
-  parametros?: Record<string, unknown>; dynamo?: Record<string, unknown>; pronto_pago?: boolean };
+  parametros?: Record<string, unknown>; dynamo?: Record<string, unknown>; pronto_pago?: boolean;
+  modificaciones?: { cuando: string; hito: string; detalle: string | null }[] };
 
 function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<string, number> } {
   const j = data as OrdenJson, t = j.porteador ?? ({} as EmpresaJson);
@@ -243,6 +249,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
       })),
       pronto_pago: !!j.pronto_pago,
       gestor: null,
+      modificaciones: j.modificaciones ?? [],
     },
   };
 }
@@ -292,6 +299,7 @@ export async function cargarDatosCmrPorToken(sb: SB, token: string):
         contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
       })),
       firmas, reservas: j.reservas ?? [],
+      modificaciones: j.modificaciones ?? [],
       pronto_pago: false, gestor: null,
     },
   };

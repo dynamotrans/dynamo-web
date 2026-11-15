@@ -9091,3 +9091,68 @@ do $$ declare e uuid; r jsonb; v record; begin
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 222 · el camión del envío manual se pone y cambia en cualquier momento (dueño o Dynamo; normalizado; la orden lo recoge)';
 end $$;
+
+-- ---- 223. Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto) ------
+-- La 1.ª asignación de transportista y la 1.ª matrícula RELLENAN el documento (no son
+-- modificaciones); el cambio de matrícula, la retirada y la reasignación SÍ lo son.
+-- Cada cambio va en su propia transacción para que los hitos tengan horas distintas.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; t1 uuid; t2 uuid; begin
+  insert into transportistas (razon_social, cif, nima) values ('Transp 223A SL', 'B22300001', 'NIMA-223A') returning id into t1;
+  insert into transportistas (razon_social, cif, nima) values ('Transp 223B SL', 'B22300002', 'NIMA-223B') returning id into t2;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3)
+    returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.e223', e::text, false);
+  perform set_config('prueba.t223a', t1::text, false);
+  perform set_config('prueba.t223b', t2::text, false);
+end $$;
+-- Rellenar el documento (no cuenta)…
+update envios set transportista_id = current_setting('prueba.t223a')::uuid where id = current_setting('prueba.e223')::uuid;
+update envios set matricula_camion = '1111AAA' where id = current_setting('prueba.e223')::uuid;
+-- …y MODIFICARLO (cuenta): cambio de matrícula, retirada y reasignación.
+update envios set matricula_camion = '2222BBB', matricula_remolque = 'R3333CCC' where id = current_setting('prueba.e223')::uuid;
+update envios set transportista_id = null where id = current_setting('prueba.e223')::uuid;
+update envios set transportista_id = current_setting('prueba.t223b')::uuid where id = current_setting('prueba.e223')::uuid;
+do $$ declare e uuid := current_setting('prueba.e223')::uuid; m jsonb; begin
+  m := fn_modificaciones_deca(e);
+  if jsonb_array_length(m) <> 3 then raise exception 'FALLO 223 · esperaba 3 modificaciones y hay %: %', jsonb_array_length(m), m; end if;
+  if m -> 0 ->> 'hito' <> 'matricula_asignada' or m -> 0 ->> 'detalle' <> '2222BBB + R3333CCC' then
+    raise exception 'FALLO 223 · el cambio de matrícula no sale bien: %', m -> 0;
+  end if;
+  if m -> 1 ->> 'hito' <> 'transportista_quitado' or m -> 2 ->> 'hito' <> 'transportista_asignado' then
+    raise exception 'FALLO 223 · faltan la retirada y la reasignación: %', m;
+  end if;
+  if exists (select 1 from jsonb_array_elements(m) x where x ->> 'cuando' !~ '^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}$') then
+    raise exception 'FALLO 223 · la fecha no va formateada a la española: %', m;
+  end if;
+  if orden_carga_json(e) -> 'modificaciones' is null or jsonb_array_length(orden_carga_json(e) -> 'modificaciones') <> 3 then
+    raise exception 'FALLO 223 · orden_carga_json no lleva el panel de modificaciones';
+  end if;
+end $$;
+-- El envoltorio respeta permisos: el cliente no lo lee; Dynamo sí.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform modificaciones_deca(current_setting('prueba.e223')::uuid);
+    raise exception 'FALLO 223 · un cliente lee las modificaciones del DeCA de un envío ajeno';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if jsonb_array_length(modificaciones_deca(current_setting('prueba.e223')::uuid)) <> 3 then
+    raise exception 'FALLO 223 · Dynamo no lee las modificaciones del DeCA';
+  end if;
+  raise notice 'OK 223 · panel de modificaciones del DeCA: matrícula cambiada, retirada y reasignación (rellenar no cuenta), fecha a la española, en orden_carga_json y con permisos';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
