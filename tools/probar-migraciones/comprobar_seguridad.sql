@@ -8345,6 +8345,74 @@ do $$ declare e uuid := current_setting('prueba.e2081')::uuid; d record; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+-- TRAMPILLA POR HISTÓRICO (usuario, 2026-11-15): si el envío requiere plataforma
+-- elevadora, solo entra en la difusión quien ya ENTREGÓ envíos que la requerían.
+do $$ declare e5 uuid; ev uuid; d record; n int; begin
+  -- t_val acredita la trampilla con un envío entregado que la requería.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, requiere_plataforma_elevadora)
+    values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, (now() at time zone 'Europe/Madrid')::date, true)
+    returning id into ev;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (ev, 1, 'carga', '41001', 'Sevilla', 'ES'), (ev, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set transportista_id = current_setting('prueba.t208v')::uuid, estado = 'entregado',
+         entregado_en = now() - interval '5 days' where id = ev;
+  -- Envío 19→16 QUE REQUIERE trampilla: de toda la cuadrilla solo entra t_val.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, requiere_plataforma_elevadora)
+    values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, (now() at time zone 'Europe/Madrid')::date + 2, true)
+    returning id into e5;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e5, 1, 'carga', '19001', 'Guadalajara', 'ES'), (e5, 2, 'descarga', '16001', 'Cuenca', 'ES');
+  update envios set estado = 'programado' where id = e5;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  if iniciar_difusion(e5, 300) ->> 'resultado' <> 'ok' then raise exception 'FALLO 208 · no se lanza la de trampilla'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  for n in 1..4 loop
+    exit when (select estado from difusiones where envio_id = e5) <> 'activa';
+    update difusiones set ultimo_email_en = now() - interval '30 minutes' where envio_id = e5 and estado = 'activa';
+    perform procesar_difusiones();
+  end loop;
+  select * into d from difusiones where envio_id = e5;
+  if d.estado <> 'agotada' or d.contactados <> 1
+     or not exists (select 1 from envio_ofertas o where o.envio_id = e5 and o.transportista_id = current_setting('prueba.t208v')::uuid) then
+    raise exception 'FALLO 208 · con trampilla requerida no entra solo quien la llevó: % (%)', d.estado, d.contactados;
+  end if;
+  if exists (select 1 from envio_ofertas o where o.envio_id = e5 and o.transportista_id = current_setting('prueba.t208a')::uuid) then
+    raise exception 'FALLO 208 · un transportista sin trampilla acreditada entra en un envío que la requiere';
+  end if;
+  raise notice 'OK 208h · trampilla por histórico: solo entra quien ya entregó envíos que la requerían (ni el autónomo se cuela)';
+end $$;
+-- LA DIFUSIÓN SIGUE AL ENVÍO (usuario, 2026-11-15): mover la fecha recalcula arranque,
+-- hora prevista y corte (vuelve a dormir), revive la agotada y alarga las ofertas vivas;
+-- un cambio de ruta también revive la agotada.
+do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; begin
+  update envios set fecha_carga_desde = (now() at time zone 'Europe/Madrid')::date + 9 where id = e2;
+  select * into d from difusiones where envio_id = e2 order by creado_en desc limit 1;
+  if d.estado <> 'activa' or d.fin_motivo is not null or d.empieza_en <= now() then
+    raise exception 'FALLO 208 · al mover la fecha la difusión no se recalcula y duerme: % · %', d.estado, d.empieza_en;
+  end if;
+  if (d.carga_prevista_en at time zone 'Europe/Madrid')::date <> (now() at time zone 'Europe/Madrid')::date + 9
+     or d.corte_en <> d.carga_prevista_en - interval '3 hours' then
+    raise exception 'FALLO 208 · carga prevista o corte sin recalcular: % · %', d.carga_prevista_en, d.corte_en;
+  end if;
+  perform procesar_difusiones();
+  if (select contactados from difusiones where envio_id = e2) <> 6 then
+    raise exception 'FALLO 208 · la dormida recalculada contacta antes del nuevo arranque';
+  end if;
+  if (select min(caduca_en) from envio_ofertas where envio_id = e2 and canal = 'email' and estado = 'activa') < d.corte_en then
+    raise exception 'FALLO 208 · las ofertas vivas no corren hasta el corte nuevo (los enlaces viejos caducarían)';
+  end if;
+  -- Y un cambio de RUTA revive una agotada, sin tocar su reloj.
+  update difusiones set estado = 'agotada', fin_motivo = 'x', terminada_en = now() where envio_id = e2;
+  perform registrar_hito(e2, 'ruta_cambiada', null, null, '{}'::jsonb, 'servidor');
+  if (select estado from difusiones where envio_id = e2) <> 'activa' then
+    raise exception 'FALLO 208 · el cambio de ruta no revive la difusión agotada';
+  end if;
+  raise notice 'OK 208i · la difusión sigue al envío: fecha movida recalcula y duerme, alarga los enlaces vivos; el cambio de ruta revive la agotada';
+end $$;
 -- Los parámetros vuelven a su valor real (5:30-23:30, medias horas con decimales).
 update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio';
 update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
