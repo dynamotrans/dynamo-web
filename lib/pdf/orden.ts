@@ -366,8 +366,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     await tarjetaQr(ct, cw, hFila);
     l.y = ct + hFila + 8;
-    l.parrafo(t.qrDeca, 8, { bold: true, color: COLOR.navy });
-    l.y += 4;
+    // La línea «Documento de control del transporte (e-CMR / DeCA): el QR abre…» solo
+    // va en el DeCA; en la orden de carga sobra (usuario, 2026-11-15).
+    if (copia === 'operativa') { l.parrafo(t.qrDeca, 8, { bold: true, color: COLOR.navy }); l.y += 4; }
   } else {
   const hCaja = Math.max(alto(izq, mitad - 20), alto(dcha, mitad - 20)) + 26;
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
