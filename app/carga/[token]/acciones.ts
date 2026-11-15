@@ -46,7 +46,24 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
     p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
   });
   if (error) return { resultado: 'error', error: /no se puede negociar/i.test(error.message) ? `${error.message.replace(/^.*?(Ahora no se puede)/, '$1')} Puedes aceptarla al precio ofertado.` : ERROR_CONEXION };
-  return data as { resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number };
+  const r = data as { resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number };
+  if (r.resultado === 'aceptada') {
+    // El envío ya es suyo: la ORDEN DE CARGA le llega sola por email, igual que en una
+    // asignación a mano desde el panel (usuario, 2026-11-15). Nunca rompe la aceptación.
+    try {
+      const { supabaseServicio } = await import('@/lib/supabase/servicio');
+      const sbs = supabaseServicio();
+      if (sbs) {
+        const envioId = (await sbs.from('envio_reservas').select('envio_id').eq('id', reserva).maybeSingle()).data?.envio_id;
+        const creador = envioId ? (await sbs.from('envios').select('creado_por').eq('id', envioId).maybeSingle()).data?.creado_por : null;
+        if (envioId && creador) {
+          const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
+          await avisoOrdenCarga(sbs, creador, envioId);
+        }
+      }
+    } catch { /* el email nunca rompe la aceptación */ }
+  }
+  return r;
 }
 
 export async function liberar(token: string): Promise<void> {

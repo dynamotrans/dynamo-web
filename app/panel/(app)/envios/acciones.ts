@@ -351,6 +351,15 @@ export async function resolverContraoferta(reserva: string, aprobar: boolean): P
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { resultado: string }).resultado;
   if (r === 'no_hay_contraoferta_pendiente') return { ok: false, error: 'Esa contraoferta ya no está pendiente.' };
+  if (aprobar && r === 'aceptada') {
+    // Email de ORDEN DE CARGA al transportista, igual que en una asignación a mano
+    // (usuario, 2026-11-15): aprobar la contraoferta (o el alta online) asigna el envío.
+    const envioId = (await s.supabase.from('envio_reservas').select('envio_id').eq('id', reserva).maybeSingle()).data?.envio_id;
+    if (envioId) {
+      const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
+      await avisoOrdenCarga(s.supabase, s.user.id, envioId).catch(() => {});
+    }
+  }
   return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el transportista queda asignado a su precio.' : 'Contraoferta rechazada: el envío vuelve a estar ofertado.' };
 }
 

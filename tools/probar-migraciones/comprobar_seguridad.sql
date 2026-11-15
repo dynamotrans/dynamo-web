@@ -9224,3 +9224,72 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 224. Emails a Dynamo: envío aceptado y alta online pendiente de aceptar ----------
+-- (a) Un conocido acepta al precio ofertado → email 'envio_aceptado' con el enlace a la
+--     ficha. (b) Un desconocido (alta online sin verificar) deja la carga pendiente →
+--     email 'alta_pendiente' con sus datos y el enlace «Revisar y aceptar». (c) La
+--     contraoferta de un conocido NO manda el email de alta (solo campana).
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := current_setting('prueba.transp')::uuid;
+              e1 uuid; e2 uuid; e3 uuid; o uuid; r jsonb; res1 uuid; res2 uuid; res3 uuid;
+              t_alta uuid; v_cuerpo text; begin
+  -- (a) aceptación directa de un conocido, por el flujo real.
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
+    values (c, 6, 700, 560) returning id into e1;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e1, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e1, 2, 'descarga', '46001', 'Valencia');
+  update envios set estado = 'programado' where id = e1;
+  o := ofertar_envio(e1, t, 'email', 560, 10::smallint);
+  r := reservar_envio_publico((select token from envio_ofertas where id = o));
+  res1 := (r->>'reserva_id')::uuid;
+  r := aceptar_reserva(res1, t, null, 560);
+  if r->>'resultado' <> 'aceptada' then raise exception 'FALLO 224 · la aceptacion directa no sale: %', r; end if;
+  select cuerpo_html into v_cuerpo from emails_enviados
+   where clave = 'envio_aceptado:' || res1 and tipo = 'envio_aceptado' and envio_id = e1 and destinatario = email_dynamo();
+  if v_cuerpo is null then raise exception 'FALLO 224 · aceptar no deja el email envio_aceptado a Dynamo'; end if;
+  if v_cuerpo not like '%/panel/envios?ver=%' or v_cuerpo not like '%Sevilla%' or v_cuerpo not like '%Valencia%' then
+    raise exception 'FALLO 224 · al email de aceptado le faltan el enlace o la ruta: %', v_cuerpo;
+  end if;
+  if (select asunto from emails_enviados where clave = 'envio_aceptado:' || res1) not like '%aceptado%' then
+    raise exception 'FALLO 224 · el asunto del email de aceptado no dice aceptado';
+  end if;
+
+  -- (b) alta online sin verificar → pendiente_revision deja el email con el enlace.
+  insert into transportistas (razon_social, cif, estado_operativo, tags)
+    values ('Alta Online 224 SL', 'B22400224', 'no_ofertar', array['alta_online']) returning id into t_alta;
+  insert into contactos (transportista_id, nombre, funcion, telefono, email, es_principal)
+    values (t_alta, 'Nuria Prueba', 'trafico', '+34600224224', 'nuria224@prueba.invalid', true);
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
+    values (c, 6, 700, 560) returning id into e2;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e2, 1, 'carga', '19001', 'Guadalajara');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e2, 2, 'descarga', '16001', 'Cuenca');
+  update envios set estado = 'programado' where id = e2;
+  insert into envio_reservas (envio_id, hasta) values (e2, now() + interval '30 min') returning id into res2;
+  update envio_reservas set estado = 'pendiente_revision', transportista_id = t_alta, precio_propuesto = 560 where id = res2;
+  select cuerpo_html into v_cuerpo from emails_enviados
+   where clave = 'alta_pendiente:' || res2 and tipo = 'alta_pendiente' and envio_id = e2 and destinatario = email_dynamo();
+  if v_cuerpo is null then raise exception 'FALLO 224 · el alta online pendiente no deja el email alta_pendiente'; end if;
+  if v_cuerpo not like '%Revisar y aceptar%' or v_cuerpo not like '%B22400224%'
+     or v_cuerpo not like '%/panel/envios?ver=%' or v_cuerpo not like '%nuria224@prueba.invalid%' then
+    raise exception 'FALLO 224 · al email del alta le faltan el enlace, el CIF o el contacto: %', v_cuerpo;
+  end if;
+  if (select asunto from emails_enviados where clave = 'alta_pendiente:' || res2) not like 'PENDIENTE%' then
+    raise exception 'FALLO 224 · el asunto del alta pendiente no empieza por PENDIENTE';
+  end if;
+
+  -- (c) contraoferta de un conocido (ya verificado): campana sí, email de alta NO.
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
+    values (c, 6, 700, 500) returning id into e3;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e3, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e3, 2, 'descarga', '46001', 'Valencia');
+  update envios set estado = 'programado' where id = e3;
+  o := ofertar_envio(e3, t, 'email', 500, 30::smallint);
+  r := reservar_envio_publico((select token from envio_ofertas where id = o));
+  res3 := (r->>'reserva_id')::uuid;
+  r := aceptar_reserva(res3, t, null, 620);
+  if r->>'resultado' <> 'pendiente_revision' then raise exception 'FALLO 224 · la contraoferta del conocido no queda pendiente: %', r; end if;
+  if exists (select 1 from emails_enviados where clave = 'alta_pendiente:' || res3) then
+    raise exception 'FALLO 224 · la contraoferta de un conocido no debe mandar el email de alta pendiente';
+  end if;
+  raise notice 'OK 224 · emails a Dynamo: aceptado con enlace y ruta, alta online con CIF y contacto, y la contraoferta de un conocido sin email de alta';
+end $$;
