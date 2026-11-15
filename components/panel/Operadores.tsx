@@ -93,7 +93,9 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
                   <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, background: 'var(--purple)', color: '#fff', borderRadius: 6, padding: '1px 7px' }}>Plataforma</span>
                 </div>
                 <strong style={{ color: 'var(--purple)' }}>Dynamo Operador Logístico, S.L.</strong>
-                <div className="meta">Transportista de la plataforma · siempre disponible</div>
+                {/* Gris oscuro: el gray-500 del .meta daba 4,2 de contraste sobre el
+                    tinte morado de esta fila y el axe del CI (AA, 4,5:1) lo tumbaba. */}
+                <div className="meta" style={{ color: '#4b5563' }}>Transportista de la plataforma · siempre disponible</div>
               </td>
               {dynamo && <td>Todos los clientes</td>}
               <td>{CONTACTO.telefono}</td><td>{CONTACTO.email}</td><td>Álvaro Blanco</td>
