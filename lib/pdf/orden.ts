@@ -842,11 +842,13 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const n = `${ref} · ${t.pagina} ${i + 1} ${t.de} ${pags.length}`;
     l.texto(der - l.medida(n, 6.6), A4.h - 34, n, 6.6, { color: COLOR.gris, pag: pg });
   });
-  l.doc.setTitle(`${copia === 'operativa' ? 'DeCA' : t.titulo} ${ref}`);
+  l.doc.setTitle(`${copia === 'operativa' ? 'DeCA' : t.titulo} ${ref}${copia === 'operativa' && !manual && !emisionDeca(d) ? ' · BORRADOR (pendiente de emisión)' : ''}`);
   // Metadatos del fichero (Resolución 5-jun-2026, apdo. segundo.1): fecha y hora de
   // CREACIÓN del DeCA (su emisión, antes del servicio) y de la ÚLTIMA MODIFICACIÓN de sus
   // datos — nunca el momento de esta descarga.
-  const creadoDeca = emisionDeca(d)?.en ?? d.deca?.creado_en ?? null;
+  // BORRADOR hasta que se ponen las primeras matrículas (usuario, 2026-11-15): sin emisión no
+  // se fijan fechas — el PDF lleva las del momento en que se genera, como cualquier borrador.
+  const creadoDeca = emisionDeca(d)?.en ?? null;
   if (copia === 'operativa' && creadoDeca) {
     l.doc.setCreationDate(new Date(creadoDeca));
     // Última modificación = el último cambio de datos o la última firma estampada.

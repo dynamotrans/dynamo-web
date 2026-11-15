@@ -619,7 +619,9 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   // Metadatos del fichero (Resolución de 5-jun-2026, apdo. segundo.1): la fecha de
   // CREACIÓN del documento de control (cuando nació su nº único, antes del servicio) y la
   // de última modificación de los datos — nunca el momento de esta descarga.
-  const creadoDoc = emisionDeca(d)?.en ?? d.deca?.creado_en ?? e.creado_en;
+  // En los envíos de Dynamo, sin emisión (sin matrículas) el documento es un BORRADOR: no se
+  // fijan fechas y el PDF lleva las del momento en que se genera.
+  const creadoDoc = emisionDeca(d)?.en ?? (manual ? d.deca?.creado_en ?? e.creado_en : null);
   if (creadoDoc) l.doc.setCreationDate(new Date(creadoDoc));
   // Última modificación = el último cambio de datos del documento o la última firma
   // (no cualquier retoque interno del envío, como un avance de estado).
