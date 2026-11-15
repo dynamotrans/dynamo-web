@@ -7677,7 +7677,16 @@ do $$ declare e uuid := current_setting('prueba.e200')::uuid; begin
   if (select matricula_remolque from envios where id = e) is distinct from 'R-9999-Z' then
     raise exception 'FALLO 200 · el semirremolque corregido por el transportista no queda';
   end if;
-  raise notice 'OK 200 · matrículas al firmar: la cabecera (1.ª parada o transportista) las exige y corrige, el resto ya no las toca y cmr_publico las devuelve por separado';
+  -- Las matrículas puestas AL FIRMAR la cabecera salen en el panel del DeCA como dato previo
+  -- al inicio (no «iniciado») y con la MISMA fecha y hora que esa firma: se hacen a la vez.
+  if not exists (
+       select 1 from jsonb_array_elements(fn_modificaciones_deca(e)) y
+        where y ->> 'hito' = 'matricula_asignada' and (y ->> 'iniciado')::boolean is false
+          and y ->> 'cuando' = (select to_char(f.firmado_en at time zone 'Europe/Madrid', 'DD/MM/YYYY HH24:MI')
+                                  from firmas_cmr f where f.envio_id = e and f.rol = 'remitente' and not f.extra limit 1)) then
+    raise exception 'FALLO 200 · las matrículas puestas al firmar no salen en el panel a la hora de la firma y como previas: %', fn_modificaciones_deca(e);
+  end if;
+  raise notice 'OK 200 · matrículas al firmar: la cabecera (1.ª parada o transportista) las exige y corrige, el resto ya no las toca, cmr_publico las devuelve por separado y el panel del DeCA las anota a la hora de la firma';
 end $$;
 
 -- ---- 201. Límite individual de envíos al día (regla 6: el que pasa SE RECHAZA) -------
