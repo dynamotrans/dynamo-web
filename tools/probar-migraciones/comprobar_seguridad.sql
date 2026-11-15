@@ -8285,6 +8285,27 @@ do $$ declare e4 uuid := current_setting('prueba.e2084')::uuid; d record; r json
   end if;
   raise notice 'OK 208e · dormida hasta el arranque (5 días antes), despierta al llegar y el tope sigue valiendo';
 end $$;
+-- Colindantes ENTRE PAÍSES (usuario, 2026-11-15): los pares fronterizos con Francia y
+-- Portugal están, y la tabla entera es simétrica (todo par existe en los dos sentidos).
+do $$ begin
+  if not exists (select 1 from provincias_colindantes where pais_codigo_iso = 'ES' and cp2 = '17' and pais_colindante = 'FR' and colinda_con = '66')
+  or not exists (select 1 from provincias_colindantes where pais_codigo_iso = 'FR' and cp2 = '66' and pais_colindante = 'ES' and colinda_con = '17')
+  or not exists (select 1 from provincias_colindantes where pais_codigo_iso = 'ES' and cp2 = '21' and pais_colindante = 'PT' and colinda_con = '89')
+  or not exists (select 1 from provincias_colindantes where pais_codigo_iso = 'PT' and cp2 = '77' and pais_colindante = 'ES' and colinda_con = '21')
+  or not exists (select 1 from provincias_colindantes where pais_codigo_iso = 'ES' and cp2 = '20' and pais_colindante = 'FR' and colinda_con = '64') then
+    raise exception 'FALLO 208 · faltan pares fronterizos ES-FR / ES-PT en provincias_colindantes';
+  end if;
+  if exists (select 1 from provincias_colindantes p
+              where not exists (select 1 from provincias_colindantes q
+                                 where q.pais_codigo_iso = p.pais_colindante and q.cp2 = p.colinda_con
+                                   and q.pais_colindante = p.pais_codigo_iso and q.colinda_con = p.cp2)) then
+    raise exception 'FALLO 208 · la tabla de colindantes no es simétrica';
+  end if;
+  if exists (select 1 from provincias_colindantes where pais_codigo_iso = pais_colindante and cp2 = colinda_con) then
+    raise exception 'FALLO 208 · una zona no puede colindar consigo misma';
+  end if;
+  raise notice 'OK 208f · colindantes entre países: Girona↔66 (FR), Huelva↔Algarve (PT) y Gipuzkoa↔64 (FR); tabla simétrica y sin pares consigo misma';
+end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 -- Los parámetros vuelven a su valor real.

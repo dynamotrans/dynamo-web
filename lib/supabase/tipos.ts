@@ -2599,14 +2599,20 @@ export type Database = {
         Row: {
           cp2: string
           colinda_con: string
+          pais_codigo_iso: string
+          pais_colindante: string
         }
         Insert: {
           cp2: string
           colinda_con: string
+          pais_codigo_iso?: string
+          pais_colindante?: string
         }
         Update: {
           cp2?: string
           colinda_con?: string
+          pais_codigo_iso?: string
+          pais_colindante?: string
         }
         Relationships: [
         ]
