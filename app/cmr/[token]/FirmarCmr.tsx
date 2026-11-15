@@ -51,6 +51,21 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // nada no ve el botón de salir.
   const [firmoAqui, setFirmoAqui] = useState(false);
   const [compartir, setCompartir] = useState(false);     // ventana de compartir propia (mismo diseño en cualquier aparato)
+  // ABIERTA EN UN ORDENADOR (usuario, 2026-11-15): arriba, un QR de esta misma página para
+  // firmar con el dedo en el móvil. Ordenador = ratón fino con hover, pantalla ancha y sin
+  // marca de móvil/tableta en el navegador. En el móvil no sale nada (se decide al montar,
+  // así el HTML del servidor es el mismo para todos).
+  const [qrMovil, setQrMovil] = useState<string | null>(null);
+  useEffect(() => {
+    const raton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const movil = /Mobi|Android|iPhone|iPad|iPod|Tablet/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));   // iPad «de escritorio»
+    if (!raton || movil || window.innerWidth < 768) return;
+    let vivo = true;
+    import('qrcode').then(({ default: QR }) => QR.toDataURL(window.location.href, { margin: 0, width: 360, color: { dark: '#0a0230', light: '#ffffff' } }))
+      .then((u) => { if (vivo) setQrMovil(u); }).catch(() => {});
+    return () => { vivo = false; };
+  }, []);
   const [masInfo, setMasInfo] = useState(false);          // despliegue del detalle legal (eIDAS / FOM)
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
@@ -165,6 +180,17 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <h1>CMR / DeCA digital</h1>
         <p className="sub">Envío <strong>{cmr.referencia}</strong></p>
       </div>
+      {qrMovil && (
+        <section className="qr-movil" aria-label="Firmar desde el móvil">
+          <div className="qr-movil-img"><img src={qrMovil} alt="Código QR de esta página" width={132} height={132} /></div>
+          <div className="qr-movil-txt">
+            <span className="qr-movil-eti">Estás en un ordenador</span>
+            <h2>Firma desde tu móvil, es más cómodo</h2>
+            <p>Escanea el código con la cámara del móvil: se abre <strong>esta misma página</strong> y firmas con el dedo. Sin apps ni cuenta.</p>
+            <button type="button" className="sig-link" onClick={() => setCompartir(true)}>O mándala por WhatsApp o email</button>
+          </div>
+        </section>
+      )}
       <dl className="cmrbox">
         <dt>Remitente</dt><dd>{cmr.remitente || '—'}</dd>
         <dt>Porteador</dt><dd>{cmr.porteador || '—'}</dd>
@@ -207,7 +233,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         padding: '0.65rem 0.85rem', fontSize: '0.95rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
         Cargador, transportista y destinatario ya la han recibido igual que tú, y{' '}
         <strong style={{ background: '#c6f2d9', color: '#0b5c31', padding: '0.05rem 0.3rem', borderRadius: 6, fontWeight: 800 }}>
-          también pueden firmar aquí, en tu móvil.
+          también pueden firmar aquí, en {qrMovil ? 'esta misma página' : 'tu móvil'}.
         </strong>{' '}
         Si alguien quiere firmar en su móvil, mándasela{' '}
         {/* «pulsando aquí» abre la hoja de compartir (WhatsApp, Email, SMS, Copiar…);

@@ -142,3 +142,15 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
   /* !important: que ninguna regla con clase la pise (auto-zoom de iOS, 2026-11-15). */
   input, select, textarea { font-size: 16px !important; }
 }
+
+/* QR para firmar en el móvil cuando la página se abre en un ORDENADOR (usuario,
+   2026-11-15): tarjeta morada suave, QR a la izquierda en su recuadro blanco y el texto
+   a la derecha; en el móvil no se pinta. */
+.cmr-page .qr-movil { display: flex; align-items: center; gap: 1.1rem; background: #f4f2fb; border: 1.5px solid #ddd6fe; border-radius: 14px; padding: 0.9rem 1rem; margin: 0 0 0.8rem; }
+.cmr-page .qr-movil-img { flex: none; background: #fff; border: 1px solid #e4defa; border-radius: 12px; padding: 0.55rem; line-height: 0; box-shadow: 0 4px 14px rgba(51,0,204,0.08); }
+.cmr-page .qr-movil-img img { width: 132px; height: 132px; display: block; image-rendering: pixelated; }
+.cmr-page .qr-movil-txt { flex: 1; text-align: left; }
+.cmr-page .qr-movil-eti { display: inline-block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--purple); background: #e9e3ff; border-radius: 999px; padding: 0.15rem 0.55rem; margin-bottom: 0.35rem; }
+.cmr-page .qr-movil-txt h2 { font-size: 1.05rem; line-height: 1.25; margin: 0 0 0.3rem; color: var(--navy); }
+.cmr-page .qr-movil-txt p { font-size: 0.88rem; line-height: 1.45; color: var(--gray-700); margin: 0 0 0.45rem; }
+.cmr-page .qr-movil-txt .sig-link { font-size: 0.85rem; }
