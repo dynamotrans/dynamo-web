@@ -3617,7 +3617,7 @@ export type Database = {
       emails_validos: { Args: { p: string[] | null }; Returns: boolean }
       en_temporada: { Args: { p_fecha: string | null; p_desde: string | null; p_hasta: string | null }; Returns: boolean }
       encolar_anulacion_parada: { Args: { p_envio: string | null; p_parada: string | null; p_tipo: string | null; p_nombre: string | null; p_poblacion_sitio: string | null; p_sitio: string | null }; Returns: undefined }
-      encolar_avisos_operativos: { Args: Record<PropertyKey, never>; Returns: number }
+      encolar_avisos_operativos: { Args: { p_ahora?: string | null }; Returns: number }
       encolar_avisos_paradas: { Args: { p_hoy?: string | null; p_ahora?: string | null }; Returns: number }
       enlace_carga_caduca_en: { Args: { p_envio: string | null }; Returns: string }
       enlace_carga_vigente: { Args: { p_envio: string | null }; Returns: boolean }

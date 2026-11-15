@@ -9787,6 +9787,73 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
+-- ---- 236. Tres avisos de matrículas al transportista: víspera hábil, antes y a la hora -----
+-- Carga el martes 02/03/2027, con transportista y sin matrículas. Lunes 15:50 → nada; lunes
+-- 16:05 → víspera (una vez); 100 min antes de su hora → «antes»; a su hora → «URGENTE».
+-- Asignado a última hora (el «antes» salió a 20 min de la hora) → sin urgente. Con las
+-- matrículas completas, ninguno.
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid; dia date := date '2027-03-02'; lunes date := date '2027-03-01';
+        e uuid; e2 uuid; e3 uuid; tr uuid; v_hora timestamptz; n int; x record;
+begin
+  insert into transportistas (razon_social, cif) values ('Transp Matrículas 236 SL', 'B23600236') returning id into tr;
+  insert into contactos (transportista_id, nombre, email, es_principal) values (tr, 'Tráfico 236', 'trafico236@prueba.invalid', true);
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde) values (cli, 13.30, 20, 900, 700, dia) returning id into e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde) values (cli, 13.30, 20, 900, 700, dia) returning id into e2;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde) values (cli, 13.30, 20, 900, 700, dia) returning id into e3;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select y, 1, 'carga', '41001', 'Sevilla', 'ES' from unnest(array[e, e2, e3]) y;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select y, 2, 'descarga', '28001', 'Madrid', 'ES' from unnest(array[e, e2, e3]) y;
+  update envios set estado = 'programado', transportista_id = tr, fecha_carga_prevista = dia where id in (e, e2, e3);
+  update envios set matricula_camion = '2360AAA', matricula_remolque = 'R2360AAA' where id = e3;   -- completo: nunca recibe nada
+  select c.hora into v_hora from seguimiento_calcular(e) c
+   where c.parada_id = (select id from envio_paradas where envio_id = e and orden = 1) and c.estado = 'cargando';
+  v_hora := coalesce(v_hora, (dia + time '08:00') at time zone 'Europe/Madrid');
+
+  -- Lunes 15:50: todavía nada.
+  perform encolar_avisos_operativos((lunes + time '15:50') at time zone 'Europe/Madrid');
+  if exists (select 1 from emails_enviados where envio_id in (e, e2, e3) and tipo = 'matriculas') then
+    raise exception 'FALLO 236 · pide matrículas la víspera antes de su hora';
+  end if;
+  -- Lunes 16:05: el de la víspera, una sola vez, al contacto del transportista.
+  perform encolar_avisos_operativos((lunes + time '16:05') at time zone 'Europe/Madrid');
+  perform encolar_avisos_operativos((lunes + time '16:20') at time zone 'Europe/Madrid');
+  select count(*) into n from emails_enviados where clave = 'matriculas:vispera:' || e || ':' || dia and destinatario = 'trafico236@prueba.invalid' and estado = 'pendiente';
+  if n <> 1 then raise exception 'FALLO 236 · esperaba 1 aviso de víspera y hay %', n; end if;
+  if exists (select 1 from emails_enviados where envio_id = e3 and tipo = 'matriculas') then
+    raise exception 'FALLO 236 · pide matrículas a un envío que ya las tiene';
+  end if;
+  -- 100 min antes de su hora: el «antes» (clave de siempre).
+  perform encolar_avisos_operativos(v_hora - interval '100 minutes');
+  if not exists (select 1 from emails_enviados where clave = 'matriculas:' || e) then raise exception 'FALLO 236 · no sale el aviso de antes de la carga'; end if;
+  if exists (select 1 from emails_enviados where clave = 'matriculas:hora:' || e || ':' || dia) then raise exception 'FALLO 236 · el urgente sale antes de la hora'; end if;
+  -- A su hora: el urgente (el «antes» salió con margen: se le pone su fecha de envío real de la prueba).
+  update emails_enviados set creado_en = v_hora - interval '100 minutes' where clave in ('matriculas:' || e, 'matriculas:' || e2);
+  update emails_enviados set creado_en = v_hora - interval '20 minutes' where clave = 'matriculas:' || e2;   -- e2: asignado a última hora
+  perform encolar_avisos_operativos(v_hora + interval '5 minutes');
+  perform encolar_avisos_operativos(v_hora + interval '15 minutes');
+  select * into x from emails_enviados where clave = 'matriculas:hora:' || e || ':' || dia;
+  if x.id is null or x.asunto not like 'URGENTE%' or x.cuerpo_html not like '%/cmr/%' then
+    raise exception 'FALLO 236 · no sale el aviso urgente a la hora de carga, con su enlace: %', x.asunto;
+  end if;
+  if exists (select 1 from emails_enviados where clave = 'matriculas:hora:' || e2 || ':' || dia) then
+    raise exception 'FALLO 236 · manda el urgente aunque el anterior salió a 20 min de la hora';
+  end if;
+  select count(*) into n from emails_enviados where envio_id = e and tipo = 'matriculas';
+  if n <> 3 then raise exception 'FALLO 236 · esperaba 3 avisos de matrículas en total y hay %', n; end if;
+  -- Solo falta el semirremolque: el texto lo dice.
+  delete from emails_enviados where envio_id = e2 and tipo = 'matriculas';
+  update envios set matricula_camion = '2360BBB' where id = e2;
+  perform encolar_avisos_operativos(v_hora - interval '100 minutes');
+  if not exists (select 1 from emails_enviados where clave = 'matriculas:' || e2 and cuerpo_html like '%semirremolque%' and cuerpo_html not like '%tractora%') then
+    raise exception 'FALLO 236 · con la tractora puesta el aviso no pide solo el semirremolque';
+  end if;
+  raise notice 'OK 236 · matrículas al transportista: víspera hábil desde las 16:00, antes de la carga y urgente a la hora, cada uno una vez; sin urgente si el anterior fue a última hora; nada si están completas';
+end $$;
+
 -- ---- 230. Nadie firma sin matrículas: solo la cabecera, que las pone ----------------
 -- Con transportista y sin matrículas, el destinatario NO firma (sin_matriculas); la firma
 -- de cabecera del transportista sin matrículas tampoco (faltan_matriculas).
