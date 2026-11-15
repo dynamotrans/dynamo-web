@@ -87,7 +87,8 @@ export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, cop
 // clave pública y datos_orden_por_cmr — 2026-11-11: antes iba con la clave de servicio.)
 
 // El CMR relleno por su ENLACE público (/cmr/<token>/pdf): la verificación en línea que
-// promete el QR del CMR. Solo el impreso y su hoja de firmas (el DeCA es otro PDF). Con la
+// promete el propio CMR. Solo el impreso y su hoja de firmas (el DeCA es otro PDF, y a él
+// lleva el QR). Con la
 // clave pública y datos_cmr_por_token.
 export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
   Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {

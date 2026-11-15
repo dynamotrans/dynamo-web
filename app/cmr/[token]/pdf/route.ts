@@ -2,7 +2,7 @@ import { supabasePublico } from '@/lib/supabase/publico';
 import { pdfCmrPorToken } from '@/lib/pdf/generar';
 
 // PDF del e-CMR por el ENLACE PÚBLICO del CMR digital (usuario, 2026-11-10): quien tiene el
-// enlace de firma (o escanea el QR del impreso) puede abrir el CMR relleno, con su hoja de
+// enlace de firma puede abrir el CMR relleno, con su hoja de
 // firmas, sin cuenta — es la verificación en línea que promete el propio PDF. Solo el CMR:
 // el DeCA es otro documento, con su dirección propia (/deca/<nº>, usuario 2026-11-15). La llave es
 // el token (igual que cmr_publico): la base de datos lo valida en datos_cmr_por_token y,
