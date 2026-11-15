@@ -27,6 +27,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Quitar el login demo de `portal.html`.
 - [ ] Probar los emails en Gmail, Outlook y móvil (tras Postmark).
 - [ ] Afinar el resumen de mercancía repetido en el DeCA (detalle de parada + resumen del envío).
+- [ ] **Archivo de copias del CMR / DeCA (2026-11-15)**: confirmar que `SUPABASE_SERVICE_ROLE_KEY` está en Vercel en **Production** (y en Preview para probarlo). Sin ella, las copias solo se guardan cuando actúa Dynamo (asignar, modificar, abrir la ficha o el PDF); con ella, también en cada firma pública y en cada descarga por el QR. Comprobar tras el primer envío real que en Documentos sale «Copia archivada CMR / DeCA».
 
 ### v2
 - [ ] Captación automática de prospectos (barrido semanal + Brevo) (#87).

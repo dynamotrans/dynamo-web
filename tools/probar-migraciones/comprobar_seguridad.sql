@@ -9899,3 +9899,89 @@ do $$ declare e uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb;
   if not ok then raise exception 'FALLO 231 · deja bajar a 0 el precio del transportista asignado'; end if;
   raise notice 'OK 231 · nunca precio 0: sin precio (o a 0) no se asigna transportista, ni por la tabla; el precio del cliente nunca queda a 0';
 end $$;
+
+-- ---- 237. Archivo de copias del CMR / DeCA: se guardan solas y no se tocan en un año -------
+-- Tipo deca_copia: lo guarda Dynamo (o el servidor) con su huella; nunca visible para el
+-- cliente ni para el transportista; una sola por versión; durante un año no se quita, no se
+-- cambia y no se borra; pasado el año, sí. El borrado de datos de prueba suelta el candado.
+reset role;
+do $$ declare e uuid; t uuid := current_setting('prueba.transp')::uuid; d uuid; d2 uuid; ok boolean; n int; h text := repeat('a', 64); begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3,
+                       'fecha_carga_desde', current_date + 16, 'fecha_carga_hasta', current_date + 16, 'importe_cliente', 900),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A237', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B237', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  if asignar_transportista(e, t, 650) ->> 'resultado' <> 'asignado' then raise exception 'FALLO 237 · no asigna el envío de la prueba'; end if;
+  -- Dynamo guarda una copia: nunca queda visible para el cliente, aunque se pida.
+  insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo, sha256, tamano_bytes, visible_cliente)
+  values (e, 'deca_copia', 'envios/' || e || '/deca/a/DeCA-X-aaaaaaaaaaaa.pdf', 'DeCA-X-aaaaaaaaaaaa.pdf', h, 1000, true) returning id into d;
+  if (select visible_cliente from documentos where id = d) then raise exception 'FALLO 237 · la copia queda visible para el cliente'; end if;
+  -- Sin huella no es una copia válida.
+  ok := false;
+  begin
+    insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo, tamano_bytes)
+    values (e, 'deca_copia', 'envios/' || e || '/deca/b/DeCA-X-bbbbbbbbbbbb.pdf', 'DeCA-X-bbbbbbbbbbbb.pdf', 1000);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · admite una copia sin huella'; end if;
+  -- La misma versión no se guarda dos veces.
+  ok := false;
+  begin
+    insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo, sha256, tamano_bytes)
+    values (e, 'deca_copia', 'envios/' || e || '/deca/c/DeCA-X-aaaaaaaaaaaa.pdf', 'DeCA-X-aaaaaaaaaaaa.pdf', h, 1000);
+  exception when unique_violation then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · guarda dos veces la misma versión'; end if;
+  -- Ni quitarla, ni enseñársela al cliente, ni cambiarle nada.
+  ok := false;
+  begin update documentos set borrado = true, borrado_en = now() where id = d; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · deja quitar una copia archivada'; end if;
+  ok := false;
+  begin update documentos set visible_cliente = true where id = d; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · deja enseñar la copia al cliente'; end if;
+  -- Otro documento no se convierte en copia archivada.
+  insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo) values (e, 'adjunto', 'envios/' || e || '/x/nota.pdf', 'nota.pdf') returning id into d2;
+  ok := false;
+  begin update documentos set tipo = 'deca_copia' where id = d2; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · un adjunto se convierte en copia archivada'; end if;
+  -- El transportista del envío: ni las ve ni las guarda.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+  select count(*) into n from documentos where tipo = 'deca_copia';
+  if n <> 0 then raise exception 'FALLO 237 · el transportista ve las copias archivadas (%)', n; end if;
+  ok := false;
+  begin
+    insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo, sha256, tamano_bytes)
+    values (e, 'deca_copia', 'u/' || current_setting('prueba.u_transp') || '/DeCA-falsa.pdf', 'DeCA-falsa.pdf', h, 1000);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · el transportista guarda una copia archivada'; end if;
+  -- El cliente del envío tampoco las ve.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  select count(*) into n from documentos where tipo = 'deca_copia';
+  if n <> 0 then raise exception 'FALLO 237 · el cliente ve las copias archivadas (%)', n; end if;
+  perform set_config('prueba.e237', e::text, false);
+  perform set_config('prueba.d237', d::text, false);
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e237')::uuid; d uuid := current_setting('prueba.d237')::uuid; v uuid; ok boolean; n int; h text := repeat('b', 64); begin
+  -- Ni siquiera el servidor la borra o la cambia antes del año…
+  ok := false;
+  begin delete from documentos where id = d; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · deja borrar una copia archivada'; end if;
+  ok := false;
+  begin update documentos set sha256 = h where id = d; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 237 · deja cambiar la huella de una copia archivada'; end if;
+  -- …pasado el año, sí. (La fecha de alta la pone siempre el servidor: para la prueba se
+  -- usa el modo migración, el único que deja traer una fecha antigua.)
+  perform set_config('dynamo.migracion', 'on', true);
+  insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo, sha256, tamano_bytes, creado_en)
+  values (e, 'deca_copia', 'envios/' || e || '/deca/v/DeCA-X-vieja.pdf', 'DeCA-X-vieja.pdf', h, 1000, now() - interval '400 days') returning id into v;
+  perform set_config('dynamo.migracion', 'off', true);
+  update documentos set borrado = true, borrado_en = now() where id = v;
+  if not (select borrado from documentos where id = v) then raise exception 'FALLO 237 · pasado el año no deja quitar la copia'; end if;
+  -- El borrado de datos de prueba suelta y vuelve a poner el candado.
+  select count(*) into n from regexp_matches(
+    (select pg_get_functiondef(p.oid) from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname = 'borrar_datos_de_prueba'),
+    'trigger tg_documentos_deca_copia', 'g');
+  if n <> 2 then raise exception 'FALLO 237 · borrar_datos_de_prueba no suelta y repone el candado de las copias (%)', n; end if;
+  raise notice 'OK 237 · copias archivadas del CMR / DeCA: las guarda Dynamo o el servidor con su huella, una por versión, ocultas a cliente y transportista; en un año ni se quitan, ni se cambian, ni se borran';
+end $$;

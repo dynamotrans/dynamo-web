@@ -1,5 +1,6 @@
 import { supabasePublico } from '@/lib/supabase/publico';
 import { pdfCmrPorToken } from '@/lib/pdf/generar';
+import { programarCopiaDeca } from '@/lib/servidor/archivoDeca';
 
 // PDF del e-CMR / DeCA por el ENLACE PÚBLICO del CMR digital (usuario, 2026-11-10):
 // quien tiene el enlace de firma (o escanea el QR del impreso) puede abrir el documento
@@ -23,6 +24,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   // carretera en cualquier momento. Es solo lectura: el mantenimiento no la afecta.
   const r = await pdfCmrPorToken(sb, token, new URL(req.url).origin);
   if ('error' in r) return texto(r.error, 404);
+  // La versión que se sirve queda archivada si aún no lo estaba (conservación legal de un
+  // año: Resolución de 5-jun-2026, apdo. segundo.4). Después de responder.
+  await programarCopiaDeca({ token, origen: new URL(req.url).origin });
   return new Response(Buffer.from(r.bytes), {
     headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="${r.nombre}"`, 'cache-control': 'private, no-store' },
   });

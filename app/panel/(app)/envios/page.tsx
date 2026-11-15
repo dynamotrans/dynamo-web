@@ -201,6 +201,12 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   if (dynamo && sp.ver) {
     const r = await cargarFicha(supabase, sp.ver);
     ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente' } : null; errorFicha = r.error;
+    // Red de seguridad del archivo de copias del CMR / DeCA: si la versión de ahora no está
+    // guardada (p. ej. una firma hecha sin clave de servicio), se guarda al abrir la ficha.
+    if (r.ficha && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
+      const { programarCopiaDeca } = await import('@/lib/servidor/archivoDeca');
+      await programarCopiaDeca({ envioId: sp.ver, sbDynamo: supabase });
+    }
   }
   // Ficha para el CLIENTE: con lo que ya trae mis_envios() (sin datos internos) y sus hitos visibles.
   let fichaCli: EnvioCliente | null = null;

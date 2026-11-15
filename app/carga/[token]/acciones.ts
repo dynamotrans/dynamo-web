@@ -62,8 +62,16 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
         }
       }
     } catch { /* el email nunca rompe la aceptación */ }
+    await copiaDecaDeReserva(reserva);
   }
   return r;
+}
+
+// Copia archivada del CMR / DeCA cuando el transportista acepta o pone sus matrículas
+// (conservación legal de un año). Después de responder y sin romper nunca la acción.
+async function copiaDecaDeReserva(reserva: string) {
+  const { programarCopiaDeca } = await import('@/lib/servidor/archivoDeca');
+  await programarCopiaDeca({ reserva });
 }
 
 export async function liberar(token: string): Promise<void> {
@@ -86,7 +94,9 @@ export async function completar(token: string, d: { camion: string; remolque: st
     p_reserva: reserva, p_matricula_camion: d.camion, p_matricula_remolque: d.remolque, p_conductor_nombre: d.conductor, p_telefono: d.telefono,
     p_fecha_carga_prevista: d.dia || null,
   });
-  return error ? { resultado: 'error' } : (data as { resultado: string; conductor?: string | null; telefono?: string | null; fecha_carga_prevista?: string | null });
+  if (error) return { resultado: 'error' };
+  await copiaDecaDeReserva(reserva);
+  return data as { resultado: string; conductor?: string | null; telefono?: string | null; fecha_carga_prevista?: string | null };
 }
 
 // Al escribir una matrícula o un chófer: los datos que ya conocemos de su flota (el chófer

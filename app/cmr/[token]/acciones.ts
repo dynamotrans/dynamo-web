@@ -132,6 +132,9 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     // usuario, 2026-11-12). Nunca rompe la firma.
     const { avisosFirmaCmr } = await import('@/lib/servidor/avisosEnvio');
     await avisosFirmaCmr(token).catch(() => {});
+    // Copia archivada del CMR / DeCA con esta firma (conservación legal de un año).
+    const { programarCopiaDeca } = await import('@/lib/servidor/archivoDeca');
+    await programarCopiaDeca({ token });
     return { ok: true };
   }
   const msg: Record<string, string> = {

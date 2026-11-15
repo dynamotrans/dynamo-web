@@ -52,6 +52,7 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
     // adjunto y los enlaces de descarga. Nunca rompe la asignación.
     const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
     await avisoOrdenCarga(s.supabase, s.user.id, envio).catch(() => {});
+    await copiaDeca(s.supabase, envio);
     return { ok: true };
   }
   return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',
@@ -79,7 +80,9 @@ export async function quitarTransportista(envio: string): Promise<Res> {
   if (!s) return { ok: false, error: 'Solo Dynamo asigna transportistas.' };
   // La base de datos limpia también camión, conductor, NIMA y precio del transportista.
   const { error } = await s.supabase.rpc('quitar_transportista', { p_envio: envio });
-  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+  if (error) return { ok: false, error: traducir(error.message) };
+  await copiaDeca(s.supabase, envio);
+  return { ok: true };
 }
 
 // Seguimiento (usuario, 2026-11-06): marcar a mano en qué etapa está el envío y desde qué
@@ -130,6 +133,7 @@ export async function responderCambioEnNombre(cambio: string, acepta: boolean, m
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string }) ?? { ok: false, resultado: '' };
   if (!r.ok) return { ok: false, error: r.resultado === 'ya_respondido' ? 'Estos cambios ya estaban respondidos.' : 'No se ha podido guardar la respuesta.' };
+  await copiaDeca(s.supabase, (await s.supabase.from('envio_cambios_transportista').select('envio_id').eq('id', cambio).maybeSingle()).data?.envio_id);
   return { ok: true, aviso: acepta ? 'Cambios aceptados en nombre del transportista.' : 'Rechazo registrado: el envío queda sin transportista.' };
 }
 
@@ -209,7 +213,16 @@ export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: 
     if (r.error) return { ok: false, error: traducir(r.error.message) };
   }
   await anotarMotivo(s.supabase, envio, motivo);
+  await copiaDeca(s.supabase, envio);
   return { ok: true };
+}
+
+// Copia archivada del CMR / DeCA tras un cambio (conservación legal de un año): se guarda
+// después de responder y solo si el documento ya está emitido y esa versión no estaba.
+async function copiaDeca(sb: SB, envio: string | null | undefined) {
+  if (!envio) return;
+  const { programarCopiaDeca } = await import('@/lib/servidor/archivoDeca');
+  await programarCopiaDeca({ envioId: envio, sbDynamo: sb });
 }
 
 // MOTIVO DEL CAMBIO para el panel de modificaciones del DeCA (Resolución 5-jun-2026,
@@ -372,6 +385,7 @@ export async function resolverContraoferta(reserva: string, aprobar: boolean): P
     if (envioId) {
       const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
       await avisoOrdenCarga(s.supabase, s.user.id, envioId).catch(() => {});
+      await copiaDeca(s.supabase, envioId);
     }
   }
   return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el transportista queda asignado a su precio.' : 'Contraoferta rechazada: el envío vuelve a estar ofertado.' };

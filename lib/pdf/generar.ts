@@ -106,8 +106,14 @@ export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
   Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {
   const r = await cargarDatosCmrPorToken(sb, token);
   if (!r.datos) return { error: r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.' };
-  const bytes = await cmrConOrden({ ...r.datos,
-    deca: r.decaCreado ? { url: `${origen}/cmr/${token}`, creado_en: r.decaCreado } : null });
-  const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
+  return pdfCmrDeDatosPublicos(r.datos, r.decaCreado, token, origen);
+}
+// El mismo PDF a partir de los datos ya leídos (lo usa también el archivo automático de
+// copias del DeCA, que necesita los datos para saber si esa versión ya está guardada).
+export async function pdfCmrDeDatosPublicos(datos: DatosDoc, decaCreado: string | null, token: string, origen: string):
+  Promise<{ bytes: Uint8Array; nombre: string }> {
+  const bytes = await cmrConOrden({ ...datos,
+    deca: decaCreado ? { url: `${origen}/cmr/${token}`, creado_en: decaCreado } : null });
+  const ref = String(datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
   return { bytes, nombre: `CMR-${ref}.pdf` };
 }

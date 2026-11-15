@@ -16,6 +16,7 @@ export const TIPOS_DOC: Record<string, string> = {
   albaran: 'Albarán', cmr: 'CMR', cmr_firmado: 'CMR firmado', orden_carga: 'Orden de carga', proforma: 'Proforma',
   seguro_cmr: 'Seguro CMR', tarjeta_transporte: 'Tarjeta de transporte', foto_incidencia: 'Foto', gps_tacografo: 'GPS / tacógrafo',
   hoja_cif: 'Hoja CIF', dni: 'DNI', logo: 'Logo', adjunto: 'Adjunto', otro: 'Otro',
+  deca_copia: 'Copia archivada CMR / DeCA',
 };
 export const MAX_BYTES = 25 * 1024 * 1024;
 export const ACEPTA = 'application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif';
@@ -98,14 +99,16 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
               <span className="mfi-ico"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg></span>
               <a className="mfi-name" href={`/panel/documentos/${d.id}`} target="_blank" rel="noopener" title={`Ver ${d.nombre_archivo}`} style={{ textDecoration: 'none' }}>{d.nombre_archivo}</a>
               <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>{TIPOS_DOC[d.tipo] ?? d.tipo} · {tamano(d.tamano_bytes)} · {fechaHora(d.creado_en)}{d.autor ? ` · ${d.autor}` : ''}</span>
-              {conVisibleCliente && editable && (
+              {/* Las copias archivadas del CMR / DeCA no se tocan: ni «lo ve el cliente» ni quitar. */}
+              {d.tipo === 'deca_copia' && <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 700 }} title="La plataforma la guarda sola y se conserva al menos un año: no se puede cambiar ni quitar.">Guardada sola · se conserva 1 año</span>}
+              {conVisibleCliente && editable && d.tipo !== 'deca_copia' && (
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-s)', color: d.visible_cliente ? '#0f6b3a' : 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }}
                   title="Si lo marcas, el cliente lo verá en su panel">
                   <input type="checkbox" checked={d.visible_cliente} onChange={async (e) => { const r = await visibleParaCliente(d.id, e.target.checked); if (!r.ok) setError(r.error); cargar(); }} />
                   Lo ve el cliente
                 </label>
               )}
-              {editable && !sinQuitar && <button type="button" className="mfi-del" aria-label={`Quitar ${d.nombre_archivo}`} onClick={() => setQuitar(d)}>×</button>}
+              {editable && !sinQuitar && d.tipo !== 'deca_copia' && <button type="button" className="mfi-del" aria-label={`Quitar ${d.nombre_archivo}`} onClick={() => setQuitar(d)}>×</button>}
               {quitar?.id === d.id && (
                 <div style={{ flexBasis: '100%', marginTop: '0.4rem', padding: '0.5rem 0.65rem', background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, fontSize: 'var(--fs-m)', color: '#b42318' }}>
                   ¿Quitar «{d.nombre_archivo}»? Deja de verse aquí, pero el fichero se conserva como prueba.

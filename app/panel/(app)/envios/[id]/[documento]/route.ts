@@ -3,6 +3,7 @@ import { esDynamo } from '@/lib/sesion';
 import { cargarDatosDocTransportista, cargarDatosDocManual, cargarLogoOperador, datosDynamo } from '@/lib/pdf/datos';
 import { pdfDeEnvioDynamo, pdfCmrManualCliente } from '@/lib/pdf/generar';
 import { ordenDeCarga } from '@/lib/pdf/orden';
+import { programarCopiaDeca } from '@/lib/servidor/archivoDeca';
 
 // PDF de un envío: /panel/envios/<id>/orden-de-carga y /panel/envios/<id>/cmr.
 // Se generan al momento con los datos de ahora y se ABREN en el visor (regla 0-bis:
@@ -54,6 +55,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const r = await pdfDeEnvioDynamo(sb, id, documento as 'orden-de-carga' | 'cmr', user.id, new URL(req.url).origin);
   if ('error' in r) return texto(r.error, 404);
+  // Al abrir el CMR / DeCA, su versión de ahora queda archivada si aún no lo estaba.
+  if (documento === 'cmr' && !r.manual) await programarCopiaDeca({ envioId: id, sbDynamo: sb, origen: new URL(req.url).origin });
   const { bytes, nombre } = r;
   return new Response(Buffer.from(bytes), {
     headers: {
