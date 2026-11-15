@@ -9439,3 +9439,63 @@ do $$ declare n int; begin
   end if;
   raise notice 'OK 227 · festivos europeos: 120 sembrados (11 países), fijos perpetuos y Pascua recalculándose sola, y los avisos del sitio extranjero los respetan';
 end $$;
+
+-- ---- 228. Proforma vinculada al envío pagado, en el concepto del pedido de venta ------
+-- Pagado por transferencia: el concepto del porte lleva «PROFORMA PRO-GX… · PAGADA VÍA
+-- TRANSFERENCIA · FECHA · IMPORTE» (el total con IVA que se cobró). Sin pagar: «porte» a
+-- secas. Y un cliente no lee la proforma de otro.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
+do $$ declare c uuid; e1 uuid; e2 uuid; v_con text; v_gx text; v_tot numeric; begin
+  insert into clientes (razon_social, cif) values ('Cliente Proforma 228 SL', 'B22800228') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+    values (c, 13.30, 20, 500, 400) returning id into e1;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e1, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e1, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e1;
+  if (select estado_pago_previo from envios where id = e1) <> 'pendiente' then
+    raise exception 'FALLO 228 · el primer envío de un cliente sin crédito debía pedir pago previo';
+  end if;
+  -- Sin pagar todavía: el concepto es el porte a secas.
+  select "Concepto" into v_con from v_holded_pedido_venta
+   where "Num Pedido (referencia_gx_carga)" = (select referencia_gx from envios where id = e1);
+  if v_con is distinct from 'porte' then raise exception 'FALLO 228 · sin pagar el concepto debía ser «porte» y es %', v_con; end if;
+
+  -- Pagado por transferencia el 10/11/2026 a media mañana (hora de Madrid).
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  update envios set estado_pago_previo = 'pagado', pago_metodo = 'transferencia',
+                    pagado_en = timestamptz '2026-11-10 10:30:00+01' where id = e1;
+  perform set_config('request.jwt.claim.role', '', true);
+  select referencia_gx into v_gx from envios where id = e1;
+  select total into v_tot from pago_envio_importes(e1);
+  select "Concepto" into v_con from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = v_gx;
+  if v_con is distinct from 'porte · PROFORMA PRO-' || v_gx || ' · PAGADA VÍA TRANSFERENCIA · FECHA 10/11/2026 · IMPORTE ' || euros_texto(v_tot) then
+    raise exception 'FALLO 228 · el concepto del pedido pagado no lleva la proforma bien: %', v_con;
+  end if;
+
+  -- Pagado con tarjeta: lo dice el método.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+    values (c, 13.30, 20, 500, 400) returning id into e2;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e2;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  update envios set estado_pago_previo = 'pagado', pago_metodo = 'stripe', pagado_en = now() where id = e2;
+  perform set_config('request.jwt.claim.role', '', true);
+  if proforma_pagada_texto(e2) not like 'PROFORMA PRO-% · PAGADA VÍA STRIPE (TARJETA) · FECHA % · IMPORTE %' then
+    raise exception 'FALLO 228 · el pago con tarjeta no sale como STRIPE (TARJETA): %', proforma_pagada_texto(e2);
+  end if;
+  perform set_config('prueba.e228', e1::text, false);
+end $$;
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
+-- Un cliente (otra empresa) no lee la proforma de este envío.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if proforma_pagada_texto(current_setting('prueba.e228')::uuid) is not null then
+    raise exception 'FALLO 228 · un cliente lee la proforma pagada de otra empresa';
+  end if;
+  raise notice 'OK 228 · proforma vinculada: el concepto del pedido de venta lleva la proforma pagada (transferencia o tarjeta, fecha e importe), sin pagar va «porte» y otro cliente no la ve';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

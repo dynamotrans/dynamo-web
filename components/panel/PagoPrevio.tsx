@@ -85,7 +85,10 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
   return (
     <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>
       {pago.estado === 'pagado'
-        ? <><strong>Pagado por adelantado</strong> {pago.metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{pago.pagado_en ? ` el ${fechaHora(pago.pagado_en)}` : ''} · {total}{desglose}.</>
+        ? <><strong>Pagado por adelantado</strong> {pago.metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{pago.pagado_en ? ` el ${fechaHora(pago.pagado_en)}` : ''} · {total}{desglose}.
+            {/* Proforma vinculada (usuario, 2026-11-15): la misma que viaja en el concepto del pedido de venta. */}
+            <br />Proforma relacionada: <a href={`/panel/envios/${envio.id}/proforma`} target="_blank" rel="noopener"><strong>PRO-{envio.referencia_gx}</strong></a>
+            <span style={{ color: 'var(--gray-500)' }}> · va en el concepto del pedido de venta al exportar</span></>
         : <><strong>Sin pago previo</strong> (cobro a vencimiento){pago.exento_motivo ? <> · {pago.exento_motivo}</> : null}. Se pedía por: {pago.motivo ?? '—'}.</>}
       {deshacer}
     </div></div>

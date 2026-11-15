@@ -3709,6 +3709,7 @@ export type Database = {
       primera_fecha_carga: { Args: { p_fija: boolean | null; p_instante?: string | null; p_ventana_dias?: number | null }; Returns: string }
       procesar_difusiones: { Args: Record<PropertyKey, never>; Returns: undefined }
       procesar_emails_operativos: { Args: Record<PropertyKey, never>; Returns: number }
+      proforma_pagada_texto: { Args: { p_envio: string | null }; Returns: string }
       pronto_pago_anticipos: { Args: { p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { cuando: string; envio: string; transportista: string; importe: number; descuento: number; anticipado: number; total: number }[] }
       pronto_pago_descuento: { Args: { p_importe: number | null }; Returns: number }
       pronto_pago_estado: { Args: Record<PropertyKey, never>; Returns: Json }

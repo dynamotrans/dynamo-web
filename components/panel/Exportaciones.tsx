@@ -13,6 +13,9 @@ import { euros, numero } from '@/lib/formato';
 const PESTANAS: [string, string][] = [['pendientes', 'Pendientes'], ['hechos', 'Ya pasados'], ['todos', 'Todos']];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const CONCEPTO: Record<string, string> = { porte: 'Porte', penalizacion: 'Penalización', paralizacion: 'Paralización' };
+// El concepto del porte pagado por adelantado lleva detrás su proforma («porte · PROFORMA …»):
+// se traduce solo la primera parte.
+const conceptoTxt = (v: unknown) => { const [c0, ...resto] = String(v ?? '').split(' · '); return [CONCEPTO[c0] ?? c0, ...resto].join(' · '); };
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const DESCARGA = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>';
 const CHECK = '<polyline points="20 6 9 17 4 12"/>';
@@ -125,7 +128,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
                   {F.columnas.map(([c], j) => (
                     <td key={c} className={esImporte(c) ? 'amount' : j === 0 ? 'ref' : undefined} style={c === 'Descripción del producto' ? { minWidth: 280 } : esImporte(c) || j < 2 ? { whiteSpace: 'nowrap' } : undefined}>
                       {j === 0 ? <strong>#{String(f[c] ?? '')}</strong> : esImporte(c) ? (f[c] != null ? euros(Number(f[c])) : '—')
-                        : c === 'ESTADO VIAJE' ? String(f[c] ?? '').replace(/_/g, ' ') : c === 'Concepto' ? (CONCEPTO[String(f[c])] ?? f[c]) : (f[c] ?? '—')}
+                        : c === 'ESTADO VIAJE' ? String(f[c] ?? '').replace(/_/g, ' ') : c === 'Concepto' ? conceptoTxt(f[c]) : (f[c] ?? '—')}
                     </td>
                   ))}
                   <td>{h ? <span className="badge badge-green">{fichero === 'bolsa' ? 'Publicado' : 'En Holded'}</span> : <span className="badge badge-prog">Pendiente</span>}</td>
