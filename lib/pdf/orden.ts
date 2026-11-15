@@ -234,7 +234,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const forma = [e.carga_lateral && t.cargaLateral, e.carga_trasera && t.cargaTrasera, e.carga_techo && t.cargaTecho].filter(Boolean).join(' · ');
   const tipoCarga = esES ? tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora)
     : e.tipo_carga === 'completa' ? (e.requiere_plataforma_elevadora ? t.rigidoCompleto : t.cargaCompleta) : e.tipo_carga === 'grupaje' ? t.grupaje : '';
-  const conductorTxt = [e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ');
   const requisitos = [e.requiere_nima && `${t.requiereNima}${e.transportista_nima && !esCli ? ` (${e.transportista_nima})` : ''}`, e.adr && t.adr].filter(Boolean).join(' · ');
   const resumen: { k: string; v: string; b?: boolean; rojo?: boolean; placas?: boolean }[] = [
     { k: t.mercancia, v: [e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada),
@@ -246,7 +245,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     { k: t.tipoCarga, v: [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ') },
     ...(requisitos ? [{ k: t.requisitos, v: requisitos, b: true, rojo: !!e.adr }] : []),
     { k: t.matriculasAutL, v: matr || t.pendMatrEnvia, placas: !!matr, b: true, rojo: !matr },
-    { k: t.conductor, v: conductorTxt || t.pendComunicar, b: !!conductorTxt },
+    // Sin fila de CONDUCTOR en la orden de carga, lo haya o no (usuario, 2026-11-15):
+    // el conductor va en el DeCA (copia del conductor), que es donde hace falta.
   ];
   // Tarjeta del QR (compartida por las dos cabeceras). Con transportista y matrícula
   // lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de firmas); si no,
