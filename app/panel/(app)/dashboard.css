@@ -2877,7 +2877,9 @@ table.data-albaranes td.alb-num { font-weight: 700; color: var(--navy); }
     font-size: var(--fs-s); color: var(--gray-600);
 }
 .sitio-meta-fechas strong { color: var(--navy); font-weight: 700; }
-table.data td .sitio-fechas { color: var(--gray-400); }
+/* gray-500: el gray-400 daba 2,53 de contraste sobre blanco y el axe del CI
+   (AA, 4,5:1) tumbaba /panel/sitios (2026-11-15). */
+table.data td .sitio-fechas { color: var(--gray-500); }
 /* Campo "Notas del sitio" resaltado (aquí va la referencia de
    carga/entrega): fondo y borde verde para que destaque. */
 .ptar-sitio-grid input[data-sitio-f="notas"],
