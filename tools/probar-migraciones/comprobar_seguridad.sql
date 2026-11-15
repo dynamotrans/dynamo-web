@@ -8001,7 +8001,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- cualquier hora y la ventana real de 5:00-23:00 la probamos aparte cerrándola a mano.
 update parametros set valor = '0'::jsonb  where clave = 'difusion_hora_inicio';
 update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
-do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_colin uuid; er uuid; begin
+do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_colin uuid; t_par uuid; er uuid; ep uuid; begin
   -- Sede en la provincia del ORIGEN (Guadalajara, CP 19 + ES): entran en la difusión.
   insert into transportistas (razon_social, cif, nima, tags, valoracion_dynamo, codigo_postal, pais_codigo_iso)
     values ('Transp Favorito 208 SL', 'B20800001', 'NIMA-208A', array['Favorito'], 3, '19020', 'ES') returning id into t_fav;
@@ -8015,8 +8015,12 @@ do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_c
   -- HIZO ESA RUTA (envío entregado 19→16) con sede lejos (Barcelona): entra Y VA PRIMERO.
   insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
     values ('Transp Rutero 208 SL', 'B20800006', 'NIMA-208F', 2, '08020', 'ES') returning id into t_ruta;
+  -- Hizo una ruta PARECIDA (Madrid 28 → Toledo 45, colindantes de 19 y de 16) con sede
+  -- lejos (Barcelona): entra SOLO por eso, y ranquea el último antes de la antigüedad.
+  insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
+    values ('Transp Parecida 208 SL', 'B20800007', 'NIMA-208G', 4, '08030', 'ES') returning id into t_par;
   -- Activo, con email y bien valorado… pero con sede en OTRA provincia (Barcelona, que no
-  -- toca ni 19 ni 16) y sin haber hecho la ruta: NO recibe nunca un email.
+  -- toca ni 19 ni 16) y sin haber hecho la ruta ni una parecida: NO recibe nunca un email.
   insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
     values ('Transp Lejano 208 SL', 'B20800004', 'NIMA-208D', 5, '08010', 'ES') returning id into t_lejos;
   insert into contactos (transportista_id, nombre, email, funcion, es_principal)
@@ -8024,6 +8028,7 @@ do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_c
            (t_val, 'Valen Valorado', 'val.208@prueba.invalid', 'trafico', true),
            (t_colin, 'Coli Colindante', 'colin.208@prueba.invalid', 'trafico', true),
            (t_ruta, 'Ruti Rutera', 'ruta.208@prueba.invalid', 'trafico', true),
+           (t_par, 'Pare Parecida', 'par.208@prueba.invalid', 'trafico', true),
            (t_lejos, 'Lejo Lejano', 'lejos.208@prueba.invalid', 'trafico', true);
   -- El envío entregado que da la ruta hecha al rutero.
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
@@ -8034,6 +8039,16 @@ do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_c
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (er, 1, 'carga', '19001', 'Guadalajara', 'ES'), (er, 2, 'descarga', '16001', 'Cuenca', 'ES');
   update envios set transportista_id = t_ruta, estado = 'entregado', entregado_en = now() - interval '20 days' where id = er;
+  -- Y el envío entregado 28 → 45 que da la ruta parecida.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
+    returning id into ep;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (ep, 1, 'carga', '28001', 'Madrid', 'ES'), (ep, 2, 'descarga', '45001', 'Toledo', 'ES');
+  update envios set transportista_id = t_par, estado = 'entregado', entregado_en = now() - interval '30 days' where id = ep;
+  perform set_config('prueba.t208p', t_par::text, false);
   perform set_config('prueba.t208f', t_fav::text, false);
   perform set_config('prueba.t208v', t_val::text, false);
   perform set_config('prueba.t208l', t_lejos::text, false);
@@ -8133,18 +8148,22 @@ do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; n int;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
   if iniciar_difusion(e2, 400) ->> 'resultado' <> 'ok' then raise exception 'FALLO 208 · no se lanza la 2.ª'; end if;
   perform set_config('request.jwt.claim.sub', '', false);
-  -- Vueltas del reloj hasta agotarse: 4 candidatos (rutero, favorito, valorado, colindante).
-  for n in 1..8 loop
+  -- Vueltas del reloj hasta agotarse: 5 candidatos (rutero, favorito, valorado,
+  -- colindante y el de la ruta parecida).
+  for n in 1..9 loop
     exit when (select estado from difusiones where envio_id = e2) <> 'activa';
     update difusiones set ultimo_email_en = now() - interval '30 minutes' where envio_id = e2 and estado = 'activa';
     perform procesar_difusiones();
   end loop;
   select * into d from difusiones where envio_id = e2;
-  if d.estado <> 'agotada' or d.contactados <> 4 then
+  if d.estado <> 'agotada' or d.contactados <> 5 then
     raise exception 'FALLO 208 · no se agota al quedarse sin candidatos: % (%)', d.estado, d.contactados;
   end if;
   if not exists (select 1 from envio_ofertas o where o.envio_id = e2 and o.transportista_id = current_setting('prueba.t208c')::uuid) then
     raise exception 'FALLO 208 · el de la provincia colindante no entra en la difusión';
+  end if;
+  if not exists (select 1 from envio_ofertas o where o.envio_id = e2 and o.transportista_id = current_setting('prueba.t208p')::uuid) then
+    raise exception 'FALLO 208 · el de la ruta parecida (28→45 para un 19→16) no entra en la difusión';
   end if;
   if not exists (select 1 from avisos where envio_id = e2 and tipo = 'difusion_agotada' and para = 'dynamo') then
     raise exception 'FALLO 208 · agotada sin aviso de campana a Dynamo';
@@ -8156,7 +8175,7 @@ do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; n int;
   if exists (select 1 from envio_ofertas o where o.transportista_id = current_setting('prueba.t208l')::uuid) then
     raise exception 'FALLO 208 · se contacta a un transportista de otra provincia sin la ruta hecha ni colindar';
   end if;
-  raise notice 'OK 208b · se agota sin candidatos y avisa; el colindante entra y el de otra provincia sin la ruta no entra nunca';
+  raise notice 'OK 208b · se agota sin candidatos y avisa; el colindante y el de la ruta parecida entran y el de otra provincia sin ruta no entra nunca';
   -- RECORDATORIO: la oferta del rutero pasa a «de ayer» y casi caducada; el recordatorio
   -- diario la reabre hasta el corte y le manda «sigue disponible» (solo a él: los demás
   -- se contactaron hoy), una sola vez al día.
