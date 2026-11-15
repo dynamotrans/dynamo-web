@@ -146,11 +146,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // ---- Banda de la copia (rediseño 2026-11-14: la caja fina con el tic del diseño antiguo) ----
   cajaR(l.x0, 36, l.ancho, 18, COLOR.blanco, COLOR.grisClaro, 4);
   l.pag.drawRectangle({ x: l.x0 + 8, y: A4.h - 50.5, width: 3, height: 10, color: COLOR.navy });
-  l.texto(l.x0 + 17, 48, esp(copia === 'operativa' ? 'DeCA' : esCli ? 'Copia cliente' : t.copiaAdmin), 6.8, { bold: true, color: COLOR.navy });
-  // En el DeCA, la barra lleva la EMISIÓN junto a «DeCA» (usuario, 2026-11-14: la
-  // referencia baja a la caja del cargador contractual) y el nombre oficial a la derecha.
-  if (copia === 'operativa') l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48, `${t.emitida} ${emitidaDeca}`, 6.6, { color: COLOR.gris });
-  l.textoDer(der - 10, 48, esp(copia === 'operativa' ? DECA_NOMBRE : esCli ? 'Con tu precio · sin porteador' : t.completa), 5.4, { bold: true, color: COLOR.gris });
+  if (copia === 'operativa') {
+    l.texto(l.x0 + 17, 48, esp('DeCA'), 6.8, { bold: true, color: COLOR.navy });
+    // En el DeCA, la barra lleva la EMISIÓN junto a «DeCA» (usuario, 2026-11-14: la
+    // referencia baja a la caja del cargador contractual) y el nombre oficial a la derecha.
+    l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48, `${t.emitida} ${emitidaDeca}`, 6.6, { color: COLOR.gris });
+    l.textoDer(der - 10, 48, esp(DECA_NOMBRE), 5.4, { bold: true, color: COLOR.gris });
+  } else {
+    // Orden de carga (usuario, 2026-11-15): fuera «Copia administración · Documento
+    // completo»; la barra lleva la EMISIÓN a la izquierda y la REFERENCIA a la derecha.
+    l.texto(l.x0 + 17, 48, `${t.emitida} ${emitida}`, 6.6, { color: COLOR.gris });
+    const rot = `${esp(t.subRef)}:`, refTxt = ref || '—';
+    const wRef = l.medida(refTxt, 8, true);
+    l.textoDer(der - 10, 48.5, refTxt, 8, { bold: true, color: COLOR.navy });
+    l.textoDer(der - 10 - wRef - 6, 48, rot, 6.2, { bold: true, color: COLOR.gris });
+  }
 
   // ---- Cabecera: logo a la izquierda; a la derecha título, subtítulo espaciado,
   // referencia en grande y emisión. Debajo, la regla con la cinta tricolor. ----
@@ -167,13 +177,25 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // y con un tamaño a juego con él (usuario, 2026-11-14).
   if (copia === 'operativa') l.textoDer(der, 96, 'DeCA', 34, { bold: true, color: COLOR.navy });
   if (copia !== 'operativa') {
-    l.textoDer(der, 81, t.titulo, 17, { bold: true, color: COLOR.navy });
-    l.textoDer(der, 92, esp(t.subConfirmado), 5, { bold: true, color: COLOR.gris });
-    l.textoDer(der, 104, esp(t.subRef), 5.4, { bold: true, color: COLOR.gris });
-    l.textoDer(der, 117, ref || '—', 12, { bold: true, color: COLOR.navy });
-    l.textoDer(der, 127, `${t.emitida} ${emitida}`, 6.4, { color: COLOR.gris });
+    // «ORDEN DE CARGA» en grande como «DeCA» (usuario, 2026-11-15) y, a su izquierda, la
+    // TARJETA MORADA de la referencia (como la del CMR): rótulo, nº y emisión. El título se
+    // encoge solo si en algún idioma no cabe junto al logo y la tarjeta.
+    const anchoLogo = logo ? 34 * logo.width / logo.height : 150;
+    const rotRef = esp(t.subRef), emTxt = `${t.emitida} ${emitida}`;
+    const wTar = Math.max(l.medida(rotRef, 5.2, true), l.medida(ref || '—', 12, true), l.medida(emTxt, 6.4)) + 24;
+    const libre = der - (l.x0 + anchoLogo + 14) - wTar - 14;
+    let tam = 30;
+    while (tam > 14 && l.medida(t.titulo, tam, true) > libre) tam -= 1;
+    const wTit = l.medida(t.titulo, tam, true);
+    l.textoDer(der, 92, t.titulo, tam, { bold: true, color: COLOR.navy });
+    l.textoDer(der, 104, esp(t.subConfirmado), 5, { bold: true, color: COLOR.gris });
+    const xTar = der - wTit - 14 - wTar;
+    cajaR(xTar, 62, wTar, 46, COLOR.moradoSuave, undefined, 8);
+    l.texto(xTar + 12, 62 + 14, rotRef, 5.2, { bold: true, color: COLOR.gris });
+    l.texto(xTar + 12, 62 + 29, ref || '—', 12, { bold: true, color: COLOR.navy });
+    l.texto(xTar + 12, 62 + 40, emTxt, 6.4, { color: COLOR.gris });
   }
-  const yRegla = copia === 'operativa' ? 110 : 134;
+  const yRegla = copia === 'operativa' ? 110 : 116;
   l.linea(l.x0, yRegla, der, yRegla, COLOR.grisClaro, 1.2);
   [COLOR.morado, COLOR.verde, NARANJA].forEach((c2, i2) =>
     l.pag.drawRectangle({ x: l.x0 + i2 * 18, y: A4.h - yRegla - 1.5, width: 16, height: 3, color: c2 }));
@@ -665,8 +687,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       for (const m of ult) {
         const et = m.hito === 'ruta_cambiada' ? t.modifRuta
           : m.hito === 'fecha_carga_movida' ? t.modifFecha
-          : m.hito === 'matricula_asignada' ? t.modifMatricula
-          : m.hito === 'transportista_quitado' ? t.modifTransQuitado : t.modifTransNuevo;
+          // La 1.ª vez tras la emisión es «Asignación de…»; las siguientes, «Cambio de…» (usuario, 2026-11-15).
+          : m.hito === 'matricula_asignada' ? (m.primera ? t.modifMatriculaAsig : t.modifMatricula)
+          : m.hito === 'transportista_quitado' ? t.modifTransQuitado : (m.primera ? t.modifTransAsig : t.modifTransNuevo);
         l.sitio(13);
         l.parrafo(`${m.cuando} · ${et}${m.detalle ? ` · ${m.detalle}` : ''}`, 7.4, { color: COLOR.navy, despues: 2.5 });
       }

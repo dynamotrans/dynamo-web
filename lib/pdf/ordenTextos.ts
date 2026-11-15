@@ -59,6 +59,7 @@ export type TextosOrden = {
   qrDeca: string; decaManual: string; qrEscanea: string; qrPendiente: string;
   modifTitulo: string; modifNinguna: string; modifRuta: string; modifFecha: string;
   modifMatricula: string; modifTransQuitado: string; modifTransNuevo: string; modifMas: string;
+  modifMatriculaAsig: string; modifTransAsig: string;
 };
 
 export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
@@ -95,7 +96,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Página', de: 'de', rango: 'del {a} al {b}',
     qrDeca: 'Documento de control del transporte (e-CMR / DeCA): el QR abre el documento completo, con la hoja de firmas, siempre al día.', qrEscanea: 'Escanéalo con el móvil', qrPendiente: 'Pendiente de asignar transporte',
     modifTitulo: 'Modificaciones del documento', modifNinguna: 'Sin modificaciones desde la emisión', modifRuta: 'Ruta modificada', modifFecha: 'Fecha de carga movida',
-    modifMatricula: 'Cambio de matrícula', modifTransQuitado: 'Transportista retirado', modifTransNuevo: 'Nuevo transportista asignado', modifMas: '… y {n} cambios anteriores',
+    modifMatricula: 'Cambio de matrículas', modifTransQuitado: 'Transportista retirado', modifTransNuevo: 'Nuevo transportista asignado', modifMatriculaAsig: 'Asignación de matrículas', modifTransAsig: 'Asignación de transportista', modifMas: '… y {n} cambios anteriores',
     decaManual: 'Documento de control (DeCA) y carta de porte (CMR): transporte contratado directamente entre el ordenante y el transportista — se gestionan entre las partes. Esta orden no incluye QR de firma digital ni archivo del CMR.',
   },
   en: {
@@ -131,7 +132,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Page', de: 'of', rango: '{a} – {b}',
     qrDeca: 'Transport control document (e-CMR / DeCA): the QR opens the full document, with the signature sheet, always up to date.', qrEscanea: 'Scan it with your phone', qrPendiente: 'Transport pending assignment',
     modifTitulo: 'Document modifications', modifNinguna: 'No modifications since issue', modifRuta: 'Route changed', modifFecha: 'Loading date moved',
-    modifMatricula: 'Plate change', modifTransQuitado: 'Carrier removed', modifTransNuevo: 'New carrier assigned', modifMas: '… and {n} earlier changes',
+    modifMatricula: 'Plate change', modifTransQuitado: 'Carrier removed', modifTransNuevo: 'New carrier assigned', modifMatriculaAsig: 'Plates assigned', modifTransAsig: 'Carrier assigned', modifMas: '… and {n} earlier changes',
     decaManual: 'Control document (DeCA) and consignment note (CMR): transport contracted directly between the ordering party and the carrier — handled between the parties. This order includes no digital-signature QR and no CMR filing.',
   },
   pt: {
@@ -167,7 +168,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Página', de: 'de', rango: 'de {a} a {b}',
     qrDeca: 'Documento de controlo do transporte (e-CMR / DeCA): o QR abre o documento completo, com a folha de assinaturas, sempre atualizado.', qrEscanea: 'Digitalize com o telemóvel', qrPendiente: 'Transporte pendente de atribuição',
     modifTitulo: 'Modificações do documento', modifNinguna: 'Sem modificações desde a emissão', modifRuta: 'Rota alterada', modifFecha: 'Data de carga alterada',
-    modifMatricula: 'Troca de matrícula', modifTransQuitado: 'Transportadora retirada', modifTransNuevo: 'Nova transportadora atribuída', modifMas: '… e {n} alterações anteriores',
+    modifMatricula: 'Troca de matrícula', modifTransQuitado: 'Transportadora retirada', modifTransNuevo: 'Nova transportadora atribuída', modifMatriculaAsig: 'Atribuição de matrículas', modifTransAsig: 'Atribuição de transportadora', modifMas: '… e {n} alterações anteriores',
     decaManual: 'Documento de controlo (DeCA) e guia de transporte (CMR): transporte contratado diretamente entre o ordenante e o transportador — geridos entre as partes. Esta ordem não inclui QR de assinatura digital nem arquivo do CMR.',
   },
   fr: {
@@ -203,7 +204,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Page', de: 'sur', rango: 'du {a} au {b}',
     qrDeca: 'Document de contrôle du transport (e-CMR / DeCA) : le QR ouvre le document complet, avec la feuille de signatures, toujours à jour.', qrEscanea: 'Scannez-le avec le téléphone', qrPendiente: 'Transport en attente d\'affectation',
     modifTitulo: 'Modifications du document', modifNinguna: 'Aucune modification depuis l’émission', modifRuta: 'Itinéraire modifié', modifFecha: 'Date de chargement déplacée',
-    modifMatricula: 'Changement d’immatriculation', modifTransQuitado: 'Transporteur retiré', modifTransNuevo: 'Nouveau transporteur affecté', modifMas: '… et {n} modifications antérieures',
+    modifMatricula: 'Changement d’immatriculation', modifTransQuitado: 'Transporteur retiré', modifTransNuevo: 'Nouveau transporteur affecté', modifMatriculaAsig: 'Attribution des immatriculations', modifTransAsig: 'Attribution du transporteur', modifMas: '… et {n} modifications antérieures',
     decaManual: 'Document de contrôle (DeCA) et lettre de voiture (CMR) : transport contracté directement entre le donneur d\'ordre et le transporteur — gérés entre les parties. Cet ordre n\'inclut ni QR de signature numérique ni archivage du CMR.',
   },
   de: {
@@ -239,7 +240,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Seite', de: 'von', rango: '{a} – {b}',
     qrDeca: 'Transport-Kontrolldokument (e-CMR / DeCA): Der QR-Code öffnet das vollständige Dokument mit dem Unterschriftenblatt, immer aktuell.', qrEscanea: 'Mit dem Handy scannen', qrPendiente: 'Transport noch nicht zugewiesen',
     modifTitulo: 'Änderungen des Dokuments', modifNinguna: 'Keine Änderungen seit der Ausstellung', modifRuta: 'Route geändert', modifFecha: 'Ladedatum verschoben',
-    modifMatricula: 'Kennzeichenwechsel', modifTransQuitado: 'Frachtführer entfernt', modifTransNuevo: 'Neuer Frachtführer zugewiesen', modifMas: '… und {n} frühere Änderungen',
+    modifMatricula: 'Kennzeichenwechsel', modifTransQuitado: 'Frachtführer entfernt', modifTransNuevo: 'Neuer Frachtführer zugewiesen', modifMatriculaAsig: 'Kennzeichen zugewiesen', modifTransAsig: 'Frachtführer zugewiesen', modifMas: '… und {n} frühere Änderungen',
     decaManual: 'Kontrolldokument (DeCA) und Frachtbrief (CMR): Transport direkt zwischen Auftraggeber und Frachtführer vereinbart — beides regeln die Parteien untereinander. Dieser Auftrag enthält keinen QR zur digitalen Unterschrift und kein CMR-Archiv.',
   },
   it: {
@@ -275,7 +276,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Pagina', de: 'di', rango: 'dal {a} al {b}',
     qrDeca: 'Documento di controllo del trasporto (e-CMR / DeCA): il QR apre il documento completo, con il foglio firme, sempre aggiornato.', qrEscanea: 'Scansionalo con il cellulare', qrPendiente: 'Trasporto in attesa di assegnazione',
     modifTitulo: 'Modifiche del documento', modifNinguna: 'Nessuna modifica dall’emissione', modifRuta: 'Percorso modificato', modifFecha: 'Data di carico spostata',
-    modifMatricula: 'Cambio targa', modifTransQuitado: 'Vettore rimosso', modifTransNuevo: 'Nuovo vettore assegnato', modifMas: '… e {n} modifiche precedenti',
+    modifMatricula: 'Cambio targa', modifTransQuitado: 'Vettore rimosso', modifTransNuevo: 'Nuovo vettore assegnato', modifMatriculaAsig: 'Assegnazione targhe', modifTransAsig: 'Assegnazione vettore', modifMas: '… e {n} modifiche precedenti',
     decaManual: 'Documento di controllo (DeCA) e lettera di vettura (CMR): trasporto contrattato direttamente tra committente e vettore — gestiti tra le parti. Quest\'ordine non include QR di firma digitale né archiviazione del CMR.',
   },
   nl: {
@@ -311,7 +312,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Pagina', de: 'van', rango: '{a} – {b}',
     qrDeca: 'Controledocument van het vervoer (e-CMR / DeCA): de QR opent het volledige document, met het handtekeningenblad, altijd actueel.', qrEscanea: 'Scan met je telefoon', qrPendiente: 'Transport nog toe te wijzen',
     modifTitulo: 'Wijzigingen van het document', modifNinguna: 'Geen wijzigingen sinds uitgifte', modifRuta: 'Route gewijzigd', modifFecha: 'Laaddatum verplaatst',
-    modifMatricula: 'Kentekenwijziging', modifTransQuitado: 'Vervoerder verwijderd', modifTransNuevo: 'Nieuwe vervoerder toegewezen', modifMas: '… en {n} eerdere wijzigingen',
+    modifMatricula: 'Kentekenwijziging', modifTransQuitado: 'Vervoerder verwijderd', modifTransNuevo: 'Nieuwe vervoerder toegewezen', modifMatriculaAsig: 'Kentekens toegewezen', modifTransAsig: 'Vervoerder toegewezen', modifMas: '… en {n} eerdere wijzigingen',
     decaManual: 'Controledocument (DeCA) en vrachtbrief (CMR): vervoer rechtstreeks overeengekomen tussen opdrachtgever en vervoerder — onderling te regelen. Deze opdracht bevat geen QR voor digitale ondertekening en geen CMR-archief.',
   },
   pl: {
@@ -347,7 +348,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Strona', de: 'z', rango: '{a} – {b}',
     qrDeca: 'Dokument kontrolny przewozu (e-CMR / DeCA): kod QR otwiera pełny dokument z arkuszem podpisów, zawsze aktualny.', qrEscanea: 'Zeskanuj telefonem', qrPendiente: 'Transport oczekuje na przydział',
     modifTitulo: 'Zmiany w dokumencie', modifNinguna: 'Bez zmian od wystawienia', modifRuta: 'Zmieniona trasa', modifFecha: 'Przesunięta data załadunku',
-    modifMatricula: 'Zmiana rejestracji', modifTransQuitado: 'Przewoźnik usunięty', modifTransNuevo: 'Przydzielony nowy przewoźnik', modifMas: '… i {n} wcześniejszych zmian',
+    modifMatricula: 'Zmiana rejestracji', modifTransQuitado: 'Przewoźnik usunięty', modifTransNuevo: 'Przydzielony nowy przewoźnik', modifMatriculaAsig: 'Przypisanie numerów rejestracyjnych', modifTransAsig: 'Przypisanie przewoźnika', modifMas: '… i {n} wcześniejszych zmian',
     decaManual: 'Dokument kontrolny (DeCA) i list przewozowy (CMR): transport zakontraktowany bezpośrednio między zleceniodawcą a przewoźnikiem — strony załatwiają je między sobą. To zlecenie nie zawiera kodu QR do podpisu cyfrowego ani archiwum CMR.',
   },
   cs: {
@@ -383,7 +384,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Strana', de: 'z', rango: '{a} – {b}',
     qrDeca: 'Kontrolní dokument přepravy (e-CMR / DeCA): QR kód otevře úplný dokument s listem podpisů, vždy aktuální.', qrEscanea: 'Naskenujte telefonem', qrPendiente: 'Doprava čeká na přidělení',
     modifTitulo: 'Změny dokumentu', modifNinguna: 'Beze změn od vystavení', modifRuta: 'Změněná trasa', modifFecha: 'Posunuté datum nakládky',
-    modifMatricula: 'Změna SPZ', modifTransQuitado: 'Dopravce odebrán', modifTransNuevo: 'Přidělen nový dopravce', modifMas: '… a {n} dřívějších změn',
+    modifMatricula: 'Změna SPZ', modifTransQuitado: 'Dopravce odebrán', modifTransNuevo: 'Přidělen nový dopravce', modifMatriculaAsig: 'Přidělení SPZ', modifTransAsig: 'Přidělení dopravce', modifMas: '… a {n} dřívějších změn',
     decaManual: 'Kontrolní dokument (DeCA) a nákladní list (CMR): přeprava sjednána přímo mezi objednatelem a dopravcem — řeší se mezi stranami. Tato objednávka neobsahuje QR pro digitální podpis ani archiv CMR.',
   },
   ro: {
@@ -419,7 +420,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     pagina: 'Pagina', de: 'din', rango: '{a} – {b}',
     qrDeca: 'Document de control al transportului (e-CMR / DeCA): codul QR deschide documentul complet, cu fila de semnături, mereu actualizat.', qrEscanea: 'Scanează-l cu telefonul', qrPendiente: 'Transport în așteptarea alocării',
     modifTitulo: 'Modificări ale documentului', modifNinguna: 'Fără modificări de la emitere', modifRuta: 'Rută modificată', modifFecha: 'Dată de încărcare mutată',
-    modifMatricula: 'Schimbare număr de înmatriculare', modifTransQuitado: 'Transportator retras', modifTransNuevo: 'Transportator nou atribuit', modifMas: '… și {n} modificări anterioare',
+    modifMatricula: 'Schimbare număr de înmatriculare', modifTransQuitado: 'Transportator retras', modifTransNuevo: 'Transportator nou atribuit', modifMatriculaAsig: 'Atribuire numere de înmatriculare', modifTransAsig: 'Atribuire transportator', modifMas: '… și {n} modificări anterioare',
     decaManual: 'Document de control (DeCA) și scrisoare de transport (CMR): transport contractat direct între ordonator și transportator — se gestionează între părți. Această comandă nu include QR de semnătură digitală și nici arhivarea CMR.',
   },
 };

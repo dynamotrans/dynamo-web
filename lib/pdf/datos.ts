@@ -38,7 +38,7 @@ export type DatosDoc = {
   deca?: { url: string; creado_en: string } | null;   // enlace público del CMR digital: nº único, QR y fecha de creación (el e-CMR hace de DeCA)
   // Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto): cada cambio
   // del documento de control con su fecha/hora española ya formateada y un detalle corto.
-  modificaciones?: { cuando: string; hito: string; detalle: string | null }[];
+  modificaciones?: { cuando: string; hito: string; detalle: string | null; primera?: boolean }[];
   dynamo?: DatosDynamo;                  // los datos fijos de Dynamo (de Parámetros)
 };
 
@@ -216,7 +216,7 @@ type ParadaJson = Omit<ParadaDoc, 'pais' | 'tipo_sitio' | 'contacto' | 'requiere
   contacto_nombre?: string | null; contacto_telefono?: string | null };
 type OrdenJson = { envio: EnvioDoc; porteador?: EmpresaJson; cliente?: EmpresaJson; paradas?: ParadaJson[];
   parametros?: Record<string, unknown>; dynamo?: Record<string, unknown>; pronto_pago?: boolean;
-  modificaciones?: { cuando: string; hito: string; detalle: string | null }[] };
+  modificaciones?: { cuando: string; hito: string; detalle: string | null; primera?: boolean }[] };
 
 function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<string, number> } {
   const j = data as OrdenJson, t = j.porteador ?? ({} as EmpresaJson);

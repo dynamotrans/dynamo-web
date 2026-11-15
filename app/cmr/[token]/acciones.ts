@@ -138,6 +138,8 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     sin_transportista: 'El envío no tiene transportista asignado ahora mismo: no se puede firmar hasta que se asigne.',
     faltan_matriculas: 'Falta la matrícula del camión: ponla en la ventana de firma (sin ella no se puede salir de la 1.ª parada).',
     matricula_no_valida: 'La matrícula no es válida: solo letras, números, espacios y guiones (de 2 a 16).',
+    sin_matriculas: 'Todavía no hay matrículas del camión: primero firma el transportista (o el cargador de la 1.ª recogida) poniéndolas.',
+    faltan_sitios: 'El envío no tiene completos sus sitios de recogida y entrega: no se puede firmar hasta que Dynamo los complete.',
   };
   return { ok: false, error: msg[r ?? ''] ?? 'No se ha podido guardar la firma.' };
 }
