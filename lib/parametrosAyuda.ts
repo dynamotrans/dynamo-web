@@ -175,9 +175,11 @@ export const AYUDA: Record<string, Ayuda> = {
   carga_publica_max_fallos_reserva: { titulo: 'Seguridad: fallos de CIF por persona',
     explica: 'Si la persona que tiene la carga reservada (sus 3 minutos) falla el CIF estas veces, se le quita la reserva y la carga vuelve a quedar libre. En el alta online cuenta igual cada CIF o código de bolsa que ya existe: así nadie puede ir probando CIFs para saber quién trabaja con Dynamo.',
     ejemplo: (v) => `Con ${v}: falla el CIF ${v} veces seguidas → pierde la reserva.` },
-  alta_online_max_pendientes_carga: { titulo: 'Alta online: altas pendientes por carga',
-    explica: 'Un transportista nuevo puede darse de alta desde el enlace de una carga de bolsa; esa alta espera a que la revises. Como mucho puede haber estas altas esperando en una misma carga: más, y la página le pide que llame. 0 = ninguna alta online.',
-    ejemplo: (v) => `Con ${v}: si ya hay ${v} transportistas nuevos esperando en la misma carga, el siguiente tiene que llamar.` },
+  alta_online_max_pendientes_carga: { titulo: 'Alta online: desconocidos en espera por carga',
+    explica: 'Si abre el enlace de una carga un transportista cuyo CIF no está dado de alta, puede registrarse ahí mismo y quedarse la carga EN ESPERA de que revises su alta. Este número limita cuántos desconocidos pueden estar a la vez en esa espera sobre LA MISMA carga: al llegar al tope, al siguiente la página le pide que llame (evita altas falsas en cadena, y la carga solo se la va a llevar uno). 0 = nadie puede darse de alta desde el enlace.',
+    ejemplo: (v) => Number(v) === 1
+      ? 'Con 1: el primer desconocido se registra y queda en espera de tu revisión; si llega otro a la misma carga antes de que revises, le pide que llame.'
+      : `Con ${v}: hasta ${v} desconocidos pueden quedar en espera de revisión en la misma carga; al ${Number(v) + 1}.º le pide que llame.` },
   alta_online_max_dia: { titulo: 'Alta online: altas al día en total',
     explica: 'Tope de altas online nuevas en 24 horas, sumando todas las cargas. Frena que alguien llene la plataforma de altas falsas. 0 = ninguna alta online.',
     ejemplo: (v) => `Con ${v}: la alta número ${Number(v) + 1} del día ya no entra; esa persona tiene que llamar.` },
