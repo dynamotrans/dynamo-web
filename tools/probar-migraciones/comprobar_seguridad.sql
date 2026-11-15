@@ -1643,7 +1643,7 @@ do $$ declare e uuid; r jsonb; v text; begin
   )).id into e;
   -- Sin transportista no puede ir hacia la carga (regla de la fase 1): se le asigna uno. Con la
   -- carga a 20 días, cancelar sigue sin coste.
-  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado = 'hacia_la_carga', matricula_camion = '1065 TST' where id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, importe_transportista = 600, estado = 'hacia_la_carga', matricula_camion = '1065 TST' where id = e;
   r := cancelar_envio(e, 'El cliente ya no tiene la mercancía');
   if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 58 · no se ha cancelado'; end if;
   if not exists (select 1 from envio_hitos where envio_id = e and hito = 'incidencia'
@@ -2121,7 +2121,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), fa
 set role authenticated;
 do $$ declare e uuid := current_setting('prueba.e67')::uuid; t uuid; v record; n int; begin
   insert into transportistas (razon_social, cif) values ('Trans Flota 68 SL', 'B68000068') returning id into t;
-  update envios set transportista_id = t, estado_asignacion = 'confirmada', matricula_camion = '6868 kkk', matricula_remolque = 'r-6868-bbb',
+  update envios set transportista_id = t, importe_transportista = 600, estado_asignacion = 'confirmada', matricula_camion = '6868 kkk', matricula_remolque = 'r-6868-bbb',
                     conductor_nombre = 'José Pérez', conductor_telefono = '+34 600 111 222' where id = e;
   select * into v from envios where id = e;
   if v.vehiculo_camion_id is null or v.vehiculo_remolque_id is null or v.conductor_id is null then raise exception 'FALLO 68 · no da de alta la flota: %', v; end if;
@@ -5127,7 +5127,7 @@ do $$ declare e uuid := current_setting('prueba.e143')::uuid; r jsonb; begin
     update envios set transportista_id = current_setting('prueba.t143')::uuid where id = e;
     raise exception 'FALLO 143 · se da carga a un transportista suspendido escribiendo en la tabla';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
-  r := asignar_transportista(e, current_setting('prueba.t143')::uuid);
+  r := asignar_transportista(e, current_setting('prueba.t143')::uuid, p_importe_transportista => 600);
   if r ->> 'resultado' <> 'transportista_suspendido' or (r ->> 'ok')::boolean then raise exception 'FALLO 143 · asignar_transportista no frena al suspendido: %', r; end if;
   -- Sin transportista no pasa de programado.
   begin
@@ -5162,7 +5162,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ begin
   begin
-    perform asignar_transportista(current_setting('prueba.e143')::uuid, current_setting('prueba.transp')::uuid);
+    perform asignar_transportista(current_setting('prueba.e143')::uuid, current_setting('prueba.transp')::uuid, p_importe_transportista => 600);
     raise exception 'FALLO 143 · un cliente asigna transportistas';
   exception when insufficient_privilege then null; end;
   if (select iva_pct from mi_empresa()) is null then raise exception 'FALLO 143 · mi_empresa no da el IVA del cliente'; end if;
@@ -5750,11 +5750,11 @@ set role authenticated;
 do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::uuid; t uuid := nullif(current_setting('prueba.seg_transp', true), '')::uuid;
   r jsonb; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
   if e is null then return; end if;
-  r := asignar_transportista(e, t);
+  r := asignar_transportista(e, t, p_importe_transportista => 600);
   if r ->> 'resultado' <> 'falta_fecha_prevista' then raise exception 'FALLO 158 · con ventana se asigna sin día previsto: %', r; end if;
-  r := asignar_transportista(e, t, p_fecha_carga_prevista => hoy + 5);
+  r := asignar_transportista(e, t, p_importe_transportista => 600, p_fecha_carga_prevista => hoy + 5);
   if r ->> 'resultado' <> 'fecha_fuera_de_ventana' then raise exception 'FALLO 158 · día previsto fuera de la ventana aceptado: %', r; end if;
-  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_setting('prueba.seg_dia')::date);
+  r := asignar_transportista(e, t, p_importe_transportista => 600, p_fecha_carga_prevista => current_setting('prueba.seg_dia')::date);
   if not (r ->> 'ok')::boolean then raise exception 'FALLO 158 · no asigna con día previsto: %', r; end if;
 end $$;
 reset role;
@@ -6836,16 +6836,16 @@ do $$ declare e uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb;
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A184', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B184', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
   -- Entrega anterior al día en que carga: rechazada.
-  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_date + 11, p_fecha_entrega_estimada => current_date + 10);
+  r := asignar_transportista(e, t, p_importe_transportista => 600, p_fecha_carga_prevista => current_date + 11, p_fecha_entrega_estimada => current_date + 10);
   if r ->> 'resultado' <> 'entrega_antes_de_cargar' then raise exception 'FALLO 184 · deja una entrega anterior al día en que carga: %', r; end if;
   -- El mismo día vale (desde el mismo día a +7 hábiles en pantalla); se guarda.
-  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_date + 11, p_fecha_entrega_estimada => current_date + 11);
+  r := asignar_transportista(e, t, p_importe_transportista => 600, p_fecha_carga_prevista => current_date + 11, p_fecha_entrega_estimada => current_date + 11);
   if r ->> 'resultado' <> 'asignado' then raise exception 'FALLO 184 · no asigna con entrega estimada válida: %', r; end if;
   if (select fecha_entrega_estimada from envios where id = e) <> current_date + 11 then
     raise exception 'FALLO 184 · la entrega estimada no se guarda al asignar';
   end if;
   -- Sin mandarla (p. ej. la aceptación por enlace) se conserva la que había.
-  r := asignar_transportista(e, t, p_fecha_carga_prevista => current_date + 12);
+  r := asignar_transportista(e, t, p_importe_transportista => 600, p_fecha_carga_prevista => current_date + 12);
   if (select fecha_entrega_estimada from envios where id = e) <> current_date + 11 then
     raise exception 'FALLO 184 · reasignar sin entrega estimada no debe borrarla';
   end if;
@@ -9554,4 +9554,34 @@ do $$ declare e uuid := current_setting('prueba.e229')::uuid; tok uuid; r jsonb;
   r := firmar_cmr_publico(tok, null, 'transportista', 'Pepe', 'X1234567L', 'ES', true, null, 'cmr/' || tok || '/y.png', null, null, null);
   if r ->> 'resultado' <> 'faltan_matriculas' then raise exception 'FALLO 230 · la cabecera firma sin poner matrículas: %', r; end if;
   raise notice 'OK 230 · sin matrículas solo se puede firmar la cabecera, y poniéndolas';
+end $$;
+
+-- ---- 231. Nunca precio 0: sin precio no se asigna transportista; el cliente nunca a 0 -------
+reset role;
+do $$ declare e uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb; ok boolean; begin
+  select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false) into strict e;
+  set local role authenticated;
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3,
+                       'fecha_carga_desde', current_date + 15, 'fecha_carga_hasta', current_date + 15, 'importe_cliente', 900),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A231', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B231', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  r := asignar_transportista(e, t);
+  if r ->> 'resultado' <> 'falta_precio' then raise exception 'FALLO 231 · asigna sin precio: %', r; end if;
+  r := asignar_transportista(e, t, 0);
+  if r ->> 'resultado' <> 'falta_precio' then raise exception 'FALLO 231 · asigna a 0 €: %', r; end if;
+  if (select transportista_id from envios where id = e) is not null then raise exception 'FALLO 231 · quedó asignado sin precio'; end if;
+  -- Por la tabla tampoco: transportista sin precio, ni precio del cliente a 0.
+  ok := false;
+  begin update envios set transportista_id = t where id = e; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 231 · la tabla deja un transportista sin precio'; end if;
+  ok := false;
+  begin update envios set importe_cliente = 0 where id = e; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 231 · la tabla deja el precio del cliente a 0'; end if;
+  r := asignar_transportista(e, t, 650);
+  if r ->> 'resultado' <> 'asignado' then raise exception 'FALLO 231 · no asigna con precio: %', r; end if;
+  ok := false;
+  begin update envios set importe_transportista = 0 where id = e; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 231 · deja bajar a 0 el precio del transportista asignado'; end if;
+  raise notice 'OK 231 · nunca precio 0: sin precio (o a 0) no se asigna transportista, ni por la tabla; el precio del cliente nunca queda a 0';
 end $$;

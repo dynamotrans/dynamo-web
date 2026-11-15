@@ -62,6 +62,11 @@ export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, cop
   const { datos, error } = await cargarDatosDoc(sb, id, usuarioId);
   if (!datos) return { error: error ?? 'No se ha podido leer el envío.' };
   if (datos.manual) return { error: 'Los envíos manuales no llevan orden de carga de Dynamo.' };
+  // Nunca una orden a 0 € (usuario, 2026-11-15): la del transportista exige su precio y la
+  // del cliente, el del cliente. La copia del conductor (DeCA) no lleva precio.
+  const sinPrecio = (v: unknown) => !(Number(v ?? 0) > 0);
+  if (copias.includes('economica') && sinPrecio(datos.envio.importe_transportista)) return { error: 'El envío no tiene precio del transportista: ponlo antes de sacar la orden de carga.' };
+  if (copias.includes('cliente') && sinPrecio(datos.envio.importe_cliente)) return { error: 'El envío no tiene precio del cliente: ponlo antes de sacar su copia de la orden.' };
   datos.dynamo = await datosDynamo(sb);
   const { data: enl } = await sb.from('cmr_enlaces').select('token, creado_en').eq('envio_id', id).eq('revocado', false)
     .order('creado_en', { ascending: false }).limit(1).maybeSingle();

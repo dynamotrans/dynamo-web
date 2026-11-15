@@ -11,7 +11,7 @@ export type ParadaFicha = {
   poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;
   referencia: string | null; anotaciones: string | null;
   // Del sitio de la agenda (si lo es): tipo, horario, notas, Maps y su persona de contacto.
-  sitio: { tipo: string | null; horarios: string | null; anotaciones: string | null; url_google_maps: string | null;
+  sitio: { tipo: string | null; horarios: string | null; anotaciones: string | null; mercancia_defecto?: string | null; url_google_maps: string | null;
            requiere_cita: boolean; tiene_medios_carga: boolean;
            contacto: { nombre: string | null; telefono: string | null; email: string | null } | null } | null;
 };
@@ -61,7 +61,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
   const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam, dif] = await Promise.all([
-    sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, sitios(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
+    sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, sitios(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, mercancia_defecto, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
     sb.from('envio_ofertas').select('id, token, canal, precio_ofertado, banda_euros, banda_pct, pronto_pago, estado, enviada_en, caduca_en, aperturas, abierta_en, transportistas(nombre_visible)').eq('envio_id', id).order('enviada_en', { ascending: false }),

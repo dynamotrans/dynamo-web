@@ -53,6 +53,7 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   }
   return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',
     importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.',
+    falta_precio: 'Pon el precio del transportista (mayor que 0): sin precio no se puede asignar.',
     falta_fecha_prevista: 'Elige el día en que carga: el envío tiene varios días de recogida.', fecha_fuera_de_ventana: 'El día de carga tiene que estar dentro de los días de recogida.',
     entrega_antes_de_cargar: 'El día de entrega (estimado) no puede ser anterior al día en que carga.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido asignar.' };
 }

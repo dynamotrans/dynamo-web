@@ -159,6 +159,8 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     setError(null);
     if (!tid) { setError('Elige el transportista.'); avisaFaltas(['as-tra']); return; }
     if (Number.isNaN(pv)) { setError('El precio del transportista no es un número.'); avisaFaltas(['as-precio']); return; }
+    // Sin precio no se asigna: la orden de carga nunca sale a 0 € (usuario, 2026-11-15).
+    if (pv == null || !(pv > 0)) { setError('Pon el precio del transportista (mayor que 0): sin precio no se puede asignar.'); avisaFaltas(['as-precio']); return; }
     if (conVentana && !diaCarga) { setError('Elige el día en que carga.'); avisaFaltas(['as-dia']); return; }
     if (!entrega) { setError('Elige el día de entrega (estimado).'); avisaFaltas(['as-ent']); return; }
     await hacer('Asignando el transportista', () => asignarTransportista(e.id, {
@@ -203,7 +205,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Se sugiere sola con el plan del seguimiento (horas legales de conducción, km entre paradas, tiempos de parada y horarios de los sitios) y puedes cambiarla. Siempre es una estimación (el cliente la ve como «Entrega estimada»); también marca hasta cuándo ve el teléfono del conductor.</div>
         </div>
         <div>
-          <label htmlFor="as-precio">Precio del transportista (€ sin IVA) <Req si={false} /></label>
+          <label htmlFor="as-precio">Precio del transportista (€ sin IVA) <Req si /></label>
           <input id="as-precio" type="text" inputMode="decimal" value={precio} placeholder="Ej. 720" onChange={(ev) => setPrecio(ev.target.value)} />
         </div>
         <div>
