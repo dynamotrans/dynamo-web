@@ -174,8 +174,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
     ?? (f.rol === 'remitente' ? 'Recogida' : f.rol === 'transportista' ? 'Transportista' : 'Entrega');
 
-  return (
-    <div className="card">
+  const cabecera = (<>
       {!cmr.manual && <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>}
       {/* Cabecera en caja gris suave y formal (usuario, 2026-11-11). */}
       {/* Cabecera corta (usuario, 2026-11-12): título y nº de envío, sin más. */}
@@ -183,6 +182,42 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <h1>CMR / DeCA digital</h1>
         <p className="sub">Envío <strong>{cmr.referencia}</strong></p>
       </div>
+  </>);
+  const datosEnvio = (
+      <dl className="cmrbox">
+        <dt>Remitente</dt><dd>{cmr.remitente || '—'}</dd>
+        <dt>Porteador</dt><dd>{cmr.porteador || '—'}</dd>
+        {(cmr.transportista || cmr.matricula) && <><dt>Transportista efectivo</dt><dd>{[cmr.transportista, cmr.matricula].filter(Boolean).join(' · ')}</dd></>}
+        {/* Sin las filas de Recogida/Entrega (usuario, 2026-11-13): cada casilla de firma
+            ya enseña su empresa en grande y aquí se repetían. */}
+        <dt>Fecha de carga</dt><dd>{fecha(cmr.fecha_carga)}</dd>
+        <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
+        {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
+      </dl>
+  );
+  const avisoSinTransportista = (
+        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
+          Todavía no se puede firmar: el envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
+          En cuanto se asigne, las firmas se abren solas en esta misma página.
+        </div>
+  );
+  // SIN TRANSPORTISTA Y SIN NADA FIRMADO (usuario, 2026-11-15): no tiene sentido enseñar
+  // las casillas de firma, ni el «mándasela», ni el contador: solo la cabecera, los datos
+  // del envío y el aviso. En cuanto se asigne, la página en vivo pinta lo demás.
+  if (sinTransportista && hechas === 0 && extras.length === 0) {
+    return (
+      <div className="card">
+        {cabecera}
+        {datosEnvio}
+        <div style={{ marginTop: '0.8rem' }}>{avisoSinTransportista}</div>
+        <Ayuda />
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      {cabecera}
       {qrMovil && (
         <section className="qr-movil" aria-label="Firmar desde el móvil">
           <div className="qr-movil-img"><img src={qrMovil} alt="Código QR de esta página" width={132} height={132} /></div>
@@ -194,16 +229,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         </section>
       )}
-      <dl className="cmrbox">
-        <dt>Remitente</dt><dd>{cmr.remitente || '—'}</dd>
-        <dt>Porteador</dt><dd>{cmr.porteador || '—'}</dd>
-        {(cmr.transportista || cmr.matricula) && <><dt>Transportista efectivo</dt><dd>{[cmr.transportista, cmr.matricula].filter(Boolean).join(' · ')}</dd></>}
-        {/* Sin las filas de Recogida/Entrega (usuario, 2026-11-13): cada casilla de firma
-            ya enseña su empresa en grande y aquí se repetían. */}
-        <dt>Fecha de carga</dt><dd>{fecha(cmr.fecha_carga)}</dd>
-        <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
-        {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
-      </dl>
+      {datosEnvio}
       {/* Ventana de compartir PROPIA (usuario, 2026-11-11): mismo diseño sencillo en
           cualquier aparato — WhatsApp, Email, SMS, Copiar y «Más opciones…» si el
           aparato tiene hoja de compartir del sistema. Mensaje corto. */}
@@ -253,12 +279,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {hechas === bloques.length && bloques.length > 0
         ? <div className="banner-ok show" style={{ marginTop: 0, marginBottom: '0.8rem' }}>✓ CMR / DeCA completamente firmado — todas las partes han quedado registradas.</div>
         : <div className="prog">{hechas} de {bloques.length} firmas completadas</div>}
-      {sinTransportista && hechas < bloques.length && (
-        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
-          Todavía no se puede firmar: el envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
-          En cuanto se asigne, las firmas se abren solas en esta misma página.
-        </div>
-      )}
+      {sinTransportista && hechas < bloques.length && avisoSinTransportista}
       {!sinTransportista && sinMatricula && hechas < bloques.length && (
         <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
           {cmr.matricula_camion ? <>Falta la <strong>matrícula del semirremolque</strong> (un tráiler lleva las dos)</> : <>Faltan las <strong>matrículas del camión</strong></>}: primero firma el transportista (o el cargador de la 1.ª recogida) poniéndolas;
