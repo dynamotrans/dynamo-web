@@ -386,8 +386,50 @@ export async function emailDecaPlataforma(envio: string): Promise<{ ok: true; pa
   const pdf = await pdfDecaDeDatos(r.datos, r.decaCreado, enl.token, web);
   const res = await avisoDecaTransportista({ envioId: envio, token: enl.token, origen: web, version: 'manual', primera: true, pdf,
     clave: `deca_manual:${envio}:${Date.now()}` });
-  if (res.estado !== 'enviado') return { ok: false, error: res.para ? res.error ?? 'No se ha podido enviar.' : 'El transportista no tiene email en su ficha.' };
+  if (res.estado !== 'enviado') return { ok: false, error: res.sinEmail ? 'El transportista no tiene email en su ficha.' : res.error ?? 'No se ha podido enviar.' };
   return { ok: true, para: res.para ?? '' };
+}
+
+// HISTORIAL DE ENVÍOS DEL DeCA (usuario, 2026-11-15): cada vez que el DeCA ha salido hacia
+// alguien, con su fecha y hora y la vía — los emails de la plataforma (automáticos y
+// manuales, con su destinatario y si salieron) y lo compartido a mano desde «Compartir
+// por…» (WhatsApp, email propio, SMS, enlace copiado). Lo más reciente, arriba.
+export type EnvioDeca = { id: string; cuando: string; modo: 'auto' | 'manual'; via: string; para: string | null; estado: 'enviado' | 'pendiente' | 'error' | 'compartido'; detalle: string | null; autor: string | null };
+export async function historialDeca(envio: string): Promise<EnvioDeca[]> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#historialDeca", [envio]);
+  const s = await soloDynamo();
+  if (!s || !/^[0-9a-f-]{36}$/i.test(envio)) return [];
+  const [em, co] = await Promise.all([
+    s.supabase.from('emails_enviados').select('id, clave, destinatario, estado, error, creado_en, enviado_en')
+      .eq('envio_id', envio).eq('tipo', 'deca').order('creado_en', { ascending: false }).limit(100),
+    s.supabase.from('deca_compartidos').select('id, via, creado_en, creado_por')
+      .eq('envio_id', envio).order('creado_en', { ascending: false }).limit(100),
+  ]);
+  const ids = [...new Set((co.data ?? []).map((x) => x.creado_por).filter(Boolean))] as string[];
+  const nombres = new Map<string, string>();
+  if (ids.length) {
+    const { data: us } = await s.supabase.from('usuarios').select('id, nombre, email').in('id', ids);
+    (us ?? []).forEach((u) => nombres.set(u.id, u.nombre || u.email));
+  }
+  const filas: EnvioDeca[] = [
+    ...(em.data ?? []).map((x) => ({
+      id: `e-${x.id}`, cuando: x.enviado_en ?? x.creado_en, modo: x.clave.startsWith('deca_manual:') ? 'manual' as const : 'auto' as const,
+      via: 'email', para: x.destinatario && x.destinatario !== '—' ? x.destinatario : null,
+      estado: (x.estado === 'enviado' ? 'enviado' : x.estado === 'pendiente' ? 'pendiente' : 'error') as EnvioDeca['estado'],
+      detalle: x.estado === 'error' ? x.error : null, autor: null })),
+    ...(co.data ?? []).map((x) => ({
+      id: `c-${x.id}`, cuando: x.creado_en, modo: 'manual' as const, via: x.via, para: null,
+      estado: 'compartido' as const, detalle: null, autor: x.creado_por ? nombres.get(x.creado_por) ?? null : null })),
+  ];
+  return filas.sort((a, b) => (a.cuando < b.cuando ? 1 : -1));
+}
+
+// Apunta que el DeCA se ha compartido a mano por una vía de «Compartir por…».
+export async function anotarDecaCompartido(envio: string, via: string): Promise<void> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#anotarDecaCompartido", [envio, via]);
+  const s = await soloDynamo();
+  if (!s || !/^[0-9a-f-]{36}$/i.test(envio) || !['whatsapp', 'email', 'sms', 'copiar', 'otros'].includes(via)) return;
+  await s.supabase.rpc('anotar_deca_compartido', { p_envio: envio, p_via: via });
 }
 
 export async function revocarOferta(oferta: string): Promise<Res> {

@@ -9,8 +9,10 @@ import { createPortal } from 'react-dom';
 // tiene hoja de compartir del sistema, «Más opciones…» la abre.
 // Estilos en línea a propósito: la usan la página pública del CMR y el panel, sin
 // depender del CSS de ninguna de las dos.
-export default function CompartirSheet({ titulo, texto, url, onCerrar }: {
-  titulo: string; texto: string; url: string; onCerrar: () => void;
+export type ViaCompartir = 'whatsapp' | 'email' | 'sms' | 'copiar' | 'otros';
+// `onVia` (opcional): avisa de la vía elegida, para quien lleve un historial de lo compartido.
+export default function CompartirSheet({ titulo, texto, url, onCerrar, onVia }: {
+  titulo: string; texto: string; url: string; onCerrar: () => void; onVia?: (via: ViaCompartir) => void;
 }) {
   const [copiado, setCopiado] = useState(false);
   // En PORTAL al body (2026-11-11): dentro de otra ventana (el modal del panel), la
@@ -34,17 +36,17 @@ export default function CompartirSheet({ titulo, texto, url, onCerrar }: {
         <h2 style={{ margin: '0 0 0.15rem', fontSize: '1.05rem', color: '#0a0230' }}>Compartir</h2>
         <p style={{ margin: '0 0 0.8rem', fontSize: '0.8rem', color: '#6b7280', overflowWrap: 'anywhere' }}>{titulo}</p>
         <div style={{ display: 'grid', gap: '0.5rem' }}>
-          <a style={{ ...opcion, background: '#25D366', color: '#fff' }} href={`https://wa.me/?text=${enc}`} target="_blank" rel="noopener">WhatsApp</a>
-          <a style={{ ...opcion, background: '#3300cc', color: '#fff' }} href={`mailto:?subject=${encodeURIComponent(titulo)}&body=${enc}`}>Email</a>
+          <a style={{ ...opcion, background: '#25D366', color: '#fff' }} href={`https://wa.me/?text=${enc}`} target="_blank" rel="noopener" onClick={() => onVia?.('whatsapp')}>WhatsApp</a>
+          <a style={{ ...opcion, background: '#3300cc', color: '#fff' }} href={`mailto:?subject=${encodeURIComponent(titulo)}&body=${enc}`} onClick={() => onVia?.('email')}>Email</a>
           {/* sms: con «?&body» funciona en iOS y Android (la rareza es a propósito). */}
-          <a style={{ ...opcion, background: '#0ea5e9', color: '#fff' }} href={`sms:?&body=${enc}`}>SMS</a>
+          <a style={{ ...opcion, background: '#0ea5e9', color: '#fff' }} href={`sms:?&body=${enc}`} onClick={() => onVia?.('sms')}>SMS</a>
           <button type="button" style={{ ...opcion, background: '#fff', color: '#0a0230', border: '1.5px solid #d7dae0' }}
-            onClick={() => { navigator.clipboard?.writeText(cuerpo); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>
+            onClick={() => { navigator.clipboard?.writeText(cuerpo); onVia?.('copiar'); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>
             {copiado ? '✓ Copiado' : 'Copiar enlace y mensaje'}
           </button>
           {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
             <button type="button" style={{ ...opcion, background: '#fff', color: '#0a0230', border: '1.5px solid #d7dae0' }}
-              onClick={() => { navigator.share({ title: titulo, text: texto, url }).catch(() => {}); }}>
+              onClick={() => { navigator.share({ title: titulo, text: texto, url }).then(() => onVia?.('otros')).catch(() => {}); }}>
               Más opciones…
             </button>
           )}

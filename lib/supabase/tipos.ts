@@ -845,6 +845,45 @@ export type Database = {
         Relationships: [
         ]
       }
+      deca_compartidos: {
+        Row: {
+          id: string
+          envio_id: string
+          via: string
+          creado_por: string | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          envio_id: string
+          via: string
+          creado_por?: string | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          envio_id?: string
+          via?: string
+          creado_por?: string | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deca_compartidos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deca_compartidos_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deca_motivos: {
         Row: {
           id: string
@@ -3544,6 +3583,7 @@ export type Database = {
       anonimizar_conductor: { Args: { p_conductor: string | null }; Returns: Json }
       anonimizar_contacto: { Args: { p_contacto: string | null }; Returns: Json }
       anonimizar_usuario: { Args: { p_usuario: string | null; p_bloquear_email?: boolean | null; p_bloquear_dominio?: boolean | null }; Returns: Json }
+      anotar_deca_compartido: { Args: { p_envio: string | null; p_via: string | null }; Returns: boolean }
       anotar_motivo_deca: { Args: { p_envio: string | null; p_motivo: string | null }; Returns: boolean }
       anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null; p_fotos?: string[] | null }; Returns: Json }
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }

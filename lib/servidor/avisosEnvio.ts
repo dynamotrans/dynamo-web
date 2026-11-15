@@ -99,7 +99,7 @@ ${pie}`;
 // y su dirección pública (la del QR). Lo llama el archivo de copias cuando guarda una
 // versión nueva; `clave` deja mandarlo también a mano desde el botón «DeCA» de la ficha.
 export async function avisoDecaTransportista(d: { envioId: string; token: string; origen: string; version: string; primera: boolean;
-  pdf: { bytes: Uint8Array; nombre: string }; clave?: string }): Promise<{ estado: 'enviado' | 'error'; para?: string; error?: string }> {
+  pdf: { bytes: Uint8Array; nombre: string }; clave?: string }): Promise<{ estado: 'enviado' | 'error'; para?: string; sinEmail?: boolean; error?: string }> {
   try {
     const sbs = supabaseServicio();
     if (!sbs) return { estado: 'error', error: 'Falta la clave de servicio en el servidor (Vercel).' };
@@ -121,7 +121,7 @@ ${pie}`;
     const r = await enviarEmailOperativo({ clave: d.clave ?? `deca:${d.envioId}:${d.version}`, tipo: 'deca', envioId: d.envioId, para,
       asunto: `${d.primera ? 'DeCA' : 'DeCA actualizado'} · envío #${e.referencia_gx} · Dynamo`, html,
       adjuntos: [{ nombre: d.pdf.nombre, base64: Buffer.from(d.pdf.bytes).toString('base64'), tipo: 'application/pdf' }] });
-    return { ...r, para: para ?? undefined };
+    return { ...r, para: para ?? undefined, sinEmail: !para };
   } catch { return { estado: 'error', error: 'No se ha podido enviar.' }; }
 }
 
