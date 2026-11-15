@@ -52,7 +52,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (!manual) logo = await l.doc.embedPng(await readFile(path.join(process.cwd(), 'images', '2.png')));
   const ref = e.referencia_gx ?? '';
   const emitida = ahoraMadrid();
-  const emitidaDeca = d.deca?.creado_en ? fechaHora(d.deca.creado_en) : emitida;
   // FIRMAS ESTAMPADAS EN EL DeCA (usuario, 2026-11-14): en la copia del conductor —que
   // es el DeCA— el trazo de cada firma del e-CMR queda estampado junto a su sitio (y el
   // del transportista junto a la banda), con un hueco «pendiente» mientras no exista.
@@ -147,10 +146,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   cajaR(l.x0, 36, l.ancho, 18, COLOR.blanco, COLOR.grisClaro, 4);
   l.pag.drawRectangle({ x: l.x0 + 8, y: A4.h - 50.5, width: 3, height: 10, color: COLOR.navy });
   if (copia === 'operativa') {
+    // En el DeCA, la barra lleva solo «DECA» y el nombre oficial a la derecha (usuario,
+    // 2026-11-15: fuera la emisión de la barra; la referencia va en la caja del cargador).
     l.texto(l.x0 + 17, 48, esp('DeCA'), 6.8, { bold: true, color: COLOR.navy });
-    // En el DeCA, la barra lleva la EMISIÓN junto a «DeCA» (usuario, 2026-11-14: la
-    // referencia baja a la caja del cargador contractual) y el nombre oficial a la derecha.
-    l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48, `${t.emitida} ${emitidaDeca}`, 6.6, { color: COLOR.gris });
     l.textoDer(der - 10, 48, esp(DECA_NOMBRE), 5.4, { bold: true, color: COLOR.gris });
   } else {
     // Orden de carga (usuario, 2026-11-15): fuera «Copia administración · Documento
@@ -273,13 +271,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // Tarjeta del QR (compartida por las dos cabeceras). Con transportista y matrícula
   // lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de firmas); si no,
   // el hueco punteado — el diseño no cambia al asignar.
-  const tarjetaQr = async (ct: number, cw: number, chX: number) => {
-    let qrImg: PDFImage | null = null;
+  // El QR se incrusta UNA vez (undefined = aún no se ha intentado) y se reutiliza en la
+  // franja de la hoja 1 y en la cabecera de las hojas siguientes del DeCA.
+  let qrCache: PDFImage | null | undefined;
+  const prepararQr = async () => {
+    if (qrCache !== undefined) return;
+    qrCache = null;
     // En la copia cliente el porteador no viaja en los datos (solo matrículas y
     // conductor): con matrícula ya hay transporte asignado y el QR va igual.
     if (d.deca && (p || esCli) && e.matricula_camion) {
-      try { qrImg = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrImg = null; }
+      try { qrCache = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrCache = null; }
     }
+  };
+  const tarjetaQr = async (ct: number, cw: number, chX: number) => { await prepararQr(); pintaTarjetaQr(ct, cw, chX); };
+  const pintaTarjetaQr = (ct: number, cw: number, chX: number) => {
+    const qrImg = qrCache ?? null;
     const cx = der - cw, r = 8;
     l.pag.drawSvgPath(
       `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${chX - r} Q ${cw} ${chX} ${cw - r} ${chX} H ${r} Q 0 ${chX} 0 ${chX - r} V ${r} Q 0 0 ${r} 0 Z`,
@@ -299,6 +305,28 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + chX - 5, tPie, 5.4, { color: COLOR.gris });
   };
+  // HOJAS SIGUIENTES DEL DeCA (usuario, 2026-11-15): cada hoja nueva repite la cabecera de
+  // la 1.ª en su mismo sitio — barra «DECA», logo, «DeCA» en grande y la tarjeta del QR —
+  // para que cualquier hoja suelta se identifique y se pueda escanear en una inspección.
+  if (copia === 'operativa' && !manual) {
+    await prepararQr();
+    l.alNuevaPagina = () => {
+      cajaR(l.x0, 36, l.ancho, 18, COLOR.blanco, COLOR.grisClaro, 4);
+      l.pag.drawRectangle({ x: l.x0 + 8, y: A4.h - 50.5, width: 3, height: 10, color: COLOR.navy });
+      l.texto(l.x0 + 17, 48, esp('DeCA'), 6.8, { bold: true, color: COLOR.navy });
+      l.textoDer(der - 10, 48, esp(DECA_NOMBRE), 5.4, { bold: true, color: COLOR.gris });
+      if (logo) {
+        const h = 34, w = h * logo.width / logo.height;
+        l.pag.drawImage(logo, { x: l.x0, y: A4.h - 66 - h, width: w, height: h });
+      }
+      l.textoDer(der, 96, 'DeCA', 34, { bold: true, color: COLOR.navy });
+      l.linea(l.x0, 110, der, 110, COLOR.grisClaro, 1.2);
+      [COLOR.morado, COLOR.verde, NARANJA].forEach((c2, i2) =>
+        l.pag.drawRectangle({ x: l.x0 + i2 * 18, y: A4.h - 110 - 1.5, width: 16, height: 3, color: c2 }));
+      pintaTarjetaQr(118, 96, 112);
+      l.y = 118 + 112 + 12;
+    };
+  }
 
   if (!manual) {
     // ---- FRANJA de partes y QR (usuario, 2026-11-14). En el DeCA son CUATRO bloques en
@@ -675,6 +703,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (copia === 'operativa' && !manual) {
     seccion(t.modifTitulo);
     const mods = d.modificaciones ?? [];
+    // La EMISIÓN del documento abre el panel (usuario, 2026-11-15: salió de la barra de
+    // arriba): misma forma que las modificaciones, «dd/mm/aaaa hh:mm · Emisión del documento».
+    if (d.deca?.creado_en) {
+      const f = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+        .formatToParts(new Date(d.deca.creado_en));
+      const v = (k: string) => f.find((x) => x.type === k)?.value ?? '';
+      l.sitio(13);
+      l.parrafo(`${v('day')}/${v('month')}/${v('year')} ${v('hour')}:${v('minute')} · ${t.modifEmision}`, 7.4, { color: COLOR.navy, despues: 2.5 });
+    }
     if (!mods.length) {
       l.sitio(16);
       l.parrafo(t.modifNinguna, 7.6, { color: COLOR.gris, despues: 8 });
