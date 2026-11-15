@@ -49,6 +49,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Alta online de transportistas', claves: ['alta_online_max_pendientes_carga', 'alta_online_max_dia'] },
     { titulo: 'Plazo de pago', claves: ['plazo_pago_transportista_dias'] },
     { titulo: 'Pronto pago', claves: ['pronto_pago_encendido', 'pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'pronto_pago_linea_euros', 'pronto_pago_ventana_dias'] },
+    { titulo: 'Oferta escalonada por email', claves: ['difusion_dias_antes', 'difusion_hora_carga_defecto', 'difusion_horas_corte', 'difusion_hora_inicio', 'difusion_hora_fin', 'difusion_recordatorio_hora', 'difusion_max_contactados', 'difusion_cadencia', 'difusion_minutos_entre_emails'] },
   ] },
   { id: 'operativa', titulo: 'Operativa', intro: 'Recogida, entrega, almacenaje y horarios.', subs: [
     { titulo: 'PIN de recogida y entrega', claves: ['pin_cifras', 'pin_max_intentos', 'pin_orden_obliga', 'pin_ventana_horas_antes', 'pin_ventana_horas_despues'] },
@@ -67,6 +68,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
     { titulo: 'Sesión: días sin volver a escribir la contraseña', claves: ['sesion_recordar_dias', 'sesion_dias'] },
     { titulo: 'Protección de datos', claves: ['rgpd_limpieza_activa', 'rgpd_telefono_conductor_anios'] },
+    { titulo: 'Dirección pública de la plataforma', claves: ['url_plataforma'] },
   ] },
   { id: 'dynamo', titulo: 'Datos de Dynamo en los documentos', intro: 'Lo que sale en la orden de carga, el CMR y las proformas.', subs: [
     { titulo: 'Empresa', claves: ['dynamo_razon_social', 'dynamo_cif', 'dynamo_tarjeta_ot', 'dynamo_wtransnet'] },
@@ -76,12 +78,15 @@ const SECCIONES: Seccion[] = [
   ] },
 ];
 const CONOCIDAS = new Set([...SECCIONES.flatMap((s) => s.subs.flatMap((u) => u.claves)), ...BANCO]);
-const texto = (v: unknown) => (v === null ? '' : typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : JSON.stringify(v));
+const texto = (v: unknown): string => (v === null ? '' : typeof v === 'string' ? v : Array.isArray(v) ? v.map((x) => (x !== null && typeof x === 'object' ? JSON.stringify(x) : texto(x))).join(' · ') : JSON.stringify(v));
 // Quita tildes y mayúsculas para buscar («cesce» encuentra «CESCE», «dias» encuentra «días»).
 const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export default function Parametros({ filas, esAdmin, error, candidatos = [] }: { filas: ParametroFila[]; esAdmin: boolean; error: string | null; candidatos?: Candidato[] }) {
   const [q, setQ] = useState('');
+  // Índice desplegable «Ir a…» (usuario, 2026-11-15).
+  const [salto, setSalto] = useState('');
+  const [saltoAbierto, setSaltoAbierto] = useState(false);
   const secciones = useMemo(() => {
     const porClave = new Map(filas.map((p) => [p.clave, p]));
     const b = norm(q.trim());
@@ -112,6 +117,9 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
     }).filter((s) => s.ver);
   }, [filas, q]);
   const total = secciones.reduce((n, s) => n + s.subsV.reduce((m, u) => m + u.filas.length, 0) + s.filasEsp.length, 0);
+  const destinos = secciones.flatMap((s) => [{ id: `prm-${s.id}`, titulo: s.titulo, sub: '' },
+    ...s.subsV.map((u) => ({ id: `prm-${u.id}`, titulo: u.titulo, sub: s.titulo }))]);
+  const destinosV = destinos.filter((d) => !salto.trim() || norm(`${d.titulo} ${d.sub}`).includes(norm(salto.trim()))).slice(0, 12);
 
   return (
     <section className="section active" id="sec-parametros">
@@ -128,16 +136,25 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
         <input type="search" className="param-input" placeholder="Buscar: «negociación», «PIN», «IBAN», «días»…" value={q}
           onChange={(e) => setQ(e.target.value)} aria-label="Buscar parámetro" style={{ maxWidth: 360, width: '100%' }} />
         {q && <span className="meta">{total ? `${total} encontrado${total === 1 ? '' : 's'}` : 'Nada con esa palabra'}</span>}
-        {/* TODAS las secciones y subsecciones (usuario, 2026-11-11: «faltan algunos como
-            pronto pago»): el chip gordo lleva a la sección y los finos a cada apartado. */}
-        <nav className="prm-saltos" aria-label="Secciones de parámetros">
-          {secciones.map((s) => (
-            <span key={s.id} className="prm-salto-grupo">
-              <a href={`#prm-${s.id}`} className="prm-salto">{s.titulo}</a>
-              {s.subsV.map((u) => <a key={u.id} href={`#prm-${u.id}`} className="prm-salto prm-salto-sub">{u.titulo}</a>)}
-            </span>
-          ))}
-        </nav>
+        {/* Índice en DESPLEGABLE con búsqueda (usuario, 2026-11-15: los chips de todas las
+            secciones y apartados ocupaban media pantalla): se escribe y se salta. */}
+        <div style={{ position: 'relative', maxWidth: 360, width: '100%' }}>
+          <input type="text" className="param-input" placeholder="Ir a…" value={salto}
+            onChange={(e) => { setSalto(e.target.value); setSaltoAbierto(true); }}
+            onFocus={() => setSaltoAbierto(true)} onBlur={() => setTimeout(() => setSaltoAbierto(false), 150)}
+            aria-label="Ir a una sección o apartado" style={{ width: '100%' }} />
+          {saltoAbierto && (
+            <ul className="ptar-sug" role="listbox">
+              {destinosV.map((d) => (
+                <li key={d.id} role="option" aria-selected={false} onMouseDown={(ev) => { ev.preventDefault(); setSaltoAbierto(false); setSalto('');
+                  document.getElementById(d.id)?.scrollIntoView({ behavior: 'smooth' }); }}>
+                  {d.sub ? <><strong>{d.titulo}</strong><span className="sug-dir">{d.sub}</span></> : <strong>{d.titulo}</strong>}
+                </li>
+              ))}
+              {destinosV.length === 0 && <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Nada con ese nombre.</li>}
+            </ul>
+          )}
+        </div>
       </div>
 
       {secciones.map((s) => (

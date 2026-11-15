@@ -149,22 +149,17 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
 .content .meta { font-size: var(--fs-s); }
 /* Parámetros: buscador + índice de secciones (fijo arriba al bajar) y subsecciones. */
 #sec-parametros .prm-indice { position: sticky; top: 64px; z-index: 5; background: var(--gray-50, #f7f8fa); padding: 0.5rem 0 0.6rem; margin-bottom: 0.6rem; border-bottom: 1px solid var(--gray-200); display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; }
-#sec-parametros .prm-saltos { display: flex; flex-wrap: wrap; gap: 0.35rem; width: 100%; }
-#sec-parametros .prm-salto { font-size: var(--fs-s); font-weight: 700; color: var(--purple); background: #fff; border: 1px solid rgba(51,0,204,0.25); border-radius: 999px; padding: 0.2rem 0.7rem; text-decoration: none; white-space: nowrap; }
-#sec-parametros .prm-salto:hover { background: rgba(51,0,204,0.08); }
-#sec-parametros .prm-seccion { margin-bottom: 1.4rem; scroll-margin-top: 13rem; }
+/* El índice de chips pasó a desplegable con búsqueda (usuario, 2026-11-15: ocupaba
+   media pantalla); el margen de las anclas baja acorde y cubre TAMBIÉN los apartados
+   (.prm-sub), que antes quedaban con el título escondido bajo la barra pegajosa. */
+#sec-parametros .prm-seccion { margin-bottom: 1.4rem; scroll-margin-top: 10rem; }
 @media (max-width: 768px) {
   #sec-parametros .prm-indice { position: static; }
   #sec-parametros .prm-seccion { scroll-margin-top: 5rem; }
 }
-#sec-parametros .prm-sub { margin: 0 0 0.8rem 0; padding-left: 0.7rem; border-left: 3px solid rgba(51,0,204,0.18); scroll-margin-top: 13rem; }
+#sec-parametros .prm-sub { margin: 0 0 0.8rem 0; padding-left: 0.7rem; border-left: 3px solid rgba(51,0,204,0.18); scroll-margin-top: 10rem; }
 #sec-parametros .prm-sub-titulo { font-size: var(--fs-m); font-weight: 800; color: var(--navy); margin-bottom: 0.35rem; }
 @media (max-width: 768px) { #sec-parametros .prm-sub { scroll-margin-top: 5rem; } }
-/* Índice con TODAS las secciones y apartados (usuario, 2026-11-11): el chip morado es
-   la sección y los finos grises, sus apartados; cada uno salta a su sitio. */
-#sec-parametros .prm-salto-grupo { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-right: 0.45rem; }
-#sec-parametros .prm-salto-sub { color: var(--gray-600); border-color: var(--gray-300); background: var(--gray-50, #f7f8fa); font-weight: 600; }
-#sec-parametros .prm-salto-sub:hover { background: #fff; border-color: var(--purple); color: var(--purple); }
 
 /* «Uso de Dynamo» (usuario, 2026-11-11): barras de uso al estilo del panel de Claude —
    etiqueta y detalle a la izquierda, barra fina redondeada y «X de Y · Z %» al final. */
