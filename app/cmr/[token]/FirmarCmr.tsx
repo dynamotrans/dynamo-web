@@ -139,7 +139,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el CMR al momento. Si dejaste tu email, tu copia va de camino; al completarse todas las firmas, la copia final llegará por email a todas las partes.</p>
       <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
         padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
-        Ver el CMR / DeCA en PDF · con las firmas actuales
+        Ver el CMR en PDF · con las firmas actuales
       </a>
       {/* Salir SÍ lleva a la web de Dynamo, pero solo desde aquí (usuario, 2026-11-11). */}
       <a href="/" style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center', textDecoration: 'none',
@@ -179,7 +179,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {/* Cabecera en caja gris suave y formal (usuario, 2026-11-11). */}
       {/* Cabecera corta (usuario, 2026-11-12): título y nº de envío, sin más. */}
       <div className="cab-caja">
-        <h1>CMR / DeCA digital</h1>
+        <h1>CMR digital</h1>
         <p className="sub">Envío <strong>{cmr.referencia}</strong></p>
       </div>
   </>);
@@ -294,7 +294,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--navy)' }}>Firmen el CMR con el dedo desde el móvil, sin crear cuenta</p>
         <button type="button" onClick={() => setMasInfo((v) => !v)} aria-expanded={masInfo}
           style={{ margin: '0.25rem 0 0', padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--purple)' }}>
-          100% seguro, digital y legal. Protocolo eIDAS ~ Orden FOM/2861/2012. {masInfo ? '▴' : '▾'}
+          100% seguro, digital y legal. Protocolo eIDAS. {masInfo ? '▴' : '▾'}
         </button>
         {masInfo && (
           <div style={{ marginTop: '0.5rem', textAlign: 'left', fontSize: '0.78rem', color: 'var(--gray-700)', lineHeight: 1.5 }}>
@@ -306,10 +306,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               <strong> internacionalmente</strong> la carta de porte electrónica.
             </p>
             <p style={{ margin: 0 }}>
-              <strong>Base legal:</strong> Orden FOM/2861/2012, de 13 de diciembre (documento de control administrativo del transporte público de mercancías
-              por carretera), <strong>art. 6</strong>: el documento de control puede llevarse en <strong>soporte electrónico</strong> siempre que recoja los
-              datos exigidos y pueda mostrarse en una inspección en carretera. El DeCA va en las primeras hojas del PDF con todos esos datos, su QR, su
-              nº único y su histórico, y <strong>no lleva firmas</strong>: las firmas de esta página son del CMR (carta de porte). En transporte <strong>internacional</strong> rige el Convenio CMR (Ginebra, 19-may-1956) y no se exige DeCA.
+              El <strong>documento de control (DeCA)</strong> de la Orden FOM/2861/2012 es <strong>otro documento</strong>, sin firmas: el transportista
+              lo recibe aparte, con su propio QR. En transporte <strong>internacional</strong> rige el Convenio CMR (Ginebra, 19-may-1956) y no se exige DeCA.
             </p>
           </div>
         )}
@@ -326,7 +324,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener"
             style={{ display: 'block', margin: '0 0 0.7rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
               padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, boxShadow: '0 3px 10px rgba(29,158,87,0.3)' }}>
-            Abrir el CMR / DeCA en PDF · con las firmas actuales
+            Abrir el CMR en PDF · con las firmas actuales
           </a>
         ) : null;
         const antes = !!firmadasVista.length;   // con firmadas va DELANTE de la 1.ª; sin ellas, DETRÁS de la última pendiente

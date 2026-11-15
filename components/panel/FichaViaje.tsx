@@ -112,10 +112,23 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
     if (w) w.location.href = url; else window.location.href = url;
   }
 
+  // El DeCA (documento de control) de SU viaje, en PDF: el mismo que abre su QR.
+  async function abrirDeca() {
+    const w = window.open('about:blank', '_blank');
+    setTrabajando('Abriendo el DeCA');
+    const r = await enlaceCmrPropio(e.id);
+    setTrabajando(null);
+    if (!r.ok) { w?.close(); setAviso({ ok: false, txt: r.error }); return; }
+    const url = `/deca/${r.token}`;
+    if (w) w.location.href = url; else window.location.href = url;
+  }
+
   const acciones = (
     <>
       {activo && siguiente && <button className="btn-primary" disabled={!!trabajando} onClick={() => avanzar(siguiente[0])}><I d={ICO.fase} />{siguiente[1]}</button>}
       {e.estado !== 'cancelado' && <button className="btn-secondary" disabled={!!trabajando} onClick={abrirCmr}><I d={ICO.firma} />CMR digital para firmar</button>}
+      {e.estado !== 'cancelado' && !!e.matricula_camion && <button className="btn-secondary" disabled={!!trabajando} onClick={abrirDeca}
+        title="El documento de control que debe llevar el conductor"><I d={ICO.doc} />DeCA (PDF)</button>}
       {e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
       <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>
     </>

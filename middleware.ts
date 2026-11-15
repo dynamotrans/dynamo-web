@@ -6,7 +6,7 @@ import { sesionCaducada } from '@/lib/supabase/duracionSesion';
 import { CABECERA_CSP, INFORME_CSP, cspPlataforma, nuevoNonce } from '@/lib/csp';
 
 // Refresca la sesión de Supabase en cada petición de la plataforma y protege /panel:
-// sin sesión, a la página de entrada. Y en TODA la plataforma (/panel, /carga, /cmr) pone
+// sin sesión, a la página de entrada. Y en TODA la plataforma (/panel, /carga, /cmr, /deca) pone
 // la política de seguridad de contenido con una llave de un solo uso (lib/csp.ts).
 export async function middleware(request: NextRequest) {
   const nonce = nuevoNonce();
@@ -77,4 +77,4 @@ export async function middleware(request: NextRequest) {
   return conCsp(respuesta);
 }
 
-export const config = { matcher: ['/panel', '/panel/:path*', '/carga/:path*', '/cmr/:path*'] };
+export const config = { matcher: ['/panel', '/panel/:path*', '/carga/:path*', '/cmr/:path*', '/deca/:path*'] };

@@ -67,7 +67,7 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
   return r;
 }
 
-// Copia archivada del CMR / DeCA cuando el transportista acepta o pone sus matrículas
+// Copia archivada del DeCA cuando el transportista acepta o pone sus matrículas
 // (conservación legal de un año). Después de responder y sin romper nunca la acción.
 async function copiaDecaDeReserva(reserva: string) {
   const { programarCopiaDeca } = await import('@/lib/servidor/archivoDeca');

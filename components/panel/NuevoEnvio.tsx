@@ -919,7 +919,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     ] : creado.modo === 'manual' ? [
       <>El envío queda <strong>programado con tu operador</strong>: Dynamo no interviene en nada.</>,
       <>Desde la ficha puedes sacar la <strong>orden de carga en PDF</strong> y apuntar matrícula y conductor.</>,
-      <>El seguimiento y el CMR / DeCA funcionan igual que en cualquier envío.</>,
+      <>El seguimiento funciona igual que en cualquier envío.</>,
     ] : [
       <>El envío queda <strong>programado y pendiente de transportista</strong>.</>,
       <>Asígnalo desde la ficha: a mano, por <strong>enlace</strong> o con la <strong>oferta escalonada por email</strong>.</>,

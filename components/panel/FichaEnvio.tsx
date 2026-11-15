@@ -35,6 +35,7 @@ import { Valoracion } from './ficha/Valoracion';
 import { CmrDigital } from './ficha/CmrDigital';
 import { Ofrecer } from './ficha/Ofrecer';
 import { CompartirOrden } from './ficha/CompartirOrden';
+import { Deca } from './ficha/Deca';
 
 // ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
 // Rótulo de los bloques DENTRO de la sección unificada «Envío» (usuario, 2026-11-10:
@@ -81,7 +82,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   const refrescar = useRefrescar();
   const e = ficha.envio;
   const [vista, setVista] = useState<Vista>('ficha');
-  // Hoja del eCMR + DeCA (pegada al pie, como «Más acciones»): todo lo del CMR junto.
+  // Hoja del eCMR (pegada al pie, como «Más acciones»): todo lo del CMR junto.
   const [cmrAbierto, setCmrAbierto] = useState(false);
   const [cmrNoDisp, setCmrNoDisp] = useState(false);   // manual: ventana «solo con Dynamo»
   const [camionAbierto, setCamionAbierto] = useState(false);   // manual: camión y conductor
@@ -138,15 +139,15 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
     </>
   ) : (
     <>
-      {/* eCMR + DeCA EL PRIMERO y siempre a mano (usuario, 2026-11-10): TODO lo del CMR
+      {/* eCMR EL PRIMERO y siempre a mano (usuario, 2026-11-10): TODO lo del CMR
           unificado detrás de este botón (vista propia: firmar, compartir el enlace, el
           PDF relleno y el registro de firmas). Ámbar con el contador; verde al completarse. */}
       {/* Envío manual (usuario, 2026-11-14): el botón se queda, BLOQUEADO en gris — al
           pulsarlo, la ventana explica que el eCMR digital solo va con envíos de Dynamo. */}
       <button type="button" className="btn-primary" onClick={() => (manual ? setCmrNoDisp(true) : setCmrAbierto(true))}
-         title={manual ? 'Solo disponible en envíos contratados con Dynamo' : 'Todo el eCMR + DeCA: firmar, compartir el enlace y el PDF relleno con el QR.'}
+         title={manual ? 'Solo disponible en envíos contratados con Dynamo' : 'Todo el eCMR: firmar, compartir el enlace y el PDF relleno con las firmas.'}
          style={{ background: manual ? 'var(--gray-400)' : firmasHechas >= firmasTotal ? 'var(--green)' : '#d97706' }}>
-        <I d={ICO.doc} />eCMR + DeCA
+        <I d={ICO.doc} />eCMR
         {!manual && <span style={{ marginLeft: '0.3rem', padding: '0.1rem 0.55rem', borderRadius: 999, fontSize: 'var(--fs-s)', fontWeight: 800, background: 'rgba(255,255,255,0.24)', color: '#fff' }}>
           {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}
         </span>}
@@ -164,6 +165,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
             imprimirlo y firmarlo a mano — sale sin QR, sin firma digital y sin mención a Dynamo.
           </p>
         </Modal>
+      )}
+      {/* DeCA: botón PROPIO (usuario, 2026-11-15), aparte del CMR. Aparece cuando el
+          documento ya está emitido —transportista con sus matrículas— y abre sus tres
+          opciones: enviar al transportista, compartir y abrir el PDF. */}
+      {!manual && ficha.transportista && !!e.matricula_camion && !ficha.faltanMatriculas && (
+        <button type="button" className="btn-secondary" onClick={() => setVista('deca')}
+          title="Documento de control: enviarlo al transportista, compartirlo o abrir el PDF"><I d={ICO.doc} />DeCA</button>
       )}
       {/* Orden de carga FUERA del menú «Más» (usuario, 2026-11-11): botón propio junto al
           eCMR, visible solo cuando ya hay a quién mandarla (transportista asignado; en el
@@ -218,6 +226,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} fallo={fallo} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
   if (vista === 'orden') return <CompartirOrden ficha={ficha} onVolver={() => setVista('ficha')} />;
+  if (vista === 'deca') return <Deca ficha={ficha} onVolver={() => setVista('ficha')} />;
 
   // ---- Cabecera «vital»: lo que se mira el 90 % de las veces, sin scroll ------------
   const rutaCorta = [recogidas[0]?.poblacion, entregas[entregas.length - 1]?.poblacion].filter(Boolean).join(' → ');
@@ -433,7 +442,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {/* Documentos detrás del envío; después Transporte, Ofertas y el resto. */}
       <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="adjuntos y copias">
         <div className="det-block">
-          {/* TODO lo del CMR vive detrás del botón ámbar «eCMR + DeCA» de arriba. SIN
+          {/* TODO lo del CMR vive detrás del botón ámbar «eCMR» de arriba. SIN
               selector de tipo: se sube y punto (tipo «Otro»); la visibilidad la decide
               la casilla «Lo ve el cliente» de cada fila. */}
           <Documentos dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente tipos={['otro']} />
@@ -572,14 +581,14 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         </div>
         <Historial tabla="envios" id={e.id} />
       </Secc>
-      {/* HOJA del eCMR + DeCA pegada al pie (usuario, 2026-11-10): mismas piezas que el
+      {/* HOJA del eCMR pegada al pie (usuario, 2026-11-10): mismas piezas que el
           menú «Más» (velo + hoja en portal sobre body), con todo lo del CMR dentro. */}
       {cmrAbierto && createPortal(<>
         <div className="ficha-mas-backdrop" onClick={() => setCmrAbierto(false)} />
-        <div className="ficha-mas-menu fm-hoja-cmr" role="dialog" aria-label="eCMR + DeCA">
+        <div className="ficha-mas-menu fm-hoja-cmr" role="dialog" aria-label="eCMR">
           <div className="fm-asa" aria-hidden="true" />
           <div className="fm-cab">
-            <span>eCMR + DeCA · {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}</span>
+            <span>eCMR · {firmasHechas}/{firmasTotal} firmas{firmasHechas >= firmasTotal ? ' ✓' : ''}</span>
             <button type="button" className="fm-x" aria-label="Cerrar" onClick={() => setCmrAbierto(false)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="M6 6l12 12" /></svg>
             </button>

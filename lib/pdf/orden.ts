@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument, rgb, type PDFImage, type RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from './lienzo';
-import { DYNAMO, emisionDeca, type DatosDoc, type ParadaDoc } from './datos';
+import { DYNAMO, emisionDeca, urlDeca, type DatosDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrden } from './ordenTextos';
 
@@ -235,7 +235,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     // el conductor va en el DeCA (copia del conductor), que es donde hace falta.
   ];
   // Tarjeta del QR (compartida por las dos cabeceras). Con transportista y matrícula
-  // lleva el QR real (abre el PDF completo del CMR-DeCA con la hoja de firmas); si no,
+  // lleva el QR real (descarga el DeCA en PDF, un documento aparte del CMR); si no,
   // el hueco punteado — el diseño no cambia al asignar.
   // El QR se incrusta UNA vez (undefined = aún no se ha intentado) y se reutiliza en la
   // franja de la hoja 1 y en la cabecera de las hojas siguientes del DeCA.
@@ -246,7 +246,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     // En la copia cliente el porteador no viaja en los datos (solo matrículas y
     // conductor): con matrícula ya hay transporte asignado y el QR va igual.
     if (d.deca && (p || esCli) && e.matricula_camion && !faltaRem) {
-      try { qrCache = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrCache = null; }
+      try { qrCache = await l.doc.embedPng(await QRCode.toBuffer(urlDeca(d.deca.url), { margin: 0, scale: 4 })); } catch { qrCache = null; }
     }
   };
   const tarjetaQr = async (ct: number, cw: number, chX: number) => { await prepararQr(); pintaTarjetaQr(ct, cw, chX); };
@@ -256,7 +256,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.pag.drawSvgPath(
       `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${chX - r} Q ${cw} ${chX} ${cw - r} ${chX} H ${r} Q 0 ${chX} 0 ${chX - r} V ${r} Q 0 0 ${r} 0 Z`,
       { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
-    const tTit = 'QR e-CMR / DeCA';
+    const tTit = 'QR DeCA';
     l.texto(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, { bold: true, color: COLOR.navy });
     // El QR crece hasta llenar la tarjeta (usuario, 2026-11-15): todo el hueco entre el
     // título y el pie, con el ancho de la caja como tope, y centrado en vertical.
@@ -418,7 +418,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // La franja morada (nº, fecha, matrículas) va a la IZQUIERDA con el texto del
   // documento de control debajo, y la tarjeta del QR a la DERECHA a la misma altura.
   // EN LAS DOS COPIAS (usuario, 2026-11-13: «con precio o sin precios, ambas deben
-  // llevar el DeCA QR»): el QR abre el eCMR/DeCA público, que no enseña precios.
+  // llevar el DeCA QR»): el QR abre el DeCA público, que no enseña precios.
   const franja: [string, string][] = [
     [t.nEnvio, ref], [t.fechaCargaL, ventanaCarga],
     [t.matriculasAutL, matr || t.pendAsignar],

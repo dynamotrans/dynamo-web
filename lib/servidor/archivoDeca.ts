@@ -6,21 +6,25 @@ import type { SB } from '@/lib/supabase/cliente';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { cargarDatosCmrPorToken, emisionDeca } from '@/lib/pdf/datos';
-import { pdfCmrDeDatosPublicos } from '@/lib/pdf/generar';
+import { pdfDecaDeDatos } from '@/lib/pdf/generar';
 
-// ---- ARCHIVO AUTOMÁTICO DE COPIAS DEL CMR / DeCA (usuario, 2026-11-15) -----------------
+// ---- ARCHIVO AUTOMÁTICO DE COPIAS DEL DeCA (usuario, 2026-11-15) -----------------------
 // Resolución de 5-jun-2026, apdo. segundo.4, y Orden FOM/2861/2012, art. 9: los ficheros
 // generados del documento de control se conservan al menos un año. El PDF se genera al
 // vuelo cada vez que alguien lo abre, así que aquí se guarda una COPIA de cada versión:
 //   · al cambiar el documento ya emitido (matrículas, transportista, ruta, fecha,
-//     mercancía, cada firma), y
+//     mercancía…), y
 //   · cada vez que se sirve una versión que todavía no estaba guardada (red de seguridad).
-// La copia es EXACTAMENTE el PDF del enlace público (el del QR), con su huella sha256, en
-// `documentos` (tipo deca_copia). La base de datos no deja cambiarla ni borrarla en un año.
+// La copia es EXACTAMENTE el PDF de la dirección pública del DeCA (/deca/<nº>, la de su
+// QR), con su huella sha256, en `documentos` (tipo deca_copia). La base de datos no deja
+// cambiarla ni borrarla en un año. El CMR y sus firmas son OTRO documento y no entran.
+//
+// CADA VERSIÓN NUEVA SE ENVÍA SOLA AL TRANSPORTISTA por email, con el PDF adjunto: la
+// primera al emitirse (primeras matrículas) y las siguientes como «DeCA actualizado».
 //
 // Antes de la emisión (sin matrículas) el documento es un borrador y no se archiva.
 // Quién escribe: la clave de servicio si está; si no, la sesión de Dynamo que dispara el
-// cambio. Sin ninguna de las dos (firma pública en un despliegue sin clave de servicio) la
+// cambio. Sin ninguna de las dos (página pública en un despliegue sin clave de servicio) la
 // copia se guarda en cuanto Dynamo abra la ficha o cambie algo. Nunca rompe la acción.
 
 type Peticion = {
@@ -60,18 +64,19 @@ export async function archivarCopiaDeca(a: Peticion & { origen: string }): Promi
     }
     if (!token) return 'sin_enlace';
 
-    // Los MISMOS datos y el mismo PDF que sirve el QR.
+    // Los MISMOS datos y el mismo PDF que sirve el QR del DeCA.
     const r = await cargarDatosCmrPorToken(lector, token);
-    if (!r.datos || r.datos.manual || !r.decaCreado) return 'sin_enlace';
+    if (!r.datos || r.datos.manual || !r.decaCreado || !r.datos.porteador) return 'sin_enlace';
     if (!emisionDeca(r.datos)) return 'sin_emitir';
     envioId = String(r.datos.envio.id);
 
-    // Versión = huella de TODO lo que pinta el documento (datos, firmas, modificaciones y
-    // la dirección del QR). Misma versión → misma copia: no se guarda dos veces. El estado
-    // del seguimiento no se pinta en el documento: no cuenta como versión nueva.
+    // Versión = huella de TODO lo que pinta el DeCA (datos, histórico y la dirección del
+    // QR). Misma versión → misma copia: no se guarda dos veces. No cuentan el estado del
+    // seguimiento ni la hora real de carga (no se pintan), ni las firmas y reservas (son
+    // del CMR, otro documento).
     const huellaDatos = createHash('sha256')
-      .update(JSON.stringify({ o: a.origen, t: token, d: { ...r.datos, envio: { ...r.datos.envio, estado: undefined } } },
-        (k, v) => (k === 'png' ? undefined : v)))
+      .update(JSON.stringify({ o: a.origen, t: token,
+        d: { ...r.datos, firmas: undefined, reservas: undefined, envio: { ...r.datos.envio, estado: undefined, fecha_carga_real: undefined } } }))
       .digest('hex').slice(0, 12);
     const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
     const nombre = `DeCA-${ref}-${huellaDatos}.pdf`;
@@ -79,7 +84,9 @@ export async function archivarCopiaDeca(a: Peticion & { origen: string }): Promi
       .eq('nombre_archivo', nombre).limit(1);
     if (ya?.length) return 'ya_estaba';
 
-    const { bytes } = await pdfCmrDeDatosPublicos(r.datos, r.decaCreado, token, a.origen);
+    const { count: anteriores } = await escritor.from('documentos').select('id', { count: 'exact', head: true })
+      .eq('envio_id', envioId).eq('tipo', 'deca_copia');
+    const { bytes } = await pdfDecaDeDatos(r.datos, r.decaCreado, token, a.origen);
     const ruta = `envios/${envioId}/deca/${randomUUID()}/${nombre}`;
     const { error: eSubida } = await escritor.storage.from('documentos').upload(ruta, bytes, { contentType: 'application/pdf', upsert: false });
     if (eSubida) { console.error('[archivoDeca] no se ha podido subir la copia', { envioId, mensaje: eSubida.message }); return 'error'; }
@@ -94,6 +101,10 @@ export async function archivarCopiaDeca(a: Peticion & { origen: string }): Promi
       console.error('[archivoDeca] no se ha podido registrar la copia', { envioId, codigo: error.code, mensaje: error.message });
       return 'error';
     }
+    // La versión nueva, al transportista (sola y una vez: la clave del email es la versión).
+    const { avisoDecaTransportista } = await import('@/lib/servidor/avisosEnvio');
+    await avisoDecaTransportista({ envioId, token, origen: a.origen, version: huellaDatos, primera: !anteriores,
+      pdf: { bytes, nombre: `DeCA-${ref}.pdf` } });
     return 'guardada';
   } catch (e) {
     console.error('[archivoDeca] fallo al archivar la copia', e);

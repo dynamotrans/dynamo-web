@@ -29,6 +29,7 @@ const nextConfig = {
     '/panel/envios/[id]/[documento]': ['./images/2.png', './images/cmr-fondo-*.jpg', './lib/pdf/recursos/*.png'],
     '/panel/envios': ['./images/2.png', './images/cmr-fondo-*.jpg', './lib/pdf/recursos/*.png'],
     '/carga/[token]/orden-de-carga': ['./images/2.png', './lib/pdf/recursos/*.png'],
+    '/deca/[token]': ['./images/2.png', './lib/pdf/recursos/*'],
     '/panel/almacenamientos/[id]/proforma': ['./images/4.png'],
     '/panel/recursos/[documento]': ['./images/cmr-fondo-*.jpg'],
   },
@@ -36,7 +37,7 @@ const nextConfig = {
   // en modo SOLO AVISAR, y aislar la ventana de otras webs (Cross-Origin-Opener-Policy).
   async headers() {
     return [
-      { source: '/((?!panel|carga|cmr|api|_next).*)', headers: [
+      { source: '/((?!panel|carga|cmr|deca|api|_next).*)', headers: [
         { key: 'Content-Security-Policy-Report-Only', value: CSP_PUBLICA },
         { key: 'Reporting-Endpoints', value: 'csp="/api/csp-informe"' },
       ] },

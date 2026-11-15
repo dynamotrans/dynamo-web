@@ -62,7 +62,7 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string):
     const fecha = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? null;
     const html = `<p>Hola,</p>
 <p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fecha)}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos y las condiciones.</p>
-${enlFirma ? `<p>Firma en este enlace tu e-CMR/DeCA DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}
+${enlFirma ? `<p>Firma en este enlace tu e-CMR DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}
 ${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
 <p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
 ${pie}`;
@@ -91,6 +91,38 @@ ${pie}`;
         para: paraCli, asunto: `Transporte confirmado · envío #${e.referencia_gx} · Dynamo`, html: htmlCli, adjuntos: adjCli });
     }
   } catch { /* el aviso nunca rompe la asignación */ }
+}
+
+// ---- 1-bis. El DeCA al transportista (usuario, 2026-11-15) ----------------------------
+// El DeCA es un documento aparte del CMR y lleva su propio camino: se emite al ponerse las
+// primeras matrículas y CADA VERSIÓN se le envía sola al transportista, con el PDF adjunto
+// y su dirección pública (la del QR). Lo llama el archivo de copias cuando guarda una
+// versión nueva; `clave` deja mandarlo también a mano desde el botón «DeCA» de la ficha.
+export async function avisoDecaTransportista(d: { envioId: string; token: string; origen: string; version: string; primera: boolean;
+  pdf: { bytes: Uint8Array; nombre: string }; clave?: string }): Promise<{ estado: 'enviado' | 'error'; para?: string; error?: string }> {
+  try {
+    const sbs = supabaseServicio();
+    if (!sbs) return { estado: 'error', error: 'Falta la clave de servicio en el servidor (Vercel).' };
+    const { data: e } = await sbs.from('envios')
+      .select('referencia_gx, transportista_id, es_manual, matricula_camion, matricula_remolque, conductor_nombre')
+      .eq('id', d.envioId).maybeSingle();
+    if (!e?.transportista_id || e.es_manual) return { estado: 'error', error: 'Este envío no tiene transportista asignado.' };
+    const para = await emailTransportista(sbs, e.transportista_id);
+    const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
+    const enlace = `${d.origen}/deca/${d.token}`;
+    const html = `<p>Hola,</p>
+<p>${d.primera
+    ? `Va adjunto el <strong>DeCA</strong> (documento de control administrativo) del envío <strong>#${esc(e.referencia_gx)}</strong>`
+    : `El <strong>DeCA</strong> del envío <strong>#${esc(e.referencia_gx)}</strong> ha cambiado. Va adjunta la <strong>versión vigente</strong>, que sustituye a la anterior`}${matr ? ` · matrículas <strong>${esc(matr)}</strong>` : ''}${e.conductor_nombre ? ` · conductor ${esc(e.conductor_nombre)}` : ''}.</p>
+<p><strong>El conductor debe llevarlo durante todo el transporte</strong>, en el móvil o impreso, y enseñarlo si se lo piden en una inspección (Orden FOM/2861/2012).</p>
+<p>Siempre al día en esta dirección, la misma que abre su código QR: <a href="${enlace}">${enlace}</a></p>
+<p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
+${pie}`;
+    const r = await enviarEmailOperativo({ clave: d.clave ?? `deca:${d.envioId}:${d.version}`, tipo: 'deca', envioId: d.envioId, para,
+      asunto: `${d.primera ? 'DeCA' : 'DeCA actualizado'} · envío #${e.referencia_gx} · Dynamo`, html,
+      adjuntos: [{ nombre: d.pdf.nombre, base64: Buffer.from(d.pdf.bytes).toString('base64'), tipo: 'application/pdf' }] });
+    return { ...r, para: para ?? undefined };
+  } catch { return { estado: 'error', error: 'No se ha podido enviar.' }; }
 }
 
 // ---- 2. Firmas del CMR (página pública) ---------------------------------------------

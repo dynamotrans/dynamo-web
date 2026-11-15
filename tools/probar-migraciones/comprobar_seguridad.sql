@@ -9613,7 +9613,7 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
--- ---- 233. El CMR / DeCA digital a cada sitio: el mismo día a las 7:00 y 1 h antes --------
+-- ---- 233. El CMR digital a cada sitio: el mismo día a las 7:00 y 1 h antes ---------------
 -- Martes fijo con hora fijada (p_ahora): a las 7:05 sale el del mismo día con el enlace
 -- de la hoja de firmas; 50 min antes de la hora prevista de la recogida, el «h1» con el
 -- enlace y la hora; firmada la casilla del sitio, otro envío igual ya no recibe el h1.
@@ -9651,8 +9651,8 @@ begin
   -- 7:05: el del mismo día, con el enlace de la hoja de firmas; todavía no el de 1 h antes.
   perform encolar_avisos_paradas(dia, (dia + time '07:05') at time zone 'Europe/Madrid');
   select cuerpo_html into c from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':d0:' || dia and estado = 'pendiente';
-  if c is null or c not like '%/cmr/%' or c not like '%CMR / DeCA digital%' then
-    raise exception 'FALLO 233 · el aviso de las 7:00 no lleva el enlace del CMR / DeCA: %', left(coalesce(c, '(no hay)'), 200);
+  if c is null or c not like '%/cmr/%' or c not like '%CMR digital%' then
+    raise exception 'FALLO 233 · el aviso de las 7:00 no lleva el enlace del CMR: %', left(coalesce(c, '(no hay)'), 200);
   end if;
   if exists (select 1 from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':h1:' || dia) then
     raise exception 'FALLO 233 · el de 1 h antes sale a primera hora';
@@ -9672,7 +9672,7 @@ begin
     raise exception 'FALLO 233 · manda el aviso de 1 h antes con la casilla ya firmada';
   end if;
   update parametros set valor = to_jsonb(hmd) where clave = 'aviso_parada_hora_mismo_dia';
-  raise notice 'OK 233 · CMR / DeCA digital a cada sitio: el mismo día desde las 7:00 y 1 h antes de su hora prevista, con el enlace; no con la casilla firmada';
+  raise notice 'OK 233 · CMR digital a cada sitio: el mismo día desde las 7:00 y 1 h antes de su hora prevista, con el enlace; no con la casilla firmada';
 end $$;
 
 -- ---- 234. Semirremolque obligatorio en tráiler y motivo según el momento ----------------
@@ -9900,7 +9900,7 @@ do $$ declare e uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb;
   raise notice 'OK 231 · nunca precio 0: sin precio (o a 0) no se asigna transportista, ni por la tabla; el precio del cliente nunca queda a 0';
 end $$;
 
--- ---- 237. Archivo de copias del CMR / DeCA: se guardan solas y no se tocan en un año -------
+-- ---- 237. Archivo de copias del DeCA: se guardan solas y no se tocan en un año -------------
 -- Tipo deca_copia: lo guarda Dynamo (o el servidor) con su huella; nunca visible para el
 -- cliente ni para el transportista; una sola por versión; durante un año no se quita, no se
 -- cambia y no se borra; pasado el año, sí. El borrado de datos de prueba suelta el candado.
@@ -9983,5 +9983,22 @@ do $$ declare e uuid := current_setting('prueba.e237')::uuid; d uuid := current_
     (select pg_get_functiondef(p.oid) from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname = 'borrar_datos_de_prueba'),
     'trigger tg_documentos_deca_copia', 'g');
   if n <> 2 then raise exception 'FALLO 237 · borrar_datos_de_prueba no suelta y repone el candado de las copias (%)', n; end if;
-  raise notice 'OK 237 · copias archivadas del CMR / DeCA: las guarda Dynamo o el servidor con su huella, una por versión, ocultas a cliente y transportista; en un año ni se quitan, ni se cambian, ni se borran';
+  raise notice 'OK 237 · copias archivadas del DeCA: las guarda Dynamo o el servidor con su huella, una por versión, ocultas a cliente y transportista; en un año ni se quitan, ni se cambian, ni se borran';
+end $$;
+
+-- ---- 238. DeCA y CMR, dos documentos: el email del DeCA existe y nada dice «CMR / DeCA» ------
+reset role;
+do $$ declare n int; f text; begin
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html, estado)
+  values ('deca:prueba238:aaaaaaaaaaaa', 'deca', 'trafico@prueba.invalid', 'DeCA · envío #X', '<p>x</p>', 'pendiente');
+  delete from emails_enviados where clave = 'deca:prueba238:aaaaaaaaaaaa';
+  select count(*), min(p.proname) into n, f from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+   where s.nspname = 'public' and p.prosrc like '%CMR / DeCA%';
+  if n <> 0 then raise exception 'FALLO 238 · quedan % funciones que dicen «CMR / DeCA» (p. ej. %)', n, f; end if;
+  select count(*) into n from parametros where descripcion like '%CMR / DeCA%';
+  if n <> 0 then raise exception 'FALLO 238 · quedan % parámetros que dicen «CMR / DeCA»', n; end if;
+  if pg_get_functiondef('public.fn_documentos_deca_copia()'::regprocedure) not like '%copias archivadas del DeCA%' then
+    raise exception 'FALLO 238 · el candado de las copias no habla del DeCA';
+  end if;
+  raise notice 'OK 238 · DeCA y CMR separados: el email del DeCA tiene su tipo, las copias archivadas son del DeCA y ningún aviso dice ya «CMR / DeCA»';
 end $$;

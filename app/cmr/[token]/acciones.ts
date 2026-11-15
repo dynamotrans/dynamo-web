@@ -132,7 +132,8 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     // usuario, 2026-11-12). Nunca rompe la firma.
     const { avisosFirmaCmr } = await import('@/lib/servidor/avisosEnvio');
     await avisosFirmaCmr(token).catch(() => {});
-    // Copia archivada del CMR / DeCA con esta firma (conservación legal de un año).
+    // Si al firmar la cabecera se han puesto las matrículas, el DeCA acaba de emitirse (o de
+    // cambiar): su copia se archiva y se envía al transportista. Una firma sola no lo cambia.
     const { programarCopiaDeca } = await import('@/lib/servidor/archivoDeca');
     await programarCopiaDeca({ token });
     return { ok: true };

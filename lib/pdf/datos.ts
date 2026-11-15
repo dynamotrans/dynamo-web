@@ -60,6 +60,11 @@ export function emisionDeca(d: { modificaciones?: { cuando: string; en?: string;
   return m ? { cuando: m.cuando, en: m.en ?? null } : null;
 }
 
+// DeCA y CMR son DOS documentos (usuario, 2026-11-15), cada uno con su dirección pública,
+// sobre el mismo nº único del envío (el enlace): /deca/<nº> descarga el DeCA en PDF (es
+// lo que abre su QR) y /cmr/<nº> es la página de firmas del CMR (/cmr/<nº>/pdf, su PDF).
+export const urlDeca = (enlaceCmr: string) => enlaceCmr.replace(/\/cmr\/([^/]+)\/?$/, '/deca/$1');
+
 export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; lat: number | null; lon: number | null; gps_precision_m: number | null; gps_direccion: string | null; sha256: string | null; png: Uint8Array | null };
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la

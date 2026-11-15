@@ -40,6 +40,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones#cancelarEnvio": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones#datosOrden": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#deshacerCancelacion": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/envios/acciones#emailDecaPlataforma": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#emailOrdenPlataforma": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["transportista", "cliente"]), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones#enlaceCmr": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#flotaTransportista": z.tuple([z.string().uuid().or(z.literal(''))]),

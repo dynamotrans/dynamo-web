@@ -141,9 +141,9 @@ test.describe.serial('flujos clave', () => {
     expect(envioAceptado).not.toBe('');
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${envioAceptado}`);
-    // TODO lo del CMR vive detrás del botón «eCMR + DeCA» de la ficha (vista propia
+    // TODO lo del CMR vive detrás del botón «eCMR» de la ficha (vista propia
     // con la página de firma, compartir el enlace y el PDF relleno).
-    await page.getByRole('button', { name: /eCMR \+ DeCA/ }).first().click();
+    await page.getByRole('button', { name: /eCMR/ }).first().click();
     const href = await page.locator('a[href^="/cmr/"]').first().getAttribute('href');
     expect(href).toBeTruthy();
 

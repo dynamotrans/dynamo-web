@@ -217,7 +217,8 @@ export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: 
   return { ok: true };
 }
 
-// Copia archivada del CMR / DeCA tras un cambio (conservación legal de un año): se guarda
+// Copia archivada del DeCA tras un cambio (conservación legal de un año; cada versión nueva
+// se envía además sola al transportista): se guarda
 // después de responder y solo si el documento ya está emitido y esa versión no estaba.
 async function copiaDeca(sb: SB, envio: string | null | undefined) {
   if (!envio) return;
@@ -360,6 +361,33 @@ export async function emailOrdenPlataforma(envio: string, para: 'transportista' 
     html, adjuntos,
   });
   return res.estado === 'enviado' ? { ok: true, para: dest } : { ok: false, error: res.error ?? 'No se ha podido enviar.' };
+}
+
+// EL DeCA AL TRANSPORTISTA, A MANO (usuario, 2026-11-15): el botón «DeCA» de la ficha. El
+// mismo email que sale solo al emitirse o cambiar el documento —el PDF del DeCA adjunto
+// y su dirección pública—, para reenviarlo cuando haga falta. Solo con el DeCA emitido
+// (transportista y matrículas).
+export async function emailDecaPlataforma(envio: string): Promise<{ ok: true; para: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#emailDecaPlataforma", [envio]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo envía el DeCA.' };
+  if (!/^[0-9a-f-]{36}$/i.test(envio)) return { ok: false, error: 'Petición no válida.' };
+  const { data: enl } = await s.supabase.from('cmr_enlaces').select('token').eq('envio_id', envio).eq('revocado', false)
+    .order('creado_en', { ascending: false }).limit(1).maybeSingle();
+  if (!enl?.token) return { ok: false, error: 'El enlace del envío está retirado: créalo de nuevo desde el botón del CMR.' };
+  const [{ supabasePublico }, { cargarDatosCmrPorToken, emisionDeca }, { pdfDecaDeDatos }, { origen }, { avisoDecaTransportista }] = await Promise.all([
+    import('@/lib/supabase/publico'), import('@/lib/pdf/datos'), import('@/lib/pdf/generar'), import('@/lib/origen'), import('@/lib/servidor/avisosEnvio')]);
+  const sbp = supabasePublico();
+  if (!sbp) return { ok: false, error: 'La plataforma no está conectada.' };
+  const r = await cargarDatosCmrPorToken(sbp, enl.token);
+  if (!r.datos || !r.datos.porteador) return { ok: false, error: 'Este envío no tiene transportista asignado: todavía no hay DeCA.' };
+  if (!emisionDeca(r.datos)) return { ok: false, error: 'El DeCA todavía no está emitido: faltan las matrículas del camión.' };
+  const web = await origen();
+  const pdf = await pdfDecaDeDatos(r.datos, r.decaCreado, enl.token, web);
+  const res = await avisoDecaTransportista({ envioId: envio, token: enl.token, origen: web, version: 'manual', primera: true, pdf,
+    clave: `deca_manual:${envio}:${Date.now()}` });
+  if (res.estado !== 'enviado') return { ok: false, error: res.para ? res.error ?? 'No se ha podido enviar.' : 'El transportista no tiene email en su ficha.' };
+  return { ok: true, para: res.para ?? '' };
 }
 
 export async function revocarOferta(oferta: string): Promise<Res> {

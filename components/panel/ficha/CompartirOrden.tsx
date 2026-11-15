@@ -60,7 +60,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const camionTxt = e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,60 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
   // El enlace de firma va ARRIBA (lo primero que se ve) y repetido en la lista de abajo
   // (usuario, 2026-11-13); la orden va como PDF ADJUNTO, sin enlace.
-  const lineaFirma = token ? `Firma en este enlace tu e-CMR/DeCA DIGITAL EN RUTA (Para móvil/ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): ${origen}/cmr/${token}` : null;
+  const lineaFirma = token ? `Firma en este enlace tu e-CMR DIGITAL EN RUTA (Para móvil/ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): ${origen}/cmr/${token}` : null;
   // Nº de parada correlativo (2026-11-11): con más de 2 paradas, 1-2 recogidas → 3-4 entregas.
   const lineasRuta = [
     ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: ${dirCorta(p)}`),

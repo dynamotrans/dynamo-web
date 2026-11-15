@@ -17,7 +17,7 @@ export type AdjuntoEmail = { nombre: string; base64: string; tipo: string };
 export type ResultadoEmail = { estado: 'enviado' | 'error'; error?: string };
 
 export async function enviarEmailOperativo(d: {
-  clave: string; tipo: 'orden_carga' | 'firma_cmr' | 'cmr_completo';
+  clave: string; tipo: 'orden_carga' | 'firma_cmr' | 'cmr_completo' | 'deca';
   envioId?: string | null; para: string | null; asunto: string; html: string; adjuntos?: AdjuntoEmail[];
 }): Promise<ResultadoEmail> {
   try {

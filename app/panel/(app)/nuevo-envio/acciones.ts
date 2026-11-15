@@ -135,7 +135,7 @@ export async function cambiarRuta(envio: string, paradas: (ParadaNueva & { id?: 
   const { error } = await s.supabase.rpc('cambiar_ruta_envio', { p_envio: envio, p_paradas: paradas.map((p) => (p.id ? { id: p.id } : p)) });
   if (error) return { ok: false, error: traducir(error.message) };
   await contactosDeSitiosNuevos(s.supabase, envio, paradas);
-  // Copia archivada del CMR / DeCA con la ruta nueva (conservación legal de un año).
+  // Copia archivada del DeCA con la ruta nueva (conservación legal de un año).
   const { programarCopiaDeca } = await import('@/lib/servidor/archivoDeca');
   await programarCopiaDeca({ envioId: envio, sbDynamo: s.supabase });
   return { ok: true };

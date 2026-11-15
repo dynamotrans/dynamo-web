@@ -233,7 +233,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       // CABECERA del impreso (usuario, 2026-11-11): a la imagen del impreso se le quitó
       // una franja VACÍA de 34pt del final de la fila 6-12 (solo aire, nada se escala) y
       // se le dio a la cabecera, que pasa de ~77 a ~111pt. Ahí vive la TARJETA del QR,
-      // igual que en la hoja de firmas: borde fino redondeado, título «QR e-CMR / DeCA»,
+      // igual que en la hoja de firmas: borde fino redondeado, título «QR e-CMR»,
       // el QR real (o su hueco punteado) y el rótulo debajo («Escanéalo con el móvil» /
       // «Pendiente de asignar transporte»). Guarda 15pt (~5 mm) con el borde del papel y
       // ~5pt con el marco rojo (que ahora empieza a ~111pt): nada se recorta al imprimir.
@@ -247,7 +247,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
         pg.drawSvgPath(
           `M ${r} 0 H ${cw - r} Q ${cw} 0 ${cw} ${r} V ${ch - r} Q ${cw} ${ch} ${cw - r} ${ch} H ${r} Q 0 ${ch} 0 ${ch - r} V ${r} Q 0 0 ${r} 0 Z`,
           { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
-        const tTit = 'QR e-CMR / DeCA';
+        const tTit = 'QR e-CMR';
         t(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, true, COLOR.navy);
         if (qrImg) {
           pg.drawImage(qrImg, { x: cx + (cw - 62) / 2, y: A4.h - (ct + 16) - 62, width: 62, height: 62 });
@@ -460,7 +460,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     l.linea(l.x0, l.y, A4.w - l.margen.der, l.y, COLOR.morado, 1.4);
     l.y += 8;
     // Caja del QR ARRIBA, con su espacio (usuario, 2026-11-11): borde fino redondeado,
-    // título «QR e-CMR / DeCA» y el hueco punteado con «Pendiente» mientras no exista;
+    // título «QR e-CMR» y el hueco punteado con «Pendiente» mientras no exista;
     // los párrafos de la izquierda le dejan el sitio.
     const cajaQR = !conTransporte;
     const qrCardW = 112, qrCardH = 114, qrCardX = A4.w - l.margen.der - qrCardW, qrCardTop = l.y;
@@ -469,7 +469,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       l.pag.drawSvgPath(
         `M ${r} 0 H ${qrCardW - r} Q ${qrCardW} 0 ${qrCardW} ${r} V ${qrCardH - r} Q ${qrCardW} ${qrCardH} ${qrCardW - r} ${qrCardH} H ${r} Q 0 ${qrCardH} 0 ${qrCardH - r} V ${r} Q 0 0 ${r} 0 Z`,
         { x: qrCardX, y: A4.h - qrCardTop, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
-      const tQ = 'QR e-CMR / DeCA';
+      const tQ = 'QR e-CMR';
       l.texto(qrCardX + (qrCardW - l.medida(tQ, 6.8, true)) / 2, qrCardTop + 14, tQ, 6.8, { bold: true, color: COLOR.navy });
       l.pag.drawRectangle({ x: qrCardX + 21, y: A4.h - (qrCardTop + 21) - 70, width: 70, height: 70, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
       l.texto(qrCardX + (qrCardW - l.medida('QR', 10, true)) / 2, qrCardTop + 60, 'QR', 10, { bold: true, color: COLOR.gris });
@@ -487,12 +487,11 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       // acepta el soporte electrónico, los datos exigidos y qué comprueba el QR— para que
       // quien lo mire (conductor, agente, cliente) lo entienda de un vistazo.
       const colAncho = l.ancho - (qrImg ? 100 : 0) - 16;
-      const cab = l.partir('Las firmas son del CMR (carta de porte). El documento de control (DeCA) va en las primeras hojas y no lleva firmas', 8.6, colAncho, true);
+      const cab = l.partir('Carta de porte electrónica (e-CMR): firmada con el dedo, con registro de cada firma', 8.6, colAncho, true);
       const cajas = [
-        { tit: 'La ley lo acepta en electrónico: Orden FOM/2861/2012, art. 6', txt: 'El documento de control (DeCA) puede llevarse en soporte electrónico: basta mostrar sus hojas (las primeras de este PDF), en el móvil o impresas, en una inspección en carretera.' },
-        { tit: 'Con todos los datos que exige el art. 5', txt: 'Cargador contractual y transportista efectivo con su NIF, vehículo, naturaleza y peso de la carga, origen, destino y fechas: todos constan en el DeCA, con el histórico de sus cambios.' },
-        { tit: 'El QR lo verifica en línea', txt: 'Abre el documento original, con su nº único y su registro, para comprobarlo al momento. En transporte internacional rigen el Convenio CMR y el Protocolo e-CMR (Ginebra, 2008).' },
-        { tit: 'Las firmas del CMR valen: Reglamento eIDAS (UE 910/2014), art. 25', txt: 'Firma electrónica con evidencias de identidad, tiempo y ubicación (hora del servidor, GPS y huella SHA-256): no se le pueden negar efectos jurídicos y es admisible como prueba ante organismos, peritos y tribunales.' },
+        { tit: 'El QR lo verifica en línea', txt: 'Abre este CMR original, con su nº único, sus firmas y su registro, para comprobarlo al momento. En transporte internacional rigen el Convenio CMR y el Protocolo e-CMR (Ginebra, 2008).' },
+        { tit: 'El documento de control (DeCA) va aparte', txt: 'El DeCA de la Orden FOM/2861/2012 es otro documento, con su propio QR y sin firmas. Este CMR es la carta de porte y no lo sustituye.' },
+        { tit: 'Las firmas valen: Reglamento eIDAS (UE 910/2014), art. 25', txt: 'Firma electrónica con evidencias de identidad, tiempo y ubicación (hora del servidor, GPS y huella SHA-256): no se le pueden negar efectos jurídicos y es admisible como prueba ante organismos, peritos y tribunales.' },
       ].map((c) => {
         const tit = l.partir(c.tit, 7.4, colAncho - 18, true);
         const txt = l.partir(c.txt, 6.6, colAncho - 18);
@@ -531,7 +530,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     } else if (!conTransporte) {
       // El porqué del DeCA pendiente, a la izquierda de la caja del QR de arriba.
       l.y += 4;
-      for (const ln of l.partir('Documento de control (DeCA): pendiente. Se genera, con su QR de verificación, cuando el envío tiene transportista y matrícula asignados (Orden FOM/2861/2012, art. 5).', 7.4, anchoIntro)) {
+      for (const ln of l.partir('QR del e-CMR: pendiente. Se genera cuando el envío tiene transportista y matrícula asignados.', 7.4, anchoIntro)) {
         l.texto(l.x0, l.y + 8, ln, 7.4, { color: COLOR.gris }); l.y += 10;
       }
       l.y = Math.max(l.y, qrCardTop + qrCardH) + 8;
