@@ -196,7 +196,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       </dl>
   );
   const avisoSinTransportista = (
-        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
+        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.9rem 1rem', margin: '0 0 0.8rem', fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.5, textAlign: 'center' }}>
           Todavía no se puede firmar: el envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
           En cuanto se asigne, las firmas se abren solas en esta misma página.
         </div>
