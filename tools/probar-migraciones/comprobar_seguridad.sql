@@ -7361,7 +7361,7 @@ do $$ declare faltan text; begin
                            'auditoria',                -- registro inmutable: se consulta, no se mira en vivo
                            'emails_enviados',          -- registro/cola de emails operativos: Dynamo lo repasa en frío
                            'deca_motivos',             -- motivos del DeCA: solo los lee el PDF al generarse
-                           'deca_compartidos')         -- historial de envíos del DeCA: se lee al abrir su ventana
+                           'envio_compartidos')        -- historial de envíos de DeCA, CMR y orden: se lee al abrir su ventana
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
     raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
@@ -10004,27 +10004,31 @@ do $$ declare n int; f text; begin
   raise notice 'OK 238 · DeCA y CMR separados: el email del DeCA tiene su tipo, las copias archivadas son del DeCA y ningún aviso dice ya «CMR / DeCA»';
 end $$;
 
--- ---- 239. Historial de envíos del DeCA: lo compartido a mano queda apuntado -------------------
+-- ---- 239. Historial de envíos (DeCA, CMR y orden): lo compartido a mano queda apuntado -------
 reset role;
 do $$ declare e uuid := current_setting('prueba.e237')::uuid; ok boolean; n int; begin
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
   set local role authenticated;
-  if not anotar_deca_compartido(e, 'whatsapp') then raise exception 'FALLO 239 · Dynamo no apunta que compartió el DeCA'; end if;
-  if anotar_deca_compartido(e, 'fax') then raise exception 'FALLO 239 · apunta una vía que no existe'; end if;
-  select count(*) into n from deca_compartidos where envio_id = e and via = 'whatsapp' and creado_por = current_setting('prueba.u_admin')::uuid;
-  if n <> 1 then raise exception 'FALLO 239 · el apunte no queda con su vía y su autor (%)', n; end if;
+  if not anotar_compartido_envio(e, 'deca', 'whatsapp') then raise exception 'FALLO 239 · Dynamo no apunta que compartió el DeCA'; end if;
+  if not anotar_compartido_envio(e, 'cmr', 'copiar') then raise exception 'FALLO 239 · Dynamo no apunta que compartió el CMR'; end if;
+  if not anotar_compartido_envio(e, 'orden_cliente', 'whatsapp') then raise exception 'FALLO 239 · Dynamo no apunta que compartió la orden del cliente'; end if;
+  if anotar_compartido_envio(e, 'deca', 'fax') then raise exception 'FALLO 239 · apunta una vía que no existe'; end if;
+  if anotar_compartido_envio(e, 'factura', 'sms') then raise exception 'FALLO 239 · apunta un documento que no existe'; end if;
+  select count(*) into n from envio_compartidos where envio_id = e and documento = 'deca' and via = 'whatsapp' and creado_por = current_setting('prueba.u_admin')::uuid;
+  if n <> 1 then raise exception 'FALLO 239 · el apunte no queda con su documento, su vía y su autor (%)', n; end if;
+  if (select count(*) from envio_compartidos where envio_id = e) <> 3 then raise exception 'FALLO 239 · no quedan los tres apuntes'; end if;
   -- Por la tabla, nada: solo entra por la función.
   ok := false;
-  begin insert into deca_compartidos (envio_id, via) values (e, 'sms'); exception when others then ok := true; end;
+  begin insert into envio_compartidos (envio_id, documento, via) values (e, 'deca', 'sms'); exception when others then ok := true; end;
   if not ok then raise exception 'FALLO 239 · se escribe en el historial por la tabla'; end if;
   -- Ni el transportista ni el cliente apuntan ni lo leen.
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
   ok := false;
-  begin perform anotar_deca_compartido(e, 'sms'); exception when insufficient_privilege then ok := true; end;
-  if not ok then raise exception 'FALLO 239 · el transportista apunta en el historial del DeCA'; end if;
-  if (select count(*) from deca_compartidos) <> 0 then raise exception 'FALLO 239 · el transportista lee el historial de envíos del DeCA'; end if;
+  begin perform anotar_compartido_envio(e, 'deca', 'sms'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 239 · el transportista apunta en el historial de envíos'; end if;
+  if (select count(*) from envio_compartidos) <> 0 then raise exception 'FALLO 239 · el transportista lee el historial de envíos'; end if;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
-  if (select count(*) from deca_compartidos) <> 0 then raise exception 'FALLO 239 · el cliente lee el historial de envíos del DeCA'; end if;
-  raise notice 'OK 239 · historial de envíos del DeCA: lo compartido a mano queda apuntado con su vía y su autor; solo Dynamo lo apunta y lo lee';
+  if (select count(*) from envio_compartidos) <> 0 then raise exception 'FALLO 239 · el cliente lee el historial de envíos'; end if;
+  raise notice 'OK 239 · historial de envíos (DeCA, CMR y orden): lo compartido a mano queda apuntado con su documento, su vía y su autor; solo Dynamo lo apunta y lo lee';
 end $$;
 reset role;

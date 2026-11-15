@@ -8,7 +8,8 @@ import { nombreTipo } from '../TipoSitio';
 import { CONTACTO } from '@/lib/atencion';
 import { NOMBRE_IDIOMA, type IdiomaOrden } from '@/lib/pdf/ordenTextos';
 import type { Ficha, ParadaFicha } from '@/lib/fichaEnvio';
-import { datosOrden, emailOrdenPlataforma } from '@/app/panel/(app)/envios/acciones';
+import { datosOrden, emailOrdenPlataforma, anotarCompartido } from '@/app/panel/(app)/envios/acciones';
+import { HistorialEnvios } from './HistorialEnvios';
 import { I, ICO } from './comun';
 
 // ---- Compartir la ORDEN DE CARGA (usuario, 2026-11-10) ------------------------------
@@ -41,6 +42,8 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   // El email desde la plataforma: en marcha y su resultado (se enseña en pantalla).
   const [mandando, setMandando] = useState(false);
   const [avisoMail, setAvisoMail] = useState<{ ok: boolean; txt: string } | null>(null);
+  const [recarga, setRecarga] = useState(0);   // el historial de envíos se vuelve a leer tras enviar o compartir
+  const apuntarWa = (doc: 'orden_transportista' | 'orden_cliente') => { anotarCompartido(e.id, doc, 'whatsapp').then(() => setRecarga((n) => n + 1)).catch(() => {}); };
   useEffect(() => { datosOrden(e.id).then((r) => { if (r.ok) setD(r); else setError(r.error); }); }, [e.id]);
 
   const token = ficha.cmrEnlace?.token ?? null;
@@ -152,6 +155,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     const r = await emailOrdenPlataforma(e.id, aQuien, aQuien === 'transportista' ? msg : msgCli).catch(() => ({ ok: false as const, error: 'No se ha podido enviar.' }));
     setAvisoMail(r.ok ? { ok: true, txt: `Email enviado a ${r.para} con la orden en PDF adjunta.` } : { ok: false, txt: r.error });
     setMandando(false);
+    setRecarga((n) => n + 1);
   }
 
   return (
@@ -180,7 +184,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
             </button>
             <a className="btn-secondary" style={btnPar}
               title={d?.clienteTelefono ? `WhatsApp a ${telBonito(d.clienteTelefono)} (su PDF se descarga al pulsar, para adjuntarlo ahí)` : 'El cliente no tiene teléfono en sus contactos: se abre sin destinatario'}
-              onClick={() => { if (enlaceCli) descargarPdf(enlaceCli, `Orden-${e.referencia_gx}-cliente.pdf`); }}
+              onClick={() => { if (enlaceCli) descargarPdf(enlaceCli, `Orden-${e.referencia_gx}-cliente.pdf`); apuntarWa('orden_cliente'); }}
               href={`https://wa.me/${waTelCli}?text=${encodeURIComponent(msgCli)}`} target="_blank" rel="noopener">
               WhatsApp{d?.clienteTelefono ? ` · ${telBonito(d.clienteTelefono)}` : ''}
             </a>
@@ -188,6 +192,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
           {avisoMail && <div className={`pt-aviso${avisoMail.ok ? ' info' : ' error'}`} role="status" style={{ marginTop: '0.5rem' }}><div>{avisoMail.txt}</div></div>}
           {enlaceCli && <a className="btn-secondary" style={{ ...btnPar, marginTop: '0.55rem' }} href={enlaceCli} target="_blank" rel="noopener"
             title="Abrir la copia del cliente en PDF en el navegador (el enlace lleva su clave)">Abrir el PDF en el navegador</a>}
+          <HistorialEnvios envioId={e.id} documento="orden_cliente" titulo="Historial envíos orden de carga" recarga={recarga} />
         </>
       )}
 
@@ -202,7 +207,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
             </button>
             <a className="btn-secondary" style={btnPar}
               title={d?.telefono ? `WhatsApp a ${telBonito(d.telefono)} (el PDF se descarga al pulsar, para adjuntarlo ahí)` : 'El transportista no tiene teléfono en su ficha: se abre sin destinatario'}
-              onClick={() => descargarPdf(enlace, `Orden-de-carga-${e.referencia_gx}.pdf`)}
+              onClick={() => { descargarPdf(enlace, `Orden-de-carga-${e.referencia_gx}.pdf`); apuntarWa('orden_transportista'); }}
               href={`https://wa.me/${waTel}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">
               WhatsApp{d?.telefono ? ` · ${telBonito(d.telefono)}` : ''}
             </a>
@@ -210,6 +215,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
           {avisoMail && <div className={`pt-aviso${avisoMail.ok ? ' info' : ' error'}`} role="status" style={{ marginTop: '0.5rem' }}><div>{avisoMail.txt}</div></div>}
           <a className="btn-secondary" style={{ ...btnPar, marginTop: '0.55rem' }} href={enlace} target="_blank" rel="noopener"
             title="Abrir la orden en PDF en el navegador (el enlace lleva la clave: solo para el transportista)">Abrir el PDF en el navegador</a>
+          <HistorialEnvios envioId={e.id} documento="orden_transportista" titulo="Historial envíos orden de carga" recarga={recarga} />
           <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>
             La orden completa en {idiomas}. El email la adjunta en PDF; WhatsApp abre el chat y la descarga para adjuntarla ahí a mano.
           </p>

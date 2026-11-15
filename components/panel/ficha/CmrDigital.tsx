@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { fechaHora } from '@/lib/formato';
 import type { Ficha } from '@/lib/fichaEnvio';
-import { enlaceCmr } from '@/app/panel/(app)/envios/acciones';
+import { enlaceCmr, anotarCompartido } from '@/app/panel/(app)/envios/acciones';
+import { HistorialEnvios } from './HistorialEnvios';
 import CompartirSheet from '@/components/CompartirSheet';
 import { I, ICO, ROL_CMR, enlaceCmrUrl } from './comun';
 
@@ -14,6 +15,7 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
   const e = ficha.envio;
   const [compartir, setCompartir] = useState(false);   // ventana de compartir propia (mismo diseño en cualquier aparato)
   const [masInfo, setMasInfo] = useState(false);   // explicación + base legal, plegadas
+  const [recarga, setRecarga] = useState(0);   // el historial de envíos se vuelve a leer tras compartir
   const enl = ficha.cmrEnlace;
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga'), entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
   const total = recogidas.length + 1 + entregas.length;
@@ -54,7 +56,8 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
           {compartir && (
             <CompartirSheet onCerrar={() => setCompartir(false)} url={enlaceCmrUrl(enl.token)}
               titulo={`CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}`}
-              texto={msg} />
+              texto={msg}
+              onVia={(via) => { anotarCompartido(e.id, 'cmr', via).then(() => setRecarga((n) => n + 1)).catch(() => {}); }} />
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.45rem' }}>
             <button className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }}
@@ -63,6 +66,7 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
             <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`/panel/envios/${ficha.envio.id}/cmr`} target="_blank" rel="noopener"
                title="El CMR relleno tal y como está ahora mismo, con las firmas que haya."><I d={ICO.ojo} />Abrir PDF eCMR</a>
           </div>
+          <HistorialEnvios envioId={e.id} documento="cmr" titulo="Historial envíos eCMR" recarga={recarga} />
         </>
       ) : (
         <button className="btn-primary" disabled={!!trabajando} onClick={() => hacer('Creando el enlace', () => enlaceCmr(e.id), 'Enlace del CMR creado: cópialo o mándalo por WhatsApp.')}><I d={ICO.doc} />Crear el enlace de nuevo</button>
