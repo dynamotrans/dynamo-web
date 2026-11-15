@@ -6,7 +6,7 @@ import Cargando from '@/components/Cargando';
 import { euros, numero, fecha, diasEntre } from '@/lib/formato';
 import type { TransportistaOpcion } from '@/lib/fichaEnvio';
 import CampoTelefono from '@/components/CampoTelefono';
-import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas, sugerirEntrega } from '@/app/panel/(app)/envios/acciones';
+import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas, sugerirEntrega, usosFlota, type UsoFlota } from '@/app/panel/(app)/envios/acciones';
 import Buscador from '../Buscador';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -118,6 +118,43 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
   const camiones = useMemo(() => (fl?.vehiculos ?? []).filter((v) => v.tipo !== 'remolque'), [fl]);
   const remolques = useMemo(() => (fl?.vehiculos ?? []).filter((v) => v.tipo === 'remolque'), [fl]);
 
+  // Composiciones recientes del transportista (usuario, 2026-11-15): sugerir por PARES
+  // (tractora + su remolque de la última vez), la más reciente arriba, y al elegir una
+  // se autorrellena el bloque entero (remolque, conductor y teléfono).
+  const [usos, setUsos] = useState<UsoFlota[]>([]);
+  useEffect(() => {
+    if (!tid) { setUsos([]); return; }
+    let vivo = true;
+    usosFlota(tid).then((u) => { if (vivo) setUsos(u); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [tid]);
+  const [camAbierto, setCamAbierto] = useState(false);
+  const camCaja = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!camAbierto) return;
+    const fuera = (ev: MouseEvent) => { if (camCaja.current && !camCaja.current.contains(ev.target as Node)) setCamAbierto(false); };
+    document.addEventListener('mousedown', fuera);
+    return () => document.removeEventListener('mousedown', fuera);
+  }, [camAbierto]);
+  const qCam = sinEsp(camion);
+  const usosVisibles = usos.filter((u) => !qCam || sinEsp(u.camion).includes(qCam) || (u.remolque && sinEsp(u.remolque).includes(qCam)));
+  const flotaVisible = camiones.filter((v) => !usos.some((u) => sinEsp(u.camion) === sinEsp(v.matricula)) && (!qCam || sinEsp(v.matricula).includes(qCam)));
+  function elegirUso(u: UsoFlota) {
+    setCamion(u.camion); setRemolque(u.remolque ?? '');
+    setConductor(u.conductor ?? ''); setTel(u.telefono ?? '');
+    setBase({ camion: u.camion, conductor: u.conductor ?? '' });
+    setCamAbierto(false);
+  }
+  async function elegirVehiculo(v: { matricula: string; tipo: string }) {
+    setCamion(v.matricula);
+    if (v.tipo === 'rigido') setRemolque('');
+    setCamAbierto(false);
+    // Sin uso previo registrado: el chófer conocido de ese camión, si lo hay (regla de 2026-11-05).
+    const s = tid ? await sugerirFlota(tid, { matricula: v.matricula }) : null;
+    if (s) { setConductor(s.conductor ?? ''); setTel(s.telefono ?? ''); }
+    setBase({ camion: v.matricula, conductor: s?.conductor ?? '' });
+  }
+
   async function guardar() {
     setError(null);
     if (!tid) { setError('Elige el transportista.'); avisaFaltas(['as-tra']); return; }
@@ -177,8 +214,28 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
         </div>
         <div>
           <label htmlFor="as-camion">Matrícula camión / tractora <Req si={false} /></label>
-          <input id="as-camion" list="as-camiones" type="text" value={camion} placeholder="Ej. 1234ABC" onChange={(ev) => setCamion(ev.target.value)} onBlur={alSalirCamion} />
-          <datalist id="as-camiones">{camiones.map((v) => <option key={v.matricula} value={v.matricula}>{v.tipo === 'rigido' ? 'Rígido' : 'Tractora'}</option>)}</datalist>
+          <div className="buscador" ref={camCaja} data-envivo-ignorar="">
+            <input id="as-camion" type="text" value={camion} placeholder="Ej. 1234ABC" autoComplete="off"
+              onChange={(ev) => { setCamion(ev.target.value); setCamAbierto(true); }}
+              onFocus={() => setCamAbierto(true)} onBlur={alSalirCamion}
+              onKeyDown={(ev) => { if (ev.key === 'Escape') { setCamAbierto(false); (ev.target as HTMLInputElement).blur(); } }} />
+            {camAbierto && (usosVisibles.length > 0 || flotaVisible.length > 0) && (
+              <div className="buscador-lista" role="listbox">
+                {usosVisibles.map((u) => (
+                  <button key={`u-${u.camion}`} type="button" role="option" aria-selected={sinEsp(camion) === sinEsp(u.camion)} onMouseDown={(ev) => ev.preventDefault()} onClick={() => elegirUso(u)}>
+                    <strong>{u.camion}{u.remolque ? ` + ${u.remolque}` : ''}</strong>
+                    <span> · último {u.cuando ? fecha(u.cuando) : '—'}</span>
+                    {u.conductor ? <span className="buscador-detalle"> · {u.conductor}</span> : null}
+                  </button>
+                ))}
+                {flotaVisible.map((v) => (
+                  <button key={`f-${v.matricula}`} type="button" role="option" aria-selected={sinEsp(camion) === sinEsp(v.matricula)} onMouseDown={(ev) => ev.preventDefault()} onClick={() => elegirVehiculo(v)}>
+                    <strong>{v.matricula}</strong> <span>· {v.tipo === 'rigido' ? 'Rígido' : 'Tractora'} (de su ficha, sin viajes aún)</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div>
           <label htmlFor="as-remolque">Matrícula remolque (si es tráiler) <Req si={false} /></label>

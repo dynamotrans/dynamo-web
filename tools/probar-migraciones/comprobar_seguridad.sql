@@ -8223,9 +8223,14 @@ do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; n int;
   raise notice 'OK 208c · recordatorio diario: reabre la oferta hasta el corte, solo a contactados de otros días y una vez al día';
 end $$;
 -- E3: CORTE. Con la carga hoy a las 00:00 estamos dentro del corte: no se lanza… salvo
--- forzarla (1 hora de margen). En el tramo urgente los emails salen DE 2 EN 2. Y al
+-- forzarla (1 hora de margen). En el tramo urgente los emails salen EN LOTE (difusion_cadencia). Y al
 -- llegar al corte, la difusión se cierra con aviso URGENTE.
 do $$ declare e3 uuid := current_setting('prueba.e2083')::uuid; d record; r jsonb; begin
+  -- Lote urgente de 3 SOLO para esta prueba: con el de producción (20) el primer paso
+  -- contactaría a los 7 candidatos del montaje y agotaría la difusión en la misma
+  -- llamada, y el cierre por corte de más abajo no tendría difusión activa que cerrar.
+  update parametros set valor = '[{"hasta_horas":6,"minutos":1,"lote":3},{"hasta_horas":24,"minutos":1,"lote":3},{"hasta_horas":null,"minutos":3}]'::jsonb
+   where clave = 'difusion_cadencia';
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
   r := iniciar_difusion(e3, 400, 10::smallint, true, '00:00'::time);
   if r ->> 'resultado' <> 'dentro_del_corte' then
@@ -8238,8 +8243,8 @@ do $$ declare e3 uuid := current_setting('prueba.e2083')::uuid; d record; r json
   if d.corte_en is null or d.corte_en < now() + interval '55 minutes' or d.corte_en > now() + interval '65 minutes' then
     raise exception 'FALLO 208 · la forzada no corre con 1 hora de margen: %', d.corte_en;
   end if;
-  if d.contactados <> 2 then
-    raise exception 'FALLO 208 · en el tramo urgente no salen de 2 en 2 (van %)', d.contactados;
+  if d.contactados <> 3 then
+    raise exception 'FALLO 208 · en el tramo urgente no salen en lote (de 3 en 3 en la prueba; van %)', d.contactados;
   end if;
   update difusiones set corte_en = now() - interval '1 second', ultimo_email_en = now() - interval '30 minutes' where envio_id = e3;
   perform procesar_difusiones();
@@ -8253,7 +8258,10 @@ do $$ declare e3 uuid := current_setting('prueba.e2083')::uuid; d record; r json
   if not exists (select 1 from emails_enviados where clave = 'difusion_fin:' || d.id) then
     raise exception 'FALLO 208 · corte sin email de aviso a Dynamo';
   end if;
-  raise notice 'OK 208d · dentro del corte no se lanza (forzada, 1 h y de 2 en 2) y al corte cierra con aviso urgente';
+  -- La cadencia real de producción, de vuelta (3 min lejos · 1 min y de 3 en 3 el último día · 1 min y de 20 en 20 bajo 6 h).
+  update parametros set valor = '[{"hasta_horas":6,"minutos":1,"lote":20},{"hasta_horas":24,"minutos":1,"lote":3},{"hasta_horas":null,"minutos":3}]'::jsonb
+   where clave = 'difusion_cadencia';
+  raise notice 'OK 208d · dentro del corte no se lanza (forzada, 1 h y en lote) y al corte cierra con aviso urgente';
 end $$;
 -- E4: DORMIDA. Con la carga a 10 días, la difusión arranca pero no contacta a nadie hasta
 -- el día del arranque (5 días antes); despierta al llegar, y el tope sigue mandando.
@@ -8601,7 +8609,7 @@ end $$;
 -- =====================================================================================
 do $$
 declare cli uuid := current_setting('prueba.cliente')::uuid;
-        hoy date := (now() at time zone 'Europe/Madrid')::date;
+        hoy date := date '2027-03-01';  -- LUNES fijo: con los tramos en dias habiles la prueba es determinista cualquier dia que corra (encolar recibe p_hoy)
         s1 uuid; s2 uuid; e1 uuid; e2 uuid; e3 uuid; p1c uuid; p3d uuid; tr uuid; n int;
 begin
   -- Ventanas abiertas de par en par: la prueba no depende de la hora a la que corra.
@@ -8623,15 +8631,15 @@ begin
   update envios set estado = 'programado', fecha_entrega_estimada = hoy + 1 where id = e1;
 
   -- (a) SIN transportista: aunque cargue mañana, ni un aviso.
-  perform encolar_avisos_paradas();
+  perform encolar_avisos_paradas(hoy);
   if exists (select 1 from emails_enviados where clave like 'aviso_parada:' || e1 || ':%') then
     raise exception 'FALLO 213 · avisa sin transportista asignado';
   end if;
 
   -- (b) Con transportista: la víspera (d1), recogida Y entrega, UNA sola vez.
   update envios set transportista_id = tr where id = e1;
-  perform encolar_avisos_paradas();
-  perform encolar_avisos_paradas();
+  perform encolar_avisos_paradas(hoy);
+  perform encolar_avisos_paradas(hoy);
   select count(*) into n from emails_enviados where clave like 'aviso_parada:' || e1 || ':%';
   if n <> 2 then raise exception 'FALLO 213 · esperaba 2 avisos de víspera (recogida y entrega) y hay %', n; end if;
   if not exists (select 1 from emails_enviados
@@ -8653,7 +8661,7 @@ begin
     values (e2, 2, 'descarga', '28001', 'Madrid', 'ES', s2, 'Almacen Entrega 213');
   perform set_config('request.jwt.claim.sub', '', false);
   update envios set estado = 'programado', transportista_id = tr, fecha_entrega_estimada = hoy + 2 where id = e2;
-  perform encolar_avisos_paradas();
+  perform encolar_avisos_paradas(hoy);
   select count(*) into n from emails_enviados where clave like 'aviso_parada:' || e2 || ':%';
   if n <> 2 then raise exception 'FALLO 213 · con discreción esperaba 2 avisos y hay %', n; end if;
   if exists (select 1 from emails_enviados x, clientes c
@@ -8688,13 +8696,13 @@ begin
   update envios set estado = 'programado', transportista_id = tr, fecha_entrega_estimada = hoy + 2 where id = e3;
   update parametros set valor = '23' where clave = 'aviso_parada_ventana_inicio';
   update parametros set valor = '23' where clave = 'aviso_parada_ventana_fin';
-  perform encolar_avisos_paradas();
+  perform encolar_avisos_paradas(hoy);
   if exists (select 1 from emails_enviados where clave like 'aviso_parada:' || e3 || ':%') then
     raise exception 'FALLO 213 · avisa fuera de la ventana horaria';
   end if;
   update parametros set valor = '0'  where clave = 'aviso_parada_ventana_inicio';
   update parametros set valor = '24' where clave = 'aviso_parada_ventana_fin';
-  perform encolar_avisos_paradas();
+  perform encolar_avisos_paradas(hoy);
   select count(*) into n from emails_enviados where clave like 'aviso_parada:' || e3 || ':%:d2:%';
   if n <> 3 then raise exception 'FALLO 213 · esperaba 3 avisos d2 al abrir la ventana y hay %', n; end if;
 
@@ -9304,4 +9312,39 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
     raise exception 'FALLO 224 · la contraoferta de un conocido no debe mandar el email de alta pendiente';
   end if;
   raise notice 'OK 224 · emails a Dynamo: aceptado con enlace y ruta, alta online con CIF y contacto, y la contraoferta de un conocido sin email de alta';
+end $$;
+
+-- ---- 225. Avisos a sitios en DÍAS HÁBILES: la víspera de un lunes es el viernes -------
+-- La cuenta pura de tramos (tramo_aviso_parada) con fechas fijas de calendario:
+-- fin de semana, festivo nacional en medio (Inmaculada, 8-dic-2026, martes) y el
+-- mismo día, que sale siempre. Fechas verificadas: 19/20/21-nov-2026 = jue/vie/sáb,
+-- 23-nov lunes; 4-dic viernes, 7-dic lunes, 9-dic miércoles.
+do $$ begin
+  if tramo_aviso_parada(date '2026-11-20', date '2026-11-23') is distinct from 'd1' then
+    raise exception 'FALLO 225 · la víspera de un lunes debía ser el viernes (d1)';
+  end if;
+  if tramo_aviso_parada(date '2026-11-19', date '2026-11-23') is distinct from 'd2' then
+    raise exception 'FALLO 225 · dos días hábiles antes de un lunes debía ser el jueves (d2)';
+  end if;
+  if tramo_aviso_parada(date '2026-11-21', date '2026-11-23') is not null
+     or tramo_aviso_parada(date '2026-11-22', date '2026-11-23') is not null then
+    raise exception 'FALLO 225 · en sábado o domingo no debía salir ningún aviso anticipado';
+  end if;
+  if tramo_aviso_parada(date '2026-12-07', date '2026-12-09') is distinct from 'd1' then
+    raise exception 'FALLO 225 · con la Inmaculada (8-dic) en medio, la víspera hábil del miércoles debía ser el lunes (d1)';
+  end if;
+  if tramo_aviso_parada(date '2026-12-04', date '2026-12-09') is distinct from 'd2' then
+    raise exception 'FALLO 225 · con el festivo en medio, el viernes debía ser dos días hábiles antes (d2)';
+  end if;
+  if tramo_aviso_parada(date '2026-12-08', date '2026-12-09') is not null then
+    raise exception 'FALLO 225 · en festivo nacional no debía salir ningún aviso anticipado';
+  end if;
+  if tramo_aviso_parada(date '2026-12-08', date '2026-12-08') is distinct from 'd0'
+     or tramo_aviso_parada(date '2026-11-22', date '2026-11-22') is distinct from 'd0' then
+    raise exception 'FALLO 225 · el aviso del MISMO día debía salir aunque sea festivo o domingo (d0)';
+  end if;
+  if tramo_aviso_parada(date '2026-11-17', date '2026-11-23') is not null then
+    raise exception 'FALLO 225 · a tres días hábiles vista no toca ningún tramo todavía';
+  end if;
+  raise notice 'OK 225 · avisos a sitios en días hábiles: víspera de lunes = viernes, festivos saltados, nada en finde/festivo y el mismo día siempre';
 end $$;

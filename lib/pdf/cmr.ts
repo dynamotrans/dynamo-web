@@ -258,13 +258,22 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
         const tPie = qrImg ? 'Escanéalo con el móvil' : 'Pendiente de asignar transporte';
         t(cx + (cw - l.medida(tPie, 5.4, false)) / 2, ct + 86, tPie, 5.4, false, COLOR.gris);
       }
+      // El Nº y la carta en TARJETA morada suave (usuario, 2026-11-15), con el mismo
+      // diseño que la «REFERENCIA DE ENVÍO» de la orden: rótulo espaciado y número en
+      // negrita, y debajo «Carta 1 de 3» cuando hay varias.
       const finX = esquina ? DER - 96 - 14 : DER;
       const numTxt = `Nº ${e.referencia_gx ?? ''}`;
-      t(finX - (esquina ? l.medida(numTxt, 9, true) : 93), esquina ? 52 : 40, numTxt, 9);
-      if (varias) {
-        const cTxt = `Carta ${nc + 1} de ${cartas.length}`;
-        t(finX - (esquina ? l.medida(cTxt, 7.5, true) : 93), esquina ? 64 : 51, cTxt, 7.5);
-      }
+      const cTxt = varias ? `Carta ${nc + 1} de ${cartas.length}` : '';
+      const rotRef = 'R E F E R E N C I A   D E   E N V Í O';
+      const wRef = Math.max(l.medida(rotRef, 5.2, true), l.medida(numTxt, 10.5, true)) + 24;
+      const hRef = varias ? 52 : 40;
+      const xRef = finX - wRef, yRef = 15, rR = 8;
+      pg.drawSvgPath(
+        `M ${rR} 0 H ${wRef - rR} Q ${wRef} 0 ${wRef} ${rR} V ${hRef - rR} Q ${wRef} ${hRef} ${wRef - rR} ${hRef} H ${rR} Q 0 ${hRef} 0 ${hRef - rR} V ${rR} Q 0 0 ${rR} 0 Z`,
+        { x: xRef, y: A4.h - yRef, color: COLOR.moradoSuave });
+      t(xRef + 12, yRef + 14, rotRef, 5.2, true, COLOR.gris);
+      t(xRef + 12, yRef + 28, numTxt, 10.5, true, COLOR.navy);
+      if (varias) t(xRef + 12, yRef + 42, cTxt, 7.5, true, COLOR.navy);
       if (logo) { const h = 22, w = h * logo.width / logo.height; pg.drawImage(logo, { x: 36, y: A4.h - 15 - h, width: w, height: h }); }
 
       // 1 Remitente
@@ -312,11 +321,23 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       ], 34);
       // 18 Reservas y observaciones del porteador
       const QUIEN: Record<string, string> = { remitente: 'Remitente', transportista: 'Porteador', destinatario: 'Destinatario' };
+      // Cada reserva nombra la PARADA de quien la anotó (usuario, 2026-11-15):
+      // «Reservas (Entrega 3/3): …» en vez del rol a secas; el porteador, sin parada.
+      const rotuloReserva = (r: { rol: string; parada_id?: string | null }) => {
+        if (r.parada_id) {
+          const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
+          let ix = rec.findIndex((x) => x.id === r.parada_id);
+          if (ix >= 0) return rec.length > 1 ? `Recogida ${ix + 1}/${rec.length}` : 'Recogida';
+          ix = ent.findIndex((x) => x.id === r.parada_id);
+          if (ix >= 0) return ent.length > 1 ? `Entrega ${ix + 1}/${ent.length}` : 'Entrega';
+        }
+        return QUIEN[r.rol] ?? r.rol;
+      };
       // La casilla 18 empieza en x≈273 (no en 438): se usa el ancho ENTERO (2026-11-11;
       // el hueco de la izquierda no estaba reservado para nada).
       dato(276, 324, [
         ...(e.adr ? [{ t: 'MERCANCÍA ADR (peligrosa) — Acuerdo ADR', s: 7.6, c: ROJA }] : []),
-        ...(d.reservas ?? []).slice(0, 3).map((r) => ({ t: `Reservas (${QUIEN[r.rol] ?? r.rol}): ${r.texto}`, s: 6.8, c: ROJA, max: 3 })),
+        ...(d.reservas ?? []).slice(0, 3).map((r) => ({ t: `Reservas (${rotuloReserva(r)}): ${r.texto}`, s: 6.8, c: ROJA, max: 3 })),
       ], 76);
 
       // 6-12: tabla de la mercancía. La fila es 34pt más baja desde 2026-11-11 (el aire

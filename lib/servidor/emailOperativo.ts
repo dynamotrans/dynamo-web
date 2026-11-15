@@ -43,6 +43,10 @@ export async function enviarEmailOperativo(d: {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Postmark-Server-Token': token },
       body: JSON.stringify({
         From: `Dynamo <${CONTACTO.email}>`, To: d.para, Subject: d.asunto, HtmlBody: d.html, MessageStream: 'outbound',
+        // Copia a Dynamo en todos los emails del sistema (usuario, 2026-11-15), salvo
+        // cuando el destinatario ya es Dynamo. (Las ofertas de la difusión, la única
+        // excepción a la copia, no pasan por aquí: van por la cola de la base de datos.)
+        ...(d.para.toLowerCase().includes(CONTACTO.email.toLowerCase()) ? {} : { Cc: CONTACTO.email }),
         ...(d.adjuntos?.length ? { Attachments: d.adjuntos.map((a) => ({ Name: a.nombre, Content: a.base64, ContentType: a.tipo })) } : {}),
       }),
     });

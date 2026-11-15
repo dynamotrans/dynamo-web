@@ -437,6 +437,31 @@ export async function flotaTransportista(transportista: string): Promise<FlotaTr
   return flotaDe(s.supabase, transportista);
 }
 
+// Asignar transportista: sus COMPOSICIONES recientes (usuario, 2026-11-15) — con qué
+// remolque y conductor salió cada camión la última vez, la más reciente primero, para
+// sugerir por PARES y autorrellenar el bloque entero al elegir una.
+export type UsoFlota = { camion: string; remolque: string | null; conductor: string | null; telefono: string | null; cuando: string | null };
+export async function usosFlota(transportista: string): Promise<UsoFlota[]> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#usosFlota", [transportista]);
+  const s = await soloDynamo();
+  if (!s || !/^[0-9a-f-]{36}$/i.test(transportista)) return [];
+  const { data } = await s.supabase.from('envios')
+    .select('matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono, fecha_carga_prevista, creado_en')
+    .eq('transportista_id', transportista).not('matricula_camion', 'is', null)
+    .order('creado_en', { ascending: false }).limit(60);
+  const vistos = new Set<string>();
+  const res: UsoFlota[] = [];
+  for (const x of data ?? []) {
+    const m = (x.matricula_camion ?? '').trim();
+    if (!m || vistos.has(m)) continue;
+    vistos.add(m);
+    res.push({ camion: m, remolque: x.matricula_remolque, conductor: x.conductor_nombre, telefono: x.conductor_telefono,
+      cuando: x.fecha_carga_prevista ?? (x.creado_en ? String(x.creado_en).slice(0, 10) : null) });
+    if (res.length >= 12) break;
+  }
+  return res;
+}
+
 // Asignar transportista: los datos conocidos de su flota (chófer de ese camión de otras
 // veces, o el teléfono de ese chófer). Vacío si no hay: nunca los del chófer anterior.
 export async function sugerirFlota(transportista: string, d: { matricula?: string; conductor?: string }): Promise<{ conductor: string | null; telefono: string | null } | null> {

@@ -52,6 +52,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (!manual) logo = await l.doc.embedPng(await readFile(path.join(process.cwd(), 'images', '2.png')));
   const ref = e.referencia_gx ?? '';
   const emitida = ahoraMadrid();
+  const emitidaDeca = d.deca?.creado_en ? fechaHora(d.deca.creado_en) : emitida;
   // FIRMAS ESTAMPADAS EN EL DeCA (usuario, 2026-11-14): en la copia del conductor —que
   // es el DeCA— el trazo de cada firma del e-CMR queda estampado junto a su sitio (y el
   // del transportista junto a la banda), con un hueco «pendiente» mientras no exista.
@@ -148,7 +149,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   l.texto(l.x0 + 17, 48, esp(copia === 'operativa' ? 'DeCA' : esCli ? 'Copia cliente' : t.copiaAdmin), 6.8, { bold: true, color: COLOR.navy });
   // En el DeCA, la barra lleva la EMISIÓN junto a «DeCA» (usuario, 2026-11-14: la
   // referencia baja a la caja del cargador contractual) y el nombre oficial a la derecha.
-  if (copia === 'operativa') l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48, `${t.emitida} ${emitida}`, 6.6, { color: COLOR.gris });
+  if (copia === 'operativa') l.texto(l.x0 + 17 + l.medida(esp('DeCA'), 6.8, true) + 12, 48, `${t.emitida} ${emitidaDeca}`, 6.6, { color: COLOR.gris });
   l.textoDer(der - 10, 48, esp(copia === 'operativa' ? DECA_NOMBRE : esCli ? 'Con tu precio · sin porteador' : t.completa), 5.4, { bold: true, color: COLOR.gris });
 
   // ---- Cabecera: logo a la izquierda; a la derecha título, subtítulo espaciado,
@@ -197,10 +198,11 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       izq.push([[cl.direccion, [cl.codigo_postal, cl.poblacion].filter(Boolean).join(' '), cl.provincia !== cl.poblacion ? cl.provincia : null].filter(Boolean).join(', '), 8, false]);
     } else izq.push(['Cliente', 10, true]);
   } else if (p) {
+    // Solo lo esencial (usuario, 2026-11-15): nombre, CIF y dirección — sin el código
+    // interno ni la línea de contacto, que no pintan nada en la orden.
     izq.push([p.razon_social, 10, true]);
-    izq.push([[p.cif ? `CIF ${p.cif}` : null, p.codigo ? `Código ${p.codigo}` : null].filter(Boolean).join(' · '), 8.5, false]);
+    if (p.cif) izq.push([`CIF ${p.cif}`, 8.5, false]);
     izq.push([[p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia !== p.poblacion ? p.provincia : null].filter(Boolean).join(', '), 8, false]);
-    izq.push([[p.contacto, p.telefono && telBonito(p.telefono), p.email].filter(Boolean).join(' · '), 8, false]);
   } else izq.push([t.pendienteTransp, 10, true]);
   // En el DeCA (copia del conductor) las partes van con sus FIGURAS LEGALES (usuario,
   // 2026-11-14): Dynamo es «cargador contractual y cargador» (como operador asume la
@@ -262,11 +264,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       { x: cx, y: A4.h - ct, color: COLOR.blanco, borderColor: COLOR.grisClaro, borderWidth: 1 });
     const tTit = 'QR e-CMR / DeCA';
     l.texto(cx + (cw - l.medida(tTit, 6.8, true)) / 2, ct + 12, tTit, 6.8, { bold: true, color: COLOR.navy });
+    // El QR crece hasta llenar la tarjeta (usuario, 2026-11-15): todo el hueco entre el
+    // título y el pie, con el ancho de la caja como tope, y centrado en vertical.
+    const lado = Math.max(58, Math.min(cw - 14, chX - 44));
+    const yQr = ct + 18 + Math.max(0, (chX - 18 - 14 - lado) / 2);
     if (qrImg) {
-      l.pag.drawImage(qrImg, { x: cx + (cw - 62) / 2, y: A4.h - (ct + 16) - 62, width: 62, height: 62 });
+      l.pag.drawImage(qrImg, { x: cx + (cw - lado) / 2, y: A4.h - yQr - lado, width: lado, height: lado });
     } else {
-      l.pag.drawRectangle({ x: cx + (cw - 58) / 2, y: A4.h - (ct + 18) - 58, width: 58, height: 58, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
-      l.texto(cx + (cw - l.medida('QR', 9, true)) / 2, ct + 50, 'QR', 9, { bold: true, color: COLOR.gris });
+      l.pag.drawRectangle({ x: cx + (cw - lado) / 2, y: A4.h - yQr - lado, width: lado, height: lado, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
+      l.texto(cx + (cw - l.medida('QR', 9, true)) / 2, yQr + lado / 2 + 3, 'QR', 9, { bold: true, color: COLOR.gris });
     }
     const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + chX - 5, tPie, 5.4, { color: COLOR.gris });
@@ -281,7 +287,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const xDat = l.x0 + wCaja + gap;
     const x2 = wDatos ? xDat + wDatos + gap : xDat;
     const titIzq = esCli ? 'Cliente · Ordenante del transporte'
-      : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
+      : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
       : t.transpRealiza;
     // El título de cada caja se parte en BASE espaciada + coletilla en gris pequeño
     // («TRANSPORTISTA EFECTIVO» / «(realiza el servicio)»).
@@ -375,7 +381,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
   l.rect(xb, l.y, mitad, hCaja, COLOR.fondo);
   l.texto(l.x0 + 10, l.y + 14, esCli ? 'Cliente · Ordenante del transporte' : manual ? t.transp
-    : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO (realiza el servicio)' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
+    : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
     : t.transpRealiza, 7.5, { bold: true, color: COLOR.gris });
   // Envío manual: el logo del operador (si el cliente lo subió), arriba a la derecha de su caja.
   if (manual && d.logoPorteador) {
@@ -532,9 +538,25 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
 
   // ---- Caja de IMPORTE estilo «tarifa» del diseño antiguo (2026-11-14): a la derecha
   // el precio en grande con acento navy arriba; a la izquierda, las condiciones.
+  // Tramos en NEGRITA dentro de las líneas de la caja, marcados con **…** en los textos
+  // (usuario, 2026-11-15: el plazo de pago, la referencia, el email y el «RECIBIDO»).
+  // Corta en líneas midiendo cada palabra con su fuente (negrita o normal).
+  const partirMarcado = (tx: string, size: number, maxW: number): { w: string; b: boolean }[][] => {
+    const palabras: { w: string; b: boolean }[] = [];
+    tx.split('**').forEach((seg, i) => seg.split(/\s+/).filter(Boolean).forEach((w) => palabras.push({ w, b: i % 2 === 1 })));
+    const lineas: { w: string; b: boolean }[][] = [[]];
+    let cw = 0;
+    for (const pa of palabras) {
+      const wp = l.medida(pa.w, size, pa.b);
+      const extra = lineas[lineas.length - 1].length ? l.medida(' ', size, pa.b) : 0;
+      if (lineas[lineas.length - 1].length && cw + extra + wp > maxW) { lineas.push([pa]); cw = wp; }
+      else { lineas[lineas.length - 1].push(pa); cw += extra + wp; }
+    }
+    return lineas;
+  };
   const cajaImporte = (precioTxt: string, sub: string, lineasIzq: [string, string][]) => {
     const wBox = 185;
-    const izqLs = lineasIzq.filter(([, v]) => v).map(([k, v]) => ({ k, ls: l.partir(v, 7.2, l.ancho - wBox - 34) }));
+    const izqLs = lineasIzq.filter(([, v]) => v).map(([k, v]) => ({ k, ls: partirMarcado(v, 7.2, l.ancho - wBox - 34) }));
     const hIzq = 10 + izqLs.reduce((a, x) => a + 9 + x.ls.length * 9 + 5, 0);
     const hBox = Math.max(62, hIzq);
     l.sitio(hBox + 14);
@@ -544,7 +566,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       let yI = it + 8;
       for (const x of izqLs) {
         l.texto(l.x0 + 12, yI + 7, x.k.toUpperCase(), 5.8, { bold: true, color: COLOR.gris });
-        x.ls.forEach((ln, i) => l.texto(l.x0 + 12, yI + 16 + i * 9, ln, 7.2, { color: COLOR.tinta }));
+        x.ls.forEach((ln, i) => {
+          let cx = l.x0 + 12;
+          for (const r of ln) { l.texto(cx, yI + 16 + i * 9, r.w, 7.2, { color: COLOR.tinta, bold: r.b }); cx += l.medida(r.w, 7.2, r.b) + l.medida(' ', 7.2, r.b); }
+        });
         yI += 9 + x.ls.length * 9 + 5;
       }
     }

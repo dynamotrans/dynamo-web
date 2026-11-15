@@ -231,13 +231,24 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
   if (cerrando) return null;
   return (
     <Modal abierto envivo ancho={760} onCerrar={cerrar} titulo={`Detalle de envío #${e.referencia_gx}`}
-      sub={<>{ficha.cliente ? `${ficha.cliente.nombre} · ` : ''}<span className={`badge badge-${est[2]}`}>{est[1]}</span></>}
+      sub={<>{ficha.cliente ? `${ficha.cliente.nombre} · ` : ''}<span className={`badge badge-${est[2]}`}>{est[1]}</span>
+        {/* Envío manual (usuario, 2026-11-15): etiqueta AMARILLA imposible de no ver —
+            sin ella parece un envío de Dynamo sin transportista y descoloca. */}
+        {manual && <span style={{ marginLeft: '0.45rem', background: '#fde047', color: '#111827', border: '1px solid #eab308', borderRadius: 999, padding: '0.15rem 0.6rem', fontWeight: 800, fontSize: 'var(--fs-s)', whiteSpace: 'nowrap' }}>Transportista propio del cliente</span>}</>}
       icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {/* CABECERA EN CAJA (usuario, 2026-11-10: «esa info es un caos; ponlo en caja
           simple, ordenado, claro»): fecha, ruta con TODAS las paradas (CP, localidad,
           provincia y país), mercancía y precios, cada cosa en su fila. */}
       <div className="pen-envio-sum" style={{ marginBottom: '0.8rem' }}>
+          {/* Banda AMARILLA del envío manual (usuario, 2026-11-15): nombra al transportista
+              propio del cliente y deja claro por qué aquí no se asigna ni se oferta nada. */}
+          {manual && (
+            <div style={{ background: '#fde047', color: '#111827', border: '1px solid #eab308', borderRadius: 8, padding: '0.5rem 0.7rem', marginBottom: '0.45rem', fontSize: 'var(--fs-m)', lineHeight: 1.45 }}>
+              <strong>Transportista propio del cliente: {ficha.operador ?? 'sin nombre anotado'}.</strong>{' '}
+              Envío registrado a mano — Dynamo no asigna transportista ni lo oferta, el estado lo lleva el cliente y el CMR se gestiona directamente con su operador.
+            </div>
+          )}
           <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fechaVital || '—'}</span></div>
           {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
             ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }) => (

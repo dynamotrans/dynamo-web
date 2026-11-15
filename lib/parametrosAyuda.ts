@@ -30,8 +30,8 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Al llegar a este número de transportistas contactados sin aceptación, la difusión se para y te avisa (campana y email).',
     ejemplo: (v) => `Con ${v}: al transportista ${Number(v) + 1} ya no se le escribe; te llega el aviso para moverlo a mano.` },
   difusion_cadencia: { titulo: 'Cadencia por tramos',
-    explica: 'Cuánto se espera entre un email y el siguiente según las horas que falten para la carga. Cada tramo: hasta_horas (vacío = sin límite), minutos entre emails y lote (emails por paso; en el tramo urgente salen de 2 en 2).',
-    ejemplo: () => 'Con los tramos puestos: a 4 días un email cada 10 min; a menos de 6 horas, cada minuto y de 2 en 2.' },
+    explica: 'Cuánto se espera entre un email y el siguiente según las horas que falten para la carga. Cada tramo: hasta_horas (vacío = sin límite), minutos entre emails y lote (emails por paso).',
+    ejemplo: () => 'Con los tramos puestos: lejos de la carga un email cada 3 min; el último día cada minuto y de 3 en 3; a menos de 6 horas, cada minuto y de 20 en 20.' },
   difusion_minutos_entre_emails: { titulo: 'Minutos entre emails (fijo, en desuso)',
     explica: 'El ritmo fijo de la primera versión. Desde 2026-11-15 manda la cadencia por tramos (difusion_cadencia); esto queda solo como dato informativo de difusiones antiguas.',
     ejemplo: () => 'No hace falta tocarlo: el ritmo real sale de la cadencia por tramos.' },
@@ -89,7 +89,7 @@ export const AYUDA: Record<string, Ayuda> = {
   // Al pagar y liberar rigen los MISMOS cortes que al pedir (usuario, 2026-11-10): los
   // dos parámetros de corte «al pagar» se quitaron.
   aviso_parada_ventana_inicio: { titulo: 'Avisos a los sitios: ventana diaria, desde',
-    explica: 'Hora de Madrid a la que ABRE la ventana diaria en la que se mandan los avisos de recogida/entrega a los sitios de la ruta (los de 2 días antes y los de la víspera). El del mismo día va aparte.',
+    explica: 'Hora de Madrid a la que ABRE la ventana diaria en la que se mandan los avisos de recogida/entrega a los sitios de la ruta (los de 2 días hábiles antes y los de la víspera hábil; en sábado, domingo o festivo no salen — si la carga es un lunes, la víspera es el viernes). El del mismo día va aparte.',
     ejemplo: (v) => `Con ${v}: los avisos de víspera y de 2 días antes salen a partir de las ${v}:00.` },
   aviso_parada_ventana_fin: { titulo: 'Avisos a los sitios: ventana diaria, hasta',
     explica: 'Hora de Madrid a la que CIERRA esa ventana diaria. Si un envío se programa después del cierre, su primer aviso sale al día siguiente dentro de la ventana.',

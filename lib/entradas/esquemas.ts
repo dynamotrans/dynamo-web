@@ -43,6 +43,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones#emailOrdenPlataforma": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["transportista", "cliente"]), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones#enlaceCmr": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#flotaTransportista": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/envios/acciones#usosFlota": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#iniciarDifusion": z.tuple([z.string().uuid().or(z.literal('')), z.object({ precio: z.number().or(z.nan()), banda_pct: z.number().or(z.nan()), pronto_pago: z.boolean() })]),
   "app/panel/(app)/envios/acciones#marcarEtapa": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()), z.string().max(1000).nullable()]),
   "app/panel/(app)/envios/acciones#marcarPagoEnvio": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["transferencia", "exento", "requerir", "deshacer", "tarjeta"]), z.string().max(5000).optional()]),
