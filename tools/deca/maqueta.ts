@@ -78,7 +78,7 @@ async function main() {
       { cuando: '12/11/2026 09:41', en: '2026-11-12T08:41:00Z', hito: 'fecha_carga_movida', detalle: '14/11/2026', antes: '13/11/2026', motivo: 'El cargador retrasa la mercancía un día' },
       { cuando: '13/11/2026 11:20', en: '2026-11-13T10:20:00Z', hito: 'transportista_asignado', primera: true, detalle: 'Adrián Aguirre Etxeberria' },
       { cuando: '13/11/2026 17:05', en: '2026-11-13T16:05:00Z', hito: 'ruta_cambiada', detalle: '94150 Rungis → 41703 Dos Hermanas → 28021 Madrid → 46469 Beniparrell', antes: '94150 Rungis → 41703 Dos Hermanas → 46469 Beniparrell' },
-      { cuando: '14/11/2026 08:12', en: '2026-11-14T07:12:00Z', hito: 'matricula_asignada', detalle: '1681LXC + R0494BCB', antes: '4788MLN + R1102BBC', motivo: 'Avería de la tractora' },
+      { cuando: '14/11/2026 08:12', en: '2026-11-14T07:12:00Z', hito: 'matricula_asignada', detalle: '1681LXC + R0494BCB', antes: '4788MLN + R1102BBC' },
     ],
 
   };
