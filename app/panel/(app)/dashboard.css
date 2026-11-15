@@ -3627,9 +3627,11 @@ select.ptar-select.ptar-select-warn {
     background: var(--purple); color: #fff; font-size: var(--fs-s); font-weight: 800;
     display: inline-flex; align-items: center; justify-content: center;
 }
-/* Naranja = recogida/origen, Verde = entrega/destino. */
-.ptar-route-num.rec { background: var(--orange); }
-.ptar-route-num.ent { background: var(--green); }
+/* Naranja = recogida/origen, Verde = entrega/destino. Tonos oscuros: con texto blanco
+   pequeño, los de marca daban 2,6/3,2 de contraste y el axe del CI (AA, 4,5:1) tumbaba
+   /panel/nuevo-envio (2026-11-15). */
+.ptar-route-num.rec { background: #c2410c; }
+.ptar-route-num.ent { background: var(--green-dark); }
 /* Pastilla «N · Recogida / Entrega» de la ruta: el color dice el tipo y, si es botón,
    pulsarla ALTERNA la parada entre recogida y entrega. */
 .ptar-route-tag {
@@ -3637,8 +3639,8 @@ select.ptar-select.ptar-select-warn {
     border: 0; border-radius: 999px; color: #fff; font-size: 0.7rem; font-weight: 800;
     font-family: inherit; letter-spacing: 0.01em; white-space: nowrap;
 }
-.ptar-route-tag.rec { background: var(--orange); }
-.ptar-route-tag.ent { background: var(--green); }
+.ptar-route-tag.rec { background: #c2410c; }
+.ptar-route-tag.ent { background: var(--green-dark); }
 /* Icono del tipo de sitio dentro de la pastilla (blanco negativo). */
 .ptar-route-tag .rf-tipo-ico { margin: 0 0 0 0.35rem; }
 button.ptar-route-tag { cursor: pointer; }

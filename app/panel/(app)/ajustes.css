@@ -108,7 +108,9 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 ============================================ */
 .alta-chip { display: inline-block; font-weight: 700; border-radius: 6px; padding: 1px 7px; font-size: var(--fs-s); }
 .alta-chip.alta-cliente { background: #dbeafe; color: #1d4ed8; }
-.alta-chip.alta-transportista { background: #ffe8d1; color: #b45309; }
+/* Ámbar oscuro: #b45309 daba 4,23 de contraste sobre #ffe8d1 y el axe del CI
+   (AA, 4,5:1) tumbaba /panel/altas (2026-11-15). */
+.alta-chip.alta-transportista { background: #ffe8d1; color: #92400e; }
 table.data tr.alta-fila { cursor: pointer; }
 table.data tr.alta-fila.alta-cliente td { background: #f3f8ff; }
 table.data tr.alta-fila.alta-transportista td { background: #fff7ef; }
