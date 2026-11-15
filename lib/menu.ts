@@ -78,6 +78,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
     // abajo»): los enlaces cuelgan directos del separador, en este orden.
     { sep: 'Gestión interna · Admin', items: [
       { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
+      { slug: 'festivos', titulo: 'Festivos', icono: 'ajustes' },
       { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
       { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
       { slug: 'clientes', titulo: 'Clientes', icono: 'clientes' },

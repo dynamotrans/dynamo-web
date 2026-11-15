@@ -2617,6 +2617,28 @@ export type Database = {
         Relationships: [
         ]
       }
+      provincias_comunidades: {
+        Row: {
+          pais_codigo_iso: string
+          cp2: string
+          comunidad_iso: string
+          comunidad_nombre: string
+        }
+        Insert: {
+          pais_codigo_iso?: string
+          cp2: string
+          comunidad_iso: string
+          comunidad_nombre: string
+        }
+        Update: {
+          pais_codigo_iso?: string
+          cp2?: string
+          comunidad_iso?: string
+          comunidad_nombre?: string
+        }
+        Relationships: [
+        ]
+      }
       recargos_tipo_sitio: {
         Row: {
           tipo: Database["public"]["Enums"]["tipo_sitio"]
@@ -3518,6 +3540,7 @@ export type Database = {
       cmr_trazo_visible: { Args: { p_name: string | null }; Returns: boolean }
       completar_carga_publica: { Args: { p_reserva: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_telefono: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       comprobar_cobertura: { Args: { p_paradas: Json | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null }; Returns: { orden: number; punto: string; efecto: string; mensaje: string }[] }
+      comunidad_de: { Args: { p_pais: string | null; p_cp: string | null }; Returns: string }
       conductor_conocido: { Args: { p_transportista: string | null; p_nombre: string | null }; Returns: { nombre: string; telefono: string; conductor_id: string }[] }
       conductor_de_camion: { Args: { p_transportista: string | null; p_matricula: string | null }; Returns: { nombre: string; telefono: string }[] }
       conexiones_usuarios: { Args: Record<PropertyKey, never>; Returns: { id: string; ultima_conexion: string; email_confirmado: boolean }[] }
@@ -3573,6 +3596,7 @@ export type Database = {
       es_admin_master: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_consola_supabase: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_dia_habil: { Args: { p_fecha: string | null; p_pais?: string | null; p_region?: string | null }; Returns: boolean }
+      es_dia_habil_sitio: { Args: { p_fecha: string | null; p_pais?: string | null; p_cp?: string | null; p_poblacion?: string | null }; Returns: boolean }
       es_equipo_dynamo: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_servidor: { Args: Record<PropertyKey, never>; Returns: boolean }
       es_solo_lectura: { Args: Record<PropertyKey, never>; Returns: boolean }
@@ -3729,7 +3753,7 @@ export type Database = {
       tarifa_almacen: { Args: { p_almacen: string | null }; Returns: { semana: number; reparto: number }[] }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null }; Returns: string }
-      tramo_aviso_parada: { Args: { p_hoy: string | null; p_fecha: string | null; p_pais?: string | null }; Returns: string }
+      tramo_aviso_parada: { Args: { p_hoy: string | null; p_fecha: string | null; p_pais?: string | null; p_cp?: string | null; p_poblacion?: string | null }; Returns: string }
       transportista_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       transportista_texto_busqueda: { Args: { t: Database["public"]["Tables"]["transportistas"]["Row"] | null }; Returns: string }
       transportistas_flota: { Args: { p_ids: string[] | null }; Returns: { transportista_id: string; tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] }[] }

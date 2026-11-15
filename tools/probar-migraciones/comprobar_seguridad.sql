@@ -3943,6 +3943,7 @@ do $$ declare faltan text; begin
    where n.nspname = 'public' and c.relkind = 'r'
      and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
                            'provincias_colindantes',   -- dato fijo de referencia (como festivos): nadie escribe en ella
+                           'provincias_comunidades',   -- dato fijo de referencia (como festivos): nadie escribe en ella
                            'recargos_tipo_sitio', 'restricciones_servicio', 'distancias_cp', 'distancias_sitios',
                            'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
                            'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
@@ -9347,4 +9348,51 @@ do $$ begin
     raise exception 'FALLO 225 · a tres días hábiles vista no toca ningún tramo todavía';
   end if;
   raise notice 'OK 225 · avisos a sitios en días hábiles: víspera de lunes = viernes, festivos saltados, nada en finde/festivo y el mismo día siempre';
+end $$;
+
+-- ---- 226. Festivos autonómicos y locales en los avisos a sitios -----------------------
+-- La tabla provincia→comunidad está completa y los festivos con comunidad (y población)
+-- solo cuentan para los sitios a los que les tocan. Fechas fijas de 2027: 1-mar lunes,
+-- 2-mar martes, 3-mar miércoles, 9-mar martes, 10-mar miércoles.
+do $$ declare n int; begin
+  select count(*) into n from provincias_comunidades where pais_codigo_iso = 'ES';
+  if n <> 52 then raise exception 'FALLO 226 · la tabla provincia-comunidad debe tener 52 filas y tiene %', n; end if;
+  select count(distinct comunidad_iso) into n from provincias_comunidades;
+  if n <> 19 then raise exception 'FALLO 226 · deben salir 19 comunidades y ciudades autónomas y salen %', n; end if;
+  if comunidad_de('ES', '41703') is distinct from 'ES-AN'
+     or comunidad_de('ES', '08040') is distinct from 'ES-CT'
+     or comunidad_de('ES', '28001') is distinct from 'ES-MD'
+     or comunidad_de('PT', '1000-100') is not null then
+    raise exception 'FALLO 226 · comunidad_de no resuelve bien el CP';
+  end if;
+
+  -- Festivo AUTONÓMICO de prueba en Andalucía el martes 2-mar-2027.
+  insert into festivos (fecha, nombre, region, repetir) values (date '2027-03-02', 'Festivo autonómico de prueba 226', 'ES-AN', 'no');
+  -- Para un sitio de Sevilla (CP 41) la víspera hábil del miércoles 3 es el LUNES 1…
+  if tramo_aviso_parada(date '2027-03-01', date '2027-03-03', 'ES', '41001', 'Sevilla') is distinct from 'd1' then
+    raise exception 'FALLO 226 · con el festivo andaluz en medio, la víspera del sitio sevillano debía ser el lunes';
+  end if;
+  -- …y el martes festivo no le sale ningún aviso; a un sitio valenciano, sí (es su víspera).
+  if tramo_aviso_parada(date '2027-03-02', date '2027-03-03', 'ES', '41001', 'Sevilla') is not null then
+    raise exception 'FALLO 226 · el sitio andaluz recibe aviso en su festivo autonómico';
+  end if;
+  if tramo_aviso_parada(date '2027-03-02', date '2027-03-03', 'ES', '46001', 'Valencia') is distinct from 'd1' then
+    raise exception 'FALLO 226 · el festivo andaluz no debía afectar a un sitio valenciano';
+  end if;
+  -- Sin CP (no se sabe el sitio) solo cuentan los nacionales: el martes es hábil.
+  if tramo_aviso_parada(date '2027-03-02', date '2027-03-03', 'ES') is distinct from 'd1' then
+    raise exception 'FALLO 226 · sin CP deberían contar solo los festivos nacionales';
+  end if;
+
+  -- Festivo LOCAL de prueba en Sevilla capital el martes 9-mar-2027.
+  insert into festivos (fecha, nombre, region, poblacion, repetir) values (date '2027-03-09', 'Fiesta local de prueba 226', 'ES-AN', 'Sevilla', 'no');
+  if tramo_aviso_parada(date '2027-03-09', date '2027-03-10', 'ES', '41001', 'Sevilla') is not null then
+    raise exception 'FALLO 226 · el sitio de Sevilla capital recibe aviso en su fiesta local';
+  end if;
+  if tramo_aviso_parada(date '2027-03-09', date '2027-03-10', 'ES', '41703', 'Dos Hermanas') is distinct from 'd1' then
+    raise exception 'FALLO 226 · la fiesta local de Sevilla no debía afectar a Dos Hermanas';
+  end if;
+
+  delete from festivos where nombre in ('Festivo autonómico de prueba 226', 'Fiesta local de prueba 226');
+  raise notice 'OK 226 · provincia→comunidad completa (52/19) y los festivos autonómicos y locales solo afectan a los avisos de sus sitios';
 end $$;
