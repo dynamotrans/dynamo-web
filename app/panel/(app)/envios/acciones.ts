@@ -375,13 +375,13 @@ export async function emailDecaPlataforma(envio: string): Promise<{ ok: true; pa
   const { data: enl } = await s.supabase.from('cmr_enlaces').select('token').eq('envio_id', envio).eq('revocado', false)
     .order('creado_en', { ascending: false }).limit(1).maybeSingle();
   if (!enl?.token) return { ok: false, error: 'El enlace del envío está retirado: créalo de nuevo desde el botón del CMR.' };
-  const [{ supabasePublico }, { cargarDatosCmrPorToken, emisionDeca }, { pdfDecaDeDatos }, { origen }, { avisoDecaTransportista }] = await Promise.all([
+  const [{ supabasePublico }, { cargarDatosCmrPorToken, decaConMatriculas }, { pdfDecaDeDatos }, { origen }, { avisoDecaTransportista }] = await Promise.all([
     import('@/lib/supabase/publico'), import('@/lib/pdf/datos'), import('@/lib/pdf/generar'), import('@/lib/origen'), import('@/lib/servidor/avisosEnvio')]);
   const sbp = supabasePublico();
   if (!sbp) return { ok: false, error: 'La plataforma no está conectada.' };
   const r = await cargarDatosCmrPorToken(sbp, enl.token);
   if (!r.datos || !r.datos.porteador) return { ok: false, error: 'Este envío no tiene transportista asignado: todavía no hay DeCA.' };
-  if (!emisionDeca(r.datos)) return { ok: false, error: 'El DeCA todavía no está emitido: faltan las matrículas del camión.' };
+  if (!decaConMatriculas(r.datos)) return { ok: false, error: 'El DeCA no se envía sin matrículas: ponle antes las del camión (tractora y, en un tráiler, semirremolque).' };
   const web = await origen();
   const pdf = await pdfDecaDeDatos(r.datos, r.decaCreado, enl.token, web);
   const res = await avisoDecaTransportista({ envioId: envio, token: enl.token, origen: web, version: 'manual', primera: true, pdf,

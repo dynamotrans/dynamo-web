@@ -5,7 +5,7 @@ import { after } from 'next/server';
 import type { SB } from '@/lib/supabase/cliente';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
-import { cargarDatosCmrPorToken, emisionDeca } from '@/lib/pdf/datos';
+import { cargarDatosCmrPorToken, decaConMatriculas } from '@/lib/pdf/datos';
 import { pdfDecaDeDatos } from '@/lib/pdf/generar';
 
 // ---- ARCHIVO AUTOMÁTICO DE COPIAS DEL DeCA (usuario, 2026-11-15) -----------------------
@@ -22,7 +22,8 @@ import { pdfDecaDeDatos } from '@/lib/pdf/generar';
 // CADA VERSIÓN NUEVA SE ENVÍA SOLA AL TRANSPORTISTA por email, con el PDF adjunto: la
 // primera al emitirse (primeras matrículas) y las siguientes como «DeCA actualizado».
 //
-// Antes de la emisión (sin matrículas) el documento es un borrador y no se archiva.
+// SIN MATRÍCULAS NO HAY DeCA: ni se archiva ni se envía — ni antes de la emisión ni si
+// después se quitan (p. ej. al cambiar de transportista) hasta que se pongan las nuevas.
 // Quién escribe: la clave de servicio si está; si no, la sesión de Dynamo que dispara el
 // cambio. Sin ninguna de las dos (página pública en un despliegue sin clave de servicio) la
 // copia se guarda en cuanto Dynamo abra la ficha o cambie algo. Nunca rompe la acción.
@@ -67,7 +68,8 @@ export async function archivarCopiaDeca(a: Peticion & { origen: string }): Promi
     // Los MISMOS datos y el mismo PDF que sirve el QR del DeCA.
     const r = await cargarDatosCmrPorToken(lector, token);
     if (!r.datos || r.datos.manual || !r.decaCreado || !r.datos.porteador) return 'sin_enlace';
-    if (!emisionDeca(r.datos)) return 'sin_emitir';
+    // Nunca sin matrículas (usuario, 2026-11-15): ni copia ni email hasta que estén puestas.
+    if (!decaConMatriculas(r.datos)) return 'sin_emitir';
     envioId = String(r.datos.envio.id);
 
     // Versión = huella de TODO lo que pinta el DeCA (datos, histórico y la dirección del

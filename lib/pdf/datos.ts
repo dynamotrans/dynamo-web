@@ -65,6 +65,16 @@ export function emisionDeca(d: { modificaciones?: { cuando: string; en?: string;
 // lo que abre su QR) y /cmr/<nº> es la página de firmas del CMR (/cmr/<nº>/pdf, su PDF).
 export const urlDeca = (enlaceCmr: string) => enlaceCmr.replace(/\/cmr\/([^/]+)\/?$/, '/deca/$1');
 
+// ¿Hay DeCA que enseñar o enviar AHORA? (usuario, 2026-11-15: «solo se envía cuando se
+// asignan matrículas, nunca sin matrículas»). Hace falta que se haya emitido (primeras
+// matrículas) Y que el envío las tenga puestas en este momento: tractora y, en un conjunto
+// articulado, semirremolque. Si se quita el transportista o sus matrículas, deja de haberlo
+// hasta que se pongan otras.
+export function decaConMatriculas(d: { envio: { matricula_camion?: string | null; matricula_remolque?: string | null; necesita_remolque?: boolean };
+  modificaciones?: { cuando: string; en?: string; hito: string; primera?: boolean }[] }): boolean {
+  return !!emisionDeca(d) && !!d.envio.matricula_camion && (!d.envio.necesita_remolque || !!d.envio.matricula_remolque);
+}
+
 export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; lat: number | null; lon: number | null; gps_precision_m: number | null; gps_direccion: string | null; sha256: string | null; png: Uint8Array | null };
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la

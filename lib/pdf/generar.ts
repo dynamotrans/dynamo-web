@@ -1,5 +1,5 @@
 import type { SB } from '@/lib/supabase/cliente';
-import { cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, datosDynamo, cargarDatosDocManual } from './datos';
+import { decaConMatriculas, cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, datosDynamo, cargarDatosDocManual } from './datos';
 import { PDFDocument } from 'pdf-lib';
 import { ordenDeCarga, ordenCompuesta } from './orden';
 import type { DatosDoc } from './datos';
@@ -102,7 +102,7 @@ export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
 
 // El DeCA por su dirección pública (/deca/<nº>, la de su QR): la copia del conductor de la
 // orden, sin economía y sin firmas, en el idioma del transportista y en español. Sin
-// transportista todavía no hay documento. `pdfDecaDeDatos` es lo mismo con los datos ya
+// transportista o sin sus matrículas todavía no hay documento. `pdfDecaDeDatos` es lo mismo con los datos ya
 // leídos (el archivo automático de copias los necesita para saber si la versión es nueva).
 export async function pdfDecaDeDatos(datos: DatosDoc, decaCreado: string | null, token: string, origen: string):
   Promise<{ bytes: Uint8Array; nombre: string }> {
@@ -118,6 +118,8 @@ export async function pdfDecaPorToken(sb: SB, token: string, origen: string):
   if (!r.datos) return { error: r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.' };
   if (r.datos.manual) return { error: 'Este envío es una contratación directa entre el ordenante y su transportista: su documento de control lo gestionan ellos.' };
   if (!r.datos.porteador) return { error: 'El documento de control (DeCA) de este envío todavía no existe: falta asignar el transportista.' };
+  // Nunca un DeCA sin matrículas (usuario, 2026-11-15): hasta que se ponen, no hay documento.
+  if (!decaConMatriculas(r.datos)) return { error: 'El documento de control (DeCA) de este envío todavía no está emitido: faltan las matrículas del camión.' };
   return pdfDecaDeDatos(r.datos, r.decaCreado, token, origen);
 }
 
