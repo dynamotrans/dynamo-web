@@ -544,6 +544,7 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
 
 /* Táctil: campos a 16px para que iOS no haga auto-zoom al enfocarlos (el zoom de
    pellizco queda LIBRE, exigencia de accesibilidad; auditoría 2026-11-14). */
-@media (hover: none) and (pointer: coarse) {
-  input, select, textarea { font-size: 16px; }
+@media (pointer: coarse) {
+  /* !important: que ninguna regla con clase la pise (auto-zoom de iOS, 2026-11-15). */
+  input, select, textarea { font-size: 16px !important; }
 }
