@@ -714,6 +714,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.parrafo(`${t.verCondEs} ${t.prevalece}`, 8, { bold: true, color: COLOR.navy, despues: 6 });
   }
   if (!manual && copia === 'economica' && esES) {
+    // Las condiciones SIEMPRE empiezan en página nueva (usuario, 2026-11-15): nunca en el
+    // hueco que sobra al final de la orden. Si ya estamos arriba de una página limpia, no
+    // se abre otra en blanco.
+    if (l.y > l.margen.arriba + 1) l.nuevaPagina();
     seccion(t.secCond);
     // Cada condición: su título en negrita y el texto debajo.
     const c = (tx: string) => {
