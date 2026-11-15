@@ -34,6 +34,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
   const opciones = (q: string) => buscarTransportistas(q, ficha.transportista?.id ?? null).then((r) => r.map((o) => ({
     ...o, detalle: o.estado === 'suspendido' ? 'SUSPENDIDO' : o.estado === 'no_ofertar' ? 'no ofertar' : null, deshabilitada: o.estado === 'suspendido' })));
   const [precio, setPrecio] = useState(numero(e.importe_transportista, 2));
+  const [motivo, setMotivo] = useState('');
   const [camion, setCamion] = useState<string>(e.matricula_camion ?? '');
   const [remolque, setRemolque] = useState<string>(e.matricula_remolque ?? '');
   const [conductor, setConductor] = useState<string>(e.conductor_nombre ?? '');
@@ -166,7 +167,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     await hacer('Asignando el transportista', () => asignarTransportista(e.id, {
       transportista_id: tid, importe_transportista: pv, matricula_camion: camion, matricula_remolque: remolque,
       conductor_nombre: conductor, conductor_telefono: tel, fecha_carga_prevista: diaCarga || null,
-      fecha_entrega_estimada: entrega,
+      fecha_entrega_estimada: entrega, motivo,
     }), `Transportista asignado: ${t?.nombre ?? ''}.`);
   }
   return (
@@ -257,6 +258,10 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
       </div>
       {e.requiere_nima && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}
       {t?.estado === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar el envío, pero revisa por qué.</div>}
+      <div style={{ marginTop: '0.8rem' }}>
+        <label htmlFor="as-motivo">Motivo del cambio <Req si={false} /> <span style={{ fontWeight: 400, color: 'var(--gray-500)' }}>· sale en el DeCA si ya está emitido</span></label>
+        <input id="as-motivo" type="text" maxLength={300} value={motivo} placeholder="Ej. Avería de la tractora" onChange={(ev) => setMotivo(ev.target.value)} />
+      </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Las matrículas y el conductor se pueden dejar para más tarde. Queda en el historial quién asignó y a qué hora.</p>
       {(error ?? fallo) && <div className="wiz-warn show" role="alert">⚠ {error ?? fallo}</div>}
       {trabajando && <Cargando texto={trabajando} />}

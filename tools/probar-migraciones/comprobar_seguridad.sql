@@ -7357,7 +7357,8 @@ do $$ declare faltan text; begin
                            'consultas_precio',         -- histórico interno del tarifador
                            'pin_intentos',             -- control de abusos del PIN: no se pinta en el panel
                            'auditoria',                -- registro inmutable: se consulta, no se mira en vivo
-                           'emails_enviados')          -- registro/cola de emails operativos: Dynamo lo repasa en frío
+                           'emails_enviados',          -- registro/cola de emails operativos: Dynamo lo repasa en frío
+                           'deca_motivos')             -- motivos del DeCA: solo los lee el PDF al generarse
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
     raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
@@ -9541,6 +9542,59 @@ do $$ declare m jsonb := fn_modificaciones_deca(current_setting('prueba.e229')::
   end if;
   raise notice 'OK 229 · panel del DeCA: asignación de transportista y de matrículas tras la emisión (con fecha y hora) y cambio de matrículas después';
 end $$;
+
+-- ---- 232. DeCA (apdo. quinto.1): dato anterior «no válido», motivo y fecha/mercancía ----
+-- Sobre el envío de la 229: el cambio de matrículas lleva las ANTERIORES; los cambios de
+-- mercancía y de fecha hechos tras la emisión quedan en el panel con antes y después; el
+-- motivo anotado justo después se pega al ÚLTIMO cambio (no a uno anterior). Solo Dynamo
+-- anota motivos.
+update envios set toneladas = 18 where id = current_setting('prueba.e229')::uuid;
+update envios set fecha_carga_desde = fecha_carga_desde + 1, fecha_carga_hasta = coalesce(fecha_carga_hasta, fecha_carga_desde) + 1
+ where id = current_setting('prueba.e229')::uuid;
+insert into deca_motivos (envio_id, motivo) values (current_setting('prueba.e229')::uuid, 'El cargador retrasa la mercancía');
+do $$ declare m jsonb := fn_modificaciones_deca(current_setting('prueba.e229')::uuid); x jsonb; f jsonb; begin
+  if m -> 2 ->> 'antes' is distinct from '1234GDF + R2143ERA' then
+    raise exception 'FALLO 232 · el cambio de matrículas no lleva las anteriores: %', m -> 2;
+  end if;
+  if m -> 0 ->> 'antes' is not null then raise exception 'FALLO 232 · la primera asignación no tiene dato anterior: %', m -> 0; end if;
+  select e into x from jsonb_array_elements(m) e where e ->> 'hito' = 'mercancia_cambiada';
+  if x is null or x ->> 'antes' <> '20 Tn · 13,3 m' or x ->> 'detalle' <> '18 Tn · 13,3 m' or x ->> 'motivo' is not null then
+    raise exception 'FALLO 232 · el cambio de mercancía no sale con antes/después (o se le pega un motivo ajeno): %', x;
+  end if;
+  select e into f from jsonb_array_elements(m) e where e ->> 'hito' = 'fecha_carga_cambiada';
+  if f is null or f ->> 'antes' is null or f ->> 'detalle' is null or f ->> 'motivo' is distinct from 'El cargador retrasa la mercancía' then
+    raise exception 'FALLO 232 · el cambio de fecha no sale con antes/después y su motivo: %', f;
+  end if;
+  if (select count(*) from jsonb_array_elements(m) e where e ->> 'en' is null) > 0 then raise exception 'FALLO 232 · falta la fecha ISO de algún cambio'; end if;
+end $$;
+-- Antes de emitirse no se apunta nada de fecha ni mercancía (es el documento original).
+do $$ declare e uuid; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 4) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set toneladas = 12 where id = e;
+  if exists (select 1 from envio_hitos where envio_id = e and hito in ('mercancia_cambiada', 'fecha_carga_cambiada')) then
+    raise exception 'FALLO 232 · apunta cambios de un envío sin DeCA emitido';
+  end if;
+  perform set_config('prueba.e232', e::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform anotar_motivo_deca(current_setting('prueba.e229')::uuid, 'Motivo del cliente'); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 232 · un cliente anota motivos del DeCA'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not anotar_motivo_deca(current_setting('prueba.e229')::uuid, 'Avería de la tractora') then raise exception 'FALLO 232 · Dynamo no puede anotar el motivo'; end if;
+  if anotar_motivo_deca(current_setting('prueba.e229')::uuid, '  ') then raise exception 'FALLO 232 · anota un motivo vacío'; end if;
+  raise notice 'OK 232 · DeCA (apdo. quinto.1): cada cambio con el dato anterior (no válido) y su motivo; fecha y mercancía tras la emisión quedan; antes de emitir, no; solo Dynamo anota motivos';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
 
 -- ---- 230. Nadie firma sin matrículas: solo la cabecera, que las pone ----------------
 -- Con transportista y sin matrículas, el destinatario NO firma (sin_matriculas); la firma

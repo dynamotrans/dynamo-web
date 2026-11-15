@@ -40,6 +40,8 @@ const HITOS: Record<string, string> = {
   matricula_asignada: 'Camión asignado', hacia_la_carga: 'El camión va hacia la carga', cargando: 'Cargando', descargando: 'Descargando', cargado: 'Cargado · en ruta', descargado: 'Descargado · sigue a la siguiente parada', entregado: 'Entregado', cancelado: 'Cancelado',
   cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', cmr_firmado: 'CMR firmado',
   fecha_carga_movida: 'Fecha de carga movida (el pago llegó tarde)',
+  fecha_carga_cambiada: 'Fecha de carga cambiada',
+  mercancia_cambiada: 'Mercancía cambiada',
 };
 const I = ({ d }: { d: string[] }) => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }}>

@@ -28,6 +28,7 @@ export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProp
   });
   const [paradas, setParadas] = useState(ficha.paradas.map((p) => ({ id: p.id, referencia: p.referencia ?? '', anotaciones: p.anotaciones ?? '', titulo: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} · ${p.nombre_empresa ?? p.poblacion ?? ''}` })));
   const [error, setError] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState('');
   const set = (k: keyof typeof d, v: string | boolean) => setD((x) => ({ ...x, [k]: v }));
 
   async function guardar() {
@@ -44,7 +45,7 @@ export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProp
       discrecion_comercial: d.discrecion_comercial, anotaciones_cliente: d.anotaciones_cliente,
       paradas: paradas.map(({ id, referencia, anotaciones }) => ({ id, referencia, anotaciones })),
     };
-    await hacer('Guardando cambios', () => modificarEnvio(e.id, datos, e.importe_cliente != null ? Number(e.importe_cliente) : null), 'Cambios guardados.');
+    await hacer('Guardando cambios', () => modificarEnvio(e.id, datos, e.importe_cliente != null ? Number(e.importe_cliente) : null, motivo), 'Cambios guardados.');
   }
   const campo = (k: keyof typeof d, l: string, ph?: string, tipo = 'text', full = false) => (
     <div style={full ? { gridColumn: '1/-1' } : undefined}>
@@ -106,6 +107,10 @@ export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProp
           <label htmlFor="mo-anot">Anotaciones del envío <Req si={false} /></label>
           <textarea id="mo-anot" rows={2} value={d.anotaciones_cliente} onChange={(ev) => set('anotaciones_cliente', ev.target.value)} />
         </div>
+      </div>
+      <div style={{ marginTop: '0.8rem' }}>
+        <label htmlFor="mo-motivo">Motivo del cambio <Req si={false} /> <span style={{ fontWeight: 400, color: 'var(--gray-500)' }}>· sale en el DeCA si ya está emitido</span></label>
+        <input id="mo-motivo" type="text" maxLength={300} value={motivo} placeholder="Ej. Avería de la tractora" onChange={(ev) => setMotivo(ev.target.value)} />
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Para cambiar los sitios de la ruta, de momento cancela el envío y créalo de nuevo (cambiar la ruta desde aquí llega más adelante).</p>
       {(error ?? fallo) && <div className="wiz-warn show" role="alert">⚠ {error ?? fallo}</div>}

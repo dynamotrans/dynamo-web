@@ -723,12 +723,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       }
       for (const m of ult) {
         const et = m.hito === 'ruta_cambiada' ? t.modifRuta
-          : m.hito === 'fecha_carga_movida' ? t.modifFecha
+          : m.hito === 'fecha_carga_movida' || m.hito === 'fecha_carga_cambiada' ? t.modifFecha
+          : m.hito === 'mercancia_cambiada' ? t.modifMercancia
           // La 1.ª vez tras la emisión es «Asignación de…»; las siguientes, «Cambio de…» (usuario, 2026-11-15).
           : m.hito === 'matricula_asignada' ? (m.primera ? t.modifMatriculaAsig : t.modifMatricula)
           : m.hito === 'transportista_quitado' ? t.modifTransQuitado : (m.primera ? t.modifTransAsig : t.modifTransNuevo);
-        l.sitio(13);
-        l.parrafo(`${m.cuando} · ${et}${m.detalle ? ` · ${m.detalle}` : ''}`, 7.4, { color: COLOR.navy, despues: 2.5 });
+        // Apdo. quinto.1: el dato nuevo, el MOTIVO y el dato anterior marcado como no válido.
+        const motivo = m.motivo || (m.hito === 'ruta_cambiada' ? t.motRuta : m.hito === 'fecha_carga_movida' || m.hito === 'fecha_carga_cambiada' ? t.motFecha
+          : m.hito === 'mercancia_cambiada' ? t.motMercancia
+          : m.hito === 'transportista_quitado' ? t.motQuitado
+          : m.primera ? t.motAsig : m.hito === 'matricula_asignada' ? t.motMatricula : t.motTrans);
+        l.sitio(26);
+        l.parrafo(`${m.cuando} · ${et} · ${t.modifMotivo}: ${motivo}`, 7.4, { color: COLOR.navy, bold: true, despues: 1 });
+        if (m.detalle) l.parrafo(`${t.modifNuevo}: ${m.detalle}`, 7, { color: COLOR.navy, despues: 1, x: l.x0 + 12, ancho: l.ancho - 12 });
+        if (m.antes) l.parrafo(`${t.modifAnterior}: ${m.antes}`, 7, { color: COLOR.rojo, despues: 1, x: l.x0 + 12, ancho: l.ancho - 12 });
+        l.y += 2.5;
       }
       l.y += 6;
     }
@@ -811,6 +820,14 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     l.texto(der - l.medida(n, 6.6), A4.h - 34, n, 6.6, { color: COLOR.gris, pag: pg });
   });
   l.doc.setTitle(`${copia === 'operativa' ? 'DeCA' : t.titulo} ${ref}`);
+  // Metadatos del fichero (Resolución 5-jun-2026, apdo. segundo.1): fecha y hora de
+  // CREACIÓN del DeCA (su emisión, antes del servicio) y de la ÚLTIMA MODIFICACIÓN de sus
+  // datos — nunca el momento de esta descarga.
+  if (copia === 'operativa' && d.deca?.creado_en) {
+    l.doc.setCreationDate(new Date(d.deca.creado_en));
+    const ultima = (d.modificaciones ?? []).map((x) => x.en).filter(Boolean).sort().pop();
+    l.doc.setModificationDate(new Date(ultima ?? d.deca.creado_en));
+  }
   l.doc.setAuthor(manual ? d.cliente?.razon_social ?? '' : D.razon_social);
   return l.guardar();
 }

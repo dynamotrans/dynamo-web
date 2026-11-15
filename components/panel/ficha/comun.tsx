@@ -12,7 +12,7 @@ export const HITOS: Record<string, string> = {
   creado: 'Envío creado', confirmado: 'Envío confirmado', publicado_bolsa: 'Publicado en la bolsa de cargas',
   transportista_asignado: 'Transportista asignado', transportista_quitado: 'Transportista quitado',
   matricula_asignada: 'Matrícula asignada', hacia_la_carga: 'Sale hacia la carga', cargando: 'Llega y está cargando', descargando: 'Llega y está descargando', descargado: 'Descargado · sigue a la siguiente parada', etapa_corregida: 'Etapa marcada a mano', cargado: 'Cargado · en ruta', entregado: 'Entregado',
-  cancelado: 'Cancelado', cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', fecha_carga_movida: 'Fecha de carga movida al pagar tarde', ofertado: 'Ofertado a un transportista',
+  cancelado: 'Cancelado', cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', fecha_carga_movida: 'Fecha de carga movida al pagar tarde', fecha_carga_cambiada: 'Fecha de carga cambiada', mercancia_cambiada: 'Mercancía cambiada', ofertado: 'Ofertado a un transportista',
   enlace_abierto: 'Enlace de la oferta abierto', reservado: 'Reservado por un transportista',
   reserva_caducada: 'Reserva caducada', reserva_liberada: 'Reserva liberada',
   contraoferta_propuesta: 'Contraoferta propuesta', contraoferta_resuelta: 'Contraoferta resuelta',

@@ -845,6 +845,45 @@ export type Database = {
         Relationships: [
         ]
       }
+      deca_motivos: {
+        Row: {
+          id: string
+          envio_id: string
+          motivo: string
+          creado_por: string | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          envio_id: string
+          motivo: string
+          creado_por?: string | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          envio_id?: string
+          motivo?: string
+          creado_por?: string | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deca_motivos_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deca_motivos_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       difusiones: {
         Row: {
           id: string
@@ -3505,6 +3544,7 @@ export type Database = {
       anonimizar_conductor: { Args: { p_conductor: string | null }; Returns: Json }
       anonimizar_contacto: { Args: { p_contacto: string | null }; Returns: Json }
       anonimizar_usuario: { Args: { p_usuario: string | null; p_bloquear_email?: boolean | null; p_bloquear_dominio?: boolean | null }; Returns: Json }
+      anotar_motivo_deca: { Args: { p_envio: string | null; p_motivo: string | null }; Returns: boolean }
       anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null; p_fotos?: string[] | null }; Returns: Json }
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }
       asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null; p_fecha_entrega_estimada?: string | null }; Returns: Json }
@@ -3563,6 +3603,9 @@ export type Database = {
       datos_orden_por_cmr: { Args: { p_token: string | null; p_clave?: string | null }; Returns: Json }
       datos_orden_publica: { Args: { p_reserva: string | null }; Returns: Json }
       datos_orden_transportista: { Args: { p_envio: string | null }; Returns: Json }
+      deca_fechas_texto: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: string }
+      deca_mercancia_texto: { Args: { p_descripcion: string | null; p_toneladas: number | null; p_metros: number | null }; Returns: string }
+      deca_ruta_texto: { Args: { p: Json | null }; Returns: string }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }
       dias_habiles_antes: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       dias_ventana_carga: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: number }
@@ -3789,7 +3832,7 @@ export type Database = {
       tipo_camion: "trailer_tauliner" | "rigido_plataforma"
       tipo_carga: "completa" | "grupaje"
       tipo_concepto: "porte" | "almacenaje" | "paralizacion" | "penalizacion" | "otros"
-      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "descargando" | "cargado" | "descargado" | "etapa_corregida" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida"
+      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "descargando" | "cargado" | "descargado" | "etapa_corregida" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida" | "fecha_carga_cambiada" | "mercancia_cambiada"
       tipo_sitio: "almacen_nave" | "obra_zona_amplia" | "obra_zona_urbana" | "finca"
       tipo_vehiculo: "tractora" | "remolque" | "rigido"
     }

@@ -8,6 +8,7 @@ import { vistaCruda } from '@/lib/vista';
 import { euros } from '@/lib/formato';
 import { flotaDe, type FlotaTransportista, type TransportistaOpcion } from '@/lib/fichaEnvio';
 import type { TablaUpdate } from '@/lib/supabase/tipos';
+import type { SB } from '@/lib/supabase/cliente';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
@@ -26,6 +27,7 @@ export type Asignacion = {
   matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string;
   fecha_carga_prevista?: string | null;   // día en que carga (obligatorio si el envío tiene ventana)
   fecha_entrega_estimada?: string | null;  // día de entrega, SIEMPRE estimado (la pantalla lo exige)
+  motivo?: string;                        // motivo del cambio para el DeCA (si ya está emitido)
 };
 
 export async function asignarTransportista(envio: string, a: Asignacion): Promise<Res> {
@@ -45,6 +47,7 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
   if (r.ok) {
+    await anotarMotivo(s.supabase, envio, a.motivo);
     // Email de ORDEN DE CARGA al transportista (usuario, 2026-11-12): con el PDF
     // adjunto y los enlaces de descarga. Nunca rompe la asignación.
     const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
@@ -169,8 +172,8 @@ export async function ponerCamionManual(envio: string, d: { matricula_camion: st
   return { ok: true };
 }
 
-export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: number | null): Promise<Res> {
-  comprobarEntrada("app/panel/(app)/envios/acciones#modificarEnvio", [envio, d, precioAntes]);
+export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: number | null, motivo?: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#modificarEnvio", [envio, d, precioAntes, motivo]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo modifica envíos desde la ficha.' };
   const nums = [d.metros_lineales, d.toneladas, d.importe_cliente, d.importe_transportista, d.precio_acordado_operador];
@@ -205,7 +208,17 @@ export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: 
       .eq('id', p.id).eq('envio_id', envio);
     if (r.error) return { ok: false, error: traducir(r.error.message) };
   }
+  await anotarMotivo(s.supabase, envio, motivo);
   return { ok: true };
+}
+
+// MOTIVO DEL CAMBIO para el panel de modificaciones del DeCA (Resolución 5-jun-2026,
+// apdo. quinto.1: «los nuevos datos … así como el motivo del cambio»). Se anota justo
+// después del cambio y el PDF lo empareja con él. Vacío: el PDF pone uno genérico.
+async function anotarMotivo(sb: SB, envio: string, motivo?: string) {
+  const m = (motivo ?? '').trim();
+  if (m.length < 3) return;
+  await sb.rpc('anotar_motivo_deca', { p_envio: envio, p_motivo: m.slice(0, 300) });
 }
 
 export type NuevaOferta = { transportista_id: string | null; canal: string; precio: number; banda_pct: number; pronto_pago: boolean };

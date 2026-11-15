@@ -71,14 +71,16 @@ async function main() {
       parada(4, 'descarga', 'Circular Polimeri SL', 'Carrer Nou 21', '46469', 'Beniparrell', 'València', 'España'),
     ],
     firmas,
-    deca: { url: 'https://www.dynamotrans.com/cmr/a3853c97-be09-4213-9c99-c13000d5a0fe', creado_en: ahora },
+    deca: { url: 'https://www.dynamotrans.com/cmr/a3853c97-be09-4213-9c99-c13000d5a0fe', creado_en: '2026-11-11T09:00:00Z' },
     dynamo: DYNAMO,
     // Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto): muestra.
     modificaciones: [
-      { cuando: '12/11/2026 09:41', hito: 'fecha_carga_movida', detalle: '13/11/2026 → 14/11/2026' },
-      { cuando: '13/11/2026 17:05', hito: 'ruta_cambiada', detalle: '94150 Rungis → 41703 Dos Hermanas → 28021 Madrid → 46469 Beniparrell' },
-      { cuando: '14/11/2026 08:12', hito: 'matricula_asignada', detalle: '4788MLN + R1102BBC' },
+      { cuando: '12/11/2026 09:41', en: '2026-11-12T08:41:00Z', hito: 'fecha_carga_movida', detalle: '14/11/2026', antes: '13/11/2026', motivo: 'El cargador retrasa la mercancía un día' },
+      { cuando: '13/11/2026 11:20', en: '2026-11-13T10:20:00Z', hito: 'transportista_asignado', primera: true, detalle: 'Adrián Aguirre Etxeberria' },
+      { cuando: '13/11/2026 17:05', en: '2026-11-13T16:05:00Z', hito: 'ruta_cambiada', detalle: '94150 Rungis → 41703 Dos Hermanas → 28021 Madrid → 46469 Beniparrell', antes: '94150 Rungis → 41703 Dos Hermanas → 46469 Beniparrell' },
+      { cuando: '14/11/2026 08:12', en: '2026-11-14T07:12:00Z', hito: 'matricula_asignada', detalle: '1681LXC + R0494BCB', antes: '4788MLN + R1102BBC', motivo: 'Avería de la tractora' },
     ],
+
   };
   // 4.º argumento: orden (por defecto) o cmr. 5.º (solo orden): operativa | economica | cliente.
   const bytes = (process.argv[4] ?? 'orden') === 'cmr'
