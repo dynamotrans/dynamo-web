@@ -9396,3 +9396,46 @@ do $$ declare n int; begin
   delete from festivos where nombre in ('Festivo autonómico de prueba 226', 'Fiesta local de prueba 226');
   raise notice 'OK 226 · provincia→comunidad completa (52/19) y los festivos autonómicos y locales solo afectan a los avisos de sus sitios';
 end $$;
+
+-- ---- 227. Festivos nacionales europeos sembrados y perpetuos --------------------------
+-- Los 11 países de servicio con sus fijos (cada año) y sus móviles de Pascua.
+-- Fechas verificadas: 14-jul-2026 martes · 11-nov-2026 miércoles · Pascua 2027 = 28-mar
+-- (lunes de Pascua 29-mar, lunes).
+do $$ declare n int; begin
+  select count(*) into n from festivos where pais_codigo_iso <> 'ES' and region is null and poblacion is null;
+  if n <> 120 then raise exception 'FALLO 227 · esperaba 120 festivos europeos sembrados y hay %', n; end if;
+  if (select count(*) from festivos where pais_codigo_iso = 'DE') <> 9
+     or (select count(*) from festivos where pais_codigo_iso = 'PL') <> 13
+     or (select count(*) from festivos where pais_codigo_iso = 'CZ') <> 13 then
+    raise exception 'FALLO 227 · el reparto por país no cuadra (DE %, PL %, CZ %)',
+      (select count(*) from festivos where pais_codigo_iso = 'DE'),
+      (select count(*) from festivos where pais_codigo_iso = 'PL'),
+      (select count(*) from festivos where pais_codigo_iso = 'CZ');
+  end if;
+  -- Fijo: el 14 de julio (martes) es festivo en Francia y laborable en España.
+  if es_dia_habil(date '2026-07-14', 'FR') or not es_dia_habil(date '2026-07-14', 'ES') then
+    raise exception 'FALLO 227 · el 14 de julio debía parar Francia y no España';
+  end if;
+  -- Fijo compartido: el 11 de noviembre (miércoles) para a Francia, Bélgica y Polonia.
+  if es_dia_habil(date '2026-11-11', 'FR') or es_dia_habil(date '2026-11-11', 'BE')
+     or es_dia_habil(date '2026-11-11', 'PL') or not es_dia_habil(date '2026-11-11', 'ES') then
+    raise exception 'FALLO 227 · el 11 de noviembre debía parar FR/BE/PL y no España';
+  end if;
+  -- Móvil de Pascua PERPETUO: el lunes de Pascua de 2027 (29-mar) para a DE/FR/PL/IT
+  -- y no a España (que no lo tiene). Se calcula solo: no hay ninguna fila con esa fecha.
+  if es_dia_habil(date '2027-03-29', 'DE') or es_dia_habil(date '2027-03-29', 'FR')
+     or es_dia_habil(date '2027-03-29', 'PL') or es_dia_habil(date '2027-03-29', 'IT')
+     or not es_dia_habil(date '2027-03-29', 'ES') then
+    raise exception 'FALLO 227 · el lunes de Pascua 2027 debía parar DE/FR/PL/IT y no España';
+  end if;
+  -- Y el aviso a un sitio alemán lo respeta: carga el martes 30-mar-2027. Para el sitio
+  -- DE el viernes 26 es Viernes Santo y el lunes 29 lunes de Pascua, así que su víspera
+  -- hábil es el JUEVES 25; la de un sitio español es el lunes 29 (en España es laborable).
+  if tramo_aviso_parada(date '2027-03-25', date '2027-03-30', 'DE') is distinct from 'd1'
+     or tramo_aviso_parada(date '2027-03-26', date '2027-03-30', 'DE') is not null
+     or tramo_aviso_parada(date '2027-03-29', date '2027-03-30', 'DE') is not null
+     or tramo_aviso_parada(date '2027-03-29', date '2027-03-30', 'ES') is distinct from 'd1' then
+    raise exception 'FALLO 227 · la víspera del sitio alemán no salta la Semana Santa alemana';
+  end if;
+  raise notice 'OK 227 · festivos europeos: 120 sembrados (11 países), fijos perpetuos y Pascua recalculándose sola, y los avisos del sitio extranjero los respetan';
+end $$;
