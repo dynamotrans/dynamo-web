@@ -38,7 +38,9 @@ import { avisaFaltas } from '@/lib/faltas';
 type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; preEmail: string; lugar?: string; extra?: boolean;
   // Matrículas al firmar (usuario, 2026-11-11): solo la CABECERA (transportista o
   // cargador de la 1.ª parada) las ve, verifica y corrige; obligatorias salvo manuales.
-  conMatricula?: boolean; matObligatoria?: boolean; matCam?: string; matRem?: string };
+  conMatricula?: boolean; matObligatoria?: boolean; matCam?: string; matRem?: string;
+  // Conjunto articulado: hace falta también la matrícula del semirremolque (Orden FOM/2861/2012, art. 6).
+  remObligatoria?: boolean };
 
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
@@ -114,7 +116,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // parada del recorrido y el transportista — las verifica, corrige o, si faltan, las
   // pone (obligatorias salvo en envíos manuales). El resto ya está en tránsito.
   const primera = paradas[0]?.id ?? null;
-  const mat = { conMatricula: true, matObligatoria: !cmr.manual, matCam: cmr.matricula_camion ?? '', matRem: cmr.matricula_remolque ?? '' };
+  const mat = { conMatricula: true, matObligatoria: !cmr.manual, matCam: cmr.matricula_camion ?? '', matRem: cmr.matricula_remolque ?? '', remObligatoria: !cmr.manual && cmr.necesita_remolque !== false };
   const bloques: Bloque[] = [
     ...rec.map((p, i) => ({ clave: `remitente:${p.id}`, titulo: `Recogida ${rec.length + ent.length > 2 ? i + 1 : ''}`.trim(), casilla: 'Casilla 22 · firma y sello', firmante: 'Remitente / Cargador', rol: 'remitente' as const, parada_id: p.id, pre: p.contacto ?? '', preEmail: p.email ?? '', lugar: lugar(p), ...(p.id === primera ? mat : {}) })),
     { clave: 'transportista:', titulo: 'Transportista', casilla: 'Casilla 23 · firma y sello', firmante: 'Porteador / Transportista', rol: 'transportista', parada_id: null, pre: cmr.conductor ?? '', preEmail: cmr.transportista_email ?? '', lugar: cmr.transportista ?? undefined, ...mat },
@@ -165,7 +167,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // SIN MATRÍCULAS TAMPOCO (usuario, 2026-11-15): solo la casilla de CABECERA (transportista
   // o cargador de la 1.ª recogida) se puede firmar, porque es justo donde se ponen. Las demás
   // y las firmas extra esperan a que haya matrícula. La base de datos lo exige igualmente.
-  const sinMatricula = !cmr.manual && !cmr.matricula_camion;
+  // Un tráiler lleva DOS matrículas: sin la del semirremolque tampoco (2026-11-15).
+  const sinMatricula = !cmr.manual && (!cmr.matricula_camion || (!!cmr.necesita_remolque && !cmr.matricula_remolque));
   const bloqueado = (b: Bloque) => sinTransportista || (sinMatricula && !b.conMatricula);
   const avisar = () => { if (sinTransportista) setAvisoSinTra(true); else setAvisoSinMat(true); };
   const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
@@ -214,7 +217,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               {avisoSinTra
                 ? <>El envío <strong>no tiene transportista asignado</strong> (sin camión no se puede estar cargando).
                     En cuanto se asigne, las firmas se abren solas en esta misma página.</>
-                : <>El envío <strong>todavía no tiene las matrículas del camión</strong>. Se ponen al firmar la casilla del
+                : <>El envío <strong>todavía no tiene {cmr.matricula_camion ? 'la matrícula del semirremolque' : 'las matrículas del camión'}</strong>. Se ponen al firmar la casilla del
                     <strong> transportista</strong> (o la del cargador de la 1.ª recogida); después se abren las demás firmas.</>}
             </p>
             <button type="button" className="firma-btn" style={{ width: '100%', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
@@ -258,7 +261,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       )}
       {!sinTransportista && sinMatricula && hechas < bloques.length && (
         <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
-          Faltan las <strong>matrículas del camión</strong>: primero firma el transportista (o el cargador de la 1.ª recogida) poniéndolas;
+          {cmr.matricula_camion ? <>Falta la <strong>matrícula del semirremolque</strong> (un tráiler lleva las dos)</> : <>Faltan las <strong>matrículas del camión</strong></>}: primero firma el transportista (o el cargador de la 1.ª recogida) poniéndolas;
           después se abren las demás firmas en esta misma página.
         </div>
       )}
@@ -416,6 +419,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const pideMatricula = !!b.conMatricula && !b.extra;
   const [matCam, setMatCam] = useState(b.matCam ?? '');
   const [matRem, setMatRem] = useState(b.matRem ?? '');
+  // «Es un camión rígido»: sin semirremolque. De entrada, marcado solo si el envío no lo necesita.
+  const [rigido, setRigido] = useState(!b.remObligatoria);
   const [reservas, setReservas] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -470,6 +475,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
       setAviso('Pon la matrícula del camión (tractora): sin ella no se puede salir de la 1.ª parada.');
       avisaFaltas(['sigMatCam']); return;
     }
+    if (pideMatricula && b.matObligatoria && !rigido && !matRem.trim()) {
+      setAviso('Pon también la matrícula del semirremolque: un tráiler lleva las dos en el documento de control. Si es un camión rígido, márcalo.');
+      avisaFaltas(['sigMatRem']); return;
+    }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     // El diálogo de ubicación del SISTEMA es obligatorio (una web no puede darse permiso
     // sola), pero antes sale el NUESTRO, con diseño y explicación (usuario, 2026-11-10).
@@ -514,7 +523,8 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     try {
       r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
         reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
-        gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula ? matRem : undefined });
+        gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula && !rigido ? matRem : undefined,
+        camion_rigido: pideMatricula ? rigido : undefined });
     } catch {
       // La red se cayó del todo (antes esto dejaba el botón en «Guardando…» para siempre).
       r = { ok: false, error: 'No hay cobertura suficiente en esta zona. Muévete unos metros y vuelve a pulsar «Aceptar firma»: tu firma sigue en la pantalla, no se ha perdido.' };
@@ -551,13 +561,18 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <div className="sig-row">
             <input type="text" id="sigMatCam" autoComplete="off" autoCapitalize="characters" placeholder="Tractora · Ej. 1234 BCD"
               value={matCam} onChange={(e) => setMatCam(e.target.value.toUpperCase())} />
-            <input type="text" id="sigMatRem" autoComplete="off" autoCapitalize="characters" placeholder="Remolque (opcional)" aria-label="Matrícula del remolque (opcional)"
-              value={matRem} onChange={(e) => setMatRem(e.target.value.toUpperCase())} />
+            <input type="text" id="sigMatRem" autoComplete="off" autoCapitalize="characters" disabled={rigido}
+              placeholder={rigido ? 'Sin semirremolque' : 'Semirremolque · Ej. R1234 BCD'} aria-label="Matrícula del semirremolque"
+              value={rigido ? '' : matRem} onChange={(e) => setMatRem(e.target.value.toUpperCase())} />
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem', fontWeight: 600, margin: '0.35rem 0 0.2rem', cursor: 'pointer' }}>
+            <input type="checkbox" checked={rigido} onChange={(e) => setRigido(e.target.checked)} style={{ width: 18, height: 18 }} />
+            Es un camión rígido (no lleva semirremolque)
+          </label>
           <div className="sig-msg warn">
             {b.matCam
               ? 'Verifica que las matrículas son las del camión que se lleva la mercancía; aquí puedes corregirlas. Después ya no se pueden cambiar.'
-              : 'El envío aún no tiene matrículas: ponlas aquí. Sin ellas el camión no puede salir de la 1.ª parada (documento de control DeCA).'}
+              : 'El envío aún no tiene matrículas: ponlas aquí (tractora y semirremolque). Sin ellas el camión no puede salir de la 1.ª parada (documento de control DeCA).'}
           </div>
         </>}
         {/* Las reservas son de la casilla principal: una firma extra no las anota. */}

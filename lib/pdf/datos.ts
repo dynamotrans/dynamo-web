@@ -23,7 +23,9 @@ export type ParadaDoc = {
 };
 // El envío tal como lo usan los PDF: la fila de envios (o el JSON de las funciones de
 // orden, con los mismos nombres) más lo que se le junta.
-export type EnvioDoc = Tabla<'envios'> & { plazo_pago_transportista?: number | null; transportista_nima?: string | null };
+export type EnvioDoc = Tabla<'envios'> & { plazo_pago_transportista?: number | null; transportista_nima?: string | null;
+  // Conjunto articulado: el documento de control lleva tractora Y semirremolque (Orden FOM/2861/2012, art. 6).
+  necesita_remolque?: boolean };
 export type DatosDoc = {
   envio: EnvioDoc;
   manual: boolean;                       // envío con el operador del cliente: SIN mención a Dynamo
@@ -38,7 +40,7 @@ export type DatosDoc = {
   deca?: { url: string; creado_en: string } | null;   // enlace público del CMR digital: nº único, QR y fecha de creación (el e-CMR hace de DeCA)
   // Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto): cada cambio
   // del documento de control con su fecha/hora española ya formateada y un detalle corto.
-  modificaciones?: { cuando: string; en?: string; hito: string; detalle: string | null; antes?: string | null; motivo?: string | null; primera?: boolean }[];
+  modificaciones?: { cuando: string; en?: string; hito: string; detalle: string | null; antes?: string | null; motivo?: string | null; primera?: boolean; iniciado?: boolean }[];
   dynamo?: DatosDynamo;                  // los datos fijos de Dynamo (de Parámetros)
 };
 
@@ -107,7 +109,7 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   if (error) return { datos: null, error: mensajeError(error.message) };
   if (!e) return { datos: null, error: 'Ese envío no existe.' };
 
-  const [par, ctos, res, yo, mods] = await Promise.all([
+  const [par, ctos, res, yo, mods, veh] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
       'sitios(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden').overrideTypes<FilaParadaDoc[], { merge: false }>(),
     sb.from('contactos').select('cliente_id, transportista_id, sitio_id, nombre, telefono, email, funcion, es_principal')
@@ -119,6 +121,9 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
       : Promise.resolve({ data: null }),
     sb.from('usuarios').select('nombre, email, telefono').eq('id', usuarioId).maybeSingle<{ nombre: string | null; email: string; telefono: string | null }>(),
     sb.rpc('modificaciones_deca', { p_envio: id }),
+    e.vehiculo_camion_id
+      ? sb.from('vehiculos').select('tipo').eq('id', e.vehiculo_camion_id).maybeSingle<{ tipo: string }>()
+      : Promise.resolve({ data: null }),
   ]);
 
   const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean) as string[];
@@ -156,7 +161,8 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   return {
     error: null,
     datos: {
-      envio: { ...e, plazo_pago_transportista: t?.plazo_pago_dias ?? null },
+      envio: { ...e, plazo_pago_transportista: t?.plazo_pago_dias ?? null,
+        necesita_remolque: !e.operador_id && !e.requiere_plataforma_elevadora && veh.data?.tipo !== 'rigido' },
       manual: !!e.es_manual,
       cliente, porteador,
       paradas: (par.data ?? []).map((p) => ({
@@ -216,7 +222,7 @@ type ParadaJson = Omit<ParadaDoc, 'pais' | 'tipo_sitio' | 'contacto' | 'requiere
   contacto_nombre?: string | null; contacto_telefono?: string | null };
 type OrdenJson = { envio: EnvioDoc; porteador?: EmpresaJson; cliente?: EmpresaJson; paradas?: ParadaJson[];
   parametros?: Record<string, unknown>; dynamo?: Record<string, unknown>; pronto_pago?: boolean;
-  modificaciones?: { cuando: string; en?: string; hito: string; detalle: string | null; antes?: string | null; motivo?: string | null; primera?: boolean }[] };
+  modificaciones?: { cuando: string; en?: string; hito: string; detalle: string | null; antes?: string | null; motivo?: string | null; primera?: boolean; iniciado?: boolean }[] };
 
 function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<string, number> } {
   const j = data as OrdenJson, t = j.porteador ?? ({} as EmpresaJson);

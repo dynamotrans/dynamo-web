@@ -621,7 +621,10 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   // de última modificación de los datos — nunca el momento de esta descarga.
   const creadoDoc = d.deca?.creado_en ?? e.creado_en;
   if (creadoDoc) l.doc.setCreationDate(new Date(creadoDoc));
-  const modDoc = e.modificado_en ?? creadoDoc;
-  if (modDoc) l.doc.setModificationDate(new Date(modDoc));
+  // Última modificación = el último cambio de datos del documento o la última firma
+  // (no cualquier retoque interno del envío, como un avance de estado).
+  const tiemposDoc = [creadoDoc, ...(d.modificaciones ?? []).map((x) => x.en), ...(d.firmas ?? []).map((f) => f.firmado_en)]
+    .map((x) => (x ? Date.parse(x) : NaN)).filter((x) => Number.isFinite(x));
+  if (tiemposDoc.length) l.doc.setModificationDate(new Date(Math.max(...tiemposDoc)));
   return l.guardar();
 }

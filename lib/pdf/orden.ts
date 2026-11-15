@@ -247,6 +247,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
        [`${t.operadorAut} ${D.tarjeta_ot}`, 8, false]];
   const alto = (filas: [string, number, boolean][], w: number) => filas.reduce((a, [tx, s, b]) => a + (tx ? l.partir(tx, s, w, b).length * s * 1.3 : 0), 0);
   const matr = [e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / ');
+  // Conjunto articulado con la tractora puesta y sin semirremolque: el documento está
+  // incompleto (Orden FOM/2861/2012, art. 6) — se dice en rojo y el QR espera.
+  const faltaRem = !manual && !!e.necesita_remolque && !!e.matricula_camion && !e.matricula_remolque;
   // RESUMEN del transporte: mercancía · tipo de transporte · tipo de carga · requisitos ·
   // matrículas · conductor. En las copias no operativas va DENTRO de la franja, en el
   // sitio de la antigua caja «Gestionada por» (usuario, 2026-11-14: los datos de Dynamo
@@ -265,6 +268,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     { k: t.tipoCarga, v: [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ') },
     ...(requisitos ? [{ k: t.requisitos, v: requisitos, b: true, rojo: !!e.adr }] : []),
     { k: t.matriculasAutL, v: matr || t.pendMatrEnvia, placas: !!matr, b: true, rojo: !matr },
+    ...(faltaRem ? [{ k: t.atencion, v: t.faltaRemolque, b: true, rojo: true }] : []),
     // Sin fila de CONDUCTOR en la orden de carga, lo haya o no (usuario, 2026-11-15):
     // el conductor va en el DeCA (copia del conductor), que es donde hace falta.
   ];
@@ -279,7 +283,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     qrCache = null;
     // En la copia cliente el porteador no viaja en los datos (solo matrículas y
     // conductor): con matrícula ya hay transporte asignado y el QR va igual.
-    if (d.deca && (p || esCli) && e.matricula_camion) {
+    if (d.deca && (p || esCli) && e.matricula_camion && !faltaRem) {
       try { qrCache = await l.doc.embedPng(await QRCode.toBuffer(`${d.deca.url}/pdf`, { margin: 0, scale: 4 })); } catch { qrCache = null; }
     }
   };
@@ -302,7 +306,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       l.pag.drawRectangle({ x: cx + (cw - lado) / 2, y: A4.h - yQr - lado, width: lado, height: lado, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1, borderDashArray: [3, 3] });
       l.texto(cx + (cw - l.medida('QR', 9, true)) / 2, yQr + lado / 2 + 3, 'QR', 9, { bold: true, color: COLOR.gris });
     }
-    const tPie = qrImg ? t.qrEscanea : t.qrPendiente;
+    const tPie = qrImg ? t.qrEscanea : faltaRem ? t.faltaRemolque : t.qrPendiente;
     l.texto(cx + (cw - l.medida(tPie, 5.4)) / 2, ct + chX - 5, tPie, 5.4, { color: COLOR.gris });
   };
   // HOJAS SIGUIENTES DEL DeCA (usuario, 2026-11-15): cada hoja nueva repite la cabecera de
@@ -353,6 +357,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const datosIt: { k: string; v: string[]; placas?: boolean; rojo?: boolean }[] = !wDatos ? [] : [
       { k: t.tipoTransporte, v: l.partir(e.requiere_plataforma_elevadora ? t.rigido : t.tauliner, 7.4, wDatos - 14, true).slice(0, 3) },
       { k: t.matriculasAutL, v: matr ? [] : l.partir(t.pendAsignar, 7.4, wDatos - 14, true).slice(0, 2), placas: !!matr, rojo: !matr },
+      ...(faltaRem ? [{ k: t.atencion, v: l.partir(t.faltaRemolque, 7.4, wDatos - 14, true).slice(0, 3), rojo: true }] : []),
       { k: t.conductor, v: l.partir([e.conductor_nombre, e.conductor_telefono && telBonito(e.conductor_telefono)].filter(Boolean).join(' · ') || t.pendComunicar, 7.4, wDatos - 14, true).slice(0, 3) },
     ];
     const hDatos = !wDatos ? 0 : 10 + datosIt.reduce((a, it) => a + 9 + (it.placas ? placas.length * 17 + 1 : it.v.length * 9) + 6, 0);
@@ -732,7 +737,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         const motivo = m.motivo || (m.hito === 'ruta_cambiada' ? t.motRuta : m.hito === 'fecha_carga_movida' || m.hito === 'fecha_carga_cambiada' ? t.motFecha
           : m.hito === 'mercancia_cambiada' ? t.motMercancia
           : m.hito === 'transportista_quitado' ? t.motQuitado
-          : m.primera ? t.motAsig : m.hito === 'matricula_asignada' ? t.motMatricula : t.motTrans);
+          : m.primera ? (m.iniciado ? t.motAsigIniciado : t.motAsig) : m.hito === 'matricula_asignada' ? t.motMatricula : t.motTrans);
         l.sitio(26);
         l.parrafo(`${m.cuando} · ${et} · ${t.modifMotivo}: ${motivo}`, 7.4, { color: COLOR.navy, bold: true, despues: 1 });
         if (m.detalle) l.parrafo(`${t.modifNuevo}: ${m.detalle}`, 7, { color: COLOR.navy, despues: 1, x: l.x0 + 12, ancho: l.ancho - 12 });
@@ -825,8 +830,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // datos — nunca el momento de esta descarga.
   if (copia === 'operativa' && d.deca?.creado_en) {
     l.doc.setCreationDate(new Date(d.deca.creado_en));
-    const ultima = (d.modificaciones ?? []).map((x) => x.en).filter(Boolean).sort().pop();
-    l.doc.setModificationDate(new Date(ultima ?? d.deca.creado_en));
+    // Última modificación = el último cambio de datos o la última firma estampada.
+    const tiempos = [d.deca.creado_en, ...(d.modificaciones ?? []).map((x) => x.en), ...(d.firmas ?? []).map((f) => f.firmado_en)]
+      .map((x) => (x ? Date.parse(x) : NaN)).filter((x) => Number.isFinite(x));
+    l.doc.setModificationDate(new Date(Math.max(...tiempos)));
   }
   l.doc.setAuthor(manual ? d.cliente?.razon_social ?? '' : D.razon_social);
   return l.guardar();

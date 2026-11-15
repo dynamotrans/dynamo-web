@@ -6442,7 +6442,7 @@ do $$ declare e uuid; begin
   -- Con transportista: sin él no se firma el CMR (regla de 20261110100000; el bloqueo
   -- lo cubre la prueba 191 — aquí hace falta poder firmar y anotar reservas).
   perform asignar_transportista(e, current_setting('prueba.transp')::uuid,
-    800, '0174 TST', null, 'Chofer 174', '+34600174174', current_date + 24, current_date + 25);
+    800, '0174 TST', 'R0174TST', 'Chofer 174', '+34600174174', current_date + 24, current_date + 25);
   perform set_config('prueba.e174', e::text, false);
 end $$;
 reset role;
@@ -6527,7 +6527,7 @@ do $$ declare e uuid; begin
     jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A176', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B176', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
-  update envios set transportista_id = current_setting('prueba.transp')::uuid, matricula_camion = '1176 TST' where id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, matricula_camion = '1176 TST', matricula_remolque = 'R1176TST' where id = e;
   perform set_config('prueba.e176', e::text, false);
 end $$;
 reset role;
@@ -6584,7 +6584,7 @@ do $$ declare sa uuid; sb uuid; t uuid; e uuid; begin
     jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'sitio_id', sa, 'nombre_empresa', 'Muelle A177', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'descarga', 'sitio_id', sb, 'nombre_empresa', 'Nave B177', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
-  update envios set transportista_id = t, matricula_camion = '1177 TST' where id = e;
+  update envios set transportista_id = t, matricula_camion = '1177 TST', matricula_remolque = 'R1177TST' where id = e;
   perform set_config('prueba.e177', e::text, false);
   perform set_config('prueba.sa177', sa::text, false);
   perform set_config('prueba.sb177', sb::text, false);
@@ -7168,7 +7168,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), fa
 set role authenticated;
 do $$ begin
   perform asignar_transportista(current_setting('prueba.e191')::uuid, current_setting('prueba.transp')::uuid,
-    500, '0191 TST', null, 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
+    500, '0191 TST', 'R0191TST', 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -7207,7 +7207,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), fa
 set role authenticated;
 do $$ begin
   perform asignar_transportista(current_setting('prueba.e191')::uuid, current_setting('prueba.transp')::uuid,
-    500, '0191 TST', null, 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
+    500, '0191 TST', 'R0191TST', 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -7255,7 +7255,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), fa
 set role authenticated;
 do $$ begin
   perform asignar_transportista(current_setting('prueba.e191')::uuid, current_setting('prueba.transp')::uuid,
-    500, '0191 TST', null, 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
+    500, '0191 TST', 'R0191TST', 'Chofer 191', '+34600191191', current_date + 30, current_date + 31);
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -7380,7 +7380,7 @@ do $$ declare e uuid; begin
     jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A195', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
                       jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'B195', 'codigo_postal', '14001', 'poblacion', 'Córdoba'),
                       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'C195', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
-  update envios set transportista_id = current_setting('prueba.transp')::uuid, matricula_camion = '1195 TST' where id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, matricula_camion = '1195 TST', matricula_remolque = 'R1195TST' where id = e;
   perform set_config('prueba.e195', e::text, false);
 end $$;
 reset role;
@@ -7655,8 +7655,12 @@ do $$ declare tok uuid := current_setting('prueba.tok200')::uuid; r jsonb; v jso
     raise exception 'FALLO 200 · cmr_publico no devuelve las matrículas guardadas: %', v->>'matricula_camion';
   end if;
   -- El transportista (cabecera) todavía puede CORREGIRLA con su firma principal.
+  -- (Un tráiler lleva las DOS: corregir dejando solo la tractora no vale — 2026-11-15.)
   r := firmar_cmr_publico(tok, null, 'transportista', 'Chofer 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-2.png', null, 'prueba', null,
          false, null, null, null, null, null, '9999 ZZZ', null);
+  if r->>'resultado' <> 'falta_remolque' then raise exception 'FALLO 200 · corrige un tráiler dejándolo sin semirremolque: %', r; end if;
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Chofer 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-2.png', null, 'prueba', null,
+         false, null, null, null, null, null, '9999 ZZZ', 'R-9999-Z');
   if r->>'resultado' <> 'firmada' then raise exception 'FALLO 200 · el transportista no puede corregir la matrícula: %', r; end if;
   -- El destinatario (en tránsito) NO la toca: su parámetro se ignora.
   r := firmar_cmr_publico(tok, current_setting('prueba.d2_200')::uuid, 'destinatario', 'Destino 200', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t200-3.png', null, 'prueba', null,
@@ -7668,8 +7672,8 @@ do $$ declare e uuid := current_setting('prueba.e200')::uuid; begin
   if (select matricula_camion from envios where id = e) <> '9999 ZZZ' then
     raise exception 'FALLO 200 · la matrícula buena no es la del transportista (cabecera): %', (select matricula_camion from envios where id = e);
   end if;
-  if (select matricula_remolque from envios where id = e) is not null then
-    raise exception 'FALLO 200 · corregir sin remolque no lo quita';
+  if (select matricula_remolque from envios where id = e) is distinct from 'R-9999-Z' then
+    raise exception 'FALLO 200 · el semirremolque corregido por el transportista no queda';
   end if;
   raise notice 'OK 200 · matrículas al firmar: la cabecera (1.ª parada o transportista) las exige y corrige, el resto ya no las toca y cmr_publico las devuelve por separado';
 end $$;
@@ -9656,6 +9660,71 @@ begin
   end if;
   update parametros set valor = to_jsonb(hmd) where clave = 'aviso_parada_hora_mismo_dia';
   raise notice 'OK 233 · CMR / DeCA digital a cada sitio: el mismo día desde las 7:00 y 1 h antes de su hora prevista, con el enlace; no con la casilla firmada';
+end $$;
+
+-- ---- 234. Semirremolque obligatorio en tráiler y motivo según el momento ----------------
+-- Tráiler (no pide plataforma): la cabecera no puede poner solo la tractora (falta_remolque)
+-- salvo que declare «rígido»; con tractora sola puesta por otra vía, nadie firma
+-- (sin_matriculas) hasta que esté el semirremolque. El panel del DeCA marca 'iniciado' en
+-- lo que se cambia con el camión ya cargando.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; e2 uuid; t uuid; begin
+  insert into transportistas (razon_social, cif) values ('Transp 234 SL', 'B23400234') returning id into t;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e2;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES'),
+           (e2, 1, 'carga', '41001', 'Sevilla', 'ES'), (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado', transportista_id = t where id in (e, e2);
+  perform set_config('prueba.e234', e::text, false);
+  perform set_config('prueba.e234b', e2::text, false);
+end $$;
+do $$ declare e uuid := current_setting('prueba.e234')::uuid; e2 uuid := current_setting('prueba.e234b')::uuid; tok uuid; tok2 uuid; r jsonb; d uuid; begin
+  select token into tok from cmr_enlaces where envio_id = e and not revocado;
+  select token into tok2 from cmr_enlaces where envio_id = e2 and not revocado;
+  if not envio_necesita_remolque(e) then raise exception 'FALLO 234 · un tráiler no pide semirremolque'; end if;
+  -- (a) Cabecera con solo la tractora: rechazada y sin guardar nada.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Pepe', 'X1234567L', 'ES', true, null, 'cmr/' || tok || '/a.png', null, null, null,
+                          p_matricula_camion => '2340AAA');
+  if r ->> 'resultado' <> 'falta_remolque' then raise exception 'FALLO 234 · la cabecera pone la tractora sin semirremolque: %', r; end if;
+  if (select matricula_camion from envios where id = e) is not null then raise exception 'FALLO 234 · guarda la tractora aunque rechaza'; end if;
+  -- (b) Declarando «rígido» pasa (se queda en el trazo, que aquí no existe) y ya no lo pide.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Pepe', 'X1234567L', 'ES', true, null, 'cmr/' || tok || '/a.png', null, null, null,
+                          p_matricula_camion => '2340AAA', p_camion_rigido => true);
+  if r ->> 'resultado' <> 'falta_trazo' then raise exception 'FALLO 234 · el rígido declarado no pasa el control de matrículas: %', r; end if;
+  if envio_necesita_remolque(e) or (select v.tipo from vehiculos v join envios x on x.vehiculo_camion_id = v.id where x.id = e) <> 'rigido' then
+    raise exception 'FALLO 234 · el camión declarado rígido no queda como rígido';
+  end if;
+  -- (c) Tractora sola puesta por otra vía en un tráiler: nadie firma hasta el semirremolque.
+  update envios set matricula_camion = '2340BBB' where id = e2;
+  select id into d from envio_paradas where envio_id = e2 and tipo = 'descarga';
+  r := firmar_cmr_publico(tok2, d, 'destinatario', 'Rosa', '12345678Z', 'ES', true, null, 'cmr/' || tok2 || '/b.png', null, null, null);
+  if r ->> 'resultado' <> 'sin_matriculas' then raise exception 'FALLO 234 · se firma un tráiler sin semirremolque: %', r; end if;
+  if (cmr_publico(tok2) ->> 'necesita_remolque')::boolean is not true then raise exception 'FALLO 234 · la página de firma no sabe que falta el semirremolque'; end if;
+  if (orden_carga_json(e2) -> 'envio' ->> 'necesita_remolque')::boolean is not true then raise exception 'FALLO 234 · el PDF no sabe que falta el semirremolque'; end if;
+end $$;
+update envios set estado = 'hacia_la_carga' where id = current_setting('prueba.e234b')::uuid;
+update envios set estado = 'cargando', parada_actual = 1 where id = current_setting('prueba.e234b')::uuid;
+update envios set matricula_remolque = 'R2340BBB' where id = current_setting('prueba.e234b')::uuid;
+do $$ declare e2 uuid := current_setting('prueba.e234b')::uuid; tok2 uuid; r jsonb; d uuid; m jsonb; x jsonb; begin
+  select token into tok2 from cmr_enlaces where envio_id = e2 and not revocado;
+  select id into d from envio_paradas where envio_id = e2 and tipo = 'descarga';
+  r := firmar_cmr_publico(tok2, d, 'destinatario', 'Rosa', '12345678Z', 'ES', true, null, 'cmr/' || tok2 || '/b.png', null, null, null);
+  if r ->> 'resultado' <> 'falta_trazo' then raise exception 'FALLO 234 · con las dos matrículas sigue sin dejar firmar: %', r; end if;
+  -- (d) 'iniciado': la tractora se puso antes de cargar; el semirremolque, ya cargando.
+  m := fn_modificaciones_deca(e2);
+  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB';
+  if x is null or (x ->> 'iniciado')::boolean is not false then raise exception 'FALLO 234 · lo asignado antes de cargar sale como iniciado: %', m; end if;
+  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB + R2340BBB';
+  if x is null or (x ->> 'iniciado')::boolean is not true or x ->> 'antes' <> '2340BBB' then
+    raise exception 'FALLO 234 · el cambio hecho ya cargando no sale como iniciado con su dato anterior: %', m;
+  end if;
+  raise notice 'OK 234 · tráiler = dos matrículas: la cabecera no pone solo la tractora (salvo rígido declarado), nadie firma sin semirremolque, la página y el PDF lo saben; el panel distingue lo cambiado con el transporte en marcha';
 end $$;
 
 -- ---- 230. Nadie firma sin matrículas: solo la cabecera, que las pone ----------------
