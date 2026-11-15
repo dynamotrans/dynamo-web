@@ -74,11 +74,11 @@ async function main() {
     deca: { url: 'https://www.dynamotrans.com/cmr/a3853c97-be09-4213-9c99-c13000d5a0fe', creado_en: '2026-11-11T09:00:00Z' },
     dynamo: DYNAMO,
     // Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto): muestra.
-    modificaciones: [
+    modificaciones: process.env.SIN_MATRICULAS ? [] : [
+      { cuando: '11/11/2026 10:00', en: '2026-11-11T09:00:00Z', hito: 'matricula_asignada', primera: true, detalle: '4788MLN / R1102BBC' },
       { cuando: '12/11/2026 09:41', en: '2026-11-12T08:41:00Z', hito: 'fecha_carga_movida', detalle: '14/11/2026', antes: '13/11/2026', motivo: 'El cargador retrasa la mercancía un día' },
-      { cuando: '13/11/2026 11:20', en: '2026-11-13T10:20:00Z', hito: 'transportista_asignado', primera: true, detalle: 'Adrián Aguirre Etxeberria' },
       { cuando: '13/11/2026 17:05', en: '2026-11-13T16:05:00Z', hito: 'ruta_cambiada', detalle: '94150 Rungis → 41703 Dos Hermanas → 28021 Madrid → 46469 Beniparrell', antes: '94150 Rungis → 41703 Dos Hermanas → 46469 Beniparrell' },
-      { cuando: '14/11/2026 08:12', en: '2026-11-14T07:12:00Z', hito: 'matricula_asignada', detalle: '1681LXC + R0494BCB', antes: '4788MLN + R1102BBC' },
+      { cuando: '14/11/2026 08:12', en: '2026-11-14T07:12:00Z', hito: 'matricula_asignada', detalle: '1681LXC / R0494BCB', antes: '4788MLN / R1102BBC' },
     ],
 
   };

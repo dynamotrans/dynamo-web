@@ -9186,9 +9186,10 @@ do $$ declare e uuid; r jsonb; v record; begin
 end $$;
 
 -- ---- 223. Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto) ------
--- El DeCA se emite al confirmar el envío (nace su enlace): desde ahí TODO cuenta
--- (usuario, 2026-11-15) — también la 1.ª asignación de transportista y de matrículas,
--- marcadas como «primera» — además del cambio de matrícula, la retirada y la reasignación.
+-- El DeCA se EMITE al ponerse las primeras matrículas (usuario, 2026-11-15): el panel
+-- empieza por esa 1.ª asignación de matrículas («primera») y sigue con lo posterior — el
+-- cambio de matrícula, la retirada y la reasignación —; el transportista asignado ANTES de
+-- las matrículas es el documento original y no sale.
 -- Cada cambio va en su propia transacción para que los hitos tengan horas distintas.
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -9207,7 +9208,7 @@ do $$ declare e uuid; t1 uuid; t2 uuid; begin
   perform set_config('prueba.t223a', t1::text, false);
   perform set_config('prueba.t223b', t2::text, false);
 end $$;
--- Completar el documento tras la emisión (cuenta, como «primera»)…
+-- El transportista, antes de las matrículas (no cuenta); las 1.as matrículas = emisión…
 update envios set transportista_id = current_setting('prueba.t223a')::uuid where id = current_setting('prueba.e223')::uuid;
 update envios set matricula_camion = '1111AAA' where id = current_setting('prueba.e223')::uuid;
 -- …y MODIFICARLO (cuenta): cambio de matrícula, retirada y reasignación.
@@ -9216,21 +9217,21 @@ update envios set transportista_id = null where id = current_setting('prueba.e22
 update envios set transportista_id = current_setting('prueba.t223b')::uuid where id = current_setting('prueba.e223')::uuid;
 do $$ declare e uuid := current_setting('prueba.e223')::uuid; m jsonb; begin
   m := fn_modificaciones_deca(e);
-  if jsonb_array_length(m) <> 5 then raise exception 'FALLO 223 · esperaba 5 modificaciones y hay %: %', jsonb_array_length(m), m; end if;
-  if m -> 0 ->> 'hito' <> 'transportista_asignado' or (m -> 0 ->> 'primera')::boolean is not true or m -> 0 ->> 'detalle' <> 'Transp 223A SL'
-     or m -> 1 ->> 'hito' <> 'matricula_asignada' or (m -> 1 ->> 'primera')::boolean is not true or m -> 1 ->> 'detalle' <> '1111AAA' then
-    raise exception 'FALLO 223 · la asignación tras la emisión no sale como primera: %', m;
+  if jsonb_array_length(m) <> 4 then raise exception 'FALLO 223 · esperaba 4 entradas y hay %: %', jsonb_array_length(m), m; end if;
+  if m -> 0 ->> 'hito' <> 'matricula_asignada' or (m -> 0 ->> 'primera')::boolean is not true or m -> 0 ->> 'detalle' <> '1111AAA' then
+    raise exception 'FALLO 223 · el panel no empieza por la 1.ª asignación de matrículas (la emisión): %', m;
   end if;
-  if m -> 2 ->> 'hito' <> 'matricula_asignada' or (m -> 2 ->> 'primera')::boolean is not false or m -> 2 ->> 'detalle' <> '2222BBB + R3333CCC' then
-    raise exception 'FALLO 223 · el cambio de matrícula no sale bien: %', m -> 2;
+  if m -> 1 ->> 'hito' <> 'matricula_asignada' or (m -> 1 ->> 'primera')::boolean is not false or m -> 1 ->> 'detalle' <> '2222BBB / R3333CCC'
+     or m -> 1 ->> 'antes' <> '1111AAA' then
+    raise exception 'FALLO 223 · el cambio de matrícula no sale bien: %', m -> 1;
   end if;
-  if m -> 3 ->> 'hito' <> 'transportista_quitado' or m -> 4 ->> 'hito' <> 'transportista_asignado' or (m -> 4 ->> 'primera')::boolean is not false then
+  if m -> 2 ->> 'hito' <> 'transportista_quitado' or m -> 3 ->> 'hito' <> 'transportista_asignado' or (m -> 3 ->> 'primera')::boolean is not false then
     raise exception 'FALLO 223 · faltan la retirada y la reasignación: %', m;
   end if;
   if exists (select 1 from jsonb_array_elements(m) x where x ->> 'cuando' !~ '^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}$') then
     raise exception 'FALLO 223 · la fecha no va formateada a la española: %', m;
   end if;
-  if orden_carga_json(e) -> 'modificaciones' is null or jsonb_array_length(orden_carga_json(e) -> 'modificaciones') <> 5 then
+  if orden_carga_json(e) -> 'modificaciones' is null or jsonb_array_length(orden_carga_json(e) -> 'modificaciones') <> 4 then
     raise exception 'FALLO 223 · orden_carga_json no lleva el panel de modificaciones';
   end if;
 end $$;
@@ -9247,10 +9248,10 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
 do $$ begin
-  if jsonb_array_length(modificaciones_deca(current_setting('prueba.e223')::uuid)) <> 5 then
+  if jsonb_array_length(modificaciones_deca(current_setting('prueba.e223')::uuid)) <> 4 then
     raise exception 'FALLO 223 · Dynamo no lee las modificaciones del DeCA';
   end if;
-  raise notice 'OK 223 · panel de modificaciones del DeCA: asignaciones tras la emisión, matrícula cambiada, retirada y reasignación, fecha a la española, en orden_carga_json y con permisos';
+  raise notice 'OK 223 · panel del DeCA: se emite con las 1.as matrículas (lo anterior no sale), matrícula cambiada con su dato anterior, retirada y reasignación, fecha a la española, en orden_carga_json y con permisos';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -9522,9 +9523,9 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
 -- ---- 229. Panel del DeCA: lo que se asigna DESPUÉS de emitirse sale con fecha y hora ---
--- DeCA emitido (al confirmar) sin transportista ni matrículas: la 1.ª asignación de transportista y de
--- matrículas salen como «primera» (Asignación de…), con el nombre y las placas; el cambio
--- posterior de matrículas sale como cambio. Cada paso en su propia transacción.
+-- Sin matrículas no hay emisión ni panel. El transportista asignado antes no sale; la 1.ª
+-- asignación de matrículas ES la emisión («primera») y el cambio posterior sale como
+-- cambio. Cada paso en su propia transacción.
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; t uuid; begin
@@ -9540,22 +9541,23 @@ do $$ declare e uuid; t uuid; begin
   perform set_config('prueba.e229', e::text, false);
   perform set_config('prueba.t229', t::text, false);
 end $$;
--- (El DeCA ya se emitió al pasar a programado: su enlace nace solo.)
 update envios set transportista_id = current_setting('prueba.t229')::uuid where id = current_setting('prueba.e229')::uuid;
+do $$ begin
+  if jsonb_array_length(fn_modificaciones_deca(current_setting('prueba.e229')::uuid)) <> 0 then
+    raise exception 'FALLO 229 · sin matrículas (sin emitir) el panel no va vacío: %', fn_modificaciones_deca(current_setting('prueba.e229')::uuid);
+  end if;
+end $$;
 update envios set matricula_camion = '1234GDF', matricula_remolque = 'R2143ERA' where id = current_setting('prueba.e229')::uuid;
 update envios set matricula_camion = '5555KKK' where id = current_setting('prueba.e229')::uuid;
 do $$ declare m jsonb := fn_modificaciones_deca(current_setting('prueba.e229')::uuid); begin
-  if jsonb_array_length(m) <> 3 then raise exception 'FALLO 229 · esperaba 3 entradas tras la emisión y hay %: %', jsonb_array_length(m), m; end if;
-  if m -> 0 ->> 'hito' <> 'transportista_asignado' or (m -> 0 ->> 'primera')::boolean is not true or m -> 0 ->> 'detalle' <> 'Transp 229 SL' then
-    raise exception 'FALLO 229 · la asignación de transportista tras emitir no sale como primera con su nombre: %', m -> 0;
+  if jsonb_array_length(m) <> 2 then raise exception 'FALLO 229 · esperaba 2 entradas (emisión y cambio) y hay %: %', jsonb_array_length(m), m; end if;
+  if m -> 0 ->> 'hito' <> 'matricula_asignada' or (m -> 0 ->> 'primera')::boolean is not true or m -> 0 ->> 'detalle' <> '1234GDF / R2143ERA' then
+    raise exception 'FALLO 229 · la 1.ª asignación de matrículas (la emisión) no abre el panel: %', m -> 0;
   end if;
-  if m -> 1 ->> 'hito' <> 'matricula_asignada' or (m -> 1 ->> 'primera')::boolean is not true or m -> 1 ->> 'detalle' <> '1234GDF + R2143ERA' then
-    raise exception 'FALLO 229 · la asignación de matrículas tras emitir no sale como primera: %', m -> 1;
+  if m -> 1 ->> 'hito' <> 'matricula_asignada' or (m -> 1 ->> 'primera')::boolean is not false or m -> 1 ->> 'detalle' <> '5555KKK / R2143ERA' then
+    raise exception 'FALLO 229 · el cambio posterior de matrículas no sale como cambio: %', m -> 1;
   end if;
-  if m -> 2 ->> 'hito' <> 'matricula_asignada' or (m -> 2 ->> 'primera')::boolean is not false or m -> 2 ->> 'detalle' <> '5555KKK + R2143ERA' then
-    raise exception 'FALLO 229 · el cambio posterior de matrículas no sale como cambio: %', m -> 2;
-  end if;
-  raise notice 'OK 229 · panel del DeCA: asignación de transportista y de matrículas tras la emisión (con fecha y hora) y cambio de matrículas después';
+  raise notice 'OK 229 · panel del DeCA: sin matrículas va vacío; se emite con las 1.as matrículas (el transportista de antes no sale) y el cambio posterior sale como cambio';
 end $$;
 
 -- ---- 232. DeCA (apdo. quinto.1): dato anterior «no válido», motivo y fecha/mercancía ----
@@ -9568,8 +9570,8 @@ update envios set fecha_carga_desde = fecha_carga_desde + 1, fecha_carga_hasta =
  where id = current_setting('prueba.e229')::uuid;
 insert into deca_motivos (envio_id, motivo) values (current_setting('prueba.e229')::uuid, 'El cargador retrasa la mercancía');
 do $$ declare m jsonb := fn_modificaciones_deca(current_setting('prueba.e229')::uuid); x jsonb; f jsonb; begin
-  if m -> 2 ->> 'antes' is distinct from '1234GDF + R2143ERA' then
-    raise exception 'FALLO 232 · el cambio de matrículas no lleva las anteriores: %', m -> 2;
+  if m -> 1 ->> 'antes' is distinct from '1234GDF / R2143ERA' then
+    raise exception 'FALLO 232 · el cambio de matrículas no lleva las anteriores: %', m -> 1;
   end if;
   if m -> 0 ->> 'antes' is not null then raise exception 'FALLO 232 · la primera asignación no tiene dato anterior: %', m -> 0; end if;
   select e into x from jsonb_array_elements(m) e where e ->> 'hito' = 'mercancia_cambiada';
@@ -9730,7 +9732,7 @@ do $$ declare e2 uuid := current_setting('prueba.e234b')::uuid; tok2 uuid; r jso
   -- (d) 'iniciado' lo dicen las FIRMAS, no el seguimiento: el semirremolque se puso con el
   -- envío ya «cargando» pero sin ninguna firma → no es iniciado.
   m := fn_modificaciones_deca(e2);
-  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB + R2340BBB';
+  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB / R2340BBB';
   if x is null or (x ->> 'iniciado')::boolean is not false or x ->> 'antes' <> '2340BBB' then
     raise exception 'FALLO 234 · un cambio sin firmas previas sale como iniciado (el seguimiento no cuenta): %', m;
   end if;
@@ -9739,11 +9741,11 @@ do $$ declare e2 uuid := current_setting('prueba.e234b')::uuid; tok2 uuid; r jso
 end $$;
 update envios set matricula_camion = '2340CCC' where id = current_setting('prueba.e234b')::uuid;
 do $$ declare m jsonb := fn_modificaciones_deca(current_setting('prueba.e234b')::uuid); x jsonb; begin
-  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340CCC + R2340BBB';
+  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340CCC / R2340BBB';
   if x is null or (x ->> 'iniciado')::boolean is not true then
     raise exception 'FALLO 234 · el cambio hecho después de una firma no sale como iniciado: %', m;
   end if;
-  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB + R2340BBB';
+  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB / R2340BBB';
   if (x ->> 'iniciado')::boolean is not false then raise exception 'FALLO 234 · la firma posterior marca como iniciado un cambio anterior: %', m; end if;
   raise notice 'OK 234 · tráiler = dos matrículas: la cabecera no pone solo la tractora (salvo rígido declarado), nadie firma sin semirremolque, la página y el PDF lo saben; el panel marca «iniciado» solo lo cambiado después de una firma (el seguimiento no cuenta)';
 end $$;

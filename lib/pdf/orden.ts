@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument, rgb, type PDFImage, type RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from './lienzo';
-import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
+import { DYNAMO, emisionDeca, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrden } from './ordenTextos';
 import { plumaAzul } from './plumaAzul';
@@ -734,19 +734,13 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (copia === 'operativa' && !manual) {
     seccion(t.modifTitulo);
     const mods = d.modificaciones ?? [];
-    // La EMISIÓN del documento abre el panel (usuario, 2026-11-15: salió de la barra de
-    // arriba): misma forma que las modificaciones, «dd/mm/aaaa hh:mm · Emisión del documento».
-    if (d.deca?.creado_en) {
-      const f = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
-        .formatToParts(new Date(d.deca.creado_en));
-      const v = (k: string) => f.find((x) => x.type === k)?.value ?? '';
-      l.sitio(13);
-      l.parrafo(`${v('day')}/${v('month')}/${v('year')} ${v('hour')}:${v('minute')} · ${t.modifEmision}`, 7.4, { color: COLOR.navy, despues: 2.5 });
-    }
-    if (!mods.length) {
-      l.sitio(16);
-      l.parrafo(t.modifNinguna, 7.6, { color: COLOR.gris, despues: 8 });
-    } else {
+    // La EMISIÓN abre el panel: es el momento de las PRIMERAS matrículas (usuario,
+    // 2026-11-15: «se emite justo al poner primeras matrículas»). Sin ellas, se dice.
+    const emi = emisionDeca(d);
+    l.sitio(13);
+    if (emi) l.parrafo(`${emi.cuando} · ${t.modifEmision}`, 7.4, { color: COLOR.navy, despues: 2.5 });
+    else l.parrafo(t.modifSinEmitir, 7.6, { color: COLOR.gris, despues: 8 });
+    if (mods.length) {
       const ult = mods.slice(-6);
       if (mods.length > ult.length) {
         l.sitio(13);
@@ -852,10 +846,11 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // Metadatos del fichero (Resolución 5-jun-2026, apdo. segundo.1): fecha y hora de
   // CREACIÓN del DeCA (su emisión, antes del servicio) y de la ÚLTIMA MODIFICACIÓN de sus
   // datos — nunca el momento de esta descarga.
-  if (copia === 'operativa' && d.deca?.creado_en) {
-    l.doc.setCreationDate(new Date(d.deca.creado_en));
+  const creadoDeca = emisionDeca(d)?.en ?? d.deca?.creado_en ?? null;
+  if (copia === 'operativa' && creadoDeca) {
+    l.doc.setCreationDate(new Date(creadoDeca));
     // Última modificación = el último cambio de datos o la última firma estampada.
-    const tiempos = [d.deca.creado_en, ...(d.modificaciones ?? []).map((x) => x.en), ...(d.firmas ?? []).map((f) => f.firmado_en)]
+    const tiempos = [creadoDeca, ...(d.modificaciones ?? []).map((x) => x.en), ...(d.firmas ?? []).map((f) => f.firmado_en)]
       .map((x) => (x ? Date.parse(x) : NaN)).filter((x) => Number.isFinite(x));
     l.doc.setModificationDate(new Date(Math.max(...tiempos)));
   }

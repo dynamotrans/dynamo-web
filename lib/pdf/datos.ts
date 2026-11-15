@@ -53,6 +53,13 @@ export async function cargarLogoOperador(sb: SB, operadorId: string | null | und
   const { data: blob } = await sb.storage.from('documentos').download(data.storage_ruta);
   return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
 }
+// La EMISIÓN del DeCA es el momento de la 1.ª asignación de matrículas (usuario, 2026-11-15):
+// es la entrada «primera» de matrículas del panel de modificaciones. Sin ella, no está emitido.
+export function emisionDeca(d: { modificaciones?: { cuando: string; en?: string; hito: string; primera?: boolean }[] }): { cuando: string; en: string | null } | null {
+  const m = (d.modificaciones ?? []).find((x) => x.hito === 'matricula_asignada' && x.primera);
+  return m ? { cuando: m.cuando, en: m.en ?? null } : null;
+}
+
 export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; lat: number | null; lon: number | null; gps_precision_m: number | null; gps_direccion: string | null; sha256: string | null; png: Uint8Array | null };
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la

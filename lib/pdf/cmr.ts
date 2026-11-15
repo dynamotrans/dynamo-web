@@ -3,7 +3,7 @@ import path from 'node:path';
 import QRCode from 'qrcode';
 import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
-import { DYNAMO, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
+import { DYNAMO, emisionDeca, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
 import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros, ventana } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import { plumaAzul } from './plumaAzul';
@@ -115,7 +115,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     let yId = l.y + 9;
     for (const [k, v, b] of [
       ['Nº único del documento', nUnico, true],
-      ['Creado el', fechaHora(d.deca.creado_en), false],
+      ['Creado el', fechaHora(emisionDeca(d)?.en ?? d.deca.creado_en), false],
       ['Verificación en línea', d.deca.url, false],
     ] as const) {
       l.texto(l.x0 + 12, yId + 6.2, k.toUpperCase(), 6.2, { bold: true, color: COLOR.gris });
@@ -500,7 +500,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       });
       // Los datos del documento van bajo las cajas, ya por debajo del QR: a todo el ancho.
       const datos = [
-        `Nº único del documento: ${nUnico} · creado el ${fechaHora(d.deca.creado_en)}`,
+        `Nº único del documento: ${nUnico} · creado el ${fechaHora(emisionDeca(d)?.en ?? d.deca.creado_en)}`,
         `Verificación en línea: ${d.deca.url}`,
         ...(!manual ? [`Cargador contractual: ${D.razon_social} · NIF ${D.cif}`
           + ([d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).length
@@ -619,7 +619,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   // Metadatos del fichero (Resolución de 5-jun-2026, apdo. segundo.1): la fecha de
   // CREACIÓN del documento de control (cuando nació su nº único, antes del servicio) y la
   // de última modificación de los datos — nunca el momento de esta descarga.
-  const creadoDoc = d.deca?.creado_en ?? e.creado_en;
+  const creadoDoc = emisionDeca(d)?.en ?? d.deca?.creado_en ?? e.creado_en;
   if (creadoDoc) l.doc.setCreationDate(new Date(creadoDoc));
   // Última modificación = el último cambio de datos del documento o la última firma
   // (no cualquier retoque interno del envío, como un avance de estado).
