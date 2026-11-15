@@ -225,20 +225,29 @@ export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok:
   return of ? { ok: true, token: of.token as string } : { ok: false, error: 'La oferta se ha creado, pero no se encuentra su enlace.' };
 }
 
-// Oferta ESCALONADA por email (usuario, 2026-11-12): la base de datos va mandando un
-// email cada pocos minutos (solo de 5:00 a 23:00) a transportistas de la zona del origen
-// o que ya hicieron la ruta, por ranking interno, hasta que uno acepta o se para.
-export async function iniciarDifusion(envio: string, o: { precio: number; banda_pct: number; pronto_pago: boolean }): Promise<{ ok: true } | { ok: false; error: string }> {
+// Oferta ESCALONADA por email, gobernada por la fecha de carga (usuario, 2026-11-15):
+// duerme hasta N días antes de la carga, manda por tramos de cadencia (más seguido cuanto
+// menos falte, solo de 5:00 a 23:00), recuerda a diario a los contactados y corta X horas
+// antes de la hora de carga (la indicada aquí, o las 8:00). Dentro del corte no se lanza
+// salvo forzarla a sabiendas (1 hora de margen).
+export async function iniciarDifusion(envio: string, o: { precio: number; banda_pct: number; pronto_pago: boolean; hora_carga?: string | null; forzar?: boolean }): Promise<{ ok: true; empieza: string | null; corte: string | null } | { ok: false; error: string; dentroCorte?: boolean }> {
   comprobarEntrada("app/panel/(app)/envios/acciones#iniciarDifusion", [envio, o]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo lanza ofertas escalonadas.' };
   if (!Number.isFinite(o.precio) || o.precio <= 0) return { ok: false, error: 'Pon el precio que se ofrece a los transportistas.' };
   if (![0, 5, 10, 30].includes(o.banda_pct)) return { ok: false, error: 'La negociación solo puede ser 0, 5, 10 o 30 %.' };
+  const hora = (o.hora_carga ?? '').trim();
+  if (hora && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return { ok: false, error: 'La hora de carga tiene que ser HH:MM (por ejemplo 08:00).' };
   const { data, error } = await s.supabase.rpc('iniciar_difusion', {
     p_envio: envio, p_precio: o.precio, p_banda_pct: o.banda_pct, p_pronto_pago: o.pronto_pago,
+    p_hora_carga: hora || undefined, p_forzar: o.forzar === true,
   });
   if (error) return { ok: false, error: traducir(error.message) };
-  const r = (data as { resultado?: string } | null)?.resultado;
+  const d = data as { resultado?: string; empieza?: string | null; corte?: string | null; carga_prevista?: string; horas_corte?: number } | null;
+  const r = d?.resultado;
+  if (r === 'dentro_del_corte') {
+    return { ok: false, dentroCorte: true, error: `Quedan menos de ${d?.horas_corte ?? 3} horas para la carga (prevista el ${d?.carga_prevista ?? '—'}): esto ya es de teléfono. Puedes lanzarla igualmente con 1 hora de margen.` };
+  }
   if (r !== 'ok') {
     const msg: Record<string, string> = {
       no_existe: 'Ese envío no existe.',
@@ -249,7 +258,7 @@ export async function iniciarDifusion(envio: string, o: { precio: number; banda_
     };
     return { ok: false, error: msg[r ?? ''] ?? 'No se ha podido lanzar la oferta escalonada.' };
   }
-  return { ok: true };
+  return { ok: true, empieza: d?.empieza ?? null, corte: d?.corte ?? null };
 }
 
 export async function pararDifusion(envio: string): Promise<{ ok: true } | { ok: false; error: string }> {

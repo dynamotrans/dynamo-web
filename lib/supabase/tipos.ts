@@ -863,6 +863,10 @@ export type Database = {
           creado_por: string | null
           modificado_en: string | null
           modificado_por: string | null
+          empieza_en: string | null
+          carga_prevista_en: string | null
+          corte_en: string | null
+          ultimo_recordatorio: string | null
         }
         Insert: {
           id?: string
@@ -881,6 +885,10 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          empieza_en?: string | null
+          carga_prevista_en?: string | null
+          corte_en?: string | null
+          ultimo_recordatorio?: string | null
         }
         Update: {
           id?: string
@@ -899,6 +907,10 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          empieza_en?: string | null
+          carga_prevista_en?: string | null
+          corte_en?: string | null
+          ultimo_recordatorio?: string | null
         }
         Relationships: [
           {
@@ -2583,6 +2595,22 @@ export type Database = {
         Relationships: [
         ]
       }
+      provincias_colindantes: {
+        Row: {
+          cp2: string
+          colinda_con: string
+        }
+        Insert: {
+          cp2: string
+          colinda_con: string
+        }
+        Update: {
+          cp2?: string
+          colinda_con?: string
+        }
+        Relationships: [
+        ]
+      }
       recargos_tipo_sitio: {
         Row: {
           tipo: Database["public"]["Enums"]["tipo_sitio"]
@@ -3557,7 +3585,9 @@ export type Database = {
       flota_publica: { Args: { p_reserva: string | null; p_cif?: string | null }; Returns: Json }
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
+      fn_difusion_cadencia: { Args: { p_horas: number | null }; Returns: { minutos: number; lote: number } }
       fn_difusion_paso: { Args: { p_difusion: string | null }; Returns: undefined }
+      fn_difusion_recordatorios: { Args: Record<PropertyKey, never>; Returns: undefined }
       fuera_de_cobertura: { Args: { p_pais: string | null }; Returns: string }
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
       guardar_horario: { Args: { p_sitio: string | null; p_tramos: Json | null; p_temporada?: string | null }; Returns: undefined }
@@ -3578,7 +3608,7 @@ export type Database = {
       horario_sitio_texto: { Args: { p_sitio: string | null; p_fecha: string | null }; Returns: string }
       horario_texto: { Args: { p_sitio: string | null; p_temporada?: string | null }; Returns: string }
       ia_consulta_sql: { Args: { p_sql: string | null }; Returns: Json }
-      iniciar_difusion: { Args: { p_envio: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null }; Returns: Json }
+      iniciar_difusion: { Args: { p_envio: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null; p_hora_carga?: string | null; p_forzar?: boolean | null }; Returns: Json }
       km_cp: { Args: { p_pais_codigo_iso_origen: string | null; p_codigo_postal_origen: string | null; p_pais_codigo_iso_destino: string | null; p_codigo_postal_destino: string | null; p_max_edad?: string | null }; Returns: number }
       km_sitios: { Args: { p_origen: string | null; p_destino: string | null; p_max_edad?: string | null }; Returns: number }
       latido: { Args: Record<PropertyKey, never>; Returns: undefined }

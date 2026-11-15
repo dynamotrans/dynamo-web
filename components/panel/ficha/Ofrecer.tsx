@@ -32,8 +32,14 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
   const [copiado, setCopiado] = useState(false);
   const [copiadoEnlace, setCopiadoEnlace] = useState(false);
   // Oferta escalonada (usuario, 2026-11-12): el estado viene con la ficha (en vivo).
+  // Desde 2026-11-15 la gobierna la fecha de carga: arranque días antes, cadencia por
+  // tramos, recordatorio diario y corte horas antes de la hora de carga (esta hora la
+  // pone Dynamo aquí; sin ponerla, se asumen las 8:00).
   const dif = ficha.difusion;
   const [difMsg, setDifMsg] = useState<string | null>(null);
+  const [horaCarga, setHoraCarga] = useState('08:00');
+  const [pideForzar, setPideForzar] = useState<string | null>(null);
+  const fmtTs = (x: string | null) => x ? new Date(x).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }) : null;
   const pv = aNum(precio);
   const bandaEur = pv && banda ? Math.max(10, Math.round((pv * banda) / 100 / 10) * 10) : 0;
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
@@ -48,14 +54,19 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
     setHecho({ token: r.token, precio: pv });
   }
 
-  async function lanzarEscalonada() {
-    setError(null); setDifMsg(null);
+  async function lanzarEscalonada(forzar = false) {
+    setError(null); setDifMsg(null); setPideForzar(null);
     if (pv == null || Number.isNaN(pv) || pv <= 0) { setError('Pon el precio que se ofrece al transportista.'); return; }
     setTrabajando(true);
-    const r = await iniciarDifusion(e.id, { precio: pv, banda_pct: banda, pronto_pago: pronto });
+    const r = await iniciarDifusion(e.id, { precio: pv, banda_pct: banda, pronto_pago: pronto, hora_carga: e.fecha_carga_desde ? horaCarga : null, forzar });
     setTrabajando(false);
-    if (!r.ok) { setError(r.error); return; }
-    setDifMsg('Oferta escalonada lanzada: el primer email sale ya (de 5:00 a 23:00) y la ficha va contando los contactados.');
+    if (!r.ok) {
+      if (r.dentroCorte) { setPideForzar(r.error); return; }
+      setError(r.error); return;
+    }
+    setDifMsg(r.empieza
+      ? `Oferta escalonada programada: los emails empiezan el ${r.empieza} (días antes de la carga) y se cortan el ${r.corte ?? '—'}.`
+      : `Oferta escalonada lanzada: el primer email sale ya (de 5:00 a 23:00)${r.corte ? ` y se corta el ${r.corte}` : ''}. La ficha va contando los contactados.`);
   }
 
   async function pararEscalonada() {
@@ -124,31 +135,51 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
         </div>
         <Interruptor k="of-pronto" l="Ofrecer pronto pago" v={pronto} on={setPronto} />
       </div>
-      {/* Oferta ESCALONADA por email (usuario, 2026-11-12): con el mismo precio, banda y
-          pronto pago de arriba, la plataforma manda un email cada pocos minutos (de 5:00
-          a 23:00) a transportistas con sede en la provincia del origen o que ya hicieron
-          la ruta — favoritos y mejor valorados primero — y para en cuanto uno acepta. */}
+      {/* Oferta ESCALONADA por email, gobernada por la fecha de carga (usuario,
+          2026-11-15): con el precio, banda y pronto pago de arriba, la plataforma empieza
+          unos días antes de la carga, manda más seguido cuanto menos falte (de 5:00 a
+          23:00), recuerda a diario a los contactados y corta unas horas antes de la hora
+          de carga. Ranking: quien hizo esta ruta primero, después favoritos, valoración y
+          sede en la provincia del origen o del destino o colindante. */}
       <div style={{ marginTop: '0.9rem', padding: '0.8rem 0.9rem', border: '1px solid var(--gray-200)', borderRadius: 12, background: 'var(--gray-50)' }}>
         <div style={{ fontWeight: 800, marginBottom: '0.25rem' }}>Oferta escalonada por email</div>
         {dif?.estado === 'activa' ? (
           <>
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--purple)', fontWeight: 800 }}>
-              En marcha · {dif.contactados} de {dif.max_contactados} transportistas contactados · {euros(dif.precio)} + IVA
+              {dif.empieza_en && new Date(dif.empieza_en) > new Date()
+                ? <>Programada · los emails empiezan el {fmtTs(dif.empieza_en)} · {euros(dif.precio)} + IVA</>
+                : <>En marcha · {dif.contactados} de {dif.max_contactados} transportistas contactados · {euros(dif.precio)} + IVA</>}
             </div>
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0.5rem' }}>
-              Un email cada {dif.minutos_entre_emails} min (de 5:00 a 23:00) a transportistas de la zona del origen o que ya hicieron la ruta. Para sola en cuanto uno acepte o asignes a mano.
+              Más seguido cuanto menos falte para la carga (de 5:00 a 23:00), con recordatorio diario a los contactados{dif.corte_en ? <> y corte el <strong>{fmtTs(dif.corte_en)}</strong></> : null}. Primero quien hizo esta ruta; después favoritos, valoración y sede en la provincia del origen o del destino o colindante. Para sola en cuanto uno acepte o asignes a mano.
             </div>
             <button type="button" className="btn-ghost" style={{ color: '#dc2626', fontWeight: 700 }} onClick={pararEscalonada} disabled={trabajando}>Parar la oferta escalonada</button>
           </>
         ) : (
           <>
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginBottom: '0.5rem' }}>
-              Con este mismo precio, la plataforma manda un email cada pocos minutos (de 5:00 a 23:00) a transportistas con sede en la provincia del origen o que ya hicieron esta ruta — favoritos y mejor valorados primero — y <strong>para en cuanto uno acepta</strong> o asignes a mano.
+              Con este mismo precio, la plataforma empieza a mandar emails unos días antes de la carga, más seguido cuanto menos falte (de 5:00 a 23:00), con recordatorio diario a los contactados y <strong>corte unas horas antes de la carga</strong>. Primero quien hizo esta ruta; después favoritos, mejor valorados y sede en la provincia del origen o del destino o colindante. <strong>Para en cuanto uno acepta</strong> o asignes a mano.
             </div>
             {dif && dif.estado !== 'aceptada' && dif.fin_motivo && (
               <div style={{ fontSize: 'var(--fs-s)', color: '#b45309', marginBottom: '0.5rem' }}>Última: {dif.fin_motivo} ({dif.contactados} contactados)</div>
             )}
-            <button type="button" className="btn-secondary" onClick={lanzarEscalonada} disabled={trabajando}>Lanzar oferta escalonada</button>
+            {e.fecha_carga_desde && (
+              <div style={{ marginBottom: '0.5rem' }}>
+                <label htmlFor="of-hora-carga">Hora prevista de la carga (para la cadencia y el corte)</label>
+                <input id="of-hora-carga" type="time" value={horaCarga} onChange={(ev) => setHoraCarga(ev.target.value)} style={{ maxWidth: 140 }} />
+              </div>
+            )}
+            {pideForzar ? (
+              <div style={{ display: 'grid', gap: '0.45rem' }}>
+                <div className="wiz-warn show" role="alert">⚠ {pideForzar}</div>
+                <div style={{ display: 'flex', gap: '0.45rem' }}>
+                  <button type="button" className="btn-secondary" onClick={() => lanzarEscalonada(true)} disabled={trabajando}>Lanzarla igualmente (1 h)</button>
+                  <button type="button" className="btn-ghost" onClick={() => setPideForzar(null)} disabled={trabajando}>No, lo muevo por teléfono</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="btn-secondary" onClick={() => lanzarEscalonada()} disabled={trabajando}>Lanzar oferta escalonada</button>
+            )}
           </>
         )}
       </div>

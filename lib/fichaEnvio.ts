@@ -30,7 +30,8 @@ export type TransportistaOpcion = { id: string; nombre: string; cif: string; est
   vehiculos?: { matricula: string; tipo: string }[]; conductores?: { nombre: string; telefono: string | null }[] };
 export type FlotaTransportista = { vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] };
 export type DifusionFicha = { id: string; estado: string; precio: number; contactados: number; max_contactados: number;
-  minutos_entre_emails: number; ultimo_email_en: string | null; fin_motivo: string | null };
+  minutos_entre_emails: number; ultimo_email_en: string | null; fin_motivo: string | null;
+  empieza_en: string | null; carga_prevista_en: string | null; corte_en: string | null };
 export type Ficha = {
   // El envío con sus columnas tipadas (tabla envios) más los datos que se le juntan.
   envio: Tabla<'envios'> & { clientes: { id: string; nombre_visible: string | null; cif: string; riesgo_efectivo_euros: number | null } | null;
@@ -72,7 +73,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     sb.rpc('etapas_envio', { p_envio: id }),
     sb.from('envio_cambios_transportista').select('id, estado, precio_antes, precio_ahora, detalle, creado_en, respondido_en, en_nombre, motivo_rechazo')
       .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
-    sb.from('difusiones').select('id, estado, precio, contactados, max_contactados, minutos_entre_emails, ultimo_email_en, fin_motivo')
+    sb.from('difusiones').select('id, estado, precio, contactados, max_contactados, minutos_entre_emails, ultimo_email_en, fin_motivo, empieza_en, carga_prevista_en, corte_en')
       .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
   ]);
   const pg = pag.data;

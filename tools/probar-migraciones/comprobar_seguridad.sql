@@ -3942,6 +3942,7 @@ do $$ declare faltan text; begin
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r'
      and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
+                           'provincias_colindantes',   -- dato fijo de referencia (como festivos): nadie escribe en ella
                            'recargos_tipo_sitio', 'restricciones_servicio', 'distancias_cp', 'distancias_sitios',
                            'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
                            'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
@@ -7991,60 +7992,85 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
 
--- ---- 208. Oferta escalonada: solo relacionados, ranking, ventana horaria, para y tope --
+-- ---- 208. Oferta escalonada por fecha de carga: ranking, ventana, corte, recordatorio --
+-- (usuario, 2026-11-15) Ruta propia de la prueba (Guadalajara 19 → Cuenca 16) para que el
+-- ranking sea determinista: ningún otro dato de la suite toca esas provincias.
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 -- Ventana abierta de par en par durante la prueba (se restaura al final): el CI corre a
 -- cualquier hora y la ventana real de 5:00-23:00 la probamos aparte cerrándola a mano.
 update parametros set valor = '0'::jsonb  where clave = 'difusion_hora_inicio';
 update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
-do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; begin
-  -- Sede en la provincia del ORIGEN (Sevilla, CP 41 + ES): entran en la difusión.
+do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_colin uuid; er uuid; begin
+  -- Sede en la provincia del ORIGEN (Guadalajara, CP 19 + ES): entran en la difusión.
   insert into transportistas (razon_social, cif, nima, tags, valoracion_dynamo, codigo_postal, pais_codigo_iso)
-    values ('Transp Favorito 208 SL', 'B20800001', 'NIMA-208A', array['Favorito'], 3, '41020', 'ES') returning id into t_fav;
+    values ('Transp Favorito 208 SL', 'B20800001', 'NIMA-208A', array['Favorito'], 3, '19020', 'ES') returning id into t_fav;
   insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
-    values ('Transp Valorado 208 SL', 'B20800002', 'NIMA-208B', 5, '41007', 'ES') returning id into t_val;
+    values ('Transp Valorado 208 SL', 'B20800002', 'NIMA-208B', 5, '19007', 'ES') returning id into t_val;
   insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
-    values ('Transp Sin Email 208 SL', 'B20800003', 'NIMA-208C', 5, '41001', 'ES') returning id into t_sin;
-  -- Activo, con email y bien valorado… pero con sede en OTRA provincia (Barcelona) y sin
-  -- haber hecho la ruta: NO debe recibir nunca un email de esta difusión.
+    values ('Transp Sin Email 208 SL', 'B20800003', 'NIMA-208C', 5, '19001', 'ES') returning id into t_sin;
+  -- Sede en provincia COLINDANTE del origen (Madrid 28 toca Guadalajara 19): entra.
+  insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
+    values ('Transp Colindante 208 SL', 'B20800005', 'NIMA-208E', 4, '28010', 'ES') returning id into t_colin;
+  -- HIZO ESA RUTA (envío entregado 19→16) con sede lejos (Barcelona): entra Y VA PRIMERO.
+  insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
+    values ('Transp Rutero 208 SL', 'B20800006', 'NIMA-208F', 2, '08020', 'ES') returning id into t_ruta;
+  -- Activo, con email y bien valorado… pero con sede en OTRA provincia (Barcelona, que no
+  -- toca ni 19 ni 16) y sin haber hecho la ruta: NO recibe nunca un email.
   insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
     values ('Transp Lejano 208 SL', 'B20800004', 'NIMA-208D', 5, '08010', 'ES') returning id into t_lejos;
   insert into contactos (transportista_id, nombre, email, funcion, es_principal)
     values (t_fav, 'Fani Favorita', 'fav.208@prueba.invalid', 'trafico', true),
            (t_val, 'Valen Valorado', 'val.208@prueba.invalid', 'trafico', true),
+           (t_colin, 'Coli Colindante', 'colin.208@prueba.invalid', 'trafico', true),
+           (t_ruta, 'Ruti Rutera', 'ruta.208@prueba.invalid', 'trafico', true),
            (t_lejos, 'Lejo Lejano', 'lejos.208@prueba.invalid', 'trafico', true);
-  perform set_config('prueba.t208f', t_fav::text, false);
-  perform set_config('prueba.t208v', t_val::text, false);
-  perform set_config('prueba.t208l', t_lejos::text, false);
-end $$;
-do $$ declare e uuid; begin
+  -- El envío entregado que da la ruta hecha al rutero.
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
     values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
-    returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
-    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
-  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
-    values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
-  update envios set estado = 'programado' where id = e;
-  perform set_config('prueba.e208', e::text, false);
+    returning id into er;
   perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (er, 1, 'carga', '19001', 'Guadalajara', 'ES'), (er, 2, 'descarga', '16001', 'Cuenca', 'ES');
+  update envios set transportista_id = t_ruta, estado = 'entregado', entregado_en = now() - interval '20 days' where id = er;
+  perform set_config('prueba.t208f', t_fav::text, false);
+  perform set_config('prueba.t208v', t_val::text, false);
+  perform set_config('prueba.t208l', t_lejos::text, false);
+  perform set_config('prueba.t208c', t_colin::text, false);
+  perform set_config('prueba.t208r', t_ruta::text, false);
+end $$;
+-- Cuatro envíos 19→16: E1 ranking (carga en 2 días), E2 agotamiento+recordatorio (2 días),
+-- E3 corte (carga hoy a las 00:00), E4 dormida (carga en 10 días).
+do $$ declare e uuid; n int; f date; begin
+  for n in 1..4 loop
+    f := case n when 3 then (now() at time zone 'Europe/Madrid')::date
+                when 4 then (now() at time zone 'Europe/Madrid')::date + 10
+                else (now() at time zone 'Europe/Madrid')::date + 2 end;
+    perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, f) returning id into e;
+    perform set_config('request.jwt.claim.sub', '', false);
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+      values (e, 1, 'carga', '19001', 'Guadalajara', 'ES'), (e, 2, 'descarga', '16001', 'Cuenca', 'ES');
+    update envios set estado = 'programado' where id = e;
+    perform set_config('prueba.e208' || n, e::text, false);
+  end loop;
 end $$;
 -- Un cliente NO puede lanzarla.
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare r jsonb; begin
   begin
-    r := iniciar_difusion(current_setting('prueba.e208')::uuid, 500);
+    r := iniciar_difusion(current_setting('prueba.e2081')::uuid, 500);
     raise exception 'FALLO 208 · un cliente lanza la oferta escalonada';
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
--- Dynamo la lanza: el PRIMER email sale al momento y es para el FAVORITO.
+-- Dynamo la lanza: el PRIMER email sale al momento y es para QUIEN HIZO LA RUTA.
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
-do $$ declare e uuid := current_setting('prueba.e208')::uuid; r jsonb; begin
+do $$ declare e uuid := current_setting('prueba.e2081')::uuid; r jsonb; begin
   r := iniciar_difusion(e, 500);
   if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 208 · no se lanza: %', r; end if;
   if iniciar_difusion(e, 500) ->> 'resultado' <> 'ya_activa' then
@@ -8053,20 +8079,23 @@ do $$ declare e uuid := current_setting('prueba.e208')::uuid; r jsonb; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-do $$ declare e uuid := current_setting('prueba.e208')::uuid; d record; begin
+do $$ declare e uuid := current_setting('prueba.e2081')::uuid; d record; begin
   select * into d from difusiones where envio_id = e and estado = 'activa';
   if d.contactados <> 1 then raise exception 'FALLO 208 · el primer paso no contacta a 1 (van %)', d.contactados; end if;
+  if d.corte_en is null or d.carga_prevista_en is null then
+    raise exception 'FALLO 208 · la difusión no guarda la hora de carga y el corte';
+  end if;
   if not exists (select 1 from envio_ofertas o where o.envio_id = e and o.canal = 'email'
-                   and o.transportista_id = current_setting('prueba.t208f')::uuid) then
-    raise exception 'FALLO 208 · el primero no es el transportista favorito';
+                   and o.transportista_id = current_setting('prueba.t208r')::uuid) then
+    raise exception 'FALLO 208 · el primero no es quien hizo la ruta';
   end if;
-  if not exists (select 1 from emails_enviados where clave = 'difusion:' || e || ':' || current_setting('prueba.t208f')) then
-    raise exception 'FALLO 208 · el email del favorito no queda encolado';
+  if not exists (select 1 from emails_enviados where clave = 'difusion:' || e || ':' || current_setting('prueba.t208r')) then
+    raise exception 'FALLO 208 · el email de quien hizo la ruta no queda encolado';
   end if;
-  -- Antes de que pasen los minutos, la pasada del reloj NO manda otro…
+  -- Antes de que pasen los minutos del tramo, la pasada del reloj NO manda otro…
   perform procesar_difusiones();
   if (select contactados from difusiones where envio_id = e) <> 1 then
-    raise exception 'FALLO 208 · manda otro email sin esperar los minutos configurados';
+    raise exception 'FALLO 208 · manda otro email sin esperar los minutos del tramo';
   end if;
   -- …con la VENTANA HORARIA cerrada tampoco, aunque el tiempo haya pasado de sobra…
   update parametros set valor = '0'::jsonb where clave = 'difusion_hora_fin';
@@ -8076,14 +8105,13 @@ do $$ declare e uuid := current_setting('prueba.e208')::uuid; d record; begin
      or (select estado from difusiones where envio_id = e) <> 'activa' then
     raise exception 'FALLO 208 · manda emails fuera de la ventana horaria (o la cierra)';
   end if;
-  -- …y al abrirse la ventana, contacta a UNO más (sede en la zona o quien hizo la ruta:
-  -- con los datos de la suite el orden exacto depende de otras pruebas; lo que es fijo
-  -- es que es UNO, distinto, con email — el que no tiene email no entra nunca).
+  -- …y al abrirse la ventana, el SEGUNDO es el favorito (la ruta manda; después favoritos).
   update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
   perform procesar_difusiones();
   if (select contactados from difusiones where envio_id = e) <> 2
-     or (select count(distinct o.transportista_id) from envio_ofertas o where o.envio_id = e) <> 2 then
-    raise exception 'FALLO 208 · el segundo paso no contacta exactamente a uno más';
+     or not exists (select 1 from envio_ofertas o where o.envio_id = e
+                      and o.transportista_id = current_setting('prueba.t208f')::uuid) then
+    raise exception 'FALLO 208 · el segundo no es el favorito';
   end if;
   if exists (select 1 from envio_ofertas o where o.envio_id = e and o.transportista_id is not null
                and not exists (select 1 from contactos c where c.transportista_id = o.transportista_id and c.email is not null)) then
@@ -8097,45 +8125,139 @@ do $$ declare e uuid := current_setting('prueba.e208')::uuid; d record; begin
   if d.estado <> 'aceptada' or d.contactados <> 2 then
     raise exception 'FALLO 208 · no para al asignarse transportista: % (%)', d.estado, d.contactados;
   end if;
-  raise notice 'OK 208 · oferta escalonada: favorito primero, respeta espera y ventana horaria, y para en seco al asignarse';
+  raise notice 'OK 208 · oferta escalonada: quien hizo la ruta primero, luego el favorito; respeta tramo y ventana horaria y para en seco al asignarse';
 end $$;
--- Tope de contactados: se agota y avisa a Dynamo (campana + email). Y el transportista de
--- OTRA provincia sin la ruta hecha no recibe nada aunque se agoten los de la zona.
-do $$ declare e2 uuid; d record; begin
-  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
-    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date)
-    returning id into e2;
-  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
-    values (e2, 1, 'carga', '41001', 'Sevilla', 'ES');
-  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
-    values (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
-  update envios set estado = 'programado' where id = e2;
+-- E2: se agota al quedarse sin candidatos (el colindante entra; el de Barcelona sin ruta,
+-- jamás) y avisa a Dynamo; después, RECORDATORIO diario a los contactados de otros días.
+do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; n int; v_hoy date; v_clave text; begin
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
   if iniciar_difusion(e2, 400) ->> 'resultado' <> 'ok' then raise exception 'FALLO 208 · no se lanza la 2.ª'; end if;
   perform set_config('request.jwt.claim.sub', '', false);
-  update difusiones set max_contactados = 1, ultimo_email_en = now() - interval '30 minutes'
-   where envio_id = e2 and estado = 'activa';
-  perform procesar_difusiones();
+  -- Vueltas del reloj hasta agotarse: 4 candidatos (rutero, favorito, valorado, colindante).
+  for n in 1..8 loop
+    exit when (select estado from difusiones where envio_id = e2) <> 'activa';
+    update difusiones set ultimo_email_en = now() - interval '30 minutes' where envio_id = e2 and estado = 'activa';
+    perform procesar_difusiones();
+  end loop;
   select * into d from difusiones where envio_id = e2;
-  if d.estado <> 'agotada' then raise exception 'FALLO 208 · no se agota al llegar al tope: %', d.estado; end if;
+  if d.estado <> 'agotada' or d.contactados <> 4 then
+    raise exception 'FALLO 208 · no se agota al quedarse sin candidatos: % (%)', d.estado, d.contactados;
+  end if;
+  if not exists (select 1 from envio_ofertas o where o.envio_id = e2 and o.transportista_id = current_setting('prueba.t208c')::uuid) then
+    raise exception 'FALLO 208 · el de la provincia colindante no entra en la difusión';
+  end if;
   if not exists (select 1 from avisos where envio_id = e2 and tipo = 'difusion_agotada' and para = 'dynamo') then
     raise exception 'FALLO 208 · agotada sin aviso de campana a Dynamo';
   end if;
   if not exists (select 1 from emails_enviados where clave = 'difusion_fin:' || d.id) then
     raise exception 'FALLO 208 · agotada sin email de aviso a Dynamo';
   end if;
-  -- El de Barcelona sin ruta: NINGUNA oferta en NINGUNA de las dos difusiones.
+  -- El de Barcelona sin ruta: NINGUNA oferta en NINGUNA difusión.
   if exists (select 1 from envio_ofertas o where o.transportista_id = current_setting('prueba.t208l')::uuid) then
-    raise exception 'FALLO 208 · se contacta a un transportista de otra provincia sin la ruta hecha';
+    raise exception 'FALLO 208 · se contacta a un transportista de otra provincia sin la ruta hecha ni colindar';
   end if;
-  raise notice 'OK 208b · al tope se agota y avisa; el de otra provincia sin la ruta no entra nunca';
+  raise notice 'OK 208b · se agota sin candidatos y avisa; el colindante entra y el de otra provincia sin la ruta no entra nunca';
+  -- RECORDATORIO: la oferta del rutero pasa a «de ayer» y casi caducada; el recordatorio
+  -- diario la reabre hasta el corte y le manda «sigue disponible» (solo a él: los demás
+  -- se contactaron hoy), una sola vez al día.
+  v_hoy := (now() at time zone 'Europe/Madrid')::date;
+  v_clave := 'difusion_rec:' || e2 || ':' || current_setting('prueba.t208r') || ':' || to_char(v_hoy, 'YYYYMMDD');
+  -- (enviada_en y no creado_en: el sello de auditoría hace creado_en inmutable, y lo que
+  -- mira el recordatorio es cuándo se le ESCRIBIÓ.)
+  update envio_ofertas set enviada_en = now() - interval '1 day', caduca_en = now() + interval '1 minute'
+   where envio_id = e2 and transportista_id = current_setting('prueba.t208r')::uuid;
+  update difusiones set ultimo_recordatorio = null where envio_id = e2;
+  update parametros set valor = '0'::jsonb where clave = 'difusion_recordatorio_hora';
+  perform fn_difusion_recordatorios();
+  if not exists (select 1 from emails_enviados where clave = v_clave and tipo = 'difusion_recordatorio') then
+    raise exception 'FALLO 208 · el contactado de ayer no recibe el recordatorio diario';
+  end if;
+  if (select count(*) from emails_enviados where tipo = 'difusion_recordatorio' and envio_id = e2) <> 1 then
+    raise exception 'FALLO 208 · el recordatorio se manda también a los contactados de hoy';
+  end if;
+  if (select caduca_en from envio_ofertas where envio_id = e2 and transportista_id = current_setting('prueba.t208r')::uuid)
+     is distinct from d.corte_en then
+    raise exception 'FALLO 208 · el recordatorio no reabre la oferta hasta el corte';
+  end if;
+  if (select ultimo_recordatorio from difusiones where envio_id = e2) <> v_hoy then
+    raise exception 'FALLO 208 · no se apunta el día del recordatorio';
+  end if;
+  perform fn_difusion_recordatorios();
+  if (select count(*) from emails_enviados where tipo = 'difusion_recordatorio' and envio_id = e2) <> 1 then
+    raise exception 'FALLO 208 · el recordatorio se repite el mismo día';
+  end if;
+  raise notice 'OK 208c · recordatorio diario: reabre la oferta hasta el corte, solo a contactados de otros días y una vez al día';
+end $$;
+-- E3: CORTE. Con la carga hoy a las 00:00 estamos dentro del corte: no se lanza… salvo
+-- forzarla (1 hora de margen). En el tramo urgente los emails salen DE 2 EN 2. Y al
+-- llegar al corte, la difusión se cierra con aviso URGENTE.
+do $$ declare e3 uuid := current_setting('prueba.e2083')::uuid; d record; r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := iniciar_difusion(e3, 400, 10::smallint, true, '00:00'::time);
+  if r ->> 'resultado' <> 'dentro_del_corte' then
+    raise exception 'FALLO 208 · dentro del corte se lanza sin avisar: %', r;
+  end if;
+  r := iniciar_difusion(e3, 400, 10::smallint, true, '00:00'::time, true);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 208 · forzada no se lanza: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  select * into d from difusiones where envio_id = e3 and estado = 'activa';
+  if d.corte_en is null or d.corte_en < now() + interval '55 minutes' or d.corte_en > now() + interval '65 minutes' then
+    raise exception 'FALLO 208 · la forzada no corre con 1 hora de margen: %', d.corte_en;
+  end if;
+  if d.contactados <> 2 then
+    raise exception 'FALLO 208 · en el tramo urgente no salen de 2 en 2 (van %)', d.contactados;
+  end if;
+  update difusiones set corte_en = now() - interval '1 second', ultimo_email_en = now() - interval '30 minutes' where envio_id = e3;
+  perform procesar_difusiones();
+  select * into d from difusiones where envio_id = e3;
+  if d.estado <> 'agotada' or d.fin_motivo not like '%corte%' then
+    raise exception 'FALLO 208 · al corte no se cierra: % (%)', d.estado, d.fin_motivo;
+  end if;
+  if not exists (select 1 from avisos where envio_id = e3 and tipo = 'difusion_corte' and para = 'dynamo') then
+    raise exception 'FALLO 208 · corte sin aviso urgente a Dynamo';
+  end if;
+  if not exists (select 1 from emails_enviados where clave = 'difusion_fin:' || d.id) then
+    raise exception 'FALLO 208 · corte sin email de aviso a Dynamo';
+  end if;
+  raise notice 'OK 208d · dentro del corte no se lanza (forzada, 1 h y de 2 en 2) y al corte cierra con aviso urgente';
+end $$;
+-- E4: DORMIDA. Con la carga a 10 días, la difusión arranca pero no contacta a nadie hasta
+-- el día del arranque (5 días antes); despierta al llegar, y el tope sigue mandando.
+do $$ declare e4 uuid := current_setting('prueba.e2084')::uuid; d record; r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := iniciar_difusion(e4, 400);
+  if r ->> 'resultado' <> 'ok' or r ->> 'empieza' is null then
+    raise exception 'FALLO 208 · a 10 días no queda programada con su arranque: %', r;
+  end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  select * into d from difusiones where envio_id = e4 and estado = 'activa';
+  if d.empieza_en is null or d.empieza_en <= now() or d.contactados <> 0 then
+    raise exception 'FALLO 208 · la dormida contacta antes del arranque (% · %)', d.empieza_en, d.contactados;
+  end if;
+  perform procesar_difusiones();
+  if (select contactados from difusiones where envio_id = e4) <> 0 then
+    raise exception 'FALLO 208 · la pasada del reloj despierta la dormida antes de tiempo';
+  end if;
+  -- Llega el día del arranque: despierta; y el tope de contactados sigue valiendo.
+  update difusiones set empieza_en = now() - interval '1 minute', max_contactados = 1 where envio_id = e4;
+  perform procesar_difusiones();
+  if (select contactados from difusiones where envio_id = e4) <> 1 then
+    raise exception 'FALLO 208 · al llegar el arranque no despierta';
+  end if;
+  update difusiones set ultimo_email_en = now() - interval '30 minutes' where envio_id = e4;
+  perform procesar_difusiones();
+  select * into d from difusiones where envio_id = e4;
+  if d.estado <> 'agotada' or d.fin_motivo not like 'Tope%' then
+    raise exception 'FALLO 208 · el tope no corta la despierta: % (%)', d.estado, d.fin_motivo;
+  end if;
+  raise notice 'OK 208e · dormida hasta el arranque (5 días antes), despierta al llegar y el tope sigue valiendo';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
--- La ventana vuelve a su valor real (5:00-23:00).
+-- Los parámetros vuelven a su valor real.
 update parametros set valor = '5'::jsonb  where clave = 'difusion_hora_inicio';
 update parametros set valor = '23'::jsonb where clave = 'difusion_hora_fin';
+update parametros set valor = '9'::jsonb  where clave = 'difusion_recordatorio_hora';
 
 -- ---- 209. Borrar transportistas: lógico, fuera de lista y ofertas; con envíos vivos no --
 reset role;
