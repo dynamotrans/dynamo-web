@@ -3453,7 +3453,9 @@ table.data td.actions { text-align: right; white-space: nowrap; }
    Translate lo traduzca al cambiar de idioma. */
 .ptar-tramp-state { font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); white-space: nowrap; }
 .ptar-tramp-state .tramp-on { display: none; }
-.ptar-switch-input:checked ~ .ptar-tramp-state { color: var(--green); }
+/* Verde oscuro: el de marca daba contraste 3,07 sobre el fondo de las tablas y el
+   axe del CI (WCAG AA, 4,5:1) lo tumbaba en /panel/parametros (2026-11-14). */
+.ptar-switch-input:checked ~ .ptar-tramp-state { color: var(--green-dark); }
 .ptar-switch-input:checked ~ .ptar-tramp-state .tramp-off { display: none; }
 .ptar-switch-input:checked ~ .ptar-tramp-state .tramp-on { display: inline; }
 .ptar-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
