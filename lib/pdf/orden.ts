@@ -472,14 +472,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         if (resto) notas.push(resto);
       } else notas.push(n2);
     }
-    // En las RECOGIDAS, la fila Mercancía lleva el envío completo (usuario, 2026-11-14):
-    // metros · tipo de carga · toneladas · la mercancía (más el detalle de la parada).
-    if (recogida) {
+    // En CADA parada (recogida y entrega), la fila Mercancía como la enseña la
+    // plataforma en los sitios (usuario, 2026-11-15): metros · tipo de carga ·
+    // toneladas · la mercancía, más el detalle «a recoger / a entregar» del sitio.
+    {
       const partes = [[e.metros_lineales != null ? `${num(e.metros_lineales)} ${t.metrosLineales}` : null,
         tipoCarga || t.grupaje, e.toneladas != null ? pesoTn(e.toneladas) : null].filter(Boolean).join(' · '),
         e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada), merc].filter(Boolean);
       fs.push({ k: t.mercancia, v: partes.join(' · '), b: true });
-    } else if (merc) fs.push({ k: t.mercancia, v: merc, b: true });
+    }
     for (const n2 of notas) fs.push({ k: t.indicaciones, v: n2 });
     // Sin línea de Google Maps en los sitios (usuario, 2026-11-14).
     return fs;
