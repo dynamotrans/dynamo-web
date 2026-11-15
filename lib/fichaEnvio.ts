@@ -48,7 +48,7 @@ export type Ficha = {
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
   enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Con transportista y sin las matrículas que pide el documento de control (camión y, en un
-  // tráiler, semirremolque): el seguimiento no pasa de «yendo a la carga» hasta que estén.
+  // tráiler, semirremolque): la ficha lo avisa (no bloquea nada).
   faltanMatriculas?: boolean;
   // Previo pago (null = no lo necesita y nunca lo necesitó).
   margenRevision: number;     // precio_revision_margen_pct
@@ -100,7 +100,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     corte = (data as string) ?? null;
   }
 
-  // ¿Le faltan matrículas para poder cargar? (un rígido no lleva semirremolque)
+  // ¿Le faltan matrículas al documento de control? (un rígido no lleva semirremolque)
   let faltanMatriculas = false;
   if (e.transportista_id && !e.operador_id) {
     if (!e.matricula_camion) faltanMatriculas = true;

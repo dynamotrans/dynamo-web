@@ -9729,57 +9729,44 @@ do $$ declare e2 uuid := current_setting('prueba.e234b')::uuid; tok2 uuid; r jso
   raise notice 'OK 234 · tráiler = dos matrículas: la cabecera no pone solo la tractora (salvo rígido declarado), nadie firma sin semirremolque, la página y el PDF lo saben; el panel distingue lo cambiado con el transporte en marcha';
 end $$;
 
--- ---- 235. Sin matrículas no se carga: ni por reloj, ni a mano -----------------------------
--- Envío de hoy con transportista y sin matrículas, ya pasada su hora: el automático lo deja
--- en «yendo a la carga» y avisa UNA vez a Dynamo; marcar «cargando» a mano responde
--- sin_matriculas; cambiar el estado por la tabla, tampoco. Con las dos matrículas, avanza.
+-- ---- 235. Faltan matrículas a la hora de cargar: se AVISA, no se bloquea ------------------
+-- (El bloqueo de 20261115350000 se deshizo el mismo día por decisión del usuario.) Envío
+-- con transportista y sin matrículas, ya pasada su hora: el automático AVANZA igual y deja
+-- UN aviso urgente a Dynamo; a mano también se puede marcar «cargando».
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-do $$ declare e uuid; t uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; n int; begin
+do $$ declare e uuid; e2 uuid; t uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; n int; begin
   insert into transportistas (razon_social, cif) values ('Transp 235 SL', 'B23500235') returning id into t;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
     values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, hoy + 2) returning id into e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, hoy + 2) returning id into e2;
   perform set_config('request.jwt.claim.sub', '', false);
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
-    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
-  update envios set estado = 'programado', transportista_id = t where id = e;
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES'),
+           (e2, 1, 'carga', '41001', 'Sevilla', 'ES'), (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado', transportista_id = t where id in (e, e2);
   -- Como si hubiera tenido que cargar hace 3 días: toda su ruta prevista ya ha pasado.
   update envios set fecha_carga_desde = hoy - 3, fecha_carga_hasta = hoy - 3, fecha_carga_prevista = hoy - 3 where id = e;
-  perform set_config('prueba.e235', e::text, false);
-  if (select count(*) from seguimiento_calcular(e) s where s.paso >= 2 and s.hora <= now()) = 0 then
-    raise exception 'FALLO 235 · la prueba no tiene etapas de carga ya pasadas';
-  end if;
+  perform set_config('prueba.e235b', e2::text, false);
   perform seguimiento_aplicar(e, false);
   perform seguimiento_aplicar(e, false);
-  if (select estado from envios where id = e) <> 'hacia_la_carga' then
-    raise exception 'FALLO 235 · sin matrículas el automático no se queda en «yendo a la carga»: %', (select estado from envios where id = e);
+  if (select estado from envios where id = e) in ('programado', 'hacia_la_carga') then
+    raise exception 'FALLO 235 · sin matrículas el automático se queda parado (ya no debe bloquear): %', (select estado from envios where id = e);
   end if;
   select count(*) into n from avisos where envio_id = e and tipo = 'sin_matriculas_al_cargar';
   if n <> 1 then raise exception 'FALLO 235 · esperaba 1 aviso a Dynamo y hay %', n; end if;
 end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
-do $$ declare e uuid := current_setting('prueba.e235')::uuid; r jsonb; ok boolean := false; begin
-  r := marcar_etapa_envio(e, 2::smallint);
-  if r ->> 'resultado' <> 'sin_matriculas' then raise exception 'FALLO 235 · deja marcar «cargando» a mano sin matrículas: %', r; end if;
-  begin update envios set estado = 'cargando', parada_actual = 1 where id = e; exception when others then ok := true; end;
-  if not ok then raise exception 'FALLO 235 · la tabla deja pasar a cargando sin matrículas'; end if;
-  -- Solo la tractora en un tráiler: sigue sin valer.
-  update envios set matricula_camion = '2350AAA' where id = e;
-  r := marcar_etapa_envio(e, 2::smallint);
-  if r ->> 'resultado' <> 'sin_matriculas' then raise exception 'FALLO 235 · un tráiler pasa a cargando sin semirremolque: %', r; end if;
-  update envios set matricula_remolque = 'R2350AAA' where id = e;
+do $$ declare r jsonb; begin
+  r := marcar_etapa_envio(current_setting('prueba.e235b')::uuid, 2::smallint);
+  if not (r ->> 'ok')::boolean then raise exception 'FALLO 235 · a mano no deja marcar «cargando» sin matrículas (ya no debe bloquear): %', r; end if;
+  raise notice 'OK 235 · faltan matrículas a la hora de cargar: el seguimiento avanza igual (por reloj y a mano) y Dynamo recibe un aviso urgente, una sola vez';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-do $$ declare e uuid := current_setting('prueba.e235')::uuid; begin
-  perform seguimiento_aplicar(e, false);
-  if (select estado from envios where id = e) in ('programado', 'hacia_la_carga') then
-    raise exception 'FALLO 235 · con las dos matrículas el automático no reanuda: %', (select estado from envios where id = e);
-  end if;
-  raise notice 'OK 235 · sin matrículas no se carga: el automático espera en «yendo a la carga» y avisa una vez, a mano responde sin_matriculas y la tabla lo impide; con las dos matrículas, reanuda';
-end $$;
 
 -- ---- 230. Nadie firma sin matrículas: solo la cabecera, que las pone ----------------
 -- Con transportista y sin matrículas, el destinatario NO firma (sin_matriculas); la firma
