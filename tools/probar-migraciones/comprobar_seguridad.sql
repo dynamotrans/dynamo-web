@@ -2282,7 +2282,9 @@ do $$ declare e uuid; begin
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Muelle 73', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 73', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
   )).id into e;
-  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado_asignacion = 'confirmada' where id = e;
+  -- Con sus matrículas: sin ellas el viaje no pasa a cargando (2026-11-15).
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado_asignacion = 'confirmada',
+                    matricula_camion = '7300TST', matricula_remolque = 'R7300TST' where id = e;
   perform set_config('prueba.e73', e::text, false);
 end $$;
 reset role;
@@ -5754,7 +5756,7 @@ do $$ declare e uuid := nullif(current_setting('prueba.seg_envio', true), '')::u
   if r ->> 'resultado' <> 'falta_fecha_prevista' then raise exception 'FALLO 158 · con ventana se asigna sin día previsto: %', r; end if;
   r := asignar_transportista(e, t, p_importe_transportista => 600, p_fecha_carga_prevista => hoy + 5);
   if r ->> 'resultado' <> 'fecha_fuera_de_ventana' then raise exception 'FALLO 158 · día previsto fuera de la ventana aceptado: %', r; end if;
-  r := asignar_transportista(e, t, p_importe_transportista => 600, p_fecha_carga_prevista => current_setting('prueba.seg_dia')::date);
+  r := asignar_transportista(e, t, p_importe_transportista => 600, p_matricula_camion => '1580TST', p_matricula_remolque => 'R1580TST', p_fecha_carga_prevista => current_setting('prueba.seg_dia')::date);
   if not (r ->> 'ok')::boolean then raise exception 'FALLO 158 · no asigna con día previsto: %', r; end if;
 end $$;
 reset role;
@@ -7099,7 +7101,7 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
 do $$ declare e uuid := current_setting('prueba.e190')::uuid; r jsonb; begin
-  r := asignar_transportista(e, current_setting('prueba.transp')::uuid, 600, '1190BBB', null, 'Chófer Prueba', '+34 600 001 190');
+  r := asignar_transportista(e, current_setting('prueba.transp')::uuid, 600, '1190BBB', 'R1190BBB', 'Chófer Prueba', '+34 600 001 190');
   if not (r ->> 'ok')::boolean then raise exception 'FALLO 190 · no se pudo asignar el transportista: %', r; end if;
 end $$;
 reset role;
@@ -9725,6 +9727,58 @@ do $$ declare e2 uuid := current_setting('prueba.e234b')::uuid; tok2 uuid; r jso
     raise exception 'FALLO 234 · el cambio hecho ya cargando no sale como iniciado con su dato anterior: %', m;
   end if;
   raise notice 'OK 234 · tráiler = dos matrículas: la cabecera no pone solo la tractora (salvo rígido declarado), nadie firma sin semirremolque, la página y el PDF lo saben; el panel distingue lo cambiado con el transporte en marcha';
+end $$;
+
+-- ---- 235. Sin matrículas no se carga: ni por reloj, ni a mano -----------------------------
+-- Envío de hoy con transportista y sin matrículas, ya pasada su hora: el automático lo deja
+-- en «yendo a la carga» y avisa UNA vez a Dynamo; marcar «cargando» a mano responde
+-- sin_matriculas; cambiar el estado por la tabla, tampoco. Con las dos matrículas, avanza.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; t uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; n int; begin
+  insert into transportistas (razon_social, cif) values ('Transp 235 SL', 'B23500235') returning id into t;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, hoy + 2) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado', transportista_id = t where id = e;
+  -- Como si hubiera tenido que cargar hace 3 días: toda su ruta prevista ya ha pasado.
+  update envios set fecha_carga_desde = hoy - 3, fecha_carga_hasta = hoy - 3, fecha_carga_prevista = hoy - 3 where id = e;
+  perform set_config('prueba.e235', e::text, false);
+  if (select count(*) from seguimiento_calcular(e) s where s.paso >= 2 and s.hora <= now()) = 0 then
+    raise exception 'FALLO 235 · la prueba no tiene etapas de carga ya pasadas';
+  end if;
+  perform seguimiento_aplicar(e, false);
+  perform seguimiento_aplicar(e, false);
+  if (select estado from envios where id = e) <> 'hacia_la_carga' then
+    raise exception 'FALLO 235 · sin matrículas el automático no se queda en «yendo a la carga»: %', (select estado from envios where id = e);
+  end if;
+  select count(*) into n from avisos where envio_id = e and tipo = 'sin_matriculas_al_cargar';
+  if n <> 1 then raise exception 'FALLO 235 · esperaba 1 aviso a Dynamo y hay %', n; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e235')::uuid; r jsonb; ok boolean := false; begin
+  r := marcar_etapa_envio(e, 2::smallint);
+  if r ->> 'resultado' <> 'sin_matriculas' then raise exception 'FALLO 235 · deja marcar «cargando» a mano sin matrículas: %', r; end if;
+  begin update envios set estado = 'cargando', parada_actual = 1 where id = e; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 235 · la tabla deja pasar a cargando sin matrículas'; end if;
+  -- Solo la tractora en un tráiler: sigue sin valer.
+  update envios set matricula_camion = '2350AAA' where id = e;
+  r := marcar_etapa_envio(e, 2::smallint);
+  if r ->> 'resultado' <> 'sin_matriculas' then raise exception 'FALLO 235 · un tráiler pasa a cargando sin semirremolque: %', r; end if;
+  update envios set matricula_remolque = 'R2350AAA' where id = e;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e235')::uuid; begin
+  perform seguimiento_aplicar(e, false);
+  if (select estado from envios where id = e) in ('programado', 'hacia_la_carga') then
+    raise exception 'FALLO 235 · con las dos matrículas el automático no reanuda: %', (select estado from envios where id = e);
+  end if;
+  raise notice 'OK 235 · sin matrículas no se carga: el automático espera en «yendo a la carga» y avisa una vez, a mano responde sin_matriculas y la tabla lo impide; con las dos matrículas, reanuda';
 end $$;
 
 -- ---- 230. Nadie firma sin matrículas: solo la cabecera, que las pone ----------------

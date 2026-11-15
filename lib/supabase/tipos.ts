@@ -3628,6 +3628,7 @@ export type Database = {
       envio_del_cliente: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
       envio_en_pestana: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_pestana: string | null }; Returns: boolean }
+      envio_matriculas_completas: { Args: { p_envio: string | null }; Returns: boolean }
       envio_necesita_remolque: { Args: { p_envio: string | null }; Returns: boolean }
       envio_texto_busqueda: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null }; Returns: string }
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }

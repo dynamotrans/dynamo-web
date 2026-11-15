@@ -95,6 +95,7 @@ export async function marcarEtapa(envio: string, paso: number, hora: string | nu
   const r = (data as { ok: boolean; resultado: string });
   if (r.ok) return { ok: true };
   return { ok: false, error: ({ cancelado: 'El envío está cancelado: deshaz antes la cancelación.', no_existe: 'Ese envío no existe.', borrador: 'El envío aún no está confirmado.',
+    sin_matriculas: 'Faltan las matrículas del camión (tractora y, si es un tráiler, también el semirremolque): ponlas antes de marcar que está cargando.',
     sin_transportista: 'Asigna antes el transportista: sin camión el envío no puede ir hacia la carga.', etapa_no_valida: 'Esa etapa no vale.',
     hora_no_valida: 'La hora tiene que estar entre hace 30 días y dentro de 14.' } as Record<string, string>)[r.resultado] ?? 'No se ha podido cambiar.' };
 }

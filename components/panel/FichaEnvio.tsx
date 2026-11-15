@@ -337,6 +337,16 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           {/* Ruta y seguimiento son UNA línea temporal (usuario, 2026-11-10): la ficha
               de cada parada va incrustada en su hito de carga o descarga. */}
           <SubTit primero>Seguimiento de la ruta{e.seguimiento_automatico === false ? ' · en pausa' : ''}</SubTit>
+          {/* Sin matrículas no se carga (usuario, 2026-11-15): el seguimiento espera en
+              «yendo a la carga» hasta que estén la tractora y, en un tráiler, el semirremolque. */}
+          {ficha.faltanMatriculas && ['programado', 'hacia_la_carga'].includes(e.estado) && (
+            <div className="modal-warn-box" style={{ margin: '0 0 0.7rem' }}>
+              <strong>Faltan las matrículas del camión</strong>{e.matricula_camion ? ' (la del semirremolque: un tráiler lleva las dos)' : ''}.
+              Sin ellas el envío no pasa a «cargando»: el seguimiento espera en «yendo a la carga» hasta que se pongan.{' '}
+              <button type="button" className="sig-link" style={{ background: 'none', border: 0, padding: 0, color: 'var(--purple)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
+                onClick={() => setVista('asignar')}>Poner matrículas</button>
+            </div>
+          )}
           <Etapas etapas={ficha.etapas} pausado={e.seguimiento_automatico === false}
             fichaParada={(n) => {
               const p = ficha.paradas[n - 1];

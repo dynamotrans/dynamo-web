@@ -47,6 +47,9 @@ export type Ficha = {
   difusion: DifusionFicha | null;   // última oferta escalonada del envío (activa o terminada)
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
   enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
+  // Con transportista y sin las matrículas que pide el documento de control (camión y, en un
+  // tráiler, semirremolque): el seguimiento no pasa de «yendo a la carga» hasta que estén.
+  faltanMatriculas?: boolean;
   // Previo pago (null = no lo necesita y nunca lo necesitó).
   margenRevision: number;     // precio_revision_margen_pct
   pago: { estado: string; motivo: string | null; metodo: string | null; pagado_en: string | null; exento_motivo: string | null;
@@ -97,10 +100,20 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     corte = (data as string) ?? null;
   }
 
+  // ¿Le faltan matrículas para poder cargar? (un rígido no lleva semirremolque)
+  let faltanMatriculas = false;
+  if (e.transportista_id && !e.operador_id) {
+    if (!e.matricula_camion) faltanMatriculas = true;
+    else if (!e.matricula_remolque && !e.requiere_plataforma_elevadora) {
+      const veh = e.vehiculo_camion_id ? (await sb.from('vehiculos').select('tipo').eq('id', e.vehiculo_camion_id).maybeSingle()).data : null;
+      faltanMatriculas = veh?.tipo !== 'rigido';
+    }
+  }
+
   return {
     error: null,
     ficha: {
-      envio: e,
+      envio: e, faltanMatriculas,
       cliente: e.clientes ? { id: e.clientes.id, nombre: e.clientes.nombre_visible ?? '', cif: e.clientes.cif } : null,
       transportista: e.transportistas ? { id: e.transportistas.id, nombre: e.transportistas.nombre_visible ?? '', cif: e.transportistas.cif } : null,
       operador: e.operadores?.razon_social ?? null,
