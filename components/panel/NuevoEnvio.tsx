@@ -914,8 +914,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   if (creado) {
     const pasosExito = creado.modo === 'cliente' ? [
       <>Tu envío está <strong>programado con el precio cerrado</strong> que acabas de confirmar.</>,
-      <>Dynamo asigna el camión: la <strong>matrícula y el conductor</strong> aparecerán en la ficha del envío y te avisaremos por la <strong>campana</strong>.</>,
-      <>El día de la carga podrás seguir el <strong>estado en vivo</strong>; al entregar tendrás el <strong>CMR / DeCA firmado</strong> en Documentos.</>,
+      <>Dynamo asigna el camión: la <strong>matrícula y el conductor</strong> aparecerán en la ficha del envío y te avisaremos por <strong>email</strong>.</>,
+      <>El día de la carga podrás seguir el <strong>estado en vivo</strong>; al finalizar el envío subiremos la <strong>documentación firmada</strong> a los documentos del envío o a la sección Administración / Albaranes.</>,
     ] : creado.modo === 'manual' ? [
       <>El envío queda <strong>programado con tu operador</strong>: Dynamo no interviene en nada.</>,
       <>Desde la ficha puedes sacar la <strong>orden de carga en PDF</strong> y apuntar matrícula y conductor.</>,

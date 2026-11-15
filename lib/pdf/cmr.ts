@@ -451,7 +451,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       l.pag.drawImage(logo, { x: l.x0, y: A4.h - cabY - 1 - h, width: w, height: h });
       xTit = l.x0 + w + 12;
     }
-    l.texto(xTit, cabY + 16, 'Hoja de firmas eCMR / DeCA', 15, { bold: true, color: COLOR.navy });
+    l.texto(xTit, cabY + 16, 'Hoja de firmas del CMR', 15, { bold: true, color: COLOR.navy });
     const num = `CMR Nº ${e.referencia_gx ?? ''}`;
     const anchoNum = l.medida(num, 9, true) + 16;
     l.rect(A4.w - l.margen.der - anchoNum, cabY + 1, anchoNum, 20, COLOR.moradoSuave);
@@ -487,12 +487,12 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       // acepta el soporte electrónico, los datos exigidos y qué comprueba el QR— para que
       // quien lo mire (conductor, agente, cliente) lo entienda de un vistazo.
       const colAncho = l.ancho - (qrImg ? 100 : 0) - 16;
-      const cab = l.partir('Este e-CMR es también el documento de control (DeCA) del transporte nacional', 8.6, colAncho, true);
+      const cab = l.partir('Las firmas son del CMR (carta de porte). El documento de control (DeCA) va en las primeras hojas y no lleva firmas', 8.6, colAncho, true);
       const cajas = [
-        { tit: 'La ley lo acepta en electrónico: Orden FOM/2861/2012, art. 6', txt: 'El documento de control (DeCA) puede llevarse en soporte electrónico: basta mostrar este e-CMR, en el móvil o impreso, en una inspección en carretera.' },
-        { tit: 'Con todos los datos que exige el art. 5', txt: 'Cargador contractual y transportista efectivo con su NIF, vehículo, naturaleza y peso de la carga, origen, destino y fechas: todos constan en este documento.' },
-        { tit: 'El QR lo verifica en línea', txt: 'Abre el e-CMR original, con su nº único, sus firmas y su registro, para comprobarlo al momento. En transporte internacional rigen el Convenio CMR y el Protocolo e-CMR (Ginebra, 2008).' },
-        { tit: 'Las firmas valen: Reglamento eIDAS (UE 910/2014), art. 25', txt: 'Firma electrónica con evidencias de identidad, tiempo y ubicación (hora del servidor, GPS y huella SHA-256): no se le pueden negar efectos jurídicos y es admisible como prueba ante organismos, peritos y tribunales.' },
+        { tit: 'La ley lo acepta en electrónico: Orden FOM/2861/2012, art. 6', txt: 'El documento de control (DeCA) puede llevarse en soporte electrónico: basta mostrar sus hojas (las primeras de este PDF), en el móvil o impresas, en una inspección en carretera.' },
+        { tit: 'Con todos los datos que exige el art. 5', txt: 'Cargador contractual y transportista efectivo con su NIF, vehículo, naturaleza y peso de la carga, origen, destino y fechas: todos constan en el DeCA, con el histórico de sus cambios.' },
+        { tit: 'El QR lo verifica en línea', txt: 'Abre el documento original, con su nº único y su registro, para comprobarlo al momento. En transporte internacional rigen el Convenio CMR y el Protocolo e-CMR (Ginebra, 2008).' },
+        { tit: 'Las firmas del CMR valen: Reglamento eIDAS (UE 910/2014), art. 25', txt: 'Firma electrónica con evidencias de identidad, tiempo y ubicación (hora del servidor, GPS y huella SHA-256): no se le pueden negar efectos jurídicos y es admisible como prueba ante organismos, peritos y tribunales.' },
       ].map((c) => {
         const tit = l.partir(c.tit, 7.4, colAncho - 18, true);
         const txt = l.partir(c.txt, 6.6, colAncho - 18);
@@ -556,7 +556,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     const cabCont = () => {
       pagsFirmas.push(l.pag);
       if (logo) { const h = 14, w = h * logo.width / logo.height; l.pag.drawImage(logo, { x: l.x0, y: A4.h - l.y - h, width: w, height: h }); }
-      l.texto(l.x0 + (logo ? 14 * logo.width / logo.height + 10 : 0), l.y + 11, 'Hoja de firmas eCMR / DeCA (continuación)', 11, { bold: true, color: COLOR.navy });
+      l.texto(l.x0 + (logo ? 14 * logo.width / logo.height + 10 : 0), l.y + 11, 'Hoja de firmas del CMR (continuación)', 11, { bold: true, color: COLOR.navy });
       l.textoDer(A4.w - l.margen.der, l.y + 11, `CMR Nº ${e.referencia_gx ?? ''}`, 8.5, { bold: true, color: COLOR.morado });
       l.y += 18;
       l.linea(l.x0, l.y, A4.w - l.margen.der, l.y, COLOR.morado, 1);

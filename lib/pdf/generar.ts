@@ -45,8 +45,6 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
       .in('clave', ['pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'plazo_pago_transportista_dias']);
     const p = new Map((ps ?? []).map((x) => [x.clave, Number(x.valor)]));
     if (datos.manual) datos.logoPorteador = await cargarLogoOperador(sb, datos.envio.operador_id);
-    // Las firmas del e-CMR se estampan en la copia del conductor (el DeCA).
-    else datos.firmas = await cargarFirmasCmr(sb, id);
     bytes = await ordenDeCarga(datos, { pct: p.get('pronto_pago_pct') ?? 3, minimo: p.get('pronto_pago_minimo') ?? 20,
       dias: p.get('pronto_pago_dias') ?? 5, plazo: p.get('plazo_pago_transportista_dias') ?? 60 });
   }
@@ -76,8 +74,7 @@ export async function pdfsOrdenDynamo(sb: SB, id: string, usuarioId: string, cop
   const p = new Map((ps ?? []).map((x) => [x.clave, Number(x.valor)]));
   const pago = { pct: p.get('pronto_pago_pct') ?? 3, minimo: p.get('pronto_pago_minimo') ?? 20,
     dias: p.get('pronto_pago_dias') ?? 5, plazo: p.get('plazo_pago_transportista_dias') ?? 60 };
-  // Las firmas del e-CMR, para estamparlas en la copia del conductor (el DeCA).
-  if (copias.includes('operativa')) datos.firmas = await cargarFirmasCmr(sb, id);
+  // (La copia del conductor —el DeCA— no lleva firmas: son solo del CMR. Usuario, 2026-11-15.)
   const ref = String(datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
   const pdfs: { bytes: Uint8Array; nombre: string }[] = [];
   for (const c of copias) {

@@ -1,14 +1,13 @@
 import { telBonito } from '@/lib/paises';
 import QRCode from 'qrcode';
-import { pesoTn, tipoCargaTxt, fechaHora } from '@/lib/formato';
+import { pesoTn, tipoCargaTxt } from '@/lib/formato';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument, rgb, type PDFImage, type RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from './lienzo';
-import { DYNAMO, emisionDeca, type DatosDoc, type FirmaDoc, type ParadaDoc } from './datos';
+import { DYNAMO, emisionDeca, type DatosDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrden } from './ordenTextos';
-import { plumaAzul } from './plumaAzul';
 
 // ORDEN DE CARGA que Dynamo manda al transportista (el contenido y las condiciones son los
 // de la orden que se manda hoy por email, p. ej. la GX61034 de febrero de 2026).
@@ -52,47 +51,10 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   if (!manual) logo = await l.doc.embedPng(await readFile(path.join(process.cwd(), 'images', '2.png')));
   const ref = e.referencia_gx ?? '';
   const emitida = ahoraMadrid();
-  // FIRMAS ESTAMPADAS EN EL DeCA (usuario, 2026-11-14): en la copia del conductor —que
-  // es el DeCA— el trazo de cada firma del e-CMR queda estampado junto a su sitio (y el
-  // del transportista junto a la banda), con un hueco «pendiente» mientras no exista.
-  // El acto de firmar sigue siendo único y del e-CMR (QR); esto es la constancia.
-  const conFirmas = copia === 'operativa' && !manual;
-  const firmaDe = (rol: string, parada: string | null) =>
-    (d.firmas ?? []).find((f) => !f.extra && f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
-  // El mapa de trazos va POR FIRMA, no por casilla: una firma extra de la misma casilla
-  // pisaba el trazo de la principal (bug visto por el usuario el 2026-11-14).
-  const trazos = new Map<FirmaDoc, PDFImage>();
-  if (conFirmas) for (const f of d.firmas ?? []) {
-    // Trazo siempre en azul bolígrafo al imprimir (usuario, 2026-11-14).
-    if (f.png) { try { trazos.set(f, await l.doc.embedPng(plumaAzul(f.png))); } catch { /* sin trazo */ } }
-  }
-  // REJILLA DE FIRMAS al pie del DeCA (usuario, 2026-11-14): cuadros seguidos de
-  // izquierda a derecha, 4 por fila a lo ancho escribible; con más de 4 siguen en la
-  // fila de abajo, empezando por la izquierda. Cada cuadro lleva PREIMPRESOS su papel
-  // («RECOGIDA 1 · CARGADOR», «ENTREGA 1 · DESTINATARIO», numerados por tipo, y el del
-  // transportista) y la empresa del sitio. Con firma digital del e-CMR, el trazo queda
-  // estampado dentro; sin ella, el recuadro en blanco sirve para firmar A MANO el impreso.
-  const cuadroFirma = (x: number, w: number, hB: number, f: FirmaDoc | undefined, rol: string, titulo: string, empresa: string, color: RGB) => {
-    const casilla = rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24';
-    const yB = l.y;
-    cajaR(x, yB, w, hB, COLOR.blanco, COLOR.grisClaro, 6);
-    l.texto(x + 6, yB + 10, l.partir(titulo, 6.5, w - 42, true)[0] ?? '', 6.5, { bold: true, color });
-    l.textoDer(x + w - 5, yB + 10, `e-CMR ${casilla}`, 5.4, { color: COLOR.gris });
-    l.texto(x + 6, yB + 18.5, l.partir(empresa, 6.2, w - 12)[0] ?? '', 6.2, { color: COLOR.gris });
-    l.linea(x + 5, yB + 22.5, x + w - 5, yB + 22.5);
-    if (f) {
-      const img = trazos.get(f);
-      if (img) {
-        const h = 22, wTr = Math.min(w - 14, h * img.width / img.height);
-        l.pag.drawImage(img, { x: x + 7, y: A4.h - (yB + 26) - h, width: wTr, height: h });
-      }
-      l.texto(x + 6, yB + hB - 12, l.partir(`${f.nombre} · ${f.documento}`, 6.3, w - 12, true)[0] ?? '', 6.3, { bold: true, color: COLOR.navy });
-      l.texto(x + 6, yB + hB - 5, fechaHora(f.firmado_en), 5.6, { color: COLOR.gris });
-    } else {
-      const ps = l.partir(t.firmaPend, 5.2, w - 12).slice(0, 2);
-      ps.forEach((ln, i) => l.texto(x + 6, yB + hB - 13 + i * 6.5, ln, 5.2, { color: COLOR.gris }));
-    }
-  };
+  // SIN FIRMAS EN EL DeCA (usuario, 2026-11-15): las firmas son del CMR (carta de porte) y
+  // viven solo en su impreso y en su hoja de firmas. El documento de control no lleva
+  // ninguna: así no le alcanza la exigencia de firma electrónica avanzada de la Resolución
+  // de 5-jun-2026 (apdo. cuarto) para un DeCA que incluya firmas.
   // Con el día de carga YA ELEGIDO (al asignar el transportista), la orden enseña ESA
   // fecha — en cabecera y en las recogidas —, no la ventana (usuario, 2026-11-13). Las
   // entregas siguen con su fecha estimada, calculada desde ese día. Sin día elegido, la
@@ -428,9 +390,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     await tarjetaQr(ct, cw, hFila);
     l.y = ct + hFila + 8;
-    // La línea «Documento de control del transporte (e-CMR / DeCA): el QR abre…» solo
-    // va en el DeCA; en la orden de carga sobra (usuario, 2026-11-15).
-    if (copia === 'operativa') { l.parrafo(t.qrDeca, 8, { bold: true, color: COLOR.navy }); l.y += 4; }
   } else {
   const hCaja = Math.max(alto(izq, mitad - 20), alto(dcha, mitad - 20)) + 26;
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
@@ -491,8 +450,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       l.pag.drawRectangle({ x: l.x0, y: A4.h - cy - hAviso, width: wIzq, height: hAviso, color: COLOR.fondo, borderColor: COLOR.grisClaro, borderWidth: 1 });
       lineas.forEach((ln, i) => l.texto(l.x0 + 10, cy + 15 + i * 10.6, ln, 8, { bold: true, color: COLOR.navy }));
       l.y = cy + hAviso + 4;
-    } else {
-      l.parrafo(t.qrDeca, 8, { bold: true, x: l.x0, ancho: wIzq - 4, color: COLOR.navy });
     }
     const finIzq = l.y;
     // Tarjeta del QR a la derecha, alineada arriba con la franja.
@@ -541,8 +498,11 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const filasDe = (pa: ParadaDoc, recogida: boolean): FilaT[] => {
     const fs: FilaT[] = [];
     fs.push({ k: t.fecha, v: recogida ? ventanaCarga : (fEntrega ? `${fEntrega} ${t.estimada}` : t.porConfirmar), b: true });
-    fs.push({ k: t.horario, v: pa.horarios || t.consultaDynamo, b: true });
-    if (pa.contacto?.telefono || pa.contacto?.nombre) fs.push({ k: t.contacto, v: [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': '), b: true });
+    // En el DeCA los sitios van sin horario, contacto ni indicaciones (usuario, 2026-11-15):
+    // son datos de la orden de carga, no del documento de control.
+    const deca = copia === 'operativa';
+    if (!deca) fs.push({ k: t.horario, v: pa.horarios || t.consultaDynamo, b: true });
+    if (!deca && (pa.contacto?.telefono || pa.contacto?.nombre)) fs.push({ k: t.contacto, v: [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': '), b: true });
     if (pa.referencia) fs.push({ k: t.referencia, v: pa.referencia, b: true });
     if (pa.tipo_sitio) fs.push({ k: t.tipoSitio, v: nombreTipo(pa.tipo_sitio) });
     const avisosP = [pa.requiere_cita && t.citaPrevia, !pa.tiene_medios_carga && t.sinMedios].filter(Boolean) as string[];
@@ -568,7 +528,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         e.descripcion_mercancia || (e.paletizado === false ? t.noPaletizada : t.paletizada), merc].filter(Boolean);
       fs.push({ k: t.mercancia, v: partes.join(' · '), b: true });
     }
-    for (const n2 of notas) fs.push({ k: t.indicaciones, v: n2 });
+    if (!deca) for (const n2 of notas) fs.push({ k: t.indicaciones, v: n2 });
     // Sin línea de Google Maps en los sitios (usuario, 2026-11-14).
     return fs;
   };
@@ -699,33 +659,6 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     aviso(t.matriculasAutL, t.txtSoloMatr, COLOR.navy);
   }
 
-  // ---- Firmas (solo en el DeCA): rejilla al pie, casillas 22/23/24 del e-CMR ----
-  // Primero los huecos normales en orden de recorrido (recogidas → transportista →
-  // entregas) y AL FINAL las firmas extra, en el orden en que se hicieron, cada una
-  // diciendo a qué casilla se añadió (usuario, 2026-11-14).
-  if (conFirmas) {
-    seccion(t.secFirmas);
-    const base: { f: FirmaDoc | undefined; rol: string; parada: string | null; titulo: string; empresa: string; color: RGB }[] = [
-      ...rec.map((pa, i) => ({ f: firmaDe('remitente', pa.id), rol: 'remitente', parada: pa.id, titulo: `${t.recogida} ${i + 1} · ${t.cargadorRol}`, empresa: pa.nombre_empresa || '', color: NARANJA })),
-      { f: firmaDe('transportista', null), rol: 'transportista', parada: null, titulo: t.transp, empresa: d.porteador?.razon_social ?? e.conductor_nombre ?? '', color: COLOR.navy },
-      ...ent.map((pa, i) => ({ f: firmaDe('destinatario', pa.id), rol: 'destinatario', parada: pa.id, titulo: `${t.entrega} ${i + 1} · ${t.destinatarioRol}`, empresa: pa.nombre_empresa || '', color: COLOR.verde })),
-    ];
-    const extras = (d.firmas ?? []).filter((f) => f.extra)
-      .sort((a, b) => (a.firmado_en < b.firmado_en ? -1 : 1));
-    const huecos = [...base, ...extras.map((f, i) => {
-      const b = base.find((h) => h.rol === f.rol && (f.rol === 'transportista' || h.parada === f.parada_id));
-      return { f, rol: f.rol, parada: f.parada_id, titulo: `${t.firmaExtra}${extras.length > 1 ? ` ${i + 1}` : ''}`,
-        empresa: [b?.titulo, b?.empresa].filter(Boolean).join(' · '), color: b?.color ?? COLOR.navy };
-    })];
-    const gap = 6, wC = (l.ancho - 3 * gap) / 4, hC = 66;
-    for (let i = 0; i < huecos.length; i += 4) {
-      l.sitio(hC + 4);
-      huecos.slice(i, i + 4).forEach((hu, j) => cuadroFirma(l.x0 + j * (wC + gap), wC, hC, hu.f, hu.rol, hu.titulo, hu.empresa, hu.color));
-      l.y += hC + gap;
-    }
-    l.y += 4;
-  }
-
   // ---- Panel de MODIFICACIONES del documento de control (solo en el DeCA) ----
   // Resolución de 5 de junio de 2026, apartado quinto: el documento electrónico deja
   // constancia de sus modificaciones. Cada cambio con su fecha y hora (España) y un
@@ -851,8 +784,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const creadoDeca = emisionDeca(d)?.en ?? null;
   if (copia === 'operativa' && creadoDeca) {
     l.doc.setCreationDate(new Date(creadoDeca));
-    // Última modificación = el último cambio de datos o la última firma estampada.
-    const tiempos = [creadoDeca, ...(d.modificaciones ?? []).map((x) => x.en), ...(d.firmas ?? []).map((f) => f.firmado_en)]
+    // Última modificación = el último cambio de datos (el DeCA no lleva firmas).
+    const tiempos = [creadoDeca, ...(d.modificaciones ?? []).map((x) => x.en)]
       .map((x) => (x ? Date.parse(x) : NaN)).filter((x) => Number.isFinite(x));
     l.doc.setModificationDate(new Date(Math.max(...tiempos)));
   }

@@ -38,7 +38,7 @@ export function ventanaLoc(desde: string | null, hasta: string | null, idioma: I
 export type TextosOrden = {
   titulo: string; subRef: string; emitida: string;
   copiaConductor: string; copiaAdmin: string; sinEco: string; completa: string; prevalece: string;
-  firmaPend: string; cargadorRol: string; destinatarioRol: string; secFirmas: string; firmaExtra: string;
+  
   subConfirmado: string; origenL: string; destinoL: string; salidaL: string;
   transpRealiza: string; transp: string; gestionadaPor: string; ordenante: string; pendienteTransp: string;
   operadorTrafico: string; urgencias: string; operadorAut: string;
@@ -56,7 +56,7 @@ export type TextosOrden = {
   importeL: string; pendiente: string; impuestosNo: string; formaPago: string; txtProntoPago: string; txtTransferencia: string;
   facturaL: string; txtFactura: string; txtDiscrecion: string; verCondEs: string;
   pagina: string; de: string; rango: string;
-  qrDeca: string; decaManual: string; qrEscanea: string; qrPendiente: string;
+  decaManual: string; qrEscanea: string; qrPendiente: string;
   modifTitulo: string; modifNinguna: string; modifRuta: string; modifFecha: string;
   modifMatricula: string; modifTransQuitado: string; modifTransNuevo: string; modifMas: string;
   modifMatriculaAsig: string; modifTransAsig: string; modifEmision: string;
@@ -71,7 +71,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
   es: {
     titulo: 'ORDEN DE CARGA', subRef: 'Referencia de envío', emitida: 'Emitida el',
     copiaConductor: 'COPIA CONDUCTOR', copiaAdmin: 'COPIA ADMINISTRACIÓN', sinEco: 'SIN INFORMACIÓN ECONÓMICA', completa: 'DOCUMENTO COMPLETO',
-    firmaPend: 'Con el dedo desde el QR · o a mano en este recuadro', cargadorRol: 'Cargador', destinatarioRol: 'Destinatario', secFirmas: 'FIRMAS', firmaExtra: 'FIRMA EXTRA',
+    
     subConfirmado: 'Servicio de transporte confirmado', origenL: 'Origen', destinoL: 'Destino', salidaL: 'Salida',
     prevalece: 'En caso de discrepancia entre versiones, prevalece la versión en español.',
     transpRealiza: 'TRANSPORTISTA EFECTIVO', transp: 'TRANSPORTISTA', gestionadaPor: 'GESTIONADA POR', ordenante: 'ORDENANTE',
@@ -99,15 +99,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCRECIÓN COMERCIAL: cliente solicita que en la carga no se informe del destino, ni en la entrega del origen.',
     verCondEs: 'Condiciones de la orden: en las páginas en ESPAÑOL de este documento.',
     pagina: 'Página', de: 'de', rango: 'del {a} al {b}',
-    qrDeca: 'Documento de control del transporte (e-CMR / DeCA): el QR abre el documento completo, con la hoja de firmas, siempre al día.', qrEscanea: 'Escanéalo con el móvil', qrPendiente: 'Pendiente de asignar transporte',
-    modifTitulo: 'Modificaciones del documento', modifNinguna: 'Sin modificaciones desde la emisión', modifRuta: 'Ruta modificada', modifFecha: 'Fecha de carga movida',
+    qrEscanea: 'Escanéalo con el móvil', qrPendiente: 'Pendiente de asignar transporte',
+    modifTitulo: 'Histórico del documento', modifNinguna: 'Sin modificaciones desde la emisión', modifRuta: 'Ruta modificada', modifFecha: 'Fecha de carga movida',
     modifMatricula: 'Cambio de matrículas', modifTransQuitado: 'Transportista retirado', modifTransNuevo: 'Nuevo transportista asignado', modifMatriculaAsig: 'Asignación de matrículas', modifEmision: 'Emisión del documento', modifMotivo: 'Motivo', modifNuevo: 'Datos nuevos', modifAnterior: 'Datos anteriores — NO VÁLIDOS', motAsig: 'Asignación inicial, previa al inicio del transporte', motAsigIniciado: 'Asignación inicial', faltaRemolque: 'Falta la matrícula del semirremolque', txtSinMatriculas: 'DeCA: Les rogamos nos faciliten las matrículas del vehículo; de no recibirlas, entenderemos que el transportista efectivo gestiona el DeCA conforme a la Orden FOM/2861/2012, quedando nuestra empresa exenta de cualquier responsabilidad derivada de su emisión u omisión.', modifSinEmitir: 'Documento pendiente de emisión: faltan las matrículas del vehículo', motMatricula: 'Por disponibilidad de camiones en la zona', motTrans: 'Sustitución del transportista efectivo', motQuitado: 'Retirada del transportista efectivo', motRuta: 'Por indicación del cliente', motFecha: 'Cambio de fecha indicado por el cargador contractual', modifMercancia: 'Mercancía modificada', motMercancia: 'Cambio de mercancía indicado por el cargador contractual', modifTransAsig: 'Asignación de transportista', modifMas: '… y {n} cambios anteriores',
     decaManual: 'Documento de control (DeCA) y carta de porte (CMR): transporte contratado directamente entre el ordenante y el transportista — se gestionan entre las partes. Esta orden no incluye QR de firma digital ni archivo del CMR.',
   },
   en: {
     titulo: 'LOADING ORDER', subRef: 'Shipment reference', emitida: 'Issued on',
     copiaConductor: 'DRIVER COPY', copiaAdmin: 'ADMINISTRATION COPY', sinEco: 'NO FINANCIAL INFORMATION', completa: 'FULL DOCUMENT',
-    firmaPend: 'With your finger via the QR · or by hand in this box', cargadorRol: 'Shipper', destinatarioRol: 'Consignee', secFirmas: 'SIGNATURES', firmaExtra: 'EXTRA SIGNATURE',
+    
     subConfirmado: 'Confirmed transport service', origenL: 'Origin', destinoL: 'Destination', salidaL: 'Departure',
     prevalece: 'In case of discrepancy between versions, the Spanish version prevails.',
     transpRealiza: 'ACTUAL CARRIER', transp: 'CARRIER', gestionadaPor: 'MANAGED BY', ordenante: 'ORDERING PARTY',
@@ -135,15 +135,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'COMMERCIAL DISCRETION: the customer requests that the destination is not disclosed at loading, nor the origin at delivery.',
     verCondEs: 'Order conditions: see the SPANISH pages of this document.',
     pagina: 'Page', de: 'of', rango: '{a} – {b}',
-    qrDeca: 'Transport control document (e-CMR / DeCA): the QR opens the full document, with the signature sheet, always up to date.', qrEscanea: 'Scan it with your phone', qrPendiente: 'Transport pending assignment',
-    modifTitulo: 'Document modifications', modifNinguna: 'No modifications since issue', modifRuta: 'Route changed', modifFecha: 'Loading date moved',
+    qrEscanea: 'Scan it with your phone', qrPendiente: 'Transport pending assignment',
+    modifTitulo: 'Document history', modifNinguna: 'No modifications since issue', modifRuta: 'Route changed', modifFecha: 'Loading date moved',
     modifMatricula: 'Plate change', modifTransQuitado: 'Carrier removed', modifTransNuevo: 'New carrier assigned', modifMatriculaAsig: 'Plates assigned', modifEmision: 'Document issued', modifMotivo: 'Reason', modifNuevo: 'New data', modifAnterior: 'Previous data — NO LONGER VALID', motAsig: 'Initial assignment, before the start of the transport', motAsigIniciado: 'Initial assignment', faltaRemolque: 'Semi-trailer plate missing', txtSinMatriculas: 'DeCA: Please send us the vehicle registration plates; if we do not receive them, we will understand that the actual carrier manages the DeCA (Spanish administrative control document) under Order FOM/2861/2012, and our company shall be exempt from any liability arising from its issue or omission.', modifSinEmitir: 'Document not yet issued: vehicle registration plates missing', motMatricula: 'Due to truck availability in the area', motTrans: 'Replacement of the actual carrier', motQuitado: 'Actual carrier withdrawn', motRuta: 'As instructed by the customer', motFecha: 'Date change requested by the contracting shipper', modifMercancia: 'Goods changed', motMercancia: 'Goods change requested by the contracting shipper', modifTransAsig: 'Carrier assigned', modifMas: '… and {n} earlier changes',
     decaManual: 'Control document (DeCA) and consignment note (CMR): transport contracted directly between the ordering party and the carrier — handled between the parties. This order includes no digital-signature QR and no CMR filing.',
   },
   pt: {
     titulo: 'ORDEM DE CARGA', subRef: 'Referência do envio', emitida: 'Emitida em',
     copiaConductor: 'CÓPIA DO MOTORISTA', copiaAdmin: 'CÓPIA DA ADMINISTRAÇÃO', sinEco: 'SEM INFORMAÇÃO FINANCEIRA', completa: 'DOCUMENTO COMPLETO',
-    firmaPend: 'Com o dedo através do QR · ou à mão neste quadro', cargadorRol: 'Expedidor', destinatarioRol: 'Destinatário', secFirmas: 'ASSINATURAS', firmaExtra: 'ASSINATURA EXTRA',
+    
     subConfirmado: 'Serviço de transporte confirmado', origenL: 'Origem', destinoL: 'Destino', salidaL: 'Saída',
     prevalece: 'Em caso de divergência entre versões, prevalece a versão em espanhol.',
     transpRealiza: 'TRANSPORTADOR EFETIVO', transp: 'TRANSPORTADOR', gestionadaPor: 'GERIDA POR', ordenante: 'ORDENANTE',
@@ -171,15 +171,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCRIÇÃO COMERCIAL: o cliente solicita que na carga não se informe o destino, nem na entrega a origem.',
     verCondEs: 'Condições da ordem: nas páginas em ESPANHOL deste documento.',
     pagina: 'Página', de: 'de', rango: 'de {a} a {b}',
-    qrDeca: 'Documento de controlo do transporte (e-CMR / DeCA): o QR abre o documento completo, com a folha de assinaturas, sempre atualizado.', qrEscanea: 'Digitalize com o telemóvel', qrPendiente: 'Transporte pendente de atribuição',
-    modifTitulo: 'Modificações do documento', modifNinguna: 'Sem modificações desde a emissão', modifRuta: 'Rota alterada', modifFecha: 'Data de carga alterada',
+    qrEscanea: 'Digitalize com o telemóvel', qrPendiente: 'Transporte pendente de atribuição',
+    modifTitulo: 'Histórico do documento', modifNinguna: 'Sem modificações desde a emissão', modifRuta: 'Rota alterada', modifFecha: 'Data de carga alterada',
     modifMatricula: 'Troca de matrícula', modifTransQuitado: 'Transportadora retirada', modifTransNuevo: 'Nova transportadora atribuída', modifMatriculaAsig: 'Atribuição de matrículas', modifEmision: 'Emissão do documento', modifMotivo: 'Motivo', modifNuevo: 'Dados novos', modifAnterior: 'Dados anteriores — NÃO VÁLIDOS', motAsig: 'Atribuição inicial, prévia ao início do transporte', motAsigIniciado: 'Atribuição inicial', faltaRemolque: 'Falta a matrícula do semirreboque', txtSinMatriculas: 'DeCA: Solicitamos que nos indiquem as matrículas do veículo; caso não as recebamos, entenderemos que o transportador efetivo gere o DeCA nos termos da Ordem FOM/2861/2012, ficando a nossa empresa isenta de qualquer responsabilidade decorrente da sua emissão ou omissão.', modifSinEmitir: 'Documento pendente de emissão: faltam as matrículas do veículo', motMatricula: 'Por disponibilidade de camiões na zona', motTrans: 'Substituição do transportador efetivo', motQuitado: 'Retirada do transportador efetivo', motRuta: 'Por indicação do cliente', motFecha: 'Alteração de data indicada pelo carregador contratual', modifMercancia: 'Mercadoria alterada', motMercancia: 'Alteração de mercadoria indicada pelo carregador contratual', modifTransAsig: 'Atribuição de transportadora', modifMas: '… e {n} alterações anteriores',
     decaManual: 'Documento de controlo (DeCA) e guia de transporte (CMR): transporte contratado diretamente entre o ordenante e o transportador — geridos entre as partes. Esta ordem não inclui QR de assinatura digital nem arquivo do CMR.',
   },
   fr: {
     titulo: 'ORDRE DE CHARGEMENT', subRef: 'Référence de l’envoi', emitida: 'Émis le',
     copiaConductor: 'COPIE CONDUCTEUR', copiaAdmin: 'COPIE ADMINISTRATION', sinEco: 'SANS INFORMATION FINANCIÈRE', completa: 'DOCUMENT COMPLET',
-    firmaPend: 'Au doigt via le QR · ou à la main dans ce cadre', cargadorRol: 'Expéditeur', destinatarioRol: 'Destinataire', secFirmas: 'SIGNATURES', firmaExtra: 'SIGNATURE SUPPLÉMENTAIRE',
+    
     subConfirmado: 'Service de transport confirmé', origenL: 'Origine', destinoL: 'Destination', salidaL: 'Départ',
     prevalece: 'En cas de divergence entre versions, la version espagnole prévaut.',
     transpRealiza: 'TRANSPORTEUR EFFECTIF', transp: 'TRANSPORTEUR', gestionadaPor: 'GÉRÉ PAR', ordenante: 'DONNEUR D’ORDRE',
@@ -207,15 +207,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCRÉTION COMMERCIALE : le client demande de ne pas révéler la destination au chargement, ni l’origine à la livraison.',
     verCondEs: 'Conditions de l’ordre : voir les pages en ESPAGNOL de ce document.',
     pagina: 'Page', de: 'sur', rango: 'du {a} au {b}',
-    qrDeca: 'Document de contrôle du transport (e-CMR / DeCA) : le QR ouvre le document complet, avec la feuille de signatures, toujours à jour.', qrEscanea: 'Scannez-le avec le téléphone', qrPendiente: 'Transport en attente d\'affectation',
-    modifTitulo: 'Modifications du document', modifNinguna: 'Aucune modification depuis l’émission', modifRuta: 'Itinéraire modifié', modifFecha: 'Date de chargement déplacée',
+    qrEscanea: 'Scannez-le avec le téléphone', qrPendiente: 'Transport en attente d\'affectation',
+    modifTitulo: 'Historique du document', modifNinguna: 'Aucune modification depuis l’émission', modifRuta: 'Itinéraire modifié', modifFecha: 'Date de chargement déplacée',
     modifMatricula: 'Changement d’immatriculation', modifTransQuitado: 'Transporteur retiré', modifTransNuevo: 'Nouveau transporteur affecté', modifMatriculaAsig: 'Attribution des immatriculations', modifEmision: 'Émission du document', modifMotivo: 'Motif', modifNuevo: 'Nouvelles données', modifAnterior: 'Données précédentes — NON VALABLES', motAsig: 'Attribution initiale, préalable au début du transport', motAsigIniciado: 'Attribution initiale', faltaRemolque: 'Immatriculation de la semi-remorque manquante', txtSinMatriculas: 'DeCA : Merci de nous communiquer les immatriculations du véhicule ; à défaut, nous considérerons que le transporteur effectif gère le DeCA conformément à l’arrêté FOM/2861/2012, notre société étant dégagée de toute responsabilité découlant de son émission ou de son omission.', modifSinEmitir: 'Document en attente d’émission : immatriculations du véhicule manquantes', motMatricula: 'Selon la disponibilité des camions dans la zone', motTrans: 'Remplacement du transporteur effectif', motQuitado: 'Retrait du transporteur effectif', motRuta: 'Sur indication du client', motFecha: 'Changement de date demandé par le chargeur contractuel', modifMercancia: 'Marchandise modifiée', motMercancia: 'Changement de marchandise demandé par le chargeur contractuel', modifTransAsig: 'Attribution du transporteur', modifMas: '… et {n} modifications antérieures',
     decaManual: 'Document de contrôle (DeCA) et lettre de voiture (CMR) : transport contracté directement entre le donneur d\'ordre et le transporteur — gérés entre les parties. Cet ordre n\'inclut ni QR de signature numérique ni archivage du CMR.',
   },
   de: {
     titulo: 'LADEAUFTRAG', subRef: 'Sendungsreferenz', emitida: 'Ausgestellt am',
     copiaConductor: 'FAHRERKOPIE', copiaAdmin: 'VERWALTUNGSKOPIE', sinEco: 'OHNE FINANZINFORMATIONEN', completa: 'VOLLSTÄNDIGES DOKUMENT',
-    firmaPend: 'Per QR mit dem Finger · oder von Hand in diesem Feld', cargadorRol: 'Absender', destinatarioRol: 'Empfänger', secFirmas: 'UNTERSCHRIFTEN', firmaExtra: 'ZUSATZUNTERSCHRIFT',
+    
     subConfirmado: 'Bestätigte Transportleistung', origenL: 'Abgangsort', destinoL: 'Zielort', salidaL: 'Abfahrt',
     prevalece: 'Bei Abweichungen zwischen den Fassungen gilt die spanische Fassung.',
     transpRealiza: 'AUSFÜHRENDER FRACHTFÜHRER', transp: 'FRACHTFÜHRER', gestionadaPor: 'VERWALTET VON', ordenante: 'AUFTRAGGEBER',
@@ -243,15 +243,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'VERTRAULICHKEIT: Der Kunde bittet darum, beim Laden das Ziel und bei der Lieferung die Herkunft nicht zu nennen.',
     verCondEs: 'Auftragsbedingungen: siehe die SPANISCHEN Seiten dieses Dokuments.',
     pagina: 'Seite', de: 'von', rango: '{a} – {b}',
-    qrDeca: 'Transport-Kontrolldokument (e-CMR / DeCA): Der QR-Code öffnet das vollständige Dokument mit dem Unterschriftenblatt, immer aktuell.', qrEscanea: 'Mit dem Handy scannen', qrPendiente: 'Transport noch nicht zugewiesen',
-    modifTitulo: 'Änderungen des Dokuments', modifNinguna: 'Keine Änderungen seit der Ausstellung', modifRuta: 'Route geändert', modifFecha: 'Ladedatum verschoben',
+    qrEscanea: 'Mit dem Handy scannen', qrPendiente: 'Transport noch nicht zugewiesen',
+    modifTitulo: 'Dokumentverlauf', modifNinguna: 'Keine Änderungen seit der Ausstellung', modifRuta: 'Route geändert', modifFecha: 'Ladedatum verschoben',
     modifMatricula: 'Kennzeichenwechsel', modifTransQuitado: 'Frachtführer entfernt', modifTransNuevo: 'Neuer Frachtführer zugewiesen', modifMatriculaAsig: 'Kennzeichen zugewiesen', modifEmision: 'Ausstellung des Dokuments', modifMotivo: 'Grund', modifNuevo: 'Neue Daten', modifAnterior: 'Frühere Daten — NICHT MEHR GÜLTIG', motAsig: 'Erstzuweisung vor Beginn des Transports', motAsigIniciado: 'Erstzuweisung', faltaRemolque: 'Kennzeichen des Aufliegers fehlt', txtSinMatriculas: 'DeCA: Bitte teilen Sie uns die Kennzeichen des Fahrzeugs mit; andernfalls gehen wir davon aus, dass der ausführende Frachtführer das DeCA gemäß der Verordnung FOM/2861/2012 selbst führt, und unser Unternehmen ist von jeder Haftung für dessen Ausstellung oder Unterlassung befreit.', modifSinEmitir: 'Dokument noch nicht ausgestellt: Fahrzeugkennzeichen fehlen', motMatricula: 'Wegen der Lkw-Verfügbarkeit in der Region', motTrans: 'Austausch des ausführenden Frachtführers', motQuitado: 'Ausführender Frachtführer zurückgezogen', motRuta: 'Auf Anweisung des Kunden', motFecha: 'Terminänderung auf Anweisung des Auftraggebers', modifMercancia: 'Ware geändert', motMercancia: 'Warenänderung auf Anweisung des Auftraggebers', modifTransAsig: 'Frachtführer zugewiesen', modifMas: '… und {n} frühere Änderungen',
     decaManual: 'Kontrolldokument (DeCA) und Frachtbrief (CMR): Transport direkt zwischen Auftraggeber und Frachtführer vereinbart — beides regeln die Parteien untereinander. Dieser Auftrag enthält keinen QR zur digitalen Unterschrift und kein CMR-Archiv.',
   },
   it: {
     titulo: 'ORDINE DI CARICO', subRef: 'Riferimento spedizione', emitida: 'Emesso il',
     copiaConductor: 'COPIA AUTISTA', copiaAdmin: 'COPIA AMMINISTRAZIONE', sinEco: 'SENZA INFORMAZIONI ECONOMICHE', completa: 'DOCUMENTO COMPLETO',
-    firmaPend: 'Con il dito tramite il QR · o a mano in questo riquadro', cargadorRol: 'Mittente', destinatarioRol: 'Destinatario', secFirmas: 'FIRME', firmaExtra: 'FIRMA EXTRA',
+    
     subConfirmado: 'Servizio di trasporto confermato', origenL: 'Origine', destinoL: 'Destinazione', salidaL: 'Partenza',
     prevalece: 'In caso di discrepanza tra le versioni, prevale la versione spagnola.',
     transpRealiza: 'VETTORE EFFETTIVO', transp: 'TRASPORTATORE', gestionadaPor: 'GESTITO DA', ordenante: 'COMMITTENTE',
@@ -279,15 +279,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'RISERVATEZZA COMMERCIALE: il cliente chiede di non rivelare la destinazione al carico, né l’origine alla consegna.',
     verCondEs: 'Condizioni dell’ordine: nelle pagine in SPAGNOLO di questo documento.',
     pagina: 'Pagina', de: 'di', rango: 'dal {a} al {b}',
-    qrDeca: 'Documento di controllo del trasporto (e-CMR / DeCA): il QR apre il documento completo, con il foglio firme, sempre aggiornato.', qrEscanea: 'Scansionalo con il cellulare', qrPendiente: 'Trasporto in attesa di assegnazione',
-    modifTitulo: 'Modifiche del documento', modifNinguna: 'Nessuna modifica dall’emissione', modifRuta: 'Percorso modificato', modifFecha: 'Data di carico spostata',
+    qrEscanea: 'Scansionalo con il cellulare', qrPendiente: 'Trasporto in attesa di assegnazione',
+    modifTitulo: 'Cronologia del documento', modifNinguna: 'Nessuna modifica dall’emissione', modifRuta: 'Percorso modificato', modifFecha: 'Data di carico spostata',
     modifMatricula: 'Cambio targa', modifTransQuitado: 'Vettore rimosso', modifTransNuevo: 'Nuovo vettore assegnato', modifMatriculaAsig: 'Assegnazione targhe', modifEmision: 'Emissione del documento', modifMotivo: 'Motivo', modifNuevo: 'Nuovi dati', modifAnterior: 'Dati precedenti — NON PIÙ VALIDI', motAsig: 'Assegnazione iniziale, precedente all’inizio del trasporto', motAsigIniciado: 'Assegnazione iniziale', faltaRemolque: 'Manca la targa del semirimorchio', txtSinMatriculas: 'DeCA: Vi preghiamo di comunicarci le targhe del veicolo; in mancanza, riterremo che il vettore effettivo gestisca il DeCA ai sensi dell’Ordinanza FOM/2861/2012, restando la nostra società esente da qualsiasi responsabilità derivante dalla sua emissione od omissione.', modifSinEmitir: 'Documento in attesa di emissione: mancano le targhe del veicolo', motMatricula: 'Per disponibilità di camion nella zona', motTrans: 'Sostituzione del vettore effettivo', motQuitado: 'Ritiro del vettore effettivo', motRuta: 'Su indicazione del cliente', motFecha: 'Cambio di data richiesto dal caricatore contrattuale', modifMercancia: 'Merce modificata', motMercancia: 'Cambio di merce richiesto dal caricatore contrattuale', modifTransAsig: 'Assegnazione vettore', modifMas: '… e {n} modifiche precedenti',
     decaManual: 'Documento di controllo (DeCA) e lettera di vettura (CMR): trasporto contrattato direttamente tra committente e vettore — gestiti tra le parti. Quest\'ordine non include QR di firma digitale né archiviazione del CMR.',
   },
   nl: {
     titulo: 'LAADOPDRACHT', subRef: 'Zendingsreferentie', emitida: 'Uitgegeven op',
     copiaConductor: 'KOPIE CHAUFFEUR', copiaAdmin: 'KOPIE ADMINISTRATIE', sinEco: 'ZONDER FINANCIËLE INFORMATIE', completa: 'VOLLEDIG DOCUMENT',
-    firmaPend: 'Met je vinger via de QR · of met de hand in dit vak', cargadorRol: 'Afzender', destinatarioRol: 'Geadresseerde', secFirmas: 'HANDTEKENINGEN', firmaExtra: 'EXTRA HANDTEKENING',
+    
     subConfirmado: 'Bevestigde transportdienst', origenL: 'Herkomst', destinoL: 'Bestemming', salidaL: 'Vertrek',
     prevalece: 'Bij verschillen tussen versies geldt de Spaanse versie.',
     transpRealiza: 'FEITELIJKE VERVOERDER', transp: 'VERVOERDER', gestionadaPor: 'BEHEERD DOOR', ordenante: 'OPDRACHTGEVER',
@@ -315,15 +315,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'COMMERCIËLE DISCRETIE: de klant verzoekt bij het laden de bestemming niet te melden, noch de herkomst bij levering.',
     verCondEs: 'Voorwaarden van de opdracht: zie de SPAANSE pagina’s van dit document.',
     pagina: 'Pagina', de: 'van', rango: '{a} – {b}',
-    qrDeca: 'Controledocument van het vervoer (e-CMR / DeCA): de QR opent het volledige document, met het handtekeningenblad, altijd actueel.', qrEscanea: 'Scan met je telefoon', qrPendiente: 'Transport nog toe te wijzen',
-    modifTitulo: 'Wijzigingen van het document', modifNinguna: 'Geen wijzigingen sinds uitgifte', modifRuta: 'Route gewijzigd', modifFecha: 'Laaddatum verplaatst',
+    qrEscanea: 'Scan met je telefoon', qrPendiente: 'Transport nog toe te wijzen',
+    modifTitulo: 'Documentgeschiedenis', modifNinguna: 'Geen wijzigingen sinds uitgifte', modifRuta: 'Route gewijzigd', modifFecha: 'Laaddatum verplaatst',
     modifMatricula: 'Kentekenwijziging', modifTransQuitado: 'Vervoerder verwijderd', modifTransNuevo: 'Nieuwe vervoerder toegewezen', modifMatriculaAsig: 'Kentekens toegewezen', modifEmision: 'Uitgifte van het document', modifMotivo: 'Reden', modifNuevo: 'Nieuwe gegevens', modifAnterior: 'Vorige gegevens — NIET MEER GELDIG', motAsig: 'Eerste toewijzing, vóór aanvang van het transport', motAsigIniciado: 'Eerste toewijzing', faltaRemolque: 'Kenteken van de oplegger ontbreekt', txtSinMatriculas: 'DeCA: Wij verzoeken u ons de kentekens van het voertuig door te geven; ontvangen wij deze niet, dan gaan wij ervan uit dat de feitelijke vervoerder het DeCA beheert overeenkomstig Order FOM/2861/2012, en is ons bedrijf vrijgesteld van elke aansprakelijkheid voor de afgifte of het ontbreken ervan.', modifSinEmitir: 'Document nog niet afgegeven: kentekens van het voertuig ontbreken', motMatricula: 'Wegens beschikbaarheid van vrachtwagens in de regio', motTrans: 'Vervanging van de feitelijke vervoerder', motQuitado: 'Feitelijke vervoerder teruggetrokken', motRuta: 'Op aanwijzing van de klant', motFecha: 'Datumwijziging op verzoek van de contractuele verlader', modifMercancia: 'Goederen gewijzigd', motMercancia: 'Goederenwijziging op verzoek van de contractuele verlader', modifTransAsig: 'Vervoerder toegewezen', modifMas: '… en {n} eerdere wijzigingen',
     decaManual: 'Controledocument (DeCA) en vrachtbrief (CMR): vervoer rechtstreeks overeengekomen tussen opdrachtgever en vervoerder — onderling te regelen. Deze opdracht bevat geen QR voor digitale ondertekening en geen CMR-archief.',
   },
   pl: {
     titulo: 'ZLECENIE TRANSPORTOWE', subRef: 'Numer referencyjny przewozu', emitida: 'Wystawiono',
     copiaConductor: 'KOPIA DLA KIEROWCY', copiaAdmin: 'KOPIA DLA ADMINISTRACJI', sinEco: 'BEZ INFORMACJI FINANSOWYCH', completa: 'PEŁNY DOKUMENT',
-    firmaPend: 'Palcem przez kod QR · lub ręcznie w tym polu', cargadorRol: 'Nadawca', destinatarioRol: 'Odbiorca', secFirmas: 'PODPISY', firmaExtra: 'PODPIS DODATKOWY',
+    
     subConfirmado: 'Potwierdzona usługa transportowa', origenL: 'Miejsce nadania', destinoL: 'Miejsce przeznaczenia', salidaL: 'Wyjazd',
     prevalece: 'W razie rozbieżności między wersjami obowiązuje wersja hiszpańska.',
     transpRealiza: 'PRZEWOŹNIK FAKTYCZNY', transp: 'PRZEWOŹNIK', gestionadaPor: 'ZARZĄDZANE PRZEZ', ordenante: 'ZLECENIODAWCA',
@@ -351,15 +351,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DYSKRECJA HANDLOWA: klient prosi, aby przy załadunku nie ujawniać miejsca przeznaczenia, a przy rozładunku miejsca pochodzenia.',
     verCondEs: 'Warunki zlecenia: na stronach w języku HISZPAŃSKIM tego dokumentu.',
     pagina: 'Strona', de: 'z', rango: '{a} – {b}',
-    qrDeca: 'Dokument kontrolny przewozu (e-CMR / DeCA): kod QR otwiera pełny dokument z arkuszem podpisów, zawsze aktualny.', qrEscanea: 'Zeskanuj telefonem', qrPendiente: 'Transport oczekuje na przydział',
-    modifTitulo: 'Zmiany w dokumencie', modifNinguna: 'Bez zmian od wystawienia', modifRuta: 'Zmieniona trasa', modifFecha: 'Przesunięta data załadunku',
+    qrEscanea: 'Zeskanuj telefonem', qrPendiente: 'Transport oczekuje na przydział',
+    modifTitulo: 'Historia dokumentu', modifNinguna: 'Bez zmian od wystawienia', modifRuta: 'Zmieniona trasa', modifFecha: 'Przesunięta data załadunku',
     modifMatricula: 'Zmiana rejestracji', modifTransQuitado: 'Przewoźnik usunięty', modifTransNuevo: 'Przydzielony nowy przewoźnik', modifMatriculaAsig: 'Przypisanie numerów rejestracyjnych', modifEmision: 'Wystawienie dokumentu', modifMotivo: 'Powód', modifNuevo: 'Nowe dane', modifAnterior: 'Poprzednie dane — NIEWAŻNE', motAsig: 'Pierwsze przypisanie, przed rozpoczęciem przewozu', motAsigIniciado: 'Pierwsze przypisanie', faltaRemolque: 'Brak numeru rejestracyjnego naczepy', txtSinMatriculas: 'DeCA: Prosimy o podanie numerów rejestracyjnych pojazdu; w razie ich nieotrzymania uznamy, że przewoźnik faktyczny prowadzi DeCA zgodnie z rozporządzeniem FOM/2861/2012, a nasza firma jest zwolniona z wszelkiej odpowiedzialności wynikającej z jego wystawienia lub braku.', modifSinEmitir: 'Dokument oczekuje na wystawienie: brak numerów rejestracyjnych pojazdu', motMatricula: 'Ze względu na dostępność ciężarówek w okolicy', motTrans: 'Zmiana przewoźnika faktycznego', motQuitado: 'Wycofanie przewoźnika faktycznego', motRuta: 'Na polecenie klienta', motFecha: 'Zmiana daty na polecenie załadowcy umownego', modifMercancia: 'Zmieniony towar', motMercancia: 'Zmiana towaru na polecenie załadowcy umownego', modifTransAsig: 'Przypisanie przewoźnika', modifMas: '… i {n} wcześniejszych zmian',
     decaManual: 'Dokument kontrolny (DeCA) i list przewozowy (CMR): transport zakontraktowany bezpośrednio między zleceniodawcą a przewoźnikiem — strony załatwiają je między sobą. To zlecenie nie zawiera kodu QR do podpisu cyfrowego ani archiwum CMR.',
   },
   cs: {
     titulo: 'NAKLÁDKOVÝ PŘÍKAZ', subRef: 'Referenční číslo zásilky', emitida: 'Vystaveno',
     copiaConductor: 'KOPIE PRO ŘIDIČE', copiaAdmin: 'KOPIE PRO ADMINISTRATIVU', sinEco: 'BEZ FINANČNÍCH INFORMACÍ', completa: 'ÚPLNÝ DOKUMENT',
-    firmaPend: 'Prstem přes QR kód · nebo rukou do tohoto pole', cargadorRol: 'Odesílatel', destinatarioRol: 'Příjemce', secFirmas: 'PODPISY', firmaExtra: 'DODATEČNÝ PODPIS',
+    
     subConfirmado: 'Potvrzená přepravní služba', origenL: 'Místo odeslání', destinoL: 'Místo určení', salidaL: 'Odjezd',
     prevalece: 'V případě rozporu mezi verzemi platí španělská verze.',
     transpRealiza: 'SKUTEČNÝ DOPRAVCE', transp: 'DOPRAVCE', gestionadaPor: 'SPRAVUJE', ordenante: 'OBJEDNATEL',
@@ -387,15 +387,15 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'OBCHODNÍ DISKRÉTNOST: zákazník žádá, aby se při nakládce nesdělovalo místo určení a při vykládce místo původu.',
     verCondEs: 'Podmínky příkazu: na ŠPANĚLSKÝCH stránkách tohoto dokumentu.',
     pagina: 'Strana', de: 'z', rango: '{a} – {b}',
-    qrDeca: 'Kontrolní dokument přepravy (e-CMR / DeCA): QR kód otevře úplný dokument s listem podpisů, vždy aktuální.', qrEscanea: 'Naskenujte telefonem', qrPendiente: 'Doprava čeká na přidělení',
-    modifTitulo: 'Změny dokumentu', modifNinguna: 'Beze změn od vystavení', modifRuta: 'Změněná trasa', modifFecha: 'Posunuté datum nakládky',
+    qrEscanea: 'Naskenujte telefonem', qrPendiente: 'Doprava čeká na přidělení',
+    modifTitulo: 'Historie dokumentu', modifNinguna: 'Beze změn od vystavení', modifRuta: 'Změněná trasa', modifFecha: 'Posunuté datum nakládky',
     modifMatricula: 'Změna SPZ', modifTransQuitado: 'Dopravce odebrán', modifTransNuevo: 'Přidělen nový dopravce', modifMatriculaAsig: 'Přidělení SPZ', modifEmision: 'Vystavení dokumentu', modifMotivo: 'Důvod', modifNuevo: 'Nové údaje', modifAnterior: 'Předchozí údaje — NEPLATNÉ', motAsig: 'První přiřazení, před zahájením přepravy', motAsigIniciado: 'První přiřazení', faltaRemolque: 'Chybí SPZ návěsu', txtSinMatriculas: 'DeCA: Prosíme o sdělení SPZ vozidla; pokud je neobdržíme, budeme mít za to, že skutečný dopravce vede DeCA v souladu s nařízením FOM/2861/2012, a naše společnost je zproštěna jakékoli odpovědnosti vyplývající z jeho vystavení nebo opomenutí.', modifSinEmitir: 'Dokument čeká na vystavení: chybí SPZ vozidla', motMatricula: 'Podle dostupnosti nákladních vozidel v oblasti', motTrans: 'Výměna skutečného dopravce', motQuitado: 'Odvolání skutečného dopravce', motRuta: 'Na pokyn zákazníka', motFecha: 'Změna data na pokyn smluvního odesílatele', modifMercancia: 'Změněné zboží', motMercancia: 'Změna zboží na pokyn smluvního odesílatele', modifTransAsig: 'Přidělení dopravce', modifMas: '… a {n} dřívějších změn',
     decaManual: 'Kontrolní dokument (DeCA) a nákladní list (CMR): přeprava sjednána přímo mezi objednatelem a dopravcem — řeší se mezi stranami. Tato objednávka neobsahuje QR pro digitální podpis ani archiv CMR.',
   },
   ro: {
     titulo: 'COMANDĂ DE ÎNCĂRCARE', subRef: 'Referința expedierii', emitida: 'Emisă la',
     copiaConductor: 'COPIE ȘOFER', copiaAdmin: 'COPIE ADMINISTRAȚIE', sinEco: 'FĂRĂ INFORMAȚII FINANCIARE', completa: 'DOCUMENT COMPLET',
-    firmaPend: 'Cu degetul prin QR · sau de mână în acest chenar', cargadorRol: 'Expeditor', destinatarioRol: 'Destinatar', secFirmas: 'SEMNĂTURI', firmaExtra: 'SEMNĂTURĂ SUPLIMENTARĂ',
+    
     subConfirmado: 'Serviciu de transport confirmat', origenL: 'Origine', destinoL: 'Destinație', salidaL: 'Plecare',
     prevalece: 'În caz de neconcordanță între versiuni, prevalează versiunea în spaniolă.',
     transpRealiza: 'TRANSPORTATOR EFECTIV', transp: 'TRANSPORTATOR', gestionadaPor: 'GESTIONATĂ DE', ordenante: 'ORDONATOR',
@@ -423,8 +423,8 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     txtDiscrecion: 'DISCREȚIE COMERCIALĂ: clientul solicită ca la încărcare să nu se dezvăluie destinația, nici originea la livrare.',
     verCondEs: 'Condițiile comenzii: pe paginile în SPANIOLĂ ale acestui document.',
     pagina: 'Pagina', de: 'din', rango: '{a} – {b}',
-    qrDeca: 'Document de control al transportului (e-CMR / DeCA): codul QR deschide documentul complet, cu fila de semnături, mereu actualizat.', qrEscanea: 'Scanează-l cu telefonul', qrPendiente: 'Transport în așteptarea alocării',
-    modifTitulo: 'Modificări ale documentului', modifNinguna: 'Fără modificări de la emitere', modifRuta: 'Rută modificată', modifFecha: 'Dată de încărcare mutată',
+    qrEscanea: 'Scanează-l cu telefonul', qrPendiente: 'Transport în așteptarea alocării',
+    modifTitulo: 'Istoricul documentului', modifNinguna: 'Fără modificări de la emitere', modifRuta: 'Rută modificată', modifFecha: 'Dată de încărcare mutată',
     modifMatricula: 'Schimbare număr de înmatriculare', modifTransQuitado: 'Transportator retras', modifTransNuevo: 'Transportator nou atribuit', modifMatriculaAsig: 'Atribuire numere de înmatriculare', modifEmision: 'Emiterea documentului', modifMotivo: 'Motiv', modifNuevo: 'Date noi', modifAnterior: 'Date anterioare — NU MAI SUNT VALABILE', motAsig: 'Atribuire inițială, anterioară începerii transportului', motAsigIniciado: 'Atribuire inițială', faltaRemolque: 'Lipsește numărul de înmatriculare al semiremorcii', txtSinMatriculas: 'DeCA: Vă rugăm să ne comunicați numerele de înmatriculare ale vehiculului; în lipsa acestora, vom considera că transportatorul efectiv gestionează DeCA conform Ordinului FOM/2861/2012, societatea noastră fiind exonerată de orice răspundere care decurge din emiterea sau omiterea acestuia.', modifSinEmitir: 'Document în așteptarea emiterii: lipsesc numerele de înmatriculare ale vehiculului', motMatricula: 'În funcție de disponibilitatea camioanelor din zonă', motTrans: 'Înlocuirea transportatorului efectiv', motQuitado: 'Retragerea transportatorului efectiv', motRuta: 'La indicația clientului', motFecha: 'Schimbare de dată cerută de expeditorul contractual', modifMercancia: 'Marfă modificată', motMercancia: 'Schimbare de marfă cerută de expeditorul contractual', modifTransAsig: 'Atribuire transportator', modifMas: '… și {n} modificări anterioare',
     decaManual: 'Document de control (DeCA) și scrisoare de transport (CMR): transport contractat direct între ordonator și transportator — se gestionează între părți. Această comandă nu include QR de semnătură digitală și nici arhivarea CMR.',
   },
