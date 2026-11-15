@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Modal from '../Modal';
 import { IconoTipo, TIPOS_SITIO } from '../TipoSitio';
 import { FichaSitio, buscarDireccionesOSM, type DirOSM } from '../Sitios';
 import { ClienteOpcion, IcoMenos, Punto, SitioOpcion, VACIO, direccionCompleta, norm, textoSitio } from './comun';
@@ -22,6 +23,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
   const [crear, setCrear] = useState(false);
+  const [pideTipo, setPideTipo] = useState(false);
   const [dirs, setDirs] = useState<DirOSM[]>([]);
   useEffect(() => {
     if (!modoDireccion) return;
@@ -67,18 +69,10 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
               if (elegido && !deshabilitado) { onCambio({ sitio: null, nuevo: null }); setQ(''); setAbierto(true); }
             }} />
           {elegido && <button type="button" className="ptar-clear" aria-label="Cambiar sitio" onClick={() => { onCambio({ sitio: null, nuevo: null }); setQ(''); }}>✕</button>}
-          {/* Dirección suelta (sin cliente): no sabemos si es almacén, obra o finca — se
-              elige aquí y el tarifador aplica su recargo (usuario, 2026-11-14). En los
-              sitios de la agenda el tipo ya viene de la ficha. */}
-          {elegido && modoDireccion && punto.nuevo && !punto.parada_id && (
-            <select className={`ptar-select${punto.nuevo.tipo_sitio !== 'almacen_nave' ? ' ptar-urg-rojo' : ''}`}
-              aria-label="Tipo de sitio" title="Tipo de sitio (los tipos distintos de Almacén/Nave llevan recargo)"
-              style={{ display: 'block', width: '100%', marginTop: 6, ...(punto.nuevo.tipo_sitio !== 'almacen_nave' ? { color: '#dc2626', fontWeight: 600 } : {}) }}
-              value={punto.nuevo.tipo_sitio}
-              onChange={(ev) => onCambio({ nuevo: { ...punto.nuevo!, tipo_sitio: ev.target.value } })}>
-              {TIPOS_SITIO.map(([k, n]) => <option key={k} value={k}>{`Tipo de sitio: ${n}`}</option>)}
-            </select>
-          )}
+          {/* Dirección suelta (sin cliente): el TIPO de sitio se pide en una ventana al
+              elegir la dirección (usuario, 2026-11-15: el desplegable incrustado se
+              montaba encima del campo). El icono del tipo queda en la pastilla y el
+              tipo completo se ve en las fichas del paso Confirmar. */}
           {abierto && !elegido && !deshabilitado && modoDireccion && (
             <ul className="ptar-sug">
               {q.trim().length < 3 && <li style={{ cursor: 'default', color: 'var(--gray-500)' }}>Escribe la dirección o la población (mínimo 3 letras)…</li>}
@@ -88,7 +82,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
                   onCambio({ sitio: null, nuevo: { ...VACIO, nombre_empresa: x.poblacion || x.etiqueta, direccion: x.direccion,
                     codigo_postal: x.codigo_postal, poblacion: x.poblacion, provincia: x.provincia,
                     pais_codigo_iso: (x.pais || 'ES').toUpperCase(), guardar: false } });
-                  setAbierto(false); soltarFoco();
+                  setAbierto(false); soltarFoco(); setPideTipo(true);
                 }}>
                   <span className="sug-chip sug-chip-addr">Dirección</span>
                   <strong>{[x.codigo_postal, x.poblacion].filter(Boolean).join(' ') || x.etiqueta}</strong>
@@ -122,6 +116,24 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
         </button>}
         {asa}
       </div>
+
+      {/* Ventana del TIPO de sitio para la dirección libre: un toque y listo. Si se
+          cierra sin elegir, queda Almacén / Nave (el tipo por defecto, sin recargo). */}
+      {pideTipo && modoDireccion && punto.nuevo && !punto.parada_id && (
+        <Modal abierto ancho={440} onCerrar={() => setPideTipo(false)} titulo="¿Qué tipo de sitio es?"
+          sub={<>{[punto.nuevo.direccion, [punto.nuevo.codigo_postal, punto.nuevo.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ')} · los tipos distintos de Almacén / Nave llevan recargo. Si cierras sin elegir, queda Almacén / Nave.</>}>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            {TIPOS_SITIO.map(([k, n]) => (
+              <button key={k} type="button" className={punto.nuevo!.tipo_sitio === k ? 'btn-primary' : 'btn-secondary'}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.6rem', width: '100%' }}
+                onClick={() => { onCambio({ nuevo: { ...punto.nuevo!, tipo_sitio: k } }); setPideTipo(false); }}>
+                <IconoTipo tipo={k} /> {n}
+                {k !== 'almacen_nave' && <span style={{ marginLeft: 'auto', color: punto.nuevo!.tipo_sitio === k ? '#fff' : '#dc2626', fontWeight: 700, fontSize: 'var(--fs-s)' }}>con recargo</span>}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
 
       {crear && cliente && (
         <FichaSitio fila={null} dynamo={dynamo} clienteFijo
