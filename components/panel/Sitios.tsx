@@ -610,7 +610,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         )}
 
         {/* Mercancía por defecto (usuario, 2026-11-10): prerrellena el «detalle de
-            mercancía» de la parada en Nuevo envío; editarlo allí actualiza este valor. */}
+            mercancía» de la parada en Nuevo envío. Desde 2026-11-15 solo se cambia con SU
+            campo (aquí o en la tarjeta del sitio de Nuevo envío); el detalle de la parada
+            es puntual de cada envío y ya no lo pisa. */}
         <button type="button" className="campo-plegado" aria-expanded={abierto.merc} onClick={() => plegar('merc')}>
           <span className="cp-ico" aria-hidden="true">{abierto.merc ? '−' : '+'}</span>
           <span className="cp-txt">Info mercancía por defecto

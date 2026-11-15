@@ -50,6 +50,41 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
       </div>
     );
   };
+  // INFORMACIÓN FIJA DEL SITIO (usuario, 2026-11-15): «Indicaciones del sitio» e «Info
+  // mercancía por defecto», plegables y editables aquí mismo. Se guardan en la ficha del
+  // sitio y valen para TODOS sus envíos; lo puntual de este envío va en el detalle de abajo.
+  // En los almacenes de Dynamo se ven pero no se tocan (datos fijos del catálogo).
+  const fijos = (p: Punto, f: ReturnType<typeof resolverFicha>, soloLectura: boolean) => {
+    const nota = <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}> · vale para TODOS los envíos a este sitio</span>;
+    const ayuda = (
+      <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
+        Se guarda en la ficha del sitio. Si no quieres cambiarlo, no toques nada; si es algo solo de este envío,
+        ponlo abajo en «{p.tipo === 'carga' ? 'A recoger' : 'A entregar'} (Añadir detalle de mercancía y/o anotaciones)».
+      </div>
+    );
+    if (soloLectura) {
+      if (!f.notas.trim() && !f.mercDefecto.trim()) return null;
+      return (<>
+        {f.notas.trim() && <div className="full"><label>Indicaciones del sitio</label><textarea className="campo-texto sitio-f-lock" rows={2} value={f.notas} readOnly tabIndex={-1} /></div>}
+        {f.mercDefecto.trim() && <div className="full"><label>Info mercancía por defecto</label><textarea className="campo-texto sitio-f-lock" rows={2} value={f.mercDefecto} readOnly tabIndex={-1} /></div>}
+      </>);
+    }
+    return (<>
+      <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Información fija del sitio</div>
+      {opc(`${p.k}:ind`, <>Indicaciones del sitio <Req si={false} />{nota}</>, f.notas, (<>
+        <textarea className="campo-texto" rows={2} value={f.notas} placeholder="Ej. cargar siempre por el muelle 10, pedir cita, báscula…"
+          onChange={(e) => set(p, { notas: e.target.value })} />
+        <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>Las ven transportista y cliente: salen siempre con este sitio en la orden de carga y en la ficha del envío.</div>
+        {ayuda}
+      </>))}
+      {opc(`${p.k}:mdef`, <>Info mercancía por defecto <Req si={false} />{nota}</>, f.mercDefecto, (<>
+        <textarea className="campo-texto" rows={2} value={f.mercDefecto} placeholder="Ej. Requerimos 14 cintas de amarre."
+          onChange={(e) => set(p, { mercDefecto: e.target.value })} />
+        <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>Sale prerrellena al crear envíos con este sitio, debajo del resumen de la mercancía.</div>
+        {ayuda}
+      </>))}
+    </>);
+  };
   // Horario replegado por tarjeta (como en la ficha de Sitios).
   const [horAbierto, setHorAbierto] = useState<Set<number>>(new Set());
   const toggleHor = (k: number) => setHorAbierto((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
@@ -152,6 +187,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
                   {f.telefono && <div><label>Teléfono</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
+                  {fijos(p, f, true)}
                 </>) : (<>
                   {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
                       2026-11-09): empresa y tipo, dirección (del paso 1), contacto
@@ -213,9 +249,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                       <span className="cp-ico" aria-hidden="true">+</span><span className="cp-txt">Añadir contacto adicional</span>
                     </button>
                   </div>}
-                  {/* Las notas internas del sitio y el enlace de Google Maps NO se muestran
-                      ni se editan aquí (usuario, 2026-11-09): se gestionan en la sección
-                      Sitios. Los que tenga el sitio se conservan tal cual al guardar. */}
+                  {!f.nuevo && fijos(p, f, false)}
+                  {/* El enlace de Google Maps NO se muestra ni se edita aquí (usuario,
+                      2026-11-09): se gestiona en la sección Sitios y se conserva al guardar. */}
                 </>)}
               </div>
             </div>
@@ -225,7 +261,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
             <div className="ptar-sitio-merc">
               <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
                 <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
-                <span className="cp-txt">A {rec ? 'recoger' : 'entregar'} (Añadir detalle de mercancía) <Req si={false} /></span>
+                <span className="cp-txt">A {rec ? 'recoger' : 'entregar'} (Añadir detalle de mercancía y/o anotaciones) <Req si={false} /></span>
               </button>
               {/* El detalle, si existe, ENTERO y en su propia línea debajo (usuario, 2026-11-10). */}
               {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim() !== '' && (

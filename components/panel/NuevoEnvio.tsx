@@ -522,7 +522,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
-          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? (sinResumen(edicSitios[p.k]!.mercancia ?? '') || null) : undefined,
+          // La info de mercancía POR DEFECTO del sitio solo cambia si se tocó SU campo en la
+          // tarjeta (usuario, 2026-11-15); el detalle de esta parada es puntual del envío.
+          mercancia_defecto: edicSitios[p.k]?.mercDefecto !== undefined ? (edicSitios[p.k]!.mercDefecto!.trim() || null) : undefined,
           horario_tramos: tramosDe(f.horario),
           // El horario de VERANO solo se manda si se tocó en la tarjeta (usuario, 2026-11-10).
           verano: edicSitios[p.k]?.verano ? { activo: f.verano.activo, desde: f.verano.desde, hasta: f.verano.hasta, tramos: tramosDe(f.verano.horario) } : undefined,
@@ -602,7 +604,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
-          mercancia_defecto: edicSitios[p.k]?.mercancia !== undefined ? (sinResumen(edicSitios[p.k]!.mercancia ?? '') || null) : undefined,
+          // La info de mercancía POR DEFECTO del sitio solo cambia si se tocó SU campo en la
+          // tarjeta (usuario, 2026-11-15); el detalle de esta parada es puntual del envío.
+          mercancia_defecto: edicSitios[p.k]?.mercDefecto !== undefined ? (edicSitios[p.k]!.mercDefecto!.trim() || null) : undefined,
           horario_tramos: tramosDe(f.horario),
           // El horario de VERANO solo se manda si se tocó en la tarjeta (usuario, 2026-11-10).
           verano: edicSitios[p.k]?.verano ? { activo: f.verano.activo, desde: f.verano.desde, hasta: f.verano.hasta, tramos: tramosDe(f.verano.horario) } : undefined,
@@ -704,15 +708,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Formato elegido por el usuario (2026-11-10): «6 metros · Grupaje · De 800 kg a 1
   // tonelada» / «13,30 metros · Tráiler completo · De 23 a 24 toneladas (máximo)».
   const mercResumen = [mlTxt.split(' ·')[0], ml === '13.3' ? 'Tráiler completo' : 'Grupaje', pesoTxt].filter(Boolean).join(' · ');
-  // La info del sitio va DEBAJO del resumen en el campo; al guardarla de vuelta en la
-  // ficha del sitio se quita la línea del resumen (es de ESTE envío, no del sitio).
-  const sinResumen = (s: string) => {
-    const x = s.trim();
-    for (const pre of [`Parte de: ${mercResumen}`, mercResumen]) {
-      if (pre && x.startsWith(pre)) return x.slice(pre.length).trim();
-    }
-    return x;
-  };
   const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,60 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
   // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;

@@ -54,7 +54,7 @@ export type DatosSitios = Record<string, SitioEditable>;
 // la tarjeta del paso 4; también va a las anotaciones de la parada.
 // extra: contactos ADICIONALES añadidos desde la tarjeta (usuario, 2026-11-10): se crean
 // en la agenda del sitio al guardar (no principales).
-export type CardEdit = { horario?: GrupoHorario[]; verano?: Verano; contacto?: string; telefono?: string; contactoEmail?: string; notas?: string; emails?: string; maps?: string; empresa?: string; cita?: boolean; citaHora?: string; citaDetalle?: string; mercancia?: string; extra?: ContactoExtra[] };
+export type CardEdit = { horario?: GrupoHorario[]; verano?: Verano; contacto?: string; telefono?: string; contactoEmail?: string; notas?: string; emails?: string; maps?: string; empresa?: string; cita?: boolean; citaHora?: string; citaDetalle?: string; mercancia?: string; mercDefecto?: string; extra?: ContactoExtra[] };
 export type ContactoExtra = { nombre: string; telefono: string; email: string };
 // Lo que se manda al servidor para guardar en la ficha del sitio al crear el envío.
 export type EdicionSitio = {
@@ -68,6 +68,7 @@ export type EdicionSitio = {
 export type FichaResuelta = {
   empresa: string; tipo: string | null; horario: GrupoHorario[]; verano: Verano; contacto: string; telefono: string; contactoEmail: string;
   notas: string; emails: string; maps: string; mercancia: string; dynamo: boolean; nuevo: boolean; contacto_id: string | null;
+  mercDefecto: string;   // «Info mercancía por defecto» del SITIO (vale para todos sus envíos)
 };
 const VERANO_VACIO: Verano = { activo: false, desde: VERANO_GENERICO.desde, hasta: VERANO_GENERICO.hasta, horario: HORARIO_VERANO_POR_DEFECTO };
 export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit, mercanciaDefecto = ''): FichaResuelta {
@@ -78,17 +79,19 @@ export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit, mer
       empresa: p.sitio.nombre_empresa, tipo: d?.tipo ?? p.sitio.tipo, nuevo: false, dynamo: !!p.sitio.es_almacen_dynamo,
       horario: d?.horario.length ? d.horario : HORARIO_POR_DEFECTO, verano: d?.verano ?? VERANO_VACIO,
       contacto: d?.contacto.nombre ?? '', telefono: d?.contacto.telefono ?? '', contactoEmail: d?.contacto.email ?? '', contacto_id: d?.contacto.id ?? null,
-      notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '', mercancia: [mercanciaDefecto, d?.mercancia_defecto ?? ''].filter(Boolean).join('\n'),
+      notas: d?.anotaciones ?? '', emails: (d?.emails_avisos ?? []).join(', '), maps: d?.url_google_maps ?? '',
+      mercDefecto: edic?.mercDefecto ?? d?.mercancia_defecto ?? '',
+      mercancia: [mercanciaDefecto, edic?.mercDefecto ?? d?.mercancia_defecto ?? ''].filter(Boolean).join('\n'),
     };
   } else if (p.nuevo) {
     const n = p.nuevo;
     base = { empresa: n.nombre_empresa, tipo: n.tipo_sitio, nuevo: true, dynamo: false, contacto_id: null,
-      horario: n.horario ?? HORARIO_POR_DEFECTO, verano: { ...VERANO_VACIO, activo: true }, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
+      horario: n.horario ?? HORARIO_POR_DEFECTO, verano: { ...VERANO_VACIO, activo: true }, contacto: n.contacto, telefono: n.telefono, contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto, mercDefecto: '' };
   } else {
     // Punto aún sin sitio (ruta a medio rellenar): ficha vacía y SIN horario, para que
     // ningún aviso salte ni nada reviente (antes p.nuevo! con null tumbaba la pantalla).
     base = { empresa: '', tipo: 'almacen_nave', nuevo: true, dynamo: false, contacto_id: null,
-      horario: [], verano: VERANO_VACIO, contacto: '', telefono: '', contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto };
+      horario: [], verano: VERANO_VACIO, contacto: '', telefono: '', contactoEmail: '', notas: '', emails: '', maps: '', mercancia: mercanciaDefecto, mercDefecto: '' };
   }
   if (!edic) return base;
   return {
