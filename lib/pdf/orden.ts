@@ -303,7 +303,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     // En las copias NO operativas, la caja derecha deja de ser «Gestionada por» (esos
     // datos ya van en el pie) y lleva el RESUMEN del transporte (usuario, 2026-11-14):
     // etiqueta arriba y valor debajo, con las plaquitas en la fila de matrículas.
-    const resFil = copia === 'operativa' ? [] : resumen.map((r) => ({
+    // Sin la fila «Mercancía» (usuario, 2026-11-15): ya va en cada tarjeta de recogida.
+    const resFil = copia === 'operativa' ? [] : resumen.filter((r) => r.k !== t.mercancia).map((r) => ({
       k: l.partir(r.k.toUpperCase(), 6, wCaja - 16, true).slice(0, 2),
       v: r.placas ? [] : l.partir(r.v, 7.4, wCaja - 16, r.b).slice(0, 4),
       placas: r.placas, rojo: r.rojo, b: r.b,
