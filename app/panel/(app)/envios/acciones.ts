@@ -227,7 +227,7 @@ export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok:
 
 // Oferta ESCALONADA por email, gobernada por la fecha de carga (usuario, 2026-11-15):
 // duerme hasta N días antes de la carga, manda por tramos de cadencia (más seguido cuanto
-// menos falte, solo de 5:00 a 23:00), recuerda a diario a los contactados y corta X horas
+// menos falte, de 5:30 a 23:30, los 365 días), recuerda a diario a los contactados y corta X horas
 // antes de la hora de carga (la indicada aquí, o las 8:00). Dentro del corte no se lanza
 // salvo forzarla a sabiendas (1 hora de margen).
 export async function iniciarDifusion(envio: string, o: { precio: number; banda_pct: number; pronto_pago: boolean; hora_carga?: string | null; forzar?: boolean }): Promise<{ ok: true; empieza: string | null; corte: string | null } | { ok: false; error: string; dentroCorte?: boolean }> {

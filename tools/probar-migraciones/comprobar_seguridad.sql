@@ -8307,11 +8307,47 @@ do $$ begin
   end if;
   raise notice 'OK 208f · colindantes entre países: Girona↔66 (FR), Huelva↔Algarve (PT) y Gipuzkoa↔64 (FR); tabla simétrica y sin pares consigo misma';
 end $$;
+-- REANUDACIÓN (usuario, 2026-11-15): si el envío se queda sin transportista y sigue
+-- programado, la difusión cerrada por esa asignación vuelve a arrancar sola donde se
+-- quedó, revive las ofertas cerradas y avisa; una parada a mano nunca resucita.
+do $$ declare e uuid := current_setting('prueba.e2081')::uuid; d record; begin
+  -- Una oferta cerrada «porque otro se la quedó» (como hace la aceptación real).
+  update envio_ofertas set estado = 'cerrada'
+   where envio_id = e and transportista_id = current_setting('prueba.t208r')::uuid;
+  update envios set transportista_id = null where id = e;
+  select * into d from difusiones where envio_id = e order by creado_en desc limit 1;
+  if d.estado <> 'activa' or d.fin_motivo is not null or d.terminada_en is not null then
+    raise exception 'FALLO 208 · al quitar el transportista la difusión no se reanuda: %', d.estado;
+  end if;
+  if (select estado from envio_ofertas where envio_id = e and transportista_id = current_setting('prueba.t208r')::uuid) <> 'activa' then
+    raise exception 'FALLO 208 · la oferta cerrada no revive al reanudarse';
+  end if;
+  if not exists (select 1 from avisos where envio_id = e and tipo = 'difusion_reanudada' and para = 'dynamo') then
+    raise exception 'FALLO 208 · reanudada sin aviso de campana a Dynamo';
+  end if;
+  -- Y sigue contactando donde se quedó: el 4.º del ranking (el favorito).
+  update difusiones set ultimo_email_en = now() - interval '30 minutes' where envio_id = e;
+  perform procesar_difusiones();
+  if (select contactados from difusiones where envio_id = e) <> 4
+     or not exists (select 1 from envio_ofertas o where o.envio_id = e
+                      and o.transportista_id = current_setting('prueba.t208f')::uuid) then
+    raise exception 'FALLO 208 · la reanudada no sigue contactando donde se quedó';
+  end if;
+  -- Parada A MANO: quitar el transportista no la resucita.
+  update envios set transportista_id = current_setting('prueba.t208v')::uuid where id = e;
+  perform procesar_difusiones();   -- la cierra como aceptada
+  update difusiones set estado = 'parada', fin_motivo = 'Parada a mano por Dynamo.' where envio_id = e;
+  update envios set transportista_id = null where id = e;
+  if (select estado from difusiones where envio_id = e) <> 'parada' then
+    raise exception 'FALLO 208 · una difusión parada a mano resucita sola al quitar el transportista';
+  end if;
+  raise notice 'OK 208g · sin transportista la difusión se reanuda sola (ofertas revividas y aviso); la parada a mano, nunca';
+end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
--- Los parámetros vuelven a su valor real.
-update parametros set valor = '5'::jsonb  where clave = 'difusion_hora_inicio';
-update parametros set valor = '23'::jsonb where clave = 'difusion_hora_fin';
+-- Los parámetros vuelven a su valor real (5:30-23:30, medias horas con decimales).
+update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio';
+update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
 update parametros set valor = '9'::jsonb  where clave = 'difusion_recordatorio_hora';
 
 -- ---- 209. Borrar transportistas: lógico, fuera de lista y ofertas; con envíos vivos no --
