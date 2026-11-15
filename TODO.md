@@ -2,6 +2,49 @@
 
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
+## 🗂️ PENDIENTES ORDENADOS POR VERSIÓN (resumen vivo, 2026-11-15)
+
+> Índice rápido. El detalle de cada punto sigue más abajo, en su entrada. Al cerrar algo, se tacha aquí y allí.
+
+### v1 · ANTES DE ABRIR (lo de ahora)
+**Lo pone el usuario (el código ya está escrito):**
+- [ ] **Postmark** (token en Vault de Supabase `postmark_token` + Vercel `POSTMARK_SERVER_TOKEN`) → todos los emails salen de verdad. ⬅ **SIGUIENTE**
+- [ ] **Stripe** (claves en Vercel) → pago de PROFORMAS con tarjeta (solo proformas en esta fase).
+- [ ] **Turnstile** (claves reales del captcha).
+- [ ] **IBAN de Dynamo** en `parametros.dynamo_iban` (sale en las proformas).
+- [ ] **Supabase plan Pro** (los datos de prueba masivos no caben en el gratuito).
+- [ ] **2FA** en Supabase, GitHub, Vercel y el programa de gestión.
+- [ ] **Google Maps** (`GOOGLE_MAPS_API_KEY`): buscador de sitios con Google real y km reales.
+
+**Decisiones del usuario:**
+- [ ] **Bolsas de carga** (#66): cómo y cuándo se publica automáticamente.
+- [ ] **Tarifador**: sesiones conjuntas con las tarifas reales (se dejó a propósito para el final de la v1) + ahorro acumulado del cliente (#13).
+- [ ] Usuario «Automatizaciones n8n» cuando se conecte n8n.
+
+**Antes de pasar a producción (checklist `PRODUCCION.md`):**
+- [ ] Revisión de TODOS los textos legales (incluye el repaso legal del DeCA electrónico: acceso del inspector, conservación 1 año).
+- [ ] CSP estricta, `SITE_URL` definitiva y redirecciones de Supabase solo propias.
+- [ ] Quitar el login demo de `portal.html`.
+- [ ] Probar los emails en Gmail, Outlook y móvil (tras Postmark).
+- [ ] Afinar el resumen de mercancía repetido en el DeCA (detalle de parada + resumen del envío).
+
+### v2
+- [ ] Captación automática de prospectos (barrido semanal + Brevo) (#87).
+- [ ] Ranking de la difusión por tasa real de respuesta (cuando haya historial) y etiqueta manual «autónomo» para extranjeros.
+
+### v3
+- [ ] **Asistente de IA del panel** (chatbot sobre la BD por rol, #72): montado y OCULTO (`IA_ACTIVA = false` en `app/panel/(app)/layout.tsx`); falta `ANTHROPIC_API_KEY` y encenderlo.
+- [ ] n8n como capa conversacional: WhatsApp (Meta) y email con Claude (#80).
+
+### v4
+- [ ] Calendario público de citas de almacén por cliente (#78).
+- [ ] Entrada por palets en el tarifador (conmutador Metros/Palets) (#84).
+
+### Futuro (sin versión)
+- [ ] Colindancias europeas completas para la oferta escalonada.
+- [ ] DeCA gratis para terceros (fase 2 del DeCA propio).
+- [ ] Sello de tiempo cualificado sobre las firmas (solo si se pide).
+
 ## 🔥 Prioridad alta
 
 - [ ] 🤖 **CHATBOT DE IA — FASE 1 HECHA (2026-11-11), falta SOLO la clave**: montado el asistente para el

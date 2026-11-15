@@ -133,7 +133,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     return { ok: true };
   }
   const msg: Record<string, string> = {
-    ya_firmada: 'Esta casilla ya está firmada.', demasiadas_firmas: 'Ya hay 3 firmas extra en este CMR: no caben más.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
+    ya_firmada: 'Esta casilla ya está firmada.', demasiadas_firmas: 'Ya hay 3 firmas extra en este CMR / DeCA: no caben más.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
     parada_no_valida: 'Esa casilla no corresponde a este envío.', faltan_datos: 'Indica el documento y el nombre y apellidos.', falta_trazo: 'Falta la firma.',
     sin_transportista: 'El envío no tiene transportista asignado ahora mismo: no se puede firmar hasta que se asigne.',
     faltan_matriculas: 'Falta la matrícula del camión: ponla en la ventana de firma (sin ella no se puede salir de la 1.ª parada).',

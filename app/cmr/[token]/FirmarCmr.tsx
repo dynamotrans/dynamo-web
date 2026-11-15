@@ -78,7 +78,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   if (cmr.resultado !== 'ok') {
     const t: Record<string, [string, string]> = {
       enlace_no_valido: ['Este enlace no es válido', 'Ha caducado o se ha retirado. Pide uno nuevo a quien te lo envió.'],
-      cancelado: ['Este envío está cancelado', 'Ya no hace falta firmar su CMR.'],
+      cancelado: ['Este envío está cancelado', 'Ya no hace falta firmar su CMR / DeCA.'],
       mantenimiento: ['Plataforma en mantenimiento', `Vuelve a intentarlo en un rato. Si es urgente, llámanos al ${CONTACTO.telefono}.`],
       error: ['No se puede abrir ahora mismo', 'Vuelve a intentarlo en un momento.'],
     };
@@ -119,10 +119,10 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     <div style={{ background: '#ecfdf5', border: '2px solid #1d9e57', borderRadius: 14, padding: '1.2rem 1rem', textAlign: 'center' }}>
       <div aria-hidden="true" style={{ width: 54, height: 54, margin: '0 auto 0.6rem', borderRadius: '50%', background: '#1d9e57', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 800 }}>✓</div>
       <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46' }}>Todo guardado. ¡Gracias!</div>
-      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el eCMR al momento. Si dejaste tu email, tu copia va de camino; al completarse todas las firmas, la copia final llegará por email a todas las partes.</p>
+      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el CMR / DeCA al momento. Si dejaste tu email, tu copia va de camino; al completarse todas las firmas, la copia final llegará por email a todas las partes.</p>
       <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
         padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
-        Ver el CMR en PDF · con las firmas actuales
+        Ver el CMR / DeCA en PDF · con las firmas actuales
       </a>
       {/* Salir SÍ lleva a la web de Dynamo, pero solo desde aquí (usuario, 2026-11-11). */}
       <a href="/" style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center', textDecoration: 'none',
@@ -162,7 +162,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {/* Cabecera en caja gris suave y formal (usuario, 2026-11-11). */}
       {/* Cabecera corta (usuario, 2026-11-12): título y nº de envío, sin más. */}
       <div className="cab-caja">
-        <h1>CMR digital</h1>
+        <h1>CMR / DeCA digital</h1>
         <p className="sub">Envío <strong>{cmr.referencia}</strong></p>
       </div>
       <dl className="cmrbox">
@@ -222,7 +222,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {/* Con todas firmadas, SOLO el banner (usuario, 2026-11-14: el contador «5 de 5»
           sobra cuando ya lo dice el mensaje de CMR completamente firmado). */}
       {hechas === bloques.length && bloques.length > 0
-        ? <div className="banner-ok show" style={{ marginTop: 0, marginBottom: '0.8rem' }}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
+        ? <div className="banner-ok show" style={{ marginTop: 0, marginBottom: '0.8rem' }}>✓ CMR / DeCA completamente firmado — todas las partes han quedado registradas.</div>
         : <div className="prog">{hechas} de {bloques.length} firmas completadas</div>}
       {sinTransportista && hechas < bloques.length && (
         <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
@@ -241,7 +241,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           legal, con el detalle eIDAS/FOM desplegable. JUSTO delante de la primera caja
           de firma (usuario, 2026-11-12), que es cuando toca leerla. */}
       <div style={{ margin: '0 0 0.8rem', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, padding: '0.7rem 0.85rem', textAlign: 'center' }}>
-        <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--navy)' }}>Firmen el CMR con el dedo desde el móvil, sin crear cuenta</p>
+        <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--navy)' }}>Firmen el CMR / DeCA con el dedo desde el móvil, sin crear cuenta</p>
         <button type="button" onClick={() => setMasInfo((v) => !v)} aria-expanded={masInfo}
           style={{ margin: '0.25rem 0 0', padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--purple)' }}>
           100% seguro, digital y legal. Protocolo eIDAS ~ Orden FOM/2861/2012. {masInfo ? '▴' : '▾'}
@@ -276,7 +276,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener"
             style={{ display: 'block', margin: '0 0 0.7rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
               padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, boxShadow: '0 3px 10px rgba(29,158,87,0.3)' }}>
-            Abrir el CMR en PDF · con las firmas actuales
+            Abrir el CMR / DeCA en PDF · con las firmas actuales
           </a>
         ) : null;
         const antes = !!firmadasVista.length;   // con firmadas va DELANTE de la 1.ª; sin ellas, DETRÁS de la última pendiente
@@ -310,7 +310,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {extras.map((f, i) => (
         <div key={`x${i}`} className="firma firmada">
           <div className="firma-head">
-            <div className="firma-tit">Firma extra {extras.length > 1 ? i + 1 : ''}<span className="cas-quien"><span className="cas-firma">Firma:</span> {nombreBloque(f)}</span><span className="cas">Añadida a las casillas del CMR</span></div>
+            <div className="firma-tit">Firma extra {extras.length > 1 ? i + 1 : ''}<span className="cas-quien"><span className="cas-firma">Firma:</span> {nombreBloque(f)}</span><span className="cas">Añadida a las casillas del CMR / DeCA</span></div>
           </div>
           {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
           <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
@@ -340,7 +340,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           )}
         </div>
       )}
-      <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
+      <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR / DeCA completamente firmado — todas las partes han quedado registradas.</div>
       {firmoAqui && <div style={{ margin: '0.8rem 0 0' }}>{btnFin}</div>}
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó (y tu ubicación GPS si das permiso). Firma electrónica simple (Reglamento eIDAS).</p>
       <Ayuda />
@@ -501,7 +501,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   }
 
   return (
-    <div className="sigov show" role="dialog" aria-modal="true" aria-label="Firmar el CMR">
+    <div className="sigov show" role="dialog" aria-modal="true" aria-label="Firmar el CMR / DeCA">
       <div className="sigcard">
         <h2>Firmar {b.titulo.toLowerCase()}</h2>
         <label className="sig-lbl" htmlFor="sigDni">Documento de identidad <Req /></label>
@@ -585,7 +585,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
             que pide la ley —responsable, finalidad y derechos— y el resto en la política
             (usuario, 2026-11-10: «pon lo mínimo por ley»). */}
         <p className="hint" style={{ marginTop: '0.6rem', fontSize: '0.78rem', lineHeight: 1.45 }}>
-          <strong>Protección de datos:</strong> Dynamo guarda estos datos y tu firma como prueba del CMR durante 6 años.
+          <strong>Protección de datos:</strong> Dynamo guarda estos datos y tu firma como prueba del CMR / DeCA durante 6 años.
           Derechos: {CONTACTO.email} · <button type="button" className="sig-link" onClick={() => setVerPrivacidad(true)}>Política de privacidad</button>.
         </p>
         {guardando && lento && (
@@ -633,11 +633,11 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           onClick={(e) => { if (e.target === e.currentTarget) setVerPrivacidad(false); }}>
           <div className="privcard">
             <button type="button" className="priv-x" aria-label="Cerrar" onClick={() => setVerPrivacidad(false)}>✕</button>
-            <h2>Política de privacidad · firma del CMR</h2>
+            <h2>Política de privacidad · firma del CMR / DeCA</h2>
             <p><strong>Responsable:</strong> Dynamo Operador Logístico, S.L. · {CONTACTO.email} · {CONTACTO.telefono}.</p>
             <p><strong>Qué guardamos:</strong> tu nombre y apellidos, el documento de identidad, el trazo de la firma, el email (si lo pones),
               la fecha y la hora, y desde dónde firmas (dirección IP y navegador; la ubicación GPS solo si das permiso en tu dispositivo). Si anotas reservas, también su texto y sus fotos.</p>
-            <p><strong>Para qué:</strong> dejar constancia de quién firmó la carga o la entrega en el CMR y poder demostrarlo ante quienes
+            <p><strong>Para qué:</strong> dejar constancia de quién firmó la carga o la entrega en el CMR / DeCA y poder demostrarlo ante quienes
               intervienen en el transporte o ante una reclamación.</p>
             <p><strong>Con qué base:</strong> la ejecución del contrato de transporte y el Convenio CMR (art. 6.1.b y f del RGPD).</p>
             <p><strong>Cuánto tiempo:</strong> 6 años, el plazo de conservación de la documentación mercantil.</p>
