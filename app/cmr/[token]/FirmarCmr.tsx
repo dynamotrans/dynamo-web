@@ -555,8 +555,41 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     onFirmado();
   }
 
+  // PISTA «Desliza para firmar» (usuario, 2026-11-15): la ventana de firma es larga y en
+  // el móvil el botón «Aceptar firma» queda abajo del todo. Píldora flotante, como la de
+  // «Desliza para crear el envío»: sale mientras el botón no se ve y, al pulsarla, baja
+  // suave hasta él. La ventana tiene su PROPIO scroll (no el de la página). Mientras se
+  // traza la firma se quita, para no estorbar al dedo.
+  const velo = useRef<HTMLDivElement>(null);
+  const btnAceptar = useRef<HTMLButtonElement>(null);
+  const [pista, setPista] = useState(false);
+  useEffect(() => {
+    const cont = velo.current;
+    if (!cont) return;
+    let raf = false;
+    const mirar = () => {
+      const btn = btnAceptar.current;
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      if (!btn || trazando.current) { setPista(false); return; }
+      const r = btn.getBoundingClientRect();
+      setPista(!(r.top < vh - 24 && r.bottom > 0));   // se ve (aunque sea en parte) → fuera
+    };
+    const alScroll = () => { if (!raf) { raf = true; requestAnimationFrame(() => { raf = false; mirar(); }); } };
+    mirar();
+    const t = setInterval(mirar, 600);
+    cont.addEventListener('scroll', alScroll, { passive: true });
+    window.addEventListener('resize', mirar);
+    return () => { clearInterval(t); cont.removeEventListener('scroll', alScroll); window.removeEventListener('resize', mirar); };
+  }, []);
+
   return (
-    <div className="sigov show" role="dialog" aria-modal="true" aria-label="Firmar el CMR">
+    <div className="sigov show" role="dialog" aria-modal="true" aria-label="Firmar el CMR" ref={velo}>
+      {pista && !guardando && (
+        <button type="button" className="sig-pista" aria-label="Desliza para firmar"
+          onClick={() => btnAceptar.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })}>
+          <span>Desliza para firmar</span><span className="sp-flecha" aria-hidden="true">↓</span>
+        </button>
+      )}
       <div className="sigcard">
         <h2>Firmar {b.titulo.toLowerCase()}</h2>
         <label className="sig-lbl" htmlFor="sigDni">Documento de identidad <Req /></label>
@@ -637,7 +670,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         {aviso && <div className="sig-warn">⚠ {aviso}</div>}
         <p className="hint" style={{ marginTop: '0.6rem' }}>Firma con el dedo (o el ratón) dentro del recuadro.</p>
         <canvas id="sigCanvas" ref={canvas}
-          onPointerDown={(e) => { e.preventDefault(); const x = ctx.current; if (!x) return; trazando.current = true; canvas.current!.setPointerCapture(e.pointerId); const p = pos(e); x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(p.x + 0.1, p.y + 0.1); x.stroke(); setDibujado(true); }}
+          onPointerDown={(e) => { e.preventDefault(); const x = ctx.current; if (!x) return; trazando.current = true; setPista(false); canvas.current!.setPointerCapture(e.pointerId); const p = pos(e); x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(p.x + 0.1, p.y + 0.1); x.stroke(); setDibujado(true); }}
           onPointerMove={(e) => { if (!trazando.current || !ctx.current) return; e.preventDefault(); const p = pos(e); ctx.current.lineTo(p.x, p.y); ctx.current.stroke(); }}
           onPointerUp={() => { trazando.current = false; ctx.current?.beginPath(); }}
           onPointerCancel={() => { trazando.current = false; ctx.current?.beginPath(); }} />
@@ -657,7 +690,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         </div>
         {/* Aceptar GRANDE y en verde arriba; Cancelar y Borrar debajo (usuario, 2026-11-10). */}
         <div className="sigbtns">
-          <button type="button" className="b-aceptar" disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>
+          <button type="button" className="b-aceptar" ref={btnAceptar} disabled={!dibujado || guardando} onClick={aceptar}>{guardando ? 'Guardando…' : 'Aceptar firma'}</button>
           <button type="button" onClick={onCerrar} disabled={guardando}>Cancelar</button>
           <button type="button" className="b-borrar" onClick={preparar} disabled={guardando}>Borrar</button>
         </div>
