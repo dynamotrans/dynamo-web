@@ -750,9 +750,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         const motivo = m.motivo || (m.hito === 'ruta_cambiada' ? t.motRuta : m.hito === 'fecha_carga_movida' || m.hito === 'fecha_carga_cambiada' ? t.motFecha
           : m.hito === 'mercancia_cambiada' ? t.motMercancia
           : m.hito === 'transportista_quitado' ? t.motQuitado
-          // 1.ª asignación: «previa al inicio del transporte» solo si el propio registro no dice
-          // lo contrario; si el seguimiento (que va por reloj, no por hechos) ya marcaba carga, un
-          // texto NEUTRO — el documento no afirma ni que fue antes ni que fue con el viaje en curso.
+          // 1.ª asignación: «previa al inicio del transporte» mientras no hubiera ninguna FIRMA
+          // anterior (lo real; el seguimiento, por reloj o a mano, no cuenta — usuario, 2026-11-15).
+          // Con firmas previas (caso anómalo), texto neutro: «Asignación inicial».
           : m.primera ? (m.iniciado ? t.motAsigIniciado : t.motAsig) : m.hito === 'matricula_asignada' ? t.motMatricula : t.motTrans);
         l.sitio(26);
         l.parrafo(`${m.cuando} · ${et} · ${t.modifMotivo}: ${motivo}`, 7.4, { color: COLOR.navy, bold: true, despues: 1 });

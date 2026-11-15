@@ -9718,15 +9718,25 @@ do $$ declare e2 uuid := current_setting('prueba.e234b')::uuid; tok2 uuid; r jso
   select id into d from envio_paradas where envio_id = e2 and tipo = 'descarga';
   r := firmar_cmr_publico(tok2, d, 'destinatario', 'Rosa', '12345678Z', 'ES', true, null, 'cmr/' || tok2 || '/b.png', null, null, null);
   if r ->> 'resultado' <> 'falta_trazo' then raise exception 'FALLO 234 · con las dos matrículas sigue sin dejar firmar: %', r; end if;
-  -- (d) 'iniciado': la tractora se puso antes de cargar; el semirremolque, ya cargando.
+  -- (d) 'iniciado' lo dicen las FIRMAS, no el seguimiento: el semirremolque se puso con el
+  -- envío ya «cargando» pero sin ninguna firma → no es iniciado.
   m := fn_modificaciones_deca(e2);
-  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB';
-  if x is null or (x ->> 'iniciado')::boolean is not false then raise exception 'FALLO 234 · lo asignado antes de cargar sale como iniciado: %', m; end if;
   select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB + R2340BBB';
-  if x is null or (x ->> 'iniciado')::boolean is not true or x ->> 'antes' <> '2340BBB' then
-    raise exception 'FALLO 234 · el cambio hecho ya cargando no sale como iniciado con su dato anterior: %', m;
+  if x is null or (x ->> 'iniciado')::boolean is not false or x ->> 'antes' <> '2340BBB' then
+    raise exception 'FALLO 234 · un cambio sin firmas previas sale como iniciado (el seguimiento no cuenta): %', m;
   end if;
-  raise notice 'OK 234 · tráiler = dos matrículas: la cabecera no pone solo la tractora (salvo rígido declarado), nadie firma sin semirremolque, la página y el PDF lo saben; el panel distingue lo cambiado con el transporte en marcha';
+  insert into firmas_cmr (envio_id, parada_id, rol, nombre, documento, documento_pais, firma_storage_ruta)
+    values (e2, (select id from envio_paradas where envio_id = e2 and tipo = 'carga'), 'remitente', 'Carga 234', '12345678Z', 'ES', 'cmr/prueba234/x.png');
+end $$;
+update envios set matricula_camion = '2340CCC' where id = current_setting('prueba.e234b')::uuid;
+do $$ declare m jsonb := fn_modificaciones_deca(current_setting('prueba.e234b')::uuid); x jsonb; begin
+  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340CCC + R2340BBB';
+  if x is null or (x ->> 'iniciado')::boolean is not true then
+    raise exception 'FALLO 234 · el cambio hecho después de una firma no sale como iniciado: %', m;
+  end if;
+  select y into x from jsonb_array_elements(m) y where y ->> 'detalle' = '2340BBB + R2340BBB';
+  if (x ->> 'iniciado')::boolean is not false then raise exception 'FALLO 234 · la firma posterior marca como iniciado un cambio anterior: %', m; end if;
+  raise notice 'OK 234 · tráiler = dos matrículas: la cabecera no pone solo la tractora (salvo rígido declarado), nadie firma sin semirremolque, la página y el PDF lo saben; el panel marca «iniciado» solo lo cambiado después de una firma (el seguimiento no cuenta)';
 end $$;
 
 -- ---- 235. Faltan matrículas a la hora de cargar: se AVISA, no se bloquea ------------------
