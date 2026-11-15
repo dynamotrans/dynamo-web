@@ -582,10 +582,17 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   // Tramos en NEGRITA dentro de las líneas de la caja, marcados con **…** en los textos
   // (usuario, 2026-11-15: el plazo de pago, la referencia, el email y el «RECIBIDO»).
   // Corta en líneas midiendo cada palabra con su fuente (negrita o normal).
-  const partirMarcado = (tx: string, size: number, maxW: number): { w: string; b: boolean }[][] => {
-    const palabras: { w: string; b: boolean }[] = [];
-    tx.split('**').forEach((seg, i) => seg.split(/\s+/).filter(Boolean).forEach((w) => palabras.push({ w, b: i % 2 === 1 })));
-    const lineas: { w: string; b: boolean }[][] = [[]];
+  const partirMarcado = (tx: string, size: number, maxW: number): { w: string; b: boolean; h: boolean }[][] => {
+    // **…** = negrita; ==…== = resaltado con fondo, como un rotulador (usuario, 2026-11-15:
+    // la referencia de viaje que hay que poner en la factura, «algo más visible»).
+    const palabras: { w: string; b: boolean; h: boolean }[] = [];
+    let neg = false, res = false;
+    for (const seg of tx.split(/(\*\*|==)/)) {
+      if (seg === '**') { neg = !neg; continue; }
+      if (seg === '==') { res = !res; continue; }
+      seg.split(/\s+/).filter(Boolean).forEach((w) => palabras.push({ w, b: neg, h: res }));
+    }
+    const lineas: { w: string; b: boolean; h: boolean }[][] = [[]];
     let cw = 0;
     for (const pa of palabras) {
       const wp = l.medida(pa.w, size, pa.b);
@@ -595,6 +602,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     }
     return lineas;
   };
+  const RESALTE = rgb(1, 0.9, 0.42);
   const cajaImporte = (precioTxt: string, sub: string, lineasIzq: [string, string][]) => {
     const wBox = 185;
     const izqLs = lineasIzq.filter(([, v]) => v).map(([k, v]) => ({ k, ls: partirMarcado(v, 7.2, l.ancho - wBox - 34) }));
@@ -609,7 +617,14 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         l.texto(l.x0 + 12, yI + 7, x.k.toUpperCase(), 5.8, { bold: true, color: COLOR.gris });
         x.ls.forEach((ln, i) => {
           let cx = l.x0 + 12;
-          for (const r of ln) { l.texto(cx, yI + 16 + i * 9, r.w, 7.2, { color: COLOR.tinta, bold: r.b }); cx += l.medida(r.w, 7.2, r.b) + l.medida(' ', 7.2, r.b); }
+          ln.forEach((r, k) => {
+            const wP = l.medida(r.w, 7.2, r.b), wE = l.medida(' ', 7.2, r.b);
+            // Banda de resalte: cubre la palabra y, si la siguiente también va resaltada, el hueco.
+            if (r.h) l.pag.drawRectangle({ x: cx - (ln[k - 1]?.h ? 0 : 2), y: A4.h - (yI + 16 + i * 9) - 2.4,
+              width: wP + (ln[k + 1]?.h ? wE : 2) + (ln[k - 1]?.h ? 0 : 2), height: 9, color: RESALTE });
+            l.texto(cx, yI + 16 + i * 9, r.w, 7.2, { color: r.h ? COLOR.navy : COLOR.tinta, bold: r.b });
+            cx += wP + wE;
+          });
         });
         yI += 9 + x.ls.length * 9 + 5;
       }
