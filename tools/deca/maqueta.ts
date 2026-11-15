@@ -51,7 +51,7 @@ async function main() {
   const envio = {
     referencia_gx: 'GX102345256', referencia_cliente: 'PED-7741', fecha_carga_prevista: '2026-11-12',
     fecha_carga_desde: '2026-11-12', fecha_carga_hasta: '2026-11-13', fecha_entrega_estimada: '2026-11-17',
-    matricula_camion: '1681LXC', matricula_remolque: process.env.SIN_REMOLQUE ? null : 'R0494BCB', necesita_remolque: true, conductor_nombre: 'Adrián Aguirre Etxeberria', conductor_telefono: '+34606402438',
+    discrecion_comercial: !!process.env.DISCRECION, matricula_camion: '1681LXC', matricula_remolque: process.env.SIN_REMOLQUE ? null : 'R0494BCB', necesita_remolque: true, conductor_nombre: 'Adrián Aguirre Etxeberria', conductor_telefono: '+34606402438',
     metros_lineales: 13.3, toneladas: 24, paletizado: true, descripcion_mercancia: 'Mercancía general',
     tipo_carga: 'grupaje', requiere_plataforma_elevadora: false, adr: false, carga_lateral: true, carga_techo: false, carga_trasera: true,
     importe_transportista: 850, importe_cliente: 980, iva_pct: 21, plazo_pago_transportista: 60,

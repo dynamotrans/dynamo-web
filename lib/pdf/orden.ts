@@ -501,6 +501,19 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   }
   }
 
+  // ---- DISCRECIÓN COMERCIAL (solo si el envío la lleva marcada) ----
+  // En la orden de carga del TRANSPORTISTA va antes de las cajas de recogida / entrega
+  // (usuario, 2026-11-15): es lo primero que tiene que leer quien va a cargar.
+  const avisoDiscrecion = (despues: number) => {
+    if (!e.discrecion_comercial || manual) return;
+    l.sitio(46);
+    const ls = l.partir(t.txtDiscrecion, 8.8, l.ancho - 20, true);
+    l.rect(l.x0, l.y, l.ancho, ls.length * 11.6 + 14, COLOR.ambarSuave, rgb(1, 0.84, 0.57));
+    ls.forEach((ln, i) => l.texto(l.x0 + 10, l.y + 15 + i * 11.6, ln, 8.8, { bold: true, color: COLOR.ambar }));
+    l.y += ls.length * 11.6 + despues;
+  };
+  if (copia === 'economica') avisoDiscrecion(22);
+
   // ---- Recogidas y entregas ----
   const seccion = (titulo: string) => {
     l.sitio(90);   // que el título no se quede solo al pie de la página
@@ -770,14 +783,9 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     cajaImporte(precio != null ? eur(precio) : t.pendiente, precio != null ? t.impuestosNo : '', lineasIzq);
   }
 
-  if (e.discrecion_comercial && !manual) {
-    l.sitio(46);
-    const tx = t.txtDiscrecion;
-    const ls = l.partir(tx, 8.8, l.ancho - 20, true);
-    l.rect(l.x0, l.y, l.ancho, ls.length * 11.6 + 14, COLOR.ambarSuave, rgb(1, 0.84, 0.57));
-    ls.forEach((ln, i) => l.texto(l.x0 + 10, l.y + 15 + i * 11.6, ln, 8.8, { bold: true, color: COLOR.ambar }));
-    l.y += ls.length * 11.6 + 26;
-  }
+  // (En la orden del transportista el aviso de discreción va ARRIBA, antes de las
+  // recogidas y entregas; en las demás copias sigue aquí.)
+  if (copia !== 'economica') avisoDiscrecion(26);
 
   // ---- Condiciones: SOLO en la copia ADMINISTRACIÓN (usuario, 2026-11-14) y en sus
   // páginas en español (las traducidas remiten a ellas). Son condiciones contractuales
