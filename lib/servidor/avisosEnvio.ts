@@ -41,7 +41,7 @@ async function emailTransportista(sb: SB, transportistaId: string): Promise<stri
 export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string): Promise<void> {
   try {
     const { data: e } = await sb.from('envios')
-      .select('referencia_gx, transportista_id, es_manual, fecha_carga_prevista, fecha_carga_desde, fecha_carga_hasta')
+      .select('referencia_gx, transportista_id, es_manual, fecha_carga_prevista, fecha_carga_desde, fecha_carga_hasta, creado_por')
       .eq('id', envio).maybeSingle();
     if (!e?.transportista_id || e.es_manual) return;
     const para = await emailTransportista(sb, e.transportista_id);
@@ -68,6 +68,28 @@ ${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlE
 ${pie}`;
     await enviarEmailOperativo({ clave: `orden_carga:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
       para, asunto: `Orden de carga · envío #${e.referencia_gx} · Dynamo`, html, adjuntos });
+
+    // La confirmación al CLIENTE, acto seguido, con SU copia de la orden (la copia
+    // «cliente», sin la economía del transportista) — usuario, 2026-11-15: al asignarse
+    // el transportista la orden se auto-envía a ambos. Mismo registro anti-duplicados.
+    if (e.creado_por) {
+      const { data: u } = await sb.from('usuarios').select('email, emails_copia_avisos')
+        .eq('id', e.creado_por).maybeSingle();
+      const paraCli = u?.email ? [u.email, ...(u.emails_copia_avisos ?? [])].join(',') : null;
+      const { data: ps } = await sb.from('envio_paradas').select('tipo, poblacion, orden').eq('envio_id', envio).order('orden');
+      const org = (ps ?? []).find((p) => p.tipo === 'carga')?.poblacion ?? null;
+      const dst = [...(ps ?? [])].reverse().find((p) => p.tipo === 'descarga')?.poblacion ?? null;
+      let adjCli: AdjuntoEmail[] | undefined;
+      const { pdfsOrdenDynamo } = await import('@/lib/pdf/generar');
+      const pc = await pdfsOrdenDynamo(sb, envio, usuarioId, ['cliente'], origen);
+      if (!('error' in pc) && pc.pdfs[0]) adjCli = [{ nombre: pc.pdfs[0].nombre, base64: Buffer.from(pc.pdfs[0].bytes).toString('base64'), tipo: 'application/pdf' }];
+      const htmlCli = `<p>Hola,</p>
+<p>Tu envío <strong>#${esc(e.referencia_gx)}</strong>${org && dst ? ` (${esc(org)} → ${esc(dst)})` : ''} ya tiene <strong>transportista asignado</strong>${fecha ? ` y carga el <strong>${esc(fecha)}</strong>` : ''}. Va adjunta tu copia de la <strong>orden de carga en PDF</strong>.</p>
+<p>Lo sigues en vivo en <a href="${origen}/panel/envios">tu panel</a>. Si hay cualquier cambio, te avisamos.</p>
+${pie}`;
+      await enviarEmailOperativo({ clave: `orden_carga_cliente:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
+        para: paraCli, asunto: `Transporte confirmado · envío #${e.referencia_gx} · Dynamo`, html: htmlCli, adjuntos: adjCli });
+    }
   } catch { /* el aviso nunca rompe la asignación */ }
 }
 

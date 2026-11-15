@@ -9276,6 +9276,18 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   if (select asunto from emails_enviados where clave = 'alta_pendiente:' || res2) not like 'PENDIENTE%' then
     raise exception 'FALLO 224 · el asunto del alta pendiente no empieza por PENDIENTE';
   end if;
+  -- (b2) Dynamo aprueba el alta → el envío queda asignado y llega TAMBIÉN el email de
+  -- «envío aceptado» (en ese instante el transportista ya es conocido).
+  r := resolver_contraoferta(res2, true);
+  if r->>'resultado' <> 'aceptada' or (select transportista_id from envios where id = e2) <> t_alta then
+    raise exception 'FALLO 224 · aprobar el alta no asigna el envio: %', r;
+  end if;
+  select cuerpo_html into v_cuerpo from emails_enviados
+   where clave = 'envio_aceptado:' || res2 and tipo = 'envio_aceptado' and envio_id = e2 and destinatario = email_dynamo();
+  if v_cuerpo is null then raise exception 'FALLO 224 · aprobar el alta no deja el email envio_aceptado'; end if;
+  if v_cuerpo not like '%aprobación en la revisión%' or v_cuerpo not like '%Alta Online 224 SL%' then
+    raise exception 'FALLO 224 · al email de aceptado tras aprobar le falta la línea de aprobación o el transportista: %', v_cuerpo;
+  end if;
 
   -- (c) contraoferta de un conocido (ya verificado): campana sí, email de alta NO.
   insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
