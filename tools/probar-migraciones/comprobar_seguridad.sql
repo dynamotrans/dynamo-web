@@ -8127,7 +8127,8 @@ do $$ declare e uuid := current_setting('prueba.e2081')::uuid; d record; begin
      or (select estado from difusiones where envio_id = e) <> 'activa' then
     raise exception 'FALLO 208 · manda emails fuera de la ventana horaria (o la cierra)';
   end if;
-  -- …y al abrirse la ventana, el SEGUNDO es quien hizo la ruta, y el TERCERO el favorito.
+  -- …y al abrirse la ventana, el SEGUNDO es quien hizo la ruta, y el TERCERO el de la
+  -- ruta PARECIDA (probabilidad pura: la evidencia de ruta por delante del favorito).
   update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
   perform procesar_difusiones();
   if (select contactados from difusiones where envio_id = e) <> 2
@@ -8139,8 +8140,8 @@ do $$ declare e uuid := current_setting('prueba.e2081')::uuid; d record; begin
   perform procesar_difusiones();
   if (select contactados from difusiones where envio_id = e) <> 3
      or not exists (select 1 from envio_ofertas o where o.envio_id = e
-                      and o.transportista_id = current_setting('prueba.t208f')::uuid) then
-    raise exception 'FALLO 208 · el tercero no es el favorito';
+                      and o.transportista_id = current_setting('prueba.t208p')::uuid) then
+    raise exception 'FALLO 208 · el tercero no es el de la ruta parecida (debe ir antes que el favorito)';
   end if;
   if exists (select 1 from envio_ofertas o where o.envio_id = e and o.transportista_id is not null
                and not exists (select 1 from contactos c where c.transportista_id = o.transportista_id and c.email is not null)) then
@@ -8154,7 +8155,7 @@ do $$ declare e uuid := current_setting('prueba.e2081')::uuid; d record; begin
   if d.estado <> 'aceptada' or d.contactados <> 3 then
     raise exception 'FALLO 208 · no para al asignarse transportista: % (%)', d.estado, d.contactados;
   end if;
-  raise notice 'OK 208 · oferta escalonada: el autónomo primero, luego quien hizo la ruta, luego el favorito; respeta tramo y ventana y para en seco al asignarse';
+  raise notice 'OK 208 · oferta escalonada a probabilidad pura: autónomo, luego la ruta hecha, luego la parecida (el favorito solo desempata); respeta tramo y ventana y para en seco al asignarse';
 end $$;
 -- E2: se agota al quedarse sin candidatos (el colindante entra; el de Barcelona sin ruta,
 -- jamás) y avisa a Dynamo; después, RECORDATORIO diario a los contactados de otros días.

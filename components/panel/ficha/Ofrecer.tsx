@@ -151,14 +151,14 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
                 : <>En marcha · {dif.contactados} de {dif.max_contactados} transportistas contactados · {euros(dif.precio)} + IVA</>}
             </div>
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0.5rem' }}>
-              Más seguido cuanto menos falte para la carga (de 5:00 a 23:00), con recordatorio diario a los contactados{dif.corte_en ? <> y corte el <strong>{fmtTs(dif.corte_en)}</strong></> : null}. Autónomos primero; después quien hizo esta ruta, favoritos, valoración, sede en la provincia del origen o del destino o colindante, y rutas parecidas. Para sola en cuanto uno acepte o asignes a mano.
+              Más seguido cuanto menos falte para la carga (de 5:00 a 23:00), con recordatorio diario a los contactados{dif.corte_en ? <> y corte el <strong>{fmtTs(dif.corte_en)}</strong></> : null}. Autónomos primero; después quien hizo esta ruta o una parecida, sede en la provincia del origen o del destino o colindante, y favoritos y valoración como desempate. Para sola en cuanto uno acepte o asignes a mano.
             </div>
             <button type="button" className="btn-ghost" style={{ color: '#dc2626', fontWeight: 700 }} onClick={pararEscalonada} disabled={trabajando}>Parar la oferta escalonada</button>
           </>
         ) : (
           <>
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginBottom: '0.5rem' }}>
-              Con este mismo precio, la plataforma empieza a mandar emails unos días antes de la carga, más seguido cuanto menos falte (de 5:00 a 23:00), con recordatorio diario a los contactados y <strong>corte unas horas antes de la carga</strong>. <strong>Autónomos primero</strong> (DNI, no CIF de empresa); después quien hizo esta ruta, favoritos, mejor valorados, sede en la provincia del origen o del destino o colindante, y rutas parecidas. <strong>Para en cuanto uno acepta</strong> o asignes a mano.
+              Con este mismo precio, la plataforma empieza a mandar emails unos días antes de la carga, más seguido cuanto menos falte (de 5:00 a 23:00), con recordatorio diario a los contactados y <strong>corte unas horas antes de la carga</strong>. <strong>Autónomos primero</strong> (DNI, no CIF de empresa); después quien hizo esta ruta o una parecida, sede en la provincia del origen o del destino o colindante, y favoritos y valoración como desempate. <strong>Para en cuanto uno acepta</strong> o asignes a mano.
             </div>
             {dif && dif.estado !== 'aceptada' && dif.fin_motivo && (
               <div style={{ fontSize: 'var(--fs-s)', color: '#b45309', marginBottom: '0.5rem' }}>Última: {dif.fin_motivo} ({dif.contactados} contactados)</div>
