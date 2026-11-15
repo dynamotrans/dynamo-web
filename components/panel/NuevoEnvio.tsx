@@ -902,6 +902,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <button type="button" className="btn-ghost" onClick={enRuta || (editar && paso === 1) ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
         {enRuta
           ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
+          // SIN cliente no hay paso Confirmar (solo se calcula el precio): en el paso 3 el
+          // botón pasa a «Ver proforma» y abre su ventana (usuario, 2026-11-15), en vez de
+          // chocar con el aviso rojo de «elige el cliente».
+          : paso === 3 && !esCliente && !cliente
+          ? <button type="button" className="btn-primary" data-pista-accion disabled={comprobando}
+              onClick={() => { if (importe > 0) { setAviso(null); setVerProforma(true); } else setAviso('Falta el precio del envío: ponlo en «Precios internos» o usa el sugerido.'); }}>
+              Ver proforma</button>
           : <button type="button" className="btn-primary" data-pista-accion onClick={siguiente} disabled={comprobando}>{comprobando ? 'Comprobando la ruta…' : paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
       </div>
       {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
