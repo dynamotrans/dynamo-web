@@ -9596,6 +9596,68 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
+-- ---- 233. El CMR / DeCA digital a cada sitio: el mismo día a las 7:00 y 1 h antes --------
+-- Martes fijo con hora fijada (p_ahora): a las 7:05 sale el del mismo día con el enlace
+-- de la hoja de firmas; 50 min antes de la hora prevista de la recogida, el «h1» con el
+-- enlace y la hora; firmada la casilla del sitio, otro envío igual ya no recibe el h1.
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid; dia date := date '2027-03-02';
+        s1 uuid; s2 uuid; e uuid; pc uuid; tr uuid; v_hora timestamptz; ini int; fin int; hmd int; c text;
+begin
+  select valor::int into ini from parametros where clave = 'aviso_parada_ventana_inicio';
+  select valor::int into fin from parametros where clave = 'aviso_parada_ventana_fin';
+  select valor::int into hmd from parametros where clave = 'aviso_parada_hora_mismo_dia';
+  update parametros set valor = '7' where clave = 'aviso_parada_hora_mismo_dia';
+  insert into transportistas (razon_social, cif) values ('Transp Avisos 233 SL', 'B23300001') returning id into tr;
+  insert into sitios (nombre_empresa, cliente_id, emails_avisos) values ('Almacen Carga 233', cli, array['carga233@prueba.invalid']) returning id into s1;
+  insert into sitios (nombre_empresa, cliente_id, emails_avisos) values ('Almacen Entrega 233', cli, array['entrega233@prueba.invalid']) returning id into s2;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde)
+    values (cli, 13.30, 20, 900, dia) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES', s1, 'Almacen Carga 233') returning id into pc;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, sitio_id, nombre_empresa)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES', s2, 'Almacen Entrega 233');
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado', fecha_entrega_estimada = dia + 1, transportista_id = tr,
+                    importe_transportista = 700, fecha_carga_prevista = dia, matricula_camion = '2330ABC' where id = e;
+  select x.hora into v_hora from seguimiento_calcular(e) x where x.parada_id = pc and x.estado = 'cargando';
+  if v_hora is null then raise exception 'FALLO 233 · sin hora prevista para la recogida'; end if;
+  if v_hora - interval '60 minutes' <= (dia + time '07:00') at time zone 'Europe/Madrid' then
+    raise exception 'FALLO 233 · la recogida prevista (%) es demasiado temprana para probar el aviso de 1 h antes', v_hora;
+  end if;
+  -- 6:50: aún nada del mismo día.
+  perform encolar_avisos_paradas(dia, (dia + time '06:50') at time zone 'Europe/Madrid');
+  if exists (select 1 from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':d0:' || dia) then
+    raise exception 'FALLO 233 · el del mismo día sale antes de las 7:00';
+  end if;
+  -- 7:05: el del mismo día, con el enlace de la hoja de firmas; todavía no el de 1 h antes.
+  perform encolar_avisos_paradas(dia, (dia + time '07:05') at time zone 'Europe/Madrid');
+  select cuerpo_html into c from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':d0:' || dia and estado = 'pendiente';
+  if c is null or c not like '%/cmr/%' or c not like '%CMR / DeCA digital%' then
+    raise exception 'FALLO 233 · el aviso de las 7:00 no lleva el enlace del CMR / DeCA: %', left(coalesce(c, '(no hay)'), 200);
+  end if;
+  if exists (select 1 from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':h1:' || dia) then
+    raise exception 'FALLO 233 · el de 1 h antes sale a primera hora';
+  end if;
+  -- 50 min antes de la hora prevista: el h1, con el enlace y la hora.
+  perform encolar_avisos_paradas(dia, v_hora - interval '50 minutes');
+  select cuerpo_html into c from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':h1:' || dia;
+  if c is null or c not like '%/cmr/%' or c not like '%hacia las ' || to_char(v_hora at time zone 'Europe/Madrid', 'HH24:MI') || '%' then
+    raise exception 'FALLO 233 · no sale el aviso de 1 h antes con enlace y hora: %', left(coalesce(c, '(no hay)'), 200);
+  end if;
+  -- Con la casilla del sitio ya firmada, no hay aviso de 1 h antes (se borra para repetir).
+  delete from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':h1:' || dia;
+  insert into firmas_cmr (envio_id, parada_id, rol, nombre, documento, documento_pais, firmado_en, firma_storage_ruta)
+    values (e, pc, 'remitente', 'Firmante 233', '12345678Z', 'ES', now(), 'cmr/prueba233/x.png');
+  perform encolar_avisos_paradas(dia, v_hora - interval '50 minutes');
+  if exists (select 1 from emails_enviados where clave = 'aviso_parada:' || e || ':' || pc || ':h1:' || dia) then
+    raise exception 'FALLO 233 · manda el aviso de 1 h antes con la casilla ya firmada';
+  end if;
+  update parametros set valor = to_jsonb(hmd) where clave = 'aviso_parada_hora_mismo_dia';
+  raise notice 'OK 233 · CMR / DeCA digital a cada sitio: el mismo día desde las 7:00 y 1 h antes de su hora prevista, con el enlace; no con la casilla firmada';
+end $$;
+
 -- ---- 230. Nadie firma sin matrículas: solo la cabecera, que las pone ----------------
 -- Con transportista y sin matrículas, el destinatario NO firma (sin_matriculas); la firma
 -- de cabecera del transportista sin matrículas tampoco (faltan_matriculas).
