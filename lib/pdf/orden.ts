@@ -243,9 +243,8 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
   const prepararQr = async () => {
     if (qrCache !== undefined) return;
     qrCache = null;
-    // En la copia cliente el porteador no viaja en los datos (solo matrículas y
-    // conductor): con matrícula ya hay transporte asignado y el QR va igual.
-    if (d.deca && (p || esCli) && e.matricula_camion && !faltaRem) {
+    // La copia del cliente no lleva QR.
+    if (d.deca && p && !esCli && e.matricula_camion && !faltaRem) {
       try { qrCache = await l.doc.embedPng(await QRCode.toBuffer(urlDeca(d.deca.url), { margin: 0, scale: 4 })); } catch { qrCache = null; }
     }
   };
@@ -298,8 +297,11 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     // ---- FRANJA de partes y QR (usuario, 2026-11-14). En el DeCA son CUATRO bloques en
     // este orden: transportista efectivo · datos del camión (tipo, matrículas, conductor)
     // · cargador contractual · QR. En las demás copias, tres (los datos van en su tabla).
-    const gap = 8, cw = 96, wDatos = copia === 'operativa' ? 116 : 0;
-    const wCaja = (l.ancho - cw - wDatos - (wDatos ? 3 : 2) * gap) / 2;
+    // La copia del CLIENTE no lleva QR (usuario, 2026-11-15: «no existe para cliente en su
+    // orden»): sus dos cajas se reparten todo el ancho.
+    const conQr = !esCli;
+    const gap = 8, cw = conQr ? 96 : 0, wDatos = copia === 'operativa' ? 116 : 0;
+    const wCaja = (l.ancho - cw - wDatos - ((wDatos ? 2 : 1) + (conQr ? 1 : 0)) * gap) / 2;
     const xDat = l.x0 + wCaja + gap;
     const x2 = wDatos ? xDat + wDatos + gap : xDat;
     const titIzq = esCli ? 'Cliente · Ordenante del transporte'
@@ -335,7 +337,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     const hRes2 = !resFil.length ? 0 : 12 + resFil.reduce((a, it) => a + it.k.length * 8 + (it.placas ? 17 : it.v.length * 9) + 7, 0);
     // En el DeCA, la caja del cargador reserva sitio para la SUB-CAJA de la referencia.
     const hRef = copia === 'operativa' ? 40 : 0;
-    const hFila = Math.max(96, hDatos, hRes2,
+    const hFila = Math.max(conQr ? 96 : 0, hDatos, hRes2,
       hTit(sub1) + alto(izq, wCaja - 16) + 10,
       copia === 'operativa' ? hTit(sub2) + alto(dcha, wCaja - 16) + 10 + hRef : 0);
     const ct = l.y;
@@ -388,7 +390,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
         }
       }
     }
-    await tarjetaQr(ct, cw, hFila);
+    if (conQr) await tarjetaQr(ct, cw, hFila);
     l.y = ct + hFila + 8;
   } else {
   const hCaja = Math.max(alto(izq, mitad - 20), alto(dcha, mitad - 20)) + 26;
