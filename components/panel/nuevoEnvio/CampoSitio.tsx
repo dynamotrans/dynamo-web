@@ -118,17 +118,19 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
       </div>
 
       {/* Ventana del TIPO de sitio para la dirección libre: un toque y listo. Si se
-          cierra sin elegir, queda Almacén / Nave (el tipo por defecto, sin recargo). */}
+          cierra sin elegir, queda Almacén / Nave (el tipo por defecto). SIN decir qué
+          tipos llevan recargo (usuario, 2026-11-15): señalar el barato invita a marcar
+          almacén siendo finca; si luego no coincide, penalización «Cambio de tipo de
+          sitio» y a facturar. */}
       {pideTipo && modoDireccion && punto.nuevo && !punto.parada_id && (
         <Modal abierto ancho={440} onCerrar={() => setPideTipo(false)} titulo="¿Qué tipo de sitio es?"
-          sub={<>{[punto.nuevo.direccion, [punto.nuevo.codigo_postal, punto.nuevo.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ')} · los tipos distintos de Almacén / Nave llevan recargo. Si cierras sin elegir, queda Almacén / Nave.</>}>
+          sub={<>{[punto.nuevo.direccion, [punto.nuevo.codigo_postal, punto.nuevo.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ')} · El tipo tiene que ser el real: se comprueba en el porte. Si cierras sin elegir, queda Almacén / Nave.</>}>
           <div style={{ display: 'grid', gap: '0.5rem' }}>
             {TIPOS_SITIO.map(([k, n]) => (
               <button key={k} type="button" className={punto.nuevo!.tipo_sitio === k ? 'btn-primary' : 'btn-secondary'}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.6rem', width: '100%' }}
                 onClick={() => { onCambio({ nuevo: { ...punto.nuevo!, tipo_sitio: k } }); setPideTipo(false); }}>
                 <IconoTipo tipo={k} /> {n}
-                {k !== 'almacen_nave' && <span style={{ marginLeft: 'auto', color: punto.nuevo!.tipo_sitio === k ? '#fff' : '#dc2626', fontWeight: 700, fontSize: 'var(--fs-s)' }}>con recargo</span>}
               </button>
             ))}
           </div>
