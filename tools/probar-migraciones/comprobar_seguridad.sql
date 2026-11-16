@@ -8022,6 +8022,10 @@ update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
 -- «La bolsa va primero» (2026-11-16) se apaga durante esta prueba: aquí se mira el ranking,
 -- la cadencia y el corte de los emails; la espera a la bolsa tiene su prueba aparte (248).
 update parametros set valor = 'false'::jsonb where clave = 'bolsa_primero';
+-- La mecánica se prueba con el arranque a 5 días y el corte a 3 horas (los valores con los
+-- que se escribió la prueba); los de producción (3 días, sin corte) los mira la 249.
+update parametros set valor = '5'::jsonb where clave = 'difusion_dias_antes';
+update parametros set valor = '3'::jsonb where clave = 'difusion_horas_corte';
 do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_colin uuid; t_par uuid; t_auto uuid; er uuid; ep uuid; begin
   -- Sede en la provincia del ORIGEN (Guadalajara, CP 19 + ES): entran en la difusión.
   insert into transportistas (razon_social, cif, nima, tags, valoracion_dynamo, codigo_postal, pais_codigo_iso)
@@ -8279,8 +8283,8 @@ do $$ declare e3 uuid := current_setting('prueba.e2083')::uuid; d record; r json
   if not exists (select 1 from emails_enviados where clave = 'difusion_fin:' || d.id) then
     raise exception 'FALLO 208 · corte sin email de aviso a Dynamo';
   end if;
-  -- La cadencia real de producción, de vuelta (3 min lejos · 1 min y de 3 en 3 el último día · 1 min y de 20 en 20 bajo 6 h).
-  update parametros set valor = '[{"hasta_horas":6,"minutos":1,"lote":20},{"hasta_horas":24,"minutos":1,"lote":3},{"hasta_horas":null,"minutos":3}]'::jsonb
+  -- La cadencia real de producción, de vuelta (2026-11-16: 1 cada 3 min lejos · 8 cada 3 min el último día · 5 por minuto bajo 6 h · 10 por minuto bajo 3 h).
+  update parametros set valor = '[{"hasta_horas":3,"minutos":1,"lote":10},{"hasta_horas":6,"minutos":1,"lote":5},{"hasta_horas":24,"minutos":3,"lote":8},{"hasta_horas":null,"minutos":3}]'::jsonb
    where clave = 'difusion_cadencia';
   raise notice 'OK 208d · dentro del corte no se lanza (forzada, 1 h y en lote) y al corte cierra con aviso urgente';
 end $$;
@@ -8313,7 +8317,7 @@ do $$ declare e4 uuid := current_setting('prueba.e2084')::uuid; d record; r json
   if d.estado <> 'agotada' or d.fin_motivo not like 'Tope%' then
     raise exception 'FALLO 208 · el tope no corta la despierta: % (%)', d.estado, d.fin_motivo;
   end if;
-  raise notice 'OK 208e · dormida hasta el arranque (5 días antes), despierta al llegar y el tope sigue valiendo';
+  raise notice 'OK 208e · dormida hasta el arranque (días antes, parámetro), despierta al llegar y el tope sigue valiendo';
 end $$;
 -- Colindantes ENTRE PAÍSES (usuario, 2026-11-15): los pares fronterizos con Francia y
 -- Portugal están, y la tabla entera es simétrica (todo par existe en los dos sentidos).
@@ -8447,6 +8451,8 @@ update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio'
 update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
 update parametros set valor = '9'::jsonb  where clave = 'difusion_recordatorio_hora';
 update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
+update parametros set valor = '3'::jsonb where clave = 'difusion_dias_antes';
+update parametros set valor = '0'::jsonb where clave = 'difusion_horas_corte';
 
 -- ---- 209. Borrar transportistas: lógico, fuera de lista y ofertas; con envíos vivos no --
 reset role;
@@ -10324,7 +10330,7 @@ do $$ declare e uuid; gx text; hoy date := (now() at time zone 'Europe/Madrid'):
   r := fn_difusion_bolsa(e);
   if r ->> 'espera' is not null or (r ->> 'sin_bolsa')::boolean is not true then raise exception 'FALLO 248 · con la carga mañana y sin publicar, los emails debían salir igual: %', r; end if;
   -- Interruptor apagado: los emails no miran la bolsa.
-  update envios set fecha_carga_desde = hoy + 4 where id = e;
+  update envios set fecha_carga_desde = hoy + 3 where id = e;
   update parametros set valor = 'false'::jsonb where clave = 'bolsa_primero';
   if fn_difusion_bolsa(e) ->> 'espera' is not null then raise exception 'FALLO 248 · con «bolsa primero» apagado los emails siguen esperando'; end if;
   update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
@@ -10376,4 +10382,28 @@ end $$;
 update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio';
 update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
 update parametros set valor = '3'::jsonb where clave = 'bolsa_espera_minutos';
+reset role;
+
+-- ---- 249. Oferta escalonada: 3 días antes, sin corte, ritmos nuevos; cola sin .invalid ------
+reset role;
+do $$ declare m int; l int; v_ok uuid; v_inv uuid; v_src text; begin
+  if (parametro('difusion_dias_antes'))::text::int <> 3 then raise exception 'FALLO 249 · los emails no empiezan 3 días antes'; end if;
+  if (parametro('difusion_horas_corte'))::text::int <> 0 then raise exception 'FALLO 249 · sigue habiendo corte horas antes de la carga'; end if;
+  if (parametro('difusion_max_contactados'))::text::int <> 1000 then raise exception 'FALLO 249 · el tope de contactados no es 1000'; end if;
+  select minutos, lote into m, l from fn_difusion_cadencia(2);   if (m, l) <> (1, 10) then raise exception 'FALLO 249 · a 2 h: % min, lote %', m, l; end if;
+  select minutos, lote into m, l from fn_difusion_cadencia(5);   if (m, l) <> (1, 5)  then raise exception 'FALLO 249 · a 5 h: % min, lote %', m, l; end if;
+  select minutos, lote into m, l from fn_difusion_cadencia(20);  if (m, l) <> (3, 8)  then raise exception 'FALLO 249 · a 20 h: % min, lote %', m, l; end if;
+  select minutos, lote into m, l from fn_difusion_cadencia(60);  if (m, l) <> (3, 1)  then raise exception 'FALLO 249 · a 60 h: % min, lote %', m, l; end if;
+  -- La cola: las direcciones de prueba quedan omitidas; las reales, no.
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html)
+    values ('prueba249:real', 'cuenta_activada', 'real249@prueba.es', 'Real', '<p>x</p>') returning id into v_ok;
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html)
+    values ('prueba249:invalid', 'difusion', 'Trafico <trafico.249@prueba.invalid>', 'De prueba', '<p>x</p>') returning id into v_inv;
+  perform enviar_emails_pendientes();
+  if (select estado from emails_enviados where id = v_inv) <> 'omitido' then raise exception 'FALLO 249 · un email a una dirección .invalid no queda omitido'; end if;
+  if (select estado from emails_enviados where id = v_ok) = 'omitido' then raise exception 'FALLO 249 · se omite un email a una dirección real'; end if;
+  select prosrc into v_src from pg_proc where oid = 'public.enviar_emails_pendientes()'::regprocedure;
+  if v_src not like '%limit 100 for update skip locked%' then raise exception 'FALLO 249 · la cola no manda 100 por pasada'; end if;
+  raise notice 'OK 249 · oferta desde 3 días antes, sin corte, 10/5 por minuto y 8 cada 3 min; la cola manda 100 por pasada y omite las direcciones .invalid';
+end $$;
 reset role;

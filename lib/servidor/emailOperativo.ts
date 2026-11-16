@@ -33,6 +33,12 @@ export async function enviarEmailOperativo(d: {
     }).select('id').single();
     if (error) return { estado: 'error', error: 'Este aviso ya se mandó (clave repetida).' };
     if (!fila || !d.para) return { estado: 'error', error: 'Sin destinatario con email.' };
+    // Direcciones de prueba (dominio .invalid, que no existe): no se mandan a Postmark —
+    // serían rebotes que gastan emails y dañan la reputación del dominio. Quedan omitidas.
+    if (/\.invalid(\s|>|,|;|$)/i.test(d.para)) {
+      await sb.from('emails_enviados').update({ estado: 'omitido', error: 'Dirección de prueba (.invalid): no se envía.' }).eq('id', fila.id);
+      return { estado: 'error', error: 'Es una dirección de prueba (.invalid): no se envía.' };
+    }
     const token = process.env.POSTMARK_SERVER_TOKEN;
     if (!token) {
       await sb.from('emails_enviados').update({ estado: 'error', error: 'Falta POSTMARK_SERVER_TOKEN en el servidor.' }).eq('id', fila.id);

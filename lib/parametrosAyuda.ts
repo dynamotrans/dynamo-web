@@ -15,8 +15,9 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'La hora española que se asume como hora de carga cuando no se indica al lanzar la difusión. De ella salen la cadencia y el corte.',
     ejemplo: (v) => `Con ${v}: sin hora indicada, se asume que se carga a las ${v}:00.` },
   difusion_horas_corte: { titulo: 'Corte: horas antes de la carga',
-    explica: 'Llegadas estas horas antes de la hora de carga no sale ni un email más. Si nadie aceptó, aviso urgente: eso ya es de teléfono.',
-    ejemplo: (v) => `Con ${v}: carga a las 8:00 → el último email puede salir hasta las ${String(8 - Number(v) < 0 ? 24 + 8 - Number(v) : 8 - Number(v)).padStart(2, '0')}:00.` },
+    explica: 'Estas horas antes de la hora de carga dejan de salir emails y la oferta se cierra con aviso a Dynamo. Con 0 no hay corte: siguen saliendo hasta la hora de carga.',
+    ejemplo: (v) => (Number(v) <= 0 ? 'Con 0: carga a las 8:00 → los emails siguen hasta las 8:00.'
+      : `Con ${v}: carga a las 8:00 → el último email puede salir hasta las ${String(8 - Number(v) < 0 ? 24 + 8 - Number(v) : 8 - Number(v)).padStart(2, '0')}:00.`) },
   difusion_hora_inicio: { titulo: 'Ventana de envío: desde',
     explica: 'Hora española desde la que se mandan emails, todos los días del año (festivos incluidos). Admite medias horas con decimales: 5.5 = 5:30.',
     ejemplo: (v) => `Con ${v}: el primer email del día puede salir a las ${String(Math.trunc(Number(v))).padStart(2, '0')}:${Number(v) % 1 ? '30' : '00'}.` },
