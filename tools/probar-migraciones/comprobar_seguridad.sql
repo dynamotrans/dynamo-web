@@ -11127,3 +11127,52 @@ begin
   raise notice 'OK 260 · crédito insuficiente: el envío que no cabe en lo que queda (también al subir el precio modificando) se paga por adelantado; el manual de Dynamo manda siempre sobre CESCE (0 = sin crédito, vacío = CESCE); sin importes en el motivo; apagable';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
+
+-- ---- 261. Al conceder o subir el crédito, los envíos pendientes de pago que ya caben pasan a crédito solos ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
+do $$ declare cli uuid; a uuid; b uuid; c uuid; x record; n int;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  -- Cliente SIN crédito (sin clasificar): sus envíos nacen pendientes de pago.
+  insert into clientes (razon_social, cif) values ('Cliente Crédito 261 SL', 'B26100261') returning id into cli;
+  update clientes set riesgo_cesce_euros = null, riesgo_manual_euros = null, exento_pago_previo_primer_envio = true where id = cli;
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 300, lun) returning id into a;        -- 363 €
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 900, lun + 1) returning id into b;    -- 1.089 €
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 100, lun + 2) returning id into c;    -- 121 €
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select e, o, t, cp, p, 'ES' from unnest(array[a, b, c]) e, (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id in (a, b, c);
+  if (select count(*) from envios where id in (a, b, c) and estado_pago_previo = 'pendiente' and pago_motivo like 'Sin crédito%') <> 3 then
+    raise exception 'FALLO 261 · los envíos de un cliente sin crédito no nacen pendientes de pago';
+  end if;
+  -- c lo pidió cobrar por adelantado Dynamo a mano: ese no se libera solo.
+  update envios set pago_motivo = 'Pedido por Dynamo' where id = c;
+  -- Dynamo le pone 1.000 € de crédito: a (363 €) cabe y pasa a crédito; b (1.089 €) no cabe y sigue pendiente.
+  update clientes set riesgo_manual_euros = 1000 where id = cli;
+  select estado_pago_previo, pago_exento_motivo into x from envios where id = a;
+  if x.estado_pago_previo <> 'exento' or x.pago_exento_motivo not like 'Crédito disponible%' then
+    raise exception 'FALLO 261 · al concederle crédito, el envío pendiente que ya cabe sigue pidiendo el pago: %', x;
+  end if;
+  select estado_pago_previo, pago_motivo into x from envios where id = b;
+  if x.estado_pago_previo <> 'pendiente' or x.pago_motivo not like 'Crédito insuficiente%' then
+    raise exception 'FALLO 261 · el envío que no cabe en el crédito nuevo no queda pendiente con el motivo al día: %', x;
+  end if;
+  if (select estado_pago_previo from envios where id = c) <> 'pendiente' then raise exception 'FALLO 261 · libera solo un envío que Dynamo pidió cobrar por adelantado'; end if;
+  select count(*) into n from avisos where para = 'dynamo' and tipo = 'credito_libera_pagos' and titulo like '1 envío pasa a crédito%Cliente Crédito 261%';
+  if n <> 1 then raise exception 'FALLO 261 · Dynamo no recibe (una vez) el aviso de los envíos que pasan a crédito: %', n; end if;
+  if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'exento' and envio_id = a) then
+    raise exception 'FALLO 261 · el cliente no recibe el aviso de que ya no hace falta pagar por adelantado';
+  end if;
+  -- Bajarle el crédito no vuelve a pedir el pago de lo ya liberado, ni libera nada.
+  update clientes set riesgo_manual_euros = 500 where id = cli;
+  if (select estado_pago_previo from envios where id = a) <> 'exento' then raise exception 'FALLO 261 · bajar el crédito vuelve a pedir el pago de un envío ya liberado'; end if;
+  -- Se lo amplían (CESCE manda al quedar el manual vacío): ahora b también cabe.
+  update clientes set riesgo_manual_euros = null, riesgo_cesce_euros = 5000 where id = cli;
+  if (select estado_pago_previo from envios where id = b) <> 'exento' then raise exception 'FALLO 261 · al ampliar el crédito no pasa a crédito el envío que ya cabe'; end if;
+  if (select estado_pago_previo from envios where id = c) <> 'pendiente' then raise exception 'FALLO 261 · al ampliar el crédito libera el envío pedido por Dynamo'; end if;
+  raise notice 'OK 261 · al conceder o ampliar el crédito, los envíos pendientes de pago por falta de crédito que ya caben pasan a crédito solos (del que carga antes al que carga después), con aviso a Dynamo y al cliente; los pedidos por Dynamo, no';
+end $$;
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
