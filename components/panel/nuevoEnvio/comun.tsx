@@ -144,7 +144,7 @@ export type MiAutosusp = { activa: boolean;
   envios_dia?: { hoy: number; max_hoy: number | null };   // límite individual de envíos (regla 6); null = sin tope
   cancelaciones: { propias: number; envios: number; max_pct: number; min_envios: number;
     recientes: number; max_recientes: number; dias_recientes: number } };
-export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number;
+export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias_habiles: number; margen_pct: number;
   // Horas de corte: la de fecha fija y una POR VENTANA (1-2, 1-3 y 1-4 días; usuario, 2026-11-10).
   corte_fija_hora?: number; corte_ventana_1_2_hora?: number; corte_ventana_1_3_hora?: number; corte_ventana_1_4_hora?: number;
   // Descuento de bienvenida (%) que se aplica al calcular un precio SIN cliente (negativo = descuento).

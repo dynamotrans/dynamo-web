@@ -20,6 +20,7 @@ import { SIGLAS } from '@/lib/siglas';
 import { paisDe as nombrePais } from '@/lib/paises';
 import { nombreTipo } from './TipoSitio';
 import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
+import { diaCierrePrecio } from '@/lib/fechasCarga';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
 import AvisoCorte from './nuevoEnvio/AvisoCorte';
@@ -733,14 +734,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // tonelada» / «13,30 metros · Tráiler completo · De 23 a 24 toneladas (máximo)».
   const mercResumen = [mlTxt.split(' ·')[0], ml === '13.3' ? 'Tráiler completo' : 'Grupaje', pesoTxt].filter(Boolean).join(' · ');
   const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,60 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
-  // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
+  // Precio provisional: si para la carga faltan más de N días HÁBILES, se revisa y queda
+  // cerrado justo N días hábiles antes (un solo parámetro; usuario, 2026-11-16).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;
-  const provisional = !!reglas && !!fecha && diasHasta > reglas.cerrado_dias;
+  const diaCierre = reglas && fecha ? diaCierrePrecio(fecha, reglas.cerrado_dias_habiles, hoyMadrid(), fest) : null;
+  const provisional = !!diaCierre;
   const maxFecha = esCliente && reglas && reglas.antelacion_max_dias > 0
     ? hoyMadrid(reglas.antelacion_max_dias) : undefined;
   const avisoProvisional = provisional && reglas ? (
     <div className="pt-aviso" style={{ marginTop: '0.6rem' }}><div>
-      <strong>Precio provisional:</strong> como faltan más de {reglas.cerrado_dias} días, el precio se revisa <strong>{reglas.revision_dias_habiles} días hábiles antes de la carga</strong>.
+      <strong>Precio provisional:</strong> como faltan más de {reglas.cerrado_dias_habiles} días hábiles para la carga, el precio se revisa y queda cerrado <strong>{reglas.cerrado_dias_habiles} días hábiles antes{diaCierre ? ` (el ${fmtFecha(diaCierre)})` : ''}</strong>.
     </div></div>) : null;
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
   // Fecha ESTIMADA por parada (usuario, 2026-11-10): SOLO la 1.ª parada lleva la fecha
@@ -1434,8 +1437,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         })()}>
         <p style={{ margin: 0 }}>
           Este precio es <strong>el que se aplica al crear y confirmar el envío ahora</strong>. Las tarifas son
-          dinámicas: el precio <strong>se fija al confirmar el envío a menos de {reglas?.cerrado_dias ?? 7} días de la
-          carga</strong>. Con más antelación, se actualizará al llegar a {reglas?.cerrado_dias ?? 7} días de la primera
+          dinámicas: el precio <strong>se fija al confirmar el envío a {reglas?.cerrado_dias_habiles ?? 12} días hábiles o menos de la
+          carga</strong>. Con más antelación, se actualizará al llegar a {reglas?.cerrado_dias_habiles ?? 12} días hábiles de la primera
           parada, con el precio válido para el día de carga.
         </p>
         <p style={{ margin: '0.6rem 0 0', color: 'var(--gray-500)' }}>

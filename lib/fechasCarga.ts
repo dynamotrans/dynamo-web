@@ -9,6 +9,19 @@ export function sumarHabiles(desde: string, n: number, fest: Set<string>): strin
   while (k < n) { x.setDate(x.getDate() + 1); if (habil(x, fest)) k++; }
   return iso(x);
 }
+// N días hábiles ANTES de una fecha (igual que dias_habiles_antes() en la base de datos).
+export function habilesAntes(fecha: string, n: number, fest: Set<string>): string {
+  const [a, m, d] = fecha.split('-').map(Number); const x = new Date(a, m - 1, d); let k = 0;
+  while (k < Math.max(0, n)) { x.setDate(x.getDate() - 1); if (habil(x, fest)) k++; }
+  return iso(x);
+}
+// Día en que un precio provisional se revisa y queda cerrado: N días hábiles antes de la
+// carga (parámetro precio_cerrado_dias_habiles). null = el precio ya es cerrado (faltan N
+// días hábiles o menos). La misma cuenta que precio_dia_cierre() en la base de datos.
+export function diaCierrePrecio(fechaCarga: string, n: number, hoy: string, fest: Set<string>): string | null {
+  const d = habilesAntes(fechaCarga, Math.min(Math.max(0, n), 400), fest);
+  return d > hoy ? d : null;
+}
 // Primer día de recogida posible (hora de Madrid; cuentan solo los días hábiles: fuera
 // sábados, domingos y festivos nacionales). Las mismas reglas que primera_fecha_carga()
 // en la base de datos:

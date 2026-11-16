@@ -16,7 +16,7 @@ update parametros set valor = 'false' where clave = 'pago_previo_activo';
 -- Igual con los requisitos de la negociación del transportista (prueba 104): a 0, no se aplican.
 update parametros set valor = '0' where clave in ('negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga');
 -- Y con la revisión del precio de los envíos lejanos (prueba 129): sin ella, todo precio es cerrado.
-update parametros set valor = '100000' where clave = 'precio_cerrado_dias';
+update parametros set valor = '100000' where clave = 'precio_cerrado_dias_habiles';
 
 -- ---- 1. Ninguna tabla de public sin seguridad por filas ------------------------------
 do $$ declare lista text; begin
@@ -4557,7 +4557,7 @@ update parametros set valor = 'false' where clave = 'pago_previo_activo';
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
-update parametros set valor = '7' where clave = 'precio_cerrado_dias';
+update parametros set valor = '7' where clave = 'precio_cerrado_dias_habiles';
 create or replace function pg_temp.envio129(c uuid, dias int, imp numeric) returns uuid language plpgsql as $$
 declare e uuid; begin
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
@@ -4578,6 +4578,20 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid
   end if;
   e2 := pg_temp.envio129(c, 3, 1000);
   if (select estado_revision_precio from envios where id = e2) is not null then raise exception 'FALLO 129 · un envío a 3 días no tiene precio cerrado'; end if;
+  -- Un solo parámetro, en días hábiles (2026-11-16): la revisión cae justo esos días hábiles
+  -- antes de la carga, y un precio provisional nunca nace con la revisión ya vencida.
+  if (select fecha_revision_precio from envios where id = e) <> dias_habiles_antes((select fecha_carga_desde from envios where id = e), 7)
+     or (select fecha_revision_precio from envios where id = e) <= (now() at time zone 'Europe/Madrid')::date then
+    raise exception 'FALLO 129 · la revisión no cae 7 días hábiles antes de la carga (o nace vencida)';
+  end if;
+  -- A 9 días naturales faltan 7 hábiles o menos: cerrado (antes nacía provisional y vencido).
+  e2 := pg_temp.envio129(c, 9, 1000);
+  if (select estado_revision_precio from envios where id = e2) is not null then
+    raise exception 'FALLO 129 · un envío a 9 días naturales (7 hábiles o menos) no tiene precio cerrado';
+  end if;
+  if exists (select 1 from parametros where clave in ('precio_cerrado_dias', 'precio_revision_dias_habiles')) then
+    raise exception 'FALLO 129 · siguen los dos parámetros viejos del precio cerrado';
+  end if;
   -- Con precio provisional SÍ se oferta y SÍ se asigna (2026-11-09); al asignar camión
   -- el precio queda definitivo solo (como al pagar). En un tercer envío, para no tocar
   -- el flujo de revisión manual de e.
@@ -4661,10 +4675,10 @@ do $$ declare c uuid; e uuid; begin
   end if;
   perform revisar_precio_envio(e, 1000);
   if (select pago_pendiente_en from envios where id = e) is null then raise exception 'FALLO 129 · tras la revisión no empieza el plazo para pagar'; end if;
-  raise notice 'OK 129 · revisión de precio: cerrado a ≤7 días, provisional más lejos (se oferta y se asigna igualmente; al asignar camión queda definitivo), una revisión con margen, la subida se aplica sola con aviso, llegada la fecha queda definitivo solo y el pago espera al precio definitivo';
+  raise notice 'OK 129 · revisión de precio: un solo parámetro en días hábiles (cerrado a ≤7 hábiles, provisional más lejos y revisado justo ese día) (se oferta y se asigna igualmente; al asignar camión queda definitivo), una revisión con margen, la subida se aplica sola con aviso, llegada la fecha queda definitivo solo y el pago espera al precio definitivo';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
-update parametros set valor = '100000' where clave = 'precio_cerrado_dias';
+update parametros set valor = '100000' where clave = 'precio_cerrado_dias_habiles';
 
 -- ---- 130. Diccionario de datos: todo descrito dentro de Supabase ---------------------------
 reset role;

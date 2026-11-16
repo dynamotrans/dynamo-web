@@ -3866,6 +3866,7 @@ export type Database = {
       poner_camion_mi_envio_manual: { Args: { p_envio: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_conductor_telefono: string | null }; Returns: Json }
       poner_datos_cmr: { Args: { p_envio: string | null; p_bultos: number | null; p_embalaje: string | null; p_volumen: number | null }; Returns: undefined }
       poner_horario_por_defecto: { Args: { p_sitio: string | null }; Returns: undefined }
+      precio_dia_cierre: { Args: { p_carga: string | null }; Returns: string }
       precio_por_revisar: { Args: { p: string | null }; Returns: boolean }
       preparar_pines_envio: { Args: { p_envio: string | null }; Returns: number }
       primera_carga_posible: { Args: { p_envio: string | null }; Returns: string }

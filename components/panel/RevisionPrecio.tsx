@@ -1,7 +1,7 @@
 'use client';
 
 // Revisión del precio de un envío programado con mucha antelación (parámetros
-// precio_cerrado_dias, precio_revision_dias_habiles, precio_revision_margen_pct). Las
+// precio_cerrado_dias_habiles, precio_revision_margen_pct). Las
 // reglas las impone la base de datos (revisar_precio_envio, responder_subida_precio).
 import { useState } from 'react';
 import { euros, fecha, fechaHora } from '@/lib/formato';

@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   if (!c) return texto('Ese cliente no existe.', 404);
 
   const { data: reg } = await sb.rpc('reglas_precio_envio');
-  const cerrado = Number((reg as { cerrado_dias?: number } | null)?.cerrado_dias ?? 7);
+  const cerrado = Number((reg as { cerrado_dias_habiles?: number } | null)?.cerrado_dias_habiles ?? 12);
   const bytes = await proforma({
     codigo: 'CALCULO', referencia_cliente: null, creado_en: new Date().toISOString(),
     cliente: { razon_social: c.razon_social ?? '—', cif: c.cif ?? '—', direccion: c.direccion ?? null,
@@ -54,8 +54,8 @@ export async function GET(req: Request) {
       + 'Por eso no lleva datos de pago. La proforma pagadera, con los datos de la transferencia, sale al crear el envío '
       + 'y quedar pendiente de pago, con el precio ya fijado.' },
     condiciones: `Precio válido al crear y confirmar el envío ahora. Las tarifas son dinámicas: el precio se fija al `
-      + `confirmar el envío a menos de ${cerrado} días de la carga. Con más antelación, el precio se actualizará al llegar a `
-      + `${cerrado} días de la primera parada, con el precio válido para el día de carga.`,
+      + `confirmar el envío a ${cerrado} días hábiles o menos de la carga. Con más antelación, el precio se actualizará al llegar a `
+      + `${cerrado} días hábiles de la primera parada, con el precio válido para el día de carga.`,
     dynamo: await datosDynamo(sb),
   });
   return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',

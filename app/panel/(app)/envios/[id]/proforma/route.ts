@@ -44,15 +44,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const cuando = e.fecha_carga_desde ? `carga ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}` : '';
   const medidas = medidasTxt(e.metros_lineales, e.toneladas);
 
-  // A MÁS de N días de la carga la proforma va SIN datos de pago (usuario, 2026-11-11):
-  // las tarifas son dinámicas y el precio se revisa al llegar a N días de la primera
-  // parada, así que todavía no es pagadera. Desde N días (o si no hay fecha que mirar),
-  // sale completa con la transferencia.
+  // Con el precio todavía PROVISIONAL la proforma va SIN datos de pago (usuario, 2026-11-11):
+  // las tarifas son dinámicas y el precio se revisa N días hábiles antes de la primera
+  // parada, así que todavía no es pagadera. Desde ese día (o si no hay fecha que mirar),
+  // sale completa con la transferencia. La cuenta la hace la base de datos (un solo
+  // parámetro, en días hábiles; usuario, 2026-11-16).
   const { data: reg } = await sb.rpc('reglas_precio_envio');
-  const cerrado = Number((reg as { cerrado_dias?: number } | null)?.cerrado_dias ?? 7);
-  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
-  const diasHastaCarga = e.fecha_carga_desde ? Math.round((Date.parse(e.fecha_carga_desde) - Date.parse(hoy)) / 86400000) : null;
-  const lejos = diasHastaCarga != null && diasHastaCarga > cerrado;
+  const cerrado = Number((reg as { cerrado_dias_habiles?: number } | null)?.cerrado_dias_habiles ?? 12);
+  const { data: cierre } = e.fecha_carga_desde ? await sb.rpc('precio_dia_cierre', { p_carga: e.fecha_carga_desde }) : { data: null };
+  const lejos = !!cierre;
 
   // Ya pagó y el precio subió al modificar el envío: lo pagado va a cuenta y solo falta la diferencia.
   const aCuenta = Number(p.a_cuenta ?? 0);
@@ -62,12 +62,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     conceptos: [{ titulo: `Transporte ${p.referencia_gx}${ruta ? ` · ${ruta}` : ''}`, sub: [cuando, medidas, e.descripcion_mercancia].filter(Boolean).join(' · '), importe: Number(p.base) }],
     iva: Number(p.iva),
     sinPago: lejos ? { aviso: `El precio de este envío todavía NO está fijado: las tarifas son dinámicas y se revisará al llegar a ${cerrado} `
-      + `días de la primera parada, con el precio válido para el día de carga. Por eso esta proforma no lleva datos de pago: la proforma `
-      + `pagadera, con la transferencia, saldrá aquí mismo cuando queden ${cerrado} días o menos.` } : null,
+      + `días hábiles de la primera parada, con el precio válido para el día de carga. Por eso esta proforma no lleva datos de pago: la proforma `
+      + `pagadera, con la transferencia, saldrá aquí mismo cuando queden ${cerrado} días hábiles o menos.` } : null,
     condiciones: (aCuenta > 0 && Number(p.pendiente) > 0
       ? `YA PAGADO A CUENTA: ${euros(aCuenta)}. PENDIENTE DE PAGO: ${euros(Number(p.pendiente))} (IVA incluido), la diferencia por la modificación del envío. `
       : '') + (lejos
-      ? `Precio pendiente de fijar: se actualizará al llegar a ${cerrado} días de la carga. El envío no se asigna a ningún transportista hasta validar el pago.`
+      ? `Precio pendiente de fijar: se actualizará al llegar a ${cerrado} días hábiles de la carga. El envío no se asigna a ningún transportista hasta validar el pago.`
       : 'El envío no se asigna a ningún transportista hasta validar el pago (por transferencia, la validación puede tardar hasta 24 h; con tarjeta, al momento). Si la fecha de carga ya no se puede cumplir cuando llegue el pago, te propondremos otra.'),
     dynamo: await datosDynamo(sb),
   });

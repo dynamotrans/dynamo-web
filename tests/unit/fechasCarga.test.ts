@@ -4,7 +4,7 @@
 // (grupaje); la fecha fija, la suya.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { primerDia, sumarHabiles } from '../../lib/fechasCarga';
+import { primerDia, sumarHabiles, habilesAntes, diaCierrePrecio } from '../../lib/fechasCarga';
 
 const sinFest = new Set<string>();
 const madrid = (s: string) => new Date(s);   // con la zona en el texto
@@ -34,4 +34,16 @@ test('cada ventana con SU hora de corte (1-2 · 1-3 · 1-4)', () => {
 test('horas de corte de Parámetros y festivos', () => {
   assert.equal(primerDia('dia', false, sinFest, { fija: 9 }, madrid('2026-11-11T10:00:00+01:00')), '2026-11-13');
   assert.equal(sumarHabiles('2026-12-07', 1, new Set(['2026-12-08'])), '2026-12-09');
+});
+
+// Precio cerrado o provisional: un solo parámetro en días hábiles (usuario, 2026-11-16).
+// Mismos casos que precio_dia_cierre() en la base de datos (prueba 129 del arnés).
+test('precio cerrado: N días hábiles antes de la carga, sin contradicciones', () => {
+  const hoy = '2026-11-16';   // lunes
+  assert.equal(habilesAntes('2026-12-02', 12, sinFest), '2026-11-16');
+  assert.equal(diaCierrePrecio('2026-12-02', 12, hoy, sinFest), null);           // faltan justo 12 hábiles: cerrado
+  assert.equal(diaCierrePrecio('2026-12-03', 12, hoy, sinFest), '2026-11-17');   // faltan 13: provisional, se revisa mañana
+  assert.equal(diaCierrePrecio('2026-11-30', 12, hoy, sinFest), null);           // 14 naturales = 10 hábiles: cerrado (antes nacía provisional y vencido)
+  assert.equal(diaCierrePrecio('2026-12-03', 12, hoy, new Set(['2026-11-17'])), null);   // un festivo por medio: ya solo faltan 12
+  assert.equal(diaCierrePrecio('2026-11-16', 12, hoy, sinFest), null);           // carga hoy
 });

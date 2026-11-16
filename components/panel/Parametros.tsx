@@ -31,7 +31,7 @@ type Seccion = { id: string; titulo: string; intro: string; subs: Sub[]; especia
 const SECCIONES: Seccion[] = [
   { id: 'clientes', titulo: 'Clientes', intro: 'Precios, contraofertas y condiciones de los clientes.', subs: [
     { titulo: 'Descuento de bienvenida', claves: ['factor_bienvenida_pct', 'factor_bienvenida_envios'] },
-    { titulo: 'Antelación y revisión del precio', claves: ['envio_antelacion_max_dias', 'precio_cerrado_dias', 'precio_revision_dias_habiles', 'precio_revision_margen_pct'] },
+    { titulo: 'Antelación y revisión del precio', claves: ['envio_antelacion_max_dias', 'precio_cerrado_dias_habiles', 'precio_revision_margen_pct'] },
     { titulo: 'Contraoferta del cliente', claves: ['contraoferta_cliente_activa', 'contraoferta_cliente_auto_pct', 'contraoferta_cliente_max_pct'] },
     // Al pagar y liberar rigen los MISMOS cortes (usuario, 2026-11-10): no hay parámetros aparte.
     { titulo: 'Hora de corte para cargar el siguiente día hábil', claves: ['primer_dia_corte_fija_hora', 'primer_dia_corte_ventana_1_3_hora', 'primer_dia_corte_ventana_1_2_hora', 'primer_dia_corte_ventana_1_4_hora'] },
