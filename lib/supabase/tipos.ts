@@ -1908,6 +1908,7 @@ export type Database = {
           ancla_hora: string | null
           fecha_efectiva: string | null
           pago_a_cuenta: number | null
+          importe_tarifa: number | null
         }
         Insert: {
           id?: string
@@ -2023,6 +2024,7 @@ export type Database = {
           ancla_hora?: string | null
           fecha_efectiva?: string | null
           pago_a_cuenta?: number | null
+          importe_tarifa?: number | null
         }
         Update: {
           id?: string
@@ -2138,6 +2140,7 @@ export type Database = {
           ancla_hora?: string | null
           fecha_efectiva?: string | null
           pago_a_cuenta?: number | null
+          importe_tarifa?: number | null
         }
         Relationships: [
           {
@@ -3756,6 +3759,7 @@ export type Database = {
       euros_texto: { Args: { p: number | null }; Returns: string }
       exportar_datos_usuario: { Args: { p_usuario?: string | null }; Returns: Json }
       factor_automatico: { Args: { p_cliente: string | null }; Returns: number }
+      factor_tarifa_envio: { Args: { p_cliente: string | null; p_envio?: string | null }; Returns: number }
       fecha_ddmmyyyy: { Args: { p: string | null }; Returns: string }
       fecha_hora_texto: { Args: { p: string | null }; Returns: string }
       fecha_texto: { Args: { p: string | null }; Returns: string }

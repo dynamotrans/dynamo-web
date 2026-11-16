@@ -432,7 +432,8 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
               <div aria-hidden="true" style={{ borderTop: '1px dashed var(--gray-300)', margin: '0.45rem 0' }} />
               <div className="pen-sum-row"><span className="k">P. transportista <span style={{ color: 'var(--red)', fontWeight: 800 }}>· solo admin</span></span><span className="v">{pt != null ? euros(pt) : '—'}</span></div>
               <div className="pen-sum-row"><span className="k">Margen</span><span className="v" style={{ color: e.margen_euros == null ? undefined : Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626', fontWeight: 800 }}>{e.margen_euros != null ? euros(e.margen_euros) : '—'}</span></div>
-              {e.factor_tarifa_pct != null && <div className="pen-sum-row"><span className="k">Factor del cliente aplicado</span><span className="v">{txtNum(e.factor_tarifa_pct)} %</span></div>}
+              {e.factor_tarifa_pct != null && Number(e.factor_tarifa_pct) !== 0 && <div className="pen-sum-row"><span className="k">Factor del cliente aplicado <span style={{ color: 'var(--red)', fontWeight: 800 }}>· solo admin</span></span><span className="v">{Number(e.factor_tarifa_pct) > 0 ? '+' : ''}{txtNum(e.factor_tarifa_pct)} %</span></div>}
+              {e.factor_tarifa_pct != null && Number(e.factor_tarifa_pct) !== 0 && e.importe_tarifa != null && <div className="pen-sum-row"><span className="k">Precio de tarifa (sin el factor)</span><span className="v">{euros(e.importe_tarifa)}</span></div>}
               {e.precio_fijado_a_mano && <div className="pen-sum-row"><span className="k">Precio</span><span className="v">fijado a mano</span></div>}
             </>
           )}

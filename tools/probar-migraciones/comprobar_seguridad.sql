@@ -11195,3 +11195,80 @@ begin
   raise notice 'OK 261 · al conceder o ampliar el crédito, los envíos pendientes de pago por falta de crédito que ya caben pasan a crédito solos (del que carga antes al que carga después), con aviso a Dynamo y al cliente; los pedidos por Dynamo, no';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
+
+-- ---- 262. El factor del cliente va dentro del precio; el envío guarda la tarifa original y su factor ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; begin
+  update clientes set factor_tarifa_pct = -7, factor_fijado_a_mano = true where id = cli;
+  perform set_config('prueba.otro262', (select id::text from clientes where id <> cli limit 1), false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid; ok boolean := false;
+  paradas jsonb := jsonb_build_array(
+    jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 262', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+    jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 262', 'codigo_postal', '28001', 'poblacion', 'Madrid'));
+begin
+  -- El asistente pregunta qué factor toca: el del cliente (solo el suyo).
+  if factor_tarifa_envio(cli) <> -7 then raise exception 'FALLO 262 · el cliente no obtiene su factor para calcular el precio: %', factor_tarifa_envio(cli); end if;
+  begin perform factor_tarifa_envio(current_setting('prueba.otro262')::uuid);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 262 · un cliente consulta el factor de otra empresa'; end if;
+  -- Crea su envío: tarifa 1.000 €, con su −7 % le sale a 930 €.
+  select s.id into e from crear_envio_cliente(jsonb_build_object('importe_cliente', 930, 'importe_tarifa', 1000,
+    'fecha_carga_desde', sumar_dias_habiles(primera_fecha_carga(false), 3), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 4),
+    'metros_lineales', 6, 'toneladas', 5), paradas) s;
+  if e is null then raise exception 'FALLO 262 · el cliente no puede crear el envío'; end if;
+  perform set_config('prueba.e262', e::text, false);
+  -- Él no ve ni el factor ni la tarifa original: solo su precio.
+  if exists (select 1 from mis_envios() m where m.id = e and (to_jsonb(m) ? 'importe_tarifa' or to_jsonb(m) ? 'factor_tarifa_pct')) then
+    raise exception 'FALLO 262 · el cliente ve el factor o la tarifa original de su envío';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid := current_setting('prueba.e262')::uuid; x record; begin
+  select importe_cliente, importe_tarifa, factor_tarifa_pct into x from envios where id = e;
+  if x.importe_cliente <> 930 or x.importe_tarifa is distinct from 1000 or x.factor_tarifa_pct is distinct from -7 then
+    raise exception 'FALLO 262 · el envío no guarda la tarifa original y el factor aplicado: %', x;
+  end if;
+  -- Al cliente se le acaba el descuento…
+  update clientes set factor_tarifa_pct = 0 where id = cli;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid := current_setting('prueba.e262')::uuid; d jsonb; begin
+  -- …pero su envío conserva el suyo: al modificarlo, el asistente sigue calculando con −7 %.
+  if factor_tarifa_envio(cli) <> 0 or factor_tarifa_envio(cli, e) <> -7 then
+    raise exception 'FALLO 262 · al modificar, el envío no conserva su factor (cliente %, envío %)', factor_tarifa_envio(cli), factor_tarifa_envio(cli, e);
+  end if;
+  select jsonb_build_object('importe_cliente', 1020, 'importe_tarifa', 1100, 'fecha_carga_desde', m.fecha_carga_desde, 'fecha_carga_hasta', m.fecha_carga_hasta,
+                            'metros_lineales', 8, 'toneladas', 6) into d from mis_envios() m where m.id = e;
+  perform modificar_envio_cliente(e, d, null);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid := current_setting('prueba.e262')::uuid; x record; g uuid; begin
+  select importe_cliente, importe_tarifa, factor_tarifa_pct into x from envios where id = e;
+  if x.importe_cliente <> 1020 or x.importe_tarifa is distinct from 1100 or x.factor_tarifa_pct is distinct from -7 then
+    raise exception 'FALLO 262 · al modificar no se guarda la tarifa nueva con el factor del envío: %', x;
+  end if;
+  -- Dynamo pone el precio a mano: ese precio ya no lleva el factor.
+  update envios set importe_cliente = 800, precio_fijado_a_mano = true where id = e;
+  if (select factor_tarifa_pct from envios where id = e) is not null then raise exception 'FALLO 262 · un precio puesto a mano sigue marcado con el factor'; end if;
+  -- Un envío sin precio de tarifa (creado por otra vía) no lleva factor.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde)
+    values (cli, 6, 5, 600, sumar_dias_habiles(current_date, 4)) returning id into g;
+  if (select factor_tarifa_pct from envios where id = g) is not null then raise exception 'FALLO 262 · un envío sin tarifa anotada lleva factor'; end if;
+  -- Y uno con tarifa pero precio que no cuadra con tarifa × factor, tampoco (el cliente va ahora a 0 %).
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_tarifa, fecha_carga_desde)
+    values (cli, 6, 5, 600, 1000, sumar_dias_habiles(current_date, 4)) returning id into g;
+  if (select factor_tarifa_pct from envios where id = g) is not null then raise exception 'FALLO 262 · un precio que no sale de la tarifa lleva factor'; end if;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_tarifa, fecha_carga_desde)
+    values (cli, 6, 5, 1000, 1000, sumar_dias_habiles(current_date, 4)) returning id into g;
+  if (select factor_tarifa_pct from envios where id = g) is distinct from 0 then raise exception 'FALLO 262 · un envío a tarifa (factor 0 %%) no queda anotado con 0'; end if;
+  update clientes set factor_fijado_a_mano = false where id = cli;
+  raise notice 'OK 262 · el factor del cliente va dentro del precio: el envío guarda la tarifa original y su factor, lo conserva al modificarse aunque al cliente se le acabe el descuento, y no lo lleva un precio puesto a mano; el cliente no ve ni el factor ni la tarifa, ni consulta el de otra empresa';
+end $$;

@@ -37,7 +37,8 @@ export type AlternativaTarifa = {
   urgencia: 'dia' | 'estandar' | 'corta'; fecha: string;       // lo que hay que poner al pulsar «Elegir»
 };
 export type Tarifa = {
-  neto: number;                        // base imponible sugerida (sin IVA)
+  neto: number;                        // base imponible sugerida (sin IVA), ya con el factor del cliente dentro
+  netoBase?: number;                   // el precio de tarifa ANTES del factor del cliente (solo si se aplicó uno)
   lineas: LineaTarifa[];               // desglose en orden (el importe del envío primero)
   grupaje: boolean;
   alternativas: AlternativaTarifa[];   // más baratas, con su ahorro («Elegir» cambia fecha/tipo)
@@ -206,15 +207,18 @@ export function combinaciones(e: EntradaTarifa): Combinacion[] {
   return out;
 }
 
-// Descuento de bienvenida sobre una tarifa ya calculada (parámetro factor_bienvenida_pct,
-// −7 % de serie): el de un cliente nuevo y el del tarifador público sin registro. Lo usa
-// el panel al calcular un precio SIN cliente elegido (usuario, 2026-11-13). NO sale como
-// línea del desglose (usuario, 2026-11-14: «el precio ya con el descuento»): se funde en
-// «Importe del envío», y los ahorros de las alternativas se escalan igual para cuadrar.
+// FACTOR DEL CLIENTE sobre una tarifa ya calculada (negativo = descuento): el de bienvenida
+// (parámetro factor_bienvenida_pct) de un cliente nuevo en sus primeros envíos, el del
+// tarifador público sin registro y el de Dynamo calculando SIN cliente; o el que Dynamo le
+// haya fijado a mano al cliente. NO sale como línea del desglose ni se enseña en ningún
+// sitio (usuario, 2026-11-14 y 2026-11-16: «el precio ya con el descuento… como si fuera un
+// precio normal»): se funde en «Importe del envío», y los ahorros de las alternativas se
+// escalan igual para cuadrar. `netoBase` guarda el precio de tarifa de antes, que es el que
+// se anota en el envío (solo para Dynamo) y del que sale el precio del transportista.
 export function aplicarDescuentoTarifa(t: Tarifa, pct: number): Tarifa {
   if (!pct) return t;
   const neto = r10(t.neto * (1 + pct / 100));
-  return { ...t, neto,
+  return { ...t, neto, netoBase: t.neto,
     lineas: t.lineas.map((l, i) => (i === 0 ? { ...l, v: l.v + (neto - t.neto) } : l)),
     alternativas: t.alternativas.map((a) => ({ ...a, ahorro: r10(a.ahorro * (1 + pct / 100)) })) };
 }

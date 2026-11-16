@@ -71,6 +71,7 @@ export type EnvioNuevo = {
   paletizado: boolean; carga_lateral: boolean; carga_trasera: boolean; carga_techo: boolean;
   requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean;
   importe_cliente: number; importe_transportista?: number | null;
+  importe_tarifa?: number | null;    // el precio de tarifa ANTES del factor del cliente (lo anota el envío, solo para Dynamo)
   discrecion_comercial: boolean; anotaciones_cliente?: string;
   negociacion_pct?: number | null;   // banda de negociación por defecto al ofertar (0/5/10/30)
 };
@@ -308,6 +309,18 @@ export async function emailDeCliente(p_cliente: string): Promise<string | null> 
 // Los clientes MÁS ACTIVOS (envíos de los últimos 30 días), para enseñarlos nada más
 // abrir el buscador de cliente de Nuevo envío (usuario, 2026-11-13): suelen repetirse
 // y así no hay que teclear. Solo Dynamo.
+// El FACTOR del cliente (%) que el asistente aplica a la tarifa: el del envío si se está
+// modificando uno (conserva el suyo), o el del cliente hoy (bienvenida, 0 % o fijado a
+// mano). Va DENTRO del precio y no se enseña al cliente (usuario, 2026-11-16). La base de
+// datos comprueba que cada cliente solo pregunta por el suyo.
+export async function factorTarifa(cliente: string, envio: string | null): Promise<number | null> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#factorTarifa", [cliente, envio]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return null;
+  const { data, error } = await s.supabase.rpc('factor_tarifa_envio', envio ? { p_cliente: cliente, p_envio: envio } : { p_cliente: cliente });
+  return error || data == null ? null : Number(data);
+}
+
 export async function clientesActivos(): Promise<{ id: string; nombre: string; cif: string; principal_id: string | null; iva_pct: number; nima_por_defecto: boolean }[]> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#clientesActivos", []);
   const s = await sesion();

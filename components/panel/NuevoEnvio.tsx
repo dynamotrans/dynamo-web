@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import MedidasCamion from './nuevoEnvio/MedidasCamion';
@@ -301,19 +301,38 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return () => { vivo = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claveRuta, rutaCompleta, cliente?.id]);
+  // FACTOR DEL CLIENTE (%): va DENTRO del precio y no se enseña (usuario, 2026-11-16: «como
+  // si fuera un precio normal»). El de bienvenida en sus primeros envíos, después 0 %, o el
+  // que Dynamo le haya fijado. Al MODIFICAR un envío manda el factor de ese envío, para que
+  // no le cambie el precio si entretanto se le acabó el descuento. undefined = aún cargando
+  // (mientras, no se da precio: nunca se enseña uno sin su factor).
+  const [factorCli, setFactorCli] = useState<number | undefined>(undefined);
+  const clienteId = cliente?.id ?? null;
+  useEffect(() => {
+    setFactorCli(undefined);
+    if (!clienteId) return;
+    let vivo = true;
+    factorTarifa(clienteId, editar && be ? be.id : null)
+      .then((f) => { if (vivo) setFactorCli(f ?? 0); }).catch(() => { if (vivo) setFactorCli(0); });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId]);
   const tarifa = useMemo(() => {
     if (!kmInfo || !rutaCompleta || manual) return null;
+    if (cliente && factorCli === undefined) return null;
     const t = calcularTarifa({ km: kmInfo.km, puntos: puntosRuta.length,
       tiposSitio: puntosRuta.map((p) => p.sitio?.tipo ?? p.nuevo?.tipo_sitio ?? 'almacen_nave'),
       ml: Number(ml) || 0, peso: Number(peso) || 0, mlMax, pesoMax,
       paletizada, techo: forma.toLowerCase().includes('techo'), plataforma, nima, adr,
       urgencia, fecha: fecha || null, primerDia: dias[0], hoy: hoyMadrid(), festivos });
-    // SIN cliente elegido (solo pasa en la vista de Dynamo): el precio que se da es el
-    // del tarifador público — con el descuento de bienvenida de Parámetros aplicado
-    // (usuario, 2026-11-13: para dar precio a quien llama a preguntar, sin alta).
-    return (!esCliente && !cliente) ? aplicarDescuentoTarifa(t, Number(reglas?.bienvenida_pct ?? -7)) : t;
+    // CON cliente: su factor. SIN cliente elegido (solo pasa en la vista de Dynamo): el
+    // precio que se da es el del tarifador público — con el descuento de bienvenida de
+    // Parámetros (usuario, 2026-11-13: para dar precio a quien llama a preguntar, sin alta).
+    return aplicarDescuentoTarifa(t, cliente ? (factorCli ?? 0) : Number(reglas?.bienvenida_pct ?? -7));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos, cliente]);
+  }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos, cliente, factorCli]);
+  // El precio de tarifa de antes del factor: se anota en el envío (solo para Dynamo).
+  const tarifaBase = tarifa ? (tarifa.netoBase ?? tarifa.neto) : null;
   // EL CLIENTE MODIFICA SU ENVÍO (usuario, 2026-11-16: «es como un nuevo envío, no
   // liemos»): el precio es SIEMPRE el que el tarifador calcula ahora, como al crear uno.
   const editarCliente = editar && esCliente;
@@ -331,7 +350,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ruta), «Aplicado · media auto» y margen. Y el autorrelleno: venta = Aplicado, compra =
   // la más baja de la tabla; lo tecleado a mano no se pisa.
   const hoyStr = hoyMadrid();
-  const tarCompra = tarifa ? compraTarifador(tarifa.neto) : 0;
+  // El precio del transportista sale de la tarifa SIN el factor del cliente (usuario, 2026-11-15):
+  // el descuento lo asume Dynamo y el recargo se lo queda Dynamo.
+  const tarCompra = tarifa ? compraTarifador(tarifaBase ?? tarifa.neto) : 0;
   const interna = useMemo(() => (!esCliente && tarifa && ultimos)
     ? tablaInterna(tarifa.neto, tarCompra, ultimos.mismo, ultimos.todos, hoyStr) : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,7 +592,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         metros_lineales: Number(ml), toneladas: Number(peso),
         paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'), carga_techo: f.includes('techo'),
         requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
-        importe_cliente: precioEdicionCli,
+        importe_cliente: precioEdicionCli, importe_tarifa: tarifaBase,
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rc.ok) { setEnviando(false); setAviso(rc.error); return; }
@@ -693,7 +714,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         toneladas: Number(peso), metros_lineales: Number(ml),
         paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
         carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
-        importe_cliente: tarifa.neto,
+        importe_cliente: tarifa.neto, importe_tarifa: tarifaBase,
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
@@ -709,7 +730,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       toneladas: Number(peso), metros_lineales: Number(ml),
       paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
       carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
-      importe_cliente: importe, importe_transportista: importeT,
+      importe_cliente: importe, importe_transportista: importeT, importe_tarifa: tarifaBase,
       discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio, negociacion_pct: neg,
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
@@ -1270,6 +1291,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {tarifa && ultimos && interna
                     ? <PreciosInternosTabla tarVenta={tarifa.neto} tarCompra={tarCompra} mismo={ultimos.mismo} todos={ultimos.todos} interna={interna} hoy={hoyStr} />
                     : <p className="ptar-admin-precio-note" style={{ marginBottom: '0.5rem' }}>Ventas, compras y márgenes de esta ruta: se mostrarán al elegir origen y destino.</p>}
+                  {cliente && tarifa && tarifa.netoBase != null && !!factorCli && (
+                    <p className="ptar-admin-precio-note" style={{ marginBottom: '0.5rem' }}>
+                      <strong>Factor de este cliente: {factorCli > 0 ? '+' : ''}{String(factorCli).replace('.', ',')} %</strong>, ya dentro del precio del tarifador
+                      ({eur(tarifa.netoBase)} de tarifa → {eur(tarifa.neto)}). El cliente no lo ve: para él es su precio normal.
+                    </p>)}
                   <label className="ptar-admin-precio-lbl" htmlFor="ne-pc">Cliente manual (base sin IVA)</label>
                   <input id="ne-pc" type="text" inputMode="decimal" placeholder="Se autorrellena con el precio Aplicado" value={pc} onChange={(e) => { setPc(e.target.value); setPcTocado(true); }} />
                   <p className="ptar-admin-precio-note">Se autorrellena con el precio <strong>Aplicado</strong> (media auto de la venta) y es editable. Si tecleas otro, manda ese; si no lo tocas, el envío usa el Aplicado. Queda como precio <strong>«fijado a mano»</strong>.</p>
