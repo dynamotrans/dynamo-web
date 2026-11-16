@@ -10651,7 +10651,7 @@ do $$ begin
   raise notice 'OK 255 · el sitio tiene un solo campo de texto fijo: sus indicaciones';
 end $$;
 
--- ---- 256. Email «Envío creado» al cliente, lo cree él o Dynamo; la víspera, a los mismos ----
+-- ---- 256. Emails al cliente sobre su envío: creado, víspera (solo con transportista), matrículas, modificado y cancelado ----
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; m uuid; r record; n int; cli uuid := current_setting('prueba.cliente')::uuid;
@@ -10671,7 +10671,7 @@ begin
   select * into r from emails_enviados where clave = 'envio_creado:' || e;
   if r.id is null or r.tipo <> 'envio_creado' or r.estado <> 'pendiente' then raise exception 'FALLO 256 · al confirmar el envío no se encola el email «Envío creado»'; end if;
   if position(v_cli in r.destinatario) = 0 or position(v_adm in r.destinatario) > 0 then raise exception 'FALLO 256 · el email no va al usuario del cliente: %', r.destinatario; end if;
-  if r.asunto not like 'Envío #% creado (Sevilla → Coslada)' then raise exception 'FALLO 256 · asunto: %', r.asunto; end if;
+  if r.asunto not like 'Envío creado · envío #% (Sevilla → Coslada)' then raise exception 'FALLO 256 · asunto: %', r.asunto; end if;
   if position('900,00' in r.cuerpo_html) = 0 or position('13,30 metros' in r.cuerpo_html) = 0 or position('/panel/envios?ver=' || e in r.cuerpo_html) = 0 then
     raise exception 'FALLO 256 · al email le falta el precio, la mercancía o el enlace a la ficha: %', r.cuerpo_html;
   end if;
@@ -10679,11 +10679,44 @@ begin
   perform registrar_hito(e, 'confirmado');
   select count(*) into n from emails_enviados where envio_id = e and tipo = 'envio_creado';
   if n <> 1 then raise exception 'FALLO 256 · el email «Envío creado» se repite (%)', n; end if;
-  -- La víspera va a los mismos destinatarios: al cliente, aunque el envío lo creara Dynamo.
-  update envios set fecha_carga_prevista = lun where id = e;
+  if position('Recogida' in r.cuerpo_html) = 0 or position('buscando camión' in r.cuerpo_html) = 0 then raise exception 'FALLO 256 · al email le falta el detalle del envío (ruta y transporte): %', r.cuerpo_html; end if;
+  -- SIN transportista no hay recordatorio de la víspera, aunque tenga fecha.
+  perform encolar_avisos_operativos(((lun - 1) + time '17:30') at time zone 'Europe/Madrid');
+  if exists (select 1 from emails_enviados where clave = 'vispera:' || e || ':' || lun) then raise exception 'FALLO 256 · sale la víspera de un envío sin transportista'; end if;
+  -- Se asigna transportista CON matrículas en la misma operación: no sale el email de
+  -- matrículas (van en el de «Transporte confirmado», que manda la web).
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, matricula_camion = '1234BBB', fecha_carga_prevista = lun where id = e;
+  if exists (select 1 from emails_enviados where envio_id = e and tipo = 'envio_matriculas') then raise exception 'FALLO 256 · sale el email de matrículas cuando se pusieron al asignar el transportista'; end if;
+  -- Ya con transportista, la víspera va a los mismos destinatarios: al cliente, aunque el envío lo creara Dynamo.
   perform encolar_avisos_operativos(((lun - 1) + time '17:30') at time zone 'Europe/Madrid');
   select * into r from emails_enviados where clave = 'vispera:' || e || ':' || lun;
   if r.id is null or position(v_cli in r.destinatario) = 0 then raise exception 'FALLO 256 · la víspera no va al usuario del cliente: %', r.destinatario; end if;
+  -- Cambian las matrículas después: ahora sí, un email (y otro si vuelven a cambiar).
+  update envios set matricula_camion = '5678CCC', matricula_remolque = 'R1234BBB' where id = e;
+  select * into r from emails_enviados where envio_id = e and tipo = 'envio_matriculas';
+  if r.id is null or r.asunto not like 'Matrículas cambiadas · envío #%' or position('5678CCC' in r.cuerpo_html) = 0 or position('R1234BBB' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 256 · no sale el email de matrículas al cambiarlas con el transportista ya asignado: %', r.asunto;
+  end if;
+  -- MODIFICADO: dos cambios en la misma operación van en UN email, con el antes y el ahora.
+  update envios set toneladas = 22 where id = e;
+  update envios set importe_cliente = 950 where id = e;
+  select count(*) into n from emails_enviados where envio_id = e and tipo = 'envio_modificado';
+  if n <> 1 then raise exception 'FALLO 256 · dos cambios seguidos deben ir en un solo email de modificado (%)', n; end if;
+  select * into r from emails_enviados where envio_id = e and tipo = 'envio_modificado';
+  if position('20,00 toneladas' in r.cuerpo_html) = 0 or position('22,00 toneladas' in r.cuerpo_html) = 0
+     or position('900,00' in r.cuerpo_html) = 0 or position('950,00' in r.cuerpo_html) = 0 or position('camión 5678CCC' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 256 · el email de modificado no trae el antes y el ahora de la mercancía y del precio, o el detalle al día: %', r.cuerpo_html;
+  end if;
+  if (select count(*) from regexp_matches(r.cuerpo_html, '<!--detalle-->', 'g')) <> 1 or (select count(*) from regexp_matches(r.cuerpo_html, 'Datos del envío', 'g')) <> 1 then
+    raise exception 'FALLO 256 · el email de modificado repite el detalle al juntar cambios: %', r.cuerpo_html;
+  end if;
+  -- CANCELADO: un email, con el motivo que se anota después.
+  update envios set estado = 'cancelado' where id = e;
+  perform registrar_hito(e, 'incidencia', null, null, jsonb_build_object('motivo_cancelacion', 'El cliente ya no tiene la mercancía', 'por', 'dynamo'));
+  select * into r from emails_enviados where envio_id = e and tipo = 'envio_cancelado';
+  if r.id is null or r.asunto not like 'Envío cancelado · envío #%' or position('El cliente ya no tiene la mercancía' in r.cuerpo_html) = 0 or position(v_cli in r.destinatario) = 0 then
+    raise exception 'FALLO 256 · no sale el email de cancelado con su motivo: % · %', r.asunto, r.cuerpo_html;
+  end if;
   -- En un envío de gestión directa (el cliente con su transportista) no sale.
   insert into operadores (cliente_id, razon_social, cif) values (cli, 'Operador 256 SL', 'B25600256') returning id into m;
   insert into envios (cliente_id, metros_lineales, operador_id, precio_acordado_operador, fecha_carga_desde) values (cli, 13.30, m, 500, lun) returning id into e;
@@ -10691,5 +10724,5 @@ begin
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
   update envios set estado = 'programado' where id = e;
   if exists (select 1 from emails_enviados where clave = 'envio_creado:' || e) then raise exception 'FALLO 256 · el email sale en un envío de gestión directa'; end if;
-  raise notice 'OK 256 · email «Envío creado»: al usuario del cliente (lo cree él o Dynamo), una vez, con ruta, precio y enlace; la víspera a los mismos; no en gestión directa';
+  raise notice 'OK 256 · emails al cliente: creado (con detalle), víspera solo con transportista, matrículas si llegan después, modificado con antes y ahora en un solo email, cancelado con motivo; no en gestión directa';
 end $$;

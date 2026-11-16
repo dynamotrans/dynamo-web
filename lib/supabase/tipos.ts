@@ -3689,6 +3689,7 @@ export type Database = {
       datos_cmr_envio: { Args: { p_envio: string | null }; Returns: Json }
       datos_cmr_por_token: { Args: { p_token: string | null }; Returns: Json }
       datos_dynamo: { Args: Record<PropertyKey, never>; Returns: Json }
+      datos_email_cliente_envio: { Args: { p_envio: string | null }; Returns: Json }
       datos_orden_manual: { Args: { p_envio: string | null }; Returns: Json }
       datos_orden_por_cmr: { Args: { p_token: string | null; p_clave?: string | null }; Returns: Json }
       datos_orden_publica: { Args: { p_reserva: string | null }; Returns: Json }
@@ -3719,8 +3720,11 @@ export type Database = {
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_cliente: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
+      envio_detalle_html: { Args: { p_envio: string | null }; Returns: string }
       envio_en_pestana: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_pestana: string | null }; Returns: boolean }
+      envio_fecha_carga_texto: { Args: { p_desde: string | null; p_hasta: string | null; p_prevista: string | null }; Returns: string }
       envio_matriculas_completas: { Args: { p_envio: string | null }; Returns: boolean }
+      envio_mercancia_texto: { Args: { p_metros: number | null; p_toneladas: number | null; p_tipo_carga: string | null; p_plataforma: boolean | null; p_descripcion: string | null; p_adr: boolean | null; p_nima: boolean | null }; Returns: string }
       envio_necesita_remolque: { Args: { p_envio: string | null }; Returns: boolean }
       envio_texto_busqueda: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null }; Returns: string }
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }
@@ -3760,6 +3764,8 @@ export type Database = {
       fn_difusion_limite: { Args: { p_envio: string | null; p_desde: string | null; p_hasta: string | null; p_hora_manual: string | null }; Returns: string }
       fn_difusion_paso: { Args: { p_difusion: string | null }; Returns: undefined }
       fn_difusion_recordatorios: { Args: Record<PropertyKey, never>; Returns: undefined }
+      fn_email_envio_cliente: { Args: { p_envio: string | null; p_clave: string | null; p_tipo: string | null; p_titulo: string | null; p_cuerpo: string | null }; Returns: undefined }
+      fn_encolar_email_envio_modificado: { Args: { p_envio: string | null; p_cambios: string | null }; Returns: undefined }
       fn_modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }
       fuera_de_cobertura: { Args: { p_pais: string | null }; Returns: string }
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
