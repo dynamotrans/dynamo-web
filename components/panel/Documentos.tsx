@@ -77,9 +77,9 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
       {editable && (
         <>
           {tipos.length > 1 && (
-            {/* El desplegable con el estilo estándar del panel (usuario, 2026-11-16): con un
-                relleno propio más estrecho la flecha pisaba el texto («Hoja CIF» cortado). */}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
+              {/* El desplegable con el estilo estándar del panel (usuario, 2026-11-16): con un
+                  relleno propio más estrecho la flecha pisaba el texto («Hoja CIF» cortado). */}
               <span style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>Tipo de documento:</span>
               <select className="filter-estado" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo de documento" style={{ minWidth: 190 }}>
                 {tipos.map((t) => <option key={t} value={t}>{TIPOS_DOC[t] ?? t}</option>)}
