@@ -176,7 +176,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // PANTALLA DE ÉXITO (tarea 81, usuario 2026-11-13): al confirmar un envío no se suelta
   // al usuario en la lista — se le dice QUÉ PASA AHORA y a dónde ir.
   const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual' } | null>(null);
-  const [aceptaLegal, setAceptaLegal] = useState(false);
+  // La casilla nace MARCADA (usuario, 2026-11-16): la aceptación es pulsar «Confirmar envío»
+  // con el texto y las condiciones delante. Si la desmarca, no puede confirmar.
+  const [aceptaLegal, setAceptaLegal] = useState(true);
   // Se pulsó «Confirmar envío» sin marcar la casilla: la casilla y su texto se ponen en rojo.
   const [faltaLegal, setFaltaLegal] = useState(false);
   useEffect(() => { if (!revisarLegal) setFaltaLegal(false); }, [revisarLegal]);
@@ -1327,7 +1329,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         if (editar) { guardarEdicion(); return; }
                         if (!cliente) { setAviso('Para crear el envío hace falta el cliente: elígelo o dalo de alta en el paso 1. Sin cliente, esta pantalla solo calcula el precio.'); setPaso(1); return; }
                         for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
-                        setAviso(null); setAceptaLegal(false); setVerCondiciones(false); setRevisarLegal(true);
+                        setAviso(null); setAceptaLegal(true); setVerCondiciones(false); setRevisarLegal(true);
                       }}
                       data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
                     {hayProforma && (
