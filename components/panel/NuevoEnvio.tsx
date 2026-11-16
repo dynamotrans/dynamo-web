@@ -1084,10 +1084,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         el espacio que contrata. Tráiler 2,70 m; con plataforma elevadora va en
                         camión rígido y baja a 2,60 m. */}
                     {/* Es un ENLACE (usuario, 2026-11-16): abre la ventana con las medidas y el
-                        peso máximo de los dos camiones, ya en el de este envío. */}
+                        peso máximo de los dos camiones, ya en el de este envío. Sin el tipo de
+                        camión al lado: se ve dentro de la ventana. */}
                     <button type="button" onClick={() => setVerMedidas(true)} title="Ver medidas y peso máximo del camión"
                       style={{ display: 'block', background: 'none', border: 'none', padding: 0, marginTop: '0.25rem', font: 'inherit', fontSize: 'var(--fs-s)', fontWeight: 600, color: 'var(--purple)', textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>
-                      Altura máxima de la mercancía: <strong>{plataforma ? '2,60 m' : '2,70 m'}</strong>{plataforma ? ' (camión rígido con plataforma elevadora)' : ' (tráiler)'}
+                      Altura máxima de la mercancía: <strong>{plataforma ? '2,60 m' : '2,70 m'}</strong>
                     </button>
                     {verMedidas && <MedidasCamion inicial={plataforma ? 'rigido' : 'trailer'} onCerrar={() => setVerMedidas(false)} />}
                   </div>
