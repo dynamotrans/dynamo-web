@@ -156,7 +156,9 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
           xTxt = xV + w + 10;
         }
         l.texto(xTxt, l.y + 9, `${f.nombre} · ${f.documento}`, 8, { bold: true, color: COLOR.tinta });
-        l.texto(xTxt, l.y + 19, `Firmado el ${fechaFirma(f.firmado_en)} (e-CMR, casillas ${rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24'})`, 6.8, { color: COLOR.gris });
+        l.texto(xTxt, l.y + 19, f.en_papel
+          ? `Firmado EN PAPEL: CMR bis anexo, que completa este CMR · registrado el ${fechaFirma(f.firmado_en)}`
+          : `Firmado el ${fechaFirma(f.firmado_en)} (e-CMR, casillas ${rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24'})`, 6.8, { color: COLOR.gris });
         l.y += 26;
       } else {
         l.rect(xV, l.y, 190, 20, COLOR.fondo, COLOR.grisClaro);
@@ -388,6 +390,12 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
           const k = Math.min(c.ancho / c.img.width, c.alto / c.img.height), w = c.img.width * k, h = c.img.height * k;
           pg.drawImage(c.img, { x: c.x, y: A4.h - c.top - h, width: w, height: h });
         }
+        // Firmada en papel (CMR bis): la casilla lo dice en lugar del trazo.
+        // En la 24 va en una línea y a la derecha de «Lugar / Place», que ocupa su esquina.
+        if (c.f.en_papel) {
+          if (c.f.rol === 'destinatario') dato(c.x + 36, c.top + 9, [{ t: 'FIRMADO EN PAPEL · CMR bis anexo', s: 6.6, b: true, max: 1 }], 46);
+          else dato(c.x, c.top + 8, [{ t: 'FIRMADO EN PAPEL', s: 6.6, b: true, max: 1 }, { t: 'CMR bis anexo', s: 6.2, b: false, max: 1 }], Math.floor(c.ancho / 3.1));
+        }
         dato(c.x, c.top + c.alto + 1, [{ t: `${c.f.nombre} · ${c.f.documento} · ${fechaFirma(c.f.firmado_en)}`, s: 6.2, b: false, max: 1 }], Math.floor(c.ancho / 3.1));
         if (c.f.rol === 'destinatario') {
           dato(395, 752, [{ t: entrega?.poblacion ?? '', s: 7.4, max: 1 }], 13);
@@ -586,12 +594,15 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
         const k = Math.min(126 / img.width, (ALTO - 10) / img.height), w = img.width * k, h = img.height * k;
         l.pag.drawImage(img, { x: l.x0 + 10, y: A4.h - l.y - (ALTO + h) / 2, width: w, height: h });
       }
-      const donde = f.extra ? 'Firma extra (no ocupa casilla)' : enCasilla.has(f) ? 'Impresa en su casilla' : 'Solo en este registro';
+      const donde = f.en_papel ? 'Firma EN PAPEL · CMR bis anexo' : f.extra ? 'Firma extra (no ocupa casilla)' : enCasilla.has(f) ? 'Impresa en su casilla' : 'Solo en este registro';
       l.texto(tx, l.y + 13, linea1(f), 8.2, { bold: true });
       l.textoDer(A4.w - l.margen.der - 10, l.y + 13, donde, 6.6, { color: f.extra ? COLOR.ambar : COLOR.gris });
       const par = paradaTxt(f.parada_id);
       if (par) l.texto(tx, l.y + 24, corta(par, 7), 7, { color: COLOR.gris });
-      l.texto(tx, l.y + (par ? 35 : 27), `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.4, { color: COLOR.tinta });
+      l.texto(tx, l.y + (par ? 35 : 27), f.en_papel
+        ? `Firmado en papel por ${f.nombre} · ${f.documento} · registrado el ${fechaFirma(f.firmado_en)}`
+        : `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.4, { color: COLOR.tinta });
+      if (f.en_papel) l.texto(tx, l.y + (par ? 46 : 38), 'Firmó en un CMR en papel con esta misma referencia (CMR bis), que se añade a este CMR electrónico y lo completa.', 6.8, { color: COLOR.gris });
       if (f.lat != null && f.lon != null) {
         const gpsTxt = `GPS: ${f.lat.toFixed(5)}, ${f.lon.toFixed(5)}${f.gps_precision_m != null ? ` (±${f.gps_precision_m} m)` : ''}${f.gps_direccion ? ` · ${f.gps_direccion}` : ''}`;
         l.texto(tx, l.y + (par ? 46 : 38), corta(gpsTxt, 6.8), 6.8, { color: COLOR.gris });

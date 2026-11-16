@@ -2252,6 +2252,8 @@ export type Database = {
           gps_precision_m: number | null
           gps_direccion: string | null
           trazo_png: string | null
+          en_papel: boolean
+          documento_papel_id: string | null
         }
         Insert: {
           id?: string
@@ -2274,6 +2276,8 @@ export type Database = {
           gps_precision_m?: number | null
           gps_direccion?: string | null
           trazo_png?: string | null
+          en_papel?: boolean
+          documento_papel_id?: string | null
         }
         Update: {
           id?: string
@@ -2296,8 +2300,17 @@ export type Database = {
           gps_precision_m?: number | null
           gps_direccion?: string | null
           trazo_png?: string | null
+          en_papel?: boolean
+          documento_papel_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "firmas_cmr_documento_papel_id_fkey"
+            columns: ["documento_papel_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "firmas_cmr_envio_id_fkey"
             columns: ["envio_id"]
@@ -3737,7 +3750,7 @@ export type Database = {
       festivo_cae_en: { Args: { p_fecha: string | null; p_desde: string | null; p_repetir: string | null; p_dias_pascua: number | null; p_hasta: string | null }; Returns: boolean }
       festivos_entre: { Args: { p_desde: string | null; p_hasta: string | null; p_pais?: string | null; p_region?: string | null }; Returns: { fecha: string; nombre: string; region: string }[] }
       firmar_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_nombre: string | null; p_documento: string | null; p_pais: string | null; p_validado: boolean | null; p_email: string | null; p_ruta: string | null; p_ip: string | null; p_navegador: string | null; p_sha256: string | null; p_extra?: boolean | null; p_lat?: number | null; p_lon?: number | null; p_gps_precision_m?: number | null; p_gps_direccion?: string | null; p_trazo_png?: string | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_camion_rigido?: boolean | null }; Returns: Json }
-      firmas_envio: { Args: { p_envio: string | null }; Returns: { rol: string; parada_id: string; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string; firma_storage_ruta: string; extra: boolean; lat: number; lon: number; gps_precision_m: number; gps_direccion: string; sha256: string }[] }
+      firmas_envio: { Args: { p_envio: string | null }; Returns: { rol: string; parada_id: string; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string; firma_storage_ruta: string; extra: boolean; lat: number; lon: number; gps_precision_m: number; gps_direccion: string; sha256: string; en_papel: boolean }[] }
       flota_publica: { Args: { p_reserva: string | null; p_cif?: string | null }; Returns: Json }
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
@@ -3853,6 +3866,7 @@ export type Database = {
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_cambio_email: { Args: { p_usuario: string | null; p_antes: string | null; p_despues: string | null }; Returns: undefined }
       registrar_consulta_precio: { Args: Record<PropertyKey, never>; Returns: undefined }
+      registrar_firma_papel: { Args: { p_envio: string | null; p_parada: string | null; p_nombre: string | null; p_documento: string | null; p_documento_pais: string | null; p_documento_id: string | null }; Returns: Json }
       registrar_hito: { Args: { p_envio: string | null; p_hito: Database["public"]["Enums"]["tipo_hito"] | null; p_parada?: string | null; p_oferta?: string | null; p_datos?: Json | null; p_origen?: string | null }; Returns: undefined }
       reglas_precio_envio: { Args: Record<PropertyKey, never>; Returns: Json }
       renumerar_paradas: { Args: { p_envio: string | null }; Returns: undefined }

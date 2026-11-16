@@ -346,7 +346,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
                 : !cmr.manual && <div className="firma-estado" style={{ color: '#b91c1c', fontWeight: 800 }}>⚠ Faltan matrículas — se piden al firmar</div>)}
             {f ? <>
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
-              <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
+              {/* Firmó en papel (CMR bis): no hay trazo; el papel va anexo y completa este CMR. */}
+              <div className="firma-estado">{f.en_papel ? '✓ Firmada EN PAPEL (CMR bis anexo, que completa este CMR) · registrada el' : '✓ Firmada el'} {fechaHora(f.firmado_en)} · {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
             </> : <div className="firma-estado">Pendiente de firma</div>}
             {(cmr.reservas ?? []).filter((r: ReservaCmr) => r.rol === b.rol && (b.rol === 'transportista' || r.parada_id === b.parada_id)).map((r: ReservaCmr, i: number) => (
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>

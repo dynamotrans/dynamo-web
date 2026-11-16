@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import { fechaHora } from '@/lib/formato';
 import type { Ficha } from '@/lib/fichaEnvio';
-import { enlaceCmr, anotarCompartido } from '@/app/panel/(app)/envios/acciones';
+import { enlaceCmr, anotarCompartido, firmaEnPapel } from '@/app/panel/(app)/envios/acciones';
+import { documentosDe } from '@/app/panel/(app)/documentos/acciones';
+import { subirDocumentoDirecto, ACEPTA, MAX_BYTES } from '../Documentos';
+import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
+import Modal from '../Modal';
+import Cargando from '@/components/Cargando';
+import Req from '@/components/Req';
 import { HistorialEnvios } from './HistorialEnvios';
 import CompartirSheet from '@/components/CompartirSheet';
 import { I, ICO, ROL_CMR, enlaceCmrUrl } from './comun';
@@ -16,9 +22,12 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
   const [compartir, setCompartir] = useState(false);   // ventana de compartir propia (mismo diseño en cualquier aparato)
   const [masInfo, setMasInfo] = useState(false);   // explicación + base legal, plegadas
   const [recarga, setRecarga] = useState(0);   // el historial de envíos se vuelve a leer tras compartir
+  const [papel, setPapel] = useState(false);   // ventana «Firmó en papel (CMR bis)»
   const enl = ficha.cmrEnlace;
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga'), entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
   const total = recogidas.length + 1 + entregas.length;
+  // Casillas de sitio aún sin firma: las únicas que admiten la firma en papel.
+  const sinFirma = ficha.paradas.filter((p) => !ficha.firmasCmr.some((f) => !f.extra && f.parada_id === p.id && f.rol === (p.tipo === 'carga' ? 'remitente' : 'destinatario')));
   const lugar = (id: string | null) => { const p = ficha.paradas.find((x) => x.id === id); return p ? ` · ${p.nombre_empresa || p.poblacion || ''}` : ''; };
   // Mensaje corto para compartir (la ventana propia añade el enlace al final).
   const msg = `CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí:`;
@@ -75,11 +84,111 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
         <div className="pen-sum-row"><span className="k"><strong>{ficha.firmasCmr.length} de {total}</strong> firmas</span><span className="v">{ficha.firmasCmr.length >= total ? <span className="badge badge-green">CMR firmado</span> : ''}</span></div>
         {ficha.firmasCmr.map((f, i) => (
           <div key={i} className="pen-sum-row">
-            <span className="k">{ROL_CMR[f.rol] ?? f.rol}{lugar(f.parada_id)}<br /><span style={{ color: 'var(--gray-500)' }}>{f.nombre} · {f.documento} ({f.documento_pais}){f.documento_validado ? '' : ' · documento sin comprobar'}</span></span>
+            <span className="k">{ROL_CMR[f.rol] ?? f.rol}{lugar(f.parada_id)}<br /><span style={{ color: 'var(--gray-500)' }}>{f.nombre} · {f.documento} ({f.documento_pais}){f.documento_validado ? '' : ' · documento sin comprobar'}</span>
+              {f.en_papel && <><br /><span className="badge badge-orange">Firmó en papel · CMR bis anexo</span></>}</span>
             <span className="v" style={{ whiteSpace: 'nowrap' }}>{fechaHora(f.firmado_en)}</span>
           </div>
         ))}
       </div>
+      {/* Quien se niega (o no puede) firmar en el móvil firma un CMR en papel con la misma
+          referencia: aquí se registra, con la foto, y completa el CMR digital. */}
+      {!e.es_manual && sinFirma.length > 0 && (
+        <button type="button" className="btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.6rem' }} disabled={!!trabajando}
+          title="Alguien firmó en un CMR en papel en lugar de en el móvil: se registra con la foto del papel y completa el CMR digital."
+          onClick={() => setPapel(true)}><I d={ICO.doc} />Firmó en papel (CMR bis)</button>
+      )}
     </div>
+    {papel && <FirmaPapel ficha={ficha} pendientes={sinFirma} hacer={hacer} trabajando={trabajando} onCerrar={() => setPapel(false)} />}
   </>;
+}
+
+// ---- Firma en papel que completa el CMR digital («CMR bis») ------------------------
+// Caso real (usuario, 2026-11-16): firman todos en el móvil menos el último destinatario,
+// que solo firma en papel. El conductor le hace firmar un CMR en papel que lleva escrita
+// la referencia del electrónico; Dynamo sube aquí la foto y apunta quién firmó. No se
+// rehace nada: las firmas digitales siguen igual y esta casilla queda «firmada en papel».
+function FirmaPapel({ ficha, pendientes, hacer, trabajando, onCerrar }: {
+  ficha: Ficha; pendientes: Ficha['paradas']; trabajando: string | null; onCerrar: () => void;
+  hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>;
+}) {
+  const e = ficha.envio;
+  const [parada, setParada] = useState(pendientes.length === 1 ? pendientes[0].id : '');
+  const [nombre, setNombre] = useState('');
+  const [pais, setPais] = useState('ES');
+  const [doc, setDoc] = useState('');
+  const [foto, setFoto] = useState<File | null>(null);
+  const [subido, setSubido] = useState<{ nombre: string; id: string } | null>(null);   // la foto ya subida: un reintento no la duplica
+  const [subiendo, setSubiendo] = useState(false);
+  const [fallo, setFallo] = useState<string | null>(null);
+  const v = doc.trim().length >= 3 ? validaDoc(pais, doc) : null;
+  const frase = `Complementa al CMR electrónico nº ${e.referencia_gx}`;
+
+  async function guardar() {
+    setFallo(null);
+    if (!parada) return setFallo('Elige qué casilla firmó en papel.');
+    if (!nombre.trim()) return setFallo('Escribe el nombre de quien firmó.');
+    if (doc.trim().length < 3) return setFallo('Escribe el documento de identidad de quien firmó.');
+    if (v && !v.ok) return setFallo(v.msg ?? 'El documento de identidad no es válido.');
+    if (!foto) return setFallo('Añade la foto o el PDF del CMR en papel firmado.');
+    if (foto.size > MAX_BYTES) return setFallo('El fichero pesa más de 25 MB.');
+    let id = subido && subido.nombre === foto.name ? subido.id : null;
+    if (!id) {
+      setSubiendo(true);
+      const dueno = { campo: 'envio_id' as const, id: e.id };
+      const r = await subirDocumentoDirecto(dueno, foto, 'cmr_firmado');
+      if (!r.ok) { setSubiendo(false); return setFallo(r.error); }
+      // La fila recién creada: el «CMR firmado» más nuevo con ese nombre.
+      const docs = await documentosDe(dueno);
+      setSubiendo(false);
+      id = docs.find((x) => x.tipo === 'cmr_firmado' && x.nombre_archivo === foto.name.slice(0, 200))?.id ?? null;
+      if (!id) return setFallo('La foto se ha subido pero no se encuentra entre los documentos del envío. Vuelve a intentarlo.');
+      setSubido({ nombre: foto.name, id });
+    }
+    const idDoc = id;
+    if (await hacer('Registrando la firma en papel', () => firmaEnPapel(e.id, parada, { nombre: nombre.trim(), documento: doc.trim(), pais, documento_id: idDoc }))) onCerrar();
+  }
+
+  return (
+    <Modal abierto ancho={560} onCerrar={onCerrar} titulo={`Firmó en papel · #${e.referencia_gx}`}
+      sub="CMR bis: un CMR en papel que completa el CMR digital" icono={<I d={ICO.firma} />}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando || subiendo}>Volver</button>
+        <button className="btn-primary" onClick={guardar} disabled={!!trabajando || subiendo}>Registrar la firma en papel</button>
+      </>}>
+      <div className="pt-aviso info"><div>
+        Para quien <strong>no firma en el móvil</strong>. Firma un CMR en papel que lleve escrito a mano: <strong>«{frase}»</strong>, con su nombre, documento, fecha, hora y sello. Las firmas digitales que ya hay <strong>no se tocan</strong>: este papel se añade como anexo y completa el CMR.
+      </div></div>
+      <div className="ptar-sitio-grid" style={{ marginTop: '0.7rem' }}>
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="fp-parada">Casilla que firmó en papel <Req /></label>
+          <select id="fp-parada" value={parada} onChange={(ev) => setParada(ev.target.value)}>
+            {pendientes.length > 1 && <option value="">Elige…</option>}
+            {pendientes.map((p) => <option key={p.id} value={p.id}>{p.tipo === 'carga' ? 'Carga' : 'Entrega'} · {p.nombre_empresa || p.poblacion || 'sitio'}</option>)}
+          </select>
+        </div>
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="fp-nombre">Nombre de quien firmó <Req /></label>
+          <input id="fp-nombre" type="text" maxLength={120} value={nombre} placeholder="Ej. Marta Ruiz López" onChange={(ev) => setNombre(ev.target.value)} />
+        </div>
+        <div>
+          <label htmlFor="fp-pais">País del documento <Req /></label>
+          <select id="fp-pais" value={pais} onChange={(ev) => setPais(ev.target.value)}>
+            {DOC_PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="fp-doc">Documento de identidad <Req /></label>
+          <input id="fp-doc" type="text" maxLength={30} autoCapitalize="characters" autoComplete="off" value={doc} placeholder="Ej. 12345678Z" onChange={(ev) => setDoc(ev.target.value)} />
+        </div>
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="fp-foto">Foto o PDF del CMR en papel firmado <Req /></label>
+          <input id="fp-foto" type="file" accept={ACEPTA} onChange={(ev) => setFoto(ev.target.files?.[0] ?? null)} />
+        </div>
+      </div>
+      {v && !v.ok && <p style={{ fontSize: 'var(--fs-s)', color: '#b42318', margin: '0.5rem 0 0' }}>⚠ {v.msg}</p>}
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>La foto queda en los documentos del envío como «CMR firmado». Una firma registrada no se puede borrar: revisa los datos antes de guardar.</p>
+      {fallo && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {fallo}</div>}
+      {(subiendo || trabajando) && <Cargando texto={subiendo ? 'Subiendo la foto' : trabajando!} />}
+    </Modal>
+  );
 }

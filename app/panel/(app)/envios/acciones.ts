@@ -495,6 +495,38 @@ export async function enlaceCmr(envio: string): Promise<{ ok: true; token: strin
   return error || !data ? { ok: false, error: traducir(error?.message ?? 'No se ha podido crear el enlace.') } : { ok: true, token: data.token as string };
 }
 
+// FIRMA EN PAPEL que completa el CMR digital («CMR bis», usuario 2026-11-16). Quien no
+// quiere o no puede firmar en el móvil firma un CMR en papel con la MISMA referencia;
+// Dynamo sube la foto de ese papel a los documentos del envío y lo registra aquí. La
+// casilla queda cubierta («firmado en papel, anexo») y, si era la última, sale el email
+// del CMR firmado por todas las partes. Solo Dynamo; la base de datos lo vuelve a exigir.
+export async function firmaEnPapel(envio: string, parada: string, d: { nombre: string; documento: string; pais: string; documento_id: string }): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#firmaEnPapel", [envio, parada, d]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo registra una firma en papel.' };
+  const { data, error } = await s.supabase.rpc('registrar_firma_papel', {
+    p_envio: envio, p_parada: parada, p_nombre: d.nombre, p_documento: d.documento, p_documento_pais: d.pais, p_documento_id: d.documento_id });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado?: string } | null)?.resultado;
+  if (r !== 'ok') return { ok: false, error: ({
+    ya_firmada: 'Esa casilla ya está firmada.',
+    faltan_datos: 'Falta el nombre o el documento de identidad de quien firmó.',
+    falta_documento: 'Falta la foto del CMR en papel: súbela antes de registrar la firma.',
+    parada_no_valida: 'Esa parada no es de este envío.',
+    sin_matriculas: 'El envío aún no tiene la matrícula del camión: ponla antes de registrar firmas.',
+    gestion_directa: 'En un envío de gestión directa las firmas las lleva el cliente.',
+    no_existe: 'Ese envío no existe.',
+  } as Record<string, string>)[r ?? ''] ?? 'No se ha podido registrar la firma en papel.' };
+  // Los mismos avisos que una firma digital (a Dynamo, y el CMR completo si era la última).
+  const { data: enl } = await s.supabase.from('cmr_enlaces').select('token').eq('envio_id', envio).eq('revocado', false)
+    .gt('caduca_en', new Date().toISOString()).maybeSingle();
+  if (enl?.token) {
+    const { avisosFirmaCmr } = await import('@/lib/servidor/avisosEnvio');
+    await avisosFirmaCmr(enl.token as string).catch(() => {});
+  }
+  return { ok: true, aviso: 'Firma en papel registrada: el CMR bis queda anexo y completa el CMR digital.' };
+}
+
 // Valoración del transportista (1-5) al entregar. Solo Dynamo; la media la rehace la base de datos.
 export async function valorarTransportista(envio: string, nota: number | null, comentario: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones#valorarTransportista", [envio, nota, comentario]);

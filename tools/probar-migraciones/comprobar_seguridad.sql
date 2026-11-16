@@ -10535,3 +10535,73 @@ update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio'
 update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
 update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
 reset role;
+
+-- ---- 252. Firma en papel que completa el CMR digital (CMR bis) -----------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; pc uuid; pd uuid; doc uuid; otro uuid; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '19001', 'Guadalajara', 'ES') returning id into pc;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '16001', 'Cuenca', 'ES') returning id into pd;
+  update envios set estado = 'programado' where id = e;
+  insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo) values ('cmr_firmado', e, 'envios/' || e || '/x/cmr-bis.jpg', 'cmr-bis.jpg') returning id into doc;
+  insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo) values ('adjunto', e, 'envios/' || e || '/y/otra.jpg', 'otra.jpg') returning id into otro;
+  perform set_config('prueba.e252', e::text, false); perform set_config('prueba.pd252', pd::text, false);
+  perform set_config('prueba.doc252', doc::text, false); perform set_config('prueba.otro252', otro::text, false);
+end $$;
+-- Un cliente no registra firmas en papel.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform registrar_firma_papel(current_setting('prueba.e252')::uuid, current_setting('prueba.pd252')::uuid, 'Pepe', '12345678Z', 'ES', current_setting('prueba.doc252')::uuid);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 252 · un cliente registra una firma en papel'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e252')::uuid; pd uuid := current_setting('prueba.pd252')::uuid;
+        doc uuid := current_setting('prueba.doc252')::uuid; r jsonb; begin
+  -- Sin matrícula del camión, como en la firma digital, no se firma.
+  r := registrar_firma_papel(e, pd, 'Pepe Destino', '12345678Z', 'ES', doc);
+  if r ->> 'resultado' <> 'sin_matriculas' then raise exception 'FALLO 252 · se registra una firma en papel sin matrícula: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update envios set matricula_camion = '2520ABC', matricula_remolque = 'R2520AB' where id = current_setting('prueba.e252')::uuid;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e252')::uuid; pd uuid := current_setting('prueba.pd252')::uuid;
+        doc uuid := current_setting('prueba.doc252')::uuid; r jsonb; n int; begin
+  -- Sin el documento escaneado (o con uno que no es un CMR firmado ni un albarán) no se registra.
+  r := registrar_firma_papel(e, pd, 'Pepe Destino', '12345678Z', 'ES', current_setting('prueba.otro252')::uuid);
+  if r ->> 'resultado' <> 'falta_documento' then raise exception 'FALLO 252 · vale cualquier adjunto como CMR en papel: %', r; end if;
+  r := registrar_firma_papel(e, pd, '  ', '12345678Z', 'ES', doc);
+  if r ->> 'resultado' <> 'faltan_datos' then raise exception 'FALLO 252 · se registra sin el nombre de quien firmó: %', r; end if;
+  r := registrar_firma_papel(e, pd, 'Pepe Destino', '12.345.678-z', 'ES', doc);
+  if r ->> 'resultado' <> 'ok' or r ->> 'rol' <> 'destinatario' then raise exception 'FALLO 252 · no se registra la firma en papel de la entrega: %', r; end if;
+  if registrar_firma_papel(e, pd, 'Otra Vez', '12345678Z', 'ES', doc) ->> 'resultado' <> 'ya_firmada' then raise exception 'FALLO 252 · la misma parada se firma dos veces'; end if;
+  select count(*) into n from firmas_envio(e) f where f.en_papel and f.rol = 'destinatario' and f.documento = '12345678Z' and f.documento_validado;
+  if n <> 1 then raise exception 'FALLO 252 · la firma en papel no sale marcada en la lista de firmas del envío (%)', n; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e252')::uuid; ok boolean := false; j jsonb; begin
+  -- Es una firma más del registro: no se cambia ni se borra.
+  begin update firmas_cmr set nombre = 'Cambiado' where envio_id = e; exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 252 · una firma en papel registrada se puede cambiar'; end if;
+  -- Una firma digital no puede marcarse «en papel» sin documento, ni al revés.
+  ok := false;
+  begin insert into firmas_cmr (envio_id, parada_id, rol, nombre, documento, firma_storage_ruta, en_papel)
+        values (e, null, 'transportista', 'Tina', '00000000T', 'cmr/x/y.png', true);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 252 · se guarda una firma «en papel» sin su documento escaneado'; end if;
+  -- El enlace público del CMR la trae marcada.
+  select datos_cmr_por_token((select token from cmr_enlaces where envio_id = e and not revocado order by creado_en desc limit 1)) into j;
+  if j is null or not exists (select 1 from jsonb_array_elements(j -> 'firmas') f where (f ->> 'en_papel')::boolean and f ->> 'rol' = 'destinatario') then
+    raise exception 'FALLO 252 · el CMR público no marca la firma en papel: %', j -> 'firmas';
+  end if;
+  raise notice 'OK 252 · firma en papel (CMR bis): solo Dynamo, con el documento escaneado y con matrícula; completa el CMR digital, sale marcada y no se toca';
+end $$;
+reset role;

@@ -75,7 +75,8 @@ export function decaConMatriculas(d: { envio: { matricula_camion?: string | null
   return !!emisionDeca(d) && !!d.envio.matricula_camion && (!d.envio.necesita_remolque || !!d.envio.matricula_remolque);
 }
 
-export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; lat: number | null; lon: number | null; gps_precision_m: number | null; gps_direccion: string | null; sha256: string | null; png: Uint8Array | null };
+export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; lat: number | null; lon: number | null; gps_precision_m: number | null; gps_direccion: string | null; sha256: string | null; png: Uint8Array | null 
+  en_papel?: boolean };   // firmada en papel (CMR bis) y registrada después: sin trazo
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la
 // base de datos). El documento va COMPLETO (usuario, 2026-11-14): como en el CMR firmado
@@ -83,8 +84,9 @@ export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; 
 export async function cargarFirmasCmr(sb: SB, envioId: string): Promise<FirmaDoc[]> {
   const { data } = await sb.rpc('firmas_envio', { p_envio: envioId });
   return Promise.all((data ?? []).map(async (f) => {
-    const { data: blob } = await sb.storage.from('documentos').download(f.firma_storage_ruta);
-    return { rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
+    // Firma en papel (CMR bis): su «ruta» es la foto del papel, no un trazo que dibujar.
+    const { data: blob } = f.en_papel ? { data: null } : await sb.storage.from('documentos').download(f.firma_storage_ruta);
+    return { en_papel: !!f.en_papel, rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
       extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion, sha256: f.sha256, png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
   }));
 }
@@ -294,7 +296,7 @@ export async function cargarDatosCmrPorToken(sb: SB, token: string):
   const { data, error } = await sb.rpc('datos_cmr_por_token', { p_token: token });
   if (error || !data) return { datos: null, decaCreado: null, error: error?.message ?? 'No se ha podido leer el envío.' };
   const j = data as OrdenJson & { manual?: boolean; cliente?: EmpresaJson;
-    firmas?: (Omit<FirmaDoc, 'png'> & { ruta: string; trazo: string | null })[];
+    firmas?: (Omit<FirmaDoc, 'png'> & { ruta: string; trazo: string | null; en_papel?: boolean })[];
     reservas?: { rol: string; texto: string; parada_id: string | null; creado_en: string }[];
     deca?: { creado_en: string } };
   const c = j.cliente ?? ({} as EmpresaJson), t = j.porteador ?? null;
@@ -303,7 +305,7 @@ export async function cargarDatosCmrPorToken(sb: SB, token: string):
   const firmas: FirmaDoc[] = (j.firmas ?? []).map((f) => ({
     rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
     extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion,
-    sha256: f.sha256, png: f.trazo ? new Uint8Array(Buffer.from(f.trazo, 'base64')) : null }));
+    sha256: f.sha256, en_papel: !!f.en_papel, png: f.trazo && !f.en_papel ? new Uint8Array(Buffer.from(f.trazo, 'base64')) : null }));
   let dynamo: DatosDynamo | undefined;
   if (j.dynamo) {
     const o: Record<string, string> = { ...DYNAMO };
