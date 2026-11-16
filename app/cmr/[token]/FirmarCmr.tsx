@@ -634,7 +634,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <label className="sig-lbl" htmlFor="sigEmail">Email de tu empresa</label>
           <input type="text" id="sigEmail" value={emailEmpresa} readOnly tabIndex={-1} aria-readonly="true"
             style={{ background: '#f3f4f6', color: '#4b5563', cursor: 'not-allowed' }} />
-          <div className="sig-msg okv">A este email enviaremos la copia del CMR al terminar el transporte, cuando firme la entrega el último destinatario. No se puede cambiar aquí.</div>
+          <div className="sig-msg okv">A este email enviaremos la copia del CMR al terminar el transporte, cuando firme la entrega el último destinatario. Nosotros SIEMPRE guardamos la copia por si hiciera falta reenviarla.</div>
         </> : <>
           <label className="sig-lbl" htmlFor="sigEmail">Email <Req /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
           <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
