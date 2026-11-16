@@ -8,9 +8,15 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ### v1 · ANTES DE ABRIR (lo de ahora)
 **Lo pone el usuario (el código ya está escrito):**
+> 🔑 **TANDA DE CLAVES EN VERCEL — hacerlas juntas, no olvidar (usuario, 2026-11-16: «anota para hacerlo y no olvidarlo»).** Proyecto `dynamo-web` → Settings → Environment Variables, entornos Preview y Production, y volver a desplegar. El usuario las pega él mismo en Vercel (nunca por el chat ni en el repositorio). Recordárselo al empezar la sesión de Postmark:
+> 1. `SUPABASE_SERVICE_ROLE_KEY` (*Sensitive*) — Supabase → Project Settings → API Keys → `service_role`. Sin ella no se registran los emails ni se archivan las copias del DeCA en las páginas públicas.
+> 2. `POSTMARK_SERVER_TOKEN` (*Sensitive*) — sin él los emails quedan apuntados como «NO enviado».
+> 3. `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (pública) y `TURNSTILE_SECRET_KEY` (*Sensitive*) — Cloudflare → Turnstile → crear sitio para `dynamotrans.com` (gratis, 2 min; añadir también el dominio de la preview para probarlo). Hoy el captcha va con claves de prueba y deja pasar a todo el mundo.
+
 - [ ] **Postmark** (token en Vault de Supabase `postmark_token` + Vercel `POSTMARK_SERVER_TOKEN`) → todos los emails salen de verdad. ⬅ **SIGUIENTE**
+- [ ] **Clave de servicio de Supabase en Vercel** (`SUPABASE_SERVICE_ROLE_KEY`, Preview y Production) → registro de emails, historial de envíos y copias archivadas del DeCA. Va en la misma tanda que Postmark.
 - [ ] **Stripe** (claves en Vercel) → pago de PROFORMAS con tarjeta (solo proformas en esta fase).
-- [ ] **Turnstile** (claves reales del captcha).
+- [ ] **Turnstile — CLAVES REALES DEL CAPTCHA (no olvidar; pedido el 2026-11-16)**: el captcha de Cloudflare ya está montado en registro y en «he olvidado mi contraseña», pero con las claves de prueba (siempre da por bueno). Crear el sitio en Cloudflare → Turnstile y poner en Vercel `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET_KEY`. No hay que tocar código. Después, comprobar que el recuadro ya no dice «Testing only» y que un registro normal sigue pasando.
 - [ ] **IBAN de Dynamo** en `parametros.dynamo_iban` (sale en las proformas).
 - [ ] **Supabase plan Pro** (los datos de prueba masivos no caben en el gratuito).
 - [ ] **2FA** en Supabase, GitHub, Vercel y el programa de gestión.
