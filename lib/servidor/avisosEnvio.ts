@@ -171,7 +171,16 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
       let q = sbs.from('firmas_cmr').select('email, nombre').eq('envio_id', envioId).eq('rol', ultima.rol).eq('extra', false);
       q = ultima.parada_id ? q.eq('parada_id', ultima.parada_id) : q.is('parada_id', null);
       const { data: ff } = await q.order('firmado_en', { ascending: false }).limit(1).maybeSingle();
-      if (ff?.email) {
+      // El TRANSPORTISTA firma con el email de su EMPRESA (fijo en la pantalla de firma,
+      // usuario 2026-11-16): a ese email no va copia en cada firma, solo la final, al
+      // terminar el transporte. Si puso otro (su empresa no tenía email), sí va.
+      let copiaAhora = !!ff?.email;
+      if (ff?.email && ultima.rol === 'transportista') {
+        const { data: evT } = await sbs.from('envios').select('transportista_id').eq('id', envioId).maybeSingle();
+        const emp = evT?.transportista_id ? await emailTransportista(sbs, evT.transportista_id) : null;
+        if (emp && emp.trim().toLowerCase() === ff.email.trim().toLowerCase()) copiaAhora = false;
+      }
+      if (ff?.email && copiaAhora) {
         let adj: AdjuntoEmail[] | undefined;
         const pdfF = await pdfCmrPorToken(sbp, token, origen);
         if (!('error' in pdfF)) adj = [{ nombre: pdfF.nombre, base64: Buffer.from(pdfF.bytes).toString('base64'), tipo: 'application/pdf' }];

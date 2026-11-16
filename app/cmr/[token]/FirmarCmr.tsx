@@ -53,6 +53,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // nada no ve el botón de salir.
   const [firmoAqui, setFirmoAqui] = useState(false);
   const [compartir, setCompartir] = useState(false);     // ventana de compartir propia (mismo diseño en cualquier aparato)
+  const [compartirPdf, setCompartirPdf] = useState(false);   // compartir el PDF del CMR con las firmas actuales (pantalla de «todo guardado»)
   // ABIERTA EN UN ORDENADOR (usuario, 2026-11-15): arriba, un QR de esta misma página para
   // firmar con el dedo en el móvil. Ordenador = ratón fino con hover, pantalla ancha y sin
   // marca de móvil/tableta en el navegador. En el móvil no sale nada (se decide al montar,
@@ -136,11 +137,17 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     <div style={{ background: '#ecfdf5', border: '2px solid #1d9e57', borderRadius: 14, padding: '1.2rem 1rem', textAlign: 'center' }}>
       <div aria-hidden="true" style={{ width: 54, height: 54, margin: '0 auto 0.6rem', borderRadius: '50%', background: '#1d9e57', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 800 }}>✓</div>
       <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46' }}>Todo guardado. ¡Gracias!</div>
-      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el CMR al momento. Si dejaste tu email, tu copia va de camino; al completarse todas las firmas, la copia final llegará por email a todas las partes.</p>
+      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el CMR al momento. Si dejaste tu email, tu copia va de camino; al completarse todas las firmas, la copia final llegará por email a todas las partes (al transportista, al email de su empresa).</p>
       <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
         padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
         Ver el CMR en PDF · con las firmas actuales
       </a>
+      {/* Mandárselo a uno mismo (o a quien haga falta) con las opciones de compartir
+          (usuario, 2026-11-16): el conductor no deja su email; se lo lleva así. */}
+      <button type="button" onClick={() => setCompartirPdf(true)} style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center',
+        background: '#065f46', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
+        Mandarme el CMR · WhatsApp, email…
+      </button>
       {/* Salir SÍ lleva a la web de Dynamo, pero solo desde aquí (usuario, 2026-11-11). */}
       <a href="/" style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center', textDecoration: 'none',
         background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem' }}>
@@ -250,6 +257,11 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               onClick={() => { setAvisoSinTra(false); setAvisoSinMat(false); }}>De acuerdo</button>
           </div>
         </div>
+      )}
+      {compartirPdf && (
+        <CompartirSheet onCerrar={() => setCompartirPdf(false)} url={`${window.location.origin}/cmr/${token}/pdf`}
+          titulo={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`}
+          texto={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}, con las firmas actuales (PDF):`} />
       )}
       {compartir && (
         <CompartirSheet onCerrar={() => setCompartir(false)} url={window.location.href}
@@ -433,6 +445,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   // Precargado con el del primer contacto de la ficha (sitio de la parada o transportista);
   // si la ficha no tenía ninguno y quien firma lo escribe, el servidor lo guarda en ella.
   const [email, setEmail] = useState(b.preEmail);
+  // TRANSPORTISTA (usuario, 2026-11-16): su empresa ya tiene el email en su ficha, así
+  // que aquí se ENSEÑA y no se edita. A él va la copia final, al terminar el transporte.
+  // El conductor que quiera el CMR en su móvil se lo manda con «Compartir» tras firmar.
+  const emailEmpresa = b.rol === 'transportista' && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((b.preEmail ?? '').trim()) ? (b.preEmail ?? '').trim() : null;
   // Matrículas (usuario, 2026-11-11): solo la cabecera (transportista o cargador de la
   // 1.ª parada) las ve — precargadas si el envío ya las tiene, editables, y obligatoria
   // la tractora salvo en envíos manuales. En firmas extra no salen: ya está en tránsito.
@@ -490,7 +506,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (!doc.trim() || !nombre.trim()) { setAviso('Indica el documento y el nombre y apellidos de quien firma.'); avisaFaltas([!doc.trim() && 'sigDni', !nombre.trim() && 'sigNombre'].filter(Boolean) as string[]); return; }
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     // Email OBLIGATORIO (usuario, 2026-11-14): a esa dirección va la copia del firmado.
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { setAviso('Pon tu email: te enviaremos la copia del documento firmado.'); avisaFaltas(['sigEmail']); return; }
+    if (!emailEmpresa && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { setAviso('Pon tu email: te enviaremos la copia del documento firmado.'); avisaFaltas(['sigEmail']); return; }
     if (pideMatricula && b.matObligatoria && !matCam.trim()) {
       setAviso('Pon la matrícula del camión (tractora): sin ella no se puede salir de la 1.ª parada.');
       avisaFaltas(['sigMatCam']); return;
@@ -541,7 +557,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     const tLento = setTimeout(() => setLento(true), 3000);
     let r: Awaited<ReturnType<typeof firmar>>;
     try {
-      r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, extra: !!b.extra,
+      r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email: emailEmpresa ?? email, extra: !!b.extra,
         reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
         gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula && !rigido ? matRem : undefined,
         camion_rigido: pideMatricula ? rigido : undefined });
@@ -605,8 +621,15 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         {/* OBLIGATORIO (usuario, 2026-11-14): a ese email va la copia del documento firmado,
             con el porqué entre paréntesis y en la caja verde de encima de «Aceptar firma». */}
-        <label className="sig-lbl" htmlFor="sigEmail">Email <Req /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
-        <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {emailEmpresa ? <>
+          <label className="sig-lbl" htmlFor="sigEmail">Email de tu empresa</label>
+          <input type="text" id="sigEmail" value={emailEmpresa} readOnly tabIndex={-1} aria-readonly="true"
+            style={{ background: '#f3f4f6', color: '#4b5563', cursor: 'not-allowed' }} />
+          <div className="sig-msg okv">A este email enviaremos la copia del CMR al terminar el transporte, cuando firme la entrega el último destinatario. No se puede cambiar aquí.</div>
+        </> : <>
+          <label className="sig-lbl" htmlFor="sigEmail">Email <Req /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
+          <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </>}
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
             salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}
         {pideMatricula && <>
@@ -687,7 +710,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         )}
         {/* Caja verde con el porqué del email obligatorio (usuario, 2026-11-14). */}
         <div style={{ margin: '0.7rem 0 0.1rem', background: '#ecfdf5', border: '1.5px solid #6ee7b7', borderRadius: 10, padding: '0.55rem 0.7rem', fontSize: '0.8rem', lineHeight: 1.45, color: '#065f46', fontWeight: 600 }}>
-          📩 Al aceptar, te enviaremos a <strong>tu email</strong> una copia del documento firmado, con tu firma y las que ya trae. Por eso el email es obligatorio.
+          {emailEmpresa
+            ? <>📩 La copia del CMR con todas las firmas llegará al <strong>email de tu empresa</strong> al terminar el transporte. Si la quieres tú ahora, después de firmar puedes <strong>mandártela</strong> por WhatsApp, email o como prefieras.</>
+            : <>📩 Al aceptar, te enviaremos a <strong>tu email</strong> una copia del documento firmado, con tu firma y las que ya trae. Por eso el email es obligatorio.</>}
         </div>
         {/* Aceptar GRANDE y en verde arriba; Cancelar y Borrar debajo (usuario, 2026-11-10). */}
         <div className="sigbtns">
