@@ -119,14 +119,16 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
               </td></tr>
             ) : filas.map((c) => {
               const est = ESTADOS.find(([k]) => k === c.estado) ?? ESTADOS[0];
-              const cesce = Number(c.riesgo_cesce_euros) || 0, dyn = Number(c.riesgo_manual_euros) || 0;
+              const cesce = Number(c.riesgo_cesce_euros) || 0;
+              // El crédito de Dynamo manda si está puesto: 0 = sin crédito; vacío = no opina (manda CESCE).
+              const dyn = c.riesgo_manual_euros == null ? null : Number(c.riesgo_manual_euros);
               return (
                 <tr key={c.id} onClick={() => setFicha({ fila: c })} style={{ cursor: 'pointer' }}>
                   <td><strong>{c.nombre_visible}</strong><div className="meta">{c.cif}{c.nombre_comercial ? ` · ${c.razon_social}` : ''}</div></td>
                   <td>{(() => { const k = principal(c.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{c.contactos.length > 1 && <div className="meta">+{c.contactos.length - 1} contacto{c.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{c.direccion || '—'}<div className="meta">{[c.codigo_postal, c.poblacion, c.provincia, paisDe(c.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
-                    <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {euros(dyn)}</div></td>
+                    <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {dyn == null ? '—' : dyn === 0 ? <span style={{ color: '#b42318', fontWeight: 700 }}>0 € (sin crédito)</span> : euros(dyn)}</div></td>
                   <td><Factor v={Number(c.factor_tarifa_pct)} /><div className="meta">{c.factor_fijado_a_mano ? 'fijado a mano' : 'automático'}</div></td>
                   <td style={{ whiteSpace: 'nowrap' }}>{c.uso
                     ? <>
@@ -281,7 +283,7 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
         </div>
         {texto('iva', <>IVA (%) · 21 en España, 0 fuera (cámbialo si toca, p. ej. Canarias) <Req si={false} /></>, '21')}
         {texto('cesce', <>Importe crédito CESCE (€) <Req si={false} /></>, 'Ej. 40000')}
-        {texto('dyn', <>Importe crédito Dynamo (€) · 0 o vacío = manda CESCE <Req si={false} /></>, 'Ej. 10000')}
+        {texto('dyn', <>Importe crédito Dynamo (€) · manda sobre CESCE · 0 = sin crédito · vacío = manda CESCE <Req si={false} /></>, 'Vacío = manda CESCE')}
         {texto('ret', <>Retención (%) <Req si={false} /></>, '0')}
         {texto('re', <>Recargo de equivalencia (%) <Req si={false} /></>, '0')}
         {texto('tarde', <>Recargo por pago tarde (%) <Req si={false} /></>, '0')}

@@ -348,10 +348,10 @@ export type Database = {
           factor_fijado_a_mano: boolean
           alta_por: string | null
           exento_pago_previo_primer_envio: boolean
-          riesgo_efectivo_euros: number | null
           sector: string | null
           texto_busqueda: string | null
           nima_por_defecto: boolean
+          riesgo_efectivo_euros: number | null
         }
         Insert: {
           id?: string
@@ -400,10 +400,10 @@ export type Database = {
           factor_fijado_a_mano?: boolean
           alta_por?: string | null
           exento_pago_previo_primer_envio?: boolean
-          riesgo_efectivo_euros?: never
           sector?: string | null
           texto_busqueda?: string | null
           nima_por_defecto?: boolean
+          riesgo_efectivo_euros?: never
         }
         Update: {
           id?: string
@@ -452,10 +452,10 @@ export type Database = {
           factor_fijado_a_mano?: boolean
           alta_por?: string | null
           exento_pago_previo_primer_envio?: boolean
-          riesgo_efectivo_euros?: never
           sector?: string | null
           texto_busqueda?: string | null
           nima_por_defecto?: boolean
+          riesgo_efectivo_euros?: never
         }
         Relationships: [
           {

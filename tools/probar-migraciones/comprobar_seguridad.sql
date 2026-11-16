@@ -3593,14 +3593,18 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   raise notice 'OK 104 · negociación del transportista: interruptor general y requisitos (minutos creada, minutos en bolsa, horas para cargar)';
 end $$;
 
--- ---- 105. CESCE - Riesgos: manual 0 = manda CESCE; asumido sin lo prepagado; solo Dynamo --
+-- ---- 105. CESCE - Riesgos: manual vacío = manda CESCE, manual puesto manda (0 = sin crédito); asumido sin lo prepagado; solo Dynamo --
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare c uuid; e uuid; begin
-  insert into clientes (razon_social, cif, riesgo_cesce_euros, riesgo_manual_euros) values ('Riesgo SL', 'B10030030', 10000, 0) returning id into c;
-  if (select riesgo_efectivo_euros from clientes where id = c) <> 10000 then raise exception 'FALLO 105 · con manual 0 no manda CESCE'; end if;
+  -- Desde el 2026-11-16 el manual manda SIEMPRE que esté puesto: vacío = CESCE; 0 = sin crédito.
+  insert into clientes (razon_social, cif, riesgo_cesce_euros, riesgo_manual_euros) values ('Riesgo SL', 'B10030030', 10000, null) returning id into c;
+  if (select riesgo_efectivo_euros from clientes where id = c) <> 10000 then raise exception 'FALLO 105 · con el manual vacío no manda CESCE'; end if;
+  update clientes set riesgo_manual_euros = 0 where id = c;
+  if (select riesgo_efectivo_euros from clientes where id = c) <> 0 then raise exception 'FALLO 105 · con el manual a 0 el cliente sigue con el crédito de CESCE'; end if;
+  if (select manda from riesgos_clientes() where cliente_id = c) <> 'manual' then raise exception 'FALLO 105 · con el manual a 0 la pantalla de riesgos no dice que manda el manual'; end if;
   update clientes set riesgo_manual_euros = 3000 where id = c;
-  if (select riesgo_efectivo_euros from clientes where id = c) <> 3000 then raise exception 'FALLO 105 · con manual distinto de 0 no manda el manual'; end if;
+  if (select riesgo_efectivo_euros from clientes where id = c) <> 3000 then raise exception 'FALLO 105 · con manual puesto no manda el manual'; end if;
   insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde)
     values (c, 6, 1000, 800, current_date - 5) returning id into e;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
@@ -3621,7 +3625,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ begin
   if exists (select 1 from riesgos_clientes()) then raise exception 'FALLO 105 · un cliente ve los riesgos'; end if;
-  raise notice 'OK 105 · CESCE - Riesgos: manual 0 = manda CESCE, manual ≠ 0 limita; asumido 60 días con IVA sin lo prepagado; solo Dynamo';
+  raise notice 'OK 105 · CESCE - Riesgos: manual vacío = manda CESCE, manual puesto manda (0 = sin crédito); asumido 60 días con IVA sin lo prepagado; solo Dynamo';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -11108,12 +11112,18 @@ begin
   if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'envio_a_pago_previo' and envio_id = c) then
     raise exception 'FALLO 260 · Dynamo no se entera de que el envío modificado pasa a pago por adelantado';
   end if;
-  -- Con el manual a 0 vuelve a mandar CESCE (5.000 €): un envío de 400 € cabe de sobra.
-  update clientes set riesgo_manual_euros = 0 where id = cli;
+  -- Con el manual VACÍO vuelve a mandar CESCE (5.000 €): un envío de 400 € cabe de sobra.
+  update clientes set riesgo_manual_euros = null where id = cli;
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 400, lun) returning id into d;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (d, 1, 'carga', '41001', 'Sevilla', 'ES'), (d, 2, 'descarga', '28821', 'Coslada', 'ES');
   update envios set estado = 'programado' where id = d;
-  if (select estado_pago_previo from envios where id = d) <> 'no_requerido' then raise exception 'FALLO 260 · con el manual a 0 no manda el crédito de CESCE'; end if;
-  raise notice 'OK 260 · crédito insuficiente: el envío que no cabe en lo que queda (también al subir el precio modificando) se paga por adelantado; el manual de Dynamo manda sobre CESCE; sin importes en el motivo; apagable';
+  if (select estado_pago_previo from envios where id = d) <> 'no_requerido' then raise exception 'FALLO 260 · con el manual vacío no manda el crédito de CESCE'; end if;
+  -- Con el manual a 0, es 0: SIN crédito aunque CESCE dé 5.000 € → el envío se paga por adelantado.
+  update clientes set riesgo_manual_euros = 0 where id = cli;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 100, lun) returning id into d;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (d, 1, 'carga', '41001', 'Sevilla', 'ES'), (d, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = d;
+  if (select estado_pago_previo from envios where id = d) <> 'pendiente' then raise exception 'FALLO 260 · con el manual a 0 el cliente sigue cargando a crédito de CESCE'; end if;
+  raise notice 'OK 260 · crédito insuficiente: el envío que no cabe en lo que queda (también al subir el precio modificando) se paga por adelantado; el manual de Dynamo manda siempre sobre CESCE (0 = sin crédito, vacío = CESCE); sin importes en el motivo; apagable';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';

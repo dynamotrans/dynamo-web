@@ -1,7 +1,7 @@
 'use client';
 
 // CESCE - Riesgos (solo Dynamo). Por cliente: crédito CESCE, manual de Dynamo, el que
-// limita (manual si es distinto de 0; si no, CESCE), riesgo asumido (envíos de los
+// limita (el manual si está puesto, también a 0; si está vacío, CESCE), riesgo asumido (envíos de los
 // últimos días sin cobrar, IVA incluido; lo pagado por adelantado no cuenta) y disponible.
 // Por páginas desde la base de datos: buscador y filtro por la URL; los totales de arriba
 // los calcula el servidor sobre todos los clientes.
@@ -34,7 +34,7 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
       <div className="sec-header"><h2>CESCE - Riesgos ({numero(lista.total, 0)})</h2></div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
-        Crédito de cada cliente frente a lo que tiene pendiente. <strong>Límite</strong>: el manual de Dynamo si es distinto de 0; si es 0 o está vacío, el de CESCE.
+        Crédito de cada cliente frente a lo que tiene pendiente. <strong>Límite</strong>: el manual de Dynamo si está puesto (0 = sin crédito); si está vacío, el de CESCE.
         {' '}<strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido. Los importes se cambian en la ficha del cliente.
       </p>
       <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem', marginBottom: '0.9rem' }}>
@@ -70,7 +70,7 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
                 <tr key={x.id}>
                   <td><Link href={`/panel/clientes?ver=${x.id}`} style={{ color: 'var(--navy)', fontWeight: 700 }}>{x.nombre}</Link><div className="meta">{x.cif}</div></td>
                   <td className="amount" style={x.manda === 'cesce' ? { fontWeight: 800 } : { color: 'var(--gray-500)' }}>{x.cesce != null ? euros(x.cesce) : '—'}{x.plazo ? <div className="meta">{x.plazo} días</div> : null}</td>
-                  <td className="amount" style={x.manda === 'manual' ? { fontWeight: 800 } : { color: 'var(--gray-500)' }}>{x.manual ? euros(x.manual) : '—'}</td>
+                  <td className="amount" style={x.manda === 'manual' ? { fontWeight: 800 } : { color: 'var(--gray-500)' }}>{x.manual != null ? euros(x.manual) : '—'}</td>
                   <td className="amount"><strong>{x.limite != null ? euros(x.limite) : 'Sin crédito'}</strong><div className="meta">{x.manda === 'manual' ? 'manda el manual' : x.manda === 'cesce' ? 'manda CESCE' : 'previo pago'}</div></td>
                   <td className="amount">{x.envios || '—'}</td>
                   <td className="amount">{x.asumido ? euros(x.asumido) : '—'}{x.asumido ? <div className="meta">{euros(x.base)} sin IVA</div> : null}</td>
