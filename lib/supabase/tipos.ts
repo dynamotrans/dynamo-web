@@ -3684,6 +3684,7 @@ export type Database = {
       crear_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_cliente: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null; p_cliente?: string | null }; Returns: { id: string; referencia_gx: string }[] }
+      credito_alcanza: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: boolean }
       credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
@@ -3849,6 +3850,7 @@ export type Database = {
       pago_envio_stripe: { Args: { p_envio: string | null; p_pago: string | null; p_centimos: number | null }; Returns: Json }
       pago_limite: { Args: { p_desde: string | null; p_carga?: string | null }; Returns: string }
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
+      pago_previo_motivo_credito: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
       paradas_json: { Args: { p_envio: string | null }; Returns: Json }

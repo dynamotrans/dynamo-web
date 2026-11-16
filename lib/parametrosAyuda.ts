@@ -68,6 +68,11 @@ export const AYUDA: Record<string, Ayuda> = {
   pago_previo_primeros_envios: { titulo: 'Primeros envíos con previo pago',
     explica: 'Cuántos de los primeros envíos de cada cliente se pagan por adelantado, aunque tenga crédito (salvo que en su ficha marques «empresa conocida»). 0 = ninguno.',
     ejemplo: (v) => `Con ${v}: ${Number(v) === 1 ? 'solo el primer envío' : `los ${v} primeros envíos`} de un cliente nuevo se paga${Number(v) === 1 ? '' : 'n'} antes; los siguientes, a su plazo.` },
+  credito_limite_exige_pago: { titulo: 'Sin crédito suficiente: pago por adelantado',
+    explica: 'Si está encendido, cuando un envío no cabe en el crédito que le queda al cliente (lo ya usado más ese envío, con IVA, supera su línea), ESE envío se paga por adelantado; los que sí caben siguen a crédito. «Lo usado» son sus envíos de los últimos días sin pago por adelantado (los días de «CESCE - Riesgos»), no sus facturas reales pendientes. Apagado: con crédito concedido nunca se pide pago por pasarse.',
+    ejemplo: (v) => (String(v) === 'true'
+      ? 'Encendido: le quedan 200 € de crédito y pide un envío de 400 € → ese envío queda «Pendiente de pago».'
+      : 'Apagado: le quedan 200 € de crédito y pide un envío de 400 € → va a crédito igualmente.') },
   sesion_recordar_dias: { titulo: 'Sesión con «Recordarme»: días',
     explica: 'Días que cada persona puede entrar sin volver a escribir la contraseña, con «Recordarme» marcado (viene marcado). Cuentan desde la última vez que la escribió; pasados, se le cierra la sesión en ese dispositivo y vuelve a entrar. 0 = sin límite.',
     ejemplo: (v) => Number(v) > 0 ? `Con ${v}: entra el 1 de marzo → no se le vuelve a pedir la contraseña hasta pasados ${v} días.` : 'Con 0: no se le vuelve a pedir nunca (salvo que cierre la sesión).' },

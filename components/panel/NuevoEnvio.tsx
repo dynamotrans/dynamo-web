@@ -175,7 +175,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [cliente?.id, esCliente]);
   // PANTALLA DE ÉXITO (tarea 81, usuario 2026-11-13): al confirmar un envío no se suelta
   // al usuario en la lista — se le dice QUÉ PASA AHORA y a dónde ir.
-  const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual' } | null>(null);
+  const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual'; pago?: boolean } | null>(null);
   // La casilla nace MARCADA (usuario, 2026-11-16): la aceptación es pulsar «Confirmar envío»
   // con el texto y las condiciones delante. Si la desmarca, no puede confirmar.
   const [aceptaLegal, setAceptaLegal] = useState(true);
@@ -695,7 +695,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
       setEnviando(false); setRevisarLegal(false);
-      setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente' });
+      setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente', pago: rs.pagoPendiente });
       router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
       return;
     }
@@ -958,7 +958,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           <p style={{ margin: '0 0 1.1rem', color: 'var(--gray-500)', textAlign: 'center' }}>Esto es lo que pasa ahora:</p>
           {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): caja roja; si
               no aplica, no se dice nada del pago. */}
-          {pagoPrevio && creado.modo === 'cliente' && (
+          {(creado.pago ?? pagoPrevio) && creado.modo === 'cliente' && (
             <div className="pt-aviso error" role="alert" style={{ marginBottom: '1rem' }}><div>
               <strong>Pendiente de pago.</strong> Hasta que no se abone, <strong>no se procesa ninguna reserva de
               transporte</strong>. La <strong>fecha y la ventana de carga empiezan a contar a partir del pago</strong>

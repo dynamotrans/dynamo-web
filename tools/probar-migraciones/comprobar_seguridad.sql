@@ -11056,3 +11056,64 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record
   end if;
   raise notice 'OK 259 · el cliente modifica su envío entero sin transportista (ruta, mercancía, fechas y precio); también la fecha pasada la hora límite de cancelar; pagado y sube: paga solo la diferencia y no sigue hasta pagarla; con transportista (o con uno asignándose), no';
 end $$;
+
+-- ---- 260. Crédito insuficiente: el envío que no cabe en el crédito que queda se paga por adelantado ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
+do $$ declare cli uuid; uc uuid; a uuid; b uuid; c uuid; d uuid; r jsonb; x record;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  insert into clientes (razon_social, cif) values ('Cliente Crédito 260 SL', 'B26000260') returning id into cli;
+  insert into auth.users (email) values ('credito260@cliente.prueba') returning id into uc;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = cli where id = uc;
+  -- CESCE da 5.000 € pero Dynamo lo limita a mano a 1.000 €: manda el manual.
+  update clientes set riesgo_cesce_euros = 5000, riesgo_manual_euros = 1000, exento_pago_previo_primer_envio = true where id = cli;
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 1000 then raise exception 'FALLO 260 · el crédito manual de Dynamo no manda sobre el de CESCE'; end if;
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  -- a: 600 € (726 € con IVA). Cabe en 1.000 €: va a crédito.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 600, lun) returning id into a;
+  -- b: 400 € (484 €). Quedan 274 €: NO cabe → pendiente de pago.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 400, lun) returning id into b;
+  -- c: 200 € (242 €). Cabe (726 + 242 = 968): a crédito. El pendiente (b) no gasta crédito.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 200, lun) returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 400, lun) returning id into d;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select e, o, t, cp, p, 'ES' from unnest(array[a, b, c, d]) e,
+      (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id = a;
+  if (select estado_pago_previo from envios where id = a) <> 'no_requerido' then raise exception 'FALLO 260 · un envío que cabe en el crédito se manda a pago por adelantado'; end if;
+  update envios set estado = 'programado' where id = b;
+  select estado_pago_previo, pago_motivo into x from envios where id = b;
+  if x.estado_pago_previo <> 'pendiente' or x.pago_motivo not like 'Crédito insuficiente%' then
+    raise exception 'FALLO 260 · un envío que NO cabe en el crédito que queda va a crédito igualmente: %', x;
+  end if;
+  if x.pago_motivo ~ '[0-9]' then raise exception 'FALLO 260 · el motivo del pago enseña importes de crédito: %', x.pago_motivo; end if;
+  update envios set estado = 'programado' where id = c;
+  if (select estado_pago_previo from envios where id = c) <> 'no_requerido' then raise exception 'FALLO 260 · el envío pendiente de pago gasta crédito (el siguiente que cabe no entra)'; end if;
+  -- Apagado en Parámetros: con crédito concedido no se pide pago por pasarse.
+  update parametros set valor = 'false'::jsonb where clave = 'credito_limite_exige_pago';
+  update envios set estado = 'programado' where id = d;
+  if (select estado_pago_previo from envios where id = d) <> 'no_requerido' then raise exception 'FALLO 260 · con la regla apagada sigue pidiendo pago por pasarse del crédito'; end if;
+  update parametros set valor = 'true'::jsonb where clave = 'credito_limite_exige_pago';
+  update envios set estado = 'cancelado' where id = d;
+  -- Al MODIFICAR: c iba a crédito con 200 €; el cliente lo sube a 400 € y ya no cabe → pendiente de pago.
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  r := modificar_envio_cliente(c, jsonb_build_object('importe_cliente', 400, 'fecha_carga_desde', lun, 'fecha_carga_hasta', lun, 'metros_lineales', 6, 'toneladas', 5), null);
+  perform set_config('request.jwt.claim.sub', '', false);
+  select estado_pago_previo, pago_motivo into x from envios where id = c;
+  if x.estado_pago_previo <> 'pendiente' or x.pago_motivo not like 'Crédito insuficiente%' then
+    raise exception 'FALLO 260 · al subir el precio modificando, el envío que ya no cabe sigue a crédito: %', x;
+  end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'envio_a_pago_previo' and envio_id = c) then
+    raise exception 'FALLO 260 · Dynamo no se entera de que el envío modificado pasa a pago por adelantado';
+  end if;
+  -- Con el manual a 0 vuelve a mandar CESCE (5.000 €): un envío de 400 € cabe de sobra.
+  update clientes set riesgo_manual_euros = 0 where id = cli;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 400, lun) returning id into d;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (d, 1, 'carga', '41001', 'Sevilla', 'ES'), (d, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = d;
+  if (select estado_pago_previo from envios where id = d) <> 'no_requerido' then raise exception 'FALLO 260 · con el manual a 0 no manda el crédito de CESCE'; end if;
+  raise notice 'OK 260 · crédito insuficiente: el envío que no cabe en lo que queda (también al subir el precio modificando) se paga por adelantado; el manual de Dynamo manda sobre CESCE; sin importes en el motivo; apagable';
+end $$;
+update parametros set valor = 'false' where clave = 'pago_previo_activo';

@@ -213,7 +213,7 @@ export async function guardarEdicionEnvioCliente(envio: string,
 // no hay solicitudes de precio). Nace programado; el previo pago decide crédito o pago.
 // La base de datos fuerza que sea de SU empresa y con SUS sitios.
 export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_transportista'>, paradas: ParadaNueva[]):
-  Promise<{ ok: true; referencia_gx: string; id: string | null } | { ok: false; error: string }> {
+  Promise<{ ok: true; referencia_gx: string; id: string | null; pagoPendiente: boolean } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvioCliente", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
@@ -223,7 +223,14 @@ export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | '
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
-  return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null };
+  // ¿Ha nacido pendiente de pago? (sin crédito, primer envío, o porque no cabe en el crédito
+  // que le queda): la pantalla de «envío creado» lo avisa con lo que diga la base de datos.
+  let pagoPendiente = false;
+  if (fila?.id) {
+    const { data: pg } = await s.supabase.rpc('pagos_envio', { p_envio: fila.id }).maybeSingle();
+    pagoPendiente = pg?.estado_pago_previo === 'pendiente';
+  }
+  return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null, pagoPendiente };
 }
 
 // Envío con un operador PROPIO del cliente (manual, Dynamo no interviene): lo crea el
