@@ -3687,6 +3687,7 @@ export type Database = {
       dias_habiles_antes: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       dias_ventana_carga: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: number }
       diccionario_datos: { Args: Record<PropertyKey, never>; Returns: { tabla: string; orden: number; columna: string; tipo: string; no_nulo: boolean; descripcion: string; tabla_descripcion: string }[] }
+      difusion_espera_bolsa: { Args: { p_envio: string | null }; Returns: Json }
       documento_es_valido: { Args: { p_doc: string | null }; Returns: boolean }
       domingo_de_pascua: { Args: { p_anio: number | null }; Returns: string }
       duracion_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
@@ -3737,6 +3738,9 @@ export type Database = {
       flota_publica: { Args: { p_reserva: string | null; p_cif?: string | null }; Returns: Json }
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
+      fn_bolsa_margen_minutos: { Args: { p_dias: number | null }; Returns: number }
+      fn_difusion_avisa_bolsa: { Args: { p_envio: string | null }; Returns: undefined }
+      fn_difusion_bolsa: { Args: { p_envio: string | null }; Returns: Json }
       fn_difusion_cadencia: { Args: { p_horas: number | null }; Returns: { minutos: number; lote: number } }
       fn_difusion_paso: { Args: { p_difusion: string | null }; Returns: undefined }
       fn_difusion_recordatorios: { Args: Record<PropertyKey, never>; Returns: undefined }

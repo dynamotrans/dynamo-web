@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import Modal from '../Modal';
 import Cargando from '@/components/Cargando';
 import { euros, numero } from '@/lib/formato';
@@ -148,8 +149,18 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--purple)', fontWeight: 800 }}>
               {dif.empieza_en && new Date(dif.empieza_en) > new Date()
                 ? <>Programada · los emails empiezan el {fmtTs(dif.empieza_en)} · {euros(dif.precio)} + IVA</>
+                : dif.contactados === 0 && dif.bolsa?.espera === 'bolsa'
+                ? <>Esperando a la bolsa · los emails no salen hasta que el envío esté publicado · {euros(dif.precio)} + IVA</>
+                : dif.contactados === 0 && dif.bolsa?.espera && dif.bolsa.desde
+                ? <>La bolsa va primero · los emails empiezan el {fmtTs(dif.bolsa.desde)} · {euros(dif.precio)} + IVA</>
                 : <>En marcha · {dif.contactados} de {dif.max_contactados} transportistas contactados · {euros(dif.precio)} + IVA</>}
             </div>
+            {/* La bolsa va primero (usuario, 2026-11-16): qué falta para que arranquen. */}
+            {dif.contactados === 0 && dif.bolsa?.espera === 'bolsa' && (
+              <div className="wiz-warn show" style={{ margin: '0.35rem 0' }}>
+                Súbelo a la bolsa desde <Link href="/panel/exportaciones" style={{ fontWeight: 800 }}>Exportaciones</Link> y márcalo como publicado: los emails a tus transportistas salen un margen después (3 h si faltan 3 días o más, 2 h a 2 días, 15 min si carga mañana y 5 min si carga hoy). Si la carga es hoy o mañana, salen aunque no esté publicado.
+              </div>
+            )}
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0.5rem' }}>
               Más seguido cuanto menos falte para la carga (de 5:30 a 23:30, los 365 días), con recordatorio diario a los contactados{dif.corte_en ? <> y corte el <strong>{fmtTs(dif.corte_en)}</strong></> : null}. Autónomos primero; después quien hizo esta ruta o una parecida, sede en la provincia del origen o del destino o colindante, y favoritos y valoración como desempate. Para sola en cuanto uno acepte o asignes a mano; si el envío se queda luego sin transportista, se reanuda sola.
             </div>
@@ -158,7 +169,7 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
         ) : (
           <>
             <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginBottom: '0.5rem' }}>
-              Con este mismo precio, la plataforma empieza a mandar emails unos días antes de la carga, más seguido cuanto menos falte (de 5:30 a 23:30, los 365 días), con recordatorio diario a los contactados y <strong>corte unas horas antes de la carga</strong>. <strong>Autónomos primero</strong> (DNI, no CIF de empresa); después quien hizo esta ruta o una parecida, sede en la provincia del origen o del destino o colindante, y favoritos y valoración como desempate. <strong>Para en cuanto uno acepta</strong> o asignes a mano, y se reanuda sola si el envío se queda luego sin transportista.
+              <strong>Primero la bolsa:</strong> los emails no salen hasta que el envío esté publicado en la bolsa y pase su margen. Con este mismo precio, la plataforma empieza a mandar emails unos días antes de la carga, más seguido cuanto menos falte (de 5:30 a 23:30, los 365 días), con recordatorio diario a los contactados y <strong>corte unas horas antes de la carga</strong>. <strong>Autónomos primero</strong> (DNI, no CIF de empresa); después quien hizo esta ruta o una parecida, sede en la provincia del origen o del destino o colindante, y favoritos y valoración como desempate. <strong>Para en cuanto uno acepta</strong> o asignes a mano, y se reanuda sola si el envío se queda luego sin transportista.
             </div>
             {dif && dif.estado !== 'aceptada' && dif.fin_motivo && (
               <div style={{ fontSize: 'var(--fs-s)', color: '#b45309', marginBottom: '0.5rem' }}>Última: {dif.fin_motivo} ({dif.contactados} contactados)</div>

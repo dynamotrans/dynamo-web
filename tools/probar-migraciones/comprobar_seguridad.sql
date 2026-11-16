@@ -8019,6 +8019,9 @@ select set_config('request.jwt.claim.sub', '', false);
 -- cualquier hora y la ventana real de 5:00-23:00 la probamos aparte cerrándola a mano.
 update parametros set valor = '0'::jsonb  where clave = 'difusion_hora_inicio';
 update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
+-- «La bolsa va primero» (2026-11-16) se apaga durante esta prueba: aquí se mira el ranking,
+-- la cadencia y el corte de los emails; la espera a la bolsa tiene su prueba aparte (248).
+update parametros set valor = 'false'::jsonb where clave = 'bolsa_primero';
 do $$ declare t_fav uuid; t_val uuid; t_sin uuid; t_lejos uuid; t_ruta uuid; t_colin uuid; t_par uuid; t_auto uuid; er uuid; ep uuid; begin
   -- Sede en la provincia del ORIGEN (Guadalajara, CP 19 + ES): entran en la difusión.
   insert into transportistas (razon_social, cif, nima, tags, valoracion_dynamo, codigo_postal, pais_codigo_iso)
@@ -8443,6 +8446,7 @@ end $$;
 update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio';
 update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
 update parametros set valor = '9'::jsonb  where clave = 'difusion_recordatorio_hora';
+update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
 
 -- ---- 209. Borrar transportistas: lógico, fuera de lista y ofertas; con envíos vivos no --
 reset role;
@@ -10274,4 +10278,102 @@ do $$ declare v_src text; begin
   end if;
   raise notice 'OK 247 · la cola de emails sale cada minuto, sin repetir entre pasadas y con 15 s de margen para el servidor web';
 end $$;
+reset role;
+
+-- ---- 248. La bolsa va primero: ventana de 12 días, márgenes y arranque de los emails --------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = '0'::jsonb  where clave = 'difusion_hora_inicio';
+update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
+update parametros set valor = '0'::jsonb  where clave = 'bolsa_espera_minutos';
+update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
+do $$ declare e uuid; gx text; hoy date := (now() at time zone 'Europe/Madrid')::date; r jsonb; t uuid; begin
+  -- Un transportista de la provincia del origen, con email: el candidato de la oferta.
+  insert into transportistas (razon_social, cif, nima, valoracion_dynamo, codigo_postal, pais_codigo_iso)
+    values ('Transp Bolsa 248 SL', 'B24800001', 'NIMA-248A', 5, '19005', 'ES') returning id into t;
+  insert into contactos (transportista_id, nombre, email, funcion, es_principal)
+    values (t, 'Berta Bolsa', 'bolsa.248@prueba.invalid', 'trafico', true);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, hoy + 20) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '19001', 'Guadalajara', 'ES'), (e, 2, 'descarga', '16001', 'Cuenca', 'ES');
+  update envios set estado = 'programado' where id = e;
+  select referencia_gx into gx from envios where id = e;
+  perform set_config('prueba.e248', e::text, false);
+
+  -- (a) El fichero de la bolsa: a 20 días no sale; a 12 sí.
+  if exists (select 1 from v_wtransnet where "REF." = gx) then raise exception 'FALLO 248 · un envío a 20 días sale ya en el fichero de la bolsa'; end if;
+  update envios set fecha_carga_desde = hoy + 12 where id = e;
+  if not exists (select 1 from v_wtransnet where "REF." = gx) then raise exception 'FALLO 248 · a 12 días de la carga el envío no entra en el fichero de la bolsa'; end if;
+
+  -- (b) Los márgenes de los emails según lo que falte al publicar.
+  if fn_difusion_bolsa(e) ->> 'espera' <> 'bolsa' then raise exception 'FALLO 248 · sin publicar en la bolsa los emails no esperan: %', fn_difusion_bolsa(e); end if;
+  update envios set publicado_en_bolsa_en = now() where id = e;
+  r := fn_difusion_bolsa(e);
+  if r ->> 'espera' <> 'margen' or (r ->> 'minutos')::int <> 180 then raise exception 'FALLO 248 · a 3 días o más el margen debía ser de 180 minutos: %', r; end if;
+  update envios set publicado_en_bolsa_en = now() - interval '181 minutes' where id = e;
+  if fn_difusion_bolsa(e) ->> 'espera' is not null then raise exception 'FALLO 248 · pasado el margen los emails siguen esperando: %', fn_difusion_bolsa(e); end if;
+  update envios set fecha_carga_desde = hoy + 2, publicado_en_bolsa_en = now() where id = e;
+  if (fn_difusion_bolsa(e) ->> 'minutos')::int <> 120 then raise exception 'FALLO 248 · a 2 días el margen debía ser de 120 minutos: %', fn_difusion_bolsa(e); end if;
+  update envios set fecha_carga_desde = hoy + 1, publicado_en_bolsa_en = now() where id = e;
+  if (fn_difusion_bolsa(e) ->> 'minutos')::int <> 15 then raise exception 'FALLO 248 · con la carga mañana el margen debía ser de 15 minutos: %', fn_difusion_bolsa(e); end if;
+  update envios set fecha_carga_desde = hoy, publicado_en_bolsa_en = now() where id = e;
+  if (fn_difusion_bolsa(e) ->> 'minutos')::int <> 5 then raise exception 'FALLO 248 · con la carga hoy el margen debía ser de 5 minutos: %', fn_difusion_bolsa(e); end if;
+  -- Red de seguridad: carga mañana y sin publicar → los emails salen igual.
+  update envios set fecha_carga_desde = hoy + 1, publicado_en_bolsa_en = null where id = e;
+  r := fn_difusion_bolsa(e);
+  if r ->> 'espera' is not null or (r ->> 'sin_bolsa')::boolean is not true then raise exception 'FALLO 248 · con la carga mañana y sin publicar, los emails debían salir igual: %', r; end if;
+  -- Interruptor apagado: los emails no miran la bolsa.
+  update envios set fecha_carga_desde = hoy + 4 where id = e;
+  update parametros set valor = 'false'::jsonb where clave = 'bolsa_primero';
+  if fn_difusion_bolsa(e) ->> 'espera' is not null then raise exception 'FALLO 248 · con «bolsa primero» apagado los emails siguen esperando'; end if;
+  update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
+end $$;
+-- (c) La oferta escalonada: lanzada sin publicar en la bolsa, no contacta a nadie y avisa.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e248')::uuid; r jsonb; begin
+  r := iniciar_difusion(e, 500);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 248 · no se lanza la oferta escalonada: %', r; end if;
+  if difusion_espera_bolsa(e) ->> 'espera' <> 'bolsa' then raise exception 'FALLO 248 · Dynamo no ve que los emails esperan a la bolsa'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if difusion_espera_bolsa(current_setting('prueba.e248')::uuid) ->> 'espera' is not null then raise exception 'FALLO 248 · un cliente ve si su envío está en la bolsa'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e248')::uuid; d uuid; n int; begin
+  select id into d from difusiones where envio_id = e and estado = 'activa';
+  perform fn_difusion_paso(d); perform fn_difusion_paso(d);
+  if (select contactados from difusiones where id = d) <> 0 then raise exception 'FALLO 248 · sin publicar en la bolsa ya salen emails a los transportistas'; end if;
+  select count(*) into n from avisos where tipo = 'bolsa_pendiente' and envio_id = e;
+  if n <> 1 then raise exception 'FALLO 248 · el aviso de «sube a la bolsa» debía salir una sola vez (%)', n; end if;
+  -- Publicado, pero dentro del margen de 3 horas: sigue esperando.
+  update envios set publicado_en_bolsa_en = now() - interval '60 minutes' where id = e;
+  perform fn_difusion_paso(d);
+  if (select contactados from difusiones where id = d) <> 0 then raise exception 'FALLO 248 · dentro del margen de la bolsa ya salen emails'; end if;
+  -- Pasado el margen: sale el primero.
+  update envios set publicado_en_bolsa_en = now() - interval '181 minutes' where id = e;
+  perform fn_difusion_paso(d);
+  if (select contactados from difusiones where id = d) < 1 then
+    raise exception 'FALLO 248 · pasado el margen de la bolsa no sale el primer email (estado %, motivo %)',
+      (select estado from difusiones where id = d), (select fin_motivo from difusiones where id = d);
+  end if;
+  -- Una oferta que ya ha contactado a alguien no se vuelve a parar por la bolsa.
+  update envios set publicado_en_bolsa_en = now() where id = e;
+  if (select estado from difusiones where id = d) <> 'activa' then raise exception 'FALLO 248 · volver a publicar para la oferta en marcha'; end if;
+
+  -- (d) Con transportista: deja de constar como publicado y Dynamo recibe aviso de retirarlo.
+  update envios set transportista_id = (select id from transportistas where cif = 'B24800001'), estado_asignacion = 'confirmada',
+                    fecha_carga_prevista = fecha_carga_desde where id = e;
+  if (select publicado_en_bolsa_en from envios where id = e) is not null then raise exception 'FALLO 248 · con transportista sigue constando como publicado en la bolsa'; end if;
+  if not exists (select 1 from avisos where tipo = 'bolsa_retirar' and envio_id = e) then raise exception 'FALLO 248 · falta el aviso de retirar el envío de la bolsa'; end if;
+  raise notice 'OK 248 · la bolsa va primero: fichero a 12 días, márgenes 180/120/15/5, los emails esperan a la bolsa y se retira al asignar';
+end $$;
+update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio';
+update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
+update parametros set valor = '3'::jsonb where clave = 'bolsa_espera_minutos';
 reset role;

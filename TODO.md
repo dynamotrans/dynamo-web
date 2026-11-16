@@ -25,7 +25,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Google Maps** (`GOOGLE_MAPS_API_KEY`): buscador de sitios con Google real y km reales.
 
 **Decisiones del usuario:**
-- [ ] **Bolsas de carga** (#66): cómo y cuándo se publica automáticamente.
+- [ ] **Bolsas de carga** (#66): **tiempos HECHOS 2026-11-16** («la bolsa va primero», migración `bolsa_primero`, prueba 248): fichero de la bolsa desde 12 días antes; emails a los transportistas propios desde 5 días antes y siempre un margen después de publicar en la bolsa (3 h con 3 días o más · 2 h a 2 días · 15 min si carga mañana · 5 min si carga hoy); sin publicar esperan y avisan, salvo carga hoy o mañana; al asignar o cancelar deja de constar como publicado y avisa de retirarlo. Todo en Parámetros → Transportistas → Bolsa de cargas. **Falta (decisión del usuario: AL FINAL, cuando la plataforma y el tarifador estén afinados): la conexión automática (API) con la bolsa** — hoy publicar es subir el fichero de Exportaciones y marcarlo. Pendiente de decidir: repartir los 60 contactados en varios días (hoy se agotan el primero).
 - [ ] **Tarifador**: sesiones conjuntas con las tarifas reales (se dejó a propósito para el final de la v1) + ahorro acumulado del cliente (#13).
 - [ ] Usuario «Automatizaciones n8n» cuando se conecte n8n.
 

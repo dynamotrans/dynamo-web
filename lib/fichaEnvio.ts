@@ -31,7 +31,10 @@ export type TransportistaOpcion = { id: string; nombre: string; cif: string; est
 export type FlotaTransportista = { vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] };
 export type DifusionFicha = { id: string; estado: string; precio: number; contactados: number; max_contactados: number;
   minutos_entre_emails: number; ultimo_email_en: string | null; fin_motivo: string | null;
-  empieza_en: string | null; carga_prevista_en: string | null; corte_en: string | null };
+  empieza_en: string | null; carga_prevista_en: string | null; corte_en: string | null;
+  // La bolsa va primero (2026-11-16): si los emails esperan a la bolsa y hasta cuándo.
+  bolsa: EsperaBolsa | null };
+export type EsperaBolsa = { espera: 'bolsa' | 'margen' | 'quieto' | null; desde?: string; minutos?: number; sin_bolsa?: boolean };
 export type Ficha = {
   // El envío con sus columnas tipadas (tabla envios) más los datos que se le juntan.
   envio: Tabla<'envios'> & { clientes: { id: string; nombre_visible: string | null; cif: string; riesgo_efectivo_euros: number | null } | null;
@@ -63,7 +66,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   if (error) return { ficha: null, error: mensajeError(error.message) };
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
-  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam, dif] = await Promise.all([
+  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam, dif, bol] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, sitios(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, mercancia_defecto, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
@@ -78,6 +81,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
       .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
     sb.from('difusiones').select('id, estado, precio, contactados, max_contactados, minutos_entre_emails, ultimo_email_en, fin_motivo, empieza_en, carga_prevista_en, corte_en')
       .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+    sb.rpc('difusion_espera_bolsa', { p_envio: id }),
   ]);
   const pg = pag.data;
 
@@ -135,7 +139,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
       firmasCmr: (fir.data ?? []).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
       cambioTransportista: cam.data ? { ...cam.data, precio_antes: cam.data.precio_antes != null ? Number(cam.data.precio_antes) : null,
         precio_ahora: cam.data.precio_ahora != null ? Number(cam.data.precio_ahora) : null } : null,
-      difusion: dif.data ? { ...dif.data, precio: Number(dif.data.precio) } : null,
+      difusion: dif.data ? { ...dif.data, precio: Number(dif.data.precio), bolsa: (bol.data ?? null) as EsperaBolsa | null } : null,
       corte,
       pago: pg ? { estado: pg.estado_pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
         base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional } : null,
