@@ -462,7 +462,7 @@ function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () =
         <button className="btn-primary" onClick={confirmar} disabled={trabajando || !nuevo.trim() || !conf.trim()}>{trabajando ? 'Cambiando…' : 'Cambiar email'}</button>
       </>}>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
-      <div className="modal-warn-box">Hazlo solo si te lo pide <strong>el propio usuario</strong> o su empresa (por teléfono o desde su email de siempre). Desde ese momento entra con el email nuevo y su contraseña de siempre; los avisos le llegan al nuevo.</div>
+      <div className="modal-warn-box">Hazlo solo si te lo pide <strong>el propio usuario</strong> o su empresa (por teléfono o desde su email de siempre). Desde ese momento entra con el email nuevo y su contraseña de siempre; los avisos le llegan al nuevo. <strong>Se avisa por email a las dos direcciones</strong>: a la de antes, que ya no sirve para entrar; y a la nueva, con el enlace para entrar.</div>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="email-nuevo">Email nuevo <Req /></label>

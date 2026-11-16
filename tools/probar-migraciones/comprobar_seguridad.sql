@@ -10213,3 +10213,28 @@ do $$ declare u uuid; n0 int; n int; v_cuerpo text; begin
   raise notice 'OK 244 · cada reactivación de una cuenta suspendida encola el email «vuelve a estar activa» con el enlace para entrar';
 end $$;
 reset role;
+
+-- ---- 245. Cambiar el email de acceso avisa a la dirección antigua y a la nueva ------------
+reset role;
+do $$ declare u uuid; v_a text; v_n text; n int; begin
+  select id into u from usuarios where email = 'alta243@prueba.es';
+  -- El cambio entra por el acceso (auth.users), como lo hace la plataforma; el perfil se sincroniza solo.
+  update auth.users set email = 'nuevo245@prueba.es' where id = u;
+  if (select email from usuarios where id = u) <> 'nuevo245@prueba.es' then raise exception 'FALLO 245 · el perfil no sigue al cambio de email'; end if;
+  select cuerpo_html into v_a from emails_enviados where tipo = 'cambio_email' and destinatario = 'alta243@prueba.es' and clave like 'cambio_email:' || u || ':%:antiguo';
+  select cuerpo_html into v_n from emails_enviados where tipo = 'cambio_email' and destinatario = 'nuevo245@prueba.es' and clave like 'cambio_email:' || u || ':%:nuevo';
+  if v_a is null or v_n is null then raise exception 'FALLO 245 · cambiar el email no avisa a las dos direcciones (antigua %, nueva %)', v_a is not null, v_n is not null; end if;
+  if v_a not like '%nuevo245@prueba.es%' or v_a not like '%ya no sirve para entrar%' or v_a not like '%No lo has pedido%' or v_a like '%/panel/entrar%' then
+    raise exception 'FALLO 245 · el aviso a la dirección antigua no es el que debe: %', v_a;
+  end if;
+  if v_n not like '%/panel/entrar%' or v_n not like '%contraseña de siempre%' or v_n not like '%alta243@prueba.es%' then
+    raise exception 'FALLO 245 · el aviso a la dirección nueva no trae el enlace para entrar o el texto: %', v_n;
+  end if;
+  -- Cambiar solo mayúsculas no es un cambio; anonimizar no avisa a nadie nuevo.
+  select count(*) into n from emails_enviados where tipo = 'cambio_email';
+  update usuarios set email = 'Nuevo245@prueba.es' where id = u;
+  update usuarios set email = 'eliminado-245@anonimo.invalid' where id = u;
+  if (select count(*) from emails_enviados where tipo = 'cambio_email') <> n then raise exception 'FALLO 245 · sale aviso de cambio de email al cambiar mayúsculas o al anonimizar'; end if;
+  raise notice 'OK 245 · cambiar el email de acceso avisa a la dirección antigua y a la nueva (con el enlace para entrar); anonimizar no';
+end $$;
+reset role;
