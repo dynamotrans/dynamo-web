@@ -34,6 +34,23 @@ function traducir(msg: string): string {
 }
 const vacio = (s: string) => (s ?? '').trim() || null;
 
+// Solo el crédito de un cliente, desde CESCE - Riesgos (usuario, 2026-11-16: «para no tener
+// que ir al perfil del cliente con toda la info, se cambia aquí mismo»). null = vacío: en
+// el de Dynamo, vacío significa «manda CESCE»; 0 significa «sin crédito».
+export async function guardarCreditoCliente(id: string, cesce: number | null, manual: number | null):
+  Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#guardarCreditoCliente", [id, cesce, manual]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
+    return { ok: false, error: 'Solo el equipo de Dynamo cambia el crédito de un cliente.' };
+  }
+  const mal = (v: number | null) => v != null && (!Number.isFinite(v) || v < 0 || v > 100000000);
+  if (mal(cesce) || mal(manual)) return { ok: false, error: 'El importe del crédito no es válido (ni negativo ni desorbitado).' };
+  const { error } = await s.supabase.from('clientes').update({ riesgo_cesce_euros: cesce, riesgo_manual_euros: manual }).eq('id', id);
+  if (error) return { ok: false, error: traducir(error.message) };
+  return { ok: true };
+}
+
 export async function guardarCliente(id: string | null, d: ClienteDatos):
   Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/clientes/acciones#guardarCliente", [id, d]);

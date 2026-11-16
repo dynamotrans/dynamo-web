@@ -5,10 +5,14 @@
 // últimos días sin cobrar, IVA incluido; lo pagado por adelantado no cuenta) y disponible.
 // Por páginas desde la base de datos: buscador y filtro por la URL; los totales de arriba
 // los calcula el servidor sobre todos los clientes.
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { euros, fecha, numero } from '@/lib/formato';
+import { guardarCreditoCliente } from '@/app/panel/(app)/clientes/acciones';
 import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
+import Modal from './Modal';
 
 export type RiesgoFila = {
   id: string; nombre: string; cif: string; cesce: number | null; plazo: number | null; manual: number | null;
@@ -18,10 +22,62 @@ export type RiesgoFila = {
 export type Totales = { limite: number; asumido: number; pasados: number };
 export type ListaRiesgos = { q: string; filtro: string; pagina: number; porPagina: number; total: number };
 const uso = (f: RiesgoFila) => (f.limite && f.limite > 0 ? f.asumido / f.limite : f.asumido > 0 ? Infinity : 0);
+// «1.500,50» → 1500.5 · vacío → null · otra cosa → NaN
+const importe = (s: string) => { const t = s.trim(); if (!t) return null; const v = Number(t.replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
+
+// Ventana pequeña para cambiar SOLO el crédito de un cliente sin salir de esta pantalla
+// (usuario, 2026-11-16). El nombre del cliente sigue llevando a su ficha completa.
+function CreditoRapido({ fila, onCerrar }: { fila: RiesgoFila; onCerrar: () => void }) {
+  const router = useRouter();
+  const [cesce, setCesce] = useState(fila.cesce == null ? '' : String(fila.cesce).replace('.', ','));
+  const [manual, setManual] = useState(fila.manual == null ? '' : String(fila.manual).replace('.', ','));
+  const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const c = importe(cesce), m = importe(manual);
+  const valido = !Number.isNaN(c) && !Number.isNaN(m) && (c == null || c >= 0) && (m == null || m >= 0);
+  const limite = !valido ? null : m != null ? m : c;
+  async function guardar() {
+    if (!valido) { setError('Hay un importe que no es un número válido.'); return; }
+    setGuardando(true); setError(null);
+    const r = await guardarCreditoCliente(fila.id, c, m);
+    setGuardando(false);
+    if (!r.ok) { setError(r.error); return; }
+    onCerrar(); router.refresh();
+  }
+  return (
+    <Modal abierto onCerrar={onCerrar} titulo="Crédito del cliente" sub={<><strong>{fila.nombre}</strong> · {fila.cif}</>} ancho={460}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={guardando}>Cancelar</button>
+        <button className="btn-primary" onClick={guardar} disabled={guardando || !valido}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+      </>}>
+      <div style={{ display: 'grid', gap: '0.8rem' }}>
+        <div>
+          <label htmlFor="rg-cesce">Importe crédito CESCE (€) · opcional</label>
+          <input id="rg-cesce" type="text" inputMode="decimal" placeholder="Ej. 40000" value={cesce} onChange={(e) => setCesce(e.target.value)} autoFocus />
+        </div>
+        <div>
+          <label htmlFor="rg-manual">Importe crédito Dynamo (€) · opcional</label>
+          <input id="rg-manual" type="text" inputMode="decimal" placeholder="Vacío = manda CESCE" value={manual} onChange={(e) => setManual(e.target.value)} />
+          <div className="meta" style={{ marginTop: '0.3rem' }}>Manda sobre CESCE. <strong>0</strong> = sin crédito. <strong>Vacío</strong> = manda CESCE.</div>
+        </div>
+      </div>
+      <div style={{ marginTop: '0.9rem', background: 'var(--gray-100)', borderRadius: 10, padding: '0.6rem 0.8rem', fontSize: 'var(--fs-m)' }}>
+        {!valido ? <span style={{ color: '#dc2626' }}>Revisa los importes.</span> : <>
+          <div>Límite que quedará: <strong>{limite != null && limite > 0 ? euros(limite) : 'Sin crédito (previo pago)'}</strong>
+            <span className="meta"> · {m != null ? 'manda el de Dynamo' : c != null ? 'manda CESCE' : 'sin clasificar'}</span></div>
+          <div className="meta" style={{ marginTop: '0.2rem' }}>Asumido ahora: {euros(fila.asumido)}{limite != null && limite > 0 ? <> · disponible: <strong style={{ color: limite - fila.asumido < 0 ? '#dc2626' : undefined }}>{euros(limite - fila.asumido)}</strong></> : null}</div>
+        </>}
+      </div>
+      <p className="meta" style={{ margin: '0.7rem 0 0' }}>Al guardar, sus envíos sin transportista se reajustan solos: los que quepan van a crédito y los que no, a pendiente de pago.</p>
+      {error && <div className="pt-aviso error" style={{ marginTop: '0.7rem' }}><div>{error}</div></div>}
+    </Modal>
+  );
+}
 
 export default function Riesgos({ filas, dias, error, totales, lista }: {
   filas: RiesgoFila[]; dias: number; error: string | null; totales: Totales; lista: ListaRiesgos;
 }) {
+  const [edita, setEdita] = useState<RiesgoFila | null>(null);
   const url = (p: number) => {
     const u = new URLSearchParams();
     if (lista.q) u.set('q', lista.q); if (lista.filtro) u.set('f', lista.filtro);
@@ -35,7 +91,7 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Crédito de cada cliente frente a lo que tiene pendiente. <strong>Límite</strong>: el manual de Dynamo si está puesto (0 = sin crédito); si está vacío, el de CESCE.
-        {' '}<strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido. Los importes se cambian en la ficha del cliente.
+        {' '}<strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido. <strong>Pulsa una fila</strong> para cambiar su crédito aquí mismo; pulsa el <strong>nombre</strong> para abrir la ficha completa del cliente.
       </p>
       <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem', marginBottom: '0.9rem' }}>
         <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Crédito concedido (límites)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.limite)}</div></div>
@@ -67,8 +123,8 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
               const u = uso(x), pct = Number.isFinite(u) ? Math.round(u * 100) : null;
               const color = !Number.isFinite(u) || u > 1 ? '#dc2626' : u >= 0.8 ? '#d97706' : '#16a34a';
               return (
-                <tr key={x.id}>
-                  <td><Link href={`/panel/clientes?ver=${x.id}`} style={{ color: 'var(--navy)', fontWeight: 700 }}>{x.nombre}</Link><div className="meta">{x.cif}</div></td>
+                <tr key={x.id} onClick={() => setEdita(x)} style={{ cursor: 'pointer' }} title="Cambiar el crédito de este cliente">
+                  <td><Link href={`/panel/clientes?ver=${x.id}`} onClick={(ev) => ev.stopPropagation()} title="Abrir la ficha completa del cliente" style={{ color: 'var(--navy)', fontWeight: 700 }}>{x.nombre}</Link><div className="meta">{x.cif}</div></td>
                   <td className="amount" style={x.manda === 'cesce' ? { fontWeight: 800 } : { color: 'var(--gray-500)' }}>{x.cesce != null ? euros(x.cesce) : '—'}{x.plazo ? <div className="meta">{x.plazo} días</div> : null}</td>
                   <td className="amount" style={x.manda === 'manual' ? { fontWeight: 800 } : { color: 'var(--gray-500)' }}>{x.manual != null ? euros(x.manual) : '—'}</td>
                   <td className="amount"><strong>{x.limite != null ? euros(x.limite) : 'Sin crédito'}</strong><div className="meta">{x.manda === 'manual' ? 'manda el manual' : x.manda === 'cesce' ? 'manda CESCE' : 'previo pago'}</div></td>
@@ -89,6 +145,7 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
         </table>
       </div>
       <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={url} nombre="clientes" nombreUno="cliente" />
+      {edita && <CreditoRapido key={edita.id} fila={edita} onCerrar={() => setEdita(null)} />}
     </section>
   );
 }

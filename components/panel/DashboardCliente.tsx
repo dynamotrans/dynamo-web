@@ -55,7 +55,8 @@ function Logo({ l }: { l: [string, string, string] }) {
   );
 }
 
-export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }: { envios: MiniEnvio[]; activos: number; dynamo: boolean; sinEnvios: boolean }) {
+export default function DashboardCliente({ envios, activos, dynamo, sinEnvios, empresa = null }: { envios: MiniEnvio[]; activos: number; dynamo: boolean; sinEnvios: boolean;
+  empresa?: { nombre: string; cif: string | null } | null }) {
   const [ventanaAbierta, setVentana] = useState<null | 'recomendar' | 'google' | number>(null);
   const [texto, setTexto] = useState(RECOMIENDA_MSG);
   const [copiado, setCopiado] = useState(false);
@@ -83,6 +84,18 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
 
       {/* Buscador global a lo ancho, encima de todo (usuario, 2026-11-13: dentro de la
           rejilla de botones quedaba a media anchura y descuadrado), como en el admin. */}
+      {/* La empresa para la que se trabaja, siempre a la vista (usuario, 2026-11-16). */}
+      {empresa && empresa.nombre && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap', background: 'var(--gray-100)', border: '1px solid var(--gray-200)',
+          borderRadius: 12, padding: '0.55rem 0.9rem', marginBottom: '0.6rem' }}>
+          <div style={{ flex: '1 1 220px', minWidth: 0, color: 'var(--navy)' }}>
+            <span style={{ color: 'var(--gray-500)', fontWeight: 700, fontSize: 'var(--fs-s)', letterSpacing: '0.02em', marginRight: '0.4rem' }}>CLIENTE:</span>
+            <strong className="notranslate" translate="no">{empresa.nombre}</strong>
+            {empresa.cif ? <span className="notranslate" translate="no" style={{ color: 'var(--gray-500)' }}> - {empresa.cif}</span> : null}
+          </div>
+          {!dynamo && <Link href="/panel/mi-cuenta" className="btn-ghost" style={{ padding: '0.3rem 0.75rem', fontSize: 'var(--fs-s)', whiteSpace: 'nowrap' }}>Mi cuenta</Link>}
+        </div>
+      )}
       <div style={{ marginBottom: '0.8rem' }}><CajaBuscadorGlobal /></div>
       <div className="dash-top-row dash-top-2">
         <div className="dash-left-col">

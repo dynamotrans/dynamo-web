@@ -44,11 +44,22 @@ export default async function PaginaDashboard() {
     activos = vivos.count ?? filas.length;
     total = todos.count ?? 0;
   }
+  // La empresa para la que se está trabajando, bien a la vista encima del buscador (usuario,
+  // 2026-11-16): la del cliente, o la que Dynamo está viendo con «Ver como».
+  let empresa: { nombre: string; cif: string | null } | null = null;
+  if (perfil.rol === 'cliente') {
+    const { data: emp } = await supabase.rpc('mi_empresa').maybeSingle();
+    const e = emp as { razon_social?: string | null; nombre_comercial?: string | null; cif?: string | null } | null;
+    if (e) empresa = { nombre: e.razon_social || e.nombre_comercial || '', cif: e.cif ?? null };
+  } else if (dynamo && vista.tipo === 'cliente') {
+    const { data: c } = await supabase.from('clientes').select('razon_social, cif').eq('id', vista.id).maybeSingle();
+    if (c) empresa = { nombre: c.razon_social ?? '', cif: c.cif ?? null };
+  }
   const mini: MiniEnvio[] = filas.slice(0, 2).map((x) => ({
     id: x.id, referencia_gx: x.referencia_gx, referencia_cliente: x.referencia_cliente, estado: x.estado,
     fecha_carga_desde: x.fecha_carga_real ?? x.fecha_carga_desde, fecha_carga_hasta: x.fecha_carga_real ? null : x.fecha_carga_hasta,
     origen: [x.codigo_postal_origen, x.poblacion_origen].filter(Boolean).join(' '), destino: [x.codigo_postal_destino, x.poblacion_destino].filter(Boolean).join(' '),
     metros_lineales: x.metros_lineales, toneladas: x.toneladas, mercancia: x.descripcion_mercancia, cliente: x.cliente ?? null,
   }));
-  return <DashboardCliente envios={mini} activos={activos} dynamo={dynamo} sinEnvios={!dynamo && total === 0} />;
+  return <DashboardCliente envios={mini} activos={activos} dynamo={dynamo} sinEnvios={!dynamo && total === 0} empresa={empresa} />;
 }
