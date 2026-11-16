@@ -56,7 +56,8 @@ export type Ficha = {
   // Previo pago (null = no lo necesita y nunca lo necesitó).
   margenRevision: number;     // precio_revision_margen_pct
   pago: { estado: string; motivo: string | null; metodo: string | null; pagado_en: string | null; exento_motivo: string | null;
-          base: number; iva: number; total: number; conCredito: boolean; limite: string | null; provisional: boolean } | null;
+          base: number; iva: number; total: number; conCredito: boolean; limite: string | null; provisional: boolean;
+          aCuenta: number; pendiente: number } | null;   // ya pagado a cuenta y lo que falta (precio subido al modificar un envío pagado)
 };
 
 export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | null; error: string | null }> {
@@ -142,7 +143,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
       difusion: dif.data ? { ...dif.data, precio: Number(dif.data.precio), bolsa: (bol.data ?? null) as EsperaBolsa | null } : null,
       corte,
       pago: pg ? { estado: pg.estado_pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
-        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional } : null,
+        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional,
+        aCuenta: Number(pg.a_cuenta ?? 0), pendiente: Number(pg.pendiente ?? 0) } : null,
       margenRevision: Number((reg.data as { margen_pct?: number } | null)?.margen_pct ?? 5),
     },
   };

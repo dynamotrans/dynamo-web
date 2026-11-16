@@ -1907,6 +1907,7 @@ export type Database = {
           ancla_paso: number | null
           ancla_hora: string | null
           fecha_efectiva: string | null
+          pago_a_cuenta: number | null
         }
         Insert: {
           id?: string
@@ -2021,6 +2022,7 @@ export type Database = {
           ancla_paso?: number | null
           ancla_hora?: string | null
           fecha_efectiva?: string | null
+          pago_a_cuenta?: number | null
         }
         Update: {
           id?: string
@@ -2135,6 +2137,7 @@ export type Database = {
           ancla_paso?: number | null
           ancla_hora?: string | null
           fecha_efectiva?: string | null
+          pago_a_cuenta?: number | null
         }
         Relationships: [
           {
@@ -3732,6 +3735,7 @@ export type Database = {
       envio_necesita_remolque: { Args: { p_envio: string | null }; Returns: boolean }
       envio_texto_busqueda: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null }; Returns: string }
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }
+      envio_transportista_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envios_hechos_de: { Args: { p_campo: string | null; p_ids: string[] | null }; Returns: { id: string; envios: number }[] }
       envios_lista_ambito: { Args: { p_cliente: string | null; p_transportista: string | null }; Returns: { v_cli: string; v_tra: string; v_ok: boolean } }
       envios_pagina: { Args: { p_pestana: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null; p_operador?: string | null; p_creado_por?: string | null; p_estado?: string | null; p_desde?: string | null; p_hasta?: string | null }; Returns: { id: string; total: number }[] }
@@ -3816,6 +3820,7 @@ export type Database = {
       mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number; nima_por_defecto: boolean }[] }
       mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; nombre_comercial: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string }[] }
       mi_enlace_cmr: { Args: { p_envio: string | null }; Returns: string }
+      mi_envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       mi_valoracion_envio: { Args: { p_envio: string | null }; Returns: { puede: boolean; nota: number; comentario: string; valorado_en: string; editable: boolean }[] }
       mis_avisos: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; tipo: string; nivel: string; titulo: string; texto: string; enlace: string; creado_en: string; nuevo: boolean }[] }
       mis_envios: { Args: Record<PropertyKey, never>; Returns: { id: string; referencia_gx: string; referencia_cliente: string; estado: Database["public"]["Enums"]["estado_envio"]; estado_asignacion: Database["public"]["Enums"]["estado_asignacion"]; es_manual: boolean; operador_id: string; precio_acordado_operador: number; fecha_carga_desde: string; fecha_carga_hasta: string; fecha_carga_real: string; fecha_entrega_estimada: string; descripcion_mercancia: string; toneladas: number; metros_lineales: number; tipo_carga: Database["public"]["Enums"]["tipo_carga"]; paletizado: boolean; carga_lateral: boolean; carga_techo: boolean; carga_trasera: boolean; requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean; codigo_postal_origen: string; poblacion_origen: string; codigo_postal_destino: string; poblacion_destino: string; num_paradas: number; importe_cliente: number; moneda: string; iva_pct: number; anotaciones_cliente: string; discrecion_comercial: boolean; matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string; creado_en: string; modificado_en: string; confirmado_en: string; asignado_en: string; cargado_en: string; entregado_en: string; cancelado_en: string; paradas: Json; estado_solicitud: string; precio_caduca_en: string; condiciones_aceptadas_en: string }[] }
@@ -3840,10 +3845,11 @@ export type Database = {
       orden_sin_economia_cliente: { Args: { p_json: Json | null }; Returns: Json }
       otras_cargas_publicas: { Args: { p_token: string | null }; Returns: Json }
       pago_envio_importes: { Args: { p_envio: string | null }; Returns: { base: number; iva: number; total: number }[] }
+      pago_envio_pendiente: { Args: { p_envio: string | null }; Returns: number }
       pago_envio_stripe: { Args: { p_envio: string | null; p_pago: string | null; p_centimos: number | null }; Returns: Json }
       pago_limite: { Args: { p_desde: string | null; p_carga?: string | null }; Returns: string }
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
-      pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean }[] }
+      pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
       paradas_json: { Args: { p_envio: string | null }; Returns: Json }
       paradas_viaje_json: { Args: { p_envio: string | null }; Returns: Json }

@@ -10877,8 +10877,9 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
-do $$ declare e uuid; f uuid; g uuid; h uuid; begin
+do $$ declare e uuid; f uuid; g uuid; h uuid; i uuid; begin
   -- e: libre y publicado en bolsa · f: con transportista · g: pagado por adelantado · h: carga hoy (pasada la hora límite de cancelar)
+  -- i: con un transportista asignándose ahora (reserva en curso)
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
     values (current_setting('prueba.cliente')::uuid, 6, 5, 600, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 5)) returning id into e;
@@ -10888,11 +10889,15 @@ do $$ declare e uuid; f uuid; g uuid; h uuid; begin
     values (current_setting('prueba.cliente')::uuid, 6, 5, 600, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 5)) returning id into g;
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
     values (current_setting('prueba.cliente')::uuid, 6, 5, 600, current_date, current_date) returning id into h;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 5, 600, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 5)) returning id into i;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, nombre_empresa)
-    select x, o, t, cp, p, n from unnest(array[e, f, g, h]) x,
+    select x, o, t, cp, p, n from unnest(array[e, f, g, h, i]) x,
       (values (1, 'carga', '41001', 'Sevilla', 'Nave Sevilla'), (2, 'descarga', '46001', 'Valencia', 'Nave Valencia')) v(o, t, cp, p, n);
   perform set_config('request.jwt.claim.sub', '', false);
-  update envios set estado = 'programado' where id in (e, f, g, h);
+  update envios set estado = 'programado' where id in (e, f, g, h, i);
+  insert into envio_reservas (envio_id, hasta, transportista_id) values (i, now() + interval '3 minutes', current_setting('prueba.transp')::uuid);
+  perform set_config('prueba.i259', i::text, false);
   update envios set transportista_id = current_setting('prueba.transp')::uuid where id = f;
   update envios set estado_pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = g;
   update envios set publicado_en_bolsa_en = now() where id = e;
@@ -10902,7 +10907,7 @@ do $$ declare e uuid; f uuid; g uuid; h uuid; begin
 end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; ok boolean; begin
+do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; ok boolean; x record; begin
   -- Ruta nueva (la recogida sigue, la entrega cambia), más metros y precio recalculado; la fecha no se toca.
   d := jsonb_build_object('importe_cliente', 750, 'fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
                           'metros_lineales', 8, 'toneladas', 10, 'referencia_cliente', 'PED-259');
@@ -10924,14 +10929,30 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; 
   begin perform modificar_envio_cliente(current_setting('prueba.f259')::uuid, d, null);
   exception when others then ok := sqlerrm like '%transportista asignado%'; end;
   if not ok then raise exception 'FALLO 259 · el cliente modifica un envío con transportista asignado'; end if;
-  -- Pagado por adelantado: no si mueve el precio; sí si el precio se queda igual.
+  -- Pagado por adelantado (600 € + 21 % = 726 €) y el precio SUBE a 750 € (907,50 €): lo
+  -- pagado queda a cuenta y faltan 181,50 €; el envío vuelve a pendiente de pago.
   d := jsonb_build_object('importe_cliente', 750, 'fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
-                          'metros_lineales', 6, 'toneladas', 5);
+                          'metros_lineales', 6, 'toneladas', 5, 'referencia_cliente', 'PED-G');
+  r := modificar_envio_cliente(current_setting('prueba.g259')::uuid, d, null);
+  if (r->>'falta_pagar')::numeric <> 181.50 or (r->>'pagado_de_mas')::numeric <> 0 then
+    raise exception 'FALLO 259 · pagado y el precio sube: no calcula bien la diferencia que falta: %', r;
+  end if;
+  select * into x from pagos_envio(current_setting('prueba.g259')::uuid);
+  if x.estado_pago_previo <> 'pendiente' or x.a_cuenta <> 726 or x.pendiente <> 181.50 or x.total <> 907.50 or x.pago_limite is not null then
+    raise exception 'FALLO 259 · pagado y el precio sube: el envío no queda pendiente por la diferencia (sin hora límite): %', x;
+  end if;
+  -- Un transportista asignándose ahora mismo: ni modificar ni cancelar.
+  if not mi_envio_asignandose(current_setting('prueba.i259')::uuid) or mi_envio_asignandose(e) then
+    raise exception 'FALLO 259 · la ficha no distingue el envío con un transportista asignándose';
+  end if;
   ok := false;
-  begin perform modificar_envio_cliente(current_setting('prueba.g259')::uuid, d, null);
-  exception when others then ok := sqlerrm like '%pagado por adelantado%'; end;
-  if not ok then raise exception 'FALLO 259 · el cliente cambia el precio de un envío ya pagado'; end if;
-  perform modificar_envio_cliente(current_setting('prueba.g259')::uuid, d || jsonb_build_object('importe_cliente', 600, 'referencia_cliente', 'PED-G'), null);
+  begin perform modificar_envio_cliente(current_setting('prueba.i259')::uuid, d, null);
+  exception when others then ok := sqlerrm like '%se está asignando%'; end;
+  if not ok then raise exception 'FALLO 259 · el cliente modifica un envío con un transportista asignándose'; end if;
+  ok := false;
+  begin perform cancelar_mi_envio(current_setting('prueba.i259')::uuid, 'ya no lo quiero');
+  exception when others then ok := sqlerrm like '%se está asignando%'; end;
+  if not ok then raise exception 'FALLO 259 · el cliente cancela un envío con un transportista asignándose'; end if;
   -- Pasada la hora límite de cancelar: sin transportista es como un envío nuevo, también la
   -- fecha (usuario, 2026-11-16: «si cancelar no tenía coste, modificar tampoco»).
   d := jsonb_build_object('importe_cliente', 640, 'fecha_carga_desde', current_date, 'fecha_carga_hasta', current_date, 'metros_lineales', 7, 'toneladas', 5);
@@ -10942,6 +10963,24 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; 
   ok := false;
   begin perform ruta_envio_reemplazar(e, '[]'::jsonb); exception when insufficient_privilege then ok := true; end;
   if not ok then raise exception 'FALLO 259 · un cliente llama a la función interna que cambia la ruta'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- (g queda pagado del todo más abajo, con la tarjeta.) Pagado y el precio BAJA: sigue
+-- pagado y Dynamo recibe el aviso de lo pagado de más. Se prueba con h, que se da por pagado.
+update envios set estado_pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = current_setting('prueba.h259')::uuid;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  -- h está en 640 € (774,40 € con IVA) y baja a 500 € (605 €): sobran 169,40 €.
+  r := modificar_envio_cliente(current_setting('prueba.h259')::uuid, jsonb_build_object('importe_cliente', 500,
+         'fecha_carga_desde', sumar_dias_habiles(current_date, 60), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 60), 'metros_lineales', 7, 'toneladas', 5), null);
+  if (r->>'pagado_de_mas')::numeric <> 169.40 or (r->>'falta_pagar')::numeric <> 0 then
+    raise exception 'FALLO 259 · pagado y el precio baja: no calcula lo pagado de más: %', r;
+  end if;
+  if (select estado_pago_previo from pagos_envio(current_setting('prueba.h259')::uuid)) <> 'pagado' then
+    raise exception 'FALLO 259 · pagado y el precio baja: deja de estar pagado';
+  end if;
 end $$;
 -- Un cliente de OTRA empresa no toca este envío.
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
@@ -10963,7 +11002,31 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record
     raise exception 'FALLO 259 · la ruta nueva no queda guardada (o pierde la parada que seguía)';
   end if;
   if (select referencia_cliente from envios where id = current_setting('prueba.g259')::uuid) is distinct from 'PED-G' then
-    raise exception 'FALLO 259 · con el envío pagado no deja cambiar lo que no toca el precio';
+    raise exception 'FALLO 259 · con el envío pagado no guarda la modificación';
+  end if;
+  -- Con la diferencia sin pagar no se oferta, publica ni asigna; y no se anula solo.
+  begin
+    update envios set publicado_en_bolsa_en = now() where id = current_setting('prueba.g259')::uuid;
+    raise exception 'FALLO 259 · se publica un envío al que le falta pagar la diferencia';
+  exception when insufficient_privilege then null; end;
+  update envios set pago_pendiente_en = now() - interval '30 days' where id = current_setting('prueba.g259')::uuid;
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = current_setting('prueba.g259')::uuid) <> 'programado' then
+    raise exception 'FALLO 259 · se anula por falta de pago un envío ya pagado en parte';
+  end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'envio_modificado_cliente' and nivel = 'urgente'
+                    and envio_id = current_setting('prueba.g259')::uuid and texto like '%le faltan 181,50 €%') then
+    raise exception 'FALLO 259 · Dynamo no se entera de que falta pagar la diferencia';
+  end if;
+  -- La tarjeta cobra SOLO la diferencia (18.150 céntimos), no el total.
+  if (pago_envio_stripe(current_setting('prueba.g259')::uuid, 'pi_259a', 90750))->>'resultado' <> 'importe_distinto' then
+    raise exception 'FALLO 259 · la tarjeta acepta el total de un envío ya pagado en parte';
+  end if;
+  update envios set stripe_cobro_sin_aplicar = null where id = current_setting('prueba.g259')::uuid;
+  x := null;
+  select pago_envio_stripe(current_setting('prueba.g259')::uuid, 'pi_259b', 18150) as r into x;
+  if x.r->>'resultado' <> 'ok' or (select estado_pago_previo from envios where id = current_setting('prueba.g259')::uuid) <> 'pagado' then
+    raise exception 'FALLO 259 · pagar la diferencia con tarjeta no deja el envío pagado: % · %', x.r, (select estado_pago_previo from envios where id = current_setting('prueba.g259')::uuid);
   end if;
   if (select metros_lineales from envios where id = current_setting('prueba.h259')::uuid) <> 7
      or (select fecha_carga_desde from envios where id = current_setting('prueba.h259')::uuid) <> sumar_dias_habiles(current_date, 60) then
@@ -10979,5 +11042,5 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record
   if not exists (select 1 from emails_enviados where tipo = 'envio_modificado' and envio_id = e) then
     raise exception 'FALLO 259 · el cliente no recibe el email del envío modificado';
   end if;
-  raise notice 'OK 259 · el cliente modifica su envío entero sin transportista (ruta, mercancía, fechas y precio); también la fecha pasada la hora límite de cancelar; con transportista o pagado con otro precio, no';
+  raise notice 'OK 259 · el cliente modifica su envío entero sin transportista (ruta, mercancía, fechas y precio); también la fecha pasada la hora límite de cancelar; pagado y sube: paga solo la diferencia y no sigue hasta pagarla; con transportista (o con uno asignándose), no';
 end $$;

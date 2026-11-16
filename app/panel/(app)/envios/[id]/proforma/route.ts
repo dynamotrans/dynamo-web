@@ -2,7 +2,7 @@ import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
 import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
-import { ventana, medidasTxt } from '@/lib/formato';
+import { ventana, medidasTxt, euros } from '@/lib/formato';
 import type { Tabla } from '@/lib/supabase/tipos';
 
 // /panel/envios/<id>/proforma: la factura proforma del PREVIO PAGO de un envío. Se ABRE
@@ -54,6 +54,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const diasHastaCarga = e.fecha_carga_desde ? Math.round((Date.parse(e.fecha_carga_desde) - Date.parse(hoy)) / 86400000) : null;
   const lejos = diasHastaCarga != null && diasHastaCarga > cerrado;
 
+  // Ya pagó y el precio subió al modificar el envío: lo pagado va a cuenta y solo falta la diferencia.
+  const aCuenta = Number(p.a_cuenta ?? 0);
   const bytes = await proforma({
     codigo: p.referencia_gx, referencia_cliente: p.referencia_cliente, creado_en: e.creado_en ?? new Date().toISOString(),
     cliente: { razon_social: c?.razon_social ?? '—', cif: c?.cif ?? '—', direccion: c?.direccion ?? null, codigo_postal: c?.codigo_postal ?? null, poblacion: c?.poblacion ?? null, pais: nombrePais(c?.pais_codigo_iso) },
@@ -62,9 +64,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     sinPago: lejos ? { aviso: `El precio de este envío todavía NO está fijado: las tarifas son dinámicas y se revisará al llegar a ${cerrado} `
       + `días de la primera parada, con el precio válido para el día de carga. Por eso esta proforma no lleva datos de pago: la proforma `
       + `pagadera, con la transferencia, saldrá aquí mismo cuando queden ${cerrado} días o menos.` } : null,
-    condiciones: lejos
+    condiciones: (aCuenta > 0 && Number(p.pendiente) > 0
+      ? `YA PAGADO A CUENTA: ${euros(aCuenta)}. PENDIENTE DE PAGO: ${euros(Number(p.pendiente))} (IVA incluido), la diferencia por la modificación del envío. `
+      : '') + (lejos
       ? `Precio pendiente de fijar: se actualizará al llegar a ${cerrado} días de la carga. El envío no se asigna a ningún transportista hasta validar el pago.`
-      : 'El envío no se asigna a ningún transportista hasta validar el pago (por transferencia, la validación puede tardar hasta 24 h; con tarjeta, al momento). Si la fecha de carga ya no se puede cumplir cuando llegue el pago, te propondremos otra.',
+      : 'El envío no se asigna a ningún transportista hasta validar el pago (por transferencia, la validación puede tardar hasta 24 h; con tarjeta, al momento). Si la fecha de carga ya no se puede cumplir cuando llegue el pago, te propondremos otra.'),
     dynamo: await datosDynamo(sb),
   });
   return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',

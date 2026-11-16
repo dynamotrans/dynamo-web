@@ -2,7 +2,8 @@ import { supabaseServidor } from '@/lib/supabase/server';
 import { crearPagoStripe, stripeListo } from '@/lib/stripe';
 
 // POST /api/stripe/pago (formulario «Pagar con tarjeta» de la ficha del envío): crea la
-// página de pago de Stripe con el TOTAL que dice la base de datos (nunca el del navegador)
+// página de pago de Stripe con LO QUE FALTA POR PAGAR según la base de datos (nunca el del
+// navegador): el total, o solo la diferencia si ya pagó y el precio subió al modificarlo,
 // y manda allí al cliente. Solo el cliente dueño (o Dynamo) y solo si está pendiente.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
   if (!p || p.estado_pago_previo !== 'pendiente' || p.estado !== 'programado' || p.precio_provisional) return volver('');
   // Pasado el plazo para pagar ya no se abre el pago (el envío se anula en unos minutos).
   if (p.pago_limite && Date.parse(p.pago_limite) <= Date.now()) return volver('&pago=caducado');
-  const centimos = Math.round(Number(p.total) * 100);
+  const centimos = Math.round(Number(p.pendiente) * 100);
   if (!(centimos > 0)) return volver('&pago=error');
   try {
     const url = await crearPagoStripe({ envioId: id, referencia: p.referencia_gx, centimos, email: user.email ?? null,

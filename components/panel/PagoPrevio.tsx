@@ -38,6 +38,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
     return (
       <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
         <div><strong style={{ color: '#b42318' }}>Pendiente de pago</strong> · {pago.motivo ?? 'Pago previo'} · total {total}{desglose}.</div>
+        {pago.aCuenta > 0 && <div style={{ marginTop: '0.3rem' }}>El cliente <strong>ya había pagado {euros(pago.aCuenta)}</strong> y, al modificar el envío, el precio ha subido: <strong style={{ color: '#b42318' }}>le falta pagar {euros(pago.pendiente)}</strong>. Este resto no anula el envío solo.</div>}
         <div style={{ marginTop: '0.3rem' }}>No se puede ofertar, publicar en bolsa ni asignar hasta que se pague. El cliente lo ve en su panel con la proforma{' '}
           <a href={`/panel/envios/${envio.id}/proforma`} target="_blank" rel="noopener" style={{ color: 'var(--purple)', fontWeight: 700 }}>PRO-{envio.referencia_gx}</a>
           {' '}y puede pagar con tarjeta o por transferencia.</div>

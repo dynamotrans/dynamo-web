@@ -71,6 +71,7 @@ export type EnvioCliente = EnvioClienteBase & {
   pago: Funcion<'pagos_envio'>[number] | null;
   cambio: Funcion<'mi_cambio_envio'>[number] | null; revision: Revision | null; corte: string | null;
   tarjeta: boolean; pagoVuelta: string | null;
+  asignandose?: boolean;   // un transportista se está asignando ahora mismo (reserva en curso o contraoferta pendiente)
 };
 const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
 
@@ -96,7 +97,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   // «Modificar envío» (usuario, 2026-11-16): sin transportista abre el asistente de «Nuevo
   // envío» ya relleno (es como un envío nuevo: se recalcula todo); con transportista, o
   // con el envío en marcha, la ventana de contacto.
-  const modo = modoModificar(e, e.cambio);
+  // UN TRANSPORTISTA SE ESTÁ ASIGNANDO (usuario, 2026-11-16): mientras dura, los dos
+  // botones quedan apagados y la ficha lo avisa; si no, el cliente vería «sin transportista»
+  // y cancelaría gratis justo cuando ya hay uno comprometiéndose.
+  const asignandose = !!e.asignandose && e.estado === 'programado';
+  const modo = asignandose ? 'asignando' as const : modoModificar(e, e.cambio);
   // SIEMPRE todo plegado al abrir (usuario, 2026-11-10), como la ficha de Dynamo.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
   const toggle = (k: string) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
@@ -186,7 +191,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       {modo === 'form' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
       {modo === 'llamar' && <button className="btn-secondary" onClick={() => setVista('llamar')} disabled={!!trabajando}><I d={ICO.editar} />Modificar envío</button>}
       {modo === 'pendiente' && <button className="btn-secondary" disabled title="Ya has pedido un cambio: espera a que te contestemos"><I d={ICO.editar} />Modificar envío</button>}
-      {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
+      {modo === 'asignando' && <button className="btn-secondary" disabled title="Un transportista se está asignando en este momento"><I d={ICO.editar} />Modificar envío</button>}
+      {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')} disabled={asignandose}
+        title={asignandose ? 'Un transportista se está asignando en este momento' : undefined}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
       {<a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
       {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
     </>
@@ -223,6 +230,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
             {FASES_M.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
         </div>
+      )}
+      {asignandose && (
+        <div className="pt-aviso info" role="status" style={{ marginBottom: '0.8rem' }}><div>
+          <strong>Un transportista se está asignando a tu envío en este momento.</strong> Mientras termina, no se puede modificar ni cancelar desde aquí: vuelve a mirar en unos minutos. Si es urgente, llámanos al <a href={CONTACTO.telHref} style={{ fontWeight: 700 }}>{CONTACTO.telefono}</a>.
+        </div></div>
       )}
       {!manual && <RevisionCliente envio={e} r={e.revision} hacer={hacer} />}
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
@@ -379,7 +391,11 @@ function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota:
 // Previo pago, visto por el cliente: qué falta, el total, la proforma y cómo pagar.
 function PagoCliente({ e }: { e: EnvioCliente }) {
   const p = e.pago!;   // solo se pinta con pago
-  const total = euros(Number(p.total));
+  // Si ya pagó y el precio subió al modificar el envío, lo pagado queda a cuenta y solo
+  // falta la diferencia (usuario, 2026-11-16).
+  const aCuenta = Number(p.a_cuenta ?? 0);
+  const resto = aCuenta > 0;
+  const total = euros(resto ? Number(p.pendiente) : Number(p.total));
   if (p.estado_pago_previo === 'pendiente') {
     return (
       <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
@@ -387,8 +403,9 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         {(e.pagoVuelta === 'error' || e.pagoVuelta === 'no_disponible') && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.4rem' }}>No se ha podido abrir el pago con tarjeta. Prueba otra vez en un momento o paga por transferencia.</div>}
         {e.pagoVuelta === 'caducado' && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.4rem' }}>Ha pasado el plazo para pagar este envío: se va a anular. Vuelve a pedirlo con «Repetir envío».</div>}
         {e.pagoVuelta === 'cancelado' && <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Has salido del pago con tarjeta sin pagar. Puedes intentarlo de nuevo o pagar por transferencia.</div>}
-        <div><strong style={{ color: '#b42318' }}>Pendiente de pago · {total}</strong> (IVA incluido).</div>
-        <div style={{ marginTop: '0.3rem' }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong> La fecha de carga se confirma al recibirlo: si llega cuando ya no da tiempo, la carga pasa al primer día posible (con el mismo tipo de fecha que elegiste) y te avisamos.</div>
+        <div><strong style={{ color: '#b42318' }}>{resto ? 'Falta por pagar' : 'Pendiente de pago'} · {total}</strong> (IVA incluido).</div>
+        {resto && <div style={{ marginTop: '0.3rem' }}>Has modificado el envío y el precio ha subido: ya tenías pagados <strong>{euros(aCuenta)}</strong> y el envío cuesta ahora <strong>{euros(Number(p.total))}</strong>. <strong>El envío no sigue adelante hasta que pagues la diferencia.</strong></div>}
+        <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong> La fecha de carga se confirma al recibirlo: si llega cuando ya no da tiempo, la carga pasa al primer día posible (con el mismo tipo de fecha que elegiste) y te avisamos.</div>
         {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
@@ -408,7 +425,7 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
     );
   }
   if (p.estado_pago_previo === 'pagado') {
-    return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Pagado</strong> {p.pago_metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{p.pagado_en ? ` el ${fechaHora(p.pagado_en)}` : ''} · {total}. Gracias: ya estamos asignando el camión.</div></div>;
+    return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Pagado</strong> {p.pago_metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{p.pagado_en ? ` el ${fechaHora(p.pagado_en)}` : ''} · {euros(Number(p.total))}. Gracias: ya estamos asignando el camión.</div></div>;
   }
   return null;
 }
