@@ -65,7 +65,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     ['destinatario', entrega?.id, 369, 765, 185],
   ] as const).map(([rol, parada, x, top, ancho]) => {
     const f = firmaDe(rol, parada);
-    return f ? { f, img: trazos.get(f) ?? null, x, top, ancho, alto: rol === 'destinatario' ? 24 : 40 } : null;
+    return f ? { f, img: trazos.get(f) ?? null, x, top, ancho, alto: rol === 'destinatario' ? 18 : 40 } : null;
   });
   const enCasilla = new Set(cartas.flatMap((c) => casillasDe(c.cga, c.entrega)).filter(Boolean).map((c) => c!.f));
 

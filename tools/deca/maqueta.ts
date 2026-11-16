@@ -46,6 +46,8 @@ async function main() {
     { rol: 'remitente', parada_id: 'p1', nombre: 'Jean Petit', documento: '···123T', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(1) },
     { rol: 'remitente', parada_id: 'p2', nombre: 'Lucía Romero', documento: '···456W', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(2) },
     { rol: 'transportista', parada_id: null, nombre: 'Adrián Aguirre Etxeberria', documento: '···309K', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(3) },
+    // Entrega firmada en DIGITAL (para ver la casilla 24 con su trazo). DEST=<id de parada>.
+    ...(process.env.DEST ? [{ rol: 'destinatario', parada_id: process.env.DEST, nombre: 'Hans Becker', documento: '···882M', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: await trazo(7) } as FirmaDoc] : []),
     // Entrega firmada EN PAPEL (CMR bis): sin trazo; el PDF lo dice en la casilla. PAPEL=1.
     ...(process.env.PAPEL ? [{ rol: 'destinatario', parada_id: process.env.PAPEL, nombre: 'Hans Becker', documento: '···882M', firmado_en: ahora, extra: false, lat: null, lon: null, gps_precision_m: null, gps_direccion: null, sha256: null, png: null, en_papel: true } as FirmaDoc] : []),
     // Firma EXTRA de la recogida 1 (una segunda persona firmando la misma casilla).

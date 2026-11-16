@@ -10616,3 +10616,26 @@ do $$ declare n int; begin
   if n <> 1 then raise exception 'FALLO 253 · la cola de emails no sale con el remitente «Dynamotrans.com»'; end if;
   raise notice 'OK 253 · los emails de la cola salen con el nombre de remitente «Dynamotrans.com»';
 end $$;
+
+-- ---- 254. La oferta escalonada sigue a la ruta: otro primer sitio de carga, otra hora límite --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e251')::uuid; lun date := current_setting('prueba.l251')::date; s uuid; d record; begin
+  -- Viene de la 251: ventana de lunes a martes, límite el martes a las 18:00.
+  select * into d from difusiones where envio_id = e and estado = 'activa';
+  if d.id is null or (d.carga_prevista_en at time zone 'Europe/Madrid') <> lun + 1 + time '18:00' then raise exception 'FALLO 254 · la oferta de partida no es la esperada'; end if;
+  insert into sitios (nombre_empresa, cliente_id) values ('Almacen 254', current_setting('prueba.cliente')::uuid) returning id into s;
+  delete from sitio_horarios where sitio_id = s;
+  insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values (s, 1, '07:00', '14:00'), (s, 2, '07:00', '13:00');
+  update envio_paradas set sitio_id = s where envio_id = e and tipo = 'carga';
+  select * into d from difusiones where id = d.id;
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> lun + 1 + time '13:00' or d.corte_en <> d.carga_prevista_en then
+    raise exception 'FALLO 254 · al cambiar el sitio de carga la hora límite no pasa al cierre del sitio nuevo: %', d.carga_prevista_en at time zone 'Europe/Madrid';
+  end if;
+  -- Con la hora puesta a mano por Dynamo, la ruta no la mueve.
+  update difusiones set hora_manual = '11:00', carga_prevista_en = (lun + 1 + time '11:00') at time zone 'Europe/Madrid' where id = d.id;
+  update envio_paradas set sitio_id = null where envio_id = e and tipo = 'carga';
+  select * into d from difusiones where id = d.id;
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> lun + 1 + time '11:00' then raise exception 'FALLO 254 · la ruta mueve una hora límite puesta a mano'; end if;
+  raise notice 'OK 254 · al cambiar la ruta, la oferta toma el cierre del nuevo primer sitio de carga; la hora a mano no se toca';
+end $$;
