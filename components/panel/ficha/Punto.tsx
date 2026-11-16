@@ -8,11 +8,12 @@ export function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'en
   const s = p.sitio;
   const c = s?.contacto;
   // Lo propio de ESTE envío en la parada: «MERCANCÍA: …» (el campo «A recoger / A
-  // entregar» de Nuevo envío) y el resto como anotaciones. Las líneas que repiten la
-  // info de mercancía por defecto del sitio no se duplican: ya salen en su bloque.
+  // entregar» de Nuevo envío) y el resto como anotaciones. Las líneas que repiten las
+  // indicaciones fijas del sitio no se duplican: ya salen en su bloque (los envíos de antes
+  // del 2026-11-16 llevaban copiada la «info de mercancía por defecto», hoy unida a ellas).
   const m = p.anotaciones?.match(/(?:^|\n|· )MERCANCÍA:\s*([\s\S]+)$/);
-  const fijo = (s?.mercancia_defecto ?? '').trim();
-  const merc = m ? m[1].split('\n').map((x) => x.trim()).filter((x) => x && x !== fijo).join('\n') : '';
+  const fijas = new Set((s?.anotaciones ?? '').split('\n').map((x) => x.trim()).filter(Boolean));
+  const merc = m ? m[1].split('\n').map((x) => x.trim()).filter((x) => x && !fijas.has(x)).join('\n') : '';
   const notas = (m ? p.anotaciones!.slice(0, m.index).replace(/\s*·\s*$/, '') : p.anotaciones ?? '').trim();
   return (
     <div className="det-punto">
@@ -37,11 +38,10 @@ export function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'en
           <div style={{ fontSize: 'var(--fs-m)', color: '#b45309', fontWeight: 600, marginTop: 2 }}>{[s?.requiere_cita && 'Con cita previa', s?.tiene_medios_carga === false && 'Sin medios de carga (hace falta plataforma elevadora)'].filter(Boolean).join(' · ')}</div>
         )}
         {p.referencia && <div style={{ fontSize: 'var(--fs-m)', marginTop: 2 }}>Referencia: <strong>{p.referencia}</strong></div>}
-        {(s?.anotaciones || s?.mercancia_defecto) && (
+        {s?.anotaciones && (
           <div style={{ marginTop: 6, borderLeft: '3px solid var(--purple)', background: '#f4f2fb', borderRadius: 8, padding: '0.4rem 0.6rem', fontSize: 'var(--fs-m)' }}>
             <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>Información fija del sitio</div>
-            {s?.anotaciones && <div style={{ whiteSpace: 'pre-line' }}><strong>Indicaciones del sitio:</strong> {s.anotaciones}</div>}
-            {s?.mercancia_defecto && <div style={{ whiteSpace: 'pre-line' }}><strong>Info mercancía por defecto:</strong> {s.mercancia_defecto}</div>}
+            <div style={{ whiteSpace: 'pre-line' }}><strong>Indicaciones del sitio:</strong> {s.anotaciones}</div>
           </div>
         )}
         {merc && <div style={{ fontSize: 'var(--fs-m)', marginTop: 4, whiteSpace: 'pre-line' }}><strong>{label === 'Recogida' ? 'A recoger' : 'A entregar'}:</strong> {merc}</div>}

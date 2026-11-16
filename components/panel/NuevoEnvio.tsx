@@ -522,9 +522,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
-          // La info de mercancía POR DEFECTO del sitio solo cambia si se tocó SU campo en la
-          // tarjeta (usuario, 2026-11-15); el detalle de esta parada es puntual del envío.
-          mercancia_defecto: edicSitios[p.k]?.mercDefecto !== undefined ? (edicSitios[p.k]!.mercDefecto!.trim() || null) : undefined,
           horario_tramos: tramosDe(f.horario),
           // El horario de VERANO solo se manda si se tocó en la tarjeta (usuario, 2026-11-10).
           verano: edicSitios[p.k]?.verano ? { activo: f.verano.activo, desde: f.verano.desde, hasta: f.verano.hasta, tramos: tramosDe(f.verano.horario) } : undefined,
@@ -604,9 +601,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
-          // La info de mercancía POR DEFECTO del sitio solo cambia si se tocó SU campo en la
-          // tarjeta (usuario, 2026-11-15); el detalle de esta parada es puntual del envío.
-          mercancia_defecto: edicSitios[p.k]?.mercDefecto !== undefined ? (edicSitios[p.k]!.mercDefecto!.trim() || null) : undefined,
           horario_tramos: tramosDe(f.horario),
           // El horario de VERANO solo se manda si se tocó en la tarjeta (usuario, 2026-11-10).
           verano: edicSitios[p.k]?.verano ? { activo: f.verano.activo, desde: f.verano.desde, hasta: f.verano.hasta, tramos: tramosDe(f.verano.horario) } : undefined,

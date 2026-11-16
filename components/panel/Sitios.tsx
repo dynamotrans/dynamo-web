@@ -37,7 +37,7 @@ const esNuevo = (iso: string) => Date.now() - new Date(iso).getTime() < 48 * 360
 
 const NUEVO: SitioDatos = {
   cliente_id: '', nombre_empresa: '', tipo: '', direccion: '', codigo_postal: '', poblacion: '',
-  provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '', mercancia_defecto: '',
+  provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '',
   requiere_cita: false, tiene_medios_carga: false, contactos: [CONTACTO_VACIO()], emails_avisos: '',
 };
 
@@ -216,8 +216,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   // Ficha compacta (usuario, 2026-11-08): lo opcional y el horario van PLEGADOS con su
   // resumen a la vista; solo se abre lo que haga falta tocar.
   const [tabHorario, setTabHorario] = useState<'general' | 'verano'>('general');
-  const [abierto, setAbierto] = useState({ avisos: false, horario: false, merc: false });
-  const plegar = (k: 'avisos' | 'horario' | 'merc') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
+  const [abierto, setAbierto] = useState({ avisos: false, horario: false });
+  const plegar = (k: 'avisos' | 'horario') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
   // Buscador «para autorrellenar» (solo ficha NUEVA): agenda («Guardado»), Google (reales
   // con GOOGLE_MAPS_API_KEY; de ejemplo mientras no se pague la API) y dirección (OSM).
   const [bq, setBq] = useState('');
@@ -593,28 +593,14 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         <button type="button" className="campo-plegado" aria-expanded={abierto.avisos} onClick={() => plegar('avisos')}>
           <span className="cp-ico" aria-hidden="true">{abierto.avisos ? '−' : '+'}</span>
           <span className="cp-txt">Indicaciones del sitio
-            {d.anotaciones.trim() ? <span className="cp-val">· {d.anotaciones.length > 42 ? d.anotaciones.slice(0, 41) + '…' : d.anotaciones}</span> : <span className="cp-val">· las ven transportista y cliente · opcional</span>}</span>
+            {d.anotaciones.trim() ? <span className="cp-val">· {d.anotaciones.length > 42 ? d.anotaciones.slice(0, 41) + '…' : d.anotaciones}</span> : <span className="cp-val">· opcional · vale para TODOS los envíos del sitio</span>}</span>
         </button>
         {abierto.avisos && (
           <div className="ptar-sitio-grid">
-            {campo('anotaciones', <>Indicaciones del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· salen SIEMPRE con este sitio: orden de carga del transportista y ficha del envío</span></>, 'Ej. cargar siempre por el muelle 10, pedir cita, báscula…', true)}
+            {campo('anotaciones', <>Indicaciones del sitio <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional · vale para TODOS los envíos del sitio: salen en la orden de carga del transportista y en la ficha del envío</span></>, 'Ej. "cargar por muelle 3", "traer 14 cintas de amarre", "preguntar por Paco para cargas"', true)}
           </div>
         )}
 
-        {/* Mercancía por defecto (usuario, 2026-11-10): prerrellena el «detalle de
-            mercancía» de la parada en Nuevo envío. Desde 2026-11-15 solo se cambia con SU
-            campo (aquí o en la tarjeta del sitio de Nuevo envío); el detalle de la parada
-            es puntual de cada envío y ya no lo pisa. */}
-        <button type="button" className="campo-plegado" aria-expanded={abierto.merc} onClick={() => plegar('merc')}>
-          <span className="cp-ico" aria-hidden="true">{abierto.merc ? '−' : '+'}</span>
-          <span className="cp-txt">Info mercancía por defecto
-            {d.mercancia_defecto.trim() ? <span className="cp-val">· {d.mercancia_defecto.length > 42 ? d.mercancia_defecto.slice(0, 41) + '…' : d.mercancia_defecto}</span> : <span className="cp-val">· opcional</span>}</span>
-        </button>
-        {abierto.merc && (
-          <div className="ptar-sitio-grid">
-            {campo('mercancia_defecto', <>Info mercancía por defecto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sale prerrellena al crear envíos con este sitio, debajo del resumen de la mercancía</span></>, 'Ej. Requerimos 14 cintas de amarre.', true)}
-          </div>
-        )}
 
 
       </div>

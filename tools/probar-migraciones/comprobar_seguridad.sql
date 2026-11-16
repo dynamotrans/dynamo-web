@@ -10639,3 +10639,14 @@ do $$ declare e uuid := current_setting('prueba.e251')::uuid; lun date := curren
   if (d.carga_prevista_en at time zone 'Europe/Madrid') <> lun + 1 + time '11:00' then raise exception 'FALLO 254 · la ruta mueve una hora límite puesta a mano'; end if;
   raise notice 'OK 254 · al cambiar la ruta, la oferta toma el cierre del nuevo primer sitio de carga; la hora a mano no se toca';
 end $$;
+
+-- ---- 255. Indicaciones del sitio: un solo campo (sin «info de mercancía por defecto») -------
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'sitios' and column_name = 'mercancia_defecto') then
+    raise exception 'FALLO 255 · el sitio sigue teniendo el campo de mercancía por defecto aparte';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'sitios' and column_name = 'anotaciones') then
+    raise exception 'FALLO 255 · el sitio se ha quedado sin sus indicaciones';
+  end if;
+  raise notice 'OK 255 · el sitio tiene un solo campo de texto fijo: sus indicaciones';
+end $$;

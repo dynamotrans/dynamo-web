@@ -2930,7 +2930,6 @@ export type Database = {
           verano_hasta: string | null
           horarios_verano: string | null
           texto_busqueda: string | null
-          mercancia_defecto: string | null
         }
         Insert: {
           id?: string
@@ -2969,7 +2968,6 @@ export type Database = {
           verano_hasta?: string | null
           horarios_verano?: string | null
           texto_busqueda?: string | null
-          mercancia_defecto?: string | null
         }
         Update: {
           id?: string
@@ -3008,7 +3006,6 @@ export type Database = {
           verano_hasta?: string | null
           horarios_verano?: string | null
           texto_busqueda?: string | null
-          mercancia_defecto?: string | null
         }
         Relationships: [
           {
