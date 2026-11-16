@@ -10176,11 +10176,40 @@ do $$ declare u uuid; c uuid; v_cuerpo text; n int; begin
      or v_cuerpo not like '%' || escapar_html((select razon_social from clientes where id = c)) || '%' then
     raise exception 'FALLO 243 · al email de cuenta activa le falta el enlace para entrar, el nombre, el email o la empresa: %', v_cuerpo;
   end if;
-  -- Suspender y reactivar después no lo repite.
+  -- Suspender y reactivar después no repite el de ALTA (sale el de reactivada: prueba 244).
   update usuarios set estado = 'suspendida' where id = u;
   update usuarios set estado = 'activa' where id = u;
   select count(*) into n from emails_enviados where tipo = 'cuenta_activada' and destinatario = 'alta243@prueba.es';
   if n <> 1 then raise exception 'FALLO 243 · el email de cuenta activa se repite (%)', n; end if;
   raise notice 'OK 243 · confirmar un alta encola el email «tu cuenta ya está activa» con el enlace para entrar, una sola vez';
+end $$;
+reset role;
+
+-- ---- 244. Cada reactivación de una cuenta suspendida manda el email «vuelve a estar activa» ----
+reset role;
+do $$ declare u uuid; n0 int; n int; v_cuerpo text; begin
+  select id into u from usuarios where email = 'alta243@prueba.es';
+  select count(*) into n0 from emails_enviados where tipo = 'cuenta_reactivada' and destinatario = 'alta243@prueba.es';
+  if n0 <> 1 then raise exception 'FALLO 244 · la reactivación de la prueba 243 debía dejar un email (%)', n0; end if;
+  -- Suspensión de solo lectura → activa.
+  update usuarios set estado = 'suspendida' where id = u;
+  if (select count(*) from emails_enviados where tipo = 'cuenta_reactivada' and destinatario = 'alta243@prueba.es') <> n0 then
+    raise exception 'FALLO 244 · suspender manda el email de reactivada';
+  end if;
+  update usuarios set estado = 'activa' where id = u;
+  -- Suspensión total → activa.
+  update usuarios set estado = 'suspendida_total' where id = u;
+  update usuarios set estado = 'activa' where id = u;
+  select count(*) into n from emails_enviados where tipo = 'cuenta_reactivada' and destinatario = 'alta243@prueba.es';
+  if n <> n0 + 2 then raise exception 'FALLO 244 · cada reactivación debía dejar su email (había %, hay %)', n0, n; end if;
+  select cuerpo_html into v_cuerpo from emails_enviados
+   where tipo = 'cuenta_reactivada' and destinatario = 'alta243@prueba.es' order by creado_en desc, clave desc limit 1;
+  if v_cuerpo not like '%/panel/entrar%' or v_cuerpo not like '%reactivado tu cuenta%' or v_cuerpo not like '%Hola Marta:%' then
+    raise exception 'FALLO 244 · al email de cuenta reactivada le falta el enlace para entrar o el texto: %', v_cuerpo;
+  end if;
+  if (select count(*) from emails_enviados where tipo = 'cuenta_activada' and destinatario = 'alta243@prueba.es') <> 1 then
+    raise exception 'FALLO 244 · reactivar repite el email de alta';
+  end if;
+  raise notice 'OK 244 · cada reactivación de una cuenta suspendida encola el email «vuelve a estar activa» con el enlace para entrar';
 end $$;
 reset role;
