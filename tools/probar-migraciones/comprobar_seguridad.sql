@@ -11124,6 +11124,7 @@ begin
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (d, 1, 'carga', '41001', 'Sevilla', 'ES'), (d, 2, 'descarga', '28821', 'Coslada', 'ES');
   update envios set estado = 'programado' where id = d;
   if (select estado_pago_previo from envios where id = d) <> 'pendiente' then raise exception 'FALLO 260 · con el manual a 0 el cliente sigue cargando a crédito de CESCE'; end if;
+  if (select pago_motivo from envios where id = d) <> 'Sin crédito: crédito de Dynamo a 0,00 €' then raise exception 'FALLO 260 · el motivo no dice que el 0 lo ha puesto Dynamo: %', (select pago_motivo from envios where id = d); end if;
   raise notice 'OK 260 · crédito insuficiente: el envío que no cabe en lo que queda (también al subir el precio modificando) se paga por adelantado; el manual de Dynamo manda siempre sobre CESCE (0 = sin crédito, vacío = CESCE); sin importes en el motivo; apagable';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';

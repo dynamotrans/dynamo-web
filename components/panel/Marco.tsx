@@ -47,13 +47,15 @@ function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: 
 
 const COBERTURA: Record<Exclude<Cobertura, null>, { chip: string; badge: string; label: string; clasif: string; clasifCls: string; nota: React.ReactNode }> = {
   disponible: { chip: 'cesce-status-ok', badge: 'cesce-b-ok', label: 'Con crédito disponible', clasif: 'Clasificado', clasifCls: 'ok',
-    nota: <>CESCE es la compañía aseguradora de crédito que respalda esta cuenta: garantiza el cobro de los envíos, por eso puedes trabajar <strong>a crédito</strong> y pagar por transferencia o domiciliación.</> },
+    nota: <>CESCE es la compañía aseguradora de crédito que respalda esta cuenta: garantiza el cobro de los envíos, por eso puedes trabajar <strong>a crédito</strong> y pagar por transferencia o tarjeta cuando te lleguen las facturas.</> },
   sinclasif: { chip: 'cesce-status-warn', badge: 'cesce-b-warn', label: 'Sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none',
     nota: <>Tu empresa está <strong>sin clasificar</strong> por CESCE (el trámite aún no se ha realizado), así que los envíos se cobran <strong>por adelantado</strong>. Puedes solicitar que CESCE clasifique tu empresa para trabajar a crédito.</> },
-  nulo: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Crédito nulo (CESCE autoriza 0)', clasif: 'Clasificado · límite 0', clasifCls: 'none',
-    nota: <>CESCE ha evaluado tu empresa y de momento <strong>no autoriza crédito</strong> (límite 0), así que los envíos se cobran <strong>por adelantado</strong>. Puedes contactar con CESCE para revisar tu clasificación.</> },
+  // «Sin crédito disponible» (usuario, 2026-11-16): el crédito que manda es 0, venga de
+  // CESCE o del crédito manual de Dynamo (que ahora manda siempre: 0 es 0). El texto no dice
+  // de quién es el 0 ni manda a nadie a CESCE: el contacto es el nuestro y lo revisamos.
+  nulo: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Sin crédito disponible', clasif: 'Sin crédito', clasifCls: 'none',
+    nota: <>De momento esta cuenta <strong>no tiene crédito disponible</strong>, así que los envíos se cobran <strong>por adelantado</strong>. Si crees que debería tenerlo, contáctanos y lo revisamos.</> },
 };
-const CESCE_CONTACTO = { tel: '900 30 40 50', telHref: 'tel:+34900304050', email: 'clientes@cesce.es' };
 
 const ROL_TXT: Record<Rol, string> = { admin: 'Admin Master', empleado: 'Empleado gestor', admin_lectura: 'Admin lectura', empleado_lectura: 'Empleado lectura', cliente: 'Cliente', transportista: 'Transportista' };
 
@@ -353,9 +355,9 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                   )}
                   {cobertura === 'nulo' && (
                     <div className="cesce-contact">
-                      <div className="cesce-contact-t">¿No estás conforme con tu crédito? Contacta con CESCE</div>
-                      <a href={CESCE_CONTACTO.telHref}><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z" /></svg>{CESCE_CONTACTO.tel}</a>
-                      <a href={`mailto:${CESCE_CONTACTO.email}?subject=${encodeURIComponent('Consulta sobre mi línea de crédito')}`}><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>{CESCE_CONTACTO.email}</a>
+                      <div className="cesce-contact-t">¿No estás conforme con tu crédito? Contáctanos y lo revisamos</div>
+                      <a href={CONTACTO.telHref}><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z" /></svg>{CONTACTO.telefono}</a>
+                      <a href={`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`Consulta sobre mi línea de crédito · ${empresa}`)}`}><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>{CONTACTO.email}</a>
                     </div>
                   )}
                 </div>
