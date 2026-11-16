@@ -10238,3 +10238,23 @@ do $$ declare u uuid; v_a text; v_n text; n int; begin
   raise notice 'OK 245 · cambiar el email de acceso avisa a la dirección antigua y a la nueva (con el enlace para entrar); anonimizar no';
 end $$;
 reset role;
+
+-- ---- 246. Un email pendiente de más de 24 horas ya no se manda (queda omitido) -------------
+reset role;
+do $$ declare v_viejo uuid; v_nuevo uuid; begin
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html)
+    values ('prueba246:nuevo', 'cuenta_activada', 'nuevo246@prueba.es', 'Reciente', '<p>x</p>') returning id into v_nuevo;
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html)
+    values ('prueba246:viejo', 'cuenta_activada', 'viejo246@prueba.es', 'Viejo', '<p>x</p>') returning id into v_viejo;
+  alter table emails_enviados disable trigger user;
+  update emails_enviados set creado_en = now() - interval '25 hours' where id = v_viejo;
+  alter table emails_enviados enable trigger user;
+  if (select creado_en from emails_enviados where id = v_viejo) > now() - interval '24 hours' then raise exception 'FALLO 246 · no se ha podido preparar el email viejo'; end if;
+  perform enviar_emails_pendientes();
+  if (select estado from emails_enviados where id = v_viejo) <> 'omitido' or (select error from emails_enviados where id = v_viejo) not like '%24 horas%' then
+    raise exception 'FALLO 246 · un email pendiente de hace 25 horas no queda omitido';
+  end if;
+  if (select estado from emails_enviados where id = v_nuevo) = 'omitido' then raise exception 'FALLO 246 · se omite un email reciente'; end if;
+  raise notice 'OK 246 · un email que lleva más de 24 horas pendiente ya no se manda: queda omitido con su motivo';
+end $$;
+reset role;
