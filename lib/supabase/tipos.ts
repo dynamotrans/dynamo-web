@@ -3833,6 +3833,7 @@ export type Database = {
       mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string }[] }
       mi_enlace_cmr: { Args: { p_envio: string | null }; Returns: string }
       mi_envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
+      mi_envio_manual_precio: { Args: { p_envio: string | null; p_precio: number | null }; Returns: undefined }
       mi_logo_empresa: { Args: Record<PropertyKey, never>; Returns: string }
       mi_valoracion_envio: { Args: { p_envio: string | null }; Returns: { puede: boolean; nota: number; comentario: string; valorado_en: string; editable: boolean }[] }
       mis_avisos: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; tipo: string; nivel: string; titulo: string; texto: string; enlace: string; creado_en: string; nuevo: boolean }[] }
@@ -3846,6 +3847,7 @@ export type Database = {
       mis_viajes_por_ids: { Args: { p_ids: string[] | null }; Returns: { id: string; referencia_gx: string; estado: Database["public"]["Enums"]["estado_envio"]; fecha_carga_desde: string; fecha_carga_hasta: string; fecha_carga_real: string; fecha_entrega_estimada: string; descripcion_mercancia: string; toneladas: number; metros_lineales: number; tipo_carga: Database["public"]["Enums"]["tipo_carga"]; paletizado: boolean; carga_lateral: boolean; carga_techo: boolean; carga_trasera: boolean; requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean; importe_transportista: number; moneda: string; matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string; asignado_en: string; cargado_en: string; entregado_en: string; paradas: Json; discrecion_comercial: boolean; codigo_postal_origen: string; poblacion_origen: string; codigo_postal_destino: string; poblacion_destino: string; creado_en: string }[] }
       modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }
       modificar_envio_cliente: { Args: { p_envio: string | null; p_datos: Json | null; p_paradas?: Json | null }; Returns: Json }
+      modificar_mi_envio_manual: { Args: { p_envio: string | null; p_datos: Json | null; p_paradas?: Json | null }; Returns: undefined }
       negociacion_bloqueada: { Args: { p_envio: string | null; p_transportista?: string | null }; Returns: string }
       negociacion_publica: { Args: { p_token: string | null }; Returns: boolean }
       normalizar_cp: { Args: { p: string | null }; Returns: string }

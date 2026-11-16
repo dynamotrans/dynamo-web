@@ -78,7 +78,7 @@ export default function UsoDynamo({ datos, empresa = null, equipoSinVista = fals
         {k.envios >= k.min_envios
           ? <Fila titulo="Sobre tus envíos" sub={`${k.propias} de ${k.envios} envíos cancelados`} valor={pctEnv} max={k.max_pct} />
           : <p className="uso-nota">El límite del <strong>{k.max_pct} %</strong> de envíos cancelados se aplica a partir de {k.min_envios} envíos
-              (llevas {k.envios}{k.propias > 0 ? `, con ${k.propias} ${k.propias === 1 ? 'cancelado' : 'cancelados'} con coste` : ''}).</p>}
+              (llevas {k.envios} {k.envios === 1 ? 'envío' : 'envíos'}{k.propias > 0 ? `, con ${k.propias} ${k.propias === 1 ? 'cancelado' : 'cancelados'} con coste` : ''}).</p>}
       </div>
 
       <p className="uso-nota" style={{ maxWidth: 760 }}>

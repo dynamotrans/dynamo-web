@@ -68,7 +68,11 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
         supabase.rpc('mis_envios').eq('id', sp.editar).maybeSingle(),
         supabase.rpc('mi_cambio_envio', { p_envio: sp.editar }).maybeSingle(),
       ]);
-      if (!x || x.es_manual || x.estado !== 'programado' || !cb?.modificable || cb.con_camion || cb.estado === 'pendiente') {
+      // Con SU transportista (envío manual) lo modifica libremente mientras no esté cancelado
+      // (usuario, 2026-11-16: «es suyo, no aplica nada»). Los de Dynamo, con sus reglas.
+      const editable = !!x && (x.es_manual ? x.estado !== 'cancelado'
+        : x.estado === 'programado' && !!cb?.modificable && !cb.con_camion && cb.estado !== 'pendiente');
+      if (!x || !editable) {
         redirect(`/panel/envios?ver=${sp.editar}`);
       }
       base = { modo: 'editar', envio: { ...x, cliente_id: e.id, importe_transportista: null },

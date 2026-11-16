@@ -18,7 +18,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCarga
 import { estadoVisual, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
-import { cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
+import { cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio, LlamarCancelar, modoModificar } from './CambiosEnvio';
 import { Secc } from './ficha/comun';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
@@ -82,6 +82,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
+  // Precio acordado con SU transportista (envío propio), editable en la ficha.
+  const precioMIni = e.precio_acordado_operador != null ? String(e.precio_acordado_operador).replace('.', ',') : '';
+  const [precioM, setPrecioM] = useState(precioMIni);
   // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
   // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
   const [cerrando, setCerrando] = useState(false);
@@ -200,6 +203,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
       {modo === 'form' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
+      {/* Con SU transportista lo modifica libremente: es suyo (usuario, 2026-11-16). */}
+      {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
       {modo === 'llamar' && <button className="btn-secondary" onClick={() => setVista('llamar')} disabled={!!trabajando}><I d={ICO.editar} />Modificar envío</button>}
       {modo === 'pendiente' && <button className="btn-secondary" disabled title="Ya has pedido un cambio: espera a que te contestemos"><I d={ICO.editar} />Modificar envío</button>}
       {modo === 'asignando' && <button className="btn-secondary" disabled title="Un transportista se está asignando en este momento"><I d={ICO.editar} />Modificar envío</button>}
@@ -228,8 +233,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           </div>
         ))}
         <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}</span></div>
+        {manual && <div className="pen-sum-row"><span className="k">Transportista</span><span className="v notranslate" translate="no">{e.operador || '—'}</span></div>}
         {manual
-          ? <div className="pen-sum-row"><span className="k">Precio acordado</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
+          ? <div className="pen-sum-row"><span className="k">Precio acordado (sin IVA)</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
           : <div className="pen-sum-row"><span className="k">Precio (sin IVA)</span><span className="v">{pc != null ? euros(pc) : <Pend />}</span></div>}
       </div>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
@@ -240,6 +246,19 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
             onChange={(ev) => hacer('Guardando', () => marcarMiEnvioManual(e.id, ev.target.value))}>
             {FASES_M.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
+          {/* El precio acordado con su transportista, a mano y sin salir de la ficha. */}
+          <label htmlFor="em-precio" style={{ display: 'block', margin: '0.7rem 0 0.3rem', fontSize: 'var(--fs-m)', fontWeight: 700, color: 'var(--gray-700)' }}>Precio acordado con {e.operador || 'tu transportista'} <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· sin IVA · opcional</span></label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input id="em-precio" type="text" inputMode="decimal" placeholder="Ej. 450,00" value={precioM} disabled={!!trabajando}
+              onChange={(ev) => setPrecioM(ev.target.value)} style={{ flex: 1, minWidth: 0 }} />
+            <button type="button" className="btn-secondary" disabled={!!trabajando || precioM.trim() === precioMIni}
+              onClick={() => {
+                const t = precioM.trim(); const v = t ? Number(t.replace(/\./g, '').replace(',', '.')) : null;
+                if (v !== null && !(Number.isFinite(v) && v >= 0)) { setAviso({ ok: false, txt: 'El precio no es un número válido.' }); return; }
+                hacer('Guardando', () => guardarPrecioEnvioManual(e.id, v));
+              }}>Guardar precio</button>
+          </div>
+          <p style={{ margin: '0.6rem 0 0', fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Para cambiar la ruta, las fechas, la mercancía o el transportista, pulsa <strong>«Modificar envío»</strong>. Es tu envío: no se aplica ninguna condición ni se avisa a nadie.</p>
         </div>
       )}
       {asignandose && (

@@ -34,6 +34,16 @@ export async function valorarMiEnvio(envio: string, nota: number, comentario: st
 }
 
 // Envíos MANUALES (con su propio operador): el cliente lleva el estado.
+// El precio acordado con SU transportista, desde la ficha (null = sin anotar).
+export async function guardarPrecioEnvioManual(envio: string, precio: number | null): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones-cliente#guardarPrecioEnvioManual", [envio, precio]);
+  const s = await soloCliente();
+  if (!s) return { ok: false, error: 'Solo el cliente cambia el precio de su envío.' };
+  if (precio != null && (!Number.isFinite(precio) || precio < 0)) return { ok: false, error: 'El precio no es válido.' };
+  const { error } = await s.supabase.rpc('mi_envio_manual_precio', { p_envio: envio, p_precio: precio });
+  return error ? { ok: false, error: limpio(error.message) } : { ok: true };
+}
+
 export async function marcarMiEnvioManual(envio: string, estado: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones-cliente#marcarMiEnvioManual", [envio, estado]);
   const s = await soloCliente();

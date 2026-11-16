@@ -26,6 +26,8 @@ export type Base = {
     paletizado: boolean | null; carga_lateral: boolean; carga_trasera: boolean; carga_techo: boolean; requiere_plataforma_elevadora: boolean;
     requiere_nima: boolean; adr: boolean; anotaciones_cliente: string | null; importe_cliente: number | null; importe_transportista: number | null;
     discrecion_comercial: boolean; negociacion_pct?: number | null;
+    // Envío con transportista PROPIO del cliente (manual): su operador y el precio acordado.
+    operador_id?: string | null; precio_acordado_operador?: number | null;
     // Solo para «editar»: lo que el asistente deja precargado tal cual estaba.
     referencia_cliente?: string | null; fecha_carga_desde?: string | null; fecha_carga_hasta?: string | null };
   paradas: { id: string; tipo: 'carga' | 'descarga'; sitio_id: string | null; nombre_empresa: string | null; direccion: string | null;

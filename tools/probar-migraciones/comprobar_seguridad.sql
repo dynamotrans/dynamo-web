@@ -11430,3 +11430,96 @@ do $$ begin
   end if;
   raise notice 'OK 265 · el cliente sube y quita el logo de su empresa y los de sus transportistas propios; no puede colgar documentos a otra empresa, y otra empresa ni los ve ni los quita';
 end $$;
+
+-- ---- 266. El envío con transportista propio se modifica entero y libremente, sin avisar a nadie; el contador del menú no cuenta dos veces ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; o1 uuid := current_setting('prueba.o265')::uuid; o2 uuid; ox uuid; e uuid; d uuid; begin
+  insert into operadores (cliente_id, razon_social) values (cli, 'Otro Transportista 266') returning id into o2;
+  insert into operadores (cliente_id, razon_social) values (current_setting('prueba.otro265')::uuid, 'Transportista Ajeno 266') returning id into ox;
+  -- e: con su transportista (manual) · d: de Dynamo
+  insert into envios (cliente_id, operador_id, metros_lineales, toneladas, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, o1, 6, 5, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 4)) returning id into e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde)
+    values (cli, 6, 5, 600, sumar_dias_habiles(current_date, 4)) returning id into d;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, nombre_empresa)
+    select x, o, t, cp, p, n from unnest(array[e, d]) x,
+      (values (1, 'carga', '41001', 'Sevilla', 'Nave Sevilla'), (2, 'descarga', '46001', 'Valencia', 'Nave Valencia')) v(o, t, cp, p, n);
+  update envios set estado = 'programado' where id in (e, d);
+  perform set_config('prueba.e266', e::text, false); perform set_config('prueba.d266', d::text, false);
+  perform set_config('prueba.o266', o2::text, false); perform set_config('prueba.ox266', ox::text, false);
+  perform set_config('prueba.p266', (select id::text from envio_paradas where envio_id = e and orden = 1), false);
+  perform set_config('prueba.n266', (select count(*)::text from emails_enviados), false);
+  perform set_config('prueba.a266', (select count(*)::text from avisos), false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e266')::uuid; dt jsonb; ok boolean; n1 bigint; begin
+  dt := jsonb_build_object('operador_id', current_setting('prueba.o266'), 'precio_acordado_operador', 450,
+          'fecha_carga_desde', sumar_dias_habiles(current_date, 9), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 10),
+          'metros_lineales', 9, 'toneladas', 12, 'referencia_cliente', 'PED-266');
+  perform modificar_mi_envio_manual(e, dt, jsonb_build_array(jsonb_build_object('id', current_setting('prueba.p266')),
+    jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Nave Getafe', 'poblacion', 'Getafe', 'codigo_postal', '28901')));
+  -- Ya en marcha también se puede tocar (todo menos la ruta, que solo se cambia antes de cargar).
+  perform marcar_mi_envio_manual(e, 'en_ruta');
+  perform modificar_mi_envio_manual(e, dt || jsonb_build_object('metros_lineales', 9.5), null);
+  -- Solo el precio, desde la ficha.
+  perform mi_envio_manual_precio(e, 480);
+  -- Con un transportista que no es suyo, no.
+  ok := false;
+  begin perform modificar_mi_envio_manual(e, dt || jsonb_build_object('operador_id', current_setting('prueba.ox266')), null);
+  exception when others then ok := sqlerrm like '%tus transportistas%'; end;
+  if not ok then raise exception 'FALLO 266 · el cliente pone en su envío el transportista de otra empresa'; end if;
+  -- Un envío de Dynamo no se modifica por esta puerta (tiene sus reglas).
+  ok := false;
+  begin perform modificar_mi_envio_manual(current_setting('prueba.d266')::uuid, dt, null);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 266 · un envío de Dynamo se modifica por la puerta de los envíos propios'; end if;
+  ok := false;
+  begin perform mi_envio_manual_precio(current_setting('prueba.d266')::uuid, 10);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 266 · se anota un precio acordado en un envío de Dynamo'; end if;
+end $$;
+-- Otra empresa no lo toca.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+do $$ declare ok boolean := false; begin
+  begin perform mi_envio_manual_precio(current_setting('prueba.e266')::uuid, 1);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 266 · otra empresa cambia el precio de un envío ajeno'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e266')::uuid; x record; begin
+  select operador_id, precio_acordado_operador, fecha_carga_desde, metros_lineales, referencia_cliente, estado into x from envios where id = e;
+  if x.operador_id <> current_setting('prueba.o266')::uuid or x.precio_acordado_operador <> 480 or x.fecha_carga_desde <> sumar_dias_habiles(current_date, 9)
+     or x.metros_lineales <> 9.5 or x.referencia_cliente <> 'PED-266' or x.estado <> 'en_ruta' then
+    raise exception 'FALLO 266 · el envío propio no queda como lo ha dejado el cliente: %', x;
+  end if;
+  if (select poblacion from envio_paradas where envio_id = e and orden = 2) <> 'Getafe' then raise exception 'FALLO 266 · la ruta nueva del envío propio no se guarda'; end if;
+  -- Dynamo no interviene: ni un email ni un aviso por todo lo anterior.
+  if (select count(*) from emails_enviados) <> current_setting('prueba.n266')::bigint then raise exception 'FALLO 266 · modificar un envío propio manda emails'; end if;
+  if (select count(*) from avisos) <> current_setting('prueba.a266')::bigint then raise exception 'FALLO 266 · modificar un envío propio genera avisos'; end if;
+end $$;
+-- El contador del menú: un envío pendiente de pago no cuenta como «sin transportista».
+do $$ begin
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo' where id = current_setting('prueba.d266')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin perform set_config('prueba.c266', cuenta_mis_envios_sin_asignar()::text, false); end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  update envios set estado_pago_previo = 'exento', pago_exento_motivo = 'Prueba 266' where id = current_setting('prueba.d266')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if cuenta_mis_envios_sin_asignar() <> current_setting('prueba.c266')::bigint + 1 then
+    raise exception 'FALLO 266 · el contador de «sin transportista» del cliente cuenta también los pendientes de pago (antes %, ahora %)', current_setting('prueba.c266'), cuenta_mis_envios_sin_asignar();
+  end if;
+  raise notice 'OK 266 · el cliente modifica entero su envío con transportista propio (ruta, fechas, mercancía, transportista y precio), también en marcha, sin emails ni avisos; no puede poner un transportista ajeno ni tocar así un envío de Dynamo; y el contador del menú no cuenta el pendiente de pago como «sin transportista»';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import MedidasCamion from './nuevoEnvio/MedidasCamion';
@@ -148,8 +148,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   // ---- Envío MANUAL (el cliente, o Dynamo en su vista): con un operador propio del
   // cliente, Dynamo no interviene.
-  const [operador, setOperador] = useState('');
-  const [precioOp, setPrecioOp] = useState('');
+  // Al MODIFICAR un envío propio (usuario, 2026-11-16) llegan su transportista y su precio
+  // acordado, y se puede cambiar todo libremente: es suyo, no aplica ninguna regla de Dynamo.
+  const editarManual = editar && !!be?.operador_id;
+  const [operador, setOperador] = useState(editarManual ? be!.operador_id! : '');
+  const [precioOp, setPrecioOp] = useState(editarManual && be?.precio_acordado_operador != null ? decimal(Number(be.precio_acordado_operador)) : '');
   const manual = sinCampoCliente && !!operador;
   const nombreOp = operadores.find((o) => o.id === operador)?.nombre ?? '';
 
@@ -335,7 +338,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const tarifaBase = tarifa ? (tarifa.netoBase ?? tarifa.neto) : null;
   // EL CLIENTE MODIFICA SU ENVÍO (usuario, 2026-11-16: «es como un nuevo envío, no
   // liemos»): el precio es SIEMPRE el que el tarifador calcula ahora, como al crear uno.
-  const editarCliente = editar && esCliente;
+  const editarCliente = editar && esCliente && !editarManual;
   const precioAntesCli = editarCliente && be?.importe_cliente != null ? Number(be.importe_cliente) : null;
   const precioEdicionCli = tarifa?.neto ?? null;
   useEffect(() => {
@@ -581,6 +584,27 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     });
     const fechasIguales = fecha === (be!.fecha_carga_desde ?? '') && urgencia === urgenciaIni;
     const f = forma.toLowerCase();
+    if (editarManual) {
+      // Envío con SU transportista: se guarda tal cual, sin reglas ni avisos.
+      if (!operador) { setEnviando(false); setAviso('Elige tu transportista.'); setPaso(1); return; }
+      const po = precioOp.trim() ? num(precioOp) : null;
+      if (po !== null && !(po >= 0)) { setEnviando(false); setAviso('El precio acordado no es un número válido.'); setPaso(3); return; }
+      const rm = await guardarEdicionEnvioManual(base.envio.id, {
+        referencia_cliente: refCli,
+        fecha_carga_desde: fechasIguales ? (be!.fecha_carga_desde ?? '') : fecha,
+        fecha_carga_hasta: fechasIguales ? (be!.fecha_carga_hasta ?? be!.fecha_carga_desde ?? '') : fechaHasta,
+        descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
+        metros_lineales: Number(ml), toneladas: Number(peso),
+        paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'), carga_techo: f.includes('techo'),
+        requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
+        operador_id: operador, precio_acordado_operador: po,
+        discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
+      }, paradas);
+      if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
+      router.push(`/panel/envios?ver=${base.envio.id}`);
+      refrescar();
+      return;
+    }
     if (esCliente) {
       // El cliente guarda con el precio que tiene en pantalla: el del tarifador.
       if (precioEdicionCli == null) { setEnviando(false); setAviso('El precio aún se está calculando: espera un momento y vuelve a pulsar.'); setPaso(3); return; }
@@ -1021,7 +1045,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <PistaScroll selector="[data-pista-accion]"
           texto={editar ? 'Desliza para guardar los cambios' : 'Desliza para crear el envío'} />
       )}
-      {editar && paso === 1 && (editarCliente
+      {editar && paso === 1 && (editarManual
+        ? <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando tu envío #{be!.referencia_gx}</strong>, que llevas con <strong>tu propio transportista</strong>: cambia lo que quieras en cualquier paso (ruta, fechas, mercancía, transportista, precio) y pulsa <strong>«Guardar cambios»</strong> al final. Es tuyo: no se aplica ninguna condición ni se avisa a nadie.</div></div>
+        : editarCliente
         ? <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando tu envío #{be!.referencia_gx}</strong>: cambia lo que haga falta en cualquier paso y pulsa <strong>«Guardar cambios»</strong> al final. <strong>El precio se vuelve a calcular</strong> como en un envío nuevo.</div></div>
         : <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando el envío #{be!.referencia_gx}</strong>: cambia lo que haga falta en cualquier paso y pulsa <strong>«Guardar cambios»</strong> al final. Si no tocas nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong> — el tarifador solo sugiere, no lo pisa.</div></div>
       )}
@@ -1073,7 +1099,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   </div>
                   </>}
 
-                  {sinCampoCliente && !base && (<>
+                  {sinCampoCliente && (!base || editarManual) && (<>
                     <div className="ptar-section-head">Transportista / operador{' '}
                       <Tip texto="¿Trabajas también con transportistas propios? Dalos de alta en Transportistas y podrás registrar aquí esos envíos (Dynamo no interviene) y tenerlo todo unificado." aria="Ayuda sobre transportistas propios" />
                     </div>
@@ -1370,7 +1396,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   (usuario, 2026-11-14): las condiciones y, si procede, el pago por
                   adelantado se avisan en la ventana de confirmación. */}
               {(editar || manual) && <div className="ptar-terms-box">
-                {editarCliente
+                {editarManual
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza tu envío #{be!.referencia_gx} con tu transportista. No se avisa a nadie: si hace falta, avísale tú.</p>
+                  : editarCliente
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza tu envío #{be!.referencia_gx} con lo que ves aquí. <strong>El precio se recalcula</strong> como en un envío nuevo. Se aplican las mismas condiciones generales que aceptaste al crearlo.</p>
                   : editar
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza el envío #{be!.referencia_gx}. Si no has tocado nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong>: solo cambia si lo cambias tú.</p>

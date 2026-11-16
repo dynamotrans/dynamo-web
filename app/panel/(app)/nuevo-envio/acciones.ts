@@ -210,6 +210,24 @@ export async function guardarEdicionEnvioCliente(envio: string,
   return { ok: true, precioAntes: x?.precio_antes ?? null, precioAhora: x?.precio_ahora ?? null };
 }
 
+// El cliente modifica ENTERO un envío que lleva con un transportista PROPIO (usuario,
+// 2026-11-16: «es suyo: lo modifica libremente, no aplica nada y no se manda nada»). Sin
+// reglas de fechas ni de cancelación y sin avisos: Dynamo no interviene en ese envío.
+export async function guardarEdicionEnvioManual(envio: string,
+  d: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'> & { operador_id: string; precio_acordado_operador: number | null },
+  paradas: (ParadaNueva & { id?: string })[] | null): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#guardarEdicionEnvioManual", [envio, d, paradas]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu cuenta no puede modificar envíos.' };
+  if (paradas && paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
+  if (!d.operador_id) return { ok: false, error: 'Elige tu transportista.' };
+  const { error } = await s.supabase.rpc('modificar_mi_envio_manual', {
+    p_envio: envio, p_datos: d, p_paradas: paradas ? paradas.map((p) => (p.id ? { id: p.id } : p)) : null });
+  if (error) return { ok: false, error: traducir(error.message) };
+  if (paradas) await contactosDeSitiosNuevos(s.supabase, envio, paradas, true);
+  return { ok: true };
+}
+
 // El CLIENTE crea su envío YA CON EL PRECIO del tarifador automático (desde el 2026-11-08
 // no hay solicitudes de precio). Nace programado; el previo pago decide crédito o pago.
 // La base de datos fuerza que sea de SU empresa y con SUS sitios.
