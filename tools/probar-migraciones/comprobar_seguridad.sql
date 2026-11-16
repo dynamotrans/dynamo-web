@@ -10605,3 +10605,14 @@ do $$ declare e uuid := current_setting('prueba.e252')::uuid; ok boolean := fals
   raise notice 'OK 252 · firma en papel (CMR bis): solo Dynamo, con el documento escaneado y con matrícula; completa el CMR digital, sale marcada y no se toca';
 end $$;
 reset role;
+
+-- ---- 253. Nombre del remitente de los emails: «Dynamotrans.com» -----------------------------
+do $$ declare n int; begin
+  select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+   where s.nspname = 'public' and p.prosrc like '%''Dynamo <%';
+  if n <> 0 then raise exception 'FALLO 253 · quedan % funciones que mandan emails con el remitente «Dynamo»', n; end if;
+  select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+   where s.nspname = 'public' and p.proname = 'enviar_emails_pendientes' and p.prosrc like '%format(''Dynamotrans.com <%%s>''%';
+  if n <> 1 then raise exception 'FALLO 253 · la cola de emails no sale con el remitente «Dynamotrans.com»'; end if;
+  raise notice 'OK 253 · los emails de la cola salen con el nombre de remitente «Dynamotrans.com»';
+end $$;

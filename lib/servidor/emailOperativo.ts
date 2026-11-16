@@ -48,7 +48,7 @@ export async function enviarEmailOperativo(d: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Postmark-Server-Token': token },
       body: JSON.stringify({
-        From: `Dynamo <${CONTACTO.email}>`, To: d.para, Subject: d.asunto, HtmlBody: d.html, MessageStream: 'outbound',
+        From: `Dynamotrans.com <${CONTACTO.email}>`, To: d.para, Subject: d.asunto, HtmlBody: d.html, MessageStream: 'outbound',
         // Copia a Dynamo en todos los emails del sistema (usuario, 2026-11-15), salvo
         // cuando el destinatario ya es Dynamo. (Las ofertas de la difusión, la única
         // excepción a la copia, no pasan por aquí: van por la cola de la base de datos.)
