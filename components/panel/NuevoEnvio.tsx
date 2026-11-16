@@ -26,6 +26,7 @@ import AvisoCorte from './nuevoEnvio/AvisoCorte';
 import PistaScroll from './nuevoEnvio/PistaScroll';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import CampoOperador from './nuevoEnvio/CampoOperador';
+import { ALMACENAMIENTOS } from '@/lib/modulos';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import AvisoCierreSitio from './nuevoEnvio/AvisoCierreSitio';
@@ -262,7 +263,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [dias[0], editar, fechaLibre]);
 
   const sitiosCliente = useMemo(
-    () => sitios.filter((s) => s.es_almacen_dynamo || (cliente && s.cliente_id === cliente.id)),
+    // Los almacenes Dynamo no se pueden elegir mientras el módulo esté apagado (lib/modulos.ts).
+    () => sitios.filter((s) => (ALMACENAMIENTOS && s.es_almacen_dynamo) || (!s.es_almacen_dynamo && cliente && s.cliente_id === cliente.id)),
     [sitios, cliente]);
 
   const importe = num(pc);

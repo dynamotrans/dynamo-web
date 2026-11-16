@@ -78,7 +78,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
       ) : <>
         <div className="filters">
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder={pestana === 'proformas' ? `Buscar por nº de almacenamiento${dynamo ? ', cliente' : ''}, referencia, importe…` : 'Buscar por nº de envío, ruta, nombre del archivo…'} />
+            placeholder={pestana === 'proformas' ? `Buscar por nº de envío${dynamo ? ', cliente' : ''}, referencia, importe…` : 'Buscar por nº de envío, ruta, nombre del archivo…'} />
           {pestana === 'proformas' && (
             <select className="filter-estado" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)} aria-label="Filtrar por pago">
               <option value="sin_pagar">Sin pagar</option>

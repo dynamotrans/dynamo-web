@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { ALMACENAMIENTOS } from '@/lib/modulos';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
@@ -11,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 // Almacenamientos (solo Dynamo en la etapa A): diseño de #sec-almacenes de dashboard.html.
 export default async function PaginaAlmacenamientos({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  if (!ALMACENAMIENTOS) redirect('/panel');   // módulo apagado hasta la v4 (lib/modulos.ts)
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;

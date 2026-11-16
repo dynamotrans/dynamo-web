@@ -48,9 +48,9 @@ const ROL_COLOR: Record<Rol, [string, string]> = {
 const ROL_DESC: Record<Rol, string> = {
   admin: 'Admin Master: acceso TOTAL a la plataforma. Lo ve todo y lo cambia todo: precios de compra y márgenes, clientes y transportistas, penalizaciones, usuarios (incluidos los roles) y parámetros. Solo se nombra desde Supabase.',
   admin_lectura: 'Lo VE TODO, igual que el Admin Master (precios de compra, márgenes, usuarios, parámetros…), pero NO PUEDE CAMBIAR NADA: no crea, no edita y no borra.',
-  empleado: 'Empleado gestor: operativa interna del equipo Dynamo. Crea, edita y borra envíos, almacenamientos, incidencias, penalizaciones, clientes, transportistas y sitios. No cambia los parámetros.',
+  empleado: 'Empleado gestor: operativa interna del equipo Dynamo. Crea, edita y borra envíos, incidencias, penalizaciones, clientes, transportistas y sitios. No cambia los parámetros.',
   empleado_lectura: 'Supervisor: ve lo mismo que un Empleado gestor, pero NO PUEDE CAMBIAR NADA: no crea, no edita y no borra.',
-  cliente: 'Solo SUS envíos, almacenamientos, facturas, albaranes e incidencias. No ve precios de compra, márgenes ni datos de otros clientes.',
+  cliente: 'Solo SUS envíos, facturas, albaranes e incidencias. No ve precios de compra, márgenes ni datos de otros clientes.',
   transportista: 'Solo los envíos que se le asignen y su documentación. No crea envíos ni ve datos de clientes.',
 };
 const ESTADOS: [UsuarioDatos['estado'], string][] = [['activa', 'Activa'], ['suspendida', 'Suspendida · solo lectura'], ['suspendida_total', 'Suspendida TOTAL · sin acceso'], ['pendiente_verificacion', 'Pendiente de verificación']];

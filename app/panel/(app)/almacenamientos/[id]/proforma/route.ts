@@ -1,4 +1,5 @@
 import { supabaseServidor } from '@/lib/supabase/server';
+import { ALMACENAMIENTOS } from '@/lib/modulos';
 import { esDynamo } from '@/lib/sesion';
 import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
@@ -17,6 +18,7 @@ export const runtime = 'nodejs';
 const texto = (msg: string, status: number) => new Response(msg, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!ALMACENAMIENTOS) return new Response('No disponible.', { status: 404 });   // módulo apagado hasta la v4
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return texto('Ese almacenamiento no existe.', 404);
   const sb = await supabaseServidor();

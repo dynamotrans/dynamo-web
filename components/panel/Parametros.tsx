@@ -1,5 +1,6 @@
 'use client';
 
+import { ALMACENAMIENTOS } from '@/lib/modulos';
 import { fechaHora } from '@/lib/formato';
 
 // Parámetros de la plataforma: cada regla que tiene un número (descuento de bienvenida,
@@ -52,9 +53,9 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Pronto pago', claves: ['pronto_pago_encendido', 'pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'pronto_pago_linea_euros', 'pronto_pago_ventana_dias'] },
     { titulo: 'Oferta escalonada por email', claves: ['difusion_dias_antes', 'difusion_hora_carga_defecto', 'difusion_horas_corte', 'difusion_hora_inicio', 'difusion_hora_fin', 'difusion_recordatorio_hora', 'difusion_max_contactados', 'difusion_cadencia', 'difusion_minutos_entre_emails'] },
   ] },
-  { id: 'operativa', titulo: 'Operativa', intro: 'Recogida, entrega, almacenaje y horarios.', subs: [
+  { id: 'operativa', titulo: 'Operativa', intro: ALMACENAMIENTOS ? 'Recogida, entrega, almacenaje y horarios.' : 'Recogida, entrega y horarios.', subs: [
     { titulo: 'PIN de recogida y entrega', claves: ['pin_cifras', 'pin_max_intentos', 'pin_orden_obliga', 'pin_ventana_horas_antes', 'pin_ventana_horas_despues'] },
-    { titulo: 'Almacenamientos', claves: ['almacen_precio_semana', 'almacen_precio_reparto'] },
+    ...(ALMACENAMIENTOS ? [{ titulo: 'Almacenamientos', claves: ['almacen_precio_semana', 'almacen_precio_reparto'] }] : []),
     { titulo: 'Cobertura', claves: ['cobertura_paises'] },
     { titulo: 'Horario de verano de los almacenes', claves: ['verano_sitios_desde', 'verano_sitios_hasta'] },
     { titulo: 'Avisos de recogida y entrega a los sitios', claves: ['aviso_parada_ventana_inicio', 'aviso_parada_ventana_fin', 'aviso_parada_hora_mismo_dia'] },
@@ -94,7 +95,8 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
     const casa = (p: ParametroFila, ...extra: string[]) => !b || norm([p.clave, p.descripcion, AYUDA[p.clave]?.titulo ?? '', AYUDA[p.clave]?.explica ?? '', ...extra].join(' ')).includes(b);
     // OJO: el prefijo REAL es autosuspension_ (homogeneización de nombres); con el viejo
     // autosusp_ estas filas caían en «Otros · Sin clasificar» (usuario, 2026-11-11).
-    const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !p.clave.startsWith('autosuspension_'));
+    // Los parámetros de un módulo apagado (almacenamientos, hasta la v4) no salen ni en «Otros».
+    const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !p.clave.startsWith('autosuspension_') && (ALMACENAMIENTOS || !p.clave.startsWith('almacen_')));
     // Orden ALFABÉTICO (usuario, 2026-11-13): las secciones entre sí y las subsecciones
     // dentro de cada una — tanto en los chips de arriba como en el listado. «Otros»
     // (sin clasificar) se queda siempre al final.

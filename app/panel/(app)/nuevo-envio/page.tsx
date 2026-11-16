@@ -6,6 +6,7 @@ import { vistaDe } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base, type ReglasPrecio, type MiAutosusp } from '@/components/panel/NuevoEnvio';
 import { CONTACTO } from '@/lib/atencion';
+import { ALMACENAMIENTOS } from '@/lib/modulos';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,8 +112,11 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const [cli, lug, fes, reg, ops] = await Promise.all([
     clienteIni ? supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct, nima_por_defecto').eq('id', clienteIni) : Promise.resolve({ data: [], error: null }),
     clienteIni
-      ? supabase.from('sitios').select(colsSitio).eq('borrado', false).or(`es_almacen_dynamo.eq.true,cliente_id.eq.${clienteIni}`).order('nombre_empresa').limit(2500)
-      : supabase.from('sitios').select(colsSitio).eq('borrado', false).eq('es_almacen_dynamo', true).order('nombre_empresa').limit(500),
+      ? (ALMACENAMIENTOS
+          ? supabase.from('sitios').select(colsSitio).eq('borrado', false).or(`es_almacen_dynamo.eq.true,cliente_id.eq.${clienteIni}`).order('nombre_empresa').limit(2500)
+          // Sin los almacenes Dynamo (módulo apagado hasta la v4): solo los sitios del cliente.
+          : supabase.from('sitios').select(colsSitio).eq('borrado', false).eq('es_almacen_dynamo', false).eq('cliente_id', clienteIni).order('nombre_empresa').limit(2500))
+      : supabase.from('sitios').select(colsSitio).eq('borrado', false).eq('es_almacen_dynamo', true).order('nombre_empresa').limit(ALMACENAMIENTOS ? 500 : 0),
     // Nacionales de los próximos 13 meses, con su fecha real de cada año (los que se
     // repiten, como el 1 de noviembre o Viernes Santo, los resuelve la base de datos).
     supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),

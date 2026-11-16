@@ -2,6 +2,7 @@
 // `listo` = pantalla ya pasada a datos reales; el resto lleva a un aviso de
 // "se está pasando a la plataforma real" hasta que toque (patrón estrangulador).
 import { esDynamo, type Rol } from './roles';
+import { ALMACENAMIENTOS } from './modulos';
 
 export const ICONOS: Record<string, string> = {
   escudo: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
@@ -70,7 +71,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
         { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
         { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
-        { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
+        // Apagado hasta la v4 (lib/modulos.ts).
+        ...(ALMACENAMIENTOS ? [{ slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' } as Enlace] : []),
         { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
       ] },
     ] },
@@ -88,7 +90,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       // Debajo de los transportistas de clientes (usuario, 2026-11-13): la agenda de
       // sitios de TODOS los clientes (tabla con columna Cliente; duplicados permitidos).
       { slug: 'sitios', titulo: 'Sitios de clientes', icono: 'sitios' },
-      { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },
+      ...(ALMACENAMIENTOS ? [{ slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' } as Enlace] : []),
       { slug: 'proteccion-datos', titulo: 'Protección de datos', icono: 'escudo' },
       { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
       { slug: 'mantenimiento', titulo: 'Modo mantenimiento', icono: 'mantenimiento' },

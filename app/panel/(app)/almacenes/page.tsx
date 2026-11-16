@@ -2,11 +2,14 @@ import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Almacenes from '@/components/panel/Almacenes';
 import { cargarSitios } from '@/lib/sitiosDatos';
+import { redirect } from 'next/navigation';
+import { ALMACENAMIENTOS } from '@/lib/modulos';
 
 export const dynamic = 'force-dynamic';
 
 // Almacenes Dynamo (catálogo interno, solo Dynamo): diseño de #sec-almacenes-cat.
 export default async function PaginaAlmacenes() {
+  if (!ALMACENAMIENTOS) redirect('/panel');   // módulo apagado hasta la v4 (lib/modulos.ts)
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
