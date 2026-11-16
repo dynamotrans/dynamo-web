@@ -10726,3 +10726,58 @@ begin
   if exists (select 1 from emails_enviados where clave = 'envio_creado:' || e) then raise exception 'FALLO 256 · el email sale en un envío de gestión directa'; end if;
   raise notice 'OK 256 · emails al cliente: creado (con detalle), víspera solo con transportista, matrículas si llegan después, modificado con antes y ahora en un solo email, cancelado con motivo; no en gestión directa';
 end $$;
+
+-- ---- 257. Email «Envío reactivado» al deshacer una cancelación ya comunicada --------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; cli uuid := current_setting('prueba.cliente')::uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; begin
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 14;   -- un lunes a más de dos semanas: cancelar no cuesta
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, creado_por)
+    values (cli, 13.30, 20, 900, 700, lun, current_setting('prueba.u_admin')::uuid) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.e257', e::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e257')::uuid; begin
+  -- Cancelado y deshecho al momento (por error): el cliente no debe recibir nada.
+  perform cancelar_envio(e, 'Error al cancelar');
+  perform deshacer_cancelacion(e);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e257')::uuid; begin
+  if (select count(*) from emails_enviados where envio_id = e and tipo = 'envio_cancelado' and estado = 'omitido') <> 1 then
+    raise exception 'FALLO 257 · al deshacer al momento, el email de cancelado sin mandar no se anula';
+  end if;
+  if exists (select 1 from emails_enviados where envio_id = e and tipo = 'envio_reactivado') then
+    raise exception 'FALLO 257 · sale «reactivado» cuando la cancelación no se llegó a comunicar';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin perform cancelar_envio(current_setting('prueba.e257')::uuid, 'Ahora sí'); end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e257')::uuid; n int; begin
+  -- La segunda cancelación (en el mismo minuto) tiene su propio email, y ese «ya ha salido».
+  update emails_enviados set estado = 'enviado', enviado_en = now() where envio_id = e and tipo = 'envio_cancelado' and estado = 'pendiente';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FALLO 257 · volver a cancelar en el mismo minuto no encola su email de cancelado (%)', n; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin perform deshacer_cancelacion(current_setting('prueba.e257')::uuid); end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e257')::uuid; r record; v_cli text; begin
+  select email into v_cli from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  select * into r from emails_enviados where envio_id = e and tipo = 'envio_reactivado';
+  if r.id is null or r.estado <> 'pendiente' or r.asunto not like 'Envío reactivado · envío #% (Sevilla → Coslada)'
+     or position(v_cli in r.destinatario) = 0 or position('Datos del envío' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 257 · al deshacer una cancelación ya comunicada no sale «Envío reactivado» al cliente: % · %', r.asunto, r.destinatario;
+  end if;
+  raise notice 'OK 257 · envío reactivado: email al cliente al deshacer una cancelación ya comunicada; si no se llegó a comunicar, se anula el de cancelado y no sale ninguno';
+end $$;
