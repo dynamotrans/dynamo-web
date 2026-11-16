@@ -3631,6 +3631,7 @@ export type Database = {
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
+      borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
       borrar_transportista: { Args: { p_id: string | null }; Returns: Json }
       buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string; nima_por_defecto: boolean }[] }
       buscar_empresa_de_mi_alta: { Args: { p_cif: string | null }; Returns: string }

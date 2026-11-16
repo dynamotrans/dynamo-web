@@ -19,6 +19,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/almacenamientos/acciones#marcarPagadoAlmacenamiento": z.tuple([z.string().uuid().or(z.literal('')), z.boolean()]),
   "app/panel/(app)/almacenamientos/acciones#pedirAlmacenamiento": z.tuple([z.string().uuid().or(z.literal('')).nullable(), z.object({ almacen_id: z.string().uuid().or(z.literal('')), fecha_entrada: z.string().max(1000), fecha_salida: z.string().max(1000), num_trailers: z.number().or(z.nan()), num_repartos: z.number().or(z.nan()), sitio_entrega_id: z.string().uuid().or(z.literal('')).nullable(), descripcion: z.string().max(5000), referencia_cliente: z.string().max(1000) })]),
   "app/panel/(app)/almacenamientos/acciones#sitiosDelCliente": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/altas/acciones#borrarAlta": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/altas/acciones#confirmarAlta": z.tuple([z.string().uuid().or(z.literal('')), z.union([z.object({ id: z.string().uuid().or(z.literal('')) }), z.object({ nuevo: z.object({ razon_social: z.string().max(1000), cif: z.string().max(1000), direccion: z.string().max(1000), codigo_postal: z.string().max(1000), poblacion: z.string().max(1000), provincia: z.string().max(1000), pais_codigo_iso: z.string().max(1000) }) })])]),
   "app/panel/(app)/altas/acciones#suspenderAlta": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/buscador/acciones#busquedaGlobal": z.tuple([z.string().max(1000)]),

@@ -10110,3 +10110,77 @@ do $$ declare u uuid; v_cif text; r text; ok boolean; i int; begin
   raise notice 'OK 241 · alta pendiente: busca su empresa por CIF, solo sabe si está o no, con tope de 5 CIF al día';
 end $$;
 reset role;
+
+-- ---- 242. Borrar un alta pendiente: solo el administrador y solo si sigue pendiente --------
+reset role;
+insert into auth.users (email, raw_user_meta_data) values ('alta242@prueba.es', '{"nombre":"Alta Doscientos Cuarenta y Dos"}');
+do $$ declare u uuid; adm uuid; r jsonb; ok boolean; begin
+  select id into u from usuarios where email = 'alta242@prueba.es';
+  select id into adm from usuarios where rol = 'admin' and estado = 'activa' order by creado_en limit 1;
+  if adm is null then raise exception 'FALLO 242 · no hay administrador para la prueba'; end if;
+  -- El alta sube un documento y busca su empresa.
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  insert into documentos (tipo, usuario_id, storage_ruta, nombre_archivo) values ('dni', u, 'u/' || u || '/a/dni.jpg', 'dni.jpg');
+  perform buscar_empresa_de_mi_alta('ZZ24200000');
+  -- Ella misma no se borra, ni borra a nadie.
+  ok := false;
+  begin perform borrar_alta_pendiente(u); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 242 · quien tiene el alta pendiente borra altas'; end if;
+  reset role;
+  -- Un cliente activo tampoco.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  ok := false;
+  begin perform borrar_alta_pendiente(u); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 242 · un cliente borra altas'; end if;
+  reset role;
+  -- El administrador: no puede borrar una cuenta activa…
+  perform set_config('request.jwt.claim.sub', adm::text, false);
+  set local role authenticated;
+  ok := false;
+  begin perform borrar_alta_pendiente(current_setting('prueba.u_cli')::uuid); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 242 · se borra una cuenta ya activa'; end if;
+  -- … y sí el alta pendiente, con todo lo suyo.
+  r := borrar_alta_pendiente(u);
+  reset role;
+  if r ->> 'email' <> 'alta242@prueba.es' or jsonb_array_length(r -> 'rutas') <> 1 then raise exception 'FALLO 242 · no devuelve el email y los ficheros del alta: %', r; end if;
+  if exists (select 1 from usuarios where id = u) or exists (select 1 from auth.users where id = u)
+     or exists (select 1 from documentos where usuario_id = u) or exists (select 1 from alta_busquedas_cif where usuario_id = u) then
+    raise exception 'FALLO 242 · quedan restos del alta borrada';
+  end if;
+  if not exists (select 1 from auditoria where tabla = 'usuarios' and registro_id = u::text and accion = 'baja' and quien = adm and cambios ->> 'email' = 'alta242@prueba.es') then
+    raise exception 'FALLO 242 · el borrado del alta no queda en la auditoría con su autor';
+  end if;
+  if not exists (select 1 from usuarios where id = current_setting('prueba.u_cli')::uuid) then raise exception 'FALLO 242 · ha desaparecido la cuenta activa'; end if;
+  -- El email queda libre: se puede registrar otra vez.
+  insert into auth.users (email, raw_user_meta_data) values ('alta242@prueba.es', '{"nombre":"Otra vez"}');
+  if (select estado from usuarios where email = 'alta242@prueba.es') <> 'pendiente_verificacion' then raise exception 'FALLO 242 · el email no queda libre para registrarse de nuevo'; end if;
+  if has_function_privilege('anon', 'public.borrar_alta_pendiente(uuid)', 'execute') then raise exception 'FALLO 242 · borrar altas se puede llamar sin sesión'; end if;
+  raise notice 'OK 242 · borrar un alta pendiente: solo el administrador, solo si sigue pendiente; se van sus documentos y el email queda libre';
+end $$;
+reset role;
+
+-- ---- 243. Al confirmar un alta sale el email «tu cuenta ya está activa» con el enlace ------
+reset role;
+insert into auth.users (email, raw_user_meta_data) values ('alta243@prueba.es', '{"nombre":"Marta Doscientos Cuarenta y Tres"}');
+do $$ declare u uuid; c uuid; v_cuerpo text; n int; begin
+  select id into u from usuarios where email = 'alta243@prueba.es';
+  select id into c from clientes order by creado_en limit 1;
+  if exists (select 1 from emails_enviados where clave = 'cuenta_activada:' || u) then raise exception 'FALLO 243 · el email de cuenta activa sale antes de confirmar el alta'; end if;
+  update usuarios set cliente_id = c, estado = 'activa' where id = u;
+  select cuerpo_html into v_cuerpo from emails_enviados
+   where clave = 'cuenta_activada:' || u and tipo = 'cuenta_activada' and destinatario = 'alta243@prueba.es';
+  if v_cuerpo is null then raise exception 'FALLO 243 · confirmar el alta no deja el email al usuario'; end if;
+  if v_cuerpo not like '%/panel/entrar%' or v_cuerpo not like '%Hola Marta:%' or v_cuerpo not like '%alta243@prueba.es%'
+     or v_cuerpo not like '%' || escapar_html((select razon_social from clientes where id = c)) || '%' then
+    raise exception 'FALLO 243 · al email de cuenta activa le falta el enlace para entrar, el nombre, el email o la empresa: %', v_cuerpo;
+  end if;
+  -- Suspender y reactivar después no lo repite.
+  update usuarios set estado = 'suspendida' where id = u;
+  update usuarios set estado = 'activa' where id = u;
+  select count(*) into n from emails_enviados where tipo = 'cuenta_activada' and destinatario = 'alta243@prueba.es';
+  if n <> 1 then raise exception 'FALLO 243 · el email de cuenta activa se repite (%)', n; end if;
+  raise notice 'OK 243 · confirmar un alta encola el email «tu cuenta ya está activa» con el enlace para entrar, una sola vez';
+end $$;
+reset role;

@@ -8,7 +8,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { confirmarAlta, suspenderAlta } from '@/app/panel/(app)/altas/acciones';
+import { confirmarAlta, suspenderAlta, borrarAlta } from '@/app/panel/(app)/altas/acciones';
 import Buscador from './Buscador';
 import { FichaCliente, type Bienvenida } from './Clientes';
 import { CONTACTO_VACIO } from '@/lib/contactos';
@@ -199,6 +199,7 @@ function FichaAlta({ a, clientes, paraCliente, onCerrar, onHecho }: { a: AltaFil
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [preguntaSuspender, setPreguntaSuspender] = useState(false);
+  const [preguntaBorrar, setPreguntaBorrar] = useState(false);
   const fila = (k: string, v: React.ReactNode) => <div className="pen-sum-row"><span className="k">{k}</span><span className="v">{v || '—'}</span></div>;
 
   async function confirmar() {
@@ -214,6 +215,28 @@ function FichaAlta({ a, clientes, paraCliente, onCerrar, onHecho }: { a: AltaFil
     setTrabajando(null);
     if (!r.ok) { setError(r.error); setPreguntaSuspender(false); return; }
     onHecho();
+  }
+
+  async function borrar() {
+    setTrabajando('Borrando el alta');
+    const r = await borrarAlta(a.id);
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); setPreguntaBorrar(false); return; }
+    onHecho();
+  }
+
+  if (preguntaBorrar) {
+    return (
+      <Modal abierto titulo={`Borrar el alta de ${a.email}`} sub="No se puede deshacer" icono={<IcoUsuario />} onCerrar={() => setPreguntaBorrar(false)}
+        pie={<>
+          <button className="btn-ghost" onClick={() => setPreguntaBorrar(false)}>No, volver</button>
+          <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={borrar} disabled={!!trabajando}>Sí, borrar el alta</button>
+        </>}>
+        <p style={{ fontSize: 'var(--fs-l)', color: 'var(--gray-700)' }}>Se borra <strong>del todo</strong>: su usuario, sus datos y los documentos que subió para el alta. <strong>El email queda libre</strong> y puede volver a registrarse cuando quiera.</p>
+        <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>Úsalo para pruebas, registros repetidos o con el email equivocado. Si lo que quieres es que esa persona <strong>no pueda volver a pedir acceso</strong>, usa «Suspender».</p>
+        {trabajando && <Cargando texto={trabajando} />}
+      </Modal>
+    );
   }
 
   if (preguntaSuspender) {
@@ -233,6 +256,7 @@ function FichaAlta({ a, clientes, paraCliente, onCerrar, onHecho }: { a: AltaFil
     <Modal abierto titulo={`Verificar alta de cliente — ${a.email}`} sub={`Solicitada el ${fechaHora(a.solicitada_en)}`} icono={<IcoUsuario />} onCerrar={onCerrar} ancho={720}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cerrar</button>
+        <button className="btn-ghost" style={{ color: 'var(--red)' }} onClick={() => { setError(null); setPreguntaBorrar(true); }} disabled={!!trabajando}>Borrar alta</button>
         <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setPreguntaSuspender(true)} disabled={!!trabajando}>Suspender</button>
         <button className="btn-primary" onClick={confirmar} disabled={!!trabajando || !clienteId}>Confirmar alta</button>
       </>}>
@@ -262,7 +286,7 @@ function FichaAlta({ a, clientes, paraCliente, onCerrar, onHecho }: { a: AltaFil
           placeholder="Busca el cliente por nombre o CIF…" vacio="Ningún cliente coincide con eso."
           extra={{ texto: '+ Crear nuevo cliente', onClick: () => { setError(null); setCrearAbierto(true); } }} />
       </div>
-      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Al confirmar, la cuenta queda <strong>activa</strong> y ya puede entrar. Las condiciones del cliente (plazo de pago, crédito, factor…) se completan en <strong>Clientes</strong>.</p>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Al confirmar, la cuenta queda <strong>activa</strong>, ya puede entrar y <strong>le llega un email</strong> con el enlace para hacerlo. Las condiciones del cliente (plazo de pago, crédito, factor…) se completan en <strong>Clientes</strong>.</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
 

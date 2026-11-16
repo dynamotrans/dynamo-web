@@ -3,6 +3,7 @@
 import { mensajeError } from '@/lib/mensajeError';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { supabaseServicio } from '@/lib/supabase/servicio';
 
 export type NuevaEmpresa = { razon_social: string; cif: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string };
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
@@ -48,4 +49,23 @@ export async function suspenderAlta(usuario: string): Promise<Res> {
   if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona altas.' };
   const { error } = await sb.from('usuarios').update({ estado: 'suspendida' }).eq('id', usuario);
   return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
+}
+
+// Borrar del todo un alta que sigue pendiente (usuario, 2026-11-16): una prueba, alguien que
+// se registró dos veces o con el email equivocado. Se va su usuario de acceso, su perfil y
+// lo que subió para el alta, y el email queda libre para registrarse otra vez. Solo el
+// administrador y solo si la cuenta nunca se activó: lo impone la base de datos
+// (borrar_alta_pendiente). Los ficheros se quitan del almacén si hay clave de servicio; si
+// no, los recoge la limpieza de archivos sueltos de Mantenimiento.
+export async function borrarAlta(usuario: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/altas/acciones#borrarAlta", [usuario]);
+  const sb = await dynamo();
+  if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona altas.' };
+  const { data, error } = await sb.rpc('borrar_alta_pendiente', { p_usuario: usuario });
+  if (error) return { ok: false, error: mensajeError(error.message) };
+  const rutas = ((data as { rutas?: unknown } | null)?.rutas ?? []) as string[];
+  if (Array.isArray(rutas) && rutas.length) {
+    try { await supabaseServicio()?.storage.from('documentos').remove(rutas); } catch { /* los recoge Mantenimiento */ }
+  }
+  return { ok: true };
 }
