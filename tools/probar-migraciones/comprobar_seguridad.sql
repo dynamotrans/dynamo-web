@@ -10479,3 +10479,59 @@ update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio'
 update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
 update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
 reset role;
+
+-- ---- 251. Con ventana de carga, la oferta sigue hasta el cierre del ÚLTIMO día -------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = '0'::jsonb  where clave = 'difusion_hora_inicio';
+update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
+update parametros set valor = 'false'::jsonb where clave = 'bolsa_primero';
+do $$ declare e uuid; s uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; begin
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;   -- el lunes de dentro de dos semanas
+  insert into sitios (nombre_empresa, cliente_id) values ('Almacen 251', current_setting('prueba.cliente')::uuid) returning id into s;
+  delete from sitio_horarios where sitio_id = s;
+  insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values (s, 1, '08:00', '18:00'), (s, 2, '08:00', '18:00'), (s, 3, '08:00', '15:00');
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, lun, lun + 2) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', s, '19001', 'Guadalajara', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '16001', 'Cuenca', 'ES');
+  update envios set estado = 'programado' where id = e;
+  -- La función sola: lunes a miércoles → miércoles 15:00; lunes a jueves (jueves no abre) → miércoles 15:00;
+  -- sin ventana → lunes 18:00; hora a mano → esa hora del último día; sin horario ningún día → último día 18:00.
+  if (fn_difusion_limite(e, lun, lun + 2, null) at time zone 'Europe/Madrid') <> lun + 2 + time '15:00' then raise exception 'FALLO 251 · con ventana de lunes a miércoles el límite no es el cierre del miércoles'; end if;
+  if (fn_difusion_limite(e, lun, lun + 3, null) at time zone 'Europe/Madrid') <> lun + 2 + time '15:00' then raise exception 'FALLO 251 · si el último día no abre, el límite debía ser el último día que abre'; end if;
+  if (fn_difusion_limite(e, lun, null, null) at time zone 'Europe/Madrid') <> lun + time '18:00' then raise exception 'FALLO 251 · sin ventana el límite no es el cierre de ese día'; end if;
+  if (fn_difusion_limite(e, lun, lun + 2, '11:00') at time zone 'Europe/Madrid') <> lun + 2 + time '11:00' then raise exception 'FALLO 251 · la hora a mano no cae en el último día de la ventana'; end if;
+  if (fn_difusion_limite(e, lun + 5, lun + 6, null) at time zone 'Europe/Madrid') <> lun + 6 + time '18:00' then raise exception 'FALLO 251 · sin horario en toda la ventana no se usa el último día a la hora por defecto'; end if;
+  perform set_config('prueba.e251', e::text, false);
+  perform set_config('prueba.l251', lun::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := iniciar_difusion(current_setting('prueba.e251')::uuid, 500);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 251 · no se lanza: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e251')::uuid; lun date := current_setting('prueba.l251')::date; d record; begin
+  select * into d from difusiones where envio_id = e and estado = 'activa';
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> lun + 2 + time '15:00' or d.corte_en <> d.carga_prevista_en then
+    raise exception 'FALLO 251 · la oferta lanzada no corre hasta el cierre del último día: %', d.carga_prevista_en at time zone 'Europe/Madrid';
+  end if;
+  -- El arranque sigue contando desde el PRIMER día (3 días antes del lunes).
+  if (d.empieza_en at time zone 'Europe/Madrid')::date <> lun - 3 then raise exception 'FALLO 251 · el arranque no cuenta desde el primer día de la ventana: %', d.empieza_en at time zone 'Europe/Madrid'; end if;
+  -- Acortar solo el final de la ventana (lunes a martes) recoloca el límite.
+  update envios set fecha_carga_hasta = lun + 1 where id = e;
+  select * into d from difusiones where envio_id = e order by creado_en desc limit 1;
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> lun + 1 + time '18:00' then
+    raise exception 'FALLO 251 · al cambiar solo el final de la ventana el límite no se recoloca: %', d.carga_prevista_en at time zone 'Europe/Madrid';
+  end if;
+  raise notice 'OK 251 · con ventana de carga la oferta sigue hasta el cierre del último día que abre el sitio; el arranque cuenta desde el primero';
+end $$;
+update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio';
+update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
+update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
+reset role;
