@@ -10407,3 +10407,75 @@ do $$ declare m int; l int; v_ok uuid; v_inv uuid; v_src text; begin
   raise notice 'OK 249 · oferta desde 3 días antes, sin corte, 10/5 por minuto y 8 cada 3 min; la cola manda 100 por pasada y omite las direcciones .invalid';
 end $$;
 reset role;
+
+-- ---- 250. La oferta escalonada sigue hasta el CIERRE del primer sitio de carga -------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = '0'::jsonb  where clave = 'difusion_hora_inicio';
+update parametros set valor = '24'::jsonb where clave = 'difusion_hora_fin';
+update parametros set valor = 'false'::jsonb where clave = 'bolsa_primero';
+do $$ declare e uuid; e2 uuid; s uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; f date; f2 date; begin
+  -- Un día laborable a más de 3 días (así la oferta nace dormida y no manda nada): el lunes de dentro de dos semanas.
+  f := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  -- Un sitio que ese día abre de 08:00 a 14:00 y de 15:30 a 19:30.
+  insert into sitios (nombre_empresa, cliente_id) values ('Almacen 250', current_setting('prueba.cliente')::uuid) returning id into s;
+  delete from sitio_horarios where sitio_id = s;
+  insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values (s, 1, '08:00', '14:00'), (s, 1, '15:30', '19:30'), (s, 2, '08:00', '13:00');
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, f) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', s, '19001', 'Guadalajara', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '16001', 'Cuenca', 'ES');
+  update envios set estado = 'programado' where id = e;
+  if fn_difusion_hora_limite(e, f) <> time '19:30' then raise exception 'FALLO 250 · la hora límite no es el cierre del sitio de carga: %', fn_difusion_hora_limite(e, f); end if;
+  if fn_difusion_hora_limite(e, f + 2) <> time '18:00' then raise exception 'FALLO 250 · sin horario ese día no se usa la hora por defecto (18:00): %', fn_difusion_hora_limite(e, f + 2); end if;
+  perform set_config('prueba.e250', e::text, false);
+  perform set_config('prueba.f250', f::text, false);
+  -- Otro igual, para la hora indicada a mano.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, f) returning id into e2;
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
+    values (e2, 1, 'carga', s, '19001', 'Guadalajara', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e2, 2, 'descarga', '16001', 'Cuenca', 'ES');
+  update envios set estado = 'programado' where id = e2;
+  perform set_config('prueba.e250b', e2::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := iniciar_difusion(current_setting('prueba.e250')::uuid, 500);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 250 · no se lanza: %', r; end if;
+  r := iniciar_difusion(current_setting('prueba.e250b')::uuid, 500, 10::smallint, true, '11:00'::time);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 250 · no se lanza la de hora a mano: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e250')::uuid; e2 uuid := current_setting('prueba.e250b')::uuid; f date := current_setting('prueba.f250')::date; d record; begin
+  select * into d from difusiones where envio_id = e and estado = 'activa';
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> (f + time '19:30') or d.corte_en <> d.carga_prevista_en or d.hora_manual is not null then
+    raise exception 'FALLO 250 · la oferta no corre hasta el cierre del sitio (19:30): % · corte %', d.carga_prevista_en at time zone 'Europe/Madrid', d.corte_en at time zone 'Europe/Madrid';
+  end if;
+  -- Al mover la fecha al martes (cierra a las 13:00), la hora límite sigue al sitio.
+  update envios set fecha_carga_desde = f + 1 where id = e;
+  select * into d from difusiones where envio_id = e order by creado_en desc limit 1;
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> (f + 1 + time '13:00') then
+    raise exception 'FALLO 250 · al mover la fecha no toma el cierre del nuevo día: %', d.carga_prevista_en at time zone 'Europe/Madrid';
+  end if;
+  -- La hora indicada a mano manda, también al mover la fecha.
+  select * into d from difusiones where envio_id = e2 and estado = 'activa';
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> (f + time '11:00') or d.hora_manual <> time '11:00' then
+    raise exception 'FALLO 250 · la hora indicada por Dynamo no manda: %', d.carga_prevista_en at time zone 'Europe/Madrid';
+  end if;
+  update envios set fecha_carga_desde = f + 1 where id = e2;
+  select * into d from difusiones where envio_id = e2 order by creado_en desc limit 1;
+  if (d.carga_prevista_en at time zone 'Europe/Madrid') <> (f + 1 + time '11:00') then
+    raise exception 'FALLO 250 · al mover la fecha se pierde la hora indicada por Dynamo: %', d.carga_prevista_en at time zone 'Europe/Madrid';
+  end if;
+  raise notice 'OK 250 · la oferta escalonada sigue hasta el cierre del primer sitio de carga (o la hora que indique Dynamo), también al mover la fecha';
+end $$;
+update parametros set valor = '5.5'::jsonb  where clave = 'difusion_hora_inicio';
+update parametros set valor = '23.5'::jsonb where clave = 'difusion_hora_fin';
+update parametros set valor = 'true'::jsonb where clave = 'bolsa_primero';
+reset role;

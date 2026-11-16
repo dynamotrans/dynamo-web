@@ -38,7 +38,7 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
   // pone Dynamo aquí; sin ponerla, se asumen las 8:00).
   const dif = ficha.difusion;
   const [difMsg, setDifMsg] = useState<string | null>(null);
-  const [horaCarga, setHoraCarga] = useState('08:00');
+  const [horaCarga, setHoraCarga] = useState('');   // vacío = hasta el cierre del sitio de carga
   const [pideForzar, setPideForzar] = useState<string | null>(null);
   const fmtTs = (x: string | null) => x ? new Date(x).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }) : null;
   const pv = aNum(precio);
@@ -59,7 +59,7 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
     setError(null); setDifMsg(null); setPideForzar(null);
     if (pv == null || Number.isNaN(pv) || pv <= 0) { setError('Pon el precio que se ofrece al transportista.'); return; }
     setTrabajando(true);
-    const r = await iniciarDifusion(e.id, { precio: pv, banda_pct: banda, pronto_pago: pronto, hora_carga: e.fecha_carga_desde ? horaCarga : null, forzar });
+    const r = await iniciarDifusion(e.id, { precio: pv, banda_pct: banda, pronto_pago: pronto, hora_carga: e.fecha_carga_desde && horaCarga ? horaCarga : null, forzar });
     setTrabajando(false);
     if (!r.ok) {
       if (r.dentroCorte) { setPideForzar(r.error); return; }
@@ -176,8 +176,9 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
             )}
             {e.fecha_carga_desde && (
               <div style={{ marginBottom: '0.5rem' }}>
-                <label htmlFor="of-hora-carga">Hora prevista de la carga (para el ritmo de los emails y su final)</label>
+                <label htmlFor="of-hora-carga">Hora límite de los emails <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
                 <input id="of-hora-carga" type="time" value={horaCarga} onChange={(ev) => setHoraCarga(ev.target.value)} style={{ maxWidth: 140 }} />
+                <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.2rem' }}>Si la dejas vacía, los emails siguen hasta que <strong>cierra el sitio de carga</strong> ese día. Pon una hora solo si hay que tener el camión antes (una cita, por ejemplo).</div>
               </div>
             )}
             {pideForzar ? (

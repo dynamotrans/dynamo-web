@@ -938,6 +938,7 @@ export type Database = {
           carga_prevista_en: string | null
           corte_en: string | null
           ultimo_recordatorio: string | null
+          hora_manual: string | null
         }
         Insert: {
           id?: string
@@ -960,6 +961,7 @@ export type Database = {
           carga_prevista_en?: string | null
           corte_en?: string | null
           ultimo_recordatorio?: string | null
+          hora_manual?: string | null
         }
         Update: {
           id?: string
@@ -982,6 +984,7 @@ export type Database = {
           carga_prevista_en?: string | null
           corte_en?: string | null
           ultimo_recordatorio?: string | null
+          hora_manual?: string | null
         }
         Relationships: [
           {
@@ -3742,6 +3745,7 @@ export type Database = {
       fn_difusion_avisa_bolsa: { Args: { p_envio: string | null }; Returns: undefined }
       fn_difusion_bolsa: { Args: { p_envio: string | null }; Returns: Json }
       fn_difusion_cadencia: { Args: { p_horas: number | null }; Returns: { minutos: number; lote: number } }
+      fn_difusion_hora_limite: { Args: { p_envio: string | null; p_fecha: string | null }; Returns: string }
       fn_difusion_paso: { Args: { p_difusion: string | null }; Returns: undefined }
       fn_difusion_recordatorios: { Args: Record<PropertyKey, never>; Returns: undefined }
       fn_modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }

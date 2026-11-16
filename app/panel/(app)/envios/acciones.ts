@@ -274,7 +274,7 @@ export async function iniciarDifusion(envio: string, o: { precio: number; banda_
   const d = data as { resultado?: string; empieza?: string | null; corte?: string | null; carga_prevista?: string; horas_corte?: number } | null;
   const r = d?.resultado;
   if (r === 'dentro_del_corte') {
-    return { ok: false, dentroCorte: true, error: `Quedan menos de ${d?.horas_corte ?? 3} horas para la carga (prevista el ${d?.carga_prevista ?? '—'}): esto ya es de teléfono. Puedes lanzarla igualmente con 1 hora de margen.` };
+    return { ok: false, dentroCorte: true, error: `El plazo de la oferta ya ha pasado (el sitio de carga cerraba el ${d?.carga_prevista ?? '—'}): esto ya es de teléfono. Puedes lanzarla igualmente con 1 hora de margen.` };
   }
   if (r !== 'ok') {
     const msg: Record<string, string> = {

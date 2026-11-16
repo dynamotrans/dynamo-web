@@ -11,9 +11,9 @@ export const AYUDA: Record<string, Ayuda> = {
   difusion_dias_antes: { titulo: 'Arranque: días antes de la carga',
     explica: 'Los emails empiezan como pronto estos días antes del primer día de carga. Lanzada antes, la difusión espera dormida y arranca sola cuando toca.',
     ejemplo: (v) => `Con ${v}: una carga del día 20 empieza a ofrecerse el día ${Math.max(1, 20 - Number(v))}.` },
-  difusion_hora_carga_defecto: { titulo: 'Hora de carga por defecto',
-    explica: 'La hora española que se asume como hora de carga cuando no se indica al lanzar la difusión. De ella salen la cadencia y el corte.',
-    ejemplo: (v) => `Con ${v}: sin hora indicada, se asume que se carga a las ${v}:00.` },
+  difusion_hora_carga_defecto: { titulo: 'Hora límite por defecto',
+    explica: 'Los emails siguen hasta que cierra el primer sitio de carga ese día (o hasta la hora que indiques al lanzar). Esta hora solo se usa cuando el sitio no tiene horario ese día.',
+    ejemplo: (v) => `Con ${v}: si el sitio no tiene horario ese día, los emails siguen hasta las ${v}:00.` },
   difusion_horas_corte: { titulo: 'Corte: horas antes de la carga',
     explica: 'Estas horas antes de la hora de carga dejan de salir emails y la oferta se cierra con aviso a Dynamo. Con 0 no hay corte: siguen saliendo hasta la hora de carga.',
     ejemplo: (v) => (Number(v) <= 0 ? 'Con 0: carga a las 8:00 → los emails siguen hasta las 8:00.'
