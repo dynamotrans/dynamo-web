@@ -42,6 +42,10 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     ]);
     const e = emp.data;
     if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a {CONTACTO.email}.</div></div></section>;
+    // Su almacén principal (la estrella de Sitios): entra solo como primera recogida, igual
+    // que cuando el envío lo crea Dynamo. Faltaba aquí (usuario, 2026-11-16): mi_empresa no
+    // lo trae, así que el cliente veía la recogida vacía aunque tuviera la estrella puesta.
+    const { data: prin } = await supabase.rpc('sitio_principal', { p_cliente: e.id });
     let base: Base | null = null;
     if (sp.repetir && /^[0-9a-f-]{36}$/i.test(sp.repetir)) {
       const { data: r } = await supabase.rpc('mis_envios').eq('id', sp.repetir).maybeSingle();
@@ -54,7 +58,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
-    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
+    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, principal_id: (prin as string | null) ?? null, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
       operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))}
