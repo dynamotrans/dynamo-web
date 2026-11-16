@@ -10258,3 +10258,20 @@ do $$ declare v_viejo uuid; v_nuevo uuid; begin
   raise notice 'OK 246 · un email que lleva más de 24 horas pendiente ya no se manda: queda omitido con su motivo';
 end $$;
 reset role;
+
+-- ---- 247. La cola de emails: cada minuto, sin repetir y sin adelantarse al servidor web -----
+reset role;
+do $$ declare v_src text; begin
+  select prosrc into v_src from pg_proc where oid = 'public.enviar_emails_pendientes()'::regprocedure;
+  if v_src not like '%for update skip locked%' then raise exception 'FALLO 247 · dos pasadas a la vez podrían mandar el mismo email (falta skip locked)'; end if;
+  if v_src not like '%15 seconds%' then raise exception 'FALLO 247 · la cola podría adelantarse al servidor web (falta el margen de 15 segundos)'; end if;
+  if v_src not like '%24 hours%' then raise exception 'FALLO 247 · se ha perdido la caducidad de 24 horas'; end if;
+  if has_function_privilege('authenticated', 'public.enviar_emails_pendientes()', 'execute') then raise exception 'FALLO 247 · cualquiera con sesión puede lanzar la cola de emails'; end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if not exists (select 1 from cron.job where jobname = 'dynamo-emails-enviar' and schedule = '* * * * *') then
+      raise exception 'FALLO 247 · falta la tarea que manda la cola cada minuto';
+    end if;
+  end if;
+  raise notice 'OK 247 · la cola de emails sale cada minuto, sin repetir entre pasadas y con 15 s de margen para el servidor web';
+end $$;
+reset role;
