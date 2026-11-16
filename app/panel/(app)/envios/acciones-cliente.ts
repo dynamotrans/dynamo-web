@@ -44,21 +44,21 @@ export async function marcarMiEnvioManual(envio: string, estado: string): Promis
   return error ? { ok: false, error: limpio(error.message) } : { ok: true, aviso: 'Estado actualizado.' };
 }
 
-// El cliente pide un cambio en su envío confirmado. Sin camión y solo fechas: al momento.
-// Sin camión y algo más (ruta, mercancía…): pendiente para Dynamo. Con camión: no, a llamar.
+// El cliente modifica su envío confirmado. Se puede mientras no tenga transportista (asignado
+// o aceptándolo ahora): con transportista, a llamar. Solo fechas y con tiempo: al momento.
+// Algo más (ruta, mercancía…) o pasada la hora límite de cancelar: pendiente para Dynamo.
 export async function pedirCambio(envio: string, desde: string, hasta: string, detalle: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones-cliente#pedirCambio", [envio, desde, hasta, detalle]);
   const s = await soloCliente();
   if (!s) return { ok: false, error: 'Solo el cliente pide cambios en su envío.' };
   const { data, error } = await s.supabase.rpc('pedir_cambio_envio', { p_envio: envio, p_desde: desde || null, p_hasta: hasta || null, p_detalle: detalle.trim() || null });
   if (error) return { ok: false, error: limpio(error.message) };
-  const x = data as { resultado: string; primera_fecha?: string; dias?: number };
+  const x = data as { resultado: string; primera_fecha?: string; dias?: number; tarde?: boolean };
   const r = x.resultado;
   const ERR: Record<string, string> = {
     envio_manual: 'Es un envío con tu propio transportista: cámbialo tú directamente.',
     no_modificable: `El envío ya está en marcha: para cambiar algo, llámanos al ${CONTACTO.telefono}.`,
-    con_camion: `Tu envío ya tiene camión o lo estamos asignando: no se puede modificar desde aquí. Llámanos URGENTE al ${CONTACTO.telefono}.`,
-    fuera_de_plazo: `Falta muy poco para la carga: para cambiar algo, llámanos URGENTE al ${CONTACTO.telefono}.`,
+    con_camion: `Tu envío ya tiene transportista asignado: no se puede modificar desde aquí. Llámanos al ${CONTACTO.telefono}.`,
     ya_pendiente: 'Ya tienes un cambio pendiente en este envío: espera a que te contestemos.',
     fechas_no_validas: 'Revisa la fecha: como mucho a 6 meses vista.',
     dia_no_habil: 'Ese día no se carga: elige un día de lunes a viernes que no sea festivo.',
@@ -66,7 +66,9 @@ export async function pedirCambio(envio: string, desde: string, hasta: string, d
     ventana_distinta: `Se mantiene el tipo de fecha que elegiste (${x.dias === 1 ? 'fecha fija' : `ventana de ${x.dias} días hábiles`}): elige solo el primer día.`,
     sin_cambios: 'No has cambiado nada.', detalle_largo: 'El texto es demasiado largo (máximo 1.000 caracteres).',
   };
-  if (r === 'aplicado') return { ok: true, aviso: 'Fechas cambiadas. Como aún no tiene camión, el cambio es inmediato y sin coste.' };
-  if (r === 'pendiente') return { ok: true, aviso: 'Hemos recibido tu cambio. Lo revisamos y te contestamos aquí.' };
+  if (r === 'aplicado') return { ok: true, aviso: 'Fechas cambiadas. Como aún no tiene transportista, el cambio es inmediato y sin coste.' };
+  if (r === 'pendiente') return { ok: true, aviso: x.tarde
+    ? 'Hemos recibido tu cambio. Falta poco para la carga, así que lo revisamos nosotros antes de aplicarlo y te contestamos aquí.'
+    : 'Hemos recibido tu cambio. Lo revisamos y te contestamos aquí.' };
   return { ok: false, error: ERR[r] ?? r };
 }

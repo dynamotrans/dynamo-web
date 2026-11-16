@@ -4069,18 +4069,27 @@ do $$ declare e uuid; f uuid; g uuid; h uuid; i uuid; j uuid; rv uuid; begin
   perform set_config('prueba.toki117', (select token_publico::text from envios where id = i), false);
   perform set_config('prueba.tokj117', (select token_publico::text from envios where id = j), false);
 end $$;
--- Cambios del cliente: publicado en bolsa = se está asignando; pasado el corte, tampoco.
+-- Cambios del cliente (regla del 2026-11-16): la única barrera es el transportista. Publicado
+-- en bolsa se puede (y Dynamo se entera); pasado el corte no se aplica solo: queda pendiente.
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ begin
-  if (pedir_cambio_envio(current_setting('prueba.e117')::uuid, sumar_dias_habiles(current_date, 10)))->>'resultado' <> 'con_camion' then
-    raise exception 'FALLO 117 · el cliente cambia las fechas de una carga que ya se está asignando (publicada en bolsa)';
+do $$ declare r jsonb; begin
+  if (pedir_cambio_envio(current_setting('prueba.e117')::uuid, sumar_dias_habiles(current_date, 10)))->>'resultado' <> 'aplicado' then
+    raise exception 'FALLO 117 · sin transportista, el cliente no puede cambiar las fechas de un envío publicado en bolsa';
   end if;
-  if (pedir_cambio_envio(current_setting('prueba.f117')::uuid, sumar_dias_habiles(current_date, 100)))->>'resultado' <> 'fuera_de_plazo' then
-    raise exception 'FALLO 117 · el cliente aleja la carga pasado el corte (y así cancelaría tarde sin que cuente)';
+  -- Con un transportista aceptándolo ahora (contraoferta pendiente), hay que llamar.
+  if (pedir_cambio_envio(current_setting('prueba.g117')::uuid, sumar_dias_habiles(current_date, 10)))->>'resultado' <> 'con_camion' then
+    raise exception 'FALLO 117 · el cliente cambia las fechas con un transportista aceptando el envío';
   end if;
-  if not (select con_camion from mi_cambio_envio(current_setting('prueba.f117')::uuid)) then
-    raise exception 'FALLO 117 · la ficha no manda a llamar pasado el corte';
+  if not (select con_camion from mi_cambio_envio(current_setting('prueba.g117')::uuid)) then
+    raise exception 'FALLO 117 · la ficha no manda a llamar con un transportista aceptando el envío';
+  end if;
+  r := pedir_cambio_envio(current_setting('prueba.f117')::uuid, sumar_dias_habiles(current_date, 100));
+  if r->>'resultado' <> 'pendiente' or not (r->>'tarde')::boolean then
+    raise exception 'FALLO 117 · el cliente aleja la carga pasado el corte y se aplica solo (así cancelaría tarde sin que cuente): %', r;
+  end if;
+  if (select con_camion from mi_cambio_envio(current_setting('prueba.f117')::uuid)) then
+    raise exception 'FALLO 117 · la ficha manda a llamar pasado el corte aunque no hay transportista';
   end if;
   -- Copias de avisos: no las cambia el dueño de la cuenta.
   begin
@@ -4091,6 +4100,18 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  -- Estaba en la bolsa: Dynamo recibe el aviso para actualizarlo allí.
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'cambio_fechas' and envio_id = current_setting('prueba.e117')::uuid
+                    and texto like '%publicado en la bolsa%') then
+    raise exception 'FALLO 117 · el cliente cambia las fechas de un envío en la bolsa y Dynamo no se entera';
+  end if;
+  -- Pasado el corte no se ha movido nada: sigue cargando hoy, con el cambio pendiente.
+  if (select fecha_carga_desde from envios where id = current_setting('prueba.f117')::uuid) <> current_date
+     or (select estado_cambio_cliente from envios where id = current_setting('prueba.f117')::uuid) <> 'pendiente' then
+    raise exception 'FALLO 117 · pasado el corte, el cambio de fechas se aplica sin que lo revise Dynamo';
+  end if;
+end $$;
 -- Cancelar el envío rechaza las contraofertas pendientes.
 update envios set estado = 'cancelado' where id = current_setting('prueba.g117')::uuid;
 do $$ begin
@@ -4121,7 +4142,7 @@ do $$ declare r jsonb; v jsonb; k int; begin
   if jsonb_array_length(otras_cargas_publicas(current_setting('prueba.tokj117')::uuid)) <> 0 then
     raise exception 'FALLO 117 · el tablón sigue funcionando con un enlace antiguo';
   end if;
-  raise notice 'OK 117 · revisión de seguridad: cambios con la carga asignándose o fuera de plazo, contraofertas al cancelar, topes del alta online, tablón y datos de la cuenta';
+  raise notice 'OK 117 · revisión de seguridad: cambios solo sin transportista (en bolsa, con aviso a Dynamo; fuera de plazo, pendientes), contraofertas al cancelar, topes del alta online, tablón y datos de la cuenta';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

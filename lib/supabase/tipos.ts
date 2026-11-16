@@ -3721,6 +3721,7 @@ export type Database = {
       entrega_estimada_sugerida: { Args: { p_envio: string | null; p_dia: string | null }; Returns: string }
       enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
+      envio_con_transportista: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_cliente: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
       envio_detalle_html: { Args: { p_envio: string | null }; Returns: string }

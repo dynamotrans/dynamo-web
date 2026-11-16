@@ -3,9 +3,10 @@
 // Cambios en un envío ya confirmado.
 //  · AvisoCambiosDynamo: en la ficha de Dynamo, «revisar precio» tras cambiar la ruta y el
 //    cambio que ha pedido el cliente (aceptar / rechazar con nota).
-//  · PedirCambio: en la ficha del cliente, el botón y el formulario para pedirlo (solo sin
-//    camión asignado). Con camión, o con el envío en marcha: «Necesito cambiar algo» abre
-//    LlamarCambio, la ventana que le pide que nos llame urgente.
+//  · PedirCambio: en la ficha del cliente, el formulario para modificarlo. Lo abre el botón
+//    «Modificar envío» de arriba (usuario, 2026-11-16) mientras el envío no tenga
+//    transportista. Con transportista, o con el envío en marcha, ese mismo botón abre
+//    LlamarCambio, la ventana con teléfono, WhatsApp y email.
 import { useState } from 'react';
 import Modal from './Modal';
 import { CONTACTO } from '@/lib/atencion';
@@ -19,7 +20,7 @@ import Req from '@/components/Req';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean> | Promise<void> | void;
 // El cambio pedido por el cliente (jsonb envios.cambio_cliente).
-type CambioCliente = { fecha_desde?: string | null; fecha_hasta?: string | null; detalle?: string | null; con_camion?: boolean;
+type CambioCliente = { fecha_desde?: string | null; fecha_hasta?: string | null; detalle?: string | null; con_camion?: boolean; tarde?: boolean;
   antes_desde?: string | null; antes_hasta?: string | null };
 type EnvioCambio = { id: string; estado: string; fecha_carga_desde: string | null; fecha_carga_hasta: string | null };
 const fechasTxt = (c: CambioCliente | null | undefined) => c?.fecha_desde ? ventana(c.fecha_desde, c.fecha_hasta) : null;
@@ -44,6 +45,7 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: {
           {fechasTxt(c) && <> nuevas fechas de carga <strong>{fechasTxt(c)}</strong> (ahora {ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}).</>}
           {c.detalle && <div style={{ marginTop: '0.3rem' }}>«{c.detalle}»</div>}
           {c.con_camion && <div style={{ marginTop: '0.3rem', color: '#b42318', fontWeight: 700 }}>Ya tiene camión asignado: confírmalo con el transportista antes de aceptar.</div>}
+          {c.tarde && <div style={{ marginTop: '0.3rem', color: '#b42318', fontWeight: 700 }}>Lo pidió pasada la hora límite para cancelar gratis: si aceptas otras fechas, después podrá cancelar sin coste.</div>}
           <textarea className="campo-texto" rows={3} value={nota} onChange={(ev) => setNota(ev.target.value)} maxLength={500} aria-label="Nota para el cliente (opcional)" placeholder="Nota para el cliente (opcional)" style={{ marginTop: '0.5rem' }} />
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Aceptando', () => resolverCambio(e.id, true, nota))}>Aceptar{fechasTxt(c) ? ' (cambia las fechas)' : ''}</button>
@@ -60,12 +62,24 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: {
   );
 }
 
-export function PedirCambio({ e, cambio, hacer, onLlamar }: {
+// ¿Qué hace «Modificar envío» en este envío del cliente? 'form' abre el formulario, 'llamar'
+// la ventana de contacto (con transportista o en marcha), 'pendiente' lo deja apagado (ya hay
+// un cambio esperando respuesta) y null lo esconde (borrador, entregado, cancelado, manual).
+export function modoModificar(e: { estado: string; es_manual?: boolean | null }, cambio: CambioMio | null): 'form' | 'llamar' | 'pendiente' | null {
+  if (e.es_manual || !cambio) return null;
+  if (enMarcha(e.estado)) return 'llamar';
+  if (!cambio.modificable) return null;
+  if (cambio.con_camion) return 'llamar';
+  return cambio.estado === 'pendiente' ? 'pendiente' : 'form';
+}
+type CambioMio = { estado: string; en: string | null; nota: string | null; modificable: boolean; con_camion: boolean };   // mi_cambio_envio()
+
+export function PedirCambio({ e, cambio, hacer, abierto, onCerrar, tarde }: {
   e: EnvioCambio & { fecha_entrega_estimada: string | null };
-  cambio: { estado: string; en: string | null; nota: string | null; modificable: boolean; con_camion: boolean } | null;   // mi_cambio_envio()
-  hacer: Hacer; onLlamar: () => void;
+  cambio: CambioMio | null;
+  hacer: Hacer; abierto: boolean; onCerrar: () => void;
+  tarde: boolean;   // pasada la hora límite para cancelar gratis: el cambio no se aplica solo
 }) {
-  const [abierto, setAbierto] = useState(false);
   const [desde, setDesde] = useState(e.fecha_carga_desde ?? '');
   const [detalle, setDetalle] = useState('');
   if (!cambio) return null;
@@ -80,27 +94,18 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: {
       Tu último cambio ha sido <strong>{cambio.estado === 'aceptado' ? 'aceptado' : 'rechazado'}</strong>.{cambio.nota ? <> «{cambio.nota}»</> : null}
     </div></div>
   );
-  // Con camión asignado o el envío ya en marcha: no se modifica aquí, hay que llamar.
-  const enCamino = enMarcha(e.estado);
-  if ((cambio.modificable && cambio.con_camion) || enCamino) {
-    return (
-      <>
-        {respuesta}
-        <div style={{ marginBottom: '0.8rem' }}><button className="btn-secondary" onClick={onLlamar}>Necesito cambiar algo</button></div>
-      </>
-    );
-  }
-  if (!cambio.modificable) return respuesta || null;
+  // El formulario solo sale sin transportista y con el envío sin empezar (lo abre el botón
+  // «Modificar envío» de arriba; con transportista ese botón lleva a la ventana de contacto).
+  if (!abierto || modoModificar(e, cambio) !== 'form') return respuesta || null;
   return (
     <>
       {respuesta}
-      {!abierto ? (
-        <div style={{ marginBottom: '0.8rem' }}><button className="btn-secondary" onClick={() => setAbierto(true)}>Pedir un cambio</button></div>
-      ) : (
-        <div className="det-block" style={{ marginBottom: '0.8rem' }}>
-          <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.4rem' }}>Pedir un cambio</div>
-          <div className="pt-aviso" style={{ marginBottom: '0.6rem' }}><div>
-            Aún no tiene camión: si solo cambias las <strong>fechas</strong>, se aplica al momento y sin coste. Si pides otra cosa, lo revisamos (el precio puede cambiar).
+      {
+        <div id="pc-form" className="det-block" style={{ marginBottom: '0.8rem' }}>
+          <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.4rem' }}>Modificar envío</div>
+          <div className="pt-aviso" style={{ marginBottom: '0.6rem' }}><div>{tarde
+            ? <>Aún no tiene transportista, pero <strong>falta poco para la carga</strong>: el cambio lo revisamos nosotros antes de aplicarlo y te contestamos aquí.</>
+            : <>Aún no tiene transportista: si solo cambias las <strong>fechas</strong>, se aplica al momento y sin coste. Si pides otra cosa, lo revisamos (el precio puede cambiar).</>}
           </div></div>
           <div className="ptar-sitio-grid">
             <div><label htmlFor="pc-desde">{fija ? 'Fecha de carga' : 'Primer día de la ventana'}</label><input id="pc-desde" type="date" min={manana} value={desde} onChange={(ev) => setDesde(ev.target.value)} /></div>
@@ -114,18 +119,18 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: {
           </div>
           <div className="meta" style={{ marginTop: '0.3rem' }}>Ahora: {ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}{e.fecha_entrega_estimada ? ` · entrega prevista ${fecha(e.fecha_entrega_estimada)}` : ''}.</div>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={async () => { const r = await hacer('Enviando el cambio', () => pedirCambio(e.id, desde, '', detalle)); if (r !== false) setAbierto(false); }}>Enviar cambio</button>
-            <button className="btn-ghost" onClick={() => setAbierto(false)}>Volver</button>
+            <button className="btn-primary" onClick={async () => { const r = await hacer('Guardando el cambio', () => pedirCambio(e.id, desde, '', detalle)); if (r !== false) onCerrar(); }}>Guardar cambio</button>
+            <button className="btn-ghost" onClick={onCerrar}>Cerrar</button>
           </div>
         </div>
-      )}
+      }
     </>
   );
 }
 
-// Ventana «llámanos»: el envío ya tiene camión, se está asignando, va en marcha o ha pasado
-// la hora límite (9:00 del día hábil anterior), y no se puede modificar desde
-// aquí. Dynamo lo contrasta con el conductor; si no es viable, se cancela y se reasigna camión.
+// Ventana «contáctanos»: el envío ya tiene transportista (o va en marcha) y no se puede
+// modificar desde aquí. Dynamo lo contrasta con el conductor; si no es viable, se cancela
+// y se reasigna camión.
 export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; referencia_cliente: string | null; estado: string; corte?: string | null }; onVolver: () => void }) {
   const ref = `#${e.referencia_gx}`;
   const corte = e.corte ? new Date(e.corte) : null;
@@ -138,11 +143,10 @@ export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; refe
   );
   return (
     <Modal abierto onCerrar={onVolver} titulo={`Cambiar el envío ${ref}`}
-      pie={<button className="btn-ghost" onClick={onVolver}>Volver al envío</button>}>
+      pie={<button className="btn-ghost" onClick={onVolver}>Cerrar</button>}>
       <div className="modal-warn-box">
-        <strong style={{ color: '#b42318' }}>{enMarcha(e.estado) ? 'Tu envío ya está en marcha'
-          : dentro === false ? 'Falta muy poco para la carga' : 'Tu envío ya tiene camión o lo estamos asignando'}: no se puede modificar desde la plataforma.</strong>
-        <div style={{ marginTop: '0.35rem' }}>Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), <strong>llámanos URGENTE</strong>: cuanto antes lo sepamos, más fácil es arreglarlo.</div>
+        <strong style={{ color: '#b42318' }}>{enMarcha(e.estado) ? 'Tu envío ya está en marcha' : 'Tu envío ya tiene transportista asignado'}: no se puede modificar desde la plataforma.</strong>
+        <div style={{ marginTop: '0.35rem' }}>Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), <strong>contáctanos cuanto antes</strong> por teléfono, WhatsApp o email: cuanto antes lo sepamos, más fácil es arreglarlo.</div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.9rem 0' }}>
         {btn(CONTACTO.telHref, 'Llamar ahora', '#dc2626')}
