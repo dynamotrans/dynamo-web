@@ -10870,6 +10870,10 @@ begin
   if r.id is null or r.estado <> 'pendiente' or r.asunto not like 'Has alcanzado el límite%' or position('liquides las facturas pendientes' in r.cuerpo_html) = 0 then
     raise exception 'FALLO 258 · con el límite superado no sale «límite alcanzado»: %', r.asunto;
   end if;
+  -- Y dice lo que pasa de verdad: lo que no quepa se paga por adelantado (ya no «es posible que»).
+  if position('se pagarán por adelantado' in r.cuerpo_html) = 0 or position('es posible que' in r.cuerpo_html) > 0 then
+    raise exception 'FALLO 258 · el email de «límite alcanzado» no dice que lo que no quepa se paga por adelantado';
+  end if;
   if (select estado from emails_enviados where clave like 'credito_aviso:' || cli || ':cerca:%') <> 'omitido' then
     raise exception 'FALLO 258 · el aviso de «cerca» pendiente no se anula al llegar el de «alcanzado»';
   end if;
