@@ -10872,3 +10872,114 @@ begin
   update parametros set valor = 'true'::jsonb where clave = 'credito_emails_activo';
   raise notice 'OK 258 · emails de crédito: concedida, ampliada, reducida y retirada (CESCE o manual), cerca del límite y límite alcanzado, sin importes, sin repetir y apagables';
 end $$;
+
+-- ---- 259. El cliente modifica su envío entero (ruta, mercancía, fechas y precio) mientras no tenga transportista ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
+do $$ declare e uuid; f uuid; g uuid; h uuid; begin
+  -- e: libre y publicado en bolsa · f: con transportista · g: pagado por adelantado · h: carga hoy (pasado el corte)
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 5, 600, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 5)) returning id into e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 5, 600, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 5)) returning id into f;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 5, 600, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 5)) returning id into g;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 5, 600, current_date, current_date) returning id into h;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, nombre_empresa)
+    select x, o, t, cp, p, n from unnest(array[e, f, g, h]) x,
+      (values (1, 'carga', '41001', 'Sevilla', 'Nave Sevilla'), (2, 'descarga', '46001', 'Valencia', 'Nave Valencia')) v(o, t, cp, p, n);
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado' where id in (e, f, g, h);
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = f;
+  update envios set estado_pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = g;
+  update envios set publicado_en_bolsa_en = now() where id = e;
+  perform set_config('prueba.e259', e::text, false); perform set_config('prueba.f259', f::text, false);
+  perform set_config('prueba.g259', g::text, false); perform set_config('prueba.h259', h::text, false);
+  perform set_config('prueba.p259', (select id::text from envio_paradas where envio_id = e and orden = 1), false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; ok boolean; begin
+  -- Ruta nueva (la recogida sigue, la entrega cambia), más metros y precio recalculado; la fecha no se toca.
+  d := jsonb_build_object('importe_cliente', 750, 'fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
+                          'metros_lineales', 8, 'toneladas', 10, 'referencia_cliente', 'PED-259');
+  r := modificar_envio_cliente(e, d, jsonb_build_array(jsonb_build_object('id', current_setting('prueba.p259')),
+         jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Nave Getafe', 'poblacion', 'Getafe', 'codigo_postal', '28901')));
+  if r->>'resultado' <> 'modificado' or (r->>'precio_antes')::numeric <> 600 or (r->>'precio_ahora')::numeric <> 750 then
+    raise exception 'FALLO 259 · el cliente no puede modificar su envío sin transportista: %', r;
+  end if;
+  -- Cambiar la fecha con tiempo: vale, con las reglas de un envío nuevo.
+  d := d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 8), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 9));
+  perform modificar_envio_cliente(e, d, null);
+  -- Una fecha que ya no llega al corte no entra.
+  ok := false;
+  begin perform modificar_envio_cliente(e, d || jsonb_build_object('fecha_carga_desde', current_date - 1, 'fecha_carga_hasta', current_date - 1), null);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 259 · el cliente pone una fecha de carga pasada al modificar'; end if;
+  -- Con transportista: no.
+  ok := false;
+  begin perform modificar_envio_cliente(current_setting('prueba.f259')::uuid, d, null);
+  exception when others then ok := sqlerrm like '%transportista asignado%'; end;
+  if not ok then raise exception 'FALLO 259 · el cliente modifica un envío con transportista asignado'; end if;
+  -- Pagado por adelantado: no si mueve el precio; sí si el precio se queda igual.
+  d := jsonb_build_object('importe_cliente', 750, 'fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
+                          'metros_lineales', 6, 'toneladas', 5);
+  ok := false;
+  begin perform modificar_envio_cliente(current_setting('prueba.g259')::uuid, d, null);
+  exception when others then ok := sqlerrm like '%pagado por adelantado%'; end;
+  if not ok then raise exception 'FALLO 259 · el cliente cambia el precio de un envío ya pagado'; end if;
+  perform modificar_envio_cliente(current_setting('prueba.g259')::uuid, d || jsonb_build_object('importe_cliente', 600, 'referencia_cliente', 'PED-G'), null);
+  -- Pasado el corte: la fecha ya no se mueve (así no cancela «a tiempo» después), lo demás sí.
+  d := jsonb_build_object('importe_cliente', 640, 'fecha_carga_desde', current_date, 'fecha_carga_hasta', current_date, 'metros_lineales', 7, 'toneladas', 5);
+  ok := false;
+  begin perform modificar_envio_cliente(current_setting('prueba.h259')::uuid,
+          d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 60), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 60)), null);
+  exception when others then ok := sqlerrm like '%Falta poco para la carga%'; end;
+  if not ok then raise exception 'FALLO 259 · pasado el corte, el cliente aleja la fecha de carga'; end if;
+  perform modificar_envio_cliente(current_setting('prueba.h259')::uuid, d, null);
+  -- La función interna de la ruta no se puede llamar desde fuera.
+  ok := false;
+  begin perform ruta_envio_reemplazar(e, '[]'::jsonb); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 259 · un cliente llama a la función interna que cambia la ruta'; end if;
+end $$;
+-- Un cliente de OTRA empresa no toca este envío.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+do $$ declare ok boolean := false; begin
+  begin perform modificar_envio_cliente(current_setting('prueba.e259')::uuid, jsonb_build_object('importe_cliente', 1, 'fecha_carga_desde', current_date), null);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 259 · un cliente modifica el envío de otro'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record; begin
+  select importe_cliente, metros_lineales, referencia_cliente, fecha_carga_desde into x from envios where id = e;
+  if x.importe_cliente <> 750 or x.metros_lineales <> 8 or x.referencia_cliente <> 'PED-259' then
+    raise exception 'FALLO 259 · la modificación no guarda precio, mercancía o referencia: %', x;
+  end if;
+  if x.fecha_carga_desde <> sumar_dias_habiles(current_date, 8) then raise exception 'FALLO 259 · el cliente no puede cambiar la fecha con tiempo'; end if;
+  if (select poblacion from envio_paradas where envio_id = e and orden = 2) <> 'Getafe'
+     or (select id from envio_paradas where envio_id = e and orden = 1) <> current_setting('prueba.p259')::uuid then
+    raise exception 'FALLO 259 · la ruta nueva no queda guardada (o pierde la parada que seguía)';
+  end if;
+  if (select referencia_cliente from envios where id = current_setting('prueba.g259')::uuid) is distinct from 'PED-G' then
+    raise exception 'FALLO 259 · con el envío pagado no deja cambiar lo que no toca el precio';
+  end if;
+  if (select metros_lineales from envios where id = current_setting('prueba.h259')::uuid) <> 7
+     or (select fecha_carga_desde from envios where id = current_setting('prueba.h259')::uuid) <> current_date then
+    raise exception 'FALLO 259 · pasado el corte no deja cambiar la mercancía (o mueve la fecha)';
+  end if;
+  -- Dynamo se entera, con el antes → ahora del precio; y como estaba en la bolsa, se le dice.
+  select * into a from avisos where para = 'dynamo' and tipo = 'envio_modificado_cliente' and envio_id = e order by creado_en, id limit 1;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'envio_modificado_cliente' and envio_id = e
+                    and texto like '%ruta nueva%' and texto like '%600,00 € → 750,00 €%' and texto like '%en la bolsa%') then
+    raise exception 'FALLO 259 · Dynamo no recibe el aviso del envío modificado por el cliente: %', a.texto;
+  end if;
+  -- El cliente recibe su email «Envío modificado».
+  if not exists (select 1 from emails_enviados where tipo = 'envio_modificado' and envio_id = e) then
+    raise exception 'FALLO 259 · el cliente no recibe el email del envío modificado';
+  end if;
+  raise notice 'OK 259 · el cliente modifica su envío entero sin transportista (ruta, mercancía, fechas y precio); con transportista, pagado con otro precio o alejando la fecha pasado el corte, no';
+end $$;

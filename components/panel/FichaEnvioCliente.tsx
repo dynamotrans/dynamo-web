@@ -81,9 +81,6 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
-  // «Modificar envío» (usuario, 2026-11-16): sin transportista abre el formulario dentro de
-  // la ficha; con transportista (o en marcha), la ventana de contacto.
-  const [modificando, setModificando] = useState(false);
   // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
   // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
   const [cerrando, setCerrando] = useState(false);
@@ -96,15 +93,10 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
   const iva = Number(e.iva_pct ?? 21);
   const cancelable = ['borrador', 'programado'].includes(e.estado);
+  // «Modificar envío» (usuario, 2026-11-16): sin transportista abre el asistente de «Nuevo
+  // envío» ya relleno (es como un envío nuevo: se recalcula todo); con transportista, o
+  // con el envío en marcha, la ventana de contacto.
   const modo = modoModificar(e, e.cambio);
-  // Pasada la hora límite para cancelar gratis, el cambio no se aplica solo: lo revisa Dynamo.
-  const tarde = !!e.corte && Date.now() >= new Date(e.corte).getTime();
-  const modificar = () => {
-    if (modo === 'llamar') { setVista('llamar'); return; }
-    setModificando(true);
-    // El formulario sale más abajo en la ficha: se lleva hasta él.
-    setTimeout(() => document.getElementById('pc-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
-  };
   // SIEMPRE todo plegado al abrir (usuario, 2026-11-10), como la ficha de Dynamo.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
   const toggle = (k: string) => setAbiertas((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
@@ -191,8 +183,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
     <>
       {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
-      {modo && <button className="btn-secondary" onClick={modificar} disabled={modo === 'pendiente' || !!trabajando}
-        title={modo === 'pendiente' ? 'Ya has pedido un cambio: espera a que te contestemos' : undefined}><I d={ICO.editar} />Modificar envío</button>}
+      {modo === 'form' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
+      {modo === 'llamar' && <button className="btn-secondary" onClick={() => setVista('llamar')} disabled={!!trabajando}><I d={ICO.editar} />Modificar envío</button>}
+      {modo === 'pendiente' && <button className="btn-secondary" disabled title="Ya has pedido un cambio: espera a que te contestemos"><I d={ICO.editar} />Modificar envío</button>}
       {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
       {<a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
       {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
@@ -233,7 +226,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       )}
       {!manual && <RevisionCliente envio={e} r={e.revision} hacer={hacer} />}
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
-      {!manual && <PedirCambio e={e} cambio={e.cambio} hacer={hacer} abierto={modificando} onCerrar={() => setModificando(false)} tarde={tarde} />}
+      {!manual && <PedirCambio cambio={e.cambio} />}
       {!manual && ['cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro quien="cliente" incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {/* ENVÍO Y SEGUIMIENTO unificados, lo primero del acordeón — el mismo esqueleto
           que la ficha de Dynamo (usuario, 2026-11-12). */}

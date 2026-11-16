@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { hoyMadrid } from '@/lib/formato';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
@@ -57,8 +58,26 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
           .map((p) => ({ id: p.id, tipo: p.tipo, sitio_id: p.sitio_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
+    // ?editar=<envío>: MODIFICAR su envío entero con este mismo asistente (usuario,
+    // 2026-11-16: «si modifica es como una ruta nueva… recalcula todo de nuevo»). Solo si
+    // es suyo, de Dynamo, programado y sin transportista; si no, vuelve a su ficha (allí
+    // el botón le lleva a contactar). La base de datos lo vuelve a comprobar al guardar.
+    if (sp.editar && /^[0-9a-f-]{36}$/i.test(sp.editar)) {
+      const [{ data: x }, { data: cb }] = await Promise.all([
+        supabase.rpc('mis_envios').eq('id', sp.editar).maybeSingle(),
+        supabase.rpc('mi_cambio_envio', { p_envio: sp.editar }).maybeSingle(),
+      ]);
+      if (!x || x.es_manual || x.estado !== 'programado' || !cb?.modificable || cb.con_camion || cb.estado === 'pendiente') {
+        redirect(`/panel/envios?ver=${sp.editar}`);
+      }
+      base = { modo: 'editar', envio: { ...x, cliente_id: e.id, importe_transportista: null },
+        paradas: ((x.paradas ?? []) as (Base['paradas'][number] & { orden?: number })[])
+          .slice().sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+          .map((p) => ({ id: p.id, tipo: p.tipo, sitio_id: p.sitio_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
+          codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
+    }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
-    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, principal_id: (prin as string | null) ?? null, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
+    return <NuevoEnvio key={sp.editar ?? sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, principal_id: (prin as string | null) ?? null, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
       operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))}

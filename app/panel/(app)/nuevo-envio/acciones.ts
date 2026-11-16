@@ -188,6 +188,27 @@ export async function guardarEdicionEnvio(envio: string,
   return { ok: true };
 }
 
+// El CLIENTE MODIFICA su envío entero desde el asistente (ficha → «Modificar envío»;
+// usuario, 2026-11-16: «si modifica es como una ruta nueva… recalcula todo de nuevo»).
+// Mismos datos que al crear, con el precio que el tarifador ha vuelto a calcular. Solo
+// sin transportista: lo comprueba la base de datos (modificar_envio_cliente), que también
+// avisa a Dynamo. paradas null = la ruta no ha cambiado.
+export async function guardarEdicionEnvioCliente(envio: string,
+  d: Omit<EnvioNuevo, 'cliente_id' | 'importe_transportista'>,
+  paradas: (ParadaNueva & { id?: string })[] | null): Promise<{ ok: true; precioAntes: number | null; precioAhora: number | null } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#guardarEdicionEnvioCliente", [envio, d, paradas]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede modificar envíos.' };
+  if (paradas && paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
+  if (!d.importe_cliente || !(d.importe_cliente > 0)) return { ok: false, error: 'El precio aún se está calculando: espera un momento y vuelve a pulsar.' };
+  const { data, error } = await s.supabase.rpc('modificar_envio_cliente', {
+    p_envio: envio, p_datos: d, p_paradas: paradas ? paradas.map((p) => (p.id ? { id: p.id } : p)) : null });
+  if (error) return { ok: false, error: traducir(error.message) };
+  if (paradas) await contactosDeSitiosNuevos(s.supabase, envio, paradas, true);
+  const x = data as { precio_antes?: number | null; precio_ahora?: number | null } | null;
+  return { ok: true, precioAntes: x?.precio_antes ?? null, precioAhora: x?.precio_ahora ?? null };
+}
+
 // El CLIENTE crea su envío YA CON EL PRECIO del tarifador automático (desde el 2026-11-08
 // no hay solicitudes de precio). Nace programado; el previo pago decide crédito o pago.
 // La base de datos fuerza que sea de SU empresa y con SUS sitios.

@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import MedidasCamion from './nuevoEnvio/MedidasCamion';
@@ -311,6 +311,20 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return (!esCliente && !cliente) ? aplicarDescuentoTarifa(t, Number(reglas?.bienvenida_pct ?? -7)) : t;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos, cliente]);
+  // EL CLIENTE MODIFICA SU ENVÍO (usuario, 2026-11-16: «si modifica es como una ruta
+  // nueva… recalcula todo de nuevo»): en cuanto toca algo que afecta al precio — ruta,
+  // mercancía o fechas — el precio pasa a ser el que el tarifador calcula AHORA, como en
+  // un envío nuevo. Si no toca nada de eso (solo su referencia, por ejemplo), se queda el
+  // que tenía: el precio no se mueve solo por abrir y guardar.
+  const editarCliente = editar && esCliente;
+  const [mercIni] = useState(() => ({ ml, peso, forma, plataforma, nima, adr, paletizada }));
+  const rutaTocada = editar && puntos.map((p) => p.parada_id ?? 'nueva').join(',') !== (base?.paradas ?? []).map((p) => p.id).join(',');
+  const fechasTocadas = editar && !(fecha === (be?.fecha_carga_desde ?? '') && urgencia === urgenciaIni);
+  const mercTocada = editar && (ml !== mercIni.ml || peso !== mercIni.peso || forma !== mercIni.forma || plataforma !== mercIni.plataforma
+    || nima !== mercIni.nima || adr !== mercIni.adr || paletizada !== mercIni.paletizada);
+  const precioAntesCli = editarCliente && be?.importe_cliente != null ? Number(be.importe_cliente) : null;
+  const precioSeMantiene = editarCliente && precioAntesCli != null && !rutaTocada && !fechasTocadas && !mercTocada;
+  const precioEdicionCli = precioSeMantiene ? precioAntesCli : (tarifa?.neto ?? null);
   useEffect(() => {
     // Registrar la consulta cuando el tarifador ENSEÑA precio a un cliente: una por
     // ruta (claveRuta), nunca al editar un envío ya creado.
@@ -552,6 +566,26 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     });
     const fechasIguales = fecha === (be!.fecha_carga_desde ?? '') && urgencia === urgenciaIni;
     const f = forma.toLowerCase();
+    if (esCliente) {
+      // El cliente guarda con el precio que tiene en pantalla: el del tarifador si ha
+      // tocado ruta, mercancía o fechas; el que ya tenía si no.
+      if (precioEdicionCli == null) { setEnviando(false); setAviso('El precio aún se está calculando: espera un momento y vuelve a pulsar.'); setPaso(3); return; }
+      const rc = await guardarEdicionEnvioCliente(base.envio.id, {
+        referencia_cliente: refCli,
+        fecha_carga_desde: fechasIguales ? (be!.fecha_carga_desde ?? '') : fecha,
+        fecha_carga_hasta: fechasIguales ? (be!.fecha_carga_hasta ?? be!.fecha_carga_desde ?? '') : fechaHasta,
+        descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
+        metros_lineales: Number(ml), toneladas: Number(peso),
+        paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'), carga_techo: f.includes('techo'),
+        requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
+        importe_cliente: precioEdicionCli,
+        discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
+      }, paradas);
+      if (!rc.ok) { setEnviando(false); setAviso(rc.error); return; }
+      router.push(`/panel/envios?ver=${base.envio.id}`);
+      refrescar();
+      return;
+    }
     const r = await guardarEdicionEnvio(base.envio.id, {
       referencia_cliente: refCli,
       fecha_carga_desde: fechasIguales ? (be!.fecha_carga_desde ?? '') : fecha,
@@ -971,8 +1005,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         <PistaScroll selector="[data-pista-accion]"
           texto={editar ? 'Desliza para guardar los cambios' : 'Desliza para crear el envío'} />
       )}
-      {editar && paso === 1 && (
-        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando el envío #{be!.referencia_gx}</strong>: cambia lo que haga falta en cualquier paso y pulsa <strong>«Guardar cambios»</strong> al final. Si no tocas nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong> — el tarifador solo sugiere, no lo pisa.</div></div>
+      {editar && paso === 1 && (editarCliente
+        ? <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando tu envío #{be!.referencia_gx}</strong>: cambia lo que haga falta en cualquier paso y pulsa <strong>«Guardar cambios»</strong> al final. Si cambias la ruta, la mercancía o las fechas, <strong>el precio se vuelve a calcular</strong> como en un envío nuevo (lo verás antes de guardar); si no, se queda como está.</div></div>
+        : <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Estás <strong>modificando el envío #{be!.referencia_gx}</strong>: cambia lo que haga falta en cualquier paso y pulsa <strong>«Guardar cambios»</strong> al final. Si no tocas nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong> — el tarifador solo sugiere, no lo pisa.</div></div>
       )}
       {base?.modo === 'repetir' && paso === 1 && (
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se ha copiado todo del envío <strong>#{be!.referencia_gx}</strong> (ruta{esCliente ? ' y mercancía' : ', mercancía y precios'}) salvo la <strong>fecha</strong>. Revísalo y cambia lo que haga falta: se creará un envío <strong>nuevo</strong>.</div></div>
@@ -1294,9 +1329,23 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               {tarjetaMercancia}
               {manual
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
+                : precioSeMantiene
+                ? <div className="ptar-confirm-price">
+                    <div className="alm-price-row"><span className="k">Precio (sin IVA)</span><span className="v"><strong>{eur(precioAntesCli!)}</strong></span></div>
+                    <p style={{ margin: '0.45rem 0 0', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4 }}>No has cambiado nada que afecte al precio (ruta, mercancía o fechas): <strong>se queda el que tenías</strong>.</p>
+                  </div>
                 : esCliente
-                ? <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
+                ? <>
+                  <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} soloImportes onElegir={elegirAlternativa} />
+                  {editarCliente && precioAntesCli != null && tarifa && (
+                    <div className="ptar-confirm-price" style={{ marginTop: '0.6rem' }}>
+                      <div className="alm-price-row alm-price-sub"><span className="k">Precio antes → ahora (sin IVA)</span>
+                        <span className="v">{eur(precioAntesCli)} → <strong>{eur(tarifa.neto)}</strong></span></div>
+                      <p style={{ margin: '0.45rem 0 0', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4 }}>Has cambiado {[rutaTocada && 'la ruta', mercTocada && 'la mercancía', fechasTocadas && 'las fechas'].filter(Boolean).join(', ')}: el precio se ha vuelto a calcular, como en un envío nuevo.</p>
+                    </div>
+                  )}
+                </>
                 : <>{cajaPrecio}{resumenCambioPrecio}</>}
               {avisoProvisional}
               {/* En la vista de administración normal no hace falta explicar qué hace el
@@ -1306,7 +1355,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   (usuario, 2026-11-14): las condiciones y, si procede, el pago por
                   adelantado se avisan en la ventana de confirmación. */}
               {(editar || manual) && <div className="ptar-terms-box">
-                {editar
+                {editarCliente
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza tu envío #{be!.referencia_gx} con lo que ves aquí. Si has cambiado la ruta, la mercancía o las fechas, <strong>el precio se recalcula</strong> como en un envío nuevo; si no, se queda como está. Se aplican las mismas condiciones generales que aceptaste al crearlo.</p>
+                  : editar
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Guardar cambios»</strong> se actualiza el envío #{be!.referencia_gx}. Si no has tocado nada que afecte al precio (ruta, mercancía, fechas), <strong>el precio se queda como está</strong>: solo cambia si lo cambias tú.</p>
                   : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>}
               </div>}
