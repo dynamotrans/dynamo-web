@@ -81,6 +81,9 @@ test.describe.serial('flujos clave', () => {
     // Día de entrega (estimado): obligatorio al asignar (usuario, 2026-11-09).
     const ent = await page.locator('select#as-ent option:not([disabled])').nth(1).getAttribute('value');
     await page.locator('select#as-ent').selectOption(ent!);
+    // El precio del transportista es obligatorio y mayor que 0 (usuario, 2026-11-15: nunca
+    // una asignación —ni una orden de carga— a precio 0). El envío del cliente nace sin él.
+    await page.fill('#as-precio', '600');
     await page.fill('#as-camion', '1234BCD');
     await page.fill('#as-conductor', 'Juan Prueba');
     await page.getByRole('button', { name: 'Guardar asignación' }).click();
