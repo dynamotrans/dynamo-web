@@ -72,13 +72,13 @@ const Chev = ({ cls, size = 12, w = 3 }: { cls: string; size?: number; w?: numbe
 );
 
 type Props = {
-  rol: Rol; nombre: string; email: string; empresa: string; iniciales: string;
+  rol: Rol; nombre: string; email: string; empresa: string; empresaCif?: string | null; iniciales: string;
   contadores?: Contadores; cobertura?: Cobertura; festivos?: string[];
   vista?: Vista; verComo?: boolean;
   children: React.ReactNode;
 };
 
-export default function Marco({ rol, nombre, email, empresa, iniciales, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
+export default function Marco({ rol, nombre, email, empresa, empresaCif = null, iniciales, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
   // Menú del perfil que se está viendo (el equipo de Dynamo elige vista arriba).
   const menuVisto = useMemo(() => menuDe(rol, vista.tipo), [rol, vista.tipo]);
   // El perfil QUE SE VE manda en la campana y el CESCE: con «Ver como» un cliente, lo
@@ -371,11 +371,14 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                 <Chev cls="topbar-user-arrow" />
               </button>
               <div className={`user-menu${menu === 'usuario' ? ' open' : ''}`} role="menu" aria-hidden={menu !== 'usuario'}>
-                {/* Sin repetir avatar y nombre (usuario, 2026-11-14): el botón que abre
-                    este menú ya los enseña — queda el email y el rol. */}
+                {/* Quién soy y para qué empresa trabajo, de un vistazo (usuario, 2026-11-16):
+                    nombre, email, empresa, su CIF/NIF y el rol. */}
                 <div className="user-menu-head">
                   <div className="user-menu-head-body">
-                    <div className="user-menu-head-email">{email}</div>
+                    {nombre && nombre !== email && <div className="user-menu-head-name notranslate" translate="no">{nombre}</div>}
+                    <div className="user-menu-head-email notranslate" translate="no">{email}</div>
+                    {empresa && <div className="user-menu-head-empresa notranslate" translate="no">{empresa}</div>}
+                    {empresaCif && <div className="user-menu-head-email">CIF/NIF: <span className="notranslate" translate="no">{empresaCif}</span></div>}
                     <span className="user-menu-role">{ROL_TXT[rol]}</span>
                   </div>
                 </div>

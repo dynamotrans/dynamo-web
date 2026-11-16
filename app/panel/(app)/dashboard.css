@@ -934,6 +934,11 @@ a.bell-nov:hover { background: var(--gray-100); }
     font-size: var(--fs-m); color: var(--gray-500); margin-top: 0.1rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.user-menu-head-empresa {
+    font-size: var(--fs-m); font-weight: 700; color: var(--navy); margin-top: 0.4rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.theme-dark .user-menu-head-empresa { color: #f3eeff; }
 .user-menu-role {
     display: inline-block; margin-top: 0.35rem;
     font-size: var(--fs-s); font-weight: 700; letter-spacing: 0;

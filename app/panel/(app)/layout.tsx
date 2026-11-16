@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic';
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
   const s = await sesion();
   if (!s) return <SinConfigurar />;
-  const { supabase, user, perfil, empresa } = s;
+  const { supabase, user, perfil, empresa, empresaCif } = s;
   const nombre = perfil?.nombre || user.email || '';
   const dynamo = esDynamo(perfil?.rol);
   const activa = perfil?.estado === 'activa';
@@ -83,7 +83,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     <EnVivo canales={canales} marca={Date.now()} />
     <Suspense fallback={null}><CargandoNavegacion /></Suspense>
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
-           empresa={empresa} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
+           empresa={empresa} empresaCif={empresaCif} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
            contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}
            vista={vista} verComo={dynamo && activa}>
       {mant && (
