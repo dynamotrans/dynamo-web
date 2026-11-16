@@ -3705,6 +3705,7 @@ export type Database = {
       domingo_de_pascua: { Args: { p_anio: number | null }; Returns: string }
       duracion_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
       email_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
+      emails_cliente_envio: { Args: { p_envio: string | null }; Returns: string }
       emails_validos: { Args: { p: string[] | null }; Returns: boolean }
       en_temporada: { Args: { p_fecha: string | null; p_desde: string | null; p_hasta: string | null }; Returns: boolean }
       encolar_anulacion_parada: { Args: { p_envio: string | null; p_parada: string | null; p_tipo: string | null; p_nombre: string | null; p_poblacion_sitio: string | null; p_sitio: string | null }; Returns: undefined }

@@ -10650,3 +10650,46 @@ do $$ begin
   end if;
   raise notice 'OK 255 · el sitio tiene un solo campo de texto fijo: sus indicaciones';
 end $$;
+
+-- ---- 256. Email «Envío creado» al cliente, lo cree él o Dynamo; la víspera, a los mismos ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; m uuid; r record; n int; cli uuid := current_setting('prueba.cliente')::uuid;
+  adm uuid := current_setting('prueba.u_admin')::uuid; v_cli text; v_adm text;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;   -- el lunes de dentro de dos semanas
+  select email into v_cli from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  select email into v_adm from usuarios where id = adm;
+  -- Lo crea DYNAMO para el cliente: el email va al usuario del cliente, no a quien lo creó.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, creado_por)
+    values (cli, 13.30, 20, 900, 700, lun, lun + 1, adm) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  if exists (select 1 from emails_enviados where clave = 'envio_creado:' || e) then raise exception 'FALLO 256 · el email sale con el envío aún sin confirmar'; end if;
+  update envios set estado = 'programado' where id = e;
+  select * into r from emails_enviados where clave = 'envio_creado:' || e;
+  if r.id is null or r.tipo <> 'envio_creado' or r.estado <> 'pendiente' then raise exception 'FALLO 256 · al confirmar el envío no se encola el email «Envío creado»'; end if;
+  if position(v_cli in r.destinatario) = 0 or position(v_adm in r.destinatario) > 0 then raise exception 'FALLO 256 · el email no va al usuario del cliente: %', r.destinatario; end if;
+  if r.asunto not like 'Envío #% creado (Sevilla → Coslada)' then raise exception 'FALLO 256 · asunto: %', r.asunto; end if;
+  if position('900,00' in r.cuerpo_html) = 0 or position('13,30 metros' in r.cuerpo_html) = 0 or position('/panel/envios?ver=' || e in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 256 · al email le falta el precio, la mercancía o el enlace a la ficha: %', r.cuerpo_html;
+  end if;
+  -- Una sola vez por envío.
+  perform registrar_hito(e, 'confirmado');
+  select count(*) into n from emails_enviados where envio_id = e and tipo = 'envio_creado';
+  if n <> 1 then raise exception 'FALLO 256 · el email «Envío creado» se repite (%)', n; end if;
+  -- La víspera va a los mismos destinatarios: al cliente, aunque el envío lo creara Dynamo.
+  update envios set fecha_carga_prevista = lun where id = e;
+  perform encolar_avisos_operativos(((lun - 1) + time '17:30') at time zone 'Europe/Madrid');
+  select * into r from emails_enviados where clave = 'vispera:' || e || ':' || lun;
+  if r.id is null or position(v_cli in r.destinatario) = 0 then raise exception 'FALLO 256 · la víspera no va al usuario del cliente: %', r.destinatario; end if;
+  -- En un envío de gestión directa (el cliente con su transportista) no sale.
+  insert into operadores (cliente_id, razon_social, cif) values (cli, 'Operador 256 SL', 'B25600256') returning id into m;
+  insert into envios (cliente_id, metros_lineales, operador_id, precio_acordado_operador, fecha_carga_desde) values (cli, 13.30, m, 500, lun) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = e;
+  if exists (select 1 from emails_enviados where clave = 'envio_creado:' || e) then raise exception 'FALLO 256 · el email sale en un envío de gestión directa'; end if;
+  raise notice 'OK 256 · email «Envío creado»: al usuario del cliente (lo cree él o Dynamo), una vez, con ruta, precio y enlace; la víspera a los mismos; no en gestión directa';
+end $$;
