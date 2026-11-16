@@ -31,19 +31,19 @@ export const sesion = cache(async () => {
   }
 
   // Nombre de la empresa para el pie del menú lateral y el menú del usuario: la RAZÓN SOCIAL,
-  // la misma que sale en «Datos fiscales» de Mi cuenta (usuario, 2026-11-16: con el nombre
-  // comercial parecían dos empresas distintas).
+  // la misma que sale en «Datos fiscales» de Mi cuenta (usuario, 2026-11-16: el nombre
+  // comercial se quitó de toda la plataforma; con los dos parecían empresas distintas).
   // …y su CIF/NIF, para el menú del usuario (usuario, 2026-11-16: que se vea claro para qué
   // empresa se está trabajando).
   let empresa = 'Dynamo Operador Logístico, S.L.';
   let empresaCif: string | null = null;
   if (perfil?.rol === 'cliente') {
-    const { data } = await supabase.rpc('mi_empresa').maybeSingle<{ nombre_comercial: string | null; razon_social: string; cif: string | null }>();
-    empresa = data?.razon_social || data?.nombre_comercial || '';
+    const { data } = await supabase.rpc('mi_empresa').maybeSingle<{ razon_social: string; cif: string | null }>();
+    empresa = data?.razon_social || '';
     empresaCif = data?.cif ?? null;
   } else if (perfil?.rol === 'transportista') {
-    const { data } = await supabase.rpc('mi_empresa_transportista').maybeSingle<{ nombre_comercial: string | null; razon_social: string; cif: string | null }>();
-    empresa = data?.razon_social || data?.nombre_comercial || '';
+    const { data } = await supabase.rpc('mi_empresa_transportista').maybeSingle<{ razon_social: string; cif: string | null }>();
+    empresa = data?.razon_social || '';
     empresaCif = data?.cif ?? null;
   }
   return { supabase, user, perfil: (perfil as Perfil | null), empresa, empresaCif };

@@ -78,7 +78,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
-    return <NuevoEnvio key={sp.editar ?? sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, principal_id: (prin as string | null) ?? null, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
+    return <NuevoEnvio key={sp.editar ?? sp.repetir ?? 'nuevo'} esCliente fechaInicial={fechaInicial} clientes={[{ id: e.id, nombre: e.razon_social, cif: e.cif, principal_id: (prin as string | null) ?? null, iva: e.iva_pct ?? null, nima: !!e.nima_por_defecto }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
       operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))}

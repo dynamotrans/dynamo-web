@@ -8,7 +8,7 @@ import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 export type TransportistaDatos = {
-  razon_social: string; nombre_comercial: string; cif: string;
+  razon_social: string; cif: string;
   estado_operativo: 'activo' | 'no_ofertar' | 'suspendido';
   bolsa: string; codigo_bolsa: string;
   direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
@@ -67,7 +67,7 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
   if (malContacto) return { ok: false, error: malContacto };
 
   const fila = {
-    razon_social: d.razon_social.trim(), nombre_comercial: vacio(d.nombre_comercial),
+    razon_social: d.razon_social.trim(),
     cif: d.cif.trim().toUpperCase(), estado_operativo: d.estado_operativo,
     bolsa: d.bolsa || null, codigo_bolsa: vacio(d.codigo_bolsa),
     direccion: vacio(d.direccion), codigo_postal: vacio(d.codigo_postal), poblacion: vacio(d.poblacion),

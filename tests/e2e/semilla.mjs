@@ -25,10 +25,10 @@ for (const [k, email] of Object.entries(USUARIOS)) {
 
 // Empresas, roles y agenda: como superusuario (lo que en producción se hace desde Supabase).
 const sql = `
-insert into clientes (razon_social, nombre_comercial, cif, pais_codigo_iso)
-  values ('Cliente Pruebas S.L.', 'Cliente Pruebas', 'B12345674', 'ES') on conflict do nothing;
-insert into transportistas (razon_social, nombre_comercial, cif, bolsa, codigo_bolsa, estado_operativo)
-  values ('Transportes Prueba S.L.', 'Transportes Prueba', 'B76543214', 'wtransnet', 'E2E-1', 'activo') on conflict do nothing;
+insert into clientes (razon_social, cif, pais_codigo_iso)
+  values ('Cliente Pruebas S.L.', 'B12345674', 'ES') on conflict do nothing;
+insert into transportistas (razon_social, cif, bolsa, codigo_bolsa, estado_operativo)
+  values ('Transportes Prueba S.L.', 'B76543214', 'wtransnet', 'E2E-1', 'activo') on conflict do nothing;
 update usuarios set rol = 'admin', estado = 'activa' where id = '${ids.dynamo}';
 update usuarios set rol = 'cliente', estado = 'activa', cliente_id = (select id from clientes where cif = 'B12345674') where id = '${ids.cliente}';
 update usuarios set rol = 'transportista', estado = 'activa', transportista_id = (select id from transportistas where cif = 'B76543214') where id = '${ids.transportista}';

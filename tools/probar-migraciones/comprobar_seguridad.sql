@@ -394,14 +394,14 @@ select set_config('request.jwt.claim.sub', '', false);
 -- =====================================================================================
 -- ---- 18. Nombre visible, bolsa de carga y pronto pago por transportista --------------
 do $$ declare t uuid; c uuid; e uuid; o uuid; begin
-  insert into clientes (razon_social, nombre_comercial, cif)
-    values ('Marbex Industrial S.L.', 'Marbex', 'B44444444') returning id into c;
-  if (select nombre_visible from clientes where id = c) <> 'Marbex' then
-    raise exception 'FALLO 18 · el nombre visible no usa el nombre comercial';
-  end if;
-  update clientes set nombre_comercial = '  ' where id = c;
+  -- Desde el 2026-11-16 no hay nombre comercial: el nombre visible es SIEMPRE la razón social.
+  insert into clientes (razon_social, cif)
+    values ('Marbex Industrial S.L.', 'B44444444') returning id into c;
   if (select nombre_visible from clientes where id = c) <> 'Marbex Industrial S.L.' then
-    raise exception 'FALLO 18 · sin nombre comercial deberia verse la razon social';
+    raise exception 'FALLO 18 · el nombre visible no es la razon social';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and column_name = 'nombre_comercial') then
+    raise exception 'FALLO 18 · sigue existiendo la columna nombre_comercial';
   end if;
 
   begin
@@ -5922,7 +5922,7 @@ do $$ declare t uuid := current_setting('prueba.transp')::uuid; c uuid := curren
   -- El texto de búsqueda se rellena solo y recoge contactos y matrículas.
   select texto_busqueda into txt from transportistas where id = t;
   if txt is null or txt = '' then raise exception 'FALLO 160 · el transportista no tiene texto de búsqueda'; end if;
-  update transportistas set nombre_comercial = 'Camiones Prueba Ciento Sesenta' where id = t;
+  update transportistas set razon_social = 'Camiones Prueba Ciento Sesenta SL' where id = t;
   select texto_busqueda into txt from transportistas where id = t;
   if txt !~ 'ciento sesenta' then raise exception 'FALLO 160 · el texto de búsqueda no se actualiza al editar la ficha: %', left(txt, 120); end if;
   insert into contactos (transportista_id, nombre, funcion, telefono, es_principal) values (t, 'Zenaida Contacto Buscable', 'trafico', '+34600160160', false);

@@ -52,7 +52,7 @@ function Estrellas({ v, n }: { v: number | null; n: number }) {
 }
 
 const NUEVO: TransportistaDatos = {
-  razon_social: '', nombre_comercial: '', cif: '', estado_operativo: 'activo', bolsa: 'wtransnet', codigo_bolsa: '',
+  razon_social: '', cif: '', estado_operativo: 'activo', bolsa: 'wtransnet', codigo_bolsa: '',
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 60, pronto_pago: true, iva_pct: 21, retencion_pct: 0,
   nima: '', tiene_almacen: false, reparto_urbano: false,
@@ -246,7 +246,6 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
       <div className="ptar-sitio-grid">
         {titulo('Empresa')}
         {campo('razon_social', <>Empresa / Nombre <Req /></>, 'Razón social o nombre del autónomo', true)}
-        {campo('nombre_comercial', <>Nombre comercial <Req si={false} /></>, 'Si se le conoce por otro nombre')}
         {campo('cif', <>CIF / NIF <Req /></>, 'B12345678 / 12345678Z')}
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="tra-estado">Estado operativo <span className="badge" style={{ background: est[3].bg, color: est[3].fg, border: `1px solid ${est[3].bd}`, marginLeft: '0.35rem' }}>{est[2]}</span>

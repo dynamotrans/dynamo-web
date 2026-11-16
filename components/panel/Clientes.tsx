@@ -50,7 +50,7 @@ function Factor({ v }: { v: number }) {
 }
 
 const NUEVO: ClienteDatos = {
-  razon_social: '', nombre_comercial: '', sector: '', cif: '', estado: 'activa',
+  razon_social: '', sector: '', cif: '', estado: 'activa',
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 120, iva_pct: 21, retencion_pct: 0, recargo_equivalencia_pct: 0,
   recargo_pago_tarde_pct: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
@@ -124,7 +124,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
               const dyn = c.riesgo_manual_euros == null ? null : Number(c.riesgo_manual_euros);
               return (
                 <tr key={c.id} onClick={() => setFicha({ fila: c })} style={{ cursor: 'pointer' }}>
-                  <td><strong>{c.nombre_visible}</strong><div className="meta">{c.cif}{c.nombre_comercial ? ` · ${c.razon_social}` : ''}</div></td>
+                  <td><strong>{c.nombre_visible}</strong><div className="meta">{c.cif}</div></td>
                   <td>{(() => { const k = principal(c.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{c.contactos.length > 1 && <div className="meta">+{c.contactos.length - 1} contacto{c.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{c.direccion || '—'}<div className="meta">{[c.codigo_postal, c.poblacion, c.provincia, paisDe(c.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
@@ -197,7 +197,7 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
     });
     setGuardando(false);
     if (!r.ok) { setError(r.error); return; }
-    onGuardado({ id: r.id, nombre_visible: d.nombre_comercial.trim() || d.razon_social.trim(), cif: d.cif.trim().toUpperCase() });
+    onGuardado({ id: r.id, nombre_visible: d.razon_social.trim(), cif: d.cif.trim().toUpperCase() });
   }
 
   const campo = (id: keyof ClienteDatos, label: React.ReactNode, ph?: string, full?: boolean) => (
@@ -243,7 +243,6 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
       <div className="ptar-sitio-grid">
         {titulo('Empresa')}
         {campo('razon_social', <>Razón social <Req /></>, 'Ej. Marbex Industrial S.L.', true)}
-        {campo('nombre_comercial', <>Nombre comercial <Req si={false} /></>, 'Si se le conoce por otro nombre')}
         {campo('cif', <>CIF / NIF <Req /></>, 'B12345678 / 12345678Z')}
         <div>
           <label htmlFor="cli-sector">Sector <Req si={false} /></label>

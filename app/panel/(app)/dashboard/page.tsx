@@ -49,8 +49,8 @@ export default async function PaginaDashboard() {
   let empresa: { nombre: string; cif: string | null } | null = null;
   if (perfil.rol === 'cliente') {
     const { data: emp } = await supabase.rpc('mi_empresa').maybeSingle();
-    const e = emp as { razon_social?: string | null; nombre_comercial?: string | null; cif?: string | null } | null;
-    if (e) empresa = { nombre: e.razon_social || e.nombre_comercial || '', cif: e.cif ?? null };
+    const e = emp as { razon_social?: string | null; cif?: string | null } | null;
+    if (e) empresa = { nombre: e.razon_social || '', cif: e.cif ?? null };
   } else if (dynamo && vista.tipo === 'cliente') {
     const { data: c } = await supabase.from('clientes').select('razon_social, cif').eq('id', vista.id).maybeSingle();
     if (c) empresa = { nombre: c.razon_social ?? '', cif: c.cif ?? null };
