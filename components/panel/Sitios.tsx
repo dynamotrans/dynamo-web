@@ -213,9 +213,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [repetido, setRepetido] = useState<{ id: string; nombre: string } | null>(null);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [trabajando, setTrabajando] = useState<string | null>(null);
-  const [tabHorario, setTabHorario] = useState<'general' | 'verano'>('general');
   // Ficha compacta (usuario, 2026-11-08): lo opcional y el horario van PLEGADOS con su
   // resumen a la vista; solo se abre lo que haga falta tocar.
+  const [tabHorario, setTabHorario] = useState<'general' | 'verano'>('general');
   const [abierto, setAbierto] = useState({ avisos: false, horario: false, merc: false });
   const plegar = (k: 'avisos' | 'horario' | 'merc') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
   // Buscador «para autorrellenar» (solo ficha NUEVA): agenda («Guardado»), Google (reales
@@ -564,15 +564,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         </button>
         {abierto.horario && (
           <div className="ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
-            <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
-              <button type="button" role="tab" aria-selected={tabHorario === 'general'} className={`tab${tabHorario === 'general' ? ' active' : ''}`} onClick={() => setTabHorario('general')}>Horario general</button>
-              <button type="button" role="tab" aria-selected={tabHorario === 'verano'} className={`tab${tabHorario === 'verano' ? ' active' : ''}`} onClick={() => setTabHorario('verano')}>
-                Horario de verano{d.verano?.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
-              </button>
-            </div>
-            {tabHorario === 'general'
-              ? <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
-              : <VeranoSitio v={d.verano!} onCambio={(v) => set('verano', v)} />}
+            <HorarioSitio horario={d.horario} verano={d.verano!} onHorario={(g) => set('horario', g)} onVerano={(v) => set('verano', v)} tab={tabHorario} onTab={setTabHorario} />
           </div>
         )}
       </div>
@@ -652,7 +644,33 @@ function SelectorMMDD({ id, valor, onCambio }: { id: string; valor: string; onCa
     </div>
   );
 }
-export function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
+// HORARIO DE UN SITIO, con sus dos pestañas («Horario general» y «Horario de verano»). Es
+// el MISMO bloque en la ficha de Sitios y en el paso 3 de Nuevo envío (usuario, 2026-11-16:
+// «todo igual, para unificar estilos»). Va dentro de una rejilla `ptar-sitio-grid`.
+type Verano = { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
+type PestanaHorario = 'general' | 'verano';
+export function HorarioSitio({ horario, verano, onHorario, onVerano, tab: tabDeFuera, onTab }: {
+  horario: GrupoHorario[]; verano: Verano; onHorario: (g: GrupoHorario[]) => void; onVerano: (v: Verano) => void;
+  tab?: PestanaHorario; onTab?: (t: PestanaHorario) => void;   // si quien lo usa quiere mandar en la pestaña (p. ej. para llevar a un error)
+}) {
+  const [tabPropia, setTabPropia] = useState<PestanaHorario>('general');
+  const tab = tabDeFuera ?? tabPropia;
+  const setTab = (t: PestanaHorario) => { setTabPropia(t); onTab?.(t); };
+  return (
+    <>
+      <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
+        <button type="button" role="tab" aria-selected={tab === 'general'} className={`tab${tab === 'general' ? ' active' : ''}`} onClick={() => setTab('general')}>Horario general</button>
+        <button type="button" role="tab" aria-selected={tab === 'verano'} className={`tab${tab === 'verano' ? ' active' : ''}`} onClick={() => setTab('verano')}>
+          Horario de verano{verano.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
+        </button>
+      </div>
+      {tab === 'general'
+        ? <EditorHorario valor={horario} onCambio={onHorario} />
+        : <VeranoSitio v={verano} onCambio={onVerano} />}
+    </>
+  );
+}
+function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
   onCambio: (v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }) => void }) {
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.7rem' }}>

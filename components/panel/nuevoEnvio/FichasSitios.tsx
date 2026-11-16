@@ -6,12 +6,11 @@
 // se cambie se guarda en la ficha del sitio al crear el envío (los almacenes de Dynamo no:
 // son datos fijos del catálogo). Las direcciones no se tocan aquí (se cambian en el paso 1).
 import { useEffect, useState } from 'react';
-import EditorHorario from '../EditorHorario';
 import AvisoCierreSitio from './AvisoCierreSitio';
 import { Interruptor } from './Interruptor';
 import CampoTelefono from '@/components/CampoTelefono';
-import { resumenHorario, mmddTxt } from '@/lib/horarios';
-import { VeranoSitio } from '../Sitios';
+import { resumenHorario } from '@/lib/horarios';
+import { HorarioSitio } from '../Sitios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
 import { CardEdit, ContactoExtra, DatosSitios, Punto, direccionCompleta, resolverFicha } from './comun';
 import Req from '@/components/Req';
@@ -206,15 +205,13 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   <div className="full">
                     <button type="button" className="campo-plegado" aria-expanded={horAbierto.has(p.k)} onClick={() => toggleHor(p.k)}>
                       <span className="cp-ico" aria-hidden="true">{horAbierto.has(p.k) ? '−' : '+'}</span>
-                      <span className="cp-txt">Horario de carga y descarga<span className="cp-val">· {resumenHorario(f.horario) || 'sin definir'}{f.verano.activo ? ` · verano (${mmddTxt(f.verano.desde)} – ${mmddTxt(f.verano.hasta)}): ${resumenHorario(f.verano.horario)}` : ''}</span></span>
+                      <span className="cp-txt">Horario de carga y descarga<span className="cp-val">· {resumenHorario(f.horario) || 'sin definir'}{f.verano.activo ? ' · verano activo' : ''}</span></span>
                     </button>
                   </div>
-                  {horAbierto.has(p.k) && <div className="full">
-                    <EditorHorario valor={f.horario} onCambio={(g) => set(p, { horario: g })} />
-                    {/* Horario de VERANO (usuario, 2026-11-10): se puede poner, quitar o
-                        editar aquí igual que en la ficha de Sitios; se guarda en el sitio. */}
-                    <div className="ptar-section-head" style={{ marginTop: '0.8rem', marginBottom: '0.5rem' }}>Horario de verano</div>
-                    <VeranoSitio v={f.verano} onCambio={(v) => set(p, { verano: v })} />
+                  {/* El MISMO bloque que la ficha de Sitios (usuario, 2026-11-16): pestañas
+                      «Horario general» y «Horario de verano». Se guarda en el sitio. */}
+                  {horAbierto.has(p.k) && <div className="full ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
+                    <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} />
                   </div>}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
                   {/* El nombre va ANTES de los campos de teléfono (usuario, 2026-11-09). */}
