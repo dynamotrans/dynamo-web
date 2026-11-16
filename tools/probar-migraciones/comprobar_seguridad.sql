@@ -10032,3 +10032,81 @@ do $$ declare e uuid := current_setting('prueba.e237')::uuid; ok boolean; n int;
   raise notice 'OK 239 · historial de envíos (DeCA, CMR y orden): lo compartido a mano queda apuntado con su documento, su vía y su autor; solo Dynamo lo apunta y lo lee';
 end $$;
 reset role;
+
+-- ---- 240. Alta pendiente: sube y ve los documentos de SU alta (y nada más) --------------------
+-- Quien se acaba de registrar (pendiente de verificación) tiene que poder adelantar la hoja
+-- del CIF y su DNI; no puede colgar documentos a otro usuario ni de otro tipo.
+reset role;
+insert into auth.users (email, raw_user_meta_data) values ('alta240@prueba.es', '{"nombre":"Alta Doscientos Cuarenta"}');
+do $$ declare u uuid; n int; ok boolean; begin
+  select id into u from usuarios where email = 'alta240@prueba.es';
+  if (select estado from usuarios where id = u) <> 'pendiente_verificacion' then raise exception 'FALLO 240 · el alta no nace pendiente de verificación'; end if;
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  insert into documentos (tipo, usuario_id, storage_ruta, nombre_archivo) values ('hoja_cif', u, 'u/' || u || '/a/hoja-cif.pdf', 'hoja-cif.pdf');
+  insert into documentos (tipo, usuario_id, storage_ruta, nombre_archivo) values ('dni', u, 'u/' || u || '/b/dni.jpg', 'dni.jpg');
+  select count(*) into n from documentos where usuario_id = u;
+  if n <> 2 then raise exception 'FALLO 240 · quien tiene el alta pendiente no ve sus documentos (%)', n; end if;
+  ok := false;
+  begin
+    insert into documentos (tipo, usuario_id, storage_ruta, nombre_archivo)
+    values ('dni', current_setting('prueba.u_cli')::uuid, 'u/' || u || '/c/dni.jpg', 'dni.jpg');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 240 · cuelga un documento en el alta de otro usuario'; end if;
+  ok := false;
+  begin
+    insert into documentos (tipo, usuario_id, storage_ruta, nombre_archivo) values ('albaran', u, 'u/' || u || '/d/albaran.pdf', 'albaran.pdf');
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 240 · sube a su alta un tipo de documento que no es del alta'; end if;
+  if (select count(*) from documentos where usuario_id is distinct from u) <> 0 then raise exception 'FALLO 240 · ve documentos que no son de su alta'; end if;
+  raise notice 'OK 240 · alta pendiente: sube y ve la hoja del CIF y el DNI de su propia alta, y nada más';
+end $$;
+reset role;
+
+-- ---- 241. Alta pendiente: busca su empresa por CIF (solo «está / no está», con tope) -----
+-- Quien tiene el alta pendiente sabe si su CIF es ya de un cliente, sin ver ningún dato
+-- del cliente; no puede sondear (5 CIF distintos al día) y nadie más usa la búsqueda.
+reset role;
+insert into auth.users (email, raw_user_meta_data) values ('alta241@prueba.es', '{"nombre":"Alta Doscientos Cuarenta y Uno"}');
+do $$ declare u uuid; v_cif text; r text; ok boolean; i int; begin
+  select id into u from usuarios where email = 'alta241@prueba.es';
+  select cif into v_cif from clientes where cif ~ '^[A-Z0-9]{6,20}$' order by creado_en limit 1;
+  if v_cif is null then raise exception 'FALLO 241 · no hay ningún cliente con CIF para la prueba'; end if;
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  r := buscar_empresa_de_mi_alta(lower(left(v_cif, 2)) || '-' || substr(v_cif, 3, 3) || '.' || substr(v_cif, 6));
+  if r <> 'encontrado' then raise exception 'FALLO 241 · no encuentra un CIF que ya es cliente (con guiones y minúsculas): %', r; end if;
+  r := buscar_empresa_de_mi_alta('ZZ24100000');
+  if r <> 'no_encontrado' then raise exception 'FALLO 241 · da por cliente un CIF que no lo es: %', r; end if;
+  if buscar_empresa_de_mi_alta('¿?') <> 'no_valido' or buscar_empresa_de_mi_alta(null) <> 'no_valido' then
+    raise exception 'FALLO 241 · acepta como CIF algo que no lo es';
+  end if;
+  if (select count(*) from clientes) <> 0 then raise exception 'FALLO 241 · quien tiene el alta pendiente ve clientes'; end if;
+  if (select count(*) from alta_busquedas_cif) <> 0 then raise exception 'FALLO 241 · quien tiene el alta pendiente lee las búsquedas'; end if;
+  ok := false;
+  begin insert into alta_busquedas_cif (usuario_id, cif, encontrado) values (u, 'ZZ24199999', false);
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 241 · se apunta búsquedas a mano, sin pasar por la función'; end if;
+  -- Tope: van 2 CIF distintos; 3 más llegan a 5 y el sexto ya no se contesta.
+  for i in 1..3 loop
+    if buscar_empresa_de_mi_alta('ZZ2410000' || i) <> 'no_encontrado' then raise exception 'FALLO 241 · la búsqueda % debía contestarse', i; end if;
+  end loop;
+  if buscar_empresa_de_mi_alta('ZZ24100009') <> 'tope' then raise exception 'FALLO 241 · deja sondear más de 5 CIF distintos al día'; end if;
+  if buscar_empresa_de_mi_alta(v_cif) <> 'encontrado' then raise exception 'FALLO 241 · con el tope alcanzado no deja repetir un CIF ya buscado'; end if;
+  reset role;
+  if (select count(*) from alta_busquedas_cif where usuario_id = u) <> 6 or (select count(*) from alta_busquedas_cif where usuario_id = u and encontrado) <> 2 then
+    raise exception 'FALLO 241 · las búsquedas no quedan apuntadas como deben';
+  end if;
+  -- Una cuenta ya activa no busca.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  ok := false;
+  begin perform buscar_empresa_de_mi_alta(v_cif); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 241 · una cuenta activa usa la búsqueda de empresa del alta'; end if;
+  reset role;
+  if has_function_privilege('anon', 'public.buscar_empresa_de_mi_alta(text)', 'execute') then
+    raise exception 'FALLO 241 · la búsqueda de empresa del alta se puede llamar sin sesión';
+  end if;
+  raise notice 'OK 241 · alta pendiente: busca su empresa por CIF, solo sabe si está o no, con tope de 5 CIF al día';
+end $$;
+reset role;

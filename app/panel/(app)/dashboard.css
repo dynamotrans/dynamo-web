@@ -4981,6 +4981,8 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .buscador-lista button:disabled { opacity: 0.55; cursor: not-allowed; }
 .buscador-lista button[aria-selected="true"] { background: rgba(51,0,204,0.10); }
 .buscador-nada { padding: 0.55rem 0.7rem; color: var(--gray-500); font-size: var(--fs-s); }
+/* Última opción fija de la lista («+ Crear nuevo cliente»): separada y en morado. */
+.buscador-lista button.buscador-extra { border-top: 1px solid var(--gray-200); border-radius: 0 0 8px 8px; margin-top: 0.2rem; color: var(--purple); }
 .buscador-elegido {
     display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
     min-height: 44px; padding: 0.3rem 0.4rem 0.3rem 0.8rem; border-radius: 10px; border: 1.5px solid var(--gray-200); background: #fff;

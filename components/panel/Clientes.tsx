@@ -156,9 +156,13 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
   );
 }
 
-function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; sectores: string[]; onCerrar: () => void; onGuardado: () => void }) {
+// Exportada (usuario, 2026-11-16): «Verificar alta» abre este MISMO formulario de Nuevo
+// cliente, ya relleno con los datos del registro (`inicial`), y recibe el cliente creado.
+export type ClienteCreado = { id: string; nombre_visible: string; cif: string };
+export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuardado, inicial }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; sectores: string[]; onCerrar: () => void;
+  onGuardado: (creado?: ClienteCreado) => void; inicial?: Partial<ClienteDatos> }) {
   const [d, setD] = useState<ClienteDatos>(() => {
-    if (!fila) return { ...NUEVO, factor_tarifa_pct: bienvenida.pct };
+    if (!fila) return { ...NUEVO, factor_tarifa_pct: bienvenida.pct, ...inicial };
     const o: Record<string, unknown> = {};
     (Object.keys(NUEVO) as (keyof ClienteDatos)[]).forEach((k) => { o[k] = fila[k] ?? NUEVO[k]; });
     return o as ClienteDatos;
@@ -191,7 +195,7 @@ function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuard
     });
     setGuardando(false);
     if (!r.ok) { setError(r.error); return; }
-    onGuardado();
+    onGuardado({ id: r.id, nombre_visible: d.nombre_comercial.trim() || d.razon_social.trim(), cif: d.cif.trim().toUpperCase() });
   }
 
   const campo = (id: keyof ClienteDatos, label: React.ReactNode, ph?: string, full?: boolean) => (

@@ -1,6 +1,6 @@
 import { fechaHora } from '@/lib/formato';
 import type { Perfil } from '@/lib/sesion';
-import Documentos from './Documentos';
+import EmpresaAlta from './EmpresaAlta';
 import { CONTACTO } from '@/lib/atencion';
 
 // Cuenta sin activar o suspendida: se avisa en lugar de enseñar datos. Mientras se
@@ -32,22 +32,9 @@ export default function AvisoCuenta({ perfil }: { perfil: Perfil | null }) {
   return (
     <section className="section active">
       <div className={`pt-aviso ${clase} cuenta-aviso`}><div><strong>{titulo}</strong> {texto}</div></div>
-      {pendiente && (
-        <div className="account-card" style={{ marginTop: '1rem' }}>
-          {/* Dos casos (usuario, 2026-11-16): quien entra sin empresa asociada o es de una
-              empresa que YA es cliente (y entonces solo espera a que se le asocie) o trae
-              una empresa nueva / es autónomo (y entonces sube su documentación). */}
-          <div className="account-card-title">Documentación del alta de nueva EMPRESA o AUTÓNOMO</div>
-          <p className="account-card-desc">
-            Sube la <strong>hoja del CIF</strong> y tu <strong>DNI</strong> (PDF o foto). Sin ellos el alta puede tardar más en verificarse.
-          </p>
-          <p className="account-card-desc" style={{ marginTop: '-0.3rem' }}>
-            ¿Tu empresa <strong>ya trabaja con Dynamo</strong>? Entonces no tienes que subir nada: tu usuario todavía no está asociado a ella.
-            Pide a quien lleva la cuenta en tu empresa que nos avise, o espera a que Dynamo te asocie.
-          </p>
-          <Documentos dueno={{ campo: 'usuario_id', id: perfil!.id }} tipos={['hoja_cif', 'dni', 'otro']} sinQuitar />
-        </div>
-      )}
+      {/* Por pasos (usuario, 2026-11-16): primero el CIF de su empresa. Si ya es cliente de
+          Dynamo, sigue sin rellenar nada; si no, alta de la empresa. Después, la documentación. */}
+      {pendiente && <EmpresaAlta usuarioId={perfil!.id} />}
     </section>
   );
 }

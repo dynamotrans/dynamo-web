@@ -25,16 +25,22 @@ async function sesion() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data: perfil } = await supabase.from('usuarios').select('id, rol, estado').eq('id', user.id).maybeSingle<{ id: string; rol: string; estado: string }>();
-  return perfil && perfil.estado === 'activa' ? { supabase, perfil } : null;
+  return perfil ? { supabase, perfil } : null;
 }
 const valido = (d: Dueno) => CAMPOS.includes(d.campo) && /^[0-9a-f-]{36}$/i.test(d.id);
+// ¿Puede esta cuenta tocar los documentos de ese dueño? Con la cuenta ACTIVA, lo que le
+// deje la base de datos. Con el ALTA PENDIENTE DE VERIFICAR, solo los documentos de su
+// PROPIA alta (hoja del CIF, DNI): antes se le exigía la cuenta activa y al subirlos le
+// salía «Tu sesión ha caducado» — justo a quien tiene que subirlos (usuario, 2026-11-16).
+const puede = (p: { id: string; estado: string }, d: Dueno) =>
+  p.estado === 'activa' || (p.estado === 'pendiente_verificacion' && d.campo === 'usuario_id' && d.id === p.id);
 // Nombre de fichero seguro para la ruta (sin tildes, espacios ni barras).
 const sano = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(-80) || 'documento';
 
 export async function documentosDe(d: Dueno): Promise<DocumentoFila[]> {
   comprobarEntrada("app/panel/(app)/documentos/acciones#documentosDe", [d]);
   const s = await sesion();
-  if (!s?.perfil || !valido(d)) return [];
+  if (!s?.perfil || !valido(d) || !puede(s.perfil, d)) return [];
   const { data } = await s.supabase.from('documentos').select('id, tipo, nombre_archivo, tamano_bytes, tipo_mime, visible_cliente, creado_en, creado_por')
     .eq(d.campo, d.id).eq('borrado', false).order('creado_en', { ascending: false });
   const ids = [...new Set((data ?? []).map((x) => x.creado_por).filter(Boolean))] as string[];
@@ -52,8 +58,9 @@ export async function documentosDe(d: Dueno): Promise<DocumentoFila[]> {
 export async function rutaDeSubida(d: Dueno, nombre: string): Promise<Res<{ ruta: string }>> {
   comprobarEntrada("app/panel/(app)/documentos/acciones#rutaDeSubida", [d, nombre]);
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!valido(d)) return { ok: false, error: 'No se sabe a qué pertenece el documento.' };
+  if (!puede(s.perfil, d)) return { ok: false, error: 'Tu cuenta no está activa: no puedes añadir este documento.' };
   const base = esGestor(s.perfil.rol) ? `${CARPETA[d.campo]}/${d.id}` : `u/${s.perfil.id}`;
   return { ok: true, ruta: `${base}/${randomUUID()}/${sano(nombre)}` };
 }
@@ -62,6 +69,7 @@ export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: stri
   comprobarEntrada("app/panel/(app)/documentos/acciones#registrarDocumento", [d, f]);
   const s = await sesion();
   if (!s?.perfil || !valido(d)) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  if (!puede(s.perfil, d)) return { ok: false, error: 'Tu cuenta no está activa: no puedes añadir este documento.' };
   const { error } = await s.supabase.from('documentos').insert({
     [d.campo]: d.id, tipo: f.tipo, storage_bucket: 'documentos', storage_ruta: f.ruta, nombre_archivo: f.nombre.slice(0, 200),
     tipo_mime: f.mime || null, tamano_bytes: f.tamano, sha256: /^[0-9a-f]{64}$/.test(f.sha256) ? f.sha256 : null,
@@ -79,7 +87,7 @@ export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: stri
 export async function quitarDocumento(id: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/documentos/acciones#quitarDocumento", [id]);
   const s = await sesion();
-  if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos.' };
   const { error } = await s.supabase.from('documentos').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id);
   return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }
@@ -87,7 +95,7 @@ export async function quitarDocumento(id: string): Promise<Res> {
 export async function visibleParaCliente(id: string, visible: boolean): Promise<Res> {
   comprobarEntrada("app/panel/(app)/documentos/acciones#visibleParaCliente", [id, visible]);
   const s = await sesion();
-  if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo decide qué ve el cliente.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo decide qué ve el cliente.' };
   const { error } = await s.supabase.from('documentos').update({ visible_cliente: visible }).eq('id', id);
   return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }

@@ -92,6 +92,102 @@ export async function cambiarMiEmail(nuevo: string, clave: string): Promise<{ ok
   return { ok: true };
 }
 
+// ---- LA EMPRESA DE MI ALTA (usuario, 2026-11-16) -----------------------------------------
+// El registro solo pide los datos de la PERSONA. Quien entra con el alta pendiente dice
+// primero de qué empresa es, escribiendo su CIF / NIF:
+//   · si ya es cliente de Dynamo → no rellena nada más: Dynamo le asocia al verificar;
+//   · si no → rellena el alta de la empresa (razón social, domicilio fiscal y contacto).
+// La búsqueda solo contesta «está / no está» (nunca el nombre ni datos del cliente) y tiene
+// tope diario: lo impone la base de datos (buscar_empresa_de_mi_alta). Lo que escribe se
+// guarda en los datos del alta del propio usuario (los que lee «Altas» de Dynamo); no crea
+// ni toca ningún cliente: eso lo hace Dynamo al verificar. Solo con el alta pendiente.
+export type EmpresaAlta = {
+  empresa: string; cif: string; pais: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string;
+  telefono: string; email: string;
+};
+export type PasoAlta = 'buscar' | 'existente' | 'nueva';
+export type MiAlta = { paso: PasoAlta; guardada: boolean; miEmail: string; d: EmpresaAlta };
+const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const cifLimpio = (v: string) => (v ?? '').toUpperCase().replace(/[\s.\-/]/g, '');
+
+export async function empresaDeMiAlta(): Promise<MiAlta | null> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#empresaDeMiAlta", []);
+  const s = await sesion();
+  if (!s?.perfil) return null;
+  const { data: { user } } = await s.supabase.auth.getUser();
+  const m = (user?.user_metadata ?? {}) as Record<string, unknown>;
+  const t = (k: string) => (typeof m[k] === 'string' ? (m[k] as string) : '');
+  const d: EmpresaAlta = {
+    empresa: t('empresa') || t('razon_social'), cif: t('cif'), pais: (t('pais') || 'ES').toUpperCase().slice(0, 2),
+    direccion: t('direccion'), codigo_postal: t('codigo_postal'), poblacion: t('poblacion'), provincia: t('provincia'),
+    telefono: t('empresa_telefono'), email: t('empresa_email'),
+  };
+  const paso: PasoAlta = !d.cif ? 'buscar' : t('alta_paso') === 'existente' ? 'existente' : 'nueva';
+  return { paso, guardada: paso === 'nueva' && !!d.empresa && !!d.direccion, miEmail: user?.email ?? s.perfil.email ?? '', d };
+}
+
+// Paso 1: ¿ese CIF / NIF es ya de un cliente? Deja apuntado en el alta el CIF y el camino.
+export async function buscarEmpresaDeMiAlta(cif: string, pais: string): Promise<{ ok: true; paso: 'existente' | 'nueva'; cif: string; pais: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#buscarEmpresaDeMiAlta", [cif, pais]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  if (s.perfil.estado !== 'pendiente_verificacion') return { ok: false, error: 'Tu alta ya está verificada.' };
+  const p = /^[A-Za-z]{2}$/.test(pais) ? pais.toUpperCase() : 'ES';
+  if (!cifLimpio(cif)) return { ok: false, error: 'Escribe el CIF / NIF de tu empresa (o tu NIF si eres autónomo).' };
+  const { validaIdFiscalPais } = await import('@/lib/idFiscal');
+  const fiscal = validaIdFiscalPais(cif, p);
+  if (!fiscal || !fiscal.ok) return { ok: false, error: `El CIF / NIF no es válido${fiscal?.msg ? ` (${fiscal.msg})` : ''}. Revísalo.` };
+  const limpio = cifLimpio(cif);
+  const { data, error } = await s.supabase.rpc('buscar_empresa_de_mi_alta', { p_cif: limpio });
+  if (error) return { ok: false, error: mensajeError(error.message) };
+  if (data === 'tope') return { ok: false, error: `Has hecho demasiadas búsquedas hoy. Escríbenos a ${CONTACTO.email} o llámanos al ${CONTACTO.telefono} y terminamos tu alta contigo.` };
+  if (data !== 'encontrado' && data !== 'no_encontrado') return { ok: false, error: 'El CIF / NIF no es válido. Revísalo.' };
+  const { data: { user } } = await s.supabase.auth.getUser();
+  const mismo = cifLimpio(String((user?.user_metadata ?? {}).cif ?? '')) === limpio;
+  // Empresa que ya es cliente, o CIF distinto del que tenía: lo que hubiera escrito de otra empresa ya no vale.
+  const vaciar = data === 'encontrado' || !mismo
+    ? { empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', empresa_telefono: '', empresa_email: '' } : {};
+  const paso = data === 'encontrado' ? 'existente' as const : 'nueva' as const;
+  const g = await s.supabase.auth.updateUser({ data: { ...vaciar, cif: limpio, pais: p, alta_paso: paso } });
+  if (g.error) return { ok: false, error: mensajeError(g.error.message) };
+  return { ok: true, paso, cif: limpio, pais: p };
+}
+
+// Paso 2 (solo empresa nueva): sus datos. Todo obligatorio (usuario, 2026-11-16).
+export async function guardarEmpresaDeMiAlta(d: EmpresaAlta): Promise<{ ok: true; paso: 'existente' | 'nueva' } | { ok: false; error: string; campo?: keyof EmpresaAlta }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarEmpresaDeMiAlta", [d]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  if (s.perfil.estado !== 'pendiente_verificacion') return { ok: false, error: 'Tu alta ya está verificada: los datos de la empresa los cambia Dynamo.' };
+  const limpio = (v: string, max: number) => (v ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
+  const empresa = limpio(d.empresa, 200), pais = /^[A-Za-z]{2}$/.test(d.pais) ? d.pais.toUpperCase() : 'ES';
+  if (empresa.length < 2) return { ok: false, campo: 'empresa', error: 'Escribe la razón social de la empresa (o tu nombre y apellidos si eres autónomo).' };
+  const { validaIdFiscalPais } = await import('@/lib/idFiscal');
+  const fiscal = validaIdFiscalPais(d.cif, pais);
+  if (!fiscal || !fiscal.ok) return { ok: false, campo: 'cif', error: `El CIF / NIF no es válido${fiscal?.msg ? ` (${fiscal.msg})` : ''}. Revísalo.` };
+  const direccion = limpio(d.direccion, 200), cp = limpio(d.codigo_postal, 12), poblacion = limpio(d.poblacion, 100), provincia = limpio(d.provincia, 100);
+  if (direccion.length < 3) return { ok: false, campo: 'direccion', error: 'Escribe la dirección fiscal (calle y número).' };
+  if (!/^[A-Za-z0-9 -]{3,12}$/.test(cp)) return { ok: false, campo: 'codigo_postal', error: 'Escribe el código postal.' };
+  if (poblacion.length < 2) return { ok: false, campo: 'poblacion', error: 'Escribe la población.' };
+  if (provincia.length < 2) return { ok: false, campo: 'provincia', error: 'Escribe la provincia.' };
+  const tel = normalizaTel(d.telefono);
+  if (!tel || !/^\+?[0-9]{6,15}$/.test(tel)) return { ok: false, campo: 'telefono', error: 'Escribe el teléfono de la empresa: solo números, con el prefijo del país.' };
+  const email = limpio(d.email, 200).toLowerCase();
+  if (!EMAIL_OK.test(email)) return { ok: false, campo: 'email', error: 'Escribe un email válido de la empresa.' };
+  // Por si el CIF se ha dado de alta como cliente entretanto: entonces no hace falta nada de esto.
+  const cif = cifLimpio(d.cif);
+  const { data: hay } = await s.supabase.rpc('buscar_empresa_de_mi_alta', { p_cif: cif });
+  if (hay === 'encontrado') {
+    const g = await s.supabase.auth.updateUser({ data: { cif, pais, alta_paso: 'existente', empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', empresa_telefono: '', empresa_email: '' } });
+    return g.error ? { ok: false, error: mensajeError(g.error.message) } : { ok: true, paso: 'existente' };
+  }
+  const { error } = await s.supabase.auth.updateUser({ data: {
+    empresa, cif, pais, direccion, codigo_postal: cp, poblacion, provincia, empresa_telefono: tel, empresa_email: email, alta_paso: 'nueva',
+  } });
+  if (error) return { ok: false, error: mensajeError(error.message) };
+  return { ok: true, paso: 'nueva' };
+}
+
 // ---- El TRANSPORTISTA cambia lo operativo de su empresa y su flota -----------------------
 // Lo fiscal (razón social, CIF, dirección), la bolsa y el plazo de pago solo los cambia
 // Dynamo: lo impone la base de datos (funciones mi_* con lista cerrada de campos).

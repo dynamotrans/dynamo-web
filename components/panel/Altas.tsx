@@ -3,24 +3,26 @@
 // Altas pendientes (solo Dynamo), con el diseño de #sec-altas de dashboard.html: clientes
 // que se han registrado en el portal y transportistas dados de alta desde una carga. Al confirmar se le asocia su empresa
 // (una que ya existe o una nueva con lo que escribió) y la cuenta queda activa.
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { confirmarAlta, crearEmpresaDesdeAlta, suspenderAlta, type NuevaEmpresa } from '@/app/panel/(app)/altas/acciones';
+import { confirmarAlta, suspenderAlta } from '@/app/panel/(app)/altas/acciones';
+import Buscador from './Buscador';
+import { FichaCliente, type Bienvenida } from './Clientes';
+import { CONTACTO_VACIO } from '@/lib/contactos';
 
 import { fecha, euros, fechaHora } from '@/lib/formato';
 import { estadoCola, duracionTxt, COLA_OBJETIVO_TXT } from '@/lib/colaAltas';
 import { resolverContraoferta } from '@/app/panel/(app)/envios/acciones';
 import { telBonito } from '@/lib/paises';
-import SelectorPais from '@/components/SelectorPais';
-// Etiquetas según el criterio único (usuario, 2026-11-09).
-import Req from '@/components/Req';
 
 export type AltaFila = {
   id: string; email: string; nombre: string; telefono: string; documento: string; documento_pais: string; solicitada_en: string; confirmado_email: boolean;
   empresa: string; cif: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string;
+  empresa_telefono: string; empresa_email: string;
+  camino: '' | 'existente' | 'nueva';   // lo que salió al buscar su CIF en su pantalla de alta
 };
 // Transportista dado de alta online desde el enlace de una carga (solo bolsas Alpega).
 export type AltaTransportista = {
@@ -54,8 +56,11 @@ function Reloj({ desde, fest, ahora }: { desde: string; fest: Set<string>; ahora
   );
 }
 
-export default function Altas({ filas, transportistas = [], festivos = [], clientes, error }: {
-  filas: AltaFila[]; transportistas?: AltaTransportista[]; festivos?: string[]; clientes: Cliente[]; error: string | null;
+// Lo que necesita el formulario completo de «Nuevo cliente» (el mismo de Clientes).
+export type ParaCliente = { bienvenida: Bienvenida; empleados: { id: string; nombre: string }[]; sectores: string[] };
+
+export default function Altas({ filas, transportistas = [], festivos = [], clientes, error, paraCliente }: {
+  filas: AltaFila[]; transportistas?: AltaTransportista[]; festivos?: string[]; clientes: Cliente[]; error: string | null; paraCliente: ParaCliente;
 }) {
   const refrescar = useRefrescar();
   const [q, setQ] = useState('');
@@ -126,7 +131,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
           </tbody>
         </table>
       </div>
-      {ver && <FichaAlta a={ver} clientes={clientes} onCerrar={() => setVer(null)} onHecho={() => { setVer(null); refrescar(); }} />}
+      {ver && <FichaAlta a={ver} clientes={clientes} paraCliente={paraCliente} onCerrar={() => setVer(null)} onHecho={() => { setVer(null); refrescar(); }} />}
       {verT && <FichaAltaTransportista t={verT} onCerrar={() => setVerT(null)} onHecho={() => { setVerT(null); refrescar(); }} />}
     </section>
   );
@@ -177,14 +182,20 @@ function FichaAltaTransportista({ t, onCerrar, onHecho }: { t: AltaTransportista
   );
 }
 
-function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: Cliente[]; onCerrar: () => void; onHecho: () => void }) {
+function FichaAlta({ a, clientes, paraCliente, onCerrar, onHecho }: { a: AltaFila; clientes: Cliente[]; paraCliente: ParaCliente; onCerrar: () => void; onHecho: () => void }) {
   // Si su CIF ya es de un cliente, lo normal es asociarla a ese (regla 10: un CIF, un cliente).
   const coincide = a.cif ? clientes.find((c) => norm(c.cif) === norm(a.cif)) ?? null : null;
   const [clienteId, setClienteId] = useState(coincide?.id ?? '');
   const [lista, setLista] = useState<Cliente[]>(clientes);   // los clientes del selector (+ el que se cree aquí)
   const [crearAbierto, setCrearAbierto] = useState(false);
-  const [n, setN] = useState<NuevaEmpresa>({ razon_social: a.empresa, cif: a.cif, direccion: a.direccion, codigo_postal: a.codigo_postal,
-    poblacion: a.poblacion, provincia: a.provincia, pais_codigo_iso: a.pais.length === 2 ? a.pais.toUpperCase() : 'ES' });
+  // BUSCADOR en vez de desplegable (usuario, 2026-11-16: con miles de clientes el <select> no
+  // se podía usar): escribe el nombre o el CIF y salen los que casan, 12 como mucho.
+  const elegido = useMemo(() => { const c = lista.find((x) => x.id === clienteId); return c ? { id: c.id, nombre: c.nombre_visible, cif: c.cif } : null; }, [lista, clienteId]);
+  const buscarCliente = useCallback(async (q: string) => {
+    const t = norm(q);
+    return (t ? lista.filter((c) => norm(c.nombre_visible).includes(t) || norm(c.cif).includes(t)) : lista)
+      .slice(0, 12).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif }));
+  }, [lista]);
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [preguntaSuspender, setPreguntaSuspender] = useState(false);
@@ -196,15 +207,6 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
     setTrabajando(null);
     if (!r.ok) { setError(r.error); return; }
     onHecho();
-  }
-  async function crearEmpresa() {
-    setError(null); setTrabajando('Creando la empresa');
-    const r = await crearEmpresaDesdeAlta(n);
-    setTrabajando(null);
-    if (!r.ok) { setError(r.error); return; }
-    setLista((l) => [r.cliente, ...l.filter((c) => c.id !== r.cliente.id)]);
-    setClienteId(r.cliente.id);
-    setCrearAbierto(false);
   }
   async function suspender() {
     setTrabajando('Suspendiendo');
@@ -227,12 +229,6 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
     );
   }
 
-  const campo = (k: keyof NuevaEmpresa, label: React.ReactNode, full = false) => (
-    <div style={full ? { gridColumn: '1/-1' } : undefined}>
-      <label htmlFor={`alta-${k}`}>{label}</label>
-      <input id={`alta-${k}`} type="text" value={n[k]} onChange={(e) => setN((x) => ({ ...x, [k]: e.target.value }))} />
-    </div>
-  );
   return (
     <Modal abierto titulo={`Verificar alta de cliente — ${a.email}`} sub={`Solicitada el ${fechaHora(a.solicitada_en)}`} icono={<IcoUsuario />} onCerrar={onCerrar} ancho={720}
       pie={<>
@@ -250,45 +246,44 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
         {fila('Empresa / Razón social', a.empresa)}
         {fila('CIF', a.cif)}
         {fila('Dirección fiscal', [a.direccion, a.codigo_postal, a.poblacion, a.provincia].filter(Boolean).join(', '))}
+        {fila('Teléfono de la empresa', a.empresa_telefono ? telBonito(a.empresa_telefono) : '')}
+        {fila('Email de la empresa', a.empresa_email)}
       </div>
       <div className="ptar-section-head" style={{ marginTop: '1rem' }}>Documentación que ha subido</div>
       <div style={{ marginTop: '0.4rem' }}><Documentos dueno={{ campo: 'usuario_id', id: a.id }} tipos={['hoja_cif', 'dni', 'otro']} editable={false} /></div>
 
       <div className="ptar-section-head" style={{ marginTop: '1rem' }}>Empresa de la cuenta</div>
+      {!coincide && a.camino === 'existente' && <div className="pt-aviso error" style={{ margin: '0.5rem 0' }}><div>Al darse de alta, su CIF salió como cliente ya existente, pero ahora no coincide con ninguno. Búscalo a mano o revísalo con la persona.</div></div>}
       {coincide && <div className="pt-aviso" style={{ margin: '0.5rem 0' }}><div>Su CIF ya es de <strong>{coincide.nombre_visible}</strong>: lo normal es asociarla a esa empresa (un CIF solo puede ser cliente una vez).</div></div>}
-      {/* Un único selector: se busca el cliente y, si no está, la última opción crea uno nuevo. */}
-      <select className="ptar-select" style={{ marginTop: '0.5rem' }} value={clienteId} aria-label="Cliente"
-        onChange={(e) => { if (e.target.value === '__nuevo__') setCrearAbierto(true); else setClienteId(e.target.value); }}>
-        <option value="">Selecciona el cliente…</option>
-        {lista.map((c) => <option key={c.id} value={c.id}>{c.nombre_visible} · {c.cif}</option>)}
-        <option value="__nuevo__">➕ Crear un cliente nuevo con sus datos…</option>
-      </select>
+      {/* Se busca el cliente escribiendo; si no está, la última opción de la lista abre el
+          formulario completo de «Nuevo cliente», ya relleno con lo que envió en su alta. */}
+      <div style={{ marginTop: '0.5rem' }}>
+        <Buscador id="alta-cliente" valor={elegido} buscar={buscarCliente} onElegir={(o) => setClienteId(o?.id ?? '')}
+          placeholder="Busca el cliente por nombre o CIF…" vacio="Ningún cliente coincide con eso."
+          extra={{ texto: '+ Crear nuevo cliente', onClick: () => { setError(null); setCrearAbierto(true); } }} />
+      </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Al confirmar, la cuenta queda <strong>activa</strong> y ya puede entrar. Las condiciones del cliente (plazo de pago, crédito, factor…) se completan en <strong>Clientes</strong>.</p>
-      {error && !crearAbierto && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
-      {trabajando && !crearAbierto && <Cargando texto={trabajando} />}
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {trabajando && <Cargando texto={trabajando} />}
 
       {crearAbierto && (
-        <Modal abierto titulo="Crear un cliente nuevo" sub="Con los datos del registro; luego se asocia a esta cuenta." icono={<IcoUsuario />} ancho={620}
-          onCerrar={() => { if (!trabajando) { setError(null); setCrearAbierto(false); } }}
-          pie={<>
-            <button className="btn-ghost" onClick={() => { setError(null); setCrearAbierto(false); }} disabled={!!trabajando}>Cancelar</button>
-            <button className="btn-primary" onClick={crearEmpresa} disabled={!!trabajando || !n.razon_social.trim() || !n.cif.trim()}>Crear y seleccionar</button>
-          </>}>
-          <div className="ptar-sitio-grid">
-            {campo('razon_social', <>Razón social <Req /></>, true)}
-            {campo('cif', <>CIF / NIF <Req /></>)}
-            <div>
-              <label htmlFor="alta-pais">País</label>
-              <SelectorPais id="alta-pais" valor={n.pais_codigo_iso} onCambio={(v) => setN((x) => ({ ...x, pais_codigo_iso: v }))} />
-            </div>
-            {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, true)}
-            {campo('codigo_postal', <>Código postal <Req si={false} /></>)}
-            {campo('poblacion', <>Población <Req si={false} /></>)}
-            {campo('provincia', <>Provincia <Req si={false} /></>)}
-          </div>
-          {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
-          {trabajando && <Cargando texto={trabajando} />}
-        </Modal>
+        <FichaCliente fila={null} bienvenida={paraCliente.bienvenida} empleados={paraCliente.empleados} sectores={paraCliente.sectores}
+          inicial={{
+            razon_social: a.empresa, cif: a.cif, direccion: a.direccion, codigo_postal: a.codigo_postal, poblacion: a.poblacion, provincia: a.provincia,
+            pais_codigo_iso: a.pais.length === 2 ? a.pais.toUpperCase() : 'ES',
+            // La persona que se ha registrado, como primer contacto de la empresa; y el
+            // teléfono y email generales de la empresa, si dio otros, como segundo.
+            contactos: [
+              { ...CONTACTO_VACIO(), nombre: a.nombre, telefono: a.telefono || a.empresa_telefono, email: a.email },
+              ...((a.empresa_email && a.empresa_email.toLowerCase() !== a.email.toLowerCase()) || (a.empresa_telefono && a.telefono && a.empresa_telefono !== a.telefono)
+                ? [{ ...CONTACTO_VACIO(), nombre: a.empresa || 'Empresa', telefono: a.empresa_telefono, email: a.empresa_email }] : []),
+            ],
+          }}
+          onCerrar={() => setCrearAbierto(false)}
+          onGuardado={(c) => {
+            setCrearAbierto(false);
+            if (c) { setLista((l) => [c, ...l.filter((x) => x.id !== c.id)]); setClienteId(c.id); }
+          }} />
       )}
     </Modal>
   );

@@ -109,6 +109,38 @@ export type Database = {
           },
         ]
       }
+      alta_busquedas_cif: {
+        Row: {
+          id: string
+          usuario_id: string
+          cif: string
+          encontrado: boolean
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          usuario_id: string
+          cif: string
+          encontrado: boolean
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          usuario_id?: string
+          cif?: string
+          encontrado?: boolean
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alta_busquedas_cif_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auditoria: {
         Row: {
           id: number
@@ -3601,6 +3633,7 @@ export type Database = {
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       borrar_transportista: { Args: { p_id: string | null }; Returns: Json }
       buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string; nima_por_defecto: boolean }[] }
+      buscar_empresa_de_mi_alta: { Args: { p_cif: string | null }; Returns: string }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }
       buscar_envios_pagina: { Args: { p_q?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null; p_operador?: string | null; p_creado_por?: string | null; p_estado?: string | null }; Returns: { id: string; total: number }[] }
       buscar_persona: { Args: { p_texto: string | null }; Returns: { tipo: string; id: string; nombre: string; email: string; telefono: string; documento: string; empresa: string; estado: string }[] }

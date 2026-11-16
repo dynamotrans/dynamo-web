@@ -7,12 +7,15 @@ import { useEffect, useRef, useState } from 'react';
 
 export type Opcion = { id: string; nombre: string; cif: string; detalle?: string | null; deshabilitada?: boolean };
 
-export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir, placeholder = 'Escribe el nombre o el CIF…', vacio = 'Ninguna empresa coincide.', autoFoco }: {
+export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir, placeholder = 'Escribe el nombre o el CIF…', vacio = 'Ninguna empresa coincide.', autoFoco, extra }: {
   id?: string;
   valor: T | null;                       // la elegida (o nada)
   buscar: (q: string) => Promise<T[]>;   // acción del servidor
   onElegir: (o: T | null) => void;
   placeholder?: string; vacio?: string; autoFoco?: boolean;
+  // Última opción FIJA de la lista, salga lo que salga (usuario, 2026-11-16): «+ Crear
+  // nuevo cliente» cuando el que se busca no está.
+  extra?: { texto: string; onClick: () => void };
 }) {
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
@@ -66,6 +69,12 @@ export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir
             </button>
           ))}
           {opciones && opciones.length >= 12 && <div className="buscador-nada">Hay más: escribe algo más del nombre o del CIF.</div>}
+          {extra && (
+            <button type="button" className="buscador-extra" onMouseDown={(ev) => ev.preventDefault()}
+              onClick={() => { setAbierto(false); setQ(''); extra.onClick(); }}>
+              <strong>{extra.texto}</strong>
+            </button>
+          )}
         </div>
       )}
     </div>
