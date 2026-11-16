@@ -49,7 +49,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
       </div>
     );
   };
-  // INFORMACIÓN FIJA DEL SITIO: UN solo campo, «Indicaciones del sitio» (usuario,
+  // LO FIJO DEL SITIO: UN solo campo, sin título propio y justo después del horario, «Indicaciones del sitio» (usuario,
   // 2026-11-16: antes eran dos, con «Info mercancía por defecto»). Plegable y editable aquí
   // mismo; se guarda en la ficha del sitio y vale para TODOS sus envíos. Lo puntual de este
   // envío va en el detalle de abajo. En los almacenes de Dynamo se ve pero no se toca.
@@ -59,7 +59,6 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
       return <div className="full"><label>Indicaciones del sitio</label><textarea className="campo-texto sitio-f-lock" rows={2} value={f.notas} readOnly tabIndex={-1} /></div>;
     }
     return (<>
-      <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Información fija del sitio</div>
       {opc(`${p.k}:ind`, <>Indicaciones del sitio <Req si={false} /><span style={{ color: 'var(--gray-500)', fontWeight: 600 }}> · vale para TODOS los envíos del sitio</span></>, f.notas, (<>
         <textarea className="campo-texto" rows={3} value={f.notas} placeholder={'Ej. "cargar por muelle 3", "traer 14 cintas de amarre", "preguntar por Paco para cargas"'}
           onChange={(e) => set(p, { notas: e.target.value })} />
@@ -169,11 +168,11 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} /></div>
                   {citaBloque}
                   {f.horario.length > 0 && <div className="full"><label>Horario</label><input className="sitio-f-lock" value={resumenHorario(f.horario)} readOnly tabIndex={-1} /></div>}
+                  {fijos(p, f, true)}
                   {/* El nombre va ANTES del teléfono también aquí (usuario, 2026-11-10). */}
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
                   {f.telefono && <div><label>Teléfono</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
-                  {fijos(p, f, true)}
                 </>) : (<>
                   {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
                       2026-11-09): empresa y tipo, dirección (del paso 1), contacto
@@ -200,6 +199,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {horAbierto.has(p.k) && <div className="full ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
                     <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} />
                   </div>}
+                  {/* Las indicaciones del sitio, justo DESPUÉS del horario y sin título propio
+                      (usuario, 2026-11-16). */}
+                  {!f.nuevo && fijos(p, f, false)}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
                   {/* El nombre va ANTES de los campos de teléfono (usuario, 2026-11-09). */}
                   {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
@@ -233,7 +235,6 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                       <span className="cp-ico" aria-hidden="true">+</span><span className="cp-txt">Añadir contacto adicional</span>
                     </button>
                   </div>}
-                  {!f.nuevo && fijos(p, f, false)}
                   {/* El enlace de Google Maps NO se muestra ni se edita aquí (usuario,
                       2026-11-09): se gestiona en la sección Sitios y se conserva al guardar. */}
                 </>)}

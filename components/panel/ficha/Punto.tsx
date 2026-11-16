@@ -40,7 +40,6 @@ export function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'en
         {p.referencia && <div style={{ fontSize: 'var(--fs-m)', marginTop: 2 }}>Referencia: <strong>{p.referencia}</strong></div>}
         {s?.anotaciones && (
           <div style={{ marginTop: 6, borderLeft: '3px solid var(--purple)', background: '#f4f2fb', borderRadius: 8, padding: '0.4rem 0.6rem', fontSize: 'var(--fs-m)' }}>
-            <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>Información fija del sitio</div>
             <div style={{ whiteSpace: 'pre-line' }}><strong>Indicaciones del sitio:</strong> {s.anotaciones}</div>
           </div>
         )}

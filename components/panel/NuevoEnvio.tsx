@@ -10,6 +10,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
+import MedidasCamion from './nuevoEnvio/MedidasCamion';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
@@ -93,6 +94,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // ---- Paso 2: mercancía
   const [paletizada, setPaletizada] = useState(be ? be.paletizado !== false : true);
   const [plataforma, setPlataforma] = useState(!!be?.requiere_plataforma_elevadora);
+  const [verMedidas, setVerMedidas] = useState(false);   // ventana «Medidas y peso máximo»
   const mlMax = plataforma ? 8 : 13;
   const pesoMax = plataforma ? 14 : 24;
   const [ml, setMl] = useState(() => opcionCercana(be?.metros_lineales, be?.requiere_plataforma_elevadora ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '13.3'], be?.requiere_plataforma_elevadora ? '8' : '13.3'));
@@ -1081,9 +1083,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     {/* Altura máxima SIEMPRE visible (usuario, 2026-11-12): que el cliente sepa
                         el espacio que contrata. Tráiler 2,70 m; con plataforma elevadora va en
                         camión rígido y baja a 2,60 m. */}
-                    <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600, marginTop: '0.25rem' }}>
+                    {/* Es un ENLACE (usuario, 2026-11-16): abre la ventana con las medidas y el
+                        peso máximo de los dos camiones, ya en el de este envío. */}
+                    <button type="button" onClick={() => setVerMedidas(true)} title="Ver medidas y peso máximo del camión"
+                      style={{ display: 'block', background: 'none', border: 'none', padding: 0, marginTop: '0.25rem', font: 'inherit', fontSize: 'var(--fs-s)', fontWeight: 600, color: 'var(--purple)', textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>
                       Altura máxima de la mercancía: <strong>{plataforma ? '2,60 m' : '2,70 m'}</strong>{plataforma ? ' (camión rígido con plataforma elevadora)' : ' (tráiler)'}
-                    </div>
+                    </button>
+                    {verMedidas && <MedidasCamion inicial={plataforma ? 'rigido' : 'trailer'} onCerrar={() => setVerMedidas(false)} />}
                   </div>
                   <div className="ptar-field-full">
                     <label className="ptar-mlabel" htmlFor="ne-peso">Peso de la mercancía</label>
