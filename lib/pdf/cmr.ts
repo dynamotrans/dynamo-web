@@ -543,6 +543,21 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       }
       l.y = Math.max(l.y, qrCardTop + qrCardH) + 8;
     } else { l.y += 4; }
+    // FRASE DE ENLACE para quien firma solo en papel (usuario, 2026-11-16): mientras quede
+    // algún sitio sin firmar, la hoja lleva escrita la frase que el conductor copia en el
+    // CMR en papel («CMR bis»). Con ella el papel queda atado a ESTE CMR y lo completa.
+    if (!manual && d.paradas.some((p) => !firmaDe(p.tipo === 'carga' ? 'remitente' : 'destinatario', p.id))) {
+      const frase = `«Complementa al CMR electrónico nº ${e.referencia_gx ?? ''}»`;
+      const txt = l.partir('Puede firmar un CMR en papel. El conductor escribe a mano en ese papel la frase de arriba, y quien firma pone su nombre, '
+        + 'documento, fecha, hora y sello. El papel se añade a este CMR como anexo (CMR bis) y lo completa: las firmas digitales no cambian.', 6.8, l.ancho - 20);
+      const alto = 8 + 10 + 12 + txt.length * 8.4 + 5;
+      l.rect(l.x0, l.y, l.ancho, alto, COLOR.ambarSuave, COLOR.ambar);
+      l.texto(l.x0 + 10, l.y + 14, '¿Alguien no firma en el móvil? Copie esta frase en el CMR en papel:', 7.6, { bold: true, color: COLOR.navy });
+      l.texto(l.x0 + 10, l.y + 27, frase, 9, { bold: true, color: COLOR.tinta });
+      let yF = l.y + 31;
+      for (const ln of txt) { l.texto(l.x0 + 10, yF + 6.8, ln, 6.8, { color: COLOR.gris }); yF += 8.4; }
+      l.y += alto + 8;
+    }
     if (!firmas.length) {
       l.texto(l.x0, l.y + 10, 'Aún no hay ninguna firma registrada.', 9, { bold: true });
       for (const ln of l.partir('Cada firma quedará aquí con su trazo, la casilla y parada que firma, el nombre y documento de quien firma, la fecha y hora del servidor, su ubicación GPS con la dirección (si da permiso) y la huella SHA-256 de lo firmado.', 8, l.ancho)) {
