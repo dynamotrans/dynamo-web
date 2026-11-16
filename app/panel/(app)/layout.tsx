@@ -39,6 +39,9 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   const vista = await vistaDe(supabase, perfil?.rol);
   const vCli = dynamo && vista.tipo === 'cliente' ? vista.id : null;
   const vTra = dynamo && vista.tipo === 'transportista' ? vista.id : null;
+  // El logo de la empresa del cliente (si lo tiene), para el círculo de arriba. Se lanza ya,
+  // en paralelo con lo demás.
+  const logoP = activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_logo_empresa') : null;
   const [mantR, cont, cob, fes, usoR] = await Promise.all([
     supabase.rpc('mantenimiento_activo'),
     activa ? supabase.rpc('contadores_panel', { p_cliente: vCli, p_transportista: vTra }) : Promise.resolve({ data: null }),
@@ -51,6 +54,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     // Para el pre-aviso del 80 % del cupo del día (solo clientes).
     activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_autosuspension', { p_cliente: null }) : Promise.resolve({ data: null }),
   ]);
+  const logoDoc = logoP ? (((await logoP).data as string | null) ?? null) : null;
   // PRE-AVISO al 80 % del cupo del día (usuario, 2026-11-11): que la suspensión
   // automática (reglas 3 y 6) nunca pille por sorpresa a un cliente legítimo. Los
   // números no son secreto para él: su página «Uso de Dynamo» ya se los enseña.
@@ -86,7 +90,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
            empresa={empresa} empresaCif={empresaCif}
            // El distintivo de arriba es de la EMPRESA: logo si lo hay (hoy, el de Dynamo para su
            // equipo; clientes y transportistas aún no tienen logo), y si no, sus iniciales.
-           iniciales={iniciales(empresa.replace(/[^\p{L}\p{N}\s]/gu, ' '), user.email ?? '')} logo={dynamo ? '/images/dynamo-logo-sq.png' : null}
+           iniciales={iniciales(empresa.replace(/[^\p{L}\p{N}\s]/gu, ' '), user.email ?? '')} logo={dynamo ? '/images/dynamo-logo-sq.png' : null} logoDoc={logoDoc}
            contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}
            vista={vista} verComo={dynamo && activa}>
       {mant && (

@@ -8,6 +8,7 @@ import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
+import LogoEditor from './LogoEditor';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import Cargando from '@/components/Cargando';
@@ -240,6 +241,11 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
           Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
         </div>
       )}
+      {/* Logo de la empresa (usuario, 2026-11-16): sale arriba en el panel del cliente. Con
+          el mismo editor que el logo de un transportista propio. */}
+      {fila
+        ? <div style={{ marginBottom: '0.9rem' }}><LogoEditor dueno={{ campo: 'cliente_id', id: fila.id }} etiqueta={<>Logo de la empresa <Req si={false} /></>} uso="arriba, en el panel del cliente" /></div>
+        : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0 0 0.7rem' }}>El logo de la empresa se puede añadir al abrir su ficha, una vez creado el cliente.</p>}
       <div className="ptar-sitio-grid">
         {titulo('Empresa')}
         {campo('razon_social', <>Razón social <Req /></>, 'Ej. Marbex Industrial S.L.', true)}

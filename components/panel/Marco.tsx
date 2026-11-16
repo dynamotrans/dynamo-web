@@ -73,12 +73,27 @@ const Chev = ({ cls, size = 12, w = 3 }: { cls: string; size?: number; w?: numbe
 
 type Props = {
   rol: Rol; nombre: string; email: string; empresa: string; empresaCif?: string | null; iniciales: string; logo?: string | null;
+  logoDoc?: string | null;   // documentos.id del logo de la empresa del cliente (se descarga una vez y se pinta de memoria)
   contadores?: Contadores; cobertura?: Cobertura; festivos?: string[];
   vista?: Vista; verComo?: boolean;
   children: React.ReactNode;
 };
 
-export default function Marco({ rol, nombre, email, empresa, empresaCif = null, iniciales, logo = null, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
+export default function Marco({ rol, nombre, email, empresa, empresaCif = null, iniciales, logo = null, logoDoc = null, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
+  // Logo de la empresa del cliente: es un documento privado. El visor /panel/documentos/<id>
+  // no vale de src directo (no-store y varios saltos), así que se baja UNA vez por documento
+  // y se pinta desde memoria; al cambiarlo en Mi cuenta llega otro id y se vuelve a bajar.
+  const [logoBlob, setLogoBlob] = useState<string | null>(null);
+  useEffect(() => {
+    if (!logoDoc) { setLogoBlob(null); return; }
+    let vivo = true; let u: string | null = null;
+    fetch(`/panel/documentos/${logoDoc}`).then((r) => (r.ok ? r.blob() : null)).then((b) => {
+      if (!b || !vivo) return;
+      u = URL.createObjectURL(b); setLogoBlob(u);
+    }).catch(() => { /* sin logo: se quedan las iniciales */ });
+    return () => { vivo = false; if (u) URL.revokeObjectURL(u); };
+  }, [logoDoc]);
+  const logoVisto = logo ?? logoBlob;
   // Menú del perfil que se está viendo (el equipo de Dynamo elige vista arriba).
   const menuVisto = useMemo(() => menuDe(rol, vista.tipo), [rol, vista.tipo]);
   // El perfil QUE SE VE manda en la campana y el CESCE: con «Ver como» un cliente, lo
@@ -372,7 +387,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
                       onClick={() => setMenu(menu === 'usuario' ? null : 'usuario')}>
                 {/* El distintivo es de la EMPRESA, no del usuario (usuario, 2026-11-16): su logo
                     si lo hay; si no, las iniciales de la empresa. */}
-                <div className="topbar-user-avatar notranslate" translate="no">{logo ? <img src={logo} alt="" /> : iniciales}</div>
+                <div className="topbar-user-avatar notranslate" translate="no">{logoVisto ? <img src={logoVisto} alt="" /> : iniciales}</div>
                 <div className="topbar-user-name">{nombre}</div>
                 <Chev cls="topbar-user-arrow" />
               </button>

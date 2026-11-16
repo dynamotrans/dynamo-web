@@ -1140,6 +1140,7 @@ export type Database = {
           es_recurso: boolean
           recurso_titulo: string | null
           recurso_descripcion: string | null
+          cliente_id: string | null
         }
         Insert: {
           id?: string
@@ -1167,6 +1168,7 @@ export type Database = {
           es_recurso?: boolean
           recurso_titulo?: string | null
           recurso_descripcion?: string | null
+          cliente_id?: string | null
         }
         Update: {
           id?: string
@@ -1194,6 +1196,7 @@ export type Database = {
           es_recurso?: boolean
           recurso_titulo?: string | null
           recurso_descripcion?: string | null
+          cliente_id?: string | null
         }
         Relationships: [
           {
@@ -1201,6 +1204,13 @@ export type Database = {
             columns: ["almacenamiento_id"]
             isOneToOne: false
             referencedRelation: "almacenamientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
           {
@@ -3823,6 +3833,7 @@ export type Database = {
       mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string }[] }
       mi_enlace_cmr: { Args: { p_envio: string | null }; Returns: string }
       mi_envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
+      mi_logo_empresa: { Args: Record<PropertyKey, never>; Returns: string }
       mi_valoracion_envio: { Args: { p_envio: string | null }; Returns: { puede: boolean; nota: number; comentario: string; valorado_en: string; editable: boolean }[] }
       mis_avisos: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; tipo: string; nivel: string; titulo: string; texto: string; enlace: string; creado_en: string; nuevo: boolean }[] }
       mis_envios: { Args: Record<PropertyKey, never>; Returns: { id: string; referencia_gx: string; referencia_cliente: string; estado: Database["public"]["Enums"]["estado_envio"]; estado_asignacion: Database["public"]["Enums"]["estado_asignacion"]; es_manual: boolean; operador_id: string; precio_acordado_operador: number; fecha_carga_desde: string; fecha_carga_hasta: string; fecha_carga_real: string; fecha_entrega_estimada: string; descripcion_mercancia: string; toneladas: number; metros_lineales: number; tipo_carga: Database["public"]["Enums"]["tipo_carga"]; paletizado: boolean; carga_lateral: boolean; carga_techo: boolean; carga_trasera: boolean; requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean; codigo_postal_origen: string; poblacion_origen: string; codigo_postal_destino: string; poblacion_destino: string; num_paradas: number; importe_cliente: number; moneda: string; iva_pct: number; anotaciones_cliente: string; discrecion_comercial: boolean; matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string; creado_en: string; modificado_en: string; confirmado_en: string; asignado_en: string; cargado_en: string; entregado_en: string; cancelado_en: string; paradas: Json; estado_solicitud: string; precio_caduca_en: string; condiciones_aceptadas_en: string }[] }
@@ -3881,6 +3892,7 @@ export type Database = {
       proponer_cambio_transportista: { Args: { p_envio: string | null; p_precio_antes: number | null; p_precio_ahora: number | null; p_detalle: string | null }; Returns: Json }
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
+      quitar_logo: { Args: { p_documento: string | null }; Returns: undefined }
       quitar_transportista: { Args: { p_envio: string | null }; Returns: Json }
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }

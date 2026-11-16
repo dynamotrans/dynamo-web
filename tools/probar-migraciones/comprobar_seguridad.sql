@@ -11366,3 +11366,67 @@ do $$ declare cli uuid := current_setting('prueba.cli264')::uuid; a uuid := curr
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 265. Logo de la empresa del cliente, y el cliente quita sus logos (y solo los suyos) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; o uuid; begin
+  insert into operadores (cliente_id, razon_social) values (cli, 'Transportes Propios 265') returning id into o;
+  perform set_config('prueba.o265', o::text, false);
+  perform set_config('prueba.otro265', (select id::text from clientes where id <> cli limit 1), false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; yo text := current_setting('prueba.u_cli'); o uuid := current_setting('prueba.o265')::uuid;
+  l uuid; lo uuid; ok boolean; begin
+  -- Sube el logo de SU empresa y el de uno de sus transportistas.
+  insert into documentos (tipo, cliente_id, storage_bucket, storage_ruta, nombre_archivo)
+    values ('logo', cli, 'documentos', 'u/' || yo || '/265a/logo.png', 'logo.png') returning id into l;
+  insert into documentos (tipo, operador_id, storage_bucket, storage_ruta, nombre_archivo)
+    values ('logo', o, 'documentos', 'u/' || yo || '/265b/logo.png', 'logo.png') returning id into lo;
+  if mi_logo_empresa() is distinct from l then raise exception 'FALLO 265 · el cliente no obtiene el logo de su empresa'; end if;
+  -- No puede colgarle un logo a otra empresa: ni directamente…
+  ok := false;
+  begin insert into documentos (tipo, cliente_id, storage_bucket, storage_ruta, nombre_archivo)
+          values ('logo', current_setting('prueba.otro265')::uuid, 'documentos', 'u/' || yo || '/265c/logo.png', 'logo.png');
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 265 · un cliente sube el logo de OTRA empresa'; end if;
+  -- …ni escondido en la subida del logo de un transportista suyo.
+  ok := false;
+  begin insert into documentos (tipo, operador_id, cliente_id, storage_bucket, storage_ruta, nombre_archivo)
+          values ('logo', o, current_setting('prueba.otro265')::uuid, 'documentos', 'u/' || yo || '/265d/logo.png', 'logo.png');
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 265 · un cliente cuelga un documento a otra empresa a través del logo de su transportista'; end if;
+  -- Ni otro tipo de documento a nombre de su empresa.
+  ok := false;
+  begin insert into documentos (tipo, cliente_id, storage_bucket, storage_ruta, nombre_archivo)
+          values ('otro', cli, 'documentos', 'u/' || yo || '/265e/x.pdf', 'x.pdf');
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 265 · un cliente sube a nombre de su empresa algo que no es un logo'; end if;
+  perform set_config('prueba.l265', l::text, false); perform set_config('prueba.lo265', lo::text, false);
+end $$;
+-- Otra empresa: ni lo ve ni lo quita.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+do $$ declare ok boolean := false; begin
+  if exists (select 1 from documentos where id in (current_setting('prueba.l265')::uuid, current_setting('prueba.lo265')::uuid)) then
+    raise exception 'FALLO 265 · otra empresa ve el logo de un cliente o de su transportista';
+  end if;
+  begin perform quitar_logo(current_setting('prueba.l265')::uuid);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 265 · otra empresa quita el logo de un cliente'; end if;
+end $$;
+-- El dueño quita los dos (antes: «Solo el equipo de Dynamo quita documentos»).
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+do $$ begin
+  perform quitar_logo(current_setting('prueba.lo265')::uuid);
+  perform quitar_logo(current_setting('prueba.l265')::uuid);
+  if mi_logo_empresa() is not null then raise exception 'FALLO 265 · tras quitarlo, la empresa sigue teniendo logo'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if (select count(*) from documentos where id in (current_setting('prueba.l265')::uuid, current_setting('prueba.lo265')::uuid) and borrado) <> 2 then
+    raise exception 'FALLO 265 · el cliente no puede quitar sus logos (el de su empresa y el de su transportista)';
+  end if;
+  raise notice 'OK 265 · el cliente sube y quita el logo de su empresa y los de sus transportistas propios; no puede colgar documentos a otra empresa, y otra empresa ni los ve ni los quita';
+end $$;

@@ -10,14 +10,14 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 // Documentos del almacén de archivos. El fichero se sube desde el navegador directamente a
 // Supabase Storage (bucket privado `documentos`) y aquí se registra su fila. Los permisos
 // los impone la base de datos (tabla `documentos` y políticas del bucket).
-export type Dueno = { campo: 'envio_id' | 'incidencia_id' | 'almacenamiento_id' | 'transportista_id' | 'penalizacion_id' | 'operador_id' | 'usuario_id'; id: string };
+export type Dueno = { campo: 'envio_id' | 'incidencia_id' | 'almacenamiento_id' | 'transportista_id' | 'penalizacion_id' | 'operador_id' | 'usuario_id' | 'cliente_id'; id: string };
 export type DocumentoFila = { id: string; tipo: string; nombre_archivo: string; tamano_bytes: number | null; tipo_mime: string | null;
   visible_cliente: boolean; creado_en: string; autor: string | null };
 type Res<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; error: string };
 
-const CAMPOS = ['envio_id', 'incidencia_id', 'almacenamiento_id', 'transportista_id', 'penalizacion_id', 'operador_id', 'usuario_id'];
+const CAMPOS = ['envio_id', 'incidencia_id', 'almacenamiento_id', 'transportista_id', 'penalizacion_id', 'operador_id', 'usuario_id', 'cliente_id'];
 const CARPETA: Record<string, string> = { envio_id: 'envios', incidencia_id: 'incidencias', almacenamiento_id: 'almacenamientos',
-  transportista_id: 'transportistas', penalizacion_id: 'penalizaciones', operador_id: 'operadores', usuario_id: 'usuarios' };
+  transportista_id: 'transportistas', penalizacion_id: 'penalizaciones', operador_id: 'operadores', usuario_id: 'usuarios', cliente_id: 'clientes' };
 // Quién pide (sin redirigir: estas acciones se llaman en segundo plano desde las fichas).
 async function sesion() {
   const supabase = await supabaseServidor();
@@ -87,7 +87,15 @@ export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: stri
 export async function quitarDocumento(id: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/documentos/acciones#quitarDocumento", [id]);
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  // Quien no es de Dynamo solo quita SUS LOGOS (el de su empresa y los de sus transportistas
+  // propios; usuario, 2026-11-16: antes no podía ni cambiar el logo de su transportista). Lo
+  // decide la base de datos (quitar_logo); los demás documentos son prueba y no se quitan.
+  if (!esGestor(s.perfil.rol)) {
+    const { error } = await s.supabase.rpc('quitar_logo', { p_documento: id });
+    if (!error) return { ok: true };
+    return { ok: false, error: /42501|permiso/i.test(`${error.code} ${error.message}`) ? 'Solo el equipo de Dynamo quita ese documento.' : mensajeError(error.message) };
+  }
   const { error } = await s.supabase.from('documentos').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id);
   return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
 }

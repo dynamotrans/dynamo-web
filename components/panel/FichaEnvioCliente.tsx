@@ -170,12 +170,16 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         </>}>
         {trabajando && <Cargando texto={trabajando} />}
         <div className="modal-warn-box">
-          {e.estado === 'borrador'
+          {/* Con SU transportista (envío manual) no pinta nada lo del «transportista asignado»
+              ni el coste: eso es entre él y su transportista (usuario, 2026-11-16). */}
+          {manual
+            ? <>Vas a cancelar tu transporte con <strong>tu transportista directo</strong>. Recuerda avisarle tú: Dynamo no interviene en este envío.</>
+            : e.estado === 'borrador'
             ? <>Es una solicitud sin confirmar: se cancela <strong>sin ningún coste</strong>.</>
             : <>Tu envío <strong>aún no tiene transportista asignado</strong>: cancelarlo ahora <strong>no tiene ningún coste</strong>.</>}
         </div>
         <label htmlFor="cc-motivo" style={{ display: 'block', marginTop: '0.8rem' }}>Motivo <Req si={false} /></label>
-        <textarea id="cc-motivo" rows={3} maxLength={500} style={{ display: 'block', width: '100%', minHeight: 84, marginTop: 4 }} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Cuéntanos por qué (nos ayuda a mejorar)" />
+        <textarea id="cc-motivo" rows={3} maxLength={500} style={{ display: 'block', width: '100%', minHeight: 84, marginTop: 4 }} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder={manual ? "Para tu propio control (opcional)" : "Cuéntanos por qué (nos ayuda a mejorar)"} />
         {aviso && !aviso.ok && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{aviso.txt}</div></div>}
       </Modal>
     );

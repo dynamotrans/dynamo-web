@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
+import LogoEditor from './LogoEditor';
 import Cargando from '@/components/Cargando';
 import { cambiarMiClave, cambiarMiEmail, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
@@ -43,7 +44,7 @@ function Vence({ f }: { f: string | null }) {
 
 export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null }: {
   datos: MisDatos; email: string; rol: string; ultimaConexion: string | null;
-  empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null } | null;
+  empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null; cliente_id?: string | null } | null;
   transporte?: TransporteDatos | null;
 }) {
   const refrescar = useRefrescar();
@@ -54,6 +55,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
   const [cambiaEmail, setCambiaEmail] = useState(false);
   const [emailPedido, setEmailPedido] = useState<string | null>(null);
   const [baja, setBaja] = useState(false);
+  const [cambiaLogo, setCambiaLogo] = useState(false);
   const [companero, setCompanero] = useState(false);
   const [companeroOk, setCompaneroOk] = useState(false);
   const [vehiculo, setVehiculo] = useState<MiVehiculo | null>(null);
@@ -100,11 +102,13 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
         )}
         {empresa && (
           <div className="account-card">
-            <h3 className="account-card-title">Datos fiscales</h3>
+            <h3 className="account-card-title">Datos empresa</h3>
             {fila('Razón social', empresa.razon_social)}
             {fila('CIF', empresa.cif)}
             {fila('Dirección fiscal', empresa.direccion)}
             {fila('País', empresa.pais ? paisDe(empresa.pais) : '')}
+            {/* Lo único que el cliente cambia él mismo de su empresa: el logo (usuario, 2026-11-16). */}
+            {empresa.cliente_id && <button className="btn-ghost account-edit" onClick={() => setCambiaLogo(true)}>Cambiar logo</button>}
             <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para modificar los datos fiscales, llámanos o escríbenos y lo actualizamos.</p>
           </div>
         )}
@@ -150,6 +154,16 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
       {cambiaEmail && <CambiarEmail actual={email} onCerrar={() => setCambiaEmail(false)} onHecho={(e) => { setCambiaEmail(false); setEmailPedido(e); }} />}
       {companero && <AnadirCompanero empresa={empresa?.razon_social ?? 'tu empresa'} onCerrar={() => setCompanero(false)} onHecho={() => { setCompanero(false); setCompaneroOk(true); }} />}
       {baja && <DarmeDeBaja onCerrar={() => setBaja(false)} transportista={rol === 'transportista'} />}
+      {/* Ventana SOLO para el logo de la empresa (usuario, 2026-11-16). Se guarda al subirlo;
+          al cerrar se refresca la página para que el círculo de arriba lo enseñe. */}
+      {cambiaLogo && empresa?.cliente_id && (
+        <Modal abierto titulo="Logo de tu empresa" sub={empresa.razon_social} ancho={520}
+          onCerrar={() => { setCambiaLogo(false); refrescar(); }}
+          pie={<button className="btn-primary" onClick={() => { setCambiaLogo(false); refrescar(); }}>Guardar y cerrar</button>}>
+          <LogoEditor dueno={{ campo: 'cliente_id', id: empresa.cliente_id }} etiqueta={<>Logo <Req si={false} /></>} uso="arriba, en tu panel" />
+          <p className="account-card-desc" style={{ marginTop: '0.7rem' }}>Si no pones logo, arriba salen las iniciales de tu empresa.</p>
+        </Modal>
+      )}
       {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); refrescar(); }} />}
       {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '' }}
         onCerrar={() => setEditaTransp(false)} onHecho={hecho} />}
