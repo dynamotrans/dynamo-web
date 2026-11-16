@@ -67,7 +67,7 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
       {errorBloques && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se ha podido cargar todo: {errorBloques}</div></div>}
       {/* El buscador global, también aquí (usuario, 2026-11-13): la misma caja del
           dashboard principal, encima de los accesos. */}
-      <div style={{ marginBottom: '0.8rem' }}><CajaBuscadorGlobal /></div>
+      <div style={{ marginBottom: '0.8rem' }}><CajaBuscadorGlobal gestor /></div>
       {/* Accesos rápidos del dashboard principal, también aquí (usuario, 2026-11-13):
           una fila a lo ancho con los cinco botones del mismo tamaño. */}
       <div className="dashadm-accesos">

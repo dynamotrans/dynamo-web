@@ -12,8 +12,16 @@ import { nombreEstado } from '@/lib/estados';
 // de lo ya buscado y sin parpadeos: mientras llega la respuesta se sigue viendo la
 // anterior.
 
-type Item = { tipo: 'envio' | 'sitio' | 'cliente' | 'transportista'; titulo: string; sub: string; href: string };
-const TITULOS: Record<Item['tipo'], string> = { envio: 'Envíos', sitio: 'Sitios', cliente: 'Clientes', transportista: 'Transportistas' };
+type Item = { tipo: 'envio' | 'sitio' | 'cliente' | 'transportista' | 'incidencia' | 'penalizacion'; titulo: string; sub: string; href: string };
+const TITULOS: Record<Item['tipo'], string> = { envio: 'Envíos', sitio: 'Sitios', cliente: 'Clientes', transportista: 'Transportistas', incidencia: 'Incidencias', penalizacion: 'Penalizaciones' };
+// Lo que busca cada uno (usuario, 2026-11-16): un cliente no busca clientes ni
+// transportistas — busca sus envíos, sitios, incidencias y penalizaciones.
+const AYUDA = {
+  gestor: { corto: 'Buscar envío, cliente, matrícula…', largo: 'Envío, cliente, transportista, CIF, matrícula, incidencia…',
+    pista: 'un nº de envío, una población, un CIF, una matrícula, una incidencia…' },
+  resto: { corto: 'Buscar envío, sitio, incidencia…', largo: 'Envío, sitio, incidencia, penalización, población…',
+    pista: 'un nº de envío, una población, un sitio, una incidencia, una penalización…' },
+};
 
 function aItems(res: BusquedaGlobal): Item[] {
   return [
@@ -22,6 +30,9 @@ function aItems(res: BusquedaGlobal): Item[] {
     ...res.sitios.map((x) => ({ tipo: 'sitio' as const, titulo: x.nombre, sub: x.direccion, href: `/panel/sitios?q=${encodeURIComponent(x.nombre)}` })),
     ...res.clientes.map((c) => ({ tipo: 'cliente' as const, titulo: c.nombre, sub: c.cif, href: `/panel/clientes?ver=${c.id}` })),
     ...res.transportistas.map((t) => ({ tipo: 'transportista' as const, titulo: t.nombre, sub: t.cif, href: `/panel/transportistas?ver=${t.id}` })),
+    // Incidencias y penalizaciones se abren en su lista, ya filtrada por su código.
+    ...res.incidencias.map((x) => ({ tipo: 'incidencia' as const, titulo: x.codigo, sub: x.titulo, href: `/panel/incidencias?q=${encodeURIComponent(x.codigo)}` })),
+    ...res.penalizaciones.map((x) => ({ tipo: 'penalizacion' as const, titulo: x.codigo, sub: x.detalle, href: `/panel/penalizaciones?q=${encodeURIComponent(x.codigo)}` })),
   ];
 }
 
@@ -56,13 +67,14 @@ function useBusqueda(q: string, activo: boolean) {
   return { items, cargando };
 }
 
-function Lista({ q, items, cargando, sel, setSel, elegir }: {
-  q: string; items: Item[]; cargando: boolean; sel: number; setSel: (i: number) => void; elegir: (it: Item) => void;
+function Lista({ q, items, cargando, sel, setSel, elegir, gestor }: {
+  q: string; items: Item[]; cargando: boolean; sel: number; setSel: (i: number) => void; elegir: (it: Item) => void; gestor: boolean;
 }) {
   const texto = q.trim();
+  const pista = (gestor ? AYUDA.gestor : AYUDA.resto).pista;
   return (
     <div className="bgq-lista">
-      {texto.length < 2 && <div className="bgq-pista">{items.length ? 'Lo último de tu cuenta — o escribe: un nº de envío, una población, un CIF, una matrícula…' : 'Escribe al menos 2 letras: un nº de envío, una población, un CIF, una matrícula…'}</div>}
+      {texto.length < 2 && <div className="bgq-pista">{items.length ? `Lo último de tu cuenta — o escribe: ${pista}` : `Escribe al menos 2 letras: ${pista}`}</div>}
       {texto.length >= 2 && !cargando && items.length === 0 && <div className="bgq-pista">Nada casa con «{texto}».</div>}
       {texto.length >= 2 && cargando && items.length === 0 && <div className="bgq-pista">Buscando…</div>}
       {items.map((it, i) => (
@@ -86,7 +98,7 @@ function teclasLista(e: React.KeyboardEvent, items: Item[], sel: number, setSel:
 }
 
 // ---- Autocompletado del dashboard: el campo REAL, con los resultados debajo ----------
-export function CajaBuscadorGlobal() {
+export function CajaBuscadorGlobal({ gestor = false }: { gestor?: boolean }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [foco, setFoco] = useState(false);
@@ -102,12 +114,12 @@ export function CajaBuscadorGlobal() {
         <input type="text" value={q} onChange={(e) => { setQ(e.target.value); setSel(0); }}
           onFocus={() => setFoco(true)} onBlur={() => setTimeout(() => setFoco(false), 120)}
           onKeyDown={(e) => { if (e.key === 'Escape') { setQ(''); (e.target as HTMLInputElement).blur(); } else teclasLista(e, items, sel, setSel, elegir); }}
-          placeholder="Buscar envío, cliente, matrícula…" aria-label="Buscar en toda la plataforma" maxLength={120} />
+          placeholder={(gestor ? AYUDA.gestor : AYUDA.resto).corto} aria-label="Buscar en toda la plataforma" maxLength={120} />
         {cargando && <span className="bgq-rueda" aria-hidden="true" />}
       </div>
       {abierto && (
         <div className="bgq-drop">
-          <Lista q={q} items={items} cargando={cargando} sel={sel} setSel={setSel} elegir={elegir} />
+          <Lista q={q} items={items} cargando={cargando} sel={sel} setSel={setSel} elegir={elegir} gestor={gestor} />
         </div>
       )}
     </div>
@@ -142,12 +154,12 @@ export default function BuscadorGlobal({ gestor }: { gestor: boolean }) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
           <input ref={inputRef} type="text" value={q} onChange={(e) => { setQ(e.target.value); setSel(0); }}
             onKeyDown={(e) => teclasLista(e, items, sel, setSel, elegir)}
-            placeholder={gestor ? 'Envío, cliente, transportista, CIF, matrícula, población…' : 'Nº de envío, población, matrícula…'}
+            placeholder={(gestor ? AYUDA.gestor : AYUDA.resto).largo}
             aria-label="Buscar en toda la plataforma" maxLength={120} />
           {cargando && <span className="bgq-rueda" aria-hidden="true" />}
           <button type="button" className="bgq-cerrar" onClick={() => setAbierto(false)} aria-label="Cerrar">✕</button>
         </div>
-        <Lista q={q} items={items} cargando={cargando} sel={sel} setSel={setSel} elegir={elegir} />
+        <Lista q={q} items={items} cargando={cargando} sel={sel} setSel={setSel} elegir={elegir} gestor={gestor} />
       </div>
     </div>
   );

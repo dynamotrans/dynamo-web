@@ -15,18 +15,20 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
   if (!s) return null;
   const { supabase, perfil } = s;
   if (sinAcceso(perfil)) return <AvisoCuenta perfil={perfil} />;
+  const sp = await searchParams;
+  // ?q=…: se llega desde el buscador global con la penalización ya buscada.
+  const q = (sp.q ?? '').slice(0, 120);
   if (!esDynamo(perfil.rol)) {
     // Etapa B: el cliente ve las suyas (solo su importe). El transportista, en la etapa C.
     if (perfil.rol === 'cliente') {
       const { data, error } = await supabase.rpc('mis_penalizaciones');
-      return <MisPenalizaciones filas={(data ?? []) as MiPenalizacion[]} error={error?.message ?? null} />;
+      return <MisPenalizaciones q={q} filas={(data ?? []) as MiPenalizacion[]} error={error?.message ?? null} />;
     }
     // Etapa C: el transportista, las suyas con SU importe.
     const { data, error } = await supabase.rpc('mis_penalizaciones_transportista');
     const filas = (data ?? []).map((x) => ({ ...x, importe_cliente: x.importe_transportista }));
-    return <MisPenalizaciones esTransportista filas={filas as MiPenalizacion[]} error={error?.message ?? null} />;
+    return <MisPenalizaciones q={q} esTransportista filas={filas as MiPenalizacion[]} error={error?.message ?? null} />;
   }
-  const sp = await searchParams;
   const vista = await vistaDe(supabase, perfil.rol);
   const [pen, tipos, envios] = await Promise.all([
     leerTodo(filtrarVista(supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
@@ -45,5 +47,5 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     envio: p.envios?.referencia_gx ?? '—', referencia_cliente: p.envios?.referencia_cliente ?? null,
     cliente: p.envios?.clientes?.nombre_visible ?? null, transportista: p.envios?.transportistas?.nombre_visible ?? null,
   }));
-  return <Penalizaciones filas={filas} tipos={tipos.data ?? []} envios={envios} nuevaPara={sp.nueva ?? null} error={pen.error?.message ?? null} />;
+  return <Penalizaciones key={q} qInicial={q} filas={filas} tipos={tipos.data ?? []} envios={envios} nuevaPara={sp.nueva ?? null} error={pen.error?.message ?? null} />;
 }

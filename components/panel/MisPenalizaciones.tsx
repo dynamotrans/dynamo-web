@@ -10,7 +10,12 @@ export type MiPenalizacion = { id: string; codigo: string; envio_id: string; ref
 const ESTADO: Record<string, [string, string]> = { pendiente_confirmar: ['En revisión', 'prog'], confirmada: ['Confirmada', 'red'] };
 
 // esTransportista: las del transportista, con SU importe (mis_penalizaciones_transportista()).
-export default function MisPenalizaciones({ filas, error, esTransportista = false }: { filas: MiPenalizacion[]; error: string | null; esTransportista?: boolean }) {
+export default function MisPenalizaciones({ filas: todas, error, esTransportista = false, q = '' }: { filas: MiPenalizacion[]; error: string | null; esTransportista?: boolean; q?: string }) {
+  // ?q=…: se llega desde el buscador global con una penalización buscada; se enseña esa
+  // (por código, envío, tipo o descripción) y un enlace para volver a verlas todas.
+  const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const ws = norm(q.trim()).split(/\s+/).filter(Boolean);
+  const filas = ws.length ? todas.filter((p) => { const b = norm([p.codigo, p.referencia_gx, p.tipo, p.descripcion].filter(Boolean).join(' ')); return ws.every((w) => b.includes(w)); }) : todas;
   return (
     <section className="section active" id="sec-penalizaciones">
       <div className="sec-header"><h2>Penalizaciones</h2></div>
@@ -21,12 +26,13 @@ export default function MisPenalizaciones({ filas, error, esTransportista = fals
             Si no estás conforme con alguna, abre una <Link href="/panel/incidencias?abrir=1" style={{ color: 'var(--purple)', fontWeight: 700 }}>incidencia</Link> y la revisamos.</>}
       </p>
       {error && <div className="pt-aviso error">No se han podido cargar las penalizaciones: {error}</div>}
+      {ws.length > 0 && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Buscando «{q.trim()}»: {filas.length} de {todas.length}. <Link href="/panel/penalizaciones" style={{ color: 'var(--purple)', fontWeight: 700 }}>Ver todas</Link></div></div>}
       <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr><th>Penalización</th><th>Envío</th><th>Tipo</th><th>Importe<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>base sin IVA</span></th><th>Fecha</th></tr></thead>
           <tbody>
             {filas.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>No tienes ninguna penalización.</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{ws.length ? 'Ninguna penalización casa con la búsqueda.' : 'No tienes ninguna penalización.'}</td></tr>
             ) : filas.map((p) => {
               const est = ESTADO[p.estado] ?? [p.estado, 'prog'];
               return (

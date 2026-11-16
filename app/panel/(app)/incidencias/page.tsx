@@ -41,7 +41,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
         envio: e ? { referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente, fecha_carga_desde: e.fecha_carga_desde, fecha_carga_hasta: e.fecha_carga_hasta,
           origen: e.origen, destino: e.destino, metros_lineales: e.metros_lineales, toneladas: e.toneladas } : null };
     });
-    return <Incidencias esCliente esTransportista={esT} filas={filas} tipos={tipos.data ?? []} clientes={[]} envios={envios}
+    return <Incidencias key={sp.q ?? ''} qInicial={(sp.q ?? '').slice(0, 120)} esCliente esTransportista={esT} filas={filas} tipos={tipos.data ?? []} clientes={[]} envios={envios}
       nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null}
       tipoInicial={sp.tipo === 'siniestro' ? (tipos.data ?? []).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
   }
@@ -68,7 +68,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       metros_lineales: x.envios.metros_lineales, toneladas: x.envios.toneladas,
     } : null,
   }));
-  return <Incidencias filas={filas} tipos={tipos.data ?? []} clientes={clientes.data ?? []} envios={envios} vistaTransportista={vista.tipo === 'transportista'}
+  return <Incidencias key={sp.q ?? ''} qInicial={(sp.q ?? '').slice(0, 120)} filas={filas} tipos={tipos.data ?? []} clientes={clientes.data ?? []} envios={envios} vistaTransportista={vista.tipo === 'transportista'}
     nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null}
       tipoInicial={sp.tipo === 'siniestro' ? (tipos.data ?? []).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
 }

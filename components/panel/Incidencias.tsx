@@ -47,17 +47,18 @@ const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null, vistaTransportista = false }: {
+export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null, vistaTransportista = false, qInicial = '' }: {
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
   tipoInicial?: string | null;   // ?tipo=siniestro: el formulario nuevo ya con ese tipo
+  qInicial?: string;   // ?q=…: llega buscada (desde el buscador global), en la pestaña «Todas»
   esCliente?: boolean;   // el CLIENTE (o el transportista) ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
   vistaTransportista?: boolean;   // Dynamo «viendo como» un transportista: la incidencia sin envío es de ese transportista (sin selector de cliente)
   esTransportista?: boolean;   // el envío es obligatorio y solo ve las que abre él
 }) {
   const router = useRouter();
   const refrescar = useRefrescar();
-  const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>('abiertas');
-  const [q, setQ] = useState('');
+  const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>(qInicial ? 'todas' : 'abiertas');
+  const [q, setQ] = useState(qInicial);
   const [fr, setFr] = useState('');
   const [ficha, setFicha] = useState<{ fila: IncidenciaFila | null; envio?: string | null } | null>(nuevaPara != null ? { fila: null, envio: nuevaPara || null } : null);
   const hoy = useMemo(() => diaMadrid(new Date().toISOString()), []);

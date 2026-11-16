@@ -42,13 +42,14 @@ const Margen = ({ c, t }: { c: number | null; t: number | null }) => {
 };
 const IcoAlerta = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>;
 
-export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error }: {
+export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error, qInicial = '' }: {
   filas: PenalizacionFila[]; tipos: Tipo[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
+  qInicial?: string;   // ?q=…: llega buscada (desde el buscador global), en la pestaña «Todas»
 }) {
   const router = useRouter();
   const refrescar = useRefrescar();
-  const [pestana, setPestana] = useState('pendiente_confirmar');
-  const [q, setQ] = useState('');
+  const [pestana, setPestana] = useState(qInicial ? 'todas' : 'pendiente_confirmar');
+  const [q, setQ] = useState(qInicial);
   const [tipo, setTipo] = useState('');
   const [ficha, setFicha] = useState<{ fila: PenalizacionFila | null; envio?: string | null } | null>(
     nuevaPara ? { fila: null, envio: nuevaPara } : null);
