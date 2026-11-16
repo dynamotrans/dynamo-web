@@ -3689,6 +3689,8 @@ export type Database = {
       crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null; p_cliente?: string | null }; Returns: { id: string; referencia_gx: string }[] }
       credito_alcanza: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: boolean }
       credito_liberar_pendientes: { Args: { p_cliente: string | null }; Returns: number }
+      credito_repasar_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
+      credito_retirar_sin_hueco: { Args: { p_cliente: string | null }; Returns: number }
       credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }

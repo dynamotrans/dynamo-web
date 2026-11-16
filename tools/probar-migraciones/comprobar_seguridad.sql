@@ -10730,7 +10730,7 @@ begin
   perform registrar_hito(e, 'confirmado');
   select count(*) into n from emails_enviados where envio_id = e and tipo = 'envio_creado';
   if n <> 1 then raise exception 'FALLO 256 · el email «Envío creado» se repite (%)', n; end if;
-  if position('Recogida' in r.cuerpo_html) = 0 or position('buscando camión' in r.cuerpo_html) = 0 then raise exception 'FALLO 256 · al email le falta el detalle del envío (ruta y transporte): %', r.cuerpo_html; end if;
+  if position('Recogida' in r.cuerpo_html) = 0 or position('Asignando transporte.' in r.cuerpo_html) = 0 or position('Transporte:' in r.cuerpo_html) > position('Precio:' in r.cuerpo_html) then raise exception 'FALLO 256 · al email le falta el detalle del envío (ruta y transporte): %', r.cuerpo_html; end if;
   -- SIN transportista no hay recordatorio de la víspera, aunque tenga fecha.
   perform encolar_avisos_operativos(((lun - 1) + time '17:30') at time zone 'Europe/Madrid');
   if exists (select 1 from emails_enviados where clave = 'vispera:' || e || ':' || lun) then raise exception 'FALLO 256 · sale la víspera de un envío sin transportista'; end if;
@@ -10755,7 +10755,7 @@ begin
   if n <> 1 then raise exception 'FALLO 256 · dos cambios seguidos deben ir en un solo email de modificado (%)', n; end if;
   select * into r from emails_enviados where envio_id = e and tipo = 'envio_modificado';
   if position('20,00 toneladas' in r.cuerpo_html) = 0 or position('22,00 toneladas' in r.cuerpo_html) = 0
-     or position('900,00' in r.cuerpo_html) = 0 or position('950,00' in r.cuerpo_html) = 0 or position('camión 5678CCC' in r.cuerpo_html) = 0 then
+     or position('900,00' in r.cuerpo_html) = 0 or position('950,00' in r.cuerpo_html) = 0 or position('Camión 5678CCC' in r.cuerpo_html) = 0 then
     raise exception 'FALLO 256 · el email de modificado no trae el antes y el ahora de la mercancía y del precio, o el detalle al día: %', r.cuerpo_html;
   end if;
   if (select count(*) from regexp_matches(r.cuerpo_html, '<!--detalle-->', 'g')) <> 1 or (select count(*) from regexp_matches(r.cuerpo_html, 'Datos del envío', 'g')) <> 1 then
@@ -11185,9 +11185,9 @@ begin
   if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'exento' and envio_id = a) then
     raise exception 'FALLO 261 · el cliente no recibe el aviso de que ya no hace falta pagar por adelantado';
   end if;
-  -- Bajarle el crédito no vuelve a pedir el pago de lo ya liberado, ni libera nada.
+  -- Bajarle el crédito a 500 €: el envío liberado (363 €) sigue cabiendo, así que sigue a crédito.
   update clientes set riesgo_manual_euros = 500 where id = cli;
-  if (select estado_pago_previo from envios where id = a) <> 'exento' then raise exception 'FALLO 261 · bajar el crédito vuelve a pedir el pago de un envío ya liberado'; end if;
+  if (select estado_pago_previo from envios where id = a) <> 'exento' then raise exception 'FALLO 261 · bajar el crédito vuelve a pedir el pago de un envío que sigue cabiendo'; end if;
   -- Se lo amplían (CESCE manda al quedar el manual vacío): ahora b también cabe.
   update clientes set riesgo_manual_euros = null, riesgo_cesce_euros = 5000 where id = cli;
   if (select estado_pago_previo from envios where id = b) <> 'exento' then raise exception 'FALLO 261 · al ampliar el crédito no pasa a crédito el envío que ya cabe'; end if;
@@ -11272,3 +11272,70 @@ do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid := cur
   update clientes set factor_fijado_a_mano = false where id = cli;
   raise notice 'OK 262 · el factor del cliente va dentro del precio: el envío guarda la tarifa original y su factor, lo conserva al modificarse aunque al cliente se le acabe el descuento, y no lo lleva un precio puesto a mano; el cliente no ve ni el factor ni la tarifa, ni consulta el de otra empresa';
 end $$;
+
+-- ---- 263. El crédito y los envíos, al día en los dos sentidos: al bajar, lo que no cabe pasa a pendiente; cada hora, lo que ya cabe pasa a crédito ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
+do $$ declare cli uuid; a uuid; b uuid; d uuid; t uuid; x record; n int;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  -- Cliente con 3.000 € de crédito: sus cuatro envíos (363 + 1.089 + 121 + 363 = 1.936 €) van a crédito.
+  insert into clientes (razon_social, cif) values ('Cliente Crédito 263 SL', 'B26300263') returning id into cli;
+  update clientes set riesgo_cesce_euros = null, riesgo_manual_euros = 3000, exento_pago_previo_primer_envio = true where id = cli;
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 300, lun) returning id into a;        -- 363 €
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 900, lun + 1) returning id into b;    -- 1.089 €
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 100, lun + 2) returning id into d;    -- 121 €
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 300, lun + 3) returning id into t;    -- 363 €, con transportista
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select e, o, tp, cp, p, 'ES' from unnest(array[a, b, d, t]) e, (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, tp, cp, p);
+  update envios set estado = 'programado' where id in (a, b, d, t);
+  if (select count(*) from envios where id in (a, b, d, t) and estado_pago_previo = 'no_requerido') <> 4 then
+    raise exception 'FALLO 263 · los envíos de un cliente con crédito de sobra no nacen a crédito';
+  end if;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = t;
+
+  -- LE BAJAN EL CRÉDITO A 1.500 €. El del transportista (363 €) no se toca y cuenta. Del que carga
+  -- antes al que carga después: a (363) cabe → 726; b (1.089) ya no cabe → pendiente; d (121) cabe → 847.
+  update clientes set riesgo_manual_euros = 1500 where id = cli;
+  if (select estado_pago_previo from envios where id = a) <> 'no_requerido' or (select estado_pago_previo from envios where id = d) <> 'no_requerido' then
+    raise exception 'FALLO 263 · al bajar el crédito pasan a pendiente envíos que siguen cabiendo';
+  end if;
+  select estado_pago_previo, pago_motivo into x from envios where id = b;
+  if x.estado_pago_previo <> 'pendiente' or x.pago_motivo not like 'Crédito insuficiente%' then
+    raise exception 'FALLO 263 · al bajar el crédito, el envío que ya no cabe sigue a crédito: %', x;
+  end if;
+  if (select estado_pago_previo from envios where id = t) <> 'no_requerido' then raise exception 'FALLO 263 · se mueve un envío con transportista asignado'; end if;
+  select count(*) into n from avisos where para = 'dynamo' and tipo = 'credito_retira_envios' and titulo like '1 envío pasa a pendiente de pago%Cliente Crédito 263%';
+  if n <> 1 then raise exception 'FALLO 263 · Dynamo no recibe (una vez) el aviso de los envíos que pasan a pendiente de pago: %', n; end if;
+  if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'pago_requerido' and envio_id = b) then
+    raise exception 'FALLO 263 · el cliente no recibe el aviso de que su envío pasa a pago por adelantado';
+  end if;
+
+  -- SE LIBERA CRÉDITO SIN TOCAR LA LÍNEA (se cancelan a y d): b ya cabe (363 + 1.089 = 1.452 €), pero
+  -- nadie ha cambiado el crédito… lo recoge el repaso de cada hora.
+  update envios set estado = 'cancelado' where id in (a, d);
+  if (select estado_pago_previo from envios where id = b) <> 'pendiente' then raise exception 'FALLO 263 · la prueba no está bien montada: b ya no está pendiente'; end if;
+  n := credito_repasar_pendientes();
+  select estado_pago_previo, pago_exento_motivo into x from envios where id = b;
+  if x.estado_pago_previo <> 'exento' or x.pago_exento_motivo not like 'Crédito disponible:%' then
+    raise exception 'FALLO 263 · el repaso de cada hora no pasa a crédito el envío que ya cabe: % (liberados %)', x, n;
+  end if;
+
+  -- LE QUITAN EL CRÉDITO (0 a mano): b, que se había liberado solo, vuelve a pendiente; el del transportista, no.
+  update clientes set riesgo_manual_euros = 0 where id = cli;
+  select estado_pago_previo, pago_motivo into x from envios where id = b;
+  if x.estado_pago_previo <> 'pendiente' or x.pago_motivo not like 'Sin crédito%' then
+    raise exception 'FALLO 263 · al quitarle el crédito, el envío sin transportista sigue a crédito: %', x;
+  end if;
+  if (select estado_pago_previo from envios where id = t) <> 'no_requerido' then raise exception 'FALLO 263 · al quitar el crédito se mueve un envío con transportista'; end if;
+  -- Y uno que Dynamo pasó «sin pago previo» a mano tampoco se toca al bajar el crédito.
+  update clientes set riesgo_manual_euros = 3000 where id = cli;
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_exento_motivo = null where id = b;
+  update envios set estado_pago_previo = 'exento', pago_exento_motivo = 'Cliente de confianza' where id = b;
+  update clientes set riesgo_manual_euros = 0 where id = cli;
+  if (select estado_pago_previo from envios where id = b) <> 'exento' then raise exception 'FALLO 263 · al quitar el crédito se vuelve a cobrar un envío que Dynamo pasó sin pago previo a mano'; end if;
+  raise notice 'OK 263 · el crédito y los envíos, al día en los dos sentidos: al bajar o quitar el crédito, los envíos a crédito sin transportista que ya no caben pasan a pendiente de pago (del que carga antes al que carga después, con aviso a Dynamo y al cliente); el repaso de cada hora pasa a crédito los pendientes que ya caben; con transportista o exentos a mano, no se tocan';
+end $$;
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
