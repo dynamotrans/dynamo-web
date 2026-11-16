@@ -978,15 +978,27 @@ do $$ declare n int; begin
 end $$;
 
 -- ---- 39. El cliente cancela SU envío por la función; el de otro, no ----------------
-do $$ declare r jsonb; begin
-  r := cancelar_mi_envio(current_setting('prueba.envio')::uuid, 'Ya no hace falta');
-  if r->>'resultado' <> 'cancelado' then raise exception 'FALLO 39 · cancelar mi envio: %', r; end if;
+do $$ declare ok boolean := false; begin
+  -- Este envío ya tiene transportista: desde el 2026-11-16 el cliente no lo cancela desde
+  -- la plataforma, tiene que llamar (lo cancela Dynamo en su nombre, justo debajo).
+  begin perform cancelar_mi_envio(current_setting('prueba.envio')::uuid, 'Ya no hace falta');
+  exception when raise_exception then ok := sqlerrm like '%transportista asignado%'; end;
+  if not ok then raise exception 'FALLO 39 · el cliente cancela desde la plataforma un envío con transportista asignado'; end if;
   begin
     perform cancelar_mi_envio((select id from envios limit 1));   -- no ve ninguno: null
     raise exception 'FALLO 39 · se ha podido cancelar un envio inexistente o ajeno';
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+-- Dynamo lo cancela en nombre del cliente, tras su llamada.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ begin
+  perform cancelar_envio(current_setting('prueba.envio')::uuid, 'Ya no hace falta', true);
+  if (select estado from envios where id = current_setting('prueba.envio')::uuid) <> 'cancelado' then
+    raise exception 'FALLO 39 · Dynamo no puede cancelar en nombre del cliente';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; r jsonb; begin
   select id into e from envios where cliente_id = (select id from clientes where cif = 'B44444444')
    and estado <> 'cancelado' limit 1;
@@ -998,7 +1010,7 @@ do $$ declare e uuid; r jsonb; begin
   exception when insufficient_privilege then null; end;
   reset role;
   update envios set estado = 'programado' where id = current_setting('prueba.envio')::uuid;
-  raise notice 'OK 39 · cada cliente cancela solo sus envios, y por la funcion (con su penalizacion)';
+  raise notice 'OK 39 · cada cliente cancela solo sus envios y por la funcion; con transportista asignado no puede (llama y lo cancela Dynamo en su nombre)';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 

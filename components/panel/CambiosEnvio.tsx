@@ -128,3 +128,42 @@ export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; refe
     </Modal>
   );
 }
+
+// Ventana «llámanos para cancelar» (usuario, 2026-11-16): con transportista asignado, o con
+// el camión ya hacia la carga, el cliente no cancela desde la plataforma. Tiene que llamar,
+// y aquí ve antes lo que le va a costar: nada si aún está dentro del plazo (las 9:00 del
+// día hábil anterior a la carga); pasado ese plazo o con el camión en camino, puede ser el
+// coste del servicio completo.
+export function LlamarCancelar({ e, onVolver }: { e: { referencia_gx: string; referencia_cliente: string | null; estado: string; corte?: string | null }; onVolver: () => void }) {
+  const ref = `#${e.referencia_gx}`;
+  const corte = e.corte ? new Date(e.corte) : null;
+  const enCamino = enMarcha(e.estado);
+  // Sin coste solo si el envío no ha empezado Y aún no ha pasado la hora límite.
+  const sinCoste = !enCamino && !!corte && Date.now() < corte.getTime();
+  const corteTxt = corte ? fechaHora(corte.toISOString()) : null;
+  const msg = `URGENTE: necesito CANCELAR el envío ${ref}${e.referencia_cliente ? ` (mi ref. ${e.referencia_cliente})` : ''}.`;
+  const btn = (href: string, txt: string, bg: string, nueva = false) => (
+    <a href={href} target={nueva ? '_blank' : undefined} rel={nueva ? 'noopener' : undefined}
+      style={{ background: bg, color: '#fff', fontWeight: 800, borderRadius: 8, padding: '0.6rem 1rem', textDecoration: 'none', textAlign: 'center', flex: '1 1 160px' }}>{txt}</a>
+  );
+  return (
+    <Modal abierto onCerrar={onVolver} titulo={`Cancelar el envío ${ref}`}
+      pie={<button className="btn-ghost" onClick={onVolver}>Cerrar</button>}>
+      <div className="modal-warn-box">
+        <strong style={{ color: '#b42318' }}>{enCamino ? 'El camión ya va hacia la carga' : 'Tu envío ya tiene transportista asignado'}: no se puede cancelar desde la plataforma.</strong>
+        <div style={{ marginTop: '0.35rem' }}>Para cancelarlo, <strong>contáctanos cuanto antes</strong> por teléfono, WhatsApp o email y lo cancelamos nosotros.</div>
+      </div>
+      {sinCoste
+        ? <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div><strong style={{ color: '#0f6b3a' }}>Ahora mismo cancelar NO tiene coste.</strong> Es gratis hasta el <strong>{corteTxt}</strong> (las 9:00 del día hábil anterior a la carga). Después, puede conllevar el coste del servicio completo.</div></div>
+        : <div className="pt-aviso error" style={{ marginTop: '0.7rem' }}><div><strong>Cancelar ahora puede conllevar el COSTE DEL SERVICIO COMPLETO.</strong> {enCamino
+            ? 'El camión ya está en camino'
+            : <>El plazo para cancelar gratis terminó{corteTxt ? <> el <strong>{corteTxt}</strong></> : null}</>}: por ley, el transportista está en su derecho de cobrarlo. Llámanos y vemos qué se puede hacer.</div></div>}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.9rem 0' }}>
+        {btn(CONTACTO.telHref, 'Llamar ahora', '#dc2626')}
+        {btn(`${CONTACTO.waHref}?text=${encodeURIComponent(msg)}`, 'WhatsApp', '#16a34a', true)}
+        {btn(`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`URGENTE · Cancelar el envío ${ref}`)}&body=${encodeURIComponent(msg)}`, 'Email', 'var(--purple)')}
+      </div>
+      <div className="meta" style={{ margin: '-0.4rem 0 0' }}>Teléfono {CONTACTO.telefono} · WhatsApp {CONTACTO.whatsapp} · {CONTACTO.email}</div>
+    </Modal>
+  );
+}

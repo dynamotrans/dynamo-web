@@ -19,7 +19,7 @@ import { estadoVisual, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
 import { cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
-import { PedirCambio, LlamarCambio, modoModificar } from './CambiosEnvio';
+import { PedirCambio, LlamarCambio, LlamarCancelar, modoModificar } from './CambiosEnvio';
 import { Secc } from './ficha/comun';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { RevisionCliente, SelloPrecio, type Revision } from './RevisionPrecio';
@@ -78,7 +78,7 @@ const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic',
 export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
-  const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar'>('ficha');
+  const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar' | 'llamarCancelar'>('ficha');
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
@@ -93,7 +93,13 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const recogidas = paradas.filter((p) => p.tipo === 'carga'), entregas = paradas.filter((p) => p.tipo === 'descarga');
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
   const iva = Number(e.iva_pct ?? 21);
-  const cancelable = ['borrador', 'programado'].includes(e.estado);
+  // CANCELAR (usuario, 2026-11-16): sin transportista cancela él desde aquí, gratis. Con
+  // transportista asignado, o con el camión ya hacia la carga, el botón abre la ventana de
+  // «llámanos» con el coste que toca (sin coste dentro del plazo; posible coste completo
+  // después). Los envíos con transportista propio los lleva el cliente: cancela él.
+  const conTransportista = !e.es_manual && e.estado === 'programado' && !!e.cambio?.con_camion && !e.asignandose;
+  const cancelarLlamando = !e.es_manual && (conTransportista || ['hacia_la_carga', 'cargando'].includes(e.estado));
+  const cancelable = ['borrador', 'programado'].includes(e.estado) || cancelarLlamando;
   // «Modificar envío» (usuario, 2026-11-16): sin transportista abre el asistente de «Nuevo
   // envío» ya relleno (es como un envío nuevo: se recalcula todo); con transportista, o
   // con el envío en marcha, la ventana de contacto.
@@ -154,6 +160,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
     );
   }
   if (vista === 'llamar') return <LlamarCambio e={e} onVolver={() => setVista('ficha')} />;
+  if (vista === 'llamarCancelar') return <LlamarCancelar e={e} onVolver={() => setVista('ficha')} />;
   if (vista === 'cancelar') {
     return (
       <Modal abierto onCerrar={() => setVista('ficha')} titulo={`Cancelar envío #${e.referencia_gx}`} icono={<I d={ICO.aviso} />}
@@ -165,7 +172,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         <div className="modal-warn-box">
           {e.estado === 'borrador'
             ? <>Es una solicitud sin confirmar: se cancela <strong>sin ningún coste</strong>.</>
-            : <>Cancelar es <strong>gratis hasta las 9:00 del día hábil anterior</strong> a la carga. Después, si ya hay camión asignado, puede conllevar el <strong>coste del servicio completo</strong> (por ley, el transportista está en su derecho de cobrarlo). Si tienes dudas, llámanos al <a href={CONTACTO.telHref} style={{ fontWeight: 700 }}>{CONTACTO.telefono}</a>.</>}
+            : <>Tu envío <strong>aún no tiene transportista asignado</strong>: cancelarlo ahora <strong>no tiene ningún coste</strong>.</>}
         </div>
         <label htmlFor="cc-motivo" style={{ display: 'block', marginTop: '0.8rem' }}>Motivo <Req si={false} /></label>
         <textarea id="cc-motivo" rows={3} maxLength={500} style={{ display: 'block', width: '100%', minHeight: 84, marginTop: 4 }} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Cuéntanos por qué (nos ayuda a mejorar)" />
@@ -192,7 +199,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       {modo === 'llamar' && <button className="btn-secondary" onClick={() => setVista('llamar')} disabled={!!trabajando}><I d={ICO.editar} />Modificar envío</button>}
       {modo === 'pendiente' && <button className="btn-secondary" disabled title="Ya has pedido un cambio: espera a que te contestemos"><I d={ICO.editar} />Modificar envío</button>}
       {modo === 'asignando' && <button className="btn-secondary" disabled title="Un transportista se está asignando en este momento"><I d={ICO.editar} />Modificar envío</button>}
-      {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')} disabled={asignandose}
+      {cancelable && <button className="btn-secondary" onClick={() => setVista(cancelarLlamando ? 'llamarCancelar' : 'cancelar')} disabled={asignandose}
         title={asignandose ? 'Un transportista se está asignando en este momento' : undefined}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
       {<a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
       {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
