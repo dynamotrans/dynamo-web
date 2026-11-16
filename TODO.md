@@ -44,6 +44,22 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ### v3
 - [ ] **Asistente de IA del panel** (chatbot sobre la BD por rol, #72): montado y OCULTO (`IA_ACTIVA = false` en `app/panel/(app)/layout.tsx`); falta `ANTHROPIC_API_KEY` y encenderlo.
 - [ ] n8n como capa conversacional: WhatsApp (Meta) y email con Claude (#80).
+- [ ] **Reserva anticipada de camiones en rutas recurrentes** (idea del usuario, 2026-11-16; #95). Con previsión de envíos
+      fijos por ruta y día (p. ej. 10 diarios Sevilla → Madrid, de lunes a viernes), publicar «cargas previstas» a los
+      transportistas ANTES de que lleguen los pedidos de los clientes: por email (oferta escalonada) y por bolsa. El
+      transportista acepta la ruta **sin cliente asignado**. Cuando el cliente hace su pedido, se le asigna una de esas
+      reservas; el precio lo marca la ruta real que elija el cliente, y al transportista le llega un email «ruta
+      modificada · el precio nuevo es X» para **aceptar o rechazar**. Va después del tarifador con tarifas reales.
+      **Por decidir antes de montarlo**:
+      - Qué pasa si ese día NO llega pedido para un camión que ya aceptó (se le avisa y se libera sin coste hasta
+        una hora límite / se le paga algo / se le ofrece otra ruta).
+      - Cuánto puede cambiar la ruta real respecto a la publicada (misma provincia de carga y de entrega, km de más,
+        paradas extra) y si un cambio pequeño necesita su aceptación o se aplica solo.
+      - Si rechaza el precio nuevo: el envío vuelve a la oferta normal (y con qué urgencia).
+      - De dónde sale la previsión: a mano por ruta y día de la semana, o calculada con el histórico de envíos.
+      - Con qué precio se publica la reserva (el de la ruta tipo, orientativo) y qué se le dice al transportista:
+        que es una PREVISIÓN, no una carga confirmada.
+      - En la bolsa de cargas: si sus normas permiten publicar cargas aún no confirmadas.
 
 ### v4
 - [ ] Calendario público de citas de almacén por cliente (#78).
