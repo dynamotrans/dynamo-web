@@ -31,8 +31,11 @@ export function visiblesPestanas(dynamo: boolean, fParam: string | undefined, cu
 export function pestanaElegida(dynamo: boolean, fParam: string | undefined, cuantos: (p: Pestana) => number): Pestana {
   const vis = visiblesPestanas(dynamo, fParam, cuantos);
   return (vis.find((p) => p.f === fParam)?.f
-    // Por defecto, la bandeja de trabajo de Dynamo; oculta (a 0), «Programados».
-    ?? (dynamo && vis.some((p) => p.f === 'sin-asignar') ? 'sin-asignar' : 'programada')) as Pestana;
+    // Por defecto, la bandeja de trabajo de Dynamo; oculta (a 0), «Programados». Y si no
+    // hay ningún programado pero sí pendientes de pago, se entra en esos: desde 2026-11-16
+    // «Programados» ya no los enseña, y entrar a una lista vacía los escondería.
+    ?? (dynamo && vis.some((p) => p.f === 'sin-asignar') ? 'sin-asignar'
+      : cuantos('programada') === 0 && cuantos('sin-pagar') > 0 ? 'sin-pagar' : 'programada')) as Pestana;
 }
 export const POR_PAGINA_ENVIOS = POR_PAGINA;
 

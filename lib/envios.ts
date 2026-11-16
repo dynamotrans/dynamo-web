@@ -81,7 +81,8 @@ export function enPestana(e: EnvioFila, p: Pestana): boolean {
   if (p === 'cancelada') return e.estado === 'cancelado';
   if (p === 'sin-pagar') return esPendientePago(e);
   if (p === 'sin-asignar') return e.estado === 'programado' && !e.es_manual && !e.transportista_asignado && !esPendientePago(e);
-  return VIVOS.includes(e.estado);
+  // «Programados»: los vivos que NO esperan el pago (esos tienen su pestaña; usuario, 2026-11-16).
+  return VIVOS.includes(e.estado) && !esPendientePago(e);
 }
 
 // --- Fechas -------------------------------------------------------------------------

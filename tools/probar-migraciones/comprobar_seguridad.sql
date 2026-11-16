@@ -11339,3 +11339,30 @@ begin
   raise notice 'OK 263 · el crédito y los envíos, al día en los dos sentidos: al bajar o quitar el crédito, los envíos a crédito sin transportista que ya no caben pasan a pendiente de pago (del que carga antes al que carga después, con aviso a Dynamo y al cliente); el repaso de cada hora pasa a crédito los pendientes que ya caben; con transportista o exentos a mano, no se tocan';
 end $$;
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
+
+-- ---- 264. La pestaña «Programados» no enseña los pendientes de pago: cada envío vivo, en una sola pestaña ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid; a uuid; b uuid; begin
+  insert into clientes (razon_social, cif) values ('Cliente Pestañas 264 SL', 'B26400264') returning id into cli;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 300, sumar_dias_habiles(current_date, 4)) returning id into a;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 300, sumar_dias_habiles(current_date, 4)) returning id into b;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select e, o, tp, cp, p, 'ES' from unnest(array[a, b]) e, (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, tp, cp, p);
+  update envios set estado = 'programado' where id in (a, b);
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo' where id = b;   -- b espera el pago; a va a crédito
+  perform set_config('prueba.cli264', cli::text, false); perform set_config('prueba.a264', a::text, false); perform set_config('prueba.b264', b::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare cli uuid := current_setting('prueba.cli264')::uuid; a uuid := current_setting('prueba.a264')::uuid; b uuid := current_setting('prueba.b264')::uuid; begin
+  if (select total from envios_pestanas(cli, null) where pestana = 'programada') <> 1 or (select total from envios_pestanas(cli, null) where pestana = 'sin-pagar') <> 1
+     or (select total from envios_pestanas(cli, null) where pestana = 'todas') <> 2 then
+    raise exception 'FALLO 264 · los contadores no reparten bien: programada %, sin pagar %', (select total from envios_pestanas(cli, null) where pestana = 'programada'), (select total from envios_pestanas(cli, null) where pestana = 'sin-pagar');
+  end if;
+  if (select array_agg(id) from envios_pagina('programada', 1, 20, cli)) is distinct from array[a] then raise exception 'FALLO 264 · «Programados» enseña un envío pendiente de pago (o no enseña el que va a crédito)'; end if;
+  if (select array_agg(id) from envios_pagina('sin-pagar', 1, 20, cli)) is distinct from array[b] then raise exception 'FALLO 264 · «Pendientes de pago» no enseña el envío que espera el pago'; end if;
+  raise notice 'OK 264 · cada envío vivo sale en una sola pestaña: «Pendientes de pago» si espera el pago, «Programados» si no';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
