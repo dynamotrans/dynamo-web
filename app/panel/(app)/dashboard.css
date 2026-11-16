@@ -296,7 +296,7 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); font-family:
     border-top: 1px solid var(--gray-200);
 }
 .sidebar-user {
-    display: flex; align-items: center; gap: 0.6rem;
+    display: flex; align-items: flex-start; gap: 0.6rem;
     padding: 0.6rem 0.6rem; border-radius: 10px;
 }
 .sidebar-user-avatar {
@@ -307,6 +307,8 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); font-family:
 }
 .sidebar-user-name { font-size: var(--fs-m); font-weight: 700; }
 .sidebar-user-sub  { font-size: var(--fs-s); opacity: 0.6; }
+.sidebar-user-corta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-avatar { flex-shrink: 0; }
 
 /* =========================================
    MAIN

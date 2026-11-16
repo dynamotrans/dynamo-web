@@ -231,9 +231,14 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
         <div className="sidebar-foot">
           <div className="sidebar-user">
             <div className="sidebar-user-avatar">{iniciales}</div>
-            <div>
-              <div className="sidebar-user-name">{nombre}</div>
-              <div className="sidebar-user-sub">{empresa}</div>
+            {/* Lo mismo que la cabecera del menú de arriba (usuario, 2026-11-16): nombre,
+                email, empresa, su CIF/NIF (solo el valor) y el rol. */}
+            <div style={{ minWidth: 0 }}>
+              <div className="sidebar-user-name notranslate" translate="no">{nombre}</div>
+              {nombre !== email && <div className="sidebar-user-sub sidebar-user-corta notranslate" translate="no">{email}</div>}
+              {empresa && <div className="sidebar-user-name sidebar-user-corta notranslate" translate="no" style={{ marginTop: '0.3rem' }}>{empresa}</div>}
+              {empresaCif && <div className="sidebar-user-sub notranslate" translate="no">{empresaCif}</div>}
+              <span className="user-menu-role">{ROL_TXT[rol]}</span>
             </div>
           </div>
           {salir}
@@ -372,13 +377,13 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
               </button>
               <div className={`user-menu${menu === 'usuario' ? ' open' : ''}`} role="menu" aria-hidden={menu !== 'usuario'}>
                 {/* Quién soy y para qué empresa trabajo, de un vistazo (usuario, 2026-11-16):
-                    nombre, email, empresa, su CIF/NIF y el rol. */}
+                    nombre, email, empresa, su CIF/NIF (solo el valor) y el rol. */}
                 <div className="user-menu-head">
                   <div className="user-menu-head-body">
                     {nombre && nombre !== email && <div className="user-menu-head-name notranslate" translate="no">{nombre}</div>}
                     <div className="user-menu-head-email notranslate" translate="no">{email}</div>
                     {empresa && <div className="user-menu-head-empresa notranslate" translate="no">{empresa}</div>}
-                    {empresaCif && <div className="user-menu-head-email">CIF/NIF: <span className="notranslate" translate="no">{empresaCif}</span></div>}
+                    {empresaCif && <div className="user-menu-head-email notranslate" translate="no">{empresaCif}</div>}
                     <span className="user-menu-role">{ROL_TXT[rol]}</span>
                   </div>
                 </div>
