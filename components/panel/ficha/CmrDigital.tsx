@@ -23,6 +23,7 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
   const [masInfo, setMasInfo] = useState(false);   // explicación + base legal, plegadas
   const [recarga, setRecarga] = useState(0);   // el historial de envíos se vuelve a leer tras compartir
   const [papel, setPapel] = useState(false);   // ventana «Firmó en papel (CMR bis)»
+  const [compartirPdf, setCompartirPdf] = useState(false);   // compartir el PDF del CMR (enlace público)
   const enl = ficha.cmrEnlace;
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga'), entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
   const total = recogidas.length + 1 + entregas.length;
@@ -75,6 +76,17 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
             <a className="btn-secondary" style={{ padding: '0 0.3rem', minWidth: 0, whiteSpace: 'nowrap' }} href={`/panel/envios/${ficha.envio.id}/cmr`} target="_blank" rel="noopener"
                title="El CMR relleno tal y como está ahora mismo, con las firmas que haya."><I d={ICO.ojo} />Abrir PDF eCMR</a>
           </div>
+          {/* COMPARTIR el PDF con las firmas actuales, debajo del de abrirlo (usuario,
+              2026-11-16): va el enlace público del PDF, que abre cualquiera sin cuenta. */}
+          <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.45rem' }}
+            title="Compartir por WhatsApp, email, SMS o copiar el enlace del PDF con las firmas que haya ahora"
+            onClick={() => setCompartirPdf(true)}>Compartir PDF eCMR</button>
+          {compartirPdf && (
+            <CompartirSheet onCerrar={() => setCompartirPdf(false)} url={`${enlaceCmrUrl(enl.token)}/pdf`}
+              titulo={`CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}`}
+              texto={`CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}, con las firmas actuales (PDF):`}
+              onVia={(via) => { anotarCompartido(e.id, 'cmr', via).then(() => setRecarga((n) => n + 1)).catch(() => {}); }} />
+          )}
           <HistorialEnvios envioId={e.id} documento="cmr" titulo="Historial envíos eCMR" recarga={recarga} />
         </>
       ) : (

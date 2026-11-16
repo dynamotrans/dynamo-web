@@ -142,19 +142,22 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
         Ver el CMR en PDF · con las firmas actuales
       </a>
-      {/* Mandárselo a uno mismo (o a quien haga falta) con las opciones de compartir
-          (usuario, 2026-11-16): el conductor no deja su email; se lo lleva así. */}
+      {/* COMPARTIR el PDF con las firmas actuales, justo debajo del de abrirlo (usuario,
+          2026-11-16): WhatsApp, email, SMS, copiar… Así el conductor se lo lleva sin
+          dejar su email. */}
       <button type="button" onClick={() => setCompartirPdf(true)} style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center',
-        background: '#065f46', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
-        Mandarme el CMR · WhatsApp, email…
+        background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
+        Compartir el CMR en PDF · WhatsApp, email…
       </button>
-      {/* Salir SÍ lleva a la web de Dynamo, pero solo desde aquí (usuario, 2026-11-11). */}
-      <a href="/" style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center', textDecoration: 'none',
-        background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem' }}>
-        Salir · He terminado, gracias
-      </a>
-      <button type="button" onClick={() => setFin(false)} style={{ marginTop: '0.7rem', background: 'none', border: 'none', color: '#047857', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
-        Volver a las firmas
+      {/* NO se saca a nadie de la hoja de firmas (usuario, 2026-11-16; antes había un
+          «Salir» que llevaba a la web): puede firmar otra persona aquí mismo, o volver a
+          entrar más tarde con el mismo enlace para ver cómo van las firmas. */}
+      <p style={{ margin: '0.8rem 0 0', color: '#047857', fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.4 }}>
+        No hace falta salir: puede firmar otra persona aquí mismo, y puedes volver a entrar con este mismo enlace cuando quieras para ver cómo van las firmas.
+      </p>
+      <button type="button" onClick={() => setFin(false)} style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center',
+        background: '#1d9e57', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
+        Seguir en la hoja de firmas
       </button>
     </div>
   ) : (
@@ -332,13 +335,19 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         // El PDF «con las firmas actuales» justo delante de la primera firmada (usuario,
         // 2026-11-14): pendientes → botón del PDF → ya firmadas. Sin ninguna firma aún,
         // tras la última pendiente, para que el PDF siga siempre a mano.
-        const btnPdf = b.clave === (firmadasVista[0] ?? pendientesVista[pendientesVista.length - 1])?.clave ? (
+        const btnPdf = b.clave === (firmadasVista[0] ?? pendientesVista[pendientesVista.length - 1])?.clave ? (<>
           <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener"
-            style={{ display: 'block', margin: '0 0 0.7rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
+            style={{ display: 'block', margin: '0 0 0.45rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
               padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, boxShadow: '0 3px 10px rgba(29,158,87,0.3)' }}>
             Abrir el CMR en PDF · con las firmas actuales
           </a>
-        ) : null;
+          {/* Y debajo, COMPARTIR ese mismo PDF (usuario, 2026-11-16). */}
+          <button type="button" onClick={() => setCompartirPdf(true)}
+            style={{ display: 'block', width: '100%', margin: '0 0 0.7rem', padding: '0.8rem 1rem', borderRadius: 12, textAlign: 'center',
+              background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
+            Compartir el CMR en PDF · WhatsApp, email…
+          </button>
+        </>) : null;
         const antes = !!firmadasVista.length;   // con firmadas va DELANTE de la 1.ª; sin ellas, DETRÁS de la última pendiente
         return (<Fragment key={b.clave}>
           {antes && btnPdf}
