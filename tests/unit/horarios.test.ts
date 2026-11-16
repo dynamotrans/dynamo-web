@@ -5,15 +5,15 @@ import { resumenHorario, validarHorario, enTemporada } from '../../lib/horarios'
 
 const t = (abre: string, cierra: string) => ({ abre, cierra });
 
-test('resumen «Lunes a jueves … · viernes …»', () => {
+test('resumen «Lun a jue … · vie …»', () => {
   assert.equal(resumenHorario([
     { dias: [1, 2, 3, 4], tramos: [t('08:00', '14:00'), t('15:00', '17:30')] },
     { dias: [5], tramos: [t('08:00', '14:00')] },
-  ]), 'Lunes a jueves 8:00–14:00 y 15:00–17:30 · viernes 8:00–14:00');
+  ]), 'Lun a jue 8:00–14:00 y 15:00–17:30 · vie 8:00–14:00');
 });
 
-test('dos días seguidos: «Lunes y martes»', () => {
-  assert.equal(resumenHorario([{ dias: [1, 2], tramos: [t('07:00', '15:00')] }]), 'Lunes y martes 7:00–15:00');
+test('dos días seguidos: «Lun y mar»', () => {
+  assert.equal(resumenHorario([{ dias: [1, 2], tramos: [t('07:00', '15:00')] }]), 'Lun y mar 7:00–15:00');
 });
 
 test('tramos que se pisan o cierran antes de abrir no valen', () => {

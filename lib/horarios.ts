@@ -62,8 +62,9 @@ export function validarHorario(g: GrupoHorario[]): string | null {
   }
   return null;
 }
-// El mismo resumen que escribe la base de datos, horario_texto()
-// ("Lunes a jueves 8:00–14:00 y 15:00–17:30 · viernes 8:00–14:00").
+// El mismo resumen que escribe la base de datos, horario_texto(), con los días EN CORTO
+// (usuario, 2026-11-16): "Lun a jue 8:00–14:00 y 15:00–17:30 · vie 8:00–14:00".
+const DIA_CORTO = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
 export function resumenHorario(g: GrupoHorario[]): string {
   const porDia = new Map<number, string>();
   g.forEach((x) => x.dias.forEach((d) => porDia.set(d,
@@ -73,7 +74,7 @@ export function resumenHorario(g: GrupoHorario[]): string {
   for (let d = 2; d <= 8; d++) {
     if (d === 8 || porDia.get(d) !== porDia.get(ini)) {
       const t = porDia.get(ini);
-      if (t) partes.push(`${DIAS[ini - 1][2].toLowerCase()}${d - 1 > ini ? (d - 2 === ini ? ' y ' : ' a ') + DIAS[d - 2][2].toLowerCase() : ''} ${t}`);
+      if (t) partes.push(`${DIA_CORTO[ini - 1]}${d - 1 > ini ? (d - 2 === ini ? ' y ' : ' a ') + DIA_CORTO[d - 2] : ''} ${t}`);
       ini = d;
     }
   }

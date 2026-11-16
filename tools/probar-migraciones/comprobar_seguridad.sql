@@ -539,7 +539,7 @@ end $$;
 reset role;
 do $$ begin
   if (select horarios from sitios where id = current_setting('prueba.sitio_a')::uuid)
-     is distinct from 'Lunes a jueves 8:00–14:00 y 15:30–17:30 · viernes 8:00–14:00' then
+     is distinct from 'Lun a jue 8:00–14:00 y 15:30–17:30 · vie 8:00–14:00' then
     raise exception 'FALLO 22 · el horario de la ficha de A ha cambiado';
   end if;
   if (select anotaciones from sitios where id = current_setting('prueba.sitio_a')::uuid) not like 'Manolo%' then
@@ -1541,7 +1541,7 @@ do $$ declare l uuid; begin
   if (select count(*) from sitio_horarios where sitio_id = l and temporada = 'general') <> 9 then
     raise exception 'FALLO 56 · el sitio no ha nacido con el horario por defecto';
   end if;
-  if (select horarios from sitios where id = l) <> 'Lunes a jueves 8:00–14:00 y 15:30–17:30 · viernes 8:00–14:00' then
+  if (select horarios from sitios where id = l) <> 'Lun a jue 8:00–14:00 y 15:30–17:30 · vie 8:00–14:00' then
     raise exception 'FALLO 56 · resumen: %', (select horarios from sitios where id = l);
   end if;
   if (select count(*) from sitio_horarios where sitio_id = l and temporada = 'verano' and abre = '07:00' and cierra = '15:00') <> 5 then
@@ -1550,14 +1550,14 @@ do $$ declare l uuid; begin
   if not exists (select 1 from sitios where id = l and verano_activo and verano_desde = '06-01' and verano_hasta = '09-15') then
     raise exception 'FALLO 56 · el verano no nace activado del 1-jun al 15-sep';
   end if;
-  if (select horarios_verano from sitios where id = l) <> 'Lunes a viernes 7:00–15:00' then
+  if (select horarios_verano from sitios where id = l) <> 'Lun a vie 7:00–15:00' then
     raise exception 'FALLO 56 · resumen del verano: %', (select horarios_verano from sitios where id = l);
   end if;
   -- El cliente cambia su horario: el viernes también por la tarde, y abre el sábado.
   delete from sitio_horarios where sitio_id = l and dia_semana = 5;
   insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values
     (l, 5, '08:00', '14:00'), (l, 5, '15:30', '17:30'), (l, 6, '09:00', '13:00');
-  if (select horarios from sitios where id = l) <> 'Lunes a viernes 8:00–14:00 y 15:30–17:30 · sábado 9:00–13:00' then
+  if (select horarios from sitios where id = l) <> 'Lun a vie 8:00–14:00 y 15:30–17:30 · sáb 9:00–13:00' then
     raise exception 'FALLO 56 · resumen tras cambiar: %', (select horarios from sitios where id = l);
   end if;
   begin
@@ -1572,7 +1572,7 @@ do $$ declare l uuid; begin
   end;
   -- Guardar de una vez: sustituye todo; vacío no vale; con un tramo malo no cambia nada.
   perform guardar_horario(l, '[{"dia":1,"abre":"07:00","cierra":"15:00"},{"dia":2,"abre":"07:00","cierra":"15:00"}]');
-  if (select horarios from sitios where id = l) <> 'Lunes y martes 7:00–15:00' then
+  if (select horarios from sitios where id = l) <> 'Lun y mar 7:00–15:00' then
     raise exception 'FALLO 56 · guardar_horario: %', (select horarios from sitios where id = l);
   end if;
   begin
@@ -1585,7 +1585,7 @@ do $$ declare l uuid; begin
     perform guardar_horario(l, '[{"dia":3,"abre":"10:00","cierra":"09:00"}]');
   exception when check_violation then null;
   end;
-  if (select horarios from sitios where id = l) <> 'Lunes y martes 7:00–15:00' then
+  if (select horarios from sitios where id = l) <> 'Lun y mar 7:00–15:00' then
     raise exception 'FALLO 56 · un horario malo ha dejado el sitio a medias';
   end if;
   -- El resumen no se escribe a mano.
@@ -4208,7 +4208,7 @@ do $$ declare l uuid := current_setting('prueba.sitio_a')::uuid; begin
   if exists (select 1 from horario_del_dia(l, make_date(2027, 10, 13)) where temporada = 'verano') then
     raise exception 'FALLO 119 · fuera de verano usa el horario de verano';
   end if;
-  if (select horarios_verano from sitios where id = l) <> 'Lunes a viernes 7:30–15:00' then
+  if (select horarios_verano from sitios where id = l) <> 'Lun a vie 7:30–15:00' then
     raise exception 'FALLO 119 · el resumen del verano no se escribe: %', (select horarios_verano from sitios where id = l);
   end if;
   if (select horarios from sitios where id = l) like '%7:30-15:00%' then
@@ -4233,7 +4233,7 @@ select guardar_horario_verano(current_setting('prueba.sitio_a')::uuid, true, '06
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ begin
-  if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14)) <> 'Lunes a viernes 7:30–15:00 (horario de verano)' then
+  if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14)) <> 'Lun a vie 7:30–15:00 (horario de verano)' then
     raise exception 'FALLO 120 · en verano no da el horario de verano: %', horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14));
   end if;
   if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 10, 13)) like '%verano%' then
@@ -5287,14 +5287,14 @@ do $$ declare f text; l uuid; begin
   end if;
   insert into sitios (nombre_empresa, es_almacen_dynamo, codigo_postal) values ('Prueba 148', true, '41001') returning id into l;
   perform guardar_horario(l, '[{"dia":1,"abre":"08:00","cierra":"14:00"},{"dia":2,"abre":"08:00","cierra":"14:00"},{"dia":3,"abre":"08:00","cierra":"14:00"},{"dia":5,"abre":"09:00","cierra":"13:00"}]');
-  if (select horarios from sitios where id = l) <> 'Lunes a miércoles 8:00–14:00 · viernes 9:00–13:00' then
+  if (select horarios from sitios where id = l) <> 'Lun a mié 8:00–14:00 · vie 9:00–13:00' then
     raise exception 'FALLO 148 · horario: %', (select horarios from sitios where id = l);
   end if;
   if exists (select 1 from sitios where horarios ~ '^[LMXJVSD](-[LMXJVSD])? ') then
     raise exception 'FALLO 148 · quedan horarios con el formato viejo (L-V)';
   end if;
   delete from sitios where id = l;
-  raise notice 'OK 148 · textos: «envío» para todo, anulado sin pago, camión completo (tráiler o rígido), horarios «Lunes a viernes 8:00–18:00»';
+  raise notice 'OK 148 · textos: «envío» para todo, anulado sin pago, camión completo (tráiler o rígido), horarios con los días en corto';
 end $$;
 
 -- ---- 149. Fecha de carga al pagar: primer día posible y mismo tipo de fecha ---------------
