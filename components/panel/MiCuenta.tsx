@@ -430,7 +430,13 @@ function DarmeDeBaja({ onCerrar, transportista }: { onCerrar: () => void; transp
         Se da de baja <strong>tu acceso</strong>: no podrás entrar ni recibirás avisos. Cerramos tus sesiones en todos los dispositivos.
       </p>
       <div className="pt-aviso info" style={{ marginBottom: '0.7rem' }}><div>
-        <strong>Lo que NO se borra:</strong> {transportista ? 'los datos de tu empresa de transporte' : 'los datos de tu empresa'}, los envíos, albaranes, CMR, documentos de control y facturas. La ley nos obliga a guardarlos (inspección de transporte, Hacienda) y tu empresa puede tener más usuarios. Si además quieres que borremos tus datos personales, escríbenos a {CONTACTO.email}.
+        <strong>Lo que NO se borra:</strong> {transportista ? 'los datos de tu empresa de transporte' : 'los datos de tu empresa'}, los envíos, albaranes, CMR, documentos de control y facturas. <strong>La ley nos obliga a guardarlos (inspección de transporte, Hacienda) y tu empresa puede tener más usuarios.</strong>
+        <ul style={{ margin: '0.4rem 0 0.4rem 1.1rem', padding: 0 }}>
+          <li><strong>6 años</strong>: la documentación mercantil, facturas incluidas (Código de Comercio, art. 30).</li>
+          <li><strong>4 años</strong>: a disposición de Hacienda (Ley General Tributaria, art. 66).</li>
+          <li><strong>1 año</strong>: el documento de control del transporte, para la inspección (Orden FOM/2861/2012).</li>
+        </ul>
+        Si además quieres que borremos tus datos personales, escríbenos a {CONTACTO.email}.
       </div></div>
       <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div><label htmlFor="baja-motivo">Motivo <Req si={false} /></label>
