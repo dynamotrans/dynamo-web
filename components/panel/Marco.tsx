@@ -72,13 +72,13 @@ const Chev = ({ cls, size = 12, w = 3 }: { cls: string; size?: number; w?: numbe
 );
 
 type Props = {
-  rol: Rol; nombre: string; email: string; empresa: string; empresaCif?: string | null; iniciales: string;
+  rol: Rol; nombre: string; email: string; empresa: string; empresaCif?: string | null; iniciales: string; logo?: string | null;
   contadores?: Contadores; cobertura?: Cobertura; festivos?: string[];
   vista?: Vista; verComo?: boolean;
   children: React.ReactNode;
 };
 
-export default function Marco({ rol, nombre, email, empresa, empresaCif = null, iniciales, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
+export default function Marco({ rol, nombre, email, empresa, empresaCif = null, iniciales, logo = null, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
   // Menú del perfil que se está viendo (el equipo de Dynamo elige vista arriba).
   const menuVisto = useMemo(() => menuDe(rol, vista.tipo), [rol, vista.tipo]);
   // El perfil QUE SE VE manda en la campana y el CESCE: con «Ver como» un cliente, lo
@@ -230,7 +230,6 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
         </nav>
         <div className="sidebar-foot">
           <div className="sidebar-user">
-            <div className="sidebar-user-avatar">{iniciales}</div>
             {/* Lo mismo que la cabecera del menú de arriba (usuario, 2026-11-16): nombre,
                 email, empresa, su CIF/NIF (solo el valor) y el rol. */}
             <div style={{ minWidth: 0 }}>
@@ -371,7 +370,9 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
             <div className="topbar-user-wrap">
               <button type="button" className="topbar-user" aria-haspopup="menu" aria-expanded={menu === 'usuario'}
                       onClick={() => setMenu(menu === 'usuario' ? null : 'usuario')}>
-                <div className="topbar-user-avatar">{iniciales}</div>
+                {/* El distintivo es de la EMPRESA, no del usuario (usuario, 2026-11-16): su logo
+                    si lo hay; si no, las iniciales de la empresa. */}
+                <div className="topbar-user-avatar notranslate" translate="no">{logo ? <img src={logo} alt="" /> : iniciales}</div>
                 <div className="topbar-user-name">{nombre}</div>
                 <Chev cls="topbar-user-arrow" />
               </button>

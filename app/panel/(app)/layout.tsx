@@ -83,7 +83,10 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     <EnVivo canales={canales} marca={Date.now()} />
     <Suspense fallback={null}><CargandoNavegacion /></Suspense>
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
-           empresa={empresa} empresaCif={empresaCif} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
+           empresa={empresa} empresaCif={empresaCif}
+           // El distintivo de arriba es de la EMPRESA: logo si lo hay (hoy, el de Dynamo para su
+           // equipo; clientes y transportistas aún no tienen logo), y si no, sus iniciales.
+           iniciales={iniciales(empresa.replace(/[^\p{L}\p{N}\s]/gu, ' '), user.email ?? '')} logo={dynamo ? '/images/dynamo-logo-sq.png' : null}
            contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}
            vista={vista} verComo={dynamo && activa}>
       {mant && (

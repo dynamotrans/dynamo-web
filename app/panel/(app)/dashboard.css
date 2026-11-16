@@ -827,7 +827,9 @@ a.bell-nov:hover { background: var(--gray-100); }
     color: white; font-weight: 900; font-size: var(--fs-m);
     display: flex; align-items: center; justify-content: center;
     border: 1.5px solid rgba(255,255,255,0.85);
+    overflow: hidden;
 }
+.topbar-user-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
 /* Solo iniciales en la topbar: el avatar JG ya identifica al usuario;
    el nombre completo (largo) se oculta aquí (sí sale en el menú). */
 .topbar-user-name { display: none; }
