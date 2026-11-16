@@ -10878,7 +10878,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update parametros set valor = 'false' where clave = 'pago_previo_activo';
 do $$ declare e uuid; f uuid; g uuid; h uuid; begin
-  -- e: libre y publicado en bolsa · f: con transportista · g: pagado por adelantado · h: carga hoy (pasado el corte)
+  -- e: libre y publicado en bolsa · f: con transportista · g: pagado por adelantado · h: carga hoy (pasada la hora límite de cancelar)
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
     values (current_setting('prueba.cliente')::uuid, 6, 5, 600, sumar_dias_habiles(current_date, 4), sumar_dias_habiles(current_date, 5)) returning id into e;
@@ -10932,14 +10932,12 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; 
   exception when others then ok := sqlerrm like '%pagado por adelantado%'; end;
   if not ok then raise exception 'FALLO 259 · el cliente cambia el precio de un envío ya pagado'; end if;
   perform modificar_envio_cliente(current_setting('prueba.g259')::uuid, d || jsonb_build_object('importe_cliente', 600, 'referencia_cliente', 'PED-G'), null);
-  -- Pasado el corte: la fecha ya no se mueve (así no cancela «a tiempo» después), lo demás sí.
+  -- Pasada la hora límite de cancelar: sin transportista es como un envío nuevo, también la
+  -- fecha (usuario, 2026-11-16: «si cancelar no tenía coste, modificar tampoco»).
   d := jsonb_build_object('importe_cliente', 640, 'fecha_carga_desde', current_date, 'fecha_carga_hasta', current_date, 'metros_lineales', 7, 'toneladas', 5);
-  ok := false;
-  begin perform modificar_envio_cliente(current_setting('prueba.h259')::uuid,
-          d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 60), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 60)), null);
-  exception when others then ok := sqlerrm like '%Falta poco para la carga%'; end;
-  if not ok then raise exception 'FALLO 259 · pasado el corte, el cliente aleja la fecha de carga'; end if;
   perform modificar_envio_cliente(current_setting('prueba.h259')::uuid, d, null);
+  perform modificar_envio_cliente(current_setting('prueba.h259')::uuid,
+    d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 60), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 60)), null);
   -- La función interna de la ruta no se puede llamar desde fuera.
   ok := false;
   begin perform ruta_envio_reemplazar(e, '[]'::jsonb); exception when insufficient_privilege then ok := true; end;
@@ -10968,8 +10966,8 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record
     raise exception 'FALLO 259 · con el envío pagado no deja cambiar lo que no toca el precio';
   end if;
   if (select metros_lineales from envios where id = current_setting('prueba.h259')::uuid) <> 7
-     or (select fecha_carga_desde from envios where id = current_setting('prueba.h259')::uuid) <> current_date then
-    raise exception 'FALLO 259 · pasado el corte no deja cambiar la mercancía (o mueve la fecha)';
+     or (select fecha_carga_desde from envios where id = current_setting('prueba.h259')::uuid) <> sumar_dias_habiles(current_date, 60) then
+    raise exception 'FALLO 259 · sin transportista y pasada la hora límite, no deja cambiar la mercancía o la fecha';
   end if;
   -- Dynamo se entera, con el antes → ahora del precio; y como estaba en la bolsa, se le dice.
   select * into a from avisos where para = 'dynamo' and tipo = 'envio_modificado_cliente' and envio_id = e order by creado_en, id limit 1;
@@ -10981,5 +10979,5 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record
   if not exists (select 1 from emails_enviados where tipo = 'envio_modificado' and envio_id = e) then
     raise exception 'FALLO 259 · el cliente no recibe el email del envío modificado';
   end if;
-  raise notice 'OK 259 · el cliente modifica su envío entero sin transportista (ruta, mercancía, fechas y precio); con transportista, pagado con otro precio o alejando la fecha pasado el corte, no';
+  raise notice 'OK 259 · el cliente modifica su envío entero sin transportista (ruta, mercancía, fechas y precio); también la fecha pasada la hora límite de cancelar; con transportista o pagado con otro precio, no';
 end $$;

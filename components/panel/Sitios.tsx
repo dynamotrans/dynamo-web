@@ -468,7 +468,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
               estilo que el resto de la ficha (antes salía con el del navegador). */}
           <div className="ptar-sitio-grid" style={{ position: 'relative', gridTemplateColumns: '1fr' }}>
             <div style={{ position: 'relative' }}>
-            <label htmlFor="sitio-buscar" style={{ color: 'var(--green)', fontWeight: 700 }}>Empieza aquí: busca el nombre del sitio nuevo para autorrellenar con Google</label>
+            <label htmlFor="sitio-buscar" style={{ color: 'var(--green)', fontWeight: 700 }}>Empieza aquí: busca el nombre del sitio nuevo para autorrellenar.</label>
             <input id="sitio-buscar" autoComplete="off" placeholder="Escribe empresa o dirección…" value={bq}
               onChange={(e) => { setBq(e.target.value); setAvisoParecido(null); }}
               onFocus={() => setSugAbierto(true)} onBlur={() => setTimeout(() => setSugAbierto(false), 150)} />
