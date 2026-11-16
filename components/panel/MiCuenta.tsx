@@ -84,7 +84,10 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           <button className="btn-ghost account-edit" style={{ marginTop: '0.5rem' }} onClick={() => { setEmailPedido(null); setCambiaEmail(true); }}>Cambiar email</button>
           {emailPedido && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Te hemos enviado un enlace a {emailPedido} (y otro a tu correo actual, por seguridad). El email cambia al confirmarlos; hasta entonces sigues entrando con el actual.</p>}
           {(rol === 'cliente' || rol === 'transportista') && (
-            <button type="button" className="btn-ghost" style={{ marginTop: '0.8rem', color: 'var(--red)', borderColor: 'transparent', padding: '0.35rem 0' }} onClick={() => setBaja(true)}>Darme de baja</button>
+            // En su propia línea y separado de «Cambiar email» (usuario, 2026-11-16: salían pegados).
+            <div style={{ marginTop: '1.1rem', paddingTop: '0.8rem', borderTop: '1px dashed var(--gray-200)' }}>
+              <button type="button" className="btn-ghost" style={{ color: 'var(--red)', borderColor: 'transparent', background: 'transparent', padding: '0.35rem 0' }} onClick={() => setBaja(true)}>Darme de baja</button>
+            </div>
           )}
         </div>
         {(rol === 'cliente' || rol === 'transportista') && (
