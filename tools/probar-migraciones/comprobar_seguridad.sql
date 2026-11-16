@@ -10781,3 +10781,73 @@ do $$ declare e uuid := current_setting('prueba.e257')::uuid; r record; v_cli te
   end if;
   raise notice 'OK 257 · envío reactivado: email al cliente al deshacer una cancelación ya comunicada; si no se llegó a comunicar, se anula el de cancelado y no sale ninguno';
 end $$;
+
+-- ---- 258. Emails de crédito al cliente: cambios de la línea y avisos de uso, sin importes ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid; uc uuid; v_cli text := 'credito258@cliente.prueba'; r record; n int; u record;
+  e uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  -- Un cliente nuevo, con su usuario, para que no arrastre avisos de otras pruebas.
+  insert into clientes (razon_social, cif) values ('Cliente Crédito 258 SL', 'B25800258') returning id into cli;
+  insert into auth.users (email) values (v_cli) returning id into uc;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = cli where id = uc;
+  update clientes set riesgo_cesce_euros = null, riesgo_manual_euros = null, exento_pago_previo_primer_envio = true where id = cli;
+  if exists (select 1 from emails_enviados where clave like 'credito_%:' || cli || ':%') then raise exception 'FALLO 258 · avisa de crédito a un cliente que nunca lo ha tenido'; end if;
+  -- Sin crédito → CESCE concede: «concedida», nombrando a CESCE y sin importes.
+  update clientes set riesgo_cesce_euros = 1000000 where id = cli;
+  select * into r from emails_enviados where clave like 'credito_cambio:' || cli || ':%' order by clave desc limit 1;
+  if r.id is null or r.asunto <> 'Línea de crédito concedida · Dynamo' or r.destinatario <> v_cli or position('CESCE' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 258 · al conceder crédito CESCE no sale «línea concedida» al cliente: %', r.asunto;
+  end if;
+  if position('1000000' in r.cuerpo_html) > 0 or position('1.000.000' in r.cuerpo_html) > 0 then raise exception 'FALLO 258 · el email de crédito enseña el importe del límite'; end if;
+  update clientes set riesgo_cesce_euros = 2000000 where id = cli;
+  if (select asunto from emails_enviados where clave like 'credito_cambio:' || cli || ':%' order by clave desc limit 1) <> 'Línea de crédito ampliada · Dynamo' then
+    raise exception 'FALLO 258 · al subir el límite no sale «línea ampliada»';
+  end if;
+  -- Un envío a crédito confirmado, para que haya uso.
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (cli, 13.30, 20, 1000, 800, lun) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = e;
+  select * into u from credito_uso_cliente(cli);
+  if coalesce(u.usado, 0) <> 1210 then raise exception 'FALLO 258 · el uso de la línea no cuenta el envío confirmado con su IVA: %', u; end if;
+  if exists (select 1 from emails_enviados where clave like 'credito_aviso:' || cli || ':%') then raise exception 'FALLO 258 · avisa de uso con la línea casi sin tocar (%)', u.pct; end if;
+  -- El crédito MANUAL de Dynamo manda: lo baja hasta dejar el uso al 90 % → «reducida» + «cerca del límite».
+  update clientes set riesgo_manual_euros = round(u.usado / 0.9, 2) where id = cli;
+  select * into r from emails_enviados where clave like 'credito_cambio:' || cli || ':%' order by clave desc limit 1;
+  if r.asunto <> 'Línea de crédito reducida · Dynamo' or position('CESCE' in r.cuerpo_html) > 0 then raise exception 'FALLO 258 · al bajar el límite con crédito manual: % (no debe nombrar a CESCE)', r.asunto; end if;
+  select * into r from emails_enviados where clave like 'credito_aviso:' || cli || ':%';
+  if r.id is null or r.asunto not like 'Estás cerca del límite%' or r.destinatario <> v_cli or position('facturas pendientes' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 258 · al 90 %% de uso no sale «cerca del límite»: %', r.asunto;
+  end if;
+  -- Repetir la revisión no repite el aviso.
+  perform credito_revisar_uso(cli);
+  select count(*) into n from emails_enviados where clave like 'credito_aviso:' || cli || ':%';
+  if n <> 1 then raise exception 'FALLO 258 · el aviso de uso se repite (%)', n; end if;
+  -- Por debajo de lo usado → «límite alcanzado», y el de «cerca» sin mandar se anula.
+  update clientes set riesgo_manual_euros = round(u.usado / 2, 2) where id = cli;
+  select * into r from emails_enviados where clave like 'credito_aviso:' || cli || ':alcanzado:%';
+  if r.id is null or r.estado <> 'pendiente' or r.asunto not like 'Has alcanzado el límite%' or position('liquides las facturas pendientes' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 258 · con el límite superado no sale «límite alcanzado»: %', r.asunto;
+  end if;
+  if (select estado from emails_enviados where clave like 'credito_aviso:' || cli || ':cerca:%') <> 'omitido' then
+    raise exception 'FALLO 258 · el aviso de «cerca» pendiente no se anula al llegar el de «alcanzado»';
+  end if;
+  -- Retirada: sin manual y con CESCE a 0.
+  update clientes set riesgo_manual_euros = null, riesgo_cesce_euros = 0 where id = cli;
+  if (select asunto from emails_enviados where clave like 'credito_cambio:' || cli || ':%' order by clave desc limit 1) <> 'Línea de crédito retirada · Dynamo' then
+    raise exception 'FALLO 258 · al quitar el crédito no sale «línea retirada»';
+  end if;
+  select count(*) into n from emails_enviados where clave like 'credito_cambio:' || cli || ':%';
+  update clientes set riesgo_cesce_euros = null where id = cli;   -- de 0 a sin clasificar: sigue sin crédito, no es noticia
+  if (select count(*) from emails_enviados where clave like 'credito_cambio:' || cli || ':%') <> n then raise exception 'FALLO 258 · avisa de un cambio entre «sin crédito» y «sin clasificar»'; end if;
+  -- Apagados en Parámetros, no sale ninguno.
+  update parametros set valor = 'false'::jsonb where clave = 'credito_emails_activo';
+  update clientes set riesgo_cesce_euros = 500000 where id = cli;
+  if (select count(*) from emails_enviados where clave like 'credito_cambio:' || cli || ':%') <> n then raise exception 'FALLO 258 · con los emails de crédito apagados sigue saliendo'; end if;
+  update parametros set valor = 'true'::jsonb where clave = 'credito_emails_activo';
+  raise notice 'OK 258 · emails de crédito: concedida, ampliada, reducida y retirada (CESCE o manual), cerca del límite y límite alcanzado, sin importes, sin repetir y apagables';
+end $$;

@@ -40,6 +40,7 @@ const SECCIONES: Seccion[] = [
   ] },
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
     { titulo: 'Riesgo asumido', claves: ['riesgo_dias_asumido'] },
+    { titulo: 'Emails de crédito al cliente', claves: ['credito_emails_activo', 'credito_aviso_pct', 'credito_aviso_dias'] },
   ] },
   { id: 'transportistas', titulo: 'Transportistas', intro: 'Ofertas de envíos, negociación, bolsa y pago a transportistas.', subs: [
     { titulo: 'Ofertas y reservas', claves: ['oferta_dias_caducidad', 'reserva_minutos'] },

@@ -3681,6 +3681,8 @@ export type Database = {
       crear_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_cliente: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null; p_cliente?: string | null }; Returns: { id: string; referencia_gx: string }[] }
+      credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
+      credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
       cuadro_mando_sectores: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: { sector: string; clientes: number; realizados: number; facturacion: number; margen: number }[] }
       cuenta_mis_envios_sin_asignar: { Args: Record<PropertyKey, never>; Returns: number }
@@ -3707,6 +3709,7 @@ export type Database = {
       duracion_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
       email_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       emails_cliente_envio: { Args: { p_envio: string | null }; Returns: string }
+      emails_del_cliente: { Args: { p_cliente: string | null }; Returns: string }
       emails_validos: { Args: { p: string[] | null }; Returns: boolean }
       en_temporada: { Args: { p_fecha: string | null; p_desde: string | null; p_hasta: string | null }; Returns: boolean }
       encolar_anulacion_parada: { Args: { p_envio: string | null; p_parada: string | null; p_tipo: string | null; p_nombre: string | null; p_poblacion_sitio: string | null; p_sitio: string | null }; Returns: undefined }
@@ -3764,6 +3767,7 @@ export type Database = {
       fn_difusion_limite: { Args: { p_envio: string | null; p_desde: string | null; p_hasta: string | null; p_hora_manual: string | null }; Returns: string }
       fn_difusion_paso: { Args: { p_difusion: string | null }; Returns: undefined }
       fn_difusion_recordatorios: { Args: Record<PropertyKey, never>; Returns: undefined }
+      fn_email_credito: { Args: { p_cliente: string | null; p_clave: string | null; p_tipo: string | null; p_asunto: string | null; p_cuerpo: string | null }; Returns: undefined }
       fn_email_envio_cliente: { Args: { p_envio: string | null; p_clave: string | null; p_tipo: string | null; p_titulo: string | null; p_cuerpo: string | null }; Returns: undefined }
       fn_encolar_email_envio_modificado: { Args: { p_envio: string | null; p_cambios: string | null }; Returns: undefined }
       fn_modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }
