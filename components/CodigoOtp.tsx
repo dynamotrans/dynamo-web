@@ -3,7 +3,8 @@
 // Las 6 cajitas del código, COMPARTIDAS por el alta y por «¿Olvidaste tu contraseña?»
 // (usuario, 2026-11-11: «doble vía para garantizar servicio» — el enlace a veces lo
 // quema el escáner del correo; el código tecleado es inmune). Avanza sola al escribir,
-// retrocede con la tecla de borrar y reparte lo que se pega. Debajo, «Reenviar código»
+// retrocede con la tecla de borrar y reparte lo que se pega. Al completar las 6 cifras se
+// comprueba solo, sin pulsar el botón. Debajo, «Reenviar código»
 // con cuenta atrás. Las acciones (comprobar y reenviar) las pone cada flujo.
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { IcoAviso } from '@/components/Iconos';
@@ -18,6 +19,8 @@ export default function CodigoOtp({ email, comprobar, reenviar: reenviarAccion }
   const [cifras, setCifras] = useState<string[]>(['', '', '', '', '', '']);
   const [espera, setEspera] = useState(60);
   const cajas = useRef<(HTMLInputElement | null)[]>([]);
+  const formulario = useRef<HTMLFormElement>(null);
+  const enviado = useRef('');   // el último código que se mandó solo (para no mandarlo dos veces)
 
   useEffect(() => { cajas.current[0]?.focus(); }, []);
   useEffect(() => { if (reenvio.reenviado) setEspera(60); }, [reenvio]);
@@ -26,6 +29,16 @@ export default function CodigoOtp({ email, comprobar, reenviar: reenviarAccion }
   useEffect(() => {
     if (estado.error) { setCifras(['', '', '', '', '', '']); cajas.current[0]?.focus(); }
   }, [estado]);
+  // AL COMPLETAR LAS 6 CIFRAS, ENTRA SOLO (usuario, 2026-11-17): tecleando la última o
+  // pegando el código entero, sin tener que pulsar el botón. El botón sigue ahí por si
+  // acaso. Si el código falla, las cajitas se vacían y se puede volver a intentar.
+  useEffect(() => {
+    const codigo = cifras.join('');
+    if (codigo.length < 6) { enviado.current = ''; return; }
+    if (comprobando || enviado.current === codigo) return;
+    enviado.current = codigo;
+    formulario.current?.requestSubmit();
+  }, [cifras, comprobando]);
   useEffect(() => {
     if (espera <= 0) return;
     const t = setTimeout(() => setEspera((s) => s - 1), 1000);
@@ -41,7 +54,7 @@ export default function CodigoOtp({ email, comprobar, reenviar: reenviarAccion }
 
   return (
     <>
-      <form action={accion} noValidate>
+      <form ref={formulario} action={accion} noValidate>
         {comprobando && <Cargando texto="Comprobando el código" />}
         {estado.error && <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>}
         <input type="hidden" name="email" value={email} />
