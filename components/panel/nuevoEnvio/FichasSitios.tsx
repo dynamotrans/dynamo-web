@@ -132,8 +132,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                 {i === 0 && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt}</span>}
                 {i > 0 && fechasParada?.[p.k] && <span className={`ptar-sitio-head-fecha ${rec ? 'shf-rec' : 'shf-ent'}`}>{fechasParada[p.k]}</span>}
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}
-                {dir && <span className="ptar-sitio-head-dir">{dir}</span>}
+                {/* Primero el nombre de la empresa y debajo la dirección (usuario, 2026-11-17). */}
                 {f.empresa && <span className="ptar-sitio-head-empn">{f.empresa}</span>}
+                {dir && <span className="ptar-sitio-head-dir">{dir}</span>}
                 {/* Los teléfonos ya NO se repiten en la cabecera (usuario, 2026-11-17): están en
                     «Contacto del sitio» al desplegar la tarjeta. */}
                 {(falta || faltaCampos) && <span className="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>}

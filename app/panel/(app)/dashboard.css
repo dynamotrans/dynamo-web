@@ -4223,6 +4223,12 @@ input::-webkit-date-and-time-value { text-align: left; }
 .wiz-warn { display: none; margin-top: 0.6rem; padding: 0.6rem 0.75rem; background: #fde8e8; border: 1px solid #f5b5b5; border-radius: 9px; color: #b42318; font-size: var(--fs-m); font-weight: 700; white-space: pre-line; }
 .wiz-warn.show { display: block; }
 /* Visibilidad por paso (solo con el asistente activo) */
+/* EL ASISTENTE, MÁS ESTRECHO (usuario, 2026-11-17): 960 px centrados en vez de los 1.400 del
+   resto del panel. Un formulario tan ancho obligaba a recorrer media pantalla para un campo
+   y dejaba los botones como bandas. Las tablas siguen a todo el ancho; esto es solo Nuevo
+   envío (y Modificar / Repetir, que son la misma pantalla). Los pasos 3 y 4, a dos columnas,
+   ya trabajan con este ancho en un portátil normal. */
+#sec-nueva-carga.wiz-v2 { max-width: 960px; margin-left: auto; margin-right: auto; }
 #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-grid > [data-wstep]:not([data-wstep="1"]),
 #sec-nueva-carga.wiz-v2.wiz-s2 .ptar-grid > [data-wstep]:not([data-wstep="2"]),
 #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-grid > [data-wstep]:not([data-wstep="3"]),
