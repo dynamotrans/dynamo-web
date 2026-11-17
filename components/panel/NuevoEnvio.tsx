@@ -787,7 +787,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Formato elegido por el usuario (2026-11-10): «6 metros · Grupaje · De 800 kg a 1
   // tonelada» / «13,30 metros · Tráiler completo · De 23 a 24 toneladas (máximo)».
   const mercResumen = [mlTxt.split(' ·')[0], ml === '13.3' ? 'Tráiler completo' : 'Grupaje', pesoTxt].filter(Boolean).join(' · ');
-  const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,60 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
+  const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,40 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
   // Precio provisional: si para la carga faltan más de N días HÁBILES, se revisa y queda
   // cerrado justo N días hábiles antes (un solo parámetro; usuario, 2026-11-16).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;
@@ -1170,13 +1170,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     </select>
                     {/* Altura máxima SIEMPRE visible (usuario, 2026-11-12): que el cliente sepa
                         el espacio que contrata. Tráiler 2,70 m; con plataforma elevadora va en
-                        camión rígido y baja a 2,60 m. */}
+                        camión rígido y baja a 2,40 m. */}
                     {/* Es un ENLACE (usuario, 2026-11-16): abre la ventana con las medidas y el
                         peso máximo de los dos camiones, ya en el de este envío. Sin el tipo de
                         camión al lado: se ve dentro de la ventana. */}
                     <button type="button" onClick={() => setVerMedidas(true)} title="Ver medidas y peso máximo del camión"
                       style={{ display: 'block', background: 'none', border: 'none', padding: 0, marginTop: '0.25rem', font: 'inherit', fontSize: 'var(--fs-s)', fontWeight: 600, color: 'var(--purple)', textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>
-                      Altura máxima de la mercancía: <strong>{plataforma ? '2,60 m' : '2,70 m'}</strong>
+                      Altura máxima de la mercancía: <strong>{plataforma ? '2,40 m' : '2,70 m'}</strong>
                     </button>
                     {verMedidas && <MedidasCamion inicial={plataforma ? 'rigido' : 'trailer'} onCerrar={() => setVerMedidas(false)} />}
                   </div>
@@ -1215,7 +1215,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                               if (v) { if (mlN > 8) setMl('8'); if (pesoN > 14) setPeso('14'); }
                               else if (peso === '14') setPeso('15');
                               avisar(v
-                                ? `Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m, 14 Tn y 2,60 m de altura${recorta ? ' (metros y peso ajustados a ese máximo)' : ''}.`
+                                ? `Con plataforma elevadora el camión pasa a RÍGIDO: máximo 8 m, 14 Tn y 2,40 m de altura${recorta ? ' (metros y peso ajustados a ese máximo)' : ''}.`
                                 : 'Sin plataforma vuelves a TRÁILER: máximo 13,3 m, 24 Tn y 2,70 m de altura. Tus metros y peso se mantienen.');
                             }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} tip={SIGLAS.NIMA} />

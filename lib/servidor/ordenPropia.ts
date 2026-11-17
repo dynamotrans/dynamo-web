@@ -11,14 +11,14 @@ import { euros, ventana, fecha, metros, pesoTn, tipoCargaTxt } from '@/lib/forma
 // Dynamo no interviene y el documento no lo nombra.
 
 // El PDF de la orden, con los dos logos (el del transportista y el de la empresa del cliente).
-export async function pdfOrdenPropia(sb: SB, envioId: string): Promise<{ datos: DatosDoc; bytes: Uint8Array; nombre: string } | { error: string }> {
+export async function pdfOrdenPropia(sb: SB, envioId: string): Promise<{ datos: DatosDoc; bytes: Uint8Array; nombre: string; operadorId: string | null } | { error: string }> {
   const r = await cargarDatosDocManual(sb, envioId);
   if (!r.datos) return { error: r.error ?? 'No se ha podido leer el envío.' };
   const { data: mio } = await sb.rpc('mis_envios').eq('id', envioId).maybeSingle<{ operador_id: string | null }>();
   const [logoPorteador, logoOrdenante] = await Promise.all([cargarLogoOperador(sb, mio?.operador_id), cargarLogoCliente(sb, envioId)]);
   const bytes = await ordenDeCarga({ ...r.datos, logoPorteador, logoOrdenante }, { pct: 0, minimo: 0, dias: 0, plazo: 0 });
   const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
-  return { datos: r.datos, bytes, nombre: `Orden-de-transporte-${ref}.pdf` };
+  return { datos: r.datos, bytes, nombre: `Orden-de-transporte-${ref}.pdf`, operadorId: mio?.operador_id ?? null };
 }
 
 const junta = (xs: (string | null | undefined | false)[], sep = ' · ') => xs.filter(Boolean).join(sep);

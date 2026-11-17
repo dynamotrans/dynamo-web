@@ -226,7 +226,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       e.num_bultos != null ? `${e.num_bultos} ${e.num_bultos === 1 ? t.bulto : t.bultos}${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
       e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), b: true },
     // Altura máxima del hueco (2026-11-12): que cliente y transportista la vean.
-    { k: t.tipoTransporte, v: `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.60' : '2.70') : (e.requiere_plataforma_elevadora ? '2,60' : '2,70') })}` },
+    { k: t.tipoTransporte, v: `${e.requiere_plataforma_elevadora ? t.rigido : t.tauliner} · ${rellena(t.alturaMax, { m: idioma === 'en' ? (e.requiere_plataforma_elevadora ? '2.40' : '2.70') : (e.requiere_plataforma_elevadora ? '2,40' : '2,70') })}` },
     { k: t.tipoCarga, v: [tipoCarga || t.grupaje, forma].filter(Boolean).join(' · ') },
     ...(requisitos ? [{ k: t.requisitos, v: requisitos, b: true, rojo: !!e.adr }] : []),
     { k: t.matriculasAutL, v: matr || t.pendMatrEnvia, placas: !!matr, b: true, rojo: !matr },

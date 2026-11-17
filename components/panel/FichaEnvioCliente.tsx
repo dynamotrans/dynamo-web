@@ -88,6 +88,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const [precioM, setPrecioM] = useState(precioMIni);
   // Enviar la orden de carga a SU transportista: el email de su ficha, que puede cambiar aquí.
   const [ordenPara, setOrdenPara] = useState(e.operador_email ?? '');
+  const [ordenGuardar, setOrdenGuardar] = useState(false);   // cambiar también el email de su ficha
   // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
   // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
   const [cerrando, setCerrando] = useState(false);
@@ -173,7 +174,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       <Modal abierto ancho={520} onCerrar={() => setVista('ficha')} titulo={`Enviar orden de carga #${e.referencia_gx}`} icono={<I d={ICO.doc} />}
         pie={<>
           <button className="btn-ghost" onClick={() => setVista('ficha')} disabled={!!trabajando}>Volver</button>
-          <button className="btn-primary" disabled={!!trabajando || !emailOk} onClick={() => hacer('Enviando', () => enviarOrdenEnvioManual(e.id, ordenPara))}>Enviar orden de carga</button>
+          <button className="btn-primary" disabled={!!trabajando || !emailOk} onClick={() => hacer('Enviando', () => enviarOrdenEnvioManual(e.id, ordenPara, !e.operador_email || ordenGuardar))}>Enviar orden de carga</button>
         </>}>
         {trabajando && <Cargando texto={trabajando} />}
         <p style={{ margin: '0 0 0.8rem', color: 'var(--gray-700)', fontSize: 'var(--fs-m)' }}>
@@ -183,7 +184,13 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         <label htmlFor="eo-para" style={{ display: 'block', marginBottom: '0.3rem' }}>Email del transportista <Req /></label>
         <input id="eo-para" type="email" inputMode="email" autoComplete="off" maxLength={200} style={{ display: 'block', width: '100%' }}
           value={ordenPara} onChange={(ev) => setOrdenPara(ev.target.value)} placeholder="transportista@empresa.com" />
-        {!e.operador_email && <div style={{ marginTop: '0.3rem', color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>Tu transportista no tiene email guardado en su ficha: escríbelo aquí.</div>}
+        {!e.operador_email
+          ? <div style={{ marginTop: '0.3rem', color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>Tu transportista no tiene email en su ficha: escríbelo aquí y <strong>se guarda en su ficha</strong>, para que la próxima vez salga ya puesto.</div>
+          : ordenPara.trim().toLowerCase() !== e.operador_email.trim().toLowerCase() && emailOk
+            && <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem', fontSize: 'var(--fs-s)', color: 'var(--gray-700)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={ordenGuardar} onChange={(ev) => setOrdenGuardar(ev.target.checked)} />
+              Guardar este email en la ficha del transportista (ahora tiene {e.operador_email})
+            </label>}
         <div style={{ marginTop: '0.8rem', color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>
           Asunto: <strong>Pedido de transporte {e.referencia_gx}</strong> y el nombre de tu empresa. Tú recibes copia y, si el transportista contesta, la respuesta te llega a ti.
           {e.precio_acordado_operador == null && <> <strong>Aún no has anotado el precio acordado</strong>: si quieres que salga, guárdalo antes en la ficha.</>}

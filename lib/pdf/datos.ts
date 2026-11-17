@@ -89,7 +89,8 @@ export function decaConMatriculas(d: { envio: { matricula_camion?: string | null
 }
 
 export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; lat: number | null; lon: number | null; gps_precision_m: number | null; gps_direccion: string | null; sha256: string | null; png: Uint8Array | null 
-  en_papel?: boolean };   // firmada en papel (CMR bis) y registrada después: sin trazo
+  en_papel?: boolean;     // firmada en papel (CMR bis) y registrada después: sin trazo
+  papel?: Uint8Array | null };   // la foto (o el PDF) de ese CMR en papel: va de anexo al final del CMR (usuario, 2026-11-17)
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la
 // base de datos). El documento va COMPLETO (usuario, 2026-11-14): como en el CMR firmado
@@ -98,8 +99,11 @@ export async function cargarFirmasCmr(sb: SB, envioId: string): Promise<FirmaDoc
   const { data } = await sb.rpc('firmas_envio', { p_envio: envioId });
   return Promise.all((data ?? []).map(async (f) => {
     // Firma en papel (CMR bis): su «ruta» es la foto del papel, no un trazo que dibujar.
-    const { data: blob } = f.en_papel ? { data: null } : await sb.storage.from('documentos').download(f.firma_storage_ruta);
-    return { en_papel: !!f.en_papel, rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
+    // Esa foto se baja igual, pero no se dibuja como trazo: va de anexo al final del PDF.
+    const { data: bajado } = await sb.storage.from('documentos').download(f.firma_storage_ruta);
+    const blob = f.en_papel ? null : bajado;
+    const papel = f.en_papel && bajado ? new Uint8Array(await bajado.arrayBuffer()) : null;
+    return { en_papel: !!f.en_papel, papel, rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
       extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion, sha256: f.sha256, png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
   }));
 }
@@ -315,7 +319,22 @@ export async function cargarDatosCmrPorToken(sb: SB, token: string):
   const c = j.cliente ?? ({} as EmpresaJson), t = j.porteador ?? null;
   // El trazo viene en base64 dentro de la propia firma; las firmas de antes del
   // 2026-11-11 no lo tienen y salen sin dibujo (su registro va entero igualmente).
+  // La foto del CMR en papel (firma «CMR bis») no viaja en el JSON: se baja del almacén con
+  // la clave de servicio —el enlace ya ha sido validado por la base de datos al devolver los
+  // datos— para ponerla de anexo. Sin esa clave, el PDF sale igual, sin el anexo.
+  const conPapel = (j.firmas ?? []).filter((f) => f.en_papel && f.ruta);
+  const papeles = new Map<string, Uint8Array>();
+  if (conPapel.length) {
+    const svc = (await import('@/lib/supabase/servicio')).supabaseServicio();
+    if (svc) {
+      await Promise.all(conPapel.map(async (f) => {
+        const { data: b } = await svc.storage.from('documentos').download(f.ruta);
+        if (b) papeles.set(f.ruta, new Uint8Array(await b.arrayBuffer()));
+      }));
+    }
+  }
   const firmas: FirmaDoc[] = (j.firmas ?? []).map((f) => ({
+    papel: f.en_papel ? papeles.get(f.ruta) ?? null : null,
     rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
     extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion,
     sha256: f.sha256, en_papel: !!f.en_papel, png: f.trazo && !f.en_papel ? new Uint8Array(Buffer.from(f.trazo, 'base64')) : null }));

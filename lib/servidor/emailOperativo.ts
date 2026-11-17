@@ -44,6 +44,11 @@ export async function enviarEmailOperativo(d: {
       // se dice tal cual y queda en el registro del servidor.
       if (error.code === '23505') return { estado: 'error', error: 'Este aviso ya se mandó (clave repetida).' };
       console.error('[email operativo] no se ha podido registrar', d.tipo, error.code, error.message);
+      // La clave de servicio de Supabase que hay en Vercel no vale para este proyecto
+      // (mal pegada, de otro proyecto o retirada): no se puede registrar ni enviar nada.
+      if (/invalid api key|jwt|unauthorized/i.test(error.message ?? '')) {
+        return { estado: 'error', error: 'El envío de emails de la plataforma no está bien configurado (la clave de servicio de Supabase en Vercel no es válida). No se ha enviado: avisa a Dynamo.' };
+      }
       return { estado: 'error', error: error.code === '23514'
         ? 'La base de datos todavía no admite este tipo de email (falta aplicar la última actualización). Vuelve a intentarlo en unos minutos.'
         : 'No se ha podido registrar el email en la base de datos: no se ha enviado.' };

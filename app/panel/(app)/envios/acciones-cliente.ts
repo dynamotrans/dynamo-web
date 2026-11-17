@@ -48,8 +48,10 @@ export async function guardarPrecioEnvioManual(envio: string, precio: number | n
 // todo el detalle también en el cuerpo, en texto llano. Es un envío del cliente con SU
 // transportista: el remitente lleva el nombre de su empresa, las respuestas le llegan a
 // él y recibe copia. Tope de 10 por hora y usuario, para que nadie use esto de buzón.
-export async function enviarOrdenEnvioManual(envio: string, para: string): Promise<Res> {
-  comprobarEntrada("app/panel/(app)/envios/acciones-cliente#enviarOrdenEnvioManual", [envio, para]);
+// `guardar`: deja ese email en la ficha del transportista, para que la próxima vez salga ya
+// puesto (usuario, 2026-11-17). La pantalla lo marca sola cuando la ficha no tiene email.
+export async function enviarOrdenEnvioManual(envio: string, para: string, guardar: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones-cliente#enviarOrdenEnvioManual", [envio, para, guardar]);
   const s = await soloCliente();
   const perfil = s?.perfil;
   if (!s || !perfil) return { ok: false, error: 'Solo el cliente envía la orden de su envío.' };
@@ -86,7 +88,15 @@ export async function enviarOrdenEnvioManual(envio: string, para: string): Promi
     deNombre: empresa ? `${empresa} (vía Dynamotrans.com)` : undefined, responderA: mio, copia: mio, sinCopiaDynamo: true,
     adjuntos: [{ nombre: r.nombre, base64: Buffer.from(r.bytes).toString('base64'), tipo: 'application/pdf' }],
   });
-  return res.estado === 'enviado' ? { ok: true, aviso: `Orden de carga enviada a ${email}.` } : { ok: false, error: res.error ?? 'No se ha podido enviar el email.' };
+  // El email en su ficha: también si el envío del email ha fallado (lo ha escrito para eso).
+  let guardado = false;
+  if (guardar && r.operadorId && r.datos.porteador?.email?.trim().toLowerCase() !== email) {
+    const { error: eg } = await s.supabase.from('operadores').update({ email }).eq('id', r.operadorId);
+    guardado = !eg;
+  }
+  return res.estado === 'enviado'
+    ? { ok: true, aviso: `Orden de carga enviada a ${email}.${guardado ? ' El email queda guardado en la ficha del transportista.' : ''}` }
+    : { ok: false, error: res.error ?? 'No se ha podido enviar el email.' };
 }
 
 export async function marcarMiEnvioManual(envio: string, estado: string): Promise<Res> {

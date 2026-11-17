@@ -639,6 +639,73 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     }
   }
 
+  // ANEXO «CMR BIS» (usuario, 2026-11-17: «mete la foto del papel en el PDF del CMR»): por
+  // cada firma hecha en papel, la foto de ese papel va al final, para que quien reciba el
+  // PDF lo tenga todo en un solo documento. JPG y PNG se dibujan en una hoja propia; un PDF
+  // se añade con sus páginas; lo que el PDF no sabe incrustar (WEBP, HEIC) deja una hoja
+  // que dice dónde está el original.
+  const conPapel = (d.firmas ?? []).filter((f) => f.en_papel);
+  if (conPapel.length) {
+    l.alNuevaPagina = null;
+    const rolTxt = (f: FirmaDoc) => ({ cargador: 'cargador (remitente)', transportista: 'transportista', destinatario: 'destinatario' } as Record<string, string>)[f.rol] ?? f.rol;
+    let nA = 0;
+    for (const f of conPapel) {
+      nA++;
+      const titulo = `Anexo ${nA} de ${conPapel.length} · CMR en papel (CMR bis) · CMR Nº ${e.referencia_gx ?? ''}`;
+      const sub = `Firma en papel del ${rolTxt(f)}: ${f.nombre} · ${f.documento} · registrada el ${fechaHora(f.firmado_en)}. Completa este CMR electrónico.`;
+      const b = f.papel;
+      const esPdf = !!b && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
+      const esPng = !!b && b[0] === 0x89 && b[1] === 0x50;
+      const esJpg = !!b && b[0] === 0xff && b[1] === 0xd8;
+      const cabecera = () => {
+        l.nuevaPagina();
+        l.texto(l.x0, 44, titulo, 10.5, { bold: true, color: COLOR.navy });
+        let yS = 58;
+        for (const ln of l.partir(sub, 7.6, l.ancho)) { l.texto(l.x0, yS, ln, 7.6, { color: COLOR.gris }); yS += 10; }
+        l.linea(l.x0, yS + 2, A4.w - l.margen.der, yS + 2);
+        return yS + 12;
+      };
+      let puesto = false;
+      if (b && esPdf) {
+        try {
+          const { PDFDocument } = await import('pdf-lib');
+          const origen = await PDFDocument.load(b, { ignoreEncryption: true });
+          l.y = cabecera();
+          l.parrafo('El CMR en papel firmado va a continuación, en las páginas siguientes.', 8.5, { x: l.x0, ancho: l.ancho, color: COLOR.tinta });
+          for (const pg of await l.doc.copyPages(origen, origen.getPageIndices().slice(0, 6))) l.doc.addPage(pg);
+          puesto = true;
+        } catch { puesto = false; }
+      } else if (b && (esPng || esJpg)) {
+        try {
+          const img = esPng ? await l.doc.embedPng(b) : await l.doc.embedJpg(b);
+          const giro = esJpg ? orientacionJpg(b) : 1;   // las fotos de móvil suelen venir «tumbadas»
+          const tumbada = giro === 6 || giro === 8;
+          const yTop = cabecera();
+          const cajaW = l.ancho, cajaH = A4.h - yTop - 46;
+          const vistaW = tumbada ? img.height : img.width, vistaH = tumbada ? img.width : img.height;
+          const k = Math.min(cajaW / vistaW, cajaH / vistaH);
+          const w = img.width * k, h = img.height * k;            // tamaño del dibujo SIN girar
+          const X = l.x0 + (cajaW - vistaW * k) / 2, Y = A4.h - yTop - vistaH * k;   // esquina inferior izquierda de lo que se ve
+          const { degrees } = await import('pdf-lib');
+          if (giro === 6) l.pag.drawImage(img, { x: X, y: Y + w, width: w, height: h, rotate: degrees(-90) });
+          else if (giro === 8) l.pag.drawImage(img, { x: X + h, y: Y, width: w, height: h, rotate: degrees(90) });
+          else if (giro === 3) l.pag.drawImage(img, { x: X + w, y: Y + h, width: w, height: h, rotate: degrees(180) });
+          else l.pag.drawImage(img, { x: X, y: Y, width: w, height: h });
+          puesto = true;
+        } catch { puesto = false; }
+      }
+      if (!puesto) {
+        const yTop = cabecera();
+        l.y = yTop;
+        l.parrafo(b
+          ? 'La foto de este CMR en papel está guardada en los documentos del envío, pero su formato no se puede incrustar en un PDF (solo JPG, PNG o PDF). Pídala si la necesita.'
+          : 'La foto de este CMR en papel está guardada en los documentos del envío. Pídala si la necesita.', 8.5, { x: l.x0, ancho: l.ancho, color: COLOR.tinta });
+      }
+      const pie = `${titulo} · ${nA === conPapel.length ? 'último anexo' : 'sigue otro anexo'}`;
+      l.texto((A4.w - l.medida(pie, 7, false)) / 2, 811, pie, 7, { color: COLOR.gris });
+    }
+  }
+
   l.doc.setTitle(limpio(`CMR ${e.referencia_gx ?? ''}`));
   l.doc.setAuthor(manual ? cli?.razon_social ?? '' : D.razon_social);
   // Metadatos del fichero (Resolución de 5-jun-2026, apdo. segundo.1): la fecha de
@@ -654,4 +721,31 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     .map((x) => (x ? Date.parse(x) : NaN)).filter((x) => Number.isFinite(x));
   if (tiemposDoc.length) l.doc.setModificationDate(new Date(Math.max(...tiemposDoc)));
   return l.guardar();
+}
+
+// Orientación EXIF de un JPG (1 = normal · 3 = boca abajo · 6 = hay que girarlo 90° a la
+// derecha para verlo bien · 8 = 90° a la izquierda). El PDF no la aplica solo: sin esto,
+// la foto que hace un móvil en vertical saldría tumbada.
+export function orientacionJpg(b: Uint8Array): number {
+  try {
+    const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    let p = 2;
+    while (p + 4 < v.byteLength) {
+      const marca = v.getUint16(p);
+      if ((marca & 0xff00) !== 0xff00) break;
+      const largo = v.getUint16(p + 2);
+      if (marca === 0xffe1 && v.getUint32(p + 4) === 0x45786966) {   // APP1 «Exif»
+        const t = p + 10, le = v.getUint16(t) === 0x4949;
+        const ifd = t + v.getUint32(t + 4, le), n = v.getUint16(ifd, le);
+        for (let i = 0; i < n; i++) {
+          const en = ifd + 2 + i * 12;
+          if (v.getUint16(en, le) === 0x0112) { const o = v.getUint16(en + 8, le); return o >= 1 && o <= 8 ? o : 1; }
+        }
+        return 1;
+      }
+      if (marca === 0xffda) break;   // empieza la imagen: ya no hay más cabeceras
+      p += 2 + largo;
+    }
+  } catch { /* un JPG raro se dibuja tal cual */ }
+  return 1;
 }

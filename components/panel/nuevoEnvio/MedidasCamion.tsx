@@ -4,7 +4,7 @@
 // de la altura máxima de Nuevo envío. Arriba, un selector que alterna entre los dos
 // camiones; se abre en el que toca al envío (con plataforma elevadora, el rígido; sin
 // ella, el tráiler). Mismas cifras que el resto de la plataforma: 13,30 m y 24 Tn el
-// tráiler, 8 m y 14 Tn el rígido (lib/tarifador.ts); alturas 2,70 y 2,60 m (lib/formato.ts).
+// tráiler, 8 m y 14 Tn el rígido (lib/tarifador.ts); alturas 2,70 y 2,40 m (lib/formato.ts).
 import { useState } from 'react';
 import Modal from '../Modal';
 
@@ -27,7 +27,7 @@ const CAMIONES: Record<Camion, { nombre: string; sub: string; filas: [string, st
     filas: [
       ['Largo útil', '8 m'],
       ['Ancho útil', '2,40 m'],
-      ['Altura máxima de la mercancía', '2,60 m'],
+      ['Altura máxima de la mercancía', '2,40 m'],
       ['Peso máximo', '14 toneladas'],
       ['Europalets (120 × 80 cm)', '20'],
       ['Palets americanos (120 × 100 cm)', '16'],

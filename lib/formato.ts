@@ -101,8 +101,9 @@ export const medidasTxt = (m: number | string | null | undefined, t: number | st
 export const tipoCargaTxt = (tipo: string | null | undefined, plataforma?: boolean | null) =>
   tipo === 'completa' ? (plataforma ? 'Rígido completo' : 'Tráiler completo') : tipo === 'grupaje' ? 'Grupaje' : '';
 // Altura máxima del hueco contratado (usuario, 2026-11-12): tráiler 2,70 m; con
-// plataforma elevadora el envío va en camión rígido y baja a 2,60 m.
-export const alturaMaxTxt = (plataforma?: boolean | null) => plataforma ? 'Altura máx. 2,60 m' : 'Altura máx. 2,70 m';
+// plataforma elevadora el envío va en camión rígido y baja a 2,40 m
+// (usuario, 2026-11-17: «2,40 m máx. rígidos, tráiler 2,70»).
+export const alturaMaxTxt = (plataforma?: boolean | null) => plataforma ? 'Altura máx. 2,40 m' : 'Altura máx. 2,70 m';
 // «21 %» (sin decimales si es entero; si no, con 2).
 export const porcentaje = (v: number | string | null | undefined) => {
   if (v == null || v === '') return '';
