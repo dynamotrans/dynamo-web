@@ -12090,3 +12090,41 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+
+-- ---- 275. Consumo de crédito en la lista de clientes: el mismo número de CESCE - Riesgos ----
+select set_config('prueba.dias275', parametro_num('riesgo_dias_asumido', 60)::int::text, false);
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r record; k record; n int; begin
+  -- El cliente con más riesgo asumido (si lo hay) y otro cualquiera: los dos deben coincidir.
+  for r in (select * from riesgos_clientes() order by asumido desc nulls last limit 1)
+           union all (select * from riesgos_clientes() order by cliente_id limit 1) loop
+    select * into k from consumo_clientes(array[r.cliente_id]);
+    if k.cliente_id is null then raise exception 'FALLO 275 · consumo_clientes no devuelve al cliente pedido'; end if;
+    if k.consumo is distinct from r.asumido or k.envios is distinct from r.envios
+       or k.limite is distinct from r.riesgo_efectivo or k.disponible is distinct from r.disponible then
+      raise exception 'FALLO 275 · el consumo de la lista no coincide con CESCE - Riesgos: % frente a %', row_to_json(k), row_to_json(r);
+    end if;
+    if k.dias is distinct from current_setting('prueba.dias275')::int then raise exception 'FALLO 275 · los días contados no son los del parámetro: %', k.dias; end if;
+  end loop;
+  -- Solo trae los clientes pedidos.
+  select count(*) into n from consumo_clientes(array[]::uuid[]);
+  if n <> 0 then raise exception 'FALLO 275 · sin clientes pedidos devuelve filas'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from consumo_clientes(array(select id from clientes));
+  if n <> 0 then raise exception 'FALLO 275 · un cliente lee el consumo de crédito (es solo del equipo)'; end if;
+  raise notice 'OK 275 · consumo de crédito en la lista de clientes: coincide con CESCE - Riesgos y el cliente no lo ve';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ begin
+  begin perform consumo_clientes(array[]::uuid[]); raise exception 'FALLO 275 · sin sesión se llama a consumo_clientes';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

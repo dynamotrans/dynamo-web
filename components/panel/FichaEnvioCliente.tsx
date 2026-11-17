@@ -265,6 +265,14 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           formato, diseño y botones que admin»): fecha, ruta con todas las paradas,
           mercancía y precio, cada cosa en su fila. */}
       <div className="pen-envio-sum" style={{ marginBottom: '0.8rem' }}>
+        {/* Banda AMARILLO CLARO del envío con SU transportista (usuario, 2026-11-17): la
+            misma idea que la de la ficha de Dynamo, contada al cliente. */}
+        {manual && (
+          <div id="aviso-transportista-propio" style={{ background: '#fef9c3', color: '#111827', border: '1px solid #fde047', borderRadius: 8, padding: '0.5rem 0.7rem', marginBottom: '0.45rem', fontSize: 'var(--fs-m)', lineHeight: 1.45 }}>
+            <strong>Envío con tu propio transportista: <span className="notranslate" translate="no">{e.operador || 'sin nombre anotado'}</span>.</strong>{' '}
+            Lo has registrado tú: Dynamo no asigna camión ni lo oferta, el estado lo llevas tú y el CMR lo gestionas directamente con tu operador.
+          </div>
+        )}
         <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fechaVital || '—'}</span></div>
         {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
           ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }, i) => (
@@ -476,7 +484,7 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         {e.pagoVuelta === 'cancelado' && <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Has salido del pago con tarjeta sin pagar. Puedes intentarlo de nuevo o pagar por transferencia.</div>}
         <div><strong style={{ color: '#b42318' }}>{resto ? 'Falta por pagar' : 'Pendiente de pago'} · {total}</strong> (IVA incluido).</div>
         {resto && <div style={{ marginTop: '0.3rem' }}>Has modificado el envío y el precio ha subido: ya tenías pagados <strong>{euros(aCuenta)}</strong> y el envío cuesta ahora <strong>{euros(Number(p.total))}</strong>. <strong>El envío no sigue adelante hasta que pagues la diferencia.</strong></div>}
-        <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong> La fecha de carga se confirma al recibirlo: si llega cuando ya no da tiempo, la carga pasa al primer día posible (con el mismo tipo de fecha que elegiste) y te avisamos.</div>
+        <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: este' : p.pago_motivo?.startsWith('Uno de los') ? 'Es uno de tus primeros envíos con nosotros: este' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: este' : 'Este'} envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong> La fecha de carga se confirma al recibirlo: si llega cuando ya no da tiempo, la carga pasa al primer día posible (con el mismo tipo de fecha que elegiste) y te avisamos.</div>
         {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>

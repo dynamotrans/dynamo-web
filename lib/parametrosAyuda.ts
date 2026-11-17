@@ -117,7 +117,7 @@ export const AYUDA: Record<string, Ayuda> = {
     ejemplo: (v) => `Con ${v} h: confirma el lunes a las 10:00 → puede pagar hasta ${Number(v) === 24 ? 'el martes a las 10:00' : `${v} horas después`}; si no, el envío se anula.` },
   // ---- CESCE - Riesgos -------------------------------------------------------------
   riesgo_dias_asumido: { titulo: 'Días que cuentan como riesgo asumido',
-    explica: 'En CESCE - Riesgos, los envíos de estos últimos días (con IVA, sin los pagados por adelantado) cuentan como dinero pendiente de cobro. Conviene que se parezca al plazo al que te pagan.',
+    explica: 'En CESCE - Riesgos y en la columna Consumo de la lista de clientes, los envíos de estos últimos días (con IVA, sin los pagados por adelantado) cuentan como dinero pendiente de cobro. Es también lo que se mira para saber si un envío cabe en el crédito. Conviene que se parezca al plazo al que te pagan. Cuando lleguen las facturas reales, se usarán esas.',
     ejemplo: (v) => `Con ${v} días: un cliente con 3 envíos de 1.210 € en los últimos ${v} días tiene 3.630 € de riesgo asumido.` },
   credito_emails_activo: { titulo: 'Emails de crédito: interruptor',
     explica: 'Encendido, el cliente recibe un email cuando cambia su línea de crédito (concedida, ampliada, reducida o retirada, sea de CESCE o la que pones tú a mano) y cuando se acerca o llega a su límite. Nunca llevan importes. Apagado, no se manda ninguno.',

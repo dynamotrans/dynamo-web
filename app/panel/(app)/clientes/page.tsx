@@ -41,7 +41,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   let filas: ClienteFila[] = [];
   let error = ep?.message ?? null;
   if (idsLeer.length) {
-    const [cli, con, env, notas, uso] = await Promise.all([
+    const [cli, con, env, notas, uso, cons] = await Promise.all([
       supabase.from('clientes').select('*').in('id', idsLeer),
       supabase.from('contactos').select('id, cliente_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').in('cliente_id', idsLeer),
       // Envíos que cuentan para el descuento de bienvenida (mismo criterio que la base de datos).
@@ -49,14 +49,17 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
       notasInternas(supabase, 'clientes', idsLeer),
       // Contadores de uso (consultas / cancelaciones) para la columna «Uso» (usuario, 2026-11-11).
       supabase.rpc('uso_clientes', { p_ids: idsLeer }),
+      // Consumo de crédito (usuario, 2026-11-17): el mismo cálculo de CESCE - Riesgos.
+      supabase.rpc('consumo_clientes', { p_ids: idsLeer }),
     ]);
     if (cli.error) error = cli.error.message;
     const cuenta = new Map((env.data ?? []).map((e) => [e.id, Number(e.envios)]));
     const usoDe = new Map((uso.data ?? []).map((u) => [u.cliente_id as string, u]));
+    const consumoDe = new Map((cons.data ?? []).map((u) => [u.cliente_id as string, u]));
     const porCliente = new Map<string, FilaContacto[]>();
     (con.data ?? []).forEach((c) => porCliente.set(c.cliente_id as string, [...(porCliente.get(c.cliente_id as string) ?? []), c]));
     const pos = new Map(ids.map((id, i) => [id, i]));
-    filas = ((cli.data ?? []) as unknown as Omit<ClienteFila, 'contactos' | 'envios_que_cuentan' | 'uso'>[]).map((c) => ({ ...c, anotaciones: notas.get(c.id)?.anotaciones ?? '', contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0, uso: usoDe.get(c.id) ?? null }))
+    filas = ((cli.data ?? []) as unknown as Omit<ClienteFila, 'contactos' | 'envios_que_cuentan' | 'uso' | 'consumo'>[]).map((c) => ({ ...c, anotaciones: notas.get(c.id)?.anotaciones ?? '', contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0, uso: usoDe.get(c.id) ?? null, consumo: consumoDe.get(c.id) ?? null }))
       .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
   }
   return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={error} abrir={ver} sectores={Array.isArray(sectores) ? sectores : []}

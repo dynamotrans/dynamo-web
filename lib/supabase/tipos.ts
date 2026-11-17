@@ -3831,6 +3831,7 @@ export type Database = {
       conductor_conocido: { Args: { p_transportista: string | null; p_nombre: string | null }; Returns: { nombre: string; telefono: string; conductor_id: string }[] }
       conductor_de_camion: { Args: { p_transportista: string | null; p_matricula: string | null }; Returns: { nombre: string; telefono: string }[] }
       conexiones_usuarios: { Args: Record<PropertyKey, never>; Returns: { id: string; ultima_conexion: string; email_confirmado: boolean }[] }
+      consumo_clientes: { Args: { p_ids: string[] | null }; Returns: { cliente_id: string; envios: number; consumo: number; limite: number; disponible: number; dias: number }[] }
       contacto_transportista_oculto: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_entrega: string | null }; Returns: boolean }
       contadores_panel: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: Json }
       corte_cancelacion: { Args: { p_fecha_carga: string | null; p_pais?: string | null; p_region?: string | null }; Returns: string }

@@ -1,7 +1,7 @@
 'use client';
 
 // Clientes (solo Dynamo): tabla y ficha con el diseño de #sec-clientes de dashboard.html
-// (columnas Cliente · Contacto · Domicilio fiscal · Condiciones · Factor · Creado ·
+// (columnas Cliente · Contacto · Domicilio fiscal · Crédito · Consumo · Factor · Creado ·
 // Estado; ficha en la ventana del panel con la rejilla .ptar-sitio-grid).
 import { useEffect, useState } from 'react';
 import Paginador from './Paginador';
@@ -27,11 +27,15 @@ export type UsoCliente = {
   consultas_hoy: number; consultas_semana: number; consultas_mes: number;
   envios: number; canceladas: number; recientes: number; usuarios_suspendidos: number;
 };
+// Consumo de crédito (consumo_clientes): envíos de los últimos días sin pago por adelantado,
+// con IVA; el mismo cálculo de CESCE - Riesgos (usuario, 2026-11-17).
+export type ConsumoCliente = { envios: number; consumo: number; limite: number | null; disponible: number | null; dias: number };
 export type ClienteFila = ClienteDatos & {
   id: string; codigo: string; nombre_visible: string;
   creado_en: string; modificado_en: string | null;
   envios_que_cuentan: number;
   uso: UsoCliente | null;
+  consumo: ConsumoCliente | null;
 };
 // Regla del descuento de bienvenida (tabla `parametros`, migración factor_bienvenida).
 export type Bienvenida = { pct: number; envios: number };
@@ -109,14 +113,15 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
       <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
-            <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th>
+            <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Crédito</th>
+            <th>Consumo<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>pendiente de cobro</span></th>
             <th>Factor<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>solo admin</span></th>
             <th>Uso<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>consultas · cancelaciones</span></th>
             <th>Creado · Modificado</th><th>Estado</th>
           </tr></thead>
           <tbody>
             {filas.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {!lista.q && !lista.estado ? 'Todavía no hay clientes. Da de alta el primero con «+ Nuevo cliente».' : 'Sin clientes que coincidan'}
               </td></tr>
             ) : filas.map((c) => {
@@ -131,6 +136,18 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
                   <td>{c.direccion || '—'}<div className="meta">{[c.codigo_postal, c.poblacion, c.provincia, paisDe(c.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
                     <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {dyn == null ? '—' : dyn === 0 ? <span style={{ color: '#b42318', fontWeight: 700 }}>0 € (sin crédito)</span> : euros(dyn)}</div></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{(() => {
+                    const k = c.consumo; if (!k) return '—';
+                    const gasto = Number(k.consumo) || 0; const queda = k.disponible == null ? null : Number(k.disponible);
+                    const pasado = queda != null && queda < 0;
+                    return <>
+                      <span style={{ fontWeight: 700, color: pasado ? '#b42318' : undefined }}>{euros(gasto)}</span>
+                      <div className="meta">{k.envios} envío{k.envios === 1 ? '' : 's'} · últimos {k.dias} días</div>
+                      {queda != null && Number(k.limite) > 0 && (
+                        <div className="meta">{pasado ? <span style={{ color: '#b42318', fontWeight: 700 }}>Superado en {euros(-queda)}</span> : <>Quedan {euros(queda)}</>}</div>
+                      )}
+                    </>;
+                  })()}</td>
                   <td><Factor v={Number(c.factor_tarifa_pct)} /><div className="meta">{c.factor_fijado_a_mano ? 'fijado a mano' : 'automático'}</div></td>
                   <td style={{ whiteSpace: 'nowrap' }}>{c.uso
                     ? <>
