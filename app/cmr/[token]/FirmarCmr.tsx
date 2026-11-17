@@ -460,6 +460,11 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   // que aquí se ENSEÑA y no se edita. A él va la copia final, al terminar el transporte.
   // El conductor que quiera el CMR en su móvil se lo manda con «Compartir» tras firmar.
   const emailEmpresa = b.rol === 'transportista' && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((b.preEmail ?? '').trim()) ? (b.preEmail ?? '').trim() : null;
+  // Y un email PROPIO, opcional (usuario, 2026-11-17): si quien firma por el transportista lo
+  // pone, también él recibe la copia —la de ahora y la final—, además de su empresa.
+  const [emailPropio, setEmailPropio] = useState('');
+  const propio = emailPropio.trim().toLowerCase();
+  const propioVale = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(propio) && propio !== (emailEmpresa ?? '').toLowerCase();
   // Matrículas (usuario, 2026-11-11): solo la cabecera (transportista o cargador de la
   // 1.ª parada) las ve — precargadas si el envío ya las tiene, editables, y obligatoria
   // la tractora salvo en envíos manuales. En firmas extra no salen: ya está en tránsito.
@@ -518,6 +523,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     // Email OBLIGATORIO (usuario, 2026-11-14): a esa dirección va la copia del firmado.
     if (!emailEmpresa && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { setAviso('Pon tu email: te enviaremos la copia del documento firmado.'); avisaFaltas(['sigEmail']); return; }
+    if (emailEmpresa && propio && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(propio)) { setAviso('Tu email no es válido. Corrígelo o déjalo vacío: es opcional.'); avisaFaltas(['sigEmailPropio']); return; }
     if (pideMatricula && b.matObligatoria && !matCam.trim()) {
       setAviso('Pon la matrícula del camión (tractora): sin ella no se puede salir de la 1.ª parada.');
       avisaFaltas(['sigMatCam']); return;
@@ -568,7 +574,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     const tLento = setTimeout(() => setLento(true), 3000);
     let r: Awaited<ReturnType<typeof firmar>>;
     try {
-      r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email: emailEmpresa ?? email, extra: !!b.extra,
+      r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email: emailEmpresa ? (propioVale ? propio : emailEmpresa) : email, extra: !!b.extra,
         reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
         gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula && !rigido ? matRem : undefined,
         camion_rigido: pideMatricula ? rigido : undefined });
@@ -580,7 +586,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     setLento(false);
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
-    onFirmado(!emailEmpresa);   // copia al momento solo a quien firma con SU email
+    onFirmado(!emailEmpresa || propioVale);   // copia al momento solo a quien firma con SU email
   }
 
   // PISTA «Desliza para firmar» (usuario, 2026-11-15): la ventana de firma es larga y en
@@ -637,6 +643,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <input type="text" id="sigEmail" value={emailEmpresa} readOnly tabIndex={-1} aria-readonly="true"
             style={{ background: '#f3f4f6', color: '#4b5563', cursor: 'not-allowed' }} />
           <div className="sig-msg okv">A este email enviaremos la copia del CMR al terminar el transporte, cuando firme la entrega el último destinatario. Nosotros SIEMPRE guardamos la copia por si hiciera falta reenviarla.</div>
+          <label className="sig-lbl" htmlFor="sigEmailPropio">Tu email <Req si={false} /></label>
+          <input type="text" id="sigEmailPropio" autoComplete="off" inputMode="email" placeholder="Ej. nombre@correo.com" value={emailPropio} onChange={(e) => setEmailPropio(e.target.value)} />
+          <div className="sig-msg okv">Si lo pones, tú también recibirás la copia: ahora, con las firmas que haya, y la final cuando firme el último destinatario.</div>
         </> : <>
           <label className="sig-lbl" htmlFor="sigEmail">Email <Req /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
           <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -722,7 +731,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         {/* Caja verde con el porqué del email obligatorio (usuario, 2026-11-14). */}
         <div style={{ margin: '0.7rem 0 0.1rem', background: '#ecfdf5', border: '1.5px solid #6ee7b7', borderRadius: 10, padding: '0.55rem 0.7rem', fontSize: '0.8rem', lineHeight: 1.45, color: '#065f46', fontWeight: 600 }}>
           {emailEmpresa
-            ? <>📩 La copia del CMR con todas las firmas llegará al <strong>email de tu empresa</strong> al terminar el transporte. Si la quieres tú ahora, después de firmar puedes <strong>mandártela</strong> por WhatsApp, email o como prefieras.</>
+            ? (propioVale
+                ? <>📩 La copia del CMR con todas las firmas llegará al <strong>email de tu empresa y al tuyo</strong> al terminar el transporte. Al aceptar, te mandamos además a <strong>tu email</strong> la copia con las firmas de ahora.</>
+                : <>📩 La copia del CMR con todas las firmas llegará al <strong>email de tu empresa</strong> al terminar el transporte. Si la quieres tú también, pon <strong>tu email</strong> arriba, o después de firmar <strong>mándatela</strong> por WhatsApp, email o como prefieras.</>)
             : <>📩 Al aceptar, te enviaremos a <strong>tu email</strong> una copia del documento firmado, con tu firma y las que ya trae. Por eso el email es obligatorio.</>}
         </div>
         {/* Aceptar GRANDE y en verde arriba; Cancelar y Borrar debajo (usuario, 2026-11-10). */}
