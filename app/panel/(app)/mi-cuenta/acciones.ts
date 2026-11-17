@@ -71,6 +71,9 @@ export async function cambiarMiEmail(nuevo: string, clave: string): Promise<{ ok
   comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#cambiarMiEmail", [nuevo, clave]);
   const s = await sesion();
   if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  // El Admin Master NO cambia su email desde aquí (usuario, 2026-11-16): es la llave de toda
+  // la plataforma; si alguien entra en su sesión, con esto se quedaría la cuenta.
+  if (s.perfil.rol === 'admin') return { ok: false, error: 'El email del Admin Master no se cambia desde la plataforma.' };
   const email = nuevo.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, error: 'El email nuevo no es válido.' };
   if (!clave) return { ok: false, error: 'Escribe tu contraseña para confirmar.' };

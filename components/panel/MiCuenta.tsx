@@ -83,7 +83,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           {fila('Última conexión', ultimaConexion ? fechaHora(ultimaConexion) : '')}
           <button className="btn-ghost account-edit" onClick={() => { setClaveCambiada(false); setCambiaClave(true); }}>Cambiar contraseña</button>
           {claveCambiada && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Contraseña cambiada.</p>}
-          <button className="btn-ghost account-edit" style={{ marginTop: '0.5rem' }} onClick={() => { setEmailPedido(null); setCambiaEmail(true); }}>Cambiar email</button>
+          {/* El Admin Master no cambia su email desde aquí: es la llave de toda la plataforma. */}
+          {rol !== 'admin' && <button className="btn-ghost account-edit" style={{ marginTop: '0.5rem' }} onClick={() => { setEmailPedido(null); setCambiaEmail(true); }}>Cambiar email</button>}
           {emailPedido && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Te hemos enviado un enlace a {emailPedido} (y otro a tu correo actual, por seguridad). El email cambia al confirmarlos; hasta entonces sigues entrando con el actual.</p>}
           {(rol === 'cliente' || rol === 'transportista') && (
             // En su propia línea y separado de «Cambiar email» (usuario, 2026-11-16: salían pegados).

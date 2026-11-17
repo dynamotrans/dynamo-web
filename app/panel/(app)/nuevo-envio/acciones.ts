@@ -3,7 +3,13 @@
 import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esGestor } from '@/lib/sesion';
+import { randomUUID } from 'node:crypto';
+import { sesion, esGestor, esDynamo } from '@/lib/sesion';
+import { pdfProformaCalculo, lineasProforma } from '@/lib/servidor/proformaCalculo';
+import { enviarEmailOperativo } from '@/lib/servidor/emailOperativo';
+import { supabaseServicio } from '@/lib/supabase/servicio';
+import { CONTACTO } from '@/lib/atencion';
+import { euros, porcentaje } from '@/lib/formato';
 import { vistaCruda } from '@/lib/vista';
 import { modificarEnvio, type DatosEnvio } from '@/app/panel/(app)/envios/acciones';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
@@ -327,6 +333,46 @@ export async function emailDeCliente(p_cliente: string): Promise<string | null> 
 // Los clientes MÁS ACTIVOS (envíos de los últimos 30 días), para enseñarlos nada más
 // abrir el buscador de cliente de Nuevo envío (usuario, 2026-11-13): suelen repetirse
 // y así no hay que teclear. Solo Dynamo.
+// El precio CALCULADO, por email y con la proforma en PDF ADJUNTA (usuario, 2026-11-16:
+// «al pulsar email, que adjunte el PDF»). Antes se abría el correo del dispositivo con el
+// texto, y un enlace de correo no puede llevar adjuntos. La proforma va sin numerar y no es
+// vinculante: no crea ningún envío. Tope de 10 por hora y usuario, para que nadie use la
+// plataforma de buzón.
+export async function enviarProformaCalculo(para: string, base: number, ruta: string, det: string, cliente: string | null):
+  Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#enviarProformaCalculo", [para, base, ruta, det, cliente]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !(esDynamo(s.perfil.rol) || s.perfil.rol === 'cliente')) {
+    return { ok: false, error: 'Tu cuenta no puede enviar este documento.' };
+  }
+  const email = para.trim().toLowerCase();
+  if (email.length > 200 || !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]{2,}$/.test(email)) return { ok: false, error: 'Escribe un email válido.' };
+  const svc = supabaseServicio();
+  if (svc) {
+    const { count } = await svc.from('emails_enviados').select('id', { count: 'exact', head: true })
+      .eq('tipo', 'proforma_calculo').like('clave', `proforma_calculo:${s.perfil.id}:%`).gte('creado_en', new Date(Date.now() - 3600_000).toISOString());
+    if ((count ?? 0) >= 10) return { ok: false, error: 'Has enviado muchas proformas seguidas: espera un rato y vuelve a intentarlo.' };
+  }
+  const rutaL = lineasProforma(ruta, 600, 6), detL = lineasProforma(det, 400, 4);
+  const r = await pdfProformaCalculo(s.supabase, s.perfil.rol, { base, ruta: rutaL, det: detL, cliente: esDynamo(s.perfil.rol) ? cliente : null });
+  if ('error' in r) return { ok: false, error: r.error };
+  const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lista = (t: string, ls: string[]) => (ls.length ? `<p><strong>${t}</strong><br>${ls.map(esc).join('<br>')}</p>` : '');
+  const html = '<p>Buenos días,</p><p>Le hacemos llegar el precio solicitado. Va <strong>adjunta la proforma en PDF</strong>.</p>'
+    + lista('Ruta', rutaL) + lista('Detalle', detL)
+    + `<p><strong>Base imponible:</strong> ${euros(base)}<br><strong>IVA (${porcentaje(r.iva)}):</strong> ${euros(base * r.iva / 100)}`
+    + `<br><strong>Total (IVA incl.):</strong> ${euros(base * (1 + r.iva / 100))}</p>`
+    + '<p>Es un documento <strong>sin numerar y no vinculante</strong>: no crea ningún envío ni reserva. El precio se fija al confirmar el envío.</p>'
+    + `<p>Un saludo,<br>Dynamo · ${esc(CONTACTO.telefono)} · ${esc(CONTACTO.email)}</p>`;
+  const rutaTxt = rutaL.map((x) => x.split(',')[0].replace(/^\S+\s+/, '')).filter(Boolean).join(' → ');
+  const res = await enviarEmailOperativo({
+    clave: `proforma_calculo:${s.perfil.id}:${randomUUID()}`, tipo: 'proforma_calculo', para: email,
+    asunto: `Precio de transporte${rutaTxt ? ` — ${rutaTxt}` : ''}`.slice(0, 180), html,
+    adjuntos: [{ nombre: 'Proforma-calculo.pdf', base64: Buffer.from(r.bytes).toString('base64'), tipo: 'application/pdf' }],
+  });
+  return res.estado === 'enviado' ? { ok: true } : { ok: false, error: res.error ?? 'No se ha podido enviar el email.' };
+}
+
 // El FACTOR del cliente (%) que el asistente aplica a la tarifa: el del envío si se está
 // modificando uno (conserva el suyo), o el del cliente hoy (bienvenida, 0 % o fijado a
 // mano). Va DENTRO del precio y no se enseña al cliente (usuario, 2026-11-16). La base de

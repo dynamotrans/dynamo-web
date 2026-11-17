@@ -1,5 +1,5 @@
 import type { SB } from '@/lib/supabase/cliente';
-import { decaConMatriculas, cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, datosDynamo, cargarDatosDocManual } from './datos';
+import { decaConMatriculas, cargarDatosDoc, cargarDatosCmrPorToken, cargarFirmasCmr, cargarLogoOperador, cargarLogoCliente, datosDynamo, cargarDatosDocManual } from './datos';
 import { PDFDocument } from 'pdf-lib';
 import { ordenDeCarga, ordenCompuesta } from './orden';
 import type { DatosDoc } from './datos';
@@ -44,7 +44,7 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
     const { data: ps } = await sb.from('parametros').select('clave, valor')
       .in('clave', ['pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'plazo_pago_transportista_dias']);
     const p = new Map((ps ?? []).map((x) => [x.clave, Number(x.valor)]));
-    if (datos.manual) datos.logoPorteador = await cargarLogoOperador(sb, datos.envio.operador_id);
+    if (datos.manual) [datos.logoPorteador, datos.logoOrdenante] = await Promise.all([cargarLogoOperador(sb, datos.envio.operador_id), cargarLogoCliente(sb, id)]);
     bytes = await ordenDeCarga(datos, { pct: p.get('pronto_pago_pct') ?? 3, minimo: p.get('pronto_pago_minimo') ?? 20,
       dias: p.get('pronto_pago_dias') ?? 5, plazo: p.get('plazo_pago_transportista_dias') ?? 60 });
   }

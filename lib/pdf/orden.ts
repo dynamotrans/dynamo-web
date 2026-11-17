@@ -400,13 +400,17 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     : copia === 'operativa' ? (esES ? 'TRANSPORTISTA EFECTIVO' : `TRANSPORTISTA EFECTIVO · ${t.transpRealiza}`)
     : t.transpRealiza, 7.5, { bold: true, color: COLOR.gris });
   // Envío manual: el logo del operador (si el cliente lo subió), arriba a la derecha de su caja.
-  if (manual && d.logoPorteador) {
-    try {
-      const esPng = d.logoPorteador[0] === 0x89;
-      const img = esPng ? await l.doc.embedPng(d.logoPorteador) : await l.doc.embedJpg(d.logoPorteador);
-      const k = Math.min(70 / img.width, 22 / img.height);
-      l.pag.drawImage(img, { x: l.x0 + mitad - 10 - img.width * k, y: A4.h - l.y - 6 - img.height * k, width: img.width * k, height: img.height * k });
-    } catch { /* un logo en un formato que el PDF no admite (webp, heic) no impide la orden */ }
+  // El logo de la empresa del cliente, igual (mismo tamaño y sitio) en la caja del ordenante
+  // (usuario, 2026-11-16).
+  if (manual) {
+    for (const [bytes, xDer] of [[d.logoPorteador, l.x0 + mitad - 10], [d.logoOrdenante, xb + mitad - 10]] as const) {
+      if (!bytes) continue;
+      try {
+        const img = bytes[0] === 0x89 ? await l.doc.embedPng(bytes) : await l.doc.embedJpg(bytes);
+        const k = Math.min(70 / img.width, 22 / img.height);
+        l.pag.drawImage(img, { x: xDer - img.width * k, y: A4.h - l.y - 6 - img.height * k, width: img.width * k, height: img.height * k });
+      } catch { /* un logo en un formato que el PDF no admite (webp, heic) no impide la orden */ }
+    }
   }
   l.texto(xb + 10, l.y + 14, dchaTit, 7.5, { bold: true, color: COLOR.gris });
   const top0 = l.y;

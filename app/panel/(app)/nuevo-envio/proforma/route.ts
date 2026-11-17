@@ -1,18 +1,13 @@
 import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
-import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
-import { proforma } from '@/lib/pdf/proforma';
-import type { Tabla } from '@/lib/supabase/tipos';
+import { pdfProformaCalculo, lineasProforma } from '@/lib/servidor/proformaCalculo';
 
 // Proforma ORIENTATIVA de la calculadora de Nuevo envío (usuario, 2026-11-11): el precio
-// calculado, en PDF, ANTES de crear el envío. NO crea nada, NO reserva nada y va SIN
-// datos de pago (no es pagadera): es solo un papel para ver precios. La proforma real,
-// con los datos de la transferencia, es la del envío ya creado pendiente de pago — y
-// solo cuando su precio ya está fijado (a N días o menos de la carga).
+// calculado, en PDF, ANTES de crear el envío. El documento lo arma
+// lib/servidor/proformaCalculo (lo comparte con el envío por email, que lo adjunta).
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-type ClienteProforma = Pick<Tabla<'clientes'>, 'razon_social' | 'cif' | 'direccion' | 'codigo_postal' | 'poblacion' | 'pais_codigo_iso'> & { iva_pct?: number | null };
 const texto = (msg: string, status: number) => new Response(msg, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
 export async function GET(req: Request) {
@@ -24,40 +19,14 @@ export async function GET(req: Request) {
   if (!yo || yo.estado !== 'activa' || !(esDynamo(yo.rol) || yo.rol === 'cliente')) return texto('No tienes permiso para ver este documento.', 403);
 
   const u = new URL(req.url);
-  const base = Number((u.searchParams.get('base') ?? '').replace(',', '.'));
-  if (!Number.isFinite(base) || base <= 0 || base > 100000) return texto('Falta el importe del cálculo.', 400);
   // Ruta y detalle vienen en LÍNEAS (una parada por línea; fecha+ventana, camión y
   // medidas), el mismo estilo que el email de la proforma (usuario, 2026-11-13).
-  const ruta = (u.searchParams.get('ruta') ?? '').slice(0, 600).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 6);
-  const det = (u.searchParams.get('det') ?? '').slice(0, 400).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 4);
-
-  // El cliente siempre es ÉL MISMO; Dynamo pasa el cliente elegido en el asistente.
-  let c: ClienteProforma | null = null;
-  if (esDynamo(yo.rol)) {
-    const cid = u.searchParams.get('cliente') ?? '';
-    if (!/^[0-9a-f-]{36}$/i.test(cid)) return texto('Falta el cliente del cálculo.', 400);
-    c = (await sb.from('clientes').select('razon_social, cif, direccion, codigo_postal, poblacion, pais_codigo_iso, iva_pct').eq('id', cid).maybeSingle<ClienteProforma>()).data;
-  } else {
-    c = (await sb.rpc('mi_empresa').maybeSingle()).data as ClienteProforma | null;
-  }
-  if (!c) return texto('Ese cliente no existe.', 404);
-
-  const { data: reg } = await sb.rpc('reglas_precio_envio');
-  const cerrado = Number((reg as { cerrado_dias_habiles?: number } | null)?.cerrado_dias_habiles ?? 12);
-  const bytes = await proforma({
-    codigo: 'CALCULO', referencia_cliente: null, creado_en: new Date().toISOString(),
-    cliente: { razon_social: c.razon_social ?? '—', cif: c.cif ?? '—', direccion: c.direccion ?? null,
-      codigo_postal: c.codigo_postal ?? null, poblacion: c.poblacion ?? null, pais: nombrePais(c.pais_codigo_iso) },
-    conceptos: [{ titulo: 'Transporte', lineas: [...ruta, ...det], importe: base }],
-    iva: Number(c.iva_pct ?? 21),
-    sinPago: { aviso: 'Este documento NO crea ningún envío ni reserva: es solo el precio calculado hoy, para que lo veas. '
-      + 'Por eso no lleva datos de pago. La proforma pagadera, con los datos de la transferencia, sale al crear el envío '
-      + 'y quedar pendiente de pago, con el precio ya fijado.' },
-    condiciones: `Precio válido al crear y confirmar el envío ahora. Las tarifas son dinámicas: el precio se fija al `
-      + `confirmar el envío a ${cerrado} días hábiles o menos de la carga. Con más antelación, el precio se actualizará al llegar a `
-      + `${cerrado} días hábiles de la primera parada, con el precio válido para el día de carga.`,
-    dynamo: await datosDynamo(sb),
+  const r = await pdfProformaCalculo(sb, yo.rol, {
+    base: Number((u.searchParams.get('base') ?? '').replace(',', '.')),
+    ruta: lineasProforma(u.searchParams.get('ruta') ?? '', 600, 6), det: lineasProforma(u.searchParams.get('det') ?? '', 400, 4),
+    cliente: u.searchParams.get('cliente') || null,
   });
-  return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',
+  if ('error' in r) return texto(r.error, r.status);
+  return new Response(Buffer.from(r.bytes), { headers: { 'content-type': 'application/pdf',
     'content-disposition': 'inline; filename="Proforma-calculo.pdf"', 'cache-control': 'private, no-store' } });
 }

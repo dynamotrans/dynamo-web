@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import MedidasCamion from './nuevoEnvio/MedidasCamion';
@@ -166,6 +166,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // 2026-11-13). Se pide YA al elegir el cliente — pedirlo al abrir la ventana hacía
   // que el botón tardara 2-4 s en aparecer — y se recuerda por cliente. Sin email, no sale.
   const [emailCli, setEmailCli] = useState<string | null>(null);
+  // Enviar la proforma del cálculo por email, con el PDF adjunto (lo manda la plataforma).
+  const [profOtro, setProfOtro] = useState<string | null>(null);   // null = caja cerrada; texto = el email que se está escribiendo
+  const [profEnviando, setProfEnviando] = useState(false);
+  const [profMsg, setProfMsg] = useState<{ ok: boolean; txt: string } | null>(null);
   const emailsCli = useRef(new Map<string, string | null>());
   useEffect(() => {
     if (esCliente || !cliente) { setEmailCli(null); return; }
@@ -1445,7 +1449,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         sub="Un documento con el precio, para verlo o guardarlo. No crea ningún envío."
         pie={(() => {
           const baseP = esCliente ? (tarifa?.neto ?? 0) : importe;
-          const rutaTxt = puntos.map((p) => p.sitio?.poblacion ?? p.nuevo?.poblacion ?? '').filter(Boolean).join(' → ');
           // RUTA una parada por línea (cp población, país y tipo de sitio) y DETALLE en
           // 3 líneas — fecha con su ventana, camión, y metros y peso —, el mismo estilo
           // en el email y en el PDF de la proforma (usuario, 2026-11-13).
@@ -1467,24 +1470,34 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             + (esCliente || !cliente ? '' : `&cliente=${cliente.id}`);
           // Botones a lo ancho, grandes y apilados (usuario, 2026-11-12): el principal
           // (descargar) arriba y Cerrar debajo, los dos del mismo tamaño.
-          // Enviar por EMAIL (usuario, 2026-11-13): un botón con el email del cliente ya
-          // puesto y otro a cualquier dirección (el gestor de correo del dispositivo se
-          // abre y el destinatario se rellena a mano). El cuerpo lleva el resumen del
-          // cálculo escrito; el PDF, si se quiere adjuntar, se descarga con el botón de
-          // arriba. Saltos CRLF: Gmail móvil se come los LF a secas.
-          const cuerpo = ['Buenos días,', '', 'Le hacemos llegar el precio solicitado:', '']
-            .concat(lineasRuta.length ? ['RUTA:', ...lineasRuta, ''] : [])
-            .concat(lineasDetalle.length ? ['DETALLE:', ...lineasDetalle, ''] : [])
-            .concat([`BASE IMPONIBLE: ${eur(baseP)}`, `IVA (${porcentaje(ivaPct)}): ${eur(baseP * ivaPct / 100)}`, `TOTAL (IVA incl.): ${eur(baseP * (1 + ivaPct / 100))}`, '',
-              'Precio orientativo, sin compromiso: se fija al confirmar el envío.', '', 'Un saludo,', 'Dynamo'])
-            .join('\r\n');
-          const mailto = (a: string) => `mailto:${a}?subject=${encodeURIComponent(`Precio de transporte${rutaTxt ? ` — ${rutaTxt}` : ''}`)}&body=${encodeURIComponent(cuerpo)}`;
+          // Enviar por EMAIL: lo manda la PLATAFORMA con la proforma en PDF ADJUNTA (usuario,
+          // 2026-11-16; antes abría el correo del dispositivo, que no puede adjuntar). Un botón
+          // con el email del cliente ya puesto y otro para escribir cualquier dirección.
+          const enviarA = async (a: string) => {
+            setProfMsg(null); setProfEnviando(true);
+            const r = await enviarProformaCalculo(a, baseP, lineasRuta.join('\n'), lineasDetalle.join('\n'), esCliente || !cliente ? null : cliente.id)
+              .catch(() => ({ ok: false as const, error: 'No se ha podido enviar: revisa la conexión y vuelve a intentarlo.' }));
+            setProfEnviando(false);
+            setProfMsg(r.ok ? { ok: true, txt: `Enviado a ${a.trim()} con la proforma en PDF adjunta.` } : { ok: false, txt: r.error });
+            if (r.ok) setProfOtro(null);
+          };
           const btnAncho = { width: '100%', minHeight: 52, justifyContent: 'center' } as const;
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', width: '100%' }}>
               <a className="btn-primary" style={btnAncho} href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
-              {emailCli && <a className="btn-secondary" style={btnAncho} href={mailto(emailCli)}>Enviar por email a {emailCli}</a>}
-              <a className="btn-secondary" style={btnAncho} href={mailto('')}>Enviar a otro email</a>
+              {emailCli && <button type="button" className="btn-secondary" style={btnAncho} disabled={profEnviando} onClick={() => enviarA(emailCli)}>{profEnviando && profOtro === null ? 'Enviando…' : `Enviar por email a ${emailCli}`}</button>}
+              {profOtro === null
+                ? <button type="button" className="btn-secondary" style={btnAncho} disabled={profEnviando} onClick={() => { setProfMsg(null); setProfOtro(''); }}>Enviar a otro email</button>
+                : (
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <input type="email" inputMode="email" autoFocus placeholder="nombre@empresa.com" aria-label="Email al que enviar la proforma" value={profOtro}
+                      onChange={(ev) => setProfOtro(ev.target.value)} onKeyDown={(ev) => { if (ev.key === 'Enter' && profOtro.trim() && !profEnviando) enviarA(profOtro); }}
+                      style={{ flex: '1 1 220px', minWidth: 0, minHeight: 52 }} />
+                    <button type="button" className="btn-secondary" style={{ minHeight: 52, justifyContent: 'center', flex: '0 0 auto' }}
+                      disabled={profEnviando || !profOtro.trim()} onClick={() => enviarA(profOtro)}>{profEnviando ? 'Enviando…' : 'Enviar con el PDF'}</button>
+                  </div>
+                )}
+              {profMsg && <div className={`pt-aviso ${profMsg.ok ? 'ok' : 'error'}`} role="status" style={{ margin: 0 }}><div>{profMsg.txt}</div></div>}
               <button type="button" className="btn-secondary" style={btnAncho} onClick={() => setVerProforma(false)}>Cerrar</button>
             </div>
           );

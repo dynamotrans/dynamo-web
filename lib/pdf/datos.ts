@@ -37,6 +37,7 @@ export type DatosDoc = {
   firmas?: FirmaDoc[];                   // CMR digital (solo para el CMR)
   reservas?: { rol: string; texto: string; parada_id?: string | null; creado_en?: string }[];   // reservas anotadas al firmar (casilla 18 y hoja de firmas)
   logoPorteador?: Uint8Array | null;     // envío manual: el logo del operador del cliente (si lo subió)
+  logoOrdenante?: Uint8Array | null;     // envío manual: el logo de la empresa del cliente (si lo tiene)
   deca?: { url: string; creado_en: string } | null;   // enlace público del CMR digital: nº único, QR y fecha de creación (el e-CMR hace de DeCA)
   // Panel de modificaciones del DeCA (Resolución 5-jun-2026, apdo. quinto): cada cambio
   // del documento de control con su fecha/hora española ya formateada y un detalle corto.
@@ -49,6 +50,18 @@ export async function cargarLogoOperador(sb: SB, operadorId: string | null | und
   if (!operadorId) return null;
   const { data } = await sb.from('documentos').select('storage_ruta').eq('operador_id', operadorId).eq('tipo', 'logo').eq('borrado', false)
     .order('creado_en', { ascending: false }).limit(1).maybeSingle<{ storage_ruta: string }>();
+  if (!data) return null;
+  const { data: blob } = await sb.storage.from('documentos').download(data.storage_ruta);
+  return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
+}
+// El logo de la EMPRESA del cliente de un envío manual (usuario, 2026-11-16: en la caja del
+// ordenante, igual que el del transportista en la suya). Dynamo lee el cliente del envío;
+// el cliente no puede leer `envios`, pero de los logos de empresa solo ve el suyo.
+export async function cargarLogoCliente(sb: SB, envioId: string): Promise<Uint8Array | null> {
+  const { data: e } = await sb.from('envios').select('cliente_id').eq('id', envioId).maybeSingle<{ cliente_id: string | null }>();
+  let q = sb.from('documentos').select('storage_ruta').eq('tipo', 'logo').eq('borrado', false).not('cliente_id', 'is', null);
+  if (e?.cliente_id) q = q.eq('cliente_id', e.cliente_id);
+  const { data } = await q.order('creado_en', { ascending: false }).limit(1).maybeSingle<{ storage_ruta: string }>();
   if (!data) return null;
   const { data: blob } = await sb.storage.from('documentos').download(data.storage_ruta);
   return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
