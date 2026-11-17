@@ -174,31 +174,16 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
                 </>) : (<>
                   {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
-                      2026-11-09): cita, horario, indicaciones y contacto (nombre · teléfono ·
-                      email, sin cargo). */}
+                      2026-11-09): contacto (nombre · teléfono · email, sin cargo), horario
+                      con la cita previa e indicaciones. */}
                   {/* Empresa, tipo y dirección NO se repiten aquí como campos bloqueados
                       (usuario, 2026-11-17: «no tiene sentido» si ya salen en la cabecera de la
                       tarjeta): una sola línea dice dónde se cambian. Solo el sitio nuevo
                       lleva la empresa, que aquí sí se escribe. */}
                   {f.nuevo && <div className="full"><label>Empresa <Req /></label>
                     <input value={f.empresa} style={marcada && !f.empresa.trim() ? { borderColor: '#dc2626' } : undefined} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>}
-                  {citaBloque}
-                  {/* Horario REPLEGADO con resumen, igual que en la ficha de Sitios
-                      (usuario, 2026-11-09): pulsando se abre el editor. */}
-                  <div className="full">
-                    <button type="button" className="campo-plegado" aria-expanded={horAbierto.has(p.k)} onClick={() => toggleHor(p.k)}>
-                      <span className="cp-ico" aria-hidden="true">{horAbierto.has(p.k) ? '−' : '+'}</span>
-                      <span className="cp-txt">Horario de carga y descarga<span className="cp-val">· {resumenHorario(f.horario) || 'sin definir'}{f.verano.activo ? ' · verano activo' : ''}</span></span>
-                    </button>
-                  </div>
-                  {/* El MISMO bloque que la ficha de Sitios (usuario, 2026-11-16): pestañas
-                      «Horario general» y «Horario de verano». Se guarda en el sitio. */}
-                  {horAbierto.has(p.k) && <div className="full ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
-                    <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} />
-                  </div>}
-                  {/* Las indicaciones del sitio, justo DESPUÉS del horario y sin título propio
-                      (usuario, 2026-11-16). */}
-                  {!f.nuevo && fijos(p, f, false)}
+                  {/* ORDEN (usuario, 2026-11-17): primero el contacto del sitio y después el
+                      horario, con la cita previa dentro. */}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
                   {/* El nombre va ANTES de los campos de teléfono (usuario, 2026-11-09). */}
                   {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
@@ -232,6 +217,25 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                       <span className="cp-ico" aria-hidden="true">+</span><span className="cp-txt">Añadir contacto adicional</span>
                     </button>
                   </div>}
+                  {/* Horario REPLEGADO con resumen, igual que en la ficha de Sitios
+                      (usuario, 2026-11-09): pulsando se abre el editor. */}
+                  <div className="full">
+                    <button type="button" className="campo-plegado" aria-expanded={horAbierto.has(p.k)} onClick={() => toggleHor(p.k)}>
+                      <span className="cp-ico" aria-hidden="true">{horAbierto.has(p.k) ? '−' : '+'}</span>
+                      <span className="cp-txt">Horario de carga y descarga<span className="cp-val">· {resumenHorario(f.horario) || 'sin definir'}{f.verano.activo ? ' · verano activo' : ''}{ed?.cita ? ` · cita previa ${ed.citaHora ?? '08:00'}` : ''}</span></span>
+                    </button>
+                  </div>
+                  {/* El MISMO bloque que la ficha de Sitios (usuario, 2026-11-16): pestañas
+                      «Horario general» y «Horario de verano». Se guarda en el sitio. */}
+                  {horAbierto.has(p.k) && <div className="full ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
+                    {/* La cita previa va DENTRO del horario, antes de sus pestañas (usuario,
+                        2026-11-17); si está puesta, se lee también en el resumen plegado. */}
+                    {citaBloque}
+                    <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} />
+                  </div>}
+                  {/* Las indicaciones del sitio, justo DESPUÉS del horario y sin título propio
+                      (usuario, 2026-11-16). */}
+                  {!f.nuevo && fijos(p, f, false)}
                   {/* El enlace de Google Maps NO se muestra ni se edita aquí (usuario,
                       2026-11-09): se gestiona en la sección Sitios y se conserva al guardar. */}
                 </>)}
