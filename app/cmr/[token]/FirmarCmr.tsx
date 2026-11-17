@@ -419,7 +419,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.08rem' }}>Vas a firmar como {preFirma.firmante}</h2>
-            <p style={{ margin: '0 0 0.7rem', fontSize: '0.8rem', color: 'var(--gray-500)' }}>{preFirma.titulo}{preFirma.lugar ? ` · ${preFirma.lugar}` : ''}</p>
+            {/* Quién y dónde, BIEN legible (usuario, 2026-11-17: «está enano»): es lo que hay que
+                comprobar antes de firmar. */}
+            <p style={{ margin: '0.15rem 0 0.8rem', fontSize: '1.05rem', fontWeight: 800, color: 'var(--navy)', lineHeight: 1.3 }}>{preFirma.titulo}{preFirma.lugar ? ` · ${preFirma.lugar}` : ''}</p>
             <p style={{ margin: '0 0 0.7rem', fontSize: '0.88rem', color: '#1f2937', lineHeight: 1.5, textAlign: 'left' }}>
               La firma queda <strong>asociada a ti</strong> y guardada como prueba: estamos registrando <strong>tu IP</strong>, <strong>tu dispositivo</strong>,
               la <strong>fecha y la hora</strong>, tu ubicación (si das permiso) y los <strong>datos que introduzcas</strong>.
