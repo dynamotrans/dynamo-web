@@ -150,3 +150,29 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   };
   return { ok: false, error: msg[r ?? ''] ?? 'No se ha podido guardar la firma.' };
 }
+
+// Páginas del CMR / carta de porte EN PAPEL (usuario, 2026-11-17): quien no quiere firmar
+// en el móvil sube las fotos desde la hoja de firmas. Ya están en el almacén, en la carpeta
+// de este enlace; aquí se cuelgan del envío y Dynamo recibe el aviso. Lo que vale (solo
+// imágenes o PDF de ESTE enlace, 20 MB, 10 páginas) lo decide la base de datos.
+export async function registrarCmrPapel(token: string, rutas: string[]): Promise<{ ok: true; paginas: number; total: number } | { ok: false; error: string }> {
+  comprobarEntrada("app/cmr/[token]/acciones#registrarCmrPapel", [token, rutas]);
+  const sb = supabasePublico();
+  if (!sb) return { ok: false, error: 'No se ha podido conectar. Vuelve a intentarlo.' };
+  const { data, error } = await reintentando(
+    () => sb.rpc('subir_cmr_papel_publico', { p_token: token, p_fotos: rutas.slice(0, 10) }),
+    (x) => x.error?.message ?? null,
+  );
+  if (error) {
+    console.error('[cmr/papel] fallo en subir_cmr_papel_publico', { token, codigo: error.code, mensaje: error.message });
+    return { ok: false, error: 'No se han podido guardar las páginas. Vuelve a intentarlo.' };
+  }
+  const j = (data ?? {}) as { resultado?: string; paginas?: number; total?: number };
+  if (j.resultado === 'ok') return { ok: true, paginas: Number(j.paginas ?? 0), total: Number(j.total ?? 0) };
+  const msg: Record<string, string> = {
+    enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado: ya no admite documentos.',
+    demasiadas: 'Este envío ya tiene las 10 páginas que caben. Si falta alguna, envíanosla por email o WhatsApp.',
+    sin_fotos: 'No ha llegado ninguna página válida (solo imágenes o PDF, de 20 MB como mucho). Vuelve a intentarlo.',
+  };
+  return { ok: false, error: msg[j.resultado ?? ''] ?? `No se han podido guardar las páginas. Llámanos al ${CONTACTO.telefono}.` };
+}

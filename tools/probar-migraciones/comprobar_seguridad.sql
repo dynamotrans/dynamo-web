@@ -12128,3 +12128,88 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+
+-- ---- 276. CMR en papel por el enlace: fotos subidas desde la hoja de firmas ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; tok uuid; begin
+  -- Un envío vivo con su enlace de firmas (nace con el envío).
+  select c.envio_id, c.token into e, tok from cmr_enlaces c join envios x on x.id = c.envio_id
+   where not c.revocado and x.estado <> 'cancelado' and cmr_envio_de_token(c.token) is not null
+     and not exists (select 1 from documentos d where d.envio_id = c.envio_id and d.tipo = 'cmr_firmado')
+   order by x.creado_en desc limit 1;
+  if tok is null then raise exception 'FALLO 276 · no hay ningún enlace de CMR vivo para la prueba'; end if;
+  perform set_config('prueba.e276', e::text, false);
+  perform set_config('prueba.tok276', tok::text, false);
+  perform set_config('prueba.p276', 'cmr/' || tok::text || '/papel-' || gen_random_uuid()::text, false);
+  delete from avisos where envio_id = e and tipo = 'cmr_papel_subido';
+end $$;
+set role anon;
+do $$ declare tok text := current_setting('prueba.tok276'); begin
+  -- La norma de rutas: la foto de una reserva y la página en papel se pueden subir…
+  insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/foto-' || gen_random_uuid()::text || '.jpg');
+  insert into storage.objects (bucket_id, name) values ('documentos', current_setting('prueba.p276') || '.jpg');
+  -- …y cualquier otra cosa, no.
+  begin
+    insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/papel-' || gen_random_uuid()::text || '.exe');
+    raise exception 'FALLO 276 · se sube un fichero que no es imagen ni PDF';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/otra-cosa.jpg');
+    raise exception 'FALLO 276 · se sube un fichero con un nombre libre';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || gen_random_uuid()::text || '/papel-' || gen_random_uuid()::text || '.jpg');
+    raise exception 'FALLO 276 · se sube una página con un enlace inventado';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ declare tok text := current_setting('prueba.tok276'); begin
+  -- Los datos del fichero los pone el almacén: aquí se simulan (una buena, una enorme, un PDF y un vídeo).
+  update storage.objects set metadata = jsonb_build_object('mimetype', 'image/jpeg', 'size', 500000) where name = current_setting('prueba.p276') || '.jpg';
+  insert into storage.objects (bucket_id, name, metadata) values
+    ('documentos', current_setting('prueba.p276') || '.png',  jsonb_build_object('mimetype', 'image/png', 'size', 30000000)),
+    ('documentos', current_setting('prueba.p276') || '.pdf',  jsonb_build_object('mimetype', 'application/pdf', 'size', 900000)),
+    ('documentos', current_setting('prueba.p276') || '.webp', jsonb_build_object('mimetype', 'video/mp4', 'size', 1000));
+end $$;
+set role anon;
+do $$ declare r jsonb; p text := current_setting('prueba.p276'); begin
+  if (subir_cmr_papel_publico(gen_random_uuid(), array[p || '.jpg']))->>'resultado' <> 'enlace_no_valido' then
+    raise exception 'FALLO 276 · un enlace inventado sube páginas del CMR'; end if;
+  r := subir_cmr_papel_publico(current_setting('prueba.tok276')::uuid, array['cmr/' || gen_random_uuid()::text || '/papel-x.jpg', p || '-no-existe.jpg']);
+  if r->>'resultado' <> 'sin_fotos' then raise exception 'FALLO 276 · cuelan rutas de otro enlace o inventadas: %', r; end if;
+  r := subir_cmr_papel_publico(current_setting('prueba.tok276')::uuid, array[p || '.jpg', p || '.png', p || '.pdf', p || '.webp', p || '.jpg']);
+  if r->>'resultado' <> 'ok' or (r->>'paginas')::int <> 2 then
+    raise exception 'FALLO 276 · deben entrar solo la foto buena y el PDF (ni la de 30 MB, ni el vídeo, ni la repetida): %', r; end if;
+  -- Repetir la misma subida no duplica nada.
+  r := subir_cmr_papel_publico(current_setting('prueba.tok276')::uuid, array[p || '.jpg', p || '.pdf']);
+  if r->>'resultado' <> 'sin_fotos' then raise exception 'FALLO 276 · la misma página se guarda dos veces: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e276')::uuid; n int; begin
+  select count(*) into n from documentos d where d.envio_id = e and d.tipo = 'cmr_firmado' and d.storage_ruta like '%/papel-%' and not d.visible_cliente
+     and d.nombre_archivo like 'CMR en papel · %';
+  if n <> 2 then raise exception 'FALLO 276 · las páginas no cuelgan del envío como CMR firmado, sin enseñar al cliente: %', n; end if;
+  if (select count(*) from avisos where envio_id = e and tipo = 'cmr_papel_subido' and para = 'dynamo') <> 1 then
+    raise exception 'FALLO 276 · Dynamo no recibe (una vez) el aviso del CMR en papel'; end if;
+  -- El tope: 10 páginas por enlace.
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'documentos', 'cmr/' || current_setting('prueba.tok276') || '/papel-' || gen_random_uuid()::text || '.jpg', jsonb_build_object('mimetype', 'image/jpeg', 'size', 1000)
+    from generate_series(1, 12);
+end $$;
+do $$ declare r jsonb; e uuid := current_setting('prueba.e276')::uuid; rutas text[]; begin
+  select array_agg(o.name) into rutas from storage.objects o
+   where o.name like 'cmr/' || current_setting('prueba.tok276') || '/papel-%'
+     and not exists (select 1 from documentos d where d.storage_ruta = o.name);
+  perform set_config('prueba.r276', array_to_string(rutas, ','), false);
+end $$;
+set role anon;
+do $$ declare r jsonb; rutas text[] := string_to_array(current_setting('prueba.r276'), ','); begin
+  r := subir_cmr_papel_publico(current_setting('prueba.tok276')::uuid, rutas[1:10]);
+  if r->>'resultado' <> 'ok' or (r->>'total')::int <> 10 then raise exception 'FALLO 276 · el tope de 10 páginas no se respeta al llenar: %', r; end if;
+  r := subir_cmr_papel_publico(current_setting('prueba.tok276')::uuid, rutas[11:14]);
+  if r->>'resultado' <> 'demasiadas' then raise exception 'FALLO 276 · se pasa de 10 páginas: %', r; end if;
+  raise notice 'OK 276 · CMR en papel por el enlace: solo imágenes o PDF de ese enlace, 20 MB y 10 páginas como mucho, sin duplicar, ocultas al cliente y con aviso a Dynamo';
+end $$;
+reset role;

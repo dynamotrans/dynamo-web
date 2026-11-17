@@ -38,7 +38,11 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
   ]);
   // La proforma de un envío cancelado SIN pagar ya no se debe (anulada); una pagada se
   // conserva (justificante del cobro).
-  const pagosFilas = (pagos.data ?? []).filter((pg) => pg.pagado_en || pg.estado !== 'cancelado');
+  // Y la de un envío que YA NO se paga por adelantado tampoco (usuario, 2026-11-17): si pasa
+  // a crédito —porque se le amplía el crédito o porque Dynamo lo pasa «sin pago previo»—,
+  // su proforma desaparece de aquí; si vuelve a pendiente de pago, vuelve a salir. Solo
+  // quedan las PENDIENTES y las ya PAGADAS.
+  const pagosFilas = (pagos.data ?? []).filter((pg) => pg.pagado_en || (pg.estado !== 'cancelado' && pg.estado_pago_previo === 'pendiente'));
 
   // Número y ruta del envío de cada albarán y de cada proforma de envío. El cliente no
   // lee la tabla de envíos (regla de la plataforma): para él, desde mis_envios().

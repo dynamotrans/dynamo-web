@@ -5001,14 +5001,17 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .buscador input[type="search"]:hover { border-color: var(--purple); }
 .buscador input[type="search"]:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
 .filters .buscador { flex: 1 1 240px; }
-/* Safari ofrece «autorrellenar con un contacto» en los buscadores (el icono de la
-   persona a la derecha): aquí no pinta nada y tapa el campo. */
-.buscador input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !important; pointer-events: none; position: absolute; right: 0; }
+/* Safari ofrece «autorrellenar con un contacto» en los campos de buscar (el icono de la
+   persona a la derecha): en el panel no pinta nada y tapa el campo. */
+input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !important; pointer-events: none; position: absolute; right: 0; }
 .buscador-lista {
     position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px);
     background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px;
     box-shadow: 0 10px 30px rgba(10,2,48,0.12); max-height: 320px; overflow-y: auto; padding: 0.25rem;
 }
+/* La lista del buscador flota colgada del cuerpo de la página (Buscador.tsx la coloca):
+   por encima de las ventanas emergentes (10000) y de sus hojas (10051). */
+.buscador-lista.flotante { position: fixed; right: auto; z-index: 10100; }
 .buscador-lista button {
     display: block; width: 100%; text-align: left; border: 0; background: none; cursor: pointer;
     padding: 0.5rem 0.7rem; border-radius: 8px; font-family: inherit; font-size: var(--fs-m); color: var(--navy);

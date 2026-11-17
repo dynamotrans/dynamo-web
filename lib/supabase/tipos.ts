@@ -4093,6 +4093,7 @@ export type Database = {
       sitio_texto_busqueda: { Args: { s: Database["public"]["Tables"]["sitios"]["Row"] | null }; Returns: string }
       sitios_pagina: { Args: { p_q?: string | null; p_cliente?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
       sn: { Args: { p: boolean | null }; Returns: string }
+      subir_cmr_papel_publico: { Args: { p_token: string | null; p_fotos: string[] | null }; Returns: Json }
       sugerencias_transportistas_publicas: { Args: { p_reserva: string | null; p_q: string | null }; Returns: { nombre: string; cif: string; poblacion: string }[] }
       sumar_dias_habiles: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       tarifa_almacen: { Args: { p_almacen: string | null }; Returns: { semana: number; reparto: number }[] }

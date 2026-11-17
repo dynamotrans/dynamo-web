@@ -3,7 +3,8 @@
 // Buscador de UNA empresa (transportista o cliente) escribiendo: pide a la base de datos
 // las que casan (12 como mucho) y deja elegir una. Sustituye a los <select> con miles de
 // opciones, que con 20.000 transportistas pesaban megas y no se podían usar.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type Opcion = { id: string; nombre: string; cif: string; detalle?: string | null; deshabilitada?: boolean };
 
@@ -22,7 +23,30 @@ export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir
   const [opciones, setOpciones] = useState<T[] | null>(null);
   const [cargando, setCargando] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
+  const lista = useRef<HTMLDivElement>(null);
   const ultima = useRef(0);
+  // LA LISTA FLOTA FUERA DE LA VENTANA (usuario, 2026-11-17): se pinta colgada del cuerpo
+  // de la página, en la posición del campo, y no dentro de la ventana que la contiene. En
+  // Safari, una lista con scroll metida en una ventana emergente salía con la letra dentada
+  // y a trozos; fuera de ella se pinta como en cualquier página. De paso, ya no la recorta
+  // el borde de la ventana.
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number; width: number; alto: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!abierto) return;
+    const colocar = () => {
+      const r = caja.current?.getBoundingClientRect(); if (!r) return;
+      const abajo = window.innerHeight - r.bottom - 12, arriba = r.top - 12;
+      const haciaArriba = abajo < 180 && arriba > abajo;
+      setPos(haciaArriba
+        ? { bottom: window.innerHeight - r.top + 4, left: r.left, width: r.width, alto: Math.max(120, Math.min(320, arriba)) }
+        : { top: r.bottom + 4, left: r.left, width: r.width, alto: Math.max(120, Math.min(320, abajo)) });
+    };
+    colocar();
+    // El scroll de la lista NO la recoloca; el de la página o el de la ventana, sí.
+    const alMover = (ev: Event) => { if (lista.current && ev.target instanceof Node && lista.current.contains(ev.target)) return; colocar(); };
+    window.addEventListener('scroll', alMover, true); window.addEventListener('resize', colocar);
+    return () => { window.removeEventListener('scroll', alMover, true); window.removeEventListener('resize', colocar); };
+  }, [abierto]);
 
   // Busca al escribir (con una pequeña espera) y también al abrir con la caja vacía
   // (las primeras por nombre), para que se vea que hay empresas.
@@ -39,7 +63,7 @@ export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir
 
   useEffect(() => {
     if (!abierto) return;
-    const fuera = (ev: MouseEvent) => { if (caja.current && !caja.current.contains(ev.target as Node)) setAbierto(false); };
+    const fuera = (ev: MouseEvent) => { const t = ev.target as Node; if (caja.current && !caja.current.contains(t) && !lista.current?.contains(t)) setAbierto(false); };
     document.addEventListener('mousedown', fuera);
     return () => document.removeEventListener('mousedown', fuera);
   }, [abierto]);
@@ -57,8 +81,9 @@ export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir
       <input id={id} type="search" value={q} autoFocus={autoFoco} placeholder={placeholder} autoComplete="off"
         onChange={(ev) => setQ(ev.target.value)} onFocus={() => setAbierto(true)}
         onKeyDown={(ev) => { if (ev.key === 'Escape') { setAbierto(false); (ev.target as HTMLInputElement).blur(); } }} />
-      {abierto && (
-        <div className="buscador-lista" role="listbox">
+      {abierto && pos && createPortal(
+        <div className="buscador-lista flotante" role="listbox" ref={lista} data-envivo-ignorar=""
+          style={{ top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: pos.alto }}>
           {cargando && !opciones && <div className="buscador-nada">Buscando…</div>}
           {opciones && opciones.length === 0 && !cargando && <div className="buscador-nada">{vacio}</div>}
           {opciones?.map((o) => (
@@ -75,7 +100,8 @@ export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir
               <strong>{extra.texto}</strong>
             </button>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

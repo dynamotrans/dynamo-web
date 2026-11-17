@@ -154,6 +154,26 @@ test.describe.serial('flujos clave', () => {
       const { count } = await bd().from('firmas_cmr').select('*', { count: 'exact', head: true }).eq('envio_id', envioAceptado);
       return count;
     }).toBe(1);
+
+    // Y quien no quiere firmar en el móvil sube el CMR en papel desde la misma hoja: se
+    // añaden dos páginas, se quita una con su miniatura y se finaliza. Va contra el almacén
+    // de verdad: prueba también que su norma de rutas deja subir «papel-<uuid>.<ext>».
+    await f.locator('#btn-cmr-papel').click();
+    const punto = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    await f.locator('#cmr-papel-galeria').setInputFiles([
+      { name: 'cmr-1.png', mimeType: 'image/png', buffer: punto },
+      { name: 'cmr-2.png', mimeType: 'image/png', buffer: punto },
+    ]);
+    await expect(f.locator('#cmr-papel-cuenta')).toHaveText('2 de 10 páginas');
+    await f.getByRole('button', { name: 'Quitar la página 2' }).click();
+    await expect(f.locator('#cmr-papel-cuenta')).toHaveText('1 de 10 páginas');
+    await f.locator('#btn-cmr-papel-finalizar').click();
+    await expect(f.locator('#cmr-papel-hecho')).toBeVisible({ timeout: 20_000 });
+    await expect.poll(async () => {
+      const { count } = await bd().from('documentos').select('*', { count: 'exact', head: true })
+        .eq('envio_id', envioAceptado).eq('tipo', 'cmr_firmado').like('storage_ruta', 'cmr/%/papel-%');
+      return count;
+    }).toBe(1);
   });
 
   test('6 · en vivo: el envío que crea un cliente le aparece a Dynamo sin refrescar', async ({ page, browser }) => {

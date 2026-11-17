@@ -12,6 +12,7 @@ import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import CompartirSheet from '@/components/CompartirSheet';
+import SubirCmrPapel from './SubirCmrPapel';
 
 // Botón discreto «¿Necesitas ayuda? · Contáctanos» (usuario, 2026-11-11; solo al pie desde el 2026-11-12):
 // al final de la página de firmas; al pulsarlo se despliegan llamar, WhatsApp y email.
@@ -389,6 +390,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {/* EL PIE (usuario, 2026-11-17): la caja de «también pueden firmar aquí», con su botón
           de compartir la página, y debajo el texto legal. «Compartir el CMR en PDF» ya NO
           sale aquí, antes de firmar: solo en la pantalla de «Todo guardado», tras firmar. */}
+      {/* ANTES de la caja verde (usuario, 2026-11-17): quien no quiera firmar en el móvil
+          sube aquí las fotos del CMR / carta de porte en papel. */}
+      <SubirCmrPapel token={token} />
       {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
           lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
       <div style={{ margin: '0.8rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
@@ -494,7 +498,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     setFotoAviso(null); setSubiendo(true);
     for (const f of Array.from(files).slice(0, Math.max(0, 6 - fotos.length))) {
       if (f.size > 25 * 1024 * 1024) { setFotoAviso(`«${f.name}» pasa de 25 MB: hazla de nuevo o elige otra.`); continue; }
-      const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      // La extensión sale del TIPO del fichero: el almacén solo admite las de imagen.
+      const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif' } as Record<string, string>)[f.type]
+        ?? (/\.hei[cf]$/i.test(f.name) ? 'heic' : 'jpg');
       const ruta = `cmr/${token}/foto-${crypto.randomUUID()}.${ext}`;
       const { error } = await sb.storage.from('documentos').upload(ruta, f, { contentType: f.type || 'image/jpeg', upsert: false });
       if (error) { setFotoAviso('No se ha podido subir la foto. Vuelve a intentarlo.'); break; }
