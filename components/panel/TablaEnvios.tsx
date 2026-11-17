@@ -291,12 +291,14 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         {/* Dynamo ve QUÉ empresa lleva el envío (usuario, 2026-11-09); el cliente, no:
             para él solo matrículas y estado de asignación. */}
         {dynamo && e.transportista && <div style={{ fontWeight: 800, color: 'var(--navy)', lineHeight: 1.3 }}>{e.transportista}</div>}
+        {/* Las dos matrículas seguidas, separadas por «/», sin el rótulo «Remolque:»
+            (usuario, 2026-11-17). */}
         {e.matricula_camion
-          ? <span className="meta-matricula">{e.matricula_camion}</span>
+          ? <span className="meta-matricula">{e.matricula_camion}{e.matricula_remolque ? ` / ${e.matricula_remolque}` : ''}</span>
           : e.transportista_asignado
             ? <span className="meta" style={{ color: 'var(--red)', fontWeight: 800 }}>Sin matrícula</span>
             : <span className="meta meta-pend">Sin matrícula</span>}
-        {e.matricula_remolque && <div className="meta">Remolque: <span className="meta-matricula" style={{ fontSize: 'var(--fs-s)' }}>{e.matricula_remolque}</span></div>}
+        {!e.matricula_camion && e.matricula_remolque && <div className="meta"><span className="meta-matricula" style={{ fontSize: 'var(--fs-s)' }}>{e.matricula_remolque}</span></div>}
         {dynamo && e.conductor_nombre && <div className="meta">{e.conductor_nombre}</div>}
         {dynamo && e.conductor_telefono && <div className="meta">{e.conductor_telefono}</div>}
       </td>

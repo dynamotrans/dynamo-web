@@ -224,7 +224,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                     {/* La cita previa va DENTRO del horario, antes de sus pestañas (usuario,
                         2026-11-17); si está puesta, se lee también en el resumen plegado. */}
                     {citaBloque}
-                    <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} sinResumen />
+                    <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} />
                   </div>}
                   {/* Las indicaciones del sitio, justo DESPUÉS del horario y sin título propio
                       (usuario, 2026-11-16). */}

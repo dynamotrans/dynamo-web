@@ -3,7 +3,7 @@
 // Horario de un sitio: grupos de días (L M X J V S D) con uno o varios tramos cada uno
 // (mañana y tarde). Ej.: L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00. Los días que no
 // están en ningún grupo, cerrado. Va dentro de la rejilla .ptar-sitio-grid de la ficha.
-import { DIAS, resumenHorario, type GrupoHorario, type Tramo } from '@/lib/horarios';
+import { DIAS, type GrupoHorario, type Tramo } from '@/lib/horarios';
 
 const chip = (on: boolean, libre: boolean): React.CSSProperties => ({
   minWidth: 38, height: 38, borderRadius: 10, fontWeight: 800, fontSize: 'var(--fs-m)', cursor: libre ? 'pointer' : 'not-allowed',
@@ -11,14 +11,13 @@ const chip = (on: boolean, libre: boolean): React.CSSProperties => ({
   color: on ? '#fff' : libre ? 'var(--navy)' : 'var(--gray-300)',
 });
 
-// sinResumen: sin la línea final «Queda así… Cerrado…» (en Nuevo envío ya se ve en la
-// cabecera del sitio y en los propios selectores; usuario, 2026-11-17).
-export default function EditorHorario({ valor, onCambio, sinResumen = false }: { valor: GrupoHorario[]; onCambio: (g: GrupoHorario[]) => void; sinResumen?: boolean }) {
+// Sin la línea final «Queda así… Cerrado…» (usuario, 2026-11-17): lo mismo ya se lee en los
+// propios selectores, tanto en Nuevo envío como al editar un sitio, en general y en verano.
+export default function EditorHorario({ valor, onCambio }: { valor: GrupoHorario[]; onCambio: (g: GrupoHorario[]) => void }) {
   const usados = new Map<number, number>();
   valor.forEach((g, i) => g.dias.forEach((d) => usados.set(d, i)));
   const libres = DIAS.filter(([d]) => !usados.has(d));
   const cambiar = (i: number, g: GrupoHorario) => onCambio(valor.map((x, j) => (j === i ? g : x)));
-  const resumen = resumenHorario(valor);
 
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.6rem' }}>
@@ -65,10 +64,6 @@ export default function EditorHorario({ valor, onCambio, sinResumen = false }: {
           </button>
         </div>
       )}
-      {!sinResumen && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.5 }}>
-        {resumen ? <>Queda así: <strong style={{ color: 'var(--navy)' }}>{resumen}</strong>. </> : null}
-        {libres.length ? <>Cerrado: {libres.map(([, , n]) => n.toLowerCase()).join(', ')}.</> : 'Abre todos los días.'}
-      </div>}
     </div>
   );
 }
