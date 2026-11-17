@@ -125,8 +125,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   ];
   const firmas = new Map<string, FirmaCmr>((cmr.firmas ?? []).filter((f) => !f.extra).map((f) => [`${f.rol}:${f.parada_id ?? ''}`, f]));
   // Las PENDIENTES arriba y las ya firmadas debajo (usuario, 2026-11-14), cada grupo en
-  // su orden de recorrido (recogidas → transportista → entregas), con el botón del PDF
-  // «con las firmas actuales» entre ambos grupos. El selector de la firma extra sigue
+  // su orden de recorrido (recogidas → transportista → entregas). El selector de la firma extra sigue
   // listando las casillas en el orden natural del recorrido.
   const pendientesVista = bloques.filter((b) => !firmas.has(b.clave));
   const firmadasVista = bloques.filter((b) => firmas.has(b.clave));
@@ -271,22 +270,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           titulo={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}`}
           texto={`CMR del envío #${cmr.referencia ?? ''}${cmr.manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí:`} />
       )}
-      {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
-          lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
-      <div style={{ margin: '0.8rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
-        padding: '0.65rem 0.85rem', fontSize: '0.95rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
-        Cargador, transportista y destinatario ya la han recibido igual que tú, y{' '}
-        <strong style={{ background: '#c6f2d9', color: '#0b5c31', padding: '0.05rem 0.3rem', borderRadius: 6, fontWeight: 800 }}>
-          también pueden firmar aquí, en {qrMovil ? 'esta misma página' : 'tu móvil'}.
-        </strong>{' '}
-        Si alguien quiere firmar en su móvil, mándasela:
-        {/* Botón de verdad dentro de la caja (usuario, 2026-11-16; antes era el enlace
-            «pulsando aquí»): abre la hoja de compartir (WhatsApp, Email, SMS, Copiar…). */}
-        <button type="button" className="firma-btn" onClick={() => setCompartir(true)}
-          style={{ display: 'block', width: '100%', margin: '0.55rem 0 0.1rem', background: '#1d9e57', textAlign: 'center', padding: '0.8rem 1rem', fontSize: '1rem', borderRadius: 12 }}>
-          Compartir página de firmas eCMR
-        </button>
-      </div>
       {/* Con TODO firmado, el contador va en caja verde y debajo se repite la de
           «CMR completamente firmado» (usuario, 2026-11-12) — la del pie se queda. */}
       {/* Con todas firmadas, SOLO el banner (usuario, 2026-11-14: el contador «5 de 5»
@@ -332,21 +315,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
         const pulsable = !f;
-        // El botón de COMPARTIR el PDF «con las firmas actuales», justo delante de la primera
-        // firmada (usuario, 2026-11-14): pendientes → botón → ya firmadas. Sin ninguna
-        // firma aún, tras la última pendiente.
-        const btnPdf = b.clave === (firmadasVista[0] ?? pendientesVista[pendientesVista.length - 1])?.clave ? (<>
-          {/* Aquí ya no va el botón de ABRIR el PDF (usuario, 2026-11-17): se queda solo
-              el de compartirlo. Abrirlo sigue en la pantalla de «Todo guardado». */}
-          <button type="button" onClick={() => setCompartirPdf(true)}
-            style={{ display: 'block', width: '100%', margin: '0 0 0.7rem', padding: '0.8rem 1rem', borderRadius: 12, textAlign: 'center',
-              background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
-            Compartir el CMR en PDF · WhatsApp, email…
-          </button>
-        </>) : null;
-        const antes = !!firmadasVista.length;   // con firmadas va DELANTE de la 1.ª; sin ellas, DETRÁS de la última pendiente
         return (<Fragment key={b.clave}>
-          {antes && btnPdf}
           <div className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
             onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) { if (bloqueado(b)) avisar(); else setPreFirma(b); } } : undefined}>
             <div className="firma-head">
@@ -370,7 +339,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>
             ))}
           </div>
-          {!antes && btnPdf}
         </Fragment>);
       })}
       {extras.map((f, i) => (
@@ -408,6 +376,29 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       )}
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
       {firmoAqui && <div style={{ margin: '0.8rem 0 0' }}>{btnFin}</div>}
+      {/* EL PIE, en este orden (usuario, 2026-11-17): compartir el PDF del CMR → la caja de
+          «también pueden firmar aquí», con su botón de compartir la página → el texto legal. */}
+      <button type="button" onClick={() => setCompartirPdf(true)}
+        style={{ display: 'block', width: '100%', margin: '0.9rem 0 0', padding: '0.8rem 1rem', borderRadius: 12, textAlign: 'center',
+          background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
+        Compartir el CMR en PDF · WhatsApp, email…
+      </button>
+      {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
+          lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
+      <div style={{ margin: '0.8rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
+        padding: '0.65rem 0.85rem', fontSize: '0.95rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
+        Cargador, transportista y destinatario ya la han recibido igual que tú, y{' '}
+        <strong style={{ background: '#c6f2d9', color: '#0b5c31', padding: '0.05rem 0.3rem', borderRadius: 6, fontWeight: 800 }}>
+          también pueden firmar aquí, en {qrMovil ? 'esta misma página' : 'tu móvil'}.
+        </strong>{' '}
+        Si alguien quiere firmar en su móvil, mándasela:
+        {/* Botón de verdad dentro de la caja (usuario, 2026-11-16; antes era el enlace
+            «pulsando aquí»): abre la hoja de compartir (WhatsApp, Email, SMS, Copiar…). */}
+        <button type="button" className="firma-btn" onClick={() => setCompartir(true)}
+          style={{ display: 'block', width: '100%', margin: '0.55rem 0 0.1rem', background: '#1d9e57', textAlign: 'center', padding: '0.8rem 1rem', fontSize: '1rem', borderRadius: 12 }}>
+          Compartir página de firmas eCMR
+        </button>
+      </div>
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó (y tu ubicación GPS si das permiso). Firma electrónica simple (Reglamento eIDAS).</p>
       <Ayuda />
       {preFirma && (
