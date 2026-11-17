@@ -32,7 +32,6 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **[v4] ALMACENAMIENTOS y ALMACENES DYNAMO — APAGADOS en toda la plataforma (usuario, 2026-11-16)**: «almacenamientos vamos a quitar de toda la plataforma, de admin y todo; dejaremos para v4. No deben aparecer ya nunca y tampoco esos almacenes Dynamo deben ser seleccionables». Un solo interruptor: `lib/modulos.ts` → `ALMACENAMIENTOS = false`. Apagado quita el menú y las pantallas «Almacenamientos» y «Almacenes Dynamo» (redirigen a /panel), sus proformas en «Administración», sus parámetros y los almacenes Dynamo como recogida/entrega en «Nuevo envío». **El código, las tablas y los datos se quedan**: para retomarlo en la v4, poner el interruptor a `true` y repasar. La base de datos sigue admitiendo un almacén Dynamo en una parada (no se ha tocado); la pantalla ya no los ofrece.
 - [ ] **Bolsas de carga** (#66): **tiempos HECHOS 2026-11-16** («la bolsa va primero», migración `bolsa_primero`, prueba 248): fichero de la bolsa desde 12 días antes; emails a los transportistas propios desde 5 días antes y siempre un margen después de publicar en la bolsa (3 h con 3 días o más · 2 h a 2 días · 15 min si carga mañana · 5 min si carga hoy); sin publicar esperan y avisan, salvo carga hoy o mañana; al asignar o cancelar deja de constar como publicado y avisa de retirarlo. Todo en Parámetros → Transportistas → Bolsa de cargas. **Falta (decisión del usuario: AL FINAL, cuando la plataforma y el tarifador estén afinados): la conexión automática (API) con la bolsa** — hoy publicar es subir el fichero de Exportaciones y marcarlo. **Ritmos del 2026-11-16** (migración `oferta_3_dias_y_ritmos`, prueba 249): emails a los transportistas propios desde **3 días antes** (de 12 a 3 días solo bolsa), **sin corte** (siguen hasta la hora de carga), 1 cada 3 min con más de 24 h · 8 cada 3 min en las últimas 24 h · 5 por minuto en las últimas 6 h · 10 por minuto en las últimas 3 h; tope de contactados 1.000 (era 60); la cola manda 100 por pasada y **omite las direcciones `.invalid`** de los datos de prueba (también el envío desde la web).
 - [ ] **Tarifador**: sesiones conjuntas con las tarifas reales (se dejó a propósito para el final de la v1) + ahorro acumulado del cliente (#13).
-- [ ] Usuario «Automatizaciones n8n» cuando se conecte n8n.
 
 **Antes de pasar a producción (checklist `PRODUCCION.md`):**
 - [ ] Revisión de TODOS los textos legales (incluye el repaso legal del DeCA electrónico: acceso del inspector, conservación 1 año).
@@ -42,6 +41,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Afinar el resumen de mercancía repetido en el DeCA (detalle de parada + resumen del envío).
 - [ ] **DeCA y CMR separados (2026-11-15)**: el DeCA es un PDF propio (`/deca/<nº>`, la dirección de su QR), sin firmas, que se archiva solo en cada versión («Copia archivada DeCA») y se envía solo al transportista por email. Confirmar que `SUPABASE_SERVICE_ROLE_KEY` y `POSTMARK_SERVER_TOKEN` están en Vercel en **Production** (y en Preview para probarlo): sin la primera, las copias solo se guardan cuando actúa Dynamo y el email automático del DeCA no sale. Comprobar tras el primer envío real: la copia en Documentos, el email al transportista y que el QR impreso abre el PDF del DeCA sin pedir cuenta.
 
+**Pruebas automáticas y emails (2026-11-17):**
+- [x] **Pasada diaria de pruebas**: además de correr en cada subida, el CI se lanza solo cada día a las 6:47 (tarea programada «Pasada diaria de pruebas de la plataforma», que lo dispara a mano en la rama `pruebas`; el CI no puede llevar `schedule` propio porque su fichero no está en `main`). Solo se avisa al usuario si algo falla.
+- [x] **Lista de todos los emails de la plataforma** (41 emails, con su texto): https://claude.ai/artifact/Xr67EuscxW8opUxaWk5LyL — se regenera desde la cola de emails de la suite. Al repasarla se corrigieron la fecha de «Orden de carga» / «Transporte confirmado» (salía «2026-11-30») y los números de la oferta por email («400.00 €»; migración `ofertas_por_email_con_numeros_a_la_espanola`).
+- [ ] **Del usuario, en el panel de Supabase** (Authentication → Emails): traducir la plantilla «Change email address» (la recibe quien cambia su email desde «Mi cuenta» y está sin traducir) y unificar el teléfono de los avisos «Password changed» y «Email address changed» (dan el móvil; el resto de emails da el +34 955 225 945).
+
 ### v2
 - [ ] Captación automática de prospectos (barrido semanal + Brevo) (#87).
 - [ ] Ranking de la difusión por tasa real de respuesta (cuando haya historial) y etiqueta manual «autónomo» para extranjeros.
@@ -49,6 +53,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ### v3
 - [ ] **Asistente de IA del panel** (chatbot sobre la BD por rol, #72): montado y OCULTO (`IA_ACTIVA = false` en `app/panel/(app)/layout.tsx`); falta `ANTHROPIC_API_KEY` y encenderlo.
 - [ ] n8n como capa conversacional: WhatsApp (Meta) y email con Claude (#80).
+- [ ] Usuario «Automatizaciones n8n» cuando se conecte n8n.
+- **Chatbot y n8n, APARCADOS (usuario, 2026-11-17)**: «vamos a aparcar lo del chatbot y lo de n8n. Para más adelante, V2 o V3». No se toca nada de esto en la v1.
 - [ ] **Reserva anticipada de camiones en rutas recurrentes** (idea del usuario, 2026-11-16; #95). Con previsión de envíos
       fijos por ruta y día (p. ej. 10 diarios Sevilla → Madrid, de lunes a viernes), publicar «cargas previstas» a los
       transportistas ANTES de que lleguen los pedidos de los clientes: por email (oferta escalonada) y por bolsa. El

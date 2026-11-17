@@ -7,6 +7,7 @@ import { pdfDeEnvioDynamo, pdfCmrPorToken } from '@/lib/pdf/generar';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { CONTACTO } from '@/lib/atencion';
+import { fecha as fechaTxt } from '@/lib/formato';
 import type { CmrPublico } from '@/app/cmr/[token]/tipos';
 
 // ---- Avisos de EVENTO por email (usuario, 2026-11-12) --------------------------------
@@ -61,7 +62,7 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string):
     if (!('error' in pdf)) adjuntos = [{ nombre: pdf.nombre, base64: Buffer.from(pdf.bytes).toString('base64'), tipo: 'application/pdf' }];
     const fecha = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? null;
     const html = `<p>Hola,</p>
-<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fecha)}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos y las condiciones.</p>
+<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos y las condiciones.</p>
 ${enlFirma ? `<p>Firma en este enlace tu e-CMR DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}
 ${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
 <p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
@@ -92,7 +93,7 @@ ${pie}`;
       if (!('error' in pc) && pc.pdfs[0]) adjCli = [{ nombre: pc.pdfs[0].nombre, base64: Buffer.from(pc.pdfs[0].bytes).toString('base64'), tipo: 'application/pdf' }];
       const conMatriculas = !!e.matricula_camion;
       const htmlCli = `<p>Hola,</p>
-<p>Tu envío ya tiene <strong>transportista asignado</strong>${conMatriculas ? ' y las <strong>matrículas</strong> del camión' : ''}${fecha ? `, y carga el <strong>${esc(fecha)}</strong>` : ''}. Va adjunta tu copia de la <strong>orden de carga en PDF</strong>.</p>
+<p>Tu envío ya tiene <strong>transportista asignado</strong>${conMatriculas ? ' y las <strong>matrículas</strong> del camión' : ''}${fecha ? `, y carga el <strong>${esc(fechaTxt(fecha))}</strong>` : ''}. Va adjunta tu copia de la <strong>orden de carga en PDF</strong>.</p>
 ${conMatriculas ? '' : '<p>Las matrículas aún no están puestas: te avisaremos en cuanto las tengamos.</p>'}
 ${datos?.detalle ?? ''}
 <p>Lo sigues en vivo en <a href="${origen}/panel/envios?ver=${envio}">la ficha del envío</a>. Si hay cualquier cambio, te avisamos.</p>

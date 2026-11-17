@@ -8246,6 +8246,13 @@ do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; n int;
     update difusiones set ultimo_email_en = now() - interval '30 minutes' where envio_id = e2 and estado = 'activa';
     perform procesar_difusiones();
   end loop;
+  -- Los números de la oferta, como en el resto de emails: coma decimal y «€» detrás.
+  if exists (select 1 from emails_enviados where envio_id = e2 and tipo = 'difusion'
+              and (asunto not like 'Carga disponible · % · 400,00 €' or position('<strong>400,00 € + IVA</strong>' in cuerpo_html) = 0
+                   or cuerpo_html ~ '[0-9]\.[0-9]{2} (m|t|€)')) then
+    raise exception 'FALLO 208 · la oferta por email no escribe el precio o las medidas con coma: %',
+      (select asunto || ' · ' || cuerpo_html from emails_enviados where envio_id = e2 and tipo = 'difusion' limit 1);
+  end if;
   select * into d from difusiones where envio_id = e2;
   if d.estado <> 'agotada' or d.contactados <> 6 then
     raise exception 'FALLO 208 · no se agota al quedarse sin candidatos: % (%)', d.estado, d.contactados;
@@ -8284,6 +8291,10 @@ do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; n int;
   end if;
   if (select count(*) from emails_enviados where tipo = 'difusion_recordatorio' and envio_id = e2) <> 1 then
     raise exception 'FALLO 208 · el recordatorio se manda también a los contactados de hoy';
+  end if;
+  if exists (select 1 from emails_enviados where clave = v_clave
+              and (asunto not like 'Sigue disponible · % · 400,00 €' or position('<strong>400,00 € + IVA</strong>' in cuerpo_html) = 0)) then
+    raise exception 'FALLO 208 · el recordatorio no escribe el precio con coma: %', (select asunto from emails_enviados where clave = v_clave);
   end if;
   if (select caduca_en from envio_ofertas where envio_id = e2 and transportista_id = current_setting('prueba.t208r')::uuid)
      is distinct from d.corte_en then
