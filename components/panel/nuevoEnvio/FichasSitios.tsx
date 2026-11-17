@@ -224,7 +224,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                     {/* La cita previa va DENTRO del horario, antes de sus pestañas (usuario,
                         2026-11-17); si está puesta, se lee también en el resumen plegado. */}
                     {citaBloque}
-                    <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} />
+                    <HorarioSitio horario={f.horario} verano={f.verano} onHorario={(g) => set(p, { horario: g })} onVerano={(v) => set(p, { verano: v })} sinResumen />
                   </div>}
                   {/* Las indicaciones del sitio, justo DESPUÉS del horario y sin título propio
                       (usuario, 2026-11-16). */}
@@ -238,18 +238,22 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                 caja y SIEMPRE visible (fuera del desplegable de los datos del sitio).
                 Su texto va a las anotaciones de ESA parada al crear el envío. */}
             <div className="ptar-sitio-merc">
-              <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
-                <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
-                <span className="cp-txt">A {rec ? 'recoger' : 'entregar'} (Añadir detalle de mercancía y/o anotaciones) <Req si={false} /></span>
-              </button>
-              {/* El detalle, si existe, ENTERO y en su propia línea debajo (usuario, 2026-11-10). */}
-              {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim() !== '' && (
-                <div className="ptar-sitio-merc-prev">{f.mercancia}</div>
-              )}
-              {opcAbiertos.has(`${p.k}:merc`) && <div style={{ marginTop: '0.45rem' }}>
-                <textarea className="campo-texto" rows={2} value={f.mercancia}
-                  placeholder={rec ? 'Ej. aquí se cargan 4 palets de recambios, 1 caja de 2×1 m…' : 'Ej. aquí se entregan 2 de los 6 palets…'}
-                  onChange={(e) => set(p, { mercancia: e.target.value })} /></div>}
+              {/* PLEGADO Y CON TEXTO: solo el propio texto, como enlace; al pulsarlo se abre con
+                  su título y el campo para cambiarlo (usuario, 2026-11-17). Sin texto todavía,
+                  el botón de siempre para añadirlo. */}
+              {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim() !== '' ? (
+                <button type="button" className="ptar-sitio-merc-link" aria-expanded={false} onClick={() => toggleOpc(`${p.k}:merc`)}
+                  title={`A ${rec ? 'recoger' : 'entregar'}: pulsa para cambiar el detalle de mercancía o las anotaciones`}>{f.mercancia}</button>
+              ) : (<>
+                <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
+                  <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
+                  <span className="cp-txt">A {rec ? 'recoger' : 'entregar'} (Añadir detalle de mercancía y/o anotaciones) <Req si={false} /></span>
+                </button>
+                {opcAbiertos.has(`${p.k}:merc`) && <div style={{ marginTop: '0.45rem' }}>
+                  <textarea className="campo-texto" rows={2} value={f.mercancia}
+                    placeholder={rec ? 'Ej. aquí se cargan 4 palets de recambios, 1 caja de 2×1 m…' : 'Ej. aquí se entregan 2 de los 6 palets…'}
+                    onChange={(e) => set(p, { mercancia: e.target.value })} /></div>}
+              </>)}
             </div>
           </div>
         );

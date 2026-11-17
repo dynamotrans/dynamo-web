@@ -11,7 +11,9 @@ const chip = (on: boolean, libre: boolean): React.CSSProperties => ({
   color: on ? '#fff' : libre ? 'var(--navy)' : 'var(--gray-300)',
 });
 
-export default function EditorHorario({ valor, onCambio }: { valor: GrupoHorario[]; onCambio: (g: GrupoHorario[]) => void }) {
+// sinResumen: sin la línea final «Queda así… Cerrado…» (en Nuevo envío ya se ve en la
+// cabecera del sitio y en los propios selectores; usuario, 2026-11-17).
+export default function EditorHorario({ valor, onCambio, sinResumen = false }: { valor: GrupoHorario[]; onCambio: (g: GrupoHorario[]) => void; sinResumen?: boolean }) {
   const usados = new Map<number, number>();
   valor.forEach((g, i) => g.dias.forEach((d) => usados.set(d, i)));
   const libres = DIAS.filter(([d]) => !usados.has(d));
@@ -63,10 +65,10 @@ export default function EditorHorario({ valor, onCambio }: { valor: GrupoHorario
           </button>
         </div>
       )}
-      <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.5 }}>
+      {!sinResumen && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.5 }}>
         {resumen ? <>Queda así: <strong style={{ color: 'var(--navy)' }}>{resumen}</strong>. </> : null}
         {libres.length ? <>Cerrado: {libres.map(([, , n]) => n.toLowerCase()).join(', ')}.</> : 'Abre todos los días.'}
-      </div>
+      </div>}
     </div>
   );
 }

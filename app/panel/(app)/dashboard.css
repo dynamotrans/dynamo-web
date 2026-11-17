@@ -5114,6 +5114,13 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 .ptar-sitio-merc .cp-ico svg { transition: transform 0.18s; }
 .ptar-sitio-merc .campo-plegado[aria-expanded="true"] .cp-ico svg { transform: rotate(180deg); }
 /* El detalle ya escrito/prerrelleno: entero, debajo del enlace, alineado con su texto. */
+/* El detalle de mercancía, plegado: solo su texto, como enlace que lo abre. */
+.ptar-sitio-merc-link {
+    display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.15rem 0; cursor: pointer;
+    font-family: inherit; font-size: var(--fs-m); font-weight: 600; color: var(--purple); line-height: 1.45; white-space: pre-line;
+    text-decoration: underline; text-decoration-color: rgba(51,0,204,0.35); text-underline-offset: 3px;
+}
+.ptar-sitio-merc-link:hover, .ptar-sitio-merc-link:focus-visible { text-decoration-color: var(--purple); outline: none; }
 .ptar-sitio-merc-prev { margin: 0.1rem 0 0.1rem calc(18px + 0.45rem + 0.1rem); font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.45; white-space: pre-line; }
 
 /* --- Asistente de IA (2026-11-11): botón flotante con la estrella y chat de datos.

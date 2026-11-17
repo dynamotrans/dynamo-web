@@ -637,9 +637,10 @@ function SelectorMMDD({ id, valor, onCambio }: { id: string; valor: string; onCa
 // «todo igual, para unificar estilos»). Va dentro de una rejilla `ptar-sitio-grid`.
 type Verano = { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
 type PestanaHorario = 'general' | 'verano';
-export function HorarioSitio({ horario, verano, onHorario, onVerano, tab: tabDeFuera, onTab }: {
+export function HorarioSitio({ horario, verano, onHorario, onVerano, tab: tabDeFuera, onTab, sinResumen = false }: {
   horario: GrupoHorario[]; verano: Verano; onHorario: (g: GrupoHorario[]) => void; onVerano: (v: Verano) => void;
   tab?: PestanaHorario; onTab?: (t: PestanaHorario) => void;   // si quien lo usa quiere mandar en la pestaña (p. ej. para llevar a un error)
+  sinResumen?: boolean;   // sin la línea «Queda así…» bajo los selectores
 }) {
   const [tabPropia, setTabPropia] = useState<PestanaHorario>('general');
   const tab = tabDeFuera ?? tabPropia;
@@ -653,13 +654,13 @@ export function HorarioSitio({ horario, verano, onHorario, onVerano, tab: tabDeF
         </button>
       </div>
       {tab === 'general'
-        ? <EditorHorario valor={horario} onCambio={onHorario} />
-        : <VeranoSitio v={verano} onCambio={onVerano} />}
+        ? <EditorHorario valor={horario} onCambio={onHorario} sinResumen={sinResumen} />
+        : <VeranoSitio v={verano} onCambio={onVerano} sinResumen={sinResumen} />}
     </>
   );
 }
-function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
-  onCambio: (v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }) => void }) {
+function VeranoSitio({ v, onCambio, sinResumen = false }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
+  onCambio: (v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }) => void; sinResumen?: boolean }) {
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.7rem' }}>
       <div>
@@ -681,7 +682,7 @@ function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; has
             <div><label htmlFor="ver-hasta">Hasta <Req /></label><SelectorMMDD id="ver-hasta" valor={v.hasta} onCambio={(x) => onCambio({ ...v, hasta: x })} /></div>
           </div>
           <div style={{ marginTop: '-0.3rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Se repite cada año. Fuera de esas fechas se usa el horario general.</div>
-          <EditorHorario valor={v.horario} onCambio={(g) => onCambio({ ...v, horario: g })} />
+          <EditorHorario valor={v.horario} onCambio={(g) => onCambio({ ...v, horario: g })} sinResumen={sinResumen} />
         </>
       )}
     </div>
