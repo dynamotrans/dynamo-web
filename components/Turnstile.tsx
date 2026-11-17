@@ -12,16 +12,23 @@ import { useEffect, useRef } from 'react';
 const CLAVE_SITIO = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'; // prueba: visible, siempre pasa
 
 declare global {
-  interface Window { turnstile?: { render: (el: HTMLElement, opciones: Record<string, unknown>) => string | undefined } }
+  interface Window { turnstile?: { render: (el: HTMLElement, opciones: Record<string, unknown>) => string | undefined; reset?: (id?: string) => void } }
 }
 
-export default function Turnstile() {
+// `reinicio`: cada vez que cambia, el widget pide una comprobación NUEVA. Hace falta en los
+// formularios que se pueden mandar varias veces sin recargar (el código de aceptación de
+// carga): cada comprobación de Cloudflare sirve para un solo envío.
+export default function Turnstile({ reinicio = 0 }: { reinicio?: number }) {
   const caja = useRef<HTMLDivElement>(null);
+  const widget = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (reinicio > 0 && widget.current) { try { window.turnstile?.reset?.(widget.current); } catch { /* sin widget: decide el servidor */ } }
+  }, [reinicio]);
   useEffect(() => {
     const pintar = () => {
       // El guard de hijos evita el doble widget del doble montaje de React en desarrollo.
       if (caja.current && window.turnstile && !caja.current.hasChildNodes()) {
-        window.turnstile.render(caja.current, { sitekey: CLAVE_SITIO, size: 'flexible' });
+        widget.current = window.turnstile.render(caja.current, { sitekey: CLAVE_SITIO, size: 'flexible' });
       }
     };
     if (window.turnstile) { pintar(); return; }

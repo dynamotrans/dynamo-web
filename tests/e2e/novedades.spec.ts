@@ -131,16 +131,27 @@ test.describe('novedades', () => {
     await t.goto('/');
     await t.locator('#btn-aceptar-carga').click();
     await expect(t).toHaveURL(/\/carga$/);
-    await t.fill('#codigo-carga', cod === '999998' ? '999997' : '999998');
-    await t.getByRole('button', { name: 'Ver la carga' }).click();
+    // Seis cajitas, como las del código de recuperar la contraseña: al completarlas se
+    // comprueba solo, sin pulsar el botón; si el código no vale, se vacían.
+    await expect(t.locator('.otp-box')).toHaveCount(6);
+    const teclear = (texto: string) => Promise.all([
+      t.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/carga'),
+      t.fill('#codigo-carga', texto),
+    ]);
+    await teclear(cod === '999998' ? '999997' : '999998');
     await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
-    // El número de envío no vale de código: lo conoce el cliente.
-    await t.fill('#codigo-carga', fila!.referencia_gx);
-    await t.getByRole('button', { name: 'Ver la carga' }).click();
+    await expect(t.locator('.otp-box.filled')).toHaveCount(0);
+    // No caben más de 6 cifras ni letras: de «12ab345678» se quedan «123456».
+    const [envio] = await Promise.all([
+      t.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/carga'),
+      t.locator('.otp-box').nth(0).pressSequentially('12ab345678'),
+    ]);
+    expect(envio.request().postData() ?? '').toContain('123456');
+    expect(envio.request().postData() ?? '').not.toContain('1234567');
     await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
-    // Con el código bueno (escrito con un espacio en medio), a la pantalla de aceptar esa carga.
+    await expect(t.locator('.otp-box.filled')).toHaveCount(0);
+    // Con el código bueno (pegado con un espacio en medio), a la pantalla de aceptar esa carga.
     await t.fill('#codigo-carga', `${cod.slice(0, 3)} ${cod.slice(3)}`);
-    await t.getByRole('button', { name: 'Ver la carga' }).click();
     await t.waitForURL(new RegExp(`/carga/${fila!.token_publico}`));
     await expect(t.getByRole('button', { name: 'Reservar y aceptar este envío' })).toBeVisible();
     await t.context().close();
