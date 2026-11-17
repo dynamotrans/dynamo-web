@@ -30,7 +30,7 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 | 7 | Rígido con plataforma | 8 m / 14 Tn / transpaleta: entregas urbanas sin muelle |
 | 8 | Import/Export Europa | Portugal, Francia, Alemania, Italia, Benelux, Austria, Polonia, Chequia — PUBLICADO 14/11/2026 |
 | 9 | Pedir tarifa bien | Los 3 datos: tipo de mercancía, metros/peso, CP origen y destino |
-| 10 | Mercancía no paletizada | Maquinaria, tubos, balas: cómo se carga y qué avisar |
+| 10 | Mercancía no paletizada | Maquinaria, tubos, balas: cómo se carga y qué avisar — PUBLICADO 17/11/2026 |
 | 11 | Operador autorizado | Tarjeta OT: qué significa trabajar con un operador de transporte |
 | 12 | Festivos y plazos | Por qué los festivos (nacionales y de otros países) mueven la entrega |
 | 13 | Eventos | Transporte para ferias, conciertos, deportes: horarios y accesos |
@@ -60,3 +60,4 @@ Formato: fecha — tema — estilo — tipo de titular — **titular** — **enf
 - 2026-11-10 — Tema 4 (qué es un tauliner) — enfoque: qué es y medidas — estilo v4 — titular consejo: "Lo que debes saber del tauliner" — `images/redes/2026-11-10-que-es-un-tauliner.jpg` — Metricool 422596804 (IG + FB)
 - 2026-11-12 — Tema 6 (seguro MAPFRE 250.000 €) — enfoque: doble cobertura del envío — estilo v1 — titular pregunta: "¿Tu mercancía va asegurada?" — `images/redes/2026-11-12-seguro-mapfre.jpg` — Metricool 425140344 (IG + FB)
 - 2026-11-14 — Tema 8 (Import/Export Europa) — enfoque: a qué países llegamos — estilo v2 — titular dato: "12 países de Europa, un único interlocutor" — `images/redes/2026-11-14-import-export-europa.jpg` — Metricool 427634214 (IG + FB)
+- 2026-11-17 — Tema 10 (mercancía no paletizada) — enfoque: qué avisar al pedir — estilo v3 (foto por defecto: con `--photo alt` el camión quedaba casi fuera de encuadre) — titular consejo: "Si no va en palet, manda las medidas" — `images/redes/2026-11-17-mercancia-no-paletizada.jpg` — Metricool pendiente
