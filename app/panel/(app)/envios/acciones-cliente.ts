@@ -74,12 +74,10 @@ export async function enviarOrdenEnvioManual(envio: string, para: string, guarda
   const bloques = bloquesOrdenPropia(r.datos);
   const entrada = ['Buenos días,', `Te enviamos el pedido de transporte ${ref}. Va adjunta la orden de carga en PDF; debajo tienes el mismo detalle.`];
   const cierre = [`Para cualquier duda, responde a este email: le llega a ${empresa || 'quien te lo envía'}.`, `Un saludo,\n${empresa}`];
-  const pie = `Enviado desde Dynamotrans.com por cuenta de ${empresa || 'su cliente'}. Dynamo no interviene en este transporte.`;
-  const texto = [...entrada, ...bloques.map((b) => b.join('\n')), ...cierre, pie].join('\n\n');
+  const texto = [...entrada, ...bloques.map((b) => b.join('\n')), ...cierre].join('\n\n');
   const html = entrada.map((x) => `<p>${escaparHtml(x)}</p>`).join('')
     + bloques.map(([t, ...ls]) => `<p style="margin:14px 0"><strong>${escaparHtml(t)}</strong>${ls.map((x) => `<br>${escaparHtml(x)}`).join('')}</p>`).join('')
-    + cierre.map((x) => `<p>${escaparHtml(x).replace(/\n/g, '<br>')}</p>`).join('')
-    + `<p style="color:#6b7280;font-size:12px">${escaparHtml(pie)}</p>`;
+    + cierre.map((x) => `<p>${escaparHtml(x).replace(/\n/g, '<br>')}</p>`).join('');
   // Las cuentas de prueba (.invalid) no reciben copia ni respuestas: serían rebotes.
   const mio = /\.invalid$/i.test(perfil.email) ? undefined : perfil.email;
   const res = await enviarEmailOperativo({
