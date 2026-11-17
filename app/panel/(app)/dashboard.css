@@ -829,7 +829,10 @@ a.bell-nov:hover { background: var(--gray-100); }
     border: 1.5px solid rgba(255,255,255,0.85);
     overflow: hidden;
 }
-.topbar-user-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
+/* El logo ENTERO dentro del círculo, como en la vista previa 1:1 de «Logo de tu empresa»
+   (usuario, 2026-11-17): con «cover» un logo ancho salía recortado («RAA» por «CRAAB»).
+   El cuadro 1:1 va hasta el borde del círculo, que es quien lo recorta. */
+.topbar-user-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
 /* Solo iniciales en la topbar: el avatar JG ya identifica al usuario;
    el nombre completo (largo) se oculta aquí (sí sale en el menú). */
 .topbar-user-name { display: none; }
