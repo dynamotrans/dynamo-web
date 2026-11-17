@@ -22,12 +22,15 @@ export default function CajasCodigo({ cifras, setCifras, cajas, idPrimera, autoC
     setCifras((c) => { const n = [...c]; d.forEach((x, i) => { n[desde + i] = x; }); return n; });
     cajas.current[Math.min(desde + d.length, 5)]?.focus();
   };
+  // maxLength holgado a propósito: el navegador corta ANTES de que quitemos espacios y
+  // guiones, y un código insertado de golpe como «482 913» se quedaba en cinco cifras.
+  // El tope de seis cifras lo pone `poner`, no el navegador.
   return (
     <div className="otp-row" role="group" aria-label="Código de 6 cifras">
       {cifras.map((c, i) => (
         <input key={i} ref={(el) => { cajas.current[i] = el; }} id={i === 0 ? idPrimera : undefined}
                className={`otp-box${c ? ' filled' : ''}`} value={c}
-               inputMode="numeric" autoComplete={i === 0 ? autoCompletar : 'off'} maxLength={6} aria-label={`Cifra ${i + 1}`}
+               inputMode="numeric" autoComplete={i === 0 ? autoCompletar : 'off'} maxLength={12} aria-label={`Cifra ${i + 1}`}
                onChange={(e) => {
                  if (bloqueado) return;
                  const v = e.target.value.replace(/\D/g, '');
