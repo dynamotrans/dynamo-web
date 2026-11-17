@@ -10721,6 +10721,9 @@ begin
   update envios set estado = 'programado' where id = e;
   select * into r from emails_enviados where clave = 'envio_creado:' || e;
   if r.id is null or r.tipo <> 'envio_creado' or r.estado <> 'pendiente' then raise exception 'FALLO 256 · al confirmar el envío no se encola el email «Envío creado»'; end if;
+  if position('buscamos el camión' in r.cuerpo_html) > 0 or position('Tu envío ya está <strong>creado</strong>.</p>' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 256 · el email «Envío creado» no lleva el texto corto: %', r.cuerpo_html;
+  end if;
   if position(v_cli in r.destinatario) = 0 or position(v_adm in r.destinatario) > 0 then raise exception 'FALLO 256 · el email no va al usuario del cliente: %', r.destinatario; end if;
   if r.asunto not like 'Envío creado · envío #% (Sevilla → Coslada)' then raise exception 'FALLO 256 · asunto: %', r.asunto; end if;
   if position('900,00' in r.cuerpo_html) = 0 or position('13,30 metros' in r.cuerpo_html) = 0 or position('/panel/envios?ver=' || e in r.cuerpo_html) = 0 then
