@@ -410,20 +410,27 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {preFirma && (
         <div role="alertdialog" aria-modal="true" aria-label="Aviso antes de firmar"
           style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.2rem' }}>
-          <div style={{ background: '#fff', borderRadius: 18, padding: '1.3rem 1.2rem', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(10,2,48,0.35)', borderTop: '5px solid #d97706' }}>
-            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ margin: '0 auto 0.5rem', display: 'block' }}>
+          {/* AVISO DURO Y DIRECTO (usuario, 2026-11-17: «más recto y duro, con ley, delito penal,
+              suplantación»): qué queda registrado y, en caja roja, la ADVERTENCIA PENAL con el
+              delito, sus artículos y su pena. Lo que se afirma es lo que se puede sostener: ni
+              «serás procesado» ni «irrefutable» (eso lo decide un juez). */}
+          <div style={{ background: '#fff', borderRadius: 18, padding: '1.2rem 1.1rem', maxWidth: 400, width: '100%', maxHeight: '92vh', overflowY: 'auto', textAlign: 'center', boxShadow: '0 24px 60px rgba(10,2,48,0.35)', borderTop: '6px solid #b91c1c' }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ margin: '0 auto 0.45rem', display: 'block' }}>
               <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
-            <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.05rem' }}>Vas a firmar como {preFirma.firmante}</h2>
-            <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: 'var(--gray-500)' }}>{preFirma.titulo}{preFirma.lugar ? ` · ${preFirma.lugar}` : ''}</p>
-            <p style={{ margin: '0 0 0.6rem', fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, textAlign: 'left' }}>
-              La firma queda asociada a tu persona de forma inequívoca: se registran <strong>tu dispositivo</strong>, la <strong>fecha y hora</strong> y el
-              <strong> nombre y documento</strong> que pongas.
+            <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.08rem' }}>Vas a firmar como {preFirma.firmante}</h2>
+            <p style={{ margin: '0 0 0.7rem', fontSize: '0.8rem', color: 'var(--gray-500)' }}>{preFirma.titulo}{preFirma.lugar ? ` · ${preFirma.lugar}` : ''}</p>
+            <p style={{ margin: '0 0 0.7rem', fontSize: '0.88rem', color: '#1f2937', lineHeight: 1.5, textAlign: 'left' }}>
+              La firma queda <strong>asociada a ti</strong> y guardada como prueba: estamos registrando <strong>tu IP</strong>, <strong>tu dispositivo</strong>,
+              la <strong>fecha y la hora</strong>, tu ubicación (si das permiso) y los <strong>datos que introduzcas</strong>.
             </p>
-            <p style={{ margin: '0 0 0.9rem', fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, textAlign: 'left' }}>
-              <strong>Si no eres tú quien debe firmar, no firmes:</strong>{' '}
-              <strong style={{ color: '#b91c1c' }}>el dispositivo queda registrado y firmar por otra persona te haría responsable en caso de fraude.</strong>
-            </p>
+            <div id="aviso-legal-firma" style={{ background: '#fef2f2', border: '2px solid #b91c1c', borderRadius: 12, padding: '0.75rem 0.8rem', margin: '0 0 0.9rem', textAlign: 'left', color: '#1f2937', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              <strong style={{ color: '#b91c1c' }}>ADVERTENCIA PENAL:</strong> si no eres el titular,{' '}
+              <strong style={{ color: '#b91c1c', fontSize: '1rem' }}>NO FIRMES</strong>. Firmar por otra persona es{' '}
+              <strong>suplantación de identidad y falsedad documental</strong>: un <strong>delito</strong> castigado con{' '}
+              <strong style={{ color: '#b91c1c' }}>prisión de seis meses a tres años</strong> (arts. 390 y 392 del Código Penal).
+              El rastro de tu dispositivo <strong>se pondrá a disposición de las autoridades</strong> y <strong>denunciaremos cualquier fraude</strong>.
+            </div>
             <button type="button" className="firma-btn" style={{ width: '100%', marginBottom: '0.5rem', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
               onClick={() => { setAbierto(preFirma); setPreFirma(null); }}>Firmar</button>
             <button type="button" className="firma-btn" style={{ width: '100%', background: '#fff', color: 'var(--gray-700)', border: '1.5px solid var(--gray-300)', padding: '0.95rem 1rem', fontSize: '1.05rem', borderRadius: 12 }}
