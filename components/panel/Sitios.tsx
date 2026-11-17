@@ -38,7 +38,7 @@ const esNuevo = (iso: string) => Date.now() - new Date(iso).getTime() < 48 * 360
 const NUEVO: SitioDatos = {
   cliente_id: '', nombre_empresa: '', tipo: '', direccion: '', codigo_postal: '', poblacion: '',
   provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '',
-  requiere_cita: false, tiene_medios_carga: false, contactos: [CONTACTO_VACIO()], emails_avisos: '',
+  requiere_cita: false, tiene_medios_carga: true, contactos: [CONTACTO_VACIO()], emails_avisos: '',
 };
 
 // Los datos de la ficha a partir de una fila (o vacíos): lo usa el estado inicial y el
@@ -278,8 +278,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     const aNum = (t: string) => { const v = t.trim(); return v ? Number(v.replace(/\./g, '').replace(',', '.')) : null; };
     const semana = aNum(precios.semana), reparto = aNum(precios.reparto);
     if ([semana, reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0))) { setError('Los precios tienen que ser un número (o vacíos para usar los de por defecto).'); return; }
-    // Cita y medios de carga ocultos de momento: se guardan siempre desactivados.
-    const base: SitioDatos = { ...d, requiere_cita: false, tiene_medios_carga: false };
+    // Cita y medios de carga ocultos de momento: se guardan con su valor de fábrica — SIN
+    // cita y CON medios de carga. (Antes se guardaba «sin medios» y la orden de carga avisaba
+    // de «el camión debe llevar plataforma elevadora» en todos los sitios; usuario, 2026-11-17.)
+    const base: SitioDatos = { ...d, requiere_cita: false, tiene_medios_carga: true };
     const datos: SitioDatos = almacen ? { ...base, almacen: { disponible: d.almacen?.disponible ?? true, precio_almacenamiento_semana: semana, precio_reparto: reparto } } : base;
     if (!d.tipo) { setError('Elige el tipo de sitio.'); avisaFaltas(['sitio-tipo']); return; }
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim() || !d.provincia.trim()) {
