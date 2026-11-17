@@ -1176,7 +1176,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         camión al lado: se ve dentro de la ventana. */}
                     <button type="button" onClick={() => setVerMedidas(true)} title="Ver medidas y peso máximo del camión"
                       style={{ display: 'block', background: 'none', border: 'none', padding: 0, marginTop: '0.25rem', font: 'inherit', fontSize: 'var(--fs-s)', fontWeight: 600, color: 'var(--purple)', textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>
-                      Altura máxima de la mercancía: <strong>{plataforma ? '2,40 m' : '2,70 m'}</strong>
+                      {/* Alto Y ANCHO (usuario, 2026-11-17). El ancho útil es el mismo en los dos camiones. */}
+                      Altura máxima: <strong>{plataforma ? '2,40 m' : '2,70 m'}</strong> / Ancho máximo: <strong>2,40 m</strong>
                     </button>
                     {verMedidas && <MedidasCamion inicial={plataforma ? 'rigido' : 'trailer'} onCerrar={() => setVerMedidas(false)} />}
                   </div>
