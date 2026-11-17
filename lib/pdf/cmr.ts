@@ -8,10 +8,14 @@ import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros, ventana } from '@
 import { telBonito } from '@/lib/paises';
 import { plumaAzul } from './plumaAzul';
 
-// CMR (carta de porte internacional) RELLENO, copiado del mockup: los 4 ejemplares del
-// impreso OFICIAL (remitente rojo · destinatario azul · porteador verde · administración
-// negro) de fondo a página completa, y los datos en tinta azul en cada casilla (las
-// coordenadas son las del impreso original, medidas casilla a casilla).
+// CMR (carta de porte internacional) RELLENO, copiado del mockup: el impreso OFICIAL de
+// fondo a página completa y los datos en tinta azul en cada casilla (las coordenadas son
+// las del impreso original, medidas casilla a casilla).
+// UNA SOLA HOJA por carta (usuario, 2026-11-17): es un documento ELECTRÓNICO, el mismo
+// para todas las partes, así que no lleva los 4 ejemplares del papel (remitente,
+// destinatario, porteador y administración). El rótulo de «ejemplar para…» que trae el
+// impreso se tapa y en su sitio va «e-CMR · Carta de porte electrónica». Los 4 ejemplares
+// en blanco, para imprimir en papel, siguen en lib/pdf/modelos.ts.
 // Remitente = cliente · porteador = Dynamo (envío de Dynamo, con su logo en B/N) o el
 // operador del cliente (envío manual: SIN logo ni mención a Dynamo). Sin precios.
 
@@ -24,7 +28,8 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
   const e = d.envio, manual = d.manual;
   const D = d.dynamo ?? DYNAMO;
   const l = await Lienzo.crear();
-  const fondos = await Promise.all([1, 2, 3, 4].map(async (n) => l.doc.embedJpg(await readFile(path.join(DIR_IMG, `cmr-fondo-${n}.jpg`)))));
+  // El fondo del ejemplar 1 (marco rojo, el CMR de siempre).
+  const fondo = await l.doc.embedJpg(await readFile(path.join(DIR_IMG, 'cmr-fondo-1.jpg')));
   const logo = manual ? null : await l.doc.embedPng(await readFile(path.join(process.cwd(), 'lib', 'pdf', 'recursos', 'logo-bn.png')));
 
   const rec = d.paradas.filter((x) => x.tipo === 'carga'), ent = d.paradas.filter((x) => x.tipo === 'descarga');
@@ -208,12 +213,17 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     const { cga, entrega } = cartas[nc];
     const casillas = casillasDe(cga, entrega);
     const varias = cartas.length > 1;
-    // Una página por ejemplar, con los mismos datos.
-    for (let i = 0; i < 4; i++) {
-      const pg: PDFPage = nc === 0 && i === 0 && !hojaDeca ? l.pag : l.doc.addPage([A4.w, A4.h]);
-      pg.drawImage(fondos[i], { x: 0, y: 0, width: A4.w, height: A4.h });
+    // Una sola página por carta (documento electrónico único).
+    {
+      const pg: PDFPage = nc === 0 && !hojaDeca ? l.pag : l.doc.addPage([A4.w, A4.h]);
+      pg.drawImage(fondo, { x: 0, y: 0, width: A4.w, height: A4.h });
       const t = (x: number, top: number, s: unknown, size: number, bold = true, color: RGB = TINTA) =>
         l.texto(x, top, s, size, { bold, color, pag: pg });
+      // Se tapa «EJEMPLAR PARA EL REMITENTE / COPY FOR SENDER» del impreso y se rotula lo
+      // que es: un único documento electrónico, igual para todas las partes.
+      pg.drawRectangle({ x: 26, y: A4.h - 74, width: 300, height: 26, color: COLOR.blanco });
+      t(30, 60, 'e-CMR · CARTA DE PORTE ELECTRÓNICA / ELECTRONIC CONSIGNMENT NOTE', 7.4, true, COLOR.navy);
+      t(30, 70, 'Documento único para todas las partes / Single document for all parties', 6.2, false, COLOR.gris);
       // Casilla con varias líneas; `maxc` = caracteres aprox. por línea (como en el mockup).
       // `max` = líneas como mucho (las casillas pequeñas no admiten más: se corta con «…»).
       const dato = (x: number, top: number, lineas: { t?: string | null; s?: number; b?: boolean; c?: RGB; max?: number }[], maxc = 50) => {
