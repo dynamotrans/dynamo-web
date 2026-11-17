@@ -332,16 +332,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
         const pulsable = !f;
-        // El PDF «con las firmas actuales» justo delante de la primera firmada (usuario,
-        // 2026-11-14): pendientes → botón del PDF → ya firmadas. Sin ninguna firma aún,
-        // tras la última pendiente, para que el PDF siga siempre a mano.
+        // El botón de COMPARTIR el PDF «con las firmas actuales», justo delante de la primera
+        // firmada (usuario, 2026-11-14): pendientes → botón → ya firmadas. Sin ninguna
+        // firma aún, tras la última pendiente.
         const btnPdf = b.clave === (firmadasVista[0] ?? pendientesVista[pendientesVista.length - 1])?.clave ? (<>
-          <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener"
-            style={{ display: 'block', margin: '0 0 0.45rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
-              padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, boxShadow: '0 3px 10px rgba(29,158,87,0.3)' }}>
-            Abrir el CMR en PDF · con las firmas actuales
-          </a>
-          {/* Y debajo, COMPARTIR ese mismo PDF (usuario, 2026-11-16). */}
+          {/* Aquí ya no va el botón de ABRIR el PDF (usuario, 2026-11-17): se queda solo
+              el de compartirlo. Abrirlo sigue en la pantalla de «Todo guardado». */}
           <button type="button" onClick={() => setCompartirPdf(true)}
             style={{ display: 'block', width: '100%', margin: '0 0 0.7rem', padding: '0.8rem 1rem', borderRadius: 12, textAlign: 'center',
               background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
