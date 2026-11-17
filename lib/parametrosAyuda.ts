@@ -212,7 +212,7 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Día del mes a partir del cual se manda el resumen del mes anterior. Sale el primer día hábil desde ese día, a partir de las 10:00, una sola vez por dirección.',
     ejemplo: (v) => `Con ${v}: el resumen de octubre sale el ${v} de noviembre (o el siguiente día hábil).` },
   pago_tarde_activo: { titulo: 'Bloqueo por pagos tardíos: interruptor',
-    explica: 'Encendido, la plataforma pone a cero el crédito del cliente que paga tarde: sus envíos nuevos van con pago previo hasta que le devuelvas el crédito desde su ficha. Mira las facturas del cliente (las traerá Holded; mientras, se apuntan a mano en su ficha). El cliente no ve nada de esta regla: solo que se queda sin crédito. Apagado, no se bloquea a nadie.',
+    explica: 'Encendido, la plataforma pone a cero el crédito del cliente que paga tarde: sus envíos nuevos van con pago previo hasta que le devuelvas el crédito desde su ficha. Mira las facturas del cliente, que llegarán con la conexión de Holded: hasta entonces no hay facturas que mirar y no bloquea a nadie. El cliente no ve nada de esta regla: solo que se queda sin crédito. Apagado, no se bloquea a nadie.',
     ejemplo: () => 'Encendido, con 70 días y 2 toleradas: a la tercera factura pagada a más de 70 días (o sin pagar pasado ese plazo), crédito a cero y aviso para ti.' },
   pago_tarde_dias_max: { titulo: 'Pagos tardíos: días para pagar',
     explica: 'Días que tiene un cliente para pagar una factura antes de contarla como tardía. Cuenta igual la que se cobró tarde que la que sigue sin cobrar pasado el plazo. En la ficha de cada cliente puedes ponerle otros días solo a él.',
