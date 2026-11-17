@@ -1170,7 +1170,7 @@ do $$ declare e uuid; gx text; n int; begin
   end if;
   update parametros set valor = '0' where clave = 'bolsa_espera_minutos';
   select count(*) into n from v_wtransnet where "REF." = gx and "Peso" = 24000 and "Arriba" = 'S'
-     and "Tipo Bolsa" = 'Completa' and "Comentarios Públicos" = '' and "País destino" = 'ES';
+     and "Tipo Bolsa" = 'Completa' and "Comentarios Públicos" ~ '^Acéptala en dynamotrans\.com/carga con el código [BCDFGHJKMNPQRSTVWXYZ2-9]{6}$' and "País destino" = 'ES';
   if n <> 1 then raise exception 'FALLO 44 · el envio no sale bien en el fichero de Wtransnet'; end if;
   if exists (select 1 from v_wtransnet where "REF." = (select referencia_gx from envios
              where id = current_setting('prueba.envio')::uuid)) then
@@ -8249,6 +8249,7 @@ do $$ declare e2 uuid := current_setting('prueba.e2082')::uuid; d record; n int;
   -- Los números de la oferta, como en el resto de emails: coma decimal y «€» detrás.
   if exists (select 1 from emails_enviados where envio_id = e2 and tipo = 'difusion'
               and (asunto not like 'Carga disponible · % · 400,00 €' or position('<strong>400,00 € + IVA</strong>' in cuerpo_html) = 0
+                   or position('>Aceptar carga</a>' in cuerpo_html) = 0
                    or cuerpo_html ~ '[0-9]\.[0-9]{2} (m|t|€)')) then
     raise exception 'FALLO 208 · la oferta por email no escribe el precio o las medidas con coma: %',
       (select asunto || ' · ' || cuerpo_html from emails_enviados where envio_id = e2 and tipo = 'difusion' limit 1);
@@ -11642,3 +11643,85 @@ do $$ declare g uuid := current_setting('prueba.g268')::uuid; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 269. Código de aceptación de carga: al azar, único, no lo ve el cliente y la casilla tiene tope ----
+do $$ declare e uuid; g uuid; t uuid; c text; c2 text; cli uuid := current_setting('prueba.cliente')::uuid;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into transportistas (razon_social, cif) values ('Transportes 269 SL', 'B26900001') returning id into t;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 913, 707, lun, lun + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 6, 5, 600, 450, lun, lun + 1) returning id into g;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (g, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (g, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = g;
+  select codigo_aceptacion into c from envios where id = e;
+  select codigo_aceptacion into c2 from envios where id = g;
+  if c !~ '^[BCDFGHJKMNPQRSTVWXYZ2-9]{6}$' or c2 !~ '^[BCDFGHJKMNPQRSTVWXYZ2-9]{6}$' or c = c2 then
+    raise exception 'FALLO 269 · el envío no nace con un código de aceptación propio de 6 caracteres: % · %', c, c2;
+  end if;
+  if exists (select 1 from envios where codigo_aceptacion is null)
+     or (select count(*) from envios) <> (select count(distinct codigo_aceptacion) from envios) then
+    raise exception 'FALLO 269 · hay envíos sin código de aceptación o con el código repetido';
+  end if;
+  -- No se cambia a mano.
+  update envios set codigo_aceptacion = 'BBBBBB' where id = e;
+  if (select codigo_aceptacion from envios where id = e) <> c then raise exception 'FALLO 269 · el código de aceptación se deja cambiar a mano'; end if;
+  perform set_config('prueba.e269', e::text, false);
+  perform set_config('prueba.t269', t::text, false);
+  perform set_config('prueba.c269', c, false);
+  perform set_config('prueba.c269b', c2, false);
+  perform set_config('prueba.gx269', (select referencia_gx from envios where id = e), false);
+  perform set_config('prueba.tk269', (select token_publico::text from envios where id = e), false);
+end $$;
+-- El cliente no lo ve: ni en la tabla ni en la lista de sus envíos.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from envios where codigo_aceptacion is not null) then raise exception 'FALLO 269 · el cliente lee el código de aceptación en la tabla de envíos'; end if;
+  if exists (select 1 from mis_envios() m where to_jsonb(m) ? 'codigo_aceptacion') then raise exception 'FALLO 269 · la lista de envíos del cliente trae el código de aceptación'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- La casilla pública.
+set role anon;
+do $$ declare r jsonb; c text := current_setting('prueba.c269'); begin
+  -- Da igual minúsculas, espacios o guiones.
+  r := carga_por_codigo(' ' || lower(substr(c, 1, 3)) || '-' || substr(c, 4) || ' ', '10.26.9.1');
+  if r ->> 'resultado' <> 'ok' or r ->> 'token' <> current_setting('prueba.tk269') then
+    raise exception 'FALLO 269 · el código de aceptación no lleva al enlace de su carga: %', r;
+  end if;
+  -- El número de envío (GX) no abre nada: el cliente lo conoce.
+  r := carga_por_codigo(current_setting('prueba.gx269'), '10.26.9.1');
+  if r ->> 'resultado' <> 'no_disponible' or r ? 'token' then raise exception 'FALLO 269 · el número de envío abre la carga: %', r; end if;
+end $$;
+reset role;
+-- Con la carga ya tomada responde lo mismo que a un código inventado.
+update envios set transportista_id = current_setting('prueba.t269')::uuid where id = current_setting('prueba.e269')::uuid;
+set role anon;
+do $$ declare r jsonb; r2 jsonb; i int; begin
+  r := carga_por_codigo(current_setting('prueba.c269'), '10.26.9.1');
+  r2 := carga_por_codigo('ZZZZZZ', '10.26.9.1');
+  if r ->> 'resultado' <> 'no_disponible' or (r - 'intentos_restantes') <> (r2 - 'intentos_restantes') then
+    raise exception 'FALLO 269 · una carga ya tomada no responde igual que un código inventado: % · %', r, r2;
+  end if;
+  -- TOPE: tras los fallos de la hora, esa conexión espera aunque el código sea bueno…
+  for i in 1 .. 12 loop
+    r := carga_por_codigo('ZZZZZ' || i::text, '10.26.9.1');
+    exit when r ->> 'resultado' = 'tope';
+  end loop;
+  if r ->> 'resultado' <> 'tope' or carga_por_codigo(current_setting('prueba.c269b'), '10.26.9.1') ->> 'resultado' <> 'tope' then
+    raise exception 'FALLO 269 · la casilla del código no tiene tope de fallos: %', r;
+  end if;
+  -- …y otra conexión sigue entrando.
+  if carga_por_codigo(current_setting('prueba.c269b'), '10.26.9.2') ->> 'resultado' <> 'ok' then
+    raise exception 'FALLO 269 · el tope de una conexión bloquea a las demás';
+  end if;
+  raise notice 'OK 269 · cada envío nace con su código de aceptación (al azar, único, no se cambia), el cliente no lo ve, la casilla lleva al enlace de la carga, no acepta el número de envío, responde igual a una carga tomada que a un código inventado y tiene tope de fallos';
+end $$;
+reset role;

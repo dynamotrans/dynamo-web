@@ -77,4 +77,4 @@ export async function middleware(request: NextRequest) {
   return conCsp(respuesta);
 }
 
-export const config = { matcher: ['/panel', '/panel/:path*', '/carga/:path*', '/cmr/:path*', '/deca/:path*'] };
+export const config = { matcher: ['/panel', '/panel/:path*', '/carga', '/carga/:path*', '/cmr/:path*', '/deca/:path*'] };

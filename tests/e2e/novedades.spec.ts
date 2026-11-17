@@ -102,6 +102,47 @@ test.describe('novedades', () => {
     await expect(cajas.first()).toHaveValue('');
   });
 
+  test('código de aceptación: la casilla «Aceptar carga» lleva a la carga y no sirve con un código inventado', async ({ page, browser }) => {
+    // Un envío de Dynamo libre y con precio para el transportista (como en el flujo 4).
+    await entrar(page, 'cliente');
+    await crearEnvioDeCliente(page);
+    const e = await ultimoEnvio();
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    if (e.estado_pago_previo === 'pendiente') {
+      await page.getByRole('button', { name: 'Ha llegado la transferencia' }).click();
+      await expect.poll(async () => (await ultimoEnvio()).estado_pago_previo).toBe('pagado');
+    }
+    const { data: fila } = await bd().from('envios').select('codigo_aceptacion, token_publico, referencia_gx').eq('id', e.id).single();
+    expect(fila!.codigo_aceptacion).toMatch(/^[BCDFGHJKMNPQRSTVWXYZ2-9]{6}$/);
+    // Dynamo lo ve en la ficha, para ponerlo en la bolsa.
+    await expect(page.locator('#codigo-aceptacion')).toHaveText(fila!.codigo_aceptacion);
+    await page.getByRole('button', { name: 'Ofrecer envío' }).click();
+    await expect(page.locator('#of-enlace').or(page.getByRole('button', { name: 'Crear oferta y enlace' })).first()).toBeVisible();
+    if (await page.getByRole('button', { name: 'Crear oferta y enlace' }).isVisible()) {
+      await page.getByRole('button', { name: 'Crear oferta y enlace' }).click();
+      await expect(page.locator('#of-enlace')).toBeVisible();
+    }
+
+    // El transportista, sin cuenta: ve la carga en la bolsa y teclea su código en la web.
+    const t = await (await browser.newContext({ locale: 'es-ES' })).newPage();
+    await t.goto('/carga');
+    await t.fill('#codigo-carga', 'zzzzzz');
+    await t.getByRole('button', { name: 'Ver la carga' }).click();
+    await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
+    // El número de envío no vale de código: lo conoce el cliente.
+    await t.fill('#codigo-carga', fila!.referencia_gx);
+    await t.getByRole('button', { name: 'Ver la carga' }).click();
+    await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
+    // Con el código bueno (en minúsculas y con un guion), a la pantalla de aceptar esa carga.
+    const c = fila!.codigo_aceptacion.toLowerCase();
+    await t.fill('#codigo-carga', `${c.slice(0, 3)}-${c.slice(3)}`);
+    await t.getByRole('button', { name: 'Ver la carga' }).click();
+    await t.waitForURL(new RegExp(`/carga/${fila!.token_publico}`));
+    await expect(t.getByRole('button', { name: 'Reservar y aceptar este envío' })).toBeVisible();
+    await t.context().close();
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

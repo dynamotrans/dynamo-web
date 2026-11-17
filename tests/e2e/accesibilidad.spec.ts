@@ -25,7 +25,7 @@ async function auditar(page: Page, url: string) {
 
 test.describe('accesibilidad (axe · WCAG 2.1 AA)', () => {
   test('páginas sin sesión', async ({ page }) => {
-    for (const u of ['/panel/entrar', '/panel/registro', '/panel/olvido',
+    for (const u of ['/panel/entrar', '/panel/registro', '/panel/olvido', '/carga',
       '/carga/00000000-0000-0000-0000-000000000000', '/cmr/00000000-0000-0000-0000-000000000000']) await auditar(page, u);
   });
 

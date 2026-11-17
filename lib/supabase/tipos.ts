@@ -1916,6 +1916,7 @@ export type Database = {
           fecha_efectiva: string | null
           pago_a_cuenta: number | null
           importe_tarifa: number | null
+          codigo_aceptacion: string
         }
         Insert: {
           id?: string
@@ -2032,6 +2033,7 @@ export type Database = {
           fecha_efectiva?: string | null
           pago_a_cuenta?: number | null
           importe_tarifa?: number | null
+          codigo_aceptacion: string
         }
         Update: {
           id?: string
@@ -2148,6 +2150,7 @@ export type Database = {
           fecha_efectiva?: string | null
           pago_a_cuenta?: number | null
           importe_tarifa?: number | null
+          codigo_aceptacion?: string
         }
         Relationships: [
           {
@@ -2476,7 +2479,7 @@ export type Database = {
       intentos_carga_publica: {
         Row: {
           id: number
-          envio_id: string
+          envio_id: string | null
           reserva_id: string | null
           cuando: string
           motivo: string
@@ -2484,7 +2487,7 @@ export type Database = {
         }
         Insert: {
           id?: number
-          envio_id: string
+          envio_id?: string | null
           reserva_id?: string | null
           cuando?: string
           motivo: string
@@ -2492,7 +2495,7 @@ export type Database = {
         }
         Update: {
           id?: number
-          envio_id?: string
+          envio_id?: string | null
           reserva_id?: string | null
           cuando?: string
           motivo?: string
@@ -3669,6 +3672,7 @@ export type Database = {
       cancelar_envio: { Args: { p_envio: string | null; p_motivo?: string | null; p_en_nombre_cliente?: boolean | null }; Returns: Json }
       cancelar_mi_envio: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       carga_aceptada_publica: { Args: { p_reserva: string | null }; Returns: Json }
+      carga_por_codigo: { Args: { p_codigo: string | null; p_ip?: string | null }; Returns: Json }
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       cliente_texto_busqueda: { Args: { k: Database["public"]["Tables"]["clientes"]["Row"] | null }; Returns: string }
@@ -3794,6 +3798,7 @@ export type Database = {
       fn_modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }
       fuera_de_cobertura: { Args: { p_pais: string | null }; Returns: string }
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
+      generar_codigo_aceptacion: { Args: Record<PropertyKey, never>; Returns: string }
       guardar_horario: { Args: { p_sitio: string | null; p_tramos: Json | null; p_temporada?: string | null }; Returns: undefined }
       guardar_horario_verano: { Args: { p_sitio: string | null; p_activo: boolean | null; p_desde: string | null; p_hasta: string | null; p_tramos: Json | null }; Returns: undefined }
       guardar_km_cp: { Args: { p_pais_codigo_iso_origen: string | null; p_codigo_postal_origen: string | null; p_pais_codigo_iso_destino: string | null; p_codigo_postal_destino: string | null; p_km: number | null; p_minutos?: number | null; p_proveedor?: string | null }; Returns: string }
