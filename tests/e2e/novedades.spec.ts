@@ -138,9 +138,18 @@ test.describe('novedades', () => {
       t.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/carga'),
       t.fill('#codigo-carga', texto),
     ]);
+    // Con un código que no abre nada: pasa a la pantalla de comprobación y ahí se lo dice;
+    // «Probar con otro código» devuelve a las cajitas, vacías.
+    const noDisponible = async () => {
+      await expect(t.locator('#carga-resultado')).toContainText('Esta carga ya no está disponible');
+      await expect(t.locator('#codigo-carga')).toBeHidden();
+      await t.getByRole('button', { name: 'Probar con otro código' }).click();
+      await expect(t.locator('#carga-resultado')).toHaveCount(0);
+      await expect(t.locator('#codigo-carga')).toBeFocused();
+      await expect(t.locator('.otp-box.filled')).toHaveCount(0);
+    };
     await teclear(cod === '999998' ? '999997' : '999998');
-    await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
-    await expect(t.locator('.otp-box.filled')).toHaveCount(0);
+    await noDisponible();
     // No caben más de 6 cifras ni letras: de «12ab345678» se quedan «123456».
     const [envio] = await Promise.all([
       t.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/carga'),
@@ -148,8 +157,7 @@ test.describe('novedades', () => {
     ]);
     expect(envio.request().postData() ?? '').toContain('123456');
     expect(envio.request().postData() ?? '').not.toContain('1234567');
-    await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
-    await expect(t.locator('.otp-box.filled')).toHaveCount(0);
+    await noDisponible();
     // Con el código bueno (pegado con un espacio en medio), a la pantalla de aceptar esa carga.
     await t.fill('#codigo-carga', `${cod.slice(0, 3)} ${cod.slice(3)}`);
     await t.waitForURL(new RegExp(`/carga/${fila!.token_publico}`));

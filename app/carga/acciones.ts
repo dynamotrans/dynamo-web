@@ -7,7 +7,9 @@ import { turnstileOk } from '@/lib/servidor/turnstile';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
-export type EstadoCodigo = { error: string | null; codigo?: string };
+// `motivo` dice a la pantalla cómo contarlo: «no_disponible» es la respuesta normal a un
+// código que no abre ninguna carga (tomada o mal escrito: no se distingue a propósito).
+export type EstadoCodigo = { error: string | null; codigo?: string; motivo?: 'no_disponible' | 'tope' | 'otro' };
 
 const ERROR_CONEXION = 'No se puede conectar ahora mismo. Vuelve a intentarlo en un momento.';
 
@@ -29,6 +31,6 @@ export async function buscarPorCodigo(_prev: EstadoCodigo, f: FormData): Promise
   if (error) return { error: ERROR_CONEXION, codigo };
   const r = data as { resultado?: string; token?: string } | null;
   if (r?.resultado === 'ok' && r.token && /^[0-9a-f-]{36}$/i.test(r.token)) redirect(`/carga/${r.token}`);
-  if (r?.resultado === 'tope') return { error: `Has probado demasiados códigos seguidos. Espera una hora o llámanos al ${CONTACTO.telefono}.`, codigo };
-  return { error: 'Esta carga ya no está disponible, o el código no es correcto. Revísalo tal como aparece en la bolsa.', codigo };
+  if (r?.resultado === 'tope') return { error: `Has probado demasiados códigos seguidos. Espera una hora o llámanos al ${CONTACTO.telefono}.`, codigo, motivo: 'tope' };
+  return { error: 'Puede que ya la haya aceptado otro transportista, o que el código no esté bien escrito. Revísalo tal como aparece en la oferta.', codigo, motivo: 'no_disponible' };
 }
