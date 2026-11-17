@@ -419,10 +419,22 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
 
       // DeCA (Orden FOM/2861/2012): junto a la casilla de firma del porteador (23) debe
       // constar el CARGADOR CONTRACTUAL (Dynamo, con su NIF) además del transportista
-      // efectivo con el suyo (usuario, 2026-11-10). Línea pequeña bajo las casillas de firma.
+      // efectivo con el suyo (usuario, 2026-11-10). Va DENTRO de la casilla 23, en dos
+      // líneas pequeñas bajo la firma (usuario, 2026-11-17: salía en una sola línea que
+      // empezaba en la 22, bajo la firma del remitente, y parecía que firmaba Dynamo).
       if (!manual) {
         const efect = [d.porteador?.razon_social, d.porteador?.cif && `NIF ${d.porteador.cif}`].filter(Boolean).join(' · ');
-        dato(40, 791, [{ t: `Cargador contractual: ${D.razon_social} · NIF ${D.cif}${efect ? ` — Transportista efectivo: ${efect}` : ''}`, s: 5.6, b: false, c: COLOR.gris, max: 1 }], 190);
+        const X23 = 195, ANCHO23 = 168;
+        // Cada línea se encoge lo justo para caber en la casilla (y, si aun así no cabe, se corta).
+        const enCasilla23 = (top: number, txt: string) => {
+          let size = 5.6;
+          while (size > 4.4 && l.medida(txt, size, false) > ANCHO23) size -= 0.2;
+          let u = txt;
+          while (u.length > 4 && l.medida(u, size, false) > ANCHO23) u = u.slice(0, -2) + '…';
+          t(X23, top, u, size, false, COLOR.gris);
+        };
+        enCasilla23(790.5, `Cargador contractual: ${D.razon_social} · NIF ${D.cif}`);
+        if (efect) enCasilla23(796.5, `Transportista efectivo: ${efect}`);
       }
     }
   }
