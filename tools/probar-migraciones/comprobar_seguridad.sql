@@ -12213,3 +12213,45 @@ do $$ declare r jsonb; rutas text[] := string_to_array(current_setting('prueba.r
   raise notice 'OK 276 · CMR en papel por el enlace: solo imágenes o PDF de ese enlace, 20 MB y 10 páginas como mucho, sin duplicar, ocultas al cliente y con aviso a Dynamo';
 end $$;
 reset role;
+
+
+-- ---- 277. Documentos adicionales por el enlace: fotos subidas desde la pantalla de firma ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  perform set_config('prueba.d277', 'cmr/' || current_setting('prueba.tok276') || '/doc-' || gen_random_uuid()::text, false);
+  delete from avisos where envio_id = current_setting('prueba.e276')::uuid and tipo = 'documento_extra_subido';
+end $$;
+set role anon;
+do $$ begin
+  -- El almacén deja subir «doc-<uuid>.<ext>» en la carpeta del enlace.
+  insert into storage.objects (bucket_id, name) values ('documentos', current_setting('prueba.d277') || '.jpg');
+end $$;
+reset role;
+do $$ begin
+  update storage.objects set metadata = jsonb_build_object('mimetype', 'image/jpeg', 'size', 400000) where name = current_setting('prueba.d277') || '.jpg';
+end $$;
+set role anon;
+do $$ declare r jsonb; d text := current_setting('prueba.d277'); p text := current_setting('prueba.p276'); begin
+  if (subir_documentos_extra_publico(gen_random_uuid(), array[d || '.jpg']))->>'resultado' <> 'enlace_no_valido' then
+    raise exception 'FALLO 277 · un enlace inventado sube documentos'; end if;
+  -- Una página del CMR en papel no cuela como documento adicional (cada cosa por su puerta).
+  r := subir_documentos_extra_publico(current_setting('prueba.tok276')::uuid, array[p || '.jpg', d || '-no-existe.jpg']);
+  if r->>'resultado' <> 'sin_fotos' then raise exception 'FALLO 277 · cuelan rutas que no son documentos adicionales: %', r; end if;
+  r := subir_documentos_extra_publico(current_setting('prueba.tok276')::uuid, array[d || '.jpg', d || '.jpg']);
+  if r->>'resultado' <> 'ok' or (r->>'paginas')::int <> 1 then raise exception 'FALLO 277 · el documento adicional no entra (una vez): %', r; end if;
+  r := subir_documentos_extra_publico(current_setting('prueba.tok276')::uuid, array[d || '.jpg']);
+  if r->>'resultado' <> 'sin_fotos' then raise exception 'FALLO 277 · el mismo documento se guarda dos veces: %', r; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e276')::uuid; begin
+  if (select count(*) from documentos d where d.envio_id = e and d.tipo = 'otro' and d.storage_ruta like '%/doc-%'
+        and not d.visible_cliente and d.nombre_archivo like 'Documento adicional · %') <> 1 then
+    raise exception 'FALLO 277 · el documento no cuelga del envío como «otro», sin enseñar al cliente'; end if;
+  if (select count(*) from avisos where envio_id = e and tipo = 'documento_extra_subido' and para = 'dynamo') <> 1 then
+    raise exception 'FALLO 277 · Dynamo no recibe (una vez) el aviso de los documentos adicionales'; end if;
+  -- No toca la cuenta de páginas del CMR en papel (siguen siendo 10).
+  if (select count(*) from documentos d where d.envio_id = e and d.tipo = 'cmr_firmado' and d.storage_ruta like '%/papel-%') <> 10 then
+    raise exception 'FALLO 277 · los documentos adicionales alteran las páginas del CMR en papel'; end if;
+  raise notice 'OK 277 · documentos adicionales por el enlace: solo los «doc-» de ese enlace, sin duplicar, ocultos al cliente y con aviso a Dynamo';
+end $$;

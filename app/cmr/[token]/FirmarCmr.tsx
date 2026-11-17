@@ -734,6 +734,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         {guardando && lento && (
           <div className="sig-msg warn" role="status" aria-live="polite">⏳ Conexión lenta en esta zona… guardando tu firma, no cierres la página.</div>
         )}
+        {/* ANTES de la caja verde (usuario, 2026-11-17): fotos de documentos adicionales, con
+            la misma ventana de subir del CMR en papel. No se pide a los que firman de más. */}
+        <SubirCmrPapel token={token} clase="doc" />
         {/* Caja verde con el porqué del email obligatorio (usuario, 2026-11-14). */}
         <div style={{ margin: '0.7rem 0 0.1rem', background: '#ecfdf5', border: '1.5px solid #6ee7b7', borderRadius: 10, padding: '0.55rem 0.7rem', fontSize: '0.8rem', lineHeight: 1.45, color: '#065f46', fontWeight: 600 }}>
           {emailEmpresa

@@ -140,6 +140,20 @@ test.describe.serial('flujos clave', () => {
     await f.fill('#sigDni', '12345678Z');
     // El email es obligatorio desde 2026-11-14: a esa dirección va la copia del firmado.
     await f.fill('#sigEmail', 'pedro.cargador@prueba.invalid');
+    // Antes de firmar puede añadir fotos de otros documentos (misma ventana de subir, contra
+    // el almacén de verdad): una página, y queda en los documentos del envío.
+    const pagina = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    await f.locator('#btn-cmr-doc').click();
+    await f.locator('#cmr-doc-galeria').setInputFiles([{ name: 'albaran.png', mimeType: 'image/png', buffer: pagina }]);
+    await expect(f.locator('#cmr-doc-cuenta')).toHaveText('1 de 10 páginas');
+    await f.locator('#btn-cmr-doc-finalizar').click();
+    await expect(f.locator('#cmr-doc-hecho')).toBeVisible({ timeout: 20_000 });
+    await f.locator('#cmr-doc-hecho').getByRole('button', { name: 'Cerrar' }).click();
+    await expect.poll(async () => {
+      const { count } = await bd().from('documentos').select('*', { count: 'exact', head: true })
+        .eq('envio_id', envioAceptado).eq('tipo', 'otro').like('storage_ruta', 'cmr/%/doc-%');
+      return count;
+    }).toBe(1);
     const lienzo = await f.locator('#sigCanvas').boundingBox();
     expect(lienzo).not.toBeNull();
     const { x, y, width: w, height: h } = lienzo!;

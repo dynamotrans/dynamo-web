@@ -155,16 +155,18 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
 // en el móvil sube las fotos desde la hoja de firmas. Ya están en el almacén, en la carpeta
 // de este enlace; aquí se cuelgan del envío y Dynamo recibe el aviso. Lo que vale (solo
 // imágenes o PDF de ESTE enlace, 20 MB, 10 páginas) lo decide la base de datos.
-export async function registrarCmrPapel(token: string, rutas: string[]): Promise<{ ok: true; paginas: number; total: number } | { ok: false; error: string }> {
-  comprobarEntrada("app/cmr/[token]/acciones#registrarCmrPapel", [token, rutas]);
+// Con clase 'doc' (pantalla de firma) son fotos de documentos ADICIONALES del transporte:
+// misma ventana y mismos límites, pero se guardan como documento «otro».
+export async function registrarCmrPapel(token: string, rutas: string[], clase: 'papel' | 'doc' = 'papel'): Promise<{ ok: true; paginas: number; total: number } | { ok: false; error: string }> {
+  comprobarEntrada("app/cmr/[token]/acciones#registrarCmrPapel", [token, rutas, clase]);
   const sb = supabasePublico();
   if (!sb) return { ok: false, error: 'No se ha podido conectar. Vuelve a intentarlo.' };
   const { data, error } = await reintentando(
-    () => sb.rpc('subir_cmr_papel_publico', { p_token: token, p_fotos: rutas.slice(0, 10) }),
+    () => sb.rpc(clase === 'doc' ? 'subir_documentos_extra_publico' : 'subir_cmr_papel_publico', { p_token: token, p_fotos: rutas.slice(0, 10) }),
     (x) => x.error?.message ?? null,
   );
   if (error) {
-    console.error('[cmr/papel] fallo en subir_cmr_papel_publico', { token, codigo: error.code, mensaje: error.message });
+    console.error('[cmr/papel] fallo al registrar las páginas', { token, clase, codigo: error.code, mensaje: error.message });
     return { ok: false, error: 'No se han podido guardar las páginas. Vuelve a intentarlo.' };
   }
   const j = (data ?? {}) as { resultado?: string; paginas?: number; total?: number };

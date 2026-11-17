@@ -11,6 +11,28 @@ import { useEffect, useRef, useState } from 'react';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { registrarCmrPapel } from './acciones';
 
+// DOS USOS de la misma ventana (usuario, 2026-11-17):
+//   · 'papel' — en la hoja de firmas: las páginas del CMR / carta de porte firmada en papel.
+//   · 'doc'   — en la pantalla de firma: fotos de documentos adicionales del transporte.
+// Cada uno guarda en su sitio (su prefijo en el almacén y su función en la base de datos).
+type Clase = 'papel' | 'doc';
+const TEXTOS: Record<Clase, { titulo: string; ayuda: React.ReactNode; finalizar: string; etiqueta: string; hecho: (n: number) => React.ReactNode; recibidas: (n: number) => string }> = {
+  papel: {
+    titulo: 'CMR / carta de porte en papel', etiqueta: 'Subir el CMR / carta de porte en papel',
+    ayuda: <>Haz una foto de cada página, con buena luz y que se lean bien las firmas y los sellos. Al terminar, pulsa <strong>Finalizar</strong>.</>,
+    finalizar: 'Finalizar y subir CMR / carta de porte',
+    hecho: (n) => <>Hemos guardado <strong>{n} página{n === 1 ? '' : 's'}</strong> del CMR / carta de porte de este envío</>,
+    recibidas: (n) => `✓ Hemos recibido ${n} página${n === 1 ? '' : 's'}.`,
+  },
+  doc: {
+    titulo: 'Documentos', etiqueta: 'Subir documentos',
+    ayuda: <>Haz una foto de cada página del documento, con buena luz y que se lea bien. Al terminar, pulsa <strong>Finalizar</strong>.</>,
+    finalizar: 'Finalizar y subir documentos',
+    hecho: (n) => <>Hemos añadido <strong>{n} página{n === 1 ? '' : 's'}</strong> a los documentos de este envío</>,
+    recibidas: (n) => `✓ Hemos añadido ${n} página${n === 1 ? '' : 's'} a los documentos.`,
+  },
+};
+
 const MAX_PAGINAS = 10;
 const MAX_BYTES = 20 * 1024 * 1024;
 // La extensión sale del TIPO del fichero (no de su nombre): es la que admite el almacén.
@@ -30,7 +52,9 @@ function extDe(f: File): string | null {
 const caja: React.CSSProperties = { border: '2px dashed #d1d5db', borderRadius: 12, padding: '1.1rem 0.6rem', textAlign: 'center', color: '#6b7280',
   fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', background: '#fff', fontFamily: 'inherit' };
 
-export default function SubirCmrPapel({ token }: { token: string }) {
+export default function SubirCmrPapel({ token, clase = 'papel' }: { token: string; clase?: Clase }) {
+  const T = TEXTOS[clase];
+  const id = (x: string) => `${x.replace('cmr-papel', `cmr-${clase}`)}`;
   const [abierta, setAbierta] = useState(false);
   const [paginas, setPaginas] = useState<Pagina[]>([]);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -77,7 +101,7 @@ export default function SubirCmrPapel({ token }: { token: string }) {
     for (let i = 0; i < lista.length; i++) {
       if (lista[i].ruta) continue;   // ya subida en un intento anterior: no se repite
       setSubiendo(i + 1);
-      const ruta = `cmr/${token}/papel-${crypto.randomUUID()}.${lista[i].ext}`;
+      const ruta = `cmr/${token}/${clase}-${crypto.randomUUID()}.${lista[i].ext}`;
       const { error } = await sb.storage.from('documentos').upload(ruta, lista[i].fichero, { contentType: MIME[lista[i].ext], upsert: false });
       if (error) {
         setPaginas(lista); setSubiendo(null);
@@ -87,7 +111,7 @@ export default function SubirCmrPapel({ token }: { token: string }) {
       lista[i] = { ...lista[i], ruta };
     }
     setPaginas(lista);
-    const r = await registrarCmrPapel(token, lista.map((p) => p.ruta as string));
+    const r = await registrarCmrPapel(token, lista.map((p) => p.ruta as string), clase);
     setSubiendo(null);
     if (!r.ok) { setAviso(r.error); return; }
     vistas.current.forEach((u) => URL.revokeObjectURL(u)); vistas.current = [];
@@ -101,29 +125,34 @@ export default function SubirCmrPapel({ token }: { token: string }) {
 
   return (
     <>
-      <div id="cmr-papel" style={{ margin: '0 0 0.8rem', background: '#f9fafb', border: '1.5px solid #e5e7eb', color: '#6b7280', borderRadius: 12,
+      <div id={id('cmr-papel')} style={{ margin: clase === 'papel' ? '0 0 0.8rem' : '0.7rem 0 0', background: '#f9fafb', border: '1.5px solid #e5e7eb', color: '#6b7280', borderRadius: 12,
         padding: '0.6rem 0.85rem', fontSize: '0.88rem', fontWeight: 500, textAlign: 'center', lineHeight: 1.5 }}>
-        <strong style={{ fontWeight: 700, color: '#4b5563' }}>¿No quieren firmar en el móvil?</strong>{' '}
-        Puedes subir aquí directamente las fotos del CMR / carta de porte <strong style={{ fontWeight: 700, color: '#4b5563' }}>firmada en papel</strong> al finalizar y lo recibimos igualmente.
+        {clase === 'papel' ? <>
+          <strong style={{ fontWeight: 700, color: '#4b5563' }}>¿No quieren firmar en el móvil?</strong>{' '}
+          Puedes subir aquí directamente las fotos del CMR / carta de porte <strong style={{ fontWeight: 700, color: '#4b5563' }}>firmada en papel</strong> al finalizar y lo recibimos igualmente.
+        </> : <>
+          <strong style={{ fontWeight: 700, color: '#4b5563' }}>¿Quieres añadir alguna foto adicional de algún documento?</strong>{' '}
+          Puedes subir aquí directamente las fotos y se añaden a la documentación.
+        </>}
         {/* Gris claro y discreto (usuario, 2026-11-17): es la vía de reserva, no la principal. */}
-        <button type="button" id="btn-cmr-papel" onClick={() => { setHecho(null); setAviso(null); setAbierta(true); }}
+        <button type="button" id={id('btn-cmr-papel')} onClick={() => { setHecho(null); setAviso(null); setAbierta(true); }}
           style={{ display: 'block', width: '100%', margin: '0.5rem 0 0.1rem', background: '#fff', color: '#4b5563', border: '1.5px solid #d1d5db',
             textAlign: 'center', padding: '0.6rem 1rem', fontSize: '0.92rem', fontWeight: 700, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>
-          Subir fotos del CMR / carta de porte
+          {clase === 'papel' ? 'Subir fotos del CMR / carta de porte' : 'Subir documento'}
         </button>
-        {recibidas > 0 && <div style={{ marginTop: '0.35rem', fontWeight: 700, color: '#0f6b3a' }}>✓ Hemos recibido {recibidas} página{recibidas === 1 ? '' : 's'}.</div>}
+        {recibidas > 0 && <div style={{ marginTop: '0.35rem', fontWeight: 700, color: '#0f6b3a' }}>{T.recibidas(recibidas)}</div>}
       </div>
 
       {abierta && (
-        <div role="dialog" aria-modal="true" aria-label="Subir el CMR / carta de porte en papel" onClick={cerrar}
-          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div role="dialog" aria-modal="true" aria-label={T.etiqueta} onClick={cerrar}
+          style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(10,2,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 18, padding: '1.2rem 1.1rem', maxWidth: 460, width: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(10,2,48,0.35)' }}>
             {hecho ? (
-              <div id="cmr-papel-hecho" style={{ textAlign: 'center' }}>
+              <div id={id('cmr-papel-hecho')} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2rem' }} aria-hidden="true">✅</div>
                 <h2 style={{ margin: '0.2rem 0 0.4rem', fontSize: '1.1rem' }}>Recibido. ¡Gracias!</h2>
                 <p style={{ margin: '0 0 1rem', fontSize: '0.95rem', color: '#4b5563', lineHeight: 1.5 }}>
-                  Hemos guardado <strong>{hecho.paginas} página{hecho.paginas === 1 ? '' : 's'}</strong> del CMR / carta de porte de este envío
+                  {T.hecho(hecho.paginas)}
                   {hecho.total > hecho.paginas ? <> ({hecho.total} en total)</> : null}. No hace falta que nos lo mandes por otro lado.
                 </p>
                 {hecho.total < MAX_PAGINAS && (
@@ -133,21 +162,21 @@ export default function SubirCmrPapel({ token }: { token: string }) {
               </div>
             ) : (
               <>
-                <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.1rem' }}>CMR / carta de porte en papel</h2>
+                <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.1rem' }}>{T.titulo}</h2>
                 <p style={{ margin: '0 0 0.8rem', fontSize: '0.9rem', color: '#4b5563', lineHeight: 1.45 }}>
-                  Haz una foto de cada página, con buena luz y que se lean bien las firmas y los sellos. Al terminar, pulsa <strong>Finalizar</strong>.
+                  {T.ayuda}
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   <button type="button" style={{ ...caja, opacity: ocupada || hueco <= 0 ? 0.5 : 1 }} disabled={ocupada || hueco <= 0} onClick={() => inFoto.current?.click()}>📷 Hacer foto</button>
                   <button type="button" style={{ ...caja, opacity: ocupada || hueco <= 0 ? 0.5 : 1 }} disabled={ocupada || hueco <= 0} onClick={() => inGal.current?.click()}>🖼️ Galería o archivo</button>
                 </div>
                 <div style={{ marginTop: '0.35rem', fontSize: '0.8rem', color: '#6b7280' }}>JPG, PNG, WEBP, HEIC o PDF · máx. 20 MB por página · hasta {MAX_PAGINAS} páginas</div>
-                <input ref={inFoto} id="cmr-papel-foto" type="file" accept="image/*" capture="environment" hidden
+                <input ref={inFoto} id={id('cmr-papel-foto')} type="file" accept="image/*" capture="environment" hidden
                   onChange={(e) => { anadir(e.target.files); e.target.value = ''; }} />
-                <input ref={inGal} id="cmr-papel-galeria" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.heic,.heif" multiple hidden
+                <input ref={inGal} id={id('cmr-papel-galeria')} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.heic,.heif" multiple hidden
                   onChange={(e) => { anadir(e.target.files); e.target.value = ''; }} />
 
-                <div id="cmr-papel-cuenta" style={{ margin: '0.9rem 0 0.4rem', fontWeight: 800, fontSize: '0.95rem', color: paginas.length ? '#0a0230' : '#9ca3af' }} aria-live="polite">
+                <div id={id('cmr-papel-cuenta')} style={{ margin: '0.9rem 0 0.4rem', fontWeight: 800, fontSize: '0.95rem', color: paginas.length ? '#0a0230' : '#9ca3af' }} aria-live="polite">
                   {paginas.length === 0 ? 'Todavía no has añadido ninguna página' : `${paginas.length} de ${MAX_PAGINAS} páginas`}
                 </div>
                 {paginas.length > 0 && (
@@ -173,9 +202,9 @@ export default function SubirCmrPapel({ token }: { token: string }) {
 
                 {aviso && <div role="alert" style={{ marginTop: '0.7rem', background: '#fef3f2', border: '1px solid #fecdca', color: '#b42318', borderRadius: 10, padding: '0.5rem 0.7rem', fontSize: '0.88rem', fontWeight: 600 }}>{aviso}</div>}
 
-                <button type="button" className="firma-btn" id="btn-cmr-papel-finalizar" onClick={finalizar} disabled={ocupada || paginas.length === 0}
+                <button type="button" className="firma-btn" id={id('btn-cmr-papel-finalizar')} onClick={finalizar} disabled={ocupada || paginas.length === 0}
                   style={{ display: 'block', width: '100%', margin: '0.9rem 0 0.45rem', textAlign: 'center', padding: '0.85rem 1rem', fontSize: '1rem', borderRadius: 12, opacity: ocupada || paginas.length === 0 ? 0.55 : 1 }}>
-                  {ocupada ? `Subiendo la página ${subiendo} de ${paginas.length}…` : 'Finalizar y subir CMR / carta de porte'}
+                  {ocupada ? `Subiendo la página ${subiendo} de ${paginas.length}…` : T.finalizar}
                 </button>
                 <button type="button" onClick={cerrar} disabled={ocupada}
                   style={{ display: 'block', width: '100%', background: 'none', border: 0, color: '#6b7280', fontWeight: 700, padding: '0.5rem', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
