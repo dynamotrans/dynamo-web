@@ -2951,6 +2951,18 @@ table.data td .sitio-fechas { color: var(--gray-500); }
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
 }
+/* La barra horizontal de las tablas, con SU PROPIO HUECO (usuario, 2026-11-16: «la última
+   fila no se ve bien»). En Mac la barra del sistema se pinta ENCIMA del contenido y tapaba
+   media última fila cuando la tabla es más ancha que la pantalla. Una barra con estilo
+   propio ocupa su sitio debajo de la tabla y solo aparece cuando hace falta. */
+.table-wrap::-webkit-scrollbar { height: 12px; }
+.table-wrap::-webkit-scrollbar-track { background: var(--gray-100); border-radius: 0 0 12px 12px; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 999px; border: 3px solid var(--gray-100); }
+.table-wrap::-webkit-scrollbar-thumb:hover { background: var(--gray-500); }
+/* Navegadores sin barra con estilo propio (Firefox): se deja el hueco a mano. */
+@supports not selector(::-webkit-scrollbar) {
+    .table-wrap { padding-bottom: 12px; scrollbar-width: thin; }
+}
 table.data {
     width: 100%; border-collapse: collapse; font-size: var(--fs-m);
     --rl: 1.05rem; /* alto de cada renglón de la rejilla de líneas */
