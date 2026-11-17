@@ -8,6 +8,7 @@ import type { TransportistaOpcion } from '@/lib/fichaEnvio';
 import CampoTelefono from '@/components/CampoTelefono';
 import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas, sugerirEntrega, usosFlota, type UsoFlota } from '@/app/panel/(app)/envios/acciones';
 import Buscador from '../Buscador';
+import ListaFlotante from '../ListaFlotante';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import { I, ICO, SubProps, aNum } from './comun';
@@ -131,9 +132,10 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
   }, [tid]);
   const [camAbierto, setCamAbierto] = useState(false);
   const camCaja = useRef<HTMLDivElement>(null);
+  const camLista = useRef<HTMLDivElement>(null);   // la lista de matrículas flota fuera de la ventana
   useEffect(() => {
     if (!camAbierto) return;
-    const fuera = (ev: MouseEvent) => { if (camCaja.current && !camCaja.current.contains(ev.target as Node)) setCamAbierto(false); };
+    const fuera = (ev: MouseEvent) => { const t = ev.target as Node; if (camCaja.current && !camCaja.current.contains(t) && !camLista.current?.contains(t)) setCamAbierto(false); };
     document.addEventListener('mousedown', fuera);
     return () => document.removeEventListener('mousedown', fuera);
   }, [camAbierto]);
@@ -223,7 +225,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
               onFocus={() => setCamAbierto(true)} onBlur={alSalirCamion}
               onKeyDown={(ev) => { if (ev.key === 'Escape') { setCamAbierto(false); (ev.target as HTMLInputElement).blur(); } }} />
             {camAbierto && (usosVisibles.length > 0 || flotaVisible.length > 0) && (
-              <div className="buscador-lista" role="listbox">
+              <ListaFlotante ancla={camCaja} lista={camLista}>
                 {usosVisibles.map((u) => (
                   <button key={`u-${u.camion}`} type="button" role="option" aria-selected={sinEsp(camion) === sinEsp(u.camion)} onMouseDown={(ev) => ev.preventDefault()} onClick={() => elegirUso(u)}>
                     <strong>{u.camion}{u.remolque ? ` + ${u.remolque}` : ''}</strong>
@@ -236,7 +238,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
                     <strong>{v.matricula}</strong> <span>· {v.tipo === 'rigido' ? 'Rígido' : 'Tractora'} (de su ficha, sin viajes aún)</span>
                   </button>
                 ))}
-              </div>
+              </ListaFlotante>
             )}
           </div>
         </div>
