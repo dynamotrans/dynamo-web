@@ -604,6 +604,22 @@ export type Database = {
           },
         ]
       }
+      codigos_carga_retirados: {
+        Row: {
+          codigo: string
+          retirado_en: string
+        }
+        Insert: {
+          codigo: string
+          retirado_en?: string
+        }
+        Update: {
+          codigo?: string
+          retirado_en?: string
+        }
+        Relationships: [
+        ]
+      }
       conductores: {
         Row: {
           id: string

@@ -62,9 +62,13 @@ export default function CodigoCarga() {
         <div className="stop-screen show" id="carga-resultado" role="alert">
           {resultado.motivo === 'no_disponible'
             ? <><div className="stop-ico">✕</div><h1 style={{ color: 'var(--red)' }}>Esta carga ya no está disponible</h1></>
-            : <><div className="stop-ico amber">!</div><h1>{resultado.motivo === 'tope' ? 'Demasiados intentos' : 'No hemos podido comprobarlo'}</h1></>}
+            : <><div className="stop-ico amber">!</div><h1>{resultado.motivo === 'codigo_incorrecto' ? 'El código no es correcto' : resultado.motivo === 'tope' ? 'Demasiados intentos' : 'No hemos podido comprobarlo'}</h1></>}
           <p className="sub">{resultado.error}</p>
-          {resultado.motivo !== 'tope' && <button type="button" className="btn" onClick={() => setVisto(estado)}>{resultado.motivo === 'no_disponible' ? 'Probar con otro código' : 'Volver a intentarlo'}</button>}
+          {resultado.motivo !== 'tope' && (
+            <button type="button" className="btn" onClick={() => setVisto(estado)}>
+              {resultado.motivo === 'codigo_incorrecto' ? 'Volver a escribirlo' : resultado.motivo === 'no_disponible' ? 'Probar con otro código' : 'Volver a intentarlo'}
+            </button>
+          )}
           <p className="aviso">¿Dudas? Llámanos al <strong>{CONTACTO.telefono}</strong> o escribe a <strong>{CONTACTO.email}</strong>.</p>
         </div>
       )}

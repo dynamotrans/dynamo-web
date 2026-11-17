@@ -7,15 +7,16 @@ import { turnstileOk } from '@/lib/servidor/turnstile';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
-// `motivo` dice a la pantalla cómo contarlo: «no_disponible» es la respuesta normal a un
-// código que no abre ninguna carga (tomada o mal escrito: no se distingue a propósito).
-export type EstadoCodigo = { error: string | null; codigo?: string; motivo?: 'no_disponible' | 'tope' | 'otro' };
+// `motivo` dice a la pantalla cómo contarlo. La base de datos distingue las dos razones:
+// «codigo_incorrecto» (ese código no es de ninguna carga: está mal escrito) y
+// «no_disponible» (es de una carga que ya no se puede aceptar).
+export type EstadoCodigo = { error: string | null; codigo?: string; motivo?: 'codigo_incorrecto' | 'no_disponible' | 'tope' | 'otro' };
 
 const ERROR_CONEXION = 'No se puede conectar ahora mismo. Vuelve a intentarlo en un momento.';
 
-// El código de aceptación de la bolsa → la pantalla de esa carga. La base de datos responde
-// lo mismo a un código inventado que a una carga ya tomada (no deja averiguar qué códigos
-// existen) y pone el tope de fallos por hora; aquí va además el captcha.
+// El código de la carga → la pantalla de esa carga. Si no abre, la base de datos dice la
+// razón (código mal escrito o carga que ya no está disponible) y pone el tope de fallos
+// por hora; aquí va además el captcha.
 export async function buscarPorCodigo(_prev: EstadoCodigo, f: FormData): Promise<EstadoCodigo> {
   comprobarEntrada("app/carga/acciones#buscarPorCodigo", [_prev, f]);
   // Seis cifras; se quedan solo las cifras (da igual espacios o guiones).
@@ -32,5 +33,6 @@ export async function buscarPorCodigo(_prev: EstadoCodigo, f: FormData): Promise
   const r = data as { resultado?: string; token?: string } | null;
   if (r?.resultado === 'ok' && r.token && /^[0-9a-f-]{36}$/i.test(r.token)) redirect(`/carga/${r.token}`);
   if (r?.resultado === 'tope') return { error: `Has probado demasiados códigos seguidos. Espera una hora o llámanos al ${CONTACTO.telefono}.`, codigo, motivo: 'tope' };
-  return { error: 'Puede que ya la haya aceptado otro transportista, o que el código no esté bien escrito. Revísalo tal como aparece en la oferta.', codigo, motivo: 'no_disponible' };
+  if (r?.resultado === 'no_disponible') return { error: 'Ya la ha aceptado otro transportista o se ha retirado. El código está bien escrito: no hace falta que lo vuelvas a probar.', codigo, motivo: 'no_disponible' };
+  return { error: 'No hay ninguna carga con ese código. Revísalo tal como aparece en la oferta y vuelve a escribirlo.', codigo, motivo: 'codigo_incorrecto' };
 }

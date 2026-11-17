@@ -11722,13 +11722,14 @@ do $$ declare r jsonb; c text := current_setting('prueba.c269'); begin
   end if;
   -- El número de envío (GX) no abre nada: el cliente lo conoce.
   r := carga_por_codigo(current_setting('prueba.gx269'), '10.26.9.1');
-  if r ->> 'resultado' <> 'no_disponible' or r ? 'token' then raise exception 'FALLO 269 · el número de envío abre la carga: %', r; end if;
-  -- El código de un envío cancelado ya no existe.
+  if r ->> 'resultado' <> 'codigo_incorrecto' or r ? 'token' then raise exception 'FALLO 269 · el número de envío abre la carga: %', r; end if;
+  -- El código de un envío cancelado ya no abre nada, pero se sabe de qué era: «no disponible».
   r := carga_por_codigo(current_setting('prueba.c269m'), '10.26.9.3');
-  if r ->> 'resultado' <> 'no_disponible' then raise exception 'FALLO 269 · el código de un envío cancelado sigue abriendo: %', r; end if;
+  if r ->> 'resultado' <> 'no_disponible' or r ? 'token' then raise exception 'FALLO 269 · el código de un envío cancelado no responde «no disponible»: %', r; end if;
 end $$;
 reset role;
--- Con la carga ya tomada el código sigue en la ficha, pero responde lo mismo que uno inventado.
+-- Con la carga ya tomada el código sigue en la ficha y dice la razón: «no disponible»; uno
+-- inventado, «código incorrecto». Ninguno de los dos trae enlace.
 update envios set transportista_id = current_setting('prueba.t269')::uuid where id = current_setting('prueba.e269')::uuid;
 do $$ begin
   if (select codigo_aceptacion from envios where id = current_setting('prueba.e269')::uuid) <> current_setting('prueba.c269') then
@@ -11739,8 +11740,8 @@ set role anon;
 do $$ declare r jsonb; r2 jsonb; begin
   r := carga_por_codigo(current_setting('prueba.c269'), '10.26.9.1');
   r2 := carga_por_codigo('999998', '10.26.9.1');
-  if r ->> 'resultado' <> 'no_disponible' or (r - 'intentos_restantes') <> (r2 - 'intentos_restantes') then
-    raise exception 'FALLO 269 · una carga ya tomada no responde igual que un código inventado: % · %', r, r2;
+  if r ->> 'resultado' <> 'no_disponible' or r2 ->> 'resultado' <> 'codigo_incorrecto' or r ? 'token' or r2 ? 'token' then
+    raise exception 'FALLO 269 · la casilla no distingue una carga ya tomada de un código mal escrito: % · %', r, r2;
   end if;
 end $$;
 reset role;
@@ -11754,12 +11755,17 @@ do $$ declare c text; begin
     raise exception 'FALLO 269 · al quedarse sin transportista el envío no estrena código de aceptación: %', c;
   end if;
   perform set_config('prueba.c269n', c, false);
+  if (select count(*) from codigos_carga_retirados where codigo in (current_setting('prueba.c269'), current_setting('prueba.c269m'))) <> 2 then
+    raise exception 'FALLO 269 · los códigos que dejan de usarse (envío cancelado, transportista que se cae) no quedan apuntados';
+  end if;
 end $$;
 set role anon;
 do $$ declare r jsonb; i int; begin
   if carga_por_codigo(current_setting('prueba.c269'), '10.26.9.4') ->> 'resultado' <> 'no_disponible' then
-    raise exception 'FALLO 269 · el código antiguo vuelve a abrir la carga al quedar libre';
+    raise exception 'FALLO 269 · el código antiguo vuelve a abrir la carga al quedar libre, o no se reconoce como retirado';
   end if;
+  -- La lista de códigos retirados no la lee nadie de fuera.
+  if exists (select 1 from codigos_carga_retirados) then raise exception 'FALLO 269 · cualquiera lee los códigos retirados'; end if;
   r := carga_por_codigo(current_setting('prueba.c269n'), '10.26.9.4');
   if r ->> 'resultado' <> 'ok' or r ->> 'token' <> current_setting('prueba.tk269') then
     raise exception 'FALLO 269 · el código nuevo no abre la carga que ha quedado libre: %', r;
@@ -11776,7 +11782,7 @@ do $$ declare r jsonb; i int; begin
   if carga_por_codigo(current_setting('prueba.c269b'), '10.26.9.2') ->> 'resultado' <> 'ok' then
     raise exception 'FALLO 269 · el tope de una conexión bloquea a las demás';
   end if;
-  raise notice 'OK 269 · código de aceptación de 6 cifras: al azar y único, no se cambia a mano, el cliente no lo ve, la casilla lleva a la carga y no acepta el número de envío, responde igual a una carga tomada que a un código inventado, tiene tope de fallos, se renueva si el envío se queda sin transportista y se borra al cancelarse';
+  raise notice 'OK 269 · código de aceptación de 6 cifras: al azar y único, no se cambia a mano, el cliente no lo ve, la casilla lleva a la carga y no acepta el número de envío, dice si el código está mal escrito o si la carga ya no está disponible (también de una cancelada y del código antiguo), tiene tope de fallos, se renueva si el envío se queda sin transportista y se borra al cancelarse';
 end $$;
 reset role;
 
