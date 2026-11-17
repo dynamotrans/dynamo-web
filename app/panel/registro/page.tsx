@@ -15,6 +15,9 @@ export default async function PaginaRegistro() {
   const supabase = await supabaseServidor();
   const { data: { user } } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
   if (user) redirect('/panel');
+  // Registro cerrado desde Parámetros: se dice de entrada, sin hacer rellenar el formulario.
+  const { data: abierto } = supabase ? await supabase.rpc('registro_clientes_abierto') : { data: true };
+  const cerrado = abierto === false;
   return (
     <div className="portal-page">
       <div className="portal-bg" />
@@ -25,7 +28,9 @@ export default async function PaginaRegistro() {
           </div>
           <h1 id="portal-title" className="portal-title">Crear cuenta</h1>
           <p className="portal-subtitle">Alta de <strong>clientes</strong> en la plataforma de Dynamo</p>
-          <FormRegistro />
+          {cerrado
+            ? <div className="pt-aviso info" role="status" id="registro-cerrado"><div>Actualmente no estamos dando de alta nuevos usuarios. Sentimos las molestias.</div></div>
+            : <FormRegistro />}
           <div className="portal-divider">¿Ya tienes cuenta?</div>
           <Link href="/panel/entrar" className="portal-login-link">Iniciar sesión</Link>
           <a href="/" className="portal-back">

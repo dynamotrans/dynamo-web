@@ -11778,3 +11778,40 @@ do $$ declare r jsonb; i int; begin
   raise notice 'OK 269 · código de aceptación de 6 cifras: al azar y único, no se cambia a mano, el cliente no lo ve, la casilla lleva a la carga y no acepta el número de envío, responde igual a una carga tomada que a un código inventado, tiene tope de fallos, se renueva si el envío se queda sin transportista y se borra al cancelarse';
 end $$;
 reset role;
+
+
+-- ---- 270. Registro de clientes en la web: abierto o cerrado desde Parámetros ----
+do $$ declare u uuid; begin
+  if not registro_clientes_abierto() then raise exception 'FALLO 270 · el registro de clientes no nace abierto'; end if;
+  update parametros set valor = 'false'::jsonb where clave = 'registro_clientes_abierto';
+  if registro_clientes_abierto() then raise exception 'FALLO 270 · el interruptor del registro no se lee'; end if;
+  -- Cerrado: un alta por su cuenta no entra, ni saltándose la web…
+  begin
+    insert into auth.users (email, raw_user_meta_data) values ('nuevo270@cliente.prueba', '{"tipo_usuario":"cliente","nombre":"Nuevo Doscientos Setenta"}');
+    raise exception 'FALLO 270 · con el registro cerrado se crea una cuenta nueva de cliente';
+  exception when others then
+    if sqlerrm not like '%registro_cerrado%' then raise; end if;
+  end;
+  -- …ni inventándose quién la ha pedido…
+  begin
+    insert into auth.users (email, raw_user_meta_data) values ('nuevo270b@cliente.prueba', jsonb_build_object('nombre', 'Otro', 'anadido_por', gen_random_uuid()));
+    raise exception 'FALLO 270 · con el registro cerrado vale un «añadido por» inventado';
+  exception when others then
+    if sqlerrm not like '%registro_cerrado%' then raise; end if;
+  end;
+  -- …pero sí la que pide un usuario activo (Dynamo desde Usuarios, o un compañero de empresa).
+  insert into auth.users (email, raw_user_meta_data)
+    values ('invitado270@cliente.prueba', jsonb_build_object('nombre', 'Invitado Doscientos Setenta', 'anadido_por', current_setting('prueba.u_admin')))
+    returning id into u;
+  if not exists (select 1 from usuarios where id = u) then raise exception 'FALLO 270 · con el registro cerrado no entra el usuario que da de alta Dynamo'; end if;
+  update parametros set valor = 'true'::jsonb where clave = 'registro_clientes_abierto';
+  -- Abierto otra vez: el alta por su cuenta vuelve a entrar (pendiente de verificar).
+  insert into auth.users (email, raw_user_meta_data) values ('nuevo270@cliente.prueba', '{"tipo_usuario":"cliente","nombre":"Nuevo Doscientos Setenta"}') returning id into u;
+  if (select estado from usuarios where id = u) <> 'pendiente_verificacion' then raise exception 'FALLO 270 · con el registro abierto el alta no queda pendiente de verificar'; end if;
+end $$;
+set role anon;
+do $$ begin
+  if not registro_clientes_abierto() then raise exception 'FALLO 270 · la página de registro (sin sesión) no puede leer si el registro está abierto'; end if;
+  raise notice 'OK 270 · registro de clientes: nace abierto; cerrado no entra ningún alta por su cuenta (tampoco saltándose la web), sí la que pide un usuario activo; y se reabre';
+end $$;
+reset role;

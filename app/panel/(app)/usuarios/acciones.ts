@@ -114,7 +114,9 @@ export async function invitarUsuario(d: Invitacion): Promise<Res> {
     return { ok: false, error: 'Falta conectar el envío de invitaciones: hay que poner la clave de servicio de Supabase en Vercel (SUPABASE_SERVICE_ROLE_KEY).' };
   }
   const { data, error } = await servicio.auth.admin.inviteUserByEmail(email, {
-    data: { nombre: d.nombre.trim() }, redirectTo: `${await origen()}/panel/confirmar`,
+    // `anadido_por`: con el registro de clientes cerrado, la base de datos solo crea la cuenta
+    // que ha pedido un usuario activo (aquí, quien la da de alta desde Dynamo).
+    data: { nombre: d.nombre.trim(), anadido_por: s.perfil!.id }, redirectTo: `${await origen()}/panel/confirmar`,
   });
   if (error || !data.user) return { ok: false, error: traducir(error?.message ?? 'No se ha podido enviar la invitación.') };
 

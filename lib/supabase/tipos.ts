@@ -3911,6 +3911,7 @@ export type Database = {
       registrar_consulta_precio: { Args: Record<PropertyKey, never>; Returns: undefined }
       registrar_firma_papel: { Args: { p_envio: string | null; p_parada: string | null; p_nombre: string | null; p_documento: string | null; p_documento_pais: string | null; p_documento_id: string | null }; Returns: Json }
       registrar_hito: { Args: { p_envio: string | null; p_hito: Database["public"]["Enums"]["tipo_hito"] | null; p_parada?: string | null; p_oferta?: string | null; p_datos?: Json | null; p_origen?: string | null }; Returns: undefined }
+      registro_clientes_abierto: { Args: Record<PropertyKey, never>; Returns: boolean }
       reglas_precio_envio: { Args: Record<PropertyKey, never>; Returns: Json }
       renumerar_paradas: { Args: { p_envio: string | null }; Returns: undefined }
       reservar_envio_publico: { Args: { p_token: string | null; p_ip?: string | null; p_navegador?: string | null }; Returns: Json }

@@ -68,6 +68,7 @@ const SECCIONES: Seccion[] = [
   ] },
   { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
+    { titulo: 'Registro de clientes nuevos', claves: ['registro_clientes_abierto'] },
     { titulo: 'Sesión: días sin volver a escribir la contraseña', claves: ['sesion_recordar_dias', 'sesion_dias'] },
     { titulo: 'Protección de datos', claves: ['rgpd_limpieza_activa', 'rgpd_telefono_conductor_anios'] },
     { titulo: 'Dirección pública de la plataforma', claves: ['url_plataforma'] },

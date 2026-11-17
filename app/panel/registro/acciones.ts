@@ -49,6 +49,9 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
   // Lista de bloqueo de altas (bloqueos_alta): mensaje neutro, sin revelar el bloqueo ni
   // dar vía de contacto (decisión del usuario, 2026-11-14). La base de datos lo rechaza
   // igualmente aunque alguien esquive este paso.
+  // Registro de clientes cerrado desde Parámetros (usuario, 2026-11-17): el mismo mensaje.
+  const { data: abierto } = await supabase.rpc('registro_clientes_abierto');
+  if (abierto === false) return mal(undefined, 'Actualmente no estamos dando de alta nuevos usuarios. Sentimos las molestias.');
   const { data: bloqueada } = await supabase.rpc('alta_bloqueada', { p_email: d.email });
   if (bloqueada) return mal(undefined, 'Actualmente no estamos dando de alta nuevos usuarios. Sentimos las molestias.');
   const { error } = await supabase.auth.signInWithOtp({
