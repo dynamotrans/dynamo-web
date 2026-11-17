@@ -42,10 +42,14 @@ type Bloque = { clave: string; titulo: string; casilla: string; firmante: string
   // Conjunto articulado: hace falta también la matrícula del semirremolque (Orden FOM/2861/2012, art. 6).
   remObligatoria?: boolean };
 
+// Texto «a marcador» de las cajas verdes: negrita sobre un verde algo más intenso.
+const MARCADOR = { background: '#c6f2d9', color: '#0b5c31', padding: '0.05rem 0.3rem', borderRadius: 6, fontWeight: 800 } as const;
+
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
   const [abierto, setAbierto] = useState<Bloque | null>(null);
   const [fin, setFin] = useState(false);   // pantalla de «Todo guardado»: sale sola nada más firmar en esta visita
+  const [copiaYa, setCopiaYa] = useState(true);   // ¿se le ha mandado ya su copia a quien acaba de firmar? (al transportista que firma con el email de su empresa, no: solo la final)
   // Firma EXTRA (usuario, 2026-11-09): hasta 3 además de las casillas de siempre. Se elige
   // la casilla y se abre la pantalla de firma normal; no ocupa la casilla ni anota reservas.
   const [eligiendoExtra, setEligiendoExtra] = useState(false);
@@ -141,7 +145,16 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
     <div style={{ background: '#ecfdf5', border: '2px solid #1d9e57', borderRadius: 14, padding: '1.2rem 1rem', textAlign: 'center' }}>
       <div aria-hidden="true" style={{ width: 54, height: 54, margin: '0 auto 0.6rem', borderRadius: '50%', background: '#1d9e57', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 800 }}>✓</div>
       <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46' }}>Todo guardado. ¡Gracias!</div>
-      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600 }}>Cada firma queda registrada en el CMR al momento. Si dejaste tu email, tu copia va de camino; al completarse todas las firmas, la copia final llegará por email a todas las partes (al transportista, al email de su empresa).</p>
+      {/* Lo importante, a marcador (usuario, 2026-11-17). Al transportista que firma con el
+          email de su empresa no se le manda copia en cada firma, solo la final: se lo dice así. */}
+      <p style={{ margin: '0.35rem 0 0.9rem', color: '#047857', fontWeight: 600, lineHeight: 1.6 }}>
+        Cada firma queda registrada en el CMR al momento.{' '}
+        {copiaYa
+          ? <><strong style={MARCADOR}>Se te ha enviado una copia con las firmas a tu e-mail;</strong>{' '}
+              <strong style={MARCADOR}>la copia final te llegará por email</strong> cuando firmen todos.</>
+          : <><strong style={MARCADOR}>La copia final llegará al email de tu empresa</strong> cuando firmen todos.
+              Si la quieres tú ahora, ábrela o compártela aquí debajo.</>}
+      </p>
       <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center', textDecoration: 'none',
         padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)' }}>
         Ver el CMR en PDF · con las firmas actuales
@@ -420,12 +433,12 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         </div>
       )}
-      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); setFin(true); refrescar(); }} />}
+      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={(copia) => { setAbierto(null); setCopiaYa(copia); setFin(true); refrescar(); }} />}
     </div>
   );
 }
 
-function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bloque; onCerrar: () => void; onFirmado: () => void }) {
+function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bloque; onCerrar: () => void; onFirmado: (copiaEnviada: boolean) => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const ctx = useRef<CanvasRenderingContext2D | null>(null);
   const trazando = useRef(false);
@@ -560,7 +573,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     setLento(false);
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
-    onFirmado();
+    onFirmado(!emailEmpresa);   // copia al momento solo a quien firma con SU email
   }
 
   // PISTA «Desliza para firmar» (usuario, 2026-11-15): la ventana de firma es larga y en
