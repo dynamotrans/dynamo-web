@@ -49,6 +49,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   const refrescar = useRefrescar();
   const [abierto, setAbierto] = useState<Bloque | null>(null);
   const [fin, setFin] = useState(false);   // pantalla de «Todo guardado»: sale sola nada más firmar en esta visita
+  const [firmasAqui, setFirmasAqui] = useState(0);   // firmas hechas en esta visita: en cada una la caja verde vuelve a la vista
   const [copiaYa, setCopiaYa] = useState(true);   // ¿se le ha mandado ya su copia a quien acaba de firmar? (al transportista que firma con el email de su empresa, no: solo la final)
   // Firma EXTRA (usuario, 2026-11-09): hasta 3 además de las casillas de siempre. Se elige
   // la casilla y se abre la pantalla de firma normal; no ocupa la casilla ni anota reservas.
@@ -76,7 +77,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // estar abajo del todo, en la casilla que firmó.
   useEffect(() => {
     if (fin) requestAnimationFrame(() => document.getElementById('cmr-guardado')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-  }, [fin]);
+  }, [fin, firmasAqui]);
   const [masInfo, setMasInfo] = useState(false);          // despliegue del detalle legal (eIDAS / FOM)
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
@@ -138,9 +139,10 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   const pendientesVista = bloques.filter((b) => !firmas.has(b.clave));
   const firmadasVista = bloques.filter((b) => firmas.has(b.clave));
   // TRAS FIRMAR sale directamente la pantalla de «Todo guardado» (usuario, 2026-11-17: sin el
-  // botón intermedio «Está todo guardado · Terminar»): gracias, el PDF del eCMR al día para
-  // verlo o compartirlo, y «Seguir en la hoja de firmas», que la cierra. No se lleva a nadie
-  // a la web pública. Solo tras firmar en esta visita.
+  // botón intermedio «Está todo guardado · Terminar»): gracias y el PDF del eCMR al día para
+  // verlo o compartirlo. Sin botón de «Seguir en la hoja de firmas»: la caja no tapa nada,
+  // las casillas siguen debajo y se firma sin más. No se lleva a nadie a la web pública.
+  // Solo tras firmar en esta visita.
   const btnFin = fin ? (
     <div style={{ background: '#ecfdf5', border: '2px solid #1d9e57', borderRadius: 14, padding: '1.2rem 1rem', textAlign: 'center' }}>
       <div aria-hidden="true" style={{ width: 54, height: 54, margin: '0 auto 0.6rem', borderRadius: '50%', background: '#1d9e57', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 800 }}>✓</div>
@@ -172,10 +174,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       <p style={{ margin: '0.8rem 0 0', color: '#047857', fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.4 }}>
         No hace falta salir: puede firmar otra persona aquí mismo, y puedes volver a entrar con este mismo enlace cuando quieras para ver cómo van las firmas.
       </p>
-      <button type="button" onClick={() => setFin(false)} style={{ display: 'block', width: '100%', marginTop: '0.6rem', padding: '0.85rem 1rem', borderRadius: 12, textAlign: 'center',
-        background: '#1d9e57', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
-        Seguir en la hoja de firmas
-      </button>
     </div>
   ) : null;
   const extras = (cmr.firmas ?? []).filter((f) => f.extra);
@@ -433,7 +431,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         </div>
       )}
-      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={(copia) => { setAbierto(null); setCopiaYa(copia); setFin(true); refrescar(); }} />}
+      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={(copia) => { setAbierto(null); setCopiaYa(copia); setFin(true); setFirmasAqui((n) => n + 1); refrescar(); }} />}
     </div>
   );
 }
