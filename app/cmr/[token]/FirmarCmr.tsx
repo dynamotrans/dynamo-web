@@ -376,13 +376,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       )}
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
       {firmoAqui && <div style={{ margin: '0.8rem 0 0' }}>{btnFin}</div>}
-      {/* EL PIE, en este orden (usuario, 2026-11-17): compartir el PDF del CMR → la caja de
-          «también pueden firmar aquí», con su botón de compartir la página → el texto legal. */}
-      <button type="button" onClick={() => setCompartirPdf(true)}
-        style={{ display: 'block', width: '100%', margin: '0.9rem 0 0', padding: '0.8rem 1rem', borderRadius: 12, textAlign: 'center',
-          background: '#fff', border: '2px solid #1d9e57', color: '#065f46', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
-        Compartir el CMR en PDF · WhatsApp, email…
-      </button>
+      {/* EL PIE (usuario, 2026-11-17): la caja de «también pueden firmar aquí», con su botón
+          de compartir la página, y debajo el texto legal. «Compartir el CMR en PDF» ya NO
+          sale aquí, antes de firmar: solo en la pantalla de «Todo guardado», tras firmar. */}
       {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
           lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
       <div style={{ margin: '0.8rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
