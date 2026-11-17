@@ -3,7 +3,7 @@ import SelectorIdioma from '@/components/SelectorIdioma';
 import CodigoCarga from './CodigoCarga';
 import './carga.css';
 
-export const metadata: Metadata = { title: 'Aceptar carga · Dynamo', robots: { index: false, follow: false },
+export const metadata: Metadata = { title: 'Acceder a la carga · Dynamo', robots: { index: false, follow: false },
   formatDetection: { telephone: false, address: false, email: false, date: false } };
 
 // LA PUERTA POR CÓDIGO (usuario, 2026-11-17): en la bolsa de cargas no se pueden publicar

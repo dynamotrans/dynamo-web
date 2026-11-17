@@ -43,9 +43,9 @@ export default function CodigoCarga() {
 
   return (
     <form ref={formulario} action={accion} noValidate>
-      <h1>Aceptar carga</h1>
-      <p className="sub">Escribe el <strong>código de aceptación</strong> que aparece en la carga publicada en la bolsa.</p>
-      <label htmlFor="codigo-carga" style={{ textAlign: 'center' }}>Código de aceptación</label>
+      <h1>Acceder a la carga</h1>
+      <p className="sub">Escribe el <strong>código de la carga</strong> que aparece en la oferta.</p>
+      <label htmlFor="codigo-carga" style={{ textAlign: 'center' }}>Código de la carga</label>
       <input type="hidden" name="codigo" value={cifras.join('')} />
       <CajasCodigo cifras={cifras} setCifras={setCifras} cajas={cajas} bloqueado={comprobando} idPrimera="codigo-carga" autoCompletar="off" />
       {estado.error && !comprobando && <div className="id-nofound show" role="alert">{estado.error}</div>}
