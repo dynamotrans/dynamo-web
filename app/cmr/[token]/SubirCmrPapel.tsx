@@ -28,7 +28,7 @@ function extDe(f: File): string | null {
 }
 
 const caja: React.CSSProperties = { border: '2px dashed #d1d5db', borderRadius: 12, padding: '1.1rem 0.6rem', textAlign: 'center', color: '#6b7280',
-  fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', background: '#fff', font: 'inherit' };
+  fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', background: '#fff', fontFamily: 'inherit' };
 
 export default function SubirCmrPapel({ token }: { token: string }) {
   const [abierta, setAbierta] = useState(false);
@@ -101,12 +101,14 @@ export default function SubirCmrPapel({ token }: { token: string }) {
 
   return (
     <>
-      <div id="cmr-papel" style={{ margin: '0.8rem 0 0', background: '#fff7ed', border: '1.5px solid #fed7aa', color: '#7c2d12', borderRadius: 12,
-        padding: '0.65rem 0.85rem', fontSize: '0.95rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
-        <strong style={{ fontWeight: 800 }}>¿No quieren firmar en el móvil?</strong>{' '}
-        Puedes subir aquí directamente las fotos del CMR / carta de porte en papel y lo recibimos igualmente.
-        <button type="button" className="firma-btn" id="btn-cmr-papel" onClick={() => { setHecho(null); setAviso(null); setAbierta(true); }}
-          style={{ display: 'block', width: '100%', margin: '0.55rem 0 0.1rem', background: '#ea580c', textAlign: 'center', padding: '0.8rem 1rem', fontSize: '1rem', borderRadius: 12 }}>
+      <div id="cmr-papel" style={{ margin: '0 0 0.8rem', background: '#f9fafb', border: '1.5px solid #e5e7eb', color: '#6b7280', borderRadius: 12,
+        padding: '0.6rem 0.85rem', fontSize: '0.88rem', fontWeight: 500, textAlign: 'center', lineHeight: 1.5 }}>
+        <strong style={{ fontWeight: 700, color: '#4b5563' }}>¿No quieren firmar en el móvil?</strong>{' '}
+        Puedes subir aquí directamente las fotos del CMR / carta de porte <strong style={{ fontWeight: 700, color: '#4b5563' }}>firmada en papel</strong> al finalizar y lo recibimos igualmente.
+        {/* Gris claro y discreto (usuario, 2026-11-17): es la vía de reserva, no la principal. */}
+        <button type="button" id="btn-cmr-papel" onClick={() => { setHecho(null); setAviso(null); setAbierta(true); }}
+          style={{ display: 'block', width: '100%', margin: '0.5rem 0 0.1rem', background: '#fff', color: '#4b5563', border: '1.5px solid #d1d5db',
+            textAlign: 'center', padding: '0.6rem 1rem', fontSize: '0.92rem', fontWeight: 700, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>
           Subir fotos del CMR / carta de porte
         </button>
         {recibidas > 0 && <div style={{ marginTop: '0.35rem', fontWeight: 700, color: '#0f6b3a' }}>✓ Hemos recibido {recibidas} página{recibidas === 1 ? '' : 's'}.</div>}
@@ -176,7 +178,7 @@ export default function SubirCmrPapel({ token }: { token: string }) {
                   {ocupada ? `Subiendo la página ${subiendo} de ${paginas.length}…` : 'Finalizar y subir CMR / carta de porte'}
                 </button>
                 <button type="button" onClick={cerrar} disabled={ocupada}
-                  style={{ display: 'block', width: '100%', background: 'none', border: 0, color: '#6b7280', fontWeight: 700, padding: '0.5rem', cursor: 'pointer', font: 'inherit' }}>Cancelar</button>
+                  style={{ display: 'block', width: '100%', background: 'none', border: 0, color: '#6b7280', fontWeight: 700, padding: '0.5rem', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
               </>
             )}
           </div>

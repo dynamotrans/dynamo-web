@@ -322,6 +322,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         )}
       </div>
+      {/* JUSTO DESPUÉS de la caja azul (usuario, 2026-11-17): quien no quiera firmar en el
+          móvil sube aquí las fotos del CMR / carta de porte firmada en papel. */}
+      <SubirCmrPapel token={token} />
       {[...pendientesVista, ...firmadasVista].map((b) => {
         const f = firmas.get(b.clave);
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
@@ -390,9 +393,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {/* EL PIE (usuario, 2026-11-17): la caja de «también pueden firmar aquí», con su botón
           de compartir la página, y debajo el texto legal. «Compartir el CMR en PDF» ya NO
           sale aquí, antes de firmar: solo en la pantalla de «Todo guardado», tras firmar. */}
-      {/* ANTES de la caja verde (usuario, 2026-11-17): quien no quiera firmar en el móvil
-          sube aquí las fotos del CMR / carta de porte en papel. */}
-      <SubirCmrPapel token={token} />
       {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
           lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
       <div style={{ margin: '0.8rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
