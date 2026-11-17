@@ -184,7 +184,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [cliente?.id, esCliente]);
   // PANTALLA DE ÉXITO (tarea 81, usuario 2026-11-13): al confirmar un envío no se suelta
   // al usuario en la lista — se le dice QUÉ PASA AHORA y a dónde ir.
-  const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual'; pago?: boolean } | null>(null);
+  const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual'; pago?: boolean; razon?: 'primero' | 'primeros' | 'credito' | null } | null>(null);
   // La casilla nace MARCADA (usuario, 2026-11-16): la aceptación es pulsar «Confirmar envío»
   // con el texto y las condiciones delante. Si la desmarca, no puede confirmar.
   const [aceptaLegal, setAceptaLegal] = useState(true);
@@ -752,7 +752,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
       setEnviando(false); setRevisarLegal(false);
-      setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente', pago: rs.pagoPendiente });
+      setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente', pago: rs.pagoPendiente, razon: rs.pagoRazon });
       router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
       return;
     }
@@ -1022,6 +1022,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               <strong>Pendiente de pago.</strong> Hasta que no se abone, <strong>no se procesa ninguna reserva de
               transporte</strong>. La <strong>fecha y la ventana de carga empiezan a contar a partir del pago</strong>
               {' '}(te mandamos la proforma por email).
+              {creado.razon && (
+                <div id="exito-pago-razon" style={{ marginTop: '0.45rem' }}>
+                  <strong>¿Por qué?</strong>{' '}
+                  {creado.razon === 'primero' ? <>Es tu <strong>primer envío</strong> con nosotros y el primero se paga por adelantado. Tu cuenta tiene crédito: los siguientes irán a crédito.</>
+                    : creado.razon === 'primeros' ? <>Es uno de tus <strong>primeros envíos</strong> con nosotros y esos se pagan por adelantado. Tu cuenta tiene crédito: los siguientes irán a crédito.</>
+                    : <>Tu cuenta tiene crédito, pero <strong>con este envío superas el que te queda disponible</strong>, así que este se paga por adelantado. Si crees que es un error, contáctanos y lo revisamos.</>}
+                </div>
+              )}
             </div></div>
           )}
           <ol style={{ margin: '0 0 1.3rem', padding: 0, listStyle: 'none', display: 'grid', gap: '0.65rem' }}>
