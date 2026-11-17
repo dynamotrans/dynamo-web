@@ -413,6 +413,37 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 
 Registro automático de sesiones. La entrada más reciente va arriba.
 
+### 2026-11-17 — Claude Code web (nube)
+
+> Todo en la rama **`pruebas`** (plataforma; no toca `main` ni la web pública). Del 7 al 16 de noviembre no hay entradas aquí: el estado al día de esos días está en `TODO.md` (resumen por versiones, arriba del todo). Última subida del día: `8177ffb`, con las pruebas en verde.
+
+**Emails**
+- Orden de carga al transportista propio del cliente (email con PDF, sin copia a Dynamo y sin pie); un solo botón «Orden de carga (PDF)» con su ventana. Emails al transportista asignado por cancelación, retirada y modificación (nunca con precios). «Envío creado» más corto, con el aviso de pendiente de pago en rojo.
+- **Lista de todos los emails de la plataforma** (41, con su texto, a quién y cuándo): https://claude.ai/artifact/Xr67EuscxW8opUxaWk5LyL. Al repasarla se corrigieron la fecha de «Orden de carga» / «Transporte confirmado» y los números de la oferta de carga.
+- Claves al día en pruebas: clave de servicio de Supabase en Vercel, Postmark como correo de Supabase, token de Postmark cambiado, captcha real de Cloudflare.
+
+**Bolsa de cargas sin enlaces: código de aceptación**
+- Cada envío de Dynamo lleva un código de **6 cifras** al azar (`envios.codigo_aceptacion`; no es el GX, que lo conoce el cliente). El transportista lo teclea en **`/carga`** («Aceptar carga») y llega a la pantalla de aceptar de siempre. Captcha y tope de fallos por hora; responde igual a un código inventado que a una carga tomada.
+- Caduca: con transportista ya no abre; si el envío queda libre sale uno nuevo; al entregarse o cancelarse se borra. Dynamo lo ve en la ficha y sale en el fichero de la bolsa. El email «Carga disponible» lleva botón «Aceptar carga».
+- **Fallo real arreglado** (lo destapó la prueba de navegador): abrir una carga con el enlace propio del envío daba error; afectaba también a «Ver otros envíos disponibles de Dynamo».
+
+**Cuentas**
+- Interruptor **«Registro de clientes nuevos»** (Parámetros → Plataforma): cerrado, la página de registro no admite altas; no afecta a los que da de alta Dynamo, a los compañeros que añade un usuario activo ni a los transportistas que se dan de alta desde una carga.
+- Ficha del cliente: apartado «Usuarios con acceso a la plataforma» (solo lectura, con enlace a Usuarios).
+
+**Otros**: rígido a 2,40 m de altura en toda la plataforma; línea «Altura máxima / Ancho máximo» en Nuevo envío; foto del CMR en papel como anexo del PDF; los sitios ya no se guardan «sin medios de carga»; el código de 6 cifras del acceso se comprueba solo al completarlo; sin incidencias en envíos con transportista propio; envío con precio a mano: solo lo modifica Dynamo.
+
+**Pruebas automáticas**: 7 pruebas de navegador nuevas (`tests/e2e/novedades.spec.ts`) y `/carga` en la auditoría de accesibilidad; la suite de la base de datos llega a la prueba 270. El CI se lanza solo cada día a las 6:47 (tarea programada) y solo se avisa si falla.
+
+**Tareas programadas vivas**: pasada diaria de pruebas (6:47) · recordatorio semanal de la lista de bloqueo de emails y dominios de la competencia (lunes 8:43).
+
+**Pendientes** (detalle en `TODO.md`):
+- Del usuario: plan de pago de Postmark (el gratuito son 100 emails al mes); crear un envío de prueba y comprobar que llega «Envío creado» (confirma que la cola de emails usa el token nuevo); en el panel de Supabase, traducir la plantilla «Change email address» y unificar el teléfono de los dos avisos de seguridad; decir si la bolsa admite el texto «dynamotrans.com/carga» en los comentarios.
+- Conexiones pendientes (lista única en `TODO.md`): Holded, Stripe, CESCE, Google Maps, bolsa de cargas, Brevo; WhatsApp y n8n aparcados para V2/V3, igual que el chatbot.
+- Ideas apuntadas, sin construir: bloqueo automático del crédito a quien paga tarde (con Holded; falta decidir si los días cuentan desde la emisión o desde el vencimiento); resumen mensual a los sitios (antes, visto bueno del asesor).
+- Botón «Aceptar carga» en la web pública: cuando se publique la plataforma.
+- Siguiente desarrollo de la v1: tarifador con tarifas reales y, al final, la conexión con la bolsa.
+
 ### 2026-11-06 — Claude Code web (nube)
 
 > **Calidad, panel en vivo y baja de cuenta**, todo en `pruebas`. **A producción (`main`)**: horarios «Lunes a viernes 8:00–18:00» y CIF «ESB01596360» en la web pública (`b9ceb9e`, con el «publica» del usuario), llevados también a la rama del portal (`ddc2fb6`) y a `pruebas` (`c338bb2`, que además se trae el blog y las redes de `main`).
