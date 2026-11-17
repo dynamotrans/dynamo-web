@@ -42,6 +42,7 @@ const SECCIONES: Seccion[] = [
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
     { titulo: 'Riesgo asumido', claves: ['riesgo_dias_asumido'] },
     { titulo: 'Emails de crédito al cliente', claves: ['credito_emails_activo', 'credito_aviso_pct', 'credito_aviso_dias'] },
+    { titulo: 'Bloqueo del crédito por pagos tardíos', claves: ['pago_tarde_activo', 'pago_tarde_dias_max', 'pago_tarde_facturas_toleradas', 'pago_tarde_ultimas_facturas', 'pago_tarde_desde_vencimiento'] },
   ] },
   { id: 'transportistas', titulo: 'Transportistas', intro: 'Ofertas de envíos, negociación, bolsa y pago a transportistas.', subs: [
     { titulo: 'Ofertas y reservas', claves: ['oferta_dias_caducidad', 'reserva_minutos'] },
@@ -59,6 +60,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Cobertura', claves: ['cobertura_paises'] },
     { titulo: 'Horario de verano de los almacenes', claves: ['verano_sitios_desde', 'verano_sitios_hasta'] },
     { titulo: 'Avisos de recogida y entrega a los sitios', claves: ['aviso_parada_ventana_inicio', 'aviso_parada_ventana_fin', 'aviso_parada_hora_mismo_dia'] },
+    { titulo: 'Resumen mensual a los sitios', claves: ['resumen_sitios_activo', 'resumen_sitios_dia'] },
     { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_velocidad_kmh', 'seguimiento_km_por_defecto', 'seguimiento_horas_asignando'] },
   ] },
   { id: 'autosusp', titulo: 'Suspensión automática de cuentas', intro: 'Cuándo se suspende sola una cuenta.', subs: [], especial: 'autosusp' },

@@ -433,14 +433,14 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **Otros**: rígido a 2,40 m de altura en toda la plataforma; línea «Altura máxima / Ancho máximo» en Nuevo envío; foto del CMR en papel como anexo del PDF; los sitios ya no se guardan «sin medios de carga»; el código de 6 cifras del acceso se comprueba solo al completarlo; sin incidencias en envíos con transportista propio; envío con precio a mano: solo lo modifica Dynamo.
 
-**Pruebas automáticas**: 7 pruebas de navegador nuevas (`tests/e2e/novedades.spec.ts`) y `/carga` en la auditoría de accesibilidad; la suite de la base de datos llega a la prueba 270. El CI se lanza solo cada día a las 6:47 (tarea programada) y solo se avisa si falla.
+**Pruebas automáticas**: 7 pruebas de navegador nuevas (`tests/e2e/novedades.spec.ts`) y `/carga` en la auditoría de accesibilidad; la suite de la base de datos llega a la prueba 272. El CI se lanza solo cada día a las 6:47 (tarea programada) y solo se avisa si falla.
 
 **Tareas programadas vivas**: pasada diaria de pruebas (6:47) · recordatorio semanal de la lista de bloqueo de emails y dominios de la competencia (lunes 8:43).
 
 **Pendientes** (detalle en `TODO.md`):
 - Del usuario: plan de pago de Postmark (el gratuito son 100 emails al mes); crear un envío de prueba y comprobar que llega «Envío creado» (confirma que la cola de emails usa el token nuevo); en el panel de Supabase, traducir la plantilla «Change email address» y unificar el teléfono de los dos avisos de seguridad; decir si la bolsa admite el texto «dynamotrans.com/carga» en los comentarios.
 - Conexiones pendientes (lista única en `TODO.md`): Holded, Stripe, CESCE, Google Maps, bolsa de cargas, Brevo; WhatsApp y n8n aparcados para V2/V3, igual que el chatbot.
-- Ideas apuntadas, sin construir: bloqueo automático del crédito a quien paga tarde (con Holded; falta decidir si los días cuentan desde la emisión o desde el vencimiento); resumen mensual a los sitios (antes, visto bueno del asesor).
+- **Construidos y APAGADOS** (los enciende el usuario en Parámetros): bloqueo automático del crédito a quien paga tarde (las facturas se apuntan a mano en la ficha del cliente hasta que las traiga Holded) y resumen mensual a los sitios (antes de encenderlo: visto bueno del asesor, canal «broadcast» de Postmark y plan de pago).
 - Botón «Aceptar carga» en la web pública: cuando se publique la plataforma.
 - Siguiente desarrollo de la v1: tarifador con tarifas reales y, al final, la conexión con la bolsa.
 

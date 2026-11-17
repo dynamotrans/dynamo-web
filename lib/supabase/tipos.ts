@@ -471,6 +471,50 @@ export type Database = {
           },
         ]
       }
+      clientes_pagos: {
+        Row: {
+          cliente_id: string
+          dias_max: number | null
+          facturas_toleradas: number | null
+          bloqueado_en: string | null
+          bloqueado_motivo: string | null
+          credito_manual_antes: number | null
+          facturas_perdonadas: string[]
+          aviso_al_dia_en: string | null
+          modificado_en: string
+        }
+        Insert: {
+          cliente_id: string
+          dias_max?: number | null
+          facturas_toleradas?: number | null
+          bloqueado_en?: string | null
+          bloqueado_motivo?: string | null
+          credito_manual_antes?: number | null
+          facturas_perdonadas?: string[]
+          aviso_al_dia_en?: string | null
+          modificado_en?: string
+        }
+        Update: {
+          cliente_id?: string
+          dias_max?: number | null
+          facturas_toleradas?: number | null
+          bloqueado_en?: string | null
+          bloqueado_motivo?: string | null
+          credito_manual_antes?: number | null
+          facturas_perdonadas?: string[]
+          aviso_al_dia_en?: string | null
+          modificado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_pagos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cmr_enlaces: {
         Row: {
           id: string
@@ -2197,6 +2241,66 @@ export type Database = {
           },
         ]
       }
+      facturas_cliente: {
+        Row: {
+          id: string
+          cliente_id: string
+          numero: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          fecha_cobro: string | null
+          importe: number | null
+          no_cuenta: boolean
+          origen: string
+          ref_externa: string | null
+          creado_en: string
+          creado_por: string | null
+        }
+        Insert: {
+          id?: string
+          cliente_id: string
+          numero: string
+          fecha_emision: string
+          fecha_vencimiento?: string | null
+          fecha_cobro?: string | null
+          importe?: number | null
+          no_cuenta?: boolean
+          origen?: string
+          ref_externa?: string | null
+          creado_en?: string
+          creado_por?: string | null
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          numero?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          fecha_cobro?: string | null
+          importe?: number | null
+          no_cuenta?: boolean
+          origen?: string
+          ref_externa?: string | null
+          creado_en?: string
+          creado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_cliente_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       festivos: {
         Row: {
           id: string
@@ -2857,6 +2961,28 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      resumen_destinatarios: {
+        Row: {
+          email: string
+          token: string
+          baja_en: string | null
+          creado_en: string
+        }
+        Insert: {
+          email: string
+          token?: string
+          baja_en?: string | null
+          creado_en?: string
+        }
+        Update: {
+          email?: string
+          token?: string
+          baja_en?: string | null
+          creado_en?: string
         }
         Relationships: [
         ]
@@ -3657,6 +3783,7 @@ export type Database = {
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
+      baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
       borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
       borrar_transportista: { Args: { p_id: string | null }; Returns: Json }
       buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string; nima_por_defecto: boolean }[] }
@@ -3696,9 +3823,13 @@ export type Database = {
       crear_envio_cliente: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null; p_cliente?: string | null }; Returns: { id: string; referencia_gx: string }[] }
       credito_alcanza: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: boolean }
+      credito_desbloquear: { Args: { p_cliente: string | null }; Returns: Json }
       credito_liberar_pendientes: { Args: { p_cliente: string | null }; Returns: number }
+      credito_pagos_estado: { Args: { p_cliente: string | null }; Returns: Json }
       credito_repasar_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       credito_retirar_sin_hueco: { Args: { p_cliente: string | null }; Returns: number }
+      credito_revisar_pagos: { Args: { p_cliente: string | null }; Returns: string }
+      credito_revisar_pagos_todos: { Args: Record<PropertyKey, never>; Returns: number }
       credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
@@ -3733,6 +3864,7 @@ export type Database = {
       encolar_anulacion_parada: { Args: { p_envio: string | null; p_parada: string | null; p_tipo: string | null; p_nombre: string | null; p_poblacion_sitio: string | null; p_sitio: string | null }; Returns: undefined }
       encolar_avisos_operativos: { Args: { p_ahora?: string | null }; Returns: number }
       encolar_avisos_paradas: { Args: { p_hoy?: string | null; p_ahora?: string | null }; Returns: number }
+      encolar_resumen_sitios: { Args: { p_mes?: string | null; p_forzar?: boolean | null }; Returns: number }
       enlace_carga_caduca_en: { Args: { p_envio: string | null }; Returns: string }
       enlace_carga_vigente: { Args: { p_envio: string | null }; Returns: boolean }
       enlace_cmr_publico: { Args: { p_reserva: string | null }; Returns: string }
@@ -3783,6 +3915,7 @@ export type Database = {
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       fn_bolsa_margen_minutos: { Args: { p_dias: number | null }; Returns: number }
+      fn_credito_pagos_estado: { Args: { p_cliente: string | null }; Returns: Json }
       fn_difusion_avisa_bolsa: { Args: { p_envio: string | null }; Returns: undefined }
       fn_difusion_bolsa: { Args: { p_envio: string | null }; Returns: Json }
       fn_difusion_cadencia: { Args: { p_horas: number | null }; Returns: { minutos: number; lote: number } }

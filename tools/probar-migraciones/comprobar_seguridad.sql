@@ -11815,3 +11815,161 @@ do $$ begin
   raise notice 'OK 270 · registro de clientes: nace abierto; cerrado no entra ningún alta por su cuenta (tampoco saltándose la web), sí la que pide un usuario activo; y se reabre';
 end $$;
 reset role;
+
+-- ---- 271. Bloqueo automático del crédito a quien paga tarde ----
+do $$ declare cli uuid; cli2 uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; r text; e jsonb; begin
+  insert into clientes (razon_social, cif, riesgo_cesce_euros, riesgo_manual_euros) values ('Paga Tarde 271 SL', 'B27100271', 20000, 8000) returning id into cli;
+  insert into clientes (razon_social, cif, riesgo_cesce_euros) values ('Buen Cliente 271 SL', 'B27100272', 30000) returning id into cli2;
+  -- APAGADO (como nace): tres facturas tardías no bloquean a nadie.
+  insert into facturas_cliente (cliente_id, numero, fecha_emision, fecha_cobro) values (cli, 'F-1', hoy - 300, hoy - 200), (cli, 'F-2', hoy - 250, hoy - 160), (cli, 'F-3', hoy - 200, hoy - 110);
+  if (select riesgo_manual_euros from clientes where id = cli) <> 8000 or exists (select 1 from clientes_pagos where cliente_id = cli and bloqueado_en is not null) then
+    raise exception 'FALLO 271 · con el bloqueo apagado se le quita el crédito a un cliente';
+  end if;
+  update parametros set valor = 'true'::jsonb where clave = 'pago_tarde_activo';
+  -- Con dos tardías de las últimas tres (se toleran 2) sigue con su crédito…
+  insert into facturas_cliente (cliente_id, numero, fecha_emision, fecha_cobro) values (cli, 'F-4', hoy - 100, hoy - 60);
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 8000 then raise exception 'FALLO 271 · se bloquea con las tardías toleradas'; end if;
+  -- …y a la tercera (una factura SIN cobrar pasado el plazo también cuenta) se queda a cero.
+  update facturas_cliente set fecha_cobro = null where cliente_id = cli and numero = 'F-2';
+  update facturas_cliente set fecha_emision = hoy - 90, fecha_cobro = null where cliente_id = cli and numero = 'F-4';
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 0 then
+    raise exception 'FALLO 271 · con tres facturas tardías no se bloquea el crédito: %', fn_credito_pagos_estado(cli);
+  end if;
+  if (select credito_manual_antes from clientes_pagos where cliente_id = cli) <> 8000 or (select bloqueado_en from clientes_pagos where cliente_id = cli) is null then
+    raise exception 'FALLO 271 · el bloqueo no guarda el crédito que tenía el cliente';
+  end if;
+  if not exists (select 1 from avisos where tipo = 'credito_bloqueado_pagos' and titulo like '%Paga Tarde 271 SL')
+     or not exists (select 1 from emails_enviados where tipo = 'credito_bloqueo' and destinatario = email_dynamo() and cuerpo_html like '%F-4%sin cobrar%') then
+    raise exception 'FALLO 271 · el bloqueo no avisa a Dynamo (campana y email con las facturas)';
+  end if;
+  -- Al cobrar lo vencido no se le devuelve solo: aviso a Dynamo, una vez.
+  update facturas_cliente set fecha_cobro = hoy where cliente_id = cli and fecha_cobro is null;
+  update facturas_cliente set importe = 100 where cliente_id = cli and numero = 'F-4';
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 0 or (select count(*) from avisos where tipo = 'credito_pagos_al_dia' and titulo like '%Paga Tarde 271 SL') <> 1 then
+    raise exception 'FALLO 271 · al ponerse al día se le devuelve solo el crédito, o no se avisa una sola vez';
+  end if;
+  -- REGLA PROPIA: al buen cliente se le dan 150 días y se le toleran 3; con la general ya estaría bloqueado.
+  insert into clientes_pagos (cliente_id, dias_max, facturas_toleradas) values (cli2, 150, 3);
+  insert into facturas_cliente (cliente_id, numero, fecha_emision, fecha_cobro) values (cli2, 'G-1', hoy - 300, hoy - 180), (cli2, 'G-2', hoy - 250, hoy - 130), (cli2, 'G-3', hoy - 200, hoy - 80), (cli2, 'G-4', hoy - 120, null);
+  if (select riesgo_efectivo_euros from clientes where id = cli2) <> 30000 then
+    raise exception 'FALLO 271 · la regla propia del cliente no manda sobre la general: %', fn_credito_pagos_estado(cli2);
+  end if;
+  e := fn_credito_pagos_estado(cli2);
+  if (e ->> 'dias_max')::int <> 150 or (e ->> 'toleradas')::int <> 3 or (e ->> 'miradas')::int <> 4 or not (e ->> 'regla_propia')::boolean then
+    raise exception 'FALLO 271 · el estado no refleja la regla propia: %', e;
+  end if;
+  -- Una factura marcada «no cuenta» (abono, en disputa) no suma.
+  insert into facturas_cliente (cliente_id, numero, fecha_emision, no_cuenta) values (cli2, 'G-5', hoy - 400, true);
+  if (select riesgo_efectivo_euros from clientes where id = cli2) <> 30000 then raise exception 'FALLO 271 · una factura que no cuenta bloquea el crédito'; end if;
+  perform set_config('prueba.cli271', cli::text, false);
+end $$;
+-- Solo el Admin Master ve y toca todo esto; ni el cliente ni nadie sin sesión.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from facturas_cliente) or exists (select 1 from clientes_pagos) then raise exception 'FALLO 271 · un cliente lee las facturas o las reglas de pago'; end if;
+  begin
+    perform credito_pagos_estado(current_setting('prueba.cli271')::uuid);
+    raise exception 'FALLO 271 · un cliente consulta el estado de pagos';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform credito_desbloquear(current_setting('prueba.cli271')::uuid);
+    raise exception 'FALLO 271 · un cliente se devuelve el crédito';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- El Admin le devuelve el crédito: vuelve el que tenía y las tardías de hoy no lo bloquean otra vez.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare cli uuid := current_setting('prueba.cli271')::uuid; r jsonb; begin
+  if (credito_pagos_estado(cli) ->> 'tardias')::int < 3 then raise exception 'FALLO 271 · el Admin no ve las facturas tardías'; end if;
+  r := credito_desbloquear(cli);
+  if r ->> 'resultado' <> 'ok' or (select riesgo_manual_euros from clientes where id = cli) <> 8000 then
+    raise exception 'FALLO 271 · al devolver el crédito no vuelve el que tenía: %', r;
+  end if;
+  update facturas_cliente set importe = 200 where cliente_id = cli and numero = 'F-4';   -- cualquier cambio vuelve a revisar
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 8000 then raise exception 'FALLO 271 · tras devolverle el crédito, las mismas facturas lo bloquean otra vez'; end if;
+  -- Otra tardía NUEVA sí lo vuelve a bloquear.
+  insert into facturas_cliente (cliente_id, numero, fecha_emision) values (cli, 'F-5', (now() at time zone 'Europe/Madrid')::date - 75);
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 0 then raise exception 'FALLO 271 · una factura tardía nueva no vuelve a bloquear el crédito'; end if;
+  raise notice 'OK 271 · pagos tardíos: apagado no bloquea; encendido bloquea a la factura que pasa de las toleradas (también sin cobrar), guarda el crédito y avisa a Dynamo; no lo devuelve solo; manda la regla propia del cliente; solo el Admin lo ve y lo devuelve, y hace falta otra tardía nueva para bloquear de nuevo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false'::jsonb where clave = 'pago_tarde_activo';
+
+-- ---- 272. Resumen mensual a los sitios: un email por dirección, sin la ruta, con sus exclusiones y su baja ----
+do $$ declare cli uuid; cli2 uuid; cli3 uuid; s1 uuid; s1b uuid; s2 uuid; s2b uuid; s3 uuid; s4 uuid; e uuid; i int; n int; r record; tk uuid;
+  mes date := (date_trunc('month', (now() at time zone 'Europe/Madrid')::date) - interval '1 month')::date;
+begin
+  insert into clientes (razon_social, cif) values ('Remite 272 SL', 'B27200272') returning id into cli;
+  insert into clientes (razon_social, cif) values ('Otro Remite 272 SL', 'B27200273') returning id into cli2;
+  insert into clientes (razon_social, cif, discrecion_comercial) values ('Discreto 272 SL', 'B27200274', true) returning id into cli3;
+  insert into contactos (cliente_id, funcion, email) values (cli, 'trafico', 'logistica@remite272.prueba');
+  -- El mismo almacén de destino, en la agenda de dos clientes (y con la dirección escrita distinta).
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
+    values (cli, 'Almacén Destino 272', 'Calle Uno 1', '28821', 'Coslada', 'ES', array['recepcion@destino272.prueba']) returning id into s1;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
+    values (cli2, 'Almacen Destino 272', 'C/ Uno 1', '28821', 'Coslada', 'ES', array['recepcion@destino272.prueba']) returning id into s1b;
+  -- La nave del propio cliente (dominio de correo de su empresa): no recibe nada.
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
+    values (cli, 'Nave Remite 272', 'Calle Dos 2', '41001', 'Sevilla', 'ES', array['nave@remite272.prueba']) returning id into s2;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
+    values (cli2, 'Origen Otro 272', 'Calle Tres 3', '41001', 'Sevilla', 'ES', '{}') returning id into s2b;
+  -- Del cliente con discreción comercial: su destino tampoco recibe nada.
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
+    values (cli3, 'Origen Discreto 272', 'Calle Cuatro 4', '41001', 'Sevilla', 'ES', '{}') returning id into s3;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
+    values (cli3, 'Destino Discreto 272', 'Calle Cinco 5', '08001', 'Barcelona', 'ES', array['almacen@discreto-destino272.prueba']) returning id into s4;
+  for i in 1 .. 3 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (case i when 1 then cli when 2 then cli2 else cli3 end, 6, 5, 600, 450, mes + 5) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, sitio_id, nombre_empresa, codigo_postal, poblacion, pais_codigo_iso, realizado_en)
+      values (e, 1, 'carga', case i when 1 then s2 when 2 then s2b else s3 end, 'Origen', '41001', 'Sevilla', 'ES', (mes + 5 * i)::timestamptz + interval '10 hours');
+    insert into envio_paradas (envio_id, orden, tipo, sitio_id, nombre_empresa, codigo_postal, poblacion, pais_codigo_iso, realizado_en)
+      values (e, 2, 'descarga', case i when 1 then s1 when 2 then s1b else s4 end, 'Destino', '28821', 'Coslada', 'ES', (mes + 5 * i + 1)::timestamptz + interval '9 hours');
+    alter table envios disable trigger user;
+    update envios set estado = 'entregado', entregado_en = (mes + 5 * i + 1)::timestamptz, codigo_aceptacion = null where id = e;
+    alter table envios enable trigger user;
+  end loop;
+  -- APAGADO (como nace): no prepara nada.
+  if encolar_resumen_sitios() <> 0 or exists (select 1 from emails_enviados where tipo = 'resumen_sitio') then
+    raise exception 'FALLO 272 · con el resumen apagado se preparan emails';
+  end if;
+  n := encolar_resumen_sitios(null, true);
+  select * into r from emails_enviados where tipo = 'resumen_sitio' and destinatario = 'recepcion@destino272.prueba';
+  if r.id is null or (select count(*) from emails_enviados where tipo = 'resumen_sitio' and destinatario like '%272.prueba') <> 1 then
+    raise exception 'FALLO 272 · el almacén que está en la agenda de dos clientes no recibe un solo resumen (%): %', n,
+      (select string_agg(destinatario, ' | ') from emails_enviados where tipo = 'resumen_sitio');
+  end if;
+  if position('Remite 272 SL' in r.cuerpo_html) = 0 or position('Otro Remite 272 SL' in r.cuerpo_html) = 0 or position('vuestros clientes' in r.cuerpo_html) = 0
+     or position('Entrega' in r.cuerpo_html) = 0 or position('/baja/' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 272 · al resumen le faltan los clientes, el tipo o el enlace de baja: %', r.cuerpo_html;
+  end if;
+  -- Nunca el otro extremo de la ruta, ni clientes con discreción comercial.
+  if position('Sevilla' in r.cuerpo_html) > 0 or position('Origen' in r.cuerpo_html) > 0 or position('Discreto' in r.cuerpo_html) > 0 then
+    raise exception 'FALLO 272 · el resumen enseña el origen de la ruta o un cliente con discreción comercial: %', r.cuerpo_html;
+  end if;
+  -- Una vez por dirección y mes.
+  if encolar_resumen_sitios(null, true) <> 0 then raise exception 'FALLO 272 · el resumen del mismo mes se prepara dos veces'; end if;
+  select token into tk from resumen_destinatarios where email = 'recepcion@destino272.prueba';
+  perform set_config('prueba.tk272', tk::text, false);
+end $$;
+-- LA BAJA, sin sesión: consultar no da de baja; confirmar sí, y lo que esperaba ya no sale.
+set role anon;
+do $$ declare tk uuid := current_setting('prueba.tk272')::uuid; begin
+  if baja_resumen_sitio(tk) ->> 'resultado' <> 'pendiente' or baja_resumen_sitio(tk) ->> 'resultado' <> 'pendiente' then raise exception 'FALLO 272 · abrir el enlace de baja ya da de baja'; end if;
+  if baja_resumen_sitio(tk, true) ->> 'resultado' <> 'ok' or baja_resumen_sitio(tk, true) ->> 'resultado' <> 'ya_de_baja' then raise exception 'FALLO 272 · la baja no se confirma'; end if;
+  if baja_resumen_sitio(gen_random_uuid(), true) ->> 'resultado' <> 'enlace_no_valido' then raise exception 'FALLO 272 · un enlace de baja inventado vale'; end if;
+end $$;
+reset role;
+do $$ begin
+  if (select estado from emails_enviados where tipo = 'resumen_sitio' and destinatario = 'recepcion@destino272.prueba') <> 'omitido' then
+    raise exception 'FALLO 272 · tras la baja, el resumen pendiente sigue saliendo';
+  end if;
+  -- Dado de baja: el mes siguiente ya no se le prepara.
+  delete from emails_enviados where tipo = 'resumen_sitio';
+  if encolar_resumen_sitios(null, true) <> 0 then raise exception 'FALLO 272 · se prepara el resumen a una dirección dada de baja'; end if;
+  raise notice 'OK 272 · resumen mensual a los sitios: apagado no sale; un solo email por dirección con todos sus clientes; sin el otro extremo de la ruta, sin discreción comercial y sin la nave del propio cliente; una vez al mes; y la baja funciona';
+end $$;
+

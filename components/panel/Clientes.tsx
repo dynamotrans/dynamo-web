@@ -19,6 +19,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
+import PagosCliente from './PagosCliente';
 
 // Contadores de uso del cliente (uso_clientes): consultas de precio y cancelaciones
 // con coste, los mismos criterios que la suspensión automática (usuario, 2026-11-11).
@@ -370,6 +371,9 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
           </select>
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.3rem', lineHeight: 1.4 }}>Empleado que captó o dio de alta al cliente, para el control de comisiones. Si se registró por la web queda <strong>Alta online</strong> (sin comisión de empleado).</div>
         </div>
+
+        {fila && <PagosCliente clienteId={fila.id}
+          onCreditoDevuelto={(v) => { set('riesgo_manual_euros', v as never); setTextos((t) => ({ ...t, dyn: v == null ? '' : String(v) })); }} />}
 
         {titulo('Contabilidad (Holded)')}
         {campo('cuenta_contable', <>Cuenta contable <Req si={false} /></>, 'Ej. 43000123')}

@@ -109,3 +109,112 @@ export async function usuariosDeCliente(cliente: string): Promise<UsuarioDeClien
     .eq('cliente_id', cliente).order('nombre', { ascending: true }).limit(100);
   return (data ?? []).map((u) => ({ id: u.id, nombre: u.nombre ?? '', email: u.email, estado: u.estado, cargo: u.cargo ?? '' }));
 }
+
+// ---- PAGOS TARDÍOS Y BLOQUEO DEL CRÉDITO (usuario, 2026-11-17) ---------------------------
+// Solo el Admin Master: la base de datos no deja ni leerlo a nadie más. Las facturas las
+// traerá Holded; mientras, se apuntan aquí a mano.
+export type FacturaCliente = { id: string; numero: string; fecha_emision: string; fecha_vencimiento: string | null; fecha_cobro: string | null; importe: number | null; no_cuenta: boolean; origen: string };
+export type EstadoPagos = {
+  dias_max: number; toleradas: number; miradas: number; desde_vencimiento: boolean; tardias: number; vencidas_sin_cobrar: number;
+  regla_propia: boolean; bloqueado_en: string | null; bloqueado_motivo: string | null;
+};
+export type PagosCliente = { activo: boolean; estado: EstadoPagos; regla: { dias_max: number | null; facturas_toleradas: number | null }; facturas: FacturaCliente[] };
+type ResPagos = { ok: true } | { ok: false; error: string };
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const ID = /^[0-9a-f-]{36}$/i;
+
+async function soloAdmin() {
+  const s = await sesion();
+  return s?.perfil && s.perfil.rol === 'admin' && s.perfil.estado === 'activa' ? s : null;
+}
+
+export async function pagosDeCliente(cliente: string): Promise<PagosCliente | null> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#pagosDeCliente", [cliente]);
+  const s = await soloAdmin();
+  if (!s || !ID.test(cliente)) return null;
+  const [est, regla, fac, act] = await Promise.all([
+    s.supabase.rpc('credito_pagos_estado', { p_cliente: cliente }),
+    s.supabase.from('clientes_pagos').select('dias_max, facturas_toleradas').eq('cliente_id', cliente).maybeSingle(),
+    s.supabase.from('facturas_cliente').select('id, numero, fecha_emision, fecha_vencimiento, fecha_cobro, importe, no_cuenta, origen')
+      .eq('cliente_id', cliente).order('fecha_emision', { ascending: false }).order('numero', { ascending: false }).limit(12),
+    s.supabase.from('parametros').select('valor').eq('clave', 'pago_tarde_activo').maybeSingle(),
+  ]);
+  if (est.error || !est.data) return null;
+  return {
+    activo: act.data?.valor === true, estado: est.data as unknown as EstadoPagos,
+    regla: { dias_max: regla.data?.dias_max ?? null, facturas_toleradas: regla.data?.facturas_toleradas ?? null },
+    facturas: (fac.data ?? []).map((f) => ({ ...f, importe: f.importe == null ? null : Number(f.importe) })),
+  };
+}
+
+// La regla propia del cliente: vacío = manda la general de Parámetros.
+export async function guardarReglaPagos(cliente: string, dias: number | null, toleradas: number | null): Promise<ResPagos> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#guardarReglaPagos", [cliente, dias, toleradas]);
+  const s = await soloAdmin();
+  if (!s) return { ok: false, error: 'Solo el Admin Master cambia la regla de pagos de un cliente.' };
+  if (!ID.test(cliente)) return { ok: false, error: 'Petición no válida.' };
+  if (dias != null && (!Number.isInteger(dias) || dias < 1 || dias > 365)) return { ok: false, error: 'Los días tienen que ser un número entre 1 y 365 (o vacío).' };
+  if (toleradas != null && (!Number.isInteger(toleradas) || toleradas < 0 || toleradas > 50)) return { ok: false, error: 'Las facturas toleradas tienen que ser un número entre 0 y 50 (o vacío).' };
+  const { error } = await s.supabase.from('clientes_pagos')
+    .upsert({ cliente_id: cliente, dias_max: dias, facturas_toleradas: toleradas, modificado_en: new Date().toISOString() }, { onConflict: 'cliente_id' });
+  return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
+}
+
+export async function anadirFactura(cliente: string, f: { numero: string; fecha_emision: string; fecha_vencimiento: string; fecha_cobro: string; importe: number | null }): Promise<ResPagos> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#anadirFactura", [cliente, f]);
+  const s = await soloAdmin();
+  if (!s) return { ok: false, error: 'Solo el Admin Master apunta facturas.' };
+  if (!ID.test(cliente)) return { ok: false, error: 'Petición no válida.' };
+  const numero = f.numero.trim();
+  if (!numero || numero.length > 60) return { ok: false, error: 'Pon el número de la factura.' };
+  if (!FECHA.test(f.fecha_emision)) return { ok: false, error: 'Pon la fecha de emisión.' };
+  for (const [k, v] of [['vencimiento', f.fecha_vencimiento], ['cobro', f.fecha_cobro]] as const) {
+    if (v && !FECHA.test(v)) return { ok: false, error: `La fecha de ${k} no es válida.` };
+    if (v && v < f.fecha_emision) return { ok: false, error: `La fecha de ${k} no puede ser anterior a la de emisión.` };
+  }
+  if (f.importe != null && (!Number.isFinite(f.importe) || f.importe < 0)) return { ok: false, error: 'El importe no es válido.' };
+  const { error } = await s.supabase.from('facturas_cliente').insert({
+    cliente_id: cliente, numero, fecha_emision: f.fecha_emision, fecha_vencimiento: f.fecha_vencimiento || null,
+    fecha_cobro: f.fecha_cobro || null, importe: f.importe,
+  });
+  if (error) return { ok: false, error: /duplicate key|facturas_cliente_cliente_id_numero/i.test(error.message) ? 'Ese número de factura ya está apuntado en este cliente.' : mensajeError(error.message) };
+  return { ok: true };
+}
+
+// Cambios sobre una factura ya apuntada: su fecha de cobro (vacía = sin cobrar) o si cuenta.
+export async function cambiarFactura(id: string, cambio: { fecha_cobro?: string | null; no_cuenta?: boolean }): Promise<ResPagos> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#cambiarFactura", [id, cambio]);
+  const s = await soloAdmin();
+  if (!s) return { ok: false, error: 'Solo el Admin Master cambia facturas.' };
+  if (!ID.test(id)) return { ok: false, error: 'Petición no válida.' };
+  if (cambio.fecha_cobro != null && cambio.fecha_cobro !== '' && !FECHA.test(cambio.fecha_cobro)) return { ok: false, error: 'La fecha de cobro no es válida.' };
+  const datos: { fecha_cobro?: string | null; no_cuenta?: boolean } = {};
+  if (cambio.fecha_cobro !== undefined) datos.fecha_cobro = cambio.fecha_cobro || null;
+  if (cambio.no_cuenta !== undefined) datos.no_cuenta = cambio.no_cuenta;
+  const { error } = await s.supabase.from('facturas_cliente').update(datos).eq('id', id);
+  if (error) return { ok: false, error: /fecha_cobro/i.test(error.message) ? 'La fecha de cobro no puede ser anterior a la de emisión.' : mensajeError(error.message) };
+  return { ok: true };
+}
+
+export async function borrarFactura(id: string): Promise<ResPagos> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#borrarFactura", [id]);
+  const s = await soloAdmin();
+  if (!s) return { ok: false, error: 'Solo el Admin Master borra facturas.' };
+  if (!ID.test(id)) return { ok: false, error: 'Petición no válida.' };
+  const { error } = await s.supabase.from('facturas_cliente').delete().eq('id', id);
+  return error ? { ok: false, error: mensajeError(error.message) } : { ok: true };
+}
+
+// Devolver el crédito a un cliente bloqueado: vuelve el crédito manual que tenía.
+export async function devolverCredito(cliente: string): Promise<{ ok: true; credito_manual: number | null } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#devolverCredito", [cliente]);
+  const s = await soloAdmin();
+  if (!s) return { ok: false, error: 'Solo el Admin Master devuelve un crédito bloqueado.' };
+  if (!ID.test(cliente)) return { ok: false, error: 'Petición no válida.' };
+  const { data, error } = await s.supabase.rpc('credito_desbloquear', { p_cliente: cliente });
+  if (error) return { ok: false, error: mensajeError(error.message) };
+  const r = data as { resultado?: string; credito_manual?: number | null } | null;
+  if (r?.resultado !== 'ok') return { ok: false, error: 'Este cliente no tiene el crédito bloqueado.' };
+  return { ok: true, credito_manual: r.credito_manual == null ? null : Number(r.credito_manual) };
+}
+
