@@ -127,7 +127,10 @@ test.describe('novedades', () => {
 
     // El transportista, sin cuenta: ve la carga en la bolsa y teclea su código en la web.
     const t = await (await browser.newContext({ locale: 'es-ES' })).newPage();
-    await t.goto('/carga');
+    // En la bolsa no caben direcciones web: entra por la portada y pulsa el botón naranja.
+    await t.goto('/');
+    await t.locator('#btn-aceptar-carga').click();
+    await expect(t).toHaveURL(/\/carga$/);
     await t.fill('#codigo-carga', cod === '999998' ? '999997' : '999998');
     await t.getByRole('button', { name: 'Ver la carga' }).click();
     await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();

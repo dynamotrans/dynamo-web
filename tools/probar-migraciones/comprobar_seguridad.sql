@@ -1170,7 +1170,8 @@ do $$ declare e uuid; gx text; n int; begin
   end if;
   update parametros set valor = '0' where clave = 'bolsa_espera_minutos';
   select count(*) into n from v_wtransnet where "REF." = gx and "Peso" = 24000 and "Arriba" = 'S'
-     and "Tipo Bolsa" = 'Completa' and "Comentarios Públicos" ~ '^Acéptala en dynamotrans\.com/carga con el código [1-9][0-9]{2} [0-9]{3}$' and "País destino" = 'ES';
+     and "Tipo Bolsa" = 'Completa' and "Comentarios Públicos" ~ '^Acepta esta carga en nuestra web: pulsa Aceptar carga y escribe el código [1-9][0-9]{2} [0-9]{3}$'
+     and "Comentarios Públicos" !~* '(https?:|www\.|\.(com|es|net|org|eu)([^a-z]|$))' and "País destino" = 'ES';
   if n <> 1 then raise exception 'FALLO 44 · el envio no sale bien en el fichero de Wtransnet'; end if;
   if exists (select 1 from v_wtransnet where "REF." = (select referencia_gx from envios
              where id = current_setting('prueba.envio')::uuid)) then
