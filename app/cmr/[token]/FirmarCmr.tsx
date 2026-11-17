@@ -45,13 +45,12 @@ type Bloque = { clave: string; titulo: string; casilla: string; firmante: string
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: CmrPublico; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
   const [abierto, setAbierto] = useState<Bloque | null>(null);
-  const [fin, setFin] = useState(false);   // pantalla de gracias tras «Está todo guardado»
+  const [fin, setFin] = useState(false);   // pantalla de «Todo guardado»: sale sola nada más firmar en esta visita
   // Firma EXTRA (usuario, 2026-11-09): hasta 3 además de las casillas de siempre. Se elige
   // la casilla y se abre la pantalla de firma normal; no ocupa la casilla ni anota reservas.
   const [eligiendoExtra, setEligiendoExtra] = useState(false);
   // Solo tras FIRMAR en esta visita (usuario, 2026-11-10): quien entra a mirar sin firmar
   // nada no ve el botón de salir.
-  const [firmoAqui, setFirmoAqui] = useState(false);
   const [compartir, setCompartir] = useState(false);     // ventana de compartir propia (mismo diseño en cualquier aparato)
   const [compartirPdf, setCompartirPdf] = useState(false);   // compartir el PDF del CMR con las firmas actuales (pantalla de «todo guardado»)
   // ABIERTA EN UN ORDENADOR (usuario, 2026-11-15): arriba, un QR de esta misma página para
@@ -69,6 +68,11 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       .then((u) => { if (vivo) setQrMovil(u); }).catch(() => {});
     return () => { vivo = false; };
   }, []);
+  // Al salir la pantalla de «Todo guardado» se lleva a la vista: quien acaba de firmar puede
+  // estar abajo del todo, en la casilla que firmó.
+  useEffect(() => {
+    if (fin) requestAnimationFrame(() => document.getElementById('cmr-guardado')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  }, [fin]);
   const [masInfo, setMasInfo] = useState(false);          // despliegue del detalle legal (eIDAS / FOM)
   // Aviso con tono de ALERTA antes de abrir la pantalla de firma (usuario, 2026-11-10):
   // quién firma y que el dispositivo queda registrado; «De acuerdo» sigue, «Cancelar» no.
@@ -129,9 +133,10 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // listando las casillas en el orden natural del recorrido.
   const pendientesVista = bloques.filter((b) => !firmas.has(b.clave));
   const firmadasVista = bloques.filter((b) => firmas.has(b.clave));
-  // «Está todo guardado» (usuario, 2026-11-11): ya NO se lleva a nadie a la web pública.
-  // Al pulsarlo, AQUÍ mismo sale la pantalla de gracias con un botón bien llamativo que
-  // abre el PDF del eCMR al día, con las firmas actuales. Solo tras firmar en esta visita.
+  // TRAS FIRMAR sale directamente la pantalla de «Todo guardado» (usuario, 2026-11-17: sin el
+  // botón intermedio «Está todo guardado · Terminar»): gracias, el PDF del eCMR al día para
+  // verlo o compartirlo, y «Seguir en la hoja de firmas», que la cierra. No se lleva a nadie
+  // a la web pública. Solo tras firmar en esta visita.
   const btnFin = fin ? (
     <div style={{ background: '#ecfdf5', border: '2px solid #1d9e57', borderRadius: 14, padding: '1.2rem 1rem', textAlign: 'center' }}>
       <div aria-hidden="true" style={{ width: 54, height: 54, margin: '0 auto 0.6rem', borderRadius: '50%', background: '#1d9e57', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 800 }}>✓</div>
@@ -159,12 +164,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         Seguir en la hoja de firmas
       </button>
     </div>
-  ) : (
-    <button type="button" className="firma-btn" onClick={() => setFin(true)} style={{ display: 'block', width: '100%', background: '#1d9e57', textAlign: 'center',
-      padding: '1rem 1.1rem', fontSize: '1.08rem', borderRadius: 12, boxShadow: '0 4px 14px rgba(29,158,87,0.35)', border: 'none', cursor: 'pointer' }}>
-      ✓ Está todo guardado · Terminar
-    </button>
-  );
+  ) : null;
   const extras = (cmr.firmas ?? []).filter((f) => f.extra);
   const hechas = bloques.filter((b) => firmas.has(b.clave)).length;
   // SIN TRANSPORTISTA NO SE FIRMA (usuario, 2026-11-10): sin camión asignado no se puede
@@ -284,7 +284,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           después se abren las demás firmas en esta misma página.
         </div>
       )}
-      {firmoAqui && <div style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
+      {fin && <div id="cmr-guardado" style={{ margin: '0 0 0.8rem' }}>{btnFin}</div>}
       {/* Caja AZUL con la misma cabecera que la hoja del panel: qué es esto y su validez
           legal, con el detalle eIDAS/FOM desplegable. JUSTO delante de la primera caja
           de firma (usuario, 2026-11-12), que es cuando toca leerla. */}
@@ -375,7 +375,6 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         </div>
       )}
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
-      {firmoAqui && <div style={{ margin: '0.8rem 0 0' }}>{btnFin}</div>}
       {/* EL PIE (usuario, 2026-11-17): la caja de «también pueden firmar aquí», con su botón
           de compartir la página, y debajo el texto legal. «Compartir el CMR en PDF» ya NO
           sale aquí, antes de firmar: solo en la pantalla de «Todo guardado», tras firmar. */}
@@ -421,7 +420,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           </div>
         </div>
       )}
-      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); setFirmoAqui(true); refrescar(); }} />}
+      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); setFin(true); refrescar(); }} />}
     </div>
   );
 }
