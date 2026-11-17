@@ -3,7 +3,7 @@
 // Clientes (solo Dynamo): tabla y ficha con el diseño de #sec-clientes de dashboard.html
 // (columnas Cliente · Contacto · Domicilio fiscal · Condiciones · Factor · Creado ·
 // Estado; ficha en la ventana del panel con la rejilla .ptar-sitio-grid).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -12,7 +12,7 @@ import LogoEditor from './LogoEditor';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import Cargando from '@/components/Cargando';
-import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
+import { guardarCliente, usuariosDeCliente, type ClienteDatos, type UsuarioDeCliente } from '@/app/panel/(app)/clientes/acciones';
 import { euros, fechaHora, numero } from '@/lib/formato';
 
 import { paisDe, telBonito } from '@/lib/paises';
@@ -178,6 +178,15 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
   });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Quién entra hoy en la plataforma por este cliente (solo al editar uno que ya existe).
+  const [usuarios, setUsuarios] = useState<UsuarioDeCliente[] | null>(null);
+  const clienteId = fila?.id ?? null;
+  useEffect(() => {
+    if (!clienteId) return;
+    let vivo = true;
+    usuariosDeCliente(clienteId).then((l) => { if (vivo) setUsuarios(l); }).catch(() => { if (vivo) setUsuarios([]); });
+    return () => { vivo = false; };
+  }, [clienteId]);
   const set = <K extends keyof ClienteDatos>(k: K, v: ClienteDatos[K]) => setD((x) => ({ ...x, [k]: v }));
 
   async function guardar() {
@@ -278,6 +287,32 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
           roles={[['trafico', 'Logística'], ['contabilidad', 'Contabilidad']]} funcionNueva="trafico"
           ayuda={<>La primera es la <strong>principal</strong> (la que sale en la tabla). Pon en <strong>Contabilidad</strong> a quien recibe las facturas.</>} />
+
+        {fila && <>
+          {titulo('Usuarios con acceso a la plataforma')}
+          <div id="cli-usuarios" style={{ gridColumn: '1/-1' }}>
+            {usuarios === null ? <div className="meta">Cargando…</div>
+              : usuarios.length === 0 ? <div className="meta">Nadie entra todavía en la plataforma por este cliente.</div>
+              : usuarios.map((u) => (
+                <div key={u.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '0.45rem 0', borderBottom: '1px solid var(--gray-200)' }}>
+                  <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                    <strong style={{ color: 'var(--navy)' }}>{u.nombre || 'Sin nombre'}</strong>{u.cargo ? ` · ${u.cargo}` : ''}
+                    <div className="meta">{u.email}</div>
+                  </span>
+                  <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span className={`badge ${u.estado === 'activa' ? 'badge-green' : u.estado === 'pendiente_verificacion' ? 'badge-orange' : 'badge-red'}`}>
+                      {u.estado === 'activa' ? 'Activa' : u.estado === 'pendiente_verificacion' ? 'Pendiente verif.' : u.estado === 'suspendida_total' ? 'Suspendida total' : 'Suspendida'}
+                    </span>
+                    <a className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+                      href={`/panel/usuarios?q=${encodeURIComponent(u.email)}`} target="_blank" rel="noopener">Abrir en Usuarios</a>
+                  </span>
+                </div>
+              ))}
+            <div className="meta" style={{ marginTop: '0.4rem' }}>
+              Para dar de alta a otro, quitarle el acceso o cambiarlo de empresa, ve a <a href="/panel/usuarios" target="_blank" rel="noopener" style={{ color: 'var(--purple)', fontWeight: 700 }}>Usuarios</a> (se abre en otra pestaña, sin perder lo que estés editando aquí).
+            </div>
+          </div>
+        </>}
 
         {titulo('Condiciones')}
         <div>

@@ -2,6 +2,7 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
+import { esDynamo } from '@/lib/roles';
 import type { ContactoDatos } from '@/lib/contactos';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
@@ -94,4 +95,17 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
   const e2 = await guardarContactos(s.supabase, { cliente_id: clienteId }, contactos);
   if (e2) return { ok: false, error: traducir(e2) };
   return { ok: true, id: clienteId };
+}
+
+// LOS USUARIOS DE UN CLIENTE (usuario, 2026-11-17): quién puede entrar hoy en la plataforma
+// por esa empresa, para verlo en su ficha sin ir usuario por usuario. Solo lectura y solo
+// para Dynamo; darles de alta, quitarles el acceso o cambiarlos de empresa se hace en Usuarios.
+export type UsuarioDeCliente = { id: string; nombre: string; email: string; estado: string; cargo: string };
+export async function usuariosDeCliente(cliente: string): Promise<UsuarioDeCliente[]> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#usuariosDeCliente", [cliente]);
+  const s = await sesion();
+  if (!s?.perfil || !esDynamo(s.perfil.rol) || !/^[0-9a-f-]{36}$/i.test(cliente)) return [];
+  const { data } = await s.supabase.from('usuarios').select('id, nombre, email, estado, cargo')
+    .eq('cliente_id', cliente).order('nombre', { ascending: true }).limit(100);
+  return (data ?? []).map((u) => ({ id: u.id, nombre: u.nombre ?? '', email: u.email, estado: u.estado, cargo: u.cargo ?? '' }));
 }
