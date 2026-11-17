@@ -310,27 +310,31 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
 
       // 16 Porteador: el texto fijo de Dynamo (usuario, 2026-11-11) — razón social, CIF
       // y la reserva online; en envíos MANUALES, el operador del cliente con CIF y teléfono.
+      // Las casillas 16 y 17 se escriben PEGADAS A LA IZQUIERDA, debajo de su rótulo, como
+      // el resto del impreso (usuario, 2026-11-17: salían a media casilla, con un hueco a
+      // la izquierda que no servía para nada). Con todo el ancho, cada dato cabe en su línea.
+      const X16 = 282, ANCHO16 = 64;
       if (manual) {
-        const nomLineas = l.partir(porteador.nombre, 8.4, 26 * 8.4 * 0.5, true).length;
-        dato(438, 224, [{ t: porteador.nombre, s: 8.4 }], 26);
-        dato(438, 224 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
+        const nomLineas = l.partir(porteador.nombre, 8.4, ANCHO16 * 8.4 * 0.5, true).length;
+        dato(X16, 224, [{ t: porteador.nombre, s: 8.4 }], ANCHO16);
+        dato(X16, 224 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 80);
       } else {
-        // Compacto: razón social en UNA línea (7.6pt cabe entera) e interlineado de 9pt,
-        // para que las 4 líneas queden dentro de la casilla sin pisar el borde de la 17.
-        const nl16 = l.partir(D.razon_social, 7.6, 32 * 7.6 * 0.5, true).length;
-        dato(438, 220, [{ t: D.razon_social, s: 7.6 }], 32);
-        const y16 = 220 + nl16 * 10 - 1;
-        dato(438, y16, [{ t: `CIF ${D.cif}`, s: 6.8, b: false }], 40);
-        dato(438, y16 + 9, [{ t: 'Reserva transporte ONLINE:', s: 6.8, b: false }], 40);
-        dato(438, y16 + 18, [{ t: D.web, s: 7.2 }], 40);
+        // Compacto: razón social en UNA línea e interlineado de 9pt, para que las 4 líneas
+        // queden dentro de la casilla sin pisar su rótulo ni el borde de la 17.
+        const nl16 = l.partir(D.razon_social, 7.6, ANCHO16 * 7.6 * 0.5, true).length;
+        dato(X16, 222, [{ t: D.razon_social, s: 7.6 }], ANCHO16);
+        const y16 = 222 + nl16 * 10 - 1;
+        dato(X16, y16, [{ t: `CIF ${D.cif}`, s: 6.8, b: false }], 80);
+        dato(X16, y16 + 9, [{ t: 'Reserva transporte ONLINE:', s: 6.8, b: false }], 80);
+        dato(X16, y16 + 18, [{ t: D.web, s: 7.2 }], 80);
       }
       // 17 Porteadores sucesivos: el transportista EFECTIVO con su CIF (DeCA: debe constar
       // frente al cargador contractual de la 16), su camión y su conductor.
-      dato(438, 270, [
+      dato(X16, 271, [
         { t: manual ? '' : [d.porteador?.razon_social, d.porteador?.cif && `CIF ${d.porteador.cif}`].filter(Boolean).join(' · ') || '—', s: 7.8, max: 2 },
         { t: [e.matricula_camion && `Matr. ${e.matricula_camion}`, e.matricula_remolque && `Rem. ${e.matricula_remolque}`].filter(Boolean).join(' · '), s: 7.4, b: false },
         { t: e.conductor_nombre ? `Conductor: ${e.conductor_nombre}` : '', s: 7.4, b: false },
-      ], 34);
+      ], ANCHO16);
       // 18 Reservas y observaciones del porteador
       const QUIEN: Record<string, string> = { remitente: 'Remitente', transportista: 'Porteador', destinatario: 'Destinatario' };
       // Cada reserva nombra la PARADA de quien la anotó (usuario, 2026-11-15):
