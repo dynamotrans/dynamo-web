@@ -8,17 +8,21 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ### v1 · ANTES DE ABRIR (lo de ahora)
 **Lo pone el usuario (el código ya está escrito):**
-> ✉️ **POSTMARK CONECTADO EN PRUEBAS (2026-11-16).** Dominio `dynamotrans.com` verificado (DKIM y Return-Path), cuenta aprobada, `POSTMARK_SERVER_TOKEN` y `SUPABASE_SERVICE_ROLE_KEY` en Vercel (**solo Preview**: la plataforma vive en la rama de pruebas) y token en el Vault de Supabase (`postmark_token`). La cola envía de verdad (comprobado: llegaron los avisos de las últimas 24 h) y el usuario da por buenas las pruebas. Lo que queda de esta tanda:
-> 1. **Plan de pago de Postmark antes de abrir a clientes**: el gratuito son 100 emails al mes y cada aviso con copia a Dynamo gasta 2.
-> 2. **Cambiar el token de Postmark**: el actual se vio en una captura. Generar otro, ponerlo en Vercel, en el Vault (`vault.update_secret`) y en el SMTP de Supabase, y borrar el viejo. Antes, mirar en Postmark → Activity qué más lo usa.
-> 3. **SMTP de Supabase con Postmark** (Authentication → Emails → SMTP Settings): confirmar con el usuario que está hecho; sin él los emails de registro y contraseña solo llegan a los miembros del proyecto.
-> 4. **Captcha real**: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (pública) y `TURNSTILE_SECRET_KEY` (*Secret*) en Vercel, entorno Preview — Cloudflare → Turnstile → crear sitio para `dynamotrans.com` y el dominio de la preview. Hoy va con claves de prueba y deja pasar a todo el mundo.
-> 5. Al pasar a producción: repetir claves y Vault en el entorno y el proyecto de Supabase de producción.
+> ✉️ **POSTMARK, SUPABASE Y CAPTCHA, AL DÍA EN PRUEBAS (2026-11-17).** Lo que el usuario dejó hecho y comprobado hoy:
+> - `SUPABASE_SERVICE_ROLE_KEY` en Vercel (Preview) corregida: tenía una clave no válida («Invalid API key» en el registro del servidor) y por eso no salía ningún email desde la web (proforma, orden de carga). Ahora lleva la clave `sb_secret_…` del proyecto y funciona (le llegó la orden de carga).
+> - **SMTP de Supabase con Postmark**: configurado (Sender name `Dynamotrans.com`); probado con «¿Olvidaste tu contraseña?» a una dirección ajena a Dynamo. Recordatorio automático apagado.
+> - **Token de Postmark cambiado**: el del 11-nov (salió en una captura) está BORRADO; todo usa el del 16-nov. Comprobado tras borrar: la orden de carga (vía Vercel) llega. **Falta comprobar la cola de la base de datos** (emails «Envío creado», matrículas…), que usa el token del Vault (`postmark_token`): si al crear un envío no llega su email, actualizar el Vault con `vault.update_secret`.
+> - **Captcha real**: widget «Dynamo» creado en Cloudflare Turnstile (`dynamotrans.com` + dominio de la preview); `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Config) y `TURNSTILE_SECRET_KEY` (Secret) en Vercel, Preview. La Secret Key salió en una captura y el usuario la ROTÓ antes de guardarla. Ya no sale «Solo para pruebas».
+> - Cuenta de Postmark **aprobada** (envía a cualquier dirección).
+>
+> Lo que queda de esta tanda:
+> 1. **🔔 PLAN DE PAGO DE POSTMARK — RECORDÁRSELO AL USUARIO** (él, 2026-11-17: «lo haré más adelante, déjamelo apuntado para recordármelo»). El gratuito son 100 emails al mes; el 17-nov llevaba 37. Al llegar a 100 Postmark deja de enviar hasta el mes siguiente. Recordárselo al empezar cada sesión mientras no esté hecho, y sin falta antes de una ronda grande de pruebas o de abrir a clientes.
+> 2. Al pasar a producción: repetir claves (Vercel entorno Production), Vault y SMTP en el proyecto de Supabase de producción, y añadir el dominio definitivo al widget de Turnstile.
 
 - [x] ~~**Postmark** (token en Vault de Supabase `postmark_token` + Vercel `POSTMARK_SERVER_TOKEN`)~~ **HECHO 2026-11-16** en pruebas. Regla nueva: un email que lleva más de 24 h pendiente ya no se manda (queda «omitido»).
 - [x] ~~**Clave de servicio de Supabase en Vercel** (`SUPABASE_SERVICE_ROLE_KEY`)~~ **HECHO 2026-11-16** (Preview).
 - [ ] **Stripe** (claves en Vercel) → pago de PROFORMAS con tarjeta (solo proformas en esta fase).
-- [ ] **Turnstile — CLAVES REALES DEL CAPTCHA (no olvidar; pedido el 2026-11-16)**: el captcha de Cloudflare ya está montado en registro y en «he olvidado mi contraseña», pero con las claves de prueba (siempre da por bueno). Crear el sitio en Cloudflare → Turnstile y poner en Vercel `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET_KEY`. No hay que tocar código. Después, comprobar que el recuadro ya no dice «Testing only» y que un registro normal sigue pasando.
+- [x] ~~**Turnstile — claves reales del captcha**~~ **HECHO 2026-11-17** (Preview): widget en Cloudflare y las dos variables en Vercel; el recuadro ya no dice «Solo para pruebas». Para producción: repetir las variables en el entorno Production.
 - [ ] **IBAN de Dynamo** en `parametros.dynamo_iban` (sale en las proformas).
 - [ ] **Supabase plan Pro** (los datos de prueba masivos no caben en el gratuito).
 - [ ] **2FA** en Supabase, GitHub, Vercel y el programa de gestión.
