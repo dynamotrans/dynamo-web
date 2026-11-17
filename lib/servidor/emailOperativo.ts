@@ -23,6 +23,9 @@ export async function enviarEmailOperativo(d: {
   // el nombre del remitente es su empresa, las respuestas le llegan a él (no a Dynamo) y
   // recibe copia. `texto` es la versión en texto llano del mismo cuerpo.
   deNombre?: string; responderA?: string; copia?: string; texto?: string;
+  // Sin la copia a Dynamo: solo para la orden que un cliente manda a SU transportista
+  // (usuario, 2026-11-17: Dynamo no interviene en ese envío, no pinta nada en copia).
+  sinCopiaDynamo?: boolean;
 }): Promise<ResultadoEmail> {
   try {
     const sb = supabaseServicio();
@@ -69,7 +72,7 @@ export async function enviarEmailOperativo(d: {
         // cuando el destinatario ya es Dynamo. (Las ofertas de la difusión, la única
         // excepción a la copia, no pasan por aquí: van por la cola de la base de datos.)
         ...(() => {
-          const cc = [d.copia, CONTACTO.email].filter((x): x is string => !!x && !d.para!.toLowerCase().includes(x.toLowerCase()));
+          const cc = [d.copia, d.sinCopiaDynamo ? null : CONTACTO.email].filter((x): x is string => !!x && !d.para!.toLowerCase().includes(x.toLowerCase()));
           return cc.length ? { Cc: [...new Set(cc.map((x) => x.toLowerCase()))].join(', ') } : {};
         })(),
         ...(d.adjuntos?.length ? { Attachments: d.adjuntos.map((a) => ({ Name: a.nombre, Content: a.base64, ContentType: a.tipo })) } : {}),

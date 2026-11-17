@@ -11554,3 +11554,77 @@ do $$ declare i uuid; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 268. Emails al transportista asignado (cancelado, retirado, modificado; nunca con precios) y precio a mano: solo Dynamo modifica ----
+do $$ declare e uuid; g uuid; t uuid; t2 uuid; r record; n int; cli uuid := current_setting('prueba.cliente')::uuid;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into transportistas (razon_social, cif) values ('Transportes 268 SL', 'B26800001') returning id into t;
+  insert into contactos (transportista_id, funcion, email) values (t, 'trafico', 'trafico268@t.prueba');
+  insert into transportistas (razon_social, cif) values ('Sin Email 268 SL', 'B26800002') returning id into t2;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 913, 707, lun, lun + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = e;
+  -- Sin transportista, los cambios no avisan a ninguno; asignarlo tampoco es «un cambio».
+  update envios set toneladas = 21 where id = e;
+  update envios set transportista_id = t where id = e;
+  if exists (select 1 from emails_enviados where envio_id = e and tipo like 'transportista_%') then
+    raise exception 'FALLO 268 · sale un email de cambios al transportista sin estar asignado o al asignarlo';
+  end if;
+  -- MODIFICADO: mercancía y fecha, en un solo email; sin precios.
+  update envios set toneladas = 23 where id = e;
+  update envios set fecha_carga_desde = lun + 1, fecha_carga_hasta = lun + 2 where id = e;
+  update envios set importe_transportista = 650, importe_cliente = 950 where id = e;   -- el precio no se manda
+  select count(*) into n from emails_enviados where envio_id = e and tipo = 'transportista_modificado';
+  if n <> 1 then raise exception 'FALLO 268 · los cambios al transportista no van en un solo email (%)', n; end if;
+  select * into r from emails_enviados where envio_id = e and tipo = 'transportista_modificado';
+  if r.destinatario <> 'trafico268@t.prueba' or r.estado <> 'pendiente' or r.asunto not like 'Envío modificado · envío #% (Sevilla → Coslada)' then
+    raise exception 'FALLO 268 · el email de cambios no va al contacto de tráfico del transportista: % · % · %', r.destinatario, r.estado, r.asunto;
+  end if;
+  if position('Mercancía' in r.cuerpo_html) = 0 or position('Fecha de carga:</strong> antes' in r.cuerpo_html) = 0 or position('te llamamos' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 268 · al email de cambios le falta la mercancía, la fecha o el aviso del precio: %', r.cuerpo_html;
+  end if;
+  if r.cuerpo_html ~ '(913|950|707|650),00' or position('Precio' in r.cuerpo_html) > 0 or position('€' in r.cuerpo_html) > 0 then
+    raise exception 'FALLO 268 · el email al transportista lleva precios: %', r.cuerpo_html;
+  end if;
+  -- RETIRADO: se pasa a otro (sin email en su ficha: queda como fallo para avisar a mano).
+  update envios set transportista_id = t2 where id = e;
+  select * into r from emails_enviados where envio_id = e and tipo = 'transportista_retirado';
+  if r.id is null or r.destinatario <> 'trafico268@t.prueba' or position('ya no está asignado a tu empresa' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 268 · al transportista al que se le retira el envío no le llega el email';
+  end if;
+  -- CANCELADO: al que lo tiene asignado ahora.
+  update envios set estado = 'cancelado' where id = e;
+  select * into r from emails_enviados where envio_id = e and tipo = 'transportista_cancelado';
+  if r.id is null or r.estado <> 'error' or r.destinatario <> '—' or position('no hay que realizar este transporte' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 268 · el email de cancelado al transportista sin email no queda registrado como fallo: %', r;
+  end if;
+  -- Un envío con transportista PROPIO del cliente no avisa a nadie (Dynamo no interviene): ya lo cubre la 266.
+
+  -- PRECIO A MANO: el envío solo lo modifica Dynamo.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, creado_por)
+    values (cli, 6, 5, 600, sumar_dias_habiles(current_date, 6), current_setting('prueba.u_cli')::uuid) returning id into g;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (g, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (g, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = g;
+  update envios set importe_cliente = 555, precio_fijado_a_mano = true where id = g;
+  perform set_config('prueba.g268', g::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare g uuid := current_setting('prueba.g268')::uuid; begin
+  if not (select precio_a_mano from mi_cambio_envio(g)) then raise exception 'FALLO 268 · la ficha del cliente no sabe que el precio es a mano'; end if;
+  begin
+    perform modificar_envio_cliente(g, jsonb_build_object('importe_cliente', 500, 'fecha_carga_desde', sumar_dias_habiles(current_date, 6),
+      'fecha_carga_hasta', sumar_dias_habiles(current_date, 6), 'metros_lineales', 6, 'toneladas', 5), null);
+    raise exception 'FALLO 268 · el cliente modifica un envío con el precio fijado a mano por Dynamo';
+  exception when others then
+    if sqlerrm not like '%precio acordado con Dynamo%' then raise; end if;
+  end;
+  raise notice 'OK 268 · el transportista asignado recibe email si su envío se modifica (un solo email, sin precios), se le retira o se cancela; y un envío con precio a mano solo lo modifica Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

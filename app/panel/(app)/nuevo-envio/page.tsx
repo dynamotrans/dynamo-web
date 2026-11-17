@@ -71,7 +71,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       // Con SU transportista (envío manual) lo modifica libremente mientras no esté cancelado
       // (usuario, 2026-11-16: «es suyo, no aplica nada»). Los de Dynamo, con sus reglas.
       const editable = !!x && (x.es_manual ? x.estado !== 'cancelado'
-        : x.estado === 'programado' && !!cb?.modificable && !cb.con_camion && cb.estado !== 'pendiente');
+        : x.estado === 'programado' && !!cb?.modificable && !cb.con_camion && !cb.precio_a_mano && cb.estado !== 'pendiente');
       if (!x || !editable) {
         redirect(`/panel/envios?ver=${sp.editar}`);
       }

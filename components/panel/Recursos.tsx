@@ -24,7 +24,7 @@ const MEDIDAS = {
     ['Carga máx. mercancía', '24.000 kg'], ['Palés europeos (120×80)', '33 uds.'], ['Palés americanos (120×100)', '26 uds.'],
   ],
   rigido: [
-    ['Largo (interior)', '8 m'], ['Ancho (interior)', '2,40 m'], ['Altura (interior)', '2,40 m'], ['Volumen aprox.', '46 m³'],
+    ['Largo (interior)', '8 m'], ['Ancho (interior)', '2,40 m'], ['Altura (interior)', '2,60 m'], ['Volumen aprox.', '50 m³'],
     ['Carga máx.', '14.000 kg'], ['Palés europeos (120×80)', '20 uds.'], ['Palés americanos (120×100)', '16 uds.'],
   ],
 } as const;

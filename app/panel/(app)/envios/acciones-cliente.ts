@@ -83,7 +83,7 @@ export async function enviarOrdenEnvioManual(envio: string, para: string): Promi
   const res = await enviarEmailOperativo({
     clave: `orden_propia:${perfil.id}:${envio}:${randomUUID()}`, tipo: 'orden_carga', envioId: envio, para: email,
     asunto: `Pedido de transporte ${ref} - ${empresa}`.slice(0, 180), html, texto,
-    deNombre: empresa ? `${empresa} (vía Dynamotrans.com)` : undefined, responderA: mio, copia: mio,
+    deNombre: empresa ? `${empresa} (vía Dynamotrans.com)` : undefined, responderA: mio, copia: mio, sinCopiaDynamo: true,
     adjuntos: [{ nombre: r.nombre, base64: Buffer.from(r.bytes).toString('base64'), tipo: 'application/pdf' }],
   });
   return res.estado === 'enviado' ? { ok: true, aviso: `Orden de carga enviada a ${email}.` } : { ok: false, error: res.error ?? 'No se ha podido enviar el email.' };

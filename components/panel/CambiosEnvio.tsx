@@ -67,10 +67,10 @@ export function modoModificar(e: { estado: string; es_manual?: boolean | null },
   if (e.es_manual || !cambio) return null;
   if (enMarcha(e.estado)) return 'llamar';
   if (!cambio.modificable) return null;
-  if (cambio.con_camion) return 'llamar';
+  if (cambio.con_camion || cambio.precio_a_mano) return 'llamar';
   return cambio.estado === 'pendiente' ? 'pendiente' : 'form';
 }
-type CambioMio = { estado: string; en: string | null; nota: string | null; modificable: boolean; con_camion: boolean };   // mi_cambio_envio()
+type CambioMio = { estado: string; en: string | null; nota: string | null; modificable: boolean; con_camion: boolean; precio_a_mano?: boolean | null };   // mi_cambio_envio()
 
 export function PedirCambio({ cambio }: { cambio: CambioMio | null }) {
   // Lo que queda de los cambios «pedidos» (antes del 2026-11-16 el cliente pedía el cambio
@@ -91,7 +91,8 @@ export function PedirCambio({ cambio }: { cambio: CambioMio | null }) {
 // Ventana «contáctanos»: el envío ya tiene transportista (o va en marcha) y no se puede
 // modificar desde aquí. Dynamo lo contrasta con el conductor; si no es viable, se cancela
 // y se reasigna camión.
-export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; referencia_cliente: string | null; estado: string; corte?: string | null }; onVolver: () => void }) {
+export function LlamarCambio({ e, onVolver, precioAMano = false }: { e: { referencia_gx: string; referencia_cliente: string | null; estado: string; corte?: string | null }; onVolver: () => void;
+  precioAMano?: boolean }) {   // el precio lo fijó Dynamo a mano: ese envío solo lo modifica Dynamo (usuario, 2026-11-17)
   const ref = `#${e.referencia_gx}`;
   const corte = e.corte ? new Date(e.corte) : null;
   const dentro = corte ? Date.now() < corte.getTime() : null;
@@ -105,7 +106,7 @@ export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; refe
     <Modal abierto onCerrar={onVolver} titulo={`Cambiar el envío ${ref}`}
       pie={<button className="btn-ghost" onClick={onVolver}>Cerrar</button>}>
       <div className="modal-warn-box">
-        <strong style={{ color: '#b42318' }}>{enMarcha(e.estado) ? 'Tu envío ya está en marcha' : 'Tu envío ya tiene transportista asignado'}: no se puede modificar desde la plataforma.</strong>
+        <strong style={{ color: '#b42318' }}>{enMarcha(e.estado) ? 'Tu envío ya está en marcha' : precioAMano ? 'Este envío tiene un precio acordado con Dynamo' : 'Tu envío ya tiene transportista asignado'}: no se puede modificar desde la plataforma.</strong>
         <div style={{ marginTop: '0.35rem' }}>Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), <strong>contáctanos cuanto antes</strong> por teléfono, WhatsApp o email: cuanto antes lo sepamos, más fácil es arreglarlo.</div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.9rem 0' }}>
@@ -114,6 +115,9 @@ export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; refe
         {btn(`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`URGENTE · Cambio en el envío ${ref}`)}&body=${encodeURIComponent(msg)}`, 'Email', 'var(--purple)')}
       </div>
       <div className="meta" style={{ margin: '-0.4rem 0 0.9rem' }}>Teléfono {CONTACTO.telefono} · WhatsApp {CONTACTO.whatsapp} · {CONTACTO.email}</div>
+      {precioAMano && !enMarcha(e.estado)
+        ? <div style={{ color: 'var(--gray-700)', lineHeight: 1.55 }}>Dinos qué necesitas cambiar y <strong>lo modificamos nosotros</strong>, revisando contigo el precio acordado. Modificar no tiene coste.</div>
+        : <>
       <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>Qué pasa cuando nos llamas</div>
       <ol style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: 1.55, color: 'var(--gray-700)' }}>
         <li>Lo <strong>comprobamos con el conductor</strong> al momento.</li>
@@ -125,6 +129,7 @@ export function LlamarCambio({ e, onVolver }: { e: { referencia_gx: string; refe
         </li>
         <li>Las cancelaciones fuera de plazo <strong>cuentan</strong>: si se repiten, la cuenta puede quedar suspendida.</li>
       </ol>
+        </>}
     </Modal>
   );
 }

@@ -165,7 +165,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       </Modal>
     );
   }
-  if (vista === 'llamar') return <LlamarCambio e={e} onVolver={() => setVista('ficha')} />;
+  if (vista === 'llamar') return <LlamarCambio e={e} onVolver={() => setVista('ficha')} precioAMano={!!e.cambio?.precio_a_mano && !e.cambio?.con_camion} />;
   if (vista === 'llamarCancelar') return <LlamarCancelar e={e} onVolver={() => setVista('ficha')} />;
   if (vista === 'enviarOrden') {
     const emailOk = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]{2,}$/.test(ordenPara.trim());
