@@ -36,7 +36,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   const [elegirAlb, setElegirAlb] = useState<AlbaranFila | null>(null);
   const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial);
-  const [filtro, setFiltro] = useState<'sin_pagar' | 'pagadas' | 'todas'>('sin_pagar');
+  const [filtro, setFiltro] = useState<'sin_pagar' | 'pagadas' | 'todas'>('todas');   // por defecto TODAS, sin filtrar por pendientes (usuario, 2026-11-17)
   const [q, setQ] = useState('');
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -81,9 +81,9 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
             placeholder={pestana === 'proformas' ? `Buscar por nº de envío${dynamo ? ', cliente' : ''}, referencia, importe…` : 'Buscar por nº de envío, ruta, nombre del archivo…'} />
           {pestana === 'proformas' && (
             <select className="filter-estado" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)} aria-label="Filtrar por pago">
+              <option value="todas">Todas</option>
               <option value="sin_pagar">Sin pagar</option>
               <option value="pagadas">Pagadas</option>
-              <option value="todas">Todas</option>
             </select>
           )}
         </div>
