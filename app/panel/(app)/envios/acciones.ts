@@ -652,7 +652,9 @@ export async function ampliarPlazoPago(envio: string): Promise<Res> {
 
 // Previo pago: Dynamo marca la transferencia, pasa el envío sin pago previo (cobro a
 // vencimiento, con motivo), lo exige a un envío concreto o deshace lo marcado.
-export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | 'exento' | 'requerir' | 'deshacer' | 'tarjeta', motivo?: string): Promise<Res> {
+// La TRANSFERENCIA no entra por aquí: va por registrarTransferenciaEnvio, que pide banco,
+// concepto y fecha (usuario, 2026-11-17: que no se marque una proforma de un solo toque).
+export async function marcarPagoEnvio(envio: string, accion: 'exento' | 'requerir' | 'deshacer' | 'tarjeta', motivo?: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/envios/acciones#marcarPagoEnvio", [envio, accion, motivo]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo marca el pago de un envío.' };
@@ -669,12 +671,31 @@ export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | '
   };
   if (r !== 'ok') return { ok: false, error: ERR[r] ?? r };
   return { ok: true, aviso: {
-    transferencia: 'Pago por transferencia registrado: el envío pasa a pendiente de asignar.',
     exento: 'Envío pasado sin pago previo (cobro a vencimiento): ya se puede ofertar y asignar.',
     requerir: 'El envío queda pendiente de pago: no se ofertará hasta que se pague.',
     deshacer: 'Deshecho: el envío vuelve a estar pendiente de pago.',
     tarjeta: 'Cobro con tarjeta aplicado: el envío queda pagado. Si el importe no cuadra, regulariza la diferencia en la factura o en Stripe.',
   }[accion] };
+}
+
+// Transferencia recibida: Dynamo da por pagada la proforma anotando el banco en el que ha
+// entrado, el concepto y el día de la transferencia. Lo valida y lo guarda la base de datos.
+export async function registrarTransferenciaEnvio(envio: string, d: { banco: string; concepto: string; fecha: string }): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#registrarTransferenciaEnvio", [envio, d]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo marca el pago de un envío.' };
+  const { data, error } = await s.supabase.rpc('registrar_transferencia_envio', { p_envio: envio, p_banco: d.banco, p_concepto: d.concepto, p_fecha: d.fecha });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado: string }).resultado;
+  const ERR: Record<string, string> = {
+    falta_banco: 'Elige el banco en el que ha entrado la transferencia.', concepto_largo: 'El concepto es demasiado largo (200 caracteres como mucho).',
+    fecha_no_valida: 'La fecha de la transferencia tiene que ser de los últimos 90 días y no posterior a hoy.',
+    no_existe: 'Ese envío no existe.', envio_manual: 'Es un envío con transportista propio del cliente: no lleva pago previo.',
+    no_pendiente: 'Ese envío ya no está pendiente de pago.',
+    envio_no_activo: 'El envío ya no está activo (cancelado o terminado). Si hay que reactivarlo, deshaz antes la cancelación.',
+  };
+  if (r !== 'ok') return { ok: false, error: ERR[r] ?? r };
+  return { ok: true, aviso: 'Pago por transferencia registrado: el envío pasa a pendiente de asignar.' };
 }
 
 // Cambio pedido por el CLIENTE: Dynamo lo acepta (se aplican las fechas pedidas; la ruta y

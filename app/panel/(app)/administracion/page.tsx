@@ -61,10 +61,15 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
   }
 
   // El nombre del cliente de cada envío con proforma (columna Cliente, solo Dynamo).
+  // Y el banco de la transferencia, que también es solo de Dynamo (usuario, 2026-11-17).
   const clientesEnvio = new Map<string, string>();
+  const bancoEnvio = new Map<string, string>();
   if (dynamo && pagosFilas.length) {
-    const { data } = await supabase.from('envios').select('id, clientes(nombre_visible)').in('id', pagosFilas.map((pg) => pg.envio_id).slice(0, 1000));
-    for (const e of data ?? []) if (e.clientes?.nombre_visible) clientesEnvio.set(e.id, e.clientes.nombre_visible);
+    const { data } = await supabase.from('envios').select('id, pago_banco, clientes(nombre_visible)').in('id', pagosFilas.map((pg) => pg.envio_id).slice(0, 1000));
+    for (const e of data ?? []) {
+      if (e.clientes?.nombre_visible) clientesEnvio.set(e.id, e.clientes.nombre_visible);
+      if (e.pago_banco) bancoEnvio.set(e.id, e.pago_banco);
+    }
   }
 
   const proformas: ProformaFila[] = [
@@ -80,7 +85,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
       id: pg.envio_id, tipo: 'envio', codigo: pg.referencia_gx, referencia_cliente: pg.referencia_cliente ?? '', cliente: clientesEnvio.get(pg.envio_id) ?? null,
       concepto: ['Transporte', envios.get(pg.envio_id)?.ruta].filter(Boolean).join(' · '),
       base: Number(pg.base ?? 0), total: Number(pg.total ?? 0), pagado_en: pg.pagado_en ?? null,
-      creado_en: envios.get(pg.envio_id)?.emitida ?? null,
+      creado_en: envios.get(pg.envio_id)?.emitida ?? null, banco: bancoEnvio.get(pg.envio_id) ?? null,
     })),
   ].sort((a, b) => (b.creado_en ?? '').localeCompare(a.creado_en ?? ''));
   const albaranes: AlbaranFila[] = (docs.data ?? []).map((d) => ({

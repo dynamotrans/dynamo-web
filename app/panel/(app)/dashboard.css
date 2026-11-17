@@ -4010,9 +4010,9 @@ input::-webkit-date-and-time-value { text-align: left; }
 /* Fecha de la tarjeta coloreada por rol: naranja recogida · verde entrega. */
 .ptar-sitio-head-fecha.shf-rec { color: var(--orange); }
 .ptar-sitio-head-fecha.shf-ent { color: var(--green-dark); }
-.ptar-sitio-head-dir { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 700; margin-top: 2px; }
-/* Nombre de empresa en la cabecera del sitio: SIN negrita (peso normal). */
-.ptar-sitio-head-empn { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 500; margin-top: 2px; }
+.ptar-sitio-head-dir { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 600; margin-top: 2px; }
+/* Dirección y empresa, con la MISMA letra (usuario, 2026-11-17). */
+.ptar-sitio-head-empn { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 600; margin-top: 2px; }
 .ptar-sitio-head-tel { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 500; margin-top: 1px; }
 .ptar-sitio-chev {
     flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;

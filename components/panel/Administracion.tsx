@@ -10,13 +10,15 @@ import Cargando from '@/components/Cargando';
 import Modal from './Modal';
 import { avisarNavegando } from '@/components/panel/CargandoNavegacion';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
-import { marcarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
+import { marcarPagoEnvio, registrarTransferenciaEnvio } from '@/app/panel/(app)/envios/acciones';
+import FormTransferencia, { type DatosTransferencia } from './FormTransferencia';
 import { euros, fecha } from '@/lib/formato';
 
 export type ProformaFila = {
   // Proformas de ENVÍOS y de almacenamientos en la misma lista (usuario, 2026-11-14).
   id: string; tipo: 'almacenamiento' | 'envio'; codigo: string; referencia_cliente: string; cliente: string | null;
   concepto: string; base: number; total: number; pagado_en: string | null; creado_en: string | null;
+  banco?: string | null;   // banco de la transferencia (solo lo recibe Dynamo)
 };
 export type AlbaranFila = {
   id: string; tipo: string; nombre: string; envio_id: string; creado_en: string; visible_cliente: boolean; gx: string | null; ruta: string;
@@ -40,6 +42,9 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   const [q, setQ] = useState('');
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  // Marcar una proforma de envío como pagada pide banco, concepto y fecha en una ventana
+  // (usuario, 2026-11-17: que no se marque por error de un solo toque).
+  const [transferir, setTransferir] = useState<ProformaFila | null>(null);
 
   const sinPagar = proformas.filter((p) => !p.pagado_en).length;
   const lista = useMemo(() => {
@@ -53,14 +58,27 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   }, [pestana, filtro, q, proformas, albaranes]);
 
   async function pagar(p: ProformaFila, pagado: boolean) {
+    // La transferencia de un ENVÍO no se marca de un toque: abre su ventana.
+    if (p.tipo === 'envio' && pagado) { setAviso(null); setTransferir(p); return; }
     setAviso(null); setTrabajando(pagado ? 'Marcando como pagada' : 'Quitando el pago');
-    // El pago de un ENVÍO se marca con su propia acción (transferencia recibida /
-    // deshacer); tarjeta y exento viven en la ficha del envío, con sus motivos.
-    const r = p.tipo === 'envio' ? await marcarPagoEnvio(p.id, pagado ? 'transferencia' : 'deshacer') : await marcarPagadoAlmacenamiento(p.id, pagado);
+    // El pago de un ENVÍO se deshace con su propia acción; tarjeta y exento viven en la
+    // ficha del envío, con sus motivos.
+    const r = p.tipo === 'envio' ? await marcarPagoEnvio(p.id, 'deshacer') : await marcarPagadoAlmacenamiento(p.id, pagado);
     setTrabajando(null);
     if (!r.ok) { setAviso(r.error); return; }
     refrescar();
   }
+
+  async function confirmarTransferencia(d: DatosTransferencia) {
+    if (!transferir) return;
+    setTrabajando('Marcando como pagada');
+    const r = await registrarTransferenciaEnvio(transferir.id, d);
+    setTrabajando(null);
+    if (!r.ok) { setAviso(r.error); return; }
+    setTransferir(null); refrescar();
+  }
+  // Pulsar una proforma de envío lleva al detalle del envío (usuario, 2026-11-17).
+  const alEnvio = (p: ProformaFila) => { if (p.tipo !== 'envio') return; avisarNavegando(); router.push(`/panel/envios?ver=${p.id}`); };
 
   return (
     <section className="section active" id="sec-facturas">
@@ -100,23 +118,24 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                     {proformas.length ? 'No hay proformas con este filtro.' : 'Aún no hay proformas. Salen solas de los envíos con pago por adelantado; también las tienes en la ficha de cada envío.'}
                   </td></tr>
                 ) : (lista as ProformaFila[]).map((p) => (
-                  <tr key={p.id}>
+                  <tr key={p.id} onClick={() => alEnvio(p)} style={p.tipo === 'envio' ? { cursor: 'pointer' } : undefined}
+                    title={p.tipo === 'envio' ? 'Abrir el detalle del envío' : undefined}>
                     <td className="ref"><strong>#{p.codigo}</strong><div className="meta">{p.creado_en ? `Emitida el ${fecha(diaMadrid(p.creado_en))}` : ''}{p.referencia_cliente ? `${p.creado_en ? ' · ' : ''}${p.referencia_cliente}` : ''}</div></td>
                     {dynamo && <td>{p.cliente ?? '—'}</td>}
                     <td>{p.concepto}</td>
                     <td>{euros(p.base)}</td>
                     <td><strong>{euros(p.total)}</strong></td>
                     <td>{p.pagado_en
-                      ? <span className="badge badge-entregado">Pagada el {fecha(diaMadrid(p.pagado_en))}</span>
+                      ? <><span className="badge badge-entregado">Pagada el {fecha(diaMadrid(p.pagado_en))}</span>{p.banco ? <div className="meta">{p.banco}</div> : null}</>
                       : <span className="badge badge-red">Sin pagar</span>}
                       {gestor && <div style={{ marginTop: '0.3rem' }}>
-                        <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', fontSize: 'var(--fs-s)' }} onClick={() => pagar(p, !p.pagado_en)}>
+                        <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', fontSize: 'var(--fs-s)' }} onClick={(ev) => { ev.stopPropagation(); pagar(p, !p.pagado_en); }}>
                           {p.pagado_en ? 'Quitar pago' : p.tipo === 'envio' ? 'Transferencia recibida' : 'Marcar pagada'}
                         </button>
                       </div>}
                     </td>
                     <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                      <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem' }} onClick={() => abrir(`/panel/${p.tipo === 'envio' ? 'envios' : 'almacenamientos'}/${p.id}/proforma`)}>Ver PDF</button>
+                      <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem' }} onClick={(ev) => { ev.stopPropagation(); abrir(`/panel/${p.tipo === 'envio' ? 'envios' : 'almacenamientos'}/${p.id}/proforma`); }}>Ver PDF</button>
                     </td>
                   </tr>
                 ))}
@@ -151,6 +170,16 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
         )}
       </>}
       {trabajando && <Cargando texto={trabajando} />}
+      {transferir && (
+        <Modal abierto onCerrar={() => { if (!trabajando) setTransferir(null); }} titulo={`Marcar como pagada · PRO-${transferir.codigo}`}
+          sub={`${transferir.cliente ? `${transferir.cliente} · ` : ''}${euros(transferir.total)} (IVA incl.)`}>
+          <p style={{ margin: '0 0 0.7rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
+            Confirma dónde y cuándo ha entrado la transferencia. Al marcarla, el envío pasa a <strong>pendiente de asignar</strong>.
+          </p>
+          {aviso && <div className="pt-aviso error" role="alert"><div>{aviso}</div></div>}
+          <FormTransferencia gx={transferir.codigo} ocupado={!!trabajando} onCancelar={() => setTransferir(null)} onConfirmar={confirmarTransferencia} />
+        </Modal>
+      )}
       {elegirAlb && (
         <Modal abierto onCerrar={() => setElegirAlb(null)}
           titulo={`${elegirAlb.tipo === 'cmr_firmado' ? 'CMR firmado' : 'Albarán'} · ${elegirAlb.gx ? `#${elegirAlb.gx}` : 'envío'}`}

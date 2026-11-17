@@ -62,8 +62,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
       {opc(`${p.k}:ind`, <>Indicaciones del sitio <Req si={false} /><span style={{ color: 'var(--gray-500)', fontWeight: 600 }}> · vale para TODOS los envíos del sitio</span></>, f.notas, (<>
         <textarea className="campo-texto" rows={3} value={f.notas} placeholder={'Ej. "cargar por muelle 3", "traer 14 cintas de amarre", "preguntar por Paco para cargas"'}
           onChange={(e) => set(p, { notas: e.target.value })} />
-        <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>Las ven transportista y cliente: salen siempre con este sitio en la orden de carga y en la ficha del envío.</div>
+        {/* Todo seguido, en un solo párrafo (usuario, 2026-11-17). */}
         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
+          Las ven transportista y cliente: salen siempre con este sitio en la orden de carga y en la ficha del envío.{' '}
           Se guarda en la ficha del sitio. Si no quieres cambiarlo, no toques nada; si es algo solo de este envío,
           ponlo abajo en «{p.tipo === 'carga' ? 'A recoger' : 'A entregar'} (Añadir detalle de mercancía y/o anotaciones)».
         </div>
@@ -133,19 +134,8 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}
                 {dir && <span className="ptar-sitio-head-dir">{dir}</span>}
                 {f.empresa && <span className="ptar-sitio-head-empn">{f.empresa}</span>}
-                {/* Teléfonos de contacto del sitio (usuario, 2026-11-10): el principal (con lo
-                    editado en la tarjeta), los demás guardados con teléfono y los añadidos aquí. */}
-                {(() => {
-                  const guardados = (p.sitio ? (datos[p.sitio.id]?.contactos ?? []) : []).filter((c) => c.id !== f.contacto_id);
-                  const tels = [
-                    ...(f.telefono.trim() ? [{ nombre: f.contacto.trim(), telefono: f.telefono.trim() }] : []),
-                    ...guardados.map((c) => ({ nombre: c.nombre.trim(), telefono: c.telefono.trim() })),
-                    ...(ed?.extra ?? []).filter((x) => x.telefono.trim()).map((x) => ({ nombre: x.nombre.trim(), telefono: x.telefono.trim() })),
-                  ];
-                  return tels.map((c, j) => (
-                    <span key={j} className="ptar-sitio-head-tel">Teléfono (contacto {j + 1}): {c.telefono}{c.nombre ? ` (${c.nombre})` : ''}</span>
-                  ));
-                })()}
+                {/* Los teléfonos ya NO se repiten en la cabecera (usuario, 2026-11-17): están en
+                    «Contacto del sitio» al desplegar la tarjeta. */}
                 {(falta || faltaCampos) && <span className="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>}
               </span>
               <Chevron />
@@ -185,9 +175,11 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {/* ORDEN (usuario, 2026-11-17): primero el contacto del sitio y después el
                       horario, con la cita previa dentro. */}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
-                  {/* El nombre va ANTES de los campos de teléfono (usuario, 2026-11-09). */}
-                  {opc(`${p.k}:nom`, <>Nombre y apellidos <Req si={false} /></>, f.contacto,
-                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} />)}
+                  {/* El nombre va ANTES del teléfono (usuario, 2026-11-09) y SIEMPRE a la vista, sin
+                      plegar: un campo normal, como los de los contactos que se añaden (usuario,
+                      2026-11-17). Nombre y teléfono en la misma fila; el email, debajo. */}
+                  <div><label>Nombre y apellidos <Req si={false} /></label>
+                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
                   <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
                   {/* La explicación del email va en un tooltip ⓘ (usuario, 2026-11-10). */}
@@ -207,7 +199,8 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                           <input value={x.nombre} placeholder="Persona de contacto" onChange={(e) => setExtra(p, xi, { nombre: e.target.value })} /></div>
                         <div><label>Teléfono <Req si={false} /></label>
                           <CampoTelefono valor={x.telefono} onCambio={(v) => setExtra(p, xi, { telefono: v })} /></div>
-                        <div><label>Email <Req si={false} /></label>
+                        {/* El email, «Muy útil» con su ⓘ, igual que en el primer contacto (usuario, 2026-11-17). */}
+                        <div><label>Email <Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></label>
                           <input type="text" inputMode="email" value={x.email} placeholder="Ej. nombre@empresa.com" onChange={(e) => setExtra(p, xi, { email: e.target.value })} /></div>
                       </div>
                     </div>

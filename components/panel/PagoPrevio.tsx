@@ -4,10 +4,11 @@
 // con IVA y lo que puede hacer Dynamo (transferencia recibida, pasar sin pago previo con
 // motivo, exigirlo, deshacer). Las reglas las impone la base de datos (marcar_pago_envio).
 import { useState } from 'react';
-import { euros, fechaHora, porcentaje } from '@/lib/formato';
+import { euros, fecha, fechaHora, porcentaje } from '@/lib/formato';
 
 import type { Ficha } from '@/lib/fichaEnvio';
-import { marcarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
+import { marcarPagoEnvio, registrarTransferenciaEnvio } from '@/app/panel/(app)/envios/acciones';
+import FormTransferencia from './FormTransferencia';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -18,6 +19,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
   envio: { id: string; estado: string; referencia_gx: string; stripe_cobro_sin_aplicar?: string | null }; pago: Ficha['pago']; libre: boolean; hacer: Hacer;
 }) {
   const [exento, setExento] = useState(false);
+  const [transferencia, setTransferencia] = useState(false);   // abierto el formulario de banco, concepto y fecha
   const [motivo, setMotivo] = useState('');
   const [falta, setFalta] = useState<string | null>(null);
   if (!pago) {
@@ -50,9 +52,16 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
         )}
         {pago.provisional && <div style={{ marginTop: '0.3rem' }}>Precio <strong>provisional</strong>: el plazo para pagar empieza cuando se revise el precio.</div>}
         {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{fechaHora(pago.limite)}</strong>. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
-        {!exento ? (
+        {transferencia ? (
+          // Un toque ya no basta (usuario, 2026-11-17): banco, concepto y fecha antes de marcarla.
+          <div style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
+            <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>Transferencia recibida · PRO-{envio.referencia_gx}</div>
+            <FormTransferencia gx={envio.referencia_gx} onCancelar={() => setTransferencia(false)}
+              onConfirmar={async (d) => { if (await hacer('Guardando', () => registrarTransferenciaEnvio(envio.id, d))) setTransferencia(false); }} />
+          </div>
+        ) : !exento ? (
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={() => hacer('Guardando', () => marcarPagoEnvio(envio.id, 'transferencia'))}>Ha llegado la transferencia</button>
+            <button className="btn-primary" onClick={() => setTransferencia(true)}>Ha llegado la transferencia</button>
             <button className="btn-ghost" onClick={() => setExento(true)}>Pasar sin pago previo (cobro a vencimiento)</button>
           </div>
         ) : (
@@ -87,6 +96,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
     <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>
       {pago.estado === 'pagado'
         ? <><strong>Pagado por adelantado</strong> {pago.metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{pago.pagado_en ? ` el ${fechaHora(pago.pagado_en)}` : ''} · {total}{desglose}.
+            {pago.banco && <><br /><span id="pago-transferencia-datos">Banco: <strong>{pago.banco}</strong>{pago.fecha_transferencia ? <> · transferencia del <strong>{fecha(pago.fecha_transferencia)}</strong></> : null}{pago.concepto ? <> · «{pago.concepto}»</> : null}</span></>}
             {/* Proforma vinculada (usuario, 2026-11-15): la misma que viaja en el concepto del pedido de venta. */}
             <br />Proforma relacionada: <a href={`/panel/envios/${envio.id}/proforma`} target="_blank" rel="noopener"><strong>PRO-{envio.referencia_gx}</strong></a>
             <span style={{ color: 'var(--gray-500)' }}> · va en el concepto del pedido de venta al exportar</span></>

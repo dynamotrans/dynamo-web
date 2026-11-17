@@ -484,8 +484,8 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         {e.pagoVuelta === 'cancelado' && <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Has salido del pago con tarjeta sin pagar. Puedes intentarlo de nuevo o pagar por transferencia.</div>}
         <div><strong style={{ color: '#b42318' }}>{resto ? 'Falta por pagar' : 'Pendiente de pago'} · {total}</strong> (IVA incluido).</div>
         {resto && <div style={{ marginTop: '0.3rem' }}>Has modificado el envío y el precio ha subido: ya tenías pagados <strong>{euros(aCuenta)}</strong> y el envío cuesta ahora <strong>{euros(Number(p.total))}</strong>. <strong>El envío no sigue adelante hasta que pagues la diferencia.</strong></div>}
-        <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: este' : p.pago_motivo?.startsWith('Uno de los') ? 'Es uno de tus primeros envíos con nosotros: este' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: este' : 'Este'} envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong> La fecha de carga se confirma al recibirlo: si llega cuando ya no da tiempo, la carga pasa al primer día posible (con el mismo tipo de fecha que elegiste) y te avisamos.</div>
-        {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
+        <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: este' : p.pago_motivo?.startsWith('Uno de los') ? 'Es uno de tus primeros envíos con nosotros: este' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: este' : 'Este'} envío se paga por adelantado. <strong>Pasamos a programación en cuanto recibimos el pago.</strong></div>
+        {p.pago_limite && <div style={{ marginTop: '0.6rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
         ) : <>
@@ -497,7 +497,7 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         </div>
         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
           {e.tarjeta ? 'Con tarjeta se confirma al momento. ' : 'El pago con tarjeta estará disponible muy pronto. '}
-          Con <strong>tarjeta</strong> el envío queda <strong>pagado al momento</strong>. Por <strong>transferencia</strong>, usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y <strong>avísanos cuando la hagas</strong> (teléfono, WhatsApp o email): la validamos en horario de oficina.
+          Con <strong>tarjeta</strong> el envío pasa a <strong>programación de envíos al momento</strong>. Por <strong>transferencia</strong>, usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y <strong>avísanos cuando la hagas</strong> (teléfono, WhatsApp o email): la validamos en horario de oficina.
         </div>
         </>}
       </div>

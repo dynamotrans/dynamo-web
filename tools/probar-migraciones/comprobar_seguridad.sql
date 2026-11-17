@@ -12255,3 +12255,59 @@ do $$ declare e uuid := current_setting('prueba.e276')::uuid; begin
     raise exception 'FALLO 277 · los documentos adicionales alteran las páginas del CMR en papel'; end if;
   raise notice 'OK 277 · documentos adicionales por el enlace: solo los «doc-» de ese enlace, sin duplicar, ocultos al cliente y con aviso a Dynamo';
 end $$;
+
+
+-- ---- 278. Marcar la transferencia con banco, concepto y fecha ----
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; c record; begin
+  -- Un envío pendiente de pago; si no queda ninguno, se le pide el pago a uno programado.
+  select id into e from envios where estado = 'programado' and estado_pago_previo = 'pendiente' and not coalesce(es_manual, false)
+   order by creado_en desc limit 1;
+  if e is null then
+    for c in select id from envios where estado = 'programado' and estado_pago_previo = 'no_requerido' and not coalesce(es_manual, false) and transportista_id is null loop
+      if (marcar_pago_envio(c.id, 'requerir', 'Prueba 278')) ->> 'resultado' = 'ok' then e := c.id; exit; end if;
+    end loop;
+  end if;
+  if e is null then raise exception 'FALLO 278 · no hay ningún envío pendiente de pago para la prueba'; end if;
+  perform set_config('prueba.e278', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform registrar_transferencia_envio(current_setting('prueba.e278')::uuid, 'BBVA', 'Pago', (now() at time zone 'Europe/Madrid')::date);
+    raise exception 'FALLO 278 · un cliente marca una transferencia';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e278')::uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; r jsonb; x record; begin
+  if (registrar_transferencia_envio(e, ' ', 'Pago', hoy)) ->> 'resultado' <> 'falta_banco' then raise exception 'FALLO 278 · se marca sin banco'; end if;
+  if (registrar_transferencia_envio(e, 'BBVA', 'Pago', hoy + 1)) ->> 'resultado' <> 'fecha_no_valida' then raise exception 'FALLO 278 · se marca con una fecha futura'; end if;
+  if (registrar_transferencia_envio(e, 'BBVA', 'Pago', hoy - 200)) ->> 'resultado' <> 'fecha_no_valida' then raise exception 'FALLO 278 · se marca con una fecha de hace 200 días'; end if;
+  if (registrar_transferencia_envio(e, 'BBVA', 'Pago', null)) ->> 'resultado' <> 'fecha_no_valida' then raise exception 'FALLO 278 · se marca sin fecha'; end if;
+  if (registrar_transferencia_envio(e, 'BBVA', repeat('x', 201), hoy)) ->> 'resultado' <> 'concepto_largo' then raise exception 'FALLO 278 · se marca con un concepto de más de 200 caracteres'; end if;
+  -- Nada de lo anterior ha marcado el pago.
+  if (select estado_pago_previo from envios where id = e) <> 'pendiente' then raise exception 'FALLO 278 · un intento con datos malos marca el pago'; end if;
+  r := registrar_transferencia_envio(e, ' CaixaBank ', ' Pago proforma GX - 17/11/26 ', hoy - 1);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 278 · no se marca la transferencia: %', r; end if;
+  select estado_pago_previo, pago_metodo, pagado_en, pago_banco, pago_concepto, pago_fecha into x from envios where id = e;
+  if x.estado_pago_previo <> 'pagado' or x.pago_metodo <> 'transferencia' or x.pagado_en is null
+     or x.pago_banco <> 'CaixaBank' or x.pago_concepto <> 'Pago proforma GX - 17/11/26' or x.pago_fecha <> hoy - 1 then
+    raise exception 'FALLO 278 · el envío no queda pagado con su banco, concepto y fecha: %', row_to_json(x); end if;
+  if (registrar_transferencia_envio(e, 'BBVA', 'Otra vez', hoy)) ->> 'resultado' <> 'no_pendiente' then raise exception 'FALLO 278 · se marca dos veces'; end if;
+  if (select pago_banco from envios where id = e) <> 'CaixaBank' then raise exception 'FALLO 278 · el segundo intento pisa el banco'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e278')::uuid; x record; begin
+  -- Al deshacer el pago, los datos de la transferencia se vacían.
+  update envios set estado_pago_previo = 'pendiente', pago_metodo = null, pagado_en = null where id = e;
+  select pago_banco, pago_concepto, pago_fecha into x from envios where id = e;
+  if x.pago_banco is not null or x.pago_concepto is not null or x.pago_fecha is not null then
+    raise exception 'FALLO 278 · al deshacer el pago quedan los datos de la transferencia: %', row_to_json(x); end if;
+  raise notice 'OK 278 · transferencia con banco, concepto y fecha: solo Dynamo, datos validados, una sola vez, y se vacían al deshacer el pago';
+end $$;

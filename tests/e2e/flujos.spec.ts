@@ -17,6 +17,9 @@ async function envioListo(page: Page): Promise<string> {
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${id}`);
     await page.getByRole('button', { name: 'Ha llegado la transferencia' }).click();
+    // Marcarla pide banco, concepto y fecha (el concepto y la fecha ya vienen puestos).
+    await page.selectOption('#tr-banco', 'CaixaBank');
+    await page.locator('#tr-confirmar').click();
     await expect.poll(async () => (await ultimoEnvio()).estado_pago_previo).toBe('pagado');
   }
   return id;
@@ -40,6 +43,9 @@ test.describe.serial('flujos clave', () => {
     await entrar(page, 'dynamo');
     await page.goto(`/panel/envios?ver=${envio}`);
     await page.getByRole('button', { name: 'Ha llegado la transferencia' }).click();
+    // Marcarla pide banco, concepto y fecha (el concepto y la fecha ya vienen puestos).
+    await page.selectOption('#tr-banco', 'CaixaBank');
+    await page.locator('#tr-confirmar').click();
     await expect.poll(async () => (await ultimoEnvio()).estado_pago_previo).toBe('pagado');
   });
 

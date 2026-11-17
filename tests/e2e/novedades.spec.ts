@@ -111,6 +111,9 @@ test.describe('novedades', () => {
     await page.goto(`/panel/envios?ver=${e.id}`);
     if (e.estado_pago_previo === 'pendiente') {
       await page.getByRole('button', { name: 'Ha llegado la transferencia' }).click();
+      // Marcarla pide banco, concepto y fecha (el concepto y la fecha ya vienen puestos).
+      await page.selectOption('#tr-banco', 'CaixaBank');
+      await page.locator('#tr-confirmar').click();
       await expect.poll(async () => (await ultimoEnvio()).estado_pago_previo).toBe('pagado');
     }
     const { data: fila } = await bd().from('envios').select('codigo_aceptacion, token_publico, referencia_gx').eq('id', e.id).single();
