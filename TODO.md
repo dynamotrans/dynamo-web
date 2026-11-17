@@ -198,6 +198,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       Se reutilizan los parámetros `holded_*` que ya existen (numeración, canales de venta/compra: no son secretos).
       **Necesita al usuario**: la clave de la API de Holded + que la gestoría confirme **serie de facturas** y
       **cuentas contables** (venta, compra, autofactura si se hace).
+      **🔴 Idea del usuario (2026-11-17) — RETIRAR EL CRÉDITO SOLO A QUIEN PAGA TARDE** (se construye CON esta conexión: hacen falta la fecha de emisión y la de cobro de cada factura):
+      - Regla general en Parámetros: **días máximos para pagar** (p. ej. 70, contados desde la emisión), **cuántas de las últimas N facturas** pueden pasarse (p. ej. 2 de las últimas 3). Si se cumple, el crédito del cliente queda a **cero** automáticamente: envíos nuevos solo con pago previo, hasta que pague o se negocie.
+      - **Excepción por cliente**, en su ficha y solo para Admin: los mismos dos valores. En blanco → manda la regla general; con valor → manda el suyo (p. ej. un buen cliente: 100 días y hasta 5 facturas).
+      - El cliente y sus usuarios **no ven nada** de esto: solo que no tienen crédito disponible (el email «Línea de crédito retirada» ya existe).
+      - Propuestas pendientes de que el usuario las confirme: (a) contar también las facturas **sin pagar** que ya han pasado el plazo (si no, quien no paga nunca no salta); (b) **no borrar** el crédito que tenía: bloquearlo con su motivo y fecha, para devolvérselo con un botón; (c) que **no se levante solo**: aviso a Dynamo cuando se ponga al día y decide Dynamo; (d) aviso a Dynamo (campana + email) en cada bloqueo, con las facturas que lo han causado; (e) dejar fuera abonos y facturas en disputa; (f) el bloqueo vale lo que valga lo al día que esté Holded con los cobros.
  — apartado MUY importante (usuario, 2026-11-03). Plan
       completo, proveedores y catálogo de avisos en **`NOTIFICACIONES.md`**. Pendiente: que el usuario pegue
       en Vercel las credenciales de WhatsApp (Meta) y de Postmark, y revisar el catálogo caso a caso.
