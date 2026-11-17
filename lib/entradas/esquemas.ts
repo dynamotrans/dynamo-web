@@ -67,6 +67,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones#usosFlota": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones#valorarTransportista": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()).nullable(), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones-cliente#cancelarMiEnvio": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(5000)]),
+  "app/panel/(app)/envios/acciones-cliente#enviarOrdenEnvioManual": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/envios/acciones-cliente#guardarPrecioEnvioManual": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()).nullable()]),
   "app/panel/(app)/envios/acciones-cliente#marcarMiEnvioManual": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/envios/acciones-cliente#valorarMiEnvio": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()), z.string().max(5000)]),

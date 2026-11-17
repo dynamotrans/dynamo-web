@@ -217,9 +217,10 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       base = (data as EnvioClienteBase | null) ?? null;
     }
     // Abierta por enlace directo (no viene de la lista): falta el nombre de su transportista propio.
-    if (base && base.operador_id && !base.operador) {
-      const { data: o } = await supabase.from('operadores').select('razon_social').eq('id', base.operador_id).maybeSingle();
-      base = { ...base, operador: o?.razon_social ?? null };
+    // Y su email, para enviarle la orden de carga desde la ficha.
+    if (base && base.operador_id) {
+      const { data: o } = await supabase.from('operadores').select('razon_social, email').eq('id', base.operador_id).maybeSingle();
+      base = { ...base, operador: base.operador ?? o?.razon_social ?? null, operador_email: o?.email ?? null };
     }
     if (base) {
       const { data: hit } = await supabase.rpc('mis_hitos', { p_envio: base.id }).limit(100);

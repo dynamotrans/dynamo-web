@@ -11182,6 +11182,10 @@ begin
   if (select estado_pago_previo from envios where id = c) <> 'pendiente' then raise exception 'FALLO 261 · libera solo un envío que Dynamo pidió cobrar por adelantado'; end if;
   select count(*) into n from avisos where para = 'dynamo' and tipo = 'credito_libera_pagos' and titulo like '1 envío pasa a crédito%Cliente Crédito 261%';
   if n <> 1 then raise exception 'FALLO 261 · Dynamo no recibe (una vez) el aviso de los envíos que pasan a crédito: %', n; end if;
+  -- El aviso lleva al ENVÍO (no a la ficha del cliente; usuario, 2026-11-17).
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'credito_libera_pagos' and titulo like '%Cliente Crédito 261%' and enlace = '/panel/envios?ver=' || a) then
+    raise exception 'FALLO 261 · el aviso de «pasa a crédito» no lleva a la ficha del envío: %', (select enlace from avisos where tipo = 'credito_libera_pagos' and titulo like '%Cliente Crédito 261%' limit 1);
+  end if;
   if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'exento' and envio_id = a) then
     raise exception 'FALLO 261 · el cliente no recibe el aviso de que ya no hace falta pagar por adelantado';
   end if;
@@ -11309,6 +11313,13 @@ begin
   if (select estado_pago_previo from envios where id = t) <> 'no_requerido' then raise exception 'FALLO 263 · se mueve un envío con transportista asignado'; end if;
   select count(*) into n from avisos where para = 'dynamo' and tipo = 'credito_retira_envios' and titulo like '1 envío pasa a pendiente de pago%Cliente Crédito 263%';
   if n <> 1 then raise exception 'FALLO 263 · Dynamo no recibe (una vez) el aviso de los envíos que pasan a pendiente de pago: %', n; end if;
+  -- El aviso lleva al ENVÍO (no a la ficha del cliente; usuario, 2026-11-17).
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'credito_retira_envios' and titulo like '%Cliente Crédito 263%' and enlace = '/panel/envios?ver=' || b) then
+    raise exception 'FALLO 263 · el aviso de «pasa a pendiente de pago» no lleva a la ficha del envío: %', (select enlace from avisos where tipo = 'credito_retira_envios' and titulo like '%Cliente Crédito 263%' limit 1);
+  end if;
+  if exists (select 1 from avisos where tipo in ('credito_retira_envios', 'credito_libera_pagos') and enlace like '/panel/clientes%') then
+    raise exception 'FALLO 263 · queda algún aviso de crédito que abre la ficha del cliente en vez de los envíos';
+  end if;
   if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'pago_requerido' and envio_id = b) then
     raise exception 'FALLO 263 · el cliente no recibe el aviso de que su envío pasa a pago por adelantado';
   end if;
@@ -11520,6 +11531,26 @@ do $$ begin
     raise exception 'FALLO 266 · el contador de «sin transportista» del cliente cuenta también los pendientes de pago (antes %, ahora %)', current_setting('prueba.c266'), cuenta_mis_envios_sin_asignar();
   end if;
   raise notice 'OK 266 · el cliente modifica entero su envío con transportista propio (ruta, fechas, mercancía, transportista y precio), también en marcha, sin emails ni avisos; no puede poner un transportista ajeno ni tocar así un envío de Dynamo; y el contador del menú no cuenta el pendiente de pago como «sin transportista»';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 267. Sin incidencias en los envíos con transportista propio (Dynamo no interviene) ----
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare i uuid; begin
+  begin
+    insert into incidencias (envio_id, tipo_id, titulo, detalle)
+    values (current_setting('prueba.e266')::uuid, (select id from tipos_incidencia limit 1), 'Retraso', 'Mi transportista llega tarde');
+    raise exception 'FALLO 267 · el cliente abre una incidencia en un envío con su propio transportista';
+  exception when insufficient_privilege then null;
+  end;
+  -- En un envío de Dynamo, como siempre.
+  insert into incidencias (envio_id, tipo_id, titulo, detalle)
+  values (current_setting('prueba.d266')::uuid, (select id from tipos_incidencia limit 1), 'Retraso', 'El camión no ha llegado')
+  returning id into i;
+  if i is null then raise exception 'FALLO 267 · el cliente ya no puede abrir incidencias en sus envíos de Dynamo'; end if;
+  raise notice 'OK 267 · el cliente no abre incidencias en los envíos con su propio transportista, y sí en los de Dynamo';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

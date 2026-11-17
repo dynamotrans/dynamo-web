@@ -18,7 +18,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCarga
 import { estadoVisual, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
-import { cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
+import { cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio, LlamarCancelar, modoModificar } from './CambiosEnvio';
 import { Secc } from './ficha/comun';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
@@ -65,7 +65,8 @@ function SubTit({ children, primero }: { children: React.ReactNode; primero?: bo
 // El envío del cliente: la fila de la lista (o de mis_envios()) con lo que se le junta en la página.
 type MiEnvio = Funcion<'mis_envios'>[number];
 export type EnvioClienteBase = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiEnvio, keyof EnvioFila>>
-  & { paradas: (Parada & { id?: string; referencia?: string | null; anotaciones?: string | null; notas_sitio?: string | null })[] };
+  & { paradas: (Parada & { id?: string; referencia?: string | null; anotaciones?: string | null; notas_sitio?: string | null })[];
+      operador_email?: string | null };   // envío propio: el email de SU transportista, para enviarle la orden de carga
 export type EnvioCliente = EnvioClienteBase & {
   hitos: Funcion<'mis_hitos'>; valoracion: Funcion<'mi_valoracion_envio'>[number] | null;
   pago: Funcion<'pagos_envio'>[number] | null;
@@ -78,13 +79,15 @@ const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic',
 export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
-  const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar' | 'llamarCancelar'>('ficha');
+  const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar' | 'llamarCancelar' | 'enviarOrden'>('ficha');
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
   // Precio acordado con SU transportista (envío propio), editable en la ficha.
   const precioMIni = e.precio_acordado_operador != null ? String(e.precio_acordado_operador).replace('.', ',') : '';
   const [precioM, setPrecioM] = useState(precioMIni);
+  // Enviar la orden de carga a SU transportista: el email de su ficha, que puede cambiar aquí.
+  const [ordenPara, setOrdenPara] = useState(e.operador_email ?? '');
   // CERRAR AL INSTANTE (usuario, 2026-11-10: «cerrar es muy lento»): la ventana se oculta
   // ya y el cargador fino cubre la vuelta a la lista mientras llega la página.
   const [cerrando, setCerrando] = useState(false);
@@ -164,6 +167,31 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   }
   if (vista === 'llamar') return <LlamarCambio e={e} onVolver={() => setVista('ficha')} />;
   if (vista === 'llamarCancelar') return <LlamarCancelar e={e} onVolver={() => setVista('ficha')} />;
+  if (vista === 'enviarOrden') {
+    const emailOk = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]{2,}$/.test(ordenPara.trim());
+    return (
+      <Modal abierto ancho={520} onCerrar={() => setVista('ficha')} titulo={`Enviar orden de carga #${e.referencia_gx}`} icono={<I d={ICO.doc} />}
+        pie={<>
+          <button className="btn-ghost" onClick={() => setVista('ficha')} disabled={!!trabajando}>Volver</button>
+          <button className="btn-primary" disabled={!!trabajando || !emailOk} onClick={() => hacer('Enviando', () => enviarOrdenEnvioManual(e.id, ordenPara))}>Enviar orden de carga</button>
+        </>}>
+        {trabajando && <Cargando texto={trabajando} />}
+        <p style={{ margin: '0 0 0.8rem', color: 'var(--gray-700)', fontSize: 'var(--fs-m)' }}>
+          Le llega a <strong className="notranslate" translate="no">{e.operador || 'tu transportista'}</strong> un email con la <strong>orden de carga en PDF adjunta</strong> y
+          todo el detalle también escrito en el mensaje: sitios, fechas, mercancía, matrículas y el precio acordado.
+        </p>
+        <label htmlFor="eo-para" style={{ display: 'block', marginBottom: '0.3rem' }}>Email del transportista <Req /></label>
+        <input id="eo-para" type="email" inputMode="email" autoComplete="off" maxLength={200} style={{ display: 'block', width: '100%' }}
+          value={ordenPara} onChange={(ev) => setOrdenPara(ev.target.value)} placeholder="transportista@empresa.com" />
+        {!e.operador_email && <div style={{ marginTop: '0.3rem', color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>Tu transportista no tiene email guardado en su ficha: escríbelo aquí.</div>}
+        <div style={{ marginTop: '0.8rem', color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>
+          Asunto: <strong>Pedido de transporte {e.referencia_gx}</strong> y el nombre de tu empresa. Tú recibes copia y, si el transportista contesta, la respuesta te llega a ti.
+          {e.precio_acordado_operador == null && <> <strong>Aún no has anotado el precio acordado</strong>: si quieres que salga, guárdalo antes en la ficha.</>}
+        </div>
+        {aviso && !aviso.ok && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{aviso.txt}</div></div>}
+      </Modal>
+    );
+  }
   if (vista === 'cancelar') {
     return (
       <Modal abierto onCerrar={() => setVista('ficha')} titulo={`Cancelar envío #${e.referencia_gx}`} icono={<I d={ICO.aviso} />}
@@ -201,6 +229,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const acciones = (
     <>
       {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
+      {manual && e.estado !== 'cancelado' && <button className="btn-secondary" onClick={() => { setAviso(null); setVista('enviarOrden'); }} disabled={!!trabajando}><I d={ICO.doc} />Enviar orden de carga</button>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
       {modo === 'form' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
       {/* Con SU transportista lo modifica libremente: es suyo (usuario, 2026-11-16). */}
@@ -210,7 +239,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       {modo === 'asignando' && <button className="btn-secondary" disabled title="Un transportista se está asignando en este momento"><I d={ICO.editar} />Modificar envío</button>}
       {cancelable && <button className="btn-secondary" onClick={() => setVista(cancelarLlamando ? 'llamarCancelar' : 'cancelar')} disabled={asignandose}
         title={asignandose ? 'Un transportista se está asignando en este momento' : undefined}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
-      {<a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
+      {/* Con SU transportista no hay incidencias: Dynamo no interviene en ese envío (usuario, 2026-11-17). */}
+      {!manual && <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
       {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
     </>
   );

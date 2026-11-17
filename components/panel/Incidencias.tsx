@@ -254,7 +254,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       )}
       <div className="modal-form-row">
         <label>{esTransportista ? <>Envío <Req /></> : <>Envío relacionado <Req si={false} /></>}</label>
-        <div id="inc-envio"><BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto /></div>
+        <div id="inc-envio"><BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto sinPropios={esCliente && !esTransportista} /></div>
       </div>
       {/* Con «Ver como» un cliente llega UN solo cliente posible, ya puesto: el campo no sale. */}
       {!d.envio_id && !esCliente && !vistaTransportista && clientes.length !== 1 && (

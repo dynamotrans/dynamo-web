@@ -383,7 +383,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
               </div>
             )}
             <div className="topbar-user-wrap">
-              <button type="button" className="topbar-user" aria-haspopup="menu" aria-expanded={menu === 'usuario'}
+              <button type="button" className="topbar-user" aria-label={`Menú de la cuenta de ${nombre || 'usuario'}`} aria-haspopup="menu" aria-expanded={menu === 'usuario'}
                       onClick={() => setMenu(menu === 'usuario' ? null : 'usuario')}>
                 {/* El distintivo es de la EMPRESA, no del usuario (usuario, 2026-11-16): su logo
                     si lo hay; si no, las iniciales de la empresa. */}

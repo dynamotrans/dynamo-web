@@ -19,6 +19,10 @@ export type ResultadoEmail = { estado: 'enviado' | 'error'; error?: string };
 export async function enviarEmailOperativo(d: {
   clave: string; tipo: 'orden_carga' | 'firma_cmr' | 'cmr_completo' | 'deca' | 'proforma_calculo';
   envioId?: string | null; para: string | null; asunto: string; html: string; adjuntos?: AdjuntoEmail[];
+  // Para los emails que un CLIENTE manda a SU transportista (orden de su envío propio):
+  // el nombre del remitente es su empresa, las respuestas le llegan a él (no a Dynamo) y
+  // recibe copia. `texto` es la versión en texto llano del mismo cuerpo.
+  deNombre?: string; responderA?: string; copia?: string; texto?: string;
 }): Promise<ResultadoEmail> {
   try {
     const sb = supabaseServicio();
@@ -31,7 +35,16 @@ export async function enviarEmailOperativo(d: {
       estado: d.para ? 'pendiente' : 'error',
       error: d.para ? null : 'Sin destinatario con email: avisar a mano.',
     }).select('id').single();
-    if (error) return { estado: 'error', error: 'Este aviso ya se mandó (clave repetida).' };
+    if (error) {
+      // Clave repetida (23505): ese aviso ya se mandó, y no se repite. Cualquier OTRO error
+      // es un fallo de verdad (antes salía también como «clave repetida» y tapaba la causa):
+      // se dice tal cual y queda en el registro del servidor.
+      if (error.code === '23505') return { estado: 'error', error: 'Este aviso ya se mandó (clave repetida).' };
+      console.error('[email operativo] no se ha podido registrar', d.tipo, error.code, error.message);
+      return { estado: 'error', error: error.code === '23514'
+        ? 'La base de datos todavía no admite este tipo de email (falta aplicar la última actualización). Vuelve a intentarlo en unos minutos.'
+        : 'No se ha podido registrar el email en la base de datos: no se ha enviado.' };
+    }
     if (!fila || !d.para) return { estado: 'error', error: 'Sin destinatario con email.' };
     // Direcciones de prueba (dominio .invalid, que no existe): no se mandan a Postmark —
     // serían rebotes que gastan emails y dañan la reputación del dominio. Quedan omitidas.
@@ -48,11 +61,17 @@ export async function enviarEmailOperativo(d: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Postmark-Server-Token': token },
       body: JSON.stringify({
-        From: `Dynamotrans.com <${CONTACTO.email}>`, To: d.para, Subject: d.asunto, HtmlBody: d.html, MessageStream: 'outbound',
+        From: `${(d.deNombre ?? '').replace(/[<>"\r\n,;]/g, ' ').trim().slice(0, 80) || 'Dynamotrans.com'} <${CONTACTO.email}>`,
+        To: d.para, Subject: d.asunto, HtmlBody: d.html, MessageStream: 'outbound',
+        ...(d.texto ? { TextBody: d.texto } : {}),
+        ...(d.responderA ? { ReplyTo: d.responderA } : {}),
         // Copia a Dynamo en todos los emails del sistema (usuario, 2026-11-15), salvo
         // cuando el destinatario ya es Dynamo. (Las ofertas de la difusión, la única
         // excepción a la copia, no pasan por aquí: van por la cola de la base de datos.)
-        ...(d.para.toLowerCase().includes(CONTACTO.email.toLowerCase()) ? {} : { Cc: CONTACTO.email }),
+        ...(() => {
+          const cc = [d.copia, CONTACTO.email].filter((x): x is string => !!x && !d.para!.toLowerCase().includes(x.toLowerCase()));
+          return cc.length ? { Cc: [...new Set(cc.map((x) => x.toLowerCase()))].join(', ') } : {};
+        })(),
         ...(d.adjuntos?.length ? { Attachments: d.adjuntos.map((a) => ({ Name: a.nombre, Content: a.base64, ContentType: a.tipo })) } : {}),
       }),
     });

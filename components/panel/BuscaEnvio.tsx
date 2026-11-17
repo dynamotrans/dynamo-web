@@ -39,9 +39,11 @@ export function ResumenEnvio({ e }: { e: EnvioLigero }) {
 // `remoto` (Dynamo): con el campo vacío salen los recientes; al escribir busca en la base
 // de datos (da igual que haya miles). Sin `remoto` (cliente, transportista): busca en su
 // propia lista, que ya viene entera.
-export default function BuscaEnvio({ envios, valor, onCambio, disabled, placeholder, remoto = false }: {
+export default function BuscaEnvio({ envios: todos, valor, onCambio, disabled, placeholder, remoto = false, sinPropios = false }: {
   envios: EnvioLigero[]; valor: string | null; onCambio: (id: string | null) => void; disabled?: boolean; placeholder?: string; remoto?: boolean;
+  sinPropios?: boolean;   // no ofrecer los envíos con transportista propio del cliente (en ellos Dynamo no interviene)
 }) {
+  const envios = useMemo(() => (sinPropios ? todos.filter((e) => !e.es_manual || e.id === valor) : todos), [todos, sinPropios, valor]);
   const [extra, setExtra] = useState<EnvioLigero[]>([]);   // traídos del servidor (búsquedas y el elegido)
   const elegido = useMemo(() => envios.find((e) => e.id === valor) ?? extra.find((e) => e.id === valor) ?? null, [envios, extra, valor]);
   const [q, setQ] = useState(elegido ? `#${elegido.referencia_gx}` : '');
@@ -75,11 +77,11 @@ export default function BuscaEnvio({ envios, valor, onCambio, disabled, placehol
     const t = setTimeout(async () => {
       const r = await buscarEnviosLigeros(texto);
       if (!vivo) return;
-      setRemotos(r); setBuscando(false);
+      setRemotos(sinPropios ? r.filter((e) => !e.es_manual) : r); setBuscando(false);
       setExtra((x) => [...x.filter((e) => !r.some((n) => n.id === e.id)), ...r]);
     }, 280);
     return () => { vivo = false; clearTimeout(t); };
-  }, [remoto, texto, sinBuscar]);
+  }, [remoto, texto, sinBuscar, sinPropios]);
 
   const lista = useMemo(() => {
     if (sinBuscar) return envios.slice(0, 4);

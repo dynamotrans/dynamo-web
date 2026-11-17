@@ -324,11 +324,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clienteId]);
+  // El TIPO de cada sitio mueve el precio (recargos de obra, finca…): va en las dependencias
+  // del cálculo. Antes solo estaba la ruta (códigos postales), y al cambiar el tipo de un
+  // sitio el precio no se recalculaba hasta tocar otra cosa (usuario, 2026-11-17: «con
+  // fecha fija me muestra el recargo de finca y con ventana no»).
+  const claveTipos = puntosRuta.map((p) => p.sitio?.tipo ?? p.nuevo?.tipo_sitio ?? 'almacen_nave').join('|');
   const tarifa = useMemo(() => {
     if (!kmInfo || !rutaCompleta || manual) return null;
     if (cliente && factorCli === undefined) return null;
     const t = calcularTarifa({ km: kmInfo.km, puntos: puntosRuta.length,
-      tiposSitio: puntosRuta.map((p) => p.sitio?.tipo ?? p.nuevo?.tipo_sitio ?? 'almacen_nave'),
+      tiposSitio: claveTipos.split('|'),
       ml: Number(ml) || 0, peso: Number(peso) || 0, mlMax, pesoMax,
       paletizada, techo: forma.toLowerCase().includes('techo'), plataforma, nima, adr,
       urgencia, fecha: fecha || null, primerDia: dias[0], hoy: hoyMadrid(), festivos });
@@ -337,7 +342,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     // Parámetros (usuario, 2026-11-13: para dar precio a quien llama a preguntar, sin alta).
     return aplicarDescuentoTarifa(t, cliente ? (factorCli ?? 0) : Number(reglas?.bienvenida_pct ?? -7));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kmInfo, claveRuta, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos, cliente, factorCli]);
+  }, [kmInfo, claveRuta, claveTipos, rutaCompleta, manual, ml, peso, mlMax, pesoMax, paletizada, forma, plataforma, nima, adr, urgencia, fecha, dias, festivos, cliente, factorCli]);
   // El precio de tarifa de antes del factor: se anota en el envío (solo para Dynamo).
   const tarifaBase = tarifa ? (tarifa.netoBase ?? tarifa.neto) : null;
   // EL CLIENTE MODIFICA SU ENVÍO (usuario, 2026-11-16: «es como un nuevo envío, no

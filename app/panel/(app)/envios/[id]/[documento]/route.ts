@@ -1,6 +1,7 @@
 import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
-import { cargarDatosDocTransportista, cargarDatosDocManual, cargarLogoOperador, datosDynamo } from '@/lib/pdf/datos';
+import { cargarDatosDocTransportista, datosDynamo } from '@/lib/pdf/datos';
+import { pdfOrdenPropia } from '@/lib/servidor/ordenPropia';
 import { pdfDeEnvioDynamo, pdfCmrManualCliente } from '@/lib/pdf/generar';
 import { ordenDeCarga } from '@/lib/pdf/orden';
 
@@ -43,12 +44,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return new Response(Buffer.from(rm.bytes), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="${rm.nombre}"`, 'cache-control': 'private, no-store' } });
     }
     if (documento !== 'orden-de-carga') return texto('No tienes permiso para ver este documento.', 403);
-    const r = await cargarDatosDocManual(sb, id);
-    if (!r.datos) return texto(r.error ?? 'No se ha podido leer el envío.', 404);
-    const { data: mio } = await sb.rpc('mis_envios').eq('id', id).maybeSingle<{ operador_id: string | null }>();
-    const bytesC = await ordenDeCarga({ ...r.datos, logoPorteador: await cargarLogoOperador(sb, mio?.operador_id) }, { pct: 0, minimo: 0, dias: 0, plazo: 0 });
-    const refC = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
-    return new Response(Buffer.from(bytesC), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-transporte-${refC}.pdf"`, 'cache-control': 'private, no-store' } });
+    const r = await pdfOrdenPropia(sb, id);
+    if ('error' in r) return texto(r.error, 404);
+    return new Response(Buffer.from(r.bytes), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="${r.nombre}"`, 'cache-control': 'private, no-store' } });
   }
   if (!esDynamo(yo.rol)) return texto('No tienes permiso para ver este documento.', 403);
 
