@@ -37,6 +37,14 @@ const CAMIONES: Record<Camion, { nombre: string; sub: string; filas: [string, st
   },
 };
 
+// El alto y el ancho de un camión, de esta misma tabla: los usa la línea-enlace de Nuevo
+// envío, para que digan siempre lo mismo que la ventana (usuario, 2026-11-17: «el ancho
+// que corresponda según vehículo»).
+export function altoAncho(camion: Camion): { alto: string; ancho: string } {
+  const de = (k: string) => CAMIONES[camion].filas.find(([e]) => e === k)?.[1] ?? '';
+  return { alto: de('Altura máxima de la mercancía'), ancho: de('Ancho útil') };
+}
+
 export default function MedidasCamion({ inicial, onCerrar }: { inicial: Camion; onCerrar: () => void }) {
   const [cual, setCual] = useState<Camion>(inicial);
   const c = CAMIONES[cual];

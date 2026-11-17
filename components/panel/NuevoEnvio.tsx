@@ -10,7 +10,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
-import MedidasCamion from './nuevoEnvio/MedidasCamion';
+import MedidasCamion, { altoAncho } from './nuevoEnvio/MedidasCamion';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
@@ -1176,8 +1176,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         camión al lado: se ve dentro de la ventana. */}
                     <button type="button" onClick={() => setVerMedidas(true)} title="Ver medidas y peso máximo del camión"
                       style={{ display: 'block', background: 'none', border: 'none', padding: 0, marginTop: '0.25rem', font: 'inherit', fontSize: 'var(--fs-s)', fontWeight: 600, color: 'var(--purple)', textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>
-                      {/* Alto Y ANCHO (usuario, 2026-11-17). El ancho útil es el mismo en los dos camiones. */}
-                      Altura máxima: <strong>{plataforma ? '2,40 m' : '2,70 m'}</strong> / Ancho máximo: <strong>2,40 m</strong>
+                      {/* Alto Y ANCHO del camión de ESTE envío (usuario, 2026-11-17), de la misma tabla que la ventana. */}
+                      Altura máxima: <strong>{altoAncho(plataforma ? 'rigido' : 'trailer').alto}</strong> / Ancho máximo: <strong>{altoAncho(plataforma ? 'rigido' : 'trailer').ancho}</strong>
                     </button>
                     {verMedidas && <MedidasCamion inicial={plataforma ? 'rigido' : 'trailer'} onCerrar={() => setVerMedidas(false)} />}
                   </div>
