@@ -196,7 +196,8 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
       }
     }
 
-    // (b) TODAS las firmas → el eCMR en PDF a Dynamo, al creador del envío y al transportista.
+    // (b) TODAS las firmas → el eCMR en PDF a Dynamo, al cliente (creador, usuarios y contactos
+    // con avisos) y al transportista.
     if (hechas >= total) {
       const destinos = new Set<string>([CONTACTO.email]);
       if (sbs && envioId) {
@@ -210,6 +211,13 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
           const t = await emailTransportista(sbs, ev.transportista_id);
           if (t) destinos.add(t);
         }
+        // El CLIENTE del envío: sus usuarios y sus contactos de Logística que reciben los
+        // avisos (como el resto de emails del envío) y, por ser el albarán, también los de
+        // Contabilidad (usuario, 2026-11-17: «Recibe los avisos» conectado por rol).
+        const { data: dc } = await sbs.rpc('datos_email_cliente_envio', { p_envio: envioId });
+        const { data: conta } = await sbs.rpc('emails_contabilidad_envio', { p_envio: envioId });
+        [((dc ?? null) as { para?: string | null } | null)?.para, conta as string | null]
+          .forEach((lista) => (lista ?? '').split(',').map((x) => x.trim()).filter(Boolean).forEach((x) => destinos.add(x)));
         // Los FIRMANTES que dejaron su email también reciben la copia: la ventana de
         // firma lo promete («se te enviará copia del eCMR», usuario 2026-11-12).
         const { data: fs } = await sbs.from('firmas_cmr').select('email').eq('envio_id', envioId).not('email', 'is', null);

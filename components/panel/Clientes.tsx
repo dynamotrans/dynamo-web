@@ -287,7 +287,7 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
         {titulo('Personas de contacto')}
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
           roles={[['trafico', 'Logística'], ['contabilidad', 'Contabilidad']]} funcionNueva="trafico"
-          ayuda={<>La primera es la <strong>principal</strong> (la que sale en la tabla). Pon en <strong>Contabilidad</strong> a quien recibe las facturas.</>} />
+          ayuda={<>La primera es la <strong>principal</strong> (la que sale en la tabla). Con <strong>«Recibe los avisos»</strong> puesto: <strong>Logística</strong> recibe los emails de los envíos (creado, confirmado, cambios, CMR firmado) y <strong>Contabilidad</strong> los de pagos (línea de crédito, envíos pendientes de pago y el CMR firmado; las facturas, cuando las haya). No da acceso a la plataforma.</>} />
 
         {fila && <>
           {titulo('Usuarios con acceso a la plataforma')}

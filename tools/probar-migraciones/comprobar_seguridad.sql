@@ -11980,3 +11980,66 @@ do $$ begin
   raise notice 'OK 272 · resumen mensual a los sitios: apagado no sale; un solo email por dirección con todos sus clientes; sin el otro extremo de la ruta, sin discreción comercial y sin la nave del propio cliente; una vez al mes; y la baja funciona';
 end $$;
 
+
+-- ---- 273. «Recibe los avisos» de los contactos del cliente, por rol ----
+do $$ declare e uuid := current_setting('prueba.e269')::uuid; cli uuid; l text; d text; antes text; pend text; begin
+  select cliente_id into cli from envios where id = e;
+  antes := emails_cliente_envio(e);
+  insert into contactos (cliente_id, nombre, funcion, email, recibe_avisos) values
+    (cli, 'Logística con avisos', 'trafico', 'Log273@Contacto.prueba', true),
+    (cli, 'Logística sin avisos', 'trafico', 'logno273@contacto.prueba', false),
+    (cli, 'Contabilidad con avisos', 'contabilidad', 'conta273@contacto.prueba', true),
+    (cli, 'Contabilidad sin avisos', 'contabilidad', 'contano273@contacto.prueba', false),
+    (cli, 'General con avisos', 'general', 'gen273@contacto.prueba', true);
+  -- Emails de los ENVÍOS: los de antes más Logística con avisos; nadie más.
+  l := emails_cliente_envio(e);
+  if position('log273@contacto.prueba' in l) = 0 or l ~ '(logno273|conta273|contano273|gen273)' then
+    raise exception 'FALLO 273 · los emails del envío no van a Logística con avisos (o van a quien no toca): %', l;
+  end if;
+  if exists (select 1 from unnest(string_to_array(antes, ',')) x where position(lower(btrim(x)) in l) = 0) then
+    raise exception 'FALLO 273 · al añadir los contactos se pierde algún destinatario de antes: % → %', antes, l;
+  end if;
+  if (select count(*) from unnest(string_to_array(l, ',')) x) <> (select count(distinct x) from unnest(string_to_array(l, ',')) x) then
+    raise exception 'FALLO 273 · hay direcciones repetidas en los emails del envío: %', l;
+  end if;
+  -- Emails de PAGOS Y CRÉDITO: Contabilidad con avisos; Logística no.
+  d := emails_del_cliente(cli);
+  if position('conta273@contacto.prueba' in coalesce(d, '')) = 0 or d ~ '(contano273|log273|logno273|gen273)' then
+    raise exception 'FALLO 273 · los emails de crédito no van a Contabilidad con avisos (o van a quien no toca): %', d;
+  end if;
+  -- «Envío creado» PENDIENTE DE PAGO: va además a Contabilidad. (Se prueba y se deshace.)
+  begin
+    alter table envios disable trigger user;
+    update envios set estado_pago_previo = 'pendiente' where id = e;
+    alter table envios enable trigger user;
+    perform fn_email_envio_cliente(e, 'prueba273:' || e, 'envio_creado', 'Envío creado', '<p>prueba</p>');
+    select destinatario into pend from emails_enviados where clave = 'prueba273:' || e;
+    raise exception 'deshacer273';
+  exception when others then
+    if sqlerrm <> 'deshacer273' then raise; end if;
+  end;
+  if pend is null or position('conta273@contacto.prueba' in pend) = 0 or position('log273@contacto.prueba' in pend) = 0 or pend ~ '(contano273|logno273|gen273)' then
+    raise exception 'FALLO 273 · el «envío creado» pendiente de pago no va a Logística y a Contabilidad: %', pend;
+  end if;
+  -- Sin pago pendiente, el «envío creado» no va a Contabilidad.
+  perform fn_email_envio_cliente(e, 'prueba273b:' || e, 'envio_creado', 'Envío creado', '<p>prueba</p>');
+  select destinatario into pend from emails_enviados where clave = 'prueba273b:' || e;
+  if pend is not null and position('conta273' in pend) > 0 then
+    raise exception 'FALLO 273 · un «envío creado» sin pago pendiente va a Contabilidad: %', pend;
+  end if;
+  delete from emails_enviados where clave like 'prueba273%';
+  delete from contactos where cliente_id = cli and email ilike '%273@contacto.prueba';
+  if emails_cliente_envio(e) is distinct from fn_unir_emails(antes) then raise exception 'FALLO 273 · al quitar los contactos no vuelve la lista de antes'; end if;
+  raise notice 'OK 273 · «Recibe los avisos» de los contactos del cliente: Logística recibe los emails de los envíos, Contabilidad los de crédito y el «envío creado» pendiente de pago; sin el interruptor, o con otro rol, nada; sin direcciones repetidas';
+end $$;
+-- Nadie de fuera lee esas listas.
+set role anon;
+do $$ begin
+  begin perform emails_cliente_envio(gen_random_uuid()); raise exception 'FALLO 273 · cualquiera lee a quién se escribe de un envío';
+  exception when insufficient_privilege then null; end;
+  begin perform emails_contactos_cliente(gen_random_uuid(), 'trafico'); raise exception 'FALLO 273 · cualquiera lee los contactos con avisos de un cliente';
+  exception when insufficient_privilege then null; end;
+  begin perform emails_contabilidad_envio(gen_random_uuid()); raise exception 'FALLO 273 · cualquiera lee los contactos de contabilidad de un envío';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

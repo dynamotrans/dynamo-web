@@ -3874,6 +3874,8 @@ export type Database = {
       duracion_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
       email_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       emails_cliente_envio: { Args: { p_envio: string | null }; Returns: string }
+      emails_contabilidad_envio: { Args: { p_envio: string | null }; Returns: string }
+      emails_contactos_cliente: { Args: { p_cliente: string | null; p_funcion: Database["public"]["Enums"]["funcion_contacto"] | null }; Returns: string }
       emails_del_cliente: { Args: { p_cliente: string | null }; Returns: string }
       emails_validos: { Args: { p: string[] | null }; Returns: boolean }
       en_temporada: { Args: { p_fecha: string | null; p_desde: string | null; p_hasta: string | null }; Returns: boolean }
@@ -3945,6 +3947,7 @@ export type Database = {
       fn_encolar_email_envio_modificado: { Args: { p_envio: string | null; p_cambios: string | null }; Returns: undefined }
       fn_encolar_email_transportista_modificado: { Args: { p_envio: string | null; p_transportista: string | null; p_cambios: string | null }; Returns: undefined }
       fn_modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }
+      fn_unir_emails: { Args: { p_listas: string[] | null }; Returns: string }
       fuera_de_cobertura: { Args: { p_pais: string | null }; Returns: string }
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
       generar_codigo_aceptacion: { Args: Record<PropertyKey, never>; Returns: string }
