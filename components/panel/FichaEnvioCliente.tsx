@@ -171,12 +171,16 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   if (vista === 'enviarOrden') {
     const emailOk = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]{2,}$/.test(ordenPara.trim());
     return (
-      <Modal abierto ancho={520} onCerrar={() => setVista('ficha')} titulo={`Enviar orden de carga #${e.referencia_gx}`} icono={<I d={ICO.doc} />}
+      <Modal abierto ancho={520} onCerrar={() => setVista('ficha')} titulo={`Orden de carga #${e.referencia_gx}`} icono={<I d={ICO.doc} />}
         pie={<>
           <button className="btn-ghost" onClick={() => setVista('ficha')} disabled={!!trabajando}>Volver</button>
-          <button className="btn-primary" disabled={!!trabajando || !emailOk} onClick={() => hacer('Enviando', () => enviarOrdenEnvioManual(e.id, ordenPara, !e.operador_email || ordenGuardar))}>Enviar orden de carga</button>
+          <button className="btn-primary" disabled={!!trabajando || !emailOk} onClick={() => hacer('Enviando', () => enviarOrdenEnvioManual(e.id, ordenPara, !e.operador_email || ordenGuardar))}>Enviar por email</button>
         </>}>
         {trabajando && <Cargando texto={trabajando} />}
+        {/* UNA sola ventana para la orden (usuario, 2026-11-17): verla en PDF o enviarla por email. */}
+        <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"
+          style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.9rem' }}><I d={ICO.doc} />Abrir el PDF de la orden de carga</a>
+        <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>Enviarla por email al transportista</div>
         <p style={{ margin: '0 0 0.8rem', color: 'var(--gray-700)', fontSize: 'var(--fs-m)' }}>
           Le llega a <strong className="notranslate" translate="no">{e.operador || 'tu transportista'}</strong> un email con la <strong>orden de carga en PDF adjunta</strong> y
           todo el detalle también escrito en el mensaje: sitios, fechas, mercancía, matrículas y el precio acordado.
@@ -235,8 +239,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const FASES_M: [string, string][] = FASES_ENVIO.map((k) => [k, ESTADOS_ENVIO[k].label]);
   const acciones = (
     <>
-      {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
-      {manual && e.estado !== 'cancelado' && <button className="btn-secondary" onClick={() => { setAviso(null); setVista('enviarOrden'); }} disabled={!!trabajando}><I d={ICO.doc} />Enviar orden de carga</button>}
+      {/* UN botón (usuario, 2026-11-17): abre la ventana con el PDF y el envío por email. */}
+      {manual && e.estado !== 'cancelado' && <button className="btn-secondary" onClick={() => { setAviso(null); setVista('enviarOrden'); }} disabled={!!trabajando}><I d={ICO.doc} />Orden de carga (PDF)</button>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
       {modo === 'form' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
       {/* Con SU transportista lo modifica libremente: es suyo (usuario, 2026-11-16). */}
