@@ -189,7 +189,8 @@ test.describe('novedades', () => {
     await expect(v.getByText(/crédito|CESCE|Holded|pagos tardíos|Estado/i)).toHaveCount(0);
     // Añade una persona de contacto de Contabilidad que recibe los avisos, y guarda.
     const antes = await v.locator('input[type=email]').count();
-    await v.getByRole('button', { name: 'Añadir contacto adicional' }).click();
+    // (Sin ningún contacto el botón se llama «Añadir contacto»; con alguno, «…adicional».)
+    await v.getByRole('button', { name: /^Añadir contacto( adicional)?$/ }).click();
     const email = `contacto.e2e.${Date.now()}@empresa.prueba`;
     await v.locator(`#ct-${antes}-nombre`).fill('Contacto de la prueba');
     await v.locator(`#ct-${antes}-email`).fill(email);
@@ -202,7 +203,7 @@ test.describe('novedades', () => {
     // Al volver a abrir, ahí está; lo quita y se borra.
     await page.locator('#btn-editar-empresa').click();
     await expect(page.locator(`.dash-modal.open #ct-${antes}-email`)).toHaveValue(email);
-    await page.locator('.dash-modal.open').getByRole('button', { name: 'Quitar' }).nth(antes).click();
+    await page.locator('.dash-modal.open').getByRole('button', { name: 'Quitar', exact: true }).nth(antes).click();
     await page.locator('#btn-guardar-empresa').click();
     await expect(page.locator('.dash-modal.open')).toHaveCount(0);
     await expect.poll(async () => (await bd().from('contactos').select('id', { count: 'exact', head: true }).eq('email', email)).count).toBe(0);
