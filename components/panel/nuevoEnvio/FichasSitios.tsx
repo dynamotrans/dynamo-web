@@ -158,14 +158,13 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                 {f.dynamo
                   ? <><strong style={{ color: 'var(--purple)' }}>Almacén Dynamo</strong> · datos fijos: solo el administrador los edita, en la sección Almacenes</>
                   : f.nuevo
-                  ? 'Sitio nuevo — revisa y completa los datos; se guardarán en su ficha.'
-                  : 'De la agenda — corrige aquí lo que falte (se guarda en su ficha al crear el envío).'}
+                  ? 'Sitio nuevo — revisa y completa los datos; se guardarán en su ficha. La dirección y el tipo se cambian en el paso 1 (Ruta).'
+                  : 'La dirección, el nombre y el tipo del sitio se cambian en la sección Sitios, en cada sitio › Editar.'}
               </div>
               <div className="ptar-sitio-grid">
                 {f.dynamo ? (<>
-                  <div><label>Empresa</label><input className="sitio-f-lock" value={f.empresa} readOnly tabIndex={-1} /></div>
-                  <div><label>Tipo de lugar</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
-                  <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} /></div>
+                  {/* Sin campos bloqueados que repitan la cabecera de la tarjeta (usuario,
+                      2026-11-17): empresa, tipo y dirección ya se leen arriba. */}
                   {citaBloque}
                   {f.horario.length > 0 && <div className="full"><label>Horario</label><input className="sitio-f-lock" value={resumenHorario(f.horario)} readOnly tabIndex={-1} /></div>}
                   {fijos(p, f, true)}
@@ -175,16 +174,14 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
                 </>) : (<>
                   {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
-                      2026-11-09): empresa y tipo, dirección (del paso 1), contacto
-                      (nombre · teléfono · email, sin cargo), notas internas y horario. */}
-                  {f.nuevo
-                    ? <div><label>Empresa <Req /></label>
-                        <input value={f.empresa} style={marcada && !f.empresa.trim() ? { borderColor: '#dc2626' } : undefined} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>
-                    : <div><label>Empresa</label><input className="sitio-f-lock" value={f.empresa} readOnly tabIndex={-1} />
-                        <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>El nombre se cambia en la sección Sitios.</div></div>}
-                  <div><label>Tipo de sitio</label><input className="sitio-f-lock" value={nombreTipo(f.tipo)} readOnly tabIndex={-1} /></div>
-                  <div className="full"><label>Dirección</label><input className="sitio-f-lock" value={dir} readOnly tabIndex={-1} />
-                    <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.2rem' }}>La dirección se cambia en el paso 1 (Ruta).</div></div>
+                      2026-11-09): cita, horario, indicaciones y contacto (nombre · teléfono ·
+                      email, sin cargo). */}
+                  {/* Empresa, tipo y dirección NO se repiten aquí como campos bloqueados
+                      (usuario, 2026-11-17: «no tiene sentido» si ya salen en la cabecera de la
+                      tarjeta): una sola línea dice dónde se cambian. Solo el sitio nuevo
+                      lleva la empresa, que aquí sí se escribe. */}
+                  {f.nuevo && <div className="full"><label>Empresa <Req /></label>
+                    <input value={f.empresa} style={marcada && !f.empresa.trim() ? { borderColor: '#dc2626' } : undefined} placeholder="Ej. Talleres Vega e Hijos S.L." onChange={(e) => set(p, { empresa: e.target.value })} /></div>}
                   {citaBloque}
                   {/* Horario REPLEGADO con resumen, igual que en la ficha de Sitios
                       (usuario, 2026-11-09): pulsando se abre el editor. */}
