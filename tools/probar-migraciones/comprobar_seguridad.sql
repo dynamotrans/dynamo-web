@@ -12311,3 +12311,28 @@ do $$ declare e uuid := current_setting('prueba.e278')::uuid; x record; begin
     raise exception 'FALLO 278 · al deshacer el pago quedan los datos de la transferencia: %', row_to_json(x); end if;
   raise notice 'OK 278 · transferencia con banco, concepto y fecha: solo Dynamo, datos validados, una sola vez, y se vacían al deshacer el pago';
 end $$;
+
+
+-- ---- 279. El código de aceptación se apunta al repartirlo (sin choques entre altas simultáneas) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare v text; vistos text[] := '{}'; i int; begin
+  v := generar_codigo_aceptacion();
+  if v !~ '^[1-9][0-9]{5}$' then raise exception 'FALLO 279 · el código no tiene 6 cifras: %', v; end if;
+  if not exists (select 1 from codigos_carga_retirados where codigo = v) then
+    raise exception 'FALLO 279 · un código recién repartido no queda apuntado: otra alta simultánea podría sacarlo'; end if;
+  -- Lo que hace que la segunda alta saque otro: el mismo número no entra dos veces.
+  insert into codigos_carga_retirados (codigo) values (v) on conflict (codigo) do nothing;
+  if found then raise exception 'FALLO 279 · el mismo código se apunta dos veces'; end if;
+  -- Y seguidos, nunca repite ni reparte uno apuntado o en uso.
+  for i in 1..60 loop
+    v := generar_codigo_aceptacion();
+    if v = any(vistos) then raise exception 'FALLO 279 · reparte dos veces el mismo código: %', v; end if;
+    if exists (select 1 from envios where codigo_aceptacion = v) then raise exception 'FALLO 279 · reparte el código de un envío vivo: %', v; end if;
+    vistos := vistos || v;
+  end loop;
+  -- Los envíos vivos siguen teniendo todos un código distinto.
+  if exists (select 1 from envios where codigo_aceptacion is not null group by codigo_aceptacion having count(*) > 1) then
+    raise exception 'FALLO 279 · hay dos envíos con el mismo código de aceptación'; end if;
+  raise notice 'OK 279 · código de aceptación: se apunta al repartirlo, no entra dos veces y nunca repite';
+end $$;
