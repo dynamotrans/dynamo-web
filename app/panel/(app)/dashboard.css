@@ -1232,7 +1232,7 @@ body.theme-dark .sidebar { background: #060116; }
        los lados y se quedaba aparcada. El ancho sobrante se recorta en la tarjeta. */
     overflow-x: hidden; overscroll-behavior: contain;
 }
-.dash-modal.open { display: flex; animation: dashModalFadeIn 0.18s ease both; }
+.dash-modal.open { display: flex; animation: dashModalFadeIn 0.18s ease backwards; }
 @keyframes dashModalFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .dash-modal-backdrop {
     position: fixed; inset: 0; background: rgba(10,2,48,0.6);
@@ -1245,12 +1245,19 @@ body.theme-dark .sidebar { background: #060116; }
     padding: 1.6rem 1.5rem 1.3rem;
     box-shadow: 0 30px 80px rgba(10,2,48,0.4);
     margin: 4rem auto 2rem;
-    animation: dashModalSlideUp 0.25s cubic-bezier(0.16,1,0.3,1) both;
+    /* SAFARI (usuario, 2026-11-17): con la animación «both» y un scale(0.98), la ventana se
+       quedaba para siempre como capa animada y Safari pintaba a baja resolución las listas
+       con scroll de dentro (el desplegable del buscador salía con la letra dentada). Ahora
+       la animación solo desplaza y, al acabar, se suelta («backwards»). El transform fijo
+       de identidad mantiene lo que ya había: los elementos «fixed» de dentro (velo de
+       cargando, hojas) siguen colocándose respecto a la ventana, no a la pantalla. */
+    transform: translate(0, 0);
+    animation: dashModalSlideUp 0.25s cubic-bezier(0.16,1,0.3,1) backwards;
     /* clip (no hidden): recorta lo que asome de más sin crear otro contenedor de scroll
        que iOS pudiera arrastrar en horizontal. */
     min-width: 0; overflow-x: clip;
 }
-@keyframes dashModalSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes dashModalSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translate(0, 0); } }
 .dash-modal-close {
     position: absolute; top: 0.85rem; right: 0.9rem;
     width: 34px; height: 34px; border-radius: 50%;
@@ -4994,6 +5001,9 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .buscador input[type="search"]:hover { border-color: var(--purple); }
 .buscador input[type="search"]:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
 .filters .buscador { flex: 1 1 240px; }
+/* Safari ofrece «autorrellenar con un contacto» en los buscadores (el icono de la
+   persona a la derecha): aquí no pinta nada y tapa el campo. */
+.buscador input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !important; pointer-events: none; position: absolute; right: 0; }
 .buscador-lista {
     position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px);
     background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px;
