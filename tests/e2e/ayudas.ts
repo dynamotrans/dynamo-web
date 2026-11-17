@@ -34,3 +34,24 @@ export async function ultimoEnvio() {
   if (error) throw error;
   return data;
 }
+
+// El cliente (ya dentro) crea un envío Sevilla → Madrid con el primer día posible. Ya no hay
+// solicitudes de precio: el tarifador pone el precio y el envío nace programado, tras marcar
+// las condiciones en la ventana de confirmación.
+export async function crearEnvioDeCliente(page: Page) {
+  await page.goto('/panel/nuevo-envio');
+  const sitio = page.locator('.ptar-route-row input[type=text]');
+  await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+  await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+  await page.getByRole('button', { name: /Siguiente/ }).click();
+  await page.getByRole('button', { name: /Siguiente/ }).click();
+  await page.locator('select').filter({ has: page.locator('option', { hasText: 'Elige la fecha de recogida' }) }).selectOption({ index: 1 });
+  await page.getByRole('button', { name: /Ver resumen/ }).click();
+  // El tarifador ya ha calculado: la caja de importes (en Revisión va en modo solo
+  // importes, sin la línea «Camión completo · km» de antes — usuario, 2026-11-14).
+  await expect(page.locator('.ptar-sug-card .alm-price-base')).toBeVisible();
+  await page.getByRole('button', { name: 'Crear envío' }).click();
+  await page.locator('.dash-modal-card input[type=checkbox]').check();   // condiciones + cancelación
+  await page.getByRole('button', { name: 'Confirmar envío' }).click();
+  await expect(page.getByText(/Envío #?\S+ creado/)).toBeVisible();
+}
