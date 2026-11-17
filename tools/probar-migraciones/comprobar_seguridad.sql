@@ -12043,3 +12043,50 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+
+-- ---- 274. «Editar empresa» del cliente: ve su sector y cambia solo SUS contactos ----
+do $$ declare u uuid; cli uuid; sec text; begin
+  -- Un usuario de cliente con la cuenta activa (el de otras pruebas puede haber cambiado de estado).
+  select id, cliente_id into u, cli from usuarios where rol = 'cliente' and estado = 'activa' and cliente_id is not null order by creado_en limit 1;
+  if u is null then raise exception 'FALLO 274 · no hay ningún usuario de cliente activo para la prueba'; end if;
+  select s into sec from jsonb_array_elements_text(parametro('sectores_cliente')) s limit 1;
+  update clientes set sector = sec where id = cli;
+  perform set_config('prueba.u274', u::text, false);
+  perform set_config('prueba.sec274', sec, false);
+  perform set_config('prueba.cli274', cli::text, false);
+  perform set_config('prueba.otro274', (select id::text from clientes where id <> cli order by creado_en limit 1), false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u274'), false);
+set role authenticated;
+do $$ declare c uuid; begin
+  if mi_empresa_sector() is distinct from current_setting('prueba.sec274') then raise exception 'FALLO 274 · el cliente no lee el sector de su empresa: %', mi_empresa_sector(); end if;
+  -- Sus contactos: los crea, los cambia y los borra él.
+  insert into contactos (cliente_id, nombre, funcion, email, recibe_avisos) values (current_setting('prueba.cli274')::uuid, 'Contacto 274', 'trafico', 'c274@contacto.prueba', true) returning id into c;
+  update contactos set funcion = 'contabilidad', recibe_avisos = false where id = c;
+  if not exists (select 1 from contactos where id = c and funcion = 'contabilidad' and not recibe_avisos) then raise exception 'FALLO 274 · el cliente no puede cambiar un contacto de su empresa'; end if;
+  delete from contactos where id = c;
+  if exists (select 1 from contactos where id = c) then raise exception 'FALLO 274 · el cliente no puede borrar un contacto de su empresa'; end if;
+  -- Los de OTRA empresa: ni crearlos.
+  begin
+    insert into contactos (cliente_id, nombre, funcion, email) values (current_setting('prueba.otro274')::uuid, 'Intruso 274', 'trafico', 'x274@contacto.prueba');
+    raise exception 'FALLO 274 · un cliente crea contactos en otra empresa';
+  exception when insufficient_privilege or check_violation then null; when others then if sqlerrm like 'FALLO 274%' then raise; end if; end;
+  -- Y los datos fiscales de su empresa no los toca.
+  begin
+    update clientes set razon_social = 'Cambiada por el cliente 274' where id = current_setting('prueba.cli274')::uuid;
+  exception when others then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if exists (select 1 from clientes where razon_social = 'Cambiada por el cliente 274') then raise exception 'FALLO 274 · el cliente cambia la razón social de su empresa'; end if;
+  if exists (select 1 from contactos where email = 'x274@contacto.prueba') then raise exception 'FALLO 274 · quedó un contacto creado en otra empresa'; end if;
+  raise notice 'OK 274 · «Editar empresa» del cliente: lee su sector, cambia solo los contactos de su empresa y no toca los datos fiscales';
+end $$;
+set role anon;
+do $$ begin
+  begin perform mi_empresa_sector(); raise exception 'FALLO 274 · sin sesión se llama a mi_empresa_sector';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

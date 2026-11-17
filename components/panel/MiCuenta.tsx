@@ -7,8 +7,10 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import LogoEditor from './LogoEditor';
+import EditorContactos from './EditorContactos';
+import type { ContactoDatos } from '@/lib/contactos';
 import Cargando from '@/components/Cargando';
-import { cambiarMiClave, cambiarMiEmail, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { cambiarMiClave, cambiarMiEmail, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, guardarContactosDeMiEmpresa, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 
 import { paisDe, telBonito } from '@/lib/paises';
@@ -42,10 +44,18 @@ function Vence({ f }: { f: string | null }) {
   return <span style={{ color, fontWeight: color ? 700 : undefined }}>{fecha(f)}{dias < 0 ? ' · caducado' : dias < 30 ? ' · vence pronto' : ''}</span>;
 }
 
-export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null }: {
+// Lo que el usuario de un CLIENTE ve y cambia de su empresa en «Editar empresa»: el logo y
+// las personas de contacto son suyos; el resto va en gris. Sin nada privado de Dynamo.
+export type EmpresaEditable = {
+  cliente_id: string; sector: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string;
+  contactos: ContactoDatos[]; puedeGuardar: boolean;
+};
+
+export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null, editable = null }: {
   datos: MisDatos; email: string; rol: string; ultimaConexion: string | null;
   empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null; cliente_id?: string | null } | null;
   transporte?: TransporteDatos | null;
+  editable?: EmpresaEditable | null;
 }) {
   const refrescar = useRefrescar();
   const [editar, setEditar] = useState(false);
@@ -55,7 +65,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
   const [cambiaEmail, setCambiaEmail] = useState(false);
   const [emailPedido, setEmailPedido] = useState<string | null>(null);
   const [baja, setBaja] = useState(false);
-  const [cambiaLogo, setCambiaLogo] = useState(false);
+  const [editaEmpresa, setEditaEmpresa] = useState(false);
   const [companero, setCompanero] = useState(false);
   const [companeroOk, setCompaneroOk] = useState(false);
   const [vehiculo, setVehiculo] = useState<MiVehiculo | null>(null);
@@ -108,8 +118,9 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             {fila('CIF', empresa.cif)}
             {fila('Dirección fiscal', empresa.direccion)}
             {fila('País', empresa.pais ? paisDe(empresa.pais) : '')}
-            {/* Lo único que el cliente cambia él mismo de su empresa: el logo (usuario, 2026-11-16). */}
-            {empresa.cliente_id && <button className="btn-ghost account-edit" onClick={() => setCambiaLogo(true)}>Cambiar logo</button>}
+            {/* El cliente cambia él mismo el logo y las personas de contacto de su empresa
+                (usuario, 2026-11-17): todo en una ventana, «Editar empresa». */}
+            {editable && <button className="btn-ghost account-edit" id="btn-editar-empresa" onClick={() => setEditaEmpresa(true)}>Editar empresa</button>}
             <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para modificar los datos fiscales, llámanos o escríbenos y lo actualizamos.</p>
           </div>
         )}
@@ -155,15 +166,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
       {cambiaEmail && <CambiarEmail actual={email} onCerrar={() => setCambiaEmail(false)} onHecho={(e) => { setCambiaEmail(false); setEmailPedido(e); }} />}
       {companero && <AnadirCompanero empresa={empresa?.razon_social ?? 'tu empresa'} onCerrar={() => setCompanero(false)} onHecho={() => { setCompanero(false); setCompaneroOk(true); }} />}
       {baja && <DarmeDeBaja onCerrar={() => setBaja(false)} transportista={rol === 'transportista'} />}
-      {/* Ventana SOLO para el logo de la empresa (usuario, 2026-11-16). Se guarda al subirlo;
-          al cerrar se refresca la página para que el círculo de arriba lo enseñe. */}
-      {cambiaLogo && empresa?.cliente_id && (
-        <Modal abierto titulo="Logo de tu empresa" sub={empresa.razon_social} ancho={520}
-          onCerrar={() => { setCambiaLogo(false); refrescar(); }}
-          pie={<button className="btn-primary" onClick={() => { setCambiaLogo(false); refrescar(); }}>Guardar y cerrar</button>}>
-          <LogoEditor dueno={{ campo: 'cliente_id', id: empresa.cliente_id }} etiqueta={<>Logo <Req si={false} /></>} uso="arriba, en tu panel" />
-          <p className="account-card-desc" style={{ marginTop: '0.7rem' }}>Si no pones logo, arriba salen las iniciales de tu empresa.</p>
-        </Modal>
+      {editaEmpresa && empresa && editable && (
+        <EditarEmpresa empresa={empresa} editable={editable} onCerrar={() => { setEditaEmpresa(false); refrescar(); }} />
       )}
       {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); refrescar(); }} />}
       {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '' }}
@@ -223,6 +227,66 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
       </p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {guardando && <Cargando texto="Guardando tus datos" />}
+    </Modal>
+  );
+}
+
+// ---- Editar empresa (usuario de un cliente) ----------------------------------------------
+// La misma ventana que «Editar cliente» de Dynamo, sin nada de lo que es privado de Dynamo
+// (estado, crédito, pagos, contabilidad, notas, usuarios). El LOGO y las PERSONAS DE
+// CONTACTO los cambia el propio cliente; la razón social, el CIF, el sector y el domicilio
+// fiscal van en gris, solo lectura (usuario, 2026-11-17). El logo se guarda al subirlo; los
+// contactos, con «Guardar cambios».
+function EditarEmpresa({ empresa, editable, onCerrar }: {
+  empresa: { razon_social: string; cif: string | null; pais: string | null }; editable: EmpresaEditable; onCerrar: () => void;
+}) {
+  const [contactos, setContactos] = useState<ContactoDatos[]>(editable.contactos);
+  const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  async function guardar() {
+    setError(null); setGuardando(true);
+    const r = await guardarContactosDeMiEmpresa(contactos);
+    setGuardando(false);
+    if (!r.ok) { setError(r.error); return; }
+    onCerrar();
+  }
+  const titulo = (t: string) => <div style={{ gridColumn: '1/-1', marginTop: '0.6rem' }} className="ptar-section-head">{t}</div>;
+  const gris = (id: string, label: string, valor: string, ancho = false) => (
+    <div style={ancho ? { gridColumn: '1/-1' } : undefined}>
+      <label htmlFor={id}>{label}</label>
+      <input id={id} className="sitio-f-lock" readOnly tabIndex={-1} value={valor} title="Este dato lo cambia Dynamo: llámanos o escríbenos" />
+    </div>
+  );
+  return (
+    <Modal abierto titulo="Editar empresa" sub={empresa.razon_social} ancho={720} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={guardando}>{editable.puedeGuardar ? 'Cancelar' : 'Cerrar'}</button>
+        {editable.puedeGuardar && <button className="btn-primary" id="btn-guardar-empresa" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar cambios'}</button>}
+      </>}>
+      <LogoEditor dueno={{ campo: 'cliente_id', id: editable.cliente_id }} etiqueta={<>Logo de la empresa <Req si={false} /></>} uso="arriba, en tu panel" />
+      <p className="account-card-desc" style={{ marginTop: '0.5rem' }}>Si no pones logo, arriba salen las iniciales de tu empresa. El logo se guarda al subirlo.</p>
+      <div className="ptar-sitio-grid">
+        {titulo('Empresa')}
+        {gris('emp-razon', 'Razón social', empresa.razon_social, true)}
+        {gris('emp-cif', 'CIF / NIF', empresa.cif ?? '')}
+        {gris('emp-sector', 'Sector', editable.sector || 'Sin definir')}
+        {titulo('Domicilio fiscal')}
+        {gris('emp-dir', 'Dirección (calle y número)', editable.direccion, true)}
+        {gris('emp-cp', 'Código postal', editable.codigo_postal)}
+        {gris('emp-pob', 'Población', editable.poblacion)}
+        {gris('emp-prov', 'Provincia', editable.provincia)}
+        {gris('emp-pais', 'País', empresa.pais ? paisDe(empresa.pais) : '')}
+        <div style={{ gridColumn: '1/-1', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>
+          Los datos de la empresa y el domicilio fiscal los cambiamos nosotros: llámanos al {CONTACTO.telefono} o escríbenos a {CONTACTO.email} y lo actualizamos.
+        </div>
+        {titulo('Personas de contacto')}
+        <EditorContactos valor={contactos} onCambio={setContactos} max={20}
+          roles={[['trafico', 'Logística'], ['contabilidad', 'Contabilidad']]} funcionNueva="trafico"
+          ayuda={<>La primera es la <strong>principal</strong>. Con <strong>«Recibe los avisos»</strong> puesto: <strong>Logística</strong> recibe los emails de los envíos y <strong>Contabilidad</strong> los de pagos y el CMR firmado. No da acceso a la plataforma: para eso, añade un compañero desde «Mi cuenta».</>} />
+      </div>
+      {!editable.puedeGuardar && <div className="wiz-warn show" role="status">Tu cuenta está en solo lectura: puedes ver los datos, pero no cambiarlos.</div>}
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {guardando && <Cargando texto="Guardando los contactos" />}
     </Modal>
   );
 }

@@ -174,6 +174,40 @@ test.describe('novedades', () => {
     await t.context().close();
   });
 
+  test('editar empresa: el cliente cambia sus personas de contacto y ve en gris los datos fiscales', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/mi-cuenta');
+    await page.locator('#btn-editar-empresa').click();
+    const v = page.locator('.dash-modal.open');
+    await expect(v.getByText('Editar empresa')).toBeVisible();
+    // Empresa y domicilio fiscal: en gris, solo lectura.
+    for (const id of ['#emp-razon', '#emp-cif', '#emp-sector', '#emp-dir', '#emp-cp', '#emp-pob', '#emp-prov', '#emp-pais']) {
+      await expect(v.locator(id)).toHaveAttribute('readonly', '');
+    }
+    await expect(v.locator('#emp-razon')).not.toHaveValue('');
+    // Nada de lo que es privado de Dynamo.
+    await expect(v.getByText(/crédito|CESCE|Holded|pagos tardíos|Estado/i)).toHaveCount(0);
+    // Añade una persona de contacto de Contabilidad que recibe los avisos, y guarda.
+    const antes = await v.locator('input[type=email]').count();
+    await v.getByRole('button', { name: 'Añadir contacto adicional' }).click();
+    const email = `contacto.e2e.${Date.now()}@empresa.prueba`;
+    await v.locator(`#ct-${antes}-nombre`).fill('Contacto de la prueba');
+    await v.locator(`#ct-${antes}-email`).fill(email);
+    await v.locator(`#ct-${antes}-rol`).selectOption('contabilidad');
+    await v.locator('#btn-guardar-empresa').click();
+    await expect(page.locator('.dash-modal.open')).toHaveCount(0);
+    const { data: c } = await bd().from('contactos').select('funcion, recibe_avisos, cliente_id, nombre').eq('email', email).single();
+    expect(c).toMatchObject({ funcion: 'contabilidad', recibe_avisos: true, nombre: 'Contacto de la prueba' });
+    expect(c!.cliente_id).toBeTruthy();
+    // Al volver a abrir, ahí está; lo quita y se borra.
+    await page.locator('#btn-editar-empresa').click();
+    await expect(page.locator(`.dash-modal.open #ct-${antes}-email`)).toHaveValue(email);
+    await page.locator('.dash-modal.open').getByRole('button', { name: 'Quitar' }).nth(antes).click();
+    await page.locator('#btn-guardar-empresa').click();
+    await expect(page.locator('.dash-modal.open')).toHaveCount(0);
+    await expect.poll(async () => (await bd().from('contactos').select('id', { count: 'exact', head: true }).eq('email', email)).count).toBe(0);
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

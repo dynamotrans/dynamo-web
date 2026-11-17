@@ -1,5 +1,6 @@
 import { sesion, esDynamo } from '@/lib/sesion';
-import MiCuenta, { type TransporteDatos } from '@/components/panel/MiCuenta';
+import MiCuenta, { type TransporteDatos, type EmpresaEditable } from '@/components/panel/MiCuenta';
+import { contactosDe } from '@/lib/contactos';
 import { datosDynamo } from '@/lib/pdf/datos';
 import type { Funcion } from '@/lib/supabase/tipos';
 
@@ -14,6 +15,7 @@ export default async function PaginaMiCuenta() {
   const { data: yo } = await supabase.from('usuarios').select('nombre, email, telefono, documento, cargo, idioma, rol, estado').eq('id', perfil.id).maybeSingle();
   let empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null; cliente_id?: string | null } | null = null;
   let transporte: TransporteDatos | null = null;
+  let editable: EmpresaEditable | null = null;
   if (esDynamo(perfil.rol)) {
     const D = await datosDynamo(supabase);
     empresa = { razon_social: D.razon_social, cif: D.cif, direccion: `${D.direccion}, ${D.codigo_postal} ${D.poblacion}`, pais: 'ES' };
@@ -22,6 +24,16 @@ export default async function PaginaMiCuenta() {
     if (data) empresa = { razon_social: data.razon_social, cif: data.cif, pais: data.pais_codigo_iso ?? null,
       cliente_id: perfil.rol === 'cliente' ? data.id : null,   // el cliente cambia él mismo el logo de su empresa
       direccion: [data.direccion, [data.codigo_postal, data.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') };
+    // El CLIENTE edita él mismo el logo y las personas de contacto de su empresa (usuario,
+    // 2026-11-17); el resto lo ve en gris. Nada de lo que es privado de Dynamo viaja aquí.
+    if (data && perfil.rol === 'cliente') {
+      const [sec, con] = await Promise.all([
+        supabase.rpc('mi_empresa_sector'),
+        supabase.from('contactos').select('id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').eq('cliente_id', data.id),
+      ]);
+      editable = { cliente_id: data.id, sector: (sec.data as string | null) ?? '', direccion: data.direccion ?? '', codigo_postal: data.codigo_postal ?? '',
+        poblacion: data.poblacion ?? '', provincia: data.provincia ?? '', contactos: contactosDe(con.data ?? []), puedeGuardar: perfil.estado === 'activa' };
+    }
     // El transportista: su empresa de transporte y su flota (lo que ve por sus permisos).
     if (data && perfil.rol === 'transportista') {
       const t = data as Funcion<'mi_empresa_transportista'>[number];
@@ -34,5 +46,5 @@ export default async function PaginaMiCuenta() {
     }
   }
   return <MiCuenta datos={{ nombre: yo?.nombre ?? '', telefono: yo?.telefono ?? '', documento: yo?.documento ?? '', cargo: yo?.cargo ?? '', idioma: yo?.idioma ?? 'es' }}
-    email={yo?.email ?? user.email ?? ''} rol={perfil.rol} ultimaConexion={user.last_sign_in_at ?? null} empresa={empresa} transporte={transporte} />;
+    email={yo?.email ?? user.email ?? ''} rol={perfil.rol} ultimaConexion={user.last_sign_in_at ?? null} empresa={empresa} transporte={transporte} editable={editable} />;
 }

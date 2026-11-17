@@ -12,6 +12,8 @@ import { origen } from '@/lib/origen';
 import { soloTransportista } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { CONTACTO } from '@/lib/atencion';
+import type { ContactoDatos } from '@/lib/contactos';
+import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 
 export type MisDatos = { nombre: string; telefono: string; documento: string; cargo: string; idioma: string };
 
@@ -311,4 +313,24 @@ export async function anadirCompanero(d: Companero): Promise<{ ok: true } | { ok
     .update({ nombre: d.nombre.trim(), rol: p.rol, estado: 'activa', ...empresa }).eq('id', data.user.id);
   if (e2) return { ok: false, error: `La invitación ha salido, pero no se ha podido activar: ${mensajeError(e2.message)}. Llámanos y lo rematamos.` };
   return { ok: true };
+}
+
+// LAS PERSONAS DE CONTACTO DE MI EMPRESA (usuario, 2026-11-17): cualquier usuario ACTIVO de
+// un cliente las cambia él mismo desde «Editar empresa». Solo eso: la razón social, el CIF,
+// el sector y el domicilio fiscal los cambia Dynamo. La base de datos ya solo le deja tocar
+// los contactos de SU empresa; aquí se comprueba además que la cuenta no esté en solo lectura.
+export async function guardarContactosDeMiEmpresa(lista: ContactoDatos[]): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarContactosDeMiEmpresa", [lista]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const p = s.perfil;
+  if (p.rol !== 'cliente' || !p.cliente_id) return { ok: false, error: 'Solo los usuarios de un cliente cambian los contactos de su empresa.' };
+  if (p.estado !== 'activa') return { ok: false, error: 'Tu cuenta está en solo lectura: no puedes cambiar los contactos de tu empresa.' };
+  if (!Array.isArray(lista) || lista.length > 20) return { ok: false, error: 'Como mucho 20 personas de contacto.' };
+  // Solo los dos roles de un cliente; cualquier otro valor entra como Logística.
+  const limpia = sinVacios(lista).map((c) => ({ ...c, funcion: c.funcion === 'contabilidad' ? 'contabilidad' as const : 'trafico' as const }));
+  const mal = validarContactos(limpia);
+  if (mal) return { ok: false, error: mal };
+  const e = await guardarContactos(s.supabase, { cliente_id: p.cliente_id }, limpia);
+  return e ? { ok: false, error: 'No se han podido guardar los contactos. Vuelve a intentarlo.' } : { ok: true };
 }

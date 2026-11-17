@@ -3991,6 +3991,7 @@ export type Database = {
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }
       mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number; nima_por_defecto: boolean }[] }
+      mi_empresa_sector: { Args: Record<PropertyKey, never>; Returns: string }
       mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string }[] }
       mi_enlace_cmr: { Args: { p_envio: string | null }; Returns: string }
       mi_envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }

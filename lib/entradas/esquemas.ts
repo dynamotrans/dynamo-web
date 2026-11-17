@@ -97,6 +97,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/mi-cuenta/acciones#darDeBajaFlota": z.tuple([z.enum(["conductor", "vehiculo"]), z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/mi-cuenta/acciones#darmeDeBaja": z.tuple([z.string().max(1000), z.string().max(5000)]),
   "app/panel/(app)/mi-cuenta/acciones#empresaDeMiAlta": z.tuple([]),
+  "app/panel/(app)/mi-cuenta/acciones#guardarContactosDeMiEmpresa": z.tuple([z.array(z.object({ id: z.string().uuid().or(z.literal('')).optional(), nombre: z.string().max(1000), cargo: z.string().max(1000), funcion: z.enum(["trafico", "contabilidad", "conductor", "general"]), telefono: z.string().max(1000), email: z.string().max(1000), recibe_avisos: z.boolean() })).max(10000)]),
   "app/panel/(app)/mi-cuenta/acciones#guardarEmpresaDeMiAlta": z.tuple([z.object({ empresa: z.string().max(1000), cif: z.string().max(1000), pais: z.string().max(1000), direccion: z.string().max(1000), codigo_postal: z.string().max(1000), poblacion: z.string().max(1000), provincia: z.string().max(1000), telefono: z.string().max(1000), email: z.string().max(1000) })]),
   "app/panel/(app)/mi-cuenta/acciones#guardarMiConductor": z.tuple([z.object({ id: z.string().uuid().or(z.literal('')).nullable(), nombre: z.string().max(1000), documento: z.string().max(1000), pais: z.string().max(1000), telefono: z.string().max(1000) })]),
   "app/panel/(app)/mi-cuenta/acciones#guardarMiTransporte": z.tuple([z.object({ nima: z.string().max(1000) })]),
