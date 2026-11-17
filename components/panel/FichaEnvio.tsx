@@ -316,9 +316,9 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           lo ve Dynamo: con él se ve el precio del transportista. */}
       {!manual && e.estado === 'programado' && !e.transportista_id && e.codigo_aceptacion && (
         <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span>Código de aceptación para la bolsa: <strong id="codigo-aceptacion" style={{ letterSpacing: '0.14em', color: 'var(--navy)' }}>{e.codigo_aceptacion}</strong></span>
-          <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem' }} onClick={() => navigator.clipboard?.writeText(e.codigo_aceptacion)}>Copiar</button>
-          <span className="meta" style={{ flexBasis: '100%' }}>El transportista lo escribe en la página <strong>«Aceptar carga»</strong> de la web (dirección <strong>/carga</strong>) y llega a la pantalla de aceptar este envío. No se lo des al cliente.</span>
+          <span>Código de aceptación para la bolsa: <strong id="codigo-aceptacion" style={{ letterSpacing: '0.1em', color: 'var(--navy)' }}>{e.codigo_aceptacion.slice(0, 3)} {e.codigo_aceptacion.slice(3)}</strong></span>
+          <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem' }} onClick={() => navigator.clipboard?.writeText(e.codigo_aceptacion ?? '')}>Copiar</button>
+          <span className="meta" style={{ flexBasis: '100%' }}>El transportista lo escribe en la página <strong>«Aceptar carga»</strong> de la web (dirección <strong>/carga</strong>) y llega a la pantalla de aceptar este envío. Deja de valer cuando el envío tiene transportista; si vuelve a quedar libre, sale uno nuevo. No se lo des al cliente.</span>
         </div></div>
       )}
       {ficha.contraofertas.length > 1 && (

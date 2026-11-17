@@ -114,9 +114,10 @@ test.describe('novedades', () => {
       await expect.poll(async () => (await ultimoEnvio()).estado_pago_previo).toBe('pagado');
     }
     const { data: fila } = await bd().from('envios').select('codigo_aceptacion, token_publico, referencia_gx').eq('id', e.id).single();
-    expect(fila!.codigo_aceptacion).toMatch(/^[BCDFGHJKMNPQRSTVWXYZ2-9]{6}$/);
+    expect(fila!.codigo_aceptacion).toMatch(/^[1-9]\d{5}$/);
+    const cod = fila!.codigo_aceptacion as string;
     // Dynamo lo ve en la ficha, para ponerlo en la bolsa.
-    await expect(page.locator('#codigo-aceptacion')).toHaveText(fila!.codigo_aceptacion);
+    await expect(page.locator('#codigo-aceptacion')).toHaveText(`${cod.slice(0, 3)} ${cod.slice(3)}`);
     await page.getByRole('button', { name: 'Ofrecer envío' }).click();
     await expect(page.locator('#of-enlace').or(page.getByRole('button', { name: 'Crear oferta y enlace' })).first()).toBeVisible();
     if (await page.getByRole('button', { name: 'Crear oferta y enlace' }).isVisible()) {
@@ -127,16 +128,15 @@ test.describe('novedades', () => {
     // El transportista, sin cuenta: ve la carga en la bolsa y teclea su código en la web.
     const t = await (await browser.newContext({ locale: 'es-ES' })).newPage();
     await t.goto('/carga');
-    await t.fill('#codigo-carga', 'zzzzzz');
+    await t.fill('#codigo-carga', cod === '999998' ? '999997' : '999998');
     await t.getByRole('button', { name: 'Ver la carga' }).click();
     await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
     // El número de envío no vale de código: lo conoce el cliente.
     await t.fill('#codigo-carga', fila!.referencia_gx);
     await t.getByRole('button', { name: 'Ver la carga' }).click();
     await expect(t.getByText(/ya no está disponible, o el código no es correcto/)).toBeVisible();
-    // Con el código bueno (en minúsculas y con un guion), a la pantalla de aceptar esa carga.
-    const c = fila!.codigo_aceptacion.toLowerCase();
-    await t.fill('#codigo-carga', `${c.slice(0, 3)}-${c.slice(3)}`);
+    // Con el código bueno (escrito con un espacio en medio), a la pantalla de aceptar esa carga.
+    await t.fill('#codigo-carga', `${cod.slice(0, 3)} ${cod.slice(3)}`);
     await t.getByRole('button', { name: 'Ver la carga' }).click();
     await t.waitForURL(new RegExp(`/carga/${fila!.token_publico}`));
     await expect(t.getByRole('button', { name: 'Reservar y aceptar este envío' })).toBeVisible();

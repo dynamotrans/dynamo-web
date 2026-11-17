@@ -1916,7 +1916,7 @@ export type Database = {
           fecha_efectiva: string | null
           pago_a_cuenta: number | null
           importe_tarifa: number | null
-          codigo_aceptacion: string
+          codigo_aceptacion: string | null
         }
         Insert: {
           id?: string
@@ -2033,7 +2033,7 @@ export type Database = {
           fecha_efectiva?: string | null
           pago_a_cuenta?: number | null
           importe_tarifa?: number | null
-          codigo_aceptacion: string
+          codigo_aceptacion?: string | null
         }
         Update: {
           id?: string
@@ -2150,7 +2150,7 @@ export type Database = {
           fecha_efectiva?: string | null
           pago_a_cuenta?: number | null
           importe_tarifa?: number | null
-          codigo_aceptacion?: string
+          codigo_aceptacion?: string | null
         }
         Relationships: [
           {

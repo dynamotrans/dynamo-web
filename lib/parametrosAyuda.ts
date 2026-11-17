@@ -206,7 +206,7 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Si la persona que tiene la carga reservada (sus 3 minutos) falla el CIF estas veces, se le quita la reserva y la carga vuelve a quedar libre. En el alta online cuenta igual cada CIF o código de bolsa que ya existe: así nadie puede ir probando CIFs para saber quién trabaja con Dynamo.',
     ejemplo: (v) => `Con ${v}: falla el CIF ${v} veces seguidas → pierde la reserva.` },
   carga_codigo_max_fallos_hora: { titulo: 'Seguridad: fallos en la casilla del código de aceptación',
-    explica: 'Cada carga lleva en la bolsa un código de aceptación que el transportista teclea en la web. Si desde una misma conexión se fallan estos códigos en una hora, esa conexión tiene que esperar: así nadie puede ir probando códigos para ver tus cargas.',
+    explica: 'Cada carga lleva en la bolsa un código de aceptación de 6 cifras que el transportista teclea en la web. Si desde una misma conexión se fallan estos códigos en una hora, esa conexión tiene que esperar: así nadie puede ir probando códigos para ver tus cargas.',
     ejemplo: (v) => `Con ${v}: al fallo n.º ${v} en una hora, «Has probado demasiados códigos. Espera una hora o llámanos».` },
   alta_online_max_pendientes_carga: { titulo: 'Alta online: desconocidos en espera por carga',
     explica: 'Si abre el enlace de una carga un transportista cuyo CIF no está dado de alta, puede registrarse ahí mismo y quedarse la carga EN ESPERA de que revises su alta. Este número limita cuántos desconocidos pueden estar a la vez en esa espera sobre LA MISMA carga: al llegar al tope, al siguiente la página le pide que llame (evita altas falsas en cadena, y la carga solo se la va a llevar uno). 0 = nadie puede darse de alta desde el enlace.',

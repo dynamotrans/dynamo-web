@@ -16,8 +16,9 @@ const ERROR_CONEXION = 'No se puede conectar ahora mismo. Vuelve a intentarlo en
 // existen) y pone el tope de fallos por hora; aquí va además el captcha.
 export async function buscarPorCodigo(_prev: EstadoCodigo, f: FormData): Promise<EstadoCodigo> {
   comprobarEntrada("app/carga/acciones#buscarPorCodigo", [_prev, f]);
-  const codigo = String(f.get('codigo') ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
-  if (codigo.length < 6) return { error: 'Escribe el código de 6 letras y cifras que aparece en la carga.', codigo };
+  // Seis cifras; se quedan solo las cifras (da igual espacios o guiones).
+  const codigo = String(f.get('codigo') ?? '').replace(/\D/g, '').slice(0, 12);
+  if (codigo.length < 6) return { error: 'Escribe las 6 cifras del código que aparece en la carga.', codigo };
   if (!(await turnstileOk(f))) return { error: 'No hemos podido comprobar que no eres un robot. Recarga la página y vuelve a intentarlo.', codigo };
   const sb = supabasePublico();
   if (!sb) return { error: ERROR_CONEXION, codigo };

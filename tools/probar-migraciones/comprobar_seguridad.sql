@@ -1170,7 +1170,7 @@ do $$ declare e uuid; gx text; n int; begin
   end if;
   update parametros set valor = '0' where clave = 'bolsa_espera_minutos';
   select count(*) into n from v_wtransnet where "REF." = gx and "Peso" = 24000 and "Arriba" = 'S'
-     and "Tipo Bolsa" = 'Completa' and "Comentarios Públicos" ~ '^Acéptala en dynamotrans\.com/carga con el código [BCDFGHJKMNPQRSTVWXYZ2-9]{6}$' and "País destino" = 'ES';
+     and "Tipo Bolsa" = 'Completa' and "Comentarios Públicos" ~ '^Acéptala en dynamotrans\.com/carga con el código [1-9][0-9]{2} [0-9]{3}$' and "País destino" = 'ES';
   if n <> 1 then raise exception 'FALLO 44 · el envio no sale bien en el fichero de Wtransnet'; end if;
   if exists (select 1 from v_wtransnet where "REF." = (select referencia_gx from envios
              where id = current_setting('prueba.envio')::uuid)) then
@@ -11644,8 +11644,8 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
--- ---- 269. Código de aceptación de carga: al azar, único, no lo ve el cliente y la casilla tiene tope ----
-do $$ declare e uuid; g uuid; t uuid; c text; c2 text; cli uuid := current_setting('prueba.cliente')::uuid;
+-- ---- 269. Código de aceptación de carga: 6 cifras al azar, caduca, no lo ve el cliente y la casilla tiene tope ----
+do $$ declare e uuid; g uuid; m uuid; t uuid; c text; c2 text; c3 text; cli uuid := current_setting('prueba.cliente')::uuid;
   hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
 begin
   lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
@@ -11662,20 +11662,38 @@ begin
   update envios set estado = 'programado' where id = g;
   select codigo_aceptacion into c from envios where id = e;
   select codigo_aceptacion into c2 from envios where id = g;
-  if c !~ '^[BCDFGHJKMNPQRSTVWXYZ2-9]{6}$' or c2 !~ '^[BCDFGHJKMNPQRSTVWXYZ2-9]{6}$' or c = c2 then
-    raise exception 'FALLO 269 · el envío no nace con un código de aceptación propio de 6 caracteres: % · %', c, c2;
+  if c !~ '^[1-9][0-9]{5}$' or c2 !~ '^[1-9][0-9]{5}$' or c = c2 then
+    raise exception 'FALLO 269 · el envío no nace con un código de aceptación propio de 6 cifras: % · %', c, c2;
   end if;
-  if exists (select 1 from envios where codigo_aceptacion is null)
-     or (select count(*) from envios) <> (select count(distinct codigo_aceptacion) from envios) then
-    raise exception 'FALLO 269 · hay envíos sin código de aceptación o con el código repetido';
+  -- Lo tienen los envíos de Dynamo sin terminar, y nadie más; sin repetir.
+  if exists (select 1 from envios where codigo_aceptacion is null and not coalesce(es_manual, false) and estado::text not in ('entregado', 'cancelado'))
+     or exists (select 1 from envios where codigo_aceptacion is not null and (coalesce(es_manual, false) or estado::text in ('entregado', 'cancelado')))
+     or (select count(codigo_aceptacion) from envios) <> (select count(distinct codigo_aceptacion) from envios) then
+    raise exception 'FALLO 269 · hay envíos vivos sin código de aceptación (%), terminados o de transportista propio con código (%), o códigos repetidos · ejemplo: %',
+      (select count(*) from envios where codigo_aceptacion is null and not coalesce(es_manual, false) and estado::text not in ('entregado', 'cancelado')),
+      (select count(*) from envios where codigo_aceptacion is not null and (coalesce(es_manual, false) or estado::text in ('entregado', 'cancelado'))),
+      (select jsonb_build_object('estado', estado, 'manual', es_manual, 'codigo', codigo_aceptacion, 'transportista', transportista_id is not null, 'operador', operador_id is not null, 'creado', creado_en, 'modificado', modificado_en)
+         from envios where (codigo_aceptacion is null) = (not coalesce(es_manual, false) and estado::text not in ('entregado', 'cancelado')) limit 1);
   end if;
   -- No se cambia a mano.
-  update envios set codigo_aceptacion = 'BBBBBB' where id = e;
+  update envios set codigo_aceptacion = '482913' where id = e;
   if (select codigo_aceptacion from envios where id = e) <> c then raise exception 'FALLO 269 · el código de aceptación se deja cambiar a mano'; end if;
+  -- Otro envío para ver la caducidad: al cancelarse, el código se borra.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 4, 3, 500, 350, lun, lun + 1) returning id into m;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (m, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (m, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = m;
+  select codigo_aceptacion into c3 from envios where id = m;
+  update envios set estado = 'cancelado' where id = m;
+  if c3 is null or (select codigo_aceptacion from envios where id = m) is not null then
+    raise exception 'FALLO 269 · al cancelarse el envío su código de aceptación no se borra';
+  end if;
   perform set_config('prueba.e269', e::text, false);
   perform set_config('prueba.t269', t::text, false);
   perform set_config('prueba.c269', c, false);
   perform set_config('prueba.c269b', c2, false);
+  perform set_config('prueba.c269m', c3, false);
   perform set_config('prueba.gx269', (select referencia_gx from envios where id = e), false);
   perform set_config('prueba.tk269', (select token_publico::text from envios where id = e), false);
 end $$;
@@ -11691,28 +11709,63 @@ select set_config('request.jwt.claim.sub', '', false);
 -- La casilla pública.
 set role anon;
 do $$ declare r jsonb; c text := current_setting('prueba.c269'); begin
-  -- Da igual minúsculas, espacios o guiones.
-  r := carga_por_codigo(' ' || lower(substr(c, 1, 3)) || '-' || substr(c, 4) || ' ', '10.26.9.1');
+  -- Da igual con espacios o guiones.
+  r := carga_por_codigo(' ' || substr(c, 1, 3) || ' - ' || substr(c, 4) || ' ', '10.26.9.1');
   if r ->> 'resultado' <> 'ok' or r ->> 'token' <> current_setting('prueba.tk269') then
     raise exception 'FALLO 269 · el código de aceptación no lleva al enlace de su carga: %', r;
+  end if;
+  -- Y ese enlace (el propio del envío, no el de una oferta) abre la carga: antes daba error.
+  r := oferta_publica(current_setting('prueba.tk269')::uuid);
+  if r ->> 'resultado' <> 'ok' or not (r ->> 'disponible')::boolean or (r ->> 'precio')::numeric <> 707 then
+    raise exception 'FALLO 269 · el enlace propio del envío no abre su carga: %', r;
   end if;
   -- El número de envío (GX) no abre nada: el cliente lo conoce.
   r := carga_por_codigo(current_setting('prueba.gx269'), '10.26.9.1');
   if r ->> 'resultado' <> 'no_disponible' or r ? 'token' then raise exception 'FALLO 269 · el número de envío abre la carga: %', r; end if;
+  -- El código de un envío cancelado ya no existe.
+  r := carga_por_codigo(current_setting('prueba.c269m'), '10.26.9.3');
+  if r ->> 'resultado' <> 'no_disponible' then raise exception 'FALLO 269 · el código de un envío cancelado sigue abriendo: %', r; end if;
 end $$;
 reset role;
--- Con la carga ya tomada responde lo mismo que a un código inventado.
+-- Con la carga ya tomada el código sigue en la ficha, pero responde lo mismo que uno inventado.
 update envios set transportista_id = current_setting('prueba.t269')::uuid where id = current_setting('prueba.e269')::uuid;
+do $$ begin
+  if (select codigo_aceptacion from envios where id = current_setting('prueba.e269')::uuid) <> current_setting('prueba.c269') then
+    raise exception 'FALLO 269 · al asignar transportista cambia o se pierde el código de aceptación';
+  end if;
+end $$;
 set role anon;
-do $$ declare r jsonb; r2 jsonb; i int; begin
+do $$ declare r jsonb; r2 jsonb; begin
   r := carga_por_codigo(current_setting('prueba.c269'), '10.26.9.1');
-  r2 := carga_por_codigo('ZZZZZZ', '10.26.9.1');
+  r2 := carga_por_codigo('999998', '10.26.9.1');
   if r ->> 'resultado' <> 'no_disponible' or (r - 'intentos_restantes') <> (r2 - 'intentos_restantes') then
     raise exception 'FALLO 269 · una carga ya tomada no responde igual que un código inventado: % · %', r, r2;
   end if;
+end $$;
+reset role;
+-- El transportista se cae: la carga vuelve a estar libre con un código NUEVO; el viejo no vuelve a servir.
+update envios set transportista_id = null where id = current_setting('prueba.e269')::uuid;
+-- (Al quitar el transportista se va también su precio: Dynamo lo vuelve a poner para ofrecerla.)
+update envios set importe_transportista = 707 where id = current_setting('prueba.e269')::uuid;
+do $$ declare c text; begin
+  select codigo_aceptacion into c from envios where id = current_setting('prueba.e269')::uuid;
+  if c is null or c !~ '^[1-9][0-9]{5}$' or c = current_setting('prueba.c269') then
+    raise exception 'FALLO 269 · al quedarse sin transportista el envío no estrena código de aceptación: %', c;
+  end if;
+  perform set_config('prueba.c269n', c, false);
+end $$;
+set role anon;
+do $$ declare r jsonb; i int; begin
+  if carga_por_codigo(current_setting('prueba.c269'), '10.26.9.4') ->> 'resultado' <> 'no_disponible' then
+    raise exception 'FALLO 269 · el código antiguo vuelve a abrir la carga al quedar libre';
+  end if;
+  r := carga_por_codigo(current_setting('prueba.c269n'), '10.26.9.4');
+  if r ->> 'resultado' <> 'ok' or r ->> 'token' <> current_setting('prueba.tk269') then
+    raise exception 'FALLO 269 · el código nuevo no abre la carga que ha quedado libre: %', r;
+  end if;
   -- TOPE: tras los fallos de la hora, esa conexión espera aunque el código sea bueno…
   for i in 1 .. 12 loop
-    r := carga_por_codigo('ZZZZZ' || i::text, '10.26.9.1');
+    r := carga_por_codigo((999900 + i)::text, '10.26.9.1');
     exit when r ->> 'resultado' = 'tope';
   end loop;
   if r ->> 'resultado' <> 'tope' or carga_por_codigo(current_setting('prueba.c269b'), '10.26.9.1') ->> 'resultado' <> 'tope' then
@@ -11722,6 +11775,6 @@ do $$ declare r jsonb; r2 jsonb; i int; begin
   if carga_por_codigo(current_setting('prueba.c269b'), '10.26.9.2') ->> 'resultado' <> 'ok' then
     raise exception 'FALLO 269 · el tope de una conexión bloquea a las demás';
   end if;
-  raise notice 'OK 269 · cada envío nace con su código de aceptación (al azar, único, no se cambia), el cliente no lo ve, la casilla lleva al enlace de la carga, no acepta el número de envío, responde igual a una carga tomada que a un código inventado y tiene tope de fallos';
+  raise notice 'OK 269 · código de aceptación de 6 cifras: al azar y único, no se cambia a mano, el cliente no lo ve, la casilla lleva a la carga y no acepta el número de envío, responde igual a una carga tomada que a un código inventado, tiene tope de fallos, se renueva si el envío se queda sin transportista y se borra al cancelarse';
 end $$;
 reset role;

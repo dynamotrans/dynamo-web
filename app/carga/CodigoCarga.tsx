@@ -15,10 +15,10 @@ export default function CodigoCarga() {
       <p className="sub">Escribe el <strong>código de aceptación</strong> que aparece en la carga publicada en la bolsa.</p>
       <label htmlFor="codigo-carga">Código de aceptación</label>
       <input id="codigo-carga" name="codigo" type="text" key={estado.codigo ?? ''} defaultValue={estado.codigo ?? ''}
-        placeholder="Ej. K7P4M2" maxLength={12} autoComplete="off" autoCapitalize="characters" autoCorrect="off" spellCheck={false}
+        placeholder="Ej. 482 913" maxLength={12} inputMode="numeric" pattern="[0-9 ]*" autoComplete="off" autoCorrect="off" spellCheck={false}
         required disabled={comprobando} aria-describedby="codigo-carga-ayuda"
-        style={{ textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800, textAlign: 'center' }} />
-      <p id="codigo-carga-ayuda" className="id-hint">Son 6 letras y cifras. Da igual mayúsculas o minúsculas.</p>
+        style={{ letterSpacing: '0.18em', fontWeight: 800, textAlign: 'center' }} />
+      <p id="codigo-carga-ayuda" className="id-hint">Son 6 cifras.</p>
       {estado.error && !comprobando && <div className="id-nofound show" role="alert">{estado.error}</div>}
       {comprobando && <div className="id-nofound show" role="status" aria-live="polite">Comprobando si la carga sigue disponible…</div>}
       <Turnstile />
