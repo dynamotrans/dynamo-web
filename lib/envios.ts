@@ -96,7 +96,7 @@ const finde = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
 // Color de urgencia de la fila (rampa del mockup): retrasada / hoy / +1 / +2 días hábiles.
 export function urgencia(e: EnvioFila): string {
   if (e.estado !== 'programado' && e.estado !== 'borrador') return '';
-  const ref = e.fecha_carga_real || e.fecha_carga_hasta || e.fecha_carga_desde;
+  const ref = e.fecha_carga_real || e.fecha_carga_prevista || e.fecha_carga_hasta || e.fecha_carga_desde;   // con fecha asignada, la urgencia es la de ESE día
   if (!ref) return '';
   const d = dia(ref), hoy = hoyMadrid();
   if (d < hoy) return 'row-overdue';
@@ -108,8 +108,14 @@ export function urgencia(e: EnvioFila): string {
   return ['row-today', 'row-tomorrow', 'row-aftertomorrow'][nivel] ?? '';
 }
 
+// La fecha de carga que se enseña en las listas: la REAL si ya cargó; si no, la ASIGNADA
+// (la que se fijó al confirmar el transportista); y solo sin asignar, la ventana pedida
+// (usuario, 2026-11-18: un envío confirmado para el viernes no debe seguir diciendo «del
+// miércoles al viernes»).
 export function fechaCarga(e: EnvioFila): string {
-  return e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta);
+  if (e.fecha_carga_real) return fecha(e.fecha_carga_real);
+  if (e.fecha_carga_prevista) return fecha(e.fecha_carga_prevista);
+  return ventana(e.fecha_carga_desde, e.fecha_carga_hasta);
 }
 export function fechaEntrega(e: EnvioFila): string {
   return e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : 'Por confirmar';

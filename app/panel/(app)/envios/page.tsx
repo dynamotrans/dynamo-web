@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { hoyMadrid } from '@/lib/formato';
+import { hoyMadrid, textoBusqueda } from '@/lib/formato';
 import { rangoRapido } from '@/lib/envios';
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
@@ -32,6 +32,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   const dynamo = esDynamo(rol);
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().slice(0, 200);
+  const qb = textoBusqueda(q);   // lo que se manda a buscar: sin la «#» de «#GX…»
   const vista = await vistaDe(supabase, rol);
   // Buscador (todos los años): texto y/o fechas de carga, por páginas de 100.
   const fechaOk = (x?: string) => (/^\d{4}-\d{2}-\d{2}$/.test(x ?? '') ? x! : '');
@@ -63,7 +64,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const POR = 100;
     const v = vista;
     const { data: res, error: eb } = await supabase.rpc('buscar_envios_pagina', {
-      p_q: q || null, p_desde: fDesde || null, p_hasta: fHasta || null, p_pagina: pb, p_por_pagina: POR,
+      p_q: qb || null, p_desde: fDesde || null, p_hasta: fHasta || null, p_pagina: pb, p_por_pagina: POR,
       p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null,
       p_operador: op || null, p_creado_por: por || null, p_estado: est || null,
     });
@@ -92,7 +93,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const d2 = `${mes}-${String(new Date(ma, mm, 0).getDate()).padStart(2, '0')}`;
     const v = vista;
     const { data: res, error: eb } = await supabase.rpc('buscar_envios_pagina', {
-      p_q: q || null, p_desde: `${mes}-01`, p_hasta: d2, p_pagina: 1, p_por_pagina: 500,
+      p_q: qb || null, p_desde: `${mes}-01`, p_hasta: d2, p_pagina: 1, p_por_pagina: 500,
       p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null,
       p_operador: op || null, p_creado_por: por || null, p_estado: null,
     });

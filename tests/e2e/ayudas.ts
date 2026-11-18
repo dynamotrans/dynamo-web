@@ -100,3 +100,17 @@ export async function envioListo(page: Page): Promise<string> {
   }
   return id;
 }
+
+// El código de 6 cifras que daría Google Authenticator para una clave (TOTP, RFC 6238):
+// para las pruebas del doble paso.
+import { createHmac } from 'node:crypto';
+export function codigoDelMovil(clave: string, cuando = Date.now()): string {
+  const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const c of clave.replace(/=+$/, '').toUpperCase()) bits += ABC.indexOf(c).toString(2).padStart(5, '0');
+  const bytes = Buffer.from((bits.match(/.{8}/g) ?? []).map((b) => parseInt(b, 2)));
+  const paso = Buffer.alloc(8); paso.writeBigUInt64BE(BigInt(Math.floor(cuando / 30000)));
+  const h = createHmac('sha1', bytes).update(paso).digest();
+  const o = h[h.length - 1] & 0xf;
+  return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}

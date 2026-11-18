@@ -274,6 +274,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           </div>
         )}
         <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fechaVital || '—'}</span></div>
+        {/* Constancia de lo que se pidió (usuario, 2026-11-18): con la fecha ya asignada o real
+            arriba, debajo queda la ventana de carga pedida (o el día, si era fecha fija). */}
+        {(e.fecha_carga_real || e.fecha_carga_prevista) && e.fecha_carga_desde && (
+          <div className="pen-sum-row" id="ficha-ventana-carga"><span className="k">Ventana de carga</span><span className="v">{ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
+        )}
         {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
           ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }, i) => (
           <div key={p.id ?? i} className="pen-sum-row">
@@ -286,6 +291,26 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {manual
           ? <div className="pen-sum-row"><span className="k">Precio acordado (sin IVA)</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
           : <div className="pen-sum-row"><span className="k">Precio (sin IVA)</span><span className="v">{pc != null ? euros(pc) : <Pend />}</span></div>}
+        {/* El TRANSPORTE, aquí mismo y siempre a la vista (usuario, 2026-11-18): antes iba en un
+            desplegable aparte y había que abrirlo para ver la matrícula y el conductor. El día
+            de carga ya está arriba («Fecha de carga»), así que no se repite. */}
+        {!manual && e.estado !== 'cancelado' && (
+          <div id="ficha-transporte" style={{ marginTop: '0.45rem', paddingTop: '0.45rem', borderTop: '1px dashed var(--gray-300)' }}>
+            <div className="pen-sum-row"><span className="k">Transporte</span><span className="v">
+              {e.estado === 'entregado' ? 'Entregado' : e.matricula_camion || e.conductor_nombre
+                ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
+                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin camión todavía</span>}
+            </span></div>
+            <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
+              {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : <Pend />}
+              {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
+            </span></div>
+            <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
+              {e.conductor_nombre || (e.estado === 'entregado' ? '—' : <Pend />)}
+              {e.estado !== 'entregado' && e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
+            </span></div>
+          </div>
+        )}
       </div>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {manual && e.estado !== 'cancelado' && (
@@ -381,29 +406,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         <Secc k="documentos" titulo="Documentos" abiertas={abiertas} toggle={toggle} resumen="albarán y CMR firmado">
           <div className="det-block">
             <Documentos dueno={{ campo: 'envio_id', id: e.id }} tipos={['albaran', 'cmr_firmado', 'otro']} editable={false}
-              ayuda={<>El albarán y el CMR firmado aparecen aquí en cuanto los tengamos.</>} />
-          </div>
-        </Secc>
-      )}
-
-      {!manual && e.estado !== 'cancelado' && (
-        <Secc k="transporte" titulo="Transporte" abiertas={abiertas} toggle={toggle}
-          resumen={e.matricula_camion ? <>{e.matricula_camion}{e.conductor_nombre ? ` · ${e.conductor_nombre}` : ''}</> : 'Sin camión todavía'}>
-          <div className="pen-envio-sum">
-            <div className="pen-sum-row"><span className="k">Estado</span><span className="v">
-              {e.estado === 'entregado' ? '—' : e.matricula_camion || e.conductor_nombre
-                ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
-                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin camión todavía</span>}
-            </span></div>
-            {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Día previsto de carga</span><span className="v">{fecha(e.fecha_carga_prevista)}</span></div>}
-            <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
-              {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : <Pend />}
-              {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
-            </span></div>
-            <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
-              {e.conductor_nombre || (e.estado === 'entregado' ? '—' : <Pend />)}
-              {e.estado !== 'entregado' && e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
-            </span></div>
+              ayuda={<>El albarán y el CMR firmado aparecen aquí en cuanto los tengamos y se te notificará por email.</>} />
           </div>
         </Secc>
       )}

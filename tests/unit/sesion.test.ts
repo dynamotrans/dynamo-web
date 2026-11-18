@@ -31,3 +31,20 @@ test('cookies «Secure»: siempre en producción, nunca se quita fuera de http l
   assert.equal(cookieSegura('http://localhost:3000'), false);
   assert.equal(cookieSegura('http://127.0.0.1:3000/'), false);
 });
+
+// Doble paso: el nivel de la sesión sale del token («aal2» = contraseña + código del móvil).
+import { nivelDelToken, movilesDe } from '../../lib/supabase/doblePaso';
+test('doble paso: el nivel de la sesión se lee del token; sin token legible, «aal1»', () => {
+  const token = (o: object) => `${b64({ alg: 'HS256' })}.${b64(o)}.firma`;
+  assert.equal(nivelDelToken(token({ aal: 'aal2' })), 'aal2');
+  assert.equal(nivelDelToken(token({ aal: 'aal1' })), 'aal1');
+  assert.equal(nivelDelToken(token({})), 'aal1');
+  assert.equal(nivelDelToken(token({ aal: 'aal3' })), 'aal1');     // lo que no sea aal2 no cuenta
+  assert.equal(nivelDelToken('no-es-un-token'), 'aal1');
+  assert.equal(nivelDelToken(null), 'aal1');
+});
+test('doble paso: solo cuentan los móviles ya comprobados', () => {
+  assert.equal(movilesDe({ factors: [{ id: 'a', status: 'unverified', factor_type: 'totp' }] }).length, 0);
+  assert.equal(movilesDe({ factors: [{ id: 'a', status: 'verified', factor_type: 'totp' }, { id: 'b', status: 'verified', factor_type: 'phone' }] }).length, 1);
+  assert.equal(movilesDe(null).length, 0);
+});

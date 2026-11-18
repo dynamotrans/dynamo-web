@@ -10,6 +10,8 @@ import LogoEditor from './LogoEditor';
 import EditorContactos from './EditorContactos';
 import type { ContactoDatos } from '@/lib/contactos';
 import Cargando from '@/components/Cargando';
+import { IDIOMAS_AVISOS } from '@/lib/idiomas';
+import MiDoblePaso from './MiDoblePaso';
 import { cambiarMiClave, cambiarMiEmail, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, guardarContactosDeMiEmpresa, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 
@@ -23,11 +25,8 @@ import { CONTACTO } from '@/lib/atencion';
 import Tip from '@/components/Tip';
 import { SIGLAS } from '@/lib/siglas';
 
-// Los mismos idiomas que el selector de la web (y que usarán los avisos automáticos).
-const IDIOMAS: [string, string][] = [
-  ['es', 'Español'], ['ca', 'Català'], ['eu', 'Euskara'], ['pt', 'Português'], ['en', 'English'], ['fr', 'Français'], ['de', 'Deutsch'],
-  ['it', 'Italiano'], ['nl', 'Nederlands'], ['pl', 'Polski'], ['ro', 'Română'], ['uk', 'Українська'], ['zh-CN', '中文'], ['ar', 'العربية'],
-];
+// Los idiomas de los avisos: la lista única de lib/idiomas.ts (la misma que ve Dynamo en Usuarios).
+const IDIOMAS = IDIOMAS_AVISOS;
 
 // Lo del TRANSPORTISTA: su empresa de transporte (NIMA, seguro, bolsa), su flota y su documentación.
 export type TransporteDatos = {
@@ -51,11 +50,12 @@ export type EmpresaEditable = {
   contactos: ContactoDatos[]; puedeGuardar: boolean;
 };
 
-export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null, editable = null }: {
+export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null, editable = null, doblePaso = null }: {
   datos: MisDatos; email: string; rol: string; ultimaConexion: string | null;
   empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null; cliente_id?: string | null } | null;
   transporte?: TransporteDatos | null;
   editable?: EmpresaEditable | null;
+  doblePaso?: { activo: boolean; obligatorio: boolean } | null;   // solo usuarios de Dynamo
 }) {
   const refrescar = useRefrescar();
   const [editar, setEditar] = useState(false);
@@ -96,6 +96,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           {/* El Admin Master no cambia su email desde aquí: es la llave de toda la plataforma. */}
           {rol !== 'admin' && <button className="btn-ghost account-edit" style={{ marginTop: '0.5rem' }} onClick={() => { setEmailPedido(null); setCambiaEmail(true); }}>Cambiar email</button>}
           {emailPedido && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Te hemos enviado un enlace a {emailPedido} (y otro a tu correo actual, por seguridad). El email cambia al confirmarlos; hasta entonces sigues entrando con el actual.</p>}
+          {doblePaso && <MiDoblePaso activo={doblePaso.activo} obligatorio={doblePaso.obligatorio} />}
           {(rol === 'cliente' || rol === 'transportista') && (
             // En su propia línea y separado de «Cambiar email» (usuario, 2026-11-16: salían pegados).
             <div style={{ marginTop: '1.1rem', paddingTop: '0.8rem', borderTop: '1px dashed var(--gray-200)' }}>

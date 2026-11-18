@@ -3,7 +3,7 @@
 // Van después de los flujos clave (orden alfabético de ficheros, un solo trabajador) y
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
 import { expect } from '@playwright/test';
-import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, CIF_TRANSPORTISTA } from './ayudas';
+import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, CIF_TRANSPORTISTA, EMAIL, CLAVE, codigoDelMovil } from './ayudas';
 
 const CIF_CLIENTE = 'B12345674';
 
@@ -291,6 +291,89 @@ test.describe('novedades', () => {
     await page.locator('#btn-guardar-empresa').click();
     await expect(page.locator('.dash-modal.open')).toHaveCount(0);
     await expect.poll(async () => (await bd().from('contactos').select('id', { count: 'exact', head: true }).eq('email', email)).count).toBe(0);
+  });
+
+  // DOBLE PASO del equipo de Dynamo (usuario, 2026-11-18): con el interruptor encendido, tras
+  // la contraseña se pide el código del móvil; la primera vez, con su QR. Y sin el código la
+  // base de datos no enseña nada, aunque se tenga la contraseña.
+  test('doble paso: alta con el QR, código al entrar, y sin él la base de datos no enseña nada', async ({ page }) => {
+    const sv = bd();
+    const { data: yo } = await sv.from('usuarios').select('id').eq('email', EMAIL.dynamo).single();
+    const limpiar = async () => {
+      await sv.from('parametros').update({ valor: false }).eq('clave', 'doble_paso_equipo');
+      const { data } = await sv.auth.admin.mfa.listFactors({ userId: yo!.id });
+      for (const f of data?.factors ?? []) await sv.auth.admin.mfa.deleteFactor({ id: f.id, userId: yo!.id });
+    };
+    await limpiar();
+    const entrarSinEsperarPanel = async () => {
+      await page.context().clearCookies();
+      await page.goto('/panel/entrar');
+      await page.fill('#portal-user', EMAIL.dynamo); await page.fill('#portal-pass', CLAVE);
+      await page.click('button[type=submit]');
+    };
+    try {
+      await sv.from('parametros').update({ valor: true }).eq('clave', 'doble_paso_equipo');
+      // 1 · Solo con la contraseña, la BASE DE DATOS no le reconoce: no lee ni un cliente.
+      const soloClave = await como('dynamo');
+      const { data: clientes } = await soloClave.from('clientes').select('id').limit(5);
+      expect(clientes ?? []).toHaveLength(0);
+      // 2 · Al entrar: no llega al panel, se le pide dar de alta su móvil (QR).
+      await entrarSinEsperarPanel();
+      await page.waitForURL(/\/panel\/doble-paso/);
+      await expect(page.getByRole('heading', { name: 'Activa el doble paso' })).toBeVisible();
+      await expect(page.locator('#doble-paso-qr')).toBeVisible();
+      // Ir a otra pantalla del panel sin hacerlo devuelve aquí.
+      await page.goto('/panel/usuarios');
+      await page.waitForURL(/\/panel\/doble-paso/);
+      await page.getByRole('button', { name: /Escribe la clave a mano/ }).click();
+      const clave = (await page.locator('#doble-paso-clave').innerText()).trim();
+      // Un código cualquiera no vale.
+      await page.locator('#doble-paso-codigo').fill(codigoDelMovil(clave) === '000000' ? '111111' : '000000');
+      await expect(page.getByText('Ese código no vale')).toBeVisible();
+      // Con el de su móvil, entra.
+      await page.locator('#doble-paso-codigo').fill(codigoDelMovil(clave));
+      await page.waitForURL(/\/panel\/dashboard-admin/);
+      await expect(page.locator('.sidebar, nav').first()).toBeVisible();
+      await page.goto('/panel/usuarios');
+      await expect(page.getByText(EMAIL.cliente).first()).toBeVisible();
+      // 3 · Mi cuenta lo enseña activo y obligatorio.
+      await page.goto('/panel/mi-cuenta');
+      await expect(page.locator('#mi-doble-paso')).toContainText('Activo');
+      await expect(page.locator('#mi-doble-paso')).toContainText('obligatorio');
+      // 4 · Otra entrada: ya no hay QR, solo el código; y sin él no se pasa.
+      await entrarSinEsperarPanel();
+      await page.waitForURL(/\/panel\/doble-paso/);
+      await expect(page.getByRole('heading', { name: 'Código de tu móvil' })).toBeVisible();
+      await expect(page.locator('#doble-paso-qr')).toHaveCount(0);
+      await page.goto('/panel/envios');
+      await page.waitForURL(/\/panel\/doble-paso/);
+      // 5 · A un cliente no se le pide nada.
+      await entrar(page, 'cliente');
+      await expect(page).not.toHaveURL(/doble-paso/);
+    } finally {
+      await limpiar();
+    }
+    // Apagado y sin móvil dado de alta, Dynamo entra como siempre.
+    await entrar(page, 'dynamo');
+    await expect(page).not.toHaveURL(/doble-paso/);
+  });
+
+  // Con la sesión abierta NO basta para lo delicado (usuario, 2026-11-18): cambiar el email
+  // de una cuenta pide la contraseña de quien lo hace.
+  test('cambiar el email de una cuenta pide la contraseña de quien lo hace', async ({ page }) => {
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/usuarios');
+    await page.getByText(EMAIL.cliente).first().click();
+    await page.getByRole('button', { name: 'Cambiar email…' }).click();
+    const cambiar = page.getByRole('button', { name: 'Cambiar email', exact: true });
+    await page.locator('#email-nuevo').fill('otro-correo@e2e.test');
+    await page.locator('#email-conf').fill(EMAIL.cliente);
+    await expect(cambiar).toBeDisabled();                      // sin contraseña, ni se puede pulsar
+    await page.locator('#email-clave').fill('no-es-mi-clave');
+    await cambiar.click();
+    await expect(page.getByText('Tu contraseña no es correcta')).toBeVisible();
+    const { data: sigue } = await bd().from('usuarios').select('email').eq('email', EMAIL.cliente).maybeSingle();
+    expect(sigue?.email).toBe(EMAIL.cliente);                  // no se ha cambiado nada
   });
 
   // Los botones que navegan RESPONDEN AL PULSARLOS (usuario, 2026-11-18: «cuando pulso

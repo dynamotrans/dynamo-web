@@ -2,6 +2,7 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import MiCuenta, { type TransporteDatos, type EmpresaEditable } from '@/components/panel/MiCuenta';
 import { contactosDe } from '@/lib/contactos';
 import { datosDynamo } from '@/lib/pdf/datos';
+import { estadoDoblePaso } from '@/lib/supabase/doblePaso';
 import type { Funcion } from '@/lib/supabase/tipos';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,13 @@ export default async function PaginaMiCuenta() {
         vehiculos: veh.data ?? [], conductores: con.data ?? [] };
     }
   }
+  // Doble paso: solo para los usuarios de Dynamo (clientes y transportistas entran como siempre).
+  let doblePaso: { activo: boolean; obligatorio: boolean } | null = null;
+  if (esDynamo(perfil.rol)) {
+    const dp = await estadoDoblePaso(supabase, user, perfil.rol);
+    doblePaso = { activo: dp.tieneMovil, obligatorio: dp.obligatorio };
+  }
   return <MiCuenta datos={{ nombre: yo?.nombre ?? '', telefono: yo?.telefono ?? '', documento: yo?.documento ?? '', cargo: yo?.cargo ?? '', idioma: yo?.idioma ?? 'es' }}
-    email={yo?.email ?? user.email ?? ''} rol={perfil.rol} ultimaConexion={user.last_sign_in_at ?? null} empresa={empresa} transporte={transporte} editable={editable} />;
+    email={yo?.email ?? user.email ?? ''} rol={perfil.rol} ultimaConexion={user.last_sign_in_at ?? null} empresa={empresa} transporte={transporte} editable={editable}
+    doblePaso={doblePaso} />;
 }

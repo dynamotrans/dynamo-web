@@ -88,6 +88,39 @@ export function PedirCambio({ cambio }: { cambio: CambioMio | null }) {
   );
 }
 
+// ---- Piezas comunes de las dos ventanas «contáctanos» (cambiar / cancelar) ---------------
+// Mismo diseño en las dos y un solo tamaño de letra (usuario, 2026-11-18: «texto homogéneo,
+// más diseño»): el aviso arriba, los tres canales como tarjetas con su dato debajo (así no
+// hace falta la línea suelta de teléfonos) y los pasos numerados.
+const ICO_URG = {
+  tel: 'M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z',
+  wa: 'M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z',
+  mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm18 2-10 7L2 6',
+};
+function CanalesUrgentes({ msg, asunto }: { msg: string; asunto: string }) {
+  const canal = (clase: string, href: string, ico: string, titulo: string, dato: string, nueva = false) => (
+    <a className={`urg-canal ${clase}`} href={href} target={nueva ? '_blank' : undefined} rel={nueva ? 'noopener' : undefined}>
+      <span className="urg-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={ico} /></svg></span>
+      <span className="urg-txt"><strong>{titulo}</strong><span className="notranslate" translate="no">{dato}</span></span>
+    </a>
+  );
+  return (
+    <div className="urg-canales">
+      {canal('urg-tel', CONTACTO.telHref, ICO_URG.tel, 'Llamar ahora', CONTACTO.telefono)}
+      {canal('urg-wa', `${CONTACTO.waHref}?text=${encodeURIComponent(msg)}`, ICO_URG.wa, 'WhatsApp', CONTACTO.whatsapp, true)}
+      {canal('urg-mail', `mailto:${CONTACTO.email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(msg)}`, ICO_URG.mail, 'Email', CONTACTO.email)}
+    </div>
+  );
+}
+function AvisoUrgente({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div className="urg-aviso" role="note">
+      <span className="urg-aviso-ico" aria-hidden="true">!</span>
+      <div><strong>{titulo}</strong><div>{children}</div></div>
+    </div>
+  );
+}
+
 // Ventana «contáctanos»: el envío ya tiene transportista (o va en marcha) y no se puede
 // modificar desde aquí. Dynamo lo contrasta con el conductor; si no es viable, se cancela
 // y se reasigna camión.
@@ -98,38 +131,33 @@ export function LlamarCambio({ e, onVolver, precioAMano = false }: { e: { refere
   const dentro = corte ? Date.now() < corte.getTime() : null;
   const corteTxt = corte ? fechaHora(corte.toISOString()) : null;
   const msg = `URGENTE: necesito cambiar el envío ${ref}${e.referencia_cliente ? ` (mi ref. ${e.referencia_cliente})` : ''}. El cambio es: `;
-  const btn = (href: string, txt: string, bg: string, nueva = false) => (
-    <a href={href} target={nueva ? '_blank' : undefined} rel={nueva ? 'noopener' : undefined}
-      style={{ background: bg, color: '#fff', fontWeight: 800, borderRadius: 8, padding: '0.6rem 1rem', textDecoration: 'none', textAlign: 'center', flex: '1 1 160px' }}>{txt}</a>
-  );
   return (
-    <Modal abierto onCerrar={onVolver} titulo={`Cambiar el envío ${ref}`}
+    <Modal abierto onCerrar={onVolver} titulo={`Cambiar el envío ${ref}`} sub="Lo cambiamos nosotros: dinos qué necesitas"
       pie={<button className="btn-ghost" onClick={onVolver}>Cerrar</button>}>
-      <div className="modal-warn-box">
-        <strong style={{ color: '#b42318' }}>{enMarcha(e.estado) ? 'Tu envío ya está en marcha' : precioAMano ? 'Este envío tiene un precio acordado con Dynamo' : 'Tu envío ya tiene transportista asignado'}: no se puede modificar desde la plataforma.</strong>
-        <div style={{ marginTop: '0.35rem' }}>Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), <strong>contáctanos cuanto antes</strong> por teléfono, WhatsApp o email: cuanto antes lo sepamos, más fácil es arreglarlo.</div>
+      <div className="urg">
+        <AvisoUrgente titulo={`${enMarcha(e.estado) ? 'Tu envío ya está en marcha' : precioAMano ? 'Este envío tiene un precio acordado con Dynamo' : 'Tu envío ya tiene transportista asignado'}: no se puede modificar desde la plataforma.`}>
+          Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), contáctanos cuanto antes: cuanto antes lo sepamos, más fácil es arreglarlo.
+        </AvisoUrgente>
+        <CanalesUrgentes msg={msg} asunto={`URGENTE · Cambio en el envío ${ref}`} />
+        {precioAMano && !enMarcha(e.estado)
+          ? <p className="urg-nota">Dinos qué necesitas cambiar y <strong>lo modificamos nosotros</strong>, revisando contigo el precio acordado. Modificar no tiene coste.</p>
+          : <>
+            <h4 className="urg-titulo">Qué pasa cuando nos llamas</h4>
+            <ol className="urg-pasos">
+              <li><span>Lo <strong>comprobamos con el conductor</strong> al momento.</span></li>
+              <li><span>Si el cambio es posible, lo hacemos nosotros. <strong>Modificar no tiene coste.</strong> Si cambia la ruta, el precio se recalcula.</span></li>
+              <li><span>Si no es posible, hay que <strong>cancelarle la carga a ese camión</strong> y buscar otro. Esa cancelación sigue las reglas de siempre: gratis hasta las 9:00 del día hábil anterior a la carga; después, puede conllevar el <strong>coste del servicio completo</strong>.</span></li>
+              <li><span>Las cancelaciones fuera de plazo <strong>cuentan</strong>: si se repiten, la cuenta puede quedar suspendida.</span></li>
+            </ol>
+            {corteTxt && (
+              <div className={`urg-plazo ${dentro === false ? 'fuera' : 'dentro'}`} id="urg-plazo">
+                <span>Cancelar es gratis hasta</span>
+                <strong>{corteTxt}</strong>
+                <span className="urg-plazo-estado">{dentro === false ? 'Ese plazo ya ha pasado' : 'Aún estás a tiempo'}</span>
+              </div>
+            )}
+          </>}
       </div>
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.9rem 0' }}>
-        {btn(CONTACTO.telHref, 'Llamar ahora', '#dc2626')}
-        {btn(`${CONTACTO.waHref}?text=${encodeURIComponent(msg)}`, 'WhatsApp', '#16a34a', true)}
-        {btn(`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`URGENTE · Cambio en el envío ${ref}`)}&body=${encodeURIComponent(msg)}`, 'Email', 'var(--purple)')}
-      </div>
-      <div className="meta" style={{ margin: '-0.4rem 0 0.9rem' }}>Teléfono {CONTACTO.telefono} · WhatsApp {CONTACTO.whatsapp} · {CONTACTO.email}</div>
-      {precioAMano && !enMarcha(e.estado)
-        ? <div style={{ color: 'var(--gray-700)', lineHeight: 1.55 }}>Dinos qué necesitas cambiar y <strong>lo modificamos nosotros</strong>, revisando contigo el precio acordado. Modificar no tiene coste.</div>
-        : <>
-      <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>Qué pasa cuando nos llamas</div>
-      <ol style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: 1.55, color: 'var(--gray-700)' }}>
-        <li>Lo <strong>comprobamos con el conductor</strong> al momento.</li>
-        <li>Si el cambio es posible, lo hacemos nosotros. <strong>Modificar no tiene coste.</strong> (Si cambia la ruta, el precio se recalcula.)</li>
-        <li>Si no es posible, hay que <strong>cancelarle la carga a ese camión</strong> y buscar otro. Esa cancelación sigue las reglas de siempre:
-          {corteTxt
-            ? <> gratis hasta el <strong>{corteTxt}</strong>{dentro === true ? <> (<span style={{ color: '#0f6b3a', fontWeight: 700 }}>aún estás a tiempo</span>)</> : dentro === false ? <> (<span style={{ color: '#b42318', fontWeight: 700 }}>ese plazo ya ha pasado</span>)</> : null}; después, puede conllevar el <strong>coste del servicio completo</strong>.</>
-            : <> gratis hasta las 9:00 del día hábil anterior a la carga; después, puede conllevar el <strong>coste del servicio completo</strong>.</>}
-        </li>
-        <li>Las cancelaciones fuera de plazo <strong>cuentan</strong>: si se repiten, la cuenta puede quedar suspendida.</li>
-      </ol>
-        </>}
     </Modal>
   );
 }
@@ -147,28 +175,28 @@ export function LlamarCancelar({ e, onVolver }: { e: { referencia_gx: string; re
   const sinCoste = !enCamino && !!corte && Date.now() < corte.getTime();
   const corteTxt = corte ? fechaHora(corte.toISOString()) : null;
   const msg = `URGENTE: necesito CANCELAR el envío ${ref}${e.referencia_cliente ? ` (mi ref. ${e.referencia_cliente})` : ''}.`;
-  const btn = (href: string, txt: string, bg: string, nueva = false) => (
-    <a href={href} target={nueva ? '_blank' : undefined} rel={nueva ? 'noopener' : undefined}
-      style={{ background: bg, color: '#fff', fontWeight: 800, borderRadius: 8, padding: '0.6rem 1rem', textDecoration: 'none', textAlign: 'center', flex: '1 1 160px' }}>{txt}</a>
-  );
   return (
-    <Modal abierto onCerrar={onVolver} titulo={`Cancelar el envío ${ref}`}
+    <Modal abierto onCerrar={onVolver} titulo={`Cancelar el envío ${ref}`} sub="Lo cancelamos nosotros: contáctanos cuanto antes"
       pie={<button className="btn-ghost" onClick={onVolver}>Cerrar</button>}>
-      <div className="modal-warn-box">
-        <strong style={{ color: '#b42318' }}>{enCamino ? 'El camión ya va hacia la carga' : 'Tu envío ya tiene transportista asignado'}: no se puede cancelar desde la plataforma.</strong>
-        <div style={{ marginTop: '0.35rem' }}>Para cancelarlo, <strong>contáctanos cuanto antes</strong> por teléfono, WhatsApp o email y lo cancelamos nosotros.</div>
+      <div className="urg">
+        <AvisoUrgente titulo={`${enCamino ? 'El camión ya va hacia la carga' : 'Tu envío ya tiene transportista asignado'}: no se puede cancelar desde la plataforma.`}>
+          Para cancelarlo, contáctanos cuanto antes por teléfono, WhatsApp o email y lo cancelamos nosotros.
+        </AvisoUrgente>
+        {sinCoste
+          ? (
+            <div className="urg-plazo dentro" id="urg-plazo">
+              <span>Ahora mismo cancelar <strong>no tiene coste</strong>. Es gratis hasta</span>
+              <strong>{corteTxt}</strong>
+              <span className="urg-plazo-estado">Aún estás a tiempo</span>
+            </div>
+          ) : (
+            <div className="urg-plazo fuera" id="urg-plazo">
+              <span>Cancelar ahora puede conllevar el <strong>coste del servicio completo</strong>.</span>
+              <span>{enCamino ? 'El camión ya está en camino' : <>El plazo para cancelar gratis terminó{corteTxt ? <> el <strong>{corteTxt}</strong></> : null}</>}: por ley, el transportista está en su derecho de cobrarlo. Llámanos y vemos qué se puede hacer.</span>
+            </div>
+          )}
+        <CanalesUrgentes msg={msg} asunto={`URGENTE · Cancelar el envío ${ref}`} />
       </div>
-      {sinCoste
-        ? <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div><strong style={{ color: '#0f6b3a' }}>Ahora mismo cancelar NO tiene coste.</strong> Es gratis hasta el <strong>{corteTxt}</strong> (las 9:00 del día hábil anterior a la carga). Después, puede conllevar el coste del servicio completo.</div></div>
-        : <div className="pt-aviso error" style={{ marginTop: '0.7rem' }}><div><strong>Cancelar ahora puede conllevar el COSTE DEL SERVICIO COMPLETO.</strong> {enCamino
-            ? 'El camión ya está en camino'
-            : <>El plazo para cancelar gratis terminó{corteTxt ? <> el <strong>{corteTxt}</strong></> : null}</>}: por ley, el transportista está en su derecho de cobrarlo. Llámanos y vemos qué se puede hacer.</div></div>}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.9rem 0' }}>
-        {btn(CONTACTO.telHref, 'Llamar ahora', '#dc2626')}
-        {btn(`${CONTACTO.waHref}?text=${encodeURIComponent(msg)}`, 'WhatsApp', '#16a34a', true)}
-        {btn(`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`URGENTE · Cancelar el envío ${ref}`)}&body=${encodeURIComponent(msg)}`, 'Email', 'var(--purple)')}
-      </div>
-      <div className="meta" style={{ margin: '-0.4rem 0 0' }}>Teléfono {CONTACTO.telefono} · WhatsApp {CONTACTO.whatsapp} · {CONTACTO.email}</div>
     </Modal>
   );
 }

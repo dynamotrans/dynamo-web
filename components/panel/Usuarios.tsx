@@ -15,12 +15,13 @@ import { BuscadorUrl } from './BuscadorUrl';
 import Buscador, { type Opcion } from './Buscador';
 import { buscarClientes } from '@/app/panel/(app)/sitios/acciones';
 import { buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
-import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, anonimizarUsuario, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
+import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, anonimizarUsuario, doblePasoDe, quitarDoblePaso, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
 import type { Rol } from '@/lib/sesion';
 
 import { partirTel, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import Req from '@/components/Req';
+import { IDIOMAS_AVISOS } from '@/lib/idiomas';
 import { avisaFaltas } from '@/lib/faltas';
 
 export type Empresa = { id: string; nombre: string; cif: string };
@@ -54,7 +55,8 @@ const ROL_DESC: Record<Rol, string> = {
   transportista: 'Solo los envíos que se le asignen y su documentación. No crea envíos ni ve datos de clientes.',
 };
 const ESTADOS: [UsuarioDatos['estado'], string][] = [['activa', 'Activa'], ['suspendida', 'Suspendida · solo lectura'], ['suspendida_total', 'Suspendida TOTAL · sin acceso'], ['pendiente_verificacion', 'Pendiente de verificación']];
-const IDIOMAS: [string, string][] = [['es', 'Español'], ['pt', 'Portugués'], ['fr', 'Francés'], ['en', 'Inglés'], ['de', 'Alemán'], ['it', 'Italiano'], ['nl', 'Neerlandés'], ['pl', 'Polaco'], ['ro', 'Rumano'], ['uk', 'Ucraniano'], ['zh-CN', 'Chino']];
+// Los idiomas de los avisos: la lista única de lib/idiomas.ts (la misma que elige el usuario en Mi cuenta).
+const IDIOMAS = IDIOMAS_AVISOS;
 
 const nombreRol = (r: Rol) => ROLES.find(([k]) => k === r)?.[1] ?? r;
 const interno = (r: Rol) => r === 'admin' || r === 'empleado' || r === 'admin_lectura' || r === 'empleado_lectura';
@@ -72,6 +74,18 @@ function CampoConfirmo({ id, valor, onCambio, texto }: { id: string; valor: stri
       <label htmlFor={id}>{texto ?? <>Para seleccionar este rol, <strong>escribe «Confirmo»</strong></>}</label>
       <input id={id} type="text" autoComplete="off" spellCheck={false} placeholder="Confirmo" value={valor} onChange={(e) => onCambio(e.target.value)}
         style={ok ? { borderColor: 'var(--green)', boxShadow: '0 0 0 3px rgba(34,165,90,0.15)' } : undefined} />
+    </div>
+  );
+}
+
+// «Escribe TU contraseña» para confirmar una acción delicada (usuario, 2026-11-18): con una
+// sesión que alguien se dejó abierta no basta para cambiar un email, un rol o dar un alta.
+function CampoMiClave({ id, valor, onCambio }: { id: string; valor: string; onCambio: (v: string) => void }) {
+  return (
+    <div style={{ gridColumn: '1/-1' }}>
+      <label htmlFor={id}>Para confirmar, <strong>escribe TU contraseña</strong> <Req /></label>
+      <input id={id} type="password" autoComplete="current-password" placeholder="Tu contraseña de entrar a la plataforma" value={valor} onChange={(e) => onCambio(e.target.value)} />
+      <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem', lineHeight: 1.4 }}>Así, si te dejas la sesión abierta, nadie puede hacer este cambio por ti.</div>
     </div>
   );
 }
@@ -260,6 +274,25 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
   const [nuevaEmp, setNuevaEmp] = useState('');
   const [pideConfEmp, setPideConfEmp] = useState(false);
   const [confEmp, setConfEmp] = useState('');
+  // DOBLE PASO del usuario (solo cuentas de Dynamo): si lo tiene activo y, para el Admin
+  // Master, quitárselo cuando cambia o pierde el móvil.
+  const [dp, setDp] = useState<'cargando' | 'activo' | 'no' | 'sin_clave'>('cargando');
+  const [quitarDp, setQuitarDp] = useState(false);
+  const [claveDp, setClaveDp] = useState('');
+  useEffect(() => {
+    if (!interno(u.rol)) return;
+    let vivo = true;
+    doblePasoDe(u.id).then((r) => { if (vivo) setDp(r.ok ? (r.activo ? 'activo' : 'no') : 'sin_clave'); });
+    return () => { vivo = false; };
+  }, [u.id, u.rol]);
+  async function quitarElDoblePaso() {
+    setError(null); setTrabajando('Quitando el doble paso');
+    const r = await quitarDoblePaso(u.id, claveDp);
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); return; }
+    setQuitarDp(false); setClaveDp(''); setDp('no');
+    onHecho(`Doble paso de ${u.email} quitado. Tendrá que darlo de alta otra vez con su móvil.`);
+  }
   const empresaCambia = (d.cliente_id || '') !== (u.cliente_id || '') || (d.transportista_id || '') !== (u.transportista_id || '');
   const set = <K extends keyof UsuarioDatos>(k: K, v: UsuarioDatos[K]) => setD((x) => ({ ...x, [k]: v }));
   const m = metricas(u);
@@ -319,6 +352,21 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
               : <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Tu propio rol no se puede cambiar</span>}
           </div>
         </div>
+        {interno(u.rol) && (
+          <div style={{ gridColumn: '1/-1' }}>
+            <label>Doble paso (código del móvil)</label>
+            <div id="usr-doble-paso" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minHeight: 44, flexWrap: 'wrap' }}>
+              {dp === 'cargando' ? <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Consultando…</span>
+                : dp === 'sin_clave' ? <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>No se puede consultar desde aquí (falta la clave de servicio de Supabase en Vercel).</span>
+                : <span className={`badge ${dp === 'activo' ? 'badge-green' : 'badge-gray'}`}>{dp === 'activo' ? 'Activo' : 'Sin activar'}</span>}
+              {dp === 'activo' && yo.rol === 'admin' && u.id !== yo.id && (
+                <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem' }} onClick={() => { setClaveDp(''); setError(null); setQuitarDp(true); }}>Quitar doble paso…</button>
+              )}
+              {dp === 'activo' && u.id === yo.id && <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>El tuyo se gestiona en «Mi cuenta»</span>}
+              {dp === 'no' && <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Lo da de alta el propio usuario al entrar, con su móvil</span>}
+            </div>
+          </div>
+        )}
         <div>
           <label htmlFor="usr-estado">Estado de la cuenta</label>
           {u.id === yo.id || u.rol === 'admin' ? (
@@ -349,8 +397,10 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
         <SelectorEmpresa id="usr-empresa" rol={u.rol} cliente_id={d.cliente_id} transportista_id={d.transportista_id}
           onCambio={(c) => setD((x) => ({ ...x, ...c }))} onNombre={setNuevaEmp} />
         <div>
-          <label htmlFor="usr-idioma">Idioma (portal y avisos)</label>
+          <label htmlFor="usr-idioma">Idioma de los avisos</label>
           <select id="usr-idioma" value={d.idioma} onChange={(e) => set('idioma', e.target.value)}>
+            {/* Un idioma guardado que no esté en la lista se enseña tal cual, nunca como «Español». */}
+            {!IDIOMAS.some(([k]) => k === d.idioma) && <option value={d.idioma}>{d.idioma}</option>}
             {IDIOMAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
@@ -437,6 +487,24 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
         {trabajando && <Cargando texto={trabajando} />}
       </Modal>
     )}
+    {quitarDp && (
+      <Modal abierto titulo={`Quitar el doble paso — ${u.email}`} sub="Para quien ha cambiado o perdido el móvil" icono={<IcoUsuario />} onCerrar={() => setQuitarDp(false)}
+        pie={<>
+          <button className="btn-ghost" onClick={() => setQuitarDp(false)} disabled={!!trabajando}>Cancelar</button>
+          <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={quitarElDoblePaso} disabled={!!trabajando || !claveDp}>Quitar el doble paso</button>
+        </>}>
+        <div className="modal-warn-box">
+          Hazlo solo si te lo pide <strong>el propio usuario</strong> y estás seguro de que es él (llámale tú). Hasta que lo
+          vuelva a dar de alta, su cuenta queda protegida <strong>solo por la contraseña</strong>. Si el doble paso es
+          obligatorio, la plataforma se lo pedirá la próxima vez que entre.
+        </div>
+        <div className="ptar-sitio-grid">
+          <CampoMiClave id="dp-clave" valor={claveDp} onCambio={(v) => { setClaveDp(v); setError(null); }} />
+        </div>
+        {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+        {trabajando && <Cargando texto={trabajando} />}
+      </Modal>
+    )}
   </>);
 }
 
@@ -446,11 +514,12 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
 function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () => void; onHecho: (t: string) => void }) {
   const [nuevo, setNuevo] = useState('');
   const [conf, setConf] = useState('');
+  const [clave, setClave] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   async function confirmar() {
     setError(null); setTrabajando(true);
-    const r = await cambiarEmail(u.id, nuevo, conf);
+    const r = await cambiarEmail(u.id, nuevo, conf, clave);
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     onHecho(`El usuario ${u.email} entra ahora con ${nuevo.trim().toLowerCase()}. Queda en el registro de auditoría.`);
@@ -459,7 +528,7 @@ function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () =
     <Modal abierto titulo={`Cambiar email — ${u.email}`} sub="El email es el usuario con el que entra en la plataforma" icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
-        <button className="btn-primary" onClick={confirmar} disabled={trabajando || !nuevo.trim() || !conf.trim()}>{trabajando ? 'Cambiando…' : 'Cambiar email'}</button>
+        <button className="btn-primary" onClick={confirmar} disabled={trabajando || !nuevo.trim() || !conf.trim() || !clave}>{trabajando ? 'Cambiando…' : 'Cambiar email'}</button>
       </>}>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       <div className="modal-warn-box">Hazlo solo si te lo pide <strong>el propio usuario</strong> o su empresa (por teléfono o desde su email de siempre). Desde ese momento entra con el email nuevo y su contraseña de siempre; los avisos le llegan al nuevo. <strong>Se avisa por email a las dos direcciones</strong>: a la de antes, que ya no sirve para entrar; y a la nueva, con el enlace para entrar.</div>
@@ -472,6 +541,7 @@ function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () =
           <label htmlFor="email-conf">Para confirmar, <strong>escribe el email actual</strong></label>
           <input id="email-conf" type="text" inputMode="email" autoComplete="off" placeholder={u.email} value={conf} onChange={(e) => setConf(e.target.value)} />
         </div>
+        <CampoMiClave id="email-clave" valor={clave} onCambio={(v) => { setClave(v); setError(null); }} />
       </div>
     </Modal>
   );
@@ -484,6 +554,7 @@ function CambiarRol({ u, yo, onCerrar, onHecho }: {
   const [nuevo, setNuevo] = useState<Rol>(u.rol);
   const [emp, setEmp] = useState({ cliente_id: u.cliente_id, transportista_id: u.transportista_id });
   const [conf, setConf] = useState('');
+  const [clave, setClave] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   const igual = nuevo === u.rol;
@@ -498,7 +569,7 @@ function CambiarRol({ u, yo, onCerrar, onHecho }: {
     if (igual || prohibido || sinPermiso) return;
     if (!confirmado(conf)) { setError('Escribe «Confirmo» para cambiar el rol.'); return; }
     setTrabajando(true);
-    const r = await cambiarRol(u.id, nuevo, conf, emp.cliente_id, emp.transportista_id);
+    const r = await cambiarRol(u.id, nuevo, conf, emp.cliente_id, emp.transportista_id, clave);
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     onHecho(`${u.email} pasa de ${nombreRol(u.rol)} a ${nombreRol(nuevo)}. Queda en el registro de auditoría.`);
@@ -508,7 +579,7 @@ function CambiarRol({ u, yo, onCerrar, onHecho }: {
     <Modal abierto titulo={`Cambiar rol — ${u.email}`} sub={`Rol actual: ${nombreRol(u.rol)}`} icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
-        <button className="btn-primary" onClick={confirmar} disabled={trabajando || igual || prohibido || sinPermiso || !confirmado(conf)}
+        <button className="btn-primary" onClick={confirmar} disabled={trabajando || igual || prohibido || sinPermiso || !confirmado(conf) || !clave}
           style={rojo && !prohibido ? { background: 'var(--red)' } : undefined}>Cambiar rol</button>
       </>}>
       <div className="ptar-sitio-grid">
@@ -535,6 +606,7 @@ function CambiarRol({ u, yo, onCerrar, onHecho }: {
       {!igual && !prohibido && !sinPermiso && (
         <div className="ptar-sitio-grid">
           <CampoConfirmo id="rol-confirmo" valor={conf} onCambio={(v) => { setConf(v); setError(null); }} />
+          <CampoMiClave id="rol-clave" valor={clave} onCambio={(v) => { setClave(v); setError(null); }} />
         </div>
       )}
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
@@ -549,6 +621,7 @@ function Invitar({ yo, onCerrar, onHecho }: {
 }) {
   const [d, setD] = useState({ email: '', nombre: '', rol: 'cliente' as Rol, cliente_id: '', transportista_id: '', cargo: '' });
   const [conf, setConf] = useState('');
+  const [clave, setClave] = useState('');   // solo para dar de alta a alguien de Dynamo
   const [tel, setTel] = useState({ pref: '+34', num: '' });
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
@@ -564,7 +637,7 @@ function Invitar({ yo, onCerrar, onHecho }: {
     if (faltas.length) { setError('Faltan campos obligatorios (en rojo).'); avisaFaltas(faltas); return; }
     if (!confirmado(conf)) { setError('Escribe «Confirmo» para dar de alta este tipo de usuario.'); return; }
     setTrabajando(true);
-    const r = await invitarUsuario({ ...d, telefono: telDe(tel), confirmacion: conf });
+    const r = await invitarUsuario({ ...d, telefono: telDe(tel), confirmacion: conf, clave });
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     onHecho(`Invitación enviada a ${d.email.trim().toLowerCase()}. Le llega un email para crear su contraseña.`);
@@ -573,7 +646,7 @@ function Invitar({ yo, onCerrar, onHecho }: {
     <Modal abierto titulo="Nuevo usuario" sub="Alta de un email de acceso a la plataforma" icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
-        <button className="btn-primary" onClick={enviar} disabled={trabajando || !confirmado(conf)}>Enviar invitación</button>
+        <button className="btn-primary" onClick={enviar} disabled={trabajando || !confirmado(conf) || (interno(d.rol) && !clave)}>Enviar invitación</button>
       </>}>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
@@ -598,6 +671,7 @@ function Invitar({ yo, onCerrar, onHecho }: {
           <input id="inv-cargo" type="text" value={d.cargo} placeholder="Ej. jefe de tráfico, administración…" onChange={(e) => setD({ ...d, cargo: e.target.value })} />
         </div>
         <CampoConfirmo id="inv-confirmo" valor={conf} onCambio={(v) => { setConf(v); setError(null); }} />
+        {interno(d.rol) && <CampoMiClave id="inv-clave" valor={clave} onCambio={(v) => { setClave(v); setError(null); }} />}
       </div>
       <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.8rem', borderRadius: 9, fontSize: 'var(--fs-m)', lineHeight: 1.55, background: 'var(--gray-50)', border: '1px solid var(--gray-200)', color: 'var(--gray-700)' }}>
         <strong>{nombreRol(d.rol)}: </strong>{ROL_DESC[d.rol]}
@@ -613,11 +687,12 @@ function Invitar({ yo, onCerrar, onHecho }: {
 // cuando lo pide. Solo el Admin Master, tecleando su email. No se puede deshacer.
 function Anonimizar({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () => void; onHecho: (t: string) => void }) {
   const [conf, setConf] = useState('');
+  const [clave, setClave] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   async function confirmar() {
     setError(null); setTrabajando(true);
-    const r = await anonimizarUsuario(u.id, conf);
+    const r = await anonimizarUsuario(u.id, conf, false, false, clave);
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     onHecho(`${u.email}: ${r.aviso ?? 'datos borrados.'}`);
@@ -626,7 +701,7 @@ function Anonimizar({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () => 
     <Modal abierto titulo={`Anonimizar — ${u.email}`} sub="Derecho de supresión (RGPD)" icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
-        <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={confirmar} disabled={trabajando || !conf.trim()}>{trabajando ? 'Anonimizando…' : 'Anonimizar para siempre'}</button>
+        <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={confirmar} disabled={trabajando || !conf.trim() || !clave}>{trabajando ? 'Anonimizando…' : 'Anonimizar para siempre'}</button>
       </>}>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       <div className="modal-warn-box">
@@ -644,6 +719,7 @@ function Anonimizar({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () => 
           <label htmlFor="anon-conf">Para confirmar, <strong>escribe su email</strong></label>
           <input id="anon-conf" type="text" inputMode="email" autoComplete="off" placeholder={u.email} value={conf} onChange={(e) => setConf(e.target.value)} />
         </div>
+        <CampoMiClave id="anon-clave" valor={clave} onCambio={(v) => { setClave(v); setError(null); }} />
       </div>
     </Modal>
   );

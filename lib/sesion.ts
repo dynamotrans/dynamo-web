@@ -1,6 +1,8 @@
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { supabaseServidor } from '@/lib/supabase/server';
+import { estadoDoblePaso, movilesDe, nivelDelToken } from '@/lib/supabase/doblePaso';
+import { esDynamo } from './roles';
 
 export type { Rol } from './roles';
 import type { Rol } from './roles';
@@ -28,6 +30,15 @@ export const sesion = cache(async () => {
   if ((perfil as Perfil | null)?.estado === 'suspendida_total') {
     await supabase.auth.signOut().catch(() => {});
     redirect('/panel/entrar?sesion=suspendida_total');
+  }
+
+  // DOBLE PASO (usuario, 2026-11-18): a quien le toca y aún no ha escrito el código de su
+  // móvil en esta sesión se le lleva a su pantalla; hasta entonces no entra al panel. (Con
+  // el interruptor encendido, la base de datos tampoco le deja ver nada.)
+  const nivel = nivelDelToken((await supabase.auth.getSession()).data.session?.access_token);
+  if (nivel !== 'aal2' && (movilesDe(user).length > 0 || esDynamo(perfil?.rol))) {
+    const dp = await estadoDoblePaso(supabase, user, perfil?.rol);
+    if (dp.falta) redirect('/panel/doble-paso');
   }
 
   // Nombre de la empresa para el pie del menú lateral y el menú del usuario: la RAZÓN SOCIAL,

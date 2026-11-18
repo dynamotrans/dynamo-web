@@ -204,7 +204,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           ? <button className="fm-item" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
           : <a className="fm-item" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar</a>}
         {!manual && ficha.transportista && e.estado !== 'entregado' && (
-          <button className="fm-item" onClick={() => setVista('asignar')}><I d={ICO.camion} />Cambiar transportista</button>
+          <button className="fm-item" onClick={() => setVista('asignar')}><I d={ICO.camion} />Editar / Cambiar transportista</button>
         )}
         {manual && ['programado', 'hacia_la_carga'].includes(e.estado) && ficha.firmasCmr.length === 0 && (
           <a className="fm-item" href={`/panel/nuevo-envio?ruta=${e.id}`}><I d={ICO.ruta} />Cambiar ruta</a>
@@ -259,6 +259,11 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
             </div>
           )}
           <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fechaVital || '—'}</span></div>
+          {/* Constancia de lo que se pidió (usuario, 2026-11-18): con la fecha ya asignada o real
+              arriba, debajo queda la ventana de carga pedida (o el día, si era fecha fija). */}
+          {(e.fecha_carga_real || e.fecha_carga_prevista) && e.fecha_carga_desde && (
+            <div className="pen-sum-row" id="ficha-ventana-carga"><span className="k">Ventana de carga</span><span className="v">{ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
+          )}
           {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
             ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }) => (
             <div key={p.id} className="pen-sum-row">
@@ -507,7 +512,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
                 quien mira aquí el estado no tiene que volver arriba a por la acción. */}
             {!manual && !cancelado && e.estado !== 'entregado' && ficha.pago?.estado !== 'pendiente' && (
               <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} style={{ marginTop: '0.7rem' }} onClick={() => setVista('asignar')}>
-                <I d={ICO.camion} />{ficha.transportista ? 'Cambiar transportista' : 'Asignar transportista'}
+                <I d={ICO.camion} />{ficha.transportista ? 'Editar / Cambiar transportista' : 'Asignar transportista'}
               </button>
             )}
           </>

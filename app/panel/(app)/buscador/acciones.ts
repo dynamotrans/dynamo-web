@@ -1,5 +1,6 @@
 'use server';
 
+import { textoBusqueda } from '@/lib/formato';
 import { sesion, esGestor, esDynamo } from '@/lib/sesion';
 import { misEnviosLigerosPorId } from '@/lib/enviosLigeros';
 import { vistaDe, filtrarVista } from '@/lib/vista';
@@ -124,7 +125,7 @@ export async function busquedaGlobal(q: string): Promise<BusquedaGlobal> {
   comprobarEntrada("app/panel/(app)/buscador/acciones#busquedaGlobal", [q]);
   const a = await alcance();
   if (!a) return VACIA;
-  q = (q ?? '').trim().slice(0, 120);
+  q = textoBusqueda((q ?? '').slice(0, 120));
   if (q.length < 2) return VACIA;
   const { sb, gestor } = a;
   const [envios, sit, cli, tra, incidencias, penalizaciones] = await Promise.all([

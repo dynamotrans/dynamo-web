@@ -135,6 +135,10 @@ jobs:
       - name: Supabase local con las migraciones
         run: |
           mkdir -p /tmp/sb && cd /tmp/sb && supabase init --force
+          # El doble paso (código del móvil) viene APAGADO en el Supabase local y encendido en el
+          # de verdad: se enciende aquí para poder probar el alta con QR y el código.
+          sed -i '/^\[auth\.mfa\.totp\]/,/^\[/ s/^\(enroll_enabled\|verify_enabled\) = false/\1 = true/' supabase/config.toml
+          grep -A2 '^\[auth\.mfa\.totp\]' supabase/config.toml
           mkdir -p supabase/migrations && cp "$GITHUB_WORKSPACE"/supabase/migrations/*.sql supabase/migrations/
           supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,mailpit,postgres-meta
           supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | tr -d '"' >> "$GITHUB_ENV"

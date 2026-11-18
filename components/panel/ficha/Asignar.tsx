@@ -223,7 +223,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     }), `Transportista asignado: ${t?.nombre ?? ''}.`);
   }
   return (
-    <Modal abierto ancho={680} onCerrar={onVolver} titulo={`${ficha.transportista ? 'Cambiar' : 'Asignar'} transportista · #${e.referencia_gx}`}
+    <Modal abierto ancho={680} onCerrar={onVolver} titulo={`${ficha.transportista ? 'Editar / Cambiar' : 'Asignar'} transportista · #${e.referencia_gx}`}
       sub="Uso interno · el transportista y su vehículo para este envío" icono={<I d={ICO.camion} />}
       pie={<>
         <button className="btn-ghost" onClick={onVolver} disabled={!!trabajando}>Volver</button>

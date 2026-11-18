@@ -84,7 +84,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
     return `/panel/envios${u.toString() ? `?${u}` : ''}`;
   };
 
-  const columnas = 6 + (dynamo ? 4 : rol === 'cliente' ? 2 : 1);
+  const columnas = 6 + (dynamo ? 4 : 1);
 
   return (
     <section className="section active" id="sec-cargas">
@@ -151,7 +151,8 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
             {dynamo && <th className="col-ptransp">P. transportista<SubBase /></th>}
             {dynamo && <th className="col-margen">Margen<SubBase /></th>}
             {rol === 'transportista' && <th>Tu precio<SubBase /></th>}
-            {rol !== 'transportista' && <th>Creado por</th>}
+            {/* «Creado por»: solo para Dynamo (usuario, 2026-11-18: fuera de la lista del cliente). */}
+            {dynamo && <th>Creado por</th>}
           </tr></thead>
           <tbody>
             {trozo.length === 0 ? (
@@ -318,7 +319,7 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         </td>
       )}
       {rol === 'transportista' && <td className="amount"><strong>{pt != null ? euros(pt) : '—'}</strong></td>}
-      {rol !== 'transportista' && (
+      {dynamo && (
         <td className="creadopor" style={{ whiteSpace: 'nowrap', fontSize: 'var(--fs-s)', color: 'var(--gray-700)' }}>
           <strong>{creador ?? '—'}</strong>
           {e.creado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Creación: {fechaHora(e.creado_en)}</div>}

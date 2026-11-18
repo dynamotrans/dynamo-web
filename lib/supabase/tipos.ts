@@ -3879,6 +3879,8 @@ export type Database = {
       dias_ventana_carga: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: number }
       diccionario_datos: { Args: Record<PropertyKey, never>; Returns: { tabla: string; orden: number; columna: string; tipo: string; no_nulo: boolean; descripcion: string; tabla_descripcion: string }[] }
       difusion_espera_bolsa: { Args: { p_envio: string | null }; Returns: Json }
+      doble_paso_cumplido: { Args: Record<PropertyKey, never>; Returns: boolean }
+      doble_paso_obligatorio: { Args: Record<PropertyKey, never>; Returns: boolean }
       documento_es_valido: { Args: { p_doc: string | null }; Returns: boolean }
       domingo_de_pascua: { Args: { p_anio: number | null }; Returns: string }
       duracion_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
@@ -4072,6 +4074,7 @@ export type Database = {
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_cambio_email: { Args: { p_usuario: string | null; p_antes: string | null; p_despues: string | null }; Returns: undefined }
       registrar_consulta_precio: { Args: Record<PropertyKey, never>; Returns: undefined }
+      registrar_doble_paso_quitado: { Args: { p_usuario: string | null }; Returns: undefined }
       registrar_firma_papel: { Args: { p_envio: string | null; p_parada: string | null; p_nombre: string | null; p_documento: string | null; p_documento_pais: string | null; p_documento_id: string | null }; Returns: Json }
       registrar_hito: { Args: { p_envio: string | null; p_hito: Database["public"]["Enums"]["tipo_hito"] | null; p_parada?: string | null; p_oferta?: string | null; p_datos?: Json | null; p_origen?: string | null }; Returns: undefined }
       registrar_transferencia_envio: { Args: { p_envio: string | null; p_banco: string | null; p_concepto: string | null; p_fecha: string | null }; Returns: Json }
@@ -4099,6 +4102,7 @@ export type Database = {
       seguimiento_conducir: { Args: { t: string | null; jornada: string | null; tramo: number | null; dia: number | null; p_horas: number | null; p_inicio?: string | null }; Returns: { t: string; jornada: string; tramo: number; dia: number } }
       seguimiento_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; parada_actual: number; tipo_parada: string; paradas: number; primera_carga_en: string; asignando: boolean; fecha_carga_prevista: string; automatico: boolean }[] }
       seguimiento_paso: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_parada: number | null; p_paradas: number | null }; Returns: number }
+      sesion_nivel: { Args: Record<PropertyKey, never>; Returns: string }
       sitio_principal: { Args: { p_cliente: string | null }; Returns: string }
       sitio_texto_busqueda: { Args: { s: Database["public"]["Tables"]["sitios"]["Row"] | null }; Returns: string }
       sitios_pagina: { Args: { p_q?: string | null; p_cliente?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }

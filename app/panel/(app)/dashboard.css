@@ -1863,6 +1863,35 @@ body.theme-dark .sidebar { background: #060116; }
     color: var(--navy); margin-bottom: 1rem; line-height: 1.5;
 }
 .modal-warn-box strong { color: var(--orange); }
+/* Ventanas «contáctanos» del cliente (cambiar / cancelar un envío con transportista): un solo
+   tamaño de letra, aviso, tres canales como tarjetas y pasos numerados (usuario, 2026-11-18). */
+.urg { display: grid; gap: 0.85rem; font-size: var(--fs-m); line-height: 1.5; color: var(--gray-700); }
+.urg strong { color: var(--navy); }
+.urg-aviso { display: flex; gap: 0.7rem; align-items: flex-start; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 0.8rem 0.9rem; color: var(--gray-700); }
+.urg-aviso strong { display: block; color: #9a3412; margin-bottom: 0.15rem; }
+.urg-aviso-ico { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #ea580c; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.urg-canales { display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: 0.5rem; }   /* el email es el dato más largo */
+@media (max-width: 600px) { .urg-canales { grid-template-columns: 1fr; } }
+.urg-canal { display: flex; align-items: center; gap: 0.55rem; padding: 0.65rem 0.65rem; border-radius: 12px; border: 1px solid var(--gray-200); background: #fff; text-decoration: none; color: var(--navy); min-height: 60px; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+.urg-canal:hover, .urg-canal:focus-visible { border-color: var(--purple); box-shadow: 0 4px 14px rgba(51,0,204,0.10); transform: translateY(-1px); outline: none; }
+.urg-ico { flex: none; width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; }
+.urg-tel .urg-ico { background: var(--purple); }
+.urg-wa .urg-ico { background: #15803d; }
+.urg-mail .urg-ico { background: var(--navy); }
+.urg-txt { display: grid; min-width: 0; }
+.urg-txt strong { color: var(--navy); font-weight: 800; }
+.urg-txt span { color: var(--gray-600); overflow-wrap: anywhere; }
+.urg-tel { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.25); }
+.urg-titulo { margin: 0.2rem 0 -0.3rem; font-size: var(--fs-m); font-weight: 800; color: var(--navy); }
+.urg-nota { margin: 0; }
+.urg-pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; counter-reset: urg; }
+.urg-pasos li { display: flex; gap: 0.65rem; align-items: flex-start; counter-increment: urg; }
+.urg-pasos li::before { content: counter(urg); flex: none; width: 24px; height: 24px; border-radius: 50%; background: rgba(51,0,204,0.10); color: var(--purple); font-weight: 800; font-size: var(--fs-s); display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.urg-plazo { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; border-radius: 12px; padding: 0.7rem 0.9rem; border: 1px solid; }
+.urg-plazo.dentro { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
+.urg-plazo.fuera { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+.urg-plazo strong { color: inherit; }
+.urg-plazo-estado { margin-left: auto; font-weight: 800; border-radius: 99px; padding: 0.1rem 0.6rem; background: #fff; border: 1px solid currentColor; white-space: nowrap; }
 .modal-file-drop {
     border: 2px dashed var(--gray-200); border-radius: 10px;
     padding: 1.1rem; text-align: center; color: var(--gray-500); font-size: var(--fs-m);
@@ -3042,6 +3071,11 @@ table.data tr.row-aftertomorrow { background: #f6f9fe; }
 table.data tr.row-aftertomorrow > td:first-child { box-shadow: inset 4px 0 0 0 #b8cef9; }
 /* Carga lejana (> 7 días): se atenúa en gris claro para que se
    perciba como menos urgente / más lejana en el tiempo */
+/* Sobre el fondo de color de la urgencia, el gris de los textos secundarios se quedaba por
+   debajo de 4,5:1 de contraste (WCAG AA): ahí van un tono más oscuros. */
+table.data tr:is(.row-overdue, .row-today, .row-tomorrow, .row-aftertomorrow) :is(.meta, .meta-pend, .ref-cli, .sitio-fechas, .arrow),
+table.data tr:is(.row-overdue, .row-today, .row-tomorrow, .row-aftertomorrow) td.route-full :is(.rf-site, .rf-hor),
+table.data tr:is(.row-overdue, .row-today, .row-tomorrow, .row-aftertomorrow) td.ref :is(.ref-cli-line, .ref-cli-inline, .ref-creado) { color: #4b5563; }
 table.data tr.row-far { background: #fafbfc; }
 table.data tr.row-far td { color: var(--gray-500, #6b7280); }
 table.data tr.row-far .ref,
@@ -3234,7 +3268,7 @@ body.theme-dark .op-chip2-otro { background: rgba(190,140,90,0.15); color: #d8b4
 .vista-select { height: 56px; padding: 0 0.8rem; border: 1.5px solid var(--gray-300); border-radius: 12px; background-color: #fff; font: inherit; font-size: var(--fs-d1); font-weight: 800; color: var(--navy); cursor: pointer; }
 .vista-select:hover, .vista-select:focus { outline: none; border-color: var(--purple); }
 /* Fecha/hora de creación: pequeñita y en UNA línea */
-table.data td.ref .ref-creado { display: block; font-size: var(--fs-s); color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
+table.data td.ref .ref-creado { display: block; font-size: var(--fs-s); color: var(--gray-500); white-space: nowrap; margin-top: 2px; }
 table.data .envio-estado { margin-top: 0.35rem; }
 /* Chip primero: el badge de fase arriba, con separación hacia el nº
    de envío que va debajo. */

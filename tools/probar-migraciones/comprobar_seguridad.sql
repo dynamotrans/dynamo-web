@@ -12377,3 +12377,104 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; antes reco
   update envios set fecha_carga_prevista = antes.fecha_carga_prevista where id = e;
   raise notice 'OK 280 · el plazo para cancelar gratis cuenta desde la fecha de carga asignada; sin asignar, desde el primer día de la ventana';
 end $$;
+
+
+-- ---- 281. Doble paso del equipo de Dynamo: sin el código, la base de datos no le reconoce ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.aal', '', false);
+do $$ begin
+  if (select valor #>> '{}' from parametros where clave = 'doble_paso_equipo') is distinct from 'false' then
+    raise exception 'FALLO 281 · el doble paso no nace apagado'; end if;
+end $$;
+-- APAGADO (como nace): el Admin Master entra como siempre, sin segundo paso.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not (es_admin_master() and ve_todo() and es_equipo_dynamo()) then raise exception 'FALLO 281 · con el doble paso apagado, el Admin Master no es reconocido'; end if;
+  if doble_paso_obligatorio() then raise exception 'FALLO 281 · dice que es obligatorio estando apagado'; end if;
+end $$;
+reset role;
+update parametros set valor = 'true'::jsonb where clave = 'doble_paso_equipo';
+-- ENCENDIDO y solo con la contraseña (aal1): no es nadie. Ni ayudantes, ni tablas, ni contadores.
+set role authenticated;
+do $$ declare n int; begin
+  if sesion_nivel() <> 'aal1' then raise exception 'FALLO 281 · una sesión sin nivel no cuenta como aal1: %', sesion_nivel(); end if;
+  if es_admin_master() or ve_todo() or es_equipo_dynamo() or es_solo_lectura() then
+    raise exception 'FALLO 281 · FUGA: con el doble paso exigido y sin hacer, sigue siendo equipo de Dynamo'; end if;
+  if not doble_paso_obligatorio() then raise exception 'FALLO 281 · a un usuario de Dynamo no le dice que es obligatorio'; end if;
+  select count(*) into n from parametros;
+  if n <> 0 then raise exception 'FALLO 281 · FUGA: sin el segundo paso lee % parámetros', n; end if;
+  select count(*) into n from clientes;
+  if n <> 0 then raise exception 'FALLO 281 · FUGA: sin el segundo paso lee % clientes', n; end if;
+  select count(*) into n from envios;
+  if n <> 0 then raise exception 'FALLO 281 · FUGA: sin el segundo paso lee % envíos', n; end if;
+  if contadores_panel() <> '{}'::jsonb then raise exception 'FALLO 281 · FUGA: sin el segundo paso ve los contadores del menú: %', contadores_panel(); end if;
+  begin
+    perform registrar_doble_paso_quitado(current_setting('prueba.u_cli')::uuid);
+    raise exception 'FALLO 281 · sin el segundo paso puede apuntar que quita un doble paso';
+  exception when insufficient_privilege then null; end;
+end $$;
+-- Con el segundo paso hecho (aal2): vuelve a ser quien es.
+select set_config('request.jwt.claim.aal', 'aal2', false);
+do $$ declare n int; begin
+  if not (es_admin_master() and ve_todo() and es_equipo_dynamo()) then raise exception 'FALLO 281 · con el segundo paso hecho, el Admin Master no es reconocido'; end if;
+  select count(*) into n from parametros;
+  if n = 0 then raise exception 'FALLO 281 · con el segundo paso hecho no lee los parámetros'; end if;
+  if contadores_panel() = '{}'::jsonb then raise exception 'FALLO 281 · con el segundo paso hecho no ve los contadores'; end if;
+  perform registrar_doble_paso_quitado(current_setting('prueba.u_cli')::uuid);
+end $$;
+-- El nivel también se lee del token entero (como lo manda Supabase).
+select set_config('request.jwt.claim.aal', '', false);
+select set_config('request.jwt.claims', '{"aal":"aal2"}', false);
+do $$ begin
+  if sesion_nivel() <> 'aal2' or not ve_todo() then raise exception 'FALLO 281 · no lee el nivel del token entero'; end if;
+end $$;
+select set_config('request.jwt.claims', '', false);
+-- A un CLIENTE no le afecta: entra como siempre y no se le exige.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+do $$ begin
+  if cliente_del_usuario() is null then raise exception 'FALLO 281 · el doble paso del equipo deja fuera a un cliente'; end if;
+  if doble_paso_obligatorio() then raise exception 'FALLO 281 · a un cliente le dice que el doble paso es obligatorio'; end if;
+  begin
+    perform registrar_doble_paso_quitado(current_setting('prueba.u_admin')::uuid);
+    raise exception 'FALLO 281 · un cliente puede apuntar que quita un doble paso';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false'::jsonb where clave = 'doble_paso_equipo';
+do $$ begin
+  if not exists (select 1 from auditoria where tabla = 'usuarios' and registro_id = current_setting('prueba.u_cli') and cambios ? 'doble_paso') then
+    raise exception 'FALLO 281 · quitar un doble paso no queda en la auditoría'; end if;
+  raise notice 'OK 281 · doble paso del equipo: nace apagado; encendido, sin el código la base de datos no reconoce a nadie de Dynamo (ni tablas ni contadores); con él, sí; a los clientes no les afecta; quitarlo queda en la auditoría';
+end $$;
+
+
+-- ---- 282. Al cliente se le avisa POR EMAIL cuando su albarán o su CMR firmado está disponible ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; d uuid; n int; antes int; begin
+  select count(*) into antes from emails_enviados where tipo = 'documento_disponible';
+  -- Un documento que el cliente todavía NO ve: ni aviso ni email.
+  insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo, visible_cliente)
+    values (e, 'albaran', 'envios/prueba-282/albaran.pdf', 'albaran.pdf', false) returning id into d;
+  select count(*) into n from emails_enviados where tipo = 'documento_disponible';
+  if n <> antes then raise exception 'FALLO 282 · se manda el email de un documento que el cliente no ve'; end if;
+  -- Al hacerlo visible: un email, una vez.
+  update documentos set visible_cliente = true where id = d;
+  select count(*) into n from emails_enviados where tipo = 'documento_disponible' and clave = 'documento_disponible:' || d and envio_id = e;
+  if n <> 1 then raise exception 'FALLO 282 · al hacer visible el albarán no se encola el email al cliente (%)', n; end if;
+  if not exists (select 1 from emails_enviados where clave = 'documento_disponible:' || d and asunto like 'Albarán disponible%' and cuerpo_html like '%Documentos%') then
+    raise exception 'FALLO 282 · el email no dice qué documento es ni dónde está'; end if;
+  update documentos set visible_cliente = false where id = d;
+  update documentos set visible_cliente = true where id = d;
+  select count(*) into n from emails_enviados where clave = 'documento_disponible:' || d;
+  if n <> 1 then raise exception 'FALLO 282 · el email del mismo documento se repite (%)', n; end if;
+  -- Un documento que no es albarán ni CMR firmado no avisa.
+  insert into documentos (envio_id, tipo, storage_ruta, nombre_archivo, visible_cliente)
+    values (e, 'otro', 'envios/prueba-282/otro.pdf', 'otro.pdf', true);
+  select count(*) into n from emails_enviados where tipo = 'documento_disponible';
+  if n <> antes + 1 then raise exception 'FALLO 282 · avisa por email de un documento que no es albarán ni CMR firmado'; end if;
+  raise notice 'OK 282 · albarán o CMR firmado visible para el cliente: un email al cliente, una sola vez por documento';
+end $$;

@@ -8,6 +8,8 @@ import { sesion } from '@/lib/sesion';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
+import { comprobarMiClave } from '@/lib/servidor/miClave';
+import { movilesDe } from '@/lib/supabase/doblePaso';
 import { origen } from '@/lib/origen';
 import { soloTransportista } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
@@ -333,4 +335,22 @@ export async function guardarContactosDeMiEmpresa(lista: ContactoDatos[]): Promi
   if (mal) return { ok: false, error: mal };
   const e = await guardarContactos(s.supabase, { cliente_id: p.cliente_id }, limpia);
   return e ? { ok: false, error: 'No se han podido guardar los contactos. Vuelve a intentarlo.' } : { ok: true };
+}
+
+// DOBLE PASO: quitar el móvil dado de alta (para cambiarlo por otro). Pide la contraseña:
+// con una sesión que alguien se dejó abierta no se puede poner otro móvil a la cuenta.
+// Supabase solo deja quitarlo con el segundo paso ya hecho en esta sesión.
+export async function quitarMiDoblePaso(clave: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#quitarMiDoblePaso", [clave]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const eClave = await comprobarMiClave(s.supabase, clave);
+  if (eClave) return { ok: false, error: eClave };
+  const { data: { user } } = await s.supabase.auth.getUser();
+  for (const f of movilesDe(user)) {
+    const { error } = await s.supabase.auth.mfa.unenroll({ factorId: f.id });
+    if (error) return { ok: false, error: 'No se ha podido quitar el doble paso. Sal, vuelve a entrar con tu código e inténtalo de nuevo.' };
+  }
+  await s.supabase.auth.refreshSession().catch(() => {});   // la sesión deja de llevar el segundo paso
+  return { ok: true };
 }

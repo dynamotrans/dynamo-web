@@ -131,3 +131,8 @@ export function diasEntre(desde: string | null, hasta: string | null): string[] 
   return out;
 }
 
+// El texto de un buscador, listo para buscar: sin la almohadilla de «#GX102345340». La «#»
+// es solo de pantalla (lo que se guarda es «GX102345340»), pero es lo que el usuario ve y
+// copia; con ella delante la búsqueda no encontraba nada (usuario, 2026-11-18).
+export const textoBusqueda = (q: string | null | undefined): string =>
+  (q ?? '').replace(/(^|\s)#+\s*/g, '$1').trim();

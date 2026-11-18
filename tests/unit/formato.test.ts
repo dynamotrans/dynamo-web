@@ -39,3 +39,14 @@ test('tipo de carga: camión completo por el camión', () => {
   assert.equal(tipoCargaTxt('grupaje', true), 'Grupaje');
   assert.equal(tipoCargaTxt(null), '');
 });
+
+// El buscador: «#GX…» se busca igual que «GX…» (la almohadilla es solo de pantalla).
+import { textoBusqueda } from '../../lib/formato';
+test('buscador: la almohadilla de «#GX…» no forma parte de lo que se busca', () => {
+  assert.equal(textoBusqueda('#GX1023453'), 'GX1023453');
+  assert.equal(textoBusqueda('  # GX102345340 '), 'GX102345340');
+  assert.equal(textoBusqueda('sevilla #GX10 madrid'), 'sevilla GX10 madrid');
+  assert.equal(textoBusqueda('GX1023453'), 'GX1023453');
+  assert.equal(textoBusqueda('calle 5 #3'), 'calle 5 3');
+  assert.equal(textoBusqueda(null), '');
+});
