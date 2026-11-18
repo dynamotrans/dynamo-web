@@ -117,7 +117,7 @@ test.describe('vistas', () => {
     // La entrega estimada va en su caja, ANTES del precio y fuera de la tarjeta del importe.
     const entrega = page.locator('#caja-entrega-estimada');
     await expect(entrega).toContainText('Fecha de entrega estimada');
-    await expect(entrega).toContainText('Trayecto');
+    await expect(entrega).not.toContainText('Trayecto');
     await expect(page.locator('.ptar-sug-card')).not.toContainText('entrega estimada');
     await revisar(page, 'nuevo-envio-3-fecha', asistente);
     await page.getByRole('button', { name: /Ver resumen/ }).click();

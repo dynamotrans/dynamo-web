@@ -5301,5 +5301,3 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 .ptar-entrega-caja .v { display: block; font-size: var(--fs-m); font-weight: 700; color: var(--navy); line-height: 1.35; }
 .ptar-entrega-caja .v.verde { color: #15803d; }
 .ptar-entrega-caja .v.gris { color: var(--gray-600); font-weight: 600; }
-.ptar-entrega-caja .linea .k, .ptar-entrega-caja .linea .v { display: inline; margin: 0; font-size: var(--fs-m); }
-.ptar-entrega-caja .linea .k { white-space: pre; }
