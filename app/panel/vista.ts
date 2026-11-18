@@ -8,6 +8,7 @@ import { COOKIE_VISTA } from '@/lib/vista';
 import { leerTodo } from '@/lib/leerTodo';
 import type { OpcionVista } from '@/lib/vistaTipo';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { cookieSegura } from '@/lib/cookieSegura';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -20,7 +21,7 @@ export async function cambiarVista(tipo: 'admin' | 'cliente' | 'transportista', 
   if ((tipo !== 'cliente' && tipo !== 'transportista') || !UUID.test(id ?? '')) return { ok: false, error: 'Elige un cliente o un transportista.' };
   const { data } = await s.supabase.from(tipo === 'cliente' ? 'clientes' : 'transportistas').select('id').eq('id', id!).maybeSingle();
   if (!data) return { ok: false, error: 'No se encuentra.' };
-  almacen.set(COOKIE_VISTA, `${tipo}:${id}`, { path: '/', httpOnly: true, sameSite: 'lax', secure: true, maxAge: 60 * 60 * 24 * 30 });
+  almacen.set(COOKIE_VISTA, `${tipo}:${id}`, { path: '/', httpOnly: true, sameSite: 'lax', secure: cookieSegura(), maxAge: 60 * 60 * 24 * 30 });
   return { ok: true };
 }
 

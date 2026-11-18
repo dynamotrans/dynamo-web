@@ -69,7 +69,12 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
         <input type="text" placeholder="Cliente · busca por nombre o CIF" autoComplete="off" readOnly={!!valor}
           value={valor ? `${valor.nombre} · ${valor.cif}` : q}
           onChange={(e) => { setQ(e.target.value); setAbierto(true); }}
-          onFocus={() => !valor && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)} />
+          onFocus={() => !valor && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)}
+          onClick={() => {
+            // Pulsar ENCIMA del cliente elegido = la ✕, y además abre el desplegable para
+            // elegir otro, igual que los sitios de la ruta (usuario, 2026-11-18).
+            if (valor) { onElegir(null); setQ(''); setAbierto(true); }
+          }} />
         {valor && <button type="button" className="ptar-clear" aria-label="Cambiar cliente" onClick={() => { onElegir(null); setQ(''); }}>✕</button>}
         {abierto && !valor && (
           <ul className="ptar-sug">

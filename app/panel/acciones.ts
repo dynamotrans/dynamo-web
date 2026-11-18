@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { supabaseServidor, COOKIE_RECORDAR } from '@/lib/supabase/server';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { cookieSegura } from '@/lib/cookieSegura';
 
 // Estado que devuelve el formulario de entrada.
 export type EstadoEntrar = { error: string | null; email?: string };
@@ -31,7 +32,7 @@ export async function entrar(_prev: EstadoEntrar, datos: FormData): Promise<Esta
   }
   const almacen = await cookies();
   almacen.set(COOKIE_RECORDAR, recordar ? '1' : '0', {
-    path: '/', httpOnly: true, sameSite: 'lax', secure: true,
+    path: '/', httpOnly: true, sameSite: 'lax', secure: cookieSegura(),
     ...(recordar ? { maxAge: 60 * 60 * 24 * 400 } : {}),
   });
   redirect('/panel');

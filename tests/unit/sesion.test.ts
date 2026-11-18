@@ -18,3 +18,16 @@ test('con «Recordarme»: 90 días', async () => {
 test('sin «Recordarme»: 30 días', async () => {
   assert.equal(await sesionCaducada(cliente(31 * 86400), false), true);
 });
+
+// La marca «Secure» de las cookies: siempre, salvo que la web se sirva por http en local.
+import { cookieSegura } from '../../lib/cookieSegura';
+test('cookies «Secure»: siempre en producción, nunca se quita fuera de http local', () => {
+  assert.equal(cookieSegura('https://www.dynamotrans.com'), true);
+  assert.equal(cookieSegura('https://dynamo-web-git-pruebas-dynamotrans-projects.vercel.app'), true);
+  assert.equal(cookieSegura(undefined), true);
+  assert.equal(cookieSegura(''), true);
+  assert.equal(cookieSegura('http://dynamotrans.com'), true);            // http de verdad: no se relaja
+  assert.equal(cookieSegura('http://localhost.evil.com'), true);
+  assert.equal(cookieSegura('http://localhost:3000'), false);
+  assert.equal(cookieSegura('http://127.0.0.1:3000/'), false);
+});

@@ -7,6 +7,7 @@ import { cookieReserva, cookieAlta } from '@/lib/cargaPublica';
 import { validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { cookieSegura } from '@/lib/cookieSegura';
 
 // La reserva va en una cookie de esta página: su id es la llave para aceptar y para ver
 // los datos completos después. Solo la tiene quien reservó.
@@ -27,7 +28,7 @@ export async function reservar(token: string): Promise<{ resultado: string; hast
   if (error) return { resultado: 'error' };
   const r = data as { resultado: string; reserva_id?: string; hasta?: string; desde?: string; ahora?: string };
   if (r.resultado === 'reservada' && r.reserva_id) {
-    (await cookies()).set(cookieReserva(token), r.reserva_id, { httpOnly: true, sameSite: 'lax', secure: true, path: '/carga', maxAge: 60 * 60 * 24 * 30 });
+    (await cookies()).set(cookieReserva(token), r.reserva_id, { httpOnly: true, sameSite: 'lax', secure: cookieSegura(), path: '/carga', maxAge: 60 * 60 * 24 * 30 });
   }
   return { resultado: r.resultado, hasta: r.hasta, desde: r.desde, ahora: r.ahora };
 }
@@ -181,6 +182,6 @@ export async function darseDeAlta(token: string, a: AltaTransportista): Promise<
   });
   if (error) return { resultado: 'error', error: /no se puede negociar/i.test(error.message) ? `${error.message.replace(/^.*?(Ahora no se puede)/, '$1')} Puedes aceptarla al precio ofertado.` : ERROR_CONEXION };
   const r = data as { resultado: string; minimo?: number; maximo?: number; campo?: string };
-  if (r.resultado === 'alta_pendiente') almacen.set(cookieAlta(token), '1', { httpOnly: true, sameSite: 'lax', secure: true, path: '/carga', maxAge: 60 * 60 * 24 * 30 });
+  if (r.resultado === 'alta_pendiente') almacen.set(cookieAlta(token), '1', { httpOnly: true, sameSite: 'lax', secure: cookieSegura(), path: '/carga', maxAge: 60 * 60 * 24 * 30 });
   return r;
 }

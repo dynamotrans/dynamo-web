@@ -153,16 +153,18 @@ jobs:
       - name: Navegador de Playwright
         run: npx playwright install ${{ matrix.motor }}
       - name: Librerías y fuentes del navegador
+        # Chromium: UN intento y, si falla, aviso (son solo fuentes; reintentar alargaba 10
+        # minutos el trabajo). WebKit: obligatorio, con reintentos.
         run: |
+          if [ "${{ matrix.motor }}" = chromium ]; then
+            npx playwright install-deps chromium || echo "::warning::Fuentes del navegador sin instalar (espejo apt caído); las pruebas corren sin ellas"
+            exit 0
+          fi
           for i in 1 2 3 4; do
             npx playwright install-deps ${{ matrix.motor }} && exit 0
             echo "Instalación fallida (intento $i de 4); espero $((i*20)) s"; sleep $((i*20))
           done
-          if [ "${{ matrix.motor }}" = chromium ]; then
-            echo "::warning::Fuentes del navegador sin instalar (espejo apt caído); las pruebas corren sin ellas"
-          else
-            echo "::error::No se han podido instalar las librerías de WebKit"; exit 1
-          fi
+          echo "::error::No se han podido instalar las librerías de WebKit"; exit 1
       - name: Pruebas en navegador
         run: npx playwright test ${{ inputs.fotos && '--update-snapshots' || '' }}
         env:
