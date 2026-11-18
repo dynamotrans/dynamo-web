@@ -31,6 +31,9 @@ const CALMA_MS = 1000;
 const MAX_ESPERA_MS = 4000;
 const REVISAR_MS = 1500;
 const QUIETO_MS = 5000;      // tiempo sin tocar nada antes de refrescar solo
+// Otra pieza de la pantalla pide «ponte al día» como si hubiera llegado una señal (lo usa la
+// banda de cuenta suspendida al ver que la han reactivado). Se aplican las mismas reglas.
+export const EVENTO_SENAL = 'dynamo:ponte-al-dia';
 
 // Para revisar en el navegador: localStorage.setItem('dynamo:envivo', '1') y mirar la consola.
 const traza = (...a: unknown[]) => { try { if (localStorage.getItem('dynamo:envivo')) console.info('[en vivo]', ...a); } catch { /* sin almacenamiento */ } };
@@ -125,6 +128,8 @@ export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marc
     // dormida el navegador puede cortar el websocket y las señales se pierden.
     const alVolver = () => { if (!document.hidden) { pendiente.current = true; refrescar(); } };
     document.addEventListener('visibilitychange', alVolver);
+    const alPedirlo = () => señal();
+    window.addEventListener(EVENTO_SENAL, alPedirlo);
 
     let vivo = true;
     const suscritos: ReturnType<typeof sb.channel>[] = [];
@@ -149,6 +154,7 @@ export default function EnVivo({ canales, marca = 0 }: { canales: string[]; marc
       clearInterval(revisar);
       if (reloj.current) clearTimeout(reloj.current);
       document.removeEventListener('visibilitychange', alVolver);
+      window.removeEventListener(EVENTO_SENAL, alPedirlo);
       for (const ch of suscritos) sb.removeChannel(ch);
     };
   }, [clave, router]);

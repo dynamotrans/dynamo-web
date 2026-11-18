@@ -34,3 +34,12 @@ export async function opcionesVista(tipo: 'cliente' | 'transportista'): Promise<
   const { data } = await leerTodo(s.supabase.from(tipo === 'cliente' ? 'clientes' : 'transportistas').select('id, nombre_visible').order('nombre_visible'), 10000);
   return ((data ?? []) as { id: string; nombre_visible: string | null }[]).map((x) => ({ id: x.id, nombre: x.nombre_visible ?? '—' }));
 }
+
+// El estado de la cuenta de quien pregunta ('activa', 'suspendida'…), leído ahora mismo de
+// la base de datos. Lo usa la banda de «cuenta suspendida» para quitarse sola cuando la
+// reactivan. No recibe nada y solo devuelve el estado propio.
+export async function estadoDeMiCuenta(): Promise<string | null> {
+  comprobarEntrada("app/panel/vista#estadoDeMiCuenta", []);
+  const s = await sesion();
+  return s?.perfil?.estado ?? null;
+}

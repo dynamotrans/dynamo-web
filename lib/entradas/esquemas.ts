@@ -168,6 +168,7 @@ export const ESQUEMAS = {
   "app/panel/registro/acciones#reenviarCodigo": z.tuple([z.object({ error: z.string().max(1000).nullable(), reenviado: z.boolean().optional() }), z.instanceof(FormData)]),
   "app/panel/registro/acciones#registrar": z.tuple([z.object({ error: z.string().max(1000).nullable(), campo: z.enum(["email", "nombre", "dni_pais", "dni", "prefijo", "telefono", "acepto"]).optional(), datos: z.object({ email: z.string().max(1000), nombre: z.string().max(1000), dni_pais: z.string().max(1000), dni: z.string().max(1000), prefijo: z.string().max(1000), telefono: z.string().max(1000) }).optional() }), z.instanceof(FormData)]),
   "app/panel/vista#cambiarVista": z.tuple([z.enum(["transportista", "admin", "cliente"]), z.string().uuid().or(z.literal('')).optional()]),
+  "app/panel/vista#estadoDeMiCuenta": z.tuple([]),
   "app/panel/vista#opcionesVista": z.tuple([z.enum(["transportista", "cliente"])]),
   "lib/enviosLigerosAcciones#buscarEnviosLigeros": z.tuple([z.string().max(1000)]),
   "lib/enviosLigerosAcciones#envioLigero": z.tuple([z.string().uuid().or(z.literal(''))]),

@@ -37,7 +37,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, pagoPrevio = false, reglas = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, pagoPrevio = false, reglas = null, emailPropio = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
@@ -166,6 +166,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // 2026-11-13). Se pide YA al elegir el cliente — pedirlo al abrir la ventana hacía
   // que el botón tardara 2-4 s en aparecer — y se recuerda por cliente. Sin email, no sale.
   const [emailCli, setEmailCli] = useState<string | null>(null);
+  // Al CLIENTE se le propone su propio email (el de su usuario), con el mismo botón que ve
+  // Dynamo con el email del cliente (usuario, 2026-11-18: «para no tener tantas
+  // diferencias»); debajo sigue «Enviar a otro email» por si quiere cambiarlo.
+  const emailBoton = esCliente ? (emailPropio?.trim() || null) : emailCli;
   // Enviar la proforma del cálculo por email, con el PDF adjunto (lo manda la plataforma).
   const [profOtro, setProfOtro] = useState<string | null>(null);   // null = caja cerrada; texto = el email que se está escribiendo
   const [profEnviando, setProfEnviando] = useState(false);
@@ -1266,6 +1270,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     )}
                     {marcarFecha && <div className="pt-aviso error" style={{ marginTop: '0.5rem', marginBottom: 0 }}><IcoAviso /><div><strong>Elige la fecha de recogida</strong> (es el campo que falta).</div></div>}
                   </div>
+                  {/* ENTREGA ESTIMADA y trayecto, en su caja gris suave, ANTES del aviso de la
+                      hora de corte (usuario, 2026-11-18: estaban sueltos encima del precio).
+                      Solo en la vista del cliente, como antes. */}
+                  {esCliente && !manual && tarifa && (
+                    <div className="ptar-field-full ptar-entrega-caja" id="caja-entrega-estimada">
+                      <div>
+                        <span className="k">Fecha de entrega estimada</span>
+                        {tarifa.etaDesde
+                          ? <span className="v verde">{tarifa.etaHasta && tarifa.etaHasta !== tarifa.etaDesde
+                              ? <>del {fmtFecha(tarifa.etaDesde)} al {fmtFecha(tarifa.etaHasta)}</> : fmtFecha(tarifa.etaDesde)}</span>
+                          : <span className="v gris">Elige la fecha de recogida para verla</span>}
+                      </div>
+                      <div>
+                        <span className="k">Trayecto</span>
+                        <span className="v">{tarifa.grupaje ? 'Grupaje' : 'Camión completo'}{kmInfo ? <> · {kmInfo.km} km{kmInfo.estimado ? ' (estimados)' : ''}</> : null}</span>
+                      </div>
+                    </div>
+                  )}
                   {!manual && !fechaPasada && (
                     <div className="ptar-field-full">
                       <AvisoCorte urgencia={urgencia} festivos={festivos} ventana={ventanaDias} grupaje={esGrupaje} cortes={cortes} />
@@ -1310,14 +1332,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 ) : esCliente ? (<>
                   {/* La tarjeta del camión/mercancía y el aviso del tráiler, ENCIMA del
                       desglose del importe (usuario, 2026-11-11): lo que se cotiza, a la vista. */}
-                  <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
+                  <BloquePrecio tarifa={tarifa} ivaPct={ivaPct}
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
                     encima={tarjetaMercancia} onElegir={elegirAlternativa} />
                   {/* Fuera la caja de «precio en firme en 25 minutos» (usuario, 2026-11-12):
                       el precio del tarifador ya es el definitivo, igual que en admin. */}
                   {navBotones}
                 </>) : <>
-                <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
+                <BloquePrecio tarifa={tarifa} ivaPct={ivaPct}
                   cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
                   encima={tarjetaMercancia} onElegir={elegirAlternativa} />
                 {navBotones}
@@ -1385,7 +1407,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
                 : esCliente
                 ? <>
-                  <BloquePrecio tarifa={tarifa} km={kmInfo?.km ?? null} kmEstimado={!!kmInfo?.estimado} ivaPct={ivaPct}
+                  <BloquePrecio tarifa={tarifa} ivaPct={ivaPct}
                     cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} soloImportes onElegir={elegirAlternativa} />
                   {editarCliente && precioAntesCli != null && tarifa && (
                     <div className="ptar-confirm-price" style={{ marginTop: '0.6rem' }}>
@@ -1488,7 +1510,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', width: '100%' }}>
               <a className="btn-primary" style={btnAncho} href={url} target="_blank" rel="noreferrer">Descargar la proforma en PDF</a>
-              {emailCli && <button type="button" className="btn-secondary" style={btnAncho} disabled={profEnviando} onClick={() => enviarA(emailCli)}>{profEnviando && profOtro === null ? 'Enviando…' : `Enviar por email a ${emailCli}`}</button>}
+              {emailBoton && <button type="button" id="prof-enviar-a" className="btn-secondary" style={btnAncho} disabled={profEnviando} onClick={() => enviarA(emailBoton)}>{profEnviando && profOtro === null ? 'Enviando…' : `Enviar por email a ${emailBoton}`}</button>}
               {profOtro === null
                 ? <button type="button" className="btn-secondary" style={btnAncho} disabled={profEnviando} onClick={() => { setProfMsg(null); setProfOtro(''); }}>Enviar a otro email</button>
                 : (

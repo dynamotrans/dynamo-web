@@ -1,7 +1,8 @@
 'use client';
 
 // El bloque de precio del tarifador de Nuevo envío, CALCADO del mockup (public/dashboard.html):
-//   1. «Fecha entrega estimada» en verde (y el aviso de registro a posteriori si la fecha es pasada).
+//   1. El aviso de registro a posteriori si la fecha es pasada (la cabecera, la «Fecha entrega
+//      estimada» y el «Camión completo · km» se quitaron el 2026-11-18).
 //   2. Caja blanca con el desglose SIEMPRE visible: importe de envío + suplementos →
 //      Base imponible (grande, morado, con efecto contador) → IVA → Total.
 //   3. Alternativas más baratas: cabecera contextual («Has seleccionado FECHA FIJA URGENTE…
@@ -50,9 +51,8 @@ const IcoVentCal = () => (
   </svg>
 );
 
-export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, ivaPct, pasada, fechaFija, corta = false, encima = null, soloImportes = false, onElegir }: {
+export function BloquePrecio({ tarifa, cargando, paraCliente, ivaPct, pasada, fechaFija, corta = false, encima = null, soloImportes = false, onElegir }: {
   tarifa: Tarifa | null;
-  km: number | null; kmEstimado: boolean;
   cargando: boolean;
   paraCliente: boolean;                 // true: lo ve el cliente (su precio, con entrega estimada y alternativas)
   ivaPct: number;
@@ -60,7 +60,7 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   fechaFija: string | null;             // la fecha elegida cuando es fecha fija (para la cabecera)
   corta?: boolean;                      // la ventana corta de grupaje (1 a 2 días) está elegida
   encima?: React.ReactNode;             // lo que se cotiza (tarjeta del camión/mercancía), justo encima del desglose
-  soloImportes?: boolean;               // paso 4 Revisión (usuario, 2026-11-14): sin cabecera, entrega estimada ni «Camión completo · km» — ya se ven en las paradas
+  soloImportes?: boolean;               // paso 4 Revisión: sin la nota de «Precio calculado con tu tarifa…»
   onElegir: (urgencia: 'dia' | 'estandar' | 'corta', fecha: string) => void;
 }) {
   const neto = usePrecioAnimado(tarifa?.neto ?? null);
@@ -68,7 +68,6 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
     return (
       <div className="ptar-field ptar-field-full ptar-sug-card">
         {/* Sin «orientativo» (usuario, 2026-11-12): el precio del tarifador es el que vale. */}
-        {paraCliente && !soloImportes && <div className="ptar-sug-head">Precio del envío <span>· con tu tarifa</span></div>}
         <div className="ptar-sug-skel" aria-hidden="true" />
       </div>
     );
@@ -77,21 +76,10 @@ export function BloquePrecio({ tarifa, km, kmEstimado, cargando, paraCliente, iv
   const urgente = tarifa.alternativas.length === 2;   // fija el primer día disponible
   return (
     <div className="ptar-field ptar-field-full ptar-sug-card">
-      {/* Vista admin (usuario, 2026-11-09): solo la caja de importes — la cabecera, la
-          entrega estimada y el «Grupaje · km» no hacen falta aquí (la tabla de precios
-          internos viene justo debajo). El cliente conserva su bloque completo. */}
-      {paraCliente && !soloImportes && <>
-      <div className="ptar-sug-head">Precio del envío <span>· con tu tarifa</span></div>
-
-      <dl className="ptar-eta-data">
-        <dt>Fecha entrega estimada</dt>
-        {tarifa.etaDesde
-          ? <dd className="ptar-eta-range">{tarifa.etaHasta && tarifa.etaHasta !== tarifa.etaDesde
-              ? <>del {fmtFecha(tarifa.etaDesde)} al {fmtFecha(tarifa.etaHasta)}</> : fmtFecha(tarifa.etaDesde)}</dd>
-          : <dd className="ptar-eta-warn">Asigna la fecha de recogida para ver la entrega estimada.</dd>}
-      </dl>
-      <div className="ptar-sug-sub">{tarifa.grupaje ? 'Grupaje' : 'Camión completo'}{km != null && <> · {km} km{kmEstimado ? ' (estimados)' : ''}</>}</div>
-      </>}
+      {/* Sin cabecera («Precio del envío · con tu tarifa»), sin «Fecha entrega estimada» y sin
+          «Camión completo · km» (usuario, 2026-11-18: fuera también en el paso 3 del cliente;
+          en Revisión y en la vista de Dynamo ya no salían). La entrega estimada se ve en las
+          paradas del paso 4. */}
 
       {pasada && (
         <div className="eta-pasada"><strong>Registro a posteriori</strong>: estás dando de alta un envío con <strong>fecha ya pasada</strong>{fechaFija ? <> ({fmtFecha(fechaFija)})</> : null}. Se registra tal cual, sin suplementos de fecha fija ni avisos de plazo.</div>

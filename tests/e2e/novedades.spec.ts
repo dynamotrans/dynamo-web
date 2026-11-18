@@ -235,6 +235,29 @@ test.describe('novedades', () => {
     }).toEqual({ matricula_camion: '7777JKL', matricula_remolque: 'R7777JKL', conductor_nombre: 'Luis Suplente' });
   });
 
+  test('cuenta suspendida: la banda roja sale sola al suspender y se quita sola al reactivar, sin recargar', async ({ page }) => {
+    const { data: u } = await bd().from('usuarios').select('id').eq('rol', 'cliente').limit(1).single();
+    const poner = async (estado: 'activa' | 'suspendida') => {
+      const { error } = await bd().from('usuarios').update({ estado }).eq('id', u!.id);
+      expect(error).toBeNull();
+    };
+    try {
+      await poner('suspendida');
+      await entrar(page, 'cliente');
+      const banda = page.locator('#banda-suspension');
+      await expect(banda).toBeVisible();
+      // Se reactiva la cuenta (como hace Dynamo desde Usuarios) y el cliente NO toca nada:
+      // la banda desaparece sola, y sigue sin estar al pasar a otra pantalla.
+      await poner('activa');
+      await expect(banda).toHaveCount(0, { timeout: 30_000 });
+      await page.goto('/panel/sitios');
+      await expect(page.locator('.sidebar, nav').first()).toBeVisible();
+      await expect(banda).toHaveCount(0);
+    } finally {
+      await poner('activa');   // pase lo que pase, la cuenta de pruebas queda activa para lo demás
+    }
+  });
+
   test('editar empresa: el cliente cambia sus personas de contacto y ve en gris los datos fiscales', async ({ page }) => {
     await entrar(page, 'cliente');
     await page.goto('/panel/mi-cuenta');

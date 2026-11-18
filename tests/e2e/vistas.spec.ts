@@ -114,10 +114,21 @@ test.describe('vistas', () => {
     const dias = await fecha.locator('option').evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value).filter((v) => /^\d{4}-\d{2}-\d{2}$/.test(v)));
     expect(dias.length).toBeGreaterThan(0);
     await fecha.selectOption(dias[dias.length - 1]);
+    // La entrega estimada va en su caja, ANTES del precio y fuera de la tarjeta del importe.
+    const entrega = page.locator('#caja-entrega-estimada');
+    await expect(entrega).toContainText('Fecha de entrega estimada');
+    await expect(entrega).toContainText('Trayecto');
+    await expect(page.locator('.ptar-sug-card')).not.toContainText('entrega estimada');
     await revisar(page, 'nuevo-envio-3-fecha', asistente);
     await page.getByRole('button', { name: /Ver resumen/ }).click();
     await expect(page.locator('.ptar-sug-card .alm-price-base')).toBeVisible();
     await revisar(page, 'nuevo-envio-4-revision', asistente);
+    // La proforma propone al cliente su propio email, igual que a Dynamo el del cliente.
+    await page.getByRole('button', { name: 'Ver proforma' }).click();
+    await expect(page.locator('#prof-enviar-a')).toContainText('cliente@e2e.test');
+    await expect(page.getByRole('button', { name: 'Enviar a otro email' })).toBeVisible();
+    await page.locator('.dash-modal-card .dash-modal-close').click();
+    await expect(page.locator('.dash-modal-card')).toHaveCount(0);
     await page.getByRole('button', { name: 'Crear envío' }).click();
     await revisar(page, 'confirmar-envio', page.locator('.dash-modal-card'));
   });

@@ -14,6 +14,7 @@ import ChatIA from '@/components/panel/ChatIA';
 // El asistente de IA se deja para la v3 (usuario, 2026-11-15).
 const IA_ACTIVA = false;
 import EnVivo from '@/components/panel/EnVivo';
+import BandaSuspension from '@/components/panel/BandaSuspension';
 import CargandoNavegacion from '@/components/panel/CargandoNavegacion';
 import { Suspense } from 'react';
 import './dashboard.css';
@@ -74,7 +75,9 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   // Modo mantenimiento (lo enciende Dynamo): clientes y transportistas no entran.
   if (mant && !dynamo) return <PantallaMantenimiento />;
   // Canales de la plataforma en vivo: Dynamo lo oye todo; cada cliente y transportista, lo suyo.
-  const canales = !activa ? [] : dynamo ? ['dynamo']
+  // También con la cuenta en SOLO LECTURA (usuario, 2026-11-18): lo consulta todo igual, y
+  // así le llega al momento el aviso de que la han reactivado (la banda roja se quita sola).
+  const canales = !(activa || soloMirar(perfil)) ? [] : dynamo ? ['dynamo']
     : [perfil?.cliente_id && `cliente:${perfil.cliente_id}`, perfil?.transportista_id && `transportista:${perfil.transportista_id}`].filter(Boolean) as string[];
   const festivos = ((fes.data ?? []) as { fecha: string; region?: string | null }[]).filter((f) => !f.region).map((f) => f.fecha);
   return (
@@ -105,13 +108,9 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       )}
       {/* Buscador global (usuario, 2026-11-12): Cmd/Ctrl+K desde cualquier pantalla. */}
       <BuscadorGlobal gestor={dynamo && vista.tipo === 'admin'} />
-      {/* Suspensión en solo lectura (usuario, 2026-11-14): banda fija mientras dure. */}
-      {soloMirar(perfil) && (
-        <div className="pt-aviso error" role="status" style={{ margin: '0 0 1rem' }}>
-          <div><strong>Cuenta suspendida — solo lectura.</strong> Puedes consultarlo todo, pero no crear ni cambiar nada.
-            Para reactivarla, llámanos al {CONTACTO.telefono} o escribe a {CONTACTO.email}.</div>
-        </div>
-      )}
+      {/* Suspensión en solo lectura (usuario, 2026-11-14): banda fija mientras dure; se quita
+          sola al reactivar la cuenta (BandaSuspension). */}
+      {soloMirar(perfil) && <BandaSuspension telefono={CONTACTO.telefono} email={CONTACTO.email} />}
       {children}
     </Marco>
     </RefrescoProvider>

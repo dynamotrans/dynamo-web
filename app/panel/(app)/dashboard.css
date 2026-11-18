@@ -5289,3 +5289,15 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 .sidebar-sep span { color: var(--gray-500); }                 /* era gray-400 (2,5:1) */
 .topbar-contact-label .t-pre { color: var(--gray-700); }      /* gris sobre lila (4,0:1) */
 .dash-flota-eyebrow { color: var(--green-dark); }             /* verde sobre gris (3,0:1) */
+
+/* Nuevo envío, paso 3: caja gris suave con la entrega estimada y el trayecto, encima del
+   aviso de la hora de corte (usuario, 2026-11-18). Dos datos en fila; si no caben, uno
+   debajo del otro. Etiqueta pequeña en gris y valor en negrita, del mismo tamaño ambos. */
+.ptar-entrega-caja {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 0.55rem 1.2rem;
+    background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.75rem 0.95rem;
+}
+.ptar-entrega-caja .k { display: block; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); margin-bottom: 0.15rem; }
+.ptar-entrega-caja .v { display: block; font-size: var(--fs-m); font-weight: 700; color: var(--navy); line-height: 1.35; }
+.ptar-entrega-caja .v.verde { color: #15803d; }
+.ptar-entrega-caja .v.gris { color: var(--gray-600); font-weight: 600; }
