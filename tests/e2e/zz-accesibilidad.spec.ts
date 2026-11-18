@@ -23,6 +23,10 @@ async function auditar(page: Page, url: string) {
   expect(graves.map((v) => `${url} · ${v.id}: ${v.help}\n${v.nodes.slice(0, 5).map((n) => `  → ${n.target.join(' ')}: ${(n.any[0]?.message ?? '').slice(0, 140)}`).join('\n')}`), `Accesibilidad en ${url}`).toEqual([]);
 }
 
+// El fichero se llama «zz-» para pasarse EL ÚLTIMO (Playwright va por orden alfabético):
+// así las pantallas se revisan CON DATOS (envíos, transportista asignado, firmas…) y no
+// con las listas vacías del arranque, donde un texto con poco contraste dentro de una fila
+// no se veía (2026-11-18: «Sin matrícula» en la lista de envíos del cliente).
 test.describe('accesibilidad (axe · WCAG 2.1 AA)', () => {
   test('páginas sin sesión', async ({ page }) => {
     for (const u of ['/panel/entrar', '/panel/registro', '/panel/olvido', '/carga',

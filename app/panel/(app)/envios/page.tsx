@@ -229,7 +229,10 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       const { data: cb } = await supabase.rpc('mi_cambio_envio', { p_envio: base.id }).maybeSingle();
       const { data: rv } = await supabase.rpc('ver_revision_precio_envio', { p_envio: base.id }).maybeSingle();
       // Hora límite para cancelar gratis (9:00 del día hábil anterior): sale en el aviso de «llámanos».
-      const fc = base.fecha_carga_desde ?? base.fecha_carga_real;
+      // «La carga» es la fecha ASIGNADA si ya la hay; sin asignar, el primer día de la
+      // ventana (usuario, 2026-11-18: con carga asignada el viernes, el plazo no puede
+      // contarse desde el miércoles en que empezaba la ventana).
+      const fc = base.fecha_carga_prevista ?? base.fecha_carga_desde ?? base.fecha_carga_real;
       const { data: corte } = fc ? await supabase.rpc('corte_cancelacion', { p_fecha_carga: fc }) : { data: null };
       // ¿Hay un transportista asignándose ahora mismo? Mientras dura, ni modificar ni cancelar.
       const { data: asig } = await supabase.rpc('mi_envio_asignandose', { p_envio: base.id });

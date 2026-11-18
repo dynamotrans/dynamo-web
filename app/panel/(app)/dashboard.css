@@ -2198,8 +2198,8 @@ body.theme-dark .sidebar { background: #060116; }
 .sitio-star.on { color: #f5b301; }
 .sitio-star.on svg { fill: currentColor; }
 .badge-yellow  { background: rgba(255,212,0,0.18);  color: #8b6d00; }
-.badge-orange  { background: rgba(255,122,0,0.13);  color: #b25500; }
-.badge-red     { background: rgba(220,38,38,0.12);  color: var(--red); }
+.badge-orange  { background: rgba(255,122,0,0.13);  color: #a04c00; }   /* 4,5:1 de contraste como mínimo (WCAG AA) */
+.badge-red     { background: rgba(220,38,38,0.12);  color: #b91c1c; }
 .badge-blue    { background: rgba(51,0,204,0.10);   color: var(--purple); }
 .badge-gray    { background: var(--gray-200);       color: var(--gray-700); }
 /* Progresión del estado de carga (de pasivo → activo → en curso → completado).
@@ -3304,7 +3304,7 @@ table.data .meta-asignada { color: var(--navy); font-weight: 700; }
 table.data .meta-eta      { color: #15803d; font-weight: 700; }
 /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
 table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
-table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
+table.data .meta-pend      { color: var(--gray-500); font-style: italic; }
 /* Estado de asignación de transportista — línea bajo el badge de estado.
     espera     gris
     asignandose ámbar con punto pulsante (backend buscando)

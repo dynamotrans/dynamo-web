@@ -100,7 +100,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     (data ?? []).forEach((u) => nombres.set(u.id, u.nombre || u.email));
   }
   let corte: string | null = null;
-  const fechaCarga = e.fecha_carga_desde ?? e.fecha_carga_real;
+  // La fecha ASIGNADA si ya la hay; sin asignar, el primer día de la ventana (2026-11-18).
+  const fechaCarga = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? e.fecha_carga_real;
   if (fechaCarga) {
     const { data } = await sb.rpc('corte_cancelacion', { p_fecha_carga: fechaCarga });
     corte = (data as string) ?? null;

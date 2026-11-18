@@ -12336,3 +12336,44 @@ do $$ declare v text; vistos text[] := '{}'; i int; begin
     raise exception 'FALLO 279 · hay dos envíos con el mismo código de aceptación'; end if;
   raise notice 'OK 279 · código de aceptación: se apunta al repartirlo, no entra dos veces y nunca repite';
 end $$;
+
+
+-- ---- 280. El plazo para cancelar gratis cuenta desde la fecha de carga ASIGNADA ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; antes record; begin
+  select estado, fecha_carga_desde, fecha_carga_hasta, fecha_carga_prevista, transportista_id into antes from envios where id = e;
+  if antes.transportista_id is null then
+    update envios set transportista_id = (select id from transportistas order by creado_en limit 1) where id = e;
+  end if;
+  update penalizaciones set estado = 'cancelada' where envio_id = e and estado <> 'cancelada';
+  -- El caso del usuario: la ventana empezaba HOY (el corte de ese día ya pasó), pero la
+  -- carga está ASIGNADA al último día de la ventana, dentro de 6 días: cancelar es gratis.
+  -- (La fecha asignada se pone en un paso aparte: cambiar la ventana la vacía.)
+  update envios set estado = 'programado', fecha_carga_desde = current_date, fecha_carga_hasta = current_date + 6 where id = e;
+  update envios set fecha_carga_prevista = current_date + 6 where id = e;
+  if (select fecha_carga_prevista from envios where id = e) is distinct from current_date + 6 then
+    raise exception 'FALLO 280 · no se ha podido preparar el caso: la fecha asignada no queda puesta'; end if;
+  update envios set estado = 'cancelado' where id = e;
+  select count(*) into n from penalizaciones where envio_id = e and estado <> 'cancelada';
+  if n <> 0 then raise exception 'FALLO 280 · con la carga asignada dentro de 6 días, cancelar penaliza (se sigue mirando el primer día de la ventana)'; end if;
+  update envios set estado = 'programado' where id = e;
+  -- Y al revés: la carga asignada es HOY → fuera de plazo, penaliza.
+  update envios set fecha_carga_prevista = current_date where id = e;
+  update envios set estado = 'cancelado' where id = e;
+  select count(*) into n from penalizaciones where envio_id = e and generada_auto and estado <> 'cancelada';
+  if n <> 1 then raise exception 'FALLO 280 · con la carga asignada hoy, cancelar no penaliza (%)', n; end if;
+  update envios set estado = 'programado' where id = e;
+  -- Sin fecha asignada sigue valiendo el primer día de la ventana: hoy → penaliza.
+  update penalizaciones set estado = 'cancelada' where envio_id = e and estado <> 'cancelada';
+  update envios set fecha_carga_prevista = null where id = e;
+  update envios set estado = 'cancelado' where id = e;
+  select count(*) into n from penalizaciones where envio_id = e and generada_auto and estado <> 'cancelada';
+  if n <> 1 then raise exception 'FALLO 280 · sin fecha asignada y con la ventana empezando hoy, cancelar no penaliza (%)', n; end if;
+  -- Se deja como estaba.
+  update penalizaciones set estado = 'cancelada' where envio_id = e and estado <> 'cancelada';
+  update envios set estado = antes.estado, fecha_carga_desde = antes.fecha_carga_desde, fecha_carga_hasta = antes.fecha_carga_hasta,
+                    transportista_id = antes.transportista_id where id = e;
+  update envios set fecha_carga_prevista = antes.fecha_carga_prevista where id = e;
+  raise notice 'OK 280 · el plazo para cancelar gratis cuenta desde la fecha de carga asignada; sin asignar, desde el primer día de la ventana';
+end $$;
