@@ -355,7 +355,9 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); font-family:
     display: inline-flex; align-items: center; justify-content: center;
     font-size: var(--fs-s); font-weight: 800; color: #fff; background: var(--green);
 }
-.topbar-ind-inc.has-open .topbar-ind-badge { background: #f59e0b; }
+/* Número en azul oscuro sobre el ámbar: en blanco no llegaba al contraste mínimo (lo cazó
+   la prueba de accesibilidad en tamaño móvil, 2026-11-18). */
+.topbar-ind-inc.has-open .topbar-ind-badge { background: #f59e0b; color: var(--navy); }
 .topbar-ind-inc.no-open  .topbar-ind-badge { background: var(--green); }
 .topbar-ind-cesce { gap: 0.4rem; }
 .topbar-cesce-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }

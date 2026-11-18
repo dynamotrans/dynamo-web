@@ -55,3 +55,22 @@ export async function crearEnvioDeCliente(page: Page) {
   await page.getByRole('button', { name: 'Confirmar envío' }).click();
   await expect(page.getByText(/Envío #?\S+ creado/)).toBeVisible();
 }
+
+// El cliente crea un envío (nace programado, con el precio del tarifador) y, si su cuenta paga
+// por adelantado, Dynamo da la transferencia por recibida: programado, pagado y sin
+// transportista. Devuelve su id.
+export async function envioListo(page: Page): Promise<string> {
+  await entrar(page, 'cliente');
+  await crearEnvioDeCliente(page);
+  const id = (await ultimoEnvio()).id;
+  if ((await ultimoEnvio()).estado_pago_previo === 'pendiente') {
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/envios?ver=${id}`);
+    await page.getByRole('button', { name: 'Ha llegado la transferencia' }).click();
+    // Marcarla pide banco, concepto y fecha (el concepto y la fecha ya vienen puestos).
+    await page.selectOption('#tr-banco', 'CaixaBank');
+    await page.locator('#tr-confirmar').click();
+    await expect.poll(async () => (await ultimoEnvio()).estado_pago_previo).toBe('pagado');
+  }
+  return id;
+}

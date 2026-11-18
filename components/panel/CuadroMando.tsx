@@ -160,7 +160,9 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_MARGEN, verticalAlign: '3px', marginRight: 5 }} />Margen (€, eje derecho)</span>
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_ENVIOS, verticalAlign: '3px', marginRight: 5 }} />Envíos realizados (línea)</span>
       </div>
-      <div className="cm-chart-scroll"><div className="cm-chart-lienzo" ref={lienzo}>
+      {/* Con foco de teclado: en pantallas estrechas el gráfico se desplaza de lado y hay que
+          poder moverlo sin ratón (prueba de accesibilidad en móvil, 2026-11-18). */}
+      <div className="cm-chart-scroll" tabIndex={0} role="group" aria-label={`${titulo} (gráfico desplazable)`}><div className="cm-chart-lienzo" ref={lienzo}>
       <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}>
         {ticks.map((f) => {
           const y = arriba + H * (1 - f);

@@ -35,7 +35,11 @@ export default function ListaFlotante({ ancla, lista, children }: {
   if (!pos) return null;
   return createPortal(
     <div className="buscador-lista flotante" role="listbox" ref={lista} data-envivo-ignorar=""
-      style={{ top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: pos.alto }}>
+      // «auto» explícito en el lado que no se usa: la clase .buscador-lista trae su propio
+      // «top» (para la lista que no flota) y, al abrir HACIA ARRIBA, ese «top» mandaba sobre
+      // el «bottom» y dejaba la lista por debajo de la pantalla: con el campo en la mitad
+      // baja de la ventana la lista no se veía (lo cazó la prueba del autorrelleno, 2026-11-18).
+      style={{ top: pos.top ?? 'auto', bottom: pos.bottom ?? 'auto', left: pos.left, width: pos.width, maxHeight: pos.alto }}>
       {children}
     </div>,
     document.body,

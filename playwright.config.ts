@@ -18,5 +18,16 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // UN proyecto por pasada (E2E_PROYECTO): los flujos se encadenan y cambian la base de
+  // datos, así que cada navegador necesita la suya limpia. En el CI son tres trabajos en
+  // paralelo, cada uno con su Supabase:
+  //   chromium · Chrome de escritorio (el de siempre)
+  //   safari   · el motor de Safari (WebKit) en escritorio
+  //   movil    · un iPhone (WebKit, pantalla de teléfono y dedo)
+  // (E2E_MOVIL_MOTOR=chromium pasa el móvil con un Pixel, para probar en local sin WebKit.)
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'safari', use: { ...devices['Desktop Safari'] } },
+    { name: 'movil', use: { ...(process.env.E2E_MOVIL_MOTOR === 'chromium' ? devices['Pixel 7'] : devices['iPhone 14']) } },
+  ].filter((p) => p.name === (process.env.E2E_PROYECTO ?? 'chromium')),
 });

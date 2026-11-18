@@ -3,7 +3,7 @@
 // Van después de los flujos clave (orden alfabético de ficheros, un solo trabajador) y
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
 import { test, expect } from '@playwright/test';
-import { entrar, ultimoEnvio, bd, como, crearEnvioDeCliente } from './ayudas';
+import { entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, CIF_TRANSPORTISTA } from './ayudas';
 
 const CIF_CLIENTE = 'B12345674';
 
@@ -132,7 +132,8 @@ test.describe('novedades', () => {
     const t = await (await browser.newContext({ locale: 'es-ES' })).newPage();
     // En la bolsa no caben direcciones web: entra por la portada y pulsa el botón naranja.
     await t.goto('/');
-    await t.locator('#btn-aceptar-carga').click();
+    // (En pantallas estrechas el botón del menú se cambia por una franja naranja bajo la cabecera.)
+    await t.locator('#btn-aceptar-carga:visible, #franja-aceptar-carga:visible').first().click();
     await expect(t).toHaveURL(/\/carga$/);
     // Seis cajitas, como las del código de recuperar la contraseña: al completarlas se
     // comprueba solo, sin pulsar el botón; si el código no vale, se vacían.
@@ -175,6 +176,63 @@ test.describe('novedades', () => {
     await t.waitForURL(new RegExp(`/carga/${fila!.token_publico}`));
     await expect(t.getByRole('button', { name: 'Reservar y aceptar este envío' })).toBeVisible();
     await t.context().close();
+  });
+
+  test('asignar transportista: una sugerencia de cualquier campo rellena los cuatro, y después se cambian a mano', async ({ page }) => {
+    // Un viaje anterior de ese transportista con su camión completo (apuntado directo en la
+    // base de datos: aquí se prueba la pantalla de asignar, no cómo llegó ese viaje).
+    const { data: tr } = await bd().from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
+    const anterior = await envioListo(page);
+    const { error } = await bd().from('envios').update({
+      transportista_id: tr!.id, importe_transportista: 500, matricula_camion: '7777JKL', matricula_remolque: 'R7777JKL',
+      conductor_nombre: 'Marta Rueda', conductor_telefono: '+34611222333',
+    }).eq('id', anterior);
+    expect(error).toBeNull();
+
+    const id = await envioListo(page);
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/envios?ver=${id}`);
+    await page.getByRole('button', { name: /Asignar transportista/ }).click();
+    await page.fill('#as-tra', 'Transportes Prueba');
+    await page.locator('.buscador-lista button', { hasText: 'Transportes Prueba' }).first().click();
+    await expect(page.locator('.buscador-elegido')).toContainText('Transportes Prueba');
+
+    // Se busca por el REMOLQUE: la sugerencia trae la tractora, el conductor y su móvil.
+    await page.locator('#as-remolque').click();
+    await page.locator('#as-remolque').pressSequentially('R77');
+    await page.locator('.buscador-lista.flotante button', { hasText: 'R7777JKL' }).first().click();
+    await expect(page.locator('#as-camion')).toHaveValue('7777JKL');
+    await expect(page.locator('#as-remolque')).toHaveValue('R7777JKL');
+    await expect(page.locator('#as-conductor')).toHaveValue('Marta Rueda');
+    await expect(page.locator('#as-tel')).toHaveValue(/611\s?222\s?333/);
+    // Con todo ya puesto, la lista no se queda abierta ofreciendo lo mismo.
+    await expect(page.locator('.buscador-lista.flotante')).toHaveCount(0);
+
+    // Y por el MÓVIL del conductor también: se vacía todo y se teclea el número.
+    for (const c of ['#as-camion', '#as-remolque', '#as-conductor', '#as-tel']) await page.fill(c, '');
+    await page.locator('#as-tel').click();
+    await page.locator('#as-tel').pressSequentially('611222');
+    await page.locator('.buscador-lista.flotante button', { hasText: 'Marta Rueda' }).first().click();
+    await expect(page.locator('#as-camion')).toHaveValue('7777JKL');
+    await expect(page.locator('#as-remolque')).toHaveValue('R7777JKL');
+    await expect(page.locator('#as-conductor')).toHaveValue('Marta Rueda');
+
+    // Después del autorrelleno se cambia a mano lo que haga falta (aquí, el conductor: hoy
+    // lleva el camión otro chófer) y se guarda tal cual queda.
+    await page.fill('#as-conductor', 'Luis Suplente');
+    await page.locator('#as-conductor').press('Tab');
+    if (await page.locator('select#as-dia').count()) {
+      const dia = await page.locator('select#as-dia option:not([disabled])').nth(1).getAttribute('value');
+      await page.locator('select#as-dia').selectOption(dia!);
+    }
+    const ent = await page.locator('select#as-ent option:not([disabled])').nth(1).getAttribute('value');
+    await page.locator('select#as-ent').selectOption(ent!);
+    await page.fill('#as-precio', '600');
+    await page.getByRole('button', { name: 'Guardar asignación' }).click();
+    await expect.poll(async () => {
+      const { data } = await bd().from('envios').select('matricula_camion, matricula_remolque, conductor_nombre').eq('id', id).single();
+      return data;
+    }).toEqual({ matricula_camion: '7777JKL', matricula_remolque: 'R7777JKL', conductor_nombre: 'Luis Suplente' });
   });
 
   test('editar empresa: el cliente cambia sus personas de contacto y ve en gris los datos fiscales', async ({ page }) => {
