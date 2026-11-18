@@ -152,7 +152,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   ? 'Sitio nuevo — revisa y completa los datos; se guardarán en su ficha. La dirección y el tipo se cambian en el paso 1 (Ruta).'
                   : 'La dirección, el nombre y el tipo del sitio se cambian en la sección Sitios, en cada sitio › Editar.'}
               </div>
-              <div className="ptar-sitio-grid">
+              <div className="ptar-sitio-grid ptar-sitio-grid-auto">
                 {f.dynamo ? (<>
                   {/* Sin campos bloqueados que repitan la cabecera de la tarjeta (usuario,
                       2026-11-17): empresa, tipo y dirección ya se leen arriba. */}
@@ -195,7 +195,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }}
                           onClick={() => set(p, { extra: (ed?.extra ?? []).filter((_, j) => j !== xi) })}>Quitar</button>
                       </div>
-                      <div className="ptar-sitio-grid">
+                      <div className="ptar-sitio-grid ptar-sitio-grid-auto">
                         <div><label>Nombre y apellidos <Req si={false} /></label>
                           <input value={x.nombre} placeholder="Persona de contacto" onChange={(e) => setExtra(p, xi, { nombre: e.target.value })} /></div>
                         <div><label>Teléfono <Req si={false} /></label>

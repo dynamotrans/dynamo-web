@@ -1570,6 +1570,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         )}
         {!manual && <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
+          {/* La frase del uso abusivo va DENTRO de la caja verde, como segundo párrafo
+              (usuario, 2026-11-18); en su sitio queda la caja del tráiler. */}
+          <div style={{ marginTop: '0.5rem' }}>
+            La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
+          </div>
         </div></div>}
         {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): si no aplica, no
             se dice nada. */}
@@ -1580,13 +1585,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             <strong> recibir el pago</strong> y la fecha de carga se calcula desde ese momento.
           </div>
         )}
-        {/* En caja GRIS, como la verde de arriba pero neutra (usuario, 2026-11-10). Los
-            límites salen VIVOS de Parámetros vía mi_autosuspension (usuario, 2026-11-11:
-            el «3 en 10» a pelo se quedaba viejo), con lo que lleva el cliente debajo. */}
-        {/* Frase corta, sin números ni coletillas (usuario, 2026-11-12); el detalle
-            vivo de los límites sigue en «Uso de Dynamo». */}
-        {!manual && <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
-          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
+        {/* Caja GRIS con el aviso del tráiler (usuario, 2026-11-18): que el cliente lo lea
+            justo antes de confirmar. Sin plataforma elevadora solamente; el enlace cierra
+            esta ventana y lleva al paso 2. */}
+        {!manual && !plataforma && <div id="confirma-aviso-trailer" style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+          <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
+          <a href="#" style={{ color: 'var(--purple)', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setRevisarLegal(false); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
         </div>}
         {!manual && <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}

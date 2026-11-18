@@ -587,24 +587,31 @@ export async function flotaTransportista(transportista: string): Promise<FlotaTr
 // Asignar transportista: sus COMPOSICIONES recientes (usuario, 2026-11-15) — con qué
 // remolque y conductor salió cada camión la última vez, la más reciente primero, para
 // sugerir por PARES y autorrellenar el bloque entero al elegir una.
-export type UsoFlota = { camion: string; remolque: string | null; conductor: string | null; telefono: string | null; cuando: string | null };
+export type UsoFlota = { camion: string | null; remolque: string | null; conductor: string | null; telefono: string | null; cuando: string | null };
+// Las últimas COMPOSICIONES con las que ha viajado un transportista (tractora, remolque,
+// conductor y su teléfono), de la más reciente a la más antigua y sin repetir. Valen las que
+// traen CUALQUIERA de los cuatro datos (usuario, 2026-11-18): al asignar se puede buscar por
+// cualquiera de ellos y se rellenan los demás con lo de ese último envío.
 export async function usosFlota(transportista: string): Promise<UsoFlota[]> {
   comprobarEntrada("app/panel/(app)/envios/acciones#usosFlota", [transportista]);
   const s = await soloDynamo();
   if (!s || !/^[0-9a-f-]{36}$/i.test(transportista)) return [];
   const { data } = await s.supabase.from('envios')
     .select('matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono, fecha_carga_prevista, creado_en')
-    .eq('transportista_id', transportista).not('matricula_camion', 'is', null)
-    .order('creado_en', { ascending: false }).limit(60);
+    .eq('transportista_id', transportista)
+    .or('matricula_camion.not.is.null,matricula_remolque.not.is.null,conductor_nombre.not.is.null,conductor_telefono.not.is.null')
+    .order('creado_en', { ascending: false }).limit(120);
+  const limpio = (x: string | null) => { const v = (x ?? '').trim(); return v || null; };
   const vistos = new Set<string>();
   const res: UsoFlota[] = [];
   for (const x of data ?? []) {
-    const m = (x.matricula_camion ?? '').trim();
-    if (!m || vistos.has(m)) continue;
-    vistos.add(m);
-    res.push({ camion: m, remolque: x.matricula_remolque, conductor: x.conductor_nombre, telefono: x.conductor_telefono,
-      cuando: x.fecha_carga_prevista ?? (x.creado_en ? String(x.creado_en).slice(0, 10) : null) });
-    if (res.length >= 12) break;
+    const u = { camion: limpio(x.matricula_camion), remolque: limpio(x.matricula_remolque), conductor: limpio(x.conductor_nombre), telefono: limpio(x.conductor_telefono) };
+    if (!u.camion && !u.remolque && !u.conductor && !u.telefono) continue;
+    const k = [u.camion, u.remolque, u.conductor, u.telefono].map((v) => (v ?? '').replace(/\s+/g, '').toUpperCase()).join('|');
+    if (vistos.has(k)) continue;
+    vistos.add(k);
+    res.push({ ...u, cuando: x.fecha_carga_prevista ?? (x.creado_en ? String(x.creado_en).slice(0, 10) : null) });
+    if (res.length >= 40) break;
   }
   return res;
 }

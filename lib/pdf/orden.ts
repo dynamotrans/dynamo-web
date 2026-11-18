@@ -293,6 +293,29 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     };
   }
 
+  if (!manual && copia !== 'operativa') {
+    // ---- CAJA con los DATOS FISCALES de Dynamo, antes de la franja de partes (usuario,
+    // 2026-11-18): en la orden del cliente y en la del transportista. El código de la
+    // bolsa (Wtransnet) solo en la del transportista: al cliente no le dice nada.
+    const wTx = l.ancho - 24;
+    const resto = ` · ${D.direccion}, ${D.codigo_postal} ${D.poblacion} · ${D.email} · ${telBonito(D.telefono)}`;
+    const fiscal = `CIF ${D.cif} · O.T. ${D.tarjeta_ot}${esCli ? '' : ` · Wtransnet ${D.wtransnet}`}`;
+    // La razón social, en negrita y seguida del resto si cabe en una línea; si no, se parte.
+    const unaLinea = l.medida(D.razon_social, 8.2, true) + l.medida(resto, 7.8) <= wTx;
+    const lineas = unaLinea ? [] : l.partir(`${D.razon_social}${resto}`, 7.8, wTx);
+    const hCaja = 12 + (unaLinea ? 1 : lineas.length) * 10.5 + 10.5 + 5;
+    const top = l.y;
+    cajaR(l.x0, top, l.ancho, hCaja, COLOR.fondo, COLOR.grisClaro, 7);
+    let yT = top + 15;
+    if (unaLinea) {
+      l.texto(l.x0 + 12, yT, D.razon_social, 8.2, { bold: true, color: COLOR.navy });
+      l.texto(l.x0 + 12 + l.medida(D.razon_social, 8.2, true), yT, resto, 7.8, { color: COLOR.navy });
+      yT += 10.5;
+    } else for (const ln of lineas) { l.texto(l.x0 + 12, yT, ln, 7.8, { color: COLOR.navy }); yT += 10.5; }
+    l.texto(l.x0 + 12, yT, fiscal, 7.8, { bold: true, color: COLOR.navy });
+    l.y = top + hCaja + 8;
+  }
+
   if (!manual) {
     // ---- FRANJA de partes y QR (usuario, 2026-11-14). En el DeCA son CUATRO bloques en
     // este orden: transportista efectivo · datos del camión (tipo, matrículas, conductor)
@@ -791,7 +814,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
       l.texto(l.x0, A4.h - 34, `Orden de carga ${ref} · emitida por ${d.cliente?.razon_social ?? ''} · ${emitida}`, 6.6, { color: COLOR.gris, pag: pg });
     } else {
       l.texto(l.x0, A4.h - 34, `${D.razon_social} · ${D.direccion}, ${D.codigo_postal} ${D.poblacion} · ${D.email} · ${telBonito(D.telefono)}`, 6.6, { color: COLOR.gris, pag: pg });
-      l.texto(l.x0, A4.h - 25, `CIF ${D.cif} · O.T. ${D.tarjeta_ot} · Wtransnet ${D.wtransnet} · ${t.urgencias}: ${telBonito(D.telefono)}`, 6.6, { color: COLOR.gris, pag: pg });
+      l.texto(l.x0, A4.h - 25, `CIF ${D.cif} · O.T. ${D.tarjeta_ot}${esCli ? '' : ` · Wtransnet ${D.wtransnet}`} · ${t.urgencias}: ${telBonito(D.telefono)}`, 6.6, { color: COLOR.gris, pag: pg });
     }
     const n = `${ref} · ${t.pagina} ${i + 1} ${t.de} ${pags.length}`;
     l.texto(der - l.medida(n, 6.6), A4.h - 34, n, 6.6, { color: COLOR.gris, pag: pg });

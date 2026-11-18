@@ -3983,6 +3983,10 @@ input::-webkit-date-and-time-value { text-align: left; }
 }
 .lock-info:hover { filter: brightness(1.15); }
 @media (max-width: 600px) { .ptar-sitio-grid { grid-template-columns: 1fr; } }
+/* Rejilla que se ADAPTA AL HUECO, no a la pantalla (usuario, 2026-11-18: en el paso 4 de
+   Nuevo envío, con el asistente a 960 px, el teléfono con prefijo se quedaba «enano»):
+   dos columnas mientras cada una tenga al menos 250 px; si no, una sola. */
+.ptar-sitio-grid.ptar-sitio-grid-auto { grid-template-columns: repeat(auto-fit, minmax(min(100%, max(250px, calc(50% - 0.4rem))), 1fr)); }
 /* Los campos de la cita previa, compactos: hora (columna estrecha) y muelle/puerta en la
    MISMA fila también en móvil; los detalles debajo a lo ancho (.full). */
 .ptar-sitio-grid.ptar-cita-grid { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }

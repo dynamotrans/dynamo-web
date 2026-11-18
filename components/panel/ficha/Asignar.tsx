@@ -130,33 +130,83 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     usosFlota(tid).then((u) => { if (vivo) setUsos(u); }).catch(() => {});
     return () => { vivo = false; };
   }, [tid]);
-  const [camAbierto, setCamAbierto] = useState(false);
+  // SUGERENCIAS EN LOS CUATRO CAMPOS (usuario, 2026-11-18): tractora, remolque, conductor y
+  // teléfono del conductor. Se busca por cualquiera de ellos y, al elegir, se rellenan LOS
+  // CUATRO con los datos del último envío en que salió ese dato («un camión suele llevar la
+  // misma tractora, conductor y móvil»). Después se puede cambiar a mano lo que haga falta.
+  type Campo = 'camion' | 'remolque' | 'conductor' | 'tel';
+  const [abre, setAbre] = useState<Campo | null>(null);
   const camCaja = useRef<HTMLDivElement>(null);
-  const camLista = useRef<HTMLDivElement>(null);   // la lista de matrículas flota fuera de la ventana
+  const remCaja = useRef<HTMLDivElement>(null);
+  const conCaja = useRef<HTMLDivElement>(null);
+  const telCaja = useRef<HTMLDivElement>(null);
+  const cajaDe = { camion: camCaja, remolque: remCaja, conductor: conCaja, tel: telCaja };
+  const sugLista = useRef<HTMLDivElement>(null);   // la lista flota fuera de la ventana
   useEffect(() => {
-    if (!camAbierto) return;
-    const fuera = (ev: MouseEvent) => { const t = ev.target as Node; if (camCaja.current && !camCaja.current.contains(t) && !camLista.current?.contains(t)) setCamAbierto(false); };
+    if (!abre) return;
+    const caja = { camion: camCaja, remolque: remCaja, conductor: conCaja, tel: telCaja }[abre];
+    const fuera = (ev: MouseEvent) => { const t = ev.target as Node; if (caja.current && !caja.current.contains(t) && !sugLista.current?.contains(t)) setAbre(null); };
     document.addEventListener('mousedown', fuera);
     return () => document.removeEventListener('mousedown', fuera);
-  }, [camAbierto]);
-  const qCam = sinEsp(camion);
-  const usosVisibles = usos.filter((u) => !qCam || sinEsp(u.camion).includes(qCam) || (u.remolque && sinEsp(u.remolque).includes(qCam)));
-  const flotaVisible = camiones.filter((v) => !usos.some((u) => sinEsp(u.camion) === sinEsp(v.matricula)) && (!qCam || sinEsp(v.matricula).includes(qCam)));
+  }, [abre]);
+  const cifras = (x: string) => x.replace(/\D/g, '');
+  const CAMPOS: Campo[] = ['camion', 'remolque', 'conductor', 'tel'];
+  const valorDe = (u: UsoFlota, c: Campo) => (c === 'camion' ? u.camion : c === 'remolque' ? u.remolque : c === 'conductor' ? u.conductor : u.telefono) ?? '';
+  const claveDe = (c: Campo, v: string) => (c === 'conductor' ? norm(v) : c === 'tel' ? cifras(v) : sinEsp(v));
+  const escrito = { camion, remolque, conductor, tel };
+  // Los usos que casan con lo escrito en ese campo, sin repetir su valor (el más reciente
+  // de cada uno) y como mucho 8.
+  const usosDe = (c: Campo): UsoFlota[] => {
+    const q = claveDe(c, escrito[c]);
+    const vistos = new Set<string>(); const out: UsoFlota[] = [];
+    for (const u of usos) {
+      const k = claveDe(c, valorDe(u, c));
+      if (!k || vistos.has(k)) continue;
+      // Si lo más reciente de ese dato es justo lo que ya hay puesto, no hay nada que
+      // ofrecer (y la lista no se queda abierta encima de lo de abajo).
+      if (CAMPOS.every((x) => claveDe(x, valorDe(u, x)) === claveDe(x, escrito[x]))) { vistos.add(k); continue; }
+      // En la tractora también vale escribir la matrícula del remolque (como hasta ahora).
+      if (q && !k.includes(q) && !(c === 'camion' && !!u.remolque && sinEsp(u.remolque).includes(q))) continue;
+      vistos.add(k); out.push(u);
+      if (out.length >= 8) break;
+    }
+    return out;
+  };
+  const enUsos = (c: Campo, v: string) => { const k = claveDe(c, v); return usos.some((u) => claveDe(c, valorDe(u, c)) === k); };
+  const q = abre ? claveDe(abre, escrito[abre]) : '';
+  const usosVisibles = abre ? usosDe(abre) : [];
+  // Lo de su FICHA que aún no ha salido en ningún envío (sin fecha de último uso).
+  const camionesFicha = abre === 'camion' ? camiones.filter((v) => !enUsos('camion', v.matricula) && (!q || sinEsp(v.matricula).includes(q))) : [];
+  const remolquesFicha = abre === 'remolque' ? remolques.filter((v) => !enUsos('remolque', v.matricula) && (!q || sinEsp(v.matricula).includes(q))) : [];
+  const conductoresFicha = abre === 'conductor' ? (fl?.conductores ?? []).filter((c) => !enUsos('conductor', c.nombre) && (!q || norm(c.nombre).includes(q))) : [];
+  const haySugerencias = usosVisibles.length + camionesFicha.length + remolquesFicha.length + conductoresFicha.length > 0;
   function elegirUso(u: UsoFlota) {
-    setCamion(u.camion); setRemolque(u.remolque ?? '');
+    setCamion(u.camion ?? ''); setRemolque(u.remolque ?? '');
     setConductor(u.conductor ?? ''); setTel(u.telefono ?? '');
-    setBase({ camion: u.camion, conductor: u.conductor ?? '' });
-    setCamAbierto(false);
+    setBase({ camion: u.camion ?? '', conductor: u.conductor ?? '' });
+    setAbre(null);
   }
   async function elegirVehiculo(v: { matricula: string; tipo: string }) {
     setCamion(v.matricula);
     if (v.tipo === 'rigido') setRemolque('');
-    setCamAbierto(false);
+    setAbre(null);
     // Sin uso previo registrado: el chófer conocido de ese camión, si lo hay (regla de 2026-11-05).
     const s = tid ? await sugerirFlota(tid, { matricula: v.matricula }) : null;
     if (s) { setConductor(s.conductor ?? ''); setTel(s.telefono ?? ''); }
     setBase({ camion: v.matricula, conductor: s?.conductor ?? '' });
   }
+  const cerrarCon = (ev: React.KeyboardEvent) => { if (ev.key === 'Escape' || ev.key === 'Tab') setAbre(null); };
+  // Una fila de la lista: delante, el dato del campo en el que se está; detrás, lo demás.
+  const filaUso = (c: Campo, u: UsoFlota) => {
+    const resto = CAMPOS.filter((x) => x !== c).map((x) => valorDe(u, x)).filter(Boolean);
+    return (
+      <button key={`u-${c}-${claveDe(c, valorDe(u, c))}`} type="button" role="option" aria-selected={claveDe(c, escrito[c]) === claveDe(c, valorDe(u, c))}
+        onMouseDown={(ev) => ev.preventDefault()} onClick={() => elegirUso(u)}>
+        <strong>{valorDe(u, c)}</strong>{resto.length > 0 && <span> · {resto.join(' · ')}</span>}
+        <span className="buscador-detalle"> · último {u.cuando ? fecha(u.cuando) : '—'}</span>
+      </button>
+    );
+  };
 
   async function guardar() {
     setError(null);
@@ -221,43 +271,58 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
           <label htmlFor="as-camion">Matrícula camión / tractora <Req si={false} /></label>
           <div className="buscador" ref={camCaja} data-envivo-ignorar="">
             <input id="as-camion" type="text" value={camion} placeholder="Ej. 1234ABC" autoComplete="off"
-              onChange={(ev) => { setCamion(ev.target.value); setCamAbierto(true); }}
-              onFocus={() => setCamAbierto(true)} onBlur={alSalirCamion}
-              onKeyDown={(ev) => { if (ev.key === 'Escape') { setCamAbierto(false); (ev.target as HTMLInputElement).blur(); } }} />
-            {camAbierto && (usosVisibles.length > 0 || flotaVisible.length > 0) && (
-              <ListaFlotante ancla={camCaja} lista={camLista}>
-                {usosVisibles.map((u) => (
-                  <button key={`u-${u.camion}`} type="button" role="option" aria-selected={sinEsp(camion) === sinEsp(u.camion)} onMouseDown={(ev) => ev.preventDefault()} onClick={() => elegirUso(u)}>
-                    <strong>{u.camion}{u.remolque ? ` + ${u.remolque}` : ''}</strong>
-                    <span> · último {u.cuando ? fecha(u.cuando) : '—'}</span>
-                    {u.conductor ? <span className="buscador-detalle"> · {u.conductor}</span> : null}
-                  </button>
-                ))}
-                {flotaVisible.map((v) => (
-                  <button key={`f-${v.matricula}`} type="button" role="option" aria-selected={sinEsp(camion) === sinEsp(v.matricula)} onMouseDown={(ev) => ev.preventDefault()} onClick={() => elegirVehiculo(v)}>
-                    <strong>{v.matricula}</strong> <span>· {v.tipo === 'rigido' ? 'Rígido' : 'Tractora'} (de su ficha, sin viajes aún)</span>
-                  </button>
-                ))}
-              </ListaFlotante>
-            )}
+              onChange={(ev) => { setCamion(ev.target.value); setAbre('camion'); }}
+              onFocus={() => setAbre('camion')} onBlur={alSalirCamion} onKeyDown={cerrarCon} />
           </div>
         </div>
         <div>
           <label htmlFor="as-remolque">Matrícula remolque (si es tráiler) <Req si={false} /></label>
-          <input id="as-remolque" list="as-remolques" type="text" value={remolque} placeholder="Ej. R1234BCD" onChange={(ev) => setRemolque(ev.target.value)} />
-          <datalist id="as-remolques">{remolques.map((v) => <option key={v.matricula} value={v.matricula} />)}</datalist>
+          <div className="buscador" ref={remCaja} data-envivo-ignorar="">
+            <input id="as-remolque" type="text" value={remolque} placeholder="Ej. R1234BCD" autoComplete="off"
+              onChange={(ev) => { setRemolque(ev.target.value); setAbre('remolque'); }}
+              onFocus={() => setAbre('remolque')} onKeyDown={cerrarCon} />
+          </div>
         </div>
         <div>
           <label htmlFor="as-conductor">Conductor <Req si={false} /></label>
-          <input id="as-conductor" list="as-conductores" type="text" value={conductor} placeholder="Nombre y apellidos"
-            onChange={(ev) => setConductor(ev.target.value)} onBlur={alSalirConductor} />
-          <datalist id="as-conductores">{(fl?.conductores ?? []).map((c) => <option key={c.nombre} value={c.nombre} />)}</datalist>
+          <div className="buscador" ref={conCaja} data-envivo-ignorar="">
+            <input id="as-conductor" type="text" value={conductor} placeholder="Nombre y apellidos" autoComplete="off"
+              onChange={(ev) => { setConductor(ev.target.value); setAbre('conductor'); }}
+              onFocus={() => setAbre('conductor')} onBlur={alSalirConductor} onKeyDown={cerrarCon} />
+          </div>
         </div>
         <div>
           <label htmlFor="as-tel">Teléfono del conductor <Req si={false} /></label>
-          <CampoTelefono id="as-tel" valor={tel} onCambio={setTel} />
+          {/* La lista se abre al entrar en el NÚMERO, no en el selector de prefijo. */}
+          <div ref={telCaja} data-envivo-ignorar="" onKeyDownCapture={cerrarCon}
+            onFocusCapture={(ev) => { if ((ev.target as HTMLElement).tagName === 'INPUT') setAbre('tel'); }}>
+            <CampoTelefono id="as-tel" valor={tel} onCambio={(v) => { setTel(v); setAbre('tel'); }} />
+          </div>
         </div>
       </div>
+      {/* UNA lista, la del campo en el que se está; flota fuera de la ventana. */}
+      {abre && haySugerencias && (
+        <ListaFlotante key={abre} ancla={cajaDe[abre]} lista={sugLista}>
+          {usosVisibles.map((u) => filaUso(abre, u))}
+          {camionesFicha.map((v) => (
+            <button key={`f-${v.matricula}`} type="button" role="option" aria-selected={sinEsp(camion) === sinEsp(v.matricula)} onMouseDown={(ev) => ev.preventDefault()} onClick={() => elegirVehiculo(v)}>
+              <strong>{v.matricula}</strong> <span>· {v.tipo === 'rigido' ? 'Rígido' : 'Tractora'} (de su ficha, sin viajes aún)</span>
+            </button>
+          ))}
+          {remolquesFicha.map((v) => (
+            <button key={`r-${v.matricula}`} type="button" role="option" aria-selected={sinEsp(remolque) === sinEsp(v.matricula)} onMouseDown={(ev) => ev.preventDefault()}
+              onClick={() => { setRemolque(v.matricula); setAbre(null); }}>
+              <strong>{v.matricula}</strong> <span>· Remolque (de su ficha, sin viajes aún)</span>
+            </button>
+          ))}
+          {conductoresFicha.map((c) => (
+            <button key={`c-${c.nombre}`} type="button" role="option" aria-selected={norm(conductor) === norm(c.nombre)} onMouseDown={(ev) => ev.preventDefault()}
+              onClick={() => { setConductor(c.nombre); setTel(c.telefono ?? ''); setBase((b) => ({ ...b, conductor: c.nombre })); setAbre(null); }}>
+              <strong>{c.nombre}</strong>{c.telefono ? <span> · {c.telefono}</span> : null} <span>· (de su ficha, sin viajes aún)</span>
+            </button>
+          ))}
+        </ListaFlotante>
+      )}
       {e.requiere_nima && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}
       {t?.estado === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar el envío, pero revisa por qué.</div>}
       <div style={{ marginTop: '0.8rem' }}>
