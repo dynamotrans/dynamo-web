@@ -176,16 +176,16 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {/* ORDEN (usuario, 2026-11-17): primero el contacto del sitio y después el
                       horario, con la cita previa dentro. */}
                   <div className="full ptar-section-head" style={{ marginBottom: 0 }}>Contacto del sitio</div>
-                  {/* El nombre va ANTES del teléfono (usuario, 2026-11-09) y SIEMPRE a la vista, sin
-                      plegar: un campo normal, como los de los contactos que se añaden (usuario,
-                      2026-11-17). Nombre y teléfono en la misma fila; el email, debajo. */}
-                  <div><label>Nombre y apellidos <Req si={false} /></label>
-                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
+                  {/* ORDEN (usuario, 2026-11-18): teléfono (lo obligatorio) · email · nombre y
+                      apellidos, que es opcional y va el último. El nombre sigue SIEMPRE a la
+                      vista, sin plegar, como en los contactos que se añaden. */}
                   <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
                   {/* La explicación del email va en un tooltip ⓘ (usuario, 2026-11-10). */}
                   <div><label>Email <Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></label>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="Ej. nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
+                  <div><label>Nombre y apellidos <Req si={false} /></label>
+                    <input value={f.contacto} placeholder="Persona de contacto" onChange={(e) => set(p, { contacto: e.target.value })} /></div>
                   {/* Contactos ADICIONALES del sitio (usuario, 2026-11-10): mismo botón fino
                       que en la ficha de Sitios; se crean en la agenda del sitio al guardar. */}
                   {!f.nuevo && (ed?.extra ?? []).map((x, xi) => (
@@ -196,13 +196,13 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                           onClick={() => set(p, { extra: (ed?.extra ?? []).filter((_, j) => j !== xi) })}>Quitar</button>
                       </div>
                       <div className="ptar-sitio-grid ptar-sitio-grid-auto">
-                        <div><label>Nombre y apellidos <Req si={false} /></label>
-                          <input value={x.nombre} placeholder="Persona de contacto" onChange={(e) => setExtra(p, xi, { nombre: e.target.value })} /></div>
                         <div><label>Teléfono <Req si={false} /></label>
                           <CampoTelefono valor={x.telefono} onCambio={(v) => setExtra(p, xi, { telefono: v })} /></div>
                         {/* El email, «Muy útil» con su ⓘ, igual que en el primer contacto (usuario, 2026-11-17). */}
                         <div><label>Email <Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></label>
                           <input type="text" inputMode="email" value={x.email} placeholder="Ej. nombre@empresa.com" onChange={(e) => setExtra(p, xi, { email: e.target.value })} /></div>
+                        <div><label>Nombre y apellidos <Req si={false} /></label>
+                          <input value={x.nombre} placeholder="Persona de contacto" onChange={(e) => setExtra(p, xi, { nombre: e.target.value })} /></div>
                       </div>
                     </div>
                   ))}

@@ -1558,12 +1558,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           </div></div>
         )}
         {!manual && <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
-          ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.
-          {/* La frase del uso abusivo va DENTRO de la caja verde, como segundo párrafo
+          ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.{' '}
+          {/* La frase del uso abusivo va DENTRO de la caja verde y SEGUIDA, en el mismo párrafo
               (usuario, 2026-11-18); en su sitio queda la caja del tráiler. */}
-          <div style={{ marginTop: '0.5rem' }}>
-            La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
-          </div>
+          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
         </div></div>}
         {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): si no aplica, no
             se dice nada. */}
