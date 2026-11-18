@@ -146,25 +146,60 @@ jobs:
           npm run build
           nohup npx next start -p 3000 > /tmp/next.log 2>&1 &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/panel/entrar && break; sleep 2; done
-      # Chromium: sus librerías ya vienen en ubuntu-24.04 y lo único que añadía «--with-deps»
-      # eran paquetes de FUENTES vía apt, cuyo espejo se cae a rachas (2026-11-11): quedan
-      # como mejora opcional. WebKit (Safari) SÍ necesita librerías del sistema que no vienen:
-      # ahí la instalación es obligatoria, con reintentos por si el espejo falla.
       - name: Navegador de Playwright
         run: npx playwright install ${{ matrix.motor }}
+      # LIBRERÍAS DEL SISTEMA que necesita el navegador (WebKit, bastantes; Chromium, solo
+      # fuentes). Se instalan con apt, y el espejo de paquetes de Azure se cuelga a rachas
+      # (2026-11-11 y 2026-11-18: 18 minutos parado sin arrancar ni una prueba). Por eso:
+      #   · los paquetes bajados se GUARDAN en caché (por navegador e imagen del runner) y
+      #     las siguientes pasadas los instalan desde ahí, sin red;
+      #   · cuando toca bajarlos, apt va con tiempos de espera cortos y, si el espejo de
+      #     Azure falla, se cambia al oficial de Ubuntu.
+      # En Chromium, si no se puede, las pruebas corren igual (son fuentes); en WebKit es
+      # obligatorio.
+      - name: Imagen del runner (para la caché de librerías)
+        id: img
+        run: echo "v=${ImageVersion:-sin-version}" >> "$GITHUB_OUTPUT"
+      - name: Caché de las librerías del navegador
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/pw-debs
+          key: pw-debs-${{ matrix.motor }}-pw1.63.0-${{ steps.img.outputs.v }}
       - name: Librerías y fuentes del navegador
-        # Chromium: UN intento y, si falla, aviso (son solo fuentes; reintentar alargaba 10
-        # minutos el trabajo). WebKit: obligatorio, con reintentos.
+        id: libs
         run: |
-          if [ "${{ matrix.motor }}" = chromium ]; then
-            npx playwright install-deps chromium || echo "::warning::Fuentes del navegador sin instalar (espejo apt caído); las pruebas corren sin ellas"
-            exit 0
+          mkdir -p ~/pw-debs
+          if [ -f ~/pw-debs/nada-que-instalar ]; then echo "La imagen ya trae todo lo necesario."; exit 0; fi
+          if ls ~/pw-debs/*.deb >/dev/null 2>&1 && sudo dpkg -i ~/pw-debs/*.deb; then
+            echo "Librerías instaladas desde la caché, sin red."; exit 0
           fi
-          for i in 1 2 3 4; do
-            npx playwright install-deps ${{ matrix.motor }} && exit 0
-            echo "Instalación fallida (intento $i de 4); espero $((i*20)) s"; sleep $((i*20))
+          sudo mkdir -p /var/cache/pw-debs/partial
+          printf '%s\n' 'Dir::Cache::archives "/var/cache/pw-debs";' 'Acquire::http::Timeout "25";' 'Acquire::https::Timeout "25";' 'Acquire::Retries "2";' | sudo tee /etc/apt/apt.conf.d/99-ci-pruebas >/dev/null
+          ok=no
+          for i in 1 2 3; do
+            if timeout 300 npx playwright install-deps ${{ matrix.motor }}; then ok=si; break; fi
+            echo "Instalación fallida o colgada (intento $i de 3)"
+            sudo pkill -9 apt-get || true; sudo pkill -9 dpkg || true
+            sudo rm -f /var/lib/apt/lists/lock /var/cache/pw-debs/lock /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend
+            sudo dpkg --configure -a || true
+            # El espejo de Azure es el que se cuelga: los reintentos van al oficial de Ubuntu.
+            sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
+            sleep 10
           done
+          if [ "$ok" = si ]; then
+            if ls /var/cache/pw-debs/*.deb >/dev/null 2>&1; then cp /var/cache/pw-debs/*.deb ~/pw-debs/; else touch ~/pw-debs/nada-que-instalar; fi
+            echo "guardar=si" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "${{ matrix.motor }}" = chromium ]; then
+            echo "::warning::Fuentes del navegador sin instalar (espejo apt caído); las pruebas corren sin ellas"; exit 0
+          fi
           echo "::error::No se han podido instalar las librerías de WebKit"; exit 1
+      - name: Guardar la caché de las librerías
+        if: steps.libs.outputs.guardar == 'si'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/pw-debs
+          key: pw-debs-${{ matrix.motor }}-pw1.63.0-${{ steps.img.outputs.v }}
       - name: Pruebas en navegador
         run: npx playwright test ${{ inputs.fotos && '--update-snapshots' || '' }}
         env:
