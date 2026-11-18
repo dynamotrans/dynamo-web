@@ -283,7 +283,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
       {e.estado_solicitud === 'aceptada' && e.condiciones_aceptadas_en && (
         <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {fechaHora(e.condiciones_aceptadas_en)}.</div></div>
       )}
-      {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => { window.location.assign(`/panel/nuevo-envio?editar=${e.id}`); }} />}
+      {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => { avisarNavegando(); window.location.assign(`/panel/nuevo-envio?editar=${e.id}`); }} />}
       {/* Propuesta de cambios al TRANSPORTISTA (usuario, 2026-11-10): el cambio ya está
           aplicado; aquí se ve si la aceptó, la rechazó (desasignado automático) o sigue
           pendiente — con el botón de aceptarla en su nombre tras hablar con él. */}

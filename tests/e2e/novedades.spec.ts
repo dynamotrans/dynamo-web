@@ -293,6 +293,27 @@ test.describe('novedades', () => {
     await expect.poll(async () => (await bd().from('contactos').select('id', { count: 'exact', head: true }).eq('email', email)).count).toBe(0);
   });
 
+  // Los botones que navegan RESPONDEN AL PULSARLOS (usuario, 2026-11-18: «cuando pulso
+  // botones tarda»): sale el cargador al instante, sin esperar a que llegue la pantalla
+  // nueva, y la ficha del envío recién creado ya se ha pedido por detrás.
+  test('envío creado: la ficha se pide por detrás y los botones responden al instante', async ({ page }) => {
+    await entrar(page, 'cliente');
+    const pedidas: string[] = [];
+    page.on('request', (r) => { if (r.headers()['rsc'] && r.url().includes('/panel/envios')) pedidas.push(r.url()); });
+    await crearEnvioDeCliente(page);
+    const id = (await ultimoEnvio()).id;
+    // Sin tocar nada, la ficha y la lista ya se han pedido.
+    await expect.poll(() => pedidas.some((u) => u.includes(`ver=${id}`))).toBe(true);
+    // Aunque la pantalla nueva tarde, el cargador sale nada más pulsar.
+    await page.route('**/panel/envios**', async (ruta) => { await new Promise((r) => setTimeout(r, 1200)); await ruta.continue(); });
+    await page.evaluate(() => (window as unknown as { next?: { router?: { refresh(): void } } }).next?.router?.refresh?.());   // tira lo adelantado: el peor caso
+    await page.getByRole('button', { name: 'Ir a la lista de envíos' }).click();
+    await expect(page.locator('.dyn-cargando')).toBeVisible({ timeout: 600 });
+    await page.unroute('**/panel/envios**');
+    await page.waitForURL(/\/panel\/envios(\?|$)/);
+    await expect(page.locator('.dyn-cargando')).toHaveCount(0);
+  });
+
   // El contenido REAL de los ficheros (usuario, 2026-11-18): el almacén solo admite PDF e
   // imágenes, pero el tipo lo declara quien sube. Un programa con nombre de albarán no entra
   // por la pantalla, no se registra aunque alguien se salte la pantalla y, si ya estuviera

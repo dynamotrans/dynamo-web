@@ -1,5 +1,6 @@
 'use client';
 
+import { avisarNavegandoA } from './CargandoNavegacion';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { busquedaGlobal, muestraGlobal, type BusquedaGlobal } from '@/app/panel/(app)/buscador/acciones';
@@ -104,7 +105,7 @@ export function CajaBuscadorGlobal({ gestor = false }: { gestor?: boolean }) {
   const [foco, setFoco] = useState(false);
   const [sel, setSel] = useState(0);
   const { items, cargando } = useBusqueda(q, foco);
-  const elegir = (it: Item) => { setQ(''); setFoco(false); router.push(it.href); };
+  const elegir = (it: Item) => { setQ(''); setFoco(false); avisarNavegandoA(it.href); router.push(it.href); };
   // Abierto desde el FOCO: al pulsar la caja ya se despliega la muestra (usuario, 2026-11-13).
   const abierto = foco;
   return (
@@ -146,7 +147,7 @@ export default function BuscadorGlobal({ gestor }: { gestor: boolean }) {
   }, []);
 
   if (!abierto) return null;
-  const elegir = (it: Item) => { setAbierto(false); setQ(''); router.push(it.href); };
+  const elegir = (it: Item) => { setAbierto(false); setQ(''); avisarNavegandoA(it.href); router.push(it.href); };
   return (
     <div className="bgq-fondo" onClick={() => setAbierto(false)}>
       <div className="bgq-panel" role="dialog" aria-label="Buscador" onClick={(e) => e.stopPropagation()}>

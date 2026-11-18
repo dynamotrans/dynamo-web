@@ -5,6 +5,7 @@
 // de transportistas del cliente (nombre + CIF · contacto) y «+ Añade tu operador…», que
 // lleva a la pantalla de Transportistas. Elegir bloquea el campo; la ✕ o pulsar el chip
 // lo vuelven a abrir. `valor` vacío = Dynamo.
+import { avisarNavegandoA } from '../CargandoNavegacion';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -63,7 +64,7 @@ export default function CampoOperador({ operadores, valor, onCambio }: {
             <span className="sub">{[o.cif, o.contacto].filter(Boolean).join(' · ')}</span>
           </li>
         ))}
-        <li className="alm-combo-item" onMouseDown={(ev) => { ev.preventDefault(); router.push('/panel/operadores'); }}>
+        <li className="alm-combo-item" onMouseDown={(ev) => { ev.preventDefault(); avisarNavegandoA('/panel/operadores'); router.push('/panel/operadores'); }}>
           <span style={{ color: 'var(--purple)', fontWeight: 700 }}>+ Añade tu operador, empresa de transporte o transportista autónomo</span>
         </li>
       </ul>

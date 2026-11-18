@@ -7,6 +7,7 @@
 // debajo para quien prefiera los números. La evolución (usuario, 2026-11-06) lleva las tres
 // series a la vez: barras de facturación y línea de margen en euros (eje izquierdo) y línea de
 // envíos en unidades (eje derecho), con leyenda y los tres valores del mes al pulsar.
+import { avisarNavegandoA } from './CargandoNavegacion';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -232,7 +233,7 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
   const router = useRouter(); const ruta = usePathname();
   const [desde, setDesde] = useState(datos?.desde ?? ''); const [hasta, setHasta] = useState(datos?.hasta ?? '');
   const [todosClientes, setTodosClientes] = useState(false);
-  const ir = (p: Periodo, d?: string, h?: string) => router.push(`${ruta}?cm=${p}${p === 'otro' && d && h ? `&desde=${d}&hasta=${h}` : ''}`, { scroll: false });
+  const ir = (p: Periodo, d?: string, h?: string) => { const href = `${ruta}?cm=${p}${p === 'otro' && d && h ? `&desde=${d}&hasta=${h}` : ''}`; avisarNavegandoA(href); router.push(href, { scroll: false }); };
   const t = datos?.totales, c = datos?.comparacion ?? undefined;
   const serie = useMemo(() => (datos?.serie ?? []).map((s) => ({
     k: datos!.granularidad === 'dia' ? etiquetaDia(s.k) : etiquetaMes(s.k),

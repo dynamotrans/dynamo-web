@@ -13,6 +13,17 @@ import Cargando from '@/components/Cargando';
 // cierra avisan con esto y el cargador sale al instante (usuario, 2026-11-10: «no hay
 // spinner al abrir ni al cerrar el detalle»).
 export const avisarNavegando = () => { try { window.dispatchEvent(new Event('dynamo:navegando')); } catch { /* sin ventana */ } };
+// Lo mismo, sabiendo ADÓNDE se va: si ya se está en esa pantalla no hay nada que esperar y
+// el cargador no sale (se quedaría puesto hasta su tope). Para todo botón que navega por
+// código: sin esto el botón no hace nada visible hasta que llega la pantalla nueva, y
+// parece que no ha respondido (usuario, 2026-11-18: «cuando pulso botones tarda»).
+export const avisarNavegandoA = (href: string) => {
+  try {
+    const u = new URL(href, window.location.href);
+    if (u.origin === window.location.origin && u.pathname === window.location.pathname && u.search === window.location.search) return;
+  } catch { /* dirección rara: se avisa igualmente */ }
+  avisarNavegando();
+};
 
 export default function CargandoNavegacion() {
   const ruta = usePathname();

@@ -5,6 +5,7 @@
 // el resto, el día de hoy resaltado, navegación ‹ › limitada a ±3 meses y leyenda debajo.
 // Cada envío se coloca en su fecha de carga efectiva (real → primer día pedido); pulsar
 // una fichita abre su ficha. El buscador y los filtros de arriba también filtran aquí.
+import { avisarNavegandoA } from './CargandoNavegacion';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { EnvioFila } from '@/lib/envios';
@@ -70,7 +71,7 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
     const col = colorDe(e);
     return (
       <button key={e.id} type="button" className="cal-envio" style={{ borderLeftColor: col, background: `${col}14` }}
-        title={`#${e.referencia_gx} · ${o} → ${d}`} onClick={() => router.push(urlVer(e.id), { scroll: false })}>
+        title={`#${e.referencia_gx} · ${o} → ${d}`} onClick={() => { avisarNavegandoA(urlVer(e.id)); router.push(urlVer(e.id), { scroll: false }); }}>
         {o}→{d}
       </button>
     );
@@ -87,10 +88,10 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
       {leyenda}
       <div className="cal-head">
         <button type="button" className="cal-nav" disabled={offset <= -3} aria-label="Mes anterior"
-          onClick={() => router.replace(urlMes(otroMes(-1)), { scroll: false })}>‹</button>
+          onClick={() => { avisarNavegandoA(urlMes(otroMes(-1))); router.replace(urlMes(otroMes(-1)), { scroll: false }); }}>‹</button>
         <div className={`cal-title${offset === 0 ? ' cal-title-hoy' : ''}`}>{MESES[m - 1]} {a}</div>
         <button type="button" className="cal-nav" disabled={offset >= 3} aria-label="Mes siguiente"
-          onClick={() => router.replace(urlMes(otroMes(1)), { scroll: false })}>›</button>
+          onClick={() => { avisarNavegandoA(urlMes(otroMes(1))); router.replace(urlMes(otroMes(1)), { scroll: false }); }}>›</button>
       </div>
       <div className="cal-grid cal-dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
       <div className="cal-grid">
@@ -120,7 +121,7 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
         pie={
           <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button type="button" className="btn-secondary" onClick={() => setDiaNuevo(null)}>Cerrar</button>
-            <button type="button" className="btn-primary" onClick={() => router.push(`/panel/nuevo-envio?fecha=${diaNuevo}`)}>+ Crear envío</button>
+            <button type="button" className="btn-primary" onClick={() => { avisarNavegandoA(`/panel/nuevo-envio?fecha=${diaNuevo}`); router.push(`/panel/nuevo-envio?fecha=${diaNuevo}`); }}>+ Crear envío</button>
           </div>
         }>
         {diaNuevo && (() => {

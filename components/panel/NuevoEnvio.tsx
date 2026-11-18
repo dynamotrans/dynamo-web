@@ -4,6 +4,7 @@
 // Ruta · Mercancía · Fecha y precio · Confirmar. Mismas clases del mockup (ptar-*, wiz-*,
 // sum2-*, alm-price). Etapa A: lo usa Dynamo para un cliente y pone el precio a mano;
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
+import { avisarNavegando, avisarNavegandoA } from './CargandoNavegacion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -56,6 +57,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return { k, tipo: p.tipo, sitio: s, nuevo, parada_id: enRuta || editar ? p.id : undefined };
   };
   const router = useRouter();
+  // Navegar por código SIEMPRE con el cargador al instante: el botón responde al pulsarlo.
+  const ir = (href: string) => { avisarNavegandoA(href); router.push(href); };
   const refrescar = useRefrescar();
   // Una CONSULTA DE PRECIO por ruta enseñada (usuario, 2026-11-14): alimenta «Uso de
   // Dynamo» y los límites de uso. Solo cuentan los clientes (la BD ignora al equipo), y
@@ -189,6 +192,20 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // PANTALLA DE ÉXITO (tarea 81, usuario 2026-11-13): al confirmar un envío no se suelta
   // al usuario en la lista — se le dice QUÉ PASA AHORA y a dónde ir.
   const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual'; pago?: boolean; razon?: 'primero' | 'primeros' | 'credito' | null } | null>(null);
+  // Adónde lleva el botón principal de esa pantalla. Mientras el usuario lee «qué pasa
+  // ahora», la ficha del envío y la lista se van PIDIENDO POR DETRÁS: al pulsar ya están
+  // (usuario, 2026-11-18: «cuando pulso botones tarda»).
+  const destinoCreado = creado ? (creado.id ? `/panel/envios?ver=${creado.id}` : `/panel/envios?nuevo=${encodeURIComponent(creado.ref)}`) : null;
+  useEffect(() => {
+    if (!destinoCreado) return;
+    // Un momento DESPUÉS de crear: al guardar el envío la página se pone al día sola, y ese
+    // refresco tira todo lo adelantado antes de él (medido: sin esperar, no servía de nada).
+    const t = setTimeout(() => {
+      try { router.prefetch(destinoCreado); router.prefetch('/panel/envios'); } catch { /* sin adelanto: se pide al pulsar */ }
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinoCreado]);
   // La casilla nace MARCADA (usuario, 2026-11-16): la aceptación es pulsar «Confirmar envío»
   // con el texto y las condiciones delante. Si la desmarca, no puede confirmar.
   const [aceptaLegal, setAceptaLegal] = useState(true);
@@ -533,7 +550,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }
   function atras() {
     setAviso(null);
-    if (paso === 1) router.push('/panel/envios'); else { setPaso((p) => p - 1); window.scrollTo({ top: 0 }); }
+    if (paso === 1) ir('/panel/envios'); else { setPaso((p) => p - 1); window.scrollTo({ top: 0 }); }
   }
 
   async function guardarRuta() {
@@ -550,7 +567,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         contacto_nombre: n.contacto, contacto_telefono: n.telefono, horario_tramos: n.horario ? tramosDe(n.horario) : undefined };
     }));
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
-    router.push(`/panel/envios?ver=${base.envio.id}`);
+    ir(`/panel/envios?ver=${base.envio.id}`);
     refrescar();
   }
 
@@ -614,7 +631,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
-      router.push(`/panel/envios?ver=${base.envio.id}`);
+      ir(`/panel/envios?ver=${base.envio.id}`);
       refrescar();
       return;
     }
@@ -633,7 +650,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rc.ok) { setEnviando(false); setAviso(rc.error); return; }
-      router.push(`/panel/envios?ver=${base.envio.id}`);
+      ir(`/panel/envios?ver=${base.envio.id}`);
       refrescar();
       return;
     }
@@ -649,7 +666,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
-    router.push(`/panel/envios?ver=${base.envio.id}`);
+    ir(`/panel/envios?ver=${base.envio.id}`);
     refrescar();
   }
 
@@ -970,7 +987,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const navBotones = (
     <div className="wiz-navwrap">
       <div className="wiz-nav">
-        <button type="button" className="btn-ghost" onClick={enRuta || (editar && paso === 1) ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
+        <button type="button" className="btn-ghost" onClick={enRuta || (editar && paso === 1) ? () => ir(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
         {enRuta
           ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
           // SIN cliente no hay paso Confirmar (solo se calcula el precio): en el paso 3 el
@@ -1037,10 +1054,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           </ol>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
             <button type="button" className="btn-primary" style={btnAncho}
-              onClick={() => router.push(creado.id ? `/panel/envios?ver=${creado.id}` : `/panel/envios?nuevo=${encodeURIComponent(creado.ref)}`)}>
+              onClick={() => ir(destinoCreado!)}>
               {creado.modo === 'admin' ? 'Abrir el envío (asignar transportista)' : 'Ver mi envío'}</button>
-            <button type="button" className="btn-secondary" style={btnAncho} onClick={() => window.location.assign('/panel/nuevo-envio')}>Crear otro envío</button>
-            <button type="button" className="btn-ghost" style={{ ...btnAncho, minHeight: 48 }} onClick={() => router.push('/panel/envios')}>Ir a la lista de envíos</button>
+            <button type="button" className="btn-secondary" style={btnAncho} onClick={() => { avisarNavegando(); window.location.assign('/panel/nuevo-envio'); }}>Crear otro envío</button>
+            <button type="button" className="btn-ghost" style={{ ...btnAncho, minHeight: 48 }} onClick={() => ir('/panel/envios')}>Ir a la lista de envíos</button>
           </div>
         </div>
       </section>
