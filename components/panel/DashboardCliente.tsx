@@ -91,15 +91,14 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
               <div className="dash-cta-icon"><Svg size={28}><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></div>
               <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicita un transporte</p></div>
             </Link>
-            {/* «Otras gestiones» en cuadrícula de 4 (usuario, 2026-11-10): las tres
-                acciones del antiguo desplegable + Administración, siempre a la vista. */}
+            {/* «Otras gestiones» en cuadrícula (usuario, 2026-11-10), siempre a la vista:
+                Reportar incidencia · Crear sitio · Administración, los tres en una fila. */}
             <div className="dash-cta-grid">
               <Link className="dash-cta-mini" href="/panel/incidencias?abrir=1"><span className="dash-cta-mini-ico"><Svg><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></Svg></span><span>Reportar incidencia</span></Link>
               <Link className="dash-cta-mini" href="/panel/sitios"><span className="dash-cta-mini-ico"><Svg><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></Svg></span><span>Crear sitio</span></Link>
               {/* «Nuevo almacenamiento» oculto por ahora (usuario, 2026-11-11): lo gestiona
-                  solo el equipo de Dynamo. En su lugar, la calculadora de precios (el mismo
-                  asistente de Nuevo envío, con su proforma orientativa al final). */}
-              <Link className="dash-cta-mini" href="/panel/nuevo-envio"><span className="dash-cta-mini-ico"><Svg><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="11" x2="8.01" y2="11" /><line x1="12" y1="11" x2="12.01" y2="11" /><line x1="16" y1="11" x2="16.01" y2="11" /><line x1="8" y1="15" x2="8.01" y2="15" /><line x1="12" y1="15" x2="12.01" y2="15" /><line x1="16" y1="15" x2="16" y2="18" /></Svg></span><span>Calculadora de precios</span></Link>
+                  solo el equipo de Dynamo. «Calculadora de precios» se quitó el 2026-11-18:
+                  abría el mismo asistente que «Nuevo envío» y confundía tener los dos. */}
               <Link className="dash-cta-mini" href="/panel/administracion"><span className="dash-cta-mini-ico"><Svg><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="16" y2="17" /><line x1="8" y1="9" x2="10" y2="9" /></Svg></span><span>Administración</span></Link>
             </div>
           </div>

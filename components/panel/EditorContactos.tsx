@@ -17,8 +17,8 @@ export default function EditorContactos({ valor, onCambio, conFuncion = false, c
   max?: number;
   // conAvisos: enseña el conmutador «Recibe los avisos». En los SITIOS solo lo ve Dynamo:
   // el cliente no; todo contacto nuevo nace recibiendo avisos (CONTACTO_VACIO).
-  // obligatorios (modo sitios): Teléfono obligatorio, Email «Muy útil» y nombre replegado
-  // (los SITIOS exigen un contacto con teléfono y email; nombre opcional).
+  // obligatorios (modo sitios): Teléfono obligatorio, Email «Muy útil» y el nombre, opcional,
+  // el último (orden teléfono · email · nombre, como en el paso 4 de Nuevo envío).
   // roles: UN solo desplegable «Rol» con estas opciones (sustituye a Cargo + «Para qué»;
   // usuario 2026-11-09): clientes Logística/Contabilidad · transportistas Tráfico/
   // Contabilidad. Un valor antiguo fuera de la lista se añade para no perderlo.
@@ -55,11 +55,15 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
 }) {
   const t = partirTel(c.telefono);
   const [pref, setPref] = useState(t.pref);
-  // En sitios, el nombre va REPLEGADO hasta pulsar su etiqueta (usuario, 2026-11-09).
-  const [verNombre, setVerNombre] = useState(!!c.nombre.trim());
   const num = t.num;
   const ponTel = (p: string, n: string) => onCambio({ ...c, telefono: n.trim() ? p + n.replace(/\D/g, '') : '' });
   const id = `ct-${i}`;
+  const nombreCampo = (
+    <div>
+      <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>
+      <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} />
+    </div>
+  );
   return (
     <div style={{ border: '1.5px solid var(--gray-200)', borderRadius: 12, padding: '0.7rem 0.8rem', background: 'var(--gray-50)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
@@ -69,22 +73,11 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }} onClick={onQuitar}>Quitar</button>
       </div>
       <div className="ptar-sitio-grid">
-        {/* El nombre va ANTES de los campos de teléfono (usuario, 2026-11-09). */}
-        <div>{!obligatorios || verNombre
-          ? <>{obligatorios
-                ? <button type="button" className="campo-plegado" aria-expanded onClick={() => setVerNombre(false)} style={{ marginBottom: '0.45rem' }}>
-                    <span className="cp-ico" aria-hidden="true">−</span><span className="cp-txt">Nombre y apellidos <Req si={false} /></span></button>
-                : <label htmlFor={`${id}-nombre`}>Nombre y apellidos <Req si={false} /></label>}
-              <input id={`${id}-nombre`} type="text" value={c.nombre} placeholder="Persona de contacto" onChange={(e) => onCambio({ ...c, nombre: e.target.value })} /></>
-          : <>
-              {/* Etiqueta fantasma: ocupa la fila de la etiqueta para que la píldora
-                  alinee con el campo de teléfono de al lado (usuario, 2026-11-12). */}
-              <label aria-hidden="true" style={{ visibility: 'hidden' }}>Nombre</label>
-              <button type="button" className="campo-plegado" onClick={() => setVerNombre(true)}>
-                <span className="cp-ico" aria-hidden="true">+</span>
-                <span className="cp-txt">Nombre y apellidos <Req si={false} />{c.nombre.trim() ? <span className="cp-val">· {c.nombre}</span> : null}</span></button>
-            </>}
-        </div>
+        {/* ORDEN: en clientes, transportistas y empresa, el nombre va ANTES del teléfono
+            (usuario, 2026-11-09). En los SITIOS (modo «obligatorios») va como en el paso 4 de
+            Nuevo envío (usuario, 2026-11-18): teléfono (lo obligatorio) · email · nombre y
+            apellidos, el nombre siempre a la vista, sin plegar. */}
+        {!obligatorios && nombreCampo}
         <div>
           <label htmlFor={`${id}-tel`}>Teléfono <Req si={obligatorios} /></label>
           <div className="tel-group">
@@ -99,6 +92,7 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
             : <Req si={false} />}</label>
           <input id={`${id}-email`} type="email" inputMode="email" value={c.email} placeholder="Ej. nombre@empresa.com" onChange={(e) => onCambio({ ...c, email: e.target.value })} />
         </div>
+        {obligatorios && nombreCampo}
         {roles ? (
           <div>
             <label htmlFor={`${id}-rol`}>Rol</label>

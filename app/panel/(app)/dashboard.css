@@ -2370,14 +2370,14 @@ body.theme-dark .sidebar { background: #060116; }
 /* Nuevo envío (2/3, principal) + Nuevo almacenamiento (1/3, secundario)
    en la misma línea. */
 .dash-cta-stack { display: flex; flex-direction: column; gap: 0.6rem; }
-/* Las 3 filas de botones a la MISMA altura y la columna estirada hasta igualar la
-   tarjeta de envíos de la derecha (usuario, 2026-11-10): una sola rejilla 2×3 donde
-   «Nuevo envío» ocupa la fila 1 entera y las 4 tarjetas entran como hijas directas. */
+/* La columna de botones se estira hasta igualar la tarjeta de envíos de la derecha
+   (usuario, 2026-11-10): una sola rejilla donde «Nuevo envío» ocupa la fila 1 entera
+   (algo más alta) y los tres accesos entran como hijos directos en la fila 2. */
 @media (min-width: 769px) {
     .dash-top-2 .dash-left-col { height: 100%; }
     .dash-top-2 .dash-cta-stack {
-        display: grid; flex: 1; grid-template-columns: 1fr 1fr;
-        grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 0.6rem;
+        display: grid; flex: 1; grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr); gap: 0.6rem;
     }
     .dash-top-2 .dash-cta-stack > .dash-cta-purple { grid-column: 1 / -1; }
     .dash-top-2 .dash-cta-grid { display: contents; }
@@ -2414,7 +2414,9 @@ body.theme-dark .dash-cta-chev { background: rgba(255,255,255,0.06); border-colo
 .dash-cta-green .dash-cta-text p { color: var(--gray-500); }
 /* «Otras gestiones» en cuadrícula 2×2 (usuario, 2026-11-10): las tres acciones del
    antiguo desplegable + Administración, como tarjetas blancas siempre a la vista. */
-.dash-cta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+/* Los tres accesos (Reportar incidencia · Crear sitio · Administración) en UNA fila
+   (usuario, 2026-11-18, al quitar «Calculadora de precios»). */
+.dash-cta-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
 .dash-cta-mini {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 0.45rem; text-align: center; padding: 0.8rem 0.5rem; border-radius: 14px;
@@ -5258,8 +5260,10 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 .bgq-sub { color: var(--gray-500); font-size: var(--fs-s); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---- Accesos rápidos del Dashboard admin (usuario, 2026-11-13): 5 iguales a lo ancho ---- */
-.dashadm-accesos { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; margin-bottom: 0.9rem; }
-@media (max-width: 860px) { .dashadm-accesos { grid-template-columns: repeat(2, 1fr); } .dashadm-accesos > :first-child { grid-column: 1 / -1; } }
+/* Cuatro accesos (eran cinco hasta quitar «Calculadora de precios», 2026-11-18): una fila de
+   cuatro; en pantallas estrechas, dos filas de dos. */
+.dashadm-accesos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 0.9rem; }
+@media (max-width: 860px) { .dashadm-accesos { grid-template-columns: repeat(2, 1fr); } }
 .dash-cta-mini.primario { background: linear-gradient(135deg, var(--purple), #4b16e0); border-color: var(--purple); color: #fff; }
 .dash-cta-mini.primario .dash-cta-mini-ico { background: rgba(255,255,255,0.16); color: #fff; }
 .dash-cta-mini.primario:hover { border-color: var(--purple); box-shadow: 0 6px 18px rgba(51,0,204,0.25); }

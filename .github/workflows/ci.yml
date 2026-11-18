@@ -5,9 +5,10 @@
 #      que los tipos de TypeScript (lib/supabase/tipos.ts) están al día.
 #   2. Web: tipos, revisión del código (ESLint), pruebas unitarias de lib/ y compilación
 #      completa, igual que en Vercel.
-#   3. Navegador: los flujos clave con Playwright contra un Supabase local completo, TRES veces
-#      en paralelo (cada una con su base de datos): Chrome de escritorio, el motor de Safari
-#      (WebKit) y un iPhone. Incluye cómo se ven las pantallas (medidas y fotos de referencia).
+#   3. Navegador: los flujos clave con Playwright contra un Supabase local completo, en Chrome
+#      de escritorio. Al lanzarlo A MANO (la pasada diaria y al rehacer fotos) se pasa además,
+#      en paralelo y cada uno con su base de datos, en el motor de Safari (WebKit) y en un
+#      iPhone. Incluye cómo se ven las pantallas (medidas y fotos de referencia).
 #
 # FOTOS DE REFERENCIA: tras un cambio de diseño hecho a propósito, lanzar el CI a mano
 # (Run workflow) con la casilla «fotos»: las rehace y las guarda en la rama.
@@ -94,11 +95,13 @@ jobs:
       contents: write
     strategy:
       fail-fast: false          # que el fallo de un navegador no corte los otros dos
+      # En cada SUBIDA, solo Chrome (unos 9 minutos de Actions por subida, como antes). Safari
+      # e iPhone se pasan al lanzar el CI a mano: la pasada diaria y al rehacer las fotos
+      # (usuario, 2026-11-18: «tú mandas»; con los tres en cada subida eran unos 25 minutos).
       matrix:
-        include:
-          - { proyecto: chromium, motor: chromium, nombre: 'Chrome de escritorio' }
-          - { proyecto: safari, motor: webkit, nombre: 'Safari de escritorio' }
-          - { proyecto: movil, motor: webkit, nombre: 'iPhone' }
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch'
+          && '[{"proyecto":"chromium","motor":"chromium","nombre":"Chrome de escritorio"},{"proyecto":"safari","motor":"webkit","nombre":"Safari de escritorio"},{"proyecto":"movil","motor":"webkit","nombre":"iPhone"}]'
+          || '[{"proyecto":"chromium","motor":"chromium","nombre":"Chrome de escritorio"}]') }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
