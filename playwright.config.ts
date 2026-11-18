@@ -10,6 +10,9 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   timeout: 90_000,
   expect: { timeout: 15_000 },
+  // Fotos de referencia de las pantallas (tests/e2e/vistas.spec.ts): una carpeta por navegador.
+  // Se sacan SIEMPRE en el CI (E2E_FOTOS_DIR las desvía en local para no mezclarlas).
+  snapshotPathTemplate: `${process.env.E2E_FOTOS_DIR ?? 'tests/e2e/fotos'}/{projectName}/{arg}{ext}`,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]] : 'list',
   use: {
     baseURL: process.env.E2E_URL ?? 'http://localhost:3000',

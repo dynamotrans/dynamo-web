@@ -30,7 +30,11 @@ insert into clientes (razon_social, cif, pais_codigo_iso)
 insert into transportistas (razon_social, cif, bolsa, codigo_bolsa, estado_operativo)
   values ('Transportes Prueba S.L.', 'B76543214', 'wtransnet', 'E2E-1', 'activo') on conflict do nothing;
 update usuarios set rol = 'admin', estado = 'activa' where id = '${ids.dynamo}';
-update usuarios set rol = 'cliente', estado = 'activa', cliente_id = (select id from clientes where cif = 'B12345674') where id = '${ids.cliente}';
+-- El cliente de pruebas queda EXENTO de la suspensión automática: entre todas las pruebas
+-- pide más precios en un día de los que se le permiten a una cuenta normal (regla 3: 15) y
+-- se quedaba suspendido a mitad de la pasada. Las reglas de suspensión se prueban en la
+-- suite de la base de datos, no aquí.
+update usuarios set rol = 'cliente', estado = 'activa', exento_autosuspension = true, cliente_id = (select id from clientes where cif = 'B12345674') where id = '${ids.cliente}';
 update usuarios set rol = 'transportista', estado = 'activa', transportista_id = (select id from transportistas where cif = 'B76543214') where id = '${ids.transportista}';
 insert into sitios (cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
   select c.id, x.n, 'almacen_nave', x.d, x.cp, x.p, x.pr, 'ES' from clientes c,

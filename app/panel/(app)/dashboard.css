@@ -4198,7 +4198,9 @@ input::-webkit-date-and-time-value { text-align: left; }
 .wiz-bar .wiz-step {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
     position: relative; padding: 0; border: none; background: none;
-    font-size: var(--fs-s); font-weight: 600; color: var(--gray-400); cursor: default;
+    /* gris-500 (antes 400): el nombre de los pasos pendientes no llegaba al contraste mínimo
+       sobre el fondo gris claro (prueba de accesibilidad en móvil, 2026-11-18). */
+    font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); cursor: default;
     text-align: center; line-height: 1.2;
 }
 /* Línea conectora que llega desde el punto anterior (mitad del círculo). */

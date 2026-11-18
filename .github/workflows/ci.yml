@@ -5,7 +5,12 @@
 #      que los tipos de TypeScript (lib/supabase/tipos.ts) están al día.
 #   2. Web: tipos, revisión del código (ESLint), pruebas unitarias de lib/ y compilación
 #      completa, igual que en Vercel.
-#   3. Navegador: los 6 flujos clave con Playwright contra un Supabase local completo.
+#   3. Navegador: los flujos clave con Playwright contra un Supabase local completo, TRES veces
+#      en paralelo (cada una con su base de datos): Chrome de escritorio, el motor de Safari
+#      (WebKit) y un iPhone. Incluye cómo se ven las pantallas (medidas y fotos de referencia).
+#
+# FOTOS DE REFERENCIA: tras un cambio de diseño hecho a propósito, lanzar el CI a mano
+# (Run workflow) con la casilla «fotos»: las rehace y las guarda en la rama.
 name: CI
 
 on:
@@ -13,6 +18,11 @@ on:
     branches: [pruebas]
   pull_request:
   workflow_dispatch:
+    inputs:
+      fotos:
+        description: 'Rehacer las fotos de referencia de las pantallas (tras un cambio de diseño a propósito)'
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -76,9 +86,19 @@ jobs:
     # de datos, login, API y Realtime para el 6.º, «en vivo») con todas las migraciones y datos de prueba (tests/e2e). El
     # proyecto de Supabase se crea aparte en /tmp para no tocar supabase/config.toml (que se
     # despliega).
-    name: Navegador (6 flujos clave)
+    name: Navegador (${{ matrix.nombre }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # Escribir en el repositorio solo hace falta para guardar las fotos de referencia.
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false          # que el fallo de un navegador no corte los otros dos
+      matrix:
+        include:
+          - { proyecto: chromium, motor: chromium, nombre: 'Chrome de escritorio' }
+          - { proyecto: safari, motor: webkit, nombre: 'Safari de escritorio' }
+          - { proyecto: movil, motor: webkit, nombre: 'iPhone' }
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -126,25 +146,49 @@ jobs:
           npm run build
           nohup npx next start -p 3000 > /tmp/next.log 2>&1 &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/panel/entrar && break; sleep 2; done
-      # Las librerías del navegador ya vienen en ubuntu-24.04; lo único que añadía
-      # «--with-deps» eran 9 paquetes de FUENTES vía apt, y el espejo de paquetes de Azure
-      # se cae a rachas (2026-11-11: dos intentos rotos por «Temporary failure resolving
-      # azure.archive.ubuntu.com» sin arrancar ni una prueba). El navegador se instala
-      # SIEMPRE (lo sirve Playwright, no apt) y las fuentes quedan como mejora opcional:
-      # si apt falla, las pruebas corren igual (no comprueban texto chino ni emoji).
+      # Chromium: sus librerías ya vienen en ubuntu-24.04 y lo único que añadía «--with-deps»
+      # eran paquetes de FUENTES vía apt, cuyo espejo se cae a rachas (2026-11-11): quedan
+      # como mejora opcional. WebKit (Safari) SÍ necesita librerías del sistema que no vienen:
+      # ahí la instalación es obligatoria, con reintentos por si el espejo falla.
       - name: Navegador de Playwright
-        run: npx playwright install chromium
-      - name: Fuentes del navegador (opcional)
-        run: npx playwright install-deps chromium || echo "::warning::Fuentes del navegador sin instalar (espejo apt caído); las pruebas corren sin ellas"
+        run: npx playwright install ${{ matrix.motor }}
+      - name: Librerías y fuentes del navegador
+        run: |
+          for i in 1 2 3 4; do
+            npx playwright install-deps ${{ matrix.motor }} && exit 0
+            echo "Instalación fallida (intento $i de 4); espero $((i*20)) s"; sleep $((i*20))
+          done
+          if [ "${{ matrix.motor }}" = chromium ]; then
+            echo "::warning::Fuentes del navegador sin instalar (espejo apt caído); las pruebas corren sin ellas"
+          else
+            echo "::error::No se han podido instalar las librerías de WebKit"; exit 1
+          fi
       - name: Pruebas en navegador
-        run: npx playwright test
+        run: npx playwright test ${{ inputs.fotos && '--update-snapshots' || '' }}
         env:
           E2E_URL: http://localhost:3000
+          E2E_PROYECTO: ${{ matrix.proyecto }}
+      # Solo al lanzarlo a mano con la casilla «fotos»: las fotos de referencia recién
+      # sacadas se guardan en la rama (cada navegador las suyas, en su carpeta).
+      - name: Guardar las fotos de referencia
+        if: inputs.fotos
+        run: |
+          git config user.name "Pruebas automáticas"
+          git config user.email "pruebas@users.noreply.github.com"
+          git add tests/e2e/fotos
+          if git diff --cached --quiet; then echo "Las fotos no han cambiado."; exit 0; fi
+          git commit -m "Fotos de referencia de las pantallas (${{ matrix.nombre }})"
+          for i in 1 2 3 4 5 6; do
+            git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i*7))
+          done
+          exit 1
       # Prueba de CARGA (k6, perfil humo; tarea 67): canario de regresiones gordas de
       # rendimiento contra la misma pila local, con la caché de Next ya caliente por las
       # pruebas de navegador. El examen fino (perfiles carga/estres) se hace a mano
       # contra la preview: tools/k6/README.md.
       - name: Prueba de carga (k6, humo)
+        if: matrix.proyecto == 'chromium'
         run: |
           for i in 1 2 3; do
             curl -fsSL https://github.com/grafana/k6/releases/download/v1.3.0/k6-v1.3.0-linux-amd64.tar.gz | tar xz --strip-components=1 -C /tmp && break
@@ -155,7 +199,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: informe-playwright
+          name: informe-playwright-${{ matrix.proyecto }}
           path: |
             playwright-report
             test-results
