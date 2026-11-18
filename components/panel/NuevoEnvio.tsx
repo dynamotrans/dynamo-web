@@ -1282,8 +1282,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                               ? <>del {fmtFecha(tarifa.etaDesde)} al {fmtFecha(tarifa.etaHasta)}</> : fmtFecha(tarifa.etaDesde)}</span>
                           : <span className="v gris">Elige la fecha de recogida para verla</span>}
                       </div>
-                      <div>
-                        <span className="k">Trayecto</span>
+                      {/* En líneas, no en dos columnas; el trayecto, etiqueta y dato en la misma
+                          línea (usuario, 2026-11-18). */}
+                      <div className="linea">
+                        <span className="k">Trayecto - </span>
                         <span className="v">{tarifa.grupaje ? 'Grupaje' : 'Camión completo'}{kmInfo ? <> · {kmInfo.km} km{kmInfo.estimado ? ' (estimados)' : ''}</> : null}</span>
                       </div>
                     </div>
