@@ -1,7 +1,9 @@
+'use client';
 // Penalizaciones del CLIENTE (etapa B): solo lectura y solo su importe (mis_penalizaciones();
 // el del transportista nunca). Diseño de la tabla de #sec-penalizaciones del mockup.
 import Link from 'next/link';
-import { euros, fechaHora } from '@/lib/formato';
+import { euros, fechaHora, textoBusqueda } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { CONTACTO } from '@/lib/atencion';
 
 export type MiPenalizacion = { id: string; codigo: string; envio_id: string; referencia_gx: string; tipo: string;
@@ -14,8 +16,9 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
   // ?q=…: se llega desde el buscador global con una penalización buscada; se enseña esa
   // (por código, envío, tipo o descripción) y un enlace para volver a verlas todas.
   const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const ws = norm(q.trim()).split(/\s+/).filter(Boolean);
+  const ws = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
   const filas = ws.length ? todas.filter((p) => { const b = norm([p.codigo, p.referencia_gx, p.tipo, p.descripcion].filter(Boolean).join(' ')); return ws.every((w) => b.includes(w)); }) : todas;
+  const pg = usePaginas(filas, q);
   return (
     <section className="section active" id="sec-penalizaciones">
       <div className="sec-header"><h2>Penalizaciones</h2></div>
@@ -33,7 +36,7 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
           <tbody>
             {filas.length === 0 ? (
               <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{ws.length ? 'Ninguna penalización casa con la búsqueda.' : 'No tienes ninguna penalización.'}</td></tr>
-            ) : filas.map((p) => {
+            ) : pg.visibles.map((p) => {
               const est = ESTADO[p.estado] ?? [p.estado, 'prog'];
               return (
                 <tr key={p.id}>
@@ -48,6 +51,7 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="penalizaciones" nombreUno="penalización" />
     </section>
   );
 }

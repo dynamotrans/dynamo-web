@@ -8,7 +8,8 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import { FICHEROS, descargarCsv, esImporte, mesDe, type Fichero, type FilaExport } from '@/lib/exportaciones';
 import { marcarExportados, marcarFacturados } from '@/app/panel/(app)/exportaciones/acciones';
-import { euros, numero } from '@/lib/formato';
+import { euros, numero, textoBusqueda } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 
 const PESTANAS: [string, string][] = [['pendientes', 'Pendientes'], ['hechos', 'Ya pasados'], ['todos', 'Todos']];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -40,7 +41,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
   const meses = useMemo(() => [...new Set(filas.map((f) => mesDe(f[F.fecha])).filter(Boolean))].sort().reverse(), [filas, F.fecha]);
 
   const lista = useMemo(() => {
-    const w = norm(q.trim());
+    const w = norm(textoBusqueda(q));
     return filas.filter((f) => {
       const r = String(f[F.ref]);
       if (pestana === 'pendientes' && hechos.has(r)) return false;
@@ -49,6 +50,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
       return !w || norm(Object.values(f).filter((v) => v != null).join(' ')).includes(w);
     });
   }, [filas, F, pestana, hechos, mes, q]);
+  const pg = usePaginas(lista, `${fichero}|${pestana}|${mes}|${q}`, 50);
   const refs = useMemo(() => [...new Set(lista.map((f) => String(f[F.ref])))], [lista, F.ref]);
   const cuenta = (p: string) => new Set(filas.filter((f) => { const h = hechos.has(String(f[F.ref])); return p === 'todos' || (p === 'hechos' ? h : !h); }).map((f) => String(f[F.ref]))).size;
 
@@ -121,7 +123,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
               <tr><td colSpan={F.columnas.length + 1} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {filas.length ? 'No hay filas que coincidan con el filtro.' : fichero === 'bolsa' ? 'No hay envíos programados sin transportista para la bolsa.' : 'Aún no hay pedidos para exportar.'}
               </td></tr>
-            ) : lista.slice(0, 300).map((f, i) => {
+            ) : pg.visibles.map((f, i) => {
               const h = hechos.has(String(f[F.ref]));
               return (
                 <tr key={i}>
@@ -138,7 +140,8 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
           </tbody>
         </table>
       </div>
-      {lista.length > 300 && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Se ven las 300 primeras filas; el CSV lleva las {lista.length}.</p>}
+      <PaginadorLocal p={pg} nombre="filas" nombreUno="fila" />
+      {pg.total > pg.porPagina && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>El CSV y los botones de marcar van con las {numero(lista.length, 0)} filas del filtro, no solo con la página que se ve.</p>}
 
       {confirmar && (
         <Modal abierto ancho={520} onCerrar={() => !trabajando && setConfirmar(null)}

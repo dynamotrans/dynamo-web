@@ -1,6 +1,7 @@
 'use client';
 
 import { fechaHora } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import EstadoVacio from './EstadoVacio';
 import CajaSubir from './CajaSubir';
 
@@ -63,6 +64,7 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
       return w.every((t) => b.includes(t));
     })()));
   }, [filas, q, cli]);
+  const pg = usePaginas(lista, `${q}|${cli}`);
   const cols = dynamo ? 6 : 5;
 
   return (
@@ -111,7 +113,7 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
                       texto="Tu catálogo privado: todos los envíos juntos en Envíos, los de Dynamo y los tuyos con otros transportistas/agencias que trabajes. Solo lo ve tu empresa."
                       accion={<button type="button" className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Crear tu primer transportista</button>} />}
               </td></tr>
-            ) : lista.map((o) => (
+            ) : pg.visibles.map((o) => (
               <tr key={o.id} onClick={() => setFicha({ fila: o })} style={{ cursor: 'pointer' }}>
                 <td className="ref"><div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
                   {/* Su logo también en el listado (usuario, 2026-11-14). */}
@@ -128,6 +130,7 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="transportistas" nombreUno="transportista" />
       {ficha && <FichaOperador fila={ficha.fila} dynamo={dynamo} clientes={clientes} onCerrar={() => setFicha(null)} onHecho={() => { setFicha(null); refrescar(); }} />}
     </section>
   );

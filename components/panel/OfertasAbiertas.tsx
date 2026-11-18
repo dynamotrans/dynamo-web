@@ -1,6 +1,8 @@
+'use client';
 // Ofertas de carga abiertas para el TRANSPORTISTA (mis_ofertas(): el rango en euros, nunca
 // el porcentaje). Cada una lleva a su página de aceptar carga.
 import { euros, ventana, fechaHora, medidasTxt } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 
 export type Oferta = { id: string; envio_id: string; referencia_gx: string; token: string; canal: string;
   precio_ofertado: number; precio_minimo: number; precio_maximo: number; pronto_pago: boolean; caduca_en: string;
@@ -9,14 +11,15 @@ export type Oferta = { id: string; envio_id: string; referencia_gx: string; toke
 
 
 export default function OfertasAbiertas({ ofertas }: { ofertas: Oferta[] }) {
+  const pg = usePaginas(ofertas, '', 10);
   return (
     <section className="section active" style={{ paddingBottom: 0 }}>
       <div className="sec-header"><h2>Cargas que te ofrecemos</h2></div>
-      <div className="table-wrap" tabIndex={0} style={{ marginBottom: '1.2rem' }}>
+      <div className="table-wrap" tabIndex={0} style={{ marginBottom: pg.total > pg.porPagina ? 0 : '1.2rem' }}>
         <table className="data">
           <thead><tr><th>Carga</th><th>Ruta</th><th>Recogida</th><th>m · Tn</th><th>Precio<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>base sin IVA</span></th><th></th></tr></thead>
           <tbody>
-            {ofertas.map((o) => (
+            {pg.visibles.map((o) => (
               <tr key={o.id}>
                 <td className="ref"><strong>#{o.referencia_gx}</strong><div className="meta">Vale hasta {fechaHora(o.caduca_en)}</div></td>
                 <td className="route"><strong>{o.poblacion_origen ?? '—'}</strong><span className="arrow">→</span><strong>{o.poblacion_destino ?? '—'}</strong></td>
@@ -31,6 +34,8 @@ export default function OfertasAbiertas({ ofertas }: { ofertas: Oferta[] }) {
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="cargas" nombreUno="carga" soloSiHace />
+      {pg.total > pg.porPagina && <div style={{ height: '1.2rem' }} />}
     </section>
   );
 }

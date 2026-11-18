@@ -15,7 +15,8 @@ import BarraFiltros from './BarraFiltros';
 import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
-import { euros, numero, fechaHora } from '@/lib/formato';
+import { euros, numero, fechaHora, textoBusqueda } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { descargarCsv } from '@/lib/exportaciones';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 import Req from '@/components/Req';
@@ -60,10 +61,11 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
     return c;
   }, [filas]);
   const lista = useMemo(() => {
-    const w = norm(q.trim());
+    const w = norm(textoBusqueda(q));
     return filas.filter((p) => (pestana === 'todas' || p.estado === pestana) && (!tipo || p.tipo_id === tipo)
       && (!w || norm([p.codigo, p.envio, p.referencia_cliente, p.tipo, p.transportista, p.cliente, p.descripcion].filter(Boolean).join(' ')).includes(w)));
   }, [filas, pestana, q, tipo]);
+  const pg = usePaginas(lista, `${pestana}|${q}|${tipo}`);
   // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
   const exportar = () => descargarCsv('Penalizaciones', ['Penalización', 'Descripción', 'Envío', 'Ref. cliente', 'Tipo', 'Estado', 'Transportista', 'Cliente', 'P. cliente (sin IVA)', 'P. transportista (sin IVA)', 'Margen (sin IVA)', 'Fecha'],
     lista.map((p) => ({ 'Penalización': p.codigo, 'Descripción': p.descripcion ?? '', 'Envío': `#${p.envio}`, 'Ref. cliente': p.referencia_cliente ?? '',
@@ -103,7 +105,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {filas.length ? 'No hay penalizaciones que coincidan con el filtro.' : 'Aún no hay penalizaciones. Crea una con «+ Crear penalización».'}
               </td></tr>
-            ) : lista.map((p) => {
+            ) : pg.visibles.map((p) => {
               const est = ESTADO[p.estado];
               const desc = p.descripcion ?? '';
               return (
@@ -123,6 +125,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="penalizaciones" nombreUno="penalización" />
       {ficha && <FichaPenalizacion fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} envios={envios}
         onCerrar={cerrar} onHecho={() => { cerrar(); refrescar(); }} />}
     </section>

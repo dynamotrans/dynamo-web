@@ -12,7 +12,8 @@ import { avisarNavegando } from '@/components/panel/CargandoNavegacion';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
 import { marcarPagoEnvio, registrarTransferenciaEnvio } from '@/app/panel/(app)/envios/acciones';
 import FormTransferencia, { type DatosTransferencia } from './FormTransferencia';
-import { euros, fecha } from '@/lib/formato';
+import { euros, fecha, textoBusqueda } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 
 export type ProformaFila = {
   // Proformas de ENVÍOS y de almacenamientos en la misma lista (usuario, 2026-11-14).
@@ -48,7 +49,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
 
   const sinPagar = proformas.filter((p) => !p.pagado_en).length;
   const lista = useMemo(() => {
-    const w = norm(q).split(/\s+/).filter(Boolean);
+    const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     const casa = (t: string) => w.every((x) => norm(t).includes(x));
     if (pestana === 'proformas') {
       return proformas.filter((p) => (filtro === 'todas' || (filtro === 'pagadas') === !!p.pagado_en)
@@ -56,6 +57,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
     }
     return albaranes.filter((a) => casa([a.gx, a.ruta, a.nombre].filter(Boolean).join(' ')));
   }, [pestana, filtro, q, proformas, albaranes]);
+  const pg = usePaginas<ProformaFila | AlbaranFila>(lista, `${pestana}|${filtro}|${q}`);
 
   async function pagar(p: ProformaFila, pagado: boolean) {
     // La transferencia de un ENVÍO no se marca de un toque: abre su ventana.
@@ -117,7 +119,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                   <tr><td colSpan={dynamo ? 7 : 6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                     {proformas.length ? 'No hay proformas con este filtro.' : 'Aún no hay proformas. Salen solas de los envíos con pago por adelantado; también las tienes en la ficha de cada envío.'}
                   </td></tr>
-                ) : (lista as ProformaFila[]).map((p) => (
+                ) : (pg.visibles as ProformaFila[]).map((p) => (
                   <tr key={p.id} onClick={() => alEnvio(p)} style={p.tipo === 'envio' ? { cursor: 'pointer' } : undefined}
                     title={p.tipo === 'envio' ? 'Abrir el detalle del envío' : undefined}>
                     <td className="ref"><strong>#{p.codigo}</strong><div className="meta">{p.creado_en ? `Emitida el ${fecha(diaMadrid(p.creado_en))}` : ''}{p.referencia_cliente ? `${p.creado_en ? ' · ' : ''}${p.referencia_cliente}` : ''}</div></td>
@@ -151,7 +153,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                   <tr><td colSpan={dynamo ? 5 : 4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                     {albaranes.length ? 'No hay albaranes que coincidan.' : 'Aún no hay albaranes. Se suben desde la ficha de cada envío.'}
                   </td></tr>
-                ) : (lista as AlbaranFila[]).map((a) => (
+                ) : (pg.visibles as AlbaranFila[]).map((a) => (
                   // La ficha se abre con ?ver=: /panel/envios/<id> a secas NO existe y daba
                   // 404 al tocar la fila (usuario, 2026-11-10).
                   <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => setElegirAlb(a)}>
@@ -168,6 +170,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
             </table>
           </div>
         )}
+        <PaginadorLocal p={pg} nombre={pestana === 'proformas' ? 'proformas' : 'albaranes'} nombreUno={pestana === 'proformas' ? 'proforma' : 'albarán'} />
       </>}
       {trabajando && <Cargando texto={trabajando} />}
       {transferir && (

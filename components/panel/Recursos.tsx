@@ -4,6 +4,7 @@
 // «Medidas de los camiones» (.med-tabs). Las medidas son las OFICIALES (regla 0-quinquies
 // de CLAUDE.md): si cambian, cambiarlas también en index.html, en las hojas de sección y aquí.
 import { useState } from 'react';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import CajaSubir from './CajaSubir';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
@@ -54,6 +55,7 @@ export default function Recursos({ subidos = [], gestor = false }: { subidos?: R
     setQuitar(null); refrescar();
   }
   const [tipo, setTipo] = useState<'tauliner' | 'rigido'>('tauliner');
+  const pg = usePaginas(subidos, '', 12);
   return (
     <section className="section active" id="sec-recursos">
       <div className="sec-header">
@@ -64,7 +66,7 @@ export default function Recursos({ subidos = [], gestor = false }: { subidos?: R
         Documentos y herramientas de apoyo para tus envíos. Todos los PDF se abren en el visor: desde ahí puedes imprimirlos o descargarlos.
       </p>
       <div className="rec-grid">
-        {subidos.map((d) => (
+        {pg.visibles.map((d) => (
           <div className="rec-card" key={d.id}>
             {svg((d.mime ?? '').startsWith('image/') ? ICO_IMG : ICO_DOC)}
             <h3>{d.titulo}</h3>
@@ -94,6 +96,7 @@ export default function Recursos({ subidos = [], gestor = false }: { subidos?: R
           <button type="button" className="btn-secondary" onClick={() => setMedidas(true)}>Ver medidas</button>
         </div>
       </div>
+      <PaginadorLocal p={pg} nombre="documentos subidos" nombreUno="documento subido" soloSiHace />
 
       {subir && <SubirRecurso onCerrar={() => setSubir(false)} onHecho={() => { setSubir(false); refrescar(); }} />}
       {quitar && (

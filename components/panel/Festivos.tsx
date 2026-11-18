@@ -4,10 +4,11 @@
 // autonómicos (comunidad por ISO, la misma que sale del CP del sitio) y locales (por
 // población). Los nacionales afectan al corte de cancelación y a los avisos a sitios;
 // los autonómicos y locales, solo a los avisos de SUS sitios.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import { fecha } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { crearFestivo, borrarFestivo, type FestivoNuevo } from '@/app/panel/(app)/festivos/acciones';
 
 export type FestivoFila = {
@@ -15,11 +16,14 @@ export type FestivoFila = {
   nombre: string; repetir: string; dias_desde_pascua: number | null; vigente_hasta: string | null;
 };
 export type ComunidadOpcion = { iso: string; nombre: string };
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export default function Festivos({ filas, comunidades, error }: { filas: FestivoFila[]; comunidades: ComunidadOpcion[]; error: string | null }) {
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
   const [fallo, setFallo] = useState<string | null>(error);
+  const [q, setQ] = useState('');
+  const [ambito, setAmbito] = useState<'' | 'nacional' | 'autonomico' | 'local'>('');
   const [f, setF] = useState<FestivoNuevo>({ fecha: '', nombre: '', ambito: 'nacional', comunidad: null, poblacion: null, pais: 'ES', cada_anio: true });
   const nombreCom = (iso: string | null) => comunidades.find((c) => c.iso === iso)?.nombre ?? iso ?? '';
   const ambitoTxt = (x: FestivoFila) => x.region == null ? `Nacional · ${x.pais_codigo_iso}`
@@ -42,7 +46,15 @@ export default function Festivos({ filas, comunidades, error }: { filas: Festivo
     refrescar();
   }
   // Nacionales primero y luego por comunidad, cada grupo por fecha.
-  const orden = [...filas].sort((a, b) => (a.region ?? '').localeCompare(b.region ?? '') || (a.poblacion ?? '').localeCompare(b.poblacion ?? '') || a.fecha.localeCompare(b.fecha));
+  const orden = useMemo(() => [...filas].sort((a, b) => (a.region ?? '').localeCompare(b.region ?? '') || (a.poblacion ?? '').localeCompare(b.poblacion ?? '') || a.fecha.localeCompare(b.fecha)), [filas]);
+  // El buscador mira lo mismo que se lee en la fila: nombre, ámbito (comunidad, población,
+  // país), fecha («06/12», «2027») y repetición. Varias palabras: tienen que estar todas.
+  const ambitoDe = (x: FestivoFila) => x.region == null ? 'nacional' : x.poblacion ? 'local' : 'autonomico';
+  const fechaTxt = (x: FestivoFila) => x.repetir === 'cada_anio' ? x.fecha.slice(8, 10) + '/' + x.fecha.slice(5, 7) + ' (cada año)' : fecha(x.fecha);
+  const palabras = norm(q.trim()).split(/\s+/).filter(Boolean);
+  const lista = orden.filter((x) => (!ambito || ambitoDe(x) === ambito)
+    && (!palabras.length || (() => { const b = norm([x.nombre, ambitoTxt(x), fechaTxt(x), fecha(x.fecha), repiteTxt(x)].join(' ')); return palabras.every((w) => b.includes(w)); })()));
+  const pg = usePaginas(lista, `${q}|${ambito}`);
   const campo = { display: 'grid', gap: '0.25rem' } as const;
   return (
     <section className="section active" id="sec-festivos">
@@ -91,13 +103,19 @@ export default function Festivos({ filas, comunidades, error }: { filas: Festivo
         </p>
       </div>
       {fallo && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
+      <div className="filters" style={{ maxWidth: 900 }}>
+        <input type="search" id="festivos-buscar" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar festivo por nombre, comunidad, población, fecha…" aria-label="Buscar festivo" />
+        <select className="filter-estado" value={ambito} onChange={(e) => setAmbito(e.target.value as typeof ambito)} aria-label="Ámbito">
+          <option value="">Todos los ámbitos</option><option value="nacional">Nacionales</option><option value="autonomico">Autonómicos</option><option value="local">Locales</option>
+        </select>
+      </div>
       <div style={{ maxWidth: 900, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '0.4rem 1.2rem 0.8rem' }}>
         <table className="data" style={{ width: '100%', minWidth: 0 }}>
           <thead><tr><th>Fecha</th><th>Festivo</th><th>Ámbito</th><th>Repetición</th><th /></tr></thead>
           <tbody>
-            {orden.map((x) => (
+            {pg.visibles.map((x) => (
               <tr key={x.id}>
-                <td style={{ whiteSpace: 'nowrap' }}>{x.repetir === 'cada_anio' ? x.fecha.slice(8, 10) + '/' + x.fecha.slice(5, 7) + ' (cada año)' : fecha(x.fecha)}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{fechaTxt(x)}</td>
                 <td><strong>{x.nombre}</strong></td>
                 <td>{ambitoTxt(x)}</td>
                 <td>{repiteTxt(x)}</td>
@@ -106,10 +124,11 @@ export default function Festivos({ filas, comunidades, error }: { filas: Festivo
                 </td>
               </tr>
             ))}
-            {!orden.length && <tr><td colSpan={5} style={{ color: 'var(--gray-500)' }}>No hay ningún festivo en la lista.</td></tr>}
+            {!lista.length && <tr><td colSpan={5} style={{ color: 'var(--gray-500)' }}>{filas.length ? 'Ningún festivo casa con la búsqueda.' : 'No hay ningún festivo en la lista.'}</td></tr>}
           </tbody>
         </table>
       </div>
+      <div style={{ maxWidth: 900 }}><PaginadorLocal p={pg} nombre="festivos" nombreUno="festivo" /></div>
       {trabajando && <Cargando texto="Guardando" />}
     </section>
   );

@@ -5,6 +5,7 @@
 // La flota NO se edita aquí: sale de los vehículos dados de alta y de los envíos.
 import { useState } from 'react';
 import Paginador from './Paginador';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { BuscadorUrl } from './BuscadorUrl';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
@@ -162,6 +163,8 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
   // debajo los vehículos (matrículas, vencimientos, ADR, plataforma) y los chóferes.
   const [verFlota, setVerFlota] = useState(false);
   const [flotaD, setFlotaD] = useState<FlotaDetalle | null>(null);
+  const pgVeh = usePaginas(flotaD?.vehiculos ?? [], '', 10);
+  const pgCon = usePaginas(flotaD?.conductores ?? [], '', 10);
   async function borrar() {
     if (!fila || txtBorrar.trim().toLowerCase() !== 'confirmar') return;
     setBorrando(true); setError(null);
@@ -317,7 +320,7 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
                 {!flotaD ? <p style={{ margin: 0, color: 'var(--gray-500)' }}>Cargando la flota…</p> : <>
                   <div style={{ fontWeight: 800 }}>Vehículos ({flotaD.vehiculos.length})</div>
                   {flotaD.vehiculos.length === 0 && <p style={{ margin: '0.3rem 0 0', color: 'var(--gray-500)' }}>Ninguno todavía: se dan de alta solos al asignar envíos.</p>}
-                  {flotaD.vehiculos.map((v) => {
+                  {pgVeh.visibles.map((v) => {
                     const hoy = new Date().toISOString().slice(0, 10);
                     const vto = (txt: string, fch: string | null) => fch
                       ? <span key={txt} style={fch < hoy ? { color: '#b42318', fontWeight: 700 } : undefined}>{txt}: {fmtFecha(fch)}{fch < hoy ? ' ⚠ vencida' : ''}</span>
@@ -330,14 +333,16 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
                       </div>
                     );
                   })}
+                  <PaginadorLocal p={pgVeh} nombre="vehículos" nombreUno="vehículo" soloSiHace />
                   <div style={{ fontWeight: 800, margin: '0.8rem 0 0' }}>Chóferes ({flotaD.conductores.length})</div>
                   {flotaD.conductores.length === 0 && <p style={{ margin: '0.3rem 0 0', color: 'var(--gray-500)' }}>Ninguno todavía: se apuntan solos al asignar envíos o al firmar.</p>}
-                  {flotaD.conductores.map((c, i) => (
+                  {pgCon.visibles.map((c, i) => (
                     <div key={i} style={{ padding: '0.4rem 0', borderTop: '1px solid var(--gray-200)' }}>
                       <strong>{c.nombre}</strong>
                       <div className="meta">{[c.telefono && telBonito(c.telefono), c.documento].filter(Boolean).join(' · ') || 'Sin teléfono ni documento anotados'}</div>
                     </div>
                   ))}
+                  <PaginadorLocal p={pgCon} nombre="chóferes" nombreUno="chófer" soloSiHace />
                 </>}
               </div>
             )}

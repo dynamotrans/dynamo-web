@@ -8,6 +8,7 @@ import { useState } from 'react';
 
 import { historialDe, type EntradaHistorial } from '@/app/panel/historial';
 import { ESTADOS_ENVIO } from '@/lib/estados';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 
 const CAMPOS: Record<string, string> = {
   estado: 'estado', fecha_carga_desde: 'fecha de carga', fecha_carga_hasta: 'fin de la ventana de carga', fecha_carga_real: 'fecha de carga real',
@@ -44,6 +45,7 @@ export default function Historial({ tabla, id }: { tabla: Parameters<typeof hist
   const [abierto, setAbierto] = useState(false);
   const [filas, setFilas] = useState<EntradaHistorial[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pg = usePaginas(filas ?? [], '', 10);
   async function abrir() {
     setAbierto((v) => !v);
     if (filas || abierto) return;
@@ -60,7 +62,7 @@ export default function Historial({ tabla, id }: { tabla: Parameters<typeof hist
           {error && <div className="hist-vacio" style={{ color: 'var(--red)' }}>{error}</div>}
           {!error && !filas && <div className="hist-vacio">Cargando…</div>}
           {filas?.length === 0 && <div className="hist-vacio">Sin cambios registrados</div>}
-          {filas?.map((h, i) => (
+          {filas && pg.visibles.map((h, i) => (
             // Fecha arriba y la acción (que puede ser muy larga) debajo, a ancho completo:
             // así no se solapan ni se salen de la ventana cuando el cambio es largo.
             <div key={i} className="hist-row">
@@ -71,6 +73,7 @@ export default function Historial({ tabla, id }: { tabla: Parameters<typeof hist
               </div>
             </div>
           ))}
+          <PaginadorLocal p={pg} nombre="cambios" nombreUno="cambio" soloSiHace />
         </div>
       )}
     </div>

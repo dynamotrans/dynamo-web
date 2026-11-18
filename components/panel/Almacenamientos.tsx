@@ -12,7 +12,8 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, marcarPagadoAlmacenamiento, sitiosDelCliente, pedirAlmacenamiento, cancelarMiAlmacenamiento, type AlmacenamientoDatos, type EstadoAlm } from '@/app/panel/(app)/almacenamientos/acciones';
 import { precioAlmacenamiento, diasAlmacen } from '@/lib/almacenamiento';
-import { euros, fecha, fechaHora, porcentaje } from '@/lib/formato';
+import { euros, fecha, fechaHora, porcentaje, textoBusqueda } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { rangoRapido } from '@/lib/envios';
 import { descargarCsv } from '@/lib/exportaciones';
 import BarraFiltros from './BarraFiltros';
@@ -73,7 +74,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
     return c;
   }, [filas]);
   const lista = useMemo(() => {
-    const w = norm(q.trim()).split(/\s+/).filter(Boolean);
+    const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     const r = fr ? rangoRapido(fr, hoy()) : null;   // la Fecha filtra por el día de ENTRADA
     return filas.filter((f) => (pestana === 'todos' || (pestana === 'pago' ? sinPagar(f) : f.estado === pestana))
       && (!r || (f.fecha_entrada >= r.desde && f.fecha_entrada <= r.hasta))
@@ -81,6 +82,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
       // Lo vivo primero, por fecha de entrada; lo finalizado al final.
       .sort((a, b) => (Number(a.estado === 'finalizado') - Number(b.estado === 'finalizado')) || (a.fecha_entrada < b.fecha_entrada ? -1 : 1));
   }, [filas, pestana, q, fr]);
+  const pg = usePaginas(lista, `${pestana}|${q}|${fr}`);
   // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
   const exportar = () => descargarCsv('Almacenamientos', ['Almacenamiento', ...(modoCliente ? [] : ['Cliente']), 'Ref. cliente', 'Almacén', 'Dirección', 'Entrada', 'Salida', 'Tráilers', 'Reparto urbano', 'Total (sin IVA)', 'Pago', 'Estado'],
     lista.map((f) => ({ Almacenamiento: `#${f.codigo}`, ...(modoCliente ? {} : { Cliente: f.cliente ?? '' }), 'Ref. cliente': f.referencia_cliente ?? '',
@@ -117,7 +119,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {filas.length ? 'Sin almacenamientos que coincidan con el filtro.' : modoCliente ? 'Aún no tienes almacenamientos. Para pedir uno, llámanos o escríbenos y te lo montamos.' : 'Aún no hay almacenamientos. Crea uno con «+ Nuevo almacenamiento».'}
               </td></tr>
-            ) : lista.map((f) => {
+            ) : pg.visibles.map((f) => {
               const est = ESTADOS.find(([k]) => k === f.estado)!;
               const dias = diasAlmacen(f.fecha_entrada, f.fecha_salida);
               return (
@@ -137,6 +139,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="almacenamientos" nombreUno="almacenamiento" />
       {ficha && <FichaAlmacenamiento fila={ficha.fila} almacenes={almacenes} clientes={clientes} modoCliente={modoCliente} onCerrar={() => { setFicha(null); if (abrir) router.replace('/panel/almacenamientos'); }}
         onHecho={() => { setFicha(null); if (abrir) router.replace('/panel/almacenamientos'); refrescar(); }} />}
     </section>

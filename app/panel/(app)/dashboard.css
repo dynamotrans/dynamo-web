@@ -5082,12 +5082,13 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 .buscador-elegido > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .filters .buscador-elegido { flex: 1 1 240px; }
 /* Paginación por enlaces (Paginador.tsx): mismo aspecto que los botones. */
-.pagination-pages a {
+.pagination-pages a, .pagination-pages button {
     display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; padding: 0 0.5rem;
     border-radius: 8px; border: 1.5px solid var(--gray-200); background: #fff; color: var(--navy); font-weight: 700; font-size: var(--fs-m); text-decoration: none;
 }
-.pagination-pages a:hover { border-color: var(--purple); color: var(--purple); }
-.pagination-pages a.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.pagination-pages a:hover, .pagination-pages button:hover { border-color: var(--purple); color: var(--purple); }
+.pagination-pages a.active, .pagination-pages button.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.pagination-pages button { cursor: pointer; font-family: inherit; }
 
 /* Confirmación de Nuevo envío: campos obligatorios del sitio sin rellenar, en rojo. */
 .sitio-f-falta input, .sitio-f-falta select { border-color: #dc2626 !important; }

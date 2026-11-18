@@ -14,6 +14,7 @@ import { FichaCliente, type Bienvenida } from './Clientes';
 import { CONTACTO_VACIO } from '@/lib/contactos';
 
 import { fecha, euros, fechaHora } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { estadoCola, duracionTxt, COLA_OBJETIVO_TXT } from '@/lib/colaAltas';
 import { resolverContraoferta } from '@/app/panel/(app)/envios/acciones';
 import { telBonito } from '@/lib/paises';
@@ -81,6 +82,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
       ? [i.a.email, i.a.nombre, i.a.documento, i.a.telefono, i.a.empresa, i.a.cif, i.a.poblacion, i.a.provincia].join(' ')
       : [i.t.nombre, i.t.cif, i.t.telefono, i.t.bolsa, i.t.codigo_bolsa, i.t.envio, i.t.ruta].join(' ')).includes(w)));
   }, [todos, q, tipo]);
+  const pg = usePaginas(lista, `${q}|${tipo}`);
   const urgentes = todos.filter((i) => estadoCola(i.tipo === 'cliente' ? i.a.solicitada_en : i.t.solicitada_en, fest, ahora).urgente).length;
 
   return (
@@ -107,7 +109,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
           <tbody>
             {lista.length === 0 ? (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{todos.length ? 'Sin altas que coincidan' : 'No hay altas pendientes de verificar.'}</td></tr>
-            ) : lista.map((i) => i.tipo === 'cliente' ? (
+            ) : pg.visibles.map((i) => i.tipo === 'cliente' ? (
               <tr key={`c${i.a.id}`} className="alta-fila alta-cliente" onClick={() => setVer(i.a)}>
                 <td><Chip /><div><strong>{i.a.email}</strong></div></td>
                 <td>{i.a.empresa || '—'}<div className="meta">{i.a.cif || 'Sin CIF'}</div></td>
@@ -131,6 +133,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="altas pendientes" nombreUno="alta pendiente" />
       {ver && <FichaAlta a={ver} clientes={clientes} paraCliente={paraCliente} onCerrar={() => setVer(null)} onHecho={() => { setVer(null); refrescar(); }} />}
       {verT && <FichaAltaTransportista t={verT} onCerrar={() => setVerT(null)} onHecho={() => { setVerT(null); refrescar(); }} />}
     </section>

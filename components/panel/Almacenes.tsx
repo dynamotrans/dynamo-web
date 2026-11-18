@@ -9,6 +9,7 @@ import { FichaSitio, type SitioFila } from './Sitios';
 import type { FechasVerano } from '@/lib/horarios';
 import { IconoTipo } from './TipoSitio';
 import { euros } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { paisDe, telBonito } from '@/lib/paises';
 import { principal } from '@/lib/contactos';
 
@@ -26,6 +27,7 @@ export default function Almacenes({ filas, precios, error, veranoDefecto }: { fi
       f.horarios, f.anotaciones, ...f.contactos.flatMap((k) => [k.nombre, k.telefono, k.email])].filter(Boolean).join(' ')).includes(w))
       .sort((a, b) => (a.provincia || a.poblacion).localeCompare(b.provincia || b.poblacion, 'es') || a.nombre_empresa.localeCompare(b.nombre_empresa, 'es'));
   }, [filas, q]);
+  const pg = usePaginas(lista, q);
 
   return (
     <section className="section active" id="sec-almacenes-cat">
@@ -58,7 +60,7 @@ export default function Almacenes({ filas, precios, error, veranoDefecto }: { fi
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {filas.length === 0 ? 'Todavía no hay almacenes. Da de alta el primero con «+ Nuevo almacén».' : 'Sin almacenes que coincidan'}
               </td></tr>
-            ) : lista.map((f) => {
+            ) : pg.visibles.map((f) => {
               const completo = f.almacen?.disponible === false;
               const k = principal(f.contactos);
               const propio = (v: number | null | undefined, def: number) => v == null
@@ -83,6 +85,7 @@ export default function Almacenes({ filas, precios, error, veranoDefecto }: { fi
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="almacenes" nombreUno="almacén" />
 
       {ficha && (
         <FichaSitio fila={ficha.fila} clientes={[]} dynamo almacen={precios} veranoDefecto={veranoDefecto}

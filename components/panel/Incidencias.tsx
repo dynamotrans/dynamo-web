@@ -18,7 +18,8 @@ import { opcionesFecha } from './FiltrosEnvios';
 import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
-import { fecha, ventana, fechaHora, medidasTxt } from '@/lib/formato';
+import { fecha, ventana, fechaHora, medidasTxt, textoBusqueda } from '@/lib/formato';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { rangoRapido } from '@/lib/envios';
 import { descargarCsv } from '@/lib/exportaciones';
 import { CONTACTO } from '@/lib/atencion';
@@ -65,13 +66,14 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
 
   const cuenta = useMemo(() => ({ abiertas: filas.filter((x) => abierta(x.estado)).length, resueltas: filas.filter((x) => !abierta(x.estado)).length, todas: filas.length }), [filas]);
   const lista = useMemo(() => {
-    const w = norm(q.trim()).split(/\s+/).filter(Boolean);
+    const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     const r = fr ? rangoRapido(fr, hoy) : null;
     return filas.filter((x) => (pestana === 'todas' || (pestana === 'abiertas') === abierta(x.estado))
       && (!r || (() => { const d = diaMadrid(x.creado_en); return d >= r.desde && d <= r.hasta; })())
       && (!w.length || (() => { const b = norm([x.codigo, x.tipo, x.titulo, x.detalle, x.cliente, x.envio?.referencia_gx, x.envio?.referencia_cliente,
         x.envio?.origen, x.envio?.destino, ESTADOS.find(([k]) => k === x.estado)?.[1], fecha(diaMadrid(x.creado_en))].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()));
   }, [filas, pestana, q, fr, hoy]);
+  const pg = usePaginas(lista, `${pestana}|${q}|${fr}`);
   // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
   const exportar = () => descargarCsv('Incidencias', ['F. registro', 'Hora', 'Código', 'Tipo', 'Resumen', 'Detalle', 'Nº envío', 'Ref. cliente', ...(esCliente ? [] : ['Cliente']), 'F. carga', 'Origen', 'Destino', 'm · Tn', 'Estado', 'Prioridad'],
     lista.map((x) => ({ 'F. registro': fecha(diaMadrid(x.creado_en)), Hora: horaMadrid(x.creado_en), 'Código': x.codigo, Tipo: x.tipo, Resumen: x.titulo, Detalle: x.detalle,
@@ -113,7 +115,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
                       texto="Si algo va mal en un envío (daño, falta de mercancía, falta de documentación…), repórtalo aquí o desde la ficha del propio envío y se sigue hasta resolverlo."
                       accion={<button type="button" className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Reportar incidencia</button>} />}
               </td></tr>
-            ) : lista.map((x) => {
+            ) : pg.visibles.map((x) => {
               const est = ESTADOS.find(([k]) => k === x.estado) ?? ESTADOS[0];
               const pri = PRIORIDADES.find(([k]) => k === x.prioridad);
               const e = x.envio;
@@ -133,6 +135,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
           </tbody>
         </table>
       </div>
+      <PaginadorLocal p={pg} nombre="incidencias" nombreUno="incidencia" />
       {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} vistaTransportista={vistaTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipoInicial={ficha.fila ? null : tipoInicial} tipos={tipos} clientes={clientes} envios={envios}
         onCerrar={cerrar} onHecho={() => { cerrar(); refrescar(); }} />}
     </section>

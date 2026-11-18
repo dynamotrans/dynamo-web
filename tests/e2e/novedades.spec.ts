@@ -460,6 +460,27 @@ test.describe('novedades', () => {
     await expect(page.locator('.modal-file-item', { hasText: 'foto-buena.png' })).toBeVisible();
   });
 
+  // Ninguna tabla del panel se pinta entera (usuario, 2026-11-18): como mucho una página, con
+  // su pie «Mostrando 1–20 de N». Festivos es la que más filas trae de serie, y lleva buscador.
+  test('paginación: Festivos enseña 20 por página, pasa de página y su buscador filtra', async ({ page }) => {
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/festivos');
+    const filas = page.locator('#sec-festivos table.data tbody tr');
+    await expect(filas).toHaveCount(20);
+    const pie = page.locator('#sec-festivos .pagination');
+    await expect(pie).toContainText(/Mostrando 1–20 de \d+ festivos/);
+    const primera = await filas.first().innerText();
+    await pie.getByRole('button', { name: 'Página 2' }).click();
+    await expect(pie).toContainText(/Mostrando 21–40 de/);
+    await expect(filas.first()).not.toHaveText(primera);
+    // El buscador vuelve a la primera página y deja solo lo que casa (sin acentos ni mayúsculas).
+    await page.locator('#festivos-buscar').fill('navidad');
+    await expect(pie).toContainText(/Mostrando 1–\d+ de \d+ festivos?/);
+    for (const t of await filas.allInnerTexts()) expect(t.toLowerCase()).toContain('navidad');
+    await page.locator('#festivos-buscar').fill('zzz no existe');
+    await expect(page.locator('#sec-festivos')).toContainText('Ningún festivo casa con la búsqueda.');
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

@@ -3,6 +3,7 @@
 // Protección de datos (RGPD): buscar a una persona (email, teléfono, DNI o nombre) en
 // cuentas, contactos y conductores, y exportar o anonimizar. Ver RGPD.md §4.
 import { useEffect, useState } from 'react';
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import Modal from './Modal';
 import { buscarPersona, anonimizarPersona, listaBloqueos, bloquearAlta, quitarBloqueo, type Persona, type Bloqueo } from '@/app/panel/(app)/proteccion-datos/acciones';
 import { CONTACTO } from '@/lib/atencion';
@@ -17,6 +18,7 @@ export default function ProteccionDatos() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [anon, setAnon] = useState<Persona | null>(null);
+  const pg = usePaginas(filas ?? []);
 
   async function buscar(texto = q) {
     setError(null); setBuscando(true);
@@ -46,7 +48,7 @@ export default function ProteccionDatos() {
           <table className="data">
             <thead><tr><th>Ficha</th><th>Persona</th><th>Empresa</th><th></th></tr></thead>
             <tbody>
-              {filas.map((p) => (
+              {pg.visibles.map((p) => (
                 <tr key={`${p.tipo}-${p.id}`}>
                   <td>{TIPO[p.tipo]}{p.estado && <div className="meta">{p.estado}</div>}</td>
                   <td><strong>{p.nombre || '—'}</strong>
@@ -63,6 +65,7 @@ export default function ProteccionDatos() {
           </table>
         </div>
       )}
+      {filas && filas.length > 0 && <PaginadorLocal p={pg} nombre="fichas" nombreUno="ficha" />}
       {anon && <Confirmar p={anon} onCerrar={() => setAnon(null)} onHecho={(t) => { setAnon(null); setAviso(t); buscar(); }} />}
       <BloqueosAlta />
     </section>
@@ -79,6 +82,7 @@ function BloqueosAlta() {
   const [motivo, setMotivo] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
+  const pg = usePaginas(filas ?? []);
   async function cargar() {
     const r = await listaBloqueos();
     if (r.ok) setFilas(r.filas);
@@ -118,7 +122,7 @@ function BloqueosAlta() {
           <table className="data">
             <thead><tr><th>Bloqueado</th><th>Motivo</th><th>Desde</th><th></th></tr></thead>
             <tbody>
-              {filas.map((b) => (
+              {pg.visibles.map((b) => (
                 <tr key={b.id}>
                   <td><strong>{b.tipo === 'dominio' ? `@${b.valor}` : b.valor}</strong>
                     <div className="meta">{b.tipo === 'dominio' ? 'Dominio entero' : 'Email'}</div></td>
@@ -133,6 +137,7 @@ function BloqueosAlta() {
           </table>
         </div>
       )}
+      {filas && filas.length > 0 && <PaginadorLocal p={pg} nombre="bloqueos" nombreUno="bloqueo" />}
     </div>
   );
 }
