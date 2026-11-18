@@ -871,15 +871,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   })();
   const IcoAviso = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>);
   const IcoSol = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2" /><line x1="12" y1="2.5" x2="12" y2="4.5" /><line x1="12" y1="19.5" x2="12" y2="21.5" /><line x1="4.6" y1="4.6" x2="6" y2="6" /><line x1="18" y1="18" x2="19.4" y2="19.4" /><line x1="2.5" y1="12" x2="4.5" y2="12" /><line x1="19.5" y1="12" x2="21.5" y2="12" /><line x1="4.6" y1="19.4" x2="6" y2="18" /><line x1="18" y1="6" x2="19.4" y2="4.6" /></svg>);
-  // El aviso del tráiler va con la tarjeta del camión/mercancía, encima del precio
-  // (usuario, 2026-11-11), no con los demás avisos del paso 4.
-  const avisoTrailer = !plataforma && (
-    // Mismo tamaño de letra que los avisos del corte y del grupaje (usuario, 2026-11-11).
-    <div className="pt-aviso" style={{ marginBottom: '0.6rem', fontSize: 'var(--fs-s)', lineHeight: 1.4, padding: '0.55rem 0.7rem' }}><IcoAviso /><div>
-      <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
-      <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
-    </div></div>
-  );
   // Tarjeta azul del camión y la mercancía: en el paso 3 va DEBAJO del bloque de la fecha
   // de recogida y en el paso 4 (Revisión) encima del precio — usuario, 2026-11-11: lo que
   // se cotiza, a la vista.
@@ -1374,10 +1365,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
-                {/* El aviso del tráiler va A CONTINUACIÓN de las paradas, debajo de la
-                    última (usuario, 2026-11-14): habla de los sitios, así que al lado
-                    de los sitios. */}
-                <div style={{ marginTop: '0.6rem' }}>{avisoTrailer}</div>
+                {/* El aviso del tráiler ya NO va aquí (usuario, 2026-11-18): sale en la
+                    ventana de «Confirmar envío» y no se repite. */}
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar
                     envío, solo en la vista de admin. */}
@@ -1585,13 +1574,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             <strong> recibir el pago</strong> y la fecha de carga se calcula desde ese momento.
           </div>
         )}
-        {/* Caja GRIS con el aviso del tráiler (usuario, 2026-11-18): que el cliente lo lea
+        {/* Caja NARANJA CLARO con el aviso del tráiler (usuario, 2026-11-18): que el cliente lo lea
             justo antes de confirmar. Sin plataforma elevadora solamente; el enlace cierra
             esta ventana y lleva al paso 2. */}
-        {!manual && !plataforma && <div id="confirma-aviso-trailer" style={{ marginTop: '0.6rem', padding: '0.65rem 0.8rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 10, fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+        {!manual && !plataforma && <div id="confirma-aviso-trailer" className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
           <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
-          <a href="#" style={{ color: 'var(--purple)', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setRevisarLegal(false); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
-        </div>}
+          <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setRevisarLegal(false); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
+        </div></div>}
         {!manual && <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}
             style={{ background: 'none', border: 'none', padding: 0, color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', font: 'inherit', fontSize: 'var(--fs-m)', textDecoration: 'underline' }}>
