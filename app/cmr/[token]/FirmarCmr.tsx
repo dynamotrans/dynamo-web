@@ -35,6 +35,7 @@ function Ayuda() {
 import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
+import { esImagenReal, tipoRealDeArchivo } from '@/lib/contenidoArchivo';
 
 type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; preEmail: string; lugar?: string; extra?: boolean;
   // Matrículas al firmar (usuario, 2026-11-11): solo la CABECERA (transportista o
@@ -498,6 +499,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     setFotoAviso(null); setSubiendo(true);
     for (const f of Array.from(files).slice(0, Math.max(0, 6 - fotos.length))) {
       if (f.size > 25 * 1024 * 1024) { setFotoAviso(`«${f.name}» pasa de 25 MB: hazla de nuevo o elige otra.`); continue; }
+      if (!esImagenReal(await tipoRealDeArchivo(f))) { setFotoAviso(`«${f.name || 'La foto'}» no es una imagen de verdad: no se ha añadido. Hazla de nuevo con la cámara.`); continue; }
       // La extensión sale del TIPO del fichero: el almacén solo admite las de imagen.
       const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif' } as Record<string, string>)[f.type]
         ?? (/\.hei[cf]$/i.test(f.name) ? 'heic' : 'jpg');

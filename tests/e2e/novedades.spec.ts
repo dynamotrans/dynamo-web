@@ -293,6 +293,69 @@ test.describe('novedades', () => {
     await expect.poll(async () => (await bd().from('contactos').select('id', { count: 'exact', head: true }).eq('email', email)).count).toBe(0);
   });
 
+  // El contenido REAL de los ficheros (usuario, 2026-11-18): el almacén solo admite PDF e
+  // imágenes, pero el tipo lo declara quien sube. Un programa con nombre de albarán no entra
+  // por la pantalla, no se registra aunque alguien se salte la pantalla y, si ya estuviera
+  // dentro, no se le abre a nadie.
+  test('archivos: lo que no es una imagen ni un PDF de verdad no se sube, no se registra y no se abre', async ({ page }) => {
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    const FALSO = Buffer.concat([Buffer.from('MZ'), Buffer.alloc(300, 7)]);   // un programa de Windows
+    const envio = await ultimoEnvio();
+    const sv = bd();
+    const carpeta = `envios/${envio.id}/${crypto.randomUUID()}`;
+    // 1 · AL ABRIR: uno falso que ya está dentro (subido saltándose la web, con el tipo
+    //     «image/jpeg» que el almacén sí admite) y uno bueno.
+    for (const [nombre, cuerpo, mime] of [['albaran.jpg', FALSO, 'image/jpeg'], ['bueno.png', PNG, 'image/png']] as const) {
+      const sub = await sv.storage.from('documentos').upload(`${carpeta}/${nombre}`, cuerpo, { contentType: mime });
+      expect(sub.error).toBeNull();
+    }
+    const { data: filas, error } = await sv.from('documentos').insert([
+      { envio_id: envio.id, tipo: 'otro', storage_ruta: `${carpeta}/albaran.jpg`, nombre_archivo: 'albaran.jpg', tipo_mime: 'image/jpeg', tamano_bytes: FALSO.length },
+      { envio_id: envio.id, tipo: 'otro', storage_ruta: `${carpeta}/bueno.png`, nombre_archivo: 'bueno.png', tipo_mime: 'image/png', tamano_bytes: PNG.length },
+    ]).select('id, nombre_archivo');
+    expect(error).toBeNull();
+    const idDe = (n: string) => filas!.find((f) => f.nombre_archivo === n)!.id;
+    await entrar(page, 'dynamo');
+    const malo = await page.request.get(`/panel/documentos/${idDe('albaran.jpg')}`, { maxRedirects: 0 });
+    expect(malo.status()).toBe(415);
+    expect(await malo.text()).toContain('no es una imagen ni un PDF');
+    const bueno = await page.request.get(`/panel/documentos/${idDe('bueno.png')}`, { maxRedirects: 0 });
+    expect(bueno.status()).toBe(302);
+
+    // 2 · EN LA PANTALLA: un programa con nombre y tipo de PDF. Se avisa y NO se sube.
+    await page.goto(`/panel/envios?ver=${envio.id}`);
+    await page.getByRole('button', { name: /^Documentos/ }).click();
+    const galeria = page.locator('input[type=file]:not([capture])').first();
+    let subidas = 0;
+    page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/storage/v1/object/documentos/')) subidas++; });
+    await galeria.setInputFiles({ name: 'albaran-firmado.pdf', mimeType: 'application/pdf', buffer: FALSO });
+    await expect(page.getByText('«albaran-firmado.pdf» no es una imagen ni un PDF de verdad')).toBeVisible();
+    expect(subidas).toBe(0);
+
+    // 3 · EN EL SERVIDOR: lo mismo saltándose el aviso del navegador (se le hace creer que
+    //     el principio del fichero es el de una imagen). El fichero llega al almacén, el
+    //     servidor mira su contenido, lo RECHAZA y lo BORRA: no queda ni fichero ni fila.
+    await page.evaluate((png) => {
+      const original = Blob.prototype.slice;
+      Blob.prototype.slice = function (a?: number, b?: number, c?: string) {
+        return a === 0 && b === 64 ? new Blob([Uint8Array.from(atob(png), (x) => x.charCodeAt(0))]) : original.call(this, a, b, c);
+      };
+    }, PNG.toString('base64'));
+    await galeria.setInputFiles({ name: 'colado.pdf', mimeType: 'application/pdf', buffer: FALSO });
+    await expect(page.getByText('«colado.pdf» no es una imagen ni un PDF de verdad')).toBeVisible();
+    expect(subidas).toBe(1);
+    const { count } = await sv.from('documentos').select('id', { count: 'exact', head: true }).eq('envio_id', envio.id).eq('nombre_archivo', 'colado.pdf');
+    expect(count).toBe(0);
+    const { data: restos } = await sv.schema('storage').from('objects').select('name').like('name', `envios/${envio.id}/%/colado.pdf`);
+    expect(restos ?? []).toHaveLength(0);
+
+    // 4 · Y uno de verdad sigue entrando como siempre.
+    await page.evaluate(() => location.reload());
+    await page.getByRole('button', { name: /^Documentos/ }).click();
+    await page.locator('input[type=file]:not([capture])').first().setInputFiles({ name: 'foto-buena.png', mimeType: 'image/png', buffer: PNG });
+    await expect(page.locator('.modal-file-item', { hasText: 'foto-buena.png' })).toBeVisible();
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

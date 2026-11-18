@@ -1,3 +1,4 @@
+import { contenidoDeUrl } from '@/lib/servidor/contenidoArchivo';
 import { supabaseServidor } from '@/lib/supabase/server';
 
 // Abrir un documento: /panel/documentos/<id>. Si quien lo pide puede ver su fila (lo
@@ -17,5 +18,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!doc) return texto('Ese documento no existe o no tienes permiso para verlo.', 404);
   const { data, error } = await sb.storage.from(doc.storage_bucket).createSignedUrl(doc.storage_ruta, 60);
   if (error || !data?.signedUrl) return texto('No se ha podido abrir el documento. Vuelve a intentarlo.', 502);
+  // ANTES de abrirlo se mira qué ES de verdad (sus primeros bytes), no lo que dice ser: el
+  // almacén solo admite PDF e imágenes, pero el tipo lo declara quien sube. Lo que no sea
+  // una cosa ni otra no se abre a nadie, venga de donde venga (usuario, 2026-11-18).
+  const contenido = await contenidoDeUrl(data.signedUrl);
+  if (contenido.estado === 'malo') {
+    console.error('[documentos] contenido no válido: no se abre', { id, ruta: doc.storage_ruta, nombre: doc.nombre_archivo, pide: user.id });
+    return texto('Este archivo no se puede abrir: su contenido no es una imagen ni un PDF, aunque el nombre lo diga. No lo descargues por otros medios y avisa al equipo de Dynamo.', 415);
+  }
+  if (contenido.estado === 'sin_leer') return texto('No se ha podido abrir el documento. Vuelve a intentarlo.', 502);
   return new Response(null, { status: 302, headers: { location: data.signedUrl, 'cache-control': 'private, no-store' } });
 }

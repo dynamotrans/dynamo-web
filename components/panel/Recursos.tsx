@@ -14,6 +14,7 @@ import { fecha } from '@/lib/formato';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
+import { avisoNoValido, tipoRealDeArchivo } from '@/lib/contenidoArchivo';
 
 // Regla 0-bis: todo PDF se ABRE en el visor (ventana nueva).
 const abrir = (url: string) => { const w = window.open(url, '_blank'); if (!w) location.href = url; };
@@ -152,6 +153,7 @@ function SubirRecurso({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: ()
     if (!archivo) { setError('Elige el archivo.'); avisaFaltas(['rec-arch']); return; }
     const sb = supabaseNavegador();
     if (!sb) { setError('La plataforma no está conectada.'); return; }
+    if (!(await tipoRealDeArchivo(archivo))) { setError(avisoNoValido(archivo.name)); avisaFaltas(['rec-arch']); return; }
     setTrabajando('Subiendo el documento');
     const r = await rutaRecurso(archivo.name);
     if (!r.ok) { setTrabajando(null); setError(r.error); return; }

@@ -17,6 +17,7 @@ import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel
 import { rutaDeSubida, registrarDocumento, documentosDe, quitarDocumento } from '@/app/panel/(app)/documentos/acciones';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
+import { esImagenReal, tipoRealDeArchivo } from '@/lib/contenidoArchivo';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 
 import { telBonito } from '@/lib/paises';
@@ -198,7 +199,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         const dueno = { campo: 'operador_id', id: r.id } as const;
         const ru = await rutaDeSubida(dueno, logo.name);
         const sb = supabaseNavegador();
-        if (ru.ok && sb) {
+        if (ru.ok && sb && esImagenReal(await tipoRealDeArchivo(logo))) {
           const [{ error: e }, sha] = await Promise.all([
             sb.storage.from('documentos').upload(ru.ruta, logo, { contentType: logo.type, upsert: false }),
             crypto.subtle.digest('SHA-256', await logo.arrayBuffer()).then((h) => [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('')),

@@ -6,6 +6,7 @@ import { supabasePublico } from '@/lib/supabase/publico';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { ficherosNoValidos } from '@/lib/servidor/contenidoArchivo';
 
 export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; nombre: string; documento: string; pais: string; email: string; png: string;
   reservas?: string;     // daños o faltantes: van ANTES de la firma y entran en su huella
@@ -75,6 +76,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   // esa incidencia; la base de datos revalida que son de este enlace, imágenes y ≤25 MB.
   if (reservas) {
     const fotos = (d.fotos ?? []).filter((f) => f.startsWith(`cmr/${token}/`)).slice(0, 6);
+    if ((await ficherosNoValidos(fotos, `cmr/${token}/foto-`, true)).length) return { ok: false, error: 'Una de las fotos no es una imagen de verdad: quítala y vuelve a hacerla.' };
     const { data: rv, error: er } = await sb.rpc('anotar_reservas_cmr_publico', { p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_texto: reservas, p_fotos: fotos.length ? fotos : null });
     const rr = (rv as { resultado?: string } | null)?.resultado;
     if (er || rr !== 'ok') return { ok: false, error: rr === 'texto_no_valido' ? 'Las reservas tienen que tener entre 3 y 1.000 caracteres.' : rr === 'demasiadas' ? `Ya hay varias reservas anotadas en esta casilla: llámanos al ${CONTACTO.telefono}.` : 'No se han podido guardar las reservas. Vuelve a intentarlo o llámanos.' };
@@ -161,6 +163,9 @@ export async function registrarCmrPapel(token: string, rutas: string[], clase: '
   comprobarEntrada("app/cmr/[token]/acciones#registrarCmrPapel", [token, rutas, clase]);
   const sb = supabasePublico();
   if (!sb) return { ok: false, error: 'No se ha podido conectar. Vuelve a intentarlo.' };
+  // El contenido REAL de cada página (solo las de ESTE enlace): lo que no es imagen ni PDF
+  // se rechaza y se borra, y no se cuelga del envío.
+  if ((await ficherosNoValidos(rutas.slice(0, 10), `cmr/${token}/${clase}-`)).length) return { ok: false, error: 'Una de las páginas no es una imagen ni un PDF de verdad: quítala y vuelve a subirla (haz una foto o guárdala como PDF).' };
   const { data, error } = await reintentando(
     () => sb.rpc(clase === 'doc' ? 'subir_documentos_extra_publico' : 'subir_cmr_papel_publico', { p_token: token, p_fotos: rutas.slice(0, 10) }),
     (x) => x.error?.message ?? null,

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { documentosDe, rutaDeSubida, registrarDocumento, quitarDocumento, visibleParaCliente, type Dueno, type DocumentoFila } from '@/app/panel/(app)/documentos/acciones';
 
+import { avisoNoValido, esImagenReal, tipoRealDeArchivo } from '@/lib/contenidoArchivo';
 export const TIPOS_DOC: Record<string, string> = {
   albaran: 'Albarán', cmr: 'CMR', cmr_firmado: 'CMR firmado', orden_carga: 'Orden de carga', proforma: 'Proforma',
   seguro_cmr: 'Seguro CMR', tarjeta_transporte: 'Tarjeta de transporte', foto_incidencia: 'Foto', gps_tacografo: 'GPS / tacógrafo',
@@ -31,6 +32,10 @@ async function huella(f: File): Promise<string> {
 export async function subirDocumentoDirecto(dueno: Dueno, f: File, tipo: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const sb = supabaseNavegador();
   if (!sb) return { ok: false, error: 'La plataforma no está conectada.' };
+  // Lo que el fichero ES de verdad (sus primeros bytes), no lo que dice su nombre: aviso
+  // inmediato a quien se equivoca de fichero. La comprobación que cuenta es la del servidor.
+  const real = await tipoRealDeArchivo(f);
+  if (!real || (tipo === 'logo' && !esImagenReal(real))) return { ok: false, error: avisoNoValido(f.name, tipo === 'logo') };
   const r = await rutaDeSubida(dueno, f.name);
   if (!r.ok) return r;
   const [{ error: e }, sha] = await Promise.all([

@@ -4,6 +4,8 @@ import { mensajeError } from '@/lib/mensajeError';
 import { randomUUID } from 'node:crypto';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { ficherosNoValidos } from '@/lib/servidor/contenidoArchivo';
+import { avisoNoValido } from '@/lib/contenidoArchivo';
 
 // Documentos de Recursos que publica el equipo de Dynamo (condiciones, guías, certificados…).
 // Los ve cualquier cuenta activa; los sube y los quita solo Dynamo (lo impone la base de datos:
@@ -28,6 +30,7 @@ export async function registrarRecurso(f: { ruta: string; nombre: string; mime: 
   const titulo = f.titulo.trim().slice(0, 120);
   if (!titulo) return { ok: false, error: 'Pon un título al documento.' };
   if (!/^recursos\/[0-9a-f-]{36}\/[^/]+$/.test(f.ruta)) return { ok: false, error: 'Ruta de subida no válida.' };
+  if ((await ficherosNoValidos([f.ruta], 'recursos/')).length) return { ok: false, error: avisoNoValido(f.nombre.slice(0, 80)) };
   const { error } = await s.supabase.from('documentos').insert({
     tipo: 'otro', es_recurso: true, recurso_titulo: titulo, recurso_descripcion: f.descripcion.trim().slice(0, 300) || null,
     storage_bucket: 'documentos', storage_ruta: f.ruta, nombre_archivo: f.nombre.slice(0, 200), tipo_mime: f.mime || null,

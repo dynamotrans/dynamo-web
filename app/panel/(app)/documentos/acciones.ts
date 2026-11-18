@@ -4,6 +4,8 @@ import { mensajeError } from '@/lib/mensajeError';
 import { randomUUID } from 'node:crypto';
 import { esGestor } from '@/lib/sesion';
 import { supabaseServidor } from '@/lib/supabase/server';
+import { ficherosNoValidos } from '@/lib/servidor/contenidoArchivo';
+import { avisoNoValido } from '@/lib/contenidoArchivo';
 import type { TablaInsert } from '@/lib/supabase/tipos';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
@@ -70,6 +72,10 @@ export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: stri
   const s = await sesion();
   if (!s?.perfil || !valido(d)) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!puede(s.perfil, d)) return { ok: false, error: 'Tu cuenta no está activa: no puedes añadir este documento.' };
+  // El contenido REAL del fichero (no el tipo que declara): lo que no es imagen ni PDF se
+  // rechaza y se borra del almacén. Un logo, además, tiene que ser imagen.
+  const carpeta = esGestor(s.perfil.rol) ? `${CARPETA[d.campo]}/${d.id}/` : `u/${s.perfil.id}/`;   // la misma que da rutaDeSubida
+  if ((await ficherosNoValidos([f.ruta], carpeta, f.tipo === 'logo')).length) return { ok: false, error: avisoNoValido(f.nombre.slice(0, 80), f.tipo === 'logo') };
   const { error } = await s.supabase.from('documentos').insert({
     [d.campo]: d.id, tipo: f.tipo, storage_bucket: 'documentos', storage_ruta: f.ruta, nombre_archivo: f.nombre.slice(0, 200),
     tipo_mime: f.mime || null, tamano_bytes: f.tamano, sha256: /^[0-9a-f]{64}$/.test(f.sha256) ? f.sha256 : null,

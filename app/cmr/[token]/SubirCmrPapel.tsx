@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { registrarCmrPapel } from './acciones';
+import { tipoRealDeArchivo } from '@/lib/contenidoArchivo';
 
 // DOS USOS de la misma ventana (usuario, 2026-11-17):
 //   · 'papel' — en la hoja de firmas: las páginas del CMR / carta de porte firmada en papel.
@@ -70,7 +71,7 @@ export default function SubirCmrPapel({ token, clase = 'papel' }: { token: strin
   const ocupada = subiendo !== null;
   const hueco = MAX_PAGINAS - paginas.length;
 
-  function anadir(files: FileList | null) {
+  async function anadir(files: FileList | null) {
     if (!files?.length) return;
     const nuevas: Pagina[] = []; let msg: string | null = null;
     for (const f of Array.from(files)) {
@@ -78,6 +79,8 @@ export default function SubirCmrPapel({ token, clase = 'papel' }: { token: strin
       const ext = extDe(f);
       if (!ext) { msg = `«${f.name}» no es una imagen ni un PDF: no se ha añadido.`; continue; }
       if (f.size > MAX_BYTES) { msg = `«${f.name}» pasa de 20 MB: hazla de nuevo o elige otra.`; continue; }
+      // Lo que ES de verdad (sus primeros bytes), no lo que dice el nombre.
+      if (!(await tipoRealDeArchivo(f))) { msg = `«${f.name}» no es una imagen ni un PDF de verdad: no se ha añadido. Haz una foto o guárdala como PDF.`; continue; }
       // Miniatura solo de lo que el navegador sabe pintar (un HEIC o un PDF, con su rótulo).
       const pintable = ['jpg', 'png', 'webp'].includes(ext);
       const vista = pintable ? URL.createObjectURL(f) : null;
