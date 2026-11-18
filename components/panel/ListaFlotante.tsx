@@ -23,10 +23,14 @@ export default function ListaFlotante({ ancla, lista, children }: {
         : { top: r.bottom + 4, left: r.left, width: r.width, alto: Math.max(120, Math.min(320, abajo)) });
     };
     colocar();
+    // Si la lista nace A LA VEZ que su campo (el «Cambiar» de un buscador con algo ya
+    // elegido), en este momento el campo todavía no está apuntado y no hay dónde colocarla:
+    // sin esto la lista no llegaba a salir nunca. Se reintenta en el siguiente fotograma.
+    const reintento = ancla.current ? 0 : requestAnimationFrame(colocar);
     // El scroll de la propia lista NO la recoloca; el de la página o el de la ventana, sí.
     const alMover = (ev: Event) => { if (lista.current && ev.target instanceof Node && lista.current.contains(ev.target)) return; colocar(); };
     window.addEventListener('scroll', alMover, true); window.addEventListener('resize', colocar);
-    return () => { window.removeEventListener('scroll', alMover, true); window.removeEventListener('resize', colocar); };
+    return () => { if (reintento) cancelAnimationFrame(reintento); window.removeEventListener('scroll', alMover, true); window.removeEventListener('resize', colocar); };
   }, [ancla, lista]);
   if (!pos) return null;
   return createPortal(

@@ -53,7 +53,7 @@ export default function Buscador<T extends Opcion>({ id, valor, buscar, onElegir
     return (
       <div className="buscador-elegido">
         <span><strong>{valor.nombre}</strong> · {valor.cif}{valor.detalle ? <span style={{ color: 'var(--gray-500)' }}> · {valor.detalle}</span> : null}</span>
-        <button type="button" className="btn-ghost" style={{ padding: '0.15rem 0.6rem' }} onClick={() => { setQ(''); setAbierto(true); }}>Cambiar</button>
+        <button type="button" className="btn-ghost" style={{ padding: '0.15rem 0.6rem', flex: 'none', whiteSpace: 'nowrap' }} onClick={() => { setQ(''); setAbierto(true); }}>Cambiar</button>
       </div>
     );
   }
