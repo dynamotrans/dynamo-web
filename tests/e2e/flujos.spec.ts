@@ -3,8 +3,8 @@
 //   de pago y Dynamo da la transferencia por recibida · 3. Dynamo asigna transportista
 //   4. un transportista acepta una carga por el enlace · 5. se firma el CMR digital
 //   6. la plataforma en vivo: lo nuevo aparece sin refrescar.
-import { test, expect } from '@playwright/test';
-import { entrar, ultimoEnvio, bd, CIF_TRANSPORTISTA, crearEnvioDeCliente, envioListo } from './ayudas';
+import { expect } from '@playwright/test';
+import { test, entrar, ultimoEnvio, bd, CIF_TRANSPORTISTA, crearEnvioDeCliente, envioListo } from './ayudas';
 
 test.describe.serial('flujos clave', () => {
   let envio = '';

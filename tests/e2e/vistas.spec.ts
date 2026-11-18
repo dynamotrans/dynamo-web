@@ -10,9 +10,9 @@
 //      letra sale distinta y no valdrían).
 //
 // Va el último (orden alfabético) y prepara sus propios envíos.
-import { test, expect, type Page, type Locator } from '@playwright/test';
+import { expect, type Page, type Locator } from '@playwright/test';
 import { existsSync } from 'node:fs';
-import { entrar, bd, envioListo, CIF_TRANSPORTISTA } from './ayudas';
+import { test, entrar, bd, envioListo, CIF_TRANSPORTISTA } from './ayudas';
 
 // ---- 1. Diseño con medidas ---------------------------------------------------------
 async function comprobarDiseno(page: Page, nombre: string, raiz: Locator) {

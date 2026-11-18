@@ -2,8 +2,8 @@
 // (usuario, 2026-11-17: «amplía las pruebas automáticas y, si ves fallos, me lo dices»).
 // Van después de los flujos clave (orden alfabético de ficheros, un solo trabajador) y
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
-import { test, expect } from '@playwright/test';
-import { entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, CIF_TRANSPORTISTA } from './ayudas';
+import { expect } from '@playwright/test';
+import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, CIF_TRANSPORTISTA } from './ayudas';
 
 const CIF_CLIENTE = 'B12345674';
 

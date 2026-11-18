@@ -1,7 +1,29 @@
 // Ayudas de las pruebas en navegador: entrar como cada usuario y leer de la base de datos
 // local (con la clave de servicio, solo para buscar ids y preparar casos; las acciones que
 // se prueban van por la pantalla).
-import { expect, type Page } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
+
+// `test` de las pruebas: el de Playwright, con un `page.goto` que REINTENTA cuando la
+// plataforma todavía está terminando una redirección suya (p. ej. /panel → la portada del
+// rol nada más entrar). Chrome deja que el `goto` nuevo gane; el motor de Safari lo corta
+// con «interrupted by another navigation». Un usuario de verdad no navega mientras la
+// página se está redirigiendo, así que reintentar es lo correcto, no un parche.
+export const test = base.extend({
+  page: async ({ page }, usar) => {
+    const ir = page.goto.bind(page);
+    page.goto = (async (url: string, opciones?: Parameters<Page['goto']>[1]) => {
+      for (let intento = 0; ; intento++) {
+        try { return await ir(url, opciones); }
+        catch (e) {
+          if (intento >= 3 || !/interrupted by another navigation/i.test(String(e))) throw e;
+          await page.waitForLoadState('load').catch(() => {});
+          await page.waitForTimeout(250);
+        }
+      }
+    }) as Page['goto'];
+    await usar(page);
+  },
+});
 import { createClient } from '@supabase/supabase-js';
 
 export const CLAVE = 'Prueba-2026!';
@@ -24,7 +46,11 @@ export async function entrar(page: Page, quien: keyof typeof EMAIL) {
   await page.fill('#portal-user', EMAIL[quien]);
   await page.fill('#portal-pass', CLAVE);
   await page.click('button[type=submit]');
-  await page.waitForURL((u) => u.pathname.startsWith('/panel') && !u.pathname.startsWith('/panel/entrar'));
+  // Entrar lleva a /panel y de ahí, con otra redirección, a la portada del rol
+  // (/panel/dashboard-admin, /panel/dashboard o /panel/envios): se espera a ESA, no a la de
+  // paso, para no navegar a otra pantalla con la redirección a medias.
+  await page.waitForURL((u) => /^\/panel\/.+/.test(u.pathname) && !u.pathname.startsWith('/panel/entrar'));
+  await page.waitForLoadState('load');
   await expect(page.locator('.sidebar, nav').first()).toBeVisible();
 }
 

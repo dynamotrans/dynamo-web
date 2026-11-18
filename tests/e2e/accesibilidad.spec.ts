@@ -6,9 +6,9 @@
 // sin nombre accesible, aria rota…) tira la prueba; los leves se imprimen como aviso para
 // la siguiente pasada. Las páginas públicas del transportista (/carga, /cmr) se auditan
 // con un enlace no válido: comparten la hoja de estilos y la tarjeta con las de verdad.
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { entrar } from './ayudas';
+import { test, entrar } from './ayudas';
 
 async function auditar(page: Page, url: string) {
   await page.goto(url);
