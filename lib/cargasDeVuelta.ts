@@ -67,7 +67,7 @@ export function htmlCargasDeVuelta(r: DatosVuelta | null, origen: string): strin
 ${regreso
     ? `<p style="margin:0 0 4px;font-size:17px;font-weight:800;color:#0b0b45">Y de nuevo en ${esc(prov)}: cargas el ${esc(fecha(r.dia))}</p>
 <p style="margin:0 0 6px;color:#555">Para cuando vuelvas al origen: envíos de Dynamo libres que salen de ${esc(prov)} 2 días hábiles después de esta carga.</p>`
-    : `<p style="margin:0 0 4px;font-size:17px;font-weight:800;color:#0b0b45">¿Vuelves cargado? Cargas desde ${esc(prov)} el ${esc(fecha(r.dia))}</p>
+    : `<p style="margin:0 0 4px;font-size:17px;font-weight:800;color:#0b0b45">¿Ya tienes carga en ${esc(prov)} cuando descargues el ${esc(fecha(r.dia))}?</p>
 <p style="margin:0 0 6px;color:#555">Envíos de Dynamo libres que salen de donde descargas, el mismo día. Pulsa «Ver carga» para ver los datos y aceptarla.</p>`}
 ${filas}</div>`;
 }
