@@ -83,6 +83,8 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string, 
     // UNA sola orden (usuario, 2026-11-14): el documento completo; su enlace lleva la clave.
     const enlEc = token ? `${origen}/cmr/${token}/orden?copia=economica&clave=${e.transportista_id}` : null;
     const enlFirma = token && completa ? `${origen}/cmr/${token}` : null;
+    // Sin matrículas: el botón a la página sencilla para darlas (usuario, 2026-11-19).
+    const enlMatr = token && !completa ? `${origen}/matriculas/${token}?clave=${e.transportista_id}` : null;
     let adjuntos: AdjuntoEmail[] | undefined;
     const pdf = await pdfDeEnvioDynamo(sb, envio, 'orden-de-carga', usuarioId, origen);
     if (!('error' in pdf)) adjuntos = [{ nombre: pdf.nombre, base64: Buffer.from(pdf.bytes).toString('base64'), tipo: 'application/pdf' }];
@@ -95,12 +97,14 @@ ${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlE
 ${pie}` : `<p>Hola,</p>
 <p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong>, de momento <strong>sin las direcciones</strong>.</p>
 ${CAJA_SIN_MATRICULAS}
-${enlEc ? `<p>Esta orden también está aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
+${enlMatr ? `<p style="margin:16px 0"><a href="${enlMatr}" style="display:inline-block;background:#dc2626;color:#ffffff;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px">Proporcionar matrículas del envío</a></p>
+<p style="font-size:13px;color:#555">Si el botón no se abre, copia esta dirección en el navegador: <a href="${enlMatr}">${enlMatr}</a></p>` : ''}
+${enlEc ? `<p>Esta orden (sin direcciones) también está aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
 <p>Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
 ${pie}`;
     // Sin matrículas, su propia clave: cuando lleguen, sale la orden completa (orden_carga:…).
     await enviarEmailOperativo({ clave: completa ? `orden_carga:${envio}:${e.transportista_id}` : `orden_carga_oculta:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
-      para, asunto: completa ? `Orden de carga · envío #${e.referencia_gx} · Dynamo` : `Envío #${e.referencia_gx} confirmado · faltan las matrículas · Dynamo`, html, adjuntos });
+      para, asunto: completa ? `${completaYa ? 'Orden de carga con direcciones' : 'Orden de carga'} · envío #${e.referencia_gx} · Dynamo` : `Envío #${e.referencia_gx} confirmado · faltan las matrículas · Dynamo`, html, adjuntos });
     if (completaYa) return;   // la orden completa al llegar las matrículas: el cliente ya tuvo su confirmación
 
     // La confirmación al CLIENTE, acto seguido, con SU copia de la orden (la copia
@@ -152,6 +156,14 @@ export async function avisoOrdenCompleta(sb: SB, envio: string): Promise<void> {
     const { data: yo } = await sb.auth.getUser();
     await avisoOrdenCarga(sb, yo.user?.id ?? e.creado_por ?? '', envio, true);
   } catch { /* nunca rompe nada */ }
+}
+
+// Lo mismo desde una página PÚBLICA (sin sesión): con la clave de servicio, que es la única
+// que puede leer el registro de emails y generar la orden (sin ella la web no manda ningún
+// email: tarea #94). Si ya salió, no se repite.
+export async function avisoOrdenCompletaAhora(envio: string): Promise<void> {
+  const sbs = supabaseServicio();
+  if (sbs) await avisoOrdenCompleta(sbs, envio);
 }
 
 // ---- 1-bis. El DeCA al transportista (usuario, 2026-11-15) ----------------------------

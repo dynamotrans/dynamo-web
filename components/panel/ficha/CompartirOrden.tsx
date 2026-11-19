@@ -81,6 +81,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     '⚠ DIRECCIONES OCULTAS HASTA RECIBIR LAS MATRÍCULAS',
     'El envío está CONFIRMADO. Envíanos las matrículas (tractora y semirremolque) y te mandamos AL MOMENTO la orden de carga con las direcciones de carga y descarga.',
     'Sin matrículas no se carga: las comunicamos a los almacenes antes de que llegue el camión.',
+    token && d ? `PROPORCIONAR MATRÍCULAS DEL ENVÍO: ${origen}/matriculas/${token}?clave=${d.clave}` : null,
     '',
   ] : [];
   const lineasDetalle = [

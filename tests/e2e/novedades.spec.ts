@@ -689,6 +689,39 @@ test.describe('novedades', () => {
     }
   });
 
+  test('página «Proporcionar matrículas»: resumen solo con CP, guarda y desaparece el aviso', async ({ page }) => {
+    const sb = bd();
+    const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
+    const { data: e } = await sb.from('envios').select('id, matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono, fecha_carga_prevista, fecha_carga_desde')
+      .eq('transportista_id', t!.id).eq('estado', 'programado').order('creado_en', { ascending: false }).limit(1).single();
+    await sb.from('envios').update({ matricula_camion: null, matricula_remolque: null }).eq('id', e!.id);
+    let { data: enl } = await sb.from('cmr_enlaces').select('token').eq('envio_id', e!.id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle();
+    if (!enl) ({ data: enl } = await sb.from('cmr_enlaces').insert({ envio_id: e!.id }).select('token').single());
+    try {
+      // Con una clave ajena: enlace no válido.
+      await page.goto(`/matriculas/${enl!.token}?clave=00000000-0000-4000-8000-000000000000`);
+      await expect(page.locator('#matr-parar')).toContainText('no es válido');
+      await page.goto(`/matriculas/${enl!.token}?clave=${t!.id}`);
+      await expect(page.locator('#aviso-direcciones-ocultas')).toBeVisible();
+      await expect(page.locator('#matr-resumen')).toContainText('CP ');
+      await expect(page.locator('#matr-resumen')).toContainText('********');
+      await expect(page.locator('body')).not.toContainText('Calle Uno 1');
+      await page.locator('#mt-camion').fill('2903 BCD');
+      await page.locator('#mt-remolque').fill('R2903BCD');
+      await page.locator('#mt-chofer').fill('Conductor Matrículas');
+      await page.locator('#mt-tfno').fill('600290390');
+      if (await page.locator('#mt-dia').count()) await page.locator('#mt-dia').selectOption({ index: 1 });
+      await page.locator('#mt-guardar').click();
+      await expect(page.locator('#mt-resultado')).toContainText('orden de carga COMPLETA');
+      await expect(page.locator('#aviso-direcciones-ocultas')).toHaveCount(0);
+      const { data: x } = await sb.from('envios').select('matricula_camion, matricula_remolque, conductor_nombre').eq('id', e!.id).single();
+      expect(x).toEqual({ matricula_camion: '2903BCD', matricula_remolque: 'R2903BCD', conductor_nombre: 'Conductor Matrículas' });
+    } finally {
+      await sb.from('envios').update({ matricula_camion: e!.matricula_camion, matricula_remolque: e!.matricula_remolque,
+        conductor_nombre: e!.conductor_nombre, conductor_telefono: e!.conductor_telefono, fecha_carga_prevista: e!.fecha_carga_prevista }).eq('id', e!.id);
+    }
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

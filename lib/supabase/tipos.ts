@@ -3992,6 +3992,7 @@ export type Database = {
       guardar_horario_verano: { Args: { p_sitio: string | null; p_activo: boolean | null; p_desde: string | null; p_hasta: string | null; p_tramos: Json | null }; Returns: undefined }
       guardar_km_cp: { Args: { p_pais_codigo_iso_origen: string | null; p_codigo_postal_origen: string | null; p_pais_codigo_iso_destino: string | null; p_codigo_postal_destino: string | null; p_km: number | null; p_minutos?: number | null; p_proveedor?: string | null }; Returns: string }
       guardar_km_sitios: { Args: { p_origen: string | null; p_destino: string | null; p_km: number | null; p_minutos?: number | null; p_proveedor?: string | null }; Returns: string }
+      guardar_matriculas_enlace: { Args: { p_token: string | null; p_clave: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_telefono: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       guardar_mi_conductor: { Args: { p_id: string | null; p_nombre: string | null; p_documento: string | null; p_documento_pais: string | null; p_telefono: string | null }; Returns: string }
       guardar_mi_vehiculo: { Args: { p_id: string | null; p_matricula: string | null; p_tipo: Database["public"]["Enums"]["tipo_vehiculo"] | null; p_itv_vence: string | null; p_seguro_vence: string | null; p_tarjeta_transporte_vence: string | null; p_adr: boolean | null; p_plataforma_elevadora: boolean | null }; Returns: string }
       guardar_mis_datos_transporte: { Args: { p_nima: string | null }; Returns: undefined }
@@ -4022,6 +4023,7 @@ export type Database = {
       marcar_pago_envio: { Args: { p_envio: string | null; p_accion: string | null; p_motivo?: string | null }; Returns: Json }
       marcar_pin_enviado: { Args: { p_parada: string | null; p_destino: string | null }; Returns: undefined }
       marcar_sitio_principal: { Args: { p_cliente: string | null; p_sitio: string | null }; Returns: undefined }
+      matriculas_enlace_datos: { Args: { p_token: string | null; p_clave: string | null }; Returns: Json }
       metricas_usuarios: { Args: Record<PropertyKey, never>; Returns: { id: string; consultas: number; min_dia: number; min_semana: number; ultimo_latido: string }[] }
       mi_autosuspension: { Args: { p_cliente?: string | null }; Returns: Json }
       mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean; precio_a_mano: boolean }[] }

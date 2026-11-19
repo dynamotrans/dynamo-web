@@ -97,6 +97,15 @@ export async function completar(token: string, d: { camion: string; remolque: st
   });
   if (error) return { resultado: 'error' };
   await copiaDecaDeReserva(reserva);
+  // Con todas las matrículas, la orden COMPLETA al momento si se le mandó sin direcciones
+  // (usuario, 2026-11-19). Una vez; sin romper nunca el guardado.
+  if ((data as { resultado?: string } | null)?.resultado === 'guardado') {
+    try {
+      const { supabaseServicio } = await import('@/lib/supabase/servicio');
+      const envioId = (await supabaseServicio()?.from('envio_reservas').select('envio_id').eq('id', reserva).maybeSingle())?.data?.envio_id;
+      if (envioId) { const { avisoOrdenCompletaAhora } = await import('@/lib/servidor/avisosEnvio'); await avisoOrdenCompletaAhora(envioId); }
+    } catch { /* nunca rompe */ }
+  }
   return data as { resultado: string; conductor?: string | null; telefono?: string | null; fecha_carga_prevista?: string | null };
 }
 

@@ -12821,3 +12821,58 @@ do $$ declare e uuid := current_setting('prueba.e73')::uuid; begin
   if orden_carga_json(e) -> 'paradas' -> 0 ->> 'direccion' = '********' then raise exception 'FALLO 289 · Dynamo también ve la orden recortada'; end if;
   raise notice 'OK 289 · sin matrículas el transportista ve solo CP (orden, panel) y no tiene CMR; con ellas, todo; Dynamo siempre todo';
 end $$;
+
+-- ---- 290. Página «Proporcionar matrículas» (enlace del email) --------------------------
+-- Un envío nuevo, asignado sin matrículas.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', (now() at time zone 'Europe/Madrid')::date + 3, 'importe_cliente', 900, 'importe_transportista', 750),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Muelle 290', 'direccion', 'Calle Secreta 1', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 290', 'direccion', 'Calle Secreta 2', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado_asignacion = 'confirmada' where id = e;
+  perform set_config('prueba.e290', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e290')::uuid; t uuid; begin
+  alter table envios disable trigger user;
+  update envios set estado = 'programado' where id = e;
+  alter table envios enable trigger user;
+  select token into t from cmr_enlaces where envio_id = e and not revocado and caduca_en > now() limit 1;
+  if t is null then insert into cmr_enlaces (envio_id) values (e) returning token into t; end if;
+  perform set_config('prueba.tok290', t::text, false);
+  perform set_config('prueba.f290', (select fecha_carga_desde from envios where id = e)::text, false);
+end $$;
+set role anon;
+do $$ declare t uuid := current_setting('prueba.tok290')::uuid; tr uuid := current_setting('prueba.transp')::uuid;
+  f date := current_setting('prueba.f290')::date; j jsonb; begin
+  -- Sin la clave buena (o con un token inventado) no se ve nada ni se guarda nada.
+  if matriculas_enlace_datos(t, gen_random_uuid()) ->> 'resultado' <> 'no_valido' then raise exception 'FALLO 290 · se ve el envío con una clave ajena'; end if;
+  if matriculas_enlace_datos(gen_random_uuid(), tr) ->> 'resultado' <> 'no_valido' then raise exception 'FALLO 290 · se ve el envío con un token inventado'; end if;
+  if guardar_matriculas_enlace(t, gen_random_uuid(), '1111BBB', 'R1111BBB', 'Pepe', '600111222', f) ->> 'resultado' <> 'no_valido' then
+    raise exception 'FALLO 290 · se guardan matrículas con una clave ajena'; end if;
+  j := matriculas_enlace_datos(t, tr);
+  if j ->> 'resultado' <> 'ok' or (j ->> 'completas')::boolean or not (j ->> 'editable')::boolean then raise exception 'FALLO 290 · datos de la página: %', j; end if;
+  if j::text like '%Secreta%' or j::text like '%Muelle 290%' or j -> 'paradas' -> 0 ->> 'codigo_postal' <> '41001' then
+    raise exception 'FALLO 290 · la página enseña más que el código postal: %', j -> 'paradas'; end if;
+  if guardar_matriculas_enlace(t, tr, '', '', '', '', f) ->> 'resultado' <> 'falta_camion' then raise exception 'FALLO 290 · deja guardar sin matrícula del camión'; end if;
+  j := guardar_matriculas_enlace(t, tr, '2902 BCD', 'r-2902bcd', 'Conductor Prueba', '+34 600 290 290', f);
+  if j ->> 'resultado' <> 'guardado' or not (j ->> 'completas')::boolean then raise exception 'FALLO 290 · no guarda las matrículas: %', j; end if;
+  if not (matriculas_enlace_datos(t, tr) ->> 'completas')::boolean then raise exception 'FALLO 290 · tras guardar sigue sin matrículas'; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e290')::uuid; r record; begin
+  select matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono into r from envios where id = e;
+  if r.matricula_camion is distinct from '2902BCD' or r.matricula_remolque is distinct from 'R2902BCD'
+     or r.conductor_nombre is distinct from 'Conductor Prueba' or r.conductor_telefono is distinct from '+34600290290' then
+    raise exception 'FALLO 290 · lo guardado no es lo escrito: %', r; end if;
+  -- Al cliente le llega el email de matrículas, con el conductor y su teléfono.
+  if not exists (select 1 from emails_enviados where clave like 'envio_matriculas:' || e || ':2902BCD:%'
+                  and cuerpo_html like '%Conductor Prueba%' and cuerpo_html like '%Teléfono:%+34600290290%') then
+    raise exception 'FALLO 290 · el email de matrículas al cliente no sale o no lleva el teléfono del conductor'; end if;
+  raise notice 'OK 290 · página de matrículas: solo con token y clave buenos, solo CP, guarda limpio y el cliente recibe matrículas, conductor y teléfono';
+end $$;
