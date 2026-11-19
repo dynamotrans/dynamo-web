@@ -83,3 +83,7 @@ export function siguienteCorte(urg: 'dia' | 'estandar' | 'corta', grupaje: boole
   const dia = iso(x);
   return { dia, hora, instante: instanteMadrid(dia, hora) };
 }
+
+// Aviso de días hábiles en las fechas de recogida y de entrega (usuario, 2026-11-19): las
+// ventanas (1 a 2, 1 a 3, 1 a 4 días) y la entrega estimada cuentan SOLO días hábiles.
+export const AVISO_DIAS_HABILES = 'Sábados, domingos y festivos no cuentan: la recogida y la entrega se hacen en días hábiles (de lunes a viernes, sin festivos). Por ejemplo, «del viernes al martes» son 3 días hábiles: viernes, lunes y martes.';

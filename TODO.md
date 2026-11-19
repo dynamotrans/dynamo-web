@@ -990,3 +990,11 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - [x] Nunca envíos dentro de la misma provincia ni que vuelven a la provincia del bloque; base = procedencia → todo en «hacia tu base»; «limítrofes de tu base (Valencia)». Tamaño: ~24 KB por bloque de 25 (Gmail recorta a partir de 102 KB).
 - [x] En cada bloque: 20 del mismo tipo que lleva y 5 del otro, cada lista con «Ver todas las cargas completas / todos los grupajes (N)» a la página pública /cargas-de-vuelta/<token>?clave=…&tramo=…&tipo=… (mismo enlace que la orden).
 - [ ] Ideas: que el número máximo (25) sea un parámetro; mostrar también las de ventana que empiecen al día siguiente; añadirlas al mensaje de «Compartir» (WhatsApp).
+
+## 2026-11-19 · Antes de pasar a producción: repaso legal completo
+- [ ] **Cuando todo esté terminado y antes de publicar en producción, repasar TODOS los aspectos legales de la plataforma** con el asesor: condiciones generales de transporte (incluido el apdo. 15 de días hábiles), condiciones y cláusulas de la orden de carga para transportistas (accesibilidad, aceptación), textos de cancelación y suspensión, protección de datos y avisos de privacidad, eCMR y DeCA, pago previo y proformas, crédito CESCE, emails al cliente y al transportista, páginas públicas (aceptar carga, matrículas, cargas de vuelta) y tarifador web.
+
+## 2026-11-19 · Fechas en días hábiles y ajustes de las cargas de vuelta
+- [x] ⓘ «Sábados, domingos y festivos no cuentan…» junto a la fecha de recogida y la de entrega estimada (paso 3) y en cada fecha de las tarjetas de los sitios (Confirmar); caja «Solo cuentan días hábiles» en la ventana de confirmar; apartado 15 «Plazos en días hábiles» en las condiciones generales (revisar con el asesor).
+- [x] Cargas de vuelta: la fecha en cada carga; nunca desde su base hacia provincias limítrofes de su base; en cada bloque 6 de su tipo y 4 del otro, cada lista con «Ver más» (página /cargas-de-vuelta con esa misma lista).
+- [x] Página de aceptar carga: «Ver otros envíos disponibles» enseña SOLO las cargas de vuelta de ese envío y de su mismo tipo (las reglas del email), nunca todo Dynamo.

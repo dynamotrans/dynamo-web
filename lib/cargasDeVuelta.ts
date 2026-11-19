@@ -36,14 +36,14 @@ export function titulosGrupos(r: DatosVuelta, provDesde: string): Record<number,
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-// Cuántas se enseñan en el email: hasta 20 del MISMO tipo que el envío de la orden (quien lleva
-// completos suele volver con completos; quien lleva un grupaje se dedica a grupajes) y hasta 5
-// del otro. Cada lista, con un botón «Ver todas» si hay más (usuario, 2026-11-19).
-export const VUELTA_MISMO_TIPO = 20;
-export const VUELTA_OTRO_TIPO = 5;
+// Cuántas se enseñan en el email: hasta 6 del MISMO tipo que el envío de la orden (quien lleva
+// completos suele volver con completos; quien lleva un grupaje se dedica a grupajes) y hasta 4
+// del otro. Cada lista, con un botón «Ver más» si hay más (usuario, 2026-11-19).
+export const VUELTA_MISMO_TIPO = 6;
+export const VUELTA_OTRO_TIPO = 4;
 type TipoCarga = 'completa' | 'grupaje';
 export type OpcionesVuelta = {
-  mismo?: number; otro?: number;               // límites (por defecto 20 y 5; Infinity = todas)
+  mismo?: number; otro?: number;               // límites (por defecto 6 y 4; Infinity = todas)
   soloTipo?: TipoCarga | null;                 // la página «Ver todas» enseña un solo tipo
   verTodas?: ((tipo: TipoCarga) => string) | null;   // enlace del botón «Ver todas»
 };
@@ -51,11 +51,13 @@ export type OpcionesVuelta = {
 const nombreTipo = (t: TipoCarga, n: number) => t === 'completa' ? 'Cargas completas'
   : n > 1 ? 'Grupajes <span style="text-transform:none;font-weight:600">(puedes combinar varios)</span>' : 'Grupajes';
 
-function tarjeta(c: CargaVuelta, origen: string): string {
+function tarjeta(c: CargaVuelta, origen: string, dia?: string): string {
   const completo = c.tipo_carga === 'completa';
   const carga = [c.metros_lineales != null ? metros(c.metros_lineales) : null, c.toneladas != null ? pesoTn(c.toneladas) : null,
     c.mercancia || (c.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ');
+  // La fecha en cada carga, aunque se repita (usuario, 2026-11-19: máxima claridad).
   return `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin:6px 0">
+${dia ? `<div style="font-weight:800;color:#0b0b45;margin-bottom:2px">${esc(fecha(dia))}</div>` : ''}
 <div><strong style="font-size:16px">${c.precio != null ? `${esc(euros(c.precio))} + IVA` : 'Precio a consultar'}</strong>
  <span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;${completo ? 'background:#ede9fe;color:#3300cc' : 'background:#ecfdf5;color:#047857'}">${completo ? 'Completo' : 'Grupaje'}</span></div>
 <div style="margin-top:2px">${esc(carga)}</div>
@@ -84,10 +86,10 @@ export function htmlCargasDeVuelta(r: DatosVuelta | null, origen: string, op: Op
     const filas = vistas.map((c) => {
       const cab = c.criterio !== grupo ? `<p style="margin:8px 0 4px;font-weight:700;color:#3300cc">${esc(grupos[c.criterio] ?? '')}</p>` : '';
       grupo = c.criterio;
-      return cab + tarjeta(c, origen);
+      return cab + tarjeta(c, origen, r.dia);
     }).join('');
     const enlace = op.verTodas && todas.length > vistas.length ? op.verTodas(t) : null;
-    const boton = enlace ? `<p style="margin:10px 0 4px"><a href="${enlace}" style="display:inline-block;border:2px solid #3300cc;color:#3300cc;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:8px">Ver ${t === 'completa' ? 'todas las cargas completas' : 'todos los grupajes'} (${todas.length})</a></p>` : '';
+    const boton = enlace ? `<p style="margin:10px 0 4px"><a href="${enlace}" style="display:inline-block;border:2px solid #3300cc;color:#3300cc;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:8px">Ver más ${t === 'completa' ? 'cargas completas' : 'grupajes'} (${todas.length})</a></p>` : '';
     return `<p style="margin:16px 0 2px;font-size:15px;font-weight:800;color:#0b0b45;text-transform:uppercase">${nombreTipo(t, vistas.length)}</p>${filas}${boton}`;
   }).join('');
   if (!secciones) return '';

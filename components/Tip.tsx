@@ -7,7 +7,9 @@ import { useEffect, useRef, useState } from 'react';
 // tocar fuera o Escape cierra, y en escritorio también se abre pasando el ratón
 // (CSS) o con el foco del teclado. El globo flota anclado al icono sin ocupar
 // sitio, y al abrirse se recoloca para no salirse de la pantalla.
-export default function Tip({ texto, aria }: { texto: string; aria?: string }) {
+// enBoton: el icono va DENTRO de otro botón (la cabecera de una tarjeta que se despliega):
+// entonces es un span con papel de botón y no abre ni cierra la tarjeta al tocarlo.
+export default function Tip({ texto, aria, enBoton, id }: { texto: string; aria?: string; enBoton?: boolean; id?: string }) {
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   const popRef = useRef<HTMLSpanElement>(null);
@@ -29,9 +31,13 @@ export default function Tip({ texto, aria }: { texto: string; aria?: string }) {
     return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', esc); };
   }, [abierto]);
   return (
-    <span className={`tip-i${abierto ? ' tip-abierto' : ''}`} ref={ref}>
-      <button type="button" className="tip-i-btn" aria-expanded={abierto} aria-label={aria ?? 'Más información'}
-        onClick={() => setAbierto((v) => !v)}>ⓘ</button>
+    <span className={`tip-i${abierto ? ' tip-abierto' : ''}`} ref={ref} id={id}>
+      {enBoton
+        ? <span role="button" tabIndex={0} className="tip-i-btn" aria-expanded={abierto} aria-label={aria ?? 'Más información'}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAbierto((v) => !v); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setAbierto((v) => !v); } }}>ⓘ</span>
+        : <button type="button" className="tip-i-btn" aria-expanded={abierto} aria-label={aria ?? 'Más información'}
+            onClick={() => setAbierto((v) => !v)}>ⓘ</button>}
       <span className="tip-i-pop" role="tooltip" ref={popRef}>{texto}</span>
     </span>
   );

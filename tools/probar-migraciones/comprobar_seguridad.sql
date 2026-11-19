@@ -3271,6 +3271,20 @@ do $$ declare a uuid; b uuid; c uuid; i int; e uuid; begin
   perform set_config('prueba.e97a', a::text, false); perform set_config('prueba.e97b', b::text, false);
   perform set_config('prueba.tok97b', (select token_publico::text from envios where id = b), false);
   perform set_config('prueba.tok97a', (select token_publico::text from envios where id = a), false);
+  -- Desde 2026-11-19 el tablón enseña SOLO las cargas de vuelta del envío y de su mismo tipo:
+  -- b descarga en Madrid el día +4. d (completo, Madrid → Sevilla, ese día) sí; g (grupaje,
+  -- misma ruta y día) no, por ser de otro tipo; a y c (Sevilla → Madrid) tampoco.
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  update envios set fecha_entrega_estimada = current_date + 4 where id = b;
+  insert into envios (cliente_id, estado, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, publicado_en_bolsa_en)
+    values (current_setting('prueba.cliente')::uuid, 'programado', 13.30, 20, 1000, 800, current_date + 4, current_date + 4, now()) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, provincia, pais_codigo_iso) values (e, 1, 'carga', '28005', 'Madrid', 'Madrid', 'ES'), (e, 2, 'descarga', '41005', 'Sevilla', 'Sevilla', 'ES');
+  perform set_config('prueba.tok97d', (select token_publico::text from envios where id = e), false);
+  insert into envios (cliente_id, estado, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, publicado_en_bolsa_en)
+    values (current_setting('prueba.cliente')::uuid, 'programado', 4, 3, 400, 300, current_date + 4, current_date + 4, now()) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, provincia, pais_codigo_iso) values (e, 1, 'carga', '28006', 'Madrid', 'Madrid', 'ES'), (e, 2, 'descarga', '41006', 'Sevilla', 'Sevilla', 'ES');
+  perform set_config('prueba.tok97g', (select token_publico::text from envios where id = e), false);
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
 end $$;
 set role anon;
 do $$ declare l jsonb; begin
@@ -3278,16 +3292,19 @@ do $$ declare l jsonb; begin
     raise exception 'FALLO 97 · el tablón se ve sin un enlace válido';
   end if;
   l := otras_cargas_publicas(current_setting('prueba.tok97b')::uuid);
-  if not exists (select 1 from jsonb_array_elements(l) x where x->>'token' = current_setting('prueba.tok97a')) then
-    raise exception 'FALLO 97 · no sale una carga publicada en bolsa: %', l;
+  if not exists (select 1 from jsonb_array_elements(l) x where x->>'token' = current_setting('prueba.tok97d')) then
+    raise exception 'FALLO 97 · no sale la carga de vuelta del mismo tipo: %', l;
   end if;
-  if exists (select 1 from jsonb_array_elements(l) x where x->>'token' = current_setting('prueba.tok97b')) then
-    raise exception 'FALLO 97 · sale la propia carga (o una que no está en bolsa)';
+  if exists (select 1 from jsonb_array_elements(l) x where x->>'token' in (current_setting('prueba.tok97b'), current_setting('prueba.tok97a'), current_setting('prueba.tok97g'))) then
+    raise exception 'FALLO 97 · sale la propia carga, una que no es de vuelta o una de otro tipo: %', l;
+  end if;
+  if (l -> 0 -> 'origen' ->> 'poblacion') is null or l -> 0 ->> 'requiere_plataforma_elevadora' is null then
+    raise exception 'FALLO 97 · el tablón pierde la población o si es rígido: %', l -> 0;
   end if;
   if l::text ~* '(cliente|nombre_empresa|direccion|telefono|importe_cliente)' then
     raise exception 'FALLO 97 · el tablón deja ver datos del cliente o del sitio';
   end if;
-  raise notice 'OK 97 · tablón de cargas: solo con enlace válido, solo publicadas en bolsa y libres, sin datos del cliente';
+  raise notice 'OK 97 · tablón de cargas: solo con enlace válido, solo cargas de vuelta del envío y de su mismo tipo, sin datos del cliente';
 end $$;
 reset role;
 
@@ -4153,8 +4170,10 @@ do $$ declare r jsonb; v jsonb; k int; begin
   if v->>'resultado' <> 'demasiados_intentos' then raise exception 'FALLO 117 · se pueden ir probando CIFs sin límite: %', v; end if;
   -- Tablón: con el enlace de una carga reciente sí; con uno de hace un mes, nada.
   -- (los topes salen de Parámetros: alta_online_max_pendientes_carga = 3, tablon_enlace_dias = 14)
-  if jsonb_array_length(otras_cargas_publicas(current_setting('prueba.tokh117')::uuid)) = 0 then
-    raise exception 'FALLO 117 · el tablón no enseña nada con un enlace reciente';
+  -- (Desde 2026-11-19 el tablón solo enseña cargas de vuelta del envío: con un enlace
+  -- reciente responde una lista, quizá vacía; lo que se enseña lo prueba la 97.)
+  if jsonb_typeof(otras_cargas_publicas(current_setting('prueba.tokh117')::uuid)) <> 'array' then
+    raise exception 'FALLO 117 · el tablón no responde con un enlace reciente';
   end if;
   if jsonb_array_length(otras_cargas_publicas(current_setting('prueba.tokj117')::uuid)) <> 0 then
     raise exception 'FALLO 117 · el tablón sigue funcionando con un enlace antiguo';
@@ -13024,6 +13043,12 @@ do $$ declare refs text; begin
   select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
     into refs from jsonb_array_elements(envios_de_vuelta(current_setting('prueba.e293')::uuid) -> 'cargas') with ordinality as t(c, n);
   if refs is distinct from 'V293-1:1' then raise exception 'FALLO 293 · con la base en la provincia de donde viene: %', refs; end if;
+  -- Con la base en Madrid (de donde sale el bloque): nada desde su base hacia sus limítrofes
+  -- (Madrid → Cuenca fuera); solo queda Madrid → Sevilla (de donde viene).
+  update transportistas set codigo_postal = '28001' where id = current_setting('prueba.transp')::uuid;
+  select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
+    into refs from jsonb_array_elements(envios_de_vuelta(current_setting('prueba.e293')::uuid) -> 'cargas') with ordinality as t(c, n);
+  if refs is distinct from 'V293-1:2' then raise exception 'FALLO 293 · se ofrece desde su base hacia una limítrofe de su base: %', refs; end if;
   update transportistas set codigo_postal = '46001' where id = current_setting('prueba.transp')::uuid;
 end $$;
 -- 295. «Ver todas»: la página pública entra con el token del CMR y la clave del transportista.

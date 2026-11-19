@@ -37,6 +37,7 @@ import AvisoCierreSitio from './nuevoEnvio/AvisoCierreSitio';
 import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
 import Modal from './Modal';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
+import { AVISO_DIAS_HABILES } from '@/lib/fechasCarga';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 
@@ -1270,7 +1271,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 </>)}
 
                 {paso === 3 && (<>
-                  <div className="ptar-section-head ptar-sh-fecha">Fecha de recogida</div>
+                  <div className="ptar-section-head ptar-sh-fecha">Fecha de recogida <Tip id="tip-habiles-recogida" texto={AVISO_DIAS_HABILES} aria="Días que cuentan para la recogida" /></div>
                   <div className="ptar-field-full">
                     {/* Al cambiar de tipo, la fecha salta SOLA al primer día viable del tipo nuevo
                         (usuario, 2026-11-09) — también para el Master con fechas libres y al editar;
@@ -1307,7 +1308,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {esCliente && !manual && tarifa && (
                     <div className="ptar-field-full ptar-entrega-caja" id="caja-entrega-estimada">
                       <div>
-                        <span className="k">Fecha de entrega estimada</span>
+                        <span className="k">Fecha de entrega estimada <Tip id="tip-habiles-entrega" texto={AVISO_DIAS_HABILES} aria="Días que cuentan para la entrega" /></span>
                         {tarifa.etaDesde
                           ? <span className="v verde">{tarifa.etaHasta && tarifa.etaHasta !== tarifa.etaDesde
                               ? <>del {fmtFecha(tarifa.etaDesde)} al {fmtFecha(tarifa.etaHasta)}</> : fmtFecha(tarifa.etaDesde)}</span>
@@ -1637,6 +1638,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         {!manual && !plataforma && <div id="confirma-aviso-trailer" className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
           <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
           <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setRevisarLegal(false); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
+        </div></div>}
+        {/* Días hábiles (usuario, 2026-11-19): también aquí, antes de aceptar las condiciones. */}
+        {!manual && <div id="confirma-dias-habiles" className="pt-aviso info" style={{ marginTop: '0.6rem', marginBottom: 0 }}><div>
+          <strong>Solo cuentan días hábiles.</strong> Las fechas de recogida y de entrega se cuentan de <strong>lunes a viernes, sin festivos</strong>: los sábados, domingos y festivos no cuentan ni para cargar ni para entregar.
         </div></div>}
         {!manual && <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}

@@ -15,6 +15,7 @@ import { nombreTipo, IconoTipo } from '../TipoSitio';
 import { CardEdit, ContactoExtra, DatosSitios, Punto, direccionCompleta, resolverFicha } from './comun';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
+import { AVISO_DIAS_HABILES } from '@/lib/fechasCarga';
 
 const Chevron = () => (
   <span className="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
@@ -129,8 +130,9 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                 </span>
                 {/* Solo la 1.ª parada lleva la fecha de carga ELEGIDA; el resto va en
                     cascada estimada (usuario, 2026-11-10). */}
-                {i === 0 && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt}</span>}
-                {i > 0 && fechasParada?.[p.k] && <span className={`ptar-sitio-head-fecha ${rec ? 'shf-rec' : 'shf-ent'}`}>{fechasParada[p.k]}</span>}
+                {/* ⓘ «sábados, domingos y festivos no cuentan» junto a cada fecha (usuario, 2026-11-19). */}
+                {i === 0 && fechaCargaTxt && <span className="ptar-sitio-head-fecha shf-rec">{fechaCargaTxt} <Tip enBoton id={`tip-habiles-${i}`} texto={AVISO_DIAS_HABILES} aria="Días que cuentan para la recogida" /></span>}
+                {i > 0 && fechasParada?.[p.k] && <span className={`ptar-sitio-head-fecha ${rec ? 'shf-rec' : 'shf-ent'}`}>{fechasParada[p.k]} <Tip enBoton id={`tip-habiles-${i}`} texto={AVISO_DIAS_HABILES} aria={`Días que cuentan para la ${rec ? 'recogida' : 'entrega'}`} /></span>}
                 {f.horario.length > 0 && <span className="ptar-sitio-head-hor">({resumenHorario(f.horario)})</span>}
                 {/* Primero el nombre de la empresa y debajo la dirección (usuario, 2026-11-17). */}
                 {f.empresa && <span className="ptar-sitio-head-empn">{f.empresa}</span>}

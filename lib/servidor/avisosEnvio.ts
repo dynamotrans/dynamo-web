@@ -69,7 +69,7 @@ export async function bloqueCargasDeVuelta(sb: SB, envio: string, origen: string
   try {
     // Dos bloques: desde donde descarga el día de la descarga y, al final, desde el origen
     // 2 días hábiles después de la carga (usuario, 2026-11-19). Se piden hasta 200 para saber
-    // cuántas hay de cada tipo; el email enseña 20 del mismo tipo y 5 del otro, con «Ver todas».
+    // cuántas hay de cada tipo; el email enseña 6 del mismo tipo y 4 del otro, con «Ver más».
     const [d, r] = await Promise.all([
       sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 200, p_tramo: 'descarga' }),
       sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 200, p_tramo: 'regreso' }),
