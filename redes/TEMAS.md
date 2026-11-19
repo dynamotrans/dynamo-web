@@ -32,7 +32,7 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 | 9 | Pedir tarifa bien | Los 3 datos: tipo de mercancía, metros/peso, CP origen y destino |
 | 10 | Mercancía no paletizada | Maquinaria, tubos, balas: cómo se carga y qué avisar — PUBLICADO 17/11/2026 |
 | 11 | Operador autorizado | Tarjeta OT: qué significa trabajar con un operador de transporte |
-| 12 | Festivos y plazos | Por qué los festivos (nacionales y de otros países) mueven la entrega |
+| 12 | Festivos y plazos | Por qué los festivos (nacionales y de otros países) mueven la entrega — PUBLICADO 19/11/2026 |
 | 13 | Eventos | Transporte para ferias, conciertos, deportes: horarios y accesos |
 | 14 | NIMA | Qué es y cuándo lo pide un transporte de residuos |
 | 15 | Sectores | Construcción, agro, industria, distribución: un ejemplo de cada |
@@ -61,3 +61,4 @@ Formato: fecha — tema — estilo — tipo de titular — **titular** — **enf
 - 2026-11-12 — Tema 6 (seguro MAPFRE 250.000 €) — enfoque: doble cobertura del envío — estilo v1 — titular pregunta: "¿Tu mercancía va asegurada?" — `images/redes/2026-11-12-seguro-mapfre.jpg` — Metricool 425140344 (IG + FB)
 - 2026-11-14 — Tema 8 (Import/Export Europa) — enfoque: a qué países llegamos — estilo v2 — titular dato: "12 países de Europa, un único interlocutor" — `images/redes/2026-11-14-import-export-europa.jpg` — Metricool 427634214 (IG + FB)
 - 2026-11-17 — Tema 10 (mercancía no paletizada) — enfoque: qué avisar al pedir — estilo v3 (foto por defecto: con `--photo alt` el camión quedaba casi fuera de encuadre) — titular consejo: "Si no va en palet, manda las medidas" — `images/redes/2026-11-17-mercancia-no-paletizada.jpg` — Metricool 430871524 (IG + FB)
+- 2026-11-19 — Tema 12 (festivos y plazos) — enfoque: calendario en origen y destino — estilo v4 — titular pregunta: "¿Has mirado el calendario?" — `images/redes/2026-11-19-festivos-y-plazos.jpg` — Metricool pendiente
