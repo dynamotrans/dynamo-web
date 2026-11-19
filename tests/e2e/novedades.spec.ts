@@ -383,7 +383,8 @@ test.describe('novedades', () => {
       await page.locator('#doble-paso-codigo').fill(codigoDelMovil(clave) === '000000' ? '111111' : '000000');
       await expect(page.getByText('Ese código no vale')).toBeVisible();
       // Con el de su móvil, entra.
-      await page.locator('#doble-paso-codigo').fill(codigoDelMovil(clave));
+      const usado = codigoDelMovil(clave);
+      await page.locator('#doble-paso-codigo').fill(usado);
       await page.waitForURL(/\/panel\/dashboard-admin/);
       await expect(page.locator('.sidebar, nav').first()).toBeVisible();
       await page.goto('/panel/usuarios');
@@ -392,6 +393,7 @@ test.describe('novedades', () => {
       await page.goto('/panel/mi-cuenta');
       await expect(page.locator('#mi-doble-paso')).toContainText('Activo');
       await expect(page.locator('#mi-doble-paso')).toContainText('obligatorio');
+      await expect(page.locator('#mdp-quitar')).toHaveCount(0);   // obligatorio: se puede cambiar de móvil, no quitarlo
       // 4 · Otra entrada: ya no hay QR, solo el código; y sin él no se pasa.
       await entrarSinEsperarPanel();
       await page.waitForURL(/\/panel\/doble-paso/);
@@ -401,6 +403,25 @@ test.describe('novedades', () => {
       await page.waitForURL(/\/panel\/doble-paso/);
       // 5 · A un cliente no se le pide nada.
       await entrar(page, 'cliente');
+      await expect(page).not.toHaveURL(/doble-paso/);
+      // 6 · Con el interruptor APAGADO, quien ya activó el suyo lo sigue pasando (usuario,
+      //     2026-11-19: «no estaba activado y me salió»): no es obligatorio, pero es suyo. Desde
+      //     «Mi cuenta» lo puede quitar, con su contraseña, y vuelve a entrar solo con ella.
+      await sv.from('parametros').update({ valor: false }).eq('clave', 'doble_paso_equipo');
+      await entrarSinEsperarPanel();
+      await page.waitForURL(/\/panel\/doble-paso/);
+      await expect(page.getByRole('heading', { name: 'Código de tu móvil' })).toBeVisible();
+      await expect.poll(() => codigoDelMovil(clave), { timeout: 45_000 }).not.toBe(usado);   // un código no vale dos veces
+      await page.locator('#doble-paso-codigo').fill(codigoDelMovil(clave));
+      await page.waitForURL(/\/panel\/dashboard-admin/);
+      await page.goto('/panel/mi-cuenta');
+      await expect(page.locator('#mi-doble-paso')).toContainText('se te pide siempre');
+      await page.locator('#mdp-quitar').click();
+      await page.locator('#mdp-clave').fill(CLAVE);
+      await page.getByRole('button', { name: 'Quitar el doble paso', exact: true }).last().click();
+      await page.waitForURL(/\/panel\/mi-cuenta/);
+      await expect(page.locator('#mi-doble-paso')).toContainText('Sin activar');
+      await entrar(page, 'dynamo');
       await expect(page).not.toHaveURL(/doble-paso/);
     } finally {
       await limpiar();
