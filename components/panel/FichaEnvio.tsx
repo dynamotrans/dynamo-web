@@ -24,7 +24,7 @@ import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import { deshacerCancelacion, revocarOferta, resolverContraoferta, responderCambioEnNombre, ponerCamionManual } from '@/app/panel/(app)/envios/acciones';
-import { CANALES, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
+import { CANALES, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Reservado, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
 import { Estado } from './ficha/Estado';
@@ -485,11 +485,11 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
                 {e.asignado_en && <div className="pen-sum-row"><span className="k">Asignado el</span><span className="v">{fechaHora(e.asignado_en)}</span></div>}
                 <div className="pen-sum-row"><span className="k">Día previsto de carga</span><span className="v">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : '—'}</span></div>
                 <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
-                  {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : '—'}
+                  {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : cancelado || e.estado === 'entregado' ? '—' : <Reservado que="matrículas pendientes de anotar" />}
                   {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
                 </span></div>
                 <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
-                  {e.conductor_nombre || '—'}
+                  {e.conductor_nombre || (cancelado || e.estado === 'entregado' ? '—' : <Reservado que="conductor pendiente de anotar" />)}
                   {e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
                 </span></div>
                 {e.requiere_nima && <div className="pen-sum-row"><span className="k">NIMA</span><span className="v">{e.transportista_nima || <Pend />}</span></div>}

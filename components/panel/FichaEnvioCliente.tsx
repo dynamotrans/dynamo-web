@@ -21,7 +21,7 @@ import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
 import { avisarPagoTransferencia, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio, LlamarCancelar, modoModificar } from './CambiosEnvio';
-import { Secc } from './ficha/comun';
+import { Reservado, Secc } from './ficha/comun';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { RevisionCliente, SelloPrecio, type Revision } from './RevisionPrecio';
 import Historial from './Historial';
@@ -76,7 +76,6 @@ export type EnvioCliente = EnvioClienteBase & {
   asignandose?: boolean;   // un transportista se está asignando ahora mismo (reserva en curso o contraoferta pendiente)
 };
 const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
-const Reservado = ({ que }: { que: string }) => <span style={{ color: 'var(--gray-700)', fontWeight: 600 }}>Camión reservado, {que}.</span>;
 
 export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string }) {
   const router = useRouter();

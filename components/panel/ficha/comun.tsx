@@ -77,6 +77,9 @@ export function Celda({ l, children, span }: { l: string; children: React.ReactN
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
 }
 export const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
+// Con transportista asignado y aún sin matrícula o conductor (usuario, 2026-11-19): en vez de
+// «Pendiente» o «—», «Camión reservado, … pendiente de anotar» (ficha del cliente y de Dynamo).
+export const Reservado = ({ que }: { que: string }) => <span style={{ color: 'var(--gray-700)', fontWeight: 600 }}>Camión reservado, {que}.</span>;
 export function Interruptor({ k, l, v, on }: { k: string; l: string; v: boolean; on: (b: boolean) => void }) {
   return (
     <div>
