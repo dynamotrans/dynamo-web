@@ -27,7 +27,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
 
   const [{ data: pg, error: ep }, par, emp] = await Promise.all([
     supabase.rpc('clientes_pagina', { p_q: q || null, p_estado: estado || null, p_pagina: pagina, p_por_pagina: porPagina, p_orden: orden || null }),
-    supabase.from('parametros').select('clave, valor').in('clave', ['factor_bienvenida_pct', 'factor_bienvenida_envios', 'sectores_cliente']),
+    supabase.from('parametros').select('clave, valor').in('clave', ['factor_bienvenida_pct', 'factor_bienvenida_envios', 'sectores_cliente', 'pago_previo_cesce_sin_primeros_euros']),
     supabase.from('usuarios').select('id, nombre, email').in('rol', ['admin', 'empleado']).order('nombre'),
   ]);
   const ids = (pg ?? []).map((x) => x.id);
@@ -36,7 +36,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const empleados = (emp.data ?? []).map((u) => ({ id: u.id as string, nombre: (u.nombre || u.email) as string }));
   const p = new Map((par.data ?? []).map((x) => [x.clave as string, Number(x.valor)]));
   const sectores = ((par.data ?? []).find((x) => x.clave === 'sectores_cliente')?.valor ?? []) as string[];
-  const bienvenida: Bienvenida = { pct: p.get('factor_bienvenida_pct') ?? -7, envios: p.get('factor_bienvenida_envios') ?? 3 };
+  const bienvenida: Bienvenida = { pct: p.get('factor_bienvenida_pct') ?? -7, envios: p.get('factor_bienvenida_envios') ?? 3, cesceSinPrevio: p.get('pago_previo_cesce_sin_primeros_euros') ?? 16000 };
 
   let filas: ClienteFila[] = [];
   let error = ep?.message ?? null;

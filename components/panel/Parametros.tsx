@@ -35,7 +35,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Contraoferta del cliente', claves: ['contraoferta_cliente_activa', 'contraoferta_cliente_auto_pct', 'contraoferta_cliente_max_pct'] },
     // Al pagar y liberar rigen los MISMOS cortes (usuario, 2026-11-10): no hay parámetros aparte.
     { titulo: 'Hora de corte para cargar el siguiente día hábil', claves: ['primer_dia_corte_fija_hora', 'primer_dia_corte_ventana_1_3_hora', 'primer_dia_corte_ventana_1_2_hora', 'primer_dia_corte_ventana_1_4_hora'] },
-    { titulo: 'Previo pago de envíos', claves: ['pago_previo_activo', 'pago_previo_primeros_envios', 'pago_previo_horas', 'credito_limite_exige_pago'] },
+    { titulo: 'Previo pago de envíos', claves: ['pago_previo_activo', 'pago_previo_primeros_envios', 'pago_previo_cesce_sin_primeros_euros', 'pago_previo_horas', 'credito_limite_exige_pago'] },
     { titulo: 'Contacto del conductor', claves: ['contacto_transportista_horas_tras_entrega'] },
     { titulo: 'Sectores de los clientes', claves: ['sectores_cliente'] },
   ] },

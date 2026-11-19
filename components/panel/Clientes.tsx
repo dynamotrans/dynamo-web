@@ -38,7 +38,8 @@ export type ClienteFila = ClienteDatos & {
   consumo: ConsumoCliente | null;
 };
 // Regla del descuento de bienvenida (tabla `parametros`, migración factor_bienvenida).
-export type Bienvenida = { pct: number; envios: number };
+// cesceSinPrevio: crédito CESCE desde el que los primeros envíos no se pagan antes (Parámetros).
+export type Bienvenida = { pct: number; envios: number; cesceSinPrevio?: number };
 
 const ESTADOS: [ClienteDatos['estado'], string, string][] = [
   ['activa', 'Activo', 'green'], ['pendiente_verificacion', 'Pendiente', 'orange'], ['suspendida', 'Suspendido', 'red'],
@@ -206,6 +207,9 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
     return () => { vivo = false; };
   }, [clienteId]);
   const set = <K extends keyof ClienteDatos>(k: K, v: ClienteDatos[K]) => setD((x) => ({ ...x, [k]: v }));
+  // Crédito CESCE desde el que los primeros envíos no se pagan antes (Parámetros; usuario, 2026-11-19).
+  const umbralCesce = bienvenida.cesceSinPrevio ?? 0;
+  const cesceNum = num(textos.cesce);
 
   async function guardar() {
     setError(null);
@@ -350,7 +354,10 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
         {interruptor('discrecion_comercial', 'Discreción comercial por defecto')}
         {interruptor('nima_por_defecto', 'NIMA por defecto (residuos): sus envíos nacen con «Requiere NIMA» activado')}
         {interruptor('exento_pago_previo_primer_envio', 'Empresa conocida: sin pago previo del primer envío')}
-        <div className="meta" style={{ alignSelf: 'end' }}>Solo cuenta si tiene crédito disponible. Sin crédito, todos sus envíos se pagan por adelantado.</div>
+        <div className="meta" style={{ alignSelf: 'end' }}>Solo cuenta si tiene crédito disponible. Sin crédito, todos sus envíos se pagan por adelantado.
+          {umbralCesce > 0 && <> Con crédito CESCE de {euros(umbralCesce)} o más, el primer envío tampoco se paga antes{cesceNum != null && cesceNum >= umbralCesce
+            ? <strong id="cli-cesce-sin-previo" style={{ color: '#047857' }}> · este cliente cumple: su primer envío va a crédito</strong> : null}.</>}
+        </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="cli-factor">Factor de precio del cliente (%) <span style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· de −30 % a +30 %</span> <span style={{ fontWeight: 800, color: 'var(--red)' }}>· SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo</span></label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginTop: '0.4rem' }}>

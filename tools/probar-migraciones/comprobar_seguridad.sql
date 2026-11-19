@@ -12876,3 +12876,36 @@ do $$ declare e uuid := current_setting('prueba.e290')::uuid; r record; begin
     raise exception 'FALLO 290 · el email de matrículas al cliente no sale o no lleva el teléfono del conductor'; end if;
   raise notice 'OK 290 · página de matrículas: solo con token y clave buenos, solo CP, guarda limpio y el cliente recibe matrículas, conductor y teléfono';
 end $$;
+
+-- ---- 291. Primer envío sin pago previo con el crédito CESCE máximo (16.000 €) ----------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; e uuid; i int; v_activo jsonb; v_cesce numeric; v_dyn numeric; v_esp text; begin
+  select valor into v_activo from parametros where clave = 'pago_previo_activo';
+  update parametros set valor = 'true' where clave = 'pago_previo_activo';
+  if parametro_num('pago_previo_cesce_sin_primeros_euros', 0) <> 16000 then raise exception 'FALLO 291 · el parámetro no nace en 16.000 €'; end if;
+  -- 1: CESCE 16.000 → primer envío a crédito · 2: CESCE 8.000 → pago previo ·
+  -- 3: CESCE 20.000 → a crédito · 4: CESCE 16.000 pero Dynamo lo deja a 0 → pago previo.
+  for i in 1..4 loop
+    v_cesce := case i when 1 then 16000 when 2 then 8000 when 3 then 20000 else 16000 end;
+    v_dyn := case when i = 4 then 0 end;
+    v_esp := case when i in (1, 3) then 'no_requerido' else 'pendiente' end;
+    insert into clientes (razon_social, cif, riesgo_cesce_euros, riesgo_manual_euros)
+      values ('Cesce 291 ' || i, 'B2910000' || i, v_cesce, v_dyn) returning id into c;
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+      values (c, 13.30, 20, 500, 400) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+    if (select estado_pago_previo from envios where id = e)::text <> v_esp then
+      raise exception 'FALLO 291 · CESCE % € (Dynamo %): el primer envío queda «%» y debía quedar «%»', v_cesce, coalesce(v_dyn::text, '—'),
+        (select estado_pago_previo from envios where id = e), v_esp; end if;
+  end loop;
+  -- Con el parámetro a 0, la regla no se aplica: CESCE 16.000 → primer envío con pago previo.
+  update parametros set valor = '0' where clave = 'pago_previo_cesce_sin_primeros_euros';
+  insert into clientes (razon_social, cif, riesgo_cesce_euros) values ('Cesce 291 b', 'B29100009', 16000) returning id into c;
+  if pago_previo_motivo(c, null) is distinct from 'Primer envío del cliente' then raise exception 'FALLO 291 · con el parámetro a 0 el CESCE máximo sigue librando del pago previo'; end if;
+  update parametros set valor = '16000' where clave = 'pago_previo_cesce_sin_primeros_euros';
+  update parametros set valor = v_activo where clave = 'pago_previo_activo';
+  raise notice 'OK 291 · CESCE ≥ 16.000 € (parámetro): primer envío a crédito; con menos, o con el crédito de Dynamo a 0, pago previo; a 0 no se aplica';
+end $$;

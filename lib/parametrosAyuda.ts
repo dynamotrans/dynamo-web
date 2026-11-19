@@ -66,8 +66,13 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Si está encendido, los envíos de clientes sin crédito disponible y los primeros envíos de cada cliente se pagan por adelantado: no se ofertan ni se asignan hasta que pagan (tarjeta o transferencia) o los pasas tú sin pago previo.',
     ejemplo: () => 'Encendido: un cliente nuevo confirma su primer envío → queda «Pendiente de pago» con su proforma.' },
   pago_previo_primeros_envios: { titulo: 'Primeros envíos con previo pago',
-    explica: 'Cuántos de los primeros envíos de cada cliente se pagan por adelantado, aunque tenga crédito (salvo que en su ficha marques «empresa conocida»). 0 = ninguno.',
+    explica: 'Cuántos de los primeros envíos de cada cliente se pagan por adelantado, aunque tenga crédito (salvo que en su ficha marques «empresa conocida» o que CESCE le conceda el crédito máximo, ver el parámetro siguiente). 0 = ninguno.',
     ejemplo: (v) => `Con ${v}: ${Number(v) === 1 ? 'solo el primer envío' : `los ${v} primeros envíos`} de un cliente nuevo se paga${Number(v) === 1 ? '' : 'n'} antes; los siguientes, a su plazo.` },
+  pago_previo_cesce_sin_primeros_euros: { titulo: 'Primeros envíos sin previo pago con crédito CESCE de',
+    explica: 'Si CESCE concede a un cliente este crédito o más, sus primeros envíos NO se pagan por adelantado; con menos crédito, sí. Con CESCE fácil el máximo por cliente es 16.000 €. Cuenta lo que concede CESCE (no el crédito que pongas tú a mano). Sigue mandando lo demás: sin crédito disponible, o si un envío no cabe en lo que le queda, se paga por adelantado igual. 0 = no se aplica.',
+    ejemplo: (v) => Number(v) > 0
+      ? `Con ${Number(v).toLocaleString('es-ES')} €: CESCE da ${Number(v).toLocaleString('es-ES')} € → su primer envío va a crédito. CESCE da 8.000 € → su primer envío se paga antes.`
+      : 'Con 0: los primeros envíos se pagan siempre por adelantado (salvo «empresa conocida»).' },
   credito_limite_exige_pago: { titulo: 'Sin crédito suficiente: pago por adelantado',
     explica: 'Si está encendido, cuando un envío no cabe en el crédito que le queda al cliente (lo ya usado más ese envío, con IVA, supera su línea), ESE envío se paga por adelantado; los que sí caben siguen a crédito. «Lo usado» son sus envíos de los últimos días sin pago por adelantado (los días de «CESCE - Riesgos»), no sus facturas reales pendientes. Apagado: con crédito concedido nunca se pide pago por pasarse.',
     ejemplo: (v) => (String(v) === 'true'

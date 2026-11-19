@@ -977,3 +977,6 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - [ ] Ojo: el envío automático de la orden completa depende del archivo del DeCA, que necesita la clave de servicio de Supabase en Vercel (#94) o que Dynamo abra la ficha del envío.
 - [x] Botón «Proporcionar matrículas del envío» en el email de la orden sin direcciones (y en el mensaje de «Compartir»): abre `/matriculas/<token>?clave=<transportista>`, una página sencilla (resumen solo con CP + matrículas, conductor, teléfono y día de carga). Al guardar todas las matrículas sale AL MOMENTO la orden completa con direcciones; al cliente, «Matrículas asignadas» con conductor y teléfono.
 - [ ] Para que salgan los emails de la web hacen falta en Vercel SUPABASE_SERVICE_ROLE_KEY y POSTMARK_SERVER_TOKEN (#94).
+
+## 2026-11-19 · Primer envío sin pago previo con el crédito CESCE máximo
+- [x] Parámetro «Primeros envíos sin previo pago con crédito CESCE de» (`pago_previo_cesce_sin_primeros_euros`, 16.000 €): con CESCE ≥ ese importe, el primer envío va a crédito; con menos, se paga antes. 0 = no se aplica. Cuenta lo que concede CESCE, no el crédito a mano de Dynamo. Nota en la ficha del cliente.
