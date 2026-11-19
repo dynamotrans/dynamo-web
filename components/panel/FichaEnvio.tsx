@@ -24,6 +24,7 @@ import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import { deshacerCancelacion, revocarOferta, resolverContraoferta, responderCambioEnNombre, ponerCamionManual } from '@/app/panel/(app)/envios/acciones';
+import EtiquetaParada from './EtiquetaParada';
 import { CANALES, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Reservado, Secc, Vista, enlaceOferta, txtNum } from './ficha/comun';
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
@@ -264,15 +265,13 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           {(e.fecha_carga_real || e.fecha_carga_prevista) && e.fecha_carga_desde && (
             <div className="pen-sum-row" id="ficha-ventana-carga"><span className="k">Ventana de carga</span><span className="v">{ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           )}
-          {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
-            ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }) => (
+          {[...recogidas, ...entregas].map((p, i) => (
             <div key={p.id} className="pen-sum-row">
-              <span className="k" style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: color, marginRight: '0.4rem' }} />{lbl}</span>
+              <span className="k"><EtiquetaParada num={i + 1} tipo={p.tipo} tipoSitio={p.sitio?.tipo} /></span>
               <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}</span>
             </div>
           ))}
           <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}</span></div>
-          {!manual && ficha.transportista && <div className="pen-sum-row"><span className="k">Transportista</span><span className="v" style={{ textAlign: 'right' }}>{ficha.transportista.nombre}</span></div>}
           {manual
             ? <div className="pen-sum-row"><span className="k">Precio acordado</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
             : <div className="pen-sum-row pen-sum-3">
@@ -280,6 +279,54 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
                 {pt != null && <span className="p3"><span className="k">Transportista</span><span className="v">{euros(pt)}</span></span>}
                 {e.margen_euros != null && <span className="p3"><span className="k">Margen</span><span className="v" style={{ color: Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626' }}>{euros(e.margen_euros)}</span></span>}
               </div>}
+        {/* EL TRANSPORTE, aquí mismo y siempre a la vista (usuario, 2026-11-19: «como en la
+            ficha del cliente, junto arriba y sin duplicar»). Antes era la sección plegable
+            «Transporte»: el nombre del transportista y su precio ya no se repiten (el precio
+            está en la fila de precios) ni el día previsto si es la «Fecha de carga». */}
+        {!manual && !cancelado && (
+          <div id="ficha-transporte" style={{ marginTop: '0.45rem', paddingTop: '0.45rem', borderTop: '1px dashed var(--gray-300)' }}>
+            <div className="pen-sum-row"><span className="k">Transporte</span><span className="v">
+              {e.estado === 'entregado' ? 'Entregado' : ficha.transportista
+                ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
+                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
+            </span></div>
+            {ficha.transportista && <>
+              <div className="pen-sum-row"><span className="k">Transportista</span><span className="v" style={{ textAlign: 'right' }}>{ficha.transportista.nombre} · {ficha.transportista.cif}</span></div>
+              {e.asignado_en && <div className="pen-sum-row"><span className="k">Asignado el</span><span className="v">{fechaHora(e.asignado_en)}</span></div>}
+              {e.fecha_carga_real && e.fecha_carga_prevista && e.fecha_carga_prevista !== e.fecha_carga_real && (
+                <div className="pen-sum-row"><span className="k">Día previsto de carga</span><span className="v">{fecha(e.fecha_carga_prevista)}</span></div>
+              )}
+              <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
+                {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : e.estado === 'entregado' ? '—' : <Reservado que="matrículas pendientes de anotar" />}
+                {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
+              </span></div>
+              <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
+                {e.conductor_nombre || (e.estado === 'entregado' ? '—' : <Reservado que="conductor pendiente de anotar" />)}
+                {e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
+              </span></div>
+              {e.requiere_nima && <div className="pen-sum-row"><span className="k">NIMA</span><span className="v">{e.transportista_nima || <Pend />}</span></div>}
+            </>}
+            {/* Oferta escalonada (usuario, 2026-11-12): su estado se ve aquí sin abrir el
+                modal de ofrecer; se actualiza en vivo con cada email que sale. */}
+            {!ficha.transportista && ficha.difusion?.estado === 'activa' && (
+              <div className="pen-sum-row"><span className="k">Oferta escalonada</span><span className="v" style={{ color: 'var(--purple)', fontWeight: 800 }}>
+                En marcha · {ficha.difusion.contactados} de {ficha.difusion.max_contactados} contactados
+              </span></div>
+            )}
+            {!ficha.transportista && ficha.difusion?.estado === 'agotada' && (
+              <div className="pen-sum-row"><span className="k">Oferta escalonada</span><span className="v" style={{ color: '#b45309', fontWeight: 700 }}>
+                Terminada sin aceptación ({ficha.difusion.contactados} contactados)
+              </span></div>
+            )}
+            {/* Con transportista, el botón de cambiarlo va aquí; sin él, «Asignar transportista»
+                ya está en los botones de arriba. */}
+            {ficha.transportista && e.estado !== 'entregado' && ficha.pago?.estado !== 'pendiente' && (
+              <button className="btn-secondary" style={{ marginTop: '0.6rem' }} onClick={() => setVista('asignar')}>
+                <I d={ICO.camion} />Editar / Cambiar transportista
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {e.importe_cliente_inicial != null && e.importe_contraoferta_cliente != null && e.estado_solicitud === 'aceptada' && (
@@ -464,60 +511,6 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <Documentos dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente tipos={['otro']} />
         </div>
       </Secc>
-
-      {!manual && (
-        <Secc k="transporte" titulo="Transporte" abiertas={abiertas} toggle={toggle}
-          resumen={cancelado || e.estado === 'entregado'
-            ? (ficha.transportista ? ficha.transportista.nombre : '—')
-            : ficha.transportista ? <>Confirmado · {ficha.transportista.nombre}{pt != null ? ` · ${euros(pt)}` : ''}</> : 'Sin transportista todavía'}>
-          <>
-            {/* Una sola caja de filas, como la de cabecera (usuario, 2026-11-10: «más simple,
-                cuadro, que encaje todo»). Sin transportista no se pintan filas en «Pendiente»:
-                solo el estado, el precio previsto si lo hay y el botón de asignar. */}
-            <div className="pen-envio-sum">
-              <div className="pen-sum-row"><span className="k">Estado</span><span className="v">
-                {cancelado || e.estado === 'entregado' ? '—' : ficha.transportista
-                  ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
-                  : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
-              </span></div>
-              {ficha.transportista && <>
-                <div className="pen-sum-row"><span className="k">Transportista</span><span className="v" style={{ textAlign: 'right' }}>{ficha.transportista.nombre} · {ficha.transportista.cif}</span></div>
-                {e.asignado_en && <div className="pen-sum-row"><span className="k">Asignado el</span><span className="v">{fechaHora(e.asignado_en)}</span></div>}
-                <div className="pen-sum-row"><span className="k">Día previsto de carga</span><span className="v">{e.fecha_carga_prevista ? fecha(e.fecha_carga_prevista) : '—'}</span></div>
-                <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
-                  {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : cancelado || e.estado === 'entregado' ? '—' : <Reservado que="matrículas pendientes de anotar" />}
-                  {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
-                </span></div>
-                <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
-                  {e.conductor_nombre || (cancelado || e.estado === 'entregado' ? '—' : <Reservado que="conductor pendiente de anotar" />)}
-                  {e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
-                </span></div>
-                {e.requiere_nima && <div className="pen-sum-row"><span className="k">NIMA</span><span className="v">{e.transportista_nima || <Pend />}</span></div>}
-              </>}
-              {pt != null && <div className="pen-sum-row"><span className="k">Precio transportista (sin IVA)</span><span className="v">{euros(pt)}</span></div>}
-              {/* Oferta escalonada (usuario, 2026-11-12): su estado se ve aquí sin abrir el
-                  modal de ofrecer; se actualiza en vivo con cada email que sale. */}
-              {!ficha.transportista && ficha.difusion?.estado === 'activa' && (
-                <div className="pen-sum-row"><span className="k">Oferta escalonada</span><span className="v" style={{ color: 'var(--purple)', fontWeight: 800 }}>
-                  En marcha · {ficha.difusion.contactados} de {ficha.difusion.max_contactados} contactados
-                </span></div>
-              )}
-              {!ficha.transportista && ficha.difusion?.estado === 'agotada' && (
-                <div className="pen-sum-row"><span className="k">Oferta escalonada</span><span className="v" style={{ color: '#b45309', fontWeight: 700 }}>
-                  Terminada sin aceptación ({ficha.difusion.contactados} contactados)
-                </span></div>
-              )}
-            </div>
-            {/* El botón de asignar/cambiar TAMBIÉN dentro de la sección (usuario, 2026-11-10):
-                quien mira aquí el estado no tiene que volver arriba a por la acción. */}
-            {!manual && !cancelado && e.estado !== 'entregado' && ficha.pago?.estado !== 'pendiente' && (
-              <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} style={{ marginTop: '0.7rem' }} onClick={() => setVista('asignar')}>
-                <I d={ICO.camion} />{ficha.transportista ? 'Editar / Cambiar transportista' : 'Asignar transportista'}
-              </button>
-            )}
-          </>
-        </Secc>
-      )}
 
       {ficha.ofertas.length > 0 && (
         <Secc k="ofertas" titulo="Ofertas a transportistas" extra={ficha.ofertas.length} abiertas={abiertas} toggle={toggle}

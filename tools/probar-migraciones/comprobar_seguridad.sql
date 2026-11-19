@@ -12715,3 +12715,21 @@ do $$ declare e1 uuid := current_setting('prueba.e286_1')::uuid; e2 uuid := curr
   if (select pago_avisado_en from envios where id = e2) is not null then raise exception 'FALLO 286 · al volver a pendiente de pago se conserva el aviso de transferencia anterior'; end if;
   raise notice 'OK 286 · transferencia avisada: para el plazo y la anulación automática, avisa a Dynamo, y Dynamo la valida (pagado) o la rechaza (anulado sin pago)';
 end $$;
+
+-- ---- 287. Las paradas traen el tipo de sitio (pastilla «1 · Recogida» con su icono) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; s uuid; cli uuid := current_setting('prueba.cliente')::uuid; adm uuid := current_setting('prueba.u_admin')::uuid; j jsonb; begin
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, tipo)
+    values (cli, 'Obra 287', 'Calle Prueba 1', '28821', 'Coslada', 'ES', 'obra_zona_urbana') returning id into s;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta, creado_por)
+    values (cli, 13.30, 20, 900, current_date + 10, current_date + 11, adm) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', s, '28821', 'Coslada', 'ES');
+  j := paradas_json(e);
+  if j -> 1 ->> 'tipo_sitio' is distinct from 'obra_zona_urbana' then raise exception 'FALLO 287 · paradas_json() no trae el tipo de sitio: %', j -> 1; end if;
+  if (j -> 0) ? 'tipo_sitio' is not true or j -> 0 ->> 'tipo_sitio' is not null then raise exception 'FALLO 287 · una parada sin sitio debe traer tipo_sitio vacío: %', j -> 0; end if;
+  j := paradas_viaje_json(e);
+  if j -> 1 ->> 'tipo_sitio' is distinct from 'obra_zona_urbana' then raise exception 'FALLO 287 · paradas_viaje_json() no trae el tipo de sitio: %', j -> 1; end if;
+  raise notice 'OK 287 · las paradas del cliente y del transportista traen el tipo de sitio';
+end $$;

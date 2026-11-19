@@ -1,6 +1,7 @@
 import CuentaAtras from './CuentaAtras';
 import Link from 'next/link';
 import EstadoVacio from './EstadoVacio';
+import EtiquetaParada from './EtiquetaParada';
 import FilaEnlace from './FilaEnlace';
 import FiltrosEnvios, { type OpcionFiltro } from './FiltrosEnvios';
 import CalendarioEnvios from './CalendarioEnvios';
@@ -217,9 +218,9 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
 function Parada({ p, fechaTxt, tipo, n }: { p: Parada; fechaTxt: string; tipo: 'orig' | 'dest'; n: number }) {
   return (
     <div className="rf-stop"><div className="rf-line">
-      {/* Círculo numerado (usuario, 2026-11-11): el nº de PARADA del recorrido dentro
-          del punto, naranja recogidas y verde entregas. */}
-      <span className={`rf-dot ${tipo}`} aria-label={`Parada ${n} · ${tipo === 'orig' ? 'recogida' : 'entrega'}`}>{n}</span>
+      {/* La pastilla de la parada (usuario, 2026-11-19), como en «Nuevo envío»: nº del
+          recorrido, Recogida/Entrega por color y el icono del tipo de sitio. */}
+      <EtiquetaParada num={n} tipo={tipo === 'orig' ? 'carga' : 'descarga'} tipoSitio={p.tipo_sitio} mini />
       <span className="rf-txt">
         <span className="rf-fecha"><strong>{fechaTxt}</strong></span>
         <span className="rf-dir">{dirParada(p) || '—'}</span>
@@ -233,7 +234,14 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
   const ev = estadoVisual(e);
   const asig = asignacion(e);
   const reservado = !!(e.transportista_asignado || e.estado_asignacion === 'confirmada' || ['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado));
-  const vivoSinMatricula = !e.es_manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) && !esPendientePago(e);
+  // La etiqueta del vehículo cuando aún no hay matrícula (null = «—»).
+  const vehiculo: { txt: string; cls: string } | null =
+    e.estado === 'entregado' || e.estado === 'cancelado' ? null
+    : esPendientePago(e) ? { txt: asig?.label ?? 'Se asigna al pagar', cls: 'badge-gray' }
+    : e.es_manual ? { txt: 'Sin matrícula', cls: 'badge-gray' }
+    : e.estado === 'borrador' ? null
+    : reservado ? { txt: 'Camión reservado', cls: 'badge-green' }
+    : { txt: 'Asignando transportista', cls: 'badge-orange' };
   const { recogidas, entregas } = paradasDe(e);
   const fc = fechaCarga(e), fe = fechaEntrega(e);
   const manual = !!e.es_manual;
@@ -294,23 +302,17 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         )}
       </td>
       <td className="vehiculo">
-        {asig && <div className={`asig-line asig-top asig-${asig.key}`}><span className="asig-dot" />{asig.label}</div>}
         {/* Dynamo ve QUÉ empresa lleva el envío (usuario, 2026-11-09); el cliente, no:
             para él solo matrículas y estado de asignación. */}
         {dynamo && e.transportista && <div style={{ fontWeight: 800, color: 'var(--navy)', lineHeight: 1.3 }}>{e.transportista}</div>}
-        {/* Las dos matrículas seguidas, separadas por «/», sin el rótulo «Remolque:»
-            (usuario, 2026-11-17). */}
+        {/* Las dos matrículas seguidas, separadas por «/» (usuario, 2026-11-17). Sin ellas, una
+            ETIQUETA igual en todas las pestañas y para todos (usuario, 2026-11-19): «Camión
+            reservado» (verde), «Asignando transportista» (naranja), «Se asigna al pagar»… */}
         {e.matricula_camion
           ? <span className="meta-matricula">{e.matricula_camion}{e.matricula_remolque ? ` / ${e.matricula_remolque}` : ''}</span>
-          // Para el CLIENTE, sin matrícula (usuario, 2026-11-19): «Camión reservado» en verde si ya
-          // hay transportista, «Asignando transportista» en naranja si todavía no. Dynamo sigue
-          // viendo «Sin matrícula» en rojo, que es lo que tiene que anotar.
-          : !dynamo && vivoSinMatricula
-            ? <span className={`badge ${reservado ? 'badge-green' : 'badge-orange'}`} style={{ whiteSpace: 'nowrap' }}>{reservado ? 'Camión reservado' : 'Asignando transportista'}</span>
-          : e.transportista_asignado
-            ? <span className="meta" style={{ color: 'var(--red)', fontWeight: 800 }}>Sin matrícula</span>
-            : <span className="meta meta-pend">Sin matrícula</span>}
-        {!e.matricula_camion && e.matricula_remolque && (dynamo || !vivoSinMatricula) && <div className="meta"><span className="meta-matricula" style={{ fontSize: 'var(--fs-s)' }}>{e.matricula_remolque}</span></div>}
+          : vehiculo
+            ? <span className={`badge ${vehiculo.cls}`} style={{ whiteSpace: 'nowrap' }}>{vehiculo.txt}</span>
+            : <span className="meta meta-pend">—</span>}
         {dynamo && e.conductor_nombre && <div className="meta">{e.conductor_nombre}</div>}
         {dynamo && e.conductor_telefono && <div className="meta">{e.conductor_telefono}</div>}
       </td>

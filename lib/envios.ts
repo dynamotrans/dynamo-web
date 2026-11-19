@@ -9,6 +9,7 @@ export type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; nombre_empresa: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null;
   provincia: string | null; pais_codigo_iso: string | null;
+  tipo_sitio?: string | null;   // almacen_nave, obra_…, finca (para el icono de la pastilla)
 };
 export type EnvioFila = {
   id: string; referencia_gx: string; referencia_cliente: string | null;

@@ -1,6 +1,7 @@
 'use client';
 
-import { IconoTipo, nombreTipo } from '../TipoSitio';
+import { nombreTipo } from '../TipoSitio';
+import EtiquetaParada from '../EtiquetaParada';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { ParadaFicha } from '@/lib/fichaEnvio';
 
@@ -18,9 +19,7 @@ export function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'en
   return (
     <div className="det-punto">
       <div className="det-punto-head">
-        <span className={`ptar-route-num ${cls}`}>{num}</span>
-        <span className="det-punto-ico"><IconoTipo tipo={s?.tipo ?? 'almacen_nave'} /></span>
-        <span className="det-punto-label">{label}</span>
+        <EtiquetaParada num={num} tipo={cls === 'rec' ? 'carga' : 'descarga'} tipoSitio={s?.tipo} />
         <span className="det-punto-tipo">{nombreTipo(s?.tipo)}</span>
       </div>
       <div className="det-punto-body">

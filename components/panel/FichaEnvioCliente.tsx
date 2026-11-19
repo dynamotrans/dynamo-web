@@ -22,6 +22,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import { avisarPagoTransferencia, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio, LlamarCancelar, modoModificar } from './CambiosEnvio';
 import { Reservado, Secc } from './ficha/comun';
+import EtiquetaParada from './EtiquetaParada';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { RevisionCliente, SelloPrecio, type Revision } from './RevisionPrecio';
 import Historial from './Historial';
@@ -146,9 +147,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   const precioTxt = manual ? (e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : null)
     : pc != null ? euros(pc) : null;
   // La tarjeta de una parada (la del cliente: sin ficha de sitio, con su referencia).
-  const puntoCli = (p: (typeof paradas)[number], cls: 'rec' | 'ent', num: number, label: string) => (
+  const puntoCli = (p: (typeof paradas)[number], cls: 'rec' | 'ent', num: number) => (
     <div key={p.id ?? num} className="det-punto">
-      <div className="det-punto-head"><span className={`ptar-route-num ${cls}`}>{num}</span><span className="det-punto-label">{label}</span></div>
+      <div className="det-punto-head"><EtiquetaParada num={num} tipo={cls === 'rec' ? 'carga' : 'descarga'} tipoSitio={p.tipo_sitio} /></div>
       <div className="det-punto-body">
         {p.nombre_empresa && <><strong>{p.nombre_empresa}</strong><br /></>}
         {[p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ')}
@@ -284,10 +285,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {(e.fecha_carga_real || e.fecha_carga_prevista) && e.fecha_carga_desde && (
           <div className="pen-sum-row" id="ficha-ventana-carga"><span className="k">Ventana de carga</span><span className="v">{ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
         )}
-        {[...recogidas.map((p, i) => ({ p, color: 'var(--orange)', lbl: recogidas.length > 1 ? `Recogida ${i + 1}` : 'Recogida' })),
-          ...entregas.map((p, i) => ({ p, color: 'var(--green)', lbl: entregas.length > 1 ? `Entrega ${i + 1}` : 'Entrega' }))].map(({ p, color, lbl }, i) => (
+        {[...recogidas, ...entregas].map((p, i) => (
           <div key={p.id ?? i} className="pen-sum-row">
-            <span className="k" style={{ whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: color, marginRight: '0.4rem' }} />{lbl}</span>
+            <span className="k"><EtiquetaParada num={i + 1} tipo={p.tipo} tipoSitio={p.tipo_sitio} /></span>
             <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}</span>
           </div>
         ))}
@@ -357,7 +357,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           <SubTit primero>Seguimiento de la ruta</SubTit>
           <Etapas etapas={etapas} fichaParada={(n) => {
             const p = paradas[n - 1];
-            return p ? puntoCli(p, p.tipo === 'carga' ? 'rec' : 'ent', n, p.tipo === 'carga' ? 'Recogida' : 'Entrega') : null;
+            return p ? puntoCli(p, p.tipo === 'carga' ? 'rec' : 'ent', n) : null;
           }} />
         </>}
         <SubTit primero={!conSeguimiento}>Solicitud</SubTit>
@@ -374,8 +374,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {!conSeguimiento && <>
           <SubTit>Ruta{paradas.length > 2 ? ` (${paradas.length} paradas)` : ''}</SubTit>
           <div className="det-ruta">
-            {[...recogidas.map((p, i) => ({ p, cls: 'rec' as const, num: i + 1, label: 'Recogida' })),
-              ...entregas.map((p, i) => ({ p, cls: 'ent' as const, num: recogidas.length + i + 1, label: 'Entrega' }))].map(({ p, cls, num, label }) => puntoCli(p, cls, num, label))}
+            {[...recogidas.map((p, i) => ({ p, cls: 'rec' as const, num: i + 1 })),
+              ...entregas.map((p, i) => ({ p, cls: 'ent' as const, num: recogidas.length + i + 1 }))].map(({ p, cls, num }) => puntoCli(p, cls, num))}
           </div>
         </>}
         <SubTit>Mercancía</SubTit>

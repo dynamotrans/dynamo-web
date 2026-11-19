@@ -3717,6 +3717,11 @@ select.ptar-select.ptar-select-warn {
 .ptar-route-tag.ent { background: var(--green-dark); }
 /* Icono del tipo de sitio dentro de la pastilla (blanco negativo). */
 .ptar-route-tag .rf-tipo-ico { margin: 0 0 0 0.35rem; }
+/* La misma pastilla, más pequeña, en las listas de envíos (en el sitio del antiguo círculo
+   numerado de cada parada). */
+.ptar-route-tag.ptar-route-tag-mini { height: 20px; padding: 0 7px; font-size: 0.68rem; }
+.ptar-route-tag.ptar-route-tag-mini .rf-tipo-ico svg { width: 12px; height: 12px; }
+table.data td.route-full .rf-line > .ptar-route-tag { margin-top: 1px; }
 button.ptar-route-tag { cursor: pointer; }
 /* El sitio ya elegido se puede pulsar entero: quita y abre el desplegable. */
 .ptar-route-row .ptar-picked input[readonly] { cursor: pointer; }

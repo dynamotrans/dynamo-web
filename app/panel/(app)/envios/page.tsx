@@ -123,7 +123,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'toneladas, metros_lineales, tipo_carga, requiere_plataforma_elevadora, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, conductor_nombre, conductor_telefono, transportistas(nombre_visible), ' +
       'matricula_remolque, creado_en, modificado_en, creado_por, estado_solicitud, estado_pago_previo, estado_cambio_cliente, requiere_revision_precio, clientes(nombre_visible, cif), operadores(razon_social), ' +
-      'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
+      'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, sitios(tipo))';
     let data: FilaDynamo[] = [];
     if (idsPagina!.length) {
       const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsPagina!).overrideTypes<FilaDynamo[], { merge: false }>();
@@ -134,7 +134,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,
       transportista: x.transportistas?.nombre_visible ?? null,
       operador: x.operadores?.razon_social ?? null, transportista_asignado: !!x.transportista_id,
-      paradas: (x.envio_paradas ?? []) as Parada[],
+      paradas: ((x.envio_paradas ?? []) as (Parada & { sitios?: { tipo: string } | null })[]).map(({ sitios, ...p }) => ({ ...p, tipo_sitio: sitios?.tipo ?? null })),
     }));
     // El plazo de los pendientes de pago de ESTA página, para su temporizador (son pocos: se
     // pide uno a uno a la misma función que usa la ficha).

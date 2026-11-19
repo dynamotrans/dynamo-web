@@ -4,6 +4,7 @@
 // ruta con el horario y el teléfono de cada muelle, y la mercancía. Nunca el cliente de
 // Dynamo ni lo que paga. Desde aquí marca cómo va el viaje, sube el albarán y fotos, y
 // abre el CMR digital para que firmen en el muelle.
+import EtiquetaParada from './EtiquetaParada';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { avisarNavegando } from './CargandoNavegacion';
@@ -47,7 +48,7 @@ export type ParadaViaje = {
   id?: string; tipo: string; realizado_en?: string | null; nombre_empresa: string | null; url_google_maps?: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;
   horarios?: string | null; contacto_telefono?: string | null; contacto_nombre?: string | null; requiere_cita?: boolean | null;
-  tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null;
+  tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null; tipo_sitio?: string | null;
 };
 export type Viaje = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiViaje, keyof EnvioFila>> & { paradas: ParadaViaje[] };
 export type CambioViaje = { id: string; precio_antes: number | null; precio_ahora: number | null; detalle: string; creado_en: string };
@@ -210,8 +211,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
           return (
             <div key={p.id} className="det-punto">
               <div className="det-punto-head">
-                <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`}>{n}</span>
-                <span className="det-punto-label">{rec ? 'Recogida' : 'Entrega'}</span>
+                <EtiquetaParada num={n} tipo={rec ? 'carga' : 'descarga'} tipoSitio={p.tipo_sitio} />
                 {p.realizado_en && <span className="det-punto-tipo">Hecha: {fechaHora(p.realizado_en)}</span>}
               </div>
               <div className="det-punto-body">
