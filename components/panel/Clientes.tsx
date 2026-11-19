@@ -345,7 +345,7 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
         </div>
         {texto('iva', <>IVA (%) · 21 en España, 0 fuera (cámbialo si toca, p. ej. Canarias) <Req si={false} /></>, '21')}
         {texto('cesce', <>Importe crédito CESCE (€) <Req si={false} /></>, 'Ej. 40000')}
-        {texto('dyn', <>Importe crédito Dynamo (€) · manda sobre CESCE · 0 = sin crédito · vacío = manda CESCE <Req si={false} /></>, 'Vacío = manda CESCE')}
+        {texto('dyn', <>Importe crédito Dynamo (€) · manda sobre CESCE · 0 = sin crédito · vacío = manda CESCE · <strong>si CESCE baja, se borra solo</strong> <Req si={false} /></>, 'Vacío = manda CESCE')}
         {texto('ret', <>Retención (%) <Req si={false} /></>, '0')}
         {texto('re', <>Recargo de equivalencia (%) <Req si={false} /></>, '0')}
         {texto('tarde', <>Recargo por pago tarde (%) <Req si={false} /></>, '0')}

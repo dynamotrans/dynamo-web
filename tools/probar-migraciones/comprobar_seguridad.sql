@@ -12909,3 +12909,34 @@ do $$ declare c uuid; e uuid; i int; v_activo jsonb; v_cesce numeric; v_dyn nume
   update parametros set valor = v_activo where clave = 'pago_previo_activo';
   raise notice 'OK 291 · CESCE ≥ 16.000 € (parámetro): primer envío a crédito; con menos, o con el crédito de Dynamo a 0, pago previo; a 0 no se aplica';
 end $$;
+
+-- ---- 292. Si CESCE baja el crédito, se borra solo el crédito a mano de Dynamo ------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; begin
+  insert into clientes (razon_social, cif, riesgo_cesce_euros, riesgo_manual_euros) values ('Cesce baja 292', 'B29200001', 16000, 20000) returning id into c;
+  -- CESCE sube o no cambia: el de Dynamo se queda.
+  update clientes set riesgo_cesce_euros = 18000 where id = c;
+  update clientes set riesgo_cesce_euros = 18000, razon_social = 'Cesce baja 292 SL' where id = c;
+  if (select riesgo_manual_euros from clientes where id = c) is distinct from 20000 then raise exception 'FALLO 292 · se borra el crédito de Dynamo sin que baje CESCE'; end if;
+  -- CESCE baja (18.000 → 8.000): el de Dynamo se borra y avisa a Dynamo.
+  update clientes set riesgo_cesce_euros = 8000 where id = c;
+  if (select riesgo_manual_euros from clientes where id = c) is not null then raise exception 'FALLO 292 · CESCE baja y el crédito de Dynamo sigue puesto'; end if;
+  if (select riesgo_efectivo_euros from clientes where id = c) <> 8000 then raise exception 'FALLO 292 · tras bajar CESCE no manda CESCE'; end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'credito_cesce_baja' and enlace = '/panel/clientes?ver=' || c
+                  and texto like '%18.000,00 €%' and texto like '%8.000,00 €%' and texto like '%20.000,00 €%') then
+    raise exception 'FALLO 292 · no avisa a Dynamo de que se ha quitado su crédito'; end if;
+  -- Dynamo vuelve a darle 30.000 € a mano: se queda (CESCE no cambia).
+  update clientes set riesgo_manual_euros = 30000 where id = c;
+  if (select riesgo_efectivo_euros from clientes where id = c) <> 30000 then raise exception 'FALLO 292 · no se puede volver a poner el crédito a mano'; end if;
+  -- CESCE baja y en el MISMO cambio Dynamo pone otro importe: se respeta lo de Dynamo.
+  update clientes set riesgo_cesce_euros = 5000, riesgo_manual_euros = 25000 where id = c;
+  if (select riesgo_manual_euros from clientes where id = c) is distinct from 25000 then raise exception 'FALLO 292 · se borra el crédito que Dynamo pone en el mismo cambio'; end if;
+  -- CESCE deja de clasificar (vacío) o pasa a 0: también cuenta como bajar.
+  update clientes set riesgo_cesce_euros = 0 where id = c;
+  if (select riesgo_manual_euros from clientes where id = c) is not null then raise exception 'FALLO 292 · CESCE a 0 no borra el crédito de Dynamo'; end if;
+  update clientes set riesgo_manual_euros = 10000 where id = c;
+  update clientes set riesgo_cesce_euros = null where id = c;
+  if (select riesgo_manual_euros from clientes where id = c) is not null then raise exception 'FALLO 292 · CESCE sin clasificar no borra el crédito de Dynamo'; end if;
+  raise notice 'OK 292 · CESCE baja (a menos, a 0 o sin clasificar) → se borra el crédito a mano de Dynamo y avisa; sube o igual → se queda; puesto a la vez → se respeta';
+end $$;
