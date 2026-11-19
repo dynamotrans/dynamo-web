@@ -18,6 +18,9 @@ export type EnvioFila = {
   transportista_asignado: boolean;
   fecha_carga_desde: string | null; fecha_carga_hasta: string | null;
   fecha_carga_real: string | null; fecha_entrega_estimada: string | null;
+  // Entrega estimada (entregas_estimadas): la fijada al asignar o, sin ella, la ventana de la
+  // recogida más los días de viaje (usuario, 2026-11-19).
+  entrega_desde?: string | null; entrega_hasta?: string | null;
   descripcion_mercancia: string | null; toneladas: number | null; metros_lineales: number | null;
   tipo_carga: string | null; paletizado: boolean | null;
   poblacion_origen: string | null; codigo_postal_origen: string | null;
@@ -120,8 +123,12 @@ export function fechaCarga(e: EnvioFila): string {
   if (e.fecha_carga_prevista) return fecha(e.fecha_carga_prevista);
   return ventana(e.fecha_carga_desde, e.fecha_carga_hasta);
 }
-export function fechaEntrega(e: EnvioFila): string {
-  return e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : 'Por confirmar';
+export function fechaEntrega(e: Pick<EnvioFila, 'fecha_entrega_estimada' | 'entrega_desde' | 'entrega_hasta'>): string {
+  if (e.fecha_entrega_estimada) return fecha(e.fecha_entrega_estimada);
+  // Sin fecha fijada: la ventana estimada desde la recogida (usuario, 2026-11-19: «si recoge
+  // del miércoles al viernes, entrega estimada del jueves al lunes»).
+  if (e.entrega_desde) return ventana(e.entrega_desde, e.entrega_hasta ?? e.entrega_desde);
+  return 'Por confirmar';
 }
 
 // --- Paradas ------------------------------------------------------------------------

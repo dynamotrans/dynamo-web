@@ -10,6 +10,7 @@ import Cargando from '@/components/Cargando';
 import { fecha } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { crearFestivo, borrarFestivo, type FestivoNuevo } from '@/app/panel/(app)/festivos/acciones';
+import CampoFecha from '@/components/CampoFecha';
 
 export type FestivoFila = {
   id: string; fecha: string; pais_codigo_iso: string; region: string | null; poblacion: string | null;
@@ -68,7 +69,7 @@ export default function Festivos({ filas, comunidades, error }: { filas: Festivo
         <strong style={{ color: 'var(--navy)' }}>Añadir festivo</strong>
         <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap', alignItems: 'end', marginTop: '0.7rem' }}>
           <label style={campo}>Fecha
-            <input type="date" value={f.fecha} onChange={(ev) => setF({ ...f, fecha: ev.target.value })} /></label>
+            <CampoFecha value={f.fecha} onChange={(v) => setF({ ...f, fecha: v })} aria-label="Fecha del festivo" permitirBorrar={false} /></label>
           <label style={{ ...campo, minWidth: 220, flex: 1 }}>Nombre
             <input type="text" value={f.nombre} placeholder="Ej. Día de Andalucía" maxLength={200} onChange={(ev) => setF({ ...f, nombre: ev.target.value })} /></label>
           <label style={campo}>Ámbito

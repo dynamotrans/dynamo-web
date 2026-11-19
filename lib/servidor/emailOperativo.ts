@@ -60,6 +60,10 @@ export async function enviarEmailOperativo(d: {
       await sb.from('emails_enviados').update({ estado: 'omitido', error: 'Dirección de prueba (.invalid): no se envía.' }).eq('id', fila.id);
       return { estado: 'error', error: 'Es una dirección de prueba (.invalid): no se envía.' };
     }
+    // El diseño común (cabecera, firma y pie), el mismo que la cola de la base de datos: lo
+    // pone email_con_diseno(). Si fallara, sale el cuerpo tal cual (mejor que no mandarlo).
+    const { data: envuelto } = await sb.rpc('email_con_diseno', { p_html: d.html, p_remitente: d.deNombre ? d.deNombre.replace(/\s*\(vía [^)]*\)$/, '') : null });
+    const htmlFinal = (envuelto as string | null) || d.html;
     const token = process.env.POSTMARK_SERVER_TOKEN;
     if (!token) {
       await sb.from('emails_enviados').update({ estado: 'error', error: 'Falta POSTMARK_SERVER_TOKEN en el servidor.' }).eq('id', fila.id);
@@ -70,7 +74,7 @@ export async function enviarEmailOperativo(d: {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Postmark-Server-Token': token },
       body: JSON.stringify({
         From: `${(d.deNombre ?? '').replace(/[<>"\r\n,;]/g, ' ').trim().slice(0, 80) || 'Dynamotrans.com'} <${CONTACTO.email}>`,
-        To: d.para, Subject: d.asunto, HtmlBody: d.html, MessageStream: 'outbound',
+        To: d.para, Subject: d.asunto, HtmlBody: htmlFinal, MessageStream: 'outbound',
         ...(d.texto ? { TextBody: d.texto } : {}),
         ...(d.responderA ? { ReplyTo: d.responderA } : {}),
         // Copia a Dynamo en todos los emails del sistema (usuario, 2026-11-15), salvo

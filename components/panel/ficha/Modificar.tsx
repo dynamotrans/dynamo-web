@@ -8,6 +8,7 @@ import { NEGOCIACION } from '@/lib/envios';
 import { modificarEnvio, type DatosEnvio } from '@/app/panel/(app)/envios/acciones';
 import Req from '@/components/Req';
 import { I, ICO, Interruptor, SubProps, aNum, txtNum } from './comun';
+import CampoFecha from '@/components/CampoFecha';
 
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09): aquí nada se exige
 // al guardar (solo que los números sean válidos), así que todo campo libre es opcional.
@@ -50,8 +51,8 @@ export function Modificar({ ficha, onVolver, hacer, trabajando, fallo }: SubProp
   const campo = (k: keyof typeof d, l: string, ph?: string, tipo = 'text', full = false) => (
     <div style={full ? { gridColumn: '1/-1' } : undefined}>
       <label htmlFor={`mo-${k}`}>{l} <Req si={false} /></label>
-      <input id={`mo-${k}`} type={tipo} inputMode={tipo === 'text' && /importe|metros|toneladas|acordado/.test(k) ? 'decimal' : undefined}
-        value={String(d[k])} placeholder={ph} onChange={(ev) => set(k, ev.target.value)} />
+      {tipo === 'date' ? <CampoFecha id={`mo-${k}`} value={String(d[k])} onChange={(v) => set(k, v)} /> : <input id={`mo-${k}`} type={tipo} inputMode={tipo === 'text' && /importe|metros|toneladas|acordado/.test(k) ? 'decimal' : undefined}
+        value={String(d[k])} placeholder={ph} onChange={(ev) => set(k, ev.target.value)} />}
     </div>
   );
   const sw = (k: keyof typeof d, l: string) => <Interruptor k={`mo-${k}`} l={l} v={d[k] as boolean} on={(b) => set(k, b)} />;

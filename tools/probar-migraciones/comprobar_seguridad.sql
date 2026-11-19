@@ -13125,3 +13125,94 @@ do $$ begin
   delete from envios where referencia_cliente like 'R294-%';
   alter table envios enable trigger user;
 end $$;
+
+-- ---- 296. Entrega estimada en ventana a partir de la recogida -------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid;
+  lunes date := (now() at time zone 'Europe/Madrid')::date + 28; x uuid;
+begin
+  lunes := lunes + ((8 - extract(isodow from lunes)::int) % 7);   -- el lunes siguiente
+  perform set_config('prueba.l296', lunes::text, false);
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  insert into envios (cliente_id, estado, metros_lineales, toneladas, fecha_carga_desde, fecha_carga_hasta, referencia_cliente)
+    values (cli, 'programado', 13.3, 10, lunes, lunes + 2, 'E296') returning id into x;
+  -- Sin km guardados ni coordenadas: 300 km → 1 día de viaje.
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, pais_codigo_iso) values (x, 1, 'carga', '29601', 'ES'), (x, 2, 'descarga', '29680', 'ES');
+  perform set_config('prueba.e296', x::text, false);
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r record; l date := current_setting('prueba.l296')::date; x uuid := current_setting('prueba.e296')::uuid; begin
+  select * into r from entregas_estimadas(array[x]);
+  if r.desde <> sumar_dias_habiles(l, 1) or r.hasta <> sumar_dias_habiles(l + 2, 1) or r.fijada then
+    raise exception 'FALLO 296 · ventana de entrega: % a % (fijada %)', r.desde, r.hasta, r.fijada; end if;
+  begin perform envio_dias_viaje(x); raise exception 'FALLO 296 · el cálculo interno de días se puede llamar';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ declare r record; l date := current_setting('prueba.l296')::date; x uuid := current_setting('prueba.e296')::uuid; begin
+  alter table envios disable trigger user;
+  update envios set fecha_carga_prevista = l + 1 where id = x;
+  alter table envios enable trigger user;
+end $$;
+set role authenticated;
+do $$ declare r record; l date := current_setting('prueba.l296')::date; x uuid := current_setting('prueba.e296')::uuid; begin
+  select * into r from entregas_estimadas(array[x]);
+  if r.desde <> sumar_dias_habiles(l + 1, 1) or r.hasta <> r.desde then raise exception 'FALLO 296 · con la carga asignada, un solo día: % a %', r.desde, r.hasta; end if;
+end $$;
+reset role;
+do $$ declare r record; l date := current_setting('prueba.l296')::date; x uuid := current_setting('prueba.e296')::uuid; begin
+  alter table envios disable trigger user;
+  update envios set fecha_entrega_estimada = l + 7 where id = x;
+  alter table envios enable trigger user;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ begin
+  begin perform entregas_estimadas(array[current_setting('prueba.e296')::uuid]); raise exception 'FALLO 296 · sin sesión se ve la entrega';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r record; l date := current_setting('prueba.l296')::date; x uuid := current_setting('prueba.e296')::uuid; begin
+  select * into r from entregas_estimadas(array[x]);
+  if r.desde <> l + 7 or r.hasta <> l + 7 or not r.fijada then raise exception 'FALLO 296 · con la entrega fijada manda esa: % a %', r.desde, r.hasta; end if;
+  raise notice 'OK 296 · entrega estimada: ventana desde la recogida + días de viaje; un día con la carga asignada; la fijada manda';
+end $$;
+reset role;
+do $$ begin
+  alter table envios disable trigger user;
+  delete from envio_paradas where envio_id = current_setting('prueba.e296')::uuid;
+  delete from envios where id = current_setting('prueba.e296')::uuid;
+  alter table envios enable trigger user;
+end $$;
+
+-- ---- 297. Emails con el diseño común: cabecera, botones, firma y pie --------------------
+reset role;
+do $$ declare h text; d text; begin
+  h := email_con_diseno('<p>Hola,</p><p>Texto.</p><p><a href="https://x/y" style="display:inline-block;background:#3300cc">Ver el envío</a></p><p>— Dynamo · a@b · 1</p>');
+  if h !~* '^<!doctype html>' or position('images/4.png' in h) = 0 then raise exception 'FALLO 297 · sin documento ni logo'; end if;
+  if position('<p>— Dynamo' in h) > 0 then raise exception 'FALLO 297 · la firma antigua sigue en el cuerpo'; end if;
+  if position('<a class="btn" href="https://x/y"' in h) = 0 then raise exception 'FALLO 297 · el botón no se marca para el móvil'; end if;
+  if position('Equipo de operaciones' in h) = 0 or position('href="tel:' in h) = 0 or position('href="mailto:' in h) = 0 then
+    raise exception 'FALLO 297 · falta la firma con botones'; end if;
+  if position(coalesce(parametro('dynamo_razon_social') #>> '{}', 'Dynamo') in h) = 0 then raise exception 'FALLO 297 · el pie no lleva la empresa de Parámetros'; end if;
+  if email_con_diseno(h) <> h then raise exception 'FALLO 297 · envuelve dos veces'; end if;
+  h := email_con_diseno('<p>Orden</p>', 'Textil Prueba, SL');
+  if position('Textil Prueba, SL' in h) = 0 or position('Equipo de operaciones' in h) > 0 then raise exception 'FALLO 297 · email de un cliente a su transportista con la firma de Dynamo'; end if;
+  d := pg_get_functiondef('public.enviar_emails_pendientes()'::regprocedure);
+  if position('email_con_diseno(r.cuerpo_html)' in d) = 0 then raise exception 'FALLO 297 · la cola no envuelve los emails'; end if;
+  d := pg_get_functiondef('public.fn_email_envio_cliente(uuid,text,text,text,text)'::regprocedure);
+  if position('>Ver el envío</a>' in d) = 0 then raise exception 'FALLO 297 · el email al cliente sigue con el enlace de texto'; end if;
+end $$;
+set role authenticated;
+do $$ begin
+  begin perform email_con_diseno('<p>x</p>'); raise exception 'FALLO 297 · cualquiera con sesión puede usar el envoltorio';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 297 · emails con diseño común: logo, botones a todo el ancho en el móvil, firma y pie de Parámetros; la cola los envuelve';
+end $$;
+reset role;

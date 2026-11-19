@@ -122,6 +122,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 
+- [ ] **Emails «Envío creado» / «Envío modificado» que no llegan en pruebas (2026-11-19).** El usuario creó y cambió envíos con un cliente de pruebas suyo y no le llegó nada, ni la copia a info@. Postmark va por 55 de 100 este mes (no es el tope). Esos emails salen de la COLA de la base de datos (clave `postmark_token` en el Vault de Supabase), la parte que nunca se llegó a comprobar. Mirar en Supabase (SQL Editor) `select creado_en, tipo, estado, error from emails_enviados order by creado_en desc limit 15;`: «pendiente» = la cola no manda (Vault sin clave o la tarea programada no corre); «error» = el texto dice la causa.
+- [x] **Diseño común de TODOS los emails (2026-11-19):** cabecera morada con el logo, cuerpo en tarjeta (todo el ancho en el móvil), botones con el nombre de la acción en vez de enlaces, firma «Equipo de operaciones · Dynamo» con botones de llamar y escribir, pie con los datos de Parámetros. Un solo envoltorio, `email_con_diseno()`, para la cola de la base de datos y para los que salen de la web. **Probar en Gmail, Outlook y el iPhone** con el primer email real.
+- [x] **Calendario propio en toda la plataforma (2026-11-19):** `components/CampoFecha.tsx` sustituye a los 12 campos de fecha del navegador (el de Chrome cambiaba la fecha al pasar de mes y cerraba la ventana).
+- [x] **Entrega estimada en ventana (2026-11-19):** sin fecha de entrega fijada, la lista y las fichas enseñan la ventana de recogida + los días de viaje (600 km/día, días hábiles); al asignar el transportista manda su fecha.
+
 - [ ] 🤖 **CHATBOT DE IA — FASE 1 HECHA (2026-11-11), falta SOLO la clave**: montado el asistente para el
       equipo Dynamo (botón ✦ flotante del panel, migración `asistente_ia` con `ia_consulta_sql` SECURITY
       INVOKER + auditoría `ia_consultas`, prueba 193; agente en `lib/ia/agente.ts` con claude-opus-5-5 —

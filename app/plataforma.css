@@ -113,3 +113,50 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); opacity: 1; 
   input, select, textarea { font-size: 16px !important; }
   .vista-select { font-size: var(--fs-d1) !important; }  /* ya es ≥16px: conserva su tamaño */
 }
+
+/* ---- Calendario único de la plataforma (components/CampoFecha.tsx; usuario, 2026-11-19) ----
+   El campo se ve como el resto de campos de cada pantalla (hereda su clase) con la fecha
+   escrita «Mié 20/01/27» y un icono; el panel: esquinas redondas, sombra suave y el día
+   elegido en morado claro con el texto oscuro. */
+.campo-fecha { display: inline-flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;
+  min-height: 44px; padding: 0 0.85rem; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px;
+  font: inherit; color: var(--navy); text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.campo-fecha:hover:not(:disabled) { border-color: var(--purple); }
+.campo-fecha:focus-visible, .campo-fecha[aria-expanded="true"] { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51, 0, 204, .12); }
+.campo-fecha:disabled { background: #f3f4f6; color: var(--gray-500); cursor: not-allowed; }
+.campo-fecha-txt { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.campo-fecha-vacio { color: var(--gray-500); font-weight: 500; }
+.campo-fecha-ico { flex: none; color: var(--purple); }
+
+.cal-panel { position: fixed; z-index: 10050; box-sizing: border-box; padding: 14px 14px 10px; background: #fff;
+  border: 1px solid #eceaf5; border-radius: 18px; box-shadow: 0 18px 44px rgba(15, 10, 60, .16), 0 2px 8px rgba(15, 10, 60, .06);
+  color: #0b0b45; font-size: 15px; animation: calAparece .14s ease-out; }
+@keyframes calAparece { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.cal-cab { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 10px; }
+.cal-mes { font-weight: 800; font-size: 16px; text-transform: capitalize; }
+.cal-flechas { display: inline-flex; gap: 6px; }
+.cal-flecha { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: none;
+  border-radius: 10px; background: #f4f2fb; color: #0b0b45; cursor: pointer; transition: background .15s; }
+.cal-flecha:hover:not(:disabled) { background: #e9e4fb; }
+.cal-flecha:disabled { opacity: .35; cursor: default; }
+.cal-flecha:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.cal-rejilla { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-sem { text-align: center; font-size: 12px; font-weight: 700; color: #6b7280; padding: 2px 0 4px; }
+.cal-sem.cal-finde { color: #9ca3af; }
+.cal-dia { position: relative; height: 38px; border: none; border-radius: 11px; background: transparent; color: #0b0b45;
+  font: inherit; font-weight: 600; cursor: pointer; transition: background .12s, box-shadow .12s; }
+.cal-dia.cal-finde { color: #6b7280; }
+.cal-dia:hover:not(:disabled) { background: #f4f2fb; }
+.cal-dia:focus-visible { outline: 2px solid var(--purple); outline-offset: 1px; }
+.cal-dia.cal-hoy::after { content: ''; position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--purple); }
+.cal-dia.cal-elegido { background: #ece8fd; color: #0b0b45; font-weight: 800; box-shadow: 0 4px 12px rgba(51, 0, 204, .16), inset 0 0 0 1.5px rgba(51, 0, 204, .35); }
+.cal-dia:disabled { color: #d1d5db; cursor: default; text-decoration: line-through; text-decoration-color: rgba(209, 213, 219, .9); }
+.cal-pie { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f0f6; }
+.cal-pie-btn { border: none; background: none; padding: 6px 10px; border-radius: 9px; font: inherit; font-size: 14px; font-weight: 700; color: var(--gray-500); cursor: pointer; }
+.cal-pie-btn:hover:not(:disabled) { background: #f4f2fb; color: #0b0b45; }
+.cal-pie-hoy { color: var(--purple); }
+.cal-pie-btn:disabled { opacity: .4; cursor: default; }
+@media (max-width: 480px) { .cal-dia { height: 42px; } .cal-panel { font-size: 16px; } }
+
+/* Un «enlace» que en realidad es una acción (ir a otro paso): botón con aspecto de texto subrayado. */
+.enlace-paso { background: none; border: none; padding: 0; font: inherit; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }

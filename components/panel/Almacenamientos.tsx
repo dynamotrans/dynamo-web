@@ -21,6 +21,7 @@ import { opcionesFecha } from './FiltrosEnvios';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
+import CampoFecha from '@/components/CampoFecha';
 
 export type AlmacenamientoFila = AlmacenamientoDatos & {
   id: string; codigo: string; cliente: string | null; almacen: string; almacen_provincia: string; almacen_dir: string; entrega: string | null;
@@ -283,11 +284,11 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
         </div>
         <div>
           <label htmlFor="alm-ent">Fecha de entrada</label>
-          <input id="alm-ent" type="date" value={d.fecha_entrada} min={modoCliente && !fila ? hoy() : undefined} disabled={!editable} onChange={(e) => set('fecha_entrada', e.target.value)} />
+          <CampoFecha id="alm-ent" value={d.fecha_entrada} min={modoCliente && !fila ? hoy() : undefined} disabled={!editable} onChange={(v) => set('fecha_entrada', v)} />
         </div>
         <div>
           <label htmlFor="alm-sal">Fecha de salida <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· {diasTxt(Math.max(dias, 0))}</span></label>
-          <input id="alm-sal" type="date" value={d.fecha_salida} min={d.fecha_entrada} disabled={!editable} onChange={(e) => set('fecha_salida', e.target.value)} />
+          <CampoFecha id="alm-sal" value={d.fecha_salida} min={d.fecha_entrada || undefined} disabled={!editable} onChange={(v) => set('fecha_salida', v)} />
         </div>
         {dias > 7 && <div style={{ gridColumn: '1/-1' }} className="pt-aviso"><div>El servicio es de <strong>1 a 7 días</strong>. Si se alarga, cada semana empezada se cobra entera.</div></div>}
         <div>

@@ -40,6 +40,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { AVISO_DIAS_HABILES } from '@/lib/fechasCarga';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
+import CampoFecha from '@/components/CampoFecha';
 
 export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, pagoPrevio = false, reglas = null, emailPropio = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
@@ -79,9 +80,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [clientes, setClientes] = useState(clientesIni);
   const [cliente, setCliente] = useState<ClienteOpcion | null>(esCliente || (!be && clientesIni.length === 1) ? clientesIni[0] ?? null : be ? clientesIni.find((c) => c.id === be.cliente_id) ?? null : null);
   const sigK = useRef(10);
-  const calRef = useRef<HTMLInputElement>(null);   // campo de calendario que aparece al elegir «otra fecha»
   const [modoCal, setModoCal] = useState(false);   // true mientras se elige la fecha en el calendario
-  useEffect(() => { if (modoCal && calRef.current) { calRef.current.focus(); try { calRef.current.showPicker(); } catch { /* en iPhone el usuario toca el campo para abrirlo */ } } }, [modoCal]);
   // La ruta es UNA sola lista ordenada (usuario, 2026-11-08): recogidas y entregas pueden
   // ALTERNARSE libremente por el medio (recojo, entrego, recojo, entrego…). Las dos únicas
   // reglas, las mismas que impone la base de datos (validar_ruta_envio): la primera parada
@@ -923,6 +922,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       )}
     </div>
   );
+  // Festivo en los días de recogida: en el paso 3, debajo de las fechas (usuario, 2026-11-19;
+  // antes salía con los avisos de los sitios en el paso 4).
+  const avisoFestivo = festivosEnVentana.length > 0 ? (
+    <div className="pt-aviso error aviso-festivo" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
+      <strong>Festivo nacional en la fecha de carga.</strong> {festivosEnVentana.join(' · ')}. Puede que el almacén esté <strong>cerrado</strong> ese día: confírmalo con el punto de recogida.
+    </div></div>
+  ) : null;
   const avisosPaso4 = (
     <>
       {veranoSitios.some((x) => x.con) && (
@@ -944,11 +950,6 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             : <><strong>{r.nombre} no abre</strong> el {r.dias.map((d) => fmtFecha(d)).join(', ')} según su horario: la carga tendrá que hacerse otro día de la ventana.</>}
         </div></div>
       ))}
-      {festivosEnVentana.length > 0 && (
-        <div className="pt-aviso error aviso-festivo" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
-          <strong>Festivo nacional en la fecha de carga.</strong> {festivosEnVentana.join(' · ')}. Puede que el almacén esté <strong>cerrado</strong> ese día: confírmalo con el punto de recogida.
-        </div></div>
-      )}
     </>
   );
 
@@ -1294,9 +1295,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       // Calendario: se toca para abrirlo (en iPhone no se puede abrir solo). Al elegir el
                       // primer día, la ventana (1 a 3 días) calcula el rango sola.
                       <div className="ptar-cal-fila">
-                        <input ref={calRef} type="date" className="ptar-select ptar-dia-naranja" aria-label="Elige el día en el calendario" style={bordeFecha}
+                        {/* El calendario propio (usuario, 2026-11-19): pasar de mes ya no elige día ni
+                            cierra nada; solo se elige pulsando un día hábil. */}
+                        <CampoFecha className="ptar-dia-naranja" aria-label="Elige el día en el calendario" style={bordeFecha} abiertoAlInicio
                           min={fechaLibre ? undefined : dias[0]} max={maxFecha} value={fecha && !dias.includes(fecha) ? fecha : ''}
-                          onChange={(e) => { setFecha(e.target.value); if (e.target.value) setModoCal(false); }} />
+                          soloHabiles={!fechaLibre} festivos={fest} permitirBorrar={false}
+                          onChange={(v) => { setFecha(v); if (v) setModoCal(false); }} />
                         <button type="button" className="ptar-cal-volver" onClick={() => setModoCal(false)}>Volver a la lista</button>
                       </div>
                     )}
@@ -1318,6 +1322,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                           (usuario, 2026-11-18). */}
                     </div>
                   )}
+                  {avisoFestivo && <div className="ptar-field-full">{avisoFestivo}</div>}
                   {!manual && !fechaPasada && (
                     <div className="ptar-field-full">
                       <AvisoCorte urgencia={urgencia} festivos={festivos} ventana={ventanaDias} grupaje={esGrupaje} cortes={cortes} />
@@ -1343,11 +1348,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
             {paso === 3 && (
               <div className="form-2col-side">
-                {/* La fecha elegida ya se ve en el desplegable; aquí solo los avisos si los hay. */}
-                {((maxFecha && fecha > maxFecha) || avisoProvisional) && (
+                {/* La fecha elegida ya se ve en el desplegable; aquí solo el aviso de antelación
+                    máxima. El de «Precio provisional» ya no sale en este paso (usuario, 2026-11-19);
+                    queda en la ventana de confirmar. */}
+                {maxFecha && fecha > maxFecha && (
                   <div className="ptar-field ptar-field-full">
-                    {maxFecha && fecha > maxFecha && <div className="pt-aviso error"><div>Como mucho se puede programar con <strong>{reglas!.antelacion_max_dias} días</strong> de antelación. Para más, llámanos al {CONTACTO.telefono}.</div></div>}
-                    {avisoProvisional}
+                    <div className="pt-aviso error"><div>Como mucho se puede programar con <strong>{reglas!.antelacion_max_dias} días</strong> de antelación. Para más, llámanos al {CONTACTO.telefono}.</div></div>
                   </div>
                 )}
                 {manual ? (<>
@@ -1417,8 +1423,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
-                {/* El aviso del tráiler ya NO va aquí (usuario, 2026-11-18): sale en la
-                    ventana de «Confirmar envío» y no se repite. */}
+                {/* Aviso del tráiler debajo de los sitios (usuario, 2026-11-19; antes iba en la
+                    ventana de confirmar). Solo sin plataforma elevadora; el enlace lleva al paso 2. */}
+                {!manual && !plataforma && <div id="aviso-trailer-sitios" className="pt-aviso" style={{ marginTop: '0.8rem', marginBottom: 0 }}><IcoAviso /><div>
+                  <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
+                  <button type="button" className="enlace-paso" onClick={() => { setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</button>.
+                </div></div>}
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar
                     envío, solo en la vista de admin. */}
@@ -1632,17 +1642,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             )}
           </div>
         )}
-        {/* Caja NARANJA CLARO con el aviso del tráiler (usuario, 2026-11-18): que el cliente lo lea
-            justo antes de confirmar. Sin plataforma elevadora solamente; el enlace cierra
-            esta ventana y lleva al paso 2. */}
-        {!manual && !plataforma && <div id="confirma-aviso-trailer" className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
-          <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
-          <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setRevisarLegal(false); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
-        </div></div>}
-        {/* Días hábiles (usuario, 2026-11-19): también aquí, antes de aceptar las condiciones. */}
-        {!manual && <div id="confirma-dias-habiles" className="pt-aviso info" style={{ marginTop: '0.6rem', marginBottom: 0 }}><div>
-          <strong>Solo cuentan días hábiles.</strong> Las fechas de recogida y de entrega se cuentan de <strong>lunes a viernes, sin festivos</strong>: los sábados, domingos y festivos no cuentan ni para cargar ni para entregar.
-        </div></div>}
+        {/* Los avisos del tráiler (accesos y medios de carga) y de los días hábiles ya no van
+            en cajas aquí (usuario, 2026-11-19): están en las condiciones generales, apartados 9 y 15. */}
         {!manual && <div style={{ marginTop: '0.6rem' }}>
           <button type="button" onClick={() => setVerCondiciones((v) => !v)} aria-expanded={verCondiciones}
             style={{ background: 'none', border: 'none', padding: 0, color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', font: 'inherit', fontSize: 'var(--fs-m)', textDecoration: 'underline' }}>

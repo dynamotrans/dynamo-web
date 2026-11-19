@@ -20,7 +20,7 @@ test('título con la provincia y el día, un título por grupo y el botón a la 
   // Una vez en los completos y otra en los grupajes.
   assert.equal((h.match(/Hacia la provincia de tu base/g) ?? []).length, 2);
   assert.match(h, /Hacia provincias limítrofes de tu base/);
-  assert.match(h, /500,00 € \+ IVA[\s\S]*Completo[\s\S]*900,00 € \+ IVA[\s\S]*Grupaje/);
+  assert.match(h, /Completo[\s\S]*500,00 € <span[^>]*>\+ IVA[\s\S]*Grupaje[\s\S]*900,00 € <span[^>]*>\+ IVA/);
   assert.match(h, /href="https:\/\/web\/carga\/a"[^>]*>Ver carga/);
   assert.match(h, /Origen:<\/strong> CP 28020 · Madrid \(ES\)/);
   assert.match(h, /Destino:<\/strong> CP 46020 · Valencia \(ES\)/);

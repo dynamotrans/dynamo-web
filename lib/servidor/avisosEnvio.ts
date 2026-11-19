@@ -9,6 +9,7 @@ import { supabaseServicio } from '@/lib/supabase/servicio';
 import { CONTACTO } from '@/lib/atencion';
 import { fecha as fechaTxt } from '@/lib/formato';
 import { htmlCargasDeVuelta, type DatosVuelta } from '@/lib/cargasDeVuelta';
+import { botonesEmail } from '@/lib/emailBoton';
 import type { CmrPublico } from '@/app/cmr/[token]/tipos';
 
 // ---- Avisos de EVENTO por email (usuario, 2026-11-12) --------------------------------
@@ -29,7 +30,8 @@ async function origenActual(): Promise<string> {
   } catch { return 'https://www.dynamotrans.com'; }
 }
 
-const pie = `<p>— Dynamo Operador Logístico, S.L. · ${CONTACTO.email} · ${CONTACTO.telefono}</p>`;
+// La firma («Equipo de operaciones · Dynamo», con botones de llamar y escribir) la pone el
+// envoltorio común de los emails (email_con_diseno), igual en todos.
 
 // Email de contacto del transportista: tráfico primero, luego el principal.
 async function emailTransportista(sb: SB, transportistaId: string): Promise<string | null> {
@@ -113,19 +115,15 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string, 
     const vuelta = await bloqueCargasDeVuelta(sb, envio, origen, token ? { token, clave: e.transportista_id } : null);
     const html = completa ? `<p>Hola,</p>
 <p>${completaYa ? `Ya tenemos las matrículas del envío <strong>#${esc(e.referencia_gx)}</strong>` : `Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>`}${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos${completaYa ? ', las direcciones' : ''} y las condiciones.</p>
-${enlFirma ? `<p>Firma en este enlace tu e-CMR DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}
-${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
+${enlFirma ? `<p>Firma tu <strong>e-CMR digital en ruta</strong>: en el móvil o el ordenador, 100 % seguro, digital y legal (protocolo eIDAS).</p>` : ''}
+${botonesEmail([enlFirma ? ['Firmar el e-CMR', enlFirma] : null, enlEc ? ['Ver la orden de carga', enlEc, 'borde'] : null])}
 <p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
-${vuelta}
-${pie}` : `<p>Hola,</p>
+${vuelta}` : `<p>Hola,</p>
 <p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong>, de momento <strong>sin las direcciones</strong>.</p>
 ${CAJA_SIN_MATRICULAS}
-${enlMatr ? `<p style="margin:16px 0"><a href="${enlMatr}" style="display:inline-block;background:#dc2626;color:#ffffff;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px">Proporcionar matrículas del envío</a></p>
-<p style="font-size:13px;color:#555">Si el botón no se abre, copia esta dirección en el navegador: <a href="${enlMatr}">${enlMatr}</a></p>` : ''}
-${enlEc ? `<p>Esta orden (sin direcciones) también está aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
+${botonesEmail([enlMatr ? ['Proporcionar matrículas del envío', enlMatr, 'rojo'] : null, enlEc ? ['Ver la orden (sin direcciones)', enlEc, 'borde'] : null])}
 <p>Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
-${vuelta}
-${pie}`;
+${vuelta}`;
     // Sin matrículas, su propia clave: cuando lleguen, sale la orden completa (orden_carga:…).
     await enviarEmailOperativo({ clave: completa ? `orden_carga:${envio}:${e.transportista_id}` : `orden_carga_oculta:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
       para, asunto: completa ? `${completaYa ? 'Orden de carga con direcciones' : 'Orden de carga'} · envío #${e.referencia_gx} · Dynamo` : `Envío #${e.referencia_gx} confirmado · faltan las matrículas · Dynamo`, html, adjuntos });
@@ -157,8 +155,8 @@ ${pie}`;
 <p>Tu envío ya tiene <strong>transportista asignado</strong>${conMatriculas ? ' y las <strong>matrículas</strong> del camión' : ''}${fecha ? `, y carga el <strong>${esc(fechaTxt(fecha))}</strong>` : ''}. Va adjunta tu copia de la <strong>orden de carga en PDF</strong>.</p>
 ${conMatriculas ? '' : '<p>Las matrículas aún no están puestas: te avisaremos en cuanto las tengamos.</p>'}
 ${datos?.detalle ?? ''}
-<p>Lo sigues en vivo en <a href="${origen}/panel/envios?ver=${envio}">la ficha del envío</a>. Si hay cualquier cambio, te avisamos.</p>
-${pie}`;
+<p>Lo sigues en vivo en la ficha del envío. Si hay cualquier cambio, te avisamos.</p>
+${botonesEmail([['Ver el envío', `${origen}/panel/envios?ver=${envio}`]])}`;
       await enviarEmailOperativo({ clave: `orden_carga_cliente:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
         para: paraCli, asunto: `Transporte confirmado · envío #${e.referencia_gx}${org && dst ? ` (${org} → ${dst})` : ''}`, html: htmlCli, adjuntos: adjCli });
     }
@@ -212,9 +210,9 @@ export async function avisoDecaTransportista(d: { envioId: string; token: string
     ? `Va adjunto el <strong>DeCA</strong> (documento de control administrativo) del envío <strong>#${esc(e.referencia_gx)}</strong>`
     : `El <strong>DeCA</strong> del envío <strong>#${esc(e.referencia_gx)}</strong> ha cambiado. Va adjunta la <strong>versión vigente</strong>, que sustituye a la anterior`}${matr ? ` · matrículas <strong>${esc(matr)}</strong>` : ''}${e.conductor_nombre ? ` · conductor ${esc(e.conductor_nombre)}` : ''}.</p>
 <p><strong>El conductor debe llevarlo durante todo el transporte</strong>, en el móvil o impreso, y enseñarlo si se lo piden en una inspección (Orden FOM/2861/2012).</p>
-<p>Siempre al día en esta dirección, la misma que abre su código QR: <a href="${enlace}">${enlace}</a></p>
-<p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
-${pie}`;
+<p>Siempre al día en la misma dirección que abre su código QR:</p>
+${botonesEmail([['Ver el DeCA', enlace]])}
+<p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>`;
     const r = await enviarEmailOperativo({ clave: d.clave ?? `deca:${d.envioId}:${d.version}`, tipo: 'deca', envioId: d.envioId, para,
       asunto: `${d.primera ? 'DeCA' : 'DeCA actualizado'} · envío #${e.referencia_gx} · Dynamo`, html,
       adjuntos: [{ nombre: d.pdf.nombre, base64: Buffer.from(d.pdf.bytes).toString('base64'), tipo: 'application/pdf' }] });
@@ -247,7 +245,7 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
         clave: `firma_cmr:${token}:${ultima.rol}:${ultima.parada_id ?? 'cabecera'}`, tipo: 'firma_cmr', envioId,
         para: CONTACTO.email, asunto: `Firma del CMR · envío #${ref} · ${hechas} de ${total}`,
         html: `<p><strong>${esc(ultima.nombre)}</strong> (${esc(rolTxt)}) acaba de firmar el CMR del envío <strong>#${esc(ref)}</strong>: van <strong>${hechas} de ${total}</strong> firmas.</p>
-<p><a href="${origen}/cmr/${token}">Ver la hoja de firmas</a></p>${pie}`,
+${botonesEmail([['Ver la hoja de firmas', `${origen}/cmr/${token}`]])}`,
       });
     }
 
@@ -276,7 +274,8 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
           para: ff.email, asunto: `Tu copia del CMR · envío #${ref} · firma ${hechas} de ${total}`,
           html: `<p>Hola${ff.nombre ? ` ${esc(ff.nombre)}` : ''},</p>
 <p>Tu firma del CMR del envío <strong>#${esc(ref)}</strong> ha quedado registrada (van <strong>${hechas} de ${total}</strong> firmas). Va adjunta <strong>tu copia en PDF</strong> con las firmas de este momento.</p>
-<p>Cuando firmen todas las partes te llegará la <strong>copia final completa</strong>. Mientras tanto puedes seguirlo en vivo y abrir el PDF actualizado: <a href="${origen}/cmr/${token}">hoja de firmas</a> · <a href="${origen}/cmr/${token}/pdf">PDF</a>.</p>${pie}`,
+<p>Cuando firmen todas las partes te llegará la <strong>copia final completa</strong>. Mientras tanto puedes seguirlo en vivo y abrir el PDF actualizado.</p>
+${botonesEmail([['Ver la hoja de firmas', `${origen}/cmr/${token}`], ['Descargar el PDF', `${origen}/cmr/${token}/pdf`, 'borde']])}`,
           adjuntos: adj,
         });
       }
@@ -316,7 +315,7 @@ export async function avisosFirmaCmr(token: string): Promise<void> {
         clave: `cmr_completo:${token}`, tipo: 'cmr_completo', envioId, para: [...destinos].join(','),
         asunto: `CMR firmado por todas las partes · envío #${ref}`,
         html: `<p>El CMR del envío <strong>#${esc(ref)}</strong> ya está <strong>firmado por todas las partes</strong> (${total} de ${total}). Va adjunto en PDF, con las firmas y su registro.</p>
-<p>También se puede ver aquí: <a href="${origen}/cmr/${token}">hoja de firmas</a> · <a href="${origen}/cmr/${token}/pdf">PDF</a></p>${pie}`,
+${botonesEmail([['Ver la hoja de firmas', `${origen}/cmr/${token}`], ['Descargar el PDF', `${origen}/cmr/${token}/pdf`, 'borde']])}`,
         adjuntos,
       });
     }

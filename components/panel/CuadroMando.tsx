@@ -12,6 +12,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { euros, importe } from '@/lib/formato';
+import CampoFecha from '@/components/CampoFecha';
 
 export type Totales = { realizados: number; solicitados: number; cancelados: number; facturacion: number; margen: number; coste: number;
   km: number; fact_con_km: number; coste_con_km: number; sin_km: number; clientes: number; transportistas: number };
@@ -255,9 +256,9 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
         </nav>
         {periodo === 'otro' && (
           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <input type="date" className="param-input" value={desde} onChange={(e) => setDesde(e.target.value)} aria-label="Desde" />
+            <CampoFecha className="param-input" value={desde} onChange={setDesde} aria-label="Desde" style={{ width: 'auto', minWidth: 170 }} />
             <span className="meta">hasta</span>
-            <input type="date" className="param-input" value={hasta} onChange={(e) => setHasta(e.target.value)} aria-label="Hasta" />
+            <CampoFecha className="param-input" value={hasta} onChange={setHasta} aria-label="Hasta" min={desde || undefined} style={{ width: 'auto', minWidth: 170 }} />
             <button type="button" className="btn-secondary" onClick={() => ir('otro', desde, hasta)}>Ver</button>
           </div>
         )}

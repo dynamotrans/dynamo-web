@@ -183,6 +183,10 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       const x = m.get(f.id);
       if (x) Object.assign(f, { parada_actual: x.parada_actual, tipo_parada: x.tipo_parada, asignando: x.asignando, fecha_carga_prevista: x.fecha_carga_prevista, automatico: x.automatico });
     });
+    // Entrega estimada: la fijada o, sin ella, la ventana desde la recogida (usuario, 2026-11-19).
+    const { data: ent } = await supabase.rpc('entregas_estimadas', { p_ids: filas.map((f) => f.id) });
+    const me = new Map((ent ?? []).map((x) => [x.envio_id, x]));
+    filas.forEach((f) => { const x = me.get(f.id); if (x) Object.assign(f, { entrega_desde: x.desde, entrega_hasta: x.hasta }); });
   }
   // Etapas del envío abierto (cliente y transportista; la ficha de Dynamo las trae con ella).
   const etapasVer = !dynamo && sp.ver && /^[0-9a-f-]{36}$/i.test(sp.ver)
@@ -206,7 +210,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   let ficha = null, errorFicha: string | null = null;
   if (dynamo && sp.ver) {
     const r = await cargarFicha(supabase, sp.ver);
-    ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente' } : null; errorFicha = r.error;
+    // La entrega estimada (fijada o la ventana desde la recogida), como en la lista.
+    const { data: ent } = r.ficha ? await supabase.rpc('entregas_estimadas', { p_ids: [r.ficha.envio.id] }).maybeSingle() : { data: null };
+    ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente', entrega: ent ? { desde: ent.desde, hasta: ent.hasta } : null } : null; errorFicha = r.error;
     // Red de seguridad del archivo de copias del DeCA: si la versión de ahora no está
     // guardada (p. ej. una firma hecha sin clave de servicio), se guarda al abrir la ficha.
     if (r.ficha && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
@@ -227,6 +233,10 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     if (base && base.operador_id) {
       const { data: o } = await supabase.from('operadores').select('razon_social, email').eq('id', base.operador_id).maybeSingle();
       base = { ...base, operador: base.operador ?? o?.razon_social ?? null, operador_email: o?.email ?? null };
+    }
+    if (base && base.entrega_desde === undefined) {
+      const { data: ent } = await supabase.rpc('entregas_estimadas', { p_ids: [base.id] }).maybeSingle();
+      base = { ...base, entrega_desde: ent?.desde ?? null, entrega_hasta: ent?.hasta ?? null };
     }
     if (base) {
       const { data: hit } = await supabase.rpc('mis_hitos', { p_envio: base.id }).limit(100);

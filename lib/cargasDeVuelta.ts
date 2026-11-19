@@ -1,5 +1,6 @@
 import { fecha, euros, metros, pesoTn } from './formato';
 import { lugarCorto, PROVINCIAS_ES } from './provinciasEs';
+import { botonEmail } from './emailBoton';
 
 // ---- Cargas de vuelta al final del email de la orden (usuario, 2026-11-19) -------------
 // Envíos de Dynamo libres que salen de la provincia donde descarga el transportista, el
@@ -51,20 +52,24 @@ export type OpcionesVuelta = {
 const nombreTipo = (t: TipoCarga, n: number) => t === 'completa' ? 'Cargas completas'
   : n > 1 ? 'Grupajes <span style="text-transform:none;font-weight:600">(puedes combinar varios)</span>' : 'Grupajes';
 
+// Tarjeta de cada carga (usuario, 2026-11-19: diseño «tipo Uber/Cabify», con botones): la
+// fecha arriba aunque se repita, el precio grande, la etiqueta Completo/Grupaje, origen y
+// destino con su punto de color y el botón «Ver carga» (a todo el ancho en el móvil).
 function tarjeta(c: CargaVuelta, origen: string, dia?: string): string {
   const completo = c.tipo_carga === 'completa';
   const carga = [c.metros_lineales != null ? metros(c.metros_lineales) : null, c.toneladas != null ? pesoTn(c.toneladas) : null,
     c.mercancia || (c.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ');
-  // La fecha en cada carga, aunque se repita (usuario, 2026-11-19: máxima claridad).
-  return `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin:6px 0">
-${dia ? `<div style="font-weight:800;color:#0b0b45;margin-bottom:2px">${esc(fecha(dia))}</div>` : ''}
-<div><strong style="font-size:16px">${c.precio != null ? `${esc(euros(c.precio))} + IVA` : 'Precio a consultar'}</strong>
- <span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;${completo ? 'background:#ede9fe;color:#3300cc' : 'background:#ecfdf5;color:#047857'}">${completo ? 'Completo' : 'Grupaje'}</span></div>
-<div style="margin-top:2px">${esc(carga)}</div>
-<div style="margin-top:2px"><strong>Origen:</strong> ${esc(lugarCorto(c.origen))}</div>
-<div><strong>Destino:</strong> ${esc(lugarCorto(c.destino))}</div>
-<p style="margin:8px 0 0"><a href="${origen}/carga/${encodeURIComponent(c.token)}" style="display:inline-block;background:#3300cc;color:#ffffff;font-weight:700;text-decoration:none;padding:8px 16px;border-radius:8px">Ver carga</a></p>
-</div>`;
+  const punto = (color: string) => `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle"></span>`;
+  const chip = `<span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;${completo ? 'background:#ede9fe;color:#3300cc' : 'background:#dcfce7;color:#166534'}">${completo ? 'Completo' : 'Grupaje'}</span>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #ecebf3;border-radius:14px;margin:10px 0;background:#ffffff"><tr><td style="padding:14px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td style="font-size:13px;font-weight:800;color:#0b0b45;letter-spacing:.02em">${dia ? esc(fecha(dia)) : ''}</td>
+<td align="right">${chip}</td></tr></table>
+<div style="margin:6px 0 2px;font-size:20px;font-weight:800;color:#0b0b45">${c.precio != null ? `${esc(euros(c.precio))} <span style="font-size:13px;font-weight:600;color:#6b7280">+ IVA</span>` : 'Precio a consultar'}</div>
+<div style="font-size:14px;color:#4b5563;margin-bottom:8px">${esc(carga)}</div>
+<div style="font-size:14px;line-height:1.7">${punto('#f97316')}<strong>Origen:</strong> ${esc(lugarCorto(c.origen))}<br>${punto('#16a34a')}<strong>Destino:</strong> ${esc(lugarCorto(c.destino))}</div>
+<p style="margin:12px 0 0">${botonEmail('Ver carga', `${origen}/carga/${encodeURIComponent(c.token)}`)}</p>
+</td></tr></table>`;
 }
 
 export function htmlCargasDeVuelta(r: DatosVuelta | null, origen: string, op: OpcionesVuelta = {}): string {
@@ -84,20 +89,20 @@ export function htmlCargasDeVuelta(r: DatosVuelta | null, origen: string, op: Op
     const vistas = todas.slice(0, max);
     let grupo = 0;
     const filas = vistas.map((c) => {
-      const cab = c.criterio !== grupo ? `<p style="margin:8px 0 4px;font-weight:700;color:#3300cc">${esc(grupos[c.criterio] ?? '')}</p>` : '';
+      const cab = c.criterio !== grupo ? `<p style="margin:16px 0 2px;font-size:13px;font-weight:800;color:#3300cc">${esc(grupos[c.criterio] ?? '')}</p>` : '';
       grupo = c.criterio;
       return cab + tarjeta(c, origen, r.dia);
     }).join('');
     const enlace = op.verTodas && todas.length > vistas.length ? op.verTodas(t) : null;
-    const boton = enlace ? `<p style="margin:10px 0 4px"><a href="${enlace}" style="display:inline-block;border:2px solid #3300cc;color:#3300cc;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:8px">Ver más ${t === 'completa' ? 'cargas completas' : 'grupajes'} (${todas.length})</a></p>` : '';
-    return `<p style="margin:16px 0 2px;font-size:15px;font-weight:800;color:#0b0b45;text-transform:uppercase">${nombreTipo(t, vistas.length)}</p>${filas}${boton}`;
+    const boton = enlace ? `<p style="margin:12px 0 6px">${botonEmail(`Ver más ${t === 'completa' ? 'cargas completas' : 'grupajes'} (${todas.length})`, enlace, 'borde')}</p>` : '';
+    return `<p style="margin:22px 0 4px;font-size:16px;font-weight:800;color:#0b0b45">${nombreTipo(t, vistas.length)}</p>${filas}${boton}`;
   }).join('');
   if (!secciones) return '';
-  return `<div style="margin:22px 0 10px;padding-top:12px;border-top:2px solid #3300cc">
+  return `<div style="margin:28px 0 12px;padding:18px 16px 8px;background:#f7f6fc;border-radius:16px">
 ${regreso
-    ? `<p style="margin:0 0 4px;font-size:17px;font-weight:800;color:#0b0b45">Y de nuevo en ${esc(prov)}: cargas el ${esc(fecha(r.dia))}</p>
+    ? `<p style="margin:0 0 6px;font-size:19px;line-height:1.3;font-weight:800;color:#0b0b45">Y de nuevo en ${esc(prov)}: cargas el ${esc(fecha(r.dia))}</p>
 <p style="margin:0 0 6px;color:#555">Para cuando vuelvas al origen: envíos de Dynamo libres que salen de ${esc(prov)} 2 días hábiles después de esta carga.</p>`
-    : `<p style="margin:0 0 4px;font-size:17px;font-weight:800;color:#0b0b45">¿Ya tienes carga en ${esc(prov)} cuando descargues el ${esc(fecha(r.dia))}?</p>
+    : `<p style="margin:0 0 6px;font-size:19px;line-height:1.3;font-weight:800;color:#0b0b45">¿Ya tienes carga en ${esc(prov)} cuando descargues el ${esc(fecha(r.dia))}?</p>
 <p style="margin:0 0 6px;color:#555">Envíos de Dynamo libres que salen de donde descargas, el mismo día. Pulsa «Ver carga» para ver los datos y aceptarla.</p>`}
 ${secciones}</div>`;
 }

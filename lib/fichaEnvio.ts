@@ -50,7 +50,8 @@ export type Ficha = {
   cambioTransportista: CambioTransportistaFicha | null;   // última propuesta de cambios al transportista
   difusion: DifusionFicha | null;   // última oferta escalonada del envío (activa o terminada)
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
-  enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
+  enVistaCliente?: boolean;
+  entrega?: { desde: string | null; hasta: string | null } | null;   // entrega estimada (entregas_estimadas)   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Con transportista y sin las matrículas que pide el documento de control (camión y, en un
   // tráiler, semirremolque): la ficha lo avisa (no bloquea nada).
   faltanMatriculas?: boolean;

@@ -3908,6 +3908,7 @@ export type Database = {
       documento_es_valido: { Args: { p_doc: string | null }; Returns: boolean }
       domingo_de_pascua: { Args: { p_anio: number | null }; Returns: string }
       duracion_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
+      email_con_diseno: { Args: { p_html: string | null; p_remitente?: string | null }; Returns: string }
       email_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       emails_cliente_envio: { Args: { p_envio: string | null }; Returns: string }
       emails_contabilidad_envio: { Args: { p_envio: string | null }; Returns: string }
@@ -3923,6 +3924,7 @@ export type Database = {
       enlace_carga_vigente: { Args: { p_envio: string | null }; Returns: boolean }
       enlace_cmr_publico: { Args: { p_reserva: string | null }; Returns: string }
       entrega_estimada_sugerida: { Args: { p_envio: string | null; p_dia: string | null }; Returns: string }
+      entregas_estimadas: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; desde: string; hasta: string; fijada: boolean }[] }
       enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_con_transportista: { Args: { p_envio: string | null }; Returns: boolean }
@@ -3930,6 +3932,7 @@ export type Database = {
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
       envio_detalle_html: { Args: { p_envio: string | null }; Returns: string }
       envio_detalle_transportista_html: { Args: { p_envio: string | null }; Returns: string }
+      envio_dias_viaje: { Args: { p_envio: string | null }; Returns: number }
       envio_en_pestana: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_pestana: string | null }; Returns: boolean }
       envio_es_manual: { Args: { p_envio: string | null }; Returns: boolean }
       envio_fecha_carga_texto: { Args: { p_desde: string | null; p_hasta: string | null; p_prevista: string | null }; Returns: string }

@@ -16,7 +16,7 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
-import { estadoVisual, type EnvioFila, type Parada } from '@/lib/envios';
+import { estadoVisual, fechaEntrega, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
 import { avisarPagoTransferencia, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
@@ -217,7 +217,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           <button className="btn-primary" style={{ background: 'var(--red)' }} disabled={!!trabajando} onClick={() => hacer('Cancelando', () => cancelarMiEnvio(e.id, motivo))}>Sí, cancelar</button>
         </>}>
         {trabajando && <Cargando texto={trabajando} />}
-        <div className="modal-warn-box">
+        {/* Sin coste es una buena noticia: caja verde clara con texto verde oscuro (usuario,
+            2026-11-19: en naranja «asusta»). Con su transportista propio sigue en naranja. */}
+        <div className={manual ? 'modal-warn-box' : 'modal-ok-box'}>
           {/* Con SU transportista (envío manual) no pinta nada lo del «transportista asignado»
               ni el coste: eso es entre él y su transportista (usuario, 2026-11-16). */}
           {manual
@@ -367,7 +369,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
           <div className="pen-sum-row"><span className="k">Creado</span><span className="v" style={{ textAlign: 'right' }}>{fechaHora(e.creado_en)}</span></div>
           <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}
-          <div className="pen-sum-row"><span className="k">Entrega estimada</span><span className="v">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</span></div>
+          <div className="pen-sum-row"><span className="k">Entrega estimada</span><span className="v">{e.fecha_entrega_estimada || e.entrega_desde ? fechaEntrega(e) : <Pend />}</span></div>
           {e.modificado_en && <div className="pen-sum-row"><span className="k">Última modificación</span><span className="v">{fechaHora(e.modificado_en)}</span></div>}
           {e.discrecion_comercial && <div className="pen-sum-row pen-sum-col"><span className="k">Discreción comercial</span><span className="v"><span style={{ color: 'var(--purple)' }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</span></div>}
         </div>

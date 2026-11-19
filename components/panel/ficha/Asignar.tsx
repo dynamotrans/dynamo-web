@@ -12,6 +12,7 @@ import ListaFlotante from '../ListaFlotante';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import { I, ICO, SubProps, aNum } from './comun';
+import CampoFecha from '@/components/CampoFecha';
 
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 
@@ -245,7 +246,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
               {dias.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)} · {DIAS[w]}{w === 0 || w === 6 ? ' (no circula)' : ''}</option>; })}
             </select>
           ) : conVentana ? (
-            <input id="as-dia" type="date" value={diaCarga} onChange={(ev) => { manualRef.current = false; setDiaCarga(ev.target.value); }} />
+            <CampoFecha id="as-dia" value={diaCarga} onChange={(v) => { manualRef.current = false; setDiaCarga(v); }} />
           ) : <div style={{ minHeight: 40, display: 'flex', alignItems: 'center', fontWeight: 700 }}>{fecha(dias[0])} (fecha fija)</div>}
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Con este día va el seguimiento automático: sale hacia la carga y llega a la 1.ª parada a la hora de Parámetros.</div>
         </div>

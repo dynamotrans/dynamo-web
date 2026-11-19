@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { hoyMadrid } from '@/lib/formato';
 import Req from '@/components/Req';
+import CampoFecha from '@/components/CampoFecha';
 
 // Los bancos en los que cobra Dynamo. Si cambia de banco, se añade aquí.
 export const BANCOS_COBRO = ['Santander', 'CaixaBank', 'BBVA'];
@@ -53,8 +54,8 @@ export default function FormTransferencia({ gx, onConfirmar, onCancelar, ocupado
       </div>
       <div>
         <label htmlFor="tr-fecha">Fecha de la transferencia <Req /></label>
-        <input id="tr-fecha" type="date" value={dia} max={hoy} disabled={ocupado}
-          onChange={(e) => { const d = e.target.value; setDia(d); setFalta(null); if (!tocado && d) setConcepto(conceptoDe(gx, d)); }} />
+        <CampoFecha id="tr-fecha" value={dia} max={hoy} disabled={ocupado}
+          onChange={(d) => { setDia(d); setFalta(null); if (!tocado && d) setConcepto(conceptoDe(gx, d)); }} />
       </div>
       {falta && <div className="pt-aviso error" role="alert" style={{ margin: 0 }}><div>{falta}</div></div>}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>

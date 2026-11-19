@@ -17,6 +17,7 @@ import Documentos from './Documentos';
 import { documentosDe } from '@/app/panel/(app)/documentos/acciones';
 import Cargando from '@/components/Cargando';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
+import { fechaEntrega } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha } from '@/lib/fichaEnvio';
 import PagoPrevio from './PagoPrevio';
@@ -450,7 +451,7 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
           <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {/* El día que el transportista eligió dentro de la ventana, junto a ella. */}
           {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}
-          <div className="pen-sum-row"><span className="k">Entrega estimada</span><span className="v">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</span></div>
+          <div className="pen-sum-row"><span className="k">Entrega estimada</span><span className="v">{e.fecha_entrega_estimada || ficha.entrega?.desde ? fechaEntrega({ fecha_entrega_estimada: e.fecha_entrega_estimada, entrega_desde: ficha.entrega?.desde, entrega_hasta: ficha.entrega?.hasta }) : <Pend />}</span></div>
           {e.modificado_en && <div className="pen-sum-row"><span className="k">Última modificación</span><span className="v">{fechaHora(e.modificado_en)}</span></div>}
           {e.discrecion_comercial && <div className="pen-sum-row pen-sum-col"><span className="k">Discreción comercial</span><span className="v"><span style={{ color: 'var(--purple)' }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</span></div>}
         </div>

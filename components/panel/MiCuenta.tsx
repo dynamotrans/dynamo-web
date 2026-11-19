@@ -24,6 +24,7 @@ import MedidorClave, { claveValida } from '@/components/MedidorClave';
 import { CONTACTO } from '@/lib/atencion';
 import Tip from '@/components/Tip';
 import { SIGLAS } from '@/lib/siglas';
+import CampoFecha from '@/components/CampoFecha';
 
 // Los idiomas de los avisos: la lista única de lib/idiomas.ts (la misma que ve Dynamo en Usuarios).
 const IDIOMAS = IDIOMAS_AVISOS;
@@ -338,7 +339,7 @@ function useGuardar(onHecho: () => void) {
   return { error, trabajando, correr };
 }
 const fechaCampo = (id: string, label: string, valor: string, onCambio: (v: string) => void) => (
-  <div><label htmlFor={id}>{label} <Req si={false} /></label><input id={id} type="date" value={valor} onChange={(e) => onCambio(e.target.value)} /></div>
+  <div><label htmlFor={id}>{label} <Req si={false} /></label><CampoFecha id={id} value={valor} onChange={onCambio} /></div>
 );
 
 function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: string }; onCerrar: () => void; onHecho: () => void }) {

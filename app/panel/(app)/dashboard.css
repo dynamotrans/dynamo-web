@@ -5376,3 +5376,13 @@ table.data td.creadopor .cli-tag {
 }
 table.data td.creadopor .creado-quien { white-space: normal; }
 table.data td.creadopor .creado-quien strong { color: var(--gray-700); }
+
+/* Lista de envíos (usuario, 2026-11-19): la pastilla «1 · Recogida» en su propia fila,
+   arriba, y debajo la fecha y los datos del sitio (antes iban al lado y se apretaban). */
+table.data td.route-full .rf-stops .rf-line { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
+
+/* Buena noticia dentro de una ventana (p. ej. «cancelarlo ahora no tiene ningún coste»):
+   verde claro con el texto verde oscuro (usuario, 2026-11-19). */
+.modal-ok-box { background: #ecfdf3; border: 1px solid #bbf7d0; border-radius: 10px; padding: 0.7rem 0.85rem; font-size: var(--fs-m); color: #14532d; margin-bottom: 1rem; line-height: 1.5; }
+.modal-ok-box strong { color: #166534; }
