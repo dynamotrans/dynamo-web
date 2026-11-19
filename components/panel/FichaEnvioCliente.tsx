@@ -76,6 +76,7 @@ export type EnvioCliente = EnvioClienteBase & {
   asignandose?: boolean;   // un transportista se está asignando ahora mismo (reserva en curso o contraoferta pendiente)
 };
 const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
+const Reservado = ({ que }: { que: string }) => <span style={{ color: 'var(--gray-700)', fontWeight: 600 }}>Camión reservado, {que}.</span>;
 
 export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string }) {
   const router = useRouter();
@@ -115,6 +116,10 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
   // botones quedan apagados y la ficha lo avisa; si no, el cliente vería «sin transportista»
   // y cancelaría gratis justo cuando ya hay uno comprometiéndose.
   const asignandose = !!e.asignandose && e.estado === 'programado';
+  // CAMIÓN RESERVADO (usuario, 2026-11-19): con transportista asignado el transporte está
+  // confirmado aunque aún falten la matrícula o el conductor; en vez de «Pendiente», se dice
+  // «Camión reservado, … pendiente de anotar» para que el cliente esté tranquilo.
+  const reservado = !!(e.transportista_asignado || e.matricula_camion || e.conductor_nombre);
   const modo = asignandose ? 'asignando' as const : modoModificar(e, e.cambio);
   // SIEMPRE todo plegado al abrir (usuario, 2026-11-10), como la ficha de Dynamo.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -298,16 +303,16 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
         {!manual && e.estado !== 'cancelado' && (
           <div id="ficha-transporte" style={{ marginTop: '0.45rem', paddingTop: '0.45rem', borderTop: '1px dashed var(--gray-300)' }}>
             <div className="pen-sum-row"><span className="k">Transporte</span><span className="v">
-              {e.estado === 'entregado' ? 'Entregado' : e.matricula_camion || e.conductor_nombre
+              {e.estado === 'entregado' ? 'Entregado' : reservado
                 ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
                 : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin camión todavía</span>}
             </span></div>
             <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
-              {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : <Pend />}
+              {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : reservado && e.estado !== 'entregado' ? <Reservado que="matrículas pendientes de anotar" /> : <Pend />}
               {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
             </span></div>
             <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
-              {e.conductor_nombre || (e.estado === 'entregado' ? '—' : <Pend />)}
+              {e.conductor_nombre || (e.estado === 'entregado' ? '—' : reservado ? <Reservado que="conductor pendiente de anotar" /> : <Pend />)}
               {e.estado !== 'entregado' && e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
             </span></div>
           </div>
