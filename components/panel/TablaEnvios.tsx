@@ -232,6 +232,8 @@ function Parada({ p, fechaTxt, tipo, n }: { p: Parada; fechaTxt: string; tipo: '
 function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: string; dynamo: boolean; creador?: string; href?: string }) {
   const ev = estadoVisual(e);
   const asig = asignacion(e);
+  const reservado = !!(e.transportista_asignado || e.estado_asignacion === 'confirmada' || ['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado));
+  const vivoSinMatricula = !e.es_manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) && !esPendientePago(e);
   const { recogidas, entregas } = paradasDe(e);
   const fc = fechaCarga(e), fe = fechaEntrega(e);
   const manual = !!e.es_manual;
@@ -300,10 +302,15 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
             (usuario, 2026-11-17). */}
         {e.matricula_camion
           ? <span className="meta-matricula">{e.matricula_camion}{e.matricula_remolque ? ` / ${e.matricula_remolque}` : ''}</span>
+          // Para el CLIENTE, sin matrícula (usuario, 2026-11-19): «Camión reservado» en verde si ya
+          // hay transportista, «Asignando transportista» en naranja si todavía no. Dynamo sigue
+          // viendo «Sin matrícula» en rojo, que es lo que tiene que anotar.
+          : !dynamo && vivoSinMatricula
+            ? <span className={`badge ${reservado ? 'badge-green' : 'badge-orange'}`} style={{ whiteSpace: 'nowrap' }}>{reservado ? 'Camión reservado' : 'Asignando transportista'}</span>
           : e.transportista_asignado
             ? <span className="meta" style={{ color: 'var(--red)', fontWeight: 800 }}>Sin matrícula</span>
             : <span className="meta meta-pend">Sin matrícula</span>}
-        {!e.matricula_camion && e.matricula_remolque && <div className="meta"><span className="meta-matricula" style={{ fontSize: 'var(--fs-s)' }}>{e.matricula_remolque}</span></div>}
+        {!e.matricula_camion && e.matricula_remolque && (dynamo || !vivoSinMatricula) && <div className="meta"><span className="meta-matricula" style={{ fontSize: 'var(--fs-s)' }}>{e.matricula_remolque}</span></div>}
         {dynamo && e.conductor_nombre && <div className="meta">{e.conductor_nombre}</div>}
         {dynamo && e.conductor_telefono && <div className="meta">{e.conductor_telefono}</div>}
       </td>
