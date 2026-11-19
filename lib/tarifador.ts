@@ -1,4 +1,6 @@
-// Tarifador BORRADOR (v1, 2026-11-08): el motor de precio sugerido del mockup
+// Tarifador BORRADOR (v1, 2026-11-08): el motor de precio sugerido del mockup. Las ideas
+// para el tarifador real (modificaciones, temporadas, margen por ruta) están en TARIFADOR.md.
+// Origen: el motor
 // (public/dashboard.html), portado tal cual a la plataforma. TODOS los números son
 // PROVISIONALES (MOCK) hasta que llegue la tarifa real del usuario; entonces los
 // coeficientes pasarán a la carpeta `tarifa` de la base de datos y aquí quedará solo

@@ -1,0 +1,89 @@
+# Tarifador · ideas y reglas para cuando se monte el de verdad
+
+> Notas del usuario (2026-11-19) para tenerlas presentes al montar el tarifador real y las
+> modificaciones de envío. **Nada de esto está programado todavía**: son criterios a decidir
+> y a convertir en parámetros. El motor de hoy es el BORRADOR de `lib/tarifador.ts` (importe
+> fijo de 700 € de relleno hasta que lleguen las tarifas reales).
+
+## 1. Lo que ya existe y debe seguir siendo un condicionante
+
+- **Distancia (km) de la ruta** y **precio del gasóleo** como base del importe (hoy el motor
+  por km y ocupación está escrito pero apagado; ver `ocupacionCamion` en `lib/tarifador.ts`).
+- **Ocupación**: metros lineales y peso sobre el máximo del camión (tráiler 13,30 m · 24 Tn;
+  rígido 8 m · 14 Tn). Grupaje frente a carga completa. Descuento por peso bajo en completo.
+- **Tipo de fecha**: fecha fija (y si es el primer día disponible, urgente) · recogida de
+  1 a 2, 1 a 3 o 1 a 4 días. Alternativas más baratas que calcula por detrás.
+- **Tipo de sitio** de cada parada: almacén / nave / campa (sin recargo), obra en zona amplia,
+  obra en zona urbana, finca (con recargo; `recargos_tipo_sitio`). Al cliente no se le dice
+  qué tipos llevan recargo.
+- **Mercancía y forma de carga**: no paletizada, carga/descarga por techo (más cara en verano),
+  plataforma elevadora, NIMA (residuos), ADR.
+- **Paradas extra** (más de 2 puntos).
+- **Factor del cliente** (`clientes.factor_tarifa_pct`, de −30 % a +30 %, solo lo ve Dynamo):
+  p. ej. +10 % a clientes poco exigentes con el precio, −5 % a los que aprietan. Se congela en
+  cada envío (`factor_tarifa_envio`). Si no está fijado a mano, manda el descuento de
+  bienvenida (`factor_automatico`).
+- **Sábados y domingos**: los clientes NO pueden pedir carga en fin de semana. Si llega algo
+  puntual, lo crea a mano el Admin Master o un empleado con el precio que estime.
+
+## 2. Modificar un envío ya pedido: cuándo se deja y cómo se recalcula
+
+**Caso tipo**: Madrid → Sevilla, recogida de 1 a 3 días (la económica), pedido con tiempo para
+el viernes. El viernes, ya cargando, el cliente dice que se entrega en otra localidad a 30 km
+de la dirección de Sevilla.
+
+**Precio al cambiar la dirección**
+- Se recalculan los km de la ruta nueva.
+- **Si salen MENOS km: el precio NO baja.** Se respeta el precio acordado (y el del chófer).
+- **Si salen MÁS km: se cobra solo la diferencia de km, con las condiciones del día en que se
+  pidió el envío** (su tipo de fecha y su antelación), **no como si se pidiera hoy con urgencia**.
+  Si no, cambiar a un almacén del polígono de al lado podría encarecer 150 € por tarifar de
+  nuevo como fecha urgente, y eso no tiene sentido.
+
+**Cuándo se permite la modificación (idea a cerrar)**
+- Solo se pueden **cambiar los sitios que ya están puestos**; se pueden **quitar paradas**, pero
+  **no añadir** (el número de paradas no puede crecer).
+- El **origen** (primera recogida) y el **destino final** no pueden moverse más de **35 km**
+  de donde estaban. Lo mismo para cada parada que se cambie por otra.
+- La **ruta total** no puede crecer más de un **10 %** o de **60 km** (a decidir cuál, o el
+  menor de los dos).
+- Si el cambio es a **otra provincia**, o cambia el recorrido de verdad (p. ej. Madrid →
+  Ciudad Real → Sevilla pasa a Madrid → Barcelona → Sevilla), **no se modifica**: hay que
+  **cancelar** (el chófer puede estar ya comprometido al día siguiente en Sevilla).
+- Fuera de estos límites: cancelar, o que lo decida Dynamo a mano. A decidir.
+- Todos estos números (35 km, 10 %, 60 km) deberían ser **parámetros**.
+
+## 3. Temporadas: calendarios de tarifas con % de subida
+
+- Verano, Semana Santa, Navidad… suben los precios. Idea: **calendarios de tarifa** con fechas
+  y un **% de incremento** que se aplica solo al llegar esas fechas (según la fecha de carga).
+- Editable por Dynamo (fechas que se repiten cada año y fechas sueltas), como los festivos.
+
+## 4. Oferta y demanda: ajustar la tarifa al margen real
+
+- Además de las temporadas, el precio que pagamos al transportista sube o baja según la oferta
+  y la demanda (p. ej. en marzo, sin nada especial, de repente cuesta más encontrar camión).
+- Idea: el tarifador mira el **margen real** de los envíos recientes de la **misma ruta**
+  (provincia de origen → provincia de destino, mismo tipo: completo o grupaje) en los últimos
+  días o semanas.
+- Si el margen baja (p. ej. de 80 € a 70, 60 o 50 € en carga completa porque los transportistas
+  que aceptan cobran más), el tarifador **sube la tarifa en proporción** para volver al margen
+  objetivo (mismo % o mismos euros de margen). Y al revés, con cuidado, si el margen sube.
+- A decidir: ventana de tiempo que se mira, mínimo de envíos para fiarse del dato, tope de
+  subida o bajada por semana, y si el ajuste lo aplica solo o lo propone a Dynamo para aprobar.
+- La tabla de precios internos que ya enseña Nuevo envío (último precio de la misma ruta y de
+  todas) es el embrión de esto (`tablaInterna` en `lib/tarifador.ts`).
+
+## 5. Orden de cálculo propuesto (borrador)
+
+1. Base por km y gasóleo, según ocupación (completo / grupaje, ml y peso).
+2. Paradas extra y recargos por tipo de sitio.
+3. Suplementos de mercancía y forma de carga (techo, plataforma, NIMA, ADR…).
+4. Tipo de fecha (fija / urgente / ventanas).
+5. % de temporada (calendario de tarifas).
+6. Ajuste por margen reciente de la ruta (oferta y demanda).
+7. Factor del cliente.
+8. Redondeo.
+
+Al **modificar** un envío ya pedido, los pasos 4 a 7 se toman **congelados del día en que se
+pidió** y solo se recalcula lo que cambia por la ruta (km de más), según el apartado 2.

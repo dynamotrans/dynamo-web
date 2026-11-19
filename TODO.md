@@ -967,3 +967,6 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - [x] Preparado en pruebas: precio orientativo en la portada (mismo tarifador del panel), 3 cálculos al día por IP (parámetro `tarifador_web_max_ip_dia`) y, pasado el límite, botón «Crear cuenta · tarifas ilimitadas*».
 - [ ] Nace APAGADO (`tarifador_web_con_precio` = false). Encenderlo en Parámetros → Plataforma → «Tarifador de la web pública» solo cuando estén cargadas las tarifas reales (hoy el importe del envío es el relleno fijo de 700 €).
 - [ ] Opcional: variable `TARIFA_WEB_SAL` en Vercel (texto cualquiera, secreto) para la huella de la IP; sin ella se usa una por defecto.
+
+## 2026-11-19 · Ideas para el tarifador real y las modificaciones de envío
+- [ ] Leer **TARIFADOR.md** antes de montar el tarifador real o las modificaciones de envío: precio al cambiar una dirección (si baja, se respeta; si sube, solo los km de más con las condiciones del día del pedido), límites para permitir la modificación (35 km, +10 % o +60 km de ruta, sin añadir paradas, otra provincia = cancelar), calendarios de tarifa por temporada y ajuste automático por el margen real de la ruta.
