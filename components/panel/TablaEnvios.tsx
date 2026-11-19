@@ -86,7 +86,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
     return `/panel/envios${u.toString() ? `?${u}` : ''}`;
   };
 
-  const columnas = 6 + (dynamo ? 4 : 1);
+  const columnas = 6 + (dynamo ? 3 : 1);
 
   return (
     <section className="section active" id="sec-cargas">
@@ -146,15 +146,15 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
       <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
+            {/* Dynamo: la PRIMERA columna dice de quién es el envío (usuario, 2026-11-19):
+                el cliente en una etiqueta azul marino, su CIF y quién lo creó y cuándo. */}
+            {dynamo && <th>Cliente · creado por</th>}
             <th>Envío</th><th>Recogida</th><th>Entrega</th>
-            {dynamo && <th className="cliente-col">Cliente · CIF</th>}
             <th>Mercancía</th><th>{dynamo ? 'Transportista' : 'Vehículo'}</th>
             {rol !== 'transportista' && <th>P. cliente<SubBase /></th>}
             {dynamo && <th className="col-ptransp">P. transportista<SubBase /></th>}
             {dynamo && <th className="col-margen">Margen<SubBase /></th>}
             {rol === 'transportista' && <th>Tu precio<SubBase /></th>}
-            {/* «Creado por»: solo para Dynamo (usuario, 2026-11-18: fuera de la lista del cliente). */}
-            {dynamo && <th>Creado por</th>}
           </tr></thead>
           <tbody>
             {trozo.length === 0 ? (
@@ -256,6 +256,15 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
 
   return (
     <Fila href={href} className={urgencia(e) || undefined}>
+      {dynamo && (
+        <td className="creadopor">
+          <span className="cli-tag" title={e.cliente ?? undefined}>{e.cliente ?? 'Sin cliente'}</span>
+          {e.cliente_cif && <div className="meta" style={{ whiteSpace: 'nowrap' }}>CIF {e.cliente_cif}</div>}
+          <div className="meta creado-quien">Creado por <strong>{creador ?? '—'}</strong></div>
+          {e.creado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Creación: {fechaHora(e.creado_en)}</div>}
+          {e.modificado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Modificación: {fechaHora(e.modificado_en)}</div>}
+        </td>
+      )}
       <td className="ref">
         <div className="envio-estado envio-estado-top"><span className={`badge badge-${ev.color}`}>{ev.label}</span></div>
         {esPendientePago(e) && (e.pago_avisado_en
@@ -291,12 +300,6 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
             las entregas siguen la cuenta de las recogidas, como en la ruta de Nuevo envío. */}
         {entregas.map((p, i) => <Parada key={i} p={p} fechaTxt={fe} tipo="dest" n={recogidas.length + i + 1} />)}
       </div></div></td>
-      {dynamo && (
-        <td className="cliente-col">
-          <strong>{e.cliente ?? '—'}</strong>
-          <div className="meta" style={{ whiteSpace: 'nowrap' }}>{e.cliente_cif ?? '—'}</div>
-        </td>
-      )}
       <td className="mercancia">
         {e.paletizado === false ? 'No paletizado' : 'Paletizado'}
         {medidas(e) && <div className="meta meta-medidas">{medidas(e)}</div>}
@@ -335,13 +338,6 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         </td>
       )}
       {rol === 'transportista' && <td className="amount"><strong>{pt != null ? euros(pt) : '—'}</strong></td>}
-      {dynamo && (
-        <td className="creadopor" style={{ whiteSpace: 'nowrap', fontSize: 'var(--fs-s)', color: 'var(--gray-700)' }}>
-          <strong>{creador ?? '—'}</strong>
-          {e.creado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Creación: {fechaHora(e.creado_en)}</div>}
-          {e.modificado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Modificación: {fechaHora(e.modificado_en)}</div>}
-        </td>
-      )}
     </Fila>
   );
 }

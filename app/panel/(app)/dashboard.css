@@ -5365,3 +5365,14 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 .pago-avisado .pa-ico { font-size: 1.3rem; line-height: 1.2; flex: 0 0 1.8rem; text-align: center; }
 .pago-avisado > span:last-child { min-width: 0; }
 .cuenta-atras-grande .ca-reloj { flex: 0 0 auto; }
+
+/* Lista de envíos de Dynamo: primera columna con el CLIENTE en una etiqueta azul marino
+   (usuario, 2026-11-19), su CIF y quién creó el envío. */
+table.data td.creadopor { font-size: var(--fs-s); color: var(--gray-700); min-width: 150px; max-width: 220px; }
+table.data td.creadopor .cli-tag {
+    display: inline-block; max-width: 100%; padding: 2px 9px; border-radius: 999px;
+    background: #1e3a8a; color: #fff; font-weight: 800; font-size: 0.74rem; line-height: 1.5;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: top;
+}
+table.data td.creadopor .creado-quien { white-space: normal; }
+table.data td.creadopor .creado-quien strong { color: var(--gray-700); }
