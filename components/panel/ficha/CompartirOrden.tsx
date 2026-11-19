@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import Modal from '../Modal';
+import { ACCESIBILIDAD_TITULO, ACCESIBILIDAD_TEXTO } from '@/lib/condicionesTransportista';
 import { euros, ventana, fecha, metros, pesoTn } from '@/lib/formato';
 import { telBonito, paisDe as nombrePais } from '@/lib/paises';
 import { nombreTipo } from '../TipoSitio';
@@ -103,6 +104,8 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
     lineaFirma ? `· ${lineaFirma}` : null,
     lineaFirma ? '' : null,
     '· PDF ADJUNTO: LA ORDEN DE CARGA (documento completo, con los datos y las condiciones)',
+    '',
+    `IMPORTANTE · ${ACCESIBILIDAD_TITULO.toUpperCase()}: ${ACCESIBILIDAD_TEXTO}`,
     '',
     `Si cambian las matrículas o el conductor, avísanos ANTES de la carga. Urgencias e incidencias 24 h: ${telBonito(CONTACTO.telefono)}.`,
   ].filter((x) => x !== null).join('\n');

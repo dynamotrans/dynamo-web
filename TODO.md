@@ -959,3 +959,6 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 
 > 📌 **Otros proyectos del usuario (NO mezclar con Dynamo):**
 > Para tareas del proyecto **agenciadetransporte-web** ver `HANDOFF-agenciadetransporte.md` en la raíz de este repo (es un archivo de traspaso temporal hasta que se clone el repo nuevo).
+
+## 2026-11-19 · Cláusula de accesibilidad para el transportista
+- [ ] Revisar con el asesor legal la redacción de «Accesibilidad de los puntos de carga y descarga» (lib/condicionesTransportista.ts): sale en las condiciones de la orden de carga (PDF), en la pantalla de aceptar la carga y en el mensaje con la orden. Añadirla también a las condiciones generales para transportistas de la web (dynamotrans.com/condiciones-transportistas), que no están en este repositorio.

@@ -92,6 +92,9 @@ test.describe.serial('flujos clave', () => {
       const dia = await t.locator('select#f-dia option:not([disabled])').nth(1).getAttribute('value');
       await t.locator('select#f-dia').selectOption(dia!);
     }
+    // Al aceptar declara que las direcciones son accesibles para su camión (2026-11-19).
+    await expect(t.locator('#aceptar-accesibilidad')).toContainText('Accesibilidad de los puntos de carga y descarga');
+    await expect(t.locator('#aceptar-accesibilidad')).toContainText('almacenamiento, reexpedición o devolución');
     await t.getByRole('button', { name: 'ACEPTAR envío' }).click();
     await expect(t.getByText('¡Envío aceptado!')).toBeVisible();
     await expect.poll(async () => (await ultimoEnvio()).transportista_id).not.toBeNull();

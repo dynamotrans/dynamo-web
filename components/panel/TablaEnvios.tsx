@@ -241,7 +241,10 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
     : e.es_manual ? { txt: 'Sin matrícula', cls: 'badge-gray' }
     : e.estado === 'borrador' ? null
     : reservado ? { txt: 'Camión reservado', cls: 'badge-green' }
-    : { txt: 'Asignando transportista', cls: 'badge-orange' };
+    // Igual que el estado del envío (usuario, 2026-11-19): si aún no se está buscando
+    // camión, «Programado»; si se está buscando, «Asignando transportista».
+    : e.asignando ? { txt: 'Asignando transportista', cls: 'badge-orange' }
+    : { txt: 'Programado', cls: 'badge-gray' };
   const { recogidas, entregas } = paradasDe(e);
   const fc = fechaCarga(e), fe = fechaEntrega(e);
   const manual = !!e.es_manual;

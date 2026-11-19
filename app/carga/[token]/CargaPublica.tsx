@@ -19,6 +19,7 @@ import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
 import type { OfertaPublica, ReservaPublica, ParadaPublica } from './tipos';
 import Req from '@/components/Req';
+import { ACCESIBILIDAD_TITULO, ACCESIBILIDAD_TEXTO } from '@/lib/condicionesTransportista';
 import { avisaFaltas } from '@/lib/faltas';
 
 type Parada = ParadaPublica;
@@ -494,6 +495,11 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
         </div>
       )}
 
+      {/* Al aceptar, el transportista declara que las direcciones son accesibles para su
+          camión (usuario, 2026-11-19). El mismo texto va en las condiciones de la orden. */}
+      <div id="aceptar-accesibilidad" className="warn" style={{ display: 'block', marginBottom: '0.7rem' }}>
+        <strong>{ACCESIBILIDAD_TITULO}.</strong> Al aceptar, {ACCESIBILIDAD_TEXTO.charAt(0).toLowerCase()}{ACCESIBILIDAD_TEXTO.slice(1)}
+      </div>
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}
       {noEncontrado && !o.para_transportista && <button type="button" className="btn-sec" style={{ width: '100%', marginBottom: '0.6rem' }} onClick={() => setAlta(true)}>No estoy en Dynamo · darme de alta y aceptar</button>}
       <button className="btn" onClick={aceptarla} disabled={trabajando}>{trabajando ? 'Aceptando…' : contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR envío'}</button>
