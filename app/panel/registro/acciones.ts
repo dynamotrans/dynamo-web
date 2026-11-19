@@ -53,7 +53,9 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
   const { data: abierto } = await supabase.rpc('registro_clientes_abierto');
   if (abierto === false) return mal(undefined, 'Actualmente no estamos dando de alta nuevos usuarios. Sentimos las molestias.');
   const { data: bloqueada } = await supabase.rpc('alta_bloqueada', { p_email: d.email });
-  if (bloqueada) return mal(undefined, 'Actualmente no estamos dando de alta nuevos usuarios. Sentimos las molestias.');
+  // A los vetados, «la plataforma no está operativa» (usuario, 2026-11-19): no se les dice que
+  // no se admiten altas (eso es el registro cerrado para todos) ni que están bloqueados.
+  if (bloqueada) return mal(undefined, 'La plataforma no está operativa en este momento. Sentimos las molestias.');
   const { error } = await supabase.auth.signInWithOtp({
     email: d.email,
     options: {

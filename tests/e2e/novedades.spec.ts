@@ -612,6 +612,19 @@ test.describe('novedades', () => {
     await expect(cuerpo).toContainText('seguimiento_velocidad_kmh');
   });
 
+  test('registro con un dominio vetado: «la plataforma no está operativa», sin revelar el bloqueo', async ({ page }) => {
+    await bd().from('bloqueos_alta').upsert({ tipo: 'dominio', valor: 'vetado-e2e.test', motivo: 'prueba e2e' }, { onConflict: 'tipo,valor', ignoreDuplicates: true });
+    await page.goto('/panel/registro');
+    await page.fill('#reg-email', 'alguien@vetado-e2e.test');
+    await page.fill('#reg-nombre', 'Persona Vetada');
+    await page.fill('#reg-dni', '12345678Z');
+    await page.fill('#reg-tel', '611222333');
+    await page.locator('input[name=acepto]').check();
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await expect(page.getByText('La plataforma no está operativa en este momento')).toBeVisible();
+    await expect(page.locator('main, body').first()).not.toContainText('bloque');
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

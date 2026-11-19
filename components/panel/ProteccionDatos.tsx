@@ -102,7 +102,7 @@ function BloqueosAlta() {
       <h3 style={{ margin: '0 0 0.35rem', fontSize: 'var(--fs-l)' }}>Bloqueos de alta</h3>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '0 0 0.7rem' }}>
         Emails o dominios enteros que <strong>no pueden volver a darse de alta</strong> (p. ej. una cuenta conflictiva que pidió el borrado).
-        Quien lo intente ve solo «Actualmente no estamos dando de alta nuevos usuarios», sin saber que está bloqueado.
+        Quien lo intente ve solo «La plataforma no está operativa en este momento», sin saber que está bloqueado.
       </p>
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.7rem' }}><div>{error}</div></div>}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
@@ -181,7 +181,7 @@ function Confirmar({ p, onCerrar, onHecho }: { p: Persona; onCerrar: () => void;
             <input type="checkbox" checked={bDominio} onChange={(e) => setBDominio(e.target.checked)} style={{ marginTop: 3 }} />
             <span>Bloquear también <strong>todo su dominio</strong> (@{dominio}): nadie de esa empresa podrá registrarse</span>
           </label>
-          <div className="meta">Quien lo intente verá solo «Actualmente no estamos dando de alta nuevos usuarios», sin más. La lista se gestiona abajo, en «Bloqueos de alta».</div>
+          <div className="meta">Quien lo intente verá solo «La plataforma no está operativa en este momento», sin más. La lista se gestiona abajo, en «Bloqueos de alta».</div>
         </div>
       )}
       <label htmlFor="anon-p" style={{ display: 'block', marginTop: '0.8rem' }}>Para confirmar, escribe <strong>{p.tipo === 'usuario' ? 'su email' : 'ANONIMIZAR'}</strong></label>
