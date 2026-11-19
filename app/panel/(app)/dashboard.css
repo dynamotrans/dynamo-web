@@ -4913,6 +4913,8 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
     /* Botones a 2 columnas; subtítulos de las CTAs ocultos. */
     .dash-top-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
     .dash-top-row .dash-cta-text p { display: none; }
+    /* El botón principal del cliente va a lo ancho: su subtítulo sí cabe y se enseña. */
+    .dash-top-2 .dash-cta-stack > .dash-cta-purple .dash-cta-text p { display: block; }
 }
 /* En escritorio, igualar la altura de la cabecera del sidebar y de la
    barra superior para que su borde inferior quede en la misma línea.

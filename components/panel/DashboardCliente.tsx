@@ -89,7 +89,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
           <div className="dash-cta-stack">
             <Link className="dash-cta dash-cta-purple" href="/panel/nuevo-envio">
               <div className="dash-cta-icon"><Svg size={28}><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></div>
-              <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicita un transporte</p></div>
+              <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicitar un transporte / Ver coste de envío</p></div>
             </Link>
             {/* «Otras gestiones» en cuadrícula (usuario, 2026-11-10), siempre a la vista:
                 Reportar incidencia · Crear sitio · Administración, los tres en una fila. */}
