@@ -985,4 +985,5 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 ## 2026-11-19 · Cargas de vuelta en el email de la orden de carga
 - [x] Al final del email de la orden al transportista (aceptada por la web o asignada a mano): hasta 15 envíos libres de la bolsa que salen de la provincia de su última descarga el mismo día de la descarga. Orden: hacia la provincia de su base, hacia la de donde venía, hacia provincias limítrofes de su base y el resto; completos primero. Precio + IVA, metros, peso, mercancía, origen y destino (CP · provincia · país) y botón «Ver carga».
 - [x] Segundo bloque al final: «Y de nuevo en [origen]»: envíos que salen de la provincia de ORIGEN 2 días hábiles después de la carga (lunes Madrid→Barcelona → miércoles desde Madrid), mismos criterios; el grupo 2 es la misma ruta.
-- [ ] Ideas: que el número máximo (15) sea un parámetro; mostrar también las de ventana que empiecen al día siguiente; añadirlas al mensaje de «Compartir» (WhatsApp).
+- [x] Primero las del MISMO tipo que el envío (completo o grupaje) con sus grupos 1-2-3-resto; luego las del otro tipo. Máximo 25 por bloque.
+- [ ] Ideas: que el número máximo (25) sea un parámetro; mostrar también las de ventana que empiecen al día siguiente; añadirlas al mensaje de «Compartir» (WhatsApp).

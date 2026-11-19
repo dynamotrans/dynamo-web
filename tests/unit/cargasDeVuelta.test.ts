@@ -15,9 +15,10 @@ test('sin cargas no pinta nada', () => {
 
 test('título con la provincia y el día, un título por grupo y el botón a la carga', () => {
   const h = htmlCargasDeVuelta({ dia: '2026-11-30', desde: { codigo_postal: '28001', pais: 'ES' }, cargas: [
-    c({ token: 'a' }), c({ token: 'b', tipo_carga: 'grupaje', metros_lineales: 6, precio: 900 }), c({ token: 'c', criterio: 3, mercancia: 'Bobinas' })] }, 'https://web');
+    c({ token: 'a' }), c({ token: 'c', criterio: 3, mercancia: 'Bobinas' }), c({ token: 'b', tipo_carga: 'grupaje', metros_lineales: 6, precio: 900 })] }, 'https://web');
   assert.match(h, /Cargas desde Madrid el Lun 30\/11\/26/);
-  assert.equal((h.match(/Hacia la provincia de tu base/g) ?? []).length, 1);
+  // Una vez en los completos y otra en los grupajes.
+  assert.equal((h.match(/Hacia la provincia de tu base/g) ?? []).length, 2);
   assert.match(h, /Hacia provincias limítrofes de tu base/);
   assert.match(h, /500,00 € \+ IVA[\s\S]*Completo[\s\S]*900,00 € \+ IVA[\s\S]*Grupaje/);
   assert.match(h, /href="https:\/\/web\/carga\/a"[^>]*>Ver carga/);
@@ -38,4 +39,12 @@ test('bloque de regreso: su título y el grupo 2 es la misma ruta', () => {
   assert.match(h, /Y de nuevo en Madrid: cargas el Mié 25\/11\/26/);
   assert.match(h, /La misma ruta que este envío/);
   assert.doesNotMatch(h, /¿Vuelves cargado\?/);
+});
+
+test('un título por tipo (completos / grupajes) y los grupos se repiten dentro de cada uno', () => {
+  const h = htmlCargasDeVuelta({ dia: '2026-11-30', desde: { codigo_postal: '28001', pais: 'ES' }, tipo_envio: 'completa', cargas: [
+    c({ token: 'a' }), c({ token: 'b', criterio: 3 }), c({ token: 'c', tipo_carga: 'grupaje', metros_lineales: 6 })] }, 'https://web');
+  assert.match(h, /Cargas completas[\s\S]*Hacia la provincia de tu base[\s\S]*Hacia provincias limítrofes[\s\S]*Grupajes[\s\S]*Hacia la provincia de tu base/);
+  assert.equal((h.match(/Cargas completas/g) ?? []).length, 1);
+  assert.equal((h.match(/>Grupajes</g) ?? []).length, 1);
 });
