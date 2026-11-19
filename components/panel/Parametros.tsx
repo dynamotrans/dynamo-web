@@ -72,6 +72,8 @@ const SECCIONES: Seccion[] = [
   { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
     { titulo: 'Registro de clientes nuevos', claves: ['registro_clientes_abierto'] },
+    // Tarifador de la web pública (usuario, 2026-11-19): precio sin cuenta, con límite por IP.
+    { titulo: 'Tarifador de la web pública', claves: ['tarifador_web_con_precio', 'tarifador_web_max_ip_dia'] },
     { titulo: 'Doble paso del equipo de Dynamo', claves: ['doble_paso_equipo'] },
     { titulo: 'Sesión: días sin volver a escribir la contraseña', claves: ['sesion_recordar_dias', 'sesion_dias'] },
     { titulo: 'Protección de datos', claves: ['rgpd_limpieza_activa', 'rgpd_telefono_conductor_anios'] },

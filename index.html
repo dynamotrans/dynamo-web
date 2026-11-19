@@ -1133,6 +1133,20 @@
         .tar-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(51,0,204,0.45); }
         .tar-cta svg { width: 18px; height: 18px; }
         .tar-cta-options { display: none; }
+        /* Precio orientativo de la web (tarifador_web_con_precio) y, pasado el límite
+           diario por IP, la invitación a crear cuenta (usuario, 2026-11-19). */
+        .tar-precio { margin: 0 0 0.6rem; padding: 0.75rem 0.9rem; border-radius: 12px; background: #f4f2fb; border: 1px solid #ddd6fe; color: #1f1147; font-size: 0.86rem; line-height: 1.45; animation: fadeUp 0.35s ease both; }
+        .tar-precio[hidden] { display: none; }
+        .tar-precio .tp-lbl { font-size: 0.74rem; font-weight: 800; color: #5b4b8a; text-transform: uppercase; letter-spacing: 0.4px; }
+        .tar-precio .tp-num { font-size: 1.7rem; font-weight: 900; color: var(--purple); line-height: 1.15; }
+        .tar-precio .tp-num span { font-size: 0.85rem; font-weight: 700; color: #5b4b8a; }
+        .tar-precio .tp-eta { font-weight: 700; margin-top: 0.15rem; }
+        .tar-precio .tp-quedan { margin-top: 0.35rem; color: #5b4b8a; }
+        .tar-precio .tp-quedan a, .tar-precio .tp-otra { color: var(--purple); font-weight: 800; }
+        .tar-precio .tp-otra { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; text-decoration: underline; }
+        .tar-precio .tp-lim { font-weight: 800; }
+        .tar-precio .tp-btn { display: block; margin-top: 0.55rem; padding: 0.7rem; border-radius: 12px; text-align: center; text-decoration: none; font-weight: 900; text-transform: uppercase; letter-spacing: 0.4px; color: #fff; background: linear-gradient(135deg, var(--purple), var(--purple-light)); }
+        .tar-precio .tp-ast { margin-top: 0.4rem; font-size: 0.74rem; color: #6b6290; }
         .tar-cta-wrap.open .tar-cta { display: none; }
         .tar-cta-wrap.open .tar-cta-options {
             display: flex; gap: 0.6rem;
@@ -2680,6 +2694,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                     Solicitar tarifa
                 </button>
+                <div class="tar-precio" id="tar-precio" role="status" aria-live="polite" hidden></div>
                 <div class="tar-cta-options" id="tar-cta-options">
                     <a class="tar-cta-btn tar-cta-email" id="tar-cta-email" href="#" rel="noopener" aria-label="Pedir precio por email">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
@@ -5321,6 +5336,7 @@ function updateAlmTotal() {
             // Cartel de error + cerrar Email/WhatsApp si estaban abiertos
             warning.classList.remove('show');
             document.getElementById('tar-cta-wrap').classList.remove('open');
+            var tp = document.getElementById('tar-precio'); if (tp) { tp.hidden = true; tp.innerHTML = ''; }
             if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         });
     })();
@@ -5425,7 +5441,84 @@ function updateAlmTotal() {
         document.getElementById('tar-cta-email').href = msg.mail;
         document.getElementById('tar-cta-wa').href = msg.wa;
         document.getElementById('tar-cta-wrap').classList.add('open');
+        calcularPrecioWeb();
     });
+
+    // ---- Precio orientativo (web sin cuenta, con límite diario por IP) ----
+    // Lo calcula el servidor (/api/tarifa-web) con el tarifador del panel. Si el
+    // parámetro tarifador_web_con_precio está apagado (o falla), no se enseña nada y la
+    // web queda como siempre: Email / WhatsApp. Pasado el límite del día, en vez del
+    // precio, el botón de crear cuenta («tarifas ilimitadas*»).
+    function geoDe(wrap) {
+        var el = wrap && (wrap.dataset.lat ? wrap : wrap.querySelector('[data-lat]'));
+        var lat = el ? parseFloat(el.dataset.lat) : NaN, lon = el ? parseFloat(el.dataset.lon) : NaN;
+        return { lat: isFinite(lat) ? lat : null, lon: isFinite(lon) ? lon : null };
+    }
+    function puntoDe(wrap, sel) {
+        var g = geoDe(wrap);
+        return { lat: g.lat, lon: g.lon, tipo: sel ? sel.value : 'Almacén / Nave' };
+    }
+    function datosPrecio() {
+        var puntos = [puntoDe(origWrap, tipoOrig)];
+        recRows().forEach(function (r) { puntos.push(puntoDe(r.querySelector('.ptar-input-wrap') || r, r.querySelector('select'))); });
+        puntos.push(puntoDe(destWrap, tipoDest));
+        entRows().forEach(function (r) { puntos.push(puntoDe(r.querySelector('.ptar-input-wrap') || r, r.querySelector('select'))); });
+        var rigido = !!(trampChk && trampChk.checked);
+        var ml = parseFloat(mlSel.value); if (!isFinite(ml)) ml = rigido ? 8 : 13.3;
+        var peso = parseFloat(pesoSel.value); if (!isFinite(peso)) peso = rigido ? 14 : 24;
+        var ct = card.querySelector('[data-ptar-cargatipo]');
+        var techo = !!(ct && /techo/i.test(ct.options[ct.selectedIndex].text));
+        var fecha = null;
+        if (diaSel) {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) fecha = diaSel.value;
+            else if (diaSel.value === 'otro' && fechaInput && /^\d{4}-\d{2}-\d{2}$/.test(fechaInput.value)) fecha = fechaInput.value;
+        }
+        var urg = urgSel ? urgSel.value : 'estandar';
+        if (['dia', 'estandar', 'corta', 'larga'].indexOf(urg) < 0) urg = 'estandar';
+        return { puntos: puntos.slice(0, 4), ml: ml, peso: peso, rigido: rigido, nima: !!(nimaChk && nimaChk.checked),
+            paletizada: !mercaSel || mercaSel.selectedIndex === 0, techo: techo, urgencia: urg, fecha: fecha };
+    }
+    var DIAS_C = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    function fechaCorta(iso) {
+        var d = new Date(iso + 'T00:00:00');
+        return DIAS_C[d.getDay()] + ' ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getFullYear()).slice(2);
+    }
+    var eurosFmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+    var calculando = false;
+    function calcularPrecioWeb() {
+        var box = document.getElementById('tar-precio');
+        if (!box || calculando) return;
+        calculando = true;
+        fetch('/api/tarifa-web', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosPrecio()) })
+            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                if (r.resultado === 'ok') {
+                    var eta = r.etaDesde ? (r.etaHasta && r.etaHasta !== r.etaDesde ? 'del ' + fechaCorta(r.etaDesde) + ' al ' + fechaCorta(r.etaHasta) : fechaCorta(r.etaDesde)) : '';
+                    box.innerHTML =
+                        '<div class="tp-lbl">Precio orientativo</div>' +
+                        '<div class="tp-num" id="tar-precio-num">' + eurosFmt.format(r.neto) + ' <span>+ IVA</span></div>' +
+                        (r.fecha ? '<div>Carga desde el ' + fechaCorta(r.fecha) + '</div>' : '') +
+                        (eta ? '<div class="tp-eta">Entrega estimada: ' + eta + '</div>' : '') +
+                        '<div class="tp-quedan">' + (r.quedan > 0 ? 'Te ' + (r.quedan === 1 ? 'queda 1 cálculo' : 'quedan ' + r.quedan + ' cálculos') + ' de precio hoy · <button type="button" class="tp-otra" id="tar-precio-otra">Volver a calcular</button>' : 'Era tu último cálculo de precio de hoy.') +
+                        ' <a href="/panel/registro">Crea tu cuenta</a> para tarifas ilimitadas*.</div>' +
+                        '<div class="tp-ast">Precio sin IVA, orientativo: se confirma al hacer el pedido. * Con tu cuenta de cliente, cálculos sin límite diario (uso razonable).</div>';
+                    box.hidden = false;
+                    var otra = document.getElementById('tar-precio-otra');
+                    if (otra) otra.addEventListener('click', calcularPrecioWeb);
+                } else if (r.resultado === 'limite') {
+                    box.innerHTML =
+                        '<div class="tp-lim">Has hecho los ' + (r.max || 3) + ' cálculos de precio de hoy.</div>' +
+                        '<div>Crea tu cuenta de cliente gratis y calcula todas las tarifas que necesites. También puedes pedirnos el precio por email o WhatsApp.</div>' +
+                        '<a class="tp-btn" id="tar-precio-registro" href="/panel/registro">Crear cuenta · tarifas ilimitadas*</a>' +
+                        '<div class="tp-ast">* Con tu cuenta de cliente, cálculos sin límite diario (uso razonable).</div>';
+                    box.hidden = false;
+                } else {
+                    box.hidden = true; box.innerHTML = '';
+                }
+            })
+            .catch(function () { box.hidden = true; box.innerHTML = ''; })
+            .then(function () { calculando = false; });
+    }
 
     // Regenerar el mensaje justo antes de navegar (captura ediciones tardías).
     ['tar-cta-email', 'tar-cta-wa'].forEach(function (id) {

@@ -3964,7 +3964,7 @@ do $$ declare faltan text; begin
                            'provincias_colindantes',   -- dato fijo de referencia (como festivos): nadie escribe en ella
                            'provincias_comunidades',   -- dato fijo de referencia (como festivos): nadie escribe en ella
                            'recargos_tipo_sitio', 'restricciones_servicio', 'distancias_cp', 'distancias_sitios',
-                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
+                           'conexion_minutos', 'consultas_precio', 'consultas_precio_web', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
                            'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
                            'emails_enviados')              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
@@ -12732,4 +12732,44 @@ do $$ declare e uuid; s uuid; cli uuid := current_setting('prueba.cliente')::uui
   j := paradas_viaje_json(e);
   if j -> 1 ->> 'tipo_sitio' is distinct from 'obra_zona_urbana' then raise exception 'FALLO 287 · paradas_viaje_json() no trae el tipo de sitio: %', j -> 1; end if;
   raise notice 'OK 287 · las paradas del cliente y del transportista traen el tipo de sitio';
+end $$;
+
+-- ---- 288. Tarifador de la web pública: límite de cálculos por IP (sin cuenta) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'tarifador_web_con_precio';
+set role anon;
+do $$ declare h text := repeat('a', 64); r jsonb; begin
+  -- Apagado: no se apunta nada y la web sigue sin precio.
+  r := tarifa_web_apuntar(h);
+  if r ->> 'resultado' <> 'apagado' then raise exception 'FALLO 288 · con el tarifador web apagado no responde «apagado»: %', r; end if;
+  begin perform tarifa_web_apuntar('no-es-una-huella'); raise exception 'FALLO 288 · acepta una huella que no es SHA-256';
+  exception when invalid_parameter_value then null; end;
+  begin perform count(*) from consultas_precio_web; raise exception 'FALLO 288 · alguien sin sesión puede leer los cálculos de la web';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update parametros set valor = 'true' where clave = 'tarifador_web_con_precio';
+update parametros set valor = '3' where clave = 'tarifador_web_max_ip_dia';
+set role anon;
+do $$ declare h text := repeat('b', 64); otra text := repeat('c', 64); r jsonb; begin
+  for i in 1..3 loop
+    r := tarifa_web_apuntar(h);
+    if r ->> 'resultado' <> 'ok' or (r ->> 'quedan')::int <> 3 - i then raise exception 'FALLO 288 · cálculo % de 3: %', i, r; end if;
+  end loop;
+  if jsonb_typeof(r -> 'festivos') <> 'array' then raise exception 'FALLO 288 · no devuelve los festivos'; end if;
+  r := tarifa_web_apuntar(h);
+  if r ->> 'resultado' <> 'limite' or (r ->> 'max')::int <> 3 then raise exception 'FALLO 288 · el cuarto cálculo del día no da «limite»: %', r; end if;
+  -- Otra IP tiene sus propios 3.
+  if tarifa_web_apuntar(otra) ->> 'resultado' <> 'ok' then raise exception 'FALLO 288 · el límite de una IP afecta a otra'; end if;
+end $$;
+reset role;
+do $$ begin
+  if (select count(*) from consultas_precio_web where ip_huella = repeat('b', 64)) <> 3 then raise exception 'FALLO 288 · el intento por encima del límite se ha apuntado'; end if;
+  -- Al día siguiente vuelve a tener sus 3 (los de ayer no cuentan).
+  update consultas_precio_web set cuando = cuando - interval '1 day' where ip_huella = repeat('b', 64);
+  if tarifa_web_apuntar(repeat('b', 64)) ->> 'resultado' <> 'ok' then raise exception 'FALLO 288 · los cálculos de ayer siguen contando hoy'; end if;
+  update parametros set valor = 'false' where clave = 'tarifador_web_con_precio';
+  delete from consultas_precio_web;
+  raise notice 'OK 288 · tarifador web: apagado por defecto, 3 cálculos al día por IP (huella), el 4.º da «limite», sin leer la tabla sin sesión';
 end $$;

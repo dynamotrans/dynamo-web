@@ -757,6 +757,25 @@ export type Database = {
           },
         ]
       }
+      consultas_precio_web: {
+        Row: {
+          id: number
+          ip_huella: string
+          cuando: string
+        }
+        Insert: {
+          id?: number
+          ip_huella: string
+          cuando?: string
+        }
+        Update: {
+          id?: number
+          ip_huella?: string
+          cuando?: string
+        }
+        Relationships: [
+        ]
+      }
       contactos: {
         Row: {
           id: string
@@ -4119,6 +4138,7 @@ export type Database = {
       sugerencias_transportistas_publicas: { Args: { p_reserva: string | null; p_q: string | null }; Returns: { nombre: string; cif: string; poblacion: string }[] }
       sumar_dias_habiles: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       tarifa_almacen: { Args: { p_almacen: string | null }; Returns: { semana: number; reparto: number }[] }
+      tarifa_web_apuntar: { Args: { p_ip_huella: string | null }; Returns: Json }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null }; Returns: string }
       texto_enlace_cmr_sitio: { Args: { p_recogida: boolean | null; p_url: string | null; p_hora: string | null }; Returns: string }

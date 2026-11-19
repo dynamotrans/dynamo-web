@@ -625,6 +625,48 @@ test.describe('novedades', () => {
     await expect(page.locator('main, body').first()).not.toContainText('bloque');
   });
 
+  test('tarifador de la web pública: precio con 3 cálculos al día por IP y, después, «Crear cuenta»', async ({ page }) => {
+    const sb = bd();
+    await sb.from('parametros').update({ valor: true }).eq('clave', 'tarifador_web_con_precio');
+    await sb.from('parametros').update({ valor: 3 }).eq('clave', 'tarifador_web_max_ip_dia');
+    await sb.from('consultas_precio_web').delete().gte('id', 0);
+    const rellenar = async () => {
+      await page.goto('/');
+      const card = page.locator('#tarifador-card');
+      if (!(await card.locator('[data-ptar-orig]').isVisible())) {
+        // En la portada el tarifador se abre con el botón «Precios».
+        const abrir = page.getByRole('button', { name: /^(Precios|Calcular tarifa)$/i });
+        if (await abrir.count()) await abrir.first().click();
+      }
+      await card.locator('[data-ptar-orig]').fill('Sevilla');
+      await card.locator('[data-ptar-dest]').fill('Madrid');
+      await page.keyboard.press('Escape');
+      for (let i = 0; i < 2; i++) {
+        const sig = page.locator('[data-wiz-next]');
+        if (await sig.isVisible()) await sig.click();
+      }
+      await page.locator('#tar-cta').click();
+    };
+    try {
+      await rellenar();
+      await expect(page.locator('#tar-precio-num')).toContainText('€');
+      await expect(page.locator('#tar-precio')).toContainText('Te quedan 2 cálculos de precio hoy');
+      await page.locator('#tar-precio-otra').click();
+      await expect(page.locator('#tar-precio')).toContainText('Te queda 1 cálculo de precio hoy');
+      await page.locator('#tar-precio-otra').click();
+      await expect(page.locator('#tar-precio')).toContainText('Era tu último cálculo de precio de hoy');
+      // El cuarto del día: sin precio, el botón de crear cuenta (y el email / WhatsApp siguen).
+      await rellenar();
+      await expect(page.locator('#tar-precio-registro')).toHaveAttribute('href', '/panel/registro');
+      await expect(page.locator('#tar-precio')).toContainText('tarifas ilimitadas*');
+      await expect(page.locator('#tar-precio-num')).toHaveCount(0);
+      await expect(page.locator('#tar-cta-wa')).toBeVisible();
+    } finally {
+      await sb.from('parametros').update({ valor: false }).eq('clave', 'tarifador_web_con_precio');
+      await sb.from('consultas_precio_web').delete().gte('id', 0);
+    }
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

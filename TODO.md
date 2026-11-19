@@ -962,3 +962,8 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 
 ## 2026-11-19 · Cláusula de accesibilidad para el transportista
 - [ ] Revisar con el asesor legal la redacción de «Accesibilidad de los puntos de carga y descarga» (lib/condicionesTransportista.ts): sale en las condiciones de la orden de carga (PDF), en la pantalla de aceptar la carga y en el mensaje con la orden. Añadirla también a las condiciones generales para transportistas de la web (dynamotrans.com/condiciones-transportistas), que no están en este repositorio.
+
+## 2026-11-19 · Tarifador de la web pública con precio y límite por IP
+- [x] Preparado en pruebas: precio orientativo en la portada (mismo tarifador del panel), 3 cálculos al día por IP (parámetro `tarifador_web_max_ip_dia`) y, pasado el límite, botón «Crear cuenta · tarifas ilimitadas*».
+- [ ] Nace APAGADO (`tarifador_web_con_precio` = false). Encenderlo en Parámetros → Plataforma → «Tarifador de la web pública» solo cuando estén cargadas las tarifas reales (hoy el importe del envío es el relleno fijo de 700 €).
+- [ ] Opcional: variable `TARIFA_WEB_SAL` en Vercel (texto cualquiera, secreto) para la huella de la IP; sin ella se usa una por defecto.
