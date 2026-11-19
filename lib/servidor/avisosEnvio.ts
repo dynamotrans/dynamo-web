@@ -8,6 +8,7 @@ import { supabasePublico } from '@/lib/supabase/publico';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { CONTACTO } from '@/lib/atencion';
 import { fecha as fechaTxt } from '@/lib/formato';
+import { htmlCargasDeVuelta, type DatosVuelta } from '@/lib/cargasDeVuelta';
 import type { CmrPublico } from '@/app/cmr/[token]/tipos';
 
 // ---- Avisos de EVENTO por email (usuario, 2026-11-12) --------------------------------
@@ -60,6 +61,16 @@ const CAJA_SIN_MATRICULAS = `<div style="background:#fde8e8;border:1px solid #dc
 <p style="margin:0"><strong>Sin matrículas no se carga:</strong> las comunicamos a los almacenes antes de que llegue el camión.</p>
 </div>`;
 
+// ---- Cargas de vuelta al final de la orden (usuario, 2026-11-19) -----------------------
+// Envíos libres de la bolsa que salen de la provincia de la última descarga el mismo día
+// (envios_de_vuelta). El HTML, en lib/cargasDeVuelta.ts. Vacío si no hay ninguna.
+export async function bloqueCargasDeVuelta(sb: SB, envio: string, origen: string): Promise<string> {
+  try {
+    const { data, error } = await sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 15 });
+    return error ? '' : htmlCargasDeVuelta(data as unknown as DatosVuelta | null, origen);
+  } catch { return ''; }
+}
+
 // ---- 1. Orden de carga al asignar transportista -------------------------------------
 // Sin matrículas, la orden va con las direcciones OCULTAS (solo código postal), la caja roja
 // y SIN el enlace del eCMR (también enseña las direcciones). Cuando llegan las matrículas,
@@ -89,11 +100,13 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string, 
     const pdf = await pdfDeEnvioDynamo(sb, envio, 'orden-de-carga', usuarioId, origen);
     if (!('error' in pdf)) adjuntos = [{ nombre: pdf.nombre, base64: Buffer.from(pdf.bytes).toString('base64'), tipo: 'application/pdf' }];
     const fecha = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? null;
+    const vuelta = await bloqueCargasDeVuelta(sb, envio, origen);
     const html = completa ? `<p>Hola,</p>
 <p>${completaYa ? `Ya tenemos las matrículas del envío <strong>#${esc(e.referencia_gx)}</strong>` : `Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>`}${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos${completaYa ? ', las direcciones' : ''} y las condiciones.</p>
 ${enlFirma ? `<p>Firma en este enlace tu e-CMR DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}
 ${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
 <p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
+${vuelta}
 ${pie}` : `<p>Hola,</p>
 <p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong>, de momento <strong>sin las direcciones</strong>.</p>
 ${CAJA_SIN_MATRICULAS}
@@ -101,6 +114,7 @@ ${enlMatr ? `<p style="margin:16px 0"><a href="${enlMatr}" style="display:inline
 <p style="font-size:13px;color:#555">Si el botón no se abre, copia esta dirección en el navegador: <a href="${enlMatr}">${enlMatr}</a></p>` : ''}
 ${enlEc ? `<p>Esta orden (sin direcciones) también está aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
 <p>Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
+${vuelta}
 ${pie}`;
     // Sin matrículas, su propia clave: cuando lleguen, sale la orden completa (orden_carga:…).
     await enviarEmailOperativo({ clave: completa ? `orden_carga:${envio}:${e.transportista_id}` : `orden_carga_oculta:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,

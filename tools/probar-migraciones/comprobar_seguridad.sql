@@ -12940,3 +12940,75 @@ do $$ declare c uuid; begin
   if (select riesgo_manual_euros from clientes where id = c) is not null then raise exception 'FALLO 292 · CESCE sin clasificar no borra el crédito de Dynamo'; end if;
   raise notice 'OK 292 · CESCE baja (a menos, a 0 o sin clasificar) → se borra el crédito a mano de Dynamo y avisa; sube o igual → se queda; puesto a la vez → se respeta';
 end $$;
+
+-- ---- 293. Cargas de vuelta para el email de la orden ------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid; tr uuid := current_setting('prueba.transp')::uuid;
+  dia date := (now() at time zone 'Europe/Madrid')::date + 10; a uuid; x uuid; j jsonb; refs text; i int;
+  -- [CP origen, CP destino, tipo, días de margen, precio, reservada]
+  defs text[][] := array[
+    ['28005', '41003', 'grupaje',  '0', '300', 'no'],   -- 2: hacia donde venía (Sevilla), grupaje
+    ['28010', '46010', 'grupaje',  '0', '900', 'no'],   -- 1: hacia su base (Valencia), grupaje
+    ['28020', '46020', 'completa', '1', '500', 'no'],   -- 1: hacia su base, completo (va antes)
+    ['28030', '16001', 'completa', '0', '400', 'no'],   -- 3: limítrofe de su base (Cuenca)
+    ['28040', '08001', 'completa', '0', '800', 'no'],   -- 4: otra
+    ['45001', '46001', 'completa', '0', '999', 'no'],   -- fuera: sale de otra provincia
+    ['28050', '46001', 'completa', '5', '999', 'no'],   -- fuera: otro día (la ventana no incluye la descarga)
+    ['28060', '46001', 'completa', '0', '999', 'si']];  -- fuera: reservada ahora mismo
+begin
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  update transportistas set codigo_postal = '46001', pais_codigo_iso = 'ES' where id = tr;
+  -- El envío de la orden: Sevilla → Madrid, descarga el día «dia».
+  insert into envios (cliente_id, estado, transportista_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_entrega_estimada)
+    values (cli, 'programado', tr, 13.3, 20, 900, 700, dia - 1, dia) returning id into a;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, pais_codigo_iso) values (a, 1, 'carga', '41001', 'ES'), (a, 2, 'descarga', '28001', 'ES');
+  perform set_config('prueba.e293', a::text, false);
+  for i in 1..array_length(defs, 1) loop
+    insert into envios (cliente_id, estado, metros_lineales, toneladas, importe_cliente, importe_transportista,
+                        fecha_carga_desde, fecha_carga_hasta, publicado_en_bolsa_en, referencia_cliente)
+      values (cli, 'programado', case when defs[i][3] = 'completa' then 13.3 else 6 end, 10, 1200, defs[i][5]::numeric,
+              dia + defs[i][4]::int, dia + defs[i][4]::int + 1, now(), 'V293-' || i) returning id into x;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, pais_codigo_iso) values (x, 1, 'carga', defs[i][1], 'ES'), (x, 2, 'descarga', defs[i][2], 'ES');
+    if defs[i][6] = 'si' then
+      insert into envio_reservas (envio_id, estado, hasta) values (x, 'viva', now() + interval '3 minutes');
+    end if;
+  end loop;
+  -- El completo «hacia su base» con ventana que empieza el día anterior: también vale.
+  update envios set fecha_carga_desde = dia - 1 where referencia_cliente = 'V293-3';
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+end $$;
+-- Ni sin sesión ni un cliente la pueden llamar.
+set role anon;
+do $$ begin
+  begin perform envios_de_vuelta(current_setting('prueba.e293')::uuid); raise exception 'FALLO 293 · sin sesión se ven las cargas de vuelta';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform envios_de_vuelta(current_setting('prueba.e293')::uuid); raise exception 'FALLO 293 · un cliente ve las cargas de vuelta';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare j jsonb; refs text; begin
+  j := envios_de_vuelta(current_setting('prueba.e293')::uuid);
+  select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
+    into refs from jsonb_array_elements(j -> 'cargas') with ordinality as t(c, n);
+  if refs is distinct from 'V293-3:1,V293-2:1,V293-1:2,V293-4:3,V293-5:4' then raise exception 'FALLO 293 · orden o selección de las cargas de vuelta: %', refs; end if;
+  if j ->> 'dia' <> ((now() at time zone 'Europe/Madrid')::date + 10)::text or j -> 'desde' ->> 'codigo_postal' <> '28001' then raise exception 'FALLO 293 · día o lugar de la descarga: %', j; end if;
+  if jsonb_array_length(envios_de_vuelta(current_setting('prueba.e293')::uuid, 2) -> 'cargas') <> 2 then raise exception 'FALLO 293 · no respeta el máximo'; end if;
+  raise notice 'OK 293 · cargas de vuelta: desde la provincia de descarga el mismo día; base, origen, limítrofes y resto; completos primero; sin reservadas; solo Dynamo';
+end $$;
+reset role;
+do $$ begin
+  alter table envios disable trigger user;
+  delete from envio_reservas where envio_id in (select id from envios where referencia_cliente like 'V293-%');
+  delete from envio_paradas where envio_id in (select id from envios where referencia_cliente like 'V293-%' or id = current_setting('prueba.e293')::uuid);
+  delete from envios where referencia_cliente like 'V293-%' or id = current_setting('prueba.e293')::uuid;
+  alter table envios enable trigger user;
+end $$;

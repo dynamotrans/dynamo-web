@@ -981,3 +981,7 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 ## 2026-11-19 · Primer envío sin pago previo con el crédito CESCE máximo
 - [x] Parámetro «Primeros envíos sin previo pago con crédito CESCE de» (`pago_previo_cesce_sin_primeros_euros`, 16.000 €): con CESCE ≥ ese importe, el primer envío va a crédito; con menos, se paga antes. 0 = no se aplica. Cuenta lo que concede CESCE, no el crédito a mano de Dynamo. Nota en la ficha del cliente.
 - [x] Si CESCE BAJA el crédito (a menos, a 0 o sin clasificar), se borra solo el crédito a mano de Dynamo y vuelve a mandar CESCE; aviso urgente en la campana. Si en el mismo guardado se pone un crédito a mano nuevo, se respeta. Si CESCE sube o no cambia, el de Dynamo se queda.
+
+## 2026-11-19 · Cargas de vuelta en el email de la orden de carga
+- [x] Al final del email de la orden al transportista (aceptada por la web o asignada a mano): hasta 15 envíos libres de la bolsa que salen de la provincia de su última descarga el mismo día de la descarga. Orden: hacia la provincia de su base, hacia la de donde venía, hacia provincias limítrofes de su base y el resto; completos primero. Precio + IVA, metros, peso, mercancía, origen y destino (CP · provincia · país) y botón «Ver carga».
+- [ ] Ideas: que el número máximo (15) sea un parámetro; mostrar también las de ventana que empiecen al día siguiente; añadirlas al mensaje de «Compartir» (WhatsApp).
