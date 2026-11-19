@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { euros, fecha, fechaHora, porcentaje } from '@/lib/formato';
 
 import type { Ficha } from '@/lib/fichaEnvio';
-import { marcarPagoEnvio, registrarTransferenciaEnvio } from '@/app/panel/(app)/envios/acciones';
+import { marcarPagoEnvio, registrarTransferenciaEnvio, rechazarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
 import FormTransferencia from './FormTransferencia';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 import Req from '@/components/Req';
@@ -21,6 +21,8 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
 }) {
   const [exento, setExento] = useState(false);
   const [transferencia, setTransferencia] = useState(false);   // abierto el formulario de banco, concepto y fecha
+  const [rechazar, setRechazar] = useState(false);             // «Pago no recibido»: se pregunta antes de anular
+  const [motivoRechazo, setMotivoRechazo] = useState('');
   const [motivo, setMotivo] = useState('');
   const [falta, setFalta] = useState<string | null>(null);
   if (!pago) {
@@ -52,7 +54,17 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
           </div>
         )}
         {pago.provisional && <div style={{ marginTop: '0.3rem' }}>Precio <strong>provisional</strong>: el plazo para pagar empieza cuando se revise el precio.</div>}
-        {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{fechaHora(pago.limite)}</strong> · <CuentaAtras hasta={pago.limite} vencidoTxt="Plazo vencido: se anula en breve" />. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
+        {pago.avisado_en ? (
+          <div id="pago-avisado" className="pago-avisado" role="status">
+            <span className="pa-ico" aria-hidden="true">🔔</span>
+            <span><strong>El cliente avisó de su transferencia el {fechaHora(pago.avisado_en)}.</strong> El plazo está <strong>parado</strong> y el envío no se anula solo: mira el banco y márcala como recibida, o pulsa «Pago no recibido» si no ha llegado.</span>
+          </div>
+        ) : pago.limite && (
+          <div id="pago-plazo">
+            <CuentaAtras grande hasta={pago.limite} para="al cliente para pagar" vencidoTxt="Plazo vencido: se anula en breve" />
+            <div>Plazo para pagar: hasta el <strong>{fechaHora(pago.limite)}</strong>. Si para entonces no ha pagado con tarjeta ni ha avisado de su transferencia, el envío se anula solo y tiene que volver a pedirlo.</div>
+          </div>
+        )}
         {transferencia ? (
           // Un toque ya no basta (usuario, 2026-11-17): banco, concepto y fecha antes de marcarla.
           <div style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
@@ -60,9 +72,21 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
             <FormTransferencia gx={envio.referencia_gx} onCancelar={() => setTransferencia(false)}
               onConfirmar={async (d) => { if (await hacer('Guardando', () => registrarTransferenciaEnvio(envio.id, d))) setTransferencia(false); }} />
           </div>
+        ) : rechazar ? (
+          <div id="pago-rechazar" style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
+            <strong style={{ color: '#b42318' }}>¿Anular el envío por pago no recibido?</strong>
+            <div style={{ marginTop: '0.25rem' }}>El envío #{envio.referencia_gx} y su proforma quedan <strong>anulados sin pago</strong> (no cuenta como cancelación del cliente) y el cliente recibe el aviso de volver a pedirlo.</div>
+            <label htmlFor="pp-rechazo" style={{ fontWeight: 700, display: 'block', marginTop: '0.5rem' }}>Nota para el historial <span style={{ fontWeight: 500, color: 'var(--gray-500)' }}>· opcional</span></label>
+            <input id="pp-rechazo" type="text" maxLength={200} value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} placeholder="Ej. no aparece en el banco a las 12:30" style={{ marginTop: '0.25rem' }} />
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
+              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={async () => { if (await hacer('Anulando', () => rechazarPagoEnvio(envio.id, motivoRechazo))) { setRechazar(false); setMotivoRechazo(''); } }}>Sí, pago no recibido: anular</button>
+              <button className="btn-ghost" onClick={() => setRechazar(false)}>Volver</button>
+            </div>
+          </div>
         ) : !exento ? (
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => setTransferencia(true)}>Ha llegado la transferencia</button>
+            {libre && pago.aCuenta <= 0 && <button className="btn-secondary" id="pago-no-recibido" style={{ color: '#b42318' }} onClick={() => setRechazar(true)}>Pago no recibido</button>}
             <button className="btn-ghost" onClick={() => setExento(true)}>Pasar sin pago previo (cobro a vencimiento)</button>
           </div>
         ) : (

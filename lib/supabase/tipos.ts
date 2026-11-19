@@ -1980,6 +1980,7 @@ export type Database = {
           pago_banco: string | null
           pago_concepto: string | null
           pago_fecha: string | null
+          pago_avisado_en: string | null
         }
         Insert: {
           id?: string
@@ -2100,6 +2101,7 @@ export type Database = {
           pago_banco?: string | null
           pago_concepto?: string | null
           pago_fecha?: string | null
+          pago_avisado_en?: string | null
         }
         Update: {
           id?: string
@@ -2220,6 +2222,7 @@ export type Database = {
           pago_banco?: string | null
           pago_concepto?: string | null
           pago_fecha?: string | null
+          pago_avisado_en?: string | null
         }
         Relationships: [
           {
@@ -3807,6 +3810,7 @@ export type Database = {
       autosuspension_motivos: { Args: { p_usuario?: string | null }; Returns: { usuario_id: string; email: string; motivo: string }[] }
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
+      avisar_pago_transferencia: { Args: { p_envio: string | null }; Returns: Json }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
       borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
@@ -4040,7 +4044,7 @@ export type Database = {
       pago_limite: { Args: { p_desde: string | null; p_carga?: string | null }; Returns: string }
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_motivo_credito: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
-      pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number }[] }
+      pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number; pago_avisado_en: string }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
       paradas_json: { Args: { p_envio: string | null }; Returns: Json }
       paradas_viaje_json: { Args: { p_envio: string | null }; Returns: Json }
@@ -4072,6 +4076,7 @@ export type Database = {
       quitar_logo: { Args: { p_documento: string | null }; Returns: undefined }
       quitar_transportista: { Args: { p_envio: string | null }; Returns: Json }
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
+      rechazar_pago_transferencia: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_cambio_email: { Args: { p_usuario: string | null; p_antes: string | null; p_despues: string | null }; Returns: undefined }
       registrar_consulta_precio: { Args: Record<PropertyKey, never>; Returns: undefined }

@@ -10,7 +10,7 @@ import Cargando from '@/components/Cargando';
 import Modal from './Modal';
 import { avisarNavegando } from '@/components/panel/CargandoNavegacion';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
-import { marcarPagoEnvio, registrarTransferenciaEnvio } from '@/app/panel/(app)/envios/acciones';
+import { marcarPagoEnvio, registrarTransferenciaEnvio, rechazarPagoEnvio } from '@/app/panel/(app)/envios/acciones';
 import FormTransferencia, { type DatosTransferencia } from './FormTransferencia';
 import { euros, fecha, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
@@ -22,6 +22,7 @@ export type ProformaFila = {
   concepto: string; base: number; total: number; pagado_en: string | null; creado_en: string | null;
   banco?: string | null;   // banco de la transferencia (solo lo recibe Dynamo)
   limite?: string | null;  // sin pagar: hasta cuándo se puede pagar (pasado, el envío y la proforma se anulan)
+  avisado?: string | null; // sin pagar: el cliente avisó de su transferencia (plazo parado; Dynamo la valida o la rechaza)
 };
 export type AlbaranFila = {
   id: string; tipo: string; nombre: string; envio_id: string; creado_en: string; visible_cliente: boolean; gx: string | null; ruta: string;
@@ -41,20 +42,23 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   const [elegirAlb, setElegirAlb] = useState<AlbaranFila | null>(null);
   const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial);
-  const [filtro, setFiltro] = useState<'sin_pagar' | 'pagadas' | 'todas'>('todas');   // por defecto TODAS, sin filtrar por pendientes (usuario, 2026-11-17)
+  const [filtro, setFiltro] = useState<'sin_pagar' | 'pagadas' | 'todas' | 'por_validar'>('todas');   // por defecto TODAS, sin filtrar por pendientes (usuario, 2026-11-17)
   const [q, setQ] = useState('');
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   // Marcar una proforma de envío como pagada pide banco, concepto y fecha en una ventana
   // (usuario, 2026-11-17: que no se marque por error de un solo toque).
   const [transferir, setTransferir] = useState<ProformaFila | null>(null);
+  const [rechazar, setRechazar] = useState<ProformaFila | null>(null);   // «Pago no recibido»: se pregunta antes de anular
+  const [motivoRechazo, setMotivoRechazo] = useState('');
 
   const sinPagar = proformas.filter((p) => !p.pagado_en).length;
+  const porValidar = proformas.filter((p) => !p.pagado_en && p.avisado).length;
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     const casa = (t: string) => w.every((x) => norm(t).includes(x));
     if (pestana === 'proformas') {
-      return proformas.filter((p) => (filtro === 'todas' || (filtro === 'pagadas') === !!p.pagado_en)
+      return proformas.filter((p) => (filtro === 'todas' || (filtro === 'por_validar' ? !p.pagado_en && !!p.avisado : (filtro === 'pagadas') === !!p.pagado_en))
         && casa([p.codigo, p.cliente, p.referencia_cliente, p.concepto, euros(p.total)].filter(Boolean).join(' ')));
     }
     return albaranes.filter((a) => casa([a.gx, a.ruta, a.nombre].filter(Boolean).join(' ')));
@@ -105,6 +109,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
             <select className="filter-estado" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)} aria-label="Filtrar por pago">
               <option value="todas">Todas</option>
               <option value="sin_pagar">Sin pagar</option>
+              <option value="por_validar">Transferencia avisada · por validar{porValidar ? ` (${porValidar})` : ''}</option>
               <option value="pagadas">Pagadas</option>
             </select>
           )}
@@ -131,11 +136,17 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                     <td><strong>{euros(p.total)}</strong></td>
                     <td>{p.pagado_en
                       ? <><span className="badge badge-entregado">Pagada el {fecha(diaMadrid(p.pagado_en))}</span>{p.banco ? <div className="meta">{p.banco}</div> : null}</>
-                      : <><span className="badge badge-red">Sin pagar</span>{p.limite && <div className="meta pago-plazo" title={`Se puede pagar hasta el ${fechaHora(p.limite)}; después el envío y su proforma se anulan solos`}>Caduca: <CuentaAtras hasta={p.limite} corto vencidoTxt="plazo vencido" /></div>}</>}
+                      : p.avisado
+                        ? <><span className="badge badge-orange pago-avisado-chip">{dynamo ? 'Transferencia avisada · validar' : 'Validando tu transferencia'}</span><div className="meta">Avisada el {fechaHora(p.avisado)} · plazo parado</div></>
+                        : <><span className="badge badge-red">Sin pagar</span>{p.limite && <div className="meta pago-plazo" title={`Se puede pagar hasta el ${fechaHora(p.limite)}; después el envío y su proforma se anulan solos`}>Caduca: <CuentaAtras hasta={p.limite} corto vencidoTxt="plazo vencido" /></div>}</>}
                       {gestor && <div style={{ marginTop: '0.3rem' }}>
                         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', fontSize: 'var(--fs-s)' }} onClick={(ev) => { ev.stopPropagation(); pagar(p, !p.pagado_en); }}>
                           {p.pagado_en ? 'Quitar pago' : p.tipo === 'envio' ? 'Transferencia recibida' : 'Marcar pagada'}
                         </button>
+                        {p.tipo === 'envio' && !p.pagado_en && (
+                          <button type="button" className="btn-ghost pago-no-recibido" style={{ minHeight: 30, padding: '0 0.6rem', fontSize: 'var(--fs-s)', color: '#b42318', marginLeft: '0.3rem' }}
+                            onClick={(ev) => { ev.stopPropagation(); setAviso(null); setMotivoRechazo(''); setRechazar(p); }}>Pago no recibido</button>
+                        )}
                       </div>}
                     </td>
                     <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
@@ -175,6 +186,26 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
         <PaginadorLocal p={pg} nombre={pestana === 'proformas' ? 'proformas' : 'albaranes'} nombreUno={pestana === 'proformas' ? 'proforma' : 'albarán'} />
       </>}
       {trabajando && <Cargando texto={trabajando} />}
+      {rechazar && (
+        <Modal abierto ancho={480} onCerrar={() => { if (!trabajando) setRechazar(null); }} titulo={`Pago no recibido · PRO-${rechazar.codigo}`}
+          sub={`${rechazar.cliente ? `${rechazar.cliente} · ` : ''}${euros(rechazar.total)} (IVA incl.)`}
+          pie={<>
+            <button className="btn-ghost" disabled={!!trabajando} onClick={() => setRechazar(null)}>Volver</button>
+            <button className="btn-primary" style={{ background: 'var(--red)' }} disabled={!!trabajando} onClick={async () => {
+              setTrabajando('Anulando el envío');
+              const r = await rechazarPagoEnvio(rechazar.id, motivoRechazo);
+              setTrabajando(null);
+              if (!r.ok) { setAviso(r.error ?? 'No se ha podido rechazar el pago.'); setRechazar(null); return; }
+              setRechazar(null); refrescar();
+            }}>Sí, anular el envío</button>
+          </>}>
+          <p style={{ margin: '0 0 0.7rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
+            No te consta la transferencia en el banco. El envío <strong>#{rechazar.codigo}</strong> y esta proforma quedan <strong>anulados sin pago</strong> (no cuenta como cancelación del cliente) y el cliente recibe el aviso de volver a pedirlo.
+          </p>
+          <label htmlFor="adm-rechazo">Nota para el historial <span style={{ fontWeight: 500, color: 'var(--gray-500)' }}>· opcional</span></label>
+          <input id="adm-rechazo" type="text" maxLength={200} value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} placeholder="Ej. no aparece en el banco a las 12:30" />
+        </Modal>
+      )}
       {transferir && (
         <Modal abierto onCerrar={() => { if (!trabajando) setTransferir(null); }} titulo={`Marcar como pagada · PRO-${transferir.codigo}`}
           sub={`${transferir.cliente ? `${transferir.cliente} · ` : ''}${euros(transferir.total)} (IVA incl.)`}>

@@ -708,6 +708,24 @@ export async function registrarTransferenciaEnvio(envio: string, d: { banco: str
   return { ok: true, aviso: 'Pago por transferencia registrado: el envío pasa a pendiente de asignar.' };
 }
 
+// «Pago no recibido» (usuario, 2026-11-19): a Dynamo no le consta la transferencia de un
+// envío pendiente de pago. El envío queda anulado sin pago y el cliente recibe el aviso.
+export async function rechazarPagoEnvio(envio: string, motivo: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#rechazarPagoEnvio", [envio, motivo]);
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo rechaza el pago de un envío.' };
+  const { data, error } = await s.supabase.rpc('rechazar_pago_transferencia', { p_envio: envio, p_motivo: motivo.trim().slice(0, 200) || undefined });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado?: string } | null)?.resultado;
+  if (r !== 'ok') return { ok: false, error: ({
+    no_pendiente: 'Ese envío ya no está pendiente de pago.',
+    con_pago_a_cuenta: 'Este envío ya tiene dinero cobrado a cuenta: no se anula de un toque. Cancélalo como cualquier envío.',
+    con_transportista: 'Este envío ya tiene transportista: quítalo o cancela el envío.',
+    no_existe: 'Ese envío no existe.',
+  } as Record<string, string>)[r ?? ''] ?? 'No se ha podido rechazar el pago.' };
+  return { ok: true, aviso: 'Pago rechazado: el envío queda anulado sin pago y el cliente ya está avisado.' };
+}
+
 // Cambio pedido por el CLIENTE: Dynamo lo acepta (se aplican las fechas pedidas; la ruta y
 // el precio se cambian en la ficha) o lo rechaza, con una nota para el cliente.
 export async function resolverCambio(envio: string, aceptar: boolean, nota: string): Promise<Res> {

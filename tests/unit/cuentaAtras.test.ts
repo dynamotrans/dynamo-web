@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tiempoQueda } from '../../lib/cuentaAtras';
+import { tiempoQueda, duracionTxt } from '../../lib/cuentaAtras';
 
 const AHORA = Date.parse('2026-11-19T10:00:00Z');
 const en = (s: number) => new Date(AHORA + s * 1000).toISOString();
@@ -27,4 +27,14 @@ test('tiempoQueda: pasado el plazo', () => {
   const q = tiempoQueda(en(-1), AHORA)!;
   assert.equal(q.vencido, true);
   assert.equal(q.texto, 'Plazo vencido');
+});
+
+test('duracionTxt: el plazo dicho en claro', () => {
+  assert.equal(duracionTxt(60), '1 hora');
+  assert.equal(duracionTxt(180), '3 horas');
+  assert.equal(duracionTxt(90), '1 h 30 min');
+  assert.equal(duracionTxt(45), '45 minutos');
+  assert.equal(duracionTxt(1), '1 minuto');
+  assert.equal(duracionTxt(24 * 60), '24 horas');
+  assert.equal(duracionTxt(48 * 60), '2 días');
 });

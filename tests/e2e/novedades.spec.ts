@@ -74,35 +74,52 @@ test.describe('novedades', () => {
     }
   });
 
-  // Temporizador del plazo para pagar (usuario, 2026-11-19): en la ficha, en la lista de envíos
-  // y en la proforma, con la misma hora límite que calcula la base de datos.
-  test('pendiente de pago: el plazo y su temporizador salen en la ficha, en la lista y en la proforma', async ({ page }) => {
+  // Plazo para pagar (usuario, 2026-11-19): temporizador a la vista en la ficha, en la lista y en
+  // la proforma; el cliente avisa de su transferencia y el plazo se para; Dynamo, si no le
+  // consta el cobro, pulsa «Pago no recibido» y el envío queda anulado.
+  test('pendiente de pago: temporizador, «Ya he hecho la transferencia» para el plazo y Dynamo rechaza el pago', async ({ page }) => {
     await entrar(page, 'cliente');
     await crearEnvioDeCliente(page);
     const e = await ultimoEnvio();
     const sv = bd();
-    const antes = { estado_pago_previo: e.estado_pago_previo };
     if (e.estado_pago_previo !== 'pendiente') {
       const { error } = await sv.from('envios').update({ estado_pago_previo: 'pendiente', pago_motivo: 'Pedido por Dynamo', pago_pendiente_en: new Date().toISOString() }).eq('id', e.id);
       expect(error).toBeNull();
     }
-    try {
-      // El cliente: en su ficha, «Paga antes del …» y cuánto queda; en Administración, su proforma.
-      await page.goto(`/panel/envios?ver=${e.id}`);
-      await expect(page.locator('#pago-plazo')).toContainText('Paga antes del');
-      await expect(page.locator('#pago-plazo .cuenta-atras')).toContainText(/Quedan \d/);
-      await expect(page.locator('#pago-plazo')).toContainText('tendrás que crear un envío nuevo');
-      await page.goto('/panel/administracion');
-      const proforma = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
-      await expect(proforma.locator('.pago-plazo .cuenta-atras')).toBeVisible();
-      // Dynamo: en la pestaña de los que están sin pagar, cada fila con su tiempo.
-      await entrar(page, 'dynamo');
-      await page.goto('/panel/envios?f=sin-pagar');
-      const fila = page.locator('table.data tbody tr', { hasText: e.referencia_gx });
-      await expect(fila.locator('.pago-plazo .cuenta-atras')).toBeVisible();
-    } finally {
-      if (antes.estado_pago_previo !== 'pendiente') await sv.from('envios').update({ estado_pago_previo: antes.estado_pago_previo, pago_pendiente_en: null }).eq('id', e.id);
-    }
+    // El cliente: en su ficha, la banda con lo que le queda y hasta cuándo; en Administración, su proforma.
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    await expect(page.locator('#pago-plazo .cuenta-atras-grande')).toContainText(/Te quedan .*\d.* para pagar/);
+    await expect(page.locator('#pago-plazo')).toContainText('Paga antes del');
+    await expect(page.locator('#pago-plazo')).toContainText('tendrás que crear un envío nuevo');
+    await page.goto('/panel/administracion');
+    const proforma = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
+    await expect(proforma.locator('.pago-plazo .cuenta-atras')).toBeVisible();
+    // Avisa de su transferencia (con una pregunta antes): el temporizador desaparece y queda «validando».
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    await page.locator('#pago-avisar').click();
+    await page.getByRole('button', { name: /Sí, ya la he hecho/ }).click();
+    await expect(page.locator('#pago-avisado')).toContainText('La estamos validando');
+    await expect(page.locator('#pago-plazo')).toHaveCount(0);
+    await expect(page.locator('#pago-avisar')).toHaveCount(0);
+    await expect.poll(async () => (await sv.from('envios').select('pago_avisado_en').eq('id', e.id).single()).data?.pago_avisado_en ?? null).not.toBeNull();
+    await page.goto('/panel/administracion');
+    await expect(proforma).toContainText('Validando tu transferencia');
+    // Dynamo: lo ve en la lista y en la ficha, con el plazo parado.
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/envios?f=sin-pagar');
+    await expect(page.locator('table.data tbody tr', { hasText: e.referencia_gx })).toContainText('Transferencia avisada · validar');
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    await expect(page.locator('#pago-avisado')).toContainText('El cliente avisó de su transferencia');
+    await expect(page.getByRole('button', { name: 'Ha llegado la transferencia' })).toBeVisible();
+    // En Proformas, «por validar»; no le consta el cobro: «Pago no recibido» anula el envío.
+    await page.goto('/panel/administracion');
+    const fila = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
+    await expect(fila).toContainText('Transferencia avisada · validar');
+    await fila.locator('.pago-no-recibido').click();
+    await page.locator('#adm-rechazo').fill('no aparece en el banco');
+    await page.getByRole('button', { name: 'Sí, anular el envío' }).click();
+    await expect.poll(async () => (await sv.from('envios').select('estado').eq('id', e.id).single()).data?.estado).toBe('cancelado');
+    await expect(fila).toHaveCount(0);
   });
 
   test('Nuevo envío: la línea de medidas dice alto y ancho, y el rígido va a 2,40 m', async ({ page }) => {

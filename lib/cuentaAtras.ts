@@ -20,3 +20,13 @@ export function tiempoQueda(limite: string | null | undefined, ahora: number): Q
   if (dias >= 2) return { vencido: false, urgente: false, texto: `${dias} días${horas ? ` ${horas} h` : ''}`, cadaMs: 60_000 };
   return { vencido: false, urgente: s < 3 * 3600, texto: `${dias * 24 + horas} h ${dos(min)} min`, cadaMs: 15_000 };
 }
+
+/** Un plazo en minutos dicho en claro: «1 hora», «3 horas», «1 h 30 min», «45 minutos», «2 días». */
+export function duracionTxt(minutos: number): string {
+  const m = Math.max(0, Math.round(minutos));
+  if (m >= 48 * 60 && m % (24 * 60) === 0) return `${m / (24 * 60)} días`;
+  const h = Math.floor(m / 60), r = m % 60;
+  if (h === 0) return `${r} minuto${r === 1 ? '' : 's'}`;
+  if (r === 0) return `${h} hora${h === 1 ? '' : 's'}`;
+  return `${h} h ${r} min`;
+}

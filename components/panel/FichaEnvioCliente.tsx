@@ -19,7 +19,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCarga
 import { estadoVisual, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
-import { cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
+import { avisarPagoTransferencia, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio, LlamarCancelar, modoModificar } from './CambiosEnvio';
 import { Secc } from './ficha/comun';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
@@ -474,6 +474,18 @@ function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota:
 // Previo pago, visto por el cliente: qué falta, el total, la proforma y cómo pagar.
 function PagoCliente({ e }: { e: EnvioCliente }) {
   const p = e.pago!;   // solo se pinta con pago
+  // «Ya he hecho la transferencia»: se pregunta una vez (no es un botón para pulsar por si acaso).
+  const refrescar = useRefrescar();
+  const [preguntaAviso, setPreguntaAviso] = useState(false);
+  const [avisando, setAvisando] = useState(false);
+  const [resAviso, setResAviso] = useState<{ ok: boolean; txt: string } | null>(null);
+  async function avisar() {
+    setAvisando(true); setResAviso(null);
+    const r = await avisarPagoTransferencia(e.id).catch(() => ({ ok: false as const, error: SIN_CONEXION }));
+    setAvisando(false); setPreguntaAviso(false);
+    setResAviso({ ok: r.ok, txt: r.ok ? (r.aviso ?? 'Aviso recibido.') : (r.error ?? 'No se ha podido registrar el aviso.') });
+    if (r.ok) refrescar();
+  }
   // Si ya pagó y el precio subió al modificar el envío, lo pagado queda a cuenta y solo
   // falta la diferencia (usuario, 2026-11-16).
   const aCuenta = Number(p.a_cuenta ?? 0);
@@ -489,7 +501,17 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         <div><strong style={{ color: '#b42318' }}>{resto ? 'Falta por pagar' : 'Pendiente de pago'} · {total}</strong> (IVA incluido).</div>
         {resto && <div style={{ marginTop: '0.3rem' }}>Has modificado el envío y el precio ha subido: ya tenías pagados <strong>{euros(aCuenta)}</strong> y el envío cuesta ahora <strong>{euros(Number(p.total))}</strong>. <strong>El envío no sigue adelante hasta que pagues la diferencia.</strong></div>}
         <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: este' : p.pago_motivo?.startsWith('Uno de los') ? 'Es uno de tus primeros envíos con nosotros: este' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: este' : 'Este'} envío se paga por adelantado. <strong>Pasamos a programación en cuanto recibimos el pago.</strong></div>
-        {p.pago_limite && <div id="pago-plazo" style={{ marginTop: '0.6rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong> · <CuentaAtras hasta={p.pago_limite} vencidoTxt="Plazo vencido: el envío se anula en breve" />. Si no nos llega el pago, el envío y su proforma se anulan solos y tendrás que crear un envío nuevo (con el precio de ese momento).</div>}
+        {p.pago_avisado_en ? (
+          <div id="pago-avisado" className="pago-avisado" role="status">
+            <span className="pa-ico" aria-hidden="true">✓</span>
+            <span><strong>Transferencia avisada el {fechaHora(p.pago_avisado_en)}. La estamos validando.</strong> El plazo para pagar está <strong>parado</strong>: el envío no se anula mientras comprobamos el cobro. En cuanto lo veamos en el banco, pasa a programación y te avisamos.</span>
+          </div>
+        ) : p.pago_limite && (
+          <div id="pago-plazo">
+            <CuentaAtras grande hasta={p.pago_limite} vencidoTxt="Plazo vencido: el envío se anula en breve" />
+            <div>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si para entonces no has pagado con tarjeta ni nos has avisado de tu transferencia, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crear un envío nuevo (con el precio de ese momento).</div>
+          </div>
+        )}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
         ) : <>
@@ -498,10 +520,23 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
             ? <form action="/api/stripe/pago" method="post"><input type="hidden" name="envio" value={e.id} /><button type="submit" className="btn-primary">Pagar {total} con tarjeta</button></form>
             : null}
           <a className="btn-secondary" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Ver proforma (transferencia)</a>
+          {!p.pago_avisado_en && !preguntaAviso && <button type="button" id="pago-avisar" className="btn-primary" onClick={() => { setResAviso(null); setPreguntaAviso(true); }}>Ya he hecho la transferencia</button>}
         </div>
+        {preguntaAviso && !p.pago_avisado_en && (
+          <div id="pago-avisar-confirmar" style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
+            <strong>¿Ya has hecho la transferencia de {total}?</strong>
+            <div style={{ marginTop: '0.25rem' }}>Pulsa «Sí» solo si ya está hecha, con el concepto <strong>PRO-{e.referencia_gx}</strong>. Paramos el plazo y lo comprobamos en el banco; si no nos consta, el envío se anula.</div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
+              <button type="button" className="btn-primary" disabled={avisando} onClick={avisar}>Sí, ya la he hecho: validadla</button>
+              <button type="button" className="btn-ghost" disabled={avisando} onClick={() => setPreguntaAviso(false)}>Todavía no</button>
+            </div>
+          </div>
+        )}
+        {resAviso && <div className={resAviso.ok ? 'pt-aviso info' : 'wiz-warn show'} role="status" style={{ marginTop: '0.5rem' }}><div>{resAviso.ok ? resAviso.txt : `⚠ ${resAviso.txt}`}</div></div>}
+        {avisando && <Cargando texto="Enviando tu aviso" />}
         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
           {e.tarjeta ? 'Con tarjeta se confirma al momento. ' : 'El pago con tarjeta estará disponible muy pronto. '}
-          Con <strong>tarjeta</strong> el envío pasa a <strong>programación de envíos al momento</strong>. Por <strong>transferencia</strong>, usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y <strong>avísanos cuando la hagas</strong> (teléfono, WhatsApp o email): la validamos en horario de oficina.
+          Con <strong>tarjeta</strong> el envío pasa a <strong>programación de envíos al momento</strong>. Por <strong>transferencia inmediata</strong> (llega en segundos y tu banco no te cobra más que por una normal), usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y pulsa <strong>«Ya he hecho la transferencia»</strong>: el plazo se para mientras la validamos.
         </div>
         </>}
       </div>

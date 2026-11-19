@@ -22,6 +22,24 @@ export async function cancelarMiEnvio(envio: string, motivo: string): Promise<Re
     : 'Envío cancelado, sin ningún coste.' };
 }
 
+// «He hecho la transferencia» (usuario, 2026-11-19): el cliente avisa de que ya ha pagado por
+// transferencia. El plazo para pagar deja de correr y el envío no se anula solo: Dynamo lo
+// comprueba en el banco y lo valida o lo rechaza. Lo exige todo la base de datos.
+export async function avisarPagoTransferencia(envio: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones-cliente#avisarPagoTransferencia", [envio]);
+  const s = await soloCliente();
+  if (!s) return { ok: false, error: 'Solo el cliente avisa del pago de su envío.' };
+  const { data, error } = await s.supabase.rpc('avisar_pago_transferencia', { p_envio: envio });
+  if (error) return { ok: false, error: limpio(error.message) };
+  const r = (data as { resultado?: string } | null)?.resultado;
+  if (r === 'ok' || r === 'ya_avisado') return { ok: true, aviso: 'Aviso recibido: el plazo queda parado mientras validamos tu transferencia. Te avisamos en cuanto esté.' };
+  return { ok: false, error: ({
+    no_pendiente: 'Este envío ya no está pendiente de pago.',
+    precio_provisional: 'El precio de este envío aún es provisional: el pago se pide cuando lo revisemos.',
+    no_existe: 'Ese envío no existe.',
+  } as Record<string, string>)[r ?? ''] ?? 'No se ha podido registrar el aviso. Vuelve a intentarlo.' };
+}
+
 // Puntuar al transportista de un envío entregado (1 a 5 estrellas y comentario). Lo
 // comprueba todo la base de datos (valorar_mi_envio): su envío, de Dynamo, entregado.
 export async function valorarMiEnvio(envio: string, nota: number, comentario: string): Promise<Res> {

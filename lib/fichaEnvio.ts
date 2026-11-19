@@ -58,7 +58,7 @@ export type Ficha = {
   margenRevision: number;     // precio_revision_margen_pct
   pago: { estado: string; motivo: string | null; metodo: string | null; pagado_en: string | null; exento_motivo: string | null;
     banco: string | null; concepto: string | null; fecha_transferencia: string | null;   // de la transferencia (solo Dynamo)
-          base: number; iva: number; total: number; conCredito: boolean; limite: string | null; provisional: boolean;
+          base: number; iva: number; total: number; conCredito: boolean; limite: string | null; avisado_en: string | null; provisional: boolean;
           aCuenta: number; pendiente: number } | null;   // ya pagado a cuenta y lo que falta (precio subido al modificar un envío pagado)
 };
 
@@ -148,7 +148,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
       corte,
       pago: pg ? { estado: pg.estado_pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
         banco: e.pago_banco ?? null, concepto: e.pago_concepto ?? null, fecha_transferencia: e.pago_fecha ?? null,
-        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional,
+        base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, avisado_en: pg.pago_avisado_en ?? null, provisional: !!pg.precio_provisional,
         aCuenta: Number(pg.a_cuenta ?? 0), pendiente: Number(pg.pendiente ?? 0) } : null,
       margenRevision: Number((reg.data as { margen_pct?: number } | null)?.margen_pct ?? 5),
     },

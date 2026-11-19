@@ -14,6 +14,7 @@ import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido'
 import MedidasCamion, { altoAncho } from './nuevoEnvio/MedidasCamion';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje, fechaHora } from '@/lib/formato';
 import CuentaAtras from './CuentaAtras';
+import { duracionTxt } from '@/lib/cuentaAtras';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
@@ -167,7 +168,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const [revisarLegal, setRevisarLegal] = useState(false);
   // Con pago por adelantado: hasta cuándo se podría pagar si se confirma ahora (se pide al
   // abrir la ventana de confirmar; si no llega, la ventana sale igual sin esa línea).
-  const [plazoPago, setPlazoPago] = useState<string | null>(null);
+  const [plazoPago, setPlazoPago] = useState<{ limite: string; minutos: number } | null>(null);
   const [verProforma, setVerProforma] = useState(false);   // proforma orientativa del cálculo (sin crear el envío)
   // Email del cliente para el botón «Enviar por email a:» de la proforma (usuario,
   // 2026-11-13). Se pide YA al elegir el cliente — pedirlo al abrir la ventana hacía
@@ -1040,8 +1041,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               {' '}(te mandamos la proforma por email).
               {creado.pagoLimite && (
                 <div id="exito-pago-plazo" style={{ marginTop: '0.45rem' }}>
-                  <strong>Tienes hasta el {fechaHora(creado.pagoLimite)} para pagar</strong> · <CuentaAtras hasta={creado.pagoLimite} />.
-                  {' '}Pasado ese plazo, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crear un envío nuevo, con el precio de ese momento.
+                  <CuentaAtras grande hasta={creado.pagoLimite} vencidoTxt="Plazo vencido: el envío se anula en breve" />
+                  <strong>Tienes hasta el {fechaHora(creado.pagoLimite)} para pagar</strong>: con tarjeta, o por transferencia inmediata avisándonos después con el botón «Ya he hecho la transferencia» de la ficha del envío (el plazo se para mientras la validamos).
+                  {' '}Pasado el plazo sin pago ni aviso, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crear un envío nuevo, con el precio de ese momento.
                 </div>
               )}
               {creado.razon && (
@@ -1620,8 +1622,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             <strong> recibir el pago</strong> y la fecha de carga se calcula desde ese momento.
             {plazoPago && (
               <div id="conf-pago-plazo" style={{ marginTop: '0.4rem' }}>
-                <strong>Plazo para pagar:</strong> si confirmas ahora, hasta el <strong>{fechaHora(plazoPago)}</strong> (<CuentaAtras hasta={plazoPago} corto />).
-                {' '}Si no nos llega el pago en ese plazo, el envío y su proforma <strong>se anulan solos</strong> y hay que crear un envío nuevo.
+                <strong>Tienes {duracionTxt(plazoPago.minutos)} para pagar</strong> desde que confirmes (si confirmas ahora, hasta el <strong>{fechaHora(plazoPago.limite)}</strong>).
+                {' '}Con <strong>tarjeta</strong> queda pagado al momento. Por <strong>transferencia inmediata</strong>, hazla dentro de ese plazo y pulsa «Ya he hecho la transferencia» en el envío: el plazo se para mientras la validamos.
+                {' '}Si se pasa el plazo sin pago ni aviso, el envío y su proforma <strong>se anulan solos</strong> y hay que crear un envío nuevo.
               </div>
             )}
           </div>

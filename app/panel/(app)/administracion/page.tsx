@@ -86,7 +86,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
       concepto: ['Transporte', envios.get(pg.envio_id)?.ruta].filter(Boolean).join(' · '),
       base: Number(pg.base ?? 0), total: Number(pg.total ?? 0), pagado_en: pg.pagado_en ?? null,
       creado_en: envios.get(pg.envio_id)?.emitida ?? null, banco: bancoEnvio.get(pg.envio_id) ?? null,
-      limite: pg.pagado_en ? null : (pg.pago_limite ?? null),
+      limite: pg.pagado_en ? null : (pg.pago_limite ?? null), avisado: pg.pagado_en ? null : (pg.pago_avisado_en ?? null),
     })),
   ].sort((a, b) => (b.creado_en ?? '').localeCompare(a.creado_en ?? ''));
   const albaranes: AlbaranFila[] = (docs.data ?? []).map((d) => ({

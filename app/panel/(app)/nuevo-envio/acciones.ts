@@ -270,12 +270,15 @@ export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | '
 // Hasta cuándo se podría pagar un envío con pago por adelantado SI SE CONFIRMA AHORA (usuario,
 // 2026-11-19: «cuando se vaya a generar el envío indica el tiempo que tiene para tramitar
 // el pago»). Lo dice la misma función de la base de datos que luego fija el plazo de verdad.
-export async function plazoPagoPrevisto(carga: string | null): Promise<string | null> {
+export async function plazoPagoPrevisto(carga: string | null): Promise<{ limite: string; minutos: number } | null> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#plazoPagoPrevisto", [carga]);
   const s = await sesion();
   if (!s?.perfil) return null;
-  const { data } = await s.supabase.rpc('pago_limite', { p_desde: new Date().toISOString(), p_carga: carga || undefined });
-  return typeof data === 'string' ? data : null;
+  const ahora = Date.now();
+  const { data } = await s.supabase.rpc('pago_limite', { p_desde: new Date(ahora).toISOString(), p_carga: carga || undefined });
+  if (typeof data !== 'string') return null;
+  // El plazo en minutos (las horas del parámetro), para decirlo en claro: «3 horas».
+  return { limite: data, minutos: Math.round((Date.parse(data) - ahora) / 60000) };
 }
 
 // Envío con un operador PROPIO del cliente (manual, Dynamo no interviene): lo crea el

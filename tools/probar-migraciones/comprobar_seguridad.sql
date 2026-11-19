@@ -4983,9 +4983,10 @@ do $$ declare e uuid; begin
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
   update envios set estado = 'programado' where id = e;
   perform set_config('prueba.tok139', (select token_publico::text from envios where id = e), false);
-  -- El plazo para pagar no acaba en fin de semana: viernes 18:00 + 24 h → lunes 18:00.
-  if pago_limite(timestamptz '2026-11-06 18:00:00+01') <> timestamptz '2026-11-09 18:00:00+01' then
-    raise exception 'FALLO 139 · el plazo para pagar acaba en fin de semana: %', pago_limite(timestamptz '2026-11-06 18:00:00+01');
+  -- El plazo para pagar son las horas del parámetro, sin más (usuario, 2026-11-19: tarjeta y
+  -- transferencia inmediata funcionan todos los días): viernes 18:00 + 24 h → sábado 18:00.
+  if pago_limite(timestamptz '2026-11-06 18:00:00+01') <> timestamptz '2026-11-07 18:00:00+01' then
+    raise exception 'FALLO 139 · el plazo para pagar no son las horas del parámetro: %', pago_limite(timestamptz '2026-11-06 18:00:00+01');
   end if;
 end $$;
 set role anon;
@@ -6387,28 +6388,31 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; f uuid;
   raise notice 'OK 170 · el estado «borrador» no sobrevive: la red horaria convierte todos (futuros a programado, pasados a cancelado sin coste)';
 end $$;
 
--- ---- 171. Plazo de pago = el corte de cancelar gratis (9:00 del día hábil anterior) --------
+-- ---- 171. Plazo de pago ÚNICO: las horas del parámetro, tenga la carga lejos o cerca ------
+-- (Del 9 al 19 de noviembre fue «hasta las 9:00 del día hábil anterior a la carga»; el usuario
+-- lo cambió el 2026-11-19 a un plazo corto y único, con la transferencia avisada que lo para.)
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-do $$ begin
-  -- Con margen: el límite es el corte de cancelación de la carga (9:00 del hábil anterior).
-  if pago_limite('2026-11-10 10:00 Europe/Madrid', date '2026-11-20') <> corte_cancelacion(date '2026-11-20') then
-    raise exception 'FALLO 171 · el plazo de pago no es el corte de cancelar gratis';
+do $$ declare h numeric := parametro_num('pago_previo_horas', 24); begin
+  -- Con la carga lejos: igual, las horas del parámetro (ya no el corte de cancelar gratis).
+  if pago_limite('2026-11-10 10:00 Europe/Madrid', date '2026-11-20') <> timestamptz '2026-11-10 10:00 Europe/Madrid' + make_interval(mins => (h * 60)::int) then
+    raise exception 'FALLO 171 · con la carga lejos el plazo no son las horas del parámetro: %', pago_limite('2026-11-10 10:00 Europe/Madrid', date '2026-11-20');
   end if;
-  -- Inminente (el tope ya había pasado al quedar pendiente): rige el plazo corto de 24 h.
-  if pago_limite('2026-11-19 15:00 Europe/Madrid', date '2026-11-20') <> timestamptz '2026-11-20 15:00 Europe/Madrid' then
-    raise exception 'FALLO 171 · un envío inminente no cae en el plazo corto de pago_previo_horas';
+  -- Inminente y sin fecha de carga: lo mismo.
+  if pago_limite('2026-11-19 15:00 Europe/Madrid', date '2026-11-20') <> pago_limite('2026-11-19 15:00 Europe/Madrid')
+     or pago_limite('2026-11-19 15:00 Europe/Madrid') <> timestamptz '2026-11-19 15:00 Europe/Madrid' + make_interval(mins => (h * 60)::int) then
+    raise exception 'FALLO 171 · el plazo cambia según la fecha de carga';
   end if;
-  -- Sin fecha de carga: también el plazo corto (y salta el fin de semana, como siempre).
-  if pago_limite('2026-11-13 15:00 Europe/Madrid') <> timestamptz '2026-11-16 15:00 Europe/Madrid' then
-    raise exception 'FALLO 171 · sin fecha de carga no rige el plazo corto a día hábil';
+  -- En fin de semana tampoco se alarga (viernes por la tarde → sábado).
+  if pago_limite('2026-11-13 15:00 Europe/Madrid') <> timestamptz '2026-11-13 15:00 Europe/Madrid' + make_interval(mins => (h * 60)::int) then
+    raise exception 'FALLO 171 · el plazo se alarga por caer en fin de semana';
   end if;
-  -- La anulación automática y la consulta de pagos miran el tope nuevo (con la fecha de carga).
+  -- La anulación automática y la consulta de pagos usan la misma función del plazo.
   if pg_get_functiondef('public.caducar_pagos_pendientes'::regproc) !~ 'pago_limite\(pago_pendiente_en, fecha_carga_desde\)'
      or pg_get_functiondef('public.pagos_envio(uuid)'::regprocedure) !~ 'pago_limite\(e.pago_pendiente_en, e.fecha_carga_desde\)' then
-    raise exception 'FALLO 171 · caducar_pagos_pendientes o pagos_envio no pasan la fecha de carga al plazo';
+    raise exception 'FALLO 171 · caducar_pagos_pendientes o pagos_envio no usan pago_limite';
   end if;
-  raise notice 'OK 171 · plazo de pago: hasta las 9:00 del día hábil anterior a la carga (corte de cancelar gratis); inminentes y sin fecha, el plazo corto de 24 h a día hábil';
+  raise notice 'OK 171 · plazo de pago único: las horas de pago_previo_horas desde que queda pendiente, sin mirar la fecha de carga ni el fin de semana';
 end $$;
 
 -- ---- 172. NIMA por defecto del cliente: columna, mi_empresa y buscar_clientes -------------
@@ -12628,3 +12632,86 @@ do $$ declare e uuid := current_setting('prueba.e285')::uuid; pc uuid := current
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 286. «He hecho la transferencia»: el aviso del cliente para el plazo; Dynamo valida o rechaza ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; cli uuid := current_setting('prueba.cliente')::uuid; adm uuid := current_setting('prueba.u_admin')::uuid; lun date; begin
+  lun := (now() at time zone 'Europe/Madrid')::date + (8 - extract(isodow from (now() at time zone 'Europe/Madrid')::date)::int) + 7;
+  for i in 1..2 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, creado_por)
+      values (cli, 13.30, 20, 900, 700, lun, lun + 1, adm) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+    update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_pendiente_en = now(), estado_revision_precio = 'no_requiere' where id = e;
+    update envios set estado = 'programado' where id = e;
+    if (select estado_pago_previo from envios where id = e) <> 'pendiente' then raise exception 'FALLO 286 · la prueba no deja el envío pendiente de pago'; end if;
+    perform set_config('prueba.e286_' || i, e::text, false);
+  end loop;
+  perform set_config('prueba.h286', parametro_num('pago_previo_horas', 24)::text, false);   -- el cliente no lee parámetros
+end $$;
+-- Quien no es el dueño no avisa de nada.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform avisar_pago_transferencia(current_setting('prueba.e286_1')::uuid); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 286 · alguien que no es el dueño avisa de la transferencia de un envío ajeno'; end if;
+end $$;
+-- El cliente: ve su hora límite, avisa, y el plazo deja de correr.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e286_1')::uuid; r jsonb; p record; ok boolean := false; begin
+  select * into p from pagos_envio(e);
+  if p.pago_limite is null or p.pago_avisado_en is not null then raise exception 'FALLO 286 · antes de avisar no se ve la hora límite: %', row_to_json(p); end if;
+  if abs(extract(epoch from (p.pago_limite - now())) - current_setting('prueba.h286')::numeric * 3600) > 120 then
+    raise exception 'FALLO 286 · el plazo no son las horas del parámetro: %', p.pago_limite - now(); end if;
+  r := avisar_pago_transferencia(e);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 286 · el cliente no puede avisar de su transferencia: %', r; end if;
+  if avisar_pago_transferencia(e) ->> 'resultado' <> 'ya_avisado' then raise exception 'FALLO 286 · el aviso se repite'; end if;
+  select * into p from pagos_envio(e);
+  if p.pago_limite is not null or p.pago_avisado_en is null or p.estado_pago_previo <> 'pendiente' then
+    raise exception 'FALLO 286 · tras avisar, el plazo sigue corriendo o no consta el aviso: %', row_to_json(p); end if;
+  -- El cliente no rechaza pagos (ni el suyo).
+  begin perform rechazar_pago_transferencia(e); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 286 · un cliente rechaza un pago'; end if;
+  perform avisar_pago_transferencia(current_setting('prueba.e286_2')::uuid);
+end $$;
+-- Aunque pasen días, el avisado NO se anula solo; y Dynamo recibe el aviso y el email sale.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e286_1')::uuid; begin
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'pago_avisado' and envio_id = e and nivel = 'urgente') then
+    raise exception 'FALLO 286 · Dynamo no recibe el aviso de «transferencia avisada»'; end if;
+  if not exists (select 1 from emails_enviados where envio_id = e and tipo = 'pago_avisado' and position('plazo para pagar queda parado' in cuerpo_html) > 0) then
+    raise exception 'FALLO 286 · no sale el email de «transferencia avisada»'; end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  update envios set pago_pendiente_en = now() - interval '6 days' where id in (e, current_setting('prueba.e286_2')::uuid);
+  perform caducar_pagos_pendientes();
+  perform set_config('request.jwt.claim.role', '', true);
+  if (select estado from envios where id = e) <> 'programado' then raise exception 'FALLO 286 · un envío con la transferencia avisada se anula solo'; end if;
+end $$;
+-- Dynamo: rechaza uno (no consta el cobro) y da por recibida la del otro.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e1 uuid := current_setting('prueba.e286_1')::uuid; e2 uuid := current_setting('prueba.e286_2')::uuid; r jsonb; begin
+  r := rechazar_pago_transferencia(e1, 'no aparece en el banco');
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 286 · Dynamo no puede rechazar el pago: %', r; end if;
+  if rechazar_pago_transferencia(e1) ->> 'resultado' <> 'no_pendiente' then raise exception 'FALLO 286 · se rechaza dos veces'; end if;
+  r := registrar_transferencia_envio(e2, 'CaixaBank', 'PRO-286', (now() at time zone 'Europe/Madrid')::date);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 286 · Dynamo no puede dar por recibida una transferencia avisada: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e1 uuid := current_setting('prueba.e286_1')::uuid; e2 uuid := current_setting('prueba.e286_2')::uuid; begin
+  if (select estado from envios where id = e1) <> 'cancelado' then raise exception 'FALLO 286 · el envío con el pago rechazado no queda anulado'; end if;
+  if not exists (select 1 from avisos where para = 'cliente' and tipo = 'pago_caducado' and envio_id = e1 and texto like 'No nos consta tu transferencia%') then
+    raise exception 'FALLO 286 · el cliente no recibe el aviso de pago rechazado'; end if;
+  if not exists (select 1 from envio_hitos where envio_id = e1 and datos ->> 'motivo_cancelacion' like 'Anulado sin pago: no nos consta la transferencia (no aparece en el banco)') then
+    raise exception 'FALLO 286 · el rechazo no queda en el historial con su motivo'; end if;
+  if (select estado_pago_previo from envios where id = e2) <> 'pagado' then raise exception 'FALLO 286 · la transferencia validada no deja el envío pagado'; end if;
+  -- Si vuelve a quedar pendiente de pago, el aviso viejo ya no vale: el plazo corre otra vez.
+  update envios set estado_pago_previo = 'pendiente' where id = e2;
+  if (select pago_avisado_en from envios where id = e2) is not null then raise exception 'FALLO 286 · al volver a pendiente de pago se conserva el aviso de transferencia anterior'; end if;
+  raise notice 'OK 286 · transferencia avisada: para el plazo y la anulación automática, avisa a Dynamo, y Dynamo la valida (pagado) o la rechaza (anulado sin pago)';
+end $$;

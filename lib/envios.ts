@@ -33,6 +33,7 @@ export type EnvioFila = {
   requiere_plataforma_elevadora?: boolean | null;   // completo con plataforma = rígido completo
   estado_pago_previo?: string | null;        // no_requerido / pendiente / pagado / exento (previo pago)
   pago_limite?: string | null;               // pendiente de pago: hasta cuándo se puede pagar (temporizador de la lista)
+  pago_avisado_en?: string | null;           // pendiente de pago: el cliente avisó de su transferencia (plazo parado)
   estado_cambio_cliente?: string | null;   // el cliente ha pedido un cambio (pendiente / aplicado / …)
   requiere_revision_precio?: boolean | null;         // la ruta ha cambiado y el precio no se ha revisado
   // Seguimiento (seguimiento_envios): parada en la que está o a la que va, su tipo, y si

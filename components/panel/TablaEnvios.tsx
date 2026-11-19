@@ -245,7 +245,9 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
     <Fila href={href} className={urgencia(e) || undefined}>
       <td className="ref">
         <div className="envio-estado envio-estado-top"><span className={`badge badge-${ev.color}`}>{ev.label}</span></div>
-        {esPendientePago(e) && e.pago_limite && <div className="meta pago-plazo" title="Tiempo que queda para pagar; pasado el plazo, el envío se anula solo">Para pagar: <CuentaAtras hasta={e.pago_limite} corto vencidoTxt="plazo vencido" /></div>}
+        {esPendientePago(e) && (e.pago_avisado_en
+          ? <div className="meta pago-plazo" title="El cliente avisó de su transferencia: el plazo está parado hasta que Dynamo la valide o la rechace"><span className="badge badge-orange">{dynamo ? 'Transferencia avisada · validar' : 'Validando tu transferencia'}</span></div>
+          : e.pago_limite && <div className="meta pago-plazo" title="Tiempo que queda para pagar; pasado el plazo, el envío se anula solo">Para pagar: <CuentaAtras hasta={e.pago_limite} corto vencidoTxt="plazo vencido" /></div>)}
         {dynamo && e.estado_cambio_cliente === 'pendiente' && <div className="meta" style={{ color: '#b45309', fontWeight: 800 }}>Cambio pedido por el cliente</div>}
         {dynamo && e.requiere_revision_precio && <div className="meta" style={{ color: '#b42318', fontWeight: 800 }}>Revisar precio (ruta cambiada)</div>}
         <strong>#{e.referencia_gx}</strong>
