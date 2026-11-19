@@ -10,7 +10,10 @@ import { buscarEnviosLigeros, envioLigero } from '@/lib/enviosLigerosAcciones';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const blob = (e: EnvioLigero) => norm([e.referencia_gx, e.referencia_cliente, e.cliente, e.transportista, e.origen, e.destino,
-  e.matricula_camion, e.matricula_remolque, e.conductor_nombre, e.descripcion_mercancia, fecha(e.fecha_carga_desde), ESTADO_ENVIO[e.estado]].filter(Boolean).join(' '));
+  e.matricula_camion, e.matricula_remolque, e.conductor_nombre, e.descripcion_mercancia,
+  // Todas sus fechas, como se leen (igual que el buscador de la base de datos: envio_fechas_texto).
+  ...[e.fecha_carga_desde, e.fecha_carga_hasta, e.fecha_carga_real, e.fecha_entrega_estimada].filter(Boolean).map((d) => `${fecha(d)} ${d!.slice(8, 10)}/${d!.slice(5, 7)}/${d!.slice(0, 4)}`),
+  ESTADO_ENVIO[e.estado]].filter(Boolean).join(' '));
 
 // Sin cliente_id = lista del propio CLIENTE (etapa B): sin transportista ni datos internos.
 export function ResumenEnvio({ e }: { e: EnvioLigero }) {

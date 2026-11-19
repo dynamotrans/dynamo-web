@@ -12519,3 +12519,48 @@ begin
   end if;
   raise notice 'OK 283 · el email «Envío creado» de un envío pendiente de pago dice la hora límite y que, pasada, se anula';
 end $$;
+
+-- ---- 284. El buscador de envíos encuentra por fecha, escrita como se lee en pantalla ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; cli uuid := current_setting('prueba.cliente')::uuid; adm uuid := current_setting('prueba.u_admin')::uuid;
+begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, creado_por, descripcion_mercancia)
+    values (cli, 5, 3, 500, 400, date '2031-01-23', date '2031-01-24', adm, 'zzfechas284') returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.e284', e::text, false);
+  if position('23/01/31' in (select texto_busqueda from envios where id = e)) = 0 or position('24/01/2031' in (select texto_busqueda from envios where id = e)) = 0 then
+    raise exception 'FALLO 284 · el texto de búsqueda no lleva las fechas: %', (select texto_busqueda from envios where id = e);
+  end if;
+end $$;
+-- Dynamo: por día y mes, por la fecha corta, con el año entero y junto a otra palabra.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e284')::uuid; q text; begin
+  foreach q in array array['zzfechas284 23/01', '23/01/31 zzfechas284', '24/01/2031 zzfechas284', 'zzfechas284 01/2031'] loop
+    if not exists (select 1 from buscar_envios_pagina(q) b where b.id = e) then raise exception 'FALLO 284 · Dynamo no encuentra el envío buscando «%»', q; end if;
+  end loop;
+  if exists (select 1 from buscar_envios_pagina('zzfechas284 25/01') b where b.id = e) then raise exception 'FALLO 284 · sale con una fecha que no es suya'; end if;
+end $$;
+-- El cliente, en lo suyo: igual.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e284')::uuid; begin
+  if not exists (select 1 from buscar_envios_pagina('zzfechas284 23/01') b where b.id = e) then raise exception 'FALLO 284 · el cliente no encuentra su envío por fecha'; end if;
+end $$;
+-- Al cambiar la fecha, la búsqueda va con la nueva (y deja de salir con la vieja).
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update envios set fecha_carga_desde = date '2031-02-10', fecha_carga_hasta = date '2031-02-11' where id = current_setting('prueba.e284')::uuid;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e284')::uuid; begin
+  if not exists (select 1 from buscar_envios_pagina('zzfechas284 10/02') b where b.id = e) then raise exception 'FALLO 284 · tras cambiar la fecha no se encuentra por la nueva'; end if;
+  if exists (select 1 from buscar_envios_pagina('zzfechas284 23/01') b where b.id = e) then raise exception 'FALLO 284 · tras cambiar la fecha sigue saliendo por la vieja'; end if;
+  raise notice 'OK 284 · el buscador de envíos encuentra por fecha (día/mes, corta y con año), Dynamo y cliente, y sigue los cambios de fecha';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

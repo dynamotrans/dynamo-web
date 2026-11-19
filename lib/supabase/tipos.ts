@@ -3909,6 +3909,7 @@ export type Database = {
       envio_en_pestana: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_pestana: string | null }; Returns: boolean }
       envio_es_manual: { Args: { p_envio: string | null }; Returns: boolean }
       envio_fecha_carga_texto: { Args: { p_desde: string | null; p_hasta: string | null; p_prevista: string | null }; Returns: string }
+      envio_fechas_texto: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null }; Returns: string }
       envio_matriculas_completas: { Args: { p_envio: string | null }; Returns: boolean }
       envio_mercancia_texto: { Args: { p_metros: number | null; p_toneladas: number | null; p_tipo_carga: string | null; p_plataforma: boolean | null; p_descripcion: string | null; p_adr: boolean | null; p_nima: boolean | null }; Returns: string }
       envio_necesita_remolque: { Args: { p_envio: string | null }; Returns: boolean }
