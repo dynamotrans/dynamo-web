@@ -4,6 +4,7 @@
 // le toca ver (mis_envios(): sin precio del transportista, ni margen, ni factor; regla 11
 // aplicada). Si es una solicitud, aquí acepta o rechaza el precio. Puede cancelar mientras
 // el camión no va hacia la carga, reportar una incidencia y repetir el envío.
+import CuentaAtras from './CuentaAtras';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -488,7 +489,7 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         <div><strong style={{ color: '#b42318' }}>{resto ? 'Falta por pagar' : 'Pendiente de pago'} · {total}</strong> (IVA incluido).</div>
         {resto && <div style={{ marginTop: '0.3rem' }}>Has modificado el envío y el precio ha subido: ya tenías pagados <strong>{euros(aCuenta)}</strong> y el envío cuesta ahora <strong>{euros(Number(p.total))}</strong>. <strong>El envío no sigue adelante hasta que pagues la diferencia.</strong></div>}
         <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: este' : p.pago_motivo?.startsWith('Uno de los') ? 'Es uno de tus primeros envíos con nosotros: este' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: este' : 'Este'} envío se paga por adelantado. <strong>Pasamos a programación en cuanto recibimos el pago.</strong></div>
-        {p.pago_limite && <div style={{ marginTop: '0.6rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
+        {p.pago_limite && <div id="pago-plazo" style={{ marginTop: '0.6rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong> · <CuentaAtras hasta={p.pago_limite} vencidoTxt="Plazo vencido: el envío se anula en breve" />. Si no nos llega el pago, el envío y su proforma se anulan solos y tendrás que crear un envío nuevo (con el precio de ese momento).</div>}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
         ) : <>

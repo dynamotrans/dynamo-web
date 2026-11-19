@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { hoyMadrid, textoBusqueda } from '@/lib/formato';
-import { rangoRapido } from '@/lib/envios';
+import { rangoRapido, esPendientePago } from '@/lib/envios';
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
@@ -136,6 +136,11 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       operador: x.operadores?.razon_social ?? null, transportista_asignado: !!x.transportista_id,
       paradas: (x.envio_paradas ?? []) as Parada[],
     }));
+    // El plazo de los pendientes de pago de ESTA página, para su temporizador (son pocos: se
+    // pide uno a uno a la misma función que usa la ficha).
+    const pend = filas.filter((f) => esPendientePago(f));
+    const plazos = await Promise.all(pend.map((f) => supabase.rpc('pagos_envio', { p_envio: f.id }).maybeSingle()));
+    pend.forEach((f, i) => { f.pago_limite = plazos[i].data?.pago_limite ?? null; });
   } else {
     const { data, error: e } = idsPagina!.length
       ? await supabase.rpc(rol === 'transportista' ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: idsPagina })
@@ -158,8 +163,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     // Previo pago (el cliente no lee la tabla de envíos: lo trae pagos_envio()).
     if (rol === 'cliente') {
       const { data: pagos } = await supabase.rpc('pagos_envio');
-      const pp = new Map(((pagos ?? []) as { envio_id: string; estado_pago_previo: string }[]).map((x) => [x.envio_id, x.estado_pago_previo]));
-      filas.forEach((f) => { f.estado_pago_previo = pp.get(f.id) ?? null; });
+      const pp = new Map(((pagos ?? []) as { envio_id: string; estado_pago_previo: string; pago_limite: string | null }[]).map((x) => [x.envio_id, x]));
+      filas.forEach((f) => { f.estado_pago_previo = pp.get(f.id)?.estado_pago_previo ?? null; f.pago_limite = pp.get(f.id)?.pago_limite ?? null; });
     }
     // Nombre del operador de los envíos manuales del cliente (su propio catálogo).
     const ids = [...new Set(mias.map((f) => f.operador_id).filter(Boolean))] as string[];

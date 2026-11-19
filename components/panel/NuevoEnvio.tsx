@@ -8,11 +8,12 @@ import { avisarNavegando, avisarNavegandoA } from './CargandoNavegacion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { plazoPagoPrevisto, crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import MedidasCamion, { altoAncho } from './nuevoEnvio/MedidasCamion';
-import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
+import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje, fechaHora } from '@/lib/formato';
+import CuentaAtras from './CuentaAtras';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
@@ -164,6 +165,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Doble confirmación al crear un envío (Dynamo): modal con costes de cancelación +
   // condiciones generales, como en el mockup. Hay que marcar el check para confirmar.
   const [revisarLegal, setRevisarLegal] = useState(false);
+  // Con pago por adelantado: hasta cuándo se podría pagar si se confirma ahora (se pide al
+  // abrir la ventana de confirmar; si no llega, la ventana sale igual sin esa línea).
+  const [plazoPago, setPlazoPago] = useState<string | null>(null);
   const [verProforma, setVerProforma] = useState(false);   // proforma orientativa del cálculo (sin crear el envío)
   // Email del cliente para el botón «Enviar por email a:» de la proforma (usuario,
   // 2026-11-13). Se pide YA al elegir el cliente — pedirlo al abrir la ventana hacía
@@ -191,7 +195,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }, [cliente?.id, esCliente]);
   // PANTALLA DE ÉXITO (tarea 81, usuario 2026-11-13): al confirmar un envío no se suelta
   // al usuario en la lista — se le dice QUÉ PASA AHORA y a dónde ir.
-  const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual'; pago?: boolean; razon?: 'primero' | 'primeros' | 'credito' | null } | null>(null);
+  const [creado, setCreado] = useState<{ ref: string; id: string | null; modo: 'cliente' | 'admin' | 'manual'; pago?: boolean; pagoLimite?: string | null; razon?: 'primero' | 'primeros' | 'credito' | null } | null>(null);
   // Adónde lleva el botón principal de esa pantalla. Mientras el usuario lee «qué pasa
   // ahora», la ficha del envío y la lista se van PIDIENDO POR DETRÁS: al pulsar ya están
   // (usuario, 2026-11-18: «cuando pulso botones tarda»).
@@ -773,7 +777,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
       setEnviando(false); setRevisarLegal(false);
-      setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente', pago: rs.pagoPendiente, razon: rs.pagoRazon });
+      setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente', pago: rs.pagoPendiente, pagoLimite: rs.pagoLimite, razon: rs.pagoRazon });
       router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
       return;
     }
@@ -1034,6 +1038,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               <strong>Pendiente de pago.</strong> Hasta que no se abone, <strong>no se procesa ninguna reserva de
               transporte</strong>. La <strong>fecha y la ventana de carga empiezan a contar a partir del pago</strong>
               {' '}(te mandamos la proforma por email).
+              {creado.pagoLimite && (
+                <div id="exito-pago-plazo" style={{ marginTop: '0.45rem' }}>
+                  <strong>Tienes hasta el {fechaHora(creado.pagoLimite)} para pagar</strong> · <CuentaAtras hasta={creado.pagoLimite} />.
+                  {' '}Pasado ese plazo, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crear un envío nuevo, con el precio de ese momento.
+                </div>
+              )}
               {creado.razon && (
                 <div id="exito-pago-razon" style={{ marginTop: '0.45rem' }}>
                   <strong>¿Por qué?</strong>{' '}
@@ -1468,6 +1478,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         if (!cliente) { setAviso('Para crear el envío hace falta el cliente: elígelo o dalo de alta en el paso 1. Sin cliente, esta pantalla solo calcula el precio.'); setPaso(1); return; }
                         for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
                         setAviso(null); setAceptaLegal(true); setVerCondiciones(false); setRevisarLegal(true);
+                        if (esCliente && pagoPrevio && !manual) { setPlazoPago(null); plazoPagoPrevisto(fecha || null).then(setPlazoPago).catch(() => setPlazoPago(null)); }
                       }}
                       data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
                     {hayProforma && (
@@ -1607,6 +1618,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             <strong>Pago por adelantado.</strong> Tu cuenta opera con pago previo: al confirmar, el envío queda
             <strong> pendiente de pago</strong> y te mandamos la <strong>proforma</strong>. El camión se asigna al
             <strong> recibir el pago</strong> y la fecha de carga se calcula desde ese momento.
+            {plazoPago && (
+              <div id="conf-pago-plazo" style={{ marginTop: '0.4rem' }}>
+                <strong>Plazo para pagar:</strong> si confirmas ahora, hasta el <strong>{fechaHora(plazoPago)}</strong> (<CuentaAtras hasta={plazoPago} corto />).
+                {' '}Si no nos llega el pago en ese plazo, el envío y su proforma <strong>se anulan solos</strong> y hay que crear un envío nuevo.
+              </div>
+            )}
           </div>
         )}
         {/* Caja NARANJA CLARO con el aviso del tráiler (usuario, 2026-11-18): que el cliente lo lea

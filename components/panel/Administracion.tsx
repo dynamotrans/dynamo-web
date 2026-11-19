@@ -12,14 +12,16 @@ import { avisarNavegando } from '@/components/panel/CargandoNavegacion';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
 import { marcarPagoEnvio, registrarTransferenciaEnvio } from '@/app/panel/(app)/envios/acciones';
 import FormTransferencia, { type DatosTransferencia } from './FormTransferencia';
-import { euros, fecha, textoBusqueda } from '@/lib/formato';
+import { euros, fecha, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
+import CuentaAtras from './CuentaAtras';
 
 export type ProformaFila = {
   // Proformas de ENVÍOS y de almacenamientos en la misma lista (usuario, 2026-11-14).
   id: string; tipo: 'almacenamiento' | 'envio'; codigo: string; referencia_cliente: string; cliente: string | null;
   concepto: string; base: number; total: number; pagado_en: string | null; creado_en: string | null;
   banco?: string | null;   // banco de la transferencia (solo lo recibe Dynamo)
+  limite?: string | null;  // sin pagar: hasta cuándo se puede pagar (pasado, el envío y la proforma se anulan)
 };
 export type AlbaranFila = {
   id: string; tipo: string; nombre: string; envio_id: string; creado_en: string; visible_cliente: boolean; gx: string | null; ruta: string;
@@ -129,7 +131,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                     <td><strong>{euros(p.total)}</strong></td>
                     <td>{p.pagado_en
                       ? <><span className="badge badge-entregado">Pagada el {fecha(diaMadrid(p.pagado_en))}</span>{p.banco ? <div className="meta">{p.banco}</div> : null}</>
-                      : <span className="badge badge-red">Sin pagar</span>}
+                      : <><span className="badge badge-red">Sin pagar</span>{p.limite && <div className="meta pago-plazo" title={`Se puede pagar hasta el ${fechaHora(p.limite)}; después el envío y su proforma se anulan solos`}>Caduca: <CuentaAtras hasta={p.limite} corto vencidoTxt="plazo vencido" /></div>}</>}
                       {gestor && <div style={{ marginTop: '0.3rem' }}>
                         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', fontSize: 'var(--fs-s)' }} onClick={(ev) => { ev.stopPropagation(); pagar(p, !p.pagado_en); }}>
                           {p.pagado_en ? 'Quitar pago' : p.tipo === 'envio' ? 'Transferencia recibida' : 'Marcar pagada'}

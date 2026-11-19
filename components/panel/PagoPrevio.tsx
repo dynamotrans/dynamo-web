@@ -3,6 +3,7 @@
 // Previo pago de un envío, en la ficha de Dynamo: en qué está, por qué se pide, el total
 // con IVA y lo que puede hacer Dynamo (transferencia recibida, pasar sin pago previo con
 // motivo, exigirlo, deshacer). Las reglas las impone la base de datos (marcar_pago_envio).
+import CuentaAtras from './CuentaAtras';
 import { useState } from 'react';
 import { euros, fecha, fechaHora, porcentaje } from '@/lib/formato';
 
@@ -51,7 +52,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
           </div>
         )}
         {pago.provisional && <div style={{ marginTop: '0.3rem' }}>Precio <strong>provisional</strong>: el plazo para pagar empieza cuando se revise el precio.</div>}
-        {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{fechaHora(pago.limite)}</strong>. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
+        {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{fechaHora(pago.limite)}</strong> · <CuentaAtras hasta={pago.limite} vencidoTxt="Plazo vencido: se anula en breve" />. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
         {transferencia ? (
           // Un toque ya no basta (usuario, 2026-11-17): banco, concepto y fecha antes de marcarla.
           <div style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>

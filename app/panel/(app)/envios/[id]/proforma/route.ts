@@ -2,7 +2,7 @@ import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
 import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
-import { ventana, medidasTxt, euros } from '@/lib/formato';
+import { ventana, medidasTxt, euros, fechaHora } from '@/lib/formato';
 import type { Tabla } from '@/lib/supabase/tipos';
 
 // /panel/envios/<id>/proforma: la factura proforma del PREVIO PAGO de un envío. Se ABRE
@@ -68,7 +68,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       ? `YA PAGADO A CUENTA: ${euros(aCuenta)}. PENDIENTE DE PAGO: ${euros(Number(p.pendiente))} (IVA incluido), la diferencia por la modificación del envío. `
       : '') + (lejos
       ? `Precio pendiente de fijar: se actualizará al llegar a ${cerrado} días hábiles de la carga. El envío no se asigna a ningún transportista hasta validar el pago.`
-      : 'El envío no se asigna a ningún transportista hasta validar el pago (por transferencia, la validación puede tardar hasta 24 h; con tarjeta, al momento). Si la fecha de carga ya no se puede cumplir cuando llegue el pago, te propondremos otra.'),
+      : 'El envío no se asigna a ningún transportista hasta validar el pago (por transferencia, la validación puede tardar hasta 24 h; con tarjeta, al momento). Si la fecha de carga ya no se puede cumplir cuando llegue el pago, te propondremos otra.')
+      // Hasta cuándo vale esta proforma (usuario, 2026-11-19): pasado el plazo se anula con su envío.
+      + (p.estado_pago_previo === 'pendiente' && p.pago_limite
+        ? ` PLAZO PARA PAGAR: hasta el ${fechaHora(p.pago_limite)}. Pasado ese plazo sin recibir el pago, el envío y esta proforma quedan anulados y habrá que crear un envío nuevo.`
+        : ''),
     dynamo: await datosDynamo(sb),
   });
   return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',

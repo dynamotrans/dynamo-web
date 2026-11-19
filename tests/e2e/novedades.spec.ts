@@ -74,6 +74,37 @@ test.describe('novedades', () => {
     }
   });
 
+  // Temporizador del plazo para pagar (usuario, 2026-11-19): en la ficha, en la lista de envíos
+  // y en la proforma, con la misma hora límite que calcula la base de datos.
+  test('pendiente de pago: el plazo y su temporizador salen en la ficha, en la lista y en la proforma', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await crearEnvioDeCliente(page);
+    const e = await ultimoEnvio();
+    const sv = bd();
+    const antes = { estado_pago_previo: e.estado_pago_previo };
+    if (e.estado_pago_previo !== 'pendiente') {
+      const { error } = await sv.from('envios').update({ estado_pago_previo: 'pendiente', pago_motivo: 'Pedido por Dynamo', pago_pendiente_en: new Date().toISOString() }).eq('id', e.id);
+      expect(error).toBeNull();
+    }
+    try {
+      // El cliente: en su ficha, «Paga antes del …» y cuánto queda; en Administración, su proforma.
+      await page.goto(`/panel/envios?ver=${e.id}`);
+      await expect(page.locator('#pago-plazo')).toContainText('Paga antes del');
+      await expect(page.locator('#pago-plazo .cuenta-atras')).toContainText(/Quedan \d/);
+      await expect(page.locator('#pago-plazo')).toContainText('tendrás que crear un envío nuevo');
+      await page.goto('/panel/administracion');
+      const proforma = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
+      await expect(proforma.locator('.pago-plazo .cuenta-atras')).toBeVisible();
+      // Dynamo: en la pestaña de los que están sin pagar, cada fila con su tiempo.
+      await entrar(page, 'dynamo');
+      await page.goto('/panel/envios?f=sin-pagar');
+      const fila = page.locator('table.data tbody tr', { hasText: e.referencia_gx });
+      await expect(fila.locator('.pago-plazo .cuenta-atras')).toBeVisible();
+    } finally {
+      if (antes.estado_pago_previo !== 'pendiente') await sv.from('envios').update({ estado_pago_previo: antes.estado_pago_previo, pago_pendiente_en: null }).eq('id', e.id);
+    }
+  });
+
   test('Nuevo envío: la línea de medidas dice alto y ancho, y el rígido va a 2,40 m', async ({ page }) => {
     await entrar(page, 'cliente');
     await page.goto('/panel/nuevo-envio');
@@ -325,7 +356,11 @@ test.describe('novedades', () => {
       // Ir a otra pantalla del panel sin hacerlo devuelve aquí.
       await page.goto('/panel/usuarios');
       await page.waitForURL(/\/panel\/doble-paso/);
-      await page.getByRole('button', { name: /Escribe la clave a mano/ }).click();
+      // Desde el mismo móvil no se puede escanear: la clave se copia de un toque (y hay un
+      // enlace que abre la aplicación de códigos con todo puesto).
+      await expect(page.locator('#doble-paso-copiar')).toBeVisible();
+      await expect(page.locator('#doble-paso-enlace')).toHaveAttribute('href', /^otpauth:\/\/totp\//);
+      await page.getByRole('button', { name: 'Ver la clave' }).click();
       const clave = (await page.locator('#doble-paso-clave').innerText()).trim();
       // Un código cualquiera no vale.
       await page.locator('#doble-paso-codigo').fill(codigoDelMovil(clave) === '000000' ? '111111' : '000000');

@@ -8,7 +8,7 @@ import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
 
-type Alta = { id: string; qr: string; clave: string };
+type Alta = { id: string; qr: string; clave: string; enlace: string };
 
 const traducir = (m: string) =>
   /invalid totp|invalid code|code.*invalid|expired/i.test(m) ? 'Ese código no vale. Mira el que sale ahora en la aplicación (cambia cada 30 segundos) y escríbelo de nuevo.'
@@ -23,6 +23,14 @@ export default function DoblePaso({ movil, obligatorio, email }: { movil: string
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(movil ? null : 'Preparando el código');
   const [verClave, setVerClave] = useState(false);
+  const [copiada, setCopiada] = useState(false);
+  // Con la plataforma abierta en el MISMO móvil de la aplicación no hay cámara que valga:
+  // la clave se copia de un toque y se pega en la aplicación (usuario, 2026-11-19).
+  async function copiarClave() {
+    if (!alta) return;
+    try { await navigator.clipboard.writeText(alta.clave); setCopiada(true); setTimeout(() => setCopiada(false), 4000); }
+    catch { setVerClave(true); }   // sin permiso para copiar: al menos queda a la vista
+  }
   const empezado = useRef(false);
   const campo = useRef<HTMLInputElement>(null);
 
@@ -39,7 +47,7 @@ export default function DoblePaso({ movil, obligatorio, email }: { movil: string
         for (const f of lista?.all ?? []) if (f.status !== 'verified') await sb.auth.mfa.unenroll({ factorId: f.id });
         const { data, error: e } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Dynamo ${new Date().toISOString().slice(0, 19)}`, issuer: 'Dynamo' });
         if (e || !data) { setError(/disabled|not enabled/i.test(e?.message ?? '') ? traducir(e!.message) : 'No se ha podido preparar el doble paso. Recarga la página; si sigue igual, avísanos.'); setTrabajando(null); return; }
-        setAlta({ id: data.id, qr: data.totp.qr_code, clave: data.totp.secret });
+        setAlta({ id: data.id, qr: data.totp.qr_code, clave: data.totp.secret, enlace: data.totp.uri });
       } catch {
         setError('No se ha podido preparar el doble paso. Recarga la página; si sigue igual, avísanos.');
       }
@@ -81,16 +89,31 @@ export default function DoblePaso({ movil, obligatorio, email }: { movil: string
               <img id="doble-paso-qr" src={alta.qr} alt="Código QR para dar de alta el doble paso en tu aplicación" width={190} height={190}
                 style={{ background: '#fff', padding: 8, borderRadius: 12, border: '1px solid #e8eaed' }} />
             </div>
-            <button type="button" onClick={() => setVerClave((v) => !v)} aria-expanded={verClave}
-              style={{ background: 'none', border: 0, padding: 0, color: '#3300cc', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
-              ¿No puedes escanearlo? {verClave ? 'Ocultar la clave' : 'Escribe la clave a mano'}
-            </button>
-            {verClave && (
-              <div style={{ marginTop: '0.4rem', fontSize: '0.9rem' }}>
-                En la aplicación elige <strong>Introducir clave de configuración</strong>. Cuenta: <strong>{email || 'Dynamo'}</strong>. Clave:
-                <code id="doble-paso-clave" style={{ display: 'block', marginTop: '0.3rem', padding: '0.5rem 0.6rem', background: '#f3f4f6', borderRadius: 8, wordBreak: 'break-all', fontWeight: 700, letterSpacing: '0.04em' }}>{alta.clave}</code>
+            <div id="doble-paso-mismo-movil" style={{ marginTop: '0.5rem', padding: '0.75rem 0.85rem', background: '#f6f4ff', border: '1px solid #d9d2ff', borderRadius: 12, fontSize: '0.9rem' }}>
+              <strong>¿Estás en el mismo móvil y no puedes escanearlo?</strong>
+              <ol style={{ margin: '0.4rem 0 0.6rem', paddingLeft: '1.1rem', display: 'grid', gap: '0.25rem' }}>
+                <li>Pulsa <strong>Copiar la clave</strong>.</li>
+                <li>Abre Google Authenticator → <strong>+</strong> → <strong>Introducir clave de configuración</strong>.</li>
+                <li>Cuenta: <strong>{email || 'Dynamo'}</strong>. Clave: <strong>pégala</strong>. Tipo: <strong>Basada en tiempo</strong>. Pulsa <strong>Añadir</strong>.</li>
+                <li>Vuelve aquí y escribe el código que te sale.</li>
+              </ol>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button type="button" id="doble-paso-copiar" className="portal-btn" onClick={copiarClave} style={{ width: 'auto', padding: '0.55rem 1rem', margin: 0 }}>
+                  {copiada ? 'Clave copiada ✓' : 'Copiar la clave'}
+                </button>
+                <button type="button" onClick={() => setVerClave((v) => !v)} aria-expanded={verClave}
+                  style={{ background: 'none', border: 0, padding: 0, color: '#3300cc', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
+                  {verClave ? 'Ocultar la clave' : 'Ver la clave'}
+                </button>
               </div>
-            )}
+              <span role="status" style={{ display: 'block', marginTop: copiada ? '0.4rem' : 0, color: '#0f6b3a', fontWeight: 700 }}>{copiada ? 'Copiada. Ahora pégala en la aplicación.' : ''}</span>
+              {verClave && (
+                <code id="doble-paso-clave" style={{ display: 'block', marginTop: '0.5rem', padding: '0.5rem 0.6rem', background: '#fff', border: '1px solid #e8eaed', borderRadius: 8, wordBreak: 'break-all', fontWeight: 700, letterSpacing: '0.04em', userSelect: 'all' }}>{alta.clave}</code>
+              )}
+              <p style={{ margin: '0.6rem 0 0', color: '#4b5563' }}>
+                O prueba el atajo: <a id="doble-paso-enlace" href={alta.enlace} style={{ color: '#3300cc', fontWeight: 700 }}>abrir en la aplicación de códigos</a>. En iPhone puede abrir «Contraseñas» de Apple en vez de Google Authenticator; si pasa, usa «Copiar la clave».
+              </p>
+            </div>
           </li>
           <li>Escribe aquí el <strong>código de 6 cifras</strong> que te sale.</li>
         </ol>

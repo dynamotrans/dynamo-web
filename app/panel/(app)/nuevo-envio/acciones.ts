@@ -241,7 +241,7 @@ export async function guardarEdicionEnvioManual(envio: string,
 // no hay solicitudes de precio). Nace programado; el previo pago decide crédito o pago.
 // La base de datos fuerza que sea de SU empresa y con SUS sitios.
 export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_transportista'>, paradas: ParadaNueva[]):
-  Promise<{ ok: true; referencia_gx: string; id: string | null; pagoPendiente: boolean; pagoRazon: RazonPago } | { ok: false; error: string }> {
+  Promise<{ ok: true; referencia_gx: string; id: string | null; pagoPendiente: boolean; pagoRazon: RazonPago; pagoLimite: string | null } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#crearEnvioCliente", [envio, paradas]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
@@ -253,17 +253,29 @@ export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | '
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
   // ¿Ha nacido pendiente de pago? (sin crédito, primer envío, o porque no cabe en el crédito
   // que le queda): la pantalla de «envío creado» lo avisa con lo que diga la base de datos.
-  let pagoPendiente = false; let pagoRazon: RazonPago = null;
+  let pagoPendiente = false; let pagoRazon: RazonPago = null; let pagoLimite: string | null = null;
   if (fila?.id) {
     const { data: pg } = await s.supabase.rpc('pagos_envio', { p_envio: fila.id }).maybeSingle();
     pagoPendiente = pg?.estado_pago_previo === 'pendiente';
+    pagoLimite = pagoPendiente ? (pg?.pago_limite ?? null) : null;   // hasta cuándo puede pagar (temporizador)
     // El PORQUÉ, para que no choque con el «Con crédito disponible» de arriba (usuario,
     // 2026-11-17). Solo la clase de motivo: el cliente no ve importes de crédito.
     const m = pagoPendiente ? (pg?.pago_motivo ?? '') : '';
     pagoRazon = m.startsWith('Primer') ? 'primero' : m.startsWith('Uno de los') ? 'primeros'
       : m.startsWith('Crédito insuficiente') ? 'credito' : null;
   }
-  return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null, pagoPendiente, pagoRazon };
+  return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null, pagoPendiente, pagoRazon, pagoLimite };
+}
+
+// Hasta cuándo se podría pagar un envío con pago por adelantado SI SE CONFIRMA AHORA (usuario,
+// 2026-11-19: «cuando se vaya a generar el envío indica el tiempo que tiene para tramitar
+// el pago»). Lo dice la misma función de la base de datos que luego fija el plazo de verdad.
+export async function plazoPagoPrevisto(carga: string | null): Promise<string | null> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#plazoPagoPrevisto", [carga]);
+  const s = await sesion();
+  if (!s?.perfil) return null;
+  const { data } = await s.supabase.rpc('pago_limite', { p_desde: new Date().toISOString(), p_carga: carga || undefined });
+  return typeof data === 'string' ? data : null;
 }
 
 // Envío con un operador PROPIO del cliente (manual, Dynamo no interviene): lo crea el

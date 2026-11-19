@@ -12478,3 +12478,44 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid; d uuid; n int; an
   if n <> antes + 1 then raise exception 'FALLO 282 · avisa por email de un documento que no es albarán ni CMR firmado'; end if;
   raise notice 'OK 282 · albarán o CMR firmado visible para el cliente: un email al cliente, una sola vez por documento';
 end $$;
+
+-- ---- 283. El email «Envío creado» de un envío pendiente de pago dice hasta cuándo se puede pagar ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; s uuid; r record; v record; cli uuid := current_setting('prueba.cliente')::uuid;
+  adm uuid := current_setting('prueba.u_admin')::uuid;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; esperado text;
+begin
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  -- (a) Pendiente de pago: el email lleva la hora límite, la MISMA que enseña la ficha.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, creado_por)
+    values (cli, 13.30, 20, 900, 700, lun, lun + 1, adm) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_pendiente_en = now() where id = e;
+  update envios set estado = 'programado' where id = e;
+  select estado_pago_previo, pago_pendiente_en, fecha_carga_desde, estado_revision_precio into v from envios where id = e;
+  if v.estado_pago_previo <> 'pendiente' or v.pago_pendiente_en is null then raise exception 'FALLO 283 · la prueba no ha dejado el envío pendiente de pago (%)', v.estado_pago_previo; end if;
+  select * into r from emails_enviados where clave = 'envio_creado:' || e;
+  if r.id is null then raise exception 'FALLO 283 · no se encola el email «Envío creado»'; end if;
+  if coalesce(precio_por_revisar(v.estado_revision_precio), false) then
+    -- Precio provisional: el plazo aún no ha empezado y el email no puede prometer una hora.
+    if position('Plazo para pagar' in r.cuerpo_html) > 0 then raise exception 'FALLO 283 · con precio provisional el email da un plazo que aún no corre'; end if;
+  else
+    esperado := 'Plazo para pagar: hasta el ' || fecha_hora_texto(pago_limite(v.pago_pendiente_en, v.fecha_carga_desde));
+    if position(esperado in r.cuerpo_html) = 0 then raise exception 'FALLO 283 · el email no dice el plazo para pagar (%): %', esperado, r.cuerpo_html; end if;
+    if position('se anulan solos' in r.cuerpo_html) = 0 or position('crear un envío nuevo' in r.cuerpo_html) = 0 then
+      raise exception 'FALLO 283 · el email no dice qué pasa si no se paga a tiempo'; end if;
+  end if;
+  -- (b) Un envío que no espera ningún pago: ni «Pendiente de pago» ni plazo.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, creado_por)
+    values (cli, 13.30, 20, 900, 700, lun, lun + 1, adm) returning id into s;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (s, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (s, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = s;
+  if (select estado_pago_previo from envios where id = s) <> 'pendiente' then
+    select * into r from emails_enviados where clave = 'envio_creado:' || s;
+    if position('Plazo para pagar' in r.cuerpo_html) > 0 then raise exception 'FALLO 283 · un envío sin pago pendiente recibe un plazo para pagar'; end if;
+  end if;
+  raise notice 'OK 283 · el email «Envío creado» de un envío pendiente de pago dice la hora límite y que, pasada, se anula';
+end $$;
