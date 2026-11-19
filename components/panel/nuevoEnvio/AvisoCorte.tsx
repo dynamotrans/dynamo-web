@@ -1,14 +1,14 @@
 'use client';
 
-// Aviso del CORTE del día en el paso de fecha (calcado del mockup): antes del corte, una
-// cuenta atrás en vivo («Pide antes de las 12:00, quedan 1 h 23 min…») con el primer día
-// de carga posible; pasado el corte, desde cuándo se puede cargar, con el rango de la
-// ventana. CADA ventana tiene SU hora de corte en Parámetros (usuario, 2026-11-10):
+// Aviso del CORTE en el paso de fecha (calcado del mockup): una cuenta atrás en vivo hasta
+// el siguiente corte que cuenta («Pide antes de las 12:00, quedan 1 h 23 min…»; pasado el
+// de hoy, «Pide antes del Vie 20/11/26 a las 12:00, quedan 23 h 59 min…») con el primer
+// día de carga posible y el rango de la ventana. CADA ventana tiene SU hora de corte en Parámetros (usuario, 2026-11-10):
 // 1-3 días (carga completa), 1-2 y 1-4 (grupaje); la fecha fija, la suya (12:00).
 // Toda ventana puede empezar HOY MISMO antes de su corte; pasado, el siguiente
 // día hábil, nunca dos (usuario, 2026-11-09).
 import { useEffect, useMemo, useState } from 'react';
-import { corteDe, iso, primerDia, sumarHabiles, type CortesCarga } from '@/lib/fechasCarga';
+import { habil, iso, primerDia, siguienteCorte, sumarHabiles, type CortesCarga } from '@/lib/fechasCarga';
 import { ahoraMadrid } from '@/lib/atencion';
 import { fecha as fmtFecha } from '@/lib/formato';
 
@@ -30,10 +30,15 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
   useEffect(() => { const t = setInterval(() => setTic((x) => x + 1), 1000); return () => clearInterval(t); }, []);
   const fest = useMemo(() => new Set(festivos), [festivos]);
 
-  const m = ahoraMadrid();
-  const corteH = corteDe(urgencia, grupaje, cortes);
-  const etiqueta = `${corteH}:00`;
-  const resta = corteH * 3600 - (m.getHours() * 3600 + m.getMinutes() * 60 + m.getSeconds());
+  const ahora = new Date();
+  const m = ahoraMadrid(ahora);
+  // La cuenta atrás va SIEMPRE al siguiente corte que cuenta (usuario, 2026-11-19): pasado
+  // el de hoy, se reinicia al de mañana (23 h 59 min…), y en fin de semana, al del lunes.
+  const sig = siguienteCorte(urgencia, grupaje, fest, cortes, ahora);
+  const etiqueta = `${sig.hora}:00`;
+  const resta = Math.max(0, Math.floor((sig.instante.getTime() - ahora.getTime()) / 1000));
+  const corteHoy = sig.dia === iso(m);
+  const pasadoHoy = !corteHoy && habil(m, fest) && m.getHours() * 3600 + m.getMinutes() * 60 + m.getSeconds() >= sig.hora * 3600;
   const first = primerDia(urgencia, grupaje, fest, cortes);
   const firstHoy = first === iso(m);
   const hasta = ventana > 1 ? sumarHabiles(first, ventana - 1, fest) : first;
@@ -49,18 +54,11 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
       : null}.</>
     : null;
 
-  if (resta > 0) {
-    const h = Math.floor(resta / 3600), mi = Math.floor((resta % 3600) / 60), sg = resta % 60;
-    const quedan = `${h > 0 ? `${h} h ` : ''}${mi} min ${sg < 10 ? `0${sg}` : sg} s`;
-    return (
-      <div className="ptar-cutoff-note" role="status">
-        <IcoReloj /><strong>Pide antes de las {etiqueta}</strong> (quedan <em>{quedan}</em>) y el primer día de carga posible es {firstHoy ? <><strong>hoy mismo</strong> ({fmtFecha(first)})</> : <>el <strong>{fmtFecha(first)}</strong></>}{rango}.{guia}
-      </div>
-    );
-  }
+  const dd = Math.floor(resta / 86_400), h = Math.floor((resta % 86_400) / 3600), mi = Math.floor((resta % 3600) / 60), sg = resta % 60;
+  const quedan = `${dd > 0 ? `${dd} ${dd === 1 ? 'día' : 'días'} ` : ''}${dd > 0 || h > 0 ? `${h} h ` : ''}${mi} min ${sg < 10 ? `0${sg}` : sg} s`;
   return (
     <div className="ptar-cutoff-note" role="status">
-      <IcoReloj />El corte de las {etiqueta} ya ha pasado. Primer día de carga posible: <strong>{fmtFecha(first)}</strong>{rango}.{guia}
+      <IcoReloj />{pasadoHoy ? <>El corte de hoy ({etiqueta}) ya ha pasado. </> : null}<strong>Pide antes {corteHoy ? <>de las {etiqueta}</> : <>del {fmtFecha(sig.dia)} a las {etiqueta}</>}</strong> (quedan <em>{quedan}</em>) y el primer día de carga posible es {firstHoy ? <><strong>hoy mismo</strong> ({fmtFecha(first)})</> : <>el <strong>{fmtFecha(first)}</strong></>}{rango}.{guia}
     </div>
   );
 }

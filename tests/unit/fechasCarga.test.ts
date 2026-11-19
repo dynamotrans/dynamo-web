@@ -47,3 +47,25 @@ test('precio cerrado: N días hábiles antes de la carga, sin contradicciones', 
   assert.equal(diaCierrePrecio('2026-12-03', 12, hoy, new Set(['2026-11-17'])), null);   // un festivo por medio: ya solo faltan 12
   assert.equal(diaCierrePrecio('2026-11-16', 12, hoy, sinFest), null);           // carga hoy
 });
+
+test('siguienteCorte: hoy antes del corte; pasado, el del día siguiente; fin de semana, el lunes', async () => {
+  const { siguienteCorte } = await import('../../lib/fechasCarga');
+  const sin = new Set<string>();
+  // Jueves 19/11/2026, 11:00 en Madrid (10:00 UTC): corte de hoy a las 14:00.
+  let c = siguienteCorte('estandar', false, sin, undefined, new Date('2026-11-19T10:00:00Z'));
+  assert.equal(c.dia, '2026-11-19'); assert.equal(c.instante.toISOString(), '2026-11-19T13:00:00.000Z');
+  // Jueves 14:00:01 en Madrid: el corte de hoy ha pasado, cuenta hasta el viernes a las 14:00.
+  c = siguienteCorte('estandar', false, sin, undefined, new Date('2026-11-19T13:00:01Z'));
+  assert.equal(c.dia, '2026-11-20');
+  assert.equal(Math.round((c.instante.getTime() - Date.parse('2026-11-19T13:00:01Z')) / 1000), 24 * 3600 - 1);
+  // Viernes por la tarde y sábado: hasta el lunes 23 a las 14:00.
+  assert.equal(siguienteCorte('estandar', false, sin, undefined, new Date('2026-11-20T15:00:00Z')).dia, '2026-11-23');
+  assert.equal(siguienteCorte('estandar', false, sin, undefined, new Date('2026-11-21T09:00:00Z')).dia, '2026-11-23');
+  // Con festivo el lunes, hasta el martes.
+  assert.equal(siguienteCorte('estandar', false, new Set(['2026-11-23']), undefined, new Date('2026-11-21T09:00:00Z')).dia, '2026-11-24');
+  // Fecha fija (corte 12:00): pasado el corte del jueves, hasta el viernes a las 12:00.
+  c = siguienteCorte('dia', false, sin, undefined, new Date('2026-11-19T11:30:00Z'));
+  assert.equal(c.dia, '2026-11-20'); assert.equal(c.instante.toISOString(), '2026-11-20T11:00:00.000Z');
+  // Horario de verano (UTC+2): el corte de las 14:00 son las 12:00 UTC.
+  assert.equal(siguienteCorte('estandar', false, sin, undefined, new Date('2026-07-01T08:00:00Z')).instante.toISOString(), '2026-07-01T12:00:00.000Z');
+});

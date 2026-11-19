@@ -48,3 +48,38 @@ export function primerDia(urg: 'dia' | 'estandar' | 'corta', grupaje: boolean, f
   }
   return sumarHabiles(hoy, antes ? 1 : 2, fest);
 }
+
+// Instante real de una hora «de reloj» en Madrid (día ISO + hora), con su horario de
+// verano o de invierno. Se ajusta dos veces por si el cambio de hora cae en medio.
+function instanteMadrid(dia: string, hora: number): Date {
+  const [a, m, d] = dia.split('-').map(Number);
+  const deseado = Date.UTC(a, m - 1, d, hora);
+  let t = deseado - 3600_000;
+  for (let i = 0; i < 2; i++) {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(t));
+    const v = (k: string) => Number(p.find((x) => x.type === k)?.value);
+    t += deseado - Date.UTC(v('year'), v('month') - 1, v('day'), v('hour') % 24, v('minute'));
+  }
+  return new Date(t);
+}
+
+// SIGUIENTE CORTE que cuenta (usuario, 2026-11-19: «pasado el corte, reinicia la cuenta al
+// siguiente, 23 h 59 min, así tiene más control»): el último momento para pedir y conservar
+// el primer día de carga que se ofrece ahora. Es el primer corte (cada día a su hora) a
+// partir del cual ese primer día cambia. Antes del corte de un día hábil, el de hoy; pasado,
+// el del día siguiente; en fin de semana, el del lunes (o el siguiente hábil).
+export function siguienteCorte(urg: 'dia' | 'estandar' | 'corta', grupaje: boolean, fest: Set<string>, cortes?: CortesCarga, ahora = new Date()): { dia: string; hora: number; instante: Date } {
+  const hora = corteDe(urg, grupaje, cortes);
+  const actual = primerDia(urg, grupaje, fest, cortes, ahora);
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(ahora);
+  const v = (k: string) => Number(p.find((x) => x.type === k)?.value);
+  const x = new Date(v('year'), v('month') - 1, v('day'));
+  for (let i = 0; i < 40; i++, x.setDate(x.getDate() + 1)) {
+    const dia = iso(x);
+    const instante = instanteMadrid(dia, hora);
+    if (instante.getTime() <= ahora.getTime()) continue;
+    if (primerDia(urg, grupaje, fest, cortes, instante) !== actual) return { dia, hora, instante };
+  }
+  const dia = iso(x);
+  return { dia, hora, instante: instanteMadrid(dia, hora) };
+}
