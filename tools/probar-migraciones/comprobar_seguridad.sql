@@ -13208,6 +13208,8 @@ do $$ declare h text; d text; begin
   if position('email_con_diseno(r.cuerpo_html)' in d) = 0 then raise exception 'FALLO 297 · la cola no envuelve los emails'; end if;
   d := pg_get_functiondef('public.fn_email_envio_cliente(uuid,text,text,text,text)'::regprocedure);
   if position('>Ver el envío</a>' in d) = 0 then raise exception 'FALLO 297 · el email al cliente sigue con el enlace de texto'; end if;
+  d := pg_get_functiondef('public.fn_avisos_reservas()'::regprocedure);
+  if position('<strong>Revisar y aceptar el alta</strong></a>' in d) > 0 then raise exception 'FALLO 297 · el aviso de alta pendiente sigue con el enlace de texto'; end if;
 end $$;
 set role authenticated;
 do $$ begin

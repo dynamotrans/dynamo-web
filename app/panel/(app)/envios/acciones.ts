@@ -346,15 +346,15 @@ export async function emailOrdenPlataforma(envio: string, para: 'transportista' 
   if (!dest) return { ok: false, error: para === 'transportista' ? 'El transportista no tiene email en su ficha.' : 'El cliente no tiene email en sus contactos.' };
   const { data: e } = await s.supabase.from('envios').select('referencia_gx').eq('id', envio).maybeSingle();
   const ref = e?.referencia_gx ?? '';
-  const [{ enviarEmailOperativo, escaparHtml }, { origen }] = await Promise.all([import('@/lib/servidor/emailOperativo'), import('@/lib/origen')]);
+  const [{ enviarEmailOperativo }, { origen }] = await Promise.all([import('@/lib/servidor/emailOperativo'), import('@/lib/origen')]);
   const { pdfsOrdenDynamo } = await import('@/lib/pdf/generar');
   const pd = await pdfsOrdenDynamo(s.supabase, envio, s.user.id, [para === 'transportista' ? 'economica' : 'cliente'], await origen());
   if ('error' in pd) return { ok: false, error: pd.error };
   const adjuntos = pd.pdfs.map((x) => ({ nombre: x.nombre, base64: Buffer.from(x.bytes).toString('base64'), tipo: 'application/pdf' }));
-  // El mensaje de la pantalla, línea a línea, con los enlaces clicables.
-  const html = mensaje.slice(0, 4000).split('\n')
-    .map((ln) => ln.trim() === '' ? '<br>' : `<p style="margin:0 0 2px">${escaparHtml(ln).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')}</p>`)
-    .join('');
+  // El mensaje de la pantalla, línea a línea; cada dirección web, un botón con el nombre de
+  // la acción (usuario, 2026-11-19: botones, no enlaces).
+  const { htmlDeMensaje } = await import('@/lib/emailBoton');
+  const html = htmlDeMensaje(mensaje.slice(0, 4000));
   const res = await enviarEmailOperativo({
     clave: `orden_manual:${envio}:${para}:${Date.now()}`, tipo: 'orden_carga', envioId: envio, para: dest,
     asunto: para === 'transportista' ? `Orden de carga #${ref} · Dynamo` : `Tu envío #${ref} · Dynamo`,
