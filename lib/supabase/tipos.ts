@@ -3941,6 +3941,8 @@ export type Database = {
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }
       envio_transportista_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envios_de_vuelta: { Args: { p_envio: string | null; p_max?: number | null; p_tramo?: string | null }; Returns: Json }
+      envios_de_vuelta_calculo: { Args: { p_envio: string | null; p_max: number | null; p_tramo: string | null }; Returns: Json }
+      envios_de_vuelta_enlace: { Args: { p_token: string | null; p_clave: string | null; p_tramo: string | null }; Returns: Json }
       envios_hechos_de: { Args: { p_campo: string | null; p_ids: string[] | null }; Returns: { id: string; envios: number }[] }
       envios_lista_ambito: { Args: { p_cliente: string | null; p_transportista: string | null }; Returns: { v_cli: string; v_tra: string; v_ok: boolean } }
       envios_pagina: { Args: { p_pestana: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_cliente?: string | null; p_transportista?: string | null; p_operador?: string | null; p_creado_por?: string | null; p_estado?: string | null; p_desde?: string | null; p_hasta?: string | null }; Returns: { id: string; total: number }[] }

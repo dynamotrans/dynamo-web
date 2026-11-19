@@ -988,4 +988,5 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - [x] Primero las del MISMO tipo que el envío (completo o grupaje) con sus grupos 1-2-3-resto; luego las del otro tipo. Máximo 25 por bloque.
 - [x] Grupos: 1 hacia la provincia de su base (con su nombre) · 2 hacia donde venía / la misma ruta · 3 hacia provincias limítrofes de su base · 4 desde provincias limítrofes de donde descarga hacia esos destinos. Fuera «el resto». «Grupajes (puedes combinar varios)» si hay más de uno.
 - [x] Nunca envíos dentro de la misma provincia ni que vuelven a la provincia del bloque; base = procedencia → todo en «hacia tu base»; «limítrofes de tu base (Valencia)». Tamaño: ~24 KB por bloque de 25 (Gmail recorta a partir de 102 KB).
+- [x] En cada bloque: 20 del mismo tipo que lleva y 5 del otro, cada lista con «Ver todas las cargas completas / todos los grupajes (N)» a la página pública /cargas-de-vuelta/<token>?clave=…&tramo=…&tipo=… (mismo enlace que la orden).
 - [ ] Ideas: que el número máximo (25) sea un parámetro; mostrar también las de ventana que empiecen al día siguiente; añadirlas al mensaje de «Compartir» (WhatsApp).

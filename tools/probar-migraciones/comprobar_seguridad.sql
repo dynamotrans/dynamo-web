@@ -13026,9 +13026,26 @@ do $$ declare refs text; begin
   if refs is distinct from 'V293-1:1' then raise exception 'FALLO 293 · con la base en la provincia de donde viene: %', refs; end if;
   update transportistas set codigo_postal = '46001' where id = current_setting('prueba.transp')::uuid;
 end $$;
+-- 295. «Ver todas»: la página pública entra con el token del CMR y la clave del transportista.
+do $$ declare t uuid; begin
+  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e293')::uuid) returning token into t;
+  perform set_config('prueba.tok295', t::text, false);
+end $$;
+set role anon;
+do $$ declare t uuid := current_setting('prueba.tok295')::uuid; j jsonb; begin
+  if envios_de_vuelta_enlace(t, gen_random_uuid(), 'descarga') ->> 'resultado' <> 'no_valido' then raise exception 'FALLO 295 · «Ver todas» con una clave ajena'; end if;
+  if envios_de_vuelta_enlace(gen_random_uuid(), current_setting('prueba.transp')::uuid, 'descarga') ->> 'resultado' <> 'no_valido' then raise exception 'FALLO 295 · «Ver todas» con un token inventado'; end if;
+  j := envios_de_vuelta_enlace(t, current_setting('prueba.transp')::uuid, 'descarga');
+  if j ->> 'resultado' <> 'ok' or jsonb_array_length(j -> 'cargas') <> 5 or j ->> 'referencia' is null then raise exception 'FALLO 295 · «Ver todas» no trae las cargas: %', j - 'cargas'; end if;
+  begin perform envios_de_vuelta_calculo(current_setting('prueba.e293')::uuid, 10, 'descarga'); raise exception 'FALLO 295 · sin sesión se llama al cálculo interno';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 295 · «Ver todas» de las cargas de vuelta: solo con token y clave buenos; el cálculo interno, cerrado';
+end $$;
+reset role;
 do $$ begin
   alter table envios disable trigger user;
   delete from envio_reservas where envio_id in (select id from envios where referencia_cliente like 'V293-%');
+  delete from cmr_enlaces where envio_id = current_setting('prueba.e293')::uuid;
   delete from envio_paradas where envio_id in (select id from envios where referencia_cliente like 'V293-%' or id = current_setting('prueba.e293')::uuid);
   delete from envios where referencia_cliente like 'V293-%' or id = current_setting('prueba.e293')::uuid;
   alter table envios enable trigger user;

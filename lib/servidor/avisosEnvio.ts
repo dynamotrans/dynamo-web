@@ -65,16 +65,19 @@ const CAJA_SIN_MATRICULAS = `<div style="background:#fde8e8;border:1px solid #dc
 // Envíos libres de la bolsa que salen de la provincia de la última descarga el mismo día
 // (envios_de_vuelta) y, después, desde el origen 2 días hábiles más tarde. El HTML, en
 // lib/cargasDeVuelta.ts. Vacío si no hay ninguna.
-export async function bloqueCargasDeVuelta(sb: SB, envio: string, origen: string): Promise<string> {
+export async function bloqueCargasDeVuelta(sb: SB, envio: string, origen: string, enlace?: { token: string; clave: string } | null): Promise<string> {
   try {
     // Dos bloques: desde donde descarga el día de la descarga y, al final, desde el origen
-    // 2 días hábiles después de la carga (usuario, 2026-11-19).
+    // 2 días hábiles después de la carga (usuario, 2026-11-19). Se piden hasta 200 para saber
+    // cuántas hay de cada tipo; el email enseña 20 del mismo tipo y 5 del otro, con «Ver todas».
     const [d, r] = await Promise.all([
-      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 25, p_tramo: 'descarga' }),
-      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 25, p_tramo: 'regreso' }),
+      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 200, p_tramo: 'descarga' }),
+      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 200, p_tramo: 'regreso' }),
     ]);
-    return (d.error ? '' : htmlCargasDeVuelta(d.data as unknown as DatosVuelta | null, origen))
-      + (r.error ? '' : htmlCargasDeVuelta(r.data as unknown as DatosVuelta | null, origen));
+    const ver = (tramo: string) => enlace
+      ? (tipo: string) => `${origen}/cargas-de-vuelta/${enlace.token}?clave=${enlace.clave}&tramo=${tramo}&tipo=${tipo}` : null;
+    return (d.error ? '' : htmlCargasDeVuelta(d.data as unknown as DatosVuelta | null, origen, { verTodas: ver('descarga') }))
+      + (r.error ? '' : htmlCargasDeVuelta(r.data as unknown as DatosVuelta | null, origen, { verTodas: ver('regreso') }));
   } catch { return ''; }
 }
 
@@ -107,7 +110,7 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string, 
     const pdf = await pdfDeEnvioDynamo(sb, envio, 'orden-de-carga', usuarioId, origen);
     if (!('error' in pdf)) adjuntos = [{ nombre: pdf.nombre, base64: Buffer.from(pdf.bytes).toString('base64'), tipo: 'application/pdf' }];
     const fecha = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? null;
-    const vuelta = await bloqueCargasDeVuelta(sb, envio, origen);
+    const vuelta = await bloqueCargasDeVuelta(sb, envio, origen, token ? { token, clave: e.transportista_id } : null);
     const html = completa ? `<p>Hola,</p>
 <p>${completaYa ? `Ya tenemos las matrículas del envío <strong>#${esc(e.referencia_gx)}</strong>` : `Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>`}${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos${completaYa ? ', las direcciones' : ''} y las condiciones.</p>
 ${enlFirma ? `<p>Firma en este enlace tu e-CMR DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}

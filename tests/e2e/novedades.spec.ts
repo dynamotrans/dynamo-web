@@ -722,6 +722,20 @@ test.describe('novedades', () => {
     }
   });
 
+  test('«Ver todas las cargas de vuelta»: solo con el enlace bueno', async ({ page }) => {
+    const sb = bd();
+    const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
+    const { data: e } = await sb.from('envios').select('id').eq('transportista_id', t!.id).eq('estado', 'programado')
+      .order('creado_en', { ascending: false }).limit(1).single();
+    let { data: enl } = await sb.from('cmr_enlaces').select('token').eq('envio_id', e!.id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle();
+    if (!enl) ({ data: enl } = await sb.from('cmr_enlaces').insert({ envio_id: e!.id }).select('token').single());
+    await page.goto(`/cargas-de-vuelta/${enl!.token}?clave=00000000-0000-4000-8000-000000000000&tramo=descarga&tipo=completa`);
+    await expect(page.locator('#vuelta-parar')).toContainText('no es válido');
+    await page.goto(`/cargas-de-vuelta/${enl!.token}?clave=${t!.id}&tramo=descarga&tipo=completa`);
+    await expect(page.locator('#vuelta-pagina')).toContainText('Para tu envío #');
+    await expect(page.locator('#vuelta-lista, #vuelta-vacia')).toHaveCount(1);
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

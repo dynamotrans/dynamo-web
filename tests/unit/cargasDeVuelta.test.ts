@@ -66,3 +66,24 @@ test('títulos con la provincia entre paréntesis, grupo 4 y «puedes combinar v
     base: { cp2: '46', pais: 'ES' }, previa: { cp2: '08', pais: 'ES' }, cargas: [c({ criterio: 2 })] }, 'https://web');
   assert.match(r, /La misma ruta que este envío \(Madrid → Barcelona\)/);
 });
+
+test('20 del mismo tipo y 5 del otro, cada lista con «Ver todas» si hay más', () => {
+  const lista = [...Array.from({ length: 25 }, (_, i) => c({ token: `c${i}` })),
+    ...Array.from({ length: 8 }, (_, i) => c({ token: `g${i}`, tipo_carga: 'grupaje', metros_lineales: 6 }))];
+  const r = { dia: '2026-11-30', desde: { codigo_postal: '08001', pais: 'ES' }, tipo_envio: 'completa', cargas: lista };
+  const h = htmlCargasDeVuelta(r, 'https://web', { verTodas: (t) => `https://web/cargas-de-vuelta/x?tipo=${t}` });
+  assert.equal((h.match(/>Ver carga</g) ?? []).length, 25);   // 20 + 5
+  assert.match(h, /href="https:\/\/web\/cargas-de-vuelta\/x\?tipo=completa"[^>]*>Ver todas las cargas completas \(25\)/);
+  assert.match(h, /href="https:\/\/web\/cargas-de-vuelta\/x\?tipo=grupaje"[^>]*>Ver todos los grupajes \(8\)/);
+  assert.ok(h.indexOf('Cargas completas') < h.indexOf('Grupajes'));
+  // Si lleva un grupaje, primero los grupajes (todos, son menos de 20) y luego 5 completos.
+  const g = htmlCargasDeVuelta({ ...r, tipo_envio: 'grupaje' }, 'https://web', { verTodas: () => 'https://web/v' });
+  assert.ok(g.indexOf('Grupajes') < g.indexOf('Cargas completas'));
+  assert.equal((g.match(/>Ver carga</g) ?? []).length, 13);   // 8 + 5
+  assert.doesNotMatch(g, /Ver todos los grupajes/);
+  // Sin enlace no hay botón; la página «Ver todas» enseña un solo tipo, sin límite.
+  assert.doesNotMatch(htmlCargasDeVuelta(r, 'https://web'), /Ver todas/);
+  const p = htmlCargasDeVuelta(r, '', { mismo: Infinity, otro: Infinity, soloTipo: 'completa' });
+  assert.equal((p.match(/>Ver carga</g) ?? []).length, 25);
+  assert.doesNotMatch(p, /Grupaje/);
+});
