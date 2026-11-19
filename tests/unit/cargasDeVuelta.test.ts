@@ -48,3 +48,18 @@ test('un título por tipo (completos / grupajes) y los grupos se repiten dentro 
   assert.equal((h.match(/Cargas completas/g) ?? []).length, 1);
   assert.equal((h.match(/>Grupajes</g) ?? []).length, 1);
 });
+
+test('títulos con la provincia entre paréntesis, grupo 4 y «puedes combinar varios» con más de un grupaje', () => {
+  const g = (x: Partial<CargaVuelta>) => c({ tipo_carga: 'grupaje', metros_lineales: 6, ...x });
+  const h = htmlCargasDeVuelta({ dia: '2026-11-30', desde: { codigo_postal: '08001', pais: 'ES' }, tipo_envio: 'grupaje',
+    base: { cp2: '46', pais: 'ES' }, previa: { cp2: '28', pais: 'ES' },
+    cargas: [g({ token: 'a' }), g({ token: 'b', criterio: 2 }), g({ token: 'd', criterio: 4 })] }, 'https://web');
+  assert.match(h, /Hacia la provincia de tu base \(Valencia\)/);
+  assert.match(h, /Hacia la provincia de donde vienes \(Madrid\)/);
+  assert.match(h, /Desde provincias limítrofes de Barcelona/);
+  assert.match(h, /Grupajes <span[^>]*>\(puedes combinar varios\)/);
+  assert.doesNotMatch(h, /el resto|Otras desde/i);
+  const r = htmlCargasDeVuelta({ tramo: 'regreso', dia: '2026-11-25', desde: { codigo_postal: '28001', pais: 'ES' },
+    base: { cp2: '46', pais: 'ES' }, previa: { cp2: '08', pais: 'ES' }, cargas: [c({ criterio: 2 })] }, 'https://web');
+  assert.match(r, /La misma ruta que este envío \(Madrid → Barcelona\)/);
+});

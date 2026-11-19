@@ -12953,8 +12953,8 @@ declare cli uuid := current_setting('prueba.cliente')::uuid; tr uuid := current_
     ['28010', '46010', 'grupaje',  '0', '900', 'no'],   -- 1: hacia su base (Valencia), grupaje
     ['28020', '46020', 'completa', '1', '500', 'no'],   -- 1: hacia su base, completo (va antes)
     ['28030', '16001', 'completa', '0', '400', 'no'],   -- 3: limítrofe de su base (Cuenca)
-    ['28040', '08001', 'completa', '0', '800', 'no'],   -- 4: otra
-    ['45001', '46001', 'completa', '0', '999', 'no'],   -- fuera: sale de otra provincia
+    ['28040', '08001', 'completa', '0', '800', 'no'],   -- fuera: ni a su base, ni a donde venía, ni a limítrofes («el resto» ya no sale)
+    ['45001', '46001', 'completa', '0', '999', 'no'],   -- 4: sale de Toledo (limítrofe de Madrid) hacia su base
     ['28050', '46001', 'completa', '5', '999', 'no'],   -- fuera: otro día (la ventana no incluye la descarga)
     ['28060', '46001', 'completa', '0', '999', 'si']];  -- fuera: reservada ahora mismo
 begin
@@ -13000,10 +13000,11 @@ do $$ declare j jsonb; refs text; begin
   select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
     into refs from jsonb_array_elements(j -> 'cargas') with ordinality as t(c, n);
   -- El envío de la orden es un COMPLETO: primero los completos (grupos 1, 3, 4) y luego los grupajes (1, 2).
-  if refs is distinct from 'V293-3:1,V293-4:3,V293-5:4,V293-2:1,V293-1:2' then raise exception 'FALLO 293 · orden o selección de las cargas de vuelta: %', refs; end if;
-  if j ->> 'dia' <> ((now() at time zone 'Europe/Madrid')::date + 10)::text or j -> 'desde' ->> 'codigo_postal' <> '28001' then raise exception 'FALLO 293 · día o lugar de la descarga: %', j; end if;
+  if refs is distinct from 'V293-3:1,V293-4:3,V293-6:4,V293-2:1,V293-1:2' then raise exception 'FALLO 293 · orden o selección de las cargas de vuelta: %', refs; end if;
+  if j ->> 'dia' <> ((now() at time zone 'Europe/Madrid')::date + 10)::text or j -> 'desde' ->> 'codigo_postal' <> '28001'
+     or j -> 'base' ->> 'cp2' <> '46' or j -> 'previa' ->> 'cp2' <> '41' then raise exception 'FALLO 293 · día, lugar de la descarga, base o procedencia: %', j - 'cargas'; end if;
   if jsonb_array_length(envios_de_vuelta(current_setting('prueba.e293')::uuid, 2) -> 'cargas') <> 2 then raise exception 'FALLO 293 · no respeta el máximo'; end if;
-  raise notice 'OK 293 · cargas de vuelta: desde la provincia de descarga el mismo día; mismo tipo primero (base, origen, limítrofes y resto); sin reservadas; solo Dynamo';
+  raise notice 'OK 293 · cargas de vuelta: desde la provincia de descarga el mismo día; mismo tipo primero (base, origen, limítrofes de la base, desde limítrofes); sin «el resto» ni reservadas; solo Dynamo';
 end $$;
 reset role;
 -- Si el envío de la orden es un GRUPAJE, primero los grupajes.
@@ -13013,7 +13014,7 @@ do $$ declare refs text; begin
   alter table envios enable trigger user;
   select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
     into refs from jsonb_array_elements(envios_de_vuelta(current_setting('prueba.e293')::uuid) -> 'cargas') with ordinality as t(c, n);
-  if refs is distinct from 'V293-2:1,V293-1:2,V293-3:1,V293-4:3,V293-5:4' then raise exception 'FALLO 293 · con un grupaje no van primero los grupajes: %', refs; end if;
+  if refs is distinct from 'V293-2:1,V293-1:2,V293-3:1,V293-4:3,V293-6:4' then raise exception 'FALLO 293 · con un grupaje no van primero los grupajes: %', refs; end if;
 end $$;
 do $$ begin
   alter table envios disable trigger user;

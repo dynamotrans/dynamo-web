@@ -4,7 +4,8 @@ import { lugarCorto, PROVINCIAS_ES } from './provinciasEs';
 // ---- Cargas de vuelta al final del email de la orden (usuario, 2026-11-19) -------------
 // Envíos de Dynamo libres que salen de la provincia donde descarga el transportista, el
 // mismo día de la descarga (los da envios_de_vuelta en la base de datos), en 4 grupos:
-// hacia su base, hacia donde venía, hacia provincias limítrofes de su base y el resto.
+// hacia su base, hacia donde venía, hacia provincias limítrofes de su base y, desde provincias
+// limítrofes de donde descarga, hacia esos mismos destinos.
 // Segundo bloque (tramo «regreso»): lo mismo desde el ORIGEN del envío 2 días hábiles después
 // de la carga; ahí el grupo 2 es la misma ruta que el envío.
 // Primero las del mismo tipo que el envío (completo o grupaje), luego las del otro. Máximo 25
@@ -12,14 +13,26 @@ import { lugarCorto, PROVINCIAS_ES } from './provinciasEs';
 type Lugar = { codigo_postal?: string | null; provincia?: string | null; pais?: string | null };
 export type CargaVuelta = { token: string; referencia: string; criterio: number; precio: number | null; tipo_carga: string | null;
   metros_lineales: number | null; toneladas: number | null; mercancia: string | null; paletizado: boolean | null; origen: Lugar; destino: Lugar };
-export type DatosVuelta = { tramo?: 'descarga' | 'regreso'; dia: string; desde: Lugar; tipo_envio?: string | null; cargas: CargaVuelta[] };
+type Prov = { cp2?: string | null; pais?: string | null };
+export type DatosVuelta = { tramo?: 'descarga' | 'regreso'; dia: string; desde: Lugar; tipo_envio?: string | null;
+  base?: Prov | null; previa?: Prov | null; cargas: CargaVuelta[] };
 
-export const GRUPOS_VUELTA: Record<number, string> = {
-  1: 'Hacia la provincia de tu base', 2: 'Hacia la provincia de donde vienes', 3: 'Hacia provincias limítrofes de tu base', 4: 'Otras desde la misma provincia',
-};
+// Nombre de la provincia por sus 2 primeras cifras (fuera de España, «CP 75…»).
+const nombreProv = (p?: Prov | null) => !p?.cp2 ? null : ((p.pais ?? 'ES') === 'ES' ? PROVINCIAS_ES[p.cp2] ?? null : `CP ${p.cp2}… (${p.pais})`);
+const conProv = (t: string, p: string | null) => p ? `${t} (${p})` : t;
 
-// En el bloque de regreso al origen, el grupo 2 («de donde vienes») es la misma ruta del envío.
-const GRUPOS_REGRESO: Record<number, string> = { ...GRUPOS_VUELTA, 2: 'La misma ruta que este envío' };
+// Títulos de los 4 grupos (usuario, 2026-11-19). En el bloque de regreso, el grupo 2 es la
+// misma ruta que el envío. Ya no hay «el resto».
+export function titulosGrupos(r: DatosVuelta, provDesde: string): Record<number, string> {
+  const base = nombreProv(r.base), previa = nombreProv(r.previa);
+  return {
+    1: conProv('Hacia la provincia de tu base', base),
+    2: r.tramo === 'regreso' ? conProv('La misma ruta que este envío', previa ? `${provDesde} → ${previa}` : null)
+                             : conProv('Hacia la provincia de donde vienes', previa),
+    3: 'Hacia provincias limítrofes de tu base',
+    4: `Desde provincias limítrofes de ${provDesde}`,
+  };
+}
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -28,14 +41,15 @@ export function htmlCargasDeVuelta(r: DatosVuelta | null, origen: string): strin
   const prov = r.desde.provincia || ((r.desde.pais ?? 'ES') === 'ES' && r.desde.codigo_postal ? PROVINCIAS_ES[r.desde.codigo_postal.slice(0, 2)] : null)
     || `CP ${r.desde.codigo_postal ?? ''}`;
   const regreso = r.tramo === 'regreso';
-  const grupos = regreso ? GRUPOS_REGRESO : GRUPOS_VUELTA;
+  const grupos = titulosGrupos(r, prov);
+  const nGrupajes = r.cargas.filter((c) => c.tipo_carga !== 'completa').length;
   // Vienen ya ordenadas: primero las del mismo tipo que el envío (completo o grupaje) con sus
   // grupos, luego las del otro tipo. Un título por tipo y un subtítulo por grupo.
   let tipo: string | null | undefined, grupo = 0;
   const filas = r.cargas.map((c) => {
     const completo = c.tipo_carga === 'completa';
     const tit = c.tipo_carga !== tipo
-      ? `<p style="margin:16px 0 2px;font-size:15px;font-weight:800;color:#0b0b45;text-transform:uppercase">${completo ? 'Cargas completas' : 'Grupajes'}</p>` : '';
+      ? `<p style="margin:16px 0 2px;font-size:15px;font-weight:800;color:#0b0b45;text-transform:uppercase">${completo ? 'Cargas completas' : nGrupajes > 1 ? 'Grupajes <span style="text-transform:none;font-weight:600">(puedes combinar varios)</span>' : 'Grupajes'}</p>` : '';
     const cab = tit || c.criterio !== grupo ? `<p style="margin:8px 0 4px;font-weight:700;color:#3300cc">${esc(grupos[c.criterio] ?? '')}</p>` : '';
     tipo = c.tipo_carga; grupo = c.criterio;
     const carga = [c.metros_lineales != null ? metros(c.metros_lineales) : null, c.toneladas != null ? pesoTn(c.toneladas) : null,
