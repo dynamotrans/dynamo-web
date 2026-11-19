@@ -38,8 +38,33 @@ async function emailTransportista(sb: SB, transportistaId: string): Promise<stri
   return (c ?? []).sort((a, b) => Number(b.funcion === 'trafico') - Number(a.funcion === 'trafico'))[0]?.email ?? null;
 }
 
+// ¿Tiene el envío las matrículas que pide el documento de control? (tractora y, en un
+// conjunto articulado, semirremolque; un rígido o con plataforma no lleva semirremolque).
+// La misma regla que envio_matriculas_completas() en la base de datos.
+async function matriculasCompletas(sb: SB, envio: string): Promise<boolean> {
+  const { data: e } = await sb.from('envios').select('matricula_camion, matricula_remolque, requiere_plataforma_elevadora, vehiculo_camion_id, operador_id')
+    .eq('id', envio).maybeSingle();
+  if (!e) return false;
+  if (e.operador_id) return true;
+  if (!e.matricula_camion) return false;
+  if (e.matricula_remolque || e.requiere_plataforma_elevadora) return true;
+  const veh = e.vehiculo_camion_id ? (await sb.from('vehiculos').select('tipo').eq('id', e.vehiculo_camion_id).maybeSingle()).data : null;
+  return veh?.tipo === 'rigido';
+}
+
+// Caja roja del email cuando faltan las matrículas (usuario, 2026-11-19): el mismo mensaje
+// que la orden en PDF.
+const CAJA_SIN_MATRICULAS = `<div style="background:#fde8e8;border:1px solid #dc2626;border-left:5px solid #dc2626;border-radius:8px;padding:12px 14px;margin:12px 0;color:#8c1414">
+<p style="margin:0 0 6px"><strong>DIRECCIONES OCULTAS HASTA RECIBIR LAS MATRÍCULAS</strong></p>
+<p style="margin:0 0 6px"><strong>El envío está CONFIRMADO.</strong> Envíanos las <strong>matrículas</strong> (tractora y semirremolque) y te mandamos <strong>al momento</strong> la orden de carga con las direcciones de carga y descarga.</p>
+<p style="margin:0"><strong>Sin matrículas no se carga:</strong> las comunicamos a los almacenes antes de que llegue el camión.</p>
+</div>`;
+
 // ---- 1. Orden de carga al asignar transportista -------------------------------------
-export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string): Promise<void> {
+// Sin matrículas, la orden va con las direcciones OCULTAS (solo código postal), la caja roja
+// y SIN el enlace del eCMR (también enseña las direcciones). Cuando llegan las matrículas,
+// avisoOrdenCompleta le manda la orden entera (una vez).
+export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string, completaYa?: boolean): Promise<void> {
   try {
     const { data: e } = await sb.from('envios')
       .select('referencia_gx, transportista_id, es_manual, fecha_carga_prevista, fecha_carga_desde, fecha_carga_hasta, creado_por, matricula_camion')
@@ -54,21 +79,29 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string):
       token = (await sb.from('cmr_enlaces').insert({ envio_id: envio }).select('token').single()).data?.token ?? null;
     }
     const origen = await origenActual();
+    const completa = completaYa ?? await matriculasCompletas(sb, envio);
     // UNA sola orden (usuario, 2026-11-14): el documento completo; su enlace lleva la clave.
     const enlEc = token ? `${origen}/cmr/${token}/orden?copia=economica&clave=${e.transportista_id}` : null;
-    const enlFirma = token ? `${origen}/cmr/${token}` : null;
+    const enlFirma = token && completa ? `${origen}/cmr/${token}` : null;
     let adjuntos: AdjuntoEmail[] | undefined;
     const pdf = await pdfDeEnvioDynamo(sb, envio, 'orden-de-carga', usuarioId, origen);
     if (!('error' in pdf)) adjuntos = [{ nombre: pdf.nombre, base64: Buffer.from(pdf.bytes).toString('base64'), tipo: 'application/pdf' }];
     const fecha = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? null;
-    const html = `<p>Hola,</p>
-<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos y las condiciones.</p>
+    const html = completa ? `<p>Hola,</p>
+<p>${completaYa ? `Ya tenemos las matrículas del envío <strong>#${esc(e.referencia_gx)}</strong>` : `Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>`}${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos${completaYa ? ', las direcciones' : ''} y las condiciones.</p>
 ${enlFirma ? `<p>Firma en este enlace tu e-CMR DIGITAL EN RUTA (para móvil u ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): <a href="${enlFirma}">${enlFirma}</a></p>` : ''}
 ${enlEc ? `<p>También podéis abrir o descargar la orden aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
 <p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
+${pie}` : `<p>Hola,</p>
+<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong>, de momento <strong>sin las direcciones</strong>.</p>
+${CAJA_SIN_MATRICULAS}
+${enlEc ? `<p>Esta orden también está aquí: <a href="${enlEc}">${enlEc}</a></p>` : ''}
+<p>Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
 ${pie}`;
-    await enviarEmailOperativo({ clave: `orden_carga:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
-      para, asunto: `Orden de carga · envío #${e.referencia_gx} · Dynamo`, html, adjuntos });
+    // Sin matrículas, su propia clave: cuando lleguen, sale la orden completa (orden_carga:…).
+    await enviarEmailOperativo({ clave: completa ? `orden_carga:${envio}:${e.transportista_id}` : `orden_carga_oculta:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
+      para, asunto: completa ? `Orden de carga · envío #${e.referencia_gx} · Dynamo` : `Envío #${e.referencia_gx} confirmado · faltan las matrículas · Dynamo`, html, adjuntos });
+    if (completaYa) return;   // la orden completa al llegar las matrículas: el cliente ya tuvo su confirmación
 
     // La confirmación al CLIENTE, acto seguido, con SU copia de la orden (la copia
     // «cliente», sin la economía del transportista) — usuario, 2026-11-15: al asignarse
@@ -102,6 +135,23 @@ ${pie}`;
         para: paraCli, asunto: `Transporte confirmado · envío #${e.referencia_gx}${org && dst ? ` (${org} → ${dst})` : ''}`, html: htmlCli, adjuntos: adjCli });
     }
   } catch { /* el aviso nunca rompe la asignación */ }
+}
+
+// ---- 1-ter. La orden COMPLETA al llegar las matrículas (usuario, 2026-11-19) ----------
+// Si al asignar se le mandó la orden sin direcciones y ahora el envío ya tiene todas las
+// matrículas, sale la orden entera (con el enlace del eCMR), una sola vez. Lo llama el
+// archivo del DeCA al emitirse su primera versión (que es cuando llegan las matrículas).
+export async function avisoOrdenCompleta(sb: SB, envio: string): Promise<void> {
+  try {
+    const { data: e } = await sb.from('envios').select('transportista_id, creado_por').eq('id', envio).maybeSingle();
+    if (!e?.transportista_id || !(await matriculasCompletas(sb, envio))) return;
+    const { data: ya } = await sb.from('emails_enviados').select('clave')
+      .in('clave', [`orden_carga_oculta:${envio}:${e.transportista_id}`, `orden_carga:${envio}:${e.transportista_id}`]);
+    const claves = new Set((ya ?? []).map((x) => x.clave));
+    if (!claves.has(`orden_carga_oculta:${envio}:${e.transportista_id}`) || claves.has(`orden_carga:${envio}:${e.transportista_id}`)) return;
+    const { data: yo } = await sb.auth.getUser();
+    await avisoOrdenCarga(sb, yo.user?.id ?? e.creado_por ?? '', envio, true);
+  } catch { /* nunca rompe nada */ }
 }
 
 // ---- 1-bis. El DeCA al transportista (usuario, 2026-11-15) ----------------------------

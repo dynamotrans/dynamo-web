@@ -3847,6 +3847,7 @@ export type Database = {
       cancelar_envio: { Args: { p_envio: string | null; p_motivo?: string | null; p_en_nombre_cliente?: boolean | null }; Returns: Json }
       cancelar_mi_envio: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       carga_aceptada_publica: { Args: { p_reserva: string | null }; Returns: Json }
+      carga_aceptada_publica_completa: { Args: { p_reserva: string | null }; Returns: Json }
       carga_por_codigo: { Args: { p_codigo: string | null; p_ip?: string | null }; Returns: Json }
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
@@ -4055,6 +4056,7 @@ export type Database = {
       oferta_publica: { Args: { p_token: string | null }; Returns: Json }
       ofertar_envio: { Args: { p_envio: string | null; p_transportista: string | null; p_canal: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null }; Returns: string }
       orden_carga_json: { Args: { p_envio: string | null }; Returns: Json }
+      orden_oculta_sin_matriculas: { Args: { p_json: Json | null; p_envio: string | null }; Returns: Json }
       orden_sin_economia_cliente: { Args: { p_json: Json | null }; Returns: Json }
       otras_cargas_publicas: { Args: { p_token: string | null }; Returns: Json }
       pago_envio_importes: { Args: { p_envio: string | null }; Returns: { base: number; iva: number; total: number }[] }
@@ -4066,7 +4068,9 @@ export type Database = {
       pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number; pago_avisado_en: string }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
       paradas_json: { Args: { p_envio: string | null }; Returns: Json }
+      paradas_ocultas: { Args: { p_paradas: Json | null }; Returns: Json }
       paradas_viaje_json: { Args: { p_envio: string | null }; Returns: Json }
+      paradas_viaje_json_completa: { Args: { p_envio: string | null }; Returns: Json }
       parametro: { Args: { p_clave: string | null }; Returns: Json }
       parametro_num: { Args: { p_clave: string | null; p_defecto: number | null }; Returns: number }
       parar_difusion: { Args: { p_envio: string | null }; Returns: Json }

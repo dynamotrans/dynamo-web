@@ -970,3 +970,8 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 
 ## 2026-11-19 · Ideas para el tarifador real y las modificaciones de envío
 - [ ] Leer **TARIFADOR.md** antes de montar el tarifador real o las modificaciones de envío: precio al cambiar una dirección (si baja, se respeta; si sube, solo los km de más con las condiciones del día del pedido), límites para permitir la modificación (35 km, +10 % o +60 km de ruta, sin añadir paradas, otra provincia = cancelar), calendarios de tarifa por temporada y ajuste automático por el margen real de la ruta.
+
+## 2026-11-19 · Direcciones ocultas al transportista hasta que dé las matrículas
+- [x] Sin las matrículas (tractora y, en tráiler, semirremolque) el transportista ve las paradas solo con código postal y «********»: orden de carga en PDF (todas sus copias e idiomas), su panel, la página de la carga aceptada, el mensaje de «Compartir» y el email al asignar. Tampoco recibe el enlace del eCMR. Caja roja con el porqué.
+- [x] Al llegar las matrículas (primera versión del DeCA) se le manda sola la orden COMPLETA con el enlace del eCMR, una vez.
+- [ ] Ojo: el envío automático de la orden completa depende del archivo del DeCA, que necesita la clave de servicio de Supabase en Vercel (#94) o que Dynamo abra la ficha del envío.

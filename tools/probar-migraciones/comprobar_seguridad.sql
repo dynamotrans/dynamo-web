@@ -6799,7 +6799,8 @@ set role anon;
 do $$ declare r jsonb; a jsonb; c jsonb; p jsonb; tok uuid := current_setting('prueba.tok181')::uuid; begin
   r := reservar_envio_publico(tok, null, 'prueba');
   if r ->> 'resultado' <> 'reservada' then raise exception 'FALLO 181 · no reserva: %', r; end if;
-  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B18118118');
+  -- Acepta CON matrículas: sin ellas las direcciones y el sitio van ocultos (prueba 289).
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B18118118', p_matricula_camion => '1818BCD', p_matricula_remolque => 'R1818BCD');
   if a ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 181 · no acepta: %', a; end if;
   c := carga_aceptada_publica((r ->> 'reserva_id')::uuid);
   select x into p from jsonb_array_elements(c -> 'paradas') x where x ->> 'tipo' = 'carga';
@@ -12772,4 +12773,51 @@ do $$ begin
   update parametros set valor = 'false' where clave = 'tarifador_web_con_precio';
   delete from consultas_precio_web;
   raise notice 'OK 288 · tarifador web: apagado por defecto, 3 cálculos al día por IP (huella), el 4.º da «limite», sin leer la tabla sin sesión';
+end $$;
+
+-- ---- 289. Sin matrículas, el transportista no ve las direcciones (ni el CMR) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.e73')::uuid; begin
+  perform set_config('prueba.m289', coalesce((select matricula_camion from envios where id = e), ''), false);
+  perform set_config('prueba.r289', coalesce((select matricula_remolque from envios where id = e), ''), false);
+  alter table envios disable trigger user;
+  update envios set matricula_camion = null, matricula_remolque = null, estado = 'programado' where id = e;
+  alter table envios enable trigger user;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e73')::uuid; j jsonb; p jsonb; begin
+  j := datos_orden_transportista(e);
+  if not coalesce((j ->> 'direcciones_ocultas')::boolean, false) then raise exception 'FALLO 289 · sin matrículas la orden no va marcada como oculta'; end if;
+  p := j -> 'paradas' -> 0;
+  if p ->> 'direccion' <> '********' or p ->> 'nombre_empresa' <> '********' or p ? 'poblacion' or p ? 'contacto' or p ? 'horarios' then
+    raise exception 'FALLO 289 · sin matrículas la orden enseña datos de la parada: %', p; end if;
+  if p ->> 'codigo_postal' is null then raise exception 'FALLO 289 · sin matrículas se pierde también el código postal'; end if;
+  p := (select r.paradas -> 0 from mis_viajes_por_ids(array[e]) r);
+  if p ->> 'direccion' <> '********' or p ? 'contacto_telefono' then raise exception 'FALLO 289 · el panel de viajes enseña la dirección sin matrículas: %', p; end if;
+  begin perform mi_enlace_cmr(e); raise exception 'FALLO 289 · da el enlace del CMR sin matrículas';
+  exception when raise_exception then if sqlerrm not like 'Faltan las matrículas%' then raise; end if; end;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e73')::uuid; begin
+  alter table envios disable trigger user;
+  update envios set matricula_camion = '1234BCD', matricula_remolque = 'R1234BCD' where id = e;
+  alter table envios enable trigger user;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e73')::uuid; j jsonb; begin
+  j := datos_orden_transportista(e);
+  if j ? 'direcciones_ocultas' or j -> 'paradas' -> 0 ->> 'direccion' = '********' then raise exception 'FALLO 289 · con matrículas la orden sigue oculta'; end if;
+  if mi_enlace_cmr(e) is null then raise exception 'FALLO 289 · con matrículas no da el enlace del CMR'; end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e73')::uuid; begin
+  -- Dynamo y el cliente siempre lo ven todo: orden_carga_json no cambia.
+  alter table envios disable trigger user;
+  update envios set matricula_camion = nullif(current_setting('prueba.m289'), ''), matricula_remolque = nullif(current_setting('prueba.r289'), '') where id = e;
+  alter table envios enable trigger user;
+  if orden_carga_json(e) -> 'paradas' -> 0 ->> 'direccion' = '********' then raise exception 'FALLO 289 · Dynamo también ve la orden recortada'; end if;
+  raise notice 'OK 289 · sin matrículas el transportista ve solo CP (orden, panel) y no tiene CMR; con ellas, todo; Dynamo siempre todo';
 end $$;

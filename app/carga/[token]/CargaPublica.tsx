@@ -19,6 +19,7 @@ import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
 import type { OfertaPublica, ReservaPublica, ParadaPublica } from './tipos';
 import Req from '@/components/Req';
+import AvisoDireccionesOcultas from '@/components/AvisoDireccionesOcultas';
 import { ACCESIBILIDAD_TITULO, ACCESIBILIDAD_TEXTO } from '@/lib/condicionesTransportista';
 import { avisaFaltas } from '@/lib/faltas';
 
@@ -531,6 +532,7 @@ function BotonCmr({ token }: { token: string }) {
 }
 
 function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
+  const router = useRouter();
   const [veh, setVeh] = useState({ camion: c.matricula_camion ?? '', remolque: c.matricula_remolque ?? '', conductor: c.conductor_nombre ?? '', telefono: c.conductor_telefono ?? '' });
   // Listas de matrículas y chóferes de otras veces (usuario, 2026-11-09): aquí el
   // transportista ya es el de la reserva, así que se piden al cargar.
@@ -601,7 +603,9 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
           Ver orden de carga (PDF)
         </a>
       )}
-      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <BotonCmr token={token} />}
+      {/* Sin matrículas: ni direcciones ni eCMR hasta que las dé (usuario, 2026-11-19). */}
+      {c.direcciones_ocultas && c.estado !== 'cancelado' && <AvisoDireccionesOcultas style={{ marginTop: '0.7rem' }} />}
+      {!c.direcciones_ocultas && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <BotonCmr token={token} />}
       {c.discrecion_comercial && <div className="pago-contado" style={{ background: '#fff7e6', borderColor: '#ffd591', color: '#8a5a00', textAlign: 'left' }}><strong>Discreción comercial:</strong> en la carga no reveles el destino, ni en la entrega el origen.</div>}
       <div id="ok-resumen"><Oferta o={c} completa /></div>
       {editable && (
@@ -633,6 +637,8 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
               setVeh((v) => ({ ...v, conductor: x.conductor ?? '', telefono: x.telefono ?? '' }));
               setBase({ camion: veh.camion, conductor: x.conductor ?? '' });
               setSalvo({ camion: veh.camion, remolque: veh.remolque, conductor: x.conductor ?? '', telefono: x.telefono ?? '', dia });
+              // Con las matrículas ya dadas, aparecen las direcciones y el eCMR (2026-11-19).
+              if (c.direcciones_ocultas) router.refresh();
             }
             // Cada fallo con su mensaje (usuario, 2026-11-10: «no funciona bien» y el
             // genérico no decía POR QUÉ): sin cookie, reserva caída o envío cambiado.

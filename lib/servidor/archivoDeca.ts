@@ -104,9 +104,12 @@ export async function archivarCopiaDeca(a: Peticion & { origen: string }): Promi
       return 'error';
     }
     // La versión nueva, al transportista (sola y una vez: la clave del email es la versión).
-    const { avisoDecaTransportista } = await import('@/lib/servidor/avisosEnvio');
+    const { avisoDecaTransportista, avisoOrdenCompleta } = await import('@/lib/servidor/avisosEnvio');
     await avisoDecaTransportista({ envioId, token, origen: a.origen, version: huellaDatos, primera: !anteriores,
       pdf: { bytes, nombre: `DeCA-${ref}.pdf` } });
+    // Con las matrículas ya puestas, la orden COMPLETA al transportista si se le mandó sin
+    // direcciones (usuario, 2026-11-19). Una sola vez.
+    await avisoOrdenCompleta(escritor, envioId);
     return 'guardada';
   } catch (e) {
     console.error('[archivoDeca] fallo al archivar la copia', e);

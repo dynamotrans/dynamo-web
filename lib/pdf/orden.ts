@@ -40,9 +40,23 @@ const NARANJA = rgb(0.98, 0.45, 0.09);
 // documento español: no se traduce.
 const DECA_NOMBRE = 'Documento electrónico de Control Administrativo';
 
-export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: CopiaOrden; idioma?: IdiomaOrden } = {}): Promise<Uint8Array> {
-  const e = d.envio, manual = d.manual;
+const OCULTO = '********';
+// Lo que queda de una parada sin matrículas: tipo, orden, código postal y país.
+function ocultarParada(p: ParadaDoc): ParadaDoc {
+  return { ...p, nombre_empresa: OCULTO, direccion: OCULTO, poblacion: null, provincia: null, referencia: null, anotaciones: null,
+    horarios: null, url_google_maps: null, notas_sitio: null, contacto: null };
+}
+
+export async function ordenDeCarga(dIn: DatosDoc, pago: ParamsPago, op: { copia?: CopiaOrden; idioma?: IdiomaOrden } = {}): Promise<Uint8Array> {
   const copia: CopiaOrden = op.copia ?? 'economica';
+  // DIRECCIONES OCULTAS HASTA TENER LAS MATRÍCULAS (usuario, 2026-11-19): en las copias del
+  // transportista (no en la del cliente), sin las matrículas que pide el documento de
+  // control, las paradas van solo con código postal y país (el resto, «********»). Si los
+  // datos ya llegan recortados de la base de datos (panel o enlaces del transportista), igual.
+  const ocultas = !dIn.manual && copia !== 'cliente' && (dIn.paradas.some((x) => x.nombre_empresa === OCULTO)
+    || !dIn.envio.matricula_camion || (!!dIn.envio.necesita_remolque && !dIn.envio.matricula_remolque));
+  const d: DatosDoc = ocultas ? { ...dIn, paradas: dIn.paradas.map(ocultarParada) } : dIn;
+  const e = d.envio, manual = d.manual;
   const esCli = copia === 'cliente';           // la copia del cliente, siempre en español
   const idioma: IdiomaOrden = esCli ? 'es' : op.idioma ?? 'es';
   const t = ORDEN_TXT[idioma], esES = idioma === 'es';
@@ -499,6 +513,21 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago, op: { copia?: 
     ls.forEach((ln, i) => l.texto(l.x0 + 10, l.y + 15 + i * 11.6, ln, 8.8, { bold: true, color: COLOR.ambar }));
     l.y += ls.length * 11.6 + despues;
   };
+  // ---- DIRECCIONES OCULTAS (usuario, 2026-11-19): caja roja, antes de las paradas ----
+  if (ocultas) {
+    const anchoTx = l.ancho - 26;
+    const tit = l.partir(t.ocultasTit, 9.8, anchoTx, true);
+    const cuerpo = [t.ocultas1, t.ocultas2].map((x) => l.partir(x, 8.8, anchoTx, true));
+    const h = tit.length * 12.6 + cuerpo.reduce((a2, c2) => a2 + c2.length * 11.4 + 4, 0) + 18;
+    l.sitio(h + 12);
+    l.rect(l.x0, l.y, l.ancho, h, rgb(1, 0.91, 0.91), COLOR.rojo);
+    l.pag.drawRectangle({ x: l.x0, y: A4.h - l.y - h, width: 5, height: h, color: COLOR.rojo });
+    let yT = l.y + 17;
+    tit.forEach((ln) => { l.texto(l.x0 + 14, yT, ln, 9.8, { bold: true, color: COLOR.rojo }); yT += 12.6; });
+    yT += 3;
+    cuerpo.forEach((c2) => { c2.forEach((ln) => { l.texto(l.x0 + 14, yT, ln, 8.8, { bold: true, color: rgb(0.55, 0.08, 0.08) }); yT += 11.4; }); yT += 4; });
+    l.y += h + 10;
+  }
   // ---- FALTAN LAS MATRÍCULAS (solo en la orden del transportista; usuario, 2026-11-15) ----
   // Cuadro llamativo, antes de las recogidas / entregas, mientras el envío no tenga las
   // matrículas (o le falte la del semirremolque): se piden y se deja constancia de quién

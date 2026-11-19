@@ -64,12 +64,25 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   const camionTxt = e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn · altura máx. 2,40 m)' : 'Tráiler tauliner (lona corredera · altura máx. 2,70 m)';
   // El enlace de firma va ARRIBA (lo primero que se ve) y repetido en la lista de abajo
   // (usuario, 2026-11-13); la orden va como PDF ADJUNTO, sin enlace.
-  const lineaFirma = token ? `Firma en este enlace tu e-CMR DIGITAL EN RUTA (Para móvil/ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): ${origen}/cmr/${token}` : null;
+  // Sin las matrículas, al transportista ni direcciones (solo código postal) ni enlace del
+  // eCMR: la caja de aviso va en su lugar (usuario, 2026-11-19). El PDF sale igual de recortado.
+  const ocultas = !!ficha.faltanMatriculas;
+  const lineaFirma = token && !ocultas ? `Firma en este enlace tu e-CMR DIGITAL EN RUTA (Para móvil/ordenador, 100 % seguro, digital y legal. Protocolo eIDAS): ${origen}/cmr/${token}` : null;
   // Nº de parada correlativo (2026-11-11): con más de 2 paradas, 1-2 recogidas → 3-4 entregas.
   const lineasRuta = [
     ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: ${dirCorta(p)}`),
     ...ent.map((p, i) => `Entrega${rec.length + ent.length > 2 ? ` ${rec.length + i + 1}` : ''}: ${dirCorta(p)}`),
   ];
+  const lineasRutaT = ocultas ? [
+    ...rec.map((p, i) => `Recogida${rec.length + ent.length > 2 ? ` ${i + 1}` : ''}: CP ${p.codigo_postal ?? '—'} · ********`),
+    ...ent.map((p, i) => `Entrega${rec.length + ent.length > 2 ? ` ${rec.length + i + 1}` : ''}: CP ${p.codigo_postal ?? '—'} · ********`),
+  ] : lineasRuta;
+  const avisoOcultas = ocultas ? [
+    '⚠ DIRECCIONES OCULTAS HASTA RECIBIR LAS MATRÍCULAS',
+    'El envío está CONFIRMADO. Envíanos las matrículas (tractora y semirremolque) y te mandamos AL MOMENTO la orden de carga con las direcciones de carga y descarga.',
+    'Sin matrículas no se carga: las comunicamos a los almacenes antes de que llegue el camión.',
+    '',
+  ] : [];
   const lineasDetalle = [
     `Carga ${cargaTxt}`,
     e.fecha_entrega_estimada ? `Entrega estimada ${fecha(e.fecha_entrega_estimada)}` : null,
@@ -92,8 +105,9 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
       d?.telefono ? telBonito(d.telefono) : null,
       '',
     ] : []),
+    ...avisoOcultas,
     'RUTA:',
-    ...lineasRuta,
+    ...lineasRutaT,
     '',
     'DETALLE:',
     ...lineasDetalle,

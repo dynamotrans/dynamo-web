@@ -5,6 +5,7 @@
 // Dynamo ni lo que paga. Desde aquí marca cómo va el viaje, sube el albarán y fotos, y
 // abre el CMR digital para que firmen en el muelle.
 import EtiquetaParada from './EtiquetaParada';
+import AvisoDireccionesOcultas from '@/components/AvisoDireccionesOcultas';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { avisarNavegando } from './CargandoNavegacion';
@@ -48,7 +49,7 @@ export type ParadaViaje = {
   id?: string; tipo: string; realizado_en?: string | null; nombre_empresa: string | null; url_google_maps?: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;
   horarios?: string | null; contacto_telefono?: string | null; contacto_nombre?: string | null; requiere_cita?: boolean | null;
-  tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null; tipo_sitio?: string | null;
+  tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null; tipo_sitio?: string | null; oculta?: boolean;
 };
 export type Viaje = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiViaje, keyof EnvioFila>> & { paradas: ParadaViaje[] };
 export type CambioViaje = { id: string; precio_antes: number | null; precio_ahora: number | null; detalle: string; creado_en: string };
@@ -68,6 +69,8 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
   const [cerrando, setCerrando] = useState(false);
   const cerrar = () => { setCerrando(true); avisarNavegando(); router.push(cerrarHref, { scroll: false }); };
   const paradas = e.paradas ?? [];
+  // Faltan las matrículas: la base de datos manda las paradas recortadas (2026-11-19).
+  const ocultas = paradas.some((p) => p.oculta);
   const idx = ORDEN.indexOf(e.estado);
   // Siguiente paso, parada a parada si hay etapas (seguimiento): «He llegado: cargo en la 1.ª parada»,
   // «Salgo hacia la 2.ª parada»… Si no, el de siempre.
@@ -127,7 +130,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
   const acciones = (
     <>
       {activo && siguiente && <button className="btn-primary" disabled={!!trabajando} onClick={() => avanzar(siguiente[0])}><I d={ICO.fase} />{siguiente[1]}</button>}
-      {e.estado !== 'cancelado' && <button className="btn-secondary" disabled={!!trabajando} onClick={abrirCmr}><I d={ICO.firma} />CMR digital para firmar</button>}
+      {e.estado !== 'cancelado' && !ocultas && <button className="btn-secondary" disabled={!!trabajando} onClick={abrirCmr}><I d={ICO.firma} />CMR digital para firmar</button>}
       {e.estado !== 'cancelado' && !!e.matricula_camion && <button className="btn-secondary" disabled={!!trabajando} onClick={abrirDeca}
         title="El documento de control que debe llevar el conductor"><I d={ICO.doc} />DeCA (PDF)</button>}
       {e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
@@ -200,6 +203,9 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
           Avísanos de cómo va el viaje con el botón de arriba. Si no nos avisas, el estado avanza solo con el horario previsto (abajo); lo que marques manda y desde ahí sigue.
         </div></div>
       )}
+
+      {/* Sin matrículas: direcciones ocultas (solo código postal) y sin eCMR (2026-11-19). */}
+      {ocultas && e.estado !== 'cancelado' && <AvisoDireccionesOcultas style={{ margin: '0.6rem 0' }} />}
 
       <Secc k="ruta" titulo="Ruta" extra={paradas.length} abiertas={abiertas} toggle={toggle}
         resumen={`${paradas.find((p) => p.tipo === 'carga')?.poblacion ?? ''} → ${[...paradas].reverse().find((p) => p.tipo === 'descarga')?.poblacion ?? ''}`}>

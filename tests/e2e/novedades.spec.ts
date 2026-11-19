@@ -667,6 +667,28 @@ test.describe('novedades', () => {
     }
   });
 
+  test('transportista sin matrículas: direcciones ocultas, aviso rojo y sin eCMR; con ellas, todo', async ({ page }) => {
+    const sb = bd();
+    const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
+    const { data: e } = await sb.from('envios').select('id, matricula_camion, matricula_remolque').eq('transportista_id', t!.id)
+      .eq('estado', 'programado').order('creado_en', { ascending: false }).limit(1).single();
+    await sb.from('envios').update({ matricula_camion: null, matricula_remolque: null }).eq('id', e!.id);
+    try {
+      await entrar(page, 'transportista');
+      await page.goto(`/panel/envios?ver=${e!.id}`);
+      await expect(page.locator('#aviso-direcciones-ocultas')).toContainText('DIRECCIONES OCULTAS HASTA RECIBIR LAS MATRÍCULAS');
+      await expect(page.locator('#aviso-direcciones-ocultas')).toContainText('Sin matrículas no se carga');
+      await expect(page.getByRole('button', { name: /CMR digital para firmar/ })).toHaveCount(0);
+      await expect(page.locator('main, body').first()).not.toContainText('Calle Uno 1');
+      await sb.from('envios').update({ matricula_camion: '5678CDF', matricula_remolque: 'R5678CDF' }).eq('id', e!.id);
+      await page.goto(`/panel/envios?ver=${e!.id}`);
+      await expect(page.getByRole('button', { name: /CMR digital para firmar/ })).toBeVisible();
+      await expect(page.locator('#aviso-direcciones-ocultas')).toHaveCount(0);
+    } finally {
+      await sb.from('envios').update({ matricula_camion: e!.matricula_camion, matricula_remolque: e!.matricula_remolque }).eq('id', e!.id);
+    }
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();
