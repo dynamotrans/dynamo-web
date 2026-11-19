@@ -892,7 +892,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const festivosEnVentana = (() => {
     if (!fecha) return [] as string[];
     const out: string[] = []; const [a, m, d] = fecha.split('-').map(Number); const x = new Date(a, m - 1, d);
-    while (iso(x) <= (fechaHasta || fecha)) { const k = iso(x); if (fest.has(k)) out.push(`${fmtFecha(k)} · ${nombresFestivos[k] ?? 'festivo'}`); x.setDate(x.getDate() + 1); }
+    // Solo los de lunes a viernes: un festivo en sábado o domingo no cambia nada (esos días
+    // nunca son de carga) y el aviso solo despistaba (2026-11-19).
+    while (iso(x) <= (fechaHasta || fecha)) { const k = iso(x); if (fest.has(k) && x.getDay() !== 0 && x.getDay() !== 6) out.push(`${fmtFecha(k)} · ${nombresFestivos[k] ?? 'festivo'}`); x.setDate(x.getDate() + 1); }
     return out;
   })();
   const IcoAviso = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>);
@@ -942,7 +944,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         </div></div>
       ))}
       {festivosEnVentana.length > 0 && (
-        <div className="pt-aviso error" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
+        <div className="pt-aviso error aviso-festivo" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
           <strong>Festivo nacional en la fecha de carga.</strong> {festivosEnVentana.join(' · ')}. Puede que el almacén esté <strong>cerrado</strong> ese día: confírmalo con el punto de recogida.
         </div></div>
       )}

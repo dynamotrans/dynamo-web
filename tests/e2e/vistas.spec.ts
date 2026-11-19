@@ -48,7 +48,9 @@ async function comprobarDiseno(page: Page, nombre: string, raiz: Locator) {
 // panel (lleva contadores), la cuenta atrás de la hora de corte… y lo que cambia de un día
 // a otro (fechas y referencias de envío) se sustituye por un texto fijo. Así ni la foto ni
 // el tamaño de las cajas dependen del día en que se pasa la prueba.
-const QUITAR = ['.topbar', '.ptar-cutoff-note'];
+// El aviso de festivo depende del calendario: sale o no según caiga la ventana de la fecha que
+// se elige (la última que se ofrece, que salta un día al pasar la hora de corte).
+const QUITAR = ['.topbar', '.ptar-cutoff-note', '.aviso-festivo'];
 // Lo que cambia en cada envío pero ocupa sitio (el QR de la hoja de firma): se deja el hueco.
 const TAPAR = ['.qr-movil-img img'];
 async function fijar(page: Page, quitar: string[]) {
