@@ -575,6 +575,19 @@ test.describe('novedades', () => {
     await expect(page.locator('#sitio-buscar')).toHaveValue('Zzlaos');
   });
 
+  // Parámetros (usuario, 2026-11-19): el PIN de recogida y entrega queda para la v4 y los
+  // campos del fichero de Holded se quitan; en su sección, un aviso de «pendiente de la API».
+  test('parámetros: no salen el PIN ni los campos de Holded, y Holded avisa de que falta la API', async ({ page }) => {
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/parametros');
+    await expect(page.locator('#prm-holded-pendiente')).toContainText('Pendiente de conectar con Holded por API');
+    const cuerpo = page.locator('#sec-parametros, main').first();
+    await expect(cuerpo).not.toContainText('PIN de recogida y entrega');
+    await expect(cuerpo).not.toContainText('pin_cifras');
+    await expect(cuerpo).not.toContainText('holded_canal_venta_cuenta');
+    await expect(cuerpo).not.toContainText('holded_formato_numeracion_compra');
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

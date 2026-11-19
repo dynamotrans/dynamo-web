@@ -27,7 +27,7 @@ const antesTxt = (p: ParametroFila) => p.anterior === undefined ? '' : ` (antes:
 // claves en el orden en que se enseñan (el interruptor general, primero). Un parámetro
 // nuevo que no esté en ninguna lista sale en «Otros»: añadirlo aquí y en lib/parametrosAyuda.
 type Sub = { titulo: string; claves: string[]; banco?: boolean };
-type Seccion = { id: string; titulo: string; intro: string; subs: Sub[]; especial?: 'autosusp' };
+type Seccion = { id: string; titulo: string; intro: string; subs: Sub[]; especial?: 'autosusp' | 'holded' };
 const SECCIONES: Seccion[] = [
   { id: 'clientes', titulo: 'Clientes', intro: 'Precios, contraofertas y condiciones de los clientes.', subs: [
     { titulo: 'Descuento de bienvenida', claves: ['factor_bienvenida_pct', 'factor_bienvenida_envios'] },
@@ -55,7 +55,8 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Oferta escalonada por email', claves: ['difusion_dias_antes', 'difusion_hora_carga_defecto', 'difusion_horas_corte', 'difusion_hora_inicio', 'difusion_hora_fin', 'difusion_recordatorio_hora', 'difusion_max_contactados', 'difusion_cadencia', 'difusion_minutos_entre_emails'] },
   ] },
   { id: 'operativa', titulo: 'Operativa', intro: ALMACENAMIENTOS ? 'Recogida, entrega, almacenaje y horarios.' : 'Recogida, entrega y horarios.', subs: [
-    { titulo: 'PIN de recogida y entrega', claves: ['pin_cifras', 'pin_max_intentos', 'pin_orden_obliga', 'pin_ventana_horas_antes', 'pin_ventana_horas_despues'] },
+    // El PIN de recogida y entrega queda para la v4 (usuario, 2026-11-19): sus parámetros
+    // (pin_*) siguen en la base de datos, pero no se enseñan en la plataforma.
     ...(ALMACENAMIENTOS ? [{ titulo: 'Almacenamientos', claves: ['almacen_precio_semana', 'almacen_precio_reparto'] }] : []),
     { titulo: 'Cobertura', claves: ['cobertura_paises'] },
     { titulo: 'Horario de verano de los almacenes', claves: ['verano_sitios_desde', 'verano_sitios_hasta'] },
@@ -64,10 +65,10 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_velocidad_kmh', 'seguimiento_km_por_defecto', 'seguimiento_horas_asignando'] },
   ] },
   { id: 'autosusp', titulo: 'Suspensión automática de cuentas', intro: 'Cuándo se suspende sola una cuenta.', subs: [], especial: 'autosusp' },
-  { id: 'facturacion', titulo: 'Facturación (Holded)', intro: 'Lo que lleva el fichero que se exporta a Holded.', subs: [
-    { titulo: 'Ventas (a clientes)', claves: ['holded_formato_numeracion_venta', 'holded_canal_venta_nombre', 'holded_canal_venta_cuenta'] },
-    { titulo: 'Compras (a transportistas)', claves: ['holded_formato_numeracion_compra', 'holded_canal_compra_nombre', 'holded_canal_compra_cuenta'] },
-  ] },
+  // Holded: los seis parámetros del fichero (serie, canal y cuenta de ventas y de compras)
+  // estaban vacíos y no hacían falta (usuario, 2026-11-19). Se quitan de la pantalla (siguen
+  // en la base de datos, holded_*) y en su sitio queda un aviso: pendiente de la API.
+  { id: 'facturacion', titulo: 'Facturación (Holded)', intro: 'Conexión con Holded para pedidos y facturas.', subs: [], especial: 'holded' },
   { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
     { titulo: 'Registro de clientes nuevos', claves: ['registro_clientes_abierto'] },
@@ -84,6 +85,9 @@ const SECCIONES: Seccion[] = [
   ] },
 ];
 const CONOCIDAS = new Set([...SECCIONES.flatMap((s) => s.subs.flatMap((u) => u.claves)), ...BANCO]);
+// Parámetros que existen en la base de datos pero NO se enseñan (ni en «Otros»): el PIN de
+// recogida y entrega (v4) y los del fichero de Holded (a la espera de la API).
+const OCULTOS = (clave: string) => clave.startsWith('pin_') || clave.startsWith('holded_');
 const texto = (v: unknown): string => (v === null ? '' : typeof v === 'string' ? v : Array.isArray(v) ? v.map((x) => (x !== null && typeof x === 'object' ? JSON.stringify(x) : texto(x))).join(' · ') : JSON.stringify(v));
 // Quita tildes y mayúsculas para buscar («cesce» encuentra «CESCE», «dias» encuentra «días»).
 const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -100,7 +104,7 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
     // OJO: el prefijo REAL es autosuspension_ (homogeneización de nombres); con el viejo
     // autosusp_ estas filas caían en «Otros · Sin clasificar» (usuario, 2026-11-11).
     // Los parámetros de un módulo apagado (almacenamientos, hasta la v4) no salen ni en «Otros».
-    const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !p.clave.startsWith('autosuspension_') && (ALMACENAMIENTOS || !p.clave.startsWith('almacen_')));
+    const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !OCULTOS(p.clave) && !p.clave.startsWith('autosuspension_') && (ALMACENAMIENTOS || !p.clave.startsWith('almacen_')));
     // Orden ALFABÉTICO (usuario, 2026-11-13): las secciones entre sí y las subsecciones
     // dentro de cada una — tanto en los chips de arriba como en el listado. «Otros»
     // (sin clasificar) se queda siempre al final.
@@ -112,6 +116,10 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
         const f = filas.filter((p) => p.clave.startsWith('autosuspension_'));
         const ver = f.length > 0 && (!b || norm(s.titulo + ' ' + s.intro + ' suspender cancelaciones consultas').includes(b) || f.some((p) => casa(p, ETIQUETAS[p.clave]?.[0] ?? '')));
         return { ...s, filasEsp: f, subsV: [] as { titulo: string; id: string; filas: ParametroFila[]; banco?: boolean }[], ver };
+      }
+      if (s.especial === 'holded') {
+        return { ...s, filasEsp: [] as ParametroFila[], subsV: [] as { titulo: string; id: string; filas: ParametroFila[]; banco?: boolean }[],
+          ver: !b || norm(s.titulo + ' ' + s.intro + ' api pendiente facturas pedidos').includes(b) };
       }
       const enSec = !!b && norm(s.titulo + ' ' + s.intro).includes(b);
       const subsV = s.subs.map((u) => {
@@ -140,7 +148,7 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
 
       {/* Buscador e índice: para ir directo a lo que se busca. */}
       <div className="prm-indice">
-        <input type="search" className="param-input" placeholder="Buscar: «negociación», «PIN», «IBAN», «días»…" value={q}
+        <input type="search" className="param-input" placeholder="Buscar: «negociación», «pago», «IBAN», «días»…" value={q}
           onChange={(e) => setQ(e.target.value)} aria-label="Buscar parámetro" style={{ maxWidth: 360, width: '100%' }} />
         {q && <span className="meta">{total ? `${total} encontrado${total === 1 ? '' : 's'}` : 'Nada con esa palabra'}</span>}
         {/* Índice en DESPLEGABLE con búsqueda (usuario, 2026-11-15: los chips de todas las
@@ -168,7 +176,14 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
         <div key={s.id} id={`prm-${s.id}`} className="prm-seccion">
           <div className="ptar-section-head" style={{ marginBottom: '0.15rem' }}>{s.titulo}</div>
           <div className="meta" style={{ marginBottom: '0.6rem' }}>{s.intro}</div>
-          {s.especial === 'autosusp'
+          {s.especial === 'holded'
+            ? (
+              <div id="prm-holded-pendiente" className="pt-aviso" role="note" style={{ background: '#fff7e6', border: '1.5px solid #f0c060', color: '#5a3d00', maxWidth: 820 }}><div>
+                <strong>Pendiente de conectar con Holded por API.</strong> Todavía no hay nada que configurar aquí: cuando la conexión esté en marcha, en esta sección pondremos los parámetros que hagan falta (los decidimos entonces).
+                Mientras tanto, los pedidos se siguen pasando a Holded con el fichero de <strong>Exportaciones</strong>.
+              </div></div>
+            )
+            : s.especial === 'autosusp'
             ? <ReglasAutosuspension filas={s.filasEsp} candidatos={candidatos} esAdmin={esAdmin} />
             : s.subsV.map((u) => (
               <div key={u.titulo} id={`prm-${u.id}`} className="prm-sub">
