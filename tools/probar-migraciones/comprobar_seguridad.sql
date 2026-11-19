@@ -12956,7 +12956,9 @@ declare cli uuid := current_setting('prueba.cliente')::uuid; tr uuid := current_
     ['28040', '08001', 'completa', '0', '800', 'no'],   -- fuera: ni a su base, ni a donde venía, ni a limítrofes («el resto» ya no sale)
     ['45001', '46001', 'completa', '0', '999', 'no'],   -- 4: sale de Toledo (limítrofe de Madrid) hacia su base
     ['28050', '46001', 'completa', '5', '999', 'no'],   -- fuera: otro día (la ventana no incluye la descarga)
-    ['28060', '46001', 'completa', '0', '999', 'si']];  -- fuera: reservada ahora mismo
+    ['28060', '46001', 'completa', '0', '999', 'si'],   -- fuera: reservada ahora mismo
+    ['45002', '28070', 'completa', '0', '999', 'no'],   -- fuera: vuelve a Madrid, de donde sale el bloque
+    ['28080', '28090', 'completa', '0', '999', 'no']];  -- fuera: empieza y acaba en Madrid
 begin
   alter table envios disable trigger user; alter table envio_paradas disable trigger user;
   update transportistas set codigo_postal = '46001', pais_codigo_iso = 'ES' where id = tr;
@@ -13015,6 +13017,14 @@ do $$ declare refs text; begin
   select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
     into refs from jsonb_array_elements(envios_de_vuelta(current_setting('prueba.e293')::uuid) -> 'cargas') with ordinality as t(c, n);
   if refs is distinct from 'V293-2:1,V293-1:2,V293-3:1,V293-4:3,V293-6:4' then raise exception 'FALLO 293 · con un grupaje no van primero los grupajes: %', refs; end if;
+end $$;
+-- Si viene de la provincia de su base, todo es «hacia tu base» (grupo 1) y no hay grupo 2.
+do $$ declare refs text; begin
+  update transportistas set codigo_postal = '41001' where id = current_setting('prueba.transp')::uuid;
+  select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
+    into refs from jsonb_array_elements(envios_de_vuelta(current_setting('prueba.e293')::uuid) -> 'cargas') with ordinality as t(c, n);
+  if refs is distinct from 'V293-1:1' then raise exception 'FALLO 293 · con la base en la provincia de donde viene: %', refs; end if;
+  update transportistas set codigo_postal = '46001' where id = current_setting('prueba.transp')::uuid;
 end $$;
 do $$ begin
   alter table envios disable trigger user;

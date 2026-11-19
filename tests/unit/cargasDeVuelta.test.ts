@@ -54,6 +54,9 @@ test('títulos con la provincia entre paréntesis, grupo 4 y «puedes combinar v
   const h = htmlCargasDeVuelta({ dia: '2026-11-30', desde: { codigo_postal: '08001', pais: 'ES' }, tipo_envio: 'grupaje',
     base: { cp2: '46', pais: 'ES' }, previa: { cp2: '28', pais: 'ES' },
     cargas: [g({ token: 'a' }), g({ token: 'b', criterio: 2 }), g({ token: 'd', criterio: 4 })] }, 'https://web');
+  const l = htmlCargasDeVuelta({ dia: '2026-11-30', desde: { codigo_postal: '08001', pais: 'ES' }, base: { cp2: '46', pais: 'ES' },
+    cargas: [g({ criterio: 3 })] }, 'https://web');
+  assert.match(l, /Hacia provincias limítrofes de tu base \(Valencia\)/);
   assert.match(h, /Hacia la provincia de tu base \(Valencia\)/);
   assert.match(h, /Hacia la provincia de donde vienes \(Madrid\)/);
   assert.match(h, /Desde provincias limítrofes de Barcelona/);

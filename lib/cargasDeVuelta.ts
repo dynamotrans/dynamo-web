@@ -29,7 +29,7 @@ export function titulosGrupos(r: DatosVuelta, provDesde: string): Record<number,
     1: conProv('Hacia la provincia de tu base', base),
     2: r.tramo === 'regreso' ? conProv('La misma ruta que este envío', previa ? `${provDesde} → ${previa}` : null)
                              : conProv('Hacia la provincia de donde vienes', previa),
-    3: 'Hacia provincias limítrofes de tu base',
+    3: conProv('Hacia provincias limítrofes de tu base', base),
     4: `Desde provincias limítrofes de ${provDesde}`,
   };
 }
