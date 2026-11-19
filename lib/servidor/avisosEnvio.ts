@@ -63,11 +63,18 @@ const CAJA_SIN_MATRICULAS = `<div style="background:#fde8e8;border:1px solid #dc
 
 // ---- Cargas de vuelta al final de la orden (usuario, 2026-11-19) -----------------------
 // Envíos libres de la bolsa que salen de la provincia de la última descarga el mismo día
-// (envios_de_vuelta). El HTML, en lib/cargasDeVuelta.ts. Vacío si no hay ninguna.
+// (envios_de_vuelta) y, después, desde el origen 2 días hábiles más tarde. El HTML, en
+// lib/cargasDeVuelta.ts. Vacío si no hay ninguna.
 export async function bloqueCargasDeVuelta(sb: SB, envio: string, origen: string): Promise<string> {
   try {
-    const { data, error } = await sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 15 });
-    return error ? '' : htmlCargasDeVuelta(data as unknown as DatosVuelta | null, origen);
+    // Dos bloques: desde donde descarga el día de la descarga y, al final, desde el origen
+    // 2 días hábiles después de la carga (usuario, 2026-11-19).
+    const [d, r] = await Promise.all([
+      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 15, p_tramo: 'descarga' }),
+      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 15, p_tramo: 'regreso' }),
+    ]);
+    return (d.error ? '' : htmlCargasDeVuelta(d.data as unknown as DatosVuelta | null, origen))
+      + (r.error ? '' : htmlCargasDeVuelta(r.data as unknown as DatosVuelta | null, origen));
   } catch { return ''; }
 }
 

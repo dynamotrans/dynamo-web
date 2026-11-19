@@ -13012,3 +13012,53 @@ do $$ begin
   delete from envios where referencia_cliente like 'V293-%' or id = current_setting('prueba.e293')::uuid;
   alter table envios enable trigger user;
 end $$;
+
+-- ---- 294. Cargas de vuelta: segundo bloque, de regreso al origen 2 días hábiles después ---
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare cli uuid := current_setting('prueba.cliente')::uuid; tr uuid := current_setting('prueba.transp')::uuid;
+  lunes date := (now() at time zone 'Europe/Madrid')::date + 21; dia date; a uuid; x uuid; i int;
+  defs text[][] := array[
+    ['28005', '08010', '0'],    -- 2: la misma ruta (Madrid → Barcelona)
+    ['28010', '46010', '0'],    -- 1: hacia su base (Valencia)
+    ['28020', '46020', '-1'],   -- fuera: el día anterior
+    ['08001', '46001', '0']];   -- fuera: sale de Barcelona
+begin
+  lunes := lunes + ((8 - extract(isodow from lunes)::int) % 7);   -- el lunes siguiente
+  dia := sumar_dias_habiles(lunes, 2);
+  perform set_config('prueba.d294', dia::text, false);
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  update transportistas set codigo_postal = '46001', pais_codigo_iso = 'ES' where id = tr;
+  insert into envios (cliente_id, estado, transportista_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_prevista, referencia_cliente)
+    values (cli, 'programado', tr, 13.3, 20, 900, 700, lunes, lunes, 'R294-0') returning id into a;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, pais_codigo_iso) values (a, 1, 'carga', '28001', 'ES'), (a, 2, 'descarga', '08001', 'ES');
+  perform set_config('prueba.e294', a::text, false);
+  for i in 1..array_length(defs, 1) loop
+    insert into envios (cliente_id, estado, metros_lineales, toneladas, importe_cliente, importe_transportista,
+                        fecha_carga_desde, fecha_carga_hasta, publicado_en_bolsa_en, referencia_cliente)
+      values (cli, 'programado', 13.3, 10, 1200, 600, dia + defs[i][3]::int, dia + defs[i][3]::int, now(), 'R294-' || i) returning id into x;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, pais_codigo_iso) values (x, 1, 'carga', defs[i][1], 'ES'), (x, 2, 'descarga', defs[i][2], 'ES');
+  end loop;
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare j jsonb; refs text; begin
+  j := envios_de_vuelta(current_setting('prueba.e294')::uuid, 15, 'regreso');
+  select string_agg((select referencia_cliente from envios where referencia_gx = c ->> 'referencia') || ':' || (c ->> 'criterio'), ',' order by n)
+    into refs from jsonb_array_elements(j -> 'cargas') with ordinality as t(c, n);
+  if refs is distinct from 'R294-2:1,R294-1:2' then raise exception 'FALLO 294 · cargas de regreso: %', refs; end if;
+  if j ->> 'dia' <> current_setting('prueba.d294') or j ->> 'tramo' <> 'regreso' or j -> 'desde' ->> 'codigo_postal' <> '28001' then
+    raise exception 'FALLO 294 · día o lugar del regreso: %', j - 'cargas'; end if;
+  begin perform envios_de_vuelta(current_setting('prueba.e294')::uuid, 15, 'otro'); raise exception 'FALLO 294 · acepta un tramo inventado';
+  exception when invalid_parameter_value then null; end;
+  raise notice 'OK 294 · regreso: desde el origen 2 días hábiles después de la carga; su base primero y luego la misma ruta';
+end $$;
+reset role;
+do $$ begin
+  alter table envios disable trigger user;
+  delete from envio_paradas where envio_id in (select id from envios where referencia_cliente like 'R294-%');
+  delete from envios where referencia_cliente like 'R294-%';
+  alter table envios enable trigger user;
+end $$;
