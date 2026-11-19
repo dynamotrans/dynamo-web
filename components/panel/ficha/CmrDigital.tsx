@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { fechaHora } from '@/lib/formato';
 import type { Ficha } from '@/lib/fichaEnvio';
-import { enlaceCmr, anotarCompartido, firmaEnPapel } from '@/app/panel/(app)/envios/acciones';
+import { enlaceCmr, anotarCompartido, firmasEnPapel } from '@/app/panel/(app)/envios/acciones';
 import { documentosDe } from '@/app/panel/(app)/documentos/acciones';
 import { subirDocumentoDirecto, ACEPTA, MAX_BYTES } from '../Documentos';
-import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import Modal from '../Modal';
+import { DOC_EN_PAPEL } from '@/lib/firmas';
 import Cargando from '@/components/Cargando';
 import Req from '@/components/Req';
 import { HistorialEnvios } from './HistorialEnvios';
@@ -27,7 +27,8 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
   const enl = ficha.cmrEnlace;
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga'), entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
   const total = recogidas.length + 1 + entregas.length;
-  // Casillas de sitio aún sin firma: las únicas que admiten la firma en papel.
+  // Casillas aún sin firma (las de cada sitio y la del transportista): las que admiten la firma en papel.
+  const faltaTransportista = !ficha.firmasCmr.some((f) => !f.extra && f.rol === 'transportista');
   const sinFirma = ficha.paradas.filter((p) => !ficha.firmasCmr.some((f) => !f.extra && f.parada_id === p.id && f.rol === (p.tipo === 'carga' ? 'remitente' : 'destinatario')));
   const lugar = (id: string | null) => { const p = ficha.paradas.find((x) => x.id === id); return p ? ` · ${p.nombre_empresa || p.poblacion || ''}` : ''; };
   // Mensaje corto para compartir (la ventana propia añade el enlace al final).
@@ -96,7 +97,7 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
         <div className="pen-sum-row"><span className="k"><strong>{ficha.firmasCmr.length} de {total}</strong> firmas</span><span className="v">{ficha.firmasCmr.length >= total ? <span className="badge badge-green">CMR firmado</span> : ''}</span></div>
         {ficha.firmasCmr.map((f, i) => (
           <div key={i} className="pen-sum-row">
-            <span className="k">{ROL_CMR[f.rol] ?? f.rol}{lugar(f.parada_id)}<br /><span style={{ color: 'var(--gray-500)' }}>{f.nombre} · {f.documento} ({f.documento_pais}){f.documento_validado ? '' : ' · documento sin comprobar'}</span>
+            <span className="k">{ROL_CMR[f.rol] ?? f.rol}{lugar(f.parada_id)}<br /><span style={{ color: 'var(--gray-500)' }}>{f.documento === DOC_EN_PAPEL ? `${f.nombre} · sus datos constan en el papel` : <>{f.nombre} · {f.documento} ({f.documento_pais}){f.documento_validado ? '' : ' · documento sin comprobar'}</>}</span>
               {f.en_papel && <><br /><span className="badge badge-orange">Firmó en papel · CMR bis anexo</span></>}</span>
             <span className="v" style={{ whiteSpace: 'nowrap' }}>{fechaHora(f.firmado_en)}</span>
           </div>
@@ -104,13 +105,13 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
       </div>
       {/* Quien se niega (o no puede) firmar en el móvil firma un CMR en papel con la misma
           referencia: aquí se registra, con la foto, y completa el CMR digital. */}
-      {!e.es_manual && sinFirma.length > 0 && (
+      {!e.es_manual && (sinFirma.length > 0 || faltaTransportista) && (
         <button type="button" className="btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.6rem' }} disabled={!!trabajando}
           title="Alguien firmó en un CMR en papel en lugar de en el móvil: se registra con la foto del papel y completa el CMR digital."
           onClick={() => setPapel(true)}><I d={ICO.doc} />Firmó en papel (CMR bis)</button>
       )}
     </div>
-    {papel && <FirmaPapel ficha={ficha} pendientes={sinFirma} hacer={hacer} trabajando={trabajando} onCerrar={() => setPapel(false)} />}
+    {papel && <FirmaPapel ficha={ficha} pendientes={sinFirma} faltaTransportista={faltaTransportista} hacer={hacer} trabajando={trabajando} onCerrar={() => setPapel(false)} />}
   </>;
 }
 
@@ -119,28 +120,31 @@ export function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: 
 // que solo firma en papel. El conductor le hace firmar un CMR en papel que lleva escrita
 // la referencia del electrónico; Dynamo sube aquí la foto y apunta quién firmó. No se
 // rehace nada: las firmas digitales siguen igual y esta casilla queda «firmada en papel».
-function FirmaPapel({ ficha, pendientes, hacer, trabajando, onCerrar }: {
-  ficha: Ficha; pendientes: Ficha['paradas']; trabajando: string | null; onCerrar: () => void;
+function FirmaPapel({ ficha, pendientes, faltaTransportista, hacer, trabajando, onCerrar }: {
+  ficha: Ficha; pendientes: Ficha['paradas']; faltaTransportista: boolean; trabajando: string | null; onCerrar: () => void;
   hacer: (t: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>, ok?: string) => Promise<boolean>;
 }) {
   const e = ficha.envio;
-  const [parada, setParada] = useState(pendientes.length === 1 ? pendientes[0].id : '');
-  const [nombre, setNombre] = useState('');
-  const [pais, setPais] = useState('ES');
-  const [doc, setDoc] = useState('');
+  // Las casillas que aún no tienen firma, en el orden del CMR: recogidas (22), transportista
+  // (23) y entregas (24). Salen TODAS marcadas (usuario, 2026-11-19): lo normal es que el
+  // papel lo firmen todos; se desmarca quien no firmó en él.
+  const TRANSPORTISTA = 'transportista';
+  const casillas = [
+    ...pendientes.filter((p) => p.tipo === 'carga').map((p) => ({ id: p.id, rol: 'Recogida · remitente', quien: p.nombre_empresa || p.poblacion || 'sitio', casilla: 22 })),
+    ...(faltaTransportista ? [{ id: TRANSPORTISTA, rol: 'Transportista', quien: ficha.transportista?.nombre || 'transportista', casilla: 23 }] : []),
+    ...pendientes.filter((p) => p.tipo !== 'carga').map((p) => ({ id: p.id, rol: 'Entrega · destinatario', quien: p.nombre_empresa || p.poblacion || 'sitio', casilla: 24 })),
+  ];
+  const [marcadas, setMarcadas] = useState<Set<string>>(() => new Set(casillas.map((c) => c.id)));
   const [foto, setFoto] = useState<File | null>(null);
   const [subido, setSubido] = useState<{ nombre: string; id: string } | null>(null);   // la foto ya subida: un reintento no la duplica
   const [subiendo, setSubiendo] = useState(false);
   const [fallo, setFallo] = useState<string | null>(null);
-  const v = doc.trim().length >= 3 ? validaDoc(pais, doc) : null;
   const frase = `Complementa al CMR electrónico nº ${e.referencia_gx}`;
+  const marcar = (id: string, si: boolean) => setMarcadas((m) => { const n = new Set(m); if (si) n.add(id); else n.delete(id); return n; });
 
   async function guardar() {
     setFallo(null);
-    if (!parada) return setFallo('Elige qué casilla firmó en papel.');
-    if (!nombre.trim()) return setFallo('Escribe el nombre de quien firmó.');
-    if (doc.trim().length < 3) return setFallo('Escribe el documento de identidad de quien firmó.');
-    if (v && !v.ok) return setFallo(v.msg ?? 'El documento de identidad no es válido.');
+    if (!marcadas.size) return setFallo('Marca al menos una casilla: quién firmó en el papel.');
     if (!foto) return setFallo('Añade la foto o el PDF del CMR en papel firmado.');
     if (foto.size > MAX_BYTES) return setFallo('El fichero pesa más de 25 MB.');
     let id = subido && subido.nombre === foto.name ? subido.id : null;
@@ -157,7 +161,8 @@ function FirmaPapel({ ficha, pendientes, hacer, trabajando, onCerrar }: {
       setSubido({ nombre: foto.name, id });
     }
     const idDoc = id;
-    if (await hacer('Registrando la firma en papel', () => firmaEnPapel(e.id, parada, { nombre: nombre.trim(), documento: doc.trim(), pais, documento_id: idDoc }))) onCerrar();
+    const paradas = [...marcadas].filter((x) => x !== TRANSPORTISTA);
+    if (await hacer('Registrando la firma en papel', () => firmasEnPapel(e.id, paradas, marcadas.has(TRANSPORTISTA), idDoc))) onCerrar();
   }
 
   return (
@@ -170,35 +175,25 @@ function FirmaPapel({ ficha, pendientes, hacer, trabajando, onCerrar }: {
       <div className="pt-aviso info"><div>
         Para quien <strong>no firma en el móvil</strong>. Firma un CMR en papel que lleve escrito a mano: <strong>«{frase}»</strong>, con su nombre, documento, fecha, hora y sello. Las firmas digitales que ya hay <strong>no se tocan</strong>: este papel se añade como anexo y completa el CMR.
       </div></div>
-      <div className="ptar-sitio-grid" style={{ marginTop: '0.7rem' }}>
-        <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="fp-parada">Casilla que firmó en papel <Req /></label>
-          <select id="fp-parada" value={parada} onChange={(ev) => setParada(ev.target.value)}>
-            {pendientes.length > 1 && <option value="">Elige…</option>}
-            {pendientes.map((p) => <option key={p.id} value={p.id}>{p.tipo === 'carga' ? 'Carga' : 'Entrega'} · {p.nombre_empresa || p.poblacion || 'sitio'}</option>)}
-          </select>
+      <fieldset id="fp-casillas" style={{ border: 0, padding: 0, margin: '0.8rem 0 0' }}>
+        <legend style={{ fontSize: 'var(--fs-m)', fontWeight: 700, color: 'var(--gray-700)', padding: 0, marginBottom: '0.4rem' }}>Quién firmó en el papel <Req /></legend>
+        <div style={{ display: 'grid', gap: '0.4rem' }}>
+          {casillas.map((c) => (
+            <label key={c.id} className="fp-casilla" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.75rem', border: `1.5px solid ${marcadas.has(c.id) ? 'var(--purple)' : 'var(--gray-200)'}`, borderRadius: 12, background: marcadas.has(c.id) ? 'rgba(51,0,204,0.04)' : '#fff', cursor: 'pointer', margin: 0 }}>
+              <input type="checkbox" checked={marcadas.has(c.id)} onChange={(ev) => marcar(c.id, ev.target.checked)} style={{ width: 20, height: 20, flex: '0 0 auto', accentColor: 'var(--purple)' }} />
+              <span style={{ minWidth: 0 }}>
+                <strong style={{ display: 'block', color: 'var(--navy)' }}>{c.quien}</strong>
+                <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>{c.rol} · casilla {c.casilla}</span>
+              </span>
+            </label>
+          ))}
         </div>
-        <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="fp-nombre">Nombre de quien firmó <Req /></label>
-          <input id="fp-nombre" type="text" maxLength={120} value={nombre} placeholder="Ej. Marta Ruiz López" onChange={(ev) => setNombre(ev.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="fp-pais">País del documento <Req /></label>
-          <select id="fp-pais" value={pais} onChange={(ev) => setPais(ev.target.value)}>
-            {DOC_PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="fp-doc">Documento de identidad <Req /></label>
-          <input id="fp-doc" type="text" maxLength={30} autoCapitalize="characters" autoComplete="off" value={doc} placeholder="Ej. 12345678Z" onChange={(ev) => setDoc(ev.target.value)} />
-        </div>
-        <div style={{ gridColumn: '1/-1' }}>
-          <label htmlFor="fp-foto">Foto o PDF del CMR en papel firmado <Req /></label>
-          <input id="fp-foto" type="file" accept={ACEPTA} onChange={(ev) => setFoto(ev.target.files?.[0] ?? null)} />
-        </div>
+      </fieldset>
+      <div style={{ marginTop: '0.8rem' }}>
+        <label htmlFor="fp-foto">Foto o PDF del CMR en papel firmado <Req /></label>
+        <input id="fp-foto" type="file" accept={ACEPTA} onChange={(ev) => setFoto(ev.target.files?.[0] ?? null)} />
       </div>
-      {v && !v.ok && <p style={{ fontSize: 'var(--fs-s)', color: '#b42318', margin: '0.5rem 0 0' }}>⚠ {v.msg}</p>}
-      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>La foto queda en los documentos del envío como «CMR firmado». Una firma registrada no se puede borrar: revisa los datos antes de guardar.</p>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>No hace falta escribir el nombre ni el documento de quien firmó: ya constan en el papel, que queda en los documentos del envío como «CMR firmado». Una firma registrada no se puede borrar: revisa las casillas antes de guardar.</p>
       {fallo && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.6rem' }}>⚠ {fallo}</div>}
       {(subiendo || trabajando) && <Cargando texto={subiendo ? 'Subiendo la foto' : trabajando!} />}
     </Modal>

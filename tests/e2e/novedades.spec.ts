@@ -516,6 +516,37 @@ test.describe('novedades', () => {
     await expect(page.locator('#sec-festivos')).toContainText('Ningún festivo casa con la búsqueda.');
   });
 
+  // «Firmó en papel» (usuario, 2026-11-19): una casilla marcable por cada parte que aún no ha
+  // firmado, el transportista incluido, todas marcadas; y ya no se teclea quién firmó.
+  test('firmó en papel: salen marcadas todas las partes (con el transportista) y no se pide nombre ni documento', async ({ page }) => {
+    const id = await envioListo(page);
+    const sv = bd();
+    expect((await sv.from('envios').update({ matricula_camion: '1234BCD' }).eq('id', id)).error).toBeNull();
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/envios?ver=${id}`);
+    await page.getByRole('button', { name: /^eCMR/ }).click();
+    await page.getByRole('button', { name: /Firmó en papel/ }).click();
+    const casillas = page.locator('#fp-casillas input[type=checkbox]');
+    await expect(casillas).toHaveCount(3);
+    for (const c of await casillas.all()) await expect(c).toBeChecked();
+    await expect(page.locator('#fp-casillas')).toContainText('Transportista · casilla 23');
+    await expect(page.locator('#fp-nombre, #fp-pais, #fp-doc, #fp-parada')).toHaveCount(0);
+    // Se desmarca quien no firmó en el papel: aquí, el transportista.
+    await page.locator('#fp-casillas label', { hasText: 'casilla 23' }).locator('input').uncheck();
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    await page.locator('#fp-foto').setInputFiles({ name: 'cmr-en-papel.png', mimeType: 'image/png', buffer: PNG });
+    await page.getByRole('button', { name: 'Registrar la firma en papel' }).click();
+    const firmas = async () => ((await sv.from('firmas_cmr').select('rol, documento, en_papel').eq('envio_id', id)).data ?? []);
+    await expect.poll(async () => (await firmas()).map((f) => f.rol).sort().join(',')).toBe('destinatario,remitente');
+    for (const f of await firmas()) { expect(f.en_papel).toBe(true); expect(f.documento).toBe('EN PAPEL'); }
+    // En la ficha quedan como firmadas en papel, y sigue pudiéndose apuntar la que falta.
+    await expect(page.getByText('Firmó en papel · CMR bis anexo').first()).toBeVisible();
+    await expect(page.getByText('sus datos constan en el papel').first()).toBeVisible();
+    await page.getByRole('button', { name: /Firmó en papel \(CMR bis\)/ }).click();
+    await expect(page.locator('#fp-casillas input[type=checkbox]')).toHaveCount(1);
+    await expect(page.locator('#fp-casillas')).toContainText('casilla 23');
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();

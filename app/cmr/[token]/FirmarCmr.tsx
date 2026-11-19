@@ -36,6 +36,7 @@ import type { CmrPublico, ParadaCmr, FirmaCmr, ReservaCmr } from './tipos';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import { esImagenReal, tipoRealDeArchivo } from '@/lib/contenidoArchivo';
+import { quienFirmo } from '@/lib/firmas';
 
 type Bloque = { clave: string; titulo: string; casilla: string; firmante: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; preEmail: string; lugar?: string; extra?: boolean;
   // Matrículas al firmar (usuario, 2026-11-11): solo la CABECERA (transportista o
@@ -349,7 +350,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
             {f ? <>
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
               {/* Firmó en papel (CMR bis): no hay trazo; el papel va anexo y completa este CMR. */}
-              <div className="firma-estado">{f.en_papel ? '✓ Firmada EN PAPEL (CMR bis anexo, que completa este CMR) · registrada el' : '✓ Firmada el'} {fechaHora(f.firmado_en)} · {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
+              <div className="firma-estado">{f.en_papel ? '✓ Firmada EN PAPEL (CMR bis anexo, que completa este CMR) · registrada el' : '✓ Firmada el'} {fechaHora(f.firmado_en)} · {quienFirmo(f)}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
             </> : <div className="firma-estado">Pendiente de firma</div>}
             {(cmr.reservas ?? []).filter((r: ReservaCmr) => r.rol === b.rol && (b.rol === 'transportista' || r.parada_id === b.parada_id)).map((r: ReservaCmr, i: number) => (
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>

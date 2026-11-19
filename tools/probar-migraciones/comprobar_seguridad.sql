@@ -12564,3 +12564,67 @@ do $$ declare e uuid := current_setting('prueba.e284')::uuid; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 285. «Firmó en papel»: varias casillas de una vez (también el transportista) y sin teclear quién firmó ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; pc uuid; pd uuid; doc uuid; otro uuid; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, matricula_camion, matricula_remolque)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 1, '2850ABC', 'R2850AB') returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', 'Cargas 285 SL', '19001', 'Guadalajara', 'ES') returning id into pc;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '16001', 'Cuenca', 'ES') returning id into pd;
+  update envios set estado = 'programado' where id = e;
+  insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo) values ('cmr_firmado', e, 'envios/' || e || '/x/cmr-papel.jpg', 'cmr-papel.jpg') returning id into doc;
+  insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo) values ('adjunto', e, 'envios/' || e || '/y/otra.jpg', 'otra.jpg') returning id into otro;
+  perform set_config('prueba.e285', e::text, false); perform set_config('prueba.pc285', pc::text, false); perform set_config('prueba.pd285', pd::text, false);
+  perform set_config('prueba.doc285', doc::text, false); perform set_config('prueba.otro285', otro::text, false);
+end $$;
+-- Un cliente no registra firmas en papel.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform registrar_firmas_papel(current_setting('prueba.e285')::uuid, array[current_setting('prueba.pd285')::uuid], true, current_setting('prueba.doc285')::uuid);
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 285 · un cliente registra firmas en papel'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e285')::uuid; pc uuid := current_setting('prueba.pc285')::uuid; pd uuid := current_setting('prueba.pd285')::uuid;
+        doc uuid := current_setting('prueba.doc285')::uuid; r jsonb; f record; n int; begin
+  r := registrar_firmas_papel(e, '{}', false, doc);
+  if r ->> 'resultado' <> 'nada_elegido' then raise exception 'FALLO 285 · se registra sin marcar ninguna casilla: %', r; end if;
+  r := registrar_firmas_papel(e, array[gen_random_uuid()], false, doc);
+  if r ->> 'resultado' <> 'parada_no_valida' then raise exception 'FALLO 285 · vale una parada que no es del envío: %', r; end if;
+  r := registrar_firmas_papel(e, array[pc, pd], true, current_setting('prueba.otro285')::uuid);
+  if r ->> 'resultado' <> 'falta_documento' then raise exception 'FALLO 285 · vale cualquier adjunto como CMR en papel: %', r; end if;
+  if exists (select 1 from firmas_cmr where envio_id = e) then raise exception 'FALLO 285 · un intento rechazado deja firmas'; end if;
+  -- Solo una casilla marcada: se apunta esa y nada más.
+  r := registrar_firmas_papel(e, array[pc], false, doc);
+  if r ->> 'resultado' <> 'ok' or (r ->> 'firmas')::int <> 1 then raise exception 'FALLO 285 · no se apunta la casilla marcada: %', r; end if;
+  select * into f from firmas_cmr where envio_id = e;
+  if f.rol <> 'remitente' or f.parada_id <> pc or f.nombre <> 'Cargas 285 SL' or f.documento <> 'EN PAPEL' or f.documento_pais <> 'XX'
+     or not f.en_papel or f.documento_papel_id <> doc or f.documento_validado or f.extra then
+    raise exception 'FALLO 285 · la firma en papel del remitente no queda como debe: %', row_to_json(f);
+  end if;
+  -- Después, todas marcadas: se apuntan las que faltan (transportista y destinatario); la ya firmada no se toca.
+  r := registrar_firmas_papel(e, array[pc, pd], true, doc);
+  if r ->> 'resultado' <> 'ok' or (r ->> 'firmas')::int <> 2 then raise exception 'FALLO 285 · con todas marcadas no se apuntan justo las que faltaban: %', r; end if;
+  select count(*) into n from firmas_cmr where envio_id = e and en_papel and not extra;
+  if n <> 3 then raise exception 'FALLO 285 · deberían quedar las tres casillas firmadas en papel (%)', n; end if;
+  if not exists (select 1 from firmas_cmr where envio_id = e and rol = 'transportista' and parada_id is null and documento = 'EN PAPEL' and documento_papel_id = doc) then
+    raise exception 'FALLO 285 · falta la firma en papel del transportista (casilla 23)'; end if;
+  if not exists (select 1 from firmas_cmr where envio_id = e and rol = 'destinatario' and parada_id = pd and nombre = 'Cuenca') then
+    raise exception 'FALLO 285 · el destinatario sin nombre de empresa no queda con su población'; end if;
+  -- Todo firmado ya: no hay nada que apuntar.
+  r := registrar_firmas_papel(e, array[pc, pd], true, doc);
+  if r ->> 'resultado' <> 'ya_firmada' then raise exception 'FALLO 285 · se vuelven a apuntar casillas ya firmadas: %', r; end if;
+  select count(*) into n from firmas_envio(e) x where x.en_papel;
+  if n <> 3 then raise exception 'FALLO 285 · las firmas en papel no salen en la lista de firmas del envío (%)', n; end if;
+  -- La hoja pública tapa los documentos de identidad, pero no la marca «EN PAPEL».
+  if position($q$case when f.documento = 'EN PAPEL'$q$ in pg_get_functiondef('public.cmr_publico(uuid)'::regprocedure)) = 0 then
+    raise exception 'FALLO 285 · la hoja pública de firma tapa la marca «EN PAPEL» como si fuera un documento'; end if;
+  raise notice 'OK 285 · «Firmó en papel»: las casillas marcadas (transportista incluido) de una vez, con la misma foto y sin teclear quién firmó';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

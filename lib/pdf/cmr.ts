@@ -7,6 +7,7 @@ import { DYNAMO, emisionDeca, urlDeca, type DatosDoc, type FirmaDoc, type Parada
 import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros, ventana } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import { plumaAzul } from './plumaAzul';
+import { quienFirmo } from '@/lib/firmas';
 
 // CMR (carta de porte internacional) RELLENO, copiado del mockup: el impreso OFICIAL de
 // fondo a página completa y los datos en tinta azul en cada casilla (las coordenadas son
@@ -160,7 +161,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
           l.pag.drawImage(img, { x: xV, y: A4.h - l.y - 1 - h, width: w, height: h });
           xTxt = xV + w + 10;
         }
-        l.texto(xTxt, l.y + 9, `${f.nombre} · ${f.documento}`, 8, { bold: true, color: COLOR.tinta });
+        l.texto(xTxt, l.y + 9, quienFirmo(f), 8, { bold: true, color: COLOR.tinta });
         l.texto(xTxt, l.y + 19, f.en_papel
           ? `Firmado EN PAPEL: CMR bis anexo, que completa este CMR · registrado el ${fechaFirma(f.firmado_en)}`
           : `Firmado el ${fechaFirma(f.firmado_en)} (e-CMR, casillas ${rol === 'remitente' ? '22' : rol === 'transportista' ? '23' : '24'})`, 6.8, { color: COLOR.gris });
@@ -410,7 +411,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
           if (c.f.rol === 'destinatario') dato(c.x + 36, c.top + 9, [{ t: 'FIRMADO EN PAPEL · CMR bis anexo', s: 6.6, b: true, max: 1 }], 46);
           else dato(c.x, c.top + 8, [{ t: 'FIRMADO EN PAPEL', s: 6.6, b: true, max: 1 }, { t: 'CMR bis anexo', s: 6.2, b: false, max: 1 }], Math.floor(c.ancho / 3.1));
         }
-        dato(c.x, c.top + c.alto + 1, [{ t: `${c.f.nombre} · ${c.f.documento} · ${fechaFirma(c.f.firmado_en)}`, s: 6.2, b: false, max: 1 }], Math.floor(c.ancho / 3.1));
+        dato(c.x, c.top + c.alto + 1, [{ t: `${quienFirmo(c.f)} · ${fechaFirma(c.f.firmado_en)}`, s: 6.2, b: false, max: 1 }], Math.floor(c.ancho / 3.1));
         if (c.f.rol === 'destinatario') {
           dato(395, 752, [{ t: entrega?.poblacion ?? '', s: 7.4, max: 1 }], 13);
           dato(452, 752, [{ t: fechaDe(c.f.firmado_en), s: 7.4 }], 20);
@@ -641,7 +642,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       const par = paradaTxt(f.parada_id);
       if (par) l.texto(tx, l.y + 24, corta(par, 7), 7, { color: COLOR.gris });
       l.texto(tx, l.y + (par ? 35 : 27), f.en_papel
-        ? `Firmado en papel por ${f.nombre} · ${f.documento} · registrado el ${fechaFirma(f.firmado_en)}`
+        ? `Firmado en papel por ${quienFirmo(f)} · registrado el ${fechaFirma(f.firmado_en)}`
         : `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.4, { color: COLOR.tinta });
       if (f.en_papel) l.texto(tx, l.y + (par ? 46 : 38), 'Firmó en un CMR en papel con esta misma referencia (CMR bis), que se añade a este CMR electrónico y lo completa.', 6.8, { color: COLOR.gris });
       if (f.lat != null && f.lon != null) {
@@ -678,7 +679,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
     for (const f of conPapel) {
       nA++;
       const titulo = `Anexo ${nA} de ${conPapel.length} · CMR en papel (CMR bis) · CMR Nº ${e.referencia_gx ?? ''}`;
-      const sub = `Firma en papel del ${rolTxt(f)}: ${f.nombre} · ${f.documento} · registrada el ${fechaHora(f.firmado_en)}. Completa este CMR electrónico.`;
+      const sub = `Firma en papel del ${rolTxt(f)}: ${quienFirmo(f)} · registrada el ${fechaHora(f.firmado_en)}. Completa este CMR electrónico.`;
       const b = f.papel;
       const esPdf = !!b && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
       const esPng = !!b && b[0] === 0x89 && b[1] === 0x50;

@@ -3,6 +3,7 @@ import type { Etapa } from '@/lib/estados';
 import type { SB } from '@/lib/supabase/cliente';
 import type { Tabla } from '@/lib/supabase/tipos';
 import { enTemporada } from './horarios';
+import { DOC_EN_PAPEL } from '@/lib/firmas';
 
 // Todo lo que enseña la ficha de un envío (solo Dynamo, etapa A), leído en el servidor.
 export type ParadaFicha = {
@@ -139,7 +140,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
         precio_propuesto: Number(r.precio_propuesto), precio_base: r.envio_ofertas?.precio_ofertado != null ? Number(r.envio_ofertas.precio_ofertado) : (e.importe_transportista != null ? Number(e.importe_transportista) : null), desde: r.desde,
         alta_online: r.transportistas && (r.transportistas.tags ?? []).includes('alta_online') ? { id: r.transportistas.id, cif: r.transportistas.cif, verificado: r.transportistas.estado_operativo === 'activo' } : null })),
       cmrEnlace: enl.data ?? null,
-      firmasCmr: (fir.data ?? []).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
+      // El documento va tapado; la marca «EN PAPEL» (firma en papel sin datos tecleados) no es un documento.
+      firmasCmr: (fir.data ?? []).map((f) => ({ ...f, documento: f.documento === DOC_EN_PAPEL ? DOC_EN_PAPEL : `•••${String(f.documento).slice(-4)}` })),
       cambioTransportista: cam.data ? { ...cam.data, precio_antes: cam.data.precio_antes != null ? Number(cam.data.precio_antes) : null,
         precio_ahora: cam.data.precio_ahora != null ? Number(cam.data.precio_ahora) : null } : null,
       difusion: dif.data ? { ...dif.data, precio: Number(dif.data.precio), bolsa: (bol.data ?? null) as EsperaBolsa | null } : null,
