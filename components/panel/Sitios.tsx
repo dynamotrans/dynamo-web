@@ -652,7 +652,7 @@ export function HorarioSitio({ horario, verano, onHorario, onVerano, tab: tabDeF
       <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'general'} className={`tab${tab === 'general' ? ' active' : ''}`} onClick={() => setTab('general')}>Horario general</button>
         <button type="button" role="tab" aria-selected={tab === 'verano'} className={`tab${tab === 'verano' ? ' active' : ''}`} onClick={() => setTab('verano')}>
-          Horario de verano{verano.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
+          Horario de verano<span className="badge badge-red" style={{ marginLeft: 6 }}>{verano.activo ? 'Tiene' : 'No tiene'}</span>
         </button>
       </div>
       {tab === 'general'
@@ -665,13 +665,13 @@ function VeranoSitio({ v, onCambio }: { v: { activo: boolean; desde: string; has
   onCambio: (v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }) => void }) {
   return (
     <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.7rem' }}>
-      <div>
-        <label className="ptar-tramp-box" style={{ display: 'inline-flex' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <label className="ptar-tramp-box" style={{ display: 'inline-flex', flexShrink: 0 }}>
           <input type="checkbox" className="ptar-switch-input" checked={v.activo} onChange={(e) => onCambio({ ...v, activo: e.target.checked })} aria-label="Este sitio tiene horario de verano" />
           <span className="ptar-switch" aria-hidden="true" />
           <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
         </label>
-        <span style={{ marginLeft: '0.6rem', fontWeight: 700, color: 'var(--navy)' }}>Este sitio tiene horario de verano</span>
+        <span id="ver-estado" style={{ fontWeight: 700, color: 'var(--navy)' }}>Este sitio {v.activo ? 'SÍ' : 'NO'} tiene horario de verano</span>
       </div>
       {!v.activo ? (
         <div className="pt-aviso info" style={{ margin: 0 }}><div>
