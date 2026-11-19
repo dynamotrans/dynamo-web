@@ -586,6 +586,9 @@ test.describe('novedades', () => {
     await expect(cuerpo).not.toContainText('pin_cifras');
     await expect(cuerpo).not.toContainText('holded_canal_venta_cuenta');
     await expect(cuerpo).not.toContainText('holded_formato_numeracion_compra');
+    // Tampoco los km por defecto entre paradas (se quedan por dentro, con su valor).
+    await expect(cuerpo).not.toContainText('seguimiento_km_por_defecto');
+    await expect(cuerpo).toContainText('seguimiento_velocidad_kmh');
   });
 
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {

@@ -62,7 +62,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Horario de verano de los almacenes', claves: ['verano_sitios_desde', 'verano_sitios_hasta'] },
     { titulo: 'Avisos de recogida y entrega a los sitios', claves: ['aviso_parada_ventana_inicio', 'aviso_parada_ventana_fin', 'aviso_parada_hora_mismo_dia'] },
     { titulo: 'Resumen mensual a los sitios', claves: ['resumen_sitios_activo', 'resumen_sitios_dia'] },
-    { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_velocidad_kmh', 'seguimiento_km_por_defecto', 'seguimiento_horas_asignando'] },
+    { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_velocidad_kmh', 'seguimiento_horas_asignando'] },
   ] },
   { id: 'autosusp', titulo: 'Suspensión automática de cuentas', intro: 'Cuándo se suspende sola una cuenta.', subs: [], especial: 'autosusp' },
   // Holded: los seis parámetros del fichero (serie, canal y cuenta de ventas y de compras)
@@ -87,7 +87,10 @@ const SECCIONES: Seccion[] = [
 const CONOCIDAS = new Set([...SECCIONES.flatMap((s) => s.subs.flatMap((u) => u.claves)), ...BANCO]);
 // Parámetros que existen en la base de datos pero NO se enseñan (ni en «Otros»): el PIN de
 // recogida y entrega (v4) y los del fichero de Holded (a la espera de la API).
-const OCULTOS = (clave: string) => clave.startsWith('pin_') || clave.startsWith('holded_');
+// Y los km por defecto entre dos paradas (usuario, 2026-11-19: «quítalo»): el seguimiento
+// los sigue usando por dentro (300 km) cuando no conoce la distancia de un tramo, así que el
+// valor se queda en la base de datos; lo que se quita es el campo de la pantalla.
+const OCULTOS = (clave: string) => clave.startsWith('pin_') || clave.startsWith('holded_') || clave === 'seguimiento_km_por_defecto';
 const texto = (v: unknown): string => (v === null ? '' : typeof v === 'string' ? v : Array.isArray(v) ? v.map((x) => (x !== null && typeof x === 'object' ? JSON.stringify(x) : texto(x))).join(' · ') : JSON.stringify(v));
 // Quita tildes y mayúsculas para buscar («cesce» encuentra «CESCE», «dias» encuentra «días»).
 const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
