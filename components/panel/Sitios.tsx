@@ -195,8 +195,11 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
 
 // La misma ficha sirve para los ALMACENES DYNAMO (como en el mockup: formulario idéntico
 // al de Sitios + disponibilidad y precios propios). `almacen` trae los precios por defecto.
-export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almacen, veranoDefecto = VERANO_GENERICO, onCerrar, onAbrir, onGuardado }: {
+export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almacen, veranoDefecto = VERANO_GENERICO, buscarInicial = '', onCerrar, onAbrir, onGuardado }: {
   fila: SitioFila | null; clientes: ClienteSitios[]; dynamo: boolean; veranoDefecto?: FechasVerano;
+  // Lo que ya se había escrito en el buscador de la ruta de Nuevo envío: «Empieza aquí» nace
+  // con ese texto y con sus resultados, sin teclearlo otra vez (usuario, 2026-11-19).
+  buscarInicial?: string;
   // «Ver como» un cliente: el sitio es SIEMPRE de ese cliente, así que el campo Cliente no sale.
   clienteFijo?: boolean;
   almacen?: { precioSemana: number; precioReparto: number };
@@ -220,7 +223,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const plegar = (k: 'avisos' | 'horario') => setAbierto((a) => ({ ...a, [k]: !a[k] }));
   // Buscador «para autorrellenar» (solo ficha NUEVA): agenda («Guardado»), Google (reales
   // con GOOGLE_MAPS_API_KEY; de ejemplo mientras no se pague la API) y dirección (OSM).
-  const [bq, setBq] = useState('');
+  const [bq, setBq] = useState(fila ? '' : buscarInicial);
   const [sug, setSug] = useState<{ ag: { id: string; nombre: string; direccion: string }[]; go: SitioGoogle[]; dir: DirOSM[] }>({ ag: [], go: [], dir: [] });
   const [sugAbierto, setSugAbierto] = useState(false);
   const [avisoParecido, setAvisoParecido] = useState<{ id: string; nombre: string } | null>(null);

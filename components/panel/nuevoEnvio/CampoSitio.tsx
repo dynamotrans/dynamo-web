@@ -138,7 +138,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
       )}
 
       {crear && cliente && (
-        <FichaSitio fila={null} dynamo={dynamo} clienteFijo
+        <FichaSitio fila={null} dynamo={dynamo} clienteFijo buscarInicial={q.trim()}
           clientes={[{ id: cliente.id, nombre: cliente.nombre, cif: cliente.cif ?? '', principal_id: cliente.principal_id ?? null }]}
           onCerrar={() => setCrear(false)}
           onAbrir={(id) => { setCrear(false); onCreado?.(id); }}

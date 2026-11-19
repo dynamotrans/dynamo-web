@@ -547,6 +547,17 @@ test.describe('novedades', () => {
     await expect(page.locator('#fp-casillas')).toContainText('casilla 23');
   });
 
+  // Lo escrito en la ruta no se teclea dos veces (usuario, 2026-11-19): si el sitio no está y
+  // se pulsa «+ Crear nuevo sitio», la ventana nace con ese texto en «Empieza aquí».
+  test('nuevo sitio desde la ruta: «Empieza aquí» nace con lo que ya se había escrito', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/nuevo-envio');
+    await page.locator('.ptar-route-row input[type=text]').nth(0).fill('  Zzlaos  ');
+    await expect(page.locator('.ptar-sug')).toContainText('aún no tiene sitios con ese nombre');
+    await page.locator('.ptar-sug li', { hasText: 'Crear nuevo sitio' }).click();
+    await expect(page.locator('#sitio-buscar')).toHaveValue('Zzlaos');
+  });
+
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();
