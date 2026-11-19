@@ -49,7 +49,7 @@ Mezcla: intención informativa (qué es / cuánto cuesta / cómo funciona) + loc
 ## Situaciones concretas
 - [ ] Transporte a obra: accesos, descarga sin carretilla y qué avisar antes de cargar
 - [ ] Transporte a fincas y explotaciones agrícolas: qué camión entra y qué pedir
-- [ ] Transporte para eventos y ferias: plazos, horarios de descarga y cómo coordinarlo
+- [x] Transporte para eventos y ferias: plazos, horarios de descarga y cómo coordinarlo (descartado 2026-11-19: Álvaro no quiere temas de eventos)
 - [ ] Transporte de maquinaria y mercancía voluminosa no paletizada en tauliner
 - [ ] Almacenamiento de corta estancia: cuándo compensa y cómo funciona el cross-docking
 - [ ] Transporte de mercancías desde Sevilla: rutas habituales, plazos y cómo ahorrar

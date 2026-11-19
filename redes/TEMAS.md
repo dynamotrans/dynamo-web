@@ -33,7 +33,7 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 | 10 | Mercancía no paletizada | Maquinaria, tubos, balas: cómo se carga y qué avisar — PUBLICADO 17/11/2026 |
 | 11 | Operador autorizado | Tarjeta OT: qué significa trabajar con un operador de transporte |
 | 12 | Festivos y plazos | Por qué los festivos (nacionales y de otros países) mueven la entrega — PUBLICADO 19/11/2026 |
-| 13 | Eventos | Transporte para ferias, conciertos, deportes: horarios y accesos |
+| 13 | Eventos | Transporte para ferias, conciertos, deportes: horarios y accesos — DESCARTADO 19/11/2026 (no usar) |
 | 14 | NIMA | Qué es y cuándo lo pide un transporte de residuos |
 | 15 | Sectores | Construcción, agro, industria, distribución: un ejemplo de cada |
 | 16 | 24/7 incidencias | Qué hacer si algo falla en ruta |
@@ -50,7 +50,7 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 | 27 | Industria y construcción | Ejemplos de mercancía del sector (sin nombres de clientes) |
 | 28 | Qué valoran nuestros clientes | 5,0 en Google y +480 clientes: qué se repite en las reseñas (solo agregado, sin nombres ni citas firmadas) |
 | 29 | Cómo preparar la mercancía | Paletizado, film, etiquetado y documentación antes de que llegue el camión |
-| 30 | Horarios de atención | Teléfono, email y WhatsApp: cuándo y por dónde te atendemos |
+| 30 | Horarios de atención | Teléfono, email y WhatsApp: cuándo y por dónde te atendemos — DESCARTADO 19/11/2026 (no usar) |
 | 31 | Serie países | Un país de cobertura por post (Portugal, Francia, Alemania…): qué movemos y cómo |
 
 ## Histórico
