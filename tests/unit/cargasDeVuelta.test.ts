@@ -16,7 +16,7 @@ test('sin cargas no pinta nada', () => {
 test('título con la provincia y el día, un título por grupo y el botón a la carga', () => {
   const h = htmlCargasDeVuelta({ dia: '2026-11-30', desde: { codigo_postal: '28001', pais: 'ES' }, cargas: [
     c({ token: 'a' }), c({ token: 'c', criterio: 3, mercancia: 'Bobinas' }), c({ token: 'b', tipo_carga: 'grupaje', metros_lineales: 6, precio: 900 })] }, 'https://web');
-  assert.match(h, /¿Ya tienes carga en Madrid cuando descargues el Lun 30\/11\/26\?/);
+  assert.match(h, /¿Ya tienes carga en Madrid cuando descargues el Lunes 30\/11\/26\?/);
   // Una vez en los completos y otra en los grupajes.
   assert.equal((h.match(/Hacia la provincia de tu base/g) ?? []).length, 2);
   assert.match(h, /Hacia provincias limítrofes de tu base/);
@@ -38,7 +38,7 @@ test('lugar corto: provincia guardada, la del CP en España y el país fuera', (
 test('bloque de regreso: su título y el grupo 2 es la misma ruta', () => {
   const h = htmlCargasDeVuelta({ tramo: 'regreso', dia: '2026-11-25', desde: { codigo_postal: '28001', pais: 'ES' },
     cargas: [c({ criterio: 2, destino: { codigo_postal: '08001', pais: 'ES' } })] }, 'https://web');
-  assert.match(h, /Y de nuevo en Madrid: cargas el Mié 25\/11\/26/);
+  assert.match(h, /Y de nuevo en Madrid: cargas el Miércoles 25\/11\/26/);
   assert.match(h, /La misma ruta que este envío/);
   assert.doesNotMatch(h, /¿Ya tienes carga en/);
 });

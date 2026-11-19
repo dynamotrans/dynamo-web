@@ -35,6 +35,14 @@ export function titulosGrupos(r: DatosVuelta, provDesde: string): Record<number,
   };
 }
 
+// En las frases de pregunta de cada bloque, el día de la semana entero («Martes 24/11/26»);
+// en cada tarjeta, abreviado («Mar 24/11/26») — usuario, 2026-11-19.
+const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+export function fechaLarga(iso: string): string {
+  const [a, m, d] = iso.slice(0, 10).split('-');
+  return `${DIAS_LARGOS[new Date(`${iso.slice(0, 10)}T12:00:00Z`).getUTCDay()]} ${d}/${m}/${a.slice(2)}`;
+}
+
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // Cuántas se enseñan en el email: hasta 6 del MISMO tipo que el envío de la orden (quien lleva
@@ -100,9 +108,9 @@ export function htmlCargasDeVuelta(r: DatosVuelta | null, origen: string, op: Op
   if (!secciones) return '';
   return `<div style="margin:28px 0 12px;padding:18px 16px 8px;background:#f7f6fc;border-radius:16px">
 ${regreso
-    ? `<p style="margin:0 0 6px;font-size:19px;line-height:1.3;font-weight:800;color:#0b0b45">Y de nuevo en ${esc(prov)}: cargas el ${esc(fecha(r.dia))}</p>
+    ? `<p style="margin:0 0 6px;font-size:19px;line-height:1.3;font-weight:800;color:#0b0b45">Y de nuevo en ${esc(prov)}: cargas el ${esc(fechaLarga(r.dia))}</p>
 <p style="margin:0 0 6px;color:#555">Para cuando vuelvas al origen: envíos de Dynamo libres que salen de ${esc(prov)} 2 días hábiles después de esta carga.</p>`
-    : `<p style="margin:0 0 6px;font-size:19px;line-height:1.3;font-weight:800;color:#0b0b45">¿Ya tienes carga en ${esc(prov)} cuando descargues el ${esc(fecha(r.dia))}?</p>
+    : `<p style="margin:0 0 6px;font-size:19px;line-height:1.3;font-weight:800;color:#0b0b45">¿Ya tienes carga en ${esc(prov)} cuando descargues el ${esc(fechaLarga(r.dia))}?</p>
 <p style="margin:0 0 6px;color:#555">Envíos de Dynamo libres que salen de donde descargas, el mismo día. Pulsa «Ver carga» para ver los datos y aceptarla.</p>`}
 ${secciones}</div>`;
 }
