@@ -13652,3 +13652,10 @@ do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e304'), ',')
   alter table envios enable trigger user; alter table envio_paradas enable trigger user;
   delete from transportistas where id = current_setting('prueba.t304')::uuid;
 end $$;
+
+-- ---- 305. Firma: «Entrar en dynamotrans.com» debajo, a todo el ancho y relleno ------------
+do $$ declare h text := email_con_diseno('<p>x</p>', null); begin
+  if h !~ '>Escribir a Dynamo</a></td></tr></table><table role="presentation" width="100%"[^>]*><tr><td[^>]*><a class="btn3"[^>]*background:#3300cc;color:#ffffff[^>]*>Entrar en dynamotrans\.com</a>' then
+    raise exception 'FALLO 305 · «Entrar en dynamotrans.com» no va debajo de los botones, a todo el ancho y en azul con letra blanca'; end if;
+  raise notice 'OK 305 · firma: «Llamar» y «Escribir a Dynamo» en la fila; «Entrar en dynamotrans.com» debajo, a todo el ancho, azul y letra blanca';
+end $$;
