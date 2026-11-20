@@ -246,7 +246,11 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   el botón de siempre para añadirlo. */}
               {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim() !== '' ? (
                 <button type="button" className="ptar-sitio-merc-link" aria-expanded={false} onClick={() => toggleOpc(`${p.k}:merc`)}
-                  title={`A ${rec ? 'recoger' : 'entregar'}: pulsa para cambiar el detalle de mercancía o las anotaciones`}>{f.mercancia}</button>
+                  title={`A ${rec ? 'recoger' : 'entregar'}: pulsa para cambiar el detalle de mercancía o las anotaciones`}>
+                  {/* La misma flecha que al abrirlo, pero hacia abajo: se ve que se despliega (usuario, 2026-11-21). */}
+                  <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
+                  <span className="ptar-sitio-merc-link-txt">{f.mercancia}</span>
+                </button>
               ) : (<>
                 <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
                   <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>

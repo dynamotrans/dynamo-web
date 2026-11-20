@@ -5175,11 +5175,17 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 /* El detalle ya escrito/prerrelleno: entero, debajo del enlace, alineado con su texto. */
 /* El detalle de mercancía, plegado: solo su texto, como enlace que lo abre. */
 .ptar-sitio-merc-link {
-    display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.15rem 0; cursor: pointer;
-    font-family: inherit; font-size: var(--fs-m); font-weight: 600; color: var(--purple); line-height: 1.45; white-space: pre-line;
-    text-decoration: underline; text-decoration-color: rgba(51,0,204,0.35); text-underline-offset: 3px;
+    display: flex; align-items: flex-start; gap: 0.45rem; width: 100%; text-align: left; background: none; border: 0; padding: 0.15rem 0.1rem; cursor: pointer;
+    font-family: inherit; font-size: var(--fs-m); font-weight: 600; color: var(--purple); line-height: 1.45;
 }
-.ptar-sitio-merc-link:hover, .ptar-sitio-merc-link:focus-visible { text-decoration-color: var(--purple); outline: none; }
+/* La flecha, igual que la del desplegable abierto (círculo de 18 px), centrada con la primera línea. */
+.ptar-sitio-merc-link .cp-ico { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%;
+    margin-top: calc((1.45em - 18px) / 2); color: var(--purple); }
+.ptar-sitio-merc-link-txt { min-width: 0; white-space: pre-line;
+    text-decoration: underline; text-decoration-color: rgba(51,0,204,0.35); text-underline-offset: 3px; }
+.ptar-sitio-merc-link:hover .ptar-sitio-merc-link-txt, .ptar-sitio-merc-link:focus-visible .ptar-sitio-merc-link-txt { text-decoration-color: var(--purple); }
+.ptar-sitio-merc-link:focus-visible { outline: none; }
+.ptar-sitio-merc-link:focus-visible .cp-ico { box-shadow: 0 0 0 2px var(--purple); }
 .ptar-sitio-merc-prev { margin: 0.1rem 0 0.1rem calc(18px + 0.45rem + 0.1rem); font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.45; white-space: pre-line; }
 
 /* --- Asistente de IA (2026-11-11): botón flotante con la estrella y chat de datos.
