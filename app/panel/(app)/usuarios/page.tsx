@@ -1,6 +1,6 @@
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
-import Usuarios, { type UsuarioFila, type Conteos } from '@/components/panel/Usuarios';
+import Usuarios, { type UsuarioFila, type Conteos, type EquipoDP } from '@/components/panel/Usuarios';
 import { notasInternas } from '@/lib/notasInternas';
 import { paginaDe } from '@/components/panel/Paginador';
 
@@ -71,7 +71,16 @@ export default async function PaginaUsuarios({ searchParams }: { searchParams: P
     total: Number(c0?.total ?? 0), activa: Number(c0?.activa ?? 0), pendiente: Number(c0?.pendiente ?? 0),
     suspendida: Number(c0?.suspendida ?? 0), suspendida_auto: Number(c0?.suspendida_auto ?? 0), suspendida_total: Number(cTotal?.count ?? 0), invitacion: Number(c0?.invitacion ?? 0),
   };
-  return <Usuarios filas={filas} yo={{ id: perfil.id, rol: perfil.rol }} error={error}
+  // Doble paso del equipo de Dynamo (solo el Admin Master): quién lo tiene y si es obligatorio.
+  let equipoDP: EquipoDP | null = null;
+  if (perfil.rol === 'admin') {
+    const [dp, ob] = await Promise.all([
+      supabase.rpc('doble_paso_del_equipo'),
+      supabase.from('parametros').select('valor').eq('clave', 'doble_paso_equipo').maybeSingle(),
+    ]);
+    if (!dp.error) equipoDP = { obligatorio: ob.data?.valor === true || ob.data?.valor === 'true', personas: (dp.data ?? []) as EquipoDP['personas'] };
+  }
+  return <Usuarios filas={filas} yo={{ id: perfil.id, rol: perfil.rol }} error={error} equipoDP={equipoDP}
     conteos={conteos} lista={{ q, rol, estado, pagina, porPagina, total }}
     abrir={/^[0-9a-f-]{36}$/i.test(sp.abrir ?? '') ? sp.abrir! : null} />;
 }

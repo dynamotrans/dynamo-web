@@ -13713,3 +13713,23 @@ do $$ declare u uuid := current_setting('prueba.u_admin')::uuid; begin
   delete from usuarios_dispositivos where usuario_id = u;
   raise notice 'OK 306 · dispositivo nuevo del equipo: email con navegador, lugar y «No he sido yo» (una sola vez por navegador; a clientes nada); el botón vale una vez, cierra las sesiones, olvida los navegadores, avisa a Dynamo y queda en la auditoría';
 end $$;
+
+-- ---- 307. Doble paso del equipo: lo ve el Admin Master, nadie más ---------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from doble_paso_del_equipo() d where d.usuario_id = current_setting('prueba.u_admin')::uuid and d.rol = 'admin') then
+    raise exception 'FALLO 307 · el Admin Master no se ve en el doble paso del equipo'; end if;
+  if exists (select 1 from doble_paso_del_equipo() d where d.rol not in ('admin', 'empleado', 'admin_lectura', 'empleado_lectura')) then
+    raise exception 'FALLO 307 · salen clientes o transportistas en el doble paso del equipo'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform * from doble_paso_del_equipo(); raise exception 'FALLO 307 · un cliente ve el doble paso del equipo';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 307 · doble paso del equipo: el Admin Master ve a todo el equipo de Dynamo (y solo a él); un cliente no lo ve';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

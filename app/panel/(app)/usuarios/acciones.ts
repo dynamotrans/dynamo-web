@@ -224,7 +224,13 @@ export async function doblePasoDe(id: string): Promise<{ ok: true; activo: boole
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   const servicio = supabaseServicio();
-  if (!servicio) return { ok: false, error: 'sin_clave' };
+  if (!servicio) {
+    // Sin la clave de servicio: el Admin Master lo ve igual desde la base de datos.
+    const { data, error } = await s.supabase.rpc('doble_paso_del_equipo');
+    if (error) return { ok: false, error: 'sin_clave' };
+    const p = (data ?? []).find((x: { usuario_id: string }) => x.usuario_id === id);
+    return p ? { ok: true, activo: !!p.activo } : { ok: false, error: 'sin_clave' };
+  }
   const { data, error } = await servicio.auth.admin.mfa.listFactors({ userId: id });
   if (error) return { ok: false, error: traducir(error.message) };
   return { ok: true, activo: (data?.factors ?? []).some((f) => f.status === 'verified') };

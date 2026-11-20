@@ -4083,6 +4083,7 @@ export type Database = {
       diccionario_datos: { Args: Record<PropertyKey, never>; Returns: { tabla: string; orden: number; columna: string; tipo: string; no_nulo: boolean; descripcion: string; tabla_descripcion: string }[] }
       difusion_espera_bolsa: { Args: { p_envio: string | null }; Returns: Json }
       doble_paso_cumplido: { Args: Record<PropertyKey, never>; Returns: boolean }
+      doble_paso_del_equipo: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; email: string; nombre: string; rol: string; estado: string; activo: boolean; desde: string }[] }
       doble_paso_obligatorio: { Args: Record<PropertyKey, never>; Returns: boolean }
       documento_es_valido: { Args: { p_doc: string | null }; Returns: boolean }
       domingo_de_pascua: { Args: { p_anio: number | null }; Returns: string }

@@ -840,4 +840,12 @@ test.describe('novedades', () => {
     await page.goto('/panel/envios');
     await expect(page).toHaveURL(/\/panel\/entrar/);
   });
+  // «¿Los empleados tienen el doble paso? Dímelo tú» (usuario, 2026-11-20): cuadro en Usuarios.
+  test('Usuarios: el Admin Master ve quién del equipo tiene el doble paso', async ({ page }) => {
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/usuarios');
+    const c = page.locator('#doble-paso-equipo');
+    await expect(c).toContainText(/Doble paso del equipo de Dynamo: \d+ de \d+ lo tienen activado/);
+    await expect(c.locator('li', { hasText: EMAIL.dynamo }).or(c.locator('li').first())).toBeVisible();
+  });
 });

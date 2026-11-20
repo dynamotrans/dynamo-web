@@ -102,8 +102,38 @@ function metricas(u: UsuarioFila) {
   return { pct: Math.round(pct), alto: pct > 29, ult10: Math.min(u.cancelados_ult10, 10), ult10Color: u.cancelados_ult10 >= 3 ? '#dc2626' : '#0f6b3a' };
 }
 
-export default function Usuarios({ filas, yo, error, conteos, lista, abrir = null }: {
-  abrir?: string | null;   // ?abrir=<id> (el botón del email de cuenta suspendida): abre su ficha
+// Doble paso del equipo de Dynamo (usuario, 2026-11-20: «no sé si los empleados lo tienen…
+// dímelo tú»): lo ve el Admin Master arriba de la lista, leído de Supabase Auth.
+export type EquipoDP = { obligatorio: boolean; personas: { usuario_id: string; email: string; nombre: string | null; rol: string; estado: string; activo: boolean; desde: string | null }[] };
+
+function CuadroDoblePaso({ d }: { d: EquipoDP }) {
+  const activas = d.personas.filter((p) => p.estado === 'activa');
+  const con = activas.filter((p) => p.activo).length;
+  const falta = activas.length - con;
+  return (
+    <div id="doble-paso-equipo" className={`pt-aviso ${falta > 0 ? 'error' : 'info'}`} style={{ marginBottom: '0.9rem', display: 'block' }}>
+      <div style={{ fontWeight: 800, marginBottom: '0.35rem' }}>
+        Doble paso del equipo de Dynamo: {con} de {activas.length} lo tienen activado
+        {' · '}{d.obligatorio ? 'obligatorio (interruptor encendido)' : 'no obligatorio (interruptor apagado en Parámetros → Plataforma)'}
+      </div>
+      <ul style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: 1.6 }}>
+        {d.personas.map((p) => (
+          <li key={p.usuario_id} data-activo={p.activo ? 'si' : 'no'}>
+            <strong>{p.activo ? '✓' : '✗'}</strong> <span className="notranslate" translate="no">{p.nombre || p.email}</span>
+            <span> · {nombreRol(p.rol as Rol)}{p.estado !== 'activa' ? ` · cuenta ${p.estado.replace(/_/g, ' ')}` : ''}</span>
+            {' — '}{p.activo ? `activado${p.desde ? ` desde el ${new Date(p.desde).toLocaleDateString('es-ES')}` : ''}` : <strong>sin doble paso</strong>}
+          </li>
+        ))}
+      </ul>
+      {falta > 0 && <div style={{ marginTop: '0.4rem' }}>{d.obligatorio
+        ? 'A quien no lo tiene se le pedirá dar de alta su móvil la próxima vez que entre; hasta entonces no ve nada.'
+        : 'Pídeles que lo activen en «Mi cuenta» → Seguridad, o enciende el interruptor para hacerlo obligatorio.'}</div>}
+    </div>
+  );
+}
+
+export default function Usuarios({ filas, yo, error, conteos, lista, abrir = null, equipoDP = null }: {
+  abrir?: string | null; equipoDP?: EquipoDP | null;   // ?abrir=<id> (el botón del email de cuenta suspendida): abre su ficha
   filas: UsuarioFila[]; yo: { id: string; rol: Rol }; error: string | null; conteos: Conteos; lista: ListaUsuarios;
 }) {
   const refrescar = useRefrescar();
@@ -135,6 +165,7 @@ export default function Usuarios({ filas, yo, error, conteos, lista, abrir = nul
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Cada usuario es un email de acceso asociado a un empleado, cliente, transportista o admin, con sus métricas de uso. Pulsa una fila para ver o editar la ficha.
       </p>
+      {equipoDP && <CuadroDoblePaso d={equipoDP} />}
       <BuscadorUrl accion="/panel/usuarios" valor={lista.q} placeholder="Buscar por email, nombre, DNI, teléfono, empresa…" campos={<>
         <select name="rol" defaultValue={lista.rol} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Filtrar por tipo de usuario">
           <option value="">Tipo: todos</option>
