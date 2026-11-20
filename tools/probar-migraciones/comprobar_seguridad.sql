@@ -13381,6 +13381,7 @@ do $$ declare r text; begin
   if position('escapar_html(x.merc)' in pg_get_functiondef('public.encolar_resumen_sitios'::regproc)) = 0 then raise exception 'FALLO 301 · el resumen mensual no dice qué mercancía se movió'; end if;
   if position('>Abrir el envío</a>' in pg_get_functiondef('public.fn_difusion_paso'::regproc)) = 0 then raise exception 'FALLO 301 · el aviso de oferta sin aceptación no lleva «Abrir el envío»'; end if;
   if position('>Revisar la cuenta</a>' in pg_get_functiondef('public.fn_usuarios_aviso_suspension'::regproc)) = 0 then raise exception 'FALLO 301 · el aviso de cuenta suspendida no lleva «Revisar la cuenta»'; end if;
+  if position('aviso_vispera_cliente_hora' in pg_get_functiondef('public.encolar_avisos_operativos'::regproc)) = 0 then raise exception 'FALLO 301 · la hora del aviso de víspera no sale de Parámetros'; end if;
   raise notice 'OK 301 · dos cambios seguidos salen en un email con cada dato una vez (y si vuelve a como estaba, no sale); foto de la firma a 96 px';
 end $$;
 

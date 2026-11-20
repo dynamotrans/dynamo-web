@@ -61,6 +61,7 @@ const SECCIONES: Seccion[] = [
     ...(ALMACENAMIENTOS ? [{ titulo: 'Almacenamientos', claves: ['almacen_precio_semana', 'almacen_precio_reparto'] }] : []),
     { titulo: 'Cobertura', claves: ['cobertura_paises'] },
     { titulo: 'Horario de verano de los almacenes', claves: ['verano_sitios_desde', 'verano_sitios_hasta'] },
+    { titulo: 'Aviso «Mañana cargamos tu envío» al cliente', claves: ['aviso_vispera_cliente_hora'] },
     { titulo: 'Avisos de recogida y entrega a los sitios', claves: ['aviso_parada_ventana_inicio', 'aviso_parada_ventana_fin', 'aviso_parada_hora_mismo_dia'] },
     { titulo: 'Resumen mensual a los sitios', claves: ['resumen_sitios_activo', 'resumen_sitios_dia'] },
     { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_velocidad_kmh', 'seguimiento_horas_asignando'] },
