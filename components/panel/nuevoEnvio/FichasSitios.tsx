@@ -67,7 +67,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
           Las ven transportista y cliente: salen siempre con este sitio en la orden de carga y en la ficha del envío.{' '}
           Se guarda en la ficha del sitio. Si no quieres cambiarlo, no toques nada; si es algo solo de este envío,
-          ponlo abajo en «{p.tipo === 'carga' ? 'A recoger' : 'A entregar'} (Añadir detalle de mercancía y/o anotaciones)».
+          ponlo abajo en «{p.tipo === 'carga' ? 'Recogida' : 'Entrega'} (Añadir detalle de mercancía y/o anotaciones)».
         </div>
       </>))}
     </>);
@@ -246,7 +246,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   el botón de siempre para añadirlo. */}
               {!opcAbiertos.has(`${p.k}:merc`) && f.mercancia.trim() !== '' ? (
                 <button type="button" className="ptar-sitio-merc-link" aria-expanded={false} onClick={() => toggleOpc(`${p.k}:merc`)}
-                  title={`A ${rec ? 'recoger' : 'entregar'}: pulsa para cambiar el detalle de mercancía o las anotaciones`}>
+                  title={`${rec ? 'Recogida' : 'Entrega'}: pulsa para cambiar el detalle de mercancía o las anotaciones`}>
                   {/* La misma flecha que al abrirlo, pero hacia abajo: se ve que se despliega (usuario, 2026-11-21). */}
                   <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
                   <span className="ptar-sitio-merc-link-txt">{f.mercancia}</span>
@@ -254,7 +254,8 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
               ) : (<>
                 <button type="button" className="campo-plegado" aria-expanded={opcAbiertos.has(`${p.k}:merc`)} onClick={() => toggleOpc(`${p.k}:merc`)}>
                   <span className="cp-ico" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg></span>
-                  <span className="cp-txt">A {rec ? 'recoger' : 'entregar'} (Añadir detalle de mercancía y/o anotaciones) <Req si={false} /></span>
+                  {/* «Recogida» / «Entrega» en negrita y lo del paréntesis sin negrita (usuario, 2026-11-21). */}
+                  <span className="cp-txt"><strong>{rec ? 'Recogida' : 'Entrega'}</strong> <span style={{ fontWeight: 400 }}>(Añadir detalle de mercancía y/o anotaciones)</span> <Req si={false} /></span>
                 </button>
                 {opcAbiertos.has(`${p.k}:merc`) && <div style={{ marginTop: '0.45rem' }}>
                   <textarea className="campo-texto" rows={2} value={f.mercancia}
