@@ -1,5 +1,6 @@
 'use server';
 
+import { volverSeguro } from '@/lib/volver';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { supabaseServidor, COOKIE_RECORDAR } from '@/lib/supabase/server';
@@ -35,5 +36,5 @@ export async function entrar(_prev: EstadoEntrar, datos: FormData): Promise<Esta
     path: '/', httpOnly: true, sameSite: 'lax', secure: cookieSegura(),
     ...(recordar ? { maxAge: 60 * 60 * 24 * 400 } : {}),
   });
-  redirect('/panel');
+  redirect(volverSeguro(datos.get('volver')) ?? '/panel');
 }

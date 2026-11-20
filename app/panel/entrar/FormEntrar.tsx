@@ -13,10 +13,11 @@ const inicial: EstadoEntrar = { error: null };
 
 // caducada: viene del middleware al pasar los días de Parámetros sin escribir la contraseña.
 // baja: acaba de darse de baja desde «Mi cuenta».
-export default function FormEntrar({ caducada = false, baja = false, suspendidaTotal = false }: { caducada?: boolean; baja?: boolean; suspendidaTotal?: boolean }) {
+export default function FormEntrar({ caducada = false, baja = false, suspendidaTotal = false, volver = null }: { caducada?: boolean; baja?: boolean; suspendidaTotal?: boolean; volver?: string | null }) {
   const [estado, accion, enviando] = useActionState(entrar, inicial);
   return (
     <form action={accion} noValidate>
+      {volver && <input type="hidden" name="volver" value={volver} />}
       {enviando && <Cargando texto="Entrando" />}
       {caducada && !estado.error && (
         <div className="pt-aviso info" role="status"><div>Por seguridad, hace tiempo que no escribías tu contraseña: vuelve a entrar.</div></div>

@@ -60,7 +60,9 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
   if (!p) return null;
   const s = seg ?? 0;
   const txt = TEXTOS[p.tipo] ?? TEXTOS.email;
-  const queSale = p.emails > 1 ? `Los ${p.emails} avisos` : 'El aviso';
+  // Sin emails esperando (p. ej. un envío con transportista propio): lo que corre es el cambio.
+  const queSale = p.emails > 1 ? `Los ${p.emails} avisos` : p.emails === 1 ? 'El aviso' : 'El cambio';
+  const verbo = p.emails > 0 ? (p.emails > 1 ? 'salen' : 'sale') : 'se confirma';
   const r = 15, circ = 2 * Math.PI * r;
   const lleno = Math.min(1, s / total);
 
@@ -99,7 +101,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
               <p style={{ margin: '0 0 0.7rem', lineHeight: 1.5 }}>{txt.efecto}</p>
               <div className="cc-ventana-cuenta">
                 {anillo}
-                <span>{s > 0 ? <>{queSale} sale en <strong suppressHydrationWarning>{s} s</strong>. Hasta entonces se puede anular.</> : 'El plazo ha terminado: el aviso ya está saliendo.'}</span>
+                <span>{s > 0 ? <>{queSale} {verbo} en <strong suppressHydrationWarning>{s} s</strong>. Hasta entonces se puede anular.</> : p.emails > 0 ? 'El plazo ha terminado: el aviso ya está saliendo.' : 'El plazo ha terminado: el cambio ya está confirmado.'}</span>
               </div>
               {p.autor && <p className="meta" style={{ margin: '0.6rem 0 0' }}>Cambio hecho por <span className="notranslate" translate="no">{p.autor}</span>.</p>}
             </>}
@@ -107,7 +109,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
     </div>, document.body);
 
   const abrir = (ev: React.MouseEvent) => { ev.preventDefault(); ev.stopPropagation(); if (p.puede_anular) setPreguntar(true); };
-  const etiqueta = `${queSale} sale en ${s} s${p.puede_anular ? '. Pulsa para anular el cambio' : ''}`;
+  const etiqueta = `${queSale} ${verbo} en ${s} s${p.puede_anular ? '. Pulsa para anular el cambio' : ''}`;
   // Con el plazo cumplido (o ya anulado) solo queda la ventana del resultado.
   if (!pendiente || s <= 0) return <>{ventana}</>;
 
@@ -117,7 +119,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
         <button type="button" className="cc-barra" onClick={abrir} disabled={!p.puede_anular} aria-label={etiqueta} data-tipo={p.tipo}>
           {anillo}
           <span className="cc-barra-txt">
-            <strong>{txt.que}: {queSale.toLowerCase()} sale en <span suppressHydrationWarning>{s} s</span></strong>
+            <strong>{txt.que}: {queSale.toLowerCase()} {verbo} en <span suppressHydrationWarning>{s} s</span></strong>
             {p.puede_anular && <span>¿Te has equivocado? Pulsa aquí para anularlo.</span>}
           </span>
         </button>

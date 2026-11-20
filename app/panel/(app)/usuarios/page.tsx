@@ -72,5 +72,6 @@ export default async function PaginaUsuarios({ searchParams }: { searchParams: P
     suspendida: Number(c0?.suspendida ?? 0), suspendida_auto: Number(c0?.suspendida_auto ?? 0), suspendida_total: Number(cTotal?.count ?? 0), invitacion: Number(c0?.invitacion ?? 0),
   };
   return <Usuarios filas={filas} yo={{ id: perfil.id, rol: perfil.rol }} error={error}
-    conteos={conteos} lista={{ q, rol, estado, pagina, porPagina, total }} />;
+    conteos={conteos} lista={{ q, rol, estado, pagina, porPagina, total }}
+    abrir={/^[0-9a-f-]{36}$/i.test(sp.abrir ?? '') ? sp.abrir! : null} />;
 }

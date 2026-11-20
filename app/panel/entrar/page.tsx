@@ -1,4 +1,5 @@
 import { configSupabase } from '@/lib/supabase/server';
+import { volverSeguro } from '@/lib/volver';
 import SinConfigurar from '@/components/SinConfigurar';
 import FormEntrar from './FormEntrar';
 import CrearCuenta from './CrearCuenta';
@@ -10,9 +11,11 @@ export const dynamic = 'force-dynamic';
 // Mismo diseño que portal.html (la pantalla de acceso aprobada), con el login real.
 // Fuera del mockup: el cartel "Modo demo" y su explicación (ya no es demo). "Crear
 // cuenta" lleva al alta de clientes (/panel/registro).
-export default async function PaginaEntrar({ searchParams }: { searchParams: Promise<{ sesion?: string }> }) {
+export default async function PaginaEntrar({ searchParams }: { searchParams: Promise<{ sesion?: string; volver?: string }> }) {
   if (!configSupabase()) return <SinConfigurar />;
-  const sp = (await searchParams).sesion;
+  const todo = await searchParams;
+  const sp = todo.sesion;
+  const volver = volverSeguro(todo.volver);
   const caducada = sp === 'caducada';
   return (
     <div className="portal-page">
@@ -25,7 +28,7 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
           <h1 id="portal-title" className="portal-title">Acceso al portal</h1>
           <p className="portal-subtitle">Área privada para <strong>clientes</strong> de Dynamo</p>
 
-          <FormEntrar caducada={caducada} baja={sp === 'baja'} suspendidaTotal={sp === 'suspendida_total'} />
+          <FormEntrar caducada={caducada} baja={sp === 'baja'} suspendidaTotal={sp === 'suspendida_total'} volver={volver} />
           <CrearCuenta />
 
           <a href="/" className="portal-back">

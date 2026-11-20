@@ -48,3 +48,14 @@ test('doble paso: solo cuentan los móviles ya comprobados', () => {
   assert.equal(movilesDe({ factors: [{ id: 'a', status: 'verified', factor_type: 'totp' }, { id: 'b', status: 'verified', factor_type: 'phone' }] }).length, 1);
   assert.equal(movilesDe(null).length, 0);
 });
+
+// Volver al envío del email tras entrar: solo rutas del propio panel.
+import { volverSeguro } from '../../lib/volver';
+test('volver tras entrar: solo rutas del panel', () => {
+  assert.equal(volverSeguro('/panel/envios?ver=a63b7687-dd4e-41d4-ac20-22e03d6f0ebb'), '/panel/envios?ver=a63b7687-dd4e-41d4-ac20-22e03d6f0ebb');
+  assert.equal(volverSeguro('https://malo.com/panel/x'), null);
+  assert.equal(volverSeguro('//malo.com'), null);
+  assert.equal(volverSeguro('/panel//malo.com'), null);
+  assert.equal(volverSeguro('/panel/entrar'), null);
+  assert.equal(volverSeguro('/otra'), null);
+});

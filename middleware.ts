@@ -56,6 +56,8 @@ export async function middleware(request: NextRequest) {
   if (!user && !publica) {
     const destino = request.nextUrl.clone();
     destino.pathname = '/panel/entrar';
+    // Al entrar, de vuelta a la página que se pidió (el «Ver el envío» de un email).
+    destino.search = ruta.startsWith('/panel/') ? `?volver=${encodeURIComponent(ruta + request.nextUrl.search)}` : '';
     return NextResponse.redirect(destino);
   }
   // Pasados los días de Parámetros sin volver a escribir la contraseña: se cierra la

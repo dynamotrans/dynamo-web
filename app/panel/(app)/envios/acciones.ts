@@ -283,6 +283,7 @@ export async function iniciarDifusion(envio: string, o: { precio: number; banda_
       ya_asignado: 'El envío ya tiene transportista.',
       precio_no_valido: 'Pon el precio que se ofrece a los transportistas.',
       ya_activa: 'Este envío ya tiene una oferta escalonada en marcha.',
+      manual: 'Es un envío con transportista propio del cliente: Dynamo no lo oferta.',
     };
     return { ok: false, error: msg[r ?? ''] ?? 'No se ha podido lanzar la oferta escalonada.' };
   }

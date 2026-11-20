@@ -8844,7 +8844,7 @@ begin
   update envios set estado = 'cancelado' where id = e2;
   if exists (select 1 from emails_enviados x, clientes c
               where x.clave like 'aviso_parada_cancelada:' || e2 || ':%' and c.id = cli
-                and x.cuerpo_html not like '%de parte de <strong>' || escapar_html(c.razon_social) || '%') then
+                and x.cuerpo_html not like '%por parte de <strong>' || escapar_html(c.razon_social) || '%') then
     raise exception 'FALLO 213 · la anulación (con discreción) debía nombrar al cliente';
   end if;
   select count(*) into n from emails_enviados where clave like 'aviso_parada_cancelada:' || e2 || ':%';
@@ -13332,4 +13332,50 @@ do $$ begin
     raise exception 'FALLO 299 · un email solo con direcciones de prueba se intenta mandar'; end if;
   delete from emails_enviados where clave in ('p299a', 'p299b');
   raise notice 'OK 299 · las direcciones de prueba (.invalid) se quitan y el email sale a las reales; sin ninguna real, no se manda';
+end $$;
+
+-- ---- 300. Envío con transportista propio del cliente: Dynamo no avisa a nadie ni lo oferta --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare x uuid; j jsonb; begin
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  insert into envios (cliente_id, operador_id, precio_acordado_operador, estado, metros_lineales, toneladas, fecha_carga_desde, fecha_carga_hasta, referencia_cliente)
+    values (current_setting('prueba.cliente')::uuid, current_setting('prueba.operador_a')::uuid, 300, 'programado', 6, 5, current_date + 20, current_date + 22, 'C300') returning id into x;
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  insert into emails_enviados (clave, tipo, envio_id, destinatario, asunto, cuerpo_html) values
+    ('p300a', 'aviso_parada', x, 'sitio@empresa300.es', 'A', '<p>a</p>'),
+    ('orden_manual:' || x || ':t:1', 'orden_carga', x, 'trafico@iberia300.es', 'B', '<p>b</p>');
+  if (select estado from emails_enviados where clave = 'p300a') <> 'omitido' then
+    raise exception 'FALLO 300 · sale un aviso de un envío con transportista propio del cliente'; end if;
+  if (select estado from emails_enviados where clave like 'orden_manual:' || x || ':%') <> 'pendiente' then
+    raise exception 'FALLO 300 · la orden que el cliente manda a su transportista no sale'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  j := iniciar_difusion(x, 500::numeric);
+  if j ->> 'resultado' <> 'manual' then raise exception 'FALLO 300 · se puede ofertar un envío con transportista propio: %', j; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  delete from emails_enviados where envio_id = x;
+  alter table envios disable trigger user;
+  delete from envios where id = x;
+  alter table envios enable trigger user;
+  raise notice 'OK 300 · envío con transportista propio: ningún aviso automático (solo la orden que manda el cliente) y no se oferta';
+end $$;
+
+-- ---- 301. Dos cambios seguidos: cada dato una vez (antes del primero → ahora del último) --
+reset role;
+do $$ declare r text; begin
+  r := fundir_cambios_html(
+    '<li><strong>Mercancía:</strong> antes 13,30 metros · 20,00 toneladas · ahora <strong>13,30 metros · 21,00 toneladas</strong></li><li><strong>Precio:</strong> antes 913,00 € · ahora <strong>930,00 € + IVA</strong></li>',
+    '<li><strong>Mercancía:</strong> antes 13,30 metros · 21,00 toneladas · ahora <strong>13,30 metros · 23,00 toneladas</strong></li><li><strong>Precio:</strong> antes 930,00 € · ahora <strong>913,00 € + IVA</strong></li><li><strong>Fecha de carga:</strong> antes Lun · ahora <strong>Mar</strong></li>');
+  if r <> '<li><strong>Mercancía:</strong> antes 13,30 metros · 20,00 toneladas · ahora <strong>13,30 metros · 23,00 toneladas</strong></li><li><strong>Fecha de carga:</strong> antes Lun · ahora <strong>Mar</strong></li>' then
+    raise exception 'FALLO 301 · los cambios seguidos no se funden bien: %', r; end if;
+  if position('fundir_cambios_html' in pg_get_functiondef('public.fn_encolar_email_envio_modificado(uuid, text)'::regprocedure)) = 0
+     or position('fundir_cambios_html' in pg_get_functiondef('public.fn_encolar_email_transportista_modificado(uuid, uuid, text)'::regprocedure)) = 0 then
+    raise exception 'FALLO 301 · los emails de envío modificado no funden los cambios'; end if;
+  if position('width="96"' in firma_email_persona()) = 0 then raise exception 'FALLO 301 · la foto de la firma no es de 96 px'; end if;
+  if position('>Entrar en dynamotrans.com</a>' in email_con_diseno('<p>x</p>', null)) = 0 then raise exception 'FALLO 301 · falta el botón «Entrar en dynamotrans.com» en la firma'; end if;
+  if position('contactad con vuestro cliente' in pg_get_functiondef('public.encolar_anulacion_parada'::regproc)) = 0 then raise exception 'FALLO 301 · el aviso de anulación al sitio no dice que lo anula el cliente'; end if;
+  if position('escapar_html(x.merc)' in pg_get_functiondef('public.encolar_resumen_sitios'::regproc)) = 0 then raise exception 'FALLO 301 · el resumen mensual no dice qué mercancía se movió'; end if;
+  if position('>Abrir el envío</a>' in pg_get_functiondef('public.fn_difusion_paso'::regproc)) = 0 then raise exception 'FALLO 301 · el aviso de oferta sin aceptación no lleva «Abrir el envío»'; end if;
+  if position('>Revisar la cuenta</a>' in pg_get_functiondef('public.fn_usuarios_aviso_suspension'::regproc)) = 0 then raise exception 'FALLO 301 · el aviso de cuenta suspendida no lleva «Revisar la cuenta»'; end if;
+  raise notice 'OK 301 · dos cambios seguidos salen en un email con cada dato una vez (y si vuelve a como estaba, no sale); foto de la firma a 96 px';
 end $$;

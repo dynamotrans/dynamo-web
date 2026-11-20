@@ -102,11 +102,12 @@ function metricas(u: UsuarioFila) {
   return { pct: Math.round(pct), alto: pct > 29, ult10: Math.min(u.cancelados_ult10, 10), ult10Color: u.cancelados_ult10 >= 3 ? '#dc2626' : '#0f6b3a' };
 }
 
-export default function Usuarios({ filas, yo, error, conteos, lista }: {
+export default function Usuarios({ filas, yo, error, conteos, lista, abrir = null }: {
+  abrir?: string | null;   // ?abrir=<id> (el botón del email de cuenta suspendida): abre su ficha
   filas: UsuarioFila[]; yo: { id: string; rol: Rol }; error: string | null; conteos: Conteos; lista: ListaUsuarios;
 }) {
   const refrescar = useRefrescar();
-  const [ficha, setFicha] = useState<UsuarioFila | null>(null);
+  const [ficha, setFicha] = useState<UsuarioFila | null>(() => (abrir ? filas.find((f) => f.id === abrir) ?? null : null));
   const [rolDe, setRolDe] = useState<UsuarioFila | null>(null);
   const [emailDe, setEmailDe] = useState<UsuarioFila | null>(null);
   const [anonDe, setAnonDe] = useState<UsuarioFila | null>(null);

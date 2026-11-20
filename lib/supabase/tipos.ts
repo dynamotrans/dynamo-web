@@ -4065,6 +4065,7 @@ export type Database = {
       fn_unir_emails: { Args: { p_listas: string[] | null }; Returns: string }
       fuera_de_cobertura: { Args: { p_pais: string | null }; Returns: string }
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
+      fundir_cambios_html: { Args: { p_viejos: string | null; p_nuevos: string | null }; Returns: string }
       generar_codigo_aceptacion: { Args: Record<PropertyKey, never>; Returns: string }
       guardar_horario: { Args: { p_sitio: string | null; p_tramos: Json | null; p_temporada?: string | null }; Returns: undefined }
       guardar_horario_verano: { Args: { p_sitio: string | null; p_activo: boolean | null; p_desde: string | null; p_hasta: string | null; p_tramos: Json | null }; Returns: undefined }

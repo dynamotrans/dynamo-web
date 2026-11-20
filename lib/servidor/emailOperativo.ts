@@ -55,7 +55,7 @@ export async function enviarEmailOperativo(d: {
       estado: d.para ? 'pendiente' : 'error',
       error: d.para ? null : 'Sin destinatario con email: avisar a mano.',
       via: 'web', opciones, creado_por: d.autorId ?? null,
-    }).select('id, enviar_desde').single();
+    }).select('id, enviar_desde, estado, error').single();
     if (error) {
       // Clave repetida (23505): ese aviso ya se mandó, y no se repite. Cualquier OTRO error
       // es un fallo de verdad: se dice tal cual y queda en el registro del servidor.
@@ -69,6 +69,8 @@ export async function enviarEmailOperativo(d: {
         : 'No se ha podido registrar el email en la base de datos: no se ha enviado.' };
     }
     if (!fila || !d.para) return { estado: 'error', error: 'Sin destinatario con email.' };
+    // La base de datos lo ha dejado sin mandar (envío con transportista propio del cliente).
+    if (fila.estado === 'omitido') return { estado: 'error', error: fila.error ?? 'Este email no se manda.' };
     // Solo direcciones de prueba (dominio .invalid, que no existe): no se manda a Postmark —
     // serían rebotes que gastan emails y dañan la reputación del dominio. Queda omitido.
     if (!reales) {
