@@ -2065,6 +2065,8 @@ export type Database = {
           pago_concepto: string | null
           pago_fecha: string | null
           pago_avisado_en: string | null
+          holded_venta_total: number | null
+          holded_compra_total: number | null
         }
         Insert: {
           id?: string
@@ -2186,6 +2188,8 @@ export type Database = {
           pago_concepto?: string | null
           pago_fecha?: string | null
           pago_avisado_en?: string | null
+          holded_venta_total?: number | null
+          holded_compra_total?: number | null
         }
         Update: {
           id?: string
@@ -2307,6 +2311,8 @@ export type Database = {
           pago_concepto?: string | null
           pago_fecha?: string | null
           pago_avisado_en?: string | null
+          holded_venta_total?: number | null
+          holded_compra_total?: number | null
         }
         Relationships: [
           {
@@ -3946,6 +3952,7 @@ export type Database = {
       autosuspension_motivos: { Args: { p_usuario?: string | null }; Returns: { usuario_id: string; email: string; motivo: string }[] }
       autosuspension_revisar: { Args: { p_usuario: string | null }; Returns: undefined }
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
+      avisar_control_facturacion: { Args: { p_forzar?: boolean | null }; Returns: number }
       avisar_pago_transferencia: { Args: { p_envio: string | null }; Returns: Json }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
@@ -3986,6 +3993,8 @@ export type Database = {
       consumo_clientes: { Args: { p_ids: string[] | null }; Returns: { cliente_id: string; envios: number; consumo: number; limite: number; disponible: number; dias: number }[] }
       contacto_transportista_oculto: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_entrega: string | null }; Returns: boolean }
       contadores_panel: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: Json }
+      control_facturacion: { Args: { p_limite?: number | null }; Returns: { envio_id: string; referencia: string; cliente: string; transportista: string; estado: string; tipo: string; gravedad: string; detalle: string; importe: number; fecha: string; total_tipo: number }[] }
+      control_facturacion_resuelto: { Args: { p_envio: string | null }; Returns: Json }
       corte_cancelacion: { Args: { p_fecha_carga: string | null; p_pais?: string | null; p_region?: string | null }; Returns: string }
       crear_aviso: { Args: { p_para: string | null; p_cliente: string | null; p_transportista: string | null; p_tipo: string | null; p_nivel: string | null; p_titulo: string | null; p_texto: string | null; p_enlace: string | null; p_envio: string | null }; Returns: undefined }
       crear_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
@@ -4001,6 +4010,7 @@ export type Database = {
       credito_revisar_pagos_todos: { Args: Record<PropertyKey, never>; Returns: number }
       credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
+      cuadre_facturacion: { Args: { p_meses?: number | null }; Returns: { mes: string; entregados: number; venta_en_holded: number; compra_en_holded: number; venta_facturados: number; compra_facturados: number; venta: number; compra: number; cancelados_con_cobro: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
       cuadro_mando_sectores: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: { sector: string; clientes: number; realizados: number; facturacion: number; margen: number }[] }
       cuenta_mis_envios_sin_asignar: { Args: Record<PropertyKey, never>; Returns: number }

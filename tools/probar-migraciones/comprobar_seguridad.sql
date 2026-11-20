@@ -13467,3 +13467,110 @@ do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e302'), ',')
   alter table envios enable trigger user; alter table envio_paradas enable trigger user;
   delete from transportistas where id = t;
 end $$;
+
+-- ---- 303. Control de facturación: ningún envío entregado se queda sin cobrar --------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare t uuid; o uuid; e uuid; i int; r jsonb; n int; ids uuid[] := '{}'; cli uuid := current_setting('prueba.cliente')::uuid;
+  dia date := (now() at time zone 'Europe/Madrid')::date - 10;
+begin
+  insert into transportistas (razon_social, cif) values ('Transportes 303 SL', 'B30300001') returning id into t;
+  insert into operadores (cliente_id, razon_social, cif) values (cli, 'Operador 303', 'B30300002') returning id into o;
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  for i in 1 .. 6 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta,
+                        transportista_id, estado, entregado_en, fecha_carga_real)
+      values (cli, 6, 5, 600, 450, dia, dia, t, 'entregado', now() - interval '10 days', dia) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+    ids := ids || e;
+  end loop;
+  update envios set importe_cliente = null where id = ids[1];                                  -- 1: sin precio de cliente
+  update envios set holded_pedido_compra = referencia_gx, holded_compra_total = 450 where id = ids[2];   -- 2: compra sin venta
+  update envios set holded_pedido_venta = referencia_gx, holded_venta_total = 600, holded_pedido_compra = referencia_gx, holded_compra_total = 450,
+                    facturado_compra = true where id = ids[4];                               -- 4: factura del transportista, cliente sin facturar
+  update envios set operador_id = o, importe_cliente = null, importe_transportista = null, transportista_id = null where id = ids[5];   -- 5: manual: no cuenta
+  update envios set holded_pedido_venta = referencia_gx, holded_venta_total = 600, holded_pedido_compra = referencia_gx, holded_compra_total = 450,
+                    facturado_venta = true, facturado_compra = true where id = ids[6];       -- 6: todo bien
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  perform set_config('prueba.e303', array_to_string(ids, ','), false);
+  perform set_config('prueba.t303', t::text, false);
+  perform set_config('prueba.o303', o::text, false);
+
+  -- 3: se pasa a Holded (se guarda el total) y después cambia el precio.
+  n := marcar_exportados('venta', array[(select referencia_gx from envios where id = ids[3])], true);
+  if n <> 1 or (select holded_venta_total from envios where id = ids[3]) <> 600 then
+    raise exception 'FALLO 303 · al pasar a Holded no se guarda el total de la venta'; end if;
+  n := marcar_exportados('compra', array[(select referencia_gx from envios where id = ids[3])], true);
+  alter table envios disable trigger user; update envios set importe_cliente = 650 where id = ids[3]; alter table envios enable trigger user;
+
+  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[1] and c.tipo = 'venta_sin_precio' and c.gravedad = 'grave') then
+    raise exception 'FALLO 303 · un entregado sin precio de cliente no sale en el control'; end if;
+  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[2] and c.tipo = 'compra_sin_venta')
+     or not exists (select 1 from control_facturacion() c where c.envio_id = ids[2] and c.tipo = 'venta_sin_holded') then
+    raise exception 'FALLO 303 · una compra pasada a Holded sin su venta no sale en el control'; end if;
+  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[3] and c.tipo = 'cambio_tras_holded' and c.detalle like '%600,00 €%650,00 €%') then
+    raise exception 'FALLO 303 · un cambio de precio después de pasarlo a Holded no sale: %', (select array_agg(c.tipo || ': ' || c.detalle) from control_facturacion() c where c.envio_id = ids[3]); end if;
+  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[4] and c.tipo = 'compra_facturada_venta_no') then
+    raise exception 'FALLO 303 · la factura del transportista sin facturar al cliente no sale'; end if;
+  if exists (select 1 from control_facturacion() c where c.envio_id in (ids[5], ids[6])) then
+    raise exception 'FALLO 303 · sale un envío manual o uno que cuadra: %', (select array_agg(c.tipo) from control_facturacion() c where c.envio_id in (ids[5], ids[6])); end if;
+
+  -- «Ya corregido en Holded»: se guarda lo que vale ahora y deja de salir.
+  r := control_facturacion_resuelto(ids[3]);
+  if not (r ->> 'ok')::boolean or exists (select 1 from control_facturacion() c where c.envio_id = ids[3] and c.tipo = 'cambio_tras_holded') then
+    raise exception 'FALLO 303 · «ya corregido en Holded» no lo quita del control: %', r; end if;
+
+  -- El cuadre del mes: los entregados de Dynamo (el manual no) frente a lo pasado y facturado.
+  select q.entregados - (select count(*) from envios x where x.operador_id is null and x.estado = 'entregado'
+                          and date_trunc('month', coalesce(x.fecha_carga_real, x.fecha_carga_desde)) = date_trunc('month', dia) and not (x.id = any (ids)))
+    into n from cuadre_facturacion(2) q where q.mes = date_trunc('month', dia)::date;
+  if n is distinct from 5 then raise exception 'FALLO 303 · el cuadre no cuenta los 5 entregados de Dynamo (cuenta %)', n; end if;
+
+  -- El email del lunes: uno por semana, con el botón al control.
+  delete from emails_enviados where clave = 'control_facturacion:' || to_char((now() at time zone 'Europe/Madrid')::date, 'IYYY-IW');
+  if avisar_control_facturacion(true) <> 1 or avisar_control_facturacion(true) <> 0 then
+    raise exception 'FALLO 303 · el email del control no sale una sola vez por semana'; end if;
+  if not exists (select 1 from emails_enviados where clave = 'control_facturacion:' || to_char((now() at time zone 'Europe/Madrid')::date, 'IYYY-IW')
+                 and tipo = 'control_facturacion' and cuerpo_html like '%>Abrir el control de facturación</a>%' and cuerpo_html like '%Compra pasada a Holded sin su venta%') then
+    raise exception 'FALLO 303 · el email del control no lleva el resumen ni el botón'; end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if not exists (select 1 from cron.job where jobname = 'dynamo-control-facturacion') then raise exception 'FALLO 303 · falta la tarea del lunes'; end if;
+  end if;
+end $$;
+-- El equipo de Dynamo lo lee con sus permisos de verdad (desde la plataforma).
+set role authenticated;
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e303'), ',')::uuid[]; begin
+  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[2] and c.tipo = 'compra_sin_venta') then
+    raise exception 'FALLO 303 · desde la plataforma, Dynamo no ve el control'; end if;
+  perform * from cuadre_facturacion(6);
+end $$;
+reset role;
+-- Un cliente no ve el control.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform * from control_facturacion(); raise exception 'FALLO 303 · un cliente ve el control de facturación';
+  exception when insufficient_privilege then null; end;
+  begin perform * from cuadre_facturacion(); raise exception 'FALLO 303 · un cliente ve el cuadre de facturación';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 303 · control de facturación: entregado sin precio, compra sin venta, cambio después de Holded y factura del transportista sin facturar al cliente salen (los manuales y lo que cuadra, no); «ya corregido» lo quita; cuadre por meses; email del lunes una vez por semana; el cliente no lo ve';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e303'), ',')::uuid[]; begin
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  delete from emails_enviados where envio_id = any (ids) or clave like 'control_facturacion:%';
+  delete from envio_ofertas where envio_id = any (ids);
+  delete from avisos where envio_id = any (ids);
+  delete from envio_cambios where envio_id = any (ids);
+  alter table envio_hitos disable trigger user;
+  delete from envio_hitos where envio_id = any (ids);
+  alter table envio_hitos enable trigger user;
+  delete from envio_reservas where envio_id = any (ids);
+  delete from cmr_enlaces where envio_id = any (ids);
+  delete from envio_paradas where envio_id = any (ids);
+  delete from envios where id = any (ids);
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  delete from operadores where id = current_setting('prueba.o303')::uuid;
+  delete from transportistas where id = current_setting('prueba.t303')::uuid;
+end $$;

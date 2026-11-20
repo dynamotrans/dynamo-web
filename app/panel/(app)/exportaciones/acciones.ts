@@ -27,3 +27,14 @@ export async function marcarFacturados(lado: 'venta' | 'compra', refs: string[],
   const { data, error } = await s.supabase.rpc('marcar_facturados', { p_lado: lado, p_refs: lista, p_valor: valor });
   return error ? { ok: false, error: /42501|permission/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message } : { ok: true, n: Number(data) };
 }
+
+// Control de facturación: «ya lo he corregido en Holded» (un envío que cambió después de
+// pasarlo): se guarda como pasado lo que vale ahora.
+export async function controlFacturacionResuelto(envio: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/exportaciones/acciones#controlFacturacionResuelto", [envio]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo.' };
+  const { data, error } = await s.supabase.rpc('control_facturacion_resuelto', { p_envio: envio });
+  if (error) return { ok: false, error: /42501|permission/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message };
+  return (data as { ok?: boolean } | null)?.ok ? { ok: true } : { ok: false, error: 'Ese envío ya no existe.' };
+}

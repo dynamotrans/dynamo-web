@@ -787,4 +787,31 @@ test.describe('novedades', () => {
         fecha_carga_prevista: e.fecha_carga_prevista }).eq('id', e.id);
     }
   });
+  // Control de facturación (usuario, 2026-11-20): ningún envío entregado sin cobrar. Una compra
+  // pasada a Holded sin su venta sale en rojo, con el enlace a la ficha.
+  test('control de facturación: una compra pasada sin su venta sale como grave', async ({ page }) => {
+    const sb = bd();
+    // Un envío de Dynamo con precio y transportista (no hace falta que esté entregado: la compra
+    // pasada sin su venta sale en cualquier estado).
+    const { e } = await envioProgramadoDelTransportista('id, referencia_gx, importe_cliente, holded_pedido_venta, holded_venta_total, holded_pedido_compra, holded_compra_total');
+    expect(Number(e.importe_cliente)).toBeGreaterThan(0);
+    try {
+      await sb.from('envios').update({ holded_pedido_venta: null, holded_venta_total: null, holded_pedido_compra: e.referencia_gx, holded_compra_total: 0 }).eq('id', e.id);
+      await entrar(page, 'dynamo');
+      await page.goto('/panel/exportaciones');
+      await page.locator('#export-control').click();
+      await expect(page.locator('#cuadre-meses')).toBeVisible();
+      await page.locator('#control-tipos [data-tipo="compra_sin_venta"]').click();
+      const fila = page.locator('#control-lista tr[data-tipo="compra_sin_venta"]', { hasText: `#${e.referencia_gx}` });
+      await expect(fila).toBeVisible();
+      await expect(fila.getByText('Grave')).toBeVisible();
+      await expect(fila.getByRole('link', { name: `#${e.referencia_gx}` })).toHaveAttribute('href', `/panel/envios?ver=${e.id}`);
+      // El enlace del email del lunes abre directamente el control.
+      await page.goto('/panel/exportaciones?ver=cuadre');
+      await expect(page.locator('#control-lista, #control-todo-ok').first()).toBeVisible();
+    } finally {
+      await sb.from('envios').update({ holded_pedido_venta: e.holded_pedido_venta, holded_venta_total: e.holded_venta_total,
+        holded_pedido_compra: e.holded_pedido_compra, holded_compra_total: e.holded_compra_total }).eq('id', e.id);
+    }
+  });
 });

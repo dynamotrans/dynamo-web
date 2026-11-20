@@ -70,6 +70,10 @@ const SECCIONES: Seccion[] = [
   // Holded: los seis parámetros del fichero (serie, canal y cuenta de ventas y de compras)
   // estaban vacíos y no hacían falta (usuario, 2026-11-19). Se quitan de la pantalla (siguen
   // en la base de datos, holded_*) y en su sitio queda un aviso: pendiente de la API.
+  // Control de facturación (usuario, 2026-11-20): que ningún envío entregado se quede sin cobrar.
+  { id: 'control-facturacion', titulo: 'Control de facturación', intro: 'Avisos de envíos que se pueden quedar sin cobrar.', subs: [
+    { titulo: 'Control de facturación', claves: ['control_facturacion_email', 'control_facturacion_dias_holded', 'control_facturacion_dias_factura'] },
+  ] },
   { id: 'facturacion', titulo: 'Facturación (Holded)', intro: 'Conexión con Holded para pedidos y facturas.', subs: [], especial: 'holded' },
   { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },

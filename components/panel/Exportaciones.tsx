@@ -10,6 +10,7 @@ import { FICHEROS, descargarCsv, esImporte, mesDe, type Fichero, type FilaExport
 import { marcarExportados, marcarFacturados } from '@/app/panel/(app)/exportaciones/acciones';
 import { euros, numero, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
+import ControlFacturacion, { type FilaControl, type FilaCuadre } from './ControlFacturacion';
 
 const PESTANAS: [string, string][] = [['pendientes', 'Pendientes'], ['hechos', 'Ya pasados'], ['todos', 'Todos']];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -22,11 +23,21 @@ const DESCARGA = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline
 const CHECK = '<polyline points="20 6 9 17 4 12"/>';
 const Ico = ({ d }: { d: string }) => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }} dangerouslySetInnerHTML={{ __html: d }} />;
 
-export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
+export default function Exportaciones({ datos, columnas, hecho, tope, error, control, inicio }: {
   datos: Record<Fichero, FilaExport[]>; columnas: Record<Fichero, string[]>; hecho: Record<Fichero, string[]>; tope: number; error: string | null;
+  control: { filas: FilaControl[]; cuadre: FilaCuadre[]; error: string | null }; inicio?: 'cuadre';
 }) {
   const refrescar = useRefrescar();
   const [fichero, setFichero] = useState<Fichero>('venta');
+  // La cuarta tarjeta: el control de facturación (el email del lunes llega con ?ver=cuadre).
+  const [verControl, setVerControl] = useState(inicio === 'cuadre');
+  const casos = useMemo(() => {
+    const vistos = new Map<string, { g: string; n: number }>();
+    for (const f of control.filas) if (!vistos.has(f.tipo)) vistos.set(f.tipo, { g: f.gravedad, n: f.total_tipo });
+    let graves = 0, revisar = 0;
+    for (const v of vistos.values()) { if (v.g === 'grave') graves += v.n; else revisar += v.n; }
+    return { graves, revisar };
+  }, [control.filas]);
   const [pestana, setPestana] = useState('pendientes');
   const [q, setQ] = useState('');
   const [mes, setMes] = useState('');
@@ -74,7 +85,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
     setAviso({ ok: true, txt: quitar ? `${r.n} envío${r.n === 1 ? '' : 's'} vuelve${r.n === 1 ? '' : 'n'} a pendientes.` : `${r.n} envío${r.n === 1 ? '' : 's'} marcado${r.n === 1 ? '' : 's'} como ${F.marcado}.` });
     refrescar();
   }
-  const elegir = (k: Fichero) => { setFichero(k); setPestana('pendientes'); setMes(''); setQ(''); setAviso(null); };
+  const elegir = (k: Fichero) => { setVerControl(false); setFichero(k); setPestana('pendientes'); setMes(''); setQ(''); setAviso(null); };
 
   return (
     <section className="section active" id="sec-exportaciones">
@@ -85,14 +96,20 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
       </p>
       <div className="stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
         {(Object.keys(FICHEROS) as Fichero[]).map((k) => (
-          <button key={k} type="button" className={`stat-card stat-card-link${k === fichero ? ' export-activa' : ''}`} onClick={() => elegir(k)} aria-pressed={k === fichero}>
+          <button key={k} type="button" className={`stat-card stat-card-link${k === fichero && !verControl ? ' export-activa' : ''}`} onClick={() => elegir(k)} aria-pressed={k === fichero && !verControl}>
             <span className="stat-card-label">{FICHEROS[k].titulo}</span>
             <span className="stat-card-value" style={pendientes(k) > 0 ? { color: '#d97706' } : undefined}>{pendientes(k)}</span>
             <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600 }}>{FICHEROS[k].sub} · pendientes</span>
           </button>
         ))}
+        <button type="button" id="export-control" className={`stat-card stat-card-link${verControl ? ' export-activa' : ''}`} onClick={() => { setVerControl(true); setAviso(null); }} aria-pressed={verControl}>
+          <span className="stat-card-label">Control de facturación</span>
+          <span className="stat-card-value" style={{ color: control.error || casos.graves > 0 ? '#c0262d' : casos.revisar > 0 ? '#d97706' : 'var(--green-dark, #15803d)' }}>{control.error ? '?' : casos.graves > 0 ? casos.graves : casos.revisar > 0 ? casos.revisar : '✓'}</span>
+          <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600 }}>{control.error ? 'No se ha podido comprobar' : casos.graves > 0 ? `grave${casos.graves === 1 ? '' : 's'} · envíos sin cobrar o mal pasados` : casos.revisar > 0 ? 'por revisar · nada grave' : 'Todo cuadra'}</span>
+        </button>
       </div>
 
+      {verControl ? <ControlFacturacion filas={control.filas} cuadre={control.cuadre} error={control.error} /> : <>
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se han podido leer algunos ficheros: {error}</div></div>}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {filas.length >= tope && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se muestran las primeras {numero(tope, 0)} filas de este fichero.</div></div>}
@@ -142,6 +159,8 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
       </div>
       <PaginadorLocal p={pg} nombre="filas" nombreUno="fila" />
       {pg.total > pg.porPagina && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>El CSV y los botones de marcar van con las {numero(lista.length, 0)} filas del filtro, no solo con la página que se ve.</p>}
+
+      </>}
 
       {confirmar && (
         <Modal abierto ancho={520} onCerrar={() => !trabajando && setConfirmar(null)}

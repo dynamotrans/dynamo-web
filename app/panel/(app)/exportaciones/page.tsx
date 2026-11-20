@@ -2,13 +2,14 @@ import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Exportaciones from '@/components/panel/Exportaciones';
 import { FICHEROS, type Fichero, type FilaExport } from '@/lib/exportaciones';
+import type { FilaControl, FilaCuadre } from '@/components/panel/ControlFacturacion';
 
 export const dynamic = 'force-dynamic';
 const TOPE = 5000;   // filas por fichero que se traen a la pantalla
 
 // Exportaciones (solo Dynamo): los ficheros para importar en Holded (pedidos de venta y
 // de compra) y para subir a la bolsa de Wtransnet, columna a columna como las plantillas.
-export default async function PaginaExportaciones() {
+export default async function PaginaExportaciones({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
@@ -16,8 +17,14 @@ export default async function PaginaExportaciones() {
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
+  const sp = await searchParams;
   const claves = Object.keys(FICHEROS) as Fichero[];
-  const res = await Promise.all(claves.map((k) => supabase.from(FICHEROS[k].vista).select('*').range(0, TOPE - 1)));
+  // El control de facturación va a la vez que los ficheros: su contador sale en la tarjeta.
+  const [res, ctl, cua] = await Promise.all([
+    Promise.all(claves.map((k) => supabase.from(FICHEROS[k].vista).select('*').range(0, TOPE - 1))),
+    supabase.rpc('control_facturacion', { p_limite: 300 }),
+    supabase.rpc('cuadre_facturacion', { p_meses: 6 }),
+  ]);
   const datos = {} as Record<Fichero, FilaExport[]>;
   const errores: string[] = [];
   claves.forEach((k, i) => { datos[k] = (res[i].data ?? []) as FilaExport[]; if (res[i].error) errores.push(`${FICHEROS[k].titulo}: ${res[i].error!.message}`); });
@@ -34,5 +41,10 @@ export default async function PaginaExportaciones() {
   const columnas = {} as Record<Fichero, string[]>;
   claves.forEach((k) => { columnas[k] = datos[k][0] ? Object.keys(datos[k][0]) : []; });
 
-  return <Exportaciones datos={datos} columnas={columnas} hecho={hecho} tope={TOPE} error={errores.join(' · ') || null} />;
+  const control = {
+    filas: (ctl.data ?? []) as FilaControl[], cuadre: (cua.data ?? []) as FilaCuadre[],
+    error: [ctl.error?.message, cua.error?.message].filter(Boolean).join(' · ') || null,
+  };
+  return <Exportaciones datos={datos} columnas={columnas} hecho={hecho} tope={TOPE} error={errores.join(' · ') || null}
+    control={control} inicio={sp.ver === 'cuadre' ? 'cuadre' : undefined} />;
 }
