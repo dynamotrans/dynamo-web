@@ -34,7 +34,7 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 | 11 | Operador autorizado | Tarjeta OT: qué significa trabajar con un operador de transporte |
 | 12 | Festivos y plazos | Por qué los festivos (nacionales y de otros países) mueven la entrega — PUBLICADO 19/11/2026 |
 | 13 | Eventos | Transporte para ferias, conciertos, deportes: horarios y accesos — DESCARTADO 19/11/2026 (no usar) |
-| 14 | NIMA | Qué es y cuándo lo pide un transporte de residuos |
+| 14 | NIMA | Qué es y cuándo lo pide un transporte de residuos — PUBLICADO 20/11/2026 |
 | 15 | Sectores | Construcción, agro, industria, distribución: un ejemplo de cada |
 | 16 | 24/7 incidencias | Qué hacer si algo falla en ruta |
 | 17 | Qué NO transportamos | Solo tauliner y rígido con plataforma: sin frigorífico, granel ni piso móvil (y por qué decirlo ahorra tiempo) |
@@ -62,3 +62,4 @@ Formato: fecha — tema — estilo — tipo de titular — **titular** — **enf
 - 2026-11-14 — Tema 8 (Import/Export Europa) — enfoque: a qué países llegamos — estilo v2 — titular dato: "12 países de Europa, un único interlocutor" — `images/redes/2026-11-14-import-export-europa.jpg` — Metricool 427634214 (IG + FB)
 - 2026-11-17 — Tema 10 (mercancía no paletizada) — enfoque: qué avisar al pedir — estilo v3 (foto por defecto: con `--photo alt` el camión quedaba casi fuera de encuadre) — titular consejo: "Si no va en palet, manda las medidas" — `images/redes/2026-11-17-mercancia-no-paletizada.jpg` — Metricool 430871524 (IG + FB)
 - 2026-11-19 — Tema 12 (festivos y plazos) — enfoque: calendario en origen y destino — estilo v4 — titular pregunta: "¿Has mirado el calendario?" — `images/redes/2026-11-19-festivos-y-plazos.jpg` — Metricool 433623372 (IG + FB)
+- 2026-11-20 — Tema 14 (NIMA) — enfoque: qué es y cómo marcarlo — estilo v1 — titular dato: "NIMA: el número de tus residuos" — `images/redes/2026-11-20-nima.jpg` — Metricool pendiente
