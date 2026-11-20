@@ -3984,7 +3984,8 @@ do $$ declare faltan text; begin
                            'conexion_minutos', 'consultas_precio', 'consultas_precio_web', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
                            'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
                            'emails_enviados',              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
-                           'envio_cambios')                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
+                           'envio_cambios',                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
+                           'transportista_cancelaciones')  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -7439,7 +7440,8 @@ do $$ declare faltan text; begin
                            'emails_enviados',          -- registro/cola de emails operativos: Dynamo lo repasa en frío
                            'deca_motivos',             -- motivos del DeCA: solo los lee el PDF al generarse
                            'envio_compartidos',        -- historial de envíos de DeCA, CMR y orden: se lee al abrir su ventana
-                           'envio_cambios')            -- contador de «anular el cambio»: se pide al pintar la lista y la ficha, que ya se refrescan con la señal de envios
+                           'envio_cambios',            -- contador de «anular el cambio»: se pide al pintar la lista y la ficha, que ya se refrescan con la señal de envios
+                           'transportista_cancelaciones')  -- contador de la ficha del transportista: cambia al quitar o cambiar el transportista de un envío (señal de envios)
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
     raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
@@ -12817,13 +12819,14 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), f
 set role authenticated;
 do $$ declare e uuid := current_setting('prueba.e73')::uuid; j jsonb; p jsonb; begin
   j := datos_orden_transportista(e);
-  if not coalesce((j ->> 'direcciones_ocultas')::boolean, false) then raise exception 'FALLO 289 · sin matrículas la orden no va marcada como oculta'; end if;
+  -- Desde el 2026-11-20 las direcciones van SIEMPRE: sin matrículas solo se marca (aviso del DeCA).
+  if not coalesce((j ->> 'faltan_matriculas')::boolean, false) then raise exception 'FALLO 289 · sin matrículas la orden no lo marca'; end if;
   p := j -> 'paradas' -> 0;
-  if p ->> 'direccion' <> '********' or p ->> 'nombre_empresa' <> '********' or p ? 'poblacion' or p ? 'contacto' or p ? 'horarios' then
-    raise exception 'FALLO 289 · sin matrículas la orden enseña datos de la parada: %', p; end if;
-  if p ->> 'codigo_postal' is null then raise exception 'FALLO 289 · sin matrículas se pierde también el código postal'; end if;
+  if coalesce(p ->> 'direccion', '') = '********' or coalesce(p ->> 'nombre_empresa', '') = '********' or p ->> 'codigo_postal' is null then
+    raise exception 'FALLO 289 · sin matrículas la orden sigue recortando la parada: %', p; end if;
   p := (select r.paradas -> 0 from mis_viajes_por_ids(array[e]) r);
-  if p ->> 'direccion' <> '********' or p ? 'contacto_telefono' then raise exception 'FALLO 289 · el panel de viajes enseña la dirección sin matrículas: %', p; end if;
+  if coalesce(p ->> 'direccion', '') = '********' or not coalesce((p ->> 'sin_matriculas')::boolean, false) then
+    raise exception 'FALLO 289 · el panel de viajes recorta la dirección o no marca que faltan las matrículas: %', p; end if;
   begin perform mi_enlace_cmr(e); raise exception 'FALLO 289 · da el enlace del CMR sin matrículas';
   exception when raise_exception then if sqlerrm not like 'Faltan las matrículas%' then raise; end if; end;
 end $$;
@@ -12837,7 +12840,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), f
 set role authenticated;
 do $$ declare e uuid := current_setting('prueba.e73')::uuid; j jsonb; begin
   j := datos_orden_transportista(e);
-  if j ? 'direcciones_ocultas' or j -> 'paradas' -> 0 ->> 'direccion' = '********' then raise exception 'FALLO 289 · con matrículas la orden sigue oculta'; end if;
+  if j ? 'faltan_matriculas' or j -> 'paradas' -> 0 ->> 'direccion' = '********' then raise exception 'FALLO 289 · con matrículas la orden sigue marcada'; end if;
   if mi_enlace_cmr(e) is null then raise exception 'FALLO 289 · con matrículas no da el enlace del CMR'; end if;
 end $$;
 reset role;
@@ -12847,7 +12850,7 @@ do $$ declare e uuid := current_setting('prueba.e73')::uuid; begin
   update envios set matricula_camion = nullif(current_setting('prueba.m289'), ''), matricula_remolque = nullif(current_setting('prueba.r289'), '') where id = e;
   alter table envios enable trigger user;
   if orden_carga_json(e) -> 'paradas' -> 0 ->> 'direccion' = '********' then raise exception 'FALLO 289 · Dynamo también ve la orden recortada'; end if;
-  raise notice 'OK 289 · sin matrículas el transportista ve solo CP (orden, panel) y no tiene CMR; con ellas, todo; Dynamo siempre todo';
+  raise notice 'OK 289 · sin matrículas el transportista ve las direcciones con el aviso del DeCA y no tiene CMR; con ellas, el CMR; Dynamo siempre todo';
 end $$;
 
 -- ---- 290. Página «Proporcionar matrículas» (enlace del email) --------------------------
@@ -12898,10 +12901,11 @@ do $$ declare e uuid := current_setting('prueba.e290')::uuid; r record; begin
   if r.matricula_camion is distinct from '2902BCD' or r.matricula_remolque is distinct from 'R2902BCD'
      or r.conductor_nombre is distinct from 'Conductor Prueba' or r.conductor_telefono is distinct from '+34600290290' then
     raise exception 'FALLO 290 · lo guardado no es lo escrito: %', r; end if;
-  -- Al cliente le llega el email de matrículas, con el conductor y su teléfono.
+  -- Al cliente le llega el email de matrículas, con el conductor pero SIN su teléfono (2026-11-20:
+  -- el teléfono solo en la plataforma, desde la víspera de la carga).
   if not exists (select 1 from emails_enviados where clave like 'envio_matriculas:' || e || ':2902BCD:%'
-                  and cuerpo_html like '%Conductor Prueba%' and cuerpo_html like '%Teléfono:%+34600290290%') then
-    raise exception 'FALLO 290 · el email de matrículas al cliente no sale o no lleva el teléfono del conductor'; end if;
+                  and cuerpo_html like '%Conductor Prueba%' and cuerpo_html not like '%+34600290290%' and cuerpo_html like '%lo tienes en la ficha del envío%') then
+    raise exception 'FALLO 290 · el email de matrículas al cliente no sale, o lleva el teléfono del conductor'; end if;
   raise notice 'OK 290 · página de matrículas: solo con token y clave buenos, solo CP, guarda limpio y el cliente recibe matrículas, conductor y teléfono';
 end $$;
 
@@ -13378,4 +13382,87 @@ do $$ declare r text; begin
   if position('>Abrir el envío</a>' in pg_get_functiondef('public.fn_difusion_paso'::regproc)) = 0 then raise exception 'FALLO 301 · el aviso de oferta sin aceptación no lleva «Abrir el envío»'; end if;
   if position('>Revisar la cuenta</a>' in pg_get_functiondef('public.fn_usuarios_aviso_suspension'::regproc)) = 0 then raise exception 'FALLO 301 · el aviso de cuenta suspendida no lleva «Revisar la cuenta»'; end if;
   raise notice 'OK 301 · dos cambios seguidos salen en un email con cada dato una vez (y si vuelve a como estaba, no sale); foto de la firma a 96 px';
+end $$;
+
+-- ---- 302. Transportistas que nos dejan tirados: contador y suspensión automática ---------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare t uuid; e uuid; i int; r jsonb; ids uuid[] := '{}'; cli uuid := current_setting('prueba.cliente')::uuid;
+  dia date := (now() at time zone 'Europe/Madrid')::date + 30;
+begin
+  insert into transportistas (razon_social, cif) values ('Transportes 302 SL', 'B30200001') returning id into t;
+  update transportistas set estado_operativo = 'activo' where id = t;
+  for i in 1 .. 6 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+      values (cli, 6, 5, 600, 450, dia, dia + 1) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+    update envios set estado = 'programado' where id = e;
+    ids := ids || e;
+  end loop;
+  perform set_config('prueba.t302', t::text, false);
+  perform set_config('prueba.e302', array_to_string(ids, ','), false);
+  -- La primera vez que trabaja nos deja tirados (con margen): no es un «100 %», no se suspende.
+  update envios set transportista_id = t, asignado_en = now() - interval '5 hours' where id = ids[1];
+  r := quitar_transportista(ids[1], 'deja_tirado');
+  if (r ->> 'suspendido')::boolean or (select estado_operativo from transportistas where id = t) <> 'activo' then
+    raise exception 'FALLO 302 · una sola cancelación con margen suspende al transportista: %', r; end if;
+  -- Tres cargas buenas y otra cancelación: 2 de sus últimas 5 → suspendido.
+  update envios set transportista_id = t, asignado_en = now() - interval '4 hours' where id = ids[2];
+  update envios set transportista_id = t, asignado_en = now() - interval '3 hours' where id = ids[3];
+  update envios set transportista_id = t, asignado_en = now() - interval '2 hours' where id = ids[4];
+  update envios set transportista_id = t, asignado_en = now() - interval '1 hours' where id = ids[5];
+  r := quitar_transportista(ids[5], 'cambio_dynamo');   -- un cambio nuestro no cuenta
+  if (select count(*) from transportista_cancelaciones where transportista_id = t) <> 1 then raise exception 'FALLO 302 · un cambio nuestro cuenta como cancelación suya'; end if;
+  update envios set transportista_id = t, asignado_en = now() where id = ids[5];
+  r := quitar_transportista(ids[5], 'deja_tirado');
+  if not (r ->> 'suspendido')::boolean or (select estado_operativo from transportistas where id = t) <> 'suspendido'
+     or (select suspension_motivo from transportistas where id = t) not like '%últimas 5%' then
+    raise exception 'FALLO 302 · 2 cancelaciones en sus últimas 5 cargas no lo suspenden: % · %', r, (select suspension_motivo from transportistas where id = t); end if;
+  if not exists (select 1 from emails_enviados where clave like 'transportista_suspendido:' || t || ':%' and cuerpo_html like '%>Revisar transportista</a>%') then
+    raise exception 'FALLO 302 · no se avisa a Dynamo de la suspensión'; end if;
+  if not exists (select 1 from pg_proc where proname = 'asignar_transportista' and pg_get_function_identity_arguments(oid) like '%p_forzar boolean%') then
+    raise exception 'FALLO 302 · asignar_transportista no admite confirmar un suspendido'; end if;
+end $$;
+-- Suspendido: Dynamo no puede darle un envío… salvo que lo confirme.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e302'), ',')::uuid[]; t uuid := current_setting('prueba.t302')::uuid; begin
+  begin update envios set transportista_id = t where id = ids[6]; raise exception 'FALLO 302 · se asigna un suspendido sin confirmarlo';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  perform set_config('dynamo.asignar_suspendido', 'on', true);
+  update envios set transportista_id = t where id = ids[6];
+  perform set_config('dynamo.asignar_suspendido', '', true);
+  if (select transportista_id from envios where id = ids[6]) is distinct from t then raise exception 'FALLO 302 · confirmándolo, no se asigna el suspendido'; end if;
+end $$;
+reset role;
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e302'), ',')::uuid[]; t uuid := current_setting('prueba.t302')::uuid; r jsonb; begin
+  -- Reactivado a mano: el contador vuelve a empezar.
+  update transportistas set estado_operativo = 'activo' where id = t;
+  if (select suspension_motivo from transportistas where id = t) is not null
+     or (select cancelaciones from cancelaciones_transportistas(array[t])) <> 0 then
+    raise exception 'FALLO 302 · al reactivarlo no vuelve a empezar el contador'; end if;
+  -- Una sola cancelación a menos de 24 h de cargar: suspendido.
+  insert into transportista_cancelaciones (transportista_id, envio_id, horas_antes) values (t, ids[6], 5);
+  r := transportista_revisar_cancelaciones(t, 5);
+  if not (r ->> 'suspendido')::boolean then raise exception 'FALLO 302 · cancelar a 5 h de la carga no lo suspende: %', r; end if;
+  raise notice 'OK 302 · cancelaciones de transportistas: con margen y la primera vez no suspende; 2 de sus últimas 5 o a menos de 24 h, sí (con aviso a Dynamo); asignarlo a mano pide confirmarlo; al reactivarlo el contador vuelve a empezar';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e302'), ',')::uuid[]; t uuid := current_setting('prueba.t302')::uuid; begin
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  delete from emails_enviados where envio_id = any (ids) or clave like 'transportista_suspendido:' || t || ':%';
+  delete from transportista_cancelaciones where transportista_id = t;
+  delete from envio_ofertas where envio_id = any (ids);
+  delete from avisos where envio_id = any (ids);
+  delete from envio_cambios where envio_id = any (ids);
+  alter table envio_hitos disable trigger user;
+  delete from envio_hitos where envio_id = any (ids);
+  alter table envio_hitos enable trigger user;
+  delete from envio_reservas where envio_id = any (ids);
+  delete from cmr_enlaces where envio_id = any (ids);
+  delete from envio_paradas where envio_id = any (ids);
+  delete from envios where id = any (ids);
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  delete from transportistas where id = t;
 end $$;

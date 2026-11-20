@@ -6,7 +6,7 @@ import Cargando from '@/components/Cargando';
 import { euros, numero, fecha, diasEntre } from '@/lib/formato';
 import type { TransportistaOpcion } from '@/lib/fichaEnvio';
 import CampoTelefono from '@/components/CampoTelefono';
-import { asignarTransportista, quitarTransportista, sugerirFlota, flotaTransportista, buscarTransportistas, sugerirEntrega, usosFlota, type UsoFlota } from '@/app/panel/(app)/envios/acciones';
+import { asignarTransportista, quitarTransportista, infoTransportista, sugerirFlota, flotaTransportista, buscarTransportistas, sugerirEntrega, usosFlota, type UsoFlota } from '@/app/panel/(app)/envios/acciones';
 import Buscador from '../Buscador';
 import ListaFlotante from '../ListaFlotante';
 import Req from '@/components/Req';
@@ -34,7 +34,24 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     return () => { vivo = false; };
   }, [ficha.transportista?.id]);
   const opciones = (q: string) => buscarTransportistas(q, ficha.transportista?.id ?? null).then((r) => r.map((o) => ({
-    ...o, detalle: o.estado === 'suspendido' ? 'SUSPENDIDO' : o.estado === 'no_ofertar' ? 'no ofertar' : null, deshabilitada: o.estado === 'suspendido' })));
+    ...o, detalle: o.estado === 'suspendido' ? 'SUSPENDIDO' : o.estado === 'no_ofertar' ? 'no ofertar' : null })));
+  // Estado del elegido (usuario, 2026-11-20): uno suspendido se puede asignar a mano, pero
+  // solo tras ver el aviso rojo y confirmarlo; y se ve cuántas veces nos ha dejado tirados.
+  const [info, setInfo] = useState<Awaited<ReturnType<typeof infoTransportista>>>(null);
+  const [forzar, setForzar] = useState(false);
+  useEffect(() => {
+    setInfo(null); setForzar(false);
+    if (!tid) return;
+    let vivo = true;
+    infoTransportista(tid).then((x) => { if (vivo) setInfo(x); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [tid]);
+  // Cambiar de transportista: ¿el anterior nos deja tirados? (cuenta para sus reglas).
+  const cambiando = !!ficha.transportista && !!tid && tid !== ficha.transportista.id;
+  const [cambioPor, setCambioPor] = useState<'' | 'deja_tirado' | 'cambio_dynamo'>('');
+  // Quitar el transportista: primero se pregunta el motivo.
+  const [pideQuitar, setPideQuitar] = useState(false);
+  const suspendido = (info?.estado ?? t?.estado) === 'suspendido';
   const [precio, setPrecio] = useState(numero(e.importe_transportista, 2));
   const [motivo, setMotivo] = useState('');
   const [camion, setCamion] = useState<string>(e.matricula_camion ?? '');
@@ -217,10 +234,13 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
     if (pv == null || !(pv > 0)) { setError('Pon el precio del transportista (mayor que 0): sin precio no se puede asignar.'); avisaFaltas(['as-precio']); return; }
     if (conVentana && !diaCarga) { setError('Elige el día en que carga.'); avisaFaltas(['as-dia']); return; }
     if (!entrega) { setError('Elige el día de entrega (estimado).'); avisaFaltas(['as-ent']); return; }
+    if (cambiando && !cambioPor) { setError('Di por qué cambias de transportista.'); avisaFaltas(['as-cambio-por']); return; }
+    if (suspendido && !forzar) { setError('Este transportista está SUSPENDIDO: marca la casilla roja si se lo das igualmente.'); avisaFaltas(['as-forzar']); return; }
     await hacer('Asignando el transportista', () => asignarTransportista(e.id, {
       transportista_id: tid, importe_transportista: pv, matricula_camion: camion, matricula_remolque: remolque,
       conductor_nombre: conductor, conductor_telefono: tel, fecha_carga_prevista: diaCarga || null,
       fecha_entrega_estimada: entrega, motivo,
+      forzar_suspendido: suspendido && forzar, cambio_por: cambiando ? (cambioPor || undefined) : undefined,
     }), `Transportista asignado: ${t?.nombre ?? ''}.`);
   }
   return (
@@ -229,7 +249,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
       pie={<>
         <button className="btn-ghost" onClick={onVolver} disabled={!!trabajando}>Volver</button>
         {ficha.transportista && <button className="btn-ghost" style={{ color: '#dc2626' }} disabled={!!trabajando}
-          onClick={() => hacer('Quitando el transportista', () => quitarTransportista(e.id), 'Transportista quitado: el envío vuelve a «Sin asignar».')}>Quitar transportista</button>}
+          onClick={() => { setPideQuitar(true); setTimeout(() => document.getElementById('as-quitar')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0); }}>Quitar transportista</button>}
         <button className="btn-primary" onClick={guardar} disabled={!!trabajando}>Guardar asignación</button>
       </>}>
       <div className="ptar-sitio-grid">
@@ -325,7 +345,43 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
         </ListaFlotante>
       )}
       {e.requiere_nima && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}
-      {t?.estado === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar el envío, pero revisa por qué.</div>}
+      {(info?.estado ?? t?.estado) === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar el envío, pero revisa por qué.</div>}
+      {suspendido && (
+        <div id="as-suspendido" className="aviso-cierre" role="alert" style={{ marginTop: '0.8rem' }}>
+          <strong>⚠ SUSPENDIDO · no ofertar ni cargar.</strong>{info?.motivo ? ` ${info.motivo}.` : ''} No recibe ofertas ni puede aceptar cargas por su cuenta.
+          <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginTop: '0.5rem', fontWeight: 700, cursor: 'pointer' }}>
+            <input id="as-forzar" type="checkbox" checked={forzar} onChange={(ev) => setForzar(ev.target.checked)} style={{ marginTop: 3 }} />
+            Lo sé y se lo doy igualmente
+          </label>
+        </div>
+      )}
+      {info && info.cancelaciones > 0 && (
+        <div className="modal-warn-box" style={{ marginTop: '0.6rem' }} id="as-cancelaciones">
+          Nos ha dejado tirados <strong>{info.cancelaciones} {info.cancelaciones === 1 ? 'vez' : 'veces'}</strong> de {info.cargas} cargas ({info.cancelaciones_ultimas} en sus últimas {info.ultimas}).
+        </div>
+      )}
+      {cambiando && (
+        <div style={{ marginTop: '0.8rem' }} id="as-cambio-por" role="radiogroup" aria-label="Por qué cambias de transportista">
+          <label style={{ fontWeight: 700 }}>¿Por qué cambias de transportista? <Req /></label>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.3rem' }}>
+            <button type="button" className={cambioPor === 'deja_tirado' ? 'btn-primary' : 'btn-ghost'} aria-pressed={cambioPor === 'deja_tirado'} onClick={() => setCambioPor('deja_tirado')}>{ficha.transportista?.nombre ?? 'El anterior'} nos deja tirados</button>
+            <button type="button" className={cambioPor === 'cambio_dynamo' ? 'btn-primary' : 'btn-ghost'} aria-pressed={cambioPor === 'cambio_dynamo'} onClick={() => setCambioPor('cambio_dynamo')}>Cambio nuestro u otro motivo</button>
+          </div>
+          <div className="meta" style={{ marginTop: '0.25rem' }}>«Nos deja tirados» cuenta para sus límites de cancelaciones (Parámetros).</div>
+        </div>
+      )}
+      {pideQuitar && ficha.transportista && (
+        <div id="as-quitar" style={{ marginTop: '0.8rem', padding: '0.8rem 0.9rem', border: '1.5px solid #f5b5b5', borderRadius: 10, background: '#fdecec' }}>
+          <strong style={{ color: '#b42318' }}>¿Por qué quitas a {ficha.transportista.nombre}?</strong>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <button type="button" className="btn-primary" style={{ background: 'var(--red)' }} disabled={!!trabajando}
+              onClick={() => hacer('Quitando el transportista', () => quitarTransportista(e.id, 'deja_tirado'), 'Transportista quitado: el envío vuelve a «Sin asignar».')}>Nos deja tirados (cancela él)</button>
+            <button type="button" className="btn-ghost" disabled={!!trabajando}
+              onClick={() => hacer('Quitando el transportista', () => quitarTransportista(e.id, 'cambio_dynamo'), 'Transportista quitado: el envío vuelve a «Sin asignar».')}>Cambio nuestro u otro motivo</button>
+            <button type="button" className="btn-ghost" onClick={() => setPideQuitar(false)} disabled={!!trabajando}>No quitar</button>
+          </div>
+        </div>
+      )}
       {/* Dentro de la misma rejilla que los demás campos: fuera de ella la etiqueta salía más
           grande y el campo más estrecho (se vio en las fotos de las pantallas, 2026-11-18). */}
       <div className="ptar-sitio-grid" style={{ marginTop: '0.8rem' }}><div className="full">

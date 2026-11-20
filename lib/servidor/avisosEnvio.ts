@@ -57,10 +57,10 @@ async function matriculasCompletas(sb: SB, envio: string): Promise<boolean> {
 
 // Caja roja del email cuando faltan las matrículas (usuario, 2026-11-19): el mismo mensaje
 // que la orden en PDF.
+// Sin matrículas (usuario, 2026-11-20): las direcciones van SIEMPRE; solo queda el aviso rojo
+// del DeCA (el mismo texto que la orden en PDF).
 const CAJA_SIN_MATRICULAS = `<div style="background:#fde8e8;border:1px solid #dc2626;border-left:5px solid #dc2626;border-radius:8px;padding:12px 14px;margin:12px 0;color:#8c1414">
-<p style="margin:0 0 6px"><strong>DIRECCIONES OCULTAS HASTA RECIBIR LAS MATRÍCULAS</strong></p>
-<p style="margin:0 0 6px"><strong>El envío está CONFIRMADO.</strong> Envíanos las <strong>matrículas</strong> (tractora y semirremolque) y te mandamos <strong>al momento</strong> la orden de carga con las direcciones de carga y descarga.</p>
-<p style="margin:0"><strong>Sin matrículas no se carga:</strong> las comunicamos a los almacenes antes de que llegue el camión.</p>
+<p style="margin:0"><strong>DeCA:</strong> Les rogamos nos faciliten las <strong>MATRÍCULAS</strong> del vehículo; de no recibirlas, entenderemos que el transportista efectivo gestiona el DeCA conforme a la Orden FOM/2861/2012, quedando nuestra empresa exenta de cualquier responsabilidad derivada de su emisión u omisión.</p>
 </div>`;
 
 // ---- Cargas de vuelta al final de la orden (usuario, 2026-11-19) -----------------------
@@ -84,9 +84,9 @@ export async function bloqueCargasDeVuelta(sb: SB, envio: string, origen: string
 }
 
 // ---- 1. Orden de carga al asignar transportista -------------------------------------
-// Sin matrículas, la orden va con las direcciones OCULTAS (solo código postal), la caja roja
-// y SIN el enlace del eCMR (también enseña las direcciones). Cuando llegan las matrículas,
-// avisoOrdenCompleta le manda la orden entera (una vez).
+// Siempre completa, con las direcciones (usuario, 2026-11-20). Sin matrículas, lleva el aviso
+// rojo del DeCA y el botón para darlas, y no el del eCMR (el CMR necesita las matrículas);
+// cuando llegan, sale otro email con el enlace para firmar el e-CMR.
 export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string, completaYa?: boolean): Promise<void> {
   try {
     const { data: e } = await sb.from('envios')
@@ -114,19 +114,19 @@ export async function avisoOrdenCarga(sb: SB, usuarioId: string, envio: string, 
     const fecha = e.fecha_carga_prevista ?? e.fecha_carga_desde ?? null;
     const vuelta = await bloqueCargasDeVuelta(sb, envio, origen, token ? { token, clave: e.transportista_id } : null);
     const html = completa ? `<p>Hola,</p>
-<p>${completaYa ? `Ya tenemos las matrículas del envío <strong>#${esc(e.referencia_gx)}</strong>` : `Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>`}${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos${completaYa ? ', las direcciones' : ''} y las condiciones.</p>
+<p>${completaYa ? `Ya tenemos las matrículas del envío <strong>#${esc(e.referencia_gx)}</strong>` : `Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>`}${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos y las condiciones.</p>
 ${enlFirma ? `<p>Firma tu <strong>e-CMR digital en ruta</strong>: en el móvil o el ordenador, 100 % seguro, digital y legal (protocolo eIDAS).</p>` : ''}
 ${botonesEmail([enlFirma ? ['Firmar el e-CMR', enlFirma] : null, enlEc ? ['Ver la orden de carga', enlEc, 'borde'] : null])}
 <p>Si cambian las matrículas o el conductor, avisadnos ANTES de la carga. Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
 ${vuelta}` : `<p>Hola,</p>
-<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong>, de momento <strong>sin las direcciones</strong>.</p>
+<p>Os hemos asignado el envío <strong>#${esc(e.referencia_gx)}</strong>${fecha ? ` (carga el <strong>${esc(fechaTxt(fecha))}</strong>)` : ''}. Va adjunta la <strong>ORDEN DE CARGA en PDF</strong> (documento completo) con todos los datos y las condiciones.</p>
 ${CAJA_SIN_MATRICULAS}
-${botonesEmail([enlMatr ? ['Proporcionar matrículas del envío', enlMatr, 'rojo'] : null, enlEc ? ['Ver la orden (sin direcciones)', enlEc, 'borde'] : null])}
+${botonesEmail([enlMatr ? ['Proporcionar matrículas del envío', enlMatr, 'rojo'] : null, enlEc ? ['Ver la orden de carga', enlEc, 'borde'] : null])}
 <p>Urgencias e incidencias 24 h: ${CONTACTO.telefono}.</p>
 ${vuelta}`;
     // Sin matrículas, su propia clave: cuando lleguen, sale la orden completa (orden_carga:…).
     await enviarEmailOperativo({ clave: completa ? `orden_carga:${envio}:${e.transportista_id}` : `orden_carga_oculta:${envio}:${e.transportista_id}`, tipo: 'orden_carga', envioId: envio,
-      para, asunto: completa ? `${completaYa ? 'Orden de carga con direcciones' : 'Orden de carga'} · envío #${e.referencia_gx} · Dynamo` : `Envío #${e.referencia_gx} confirmado · faltan las matrículas · Dynamo`, html, adjuntos });
+      para, asunto: completa ? `${completaYa ? 'Matrículas recibidas · firma del e-CMR' : 'Orden de carga'} · envío #${e.referencia_gx} · Dynamo` : `Orden de carga · envío #${e.referencia_gx} · faltan las MATRÍCULAS · Dynamo`, html, adjuntos });
     if (completaYa) return;   // la orden completa al llegar las matrículas: el cliente ya tuvo su confirmación
 
     // La confirmación al CLIENTE, acto seguido, con SU copia de la orden (la copia
@@ -164,7 +164,7 @@ ${botonesEmail([['Ver el envío', `${origen}/panel/envios?ver=${envio}`]])}`;
 }
 
 // ---- 1-ter. La orden COMPLETA al llegar las matrículas (usuario, 2026-11-19) ----------
-// Si al asignar se le mandó la orden sin direcciones y ahora el envío ya tiene todas las
+// Si al asignar se le mandó la orden sin matrículas y ahora el envío ya tiene todas las
 // matrículas, sale la orden entera (con el enlace del eCMR), una sola vez. Lo llama el
 // archivo del DeCA al emitirse su primera versión (que es cuando llegan las matrículas).
 export async function avisoOrdenCompleta(sb: SB, envio: string): Promise<void> {

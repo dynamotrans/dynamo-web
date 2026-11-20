@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Matrículas del envío · Dynamo', r
   formatDetection: { telephone: false, address: false, email: false, date: false } };
 
 // PÁGINA PÚBLICA «Proporcionar matrículas» (usuario, 2026-11-19): la abre el botón del email
-// de la orden sin direcciones. Un mini resumen del envío (solo códigos postales) y los
+// de la orden (cuando faltan las matrículas). Un mini resumen del envío (códigos postales) y los
 // campos de matrículas, conductor y teléfono. Sin iniciar sesión: la llave es el token del
 // CMR y la clave del transportista asignado, y las comprueba la base de datos.
 export default async function PaginaMatriculas({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ clave?: string }> }) {

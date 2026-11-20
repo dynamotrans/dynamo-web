@@ -39,6 +39,6 @@ do $$ declare v text; n text; begin
   if exists (select 1 from envios x where x.id = p_envio and (coalesce(x.es_manual, false) or x.operador_id is not null)) then
     return jsonb_build_object('resultado', 'manual');
   end if;$b$);
-  if n = v then raise exception 'iniciar_difusion: no encuentro dónde comprueba que el envío existe'; end if;
-  execute n;
+  -- Ya aplicada: no se repite.
+  if n <> v then execute n; elsif position('''resultado'', ''manual''' in v) = 0 then raise exception 'iniciar_difusion: no encuentro dónde comprueba que el envío existe'; end if;
 end $$;

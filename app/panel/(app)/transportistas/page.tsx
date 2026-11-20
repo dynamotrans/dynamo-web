@@ -41,6 +41,9 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
       supabase.rpc('envios_hechos_de', { p_campo: 'transportista', p_ids: idsLeer }),
       notasInternas(supabase, 'transportistas', idsLeer),
     ]);
+    // Cuántas veces nos ha dejado tirados (usuario, 2026-11-20).
+    const { data: canc } = await supabase.rpc('cancelaciones_transportistas', { p_ids: idsLeer });
+    const cancelaciones = new Map((canc ?? []).map((c) => [c.transportista_id, c]));
     if (tra.error) error = tra.error.message;
     const porTransportista = new Map<string, FilaContacto[]>();
     (con.data ?? []).forEach((c) => porTransportista.set(c.transportista_id as string, [...(porTransportista.get(c.transportista_id as string) ?? []), c]));
@@ -53,6 +56,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
       contactos: contactosDe(porTransportista.get(t.id) ?? []),
       flota: flota.get(t.id) ?? { tractoras: 0, rigidos: 0, remolques: 0, adr: false, matriculas: [] },
       envios: envios.get(t.id) ?? 0,
+      cancel: cancelaciones.get(t.id) ?? null,
     })).sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
   }
   return <Transportistas filas={filas} error={error} abrirId={ver} admin={perfil.rol === 'admin'} lista={{ q, estado, adr, pagina, porPagina, total }} />;

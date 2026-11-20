@@ -49,7 +49,7 @@ export type ParadaViaje = {
   id?: string; tipo: string; realizado_en?: string | null; nombre_empresa: string | null; url_google_maps?: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;
   horarios?: string | null; contacto_telefono?: string | null; contacto_nombre?: string | null; requiere_cita?: boolean | null;
-  tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null; tipo_sitio?: string | null; oculta?: boolean;
+  tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null; tipo_sitio?: string | null; oculta?: boolean; sin_matriculas?: boolean;
 };
 export type Viaje = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiViaje, keyof EnvioFila>> & { paradas: ParadaViaje[] };
 export type CambioViaje = { id: string; precio_antes: number | null; precio_ahora: number | null; detalle: string; creado_en: string };
@@ -69,8 +69,9 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
   const [cerrando, setCerrando] = useState(false);
   const cerrar = () => { setCerrando(true); avisarNavegando(); router.push(cerrarHref, { scroll: false }); };
   const paradas = e.paradas ?? [];
-  // Faltan las matrículas: la base de datos manda las paradas recortadas (2026-11-19).
-  const ocultas = paradas.some((p) => p.oculta);
+  // Faltan las matrículas: la base de datos marca las paradas (las direcciones van enteras
+  // desde el 2026-11-20); sale el aviso del DeCA y no el botón del eCMR.
+  const ocultas = paradas.some((p) => p.sin_matriculas || p.oculta);
   const idx = ORDEN.indexOf(e.estado);
   // Siguiente paso, parada a parada si hay etapas (seguimiento): «He llegado: cargo en la 1.ª parada»,
   // «Salgo hacia la 2.ª parada»… Si no, el de siempre.
@@ -204,7 +205,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
         </div></div>
       )}
 
-      {/* Sin matrículas: direcciones ocultas (solo código postal) y sin eCMR (2026-11-19). */}
+      {/* Sin matrículas: aviso del DeCA y sin eCMR (las direcciones se ven siempre, 2026-11-20). */}
       {ocultas && e.estado !== 'cancelado' && <AvisoDireccionesOcultas style={{ margin: '0.6rem 0' }} />}
 
       <Secc k="ruta" titulo="Ruta" extra={paradas.length} abiertas={abiertas} toggle={toggle}

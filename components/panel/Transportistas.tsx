@@ -29,6 +29,9 @@ export type TransportistaFila = TransportistaDatos & {
   valoracion_clientes?: number | null; valoracion_clientes_votos?: number;
   creado_en: string; modificado_en: string | null;
   flota: Flota; envios: number;
+  // Cancelaciones suyas («nos deja tirados») desde su última reactivación (usuario, 2026-11-20).
+  cancel?: { cancelaciones: number; cargas: number; cancelaciones_ultimas: number; ultimas: number; ultima: string | null } | null;
+  suspension_motivo?: string | null; suspendido_en?: string | null;
 };
 
 const ESTADOS: [TransportistaDatos['estado_operativo'], string, string, { bg: string; fg: string; bd: string }][] = [
@@ -256,6 +259,18 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
           <select id="tra-estado" value={d.estado_operativo} onChange={(e) => set('estado_operativo', e.target.value as TransportistaDatos['estado_operativo'])}>
             {ESTADOS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
+          {fila?.suspension_motivo && d.estado_operativo === 'suspendido' && (
+            <div className="aviso-cierre" role="status" style={{ marginTop: '0.5rem' }} id="tra-suspension-motivo">
+              <strong>{fila.suspension_motivo}</strong>{fila.suspendido_en ? ` · ${fechaHora(fila.suspendido_en)}` : ''}. Si lo reactivas, el contador de cancelaciones vuelve a empezar.
+            </div>
+          )}
+          {fila?.cancel && (
+            <div className={fila.cancel.cancelaciones > 0 ? 'modal-warn-box' : 'meta'} style={{ marginTop: '0.5rem' }} id="tra-cancelaciones">
+              Nos ha dejado tirados <strong>{fila.cancel.cancelaciones} {fila.cancel.cancelaciones === 1 ? 'vez' : 'veces'}</strong> de {fila.cancel.cargas} cargas
+              {fila.cancel.cargas > 0 && ` (${Math.round((fila.cancel.cancelaciones * 100) / fila.cancel.cargas)} %)`} · {fila.cancel.cancelaciones_ultimas} en sus últimas {fila.cancel.ultimas}
+              {fila.cancel.ultima ? ` · la última, ${fechaHora(fila.cancel.ultima)}` : ''}.
+            </div>
+          )}
         </div>
         <div>
           <label htmlFor="tra-bolsa">Bolsa de carga</label>

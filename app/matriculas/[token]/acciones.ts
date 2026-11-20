@@ -4,7 +4,7 @@ import { supabasePublico } from '@/lib/supabase/publico';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
 // Página «Proporcionar matrículas» (usuario, 2026-11-19): el transportista pone matrículas,
-// conductor y teléfono desde el botón del email de la orden sin direcciones. La llave es la
+// conductor y teléfono desde el botón del email de la orden (cuando faltan las matrículas). La llave es la
 // del enlace de la orden: el token del CMR del envío y su clave (el id del transportista).
 // Al guardar con todas las matrículas, se le manda sola la orden COMPLETA (una vez) y se
 // archiva el DeCA; al cliente le avisa la base de datos («Matrículas asignadas»).

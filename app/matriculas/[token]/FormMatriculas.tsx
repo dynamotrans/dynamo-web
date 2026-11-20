@@ -60,8 +60,8 @@ export default function FormMatriculas({ token, clave, d }: { token: string; cla
         setVeh((v) => ({ ...v, conductor: x.conductor ?? v.conductor, telefono: x.telefono ?? v.telefono }));
         setCompletas(!!x.completas);
         setMsg({ ok: true, txt: x.completas
-          ? 'Matrículas guardadas. Te acabamos de enviar por email la orden de carga COMPLETA, con las direcciones.'
-          : 'Guardado. Falta la matrícula del semirremolque para mandarte las direcciones.' });
+          ? 'Matrículas guardadas. Te acabamos de enviar por email la orden de carga COMPLETA, con el enlace para firmar el e-CMR.'
+          : 'Guardado. Falta la matrícula del semirremolque para completar el DeCA.' });
       } else {
         setMsg({ ok: false, txt: x.resultado === 'falta_camion' ? 'Pon la matrícula del camión o tractora.'
           : x.resultado === 'falta_fecha_prevista' ? 'Elige el día en que cargas.'
@@ -83,7 +83,7 @@ export default function FormMatriculas({ token, clave, d }: { token: string; cla
       {!completas && <AvisoDireccionesOcultas style={{ marginBottom: '0.7rem' }} />}
       {completas && !msg && (
         <div id="matr-ya" style={{ background: '#ecfdf5', border: '1px solid #b7ebcd', color: '#047857', fontWeight: 700, borderRadius: 10, padding: '0.6rem 0.8rem', marginBottom: '0.7rem' }}>
-          ✓ Este envío ya tiene las matrículas. La orden de carga completa, con las direcciones, está en tu email. Si cambian, corrígelas aquí.
+          ✓ Este envío ya tiene las matrículas. La orden de carga completa, con el enlace del e-CMR, está en tu email. Si cambian, corrígelas aquí.
         </div>
       )}
 
@@ -91,8 +91,8 @@ export default function FormMatriculas({ token, clave, d }: { token: string; cla
         <div className="sec-title">Resumen del envío</div>
         <div style={{ lineHeight: 1.6 }}>
           <div><strong>Carga:</strong> {cargaTxt}</div>
-          {rec.map((p, i) => <div key={`r${i}`}><strong>Recogida{rec.length > 1 ? ` ${i + 1}` : ''}:</strong> {cp(p)} · ********</div>)}
-          {ent.map((p, i) => <div key={`e${i}`}><strong>Entrega{ent.length > 1 ? ` ${i + 1}` : ''}:</strong> {cp(p)} · ********</div>)}
+          {rec.map((p, i) => <div key={`r${i}`}><strong>Recogida{rec.length > 1 ? ` ${i + 1}` : ''}:</strong> {cp(p)}</div>)}
+          {ent.map((p, i) => <div key={`e${i}`}><strong>Entrega{ent.length > 1 ? ` ${i + 1}` : ''}:</strong> {cp(p)}</div>)}
           <div><strong>Mercancía:</strong> {[d.metros_lineales != null && metros(d.metros_lineales), d.toneladas != null && pesoTn(d.toneladas),
             d.mercancia || (d.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ')}</div>
           <div><strong>Vehículo:</strong> {d.plataforma ? 'Camión rígido con plataforma elevadora' : 'Tráiler tauliner (lona corredera)'}</div>

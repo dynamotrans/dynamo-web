@@ -36,7 +36,7 @@ const SECCIONES: Seccion[] = [
     // Al pagar y liberar rigen los MISMOS cortes (usuario, 2026-11-10): no hay parámetros aparte.
     { titulo: 'Hora de corte para cargar el siguiente día hábil', claves: ['primer_dia_corte_fija_hora', 'primer_dia_corte_ventana_1_3_hora', 'primer_dia_corte_ventana_1_2_hora', 'primer_dia_corte_ventana_1_4_hora'] },
     { titulo: 'Previo pago de envíos', claves: ['pago_previo_activo', 'pago_previo_primeros_envios', 'pago_previo_cesce_sin_primeros_euros', 'pago_previo_horas', 'credito_limite_exige_pago'] },
-    { titulo: 'Contacto del conductor', claves: ['contacto_transportista_horas_tras_entrega'] },
+    { titulo: 'Contacto del conductor', claves: ['contacto_transportista_horas_tras_entrega', 'telefono_conductor_horas_tras_entrega'] },
     { titulo: 'Sectores de los clientes', claves: ['sectores_cliente'] },
   ] },
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
@@ -50,6 +50,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Negociación (contraofertas)', claves: ['contraoferta_transportista_activa', 'contraoferta_auto_pct', 'negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga', 'negociacion_min_cargas_hechas', 'negociacion_una_por_carga'] },
     { titulo: 'Seguridad del enlace del envío', claves: ['enlace_carga_horas_tras_carga', 'carga_publica_max_fallos_dia', 'carga_publica_max_fallos_reserva', 'carga_codigo_max_fallos_hora', 'tablon_enlace_dias'] },
     { titulo: 'Alta online de transportistas', claves: ['alta_online_max_pendientes_carga', 'alta_online_max_dia'] },
+    { titulo: 'Cancelaciones del transportista (nos deja tirados)', claves: ['transportista_autosuspension', 'transportista_cancelacion_horas_urgente', 'transportista_ultimas_cargas', 'transportista_ultimas_max_cancelaciones', 'transportista_cancelaciones_max_pct', 'transportista_cancelaciones_min_cargas'] },
     { titulo: 'Plazo de pago', claves: ['plazo_pago_transportista_dias'] },
     { titulo: 'Pronto pago', claves: ['pronto_pago_encendido', 'pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'pronto_pago_linea_euros', 'pronto_pago_ventana_dias'] },
     { titulo: 'Oferta escalonada por email', claves: ['difusion_dias_antes', 'difusion_hora_carga_defecto', 'difusion_horas_corte', 'difusion_hora_inicio', 'difusion_hora_fin', 'difusion_recordatorio_hora', 'difusion_max_contactados', 'difusion_cadencia', 'difusion_minutos_entre_emails'] },

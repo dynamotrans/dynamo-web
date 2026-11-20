@@ -3345,6 +3345,48 @@ export type Database = {
         Relationships: [
         ]
       }
+      transportista_cancelaciones: {
+        Row: {
+          id: string
+          transportista_id: string
+          envio_id: string | null
+          horas_antes: number | null
+          creado_en: string
+          creado_por: string | null
+        }
+        Insert: {
+          id?: string
+          transportista_id: string
+          envio_id?: string | null
+          horas_antes?: number | null
+          creado_en?: string
+          creado_por?: string | null
+        }
+        Update: {
+          id?: string
+          transportista_id?: string
+          envio_id?: string | null
+          horas_antes?: number | null
+          creado_en?: string
+          creado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transportista_cancelaciones_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportista_cancelaciones_transportista_id_fkey"
+            columns: ["transportista_id"]
+            isOneToOne: false
+            referencedRelation: "transportistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transportistas: {
         Row: {
           id: string
@@ -3384,6 +3426,9 @@ export type Database = {
           borrado_en: string | null
           reparto_urbano: boolean
           nombre_visible: string | null
+          suspension_motivo: string | null
+          suspendido_en: string | null
+          cancelaciones_desde: string | null
         }
         Insert: {
           id?: string
@@ -3423,6 +3468,9 @@ export type Database = {
           borrado_en?: string | null
           reparto_urbano?: boolean
           nombre_visible?: never
+          suspension_motivo?: string | null
+          suspendido_en?: string | null
+          cancelaciones_desde?: string | null
         }
         Update: {
           id?: string
@@ -3462,6 +3510,9 @@ export type Database = {
           borrado_en?: string | null
           reparto_urbano?: boolean
           nombre_visible?: never
+          suspension_motivo?: string | null
+          suspendido_en?: string | null
+          cancelaciones_desde?: string | null
         }
         Relationships: [
         ]
@@ -3887,7 +3938,7 @@ export type Database = {
       anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null; p_fotos?: string[] | null }; Returns: Json }
       anular_cambio_envio: { Args: { p_envio: string | null }; Returns: Json }
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }
-      asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null; p_fecha_entrega_estimada?: string | null }; Returns: Json }
+      asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null; p_fecha_entrega_estimada?: string | null; p_forzar?: boolean | null }; Returns: Json }
       autores_mis_envios: { Args: Record<PropertyKey, never>; Returns: { envio_id: string; creado_por: string; creado_email: string; modificado_por: string; modificado_en: string }[] }
       autosuspender_cuentas: { Args: Record<PropertyKey, never>; Returns: number }
       autosuspension_candidatos: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; email: string; motivo: string }[] }
@@ -3911,6 +3962,7 @@ export type Database = {
       cambiar_ruta_envio: { Args: { p_envio: string | null; p_paradas: Json | null }; Returns: undefined }
       cambios_en_espera: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { envio_id: string; vence_en: string; tipo: string; estado_antes: string; pago_antes: string; manual_antes: boolean; asignado_antes: boolean }[] }
       cancelacion_cuenta: { Args: { p_transportista: string | null; p_cuando: string | null; p_fecha_carga: string | null }; Returns: boolean }
+      cancelaciones_transportistas: { Args: { p_ids: string[] | null }; Returns: { transportista_id: string; cancelaciones: number; cargas: number; cancelaciones_ultimas: number; ultimas: number; ultima: string }[] }
       cancelar_envio: { Args: { p_envio: string | null; p_motivo?: string | null; p_en_nombre_cliente?: boolean | null }; Returns: Json }
       cancelar_mi_envio: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       carga_aceptada_publica: { Args: { p_reserva: string | null }; Returns: Json }
@@ -4179,11 +4231,12 @@ export type Database = {
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
       quitar_logo: { Args: { p_documento: string | null }; Returns: undefined }
-      quitar_transportista: { Args: { p_envio: string | null }; Returns: Json }
+      quitar_transportista: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
       rechazar_pago_transferencia: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_cambio_email: { Args: { p_usuario: string | null; p_antes: string | null; p_despues: string | null }; Returns: undefined }
+      registrar_cancelacion_transportista: { Args: { p_envio: string | null; p_transportista: string | null }; Returns: Json }
       registrar_consulta_precio: { Args: Record<PropertyKey, never>; Returns: undefined }
       registrar_doble_paso_quitado: { Args: { p_usuario: string | null }; Returns: undefined }
       registrar_firma_papel: { Args: { p_envio: string | null; p_parada: string | null; p_nombre: string | null; p_documento: string | null; p_documento_pais: string | null; p_documento_id: string | null }; Returns: Json }
@@ -4226,10 +4279,12 @@ export type Database = {
       tarifa_almacen: { Args: { p_almacen: string | null }; Returns: { semana: number; reparto: number }[] }
       tarifa_web_apuntar: { Args: { p_ip_huella: string | null }; Returns: Json }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
+      telefono_conductor_visible: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_carga: string | null; p_entregado_en: string | null; p_entrega: string | null }; Returns: boolean }
       texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null }; Returns: string }
       texto_enlace_cmr_sitio: { Args: { p_recogida: boolean | null; p_url: string | null; p_hora: string | null }; Returns: string }
       tramo_aviso_parada: { Args: { p_hoy: string | null; p_fecha: string | null; p_pais?: string | null; p_cp?: string | null; p_poblacion?: string | null }; Returns: string }
       transportista_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
+      transportista_revisar_cancelaciones: { Args: { p_transportista: string | null; p_horas: number | null }; Returns: Json }
       transportista_texto_busqueda: { Args: { t: Database["public"]["Tables"]["transportistas"]["Row"] | null }; Returns: string }
       transportistas_flota: { Args: { p_ids: string[] | null }; Returns: { transportista_id: string; tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] }[] }
       transportistas_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_adr?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }

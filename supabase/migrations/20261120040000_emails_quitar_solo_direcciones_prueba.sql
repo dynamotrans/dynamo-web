@@ -22,8 +22,8 @@ do $$ declare v text; n text; begin
    where estado = 'pendiente' and destinatario ~* '\.invalid(\s|>|,|;|$)' and emails_sin_prueba(destinatario) is not null;
   -- Solo quedan las que no tienen ninguna dirección real: esas no se mandan.
   update emails_enviados set estado = 'omitido', error = 'Dirección de prueba (.invalid): no se envía.'$b$);
-  if n = v then raise exception 'enviar_emails_pendientes: no encuentro la regla de las direcciones de prueba'; end if;
-  execute n;
+  -- Ya aplicada: no se repite.
+  if n <> v then execute n; elsif position('emails_sin_prueba(destinatario)' in v) = 0 then raise exception 'enviar_emails_pendientes: no encuentro la regla de las direcciones de prueba'; end if;
 end $$;
 
 -- ---- Mientras corre el contador, el envío sigue en su pestaña de antes (usuario, 2026-11-20) --

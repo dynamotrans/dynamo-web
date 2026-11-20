@@ -603,7 +603,7 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
           Ver orden de carga (PDF)
         </a>
       )}
-      {/* Sin matrículas: ni direcciones ni eCMR hasta que las dé (usuario, 2026-11-19). */}
+      {/* Sin matrículas: aviso del DeCA y sin eCMR hasta que las dé; las direcciones se ven siempre (2026-11-20). */}
       {c.direcciones_ocultas && c.estado !== 'cancelado' && <AvisoDireccionesOcultas style={{ marginTop: '0.7rem' }} />}
       {!c.direcciones_ocultas && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado ?? '') && <BotonCmr token={token} />}
       {c.discrecion_comercial && <div className="pago-contado" style={{ background: '#fff7e6', borderColor: '#ffd591', color: '#8a5a00', textAlign: 'left' }}><strong>Discreción comercial:</strong> en la carga no reveles el destino, ni en la entrega el origen.</div>}
@@ -637,7 +637,7 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
               setVeh((v) => ({ ...v, conductor: x.conductor ?? '', telefono: x.telefono ?? '' }));
               setBase({ camion: veh.camion, conductor: x.conductor ?? '' });
               setSalvo({ camion: veh.camion, remolque: veh.remolque, conductor: x.conductor ?? '', telefono: x.telefono ?? '', dia });
-              // Con las matrículas ya dadas, aparecen las direcciones y el eCMR (2026-11-19).
+              // Con las matrículas ya dadas, desaparece el aviso del DeCA y aparece el eCMR.
               if (c.direcciones_ocultas) router.refresh();
             }
             // Cada fallo con su mensaje (usuario, 2026-11-10: «no funciona bien» y el

@@ -28,6 +28,8 @@ export type Asignacion = {
   fecha_carga_prevista?: string | null;   // día en que carga (obligatorio si el envío tiene ventana)
   fecha_entrega_estimada?: string | null;  // día de entrega, SIEMPRE estimado (la pantalla lo exige)
   motivo?: string;                        // motivo del cambio para el DeCA (si ya está emitido)
+  forzar_suspendido?: boolean;            // asignar a un suspendido, tras ver el aviso rojo (usuario, 2026-11-20)
+  cambio_por?: 'deja_tirado' | 'cambio_dynamo';   // al CAMBIAR de transportista: ¿nos deja tirados el anterior?
 };
 
 export async function asignarTransportista(envio: string, a: Asignacion): Promise<Res> {
@@ -37,12 +39,23 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
   if (!a.transportista_id) return { ok: false, error: 'Elige el transportista.' };
   if (!a.fecha_entrega_estimada) return { ok: false, error: 'Elige el día de entrega (estimado).' };
   if (a.importe_transportista != null && !Number.isFinite(a.importe_transportista)) return { ok: false, error: 'El precio del transportista no es un número válido.' };
+  // Cambio de transportista porque el anterior nos deja tirados: queda anotado (cuenta para
+  // sus reglas de suspensión) antes de dar el envío al nuevo.
+  let avisoSusp: string | undefined;
+  if (a.cambio_por === 'deja_tirado') {
+    const { data: ant } = await s.supabase.from('envios').select('transportista_id').eq('id', envio).maybeSingle();
+    if (ant?.transportista_id && ant.transportista_id !== a.transportista_id) {
+      const { data: rc } = await s.supabase.rpc('registrar_cancelacion_transportista', { p_envio: envio, p_transportista: ant.transportista_id });
+      avisoSusp = textoCancelacion(rc);
+    }
+  }
   // Las reglas (suspendido, NIMA, matrícula en mayúsculas, teléfono) las pone la base de datos.
   const { data, error } = await s.supabase.rpc('asignar_transportista', {
     p_envio: envio, p_transportista: a.transportista_id, p_importe_transportista: a.importe_transportista,
     p_matricula_camion: a.matricula_camion, p_matricula_remolque: a.matricula_remolque,
     p_conductor_nombre: a.conductor_nombre, p_conductor_telefono: a.conductor_telefono,
     p_fecha_carga_prevista: a.fecha_carga_prevista || null, p_fecha_entrega_estimada: a.fecha_entrega_estimada,
+    p_forzar: a.forzar_suspendido === true,
   });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { ok: boolean; resultado: string });
@@ -53,9 +66,9 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
     const { avisoOrdenCarga } = await import('@/lib/servidor/avisosEnvio');
     await avisoOrdenCarga(s.supabase, s.user.id, envio).catch(() => {});
     await copiaDeca(s.supabase, envio);
-    return { ok: true };
+    return { ok: true, aviso: avisoSusp };
   }
-  return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: no se le pueden dar envíos.', transportista_no_existe: 'Ese transportista no existe.',
+  return { ok: false, error: ({ transportista_suspendido: 'Ese transportista está suspendido: confirma en la casilla roja que se lo das igualmente.', transportista_no_existe: 'Ese transportista no existe.',
     importe_no_valido: 'El precio del transportista no es un número válido.', no_existe: 'Ese envío no existe.',
     falta_precio: 'Pon el precio del transportista (mayor que 0): sin precio no se puede asignar.',
     falta_fecha_prevista: 'Elige el día en que carga: el envío tiene varios días de recogida.', fecha_fuera_de_ventana: 'El día de carga tiene que estar dentro de los días de recogida.',
@@ -74,15 +87,25 @@ export async function sugerirEntrega(envio: string, dia: string): Promise<string
   return error ? null : (data as string | null);
 }
 
-export async function quitarTransportista(envio: string): Promise<Res> {
-  comprobarEntrada("app/panel/(app)/envios/acciones#quitarTransportista", [envio]);
+// Lo que dice la base de datos al anotar que un transportista nos deja tirados.
+function textoCancelacion(rc: unknown): string | undefined {
+  const x = (rc ?? {}) as { suspendido?: boolean; motivo?: string; cancelaciones?: number; cargas?: number };
+  if (x.suspendido) return `Transportista SUSPENDIDO automáticamente: ${x.motivo ?? ''}. Ya no recibe ofertas ni puede aceptar cargas; a Dynamo le llega un email para revisarlo.`;
+  if (x.cancelaciones != null) return `Cancelación anotada: lleva ${x.cancelaciones} de ${x.cargas ?? 0} cargas.`;
+  return undefined;
+}
+
+// Quitar el transportista diciendo por qué (usuario, 2026-11-20): «nos deja tirados» cuenta
+// para sus reglas de suspensión; un cambio nuestro, no.
+export async function quitarTransportista(envio: string, motivo: 'deja_tirado' | 'cambio_dynamo' = 'cambio_dynamo'): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#quitarTransportista", [envio, motivo]);
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo asigna transportistas.' };
   // La base de datos limpia también camión, conductor, NIMA y precio del transportista.
-  const { error } = await s.supabase.rpc('quitar_transportista', { p_envio: envio });
+  const { data, error } = await s.supabase.rpc('quitar_transportista', { p_envio: envio, p_motivo: motivo });
   if (error) return { ok: false, error: traducir(error.message) };
   await copiaDeca(s.supabase, envio);
-  return { ok: true };
+  return { ok: true, aviso: motivo === 'deja_tirado' ? textoCancelacion(data) : undefined };
 }
 
 // Seguimiento (usuario, 2026-11-06): marcar a mano en qué etapa está el envío y desde qué
@@ -757,4 +780,19 @@ export async function anularCambioEnvio(envio: string): Promise<Res> {
     case 'nada': return { ok: false, error: 'No queda nada por anular en este envío.' };
     default: return { ok: false, error: 'No se ha podido anular el cambio. Modifica el envío a mano si hace falta.' };
   }
+}
+
+// Estado del transportista elegido en «Asignar» (usuario, 2026-11-20): si está suspendido y por
+// qué, y cuántas veces nos ha dejado tirados, para avisar antes de darle el envío.
+export async function infoTransportista(id: string): Promise<{ estado: string; motivo: string | null; cancelaciones: number; cargas: number; ultimas: number; cancelaciones_ultimas: number } | null> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#infoTransportista", [id]);
+  const s = await soloDynamo();
+  if (!s) return null;
+  const [{ data: t }, { data: c }] = await Promise.all([
+    s.supabase.from('transportistas').select('estado_operativo, suspension_motivo').eq('id', id).maybeSingle(),
+    s.supabase.rpc('cancelaciones_transportistas', { p_ids: [id] }).maybeSingle(),
+  ]);
+  if (!t) return null;
+  return { estado: t.estado_operativo, motivo: t.suspension_motivo ?? null, cancelaciones: c?.cancelaciones ?? 0, cargas: c?.cargas ?? 0,
+    ultimas: c?.ultimas ?? 0, cancelaciones_ultimas: c?.cancelaciones_ultimas ?? 0 };
 }

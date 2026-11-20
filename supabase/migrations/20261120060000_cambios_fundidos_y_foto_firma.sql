@@ -101,8 +101,8 @@ end $$;
 do $$ declare v text; n text; begin
   v := pg_get_functiondef('public.firma_email_persona()'::regprocedure);
   n := replace(replace(replace(v, 'width:64px"><img', 'width:96px"><img'), 'width="64" height="64"', 'width="96" height="96"'), 'width:64px;height:64px', 'width:96px;height:96px');
-  if n = v then raise exception 'firma_email_persona: no encuentro el tamaño de la foto'; end if;
-  execute n;
+  -- Ya aplicada: no se repite.
+  if n <> v then execute n; elsif position('width="96"' in v) = 0 then raise exception 'firma_email_persona: no encuentro el tamaño de la foto'; end if;
 end $$;
 
 -- ---- Firma: tercer botón «Entrar en dynamotrans.com» (usuario, 2026-11-20) --------------
@@ -117,8 +117,8 @@ do $$ declare v text; n text; begin
       || '</tr></table>',
       regexp_replace(v_tel, '[^0-9+]', '', 'g'), escapar_html(v_tel), escapar_html(v_mail),
       escapar_html(regexp_replace(v_web, '^https?://', '')), escapar_html(regexp_replace(v_web, '^(https?://)?(www\.)?', '')));$b$);
-  if n = v then raise exception 'email_con_diseno: no encuentro los botones de la firma'; end if;
-  execute n;
+  -- Ya aplicada: no se repite.
+  if n <> v then execute n; elsif position('Entrar en %s' in v) = 0 then raise exception 'email_con_diseno: no encuentro los botones de la firma'; end if;
 end $$;
 
 -- ---- Aviso de anulación al sitio: lo anula el cliente, no Dynamo (usuario, 2026-11-20) ------
@@ -128,8 +128,8 @@ do $$ declare v text; n text; begin
   v := pg_get_functiondef('public.encolar_anulacion_parada'::regproc);
   n := replace(replace(v, '</strong> de parte de <strong>', '</strong> por parte de <strong>'),
                '). Disculpad las molestias.</p>', '). Si tenéis cualquier duda, contactad con vuestro cliente.</p>');
-  if n = v then raise exception 'encolar_anulacion_parada: no encuentro el texto del aviso'; end if;
-  execute n;
+  -- Ya aplicada: no se repite.
+  if n <> v then execute n; elsif position('contactad con vuestro cliente' in v) = 0 then raise exception 'encolar_anulacion_parada: no encuentro el texto del aviso'; end if;
 end $$;
 
 -- ---- Resumen mensual a los sitios: qué se recogió o entregó (usuario, 2026-11-20) -------------
@@ -149,8 +149,10 @@ $a2$, $b2$        select (coalesce(p.realizado_en, case when p.tipo = 'carga' th
                envio_mercancia_texto(e.metros_lineales, e.toneladas, e.tipo_carga::text, false, null, false, false)
                  || case when e.paletizado is false then ' · No paletizada' else ' · Paletizada' end as merc
 $b2$);
-  if n = v or position('as merc' in n) = 0 or position('escapar_html(x.merc)' in n) = 0 then raise exception 'encolar_resumen_sitios: no encuentro las líneas del resumen'; end if;
-  execute n;
+  if position('escapar_html(x.merc)' in v) = 0 then
+    if n = v or position('as merc' in n) = 0 or position('escapar_html(x.merc)' in n) = 0 then raise exception 'encolar_resumen_sitios: no encuentro las líneas del resumen'; end if;
+    execute n;
+  end if;
 end $m$;
 
 -- ---- Oferta escalonada sin aceptación: botón «Abrir el envío» para Dynamo (usuario, 2026-11-20) --
@@ -162,9 +164,11 @@ begin
   n := replace(replace(v,
     $a$Contactados: %s. Esto ya es de teléfono.</p><p>— %s</p>'$a$, $a$Contactados: %s. Esto ya es de teléfono.$a$ || boton),
     $a$ha terminado sin aceptación. %s Contactados: %s.</p><p>— %s</p>'$a$, $a$ha terminado sin aceptación. %s Contactados: %s.$a$ || boton);
-  if (length(n) - length(replace(n, '>Abrir el envío</a>', ''))) / length('>Abrir el envío</a>') <> 2 then
-    raise exception 'fn_difusion_paso: no encuentro los dos avisos de oferta sin aceptación'; end if;
-  execute n;
+  if position('>Abrir el envío</a>' in v) = 0 then
+    if (length(n) - length(replace(n, '>Abrir el envío</a>', ''))) / length('>Abrir el envío</a>') <> 2 then
+      raise exception 'fn_difusion_paso: no encuentro los dos avisos de oferta sin aceptación'; end if;
+    execute n;
+  end if;
 end $$;
 
 -- ---- Cuenta suspendida automáticamente: botón «Revisar la cuenta» (usuario, 2026-11-20) ----
@@ -176,6 +180,6 @@ do $$ declare v text; n text; begin
     $b$|| '<p>Si es un cliente legítimo, se reactiva desde el panel (Usuarios, estado «Activa»): el contador de las reglas vuelve a empezar.</p>'
                  || format('<p><a href="%s/panel/usuarios?q=%s&amp;abrir=%s" style="display:inline-block;background:#3300cc;color:#ffffff;font-weight:700;text-decoration:none;padding:13px 24px;border-radius:12px">Revisar la cuenta</a></p>',
                            coalesce(parametro('url_plataforma') #>> '{}', ''), replace(replace(new.email, '%', ''), '+', '%%2B'), new.id),$b$);   -- %% : va dentro del texto de otro format()
-  if n = v then raise exception 'fn_usuarios_aviso_suspension: no encuentro el texto del aviso'; end if;
-  execute n;
+  -- Ya aplicada: no se repite.
+  if n <> v then execute n; elsif position('Revisar la cuenta' in v) = 0 then raise exception 'fn_usuarios_aviso_suspension: no encuentro el texto del aviso'; end if;
 end $$;

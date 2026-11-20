@@ -79,6 +79,15 @@ export type EnvioCliente = EnvioClienteBase & {
 };
 const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
 
+// ¿Aún no es la víspera de la carga? (el teléfono del conductor sale desde ese día).
+function antesDeVispera(carga: string | null | undefined): boolean {
+  if (!carga) return false;
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+  const [a, m, d] = carga.slice(0, 10).split('-').map(Number);
+  const vispera = new Date(Date.UTC(a, m - 1, d - 1)).toISOString().slice(0, 10);
+  return hoy < vispera;
+}
+
 export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendiente = null }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string; pendiente?: CambioPendiente | null }) {
   const router = useRouter();
   const refrescar = useRefrescar();
@@ -317,7 +326,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
             </span></div>
             <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
               {e.conductor_nombre || (e.estado === 'entregado' ? '—' : reservado ? <Reservado que="conductor pendiente de anotar" /> : <Pend />)}
-              {e.estado !== 'entregado' && e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
+              {/* El teléfono lo da la base de datos solo desde la víspera de la carga hasta 24 h
+                  después de la entrega (usuario, 2026-11-20); antes, se dice cuándo saldrá. */}
+              {e.conductor_telefono
+                ? <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>
+                : e.conductor_nombre && !['entregado', 'cancelado'].includes(e.estado) && antesDeVispera(e.fecha_carga_real ?? e.fecha_carga_prevista ?? e.fecha_carga_desde) && <div className="meta" id="telefono-conductor-pronto">El teléfono sale aquí el día antes de la carga.</div>}
             </span></div>
           </div>
         )}

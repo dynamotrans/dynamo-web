@@ -687,27 +687,29 @@ test.describe('novedades', () => {
     }
   });
 
-  test('transportista sin matrículas: direcciones ocultas, aviso rojo y sin eCMR; con ellas, todo', async ({ page }) => {
+  // Desde el 2026-11-20 las direcciones se ven siempre (usuario: «ocultar direcciones, mejor no»):
+  // sin matrículas queda el aviso rojo del DeCA y no hay eCMR.
+  test('transportista sin matrículas: direcciones a la vista, aviso del DeCA y sin eCMR; con ellas, eCMR', async ({ page }) => {
     const sb = bd();
     const { e } = await envioProgramadoDelTransportista('id, matricula_camion, matricula_remolque');
     await sb.from('envios').update({ matricula_camion: null, matricula_remolque: null }).eq('id', e!.id);
     try {
       await entrar(page, 'transportista');
       await page.goto(`/panel/envios?ver=${e!.id}`);
-      await expect(page.locator('#aviso-direcciones-ocultas')).toContainText('DIRECCIONES OCULTAS HASTA RECIBIR LAS MATRÍCULAS');
-      await expect(page.locator('#aviso-direcciones-ocultas')).toContainText('Sin matrículas no se carga');
+      await expect(page.locator('#aviso-deca-matriculas')).toContainText('MATRÍCULAS');
+      await expect(page.locator('#aviso-deca-matriculas')).toContainText('FOM/2861/2012');
       await expect(page.getByRole('button', { name: /CMR digital para firmar/ })).toHaveCount(0);
-      await expect(page.locator('main, body').first()).not.toContainText('Calle Uno 1');
+      await expect(page.locator('main, body').first()).not.toContainText('********');
       await sb.from('envios').update({ matricula_camion: '5678CDF', matricula_remolque: 'R5678CDF' }).eq('id', e!.id);
       await page.goto(`/panel/envios?ver=${e!.id}`);
       await expect(page.getByRole('button', { name: /CMR digital para firmar/ })).toBeVisible();
-      await expect(page.locator('#aviso-direcciones-ocultas')).toHaveCount(0);
+      await expect(page.locator('#aviso-deca-matriculas')).toHaveCount(0);
     } finally {
       await sb.from('envios').update({ matricula_camion: e!.matricula_camion, matricula_remolque: e!.matricula_remolque }).eq('id', e!.id);
     }
   });
 
-  test('página «Proporcionar matrículas»: resumen solo con CP, guarda y desaparece el aviso', async ({ page }) => {
+  test('página «Proporcionar matrículas»: resumen con CP, aviso del DeCA, guarda y desaparece el aviso', async ({ page }) => {
     const sb = bd();
     const { t, e } = await envioProgramadoDelTransportista('id, matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono, fecha_carga_prevista, fecha_carga_desde');
     await sb.from('envios').update({ matricula_camion: null, matricula_remolque: null }).eq('id', e!.id);
@@ -718,10 +720,9 @@ test.describe('novedades', () => {
       await page.goto(`/matriculas/${enl!.token}?clave=00000000-0000-4000-8000-000000000000`);
       await expect(page.locator('#matr-parar')).toContainText('no es válido');
       await page.goto(`/matriculas/${enl!.token}?clave=${t!.id}`);
-      await expect(page.locator('#aviso-direcciones-ocultas')).toBeVisible();
+      await expect(page.locator('#aviso-deca-matriculas')).toBeVisible();
       await expect(page.locator('#matr-resumen')).toContainText('CP ');
-      await expect(page.locator('#matr-resumen')).toContainText('********');
-      await expect(page.locator('body')).not.toContainText('Calle Uno 1');
+      await expect(page.locator('#matr-resumen')).not.toContainText('********');
       await page.locator('#mt-camion').fill('2903 BCD');
       await page.locator('#mt-remolque').fill('R2903BCD');
       await page.locator('#mt-chofer').fill('Conductor Matrículas');
@@ -729,7 +730,7 @@ test.describe('novedades', () => {
       if (await page.locator('#mt-dia').count()) await page.locator('#mt-dia').selectOption({ index: 1 });
       await page.locator('#mt-guardar').click();
       await expect(page.locator('#mt-resultado')).toContainText('orden de carga COMPLETA');
-      await expect(page.locator('#aviso-direcciones-ocultas')).toHaveCount(0);
+      await expect(page.locator('#aviso-deca-matriculas')).toHaveCount(0);
       const { data: x } = await sb.from('envios').select('matricula_camion, matricula_remolque, conductor_nombre').eq('id', e!.id).single();
       expect(x).toEqual({ matricula_camion: '2903BCD', matricula_remolque: 'R2903BCD', conductor_nombre: 'Conductor Matrículas' });
     } finally {
@@ -754,5 +755,31 @@ test.describe('novedades', () => {
     const { count, error } = await bd().from('sitios').select('id', { count: 'exact', head: true }).eq('tiene_medios_carga', false);
     expect(error).toBeNull();
     expect(count).toBe(0);
+  });
+
+  // Transportistas que nos dejan tirados (usuario, 2026-11-20): al quitarlo se pregunta el
+  // motivo; «nos deja tirados» queda anotado y cuenta para sus límites.
+  test('quitar transportista «nos deja tirados»: pregunta el motivo y queda anotado', async ({ page }) => {
+    const sb = bd();
+    const { t, e } = await envioProgramadoDelTransportista('id, transportista_id, importe_transportista, matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono, fecha_carga_prevista');
+    try {
+      await entrar(page, 'dynamo');
+      await page.goto(`/panel/envios?ver=${e.id}`);
+      const secSeg = page.getByRole('button', { name: /Envío y seguimiento/ }).first();
+      if ((await secSeg.getAttribute('aria-expanded')) !== 'true') await secSeg.click();
+      await page.locator('.dash-modal-body').getByRole('button', { name: /Editar \/ Cambiar transportista/ }).click();
+      await page.getByRole('button', { name: 'Quitar transportista' }).click();
+      await expect(page.locator('#as-quitar')).toBeVisible();
+      await page.getByRole('button', { name: 'Nos deja tirados (cancela él)' }).click();
+      await expect(page.getByText(/Cancelación anotada|SUSPENDIDO/)).toBeVisible();
+      const { data: c } = await sb.from('transportista_cancelaciones').select('envio_id').eq('transportista_id', t.id);
+      expect((c ?? []).map((x) => x.envio_id)).toContain(e.id);
+    } finally {
+      await sb.from('transportista_cancelaciones').delete().eq('transportista_id', t.id);
+      await sb.from('transportistas').update({ estado_operativo: 'activo' }).eq('id', t.id);
+      await sb.from('envios').update({ transportista_id: t.id, importe_transportista: e.importe_transportista, matricula_camion: e.matricula_camion,
+        matricula_remolque: e.matricula_remolque, conductor_nombre: e.conductor_nombre, conductor_telefono: e.conductor_telefono,
+        fecha_carga_prevista: e.fecha_carga_prevista }).eq('id', e.id);
+    }
   });
 });
