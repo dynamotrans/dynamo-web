@@ -1,0 +1,81 @@
+name: Copia de seguridad (fuera de Supabase)
+
+# Cada domingo de madrugada (y a mano desde la pestaña Actions): saca la base de datos y los
+# archivos subidos de Supabase, los CIFRA con la clave COPIA_CLAVE, guarda el fichero aquí
+# en GitHub (90 días: unas 13 copias semanales) y lo RESTAURA en una base de datos vacía para
+# comprobar que sirve. Si algo falla, GitHub manda un email al propietario del repositorio.
+#
+# Secretos (Settings → Secrets and variables → Actions), nunca en el repo ni en el chat:
+#   COPIA_DB_URL               Supabase → Connect → «Session pooler» (puerto 5432), con la contraseña
+#   COPIA_CLAVE                una frase larga para cifrar; guárdala también en papel
+#   SUPABASE_URL               https://<proyecto>.supabase.co (para los archivos subidos)
+#   SUPABASE_SERVICE_ROLE_KEY  la clave de servicio (para los archivos subidos)
+on:
+  schedule:
+    - cron: '17 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  copia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: ¿Está configurada?
+        id: conf
+        env:
+          COPIA_DB_URL: ${{ secrets.COPIA_DB_URL }}
+          COPIA_CLAVE: ${{ secrets.COPIA_CLAVE }}
+        run: |
+          if [ -z "$COPIA_DB_URL" ] || [ -z "$COPIA_CLAVE" ]; then
+            echo "::warning::La copia de seguridad no está configurada: faltan los secretos COPIA_DB_URL y COPIA_CLAVE."
+            echo "lista=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "lista=si" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.conf.outputs.lista == 'si'
+
+      - uses: actions/setup-node@v5
+        if: steps.conf.outputs.lista == 'si'
+        with:
+          node-version: 24
+
+      - name: PostgreSQL 17 (el de Supabase)
+        if: steps.conf.outputs.lista == 'si'
+        run: |
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-17 postgresql-contrib-17
+          sudo systemctl stop postgresql || true
+
+      - name: Hacer la copia
+        if: steps.conf.outputs.lista == 'si'
+        env:
+          COPIA_DB_URL: ${{ secrets.COPIA_DB_URL }}
+          COPIA_CLAVE: ${{ secrets.COPIA_CLAVE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PGDUMP: /usr/lib/postgresql/17/bin/pg_dump
+          PSQL: /usr/lib/postgresql/17/bin/psql
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          bash tools/copia/hacer-copia.sh "$RUNNER_TEMP/copia"
+
+      - name: Guardar la copia cifrada (90 días)
+        if: steps.conf.outputs.lista == 'si'
+        uses: actions/upload-artifact@v4
+        with:
+          name: copia-dynamo-${{ github.run_number }}
+          path: ${{ runner.temp }}/copia/*.gpg
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Restaurar la copia en una base vacía y comprobarla
+        if: steps.conf.outputs.lista == 'si'
+        env:
+          COPIA_CLAVE: ${{ secrets.COPIA_CLAVE }}
+        run: sudo -E PGBIN=/usr/lib/postgresql/17/bin bash tools/copia/restaurar-prueba.sh "$RUNNER_TEMP"/copia/*.gpg

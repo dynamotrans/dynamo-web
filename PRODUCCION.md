@@ -38,7 +38,7 @@ Leyenda: ✅ hecho y comprobado · 🟡 hecho en parte · ❌ falta · 👤 lo t
 | 08 | Caché | ✅ Las pantallas con datos de usuario son dinámicas (`force-dynamic`), no se cachean. | — |
 | 09 | Escalabilidad | 🟡 Plan gratuito de Supabase y Vercel Hobby. | 👤 Pasar a planes de pago antes de clientes reales (copias, límites, soporte). |
 | 10 | Monitoreo | 🟡 Uptime de la web pública; errores en los registros de Vercel. | Alertas de errores de la plataforma: Sentry instalado, falta el DSN del usuario. |
-| 11 | **Copias con restauración probada** | 🟡 Plan de pago ya contratado (usuario, 2026-11-18): copia diaria de Supabase. | Copia propia fuera de Supabase, copia de los archivos subidos y **restaurar una vez** en un proyecto aparte. |
+| 11 | **Copias con restauración probada** | 🟡 Copia diaria de Supabase (plan de pago). **Hecha (2026-11-20)** la copia propia semanal, cifrada, fuera de Supabase, con los archivos subidos y **restauración automática comprobada** (`tools/copia/LEEME.md`). | 👤 Poner los 4 secretos en GitHub para que empiece a funcionar. |
 | 12 | **Auditoría** | ✅ Cada alta, cambio y baja; historial «quién y cuándo» en cada ficha. | — |
 | 13 | **RGPD** | 🟡 Borrador completo en `RGPD.md`; cláusula en la firma del CMR; notas internas solo para Dynamo. | 👤 Revisarlo con el asesor; política de privacidad; DPA de proveedores. Técnico: anonimizar, exportar datos, borrar IPs a los 90 días. |
 | 14 | **Control de coste** | ❌ | 👤 Límite de gasto y alertas en Vercel, Supabase y Google Cloud. |
