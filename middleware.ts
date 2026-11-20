@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
   // Páginas a las que se llega SIN sesión: la entrada, el enlace de los emails
   // (invitación y cambio de contraseña), la de pedir ese enlace y el alta de cliente.
   const publica = enLogin || ruta.startsWith('/panel/confirmar') || ruta.startsWith('/panel/olvido')
-    || ruta.startsWith('/panel/registro');
+    || ruta.startsWith('/panel/registro') || ruta.startsWith('/panel/no-he-sido-yo');
   if (!user && !publica) {
     const destino = request.nextUrl.clone();
     destino.pathname = '/panel/entrar';

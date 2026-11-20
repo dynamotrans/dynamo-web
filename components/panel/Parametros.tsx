@@ -81,6 +81,7 @@ const SECCIONES: Seccion[] = [
     // Tarifador de la web pública (usuario, 2026-11-19): precio sin cuenta, con límite por IP.
     { titulo: 'Tarifador de la web pública', claves: ['tarifador_web_con_precio', 'tarifador_web_max_ip_dia'] },
     { titulo: 'Doble paso del equipo de Dynamo', claves: ['doble_paso_equipo'] },
+    { titulo: 'Aviso de entrada desde un dispositivo nuevo', claves: ['aviso_dispositivo_nuevo'] },
     { titulo: 'Sesión: días sin volver a escribir la contraseña', claves: ['sesion_recordar_dias', 'sesion_dias'] },
     { titulo: 'Protección de datos', claves: ['rgpd_limpieza_activa', 'rgpd_telefono_conductor_anios'] },
     { titulo: 'Dirección pública de la plataforma', claves: ['url_plataforma'] },

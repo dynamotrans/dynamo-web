@@ -2,10 +2,11 @@
 
 import { volverSeguro } from '@/lib/volver';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { supabaseServidor, COOKIE_RECORDAR } from '@/lib/supabase/server';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { cookieSegura } from '@/lib/cookieSegura';
+import { COOKIE_DISPOSITIVO, describirNavegador, huella, lugarAproximado } from '@/lib/dispositivo';
 
 // Estado que devuelve el formulario de entrada.
 export type EstadoEntrar = { error: string | null; email?: string };
@@ -36,5 +37,16 @@ export async function entrar(_prev: EstadoEntrar, datos: FormData): Promise<Esta
     path: '/', httpOnly: true, sameSite: 'lax', secure: cookieSegura(),
     ...(recordar ? { maxAge: 60 * 60 * 24 * 400 } : {}),
   });
+  // Aviso de entrada desde un dispositivo nuevo (equipo de Dynamo; la base de datos decide a
+  // quién). Nunca impide entrar: si algo falla, se sigue.
+  try {
+    let disp = almacen.get(COOKIE_DISPOSITIVO)?.value ?? '';
+    if (!/^[0-9a-f-]{36}$/.test(disp)) {
+      disp = crypto.randomUUID();
+      almacen.set(COOKIE_DISPOSITIVO, disp, { path: '/', httpOnly: true, sameSite: 'lax', secure: cookieSegura(), maxAge: 60 * 60 * 24 * 400 });
+    }
+    const h = await headers();
+    await supabase.rpc('registrar_acceso', { p_huella: await huella(disp), p_descripcion: describirNavegador(h.get('user-agent')) ?? undefined, p_ubicacion: lugarAproximado(h) ?? undefined });
+  } catch { /* el aviso no puede impedir la entrada */ }
   redirect(volverSeguro(datos.get('volver')) ?? '/panel');
 }

@@ -3985,7 +3985,8 @@ do $$ declare faltan text; begin
                            'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
                            'emails_enviados',              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
                            'envio_cambios',                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
-                           'transportista_cancelaciones')  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
+                           'transportista_cancelaciones',  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
+                           'usuarios_dispositivos')        -- seguridad del acceso: se escribe al entrar, también en mantenimiento (el equipo tiene que poder entrar)
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -13658,4 +13659,57 @@ do $$ declare h text := email_con_diseno('<p>x</p>', null); begin
   if h !~ '>Escribir a Dynamo</a></td></tr></table><table role="presentation" width="100%"[^>]*><tr><td[^>]*><a class="btn3"[^>]*background:#3300cc;color:#ffffff[^>]*>Entrar en dynamotrans\.com</a>' then
     raise exception 'FALLO 305 · «Entrar en dynamotrans.com» no va debajo de los botones, a todo el ancho y en azul con letra blanca'; end if;
   raise notice 'OK 305 · firma: «Llamar» y «Escribir a Dynamo» en la fila; «Entrar en dynamotrans.com» debajo, a todo el ancho, azul y letra blanca';
+end $$;
+
+-- ---- 306. Aviso de entrada desde un dispositivo nuevo y «No he sido yo» ------------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare r jsonb; h text := repeat('a', 64); t uuid; u uuid := current_setting('prueba.u_admin')::uuid; begin
+  delete from usuarios_dispositivos where usuario_id = u;
+  r := registrar_acceso(h, 'Chrome en macOS', 'Sevilla, ES');
+  if r ->> 'resultado' <> 'nuevo_avisado' then raise exception 'FALLO 306 · un navegador nuevo del equipo no avisa: %', r; end if;
+  select token_alerta into t from usuarios_dispositivos where usuario_id = u and huella = h;
+  if not exists (select 1 from emails_enviados e join usuarios us on us.id = u
+                  where e.tipo = 'acceso_nuevo' and e.destinatario = us.email and e.cuerpo_html like '%Chrome en macOS%Sevilla, ES%'
+                    and e.cuerpo_html like '%/panel/no-he-sido-yo/' || t || '%>No he sido yo</a>%') then
+    raise exception 'FALLO 306 · el email de acceso nuevo no lleva el navegador, el lugar o el botón «No he sido yo»'; end if;
+  r := registrar_acceso(h, 'Chrome en macOS', 'Sevilla, ES');
+  if r ->> 'resultado' <> 'conocido' or (select count(*) from emails_enviados where tipo = 'acceso_nuevo' and clave like 'acceso_nuevo:%'
+                                          and clave in (select 'acceso_nuevo:' || id from usuarios_dispositivos where usuario_id = u)) <> 1 then
+    raise exception 'FALLO 306 · el mismo navegador vuelve a avisar: %', r; end if;
+  if (registrar_acceso('no-es-una-huella') ->> 'resultado') <> 'huella_no_valida' then raise exception 'FALLO 306 · acepta una huella que no es SHA-256'; end if;
+  perform registrar_acceso(repeat('b', 64), 'Safari en iPhone', null);
+  perform set_config('prueba.tok306', t::text, false);
+end $$;
+-- Un cliente no genera avisos ni dispositivos.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (registrar_acceso(repeat('c', 64)) ->> 'resultado') <> 'no_aplica' then raise exception 'FALLO 306 · a un cliente se le anotan dispositivos'; end if;
+  begin insert into usuarios_dispositivos (usuario_id, huella) values (auth.uid(), repeat('d', 64)); raise exception 'FALLO 306 · se puede escribir a mano en usuarios_dispositivos';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- «No he sido yo» desde el enlace (sin sesión): una vez, cierra sesiones, olvida los navegadores y avisa a Dynamo.
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare r jsonb; t uuid := current_setting('prueba.tok306')::uuid; begin
+  r := no_he_sido_yo(t);
+  if not (r ->> 'ok')::boolean or r ->> 'resultado' not in ('cerradas', 'sin_cerrar') then raise exception 'FALLO 306 · «No he sido yo» no funciona: %', r; end if;
+  if (no_he_sido_yo(t) ->> 'resultado') <> 'ya_hecho' then raise exception 'FALLO 306 · el botón vale dos veces'; end if;
+  if (no_he_sido_yo(gen_random_uuid()) ->> 'resultado') <> 'no_vale' then raise exception 'FALLO 306 · un enlace inventado vale'; end if;
+end $$;
+reset role;
+do $$ declare u uuid := current_setting('prueba.u_admin')::uuid; begin
+  if (select count(*) from usuarios_dispositivos where usuario_id = u) <> 1 then raise exception 'FALLO 306 · tras «No he sido yo» sigue fiándose de sus otros navegadores'; end if;
+  -- La base de las pruebas no tiene las tablas de Supabase Auth (la de verdad, sí).
+  if to_regclass('auth.sessions') is not null then
+    if exists (select 1 from auth.sessions where user_id = u) then raise exception 'FALLO 306 · quedan sesiones abiertas'; end if;
+  end if;
+  if not exists (select 1 from emails_enviados where tipo = 'acceso_no_he_sido_yo' and asunto like 'URGENTE%' and cuerpo_html like '%>Revisar la cuenta</a>%') then
+    raise exception 'FALLO 306 · no se avisa a Dynamo con urgencia'; end if;
+  if not exists (select 1 from auditoria where registro_id = u::text and cambios ->> 'motivo' like 'No he sido yo%') then raise exception 'FALLO 306 · no queda en la auditoría'; end if;
+  delete from emails_enviados where tipo in ('acceso_nuevo', 'acceso_no_he_sido_yo');
+  delete from usuarios_dispositivos where usuario_id = u;
+  raise notice 'OK 306 · dispositivo nuevo del equipo: email con navegador, lugar y «No he sido yo» (una sola vez por navegador; a clientes nada); el botón vale una vez, cierra las sesiones, olvida los navegadores, avisa a Dynamo y queda en la auditoría';
 end $$;

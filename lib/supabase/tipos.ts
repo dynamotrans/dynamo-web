@@ -3625,6 +3625,50 @@ export type Database = {
           },
         ]
       }
+      usuarios_dispositivos: {
+        Row: {
+          id: string
+          usuario_id: string
+          huella: string
+          descripcion: string | null
+          ubicacion: string | null
+          primer_acceso: string
+          ultimo_acceso: string
+          token_alerta: string
+          alerta_usada_en: string | null
+        }
+        Insert: {
+          id?: string
+          usuario_id: string
+          huella: string
+          descripcion?: string | null
+          ubicacion?: string | null
+          primer_acceso?: string
+          ultimo_acceso?: string
+          token_alerta?: string
+          alerta_usada_en?: string | null
+        }
+        Update: {
+          id?: string
+          usuario_id?: string
+          huella?: string
+          descripcion?: string | null
+          ubicacion?: string | null
+          primer_acceso?: string
+          ultimo_acceso?: string
+          token_alerta?: string
+          alerta_usada_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_dispositivos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehiculos: {
         Row: {
           id: string
@@ -4198,6 +4242,7 @@ export type Database = {
       modificar_mi_envio_manual: { Args: { p_envio: string | null; p_datos: Json | null; p_paradas?: Json | null }; Returns: undefined }
       negociacion_bloqueada: { Args: { p_envio: string | null; p_transportista?: string | null }; Returns: string }
       negociacion_publica: { Args: { p_token: string | null }; Returns: boolean }
+      no_he_sido_yo: { Args: { p_token: string | null }; Returns: Json }
       normalizar_cp: { Args: { p: string | null }; Returns: string }
       normalizar_id_fiscal: { Args: { p: string | null }; Returns: string }
       normalizar_matricula: { Args: { p: string | null }; Returns: string }
@@ -4251,6 +4296,7 @@ export type Database = {
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
       rechazar_pago_transferencia: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
+      registrar_acceso: { Args: { p_huella: string | null; p_descripcion?: string | null; p_ubicacion?: string | null }; Returns: Json }
       registrar_cambio_email: { Args: { p_usuario: string | null; p_antes: string | null; p_despues: string | null }; Returns: undefined }
       registrar_cancelacion_transportista: { Args: { p_envio: string | null; p_transportista: string | null }; Returns: Json }
       registrar_consulta_precio: { Args: Record<PropertyKey, never>; Returns: undefined }

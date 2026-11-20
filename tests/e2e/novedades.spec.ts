@@ -814,4 +814,30 @@ test.describe('novedades', () => {
         holded_pedido_compra: e.holded_pedido_compra, holded_compra_total: e.holded_compra_total }).eq('id', e.id);
     }
   });
+  // Aviso de entrada desde un dispositivo nuevo (usuario, 2026-11-20): al entrar alguien del
+  // equipo desde un navegador nuevo le llega el email con «No he sido yo»; pulsarlo (sin sesión,
+  // desde el enlace) cierra TODAS sus sesiones, también la que tenía abierta en otro navegador.
+  test('dispositivo nuevo: email con «No he sido yo», que cierra todas las sesiones', async ({ page, browser }) => {
+    const sb = bd();
+    await entrar(page, 'dynamo');
+    const { data: u } = await sb.from('usuarios').select('id').eq('email', EMAIL.dynamo).single();
+    const { data: d } = await sb.from('usuarios_dispositivos').select('id, token_alerta').eq('usuario_id', u!.id)
+      .order('primer_acceso', { ascending: false }).limit(1).single();
+    expect(d).toBeTruthy();
+    const { data: em } = await sb.from('emails_enviados').select('cuerpo_html').eq('clave', `acceso_nuevo:${d!.id}`).single();
+    expect(em!.cuerpo_html).toContain(`/panel/no-he-sido-yo/${d!.token_alerta}`);
+
+    // Desde otro navegador, sin sesión: abrir el enlace no hace nada; el botón, sí.
+    const otro = await browser.newContext();
+    const p2 = await otro.newPage();
+    await p2.goto(`/panel/no-he-sido-yo/${d!.token_alerta}`);
+    await expect(p2.locator('#no-he-sido-yo-boton')).toBeVisible();
+    await p2.locator('#no-he-sido-yo-boton').click();
+    await expect(p2.locator('#no-he-sido-yo-hecho')).toContainText('Hemos cerrado todas las sesiones');
+    await otro.close();
+
+    // La sesión que estaba abierta se ha cerrado.
+    await page.goto('/panel/envios');
+    await expect(page).toHaveURL(/\/panel\/entrar/);
+  });
 });
