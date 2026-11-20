@@ -13,6 +13,7 @@ import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import { I, ICO, SubProps, aNum } from './comun';
 import CampoFecha from '@/components/CampoFecha';
+import { notaTxt, notaColor, piezasNota } from '@/lib/notaTransportista';
 
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 
@@ -353,6 +354,14 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
             <input id="as-forzar" type="checkbox" checked={forzar} onChange={(ev) => setForzar(ev.target.checked)} style={{ marginTop: 3 }} />
             Lo sé y se lo doy igualmente
           </label>
+        </div>
+      )}
+      {info?.nota && (
+        <div className="meta" style={{ marginTop: '0.6rem' }} id="as-nota" title={piezasNota(info.nota).join(' · ')}>
+          Nota del transportista: {info.nota.nota != null
+            ? <strong style={{ color: notaColor(info.nota.nota) }}>{notaTxt(info.nota.nota)} / 10</strong>
+            : <>pocos envíos para dar nota ({info.nota.envios})</>}
+          {info.nota.nota != null && <> · puntual en {info.nota.puntuales} de {info.nota.con_fechas} · {info.nota.con_incidencia} con incidencia</>}
         </div>
       )}
       {info && info.cancelaciones > 0 && (

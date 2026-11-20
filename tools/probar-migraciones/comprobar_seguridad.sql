@@ -3986,7 +3986,8 @@ do $$ declare faltan text; begin
                            'emails_enviados',              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
                            'envio_cambios',                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
                            'transportista_cancelaciones',  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
-                           'usuarios_dispositivos')        -- seguridad del acceso: se escribe al entrar, también en mantenimiento (el equipo tiene que poder entrar)
+                           'usuarios_dispositivos',        -- seguridad del acceso: se escribe al entrar, también en mantenimiento (el equipo tiene que poder entrar)
+                           'transportista_notas')          -- nota automática: solo la escribe la tarea de la noche, que ya se para en mantenimiento
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -13733,3 +13734,71 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 308. Nota automática del transportista (0 a 10) -----------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare t uuid; t2 uuid; e uuid; i int; ids uuid[] := '{}'; cli uuid := current_setting('prueba.cliente')::uuid;
+  dia date := (now() at time zone 'Europe/Madrid')::date - 20; d record;
+begin
+  insert into transportistas (razon_social, cif) values ('Transportes 308 SL', 'B30800001') returning id into t;
+  insert into transportistas (razon_social, cif) values ('Transportes 308 Nuevo SL', 'B30800002') returning id into t2;
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  -- 4 envíos entregados por t: 3 a tiempo y 1 que entregó dos días tarde. 2 por t2 (pocos).
+  for i in 1 .. 6 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta,
+                        fecha_carga_prevista, fecha_carga_real, fecha_entrega_estimada, transportista_id, estado, entregado_en)
+      values (cli, 6, 5, 600, 450, dia, dia + 1, dia, dia, dia + 1, case when i <= 4 then t else t2 end, 'entregado',
+              ((dia + case when i = 4 then 3 else 1 end)::timestamp + time '12:00') at time zone 'Europe/Madrid') returning id into e;
+    ids := ids || e;
+  end loop;
+  update envios set valoracion_transportista = 5, valoracion_cliente = 4 where id = ids[1];
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  insert into incidencias (tipo_id, titulo, envio_id) values ((select id from tipos_incidencia limit 1), 'Prueba 308', ids[2]);
+  insert into transportista_cancelaciones (transportista_id, envio_id, horas_antes) values (t, ids[3], 48);
+  insert into vehiculos (transportista_id, matricula, tipo, itv_vence) values (t, '3080ABC', (enum_range(null::tipo_vehiculo))[1], (now() at time zone 'Europe/Madrid')::date - 1);
+  perform set_config('prueba.t308', t || ',' || t2, false);
+  perform set_config('prueba.e308', array_to_string(ids, ','), false);
+
+  perform recalcular_notas_transportistas();
+  select * into d from transportista_notas where transportista_id = t;
+  -- puntualidad 3/4 · 35 % + (1 − 2·1/5) · 25 % + (1 − 2·1/4) · 15 % + (4,5−1)/4 · 25 % = 7,06 → menos 1 (ITV vencida) = 6,1
+  if d.envios <> 4 or d.puntuales <> 3 or d.con_fechas <> 4 or d.cancelaciones <> 1 or d.con_incidencia <> 1
+     or d.valoracion <> 4.50 or d.valoraciones <> 2 or d.papeles_vencidos <> 1 or d.nota <> 6.1 then
+    raise exception 'FALLO 308 · la nota del transportista no sale como debe: %', row_to_json(d); end if;
+  if (select nota from transportista_notas where transportista_id = t2) is not null
+     or (select envios from transportista_notas where transportista_id = t2) <> 2 then
+    raise exception 'FALLO 308 · con pocos envíos no debía tener nota'; end if;
+  if position('transportista_notas' in pg_get_functiondef('public.fn_difusion_paso(uuid)'::regprocedure)) = 0 then
+    raise exception 'FALLO 308 · la oferta escalonada no ordena por la nota'; end if;
+end $$;
+-- Solo la ve Dynamo.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from transportista_notas) then raise exception 'FALLO 308 · un cliente ve las notas de los transportistas'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from transportista_notas where transportista_id = split_part(current_setting('prueba.t308'), ',', 1)::uuid) then
+    raise exception 'FALLO 308 · Dynamo no ve la nota'; end if;
+  raise notice 'OK 308 · nota del transportista: puntualidad, cancelaciones, incidencias, valoraciones y papeles vencidos dan 6,1; con pocos envíos no hay nota; ordena la oferta escalonada; solo la ve Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e308'), ',')::uuid[]; ts uuid[] := string_to_array(current_setting('prueba.t308'), ',')::uuid[]; begin
+  delete from incidencias where envio_id = any (ids);
+  delete from transportista_cancelaciones where transportista_id = any (ts);
+  delete from vehiculos where transportista_id = any (ts);
+  delete from transportista_notas where transportista_id = any (ts);
+  alter table envios disable trigger user;
+  delete from emails_enviados where envio_id = any (ids);
+  delete from avisos where envio_id = any (ids);
+  delete from envio_cambios where envio_id = any (ids);
+  alter table envio_hitos disable trigger user; delete from envio_hitos where envio_id = any (ids); alter table envio_hitos enable trigger user;
+  delete from envios where id = any (ids);
+  alter table envios enable trigger user;
+  delete from transportistas where id = any (ts);
+end $$;

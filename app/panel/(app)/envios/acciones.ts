@@ -11,6 +11,7 @@ import type { TablaUpdate } from '@/lib/supabase/tipos';
 import type { SB } from '@/lib/supabase/cliente';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import type { NotaTransportista } from '@/lib/notaTransportista';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -784,15 +785,16 @@ export async function anularCambioEnvio(envio: string): Promise<Res> {
 
 // Estado del transportista elegido en «Asignar» (usuario, 2026-11-20): si está suspendido y por
 // qué, y cuántas veces nos ha dejado tirados, para avisar antes de darle el envío.
-export async function infoTransportista(id: string): Promise<{ estado: string; motivo: string | null; cancelaciones: number; cargas: number; ultimas: number; cancelaciones_ultimas: number } | null> {
+export async function infoTransportista(id: string): Promise<{ estado: string; motivo: string | null; cancelaciones: number; cargas: number; ultimas: number; cancelaciones_ultimas: number; nota: NotaTransportista | null } | null> {
   comprobarEntrada("app/panel/(app)/envios/acciones#infoTransportista", [id]);
   const s = await soloDynamo();
   if (!s) return null;
-  const [{ data: t }, { data: c }] = await Promise.all([
+  const [{ data: t }, { data: c }, { data: n }] = await Promise.all([
     s.supabase.from('transportistas').select('estado_operativo, suspension_motivo').eq('id', id).maybeSingle(),
     s.supabase.rpc('cancelaciones_transportistas', { p_ids: [id] }).maybeSingle(),
+    s.supabase.from('transportista_notas').select('nota, envios, puntuales, con_fechas, cancelaciones, con_incidencia, valoracion, valoraciones, papeles_vencidos, calculada_en').eq('transportista_id', id).maybeSingle(),
   ]);
   if (!t) return null;
   return { estado: t.estado_operativo, motivo: t.suspension_motivo ?? null, cancelaciones: c?.cancelaciones ?? 0, cargas: c?.cargas ?? 0,
-    ultimas: c?.ultimas ?? 0, cancelaciones_ultimas: c?.cancelaciones_ultimas ?? 0 };
+    ultimas: c?.ultimas ?? 0, cancelaciones_ultimas: c?.cancelaciones_ultimas ?? 0, nota: (n as NotaTransportista | null) ?? null };
 }

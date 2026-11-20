@@ -848,4 +848,18 @@ test.describe('novedades', () => {
     await expect(c).toContainText(/Doble paso del equipo de Dynamo: \d+ de \d+ lo tienen activado/);
     await expect(c.locator('li', { hasText: EMAIL.dynamo }).or(c.locator('li').first())).toBeVisible();
   });
+  // Nota automática del transportista (usuario, 2026-11-20): en su ficha, con sus piezas.
+  test('ficha del transportista: nota automática de 0 a 10 con sus piezas', async ({ page }) => {
+    const sb = bd();
+    const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
+    const nota = { transportista_id: t!.id, nota: 8.4, envios: 12, puntuales: 11, con_fechas: 12, cancelaciones: 0, con_incidencia: 1,
+      valoracion: 4.5, valoraciones: 4, papeles_vencidos: 0 };
+    await sb.from('transportista_notas').upsert(nota);
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/transportistas?ver=${t!.id}`);
+    const n = page.locator('#tra-nota');
+    await expect(n).toContainText('8,4');
+    await expect(n).toContainText('Puntualidad: 11 de 12');
+    await expect(n).toContainText('Envíos con incidencia: 1 de 12');
+  });
 });

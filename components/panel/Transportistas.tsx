@@ -13,6 +13,7 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { borrarTransportista, guardarTransportista, flotaDetalle, type TransportistaDatos, type FlotaDetalle } from '@/app/panel/(app)/transportistas/acciones';
+import { notaTxt, notaColor, piezasNota, type NotaTransportista } from '@/lib/notaTransportista';
 
 import { fecha as fmtFecha, fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
@@ -32,6 +33,8 @@ export type TransportistaFila = TransportistaDatos & {
   // Cancelaciones suyas («nos deja tirados») desde su última reactivación (usuario, 2026-11-20).
   cancel?: { cancelaciones: number; cargas: number; cancelaciones_ultimas: number; ultimas: number; ultima: string | null } | null;
   suspension_motivo?: string | null; suspendido_en?: string | null;
+  // Nota automática de 0 a 10 (puntualidad, cancelaciones, incidencias, valoraciones, papeles).
+  nota?: NotaTransportista | null;
 };
 
 const ESTADOS: [TransportistaDatos['estado_operativo'], string, string, { bg: string; fg: string; bd: string }][] = [
@@ -49,6 +52,11 @@ const bolsaDe = (b: string | null) => BOLSAS.find(([k]) => k === (b ?? ''))?.[1]
 function Estado({ e }: { e: TransportistaDatos['estado_operativo'] }) {
   const x = ESTADOS.find(([k]) => k === e) ?? ESTADOS[0];
   return <span className="badge" style={{ background: x[3].bg, color: x[3].fg, border: `1px solid ${x[3].bd}` }}>{x[2]}</span>;
+}
+function Nota({ d }: { d: NotaTransportista | null | undefined }) {
+  if (!d) return <span style={{ color: 'var(--gray-500)' }}>sin nota</span>;
+  if (d.nota == null) return <span style={{ color: 'var(--gray-500)' }}>pocos envíos ({d.envios})</span>;
+  return <span style={{ whiteSpace: 'nowrap', fontWeight: 800, color: notaColor(d.nota) }}>{notaTxt(d.nota)}<span style={{ fontWeight: 600, color: 'var(--gray-500)' }}> / 10</span></span>;
 }
 function Estrellas({ v, n }: { v: number | null; n: number }) {
   if (v == null || !n) return <span style={{ color: 'var(--gray-500)' }}>sin valorar</span>;
@@ -126,7 +134,7 @@ export default function Transportistas({ filas, error, abrirId, lista, admin }: 
                   </td>
                   <td>{(() => { const k = principal(t.contactos, 'trafico') ?? principal(t.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{t.contactos.length > 1 && <div className="meta">+{t.contactos.length - 1} contacto{t.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{t.codigo_bolsa ? <><span className="dtc-mat">{t.codigo_bolsa}</span><div className="meta">{bolsaDe(t.bolsa)}</div></> : t.bolsa ? <span className="meta">{bolsaDe(t.bolsa)} · sin código</span> : '—'}</td>
-                  <td>Dynamo: <Estrellas v={t.valoracion_dynamo} n={t.valoracion_dynamo_votos} /><div className="meta">Clientes: <Estrellas v={t.valoracion_clientes ?? null} n={t.valoracion_clientes_votos ?? 0} /></div></td>
+                  <td>Nota: <Nota d={t.nota} /><div className="meta">Dynamo: <Estrellas v={t.valoracion_dynamo} n={t.valoracion_dynamo_votos} /></div><div className="meta">Clientes: <Estrellas v={t.valoracion_clientes ?? null} n={t.valoracion_clientes_votos ?? 0} /></div></td>
                   <td>{camiones ? <strong>{camiones} {camiones === 1 ? 'camión' : 'camiones'}</strong> : '—'}
                     {f.adr && <> <span className="badge" style={{ background: '#fdecec', color: '#b42318', border: '1px solid #f5b5b5' }}>ADR</span></>}
                     <div className="meta">{t.envios ? `${t.envios} envío${t.envios === 1 ? '' : 's'}` : 'sin envíos aún'}{f.remolques ? ` · ${f.remolques} remolque${f.remolques === 1 ? '' : 's'}` : ''}</div>
@@ -362,6 +370,16 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
               </div>
             )}
             {nota('No se edita aquí: los vehículos se dan de alta al aceptar los envíos (matrícula, ITV, seguro).')}
+          </div>
+        )}
+        {fila && (
+          <div style={{ gridColumn: '1/-1' }} id="tra-nota">
+            <label>Nota automática <span style={{ color: '#b42318', fontWeight: 800 }}>· SOLO ADMIN</span></label>
+            <div style={caja}><Nota d={fila.nota} /></div>
+            {fila.nota && <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem', fontSize: 'var(--fs-s)', lineHeight: 1.55 }}>
+              {piezasNota(fila.nota).map((l) => <li key={l}>{l}</li>)}
+            </ul>}
+            {nota('Se calcula cada noche con sus envíos de los últimos meses (Parámetros): puntualidad 35 %, cancelaciones 25 %, incidencias 15 % y valoraciones 25 %; un punto menos con papeles vencidos. Ordena a quién se le ofrece antes la carga. El transportista no la ve.')}
           </div>
         )}
         {fila && (

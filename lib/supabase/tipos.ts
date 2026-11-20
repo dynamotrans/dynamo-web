@@ -3399,6 +3399,56 @@ export type Database = {
           },
         ]
       }
+      transportista_notas: {
+        Row: {
+          transportista_id: string
+          nota: number | null
+          envios: number
+          puntuales: number
+          con_fechas: number
+          cancelaciones: number
+          con_incidencia: number
+          valoracion: number | null
+          valoraciones: number
+          papeles_vencidos: number
+          calculada_en: string
+        }
+        Insert: {
+          transportista_id: string
+          nota?: number | null
+          envios?: number
+          puntuales?: number
+          con_fechas?: number
+          cancelaciones?: number
+          con_incidencia?: number
+          valoracion?: number | null
+          valoraciones?: number
+          papeles_vencidos?: number
+          calculada_en?: string
+        }
+        Update: {
+          transportista_id?: string
+          nota?: number | null
+          envios?: number
+          puntuales?: number
+          con_fechas?: number
+          cancelaciones?: number
+          con_incidencia?: number
+          valoracion?: number | null
+          valoraciones?: number
+          papeles_vencidos?: number
+          calculada_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transportista_notas_transportista_id_fkey"
+            columns: ["transportista_id"]
+            isOneToOne: true
+            referencedRelation: "transportistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transportistas: {
         Row: {
           id: string
@@ -4295,6 +4345,7 @@ export type Database = {
       quitar_logo: { Args: { p_documento: string | null }; Returns: undefined }
       quitar_transportista: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
+      recalcular_notas_transportistas: { Args: { p_transportista?: string | null }; Returns: number }
       rechazar_pago_transferencia: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_acceso: { Args: { p_huella: string | null; p_descripcion?: string | null; p_ubicacion?: string | null }; Returns: Json }

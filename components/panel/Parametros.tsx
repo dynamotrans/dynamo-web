@@ -50,6 +50,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Negociación (contraofertas)', claves: ['contraoferta_transportista_activa', 'contraoferta_auto_pct', 'negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga', 'negociacion_min_cargas_hechas', 'negociacion_una_por_carga'] },
     { titulo: 'Seguridad del enlace del envío', claves: ['enlace_carga_horas_tras_carga', 'carga_publica_max_fallos_dia', 'carga_publica_max_fallos_reserva', 'carga_codigo_max_fallos_hora', 'tablon_enlace_dias'] },
     { titulo: 'Alta online de transportistas', claves: ['alta_online_max_pendientes_carga', 'alta_online_max_dia'] },
+    { titulo: 'Nota automática del transportista', claves: ['nota_transportista_meses', 'nota_transportista_min_envios'] },
     { titulo: 'Cancelaciones del transportista (nos deja tirados)', claves: ['transportista_autosuspension', 'transportista_cancelacion_horas_urgente', 'transportista_ultimas_cargas', 'transportista_ultimas_max_cancelaciones', 'transportista_cancelaciones_max_pct', 'transportista_cancelaciones_min_cargas'] },
     { titulo: 'Plazo de pago', claves: ['plazo_pago_transportista_dias'] },
     { titulo: 'Pronto pago', claves: ['pronto_pago_encendido', 'pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'pronto_pago_linea_euros', 'pronto_pago_ventana_dias'] },
