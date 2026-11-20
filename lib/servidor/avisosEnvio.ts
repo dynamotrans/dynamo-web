@@ -65,21 +65,18 @@ const CAJA_SIN_MATRICULAS = `<div style="background:#fde8e8;border:1px solid #dc
 
 // ---- Cargas de vuelta al final de la orden (usuario, 2026-11-19) -----------------------
 // Envíos libres de la bolsa que salen de la provincia de la última descarga el mismo día
-// (envios_de_vuelta) y, después, desde el origen 2 días hábiles más tarde. El HTML, en
-// lib/cargasDeVuelta.ts. Vacío si no hay ninguna.
+// (envios_de_vuelta). El HTML, en lib/cargasDeVuelta.ts. Vacío si no hay ninguna.
+// Solo la VUELTA (usuario, 2026-11-20): el bloque «de nuevo en el origen 2 días hábiles después»
+// sobra; si acepta una carga de vuelta, la orden de ESA carga ya le ofrecerá la suya. Así el
+// email es más corto.
 export async function bloqueCargasDeVuelta(sb: SB, envio: string, origen: string, enlace?: { token: string; clave: string } | null): Promise<string> {
   try {
-    // Dos bloques: desde donde descarga el día de la descarga y, al final, desde el origen
-    // 2 días hábiles después de la carga (usuario, 2026-11-19). Se piden hasta 200 para saber
-    // cuántas hay de cada tipo; el email enseña 6 del mismo tipo y 4 del otro, con «Ver más».
-    const [d, r] = await Promise.all([
-      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 200, p_tramo: 'descarga' }),
-      sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 200, p_tramo: 'regreso' }),
-    ]);
-    const ver = (tramo: string) => enlace
-      ? (tipo: string) => `${origen}/cargas-de-vuelta/${enlace.token}?clave=${enlace.clave}&tramo=${tramo}&tipo=${tipo}` : null;
-    return (d.error ? '' : htmlCargasDeVuelta(d.data as unknown as DatosVuelta | null, origen, { verTodas: ver('descarga') }))
-      + (r.error ? '' : htmlCargasDeVuelta(r.data as unknown as DatosVuelta | null, origen, { verTodas: ver('regreso') }));
+    // Se piden hasta 200 para saber cuántas hay de cada tipo; el email enseña 6 del mismo tipo
+    // y 4 del otro, con «Ver todas».
+    const d = await sb.rpc('envios_de_vuelta', { p_envio: envio, p_max: 200, p_tramo: 'descarga' });
+    const ver = enlace
+      ? (tipo: string) => `${origen}/cargas-de-vuelta/${enlace.token}?clave=${enlace.clave}&tramo=descarga&tipo=${tipo}` : null;
+    return d.error ? '' : htmlCargasDeVuelta(d.data as unknown as DatosVuelta | null, origen, { verTodas: ver });
   } catch { return ''; }
 }
 

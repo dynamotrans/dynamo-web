@@ -749,6 +749,11 @@ test.describe('novedades', () => {
     await page.goto(`/cargas-de-vuelta/${enl!.token}?clave=${t!.id}&tramo=descarga&tipo=completa`);
     await expect(page.locator('#vuelta-pagina')).toContainText('Para tu envío #');
     await expect(page.locator('#vuelta-lista, #vuelta-vacia')).toHaveCount(1);
+    // Selector Completas / Grupajes (2026-11-20): marcado según el botón del email y se cambia.
+    await expect(page.locator('#vuelta-tipos a.activo')).toHaveText('Cargas completas');
+    await page.locator('#vuelta-tipos').getByRole('link', { name: 'Grupajes' }).click();
+    await expect(page.locator('#vuelta-tipos a.activo')).toHaveText('Grupajes');
+    await expect(page.locator('#vuelta-lista, #vuelta-vacia')).toHaveCount(1);
   });
 
   test('ningún sitio queda marcado «sin medios de carga» sin que nadie lo ponga', async () => {

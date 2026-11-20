@@ -564,3 +564,9 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
    las cifras: ya son más grandes que 16 px. */
 @media (pointer: coarse) { input.otp-box { font-size: 1.5rem !important; } }
 @media (pointer: coarse) and (max-width: 520px) { input.otp-box { font-size: 1.3rem !important; } }
+
+/* Selector Completas / Grupajes de «Ver todas las cargas de vuelta» (2026-11-20). */
+.vuelta-tipos { display: flex; gap: 0.4rem; justify-content: center; margin: 0.8rem 0 0.4rem; flex-wrap: wrap; }
+.vuelta-tipos a { padding: 0.5rem 1rem; border-radius: 999px; border: 1.5px solid #3300cc; color: #3300cc; font-weight: 700; text-decoration: none; font-size: 0.95rem; }
+.vuelta-tipos a.activo { background: #3300cc; color: #ffffff; }
+.vuelta-tipos a:focus-visible { outline: 3px solid #a78bfa; outline-offset: 2px; }
