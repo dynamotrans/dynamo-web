@@ -39,7 +39,7 @@ export default async function PaginaMiCuenta() {
     if (data && perfil.rol === 'transportista') {
       const t = data as Funcion<'mi_empresa_transportista'>[number];
       const [veh, con] = await Promise.all([
-        supabase.from('vehiculos').select('id, matricula, tipo, itv_vence, seguro_vence, tarjeta_transporte_vence, adr, tiene_plataforma_elevadora').eq('activo', true).order('matricula'),
+        supabase.from('vehiculos').select('id, matricula, tipo, adr, tiene_plataforma_elevadora').eq('activo', true).order('matricula'),
         supabase.from('conductores').select('id, nombre, telefono, documento, documento_pais').eq('activo', true).order('nombre'),
       ]);
       transporte = { id: t.id, nima: t.nima, bolsa: t.bolsa, codigo_bolsa: t.codigo_bolsa, plazo_pago_dias: t.plazo_pago_dias,

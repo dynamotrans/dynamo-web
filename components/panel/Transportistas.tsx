@@ -15,7 +15,7 @@ import { SIN_CONEXION } from '@/lib/mensajeError';
 import { borrarTransportista, guardarTransportista, flotaDetalle, type TransportistaDatos, type FlotaDetalle } from '@/app/panel/(app)/transportistas/acciones';
 import { notaTxt, notaColor, piezasNota, type NotaTransportista } from '@/lib/notaTransportista';
 
-import { fecha as fmtFecha, fechaHora, numero } from '@/lib/formato';
+import { fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -344,15 +344,9 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
                   <div style={{ fontWeight: 800 }}>Vehículos ({flotaD.vehiculos.length})</div>
                   {flotaD.vehiculos.length === 0 && <p style={{ margin: '0.3rem 0 0', color: 'var(--gray-500)' }}>Ninguno todavía: se dan de alta solos al asignar envíos.</p>}
                   {pgVeh.visibles.map((v) => {
-                    const hoy = new Date().toISOString().slice(0, 10);
-                    const vto = (txt: string, fch: string | null) => fch
-                      ? <span key={txt} style={fch < hoy ? { color: '#b42318', fontWeight: 700 } : undefined}>{txt}: {fmtFecha(fch)}{fch < hoy ? ' ⚠ vencida' : ''}</span>
-                      : null;
-                    const vtos = [vto('ITV', v.itv_vence), vto('Seguro', v.seguro_vence), vto('Tarjeta', v.tarjeta_transporte_vence)].filter(Boolean);
                     return (
                       <div key={v.matricula} style={{ padding: '0.4rem 0', borderTop: '1px solid var(--gray-200)' }}>
                         <strong>{v.matricula}</strong> · {v.tipo === 'rigido' ? 'Rígido' : v.tipo === 'remolque' ? 'Remolque' : 'Tractora'}{v.plataforma ? ' · plataforma elevadora' : ''}{v.adr ? ' · ADR' : ''}
-                        <div className="meta">{vtos.length ? vtos.map((x, i) => <span key={i}>{i > 0 && ' · '}{x}</span>) : 'Sin vencimientos anotados'}</div>
                       </div>
                     );
                   })}
@@ -369,7 +363,7 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
                 </>}
               </div>
             )}
-            {nota('No se edita aquí: los vehículos se dan de alta al aceptar los envíos (matrícula, ITV, seguro).')}
+            {nota('No se edita aquí: los vehículos se dan de alta al aceptar los envíos (matrícula y tipo). Su documentación es cosa del transportista: no se anota.')}
           </div>
         )}
         {fila && (

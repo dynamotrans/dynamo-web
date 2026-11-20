@@ -199,8 +199,6 @@ export async function guardarEmpresaDeMiAlta(d: EmpresaAlta): Promise<{ ok: true
 // Lo fiscal (razón social, CIF, dirección), la bolsa y el plazo de pago solo los cambia
 // Dynamo: lo impone la base de datos (funciones mi_* con lista cerrada de campos).
 type Res = { ok: true } | { ok: false; error: string };
-const FECHA = /^\d{4}-\d{2}-\d{2}$/;
-const fechaOnull = (f: string) => (FECHA.test(f) ? f : null);
 const limpiaError = (m: string) => mensajeError(m.replace(/^.*?ERROR:\s*/i, ''));
 
 export async function guardarMiTransporte(d: { nima: string }): Promise<Res> {
@@ -211,7 +209,7 @@ export async function guardarMiTransporte(d: { nima: string }): Promise<Res> {
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };
 }
 
-export type MiVehiculo = { id: string | null; matricula: string; tipo: 'tractora' | 'remolque' | 'rigido'; itv: string; seguro: string; tarjeta: string; adr: boolean; tiene_plataforma_elevadora: boolean };
+export type MiVehiculo = { id: string | null; matricula: string; tipo: 'tractora' | 'remolque' | 'rigido'; adr: boolean; tiene_plataforma_elevadora: boolean };
 export async function guardarMiVehiculo(v: MiVehiculo): Promise<Res> {
   comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#guardarMiVehiculo", [v]);
   const s = await soloTransportista();
@@ -220,7 +218,7 @@ export async function guardarMiVehiculo(v: MiVehiculo): Promise<Res> {
   if (!v.id && mat.replace(/[^A-Z0-9]/g, '').length < 4) return { ok: false, error: 'Escribe la matrícula completa.' };
   if (!['tractora', 'remolque', 'rigido'].includes(v.tipo)) return { ok: false, error: 'Elige el tipo de vehículo.' };
   const { error } = await s.supabase.rpc('guardar_mi_vehiculo', {
-    p_id: v.id, p_matricula: mat, p_tipo: v.tipo, p_itv_vence: fechaOnull(v.itv), p_seguro_vence: fechaOnull(v.seguro), p_tarjeta_transporte_vence: fechaOnull(v.tarjeta),
+    p_id: v.id, p_matricula: mat, p_tipo: v.tipo,
     p_adr: !!v.adr, p_plataforma_elevadora: v.tipo === 'rigido' && !!v.tiene_plataforma_elevadora,
   });
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };

@@ -2784,8 +2784,8 @@ do $$ declare v uuid; c uuid; begin
   -- Su NIMA: sí (el seguro CMR dejó de ser dato escrito el 2026-11-13: va en PDF).
   perform guardar_mis_datos_transporte('NIMA-88');
   -- Su flota: alta de camión y conductor, cambio y baja: sí.
-  v := guardar_mi_vehiculo(null, '0088 bcd', 'rigido', date '2027-03-01', null, null, false, true);
-  perform guardar_mi_vehiculo(v, '0088 BCD', 'rigido', date '2027-04-01', null, null, false, true);
+  v := guardar_mi_vehiculo(null, '0088 bcd', 'tractora', false, false);
+  perform guardar_mi_vehiculo(v, '0088 BCD', 'rigido', false, true);
   c := guardar_mi_conductor(null, 'Conductor 88', '88888888Y', 'ES', '+34600111222');
   perform dar_baja_mi_flota('conductor', c);
   -- Escribir directamente en las tablas: no (ni su razón social ni su plazo de pago).
@@ -2796,7 +2796,7 @@ do $$ declare v uuid; c uuid; begin
   end;
   -- La flota de otro: no.
   begin
-    perform guardar_mi_vehiculo(current_setting('prueba.veh_otro88')::uuid, 'x', 'tractora', null, null, null, false, false);
+    perform guardar_mi_vehiculo(current_setting('prueba.veh_otro88')::uuid, 'x', 'tractora', false, false);
     raise exception 'FALLO 88 · el transportista cambia un camión de otro';
   exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
@@ -2809,7 +2809,7 @@ do $$ declare v uuid; c uuid; begin
   end;
   -- Una matrícula que ya existe (aunque sea de otro): no.
   begin
-    perform guardar_mi_vehiculo(null, '8888-zzz', 'tractora', null, null, null, false, false);
+    perform guardar_mi_vehiculo(null, '8888-zzz', 'tractora', false, false);
     raise exception 'FALLO 88 · se da de alta una matrícula repetida';
   exception when raise_exception then
     if sqlerrm like 'FALLO%' then raise; end if;
@@ -2838,9 +2838,14 @@ do $$ begin
               and column_name in ('seguro_cmr_compania', 'seguro_cmr_poliza', 'seguro_cmr_vence', 'tipo_camion_defecto')) then
     raise exception 'FALLO 88 · las columnas del seguro CMR escrito o tipo_camion_defecto siguen en transportistas';
   end if;
-  if not exists (select 1 from vehiculos where normalizar_matricula(matricula) = normalizar_matricula('0088 BCD') and itv_vence = date '2027-04-01'
+  if not exists (select 1 from vehiculos where normalizar_matricula(matricula) = normalizar_matricula('0088 BCD') and tipo = 'rigido' and tiene_plataforma_elevadora
                  and modificado_por = current_setting('prueba.u_transp')::uuid) then
     raise exception 'FALLO 88 · el camión no se ha guardado o no queda quién lo cambió';
+  end if;
+  -- La documentación del transportista es cosa suya (2026-11-20): sin fechas de ITV, seguro ni tarjeta.
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'vehiculos'
+              and column_name in ('itv_vence', 'seguro_vence', 'tarjeta_transporte_vence')) then
+    raise exception 'FALLO 88 · siguen las fechas de ITV, seguro o tarjeta en vehiculos';
   end if;
   if exists (select 1 from conductores where nombre = 'Conductor 88' and activo) then raise exception 'FALLO 88 · la baja del conductor no ha funcionado'; end if;
   if not exists (select 1 from vehiculos where id = current_setting('prueba.veh_otro88')::uuid and activo) then raise exception 'FALLO 88 · se ha tocado la flota de otro'; end if;
@@ -13756,14 +13761,12 @@ begin
   alter table envios enable trigger user; alter table envio_paradas enable trigger user;
   insert into incidencias (tipo_id, titulo, envio_id) values ((select id from tipos_incidencia limit 1), 'Prueba 308', ids[2]);
   insert into transportista_cancelaciones (transportista_id, envio_id, horas_antes) values (t, ids[3], 48);
-  insert into vehiculos (transportista_id, matricula, tipo, itv_vence) values (t, '3080ABC', (enum_range(null::tipo_vehiculo))[1], (now() at time zone 'Europe/Madrid')::date - 1);
   perform set_config('prueba.t308', t || ',' || t2, false);
   perform set_config('prueba.e308', array_to_string(ids, ','), false);
 
   perform recalcular_notas_transportistas();
   select * into d from transportista_notas where transportista_id = t;
   -- puntualidad 3/4 · 35 % + (1 − 2·1/5) · 25 % + (1 − 2·1/4) · 15 % + (4,5−1)/4 · 25 % = 7,06 → 7,1
-  -- (la ITV vencida de su camión NO cuenta: la documentación es cosa del transportista).
   if d.envios <> 4 or d.puntuales <> 3 or d.con_fechas <> 4 or d.cancelaciones <> 1 or d.con_incidencia <> 1
      or d.valoracion <> 4.50 or d.valoraciones <> 2 or d.nota <> 7.1 then
     raise exception 'FALLO 308 · la nota del transportista no sale como debe: %', row_to_json(d); end if;
@@ -13785,7 +13788,7 @@ set role authenticated;
 do $$ begin
   if not exists (select 1 from transportista_notas where transportista_id = split_part(current_setting('prueba.t308'), ',', 1)::uuid) then
     raise exception 'FALLO 308 · Dynamo no ve la nota'; end if;
-  raise notice 'OK 308 · nota del transportista: puntualidad, cancelaciones, incidencias y valoraciones dan 7,1 (la ITV vencida no cuenta); con pocos envíos no hay nota; ordena la oferta escalonada; solo la ve Dynamo';
+  raise notice 'OK 308 · nota del transportista: puntualidad, cancelaciones, incidencias y valoraciones dan 7,1; con pocos envíos no hay nota; ordena la oferta escalonada; solo la ve Dynamo';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

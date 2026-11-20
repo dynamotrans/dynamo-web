@@ -3723,9 +3723,6 @@ export type Database = {
           transportista_id: string | null
           matricula: string
           tipo: Database["public"]["Enums"]["tipo_vehiculo"]
-          itv_vence: string | null
-          seguro_vence: string | null
-          tarjeta_transporte_vence: string | null
           adr: boolean
           tiene_plataforma_elevadora: boolean
           activo: boolean
@@ -3741,9 +3738,6 @@ export type Database = {
           transportista_id?: string | null
           matricula: string
           tipo: Database["public"]["Enums"]["tipo_vehiculo"]
-          itv_vence?: string | null
-          seguro_vence?: string | null
-          tarjeta_transporte_vence?: string | null
           adr?: boolean
           tiene_plataforma_elevadora?: boolean
           activo?: boolean
@@ -3759,9 +3753,6 @@ export type Database = {
           transportista_id?: string | null
           matricula?: string
           tipo?: Database["public"]["Enums"]["tipo_vehiculo"]
-          itv_vence?: string | null
-          seguro_vence?: string | null
-          tarjeta_transporte_vence?: string | null
           adr?: boolean
           tiene_plataforma_elevadora?: boolean
           activo?: boolean
@@ -4233,7 +4224,7 @@ export type Database = {
       guardar_km_sitios: { Args: { p_origen: string | null; p_destino: string | null; p_km: number | null; p_minutos?: number | null; p_proveedor?: string | null }; Returns: string }
       guardar_matriculas_enlace: { Args: { p_token: string | null; p_clave: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_telefono: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       guardar_mi_conductor: { Args: { p_id: string | null; p_nombre: string | null; p_documento: string | null; p_documento_pais: string | null; p_telefono: string | null }; Returns: string }
-      guardar_mi_vehiculo: { Args: { p_id: string | null; p_matricula: string | null; p_tipo: Database["public"]["Enums"]["tipo_vehiculo"] | null; p_itv_vence: string | null; p_seguro_vence: string | null; p_tarjeta_transporte_vence: string | null; p_adr: boolean | null; p_plataforma_elevadora: boolean | null }; Returns: string }
+      guardar_mi_vehiculo: { Args: { p_id: string | null; p_matricula: string | null; p_tipo: Database["public"]["Enums"]["tipo_vehiculo"] | null; p_adr: boolean | null; p_plataforma_elevadora: boolean | null }; Returns: string }
       guardar_mis_datos_transporte: { Args: { p_nima: string | null }; Returns: undefined }
       guardar_nota_interna: { Args: { p_tabla: string | null; p_campo: string | null; p_id: string | null; p_texto: string | null }; Returns: undefined }
       guia_automatizaciones: { Args: Record<PropertyKey, never>; Returns: string }

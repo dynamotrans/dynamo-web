@@ -16,7 +16,7 @@ import { cambiarMiClave, cambiarMiEmail, guardarMisDatos, guardarMiTransporte, g
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 
 import { paisDe, telBonito } from '@/lib/paises';
-import { ROL, fecha, fechaHora } from '@/lib/formato';
+import { ROL, fechaHora } from '@/lib/formato';
 import CampoTelefono from '@/components/CampoTelefono';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -24,7 +24,6 @@ import MedidorClave, { claveValida } from '@/components/MedidorClave';
 import { CONTACTO } from '@/lib/atencion';
 import Tip from '@/components/Tip';
 import { SIGLAS } from '@/lib/siglas';
-import CampoFecha from '@/components/CampoFecha';
 
 // Los idiomas de los avisos: la lista única de lib/idiomas.ts (la misma que ve Dynamo en Usuarios).
 const IDIOMAS = IDIOMAS_AVISOS;
@@ -32,18 +31,10 @@ const IDIOMAS = IDIOMAS_AVISOS;
 // Lo del TRANSPORTISTA: su empresa de transporte (NIMA, seguro, bolsa), su flota y su documentación.
 export type TransporteDatos = {
   id: string; nima: string | null; bolsa: string | null; codigo_bolsa: string | null; plazo_pago_dias: number | null;
-  vehiculos: { id: string; matricula: string; tipo: string; itv_vence: string | null; seguro_vence: string | null; tarjeta_transporte_vence: string | null; adr: boolean; tiene_plataforma_elevadora: boolean }[];
+  vehiculos: { id: string; matricula: string; tipo: string; adr: boolean; tiene_plataforma_elevadora: boolean }[];
   conductores: { id: string; nombre: string; telefono: string | null; documento: string | null; documento_pais: string | null }[];
 };
 const TIPO_VEH: Record<string, string> = { tractora: 'Tractora', remolque: 'Remolque', rigido: 'Rígido' };
-// Fecha de caducidad: en rojo si ya pasó, en ámbar si vence en menos de 30 días.
-function Vence({ f }: { f: string | null }) {
-  if (!f) return <span style={{ color: 'var(--gray-500)' }}>—</span>;
-  const dias = Math.floor((new Date(`${f}T00:00:00`).getTime() - Date.now()) / 86400000);
-  const color = dias < 0 ? 'var(--red)' : dias < 30 ? '#b45309' : undefined;
-  return <span style={{ color, fontWeight: color ? 700 : undefined }}>{fecha(f)}{dias < 0 ? ' · caducado' : dias < 30 ? ' · vence pronto' : ''}</span>;
-}
-
 // Lo que el usuario de un CLIENTE ve y cambia de su empresa en «Editar empresa»: el logo y
 // las personas de contacto son suyos; el resto va en gris. Sin nada privado de Dynamo.
 export type EmpresaEditable = {
@@ -140,9 +131,9 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             {transporte.vehiculos.length === 0 && transporte.conductores.length === 0 && <p className="account-card-desc">Aún no hay camiones ni conductores. Se añaden solos al darnos la matrícula y el conductor de cada envío.</p>}
             {transporte.vehiculos.map((v) => (
               <button type="button" key={v.id} className="account-row account-row-btn" title="Editar este vehículo"
-                onClick={() => setVehiculo({ id: v.id, matricula: v.matricula, tipo: v.tipo as MiVehiculo['tipo'], itv: v.itv_vence ?? '', seguro: v.seguro_vence ?? '', tarjeta: v.tarjeta_transporte_vence ?? '', adr: v.adr, tiene_plataforma_elevadora: v.tiene_plataforma_elevadora })}>
+                onClick={() => setVehiculo({ id: v.id, matricula: v.matricula, tipo: v.tipo as MiVehiculo['tipo'], adr: v.adr, tiene_plataforma_elevadora: v.tiene_plataforma_elevadora })}>
                 <span className="account-row-label">{TIPO_VEH[v.tipo] ?? v.tipo}{v.tiene_plataforma_elevadora ? ' · plataforma elevadora' : ''}{v.adr ? ' · ADR' : ''}</span>
-                <span className="account-row-value"><strong>{v.matricula}</strong>{v.itv_vence && <><br /><span style={{ fontSize: 'var(--fs-s)' }}>ITV: <Vence f={v.itv_vence} /></span></>}</span>
+                <span className="account-row-value"><strong>{v.matricula}</strong></span>
               </button>
             ))}
             {transporte.conductores.map((c) => (
@@ -152,7 +143,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
               </button>
             ))}
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
-              <button className="btn-ghost" onClick={() => setVehiculo({ id: null, matricula: '', tipo: 'tractora', itv: '', seguro: '', tarjeta: '', adr: false, tiene_plataforma_elevadora: false })}>+ Añadir vehículo</button>
+              <button className="btn-ghost" onClick={() => setVehiculo({ id: null, matricula: '', tipo: 'tractora', adr: false, tiene_plataforma_elevadora: false })}>+ Añadir vehículo</button>
               <button className="btn-ghost" onClick={() => setConductor({ id: null, nombre: '', documento: '', pais: 'ES', telefono: '' })}>+ Añadir conductor</button>
             </div>
             <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>También se completa sola con los camiones y conductores de tus envíos. Pulsa uno para cambiar sus datos o darlo de baja.</p>
@@ -338,9 +329,6 @@ function useGuardar(onHecho: () => void) {
   }
   return { error, trabajando, correr };
 }
-const fechaCampo = (id: string, label: string, valor: string, onCambio: (v: string) => void) => (
-  <div><label htmlFor={id}>{label} <Req si={false} /></label><CampoFecha id={id} value={valor} onChange={onCambio} /></div>
-);
 
 function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: string }; onCerrar: () => void; onHecho: () => void }) {
   const [d, setD] = useState(inicial);
@@ -432,7 +420,7 @@ function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; o
   const g = useGuardar(onHecho);
   const nuevo = !v.id;
   return (
-    <Modal abierto titulo={nuevo ? 'Añadir vehículo' : `Vehículo ${v.matricula}`} sub="Documentación y características" icono={ICO_CAMION} onCerrar={onCerrar}
+    <Modal abierto titulo={nuevo ? 'Añadir vehículo' : `Vehículo ${v.matricula}`} sub="Matrícula y características" icono={ICO_CAMION} onCerrar={onCerrar}
       pie={<>
         {!nuevo && <BotonBaja texto="Sí, dar de baja" disabled={!!g.trabajando} onBaja={() => g.correr('Dando de baja', () => darDeBajaFlota('vehiculo', v.id!))} />}
         <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
@@ -445,9 +433,6 @@ function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; o
           <select id="mv-tipo" className="ptar-select" value={v.tipo} onChange={(e) => setV({ ...v, tipo: e.target.value as MiVehiculo['tipo'] })}>
             <option value="tractora">Tractora</option><option value="remolque">Remolque</option><option value="rigido">Rígido</option>
           </select></div>
-        {fechaCampo('mv-itv', 'ITV vence', v.itv, (x) => setV({ ...v, itv: x }))}
-        {fechaCampo('mv-seg', 'Seguro del vehículo vence', v.seguro, (x) => setV({ ...v, seguro: x }))}
-        {v.tipo !== 'remolque' && fechaCampo('mv-tt', 'Tarjeta de transporte vence', v.tarjeta, (x) => setV({ ...v, tarjeta: x }))}
         {v.tipo === 'rigido' && (
           <div>
             <label>Plataforma elevadora</label>
