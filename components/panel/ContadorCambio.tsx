@@ -91,7 +91,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
           ? <button className="btn-primary" onClick={() => { setPreguntar(false); setResultado(null); }}>Entendido</button>
           : <>
               <button className="btn-ghost" onClick={() => setPreguntar(false)} disabled={trabajando}>No, dejarlo así</button>
-              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={anular} disabled={trabajando || s <= 0}>{trabajando ? 'Anulando…' : 'Sí, anular el cambio'}</button>
+              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={anular} disabled={trabajando || s <= 0}>{trabajando ? 'Anulando…' : 'Sí, anular'}</button>
             </>}>
         {resultado
           ? <div className={resultado.ok ? 'modal-ok-box' : 'modal-warn-box'} role="status">{resultado.txt}</div>

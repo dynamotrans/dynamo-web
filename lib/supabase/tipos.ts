@@ -3909,6 +3909,7 @@ export type Database = {
       caducar_pagos_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       caducar_reservas: { Args: { p_envio: string | null }; Returns: undefined }
       cambiar_ruta_envio: { Args: { p_envio: string | null; p_paradas: Json | null }; Returns: undefined }
+      cambios_en_espera: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { envio_id: string; vence_en: string; tipo: string; estado_antes: string; pago_antes: string; manual_antes: boolean; asignado_antes: boolean }[] }
       cancelacion_cuenta: { Args: { p_transportista: string | null; p_cuando: string | null; p_fecha_carga: string | null }; Returns: boolean }
       cancelar_envio: { Args: { p_envio: string | null; p_motivo?: string | null; p_en_nombre_cliente?: boolean | null }; Returns: Json }
       cancelar_mi_envio: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
@@ -3980,6 +3981,7 @@ export type Database = {
       emails_contabilidad_envio: { Args: { p_envio: string | null }; Returns: string }
       emails_contactos_cliente: { Args: { p_cliente: string | null; p_funcion: Database["public"]["Enums"]["funcion_contacto"] | null }; Returns: string }
       emails_del_cliente: { Args: { p_cliente: string | null }; Returns: string }
+      emails_sin_prueba: { Args: { p: string | null }; Returns: string }
       emails_validos: { Args: { p: string[] | null }; Returns: boolean }
       en_temporada: { Args: { p_fecha: string | null; p_desde: string | null; p_hasta: string | null }; Returns: boolean }
       encolar_anulacion_parada: { Args: { p_envio: string | null; p_parada: string | null; p_tipo: string | null; p_nombre: string | null; p_poblacion_sitio: string | null; p_sitio: string | null }; Returns: undefined }

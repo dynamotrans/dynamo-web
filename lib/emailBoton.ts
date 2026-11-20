@@ -50,3 +50,11 @@ export function htmlDeMensaje(mensaje: string): string {
     return p + (urls.length ? botonesEmail(urls.map((u, i) => [nombreAccion(u), u, i ? 'borde' : 'morado'] as [string, string, TonoBoton])) : '');
   }).join('');
 }
+
+// Direcciones de prueba (dominio .invalid, que no existe) fuera de una lista de destinatarios
+// (usuario, 2026-11-20: «no me llegó nada»). Antes, si UNA sola dirección era de prueba, el
+// email entero se quedaba sin mandar —también a las reales y la copia a Dynamo—. Ahora solo
+// se quitan esas; '' si no queda ninguna real.
+export function sinDireccionesDePrueba(para: string): string {
+  return para.split(/[,;]/).map((x) => x.trim()).filter((x) => x && !/\.invalid\s*>?\s*$/i.test(x)).join(', ');
+}

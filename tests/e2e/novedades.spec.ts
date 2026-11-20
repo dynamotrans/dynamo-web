@@ -483,7 +483,7 @@ test.describe('novedades', () => {
     await page.goto(`/panel/envios?ver=${id}`);
     await page.locator('.cc-barra').click();
     await expect(page.getByRole('heading', { name: '¿Deseas anular el cambio realizado?' })).toBeVisible();
-    await page.getByRole('button', { name: 'Sí, anular el cambio' }).click();
+    await page.getByRole('button', { name: 'Sí, anular', exact: true }).click();
     await expect(page.getByText(/Envío anulado sin coste/)).toBeVisible();
     await expect.poll(async () => (await ultimoEnvio()).estado).toBe('cancelado');
     const { data: mails } = await bd().from('emails_enviados').select('estado').eq('envio_id', id);

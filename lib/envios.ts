@@ -196,3 +196,36 @@ export function rangoRapido(fr: string, hoy: string): { desde: string; hasta: st
   if (m) return { desde: `${fr}-01`, hasta: `${fr}-${String(new Date(Number(m[1]), Number(m[2]), 0).getDate()).padStart(2, '0')}` };
   return null;
 }
+
+// ---- Envíos con el contador corriendo (usuario, 2026-11-20) --------------------------------
+// «Deja el envío donde estaba antes del cambio, con su spinner, y una vez pase el tiempo lo
+// pones donde tenga que ir… ponlo el primero de su lista». Mientras corre el plazo de un
+// cambio (cambios_en_espera), el envío se cuenta y se enseña en la pestaña de ANTES, arriba
+// del todo (en la primera página); al acabar, la lista ya lo pone donde le toca.
+export type EnEspera = { envio_id: string; vence_en: string; tipo: string; estado_antes: string | null; pago_antes: string | null; manual_antes: boolean | null; asignado_antes: boolean | null };
+const PESTANAS_CONTADAS: Pestana[] = ['sin-pagar', 'sin-asignar', 'programada', 'entregada', 'cancelada'];
+
+export function comoEstabaAntes<T extends EnvioFila>(f: T, x: EnEspera): T {
+  if (x.estado_antes == null) return f;   // recién creado: no había un «antes»
+  return { ...f, estado: x.estado_antes, estado_pago_previo: x.pago_antes, es_manual: x.manual_antes ?? f.es_manual, transportista_asignado: !!x.asignado_antes };
+}
+
+export function colocarEnEspera<T extends EnvioFila>(filas: T[], idsPagina: string[], espera: EnEspera[], pestana: Pestana, pagina: number,
+  conteos: Record<string, number> | null): T[] {
+  const porId = new Map(espera.map((x) => [x.envio_id, x]));
+  const enPagina = new Set(idsPagina);
+  const arriba: T[] = [], resto: T[] = [];
+  for (const f of filas) {
+    const x = porId.get(f.id);
+    if (!x) { if (enPagina.has(f.id)) resto.push(f); continue; }
+    const antes = comoEstabaAntes(f, x);
+    if (conteos) for (const p of PESTANAS_CONTADAS) {
+      if (enPestana(f, p)) conteos[p] = Math.max(0, (conteos[p] ?? 0) - 1);
+      if (enPestana(antes, p)) conteos[p] = (conteos[p] ?? 0) + 1;
+    }
+    if (pagina === 1 && enPestana(antes, pestana)) arriba.push(f);
+  }
+  const orden = new Map(espera.map((x, i) => [x.envio_id, i]));
+  arriba.sort((a, b) => (orden.get(a.id) ?? 0) - (orden.get(b.id) ?? 0));
+  return [...arriba, ...resto];
+}

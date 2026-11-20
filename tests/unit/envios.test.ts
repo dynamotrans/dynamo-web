@@ -1,7 +1,7 @@
 // Estado que se enseña de cada envío y horario de atención.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { estadoVisual, esPendientePago, type EnvioFila } from '../../lib/envios';
+import { estadoVisual, esPendientePago, colocarEnEspera, type EnvioFila, type EnEspera } from '../../lib/envios';
 import { horarioTelefono, HORARIO_ONLINE } from '../../lib/atencion';
 
 const e = (x: Partial<EnvioFila>) => x as EnvioFila;
@@ -55,4 +55,21 @@ test('rangoRapido: hoy/mañana/ayer, semana (L-D) y mes entero', () => {
   assert.deepEqual(rangoRapido('semana-pasada', hoy), { desde: '2026-10-26', hasta: '2026-11-01' });
   assert.deepEqual(rangoRapido('2026-02', hoy), { desde: '2026-02-01', hasta: '2026-02-28' });
   assert.equal(rangoRapido('rarito', hoy), null);
+});
+
+// Contador de 30 s (usuario, 2026-11-20): mientras corre, el envío sigue en su pestaña de
+// antes y arriba del todo; los contadores de las pestañas, como antes del cambio.
+test('un envío recién cancelado sigue arriba de Programados mientras corre su contador', () => {
+  const a = e({ id: 'a', estado: 'programado', transportista_asignado: false });
+  const b = e({ id: 'b', estado: 'programado', transportista_asignado: false });
+  const c = e({ id: 'c', estado: 'cancelado', transportista_asignado: false });
+  const esp: EnEspera[] = [{ envio_id: 'c', vence_en: '2026-11-20T10:00:30Z', tipo: 'cancelado', estado_antes: 'programado', pago_antes: null, manual_antes: false, asignado_antes: false }];
+  const conteos = { programada: 2, cancelada: 1, 'sin-asignar': 2 };
+  const prog = colocarEnEspera([a, b, c], ['a', 'b'], esp, 'programada', 1, conteos);
+  assert.deepEqual(prog.map((x) => x.id), ['c', 'a', 'b']);
+  assert.deepEqual(conteos, { programada: 3, cancelada: 0, 'sin-asignar': 3 });
+  // En «Cancelados» todavía no sale.
+  assert.deepEqual(colocarEnEspera([c], ['c'], esp, 'cancelada', 1, null).map((x) => x.id), []);
+  // En la página 2 no se repite.
+  assert.deepEqual(colocarEnEspera([a, c], ['a'], esp, 'programada', 2, null).map((x) => x.id), ['a']);
 });

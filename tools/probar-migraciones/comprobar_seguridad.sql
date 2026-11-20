@@ -13262,12 +13262,16 @@ do $$ declare x uuid := current_setting('prueba.e298')::uuid; c record; begin
      or (select enviar_desde from emails_enviados where clave = 'p298b') < c.vence_en then
     raise exception 'FALLO 298 · el email no espera al final del cambio';
   end if;
+  -- La lista lo deja en su pestaña de antes mientras corre (cambios_en_espera).
+  if not exists (select 1 from cambios_en_espera() w where w.envio_id = x and w.estado_antes = 'programado' and w.tipo = 'modificado') then
+    raise exception 'FALLO 298 · la lista no sabe cómo estaba el envío antes del cambio'; end if;
 end $$;
 -- Otro usuario (no es quien hizo el cambio ni Dynamo) no lo ve ni lo puede anular.
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare x uuid := current_setting('prueba.e298')::uuid; begin
   if exists (select 1 from pendientes_envios(array[x])) then raise exception 'FALLO 298 · otro usuario ve el contador del cambio de Dynamo'; end if;
+  if exists (select 1 from cambios_en_espera() w where w.envio_id = x) then raise exception 'FALLO 298 · otro usuario ve el cambio en espera de Dynamo'; end if;
   begin perform anular_cambio_envio(x); raise exception 'FALLO 298 · otro usuario anula el cambio de Dynamo';
   exception when insufficient_privilege then null; end;
 end $$;
@@ -13307,4 +13311,25 @@ do $$ begin
   delete from envio_paradas where envio_id = current_setting('prueba.e298')::uuid;
   delete from envios where id = current_setting('prueba.e298')::uuid;
   alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+end $$;
+
+-- ---- 299. Direcciones de prueba: se quitan solo ellas y el resto del email sale -----------
+reset role;
+do $$ begin
+  if emails_sin_prueba('a@prueba.invalid, real@gmail.com') <> 'real@gmail.com'
+     or emails_sin_prueba('Ana <ana@x.invalid>;otro@empresa.es') <> 'otro@empresa.es'
+     or emails_sin_prueba('a@prueba.invalid,b@prueba.invalid') is not null
+     or emails_sin_prueba('invalido@empresa.es') <> 'invalido@empresa.es' then
+    raise exception 'FALLO 299 · emails_sin_prueba no quita bien las direcciones de prueba'; end if;
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html) values
+    ('p299a', 'envio_creado', 'a@prueba.invalid, real299@gmail.com', 'A', '<p>a</p>'),
+    ('p299b', 'envio_creado', 'a@prueba.invalid,b@prueba.invalid', 'B', '<p>b</p>');
+  perform enviar_emails_pendientes();
+  if (select destinatario from emails_enviados where clave = 'p299a') <> 'real299@gmail.com'
+     or (select estado from emails_enviados where clave = 'p299a') = 'omitido' then
+    raise exception 'FALLO 299 · un email con una dirección de prueba y otra real no sale a la real'; end if;
+  if (select estado from emails_enviados where clave = 'p299b') <> 'omitido' then
+    raise exception 'FALLO 299 · un email solo con direcciones de prueba se intenta mandar'; end if;
+  delete from emails_enviados where clave in ('p299a', 'p299b');
+  raise notice 'OK 299 · las direcciones de prueba (.invalid) se quitan y el email sale a las reales; sin ninguna real, no se manda';
 end $$;

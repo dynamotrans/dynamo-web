@@ -1,4 +1,5 @@
 import 'server-only';
+import { sinDireccionesDePrueba } from '@/lib/emailBoton';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { CONTACTO } from '@/lib/atencion';
 
@@ -46,9 +47,11 @@ export async function enviarEmailOperativo(d: {
     // El registro primero: si la clave ya existe, este aviso ya se mandó (o está en
     // ello) y NO se repite — el insert falla por la clave única y aquí se acaba. La base de
     // datos le pone el plazo (enviar_desde) y lo cuelga del cambio abierto del envío.
+    // Las direcciones de prueba (.invalid) se quitan; si no queda ninguna real, no se manda.
+    const reales = d.para ? sinDireccionesDePrueba(d.para) : '';
     const { data: fila, error } = await sb.from('emails_enviados').insert({
       clave: d.clave, tipo: d.tipo, envio_id: d.envioId ?? null,
-      destinatario: d.para || '—', asunto: d.asunto, cuerpo_html: d.html,
+      destinatario: reales || d.para || '—', asunto: d.asunto, cuerpo_html: d.html,
       estado: d.para ? 'pendiente' : 'error',
       error: d.para ? null : 'Sin destinatario con email: avisar a mano.',
       via: 'web', opciones, creado_por: d.autorId ?? null,
@@ -66,9 +69,9 @@ export async function enviarEmailOperativo(d: {
         : 'No se ha podido registrar el email en la base de datos: no se ha enviado.' };
     }
     if (!fila || !d.para) return { estado: 'error', error: 'Sin destinatario con email.' };
-    // Direcciones de prueba (dominio .invalid, que no existe): no se mandan a Postmark —
-    // serían rebotes que gastan emails y dañan la reputación del dominio. Quedan omitidas.
-    if (/\.invalid(\s|>|,|;|$)/i.test(d.para)) {
+    // Solo direcciones de prueba (dominio .invalid, que no existe): no se manda a Postmark —
+    // serían rebotes que gastan emails y dañan la reputación del dominio. Queda omitido.
+    if (!reales) {
       await sb.from('emails_enviados').update({ estado: 'omitido', error: 'Dirección de prueba (.invalid): no se envía.' }).eq('id', fila.id);
       return { estado: 'error', error: 'Es una dirección de prueba (.invalid): no se envía.' };
     }

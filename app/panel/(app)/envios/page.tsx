@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
 import { hoyMadrid, textoBusqueda } from '@/lib/formato';
-import { rangoRapido, esPendientePago } from '@/lib/envios';
+import { rangoRapido, esPendientePago, colocarEnEspera } from '@/lib/envios';
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
-import type { CambioPendiente, EnvioFila, Parada, Pestana } from '@/lib/envios';
+import type { CambioPendiente, EnEspera, EnvioFila, Parada, Pestana } from '@/lib/envios';
 import TablaEnvios, { pestanaElegida, POR_PAGINA_ENVIOS } from '@/components/panel/TablaEnvios';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
@@ -86,6 +86,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   // se leían hasta 6.000 envíos con sus paradas para enseñar 20).
   let conteos: Record<string, number> | null = null, pestana: Pestana | undefined, pagina = 1, totalPestana = 0;
   let idsPagina: string[] | null = idsBusqueda;
+  let enEspera: EnEspera[] = [];
+  let idsLeer: string[] | null = null;   // los de la página + los que tienen el contador corriendo
   if (vistaCal) {
     // VISTA CALENDARIO: todos los envíos del mes pintado (por fecha de carga), con el
     // buscador y los filtros de operador y creador. Tope prudente de 500 fichitas.
@@ -116,6 +118,13 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     idsPagina = pgRows.map((x) => x.id);
     // Con filtros de barra puestos, el total real es el FILTRADO (lo trae la propia página).
     if (op || por || est || rangoFr) totalPestana = Number(pgRows[0]?.total ?? 0);
+    // Contador de 30 s: los envíos con un cambio corriendo siguen en su pestaña de antes,
+    // arriba del todo, hasta que acaba el plazo (usuario, 2026-11-20). Sin filtros de barra.
+    if (!(op || por || est || rangoFr)) {
+      const { data: esp } = await supabase.rpc('cambios_en_espera', filtro);
+      enEspera = (esp ?? []) as EnEspera[];
+      idsLeer = [...new Set([...enEspera.map((x) => x.envio_id), ...idsPagina])];
+    }
   }
   if (dynamo) {
     const COLS = 'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
@@ -125,8 +134,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'matricula_remolque, creado_en, modificado_en, creado_por, estado_solicitud, estado_pago_previo, estado_cambio_cliente, requiere_revision_precio, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, sitios(tipo))';
     let data: FilaDynamo[] = [];
-    if (idsPagina!.length) {
-      const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsPagina!).overrideTypes<FilaDynamo[], { merge: false }>();
+    if ((idsLeer ?? idsPagina!).length) {
+      const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsLeer ?? idsPagina!).overrideTypes<FilaDynamo[], { merge: false }>();
       if (r.error) error = r.error.message;
       data = r.data ?? [];
     }
@@ -142,8 +151,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const plazos = await Promise.all(pend.map((f) => supabase.rpc('pagos_envio', { p_envio: f.id }).maybeSingle()));
     pend.forEach((f, i) => { f.pago_limite = plazos[i].data?.pago_limite ?? null; f.pago_avisado_en = plazos[i].data?.pago_avisado_en ?? null; });
   } else {
-    const { data, error: e } = idsPagina!.length
-      ? await supabase.rpc(rol === 'transportista' ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: idsPagina })
+    const { data, error: e } = (idsLeer ?? idsPagina!).length
+      ? await supabase.rpc(rol === 'transportista' ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: idsLeer ?? idsPagina })
       : { data: [], error: null };
     if (e) error = e.message;
     const mias: (EnvioFila & { operador_id?: string | null })[] = ((data ?? []) as unknown as FilaMia[]).map((x) => ({
@@ -205,6 +214,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   // En el orden que ha dado la base de datos.
   const pos = new Map((idsPagina ?? []).map((id, i) => [id, i]));
   filas.sort((a, b) => (pos.get(a.id) ?? 0) - (pos.get(b.id) ?? 0));
+  if (idsLeer && pestana) filas = colocarEnEspera(filas, idsPagina ?? [], enEspera, pestana, pagina, conteos);
 
   // Quién creó cada envío (columna "Creado por"). Dynamo ve a todos los usuarios.
   const nombres = new Map<string, string>(nombresCliente);
