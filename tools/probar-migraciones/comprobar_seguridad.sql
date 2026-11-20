@@ -11947,7 +11947,8 @@ begin
     values (cli, 'Nave Remite 272', 'Calle Dos 2', '41001', 'Sevilla', 'ES', array['nave@remite272.prueba']) returning id into s2;
   insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
     values (cli2, 'Origen Otro 272', 'Calle Tres 3', '41001', 'Sevilla', 'ES', '{}') returning id into s2b;
-  -- Del cliente con discreción comercial: su destino tampoco recibe nada.
+  -- Del cliente con discreción comercial: su destino TAMBIÉN recibe el resumen (2026-11-20: el
+  -- resumen no dice de parte de qué cliente, así que la discreción no lo impide).
   insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
     values (cli3, 'Origen Discreto 272', 'Calle Cuatro 4', '41001', 'Sevilla', 'ES', '{}') returning id into s3;
   insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, pais_codigo_iso, emails_avisos)
@@ -11969,17 +11970,19 @@ begin
   end if;
   n := encolar_resumen_sitios(null, true);
   select * into r from emails_enviados where tipo = 'resumen_sitio' and destinatario = 'recepcion@destino272.prueba';
-  if r.id is null or (select count(*) from emails_enviados where tipo = 'resumen_sitio' and destinatario like '%272.prueba') <> 1 then
+  if r.id is null or (select count(*) from emails_enviados where tipo = 'resumen_sitio' and destinatario like '%272.prueba') <> 2
+     or not exists (select 1 from emails_enviados where tipo = 'resumen_sitio' and destinatario = 'almacen@discreto-destino272.prueba') then
     raise exception 'FALLO 272 · el almacén que está en la agenda de dos clientes no recibe un solo resumen (%): %', n,
       (select string_agg(destinatario, ' | ') from emails_enviados where tipo = 'resumen_sitio');
   end if;
-  if position('Remite 272 SL' in r.cuerpo_html) = 0 or position('Otro Remite 272 SL' in r.cuerpo_html) = 0 or position('vuestros clientes' in r.cuerpo_html) = 0
-     or position('Entrega' in r.cuerpo_html) = 0 or position('/baja/' in r.cuerpo_html) = 0 then
-    raise exception 'FALLO 272 · al resumen le faltan los clientes, el tipo o el enlace de baja: %', r.cuerpo_html;
+  if position('Entrega' in r.cuerpo_html) = 0 or position('/baja/' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 272 · al resumen le falta el tipo o el enlace de baja: %', r.cuerpo_html;
   end if;
-  -- Nunca el otro extremo de la ruta, ni clientes con discreción comercial.
-  if position('Sevilla' in r.cuerpo_html) > 0 or position('Origen' in r.cuerpo_html) > 0 or position('Discreto' in r.cuerpo_html) > 0 then
-    raise exception 'FALLO 272 · el resumen enseña el origen de la ruta o un cliente con discreción comercial: %', r.cuerpo_html;
+  -- Nunca el otro extremo de la ruta ni el nombre del cliente.
+  if position('Sevilla' in r.cuerpo_html) > 0 or position('Origen' in r.cuerpo_html) > 0 or position('Remite 272' in r.cuerpo_html) > 0
+     or position('de parte de' in r.cuerpo_html) > 0
+     or position('Discreto 272 SL' in (select cuerpo_html from emails_enviados where destinatario = 'almacen@discreto-destino272.prueba')) > 0 then
+    raise exception 'FALLO 272 · el resumen enseña el origen de la ruta o el cliente: %', r.cuerpo_html;
   end if;
   -- Una vez por dirección y mes.
   if encolar_resumen_sitios(null, true) <> 0 then raise exception 'FALLO 272 · el resumen del mismo mes se prepara dos veces'; end if;
@@ -12000,8 +12003,10 @@ do $$ begin
   end if;
   -- Dado de baja: el mes siguiente ya no se le prepara.
   delete from emails_enviados where tipo = 'resumen_sitio';
-  if encolar_resumen_sitios(null, true) <> 0 then raise exception 'FALLO 272 · se prepara el resumen a una dirección dada de baja'; end if;
-  raise notice 'OK 272 · resumen mensual a los sitios: apagado no sale; un solo email por dirección con todos sus clientes; sin el otro extremo de la ruta, sin discreción comercial y sin la nave del propio cliente; una vez al mes; y la baja funciona';
+  perform encolar_resumen_sitios(null, true);
+  if exists (select 1 from emails_enviados where tipo = 'resumen_sitio' and destinatario = 'recepcion@destino272.prueba') then
+    raise exception 'FALLO 272 · se prepara el resumen a una dirección dada de baja'; end if;
+  raise notice 'OK 272 · resumen mensual a los sitios: apagado no sale; un solo email por dirección; sin el cliente ni el otro extremo de la ruta (y con discreción comercial también sale); sin la nave del propio cliente; una vez al mes; y la baja funciona';
 end $$;
 
 
@@ -13201,6 +13206,7 @@ do $$ declare h text; d text; begin
   if position('Equipo de operaciones' in h) = 0 or position('href="tel:' in h) = 0 or position('href="mailto:' in h) = 0 then
     raise exception 'FALLO 297 · falta la firma con botones'; end if;
   if position(coalesce(parametro('dynamo_razon_social') #>> '{}', 'Dynamo') in h) = 0 then raise exception 'FALLO 297 · el pie no lleva la empresa de Parámetros'; end if;
+  if position('images/email/alvaro.png' in h) = 0 or position('Gestor de tráfico' in h) = 0 then raise exception 'FALLO 297 · la firma no lleva la foto ni el cargo de quien firma'; end if;
   if email_con_diseno(h) <> h then raise exception 'FALLO 297 · envuelve dos veces'; end if;
   h := email_con_diseno('<p>Orden</p>', 'Textil Prueba, SL');
   if position('Textil Prueba, SL' in h) = 0 or position('Equipo de operaciones' in h) > 0 then raise exception 'FALLO 297 · email de un cliente a su transportista con la firma de Dynamo'; end if;

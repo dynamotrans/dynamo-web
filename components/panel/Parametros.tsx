@@ -84,6 +84,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Cuenta bancaria', claves: [], banco: true },
     { titulo: 'Dirección', claves: ['dynamo_direccion', 'dynamo_codigo_postal', 'dynamo_poblacion'] },
     { titulo: 'Contacto', claves: ['dynamo_telefono', 'dynamo_movil', 'dynamo_email', 'dynamo_web'] },
+    { titulo: 'Firma de los emails', claves: ['firma_email_nombre', 'firma_email_cargo', 'firma_email_foto'] },
   ] },
 ];
 const CONOCIDAS = new Set([...SECCIONES.flatMap((s) => s.subs.flatMap((u) => u.claves)), ...BANCO]);
