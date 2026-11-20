@@ -1,10 +1,10 @@
 'use client';
 
-// Control de facturación (solo Dynamo) — usuario, 2026-11-20: «si han sido 160 enviados y no
-// los estoy facturando y cobrando a clientes… tenemos que tener ciertos controles».
-// Arriba, el cuadre por meses (entregados frente a pedidos pasados a Holded y facturados);
-// debajo, cada envío que se puede quedar sin cobrar o con el pedido de Holded mal, con el
-// enlace a su ficha. Lo grave va en rojo; lo que hay que revisar, en naranja.
+// Control de facturación (solo Dynamo) — usuario, 2026-11-20: «que todos los envíos que se han
+// hecho exista su pedido de compra y de venta, y que no falte… al igual que las paralizaciones
+// o penalizaciones… aunque sea cero». No mira facturas, cobros ni margen (eso es de Holded y
+// del propio Dynamo). Arriba, el cuadre por meses (pedidos de venta frente a pedidos de
+// compra pasados a Holded); debajo, cada envío al que le falta algo, con enlace a su ficha.
 import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { controlFacturacionResuelto } from '@/app/panel/(app)/exportaciones/acciones';
@@ -16,22 +16,20 @@ export type FilaControl = {
   tipo: string; gravedad: string; detalle: string; importe: number | null; fecha: string | null; total_tipo: number;
 };
 export type FilaCuadre = {
-  mes: string; entregados: number; venta_en_holded: number; compra_en_holded: number; venta_facturados: number;
-  compra_facturados: number; venta: number; compra: number; cancelados_con_cobro: number;
+  mes: string; envios: number; con_transportista: number; venta_en_holded: number; compra_en_holded: number;
+  penalizaciones: number; venta: number; compra: number;
 };
 
 export const TIPOS_CONTROL: Record<string, string> = {
-  venta_sin_precio: 'Entregados sin precio para el cliente',
-  sin_transportista: 'Entregados sin transportista',
-  compra_sin_precio: 'Entregados sin precio del transportista',
-  compra_sin_venta: 'Compra pasada a Holded sin su venta',
-  compra_facturada_venta_no: 'Factura del transportista recibida y cliente sin facturar',
-  cambio_tras_holded: 'Cambiados después de pasarlos a Holded',
-  venta_sin_holded: 'Entregados sin pasar a Holded como venta',
-  compra_sin_holded: 'Entregados sin pasar a Holded como compra',
-  sin_facturar: 'En Holded y sin facturar al cliente',
-  margen_negativo: 'Con margen negativo',
+  venta_sin_holded: 'Sin pedido de venta en Holded',
+  compra_sin_holded: 'Sin pedido de compra en Holded',
+  compra_sin_venta: 'Compra pasada, venta no',
+  venta_sin_compra: 'Venta pasada, compra no',
+  cambio_tras_holded: 'Cambiados después de pasarlos',
   penalizacion_sin_confirmar: 'Penalizaciones sin confirmar',
+  sin_transportista: 'Entregados sin transportista',
+  venta_sin_precio: 'Porte a 0 € al cliente',
+  compra_sin_precio: 'Porte a 0 € al transportista',
 };
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const mesTxt = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
@@ -71,8 +69,9 @@ export default function ControlFacturacion({ filas, cuadre, error }: { filas: Fi
   return (
     <div id="control-facturacion">
       <p style={{ margin: '0 0 1rem', fontSize: 'var(--fs-l)', color: 'var(--gray-500)', maxWidth: 820, lineHeight: 1.5 }}>
-        Comprueba que <strong>cada envío entregado</strong> tiene su pedido de venta (al cliente) y su pedido de compra (al transportista), que están pasados a Holded con el mismo importe
-        y que se han facturado. Así no se queda ningún envío sin cobrar. Solo envíos de Dynamo: los del transportista propio del cliente no se facturan.
+        Cada envío saca <strong>a la vez</strong> su pedido de venta (al cliente) y su pedido de compra (al transportista), con el <strong>mismo número</strong> (la referencia GX).
+        Cada penalización o paralización confirmada va en los dos, <strong>aunque sea a 0 €</strong>. Aquí se comprueba que no falte ninguno en Holded y que no haya cambiado nada después de pasarlo.
+        Solo envíos de Dynamo: los del transportista propio del cliente no llevan pedidos.
       </p>
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se ha podido leer el control: {error}</div></div>}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
@@ -80,20 +79,18 @@ export default function ControlFacturacion({ filas, cuadre, error }: { filas: Fi
       <h3 style={{ fontSize: 'var(--fs-l)', margin: '0 0 0.5rem' }}>Cuadre por meses</h3>
       <div className="table-wrap" tabIndex={0} style={{ marginBottom: '1.4rem' }}>
         <table className="data" id="cuadre-meses">
-          <thead><tr><th>Mes (fecha de carga)</th><th>Entregados</th><th>Venta en Holded</th><th>Venta facturada</th><th>Compra en Holded</th><th>Factura transportista</th><th className="amount">Venta</th><th className="amount">Compra</th><th className="amount">Margen</th></tr></thead>
+          <thead><tr><th>Mes (fecha de carga)</th><th>Envíos</th><th>Pedidos de venta en Holded</th><th>Pedidos de compra en Holded</th><th>Líneas de penalización</th><th className="amount">Venta</th><th className="amount">Compra</th></tr></thead>
           <tbody>
-            {cuadre.length === 0 ? <tr><td colSpan={9} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--gray-500)' }}>Aún no hay envíos entregados.</td></tr>
+            {cuadre.length === 0 ? <tr><td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--gray-500)' }}>Aún no hay envíos entregados.</td></tr>
               : cuadre.map((c) => (
                 <tr key={c.mes}>
                   <td style={{ whiteSpace: 'nowrap', fontWeight: 700, textTransform: 'capitalize' }}>{mesTxt(c.mes)}</td>
-                  <td><strong>{numero(c.entregados, 0)}</strong>{c.cancelados_con_cobro > 0 && <span className="meta" style={{ display: 'block' }}>+ {c.cancelados_con_cobro} cancelado{c.cancelados_con_cobro === 1 ? '' : 's'} con cobro</span>}</td>
-                  <td><Parte n={c.venta_en_holded} de={c.entregados} /></td>
-                  <td><Parte n={c.venta_facturados} de={c.entregados} /></td>
-                  <td><Parte n={c.compra_en_holded} de={c.entregados} /></td>
-                  <td><Parte n={c.compra_facturados} de={c.entregados} /></td>
+                  <td><strong>{numero(c.envios, 0)}</strong>{c.envios > c.con_transportista && <span className="meta" style={{ display: 'block' }}>{c.envios - c.con_transportista} sin transportista</span>}</td>
+                  <td><Parte n={c.venta_en_holded} de={c.envios} /></td>
+                  <td><Parte n={c.compra_en_holded} de={c.con_transportista} /></td>
+                  <td>{numero(c.penalizaciones, 0)}</td>
                   <td className="amount">{euros(Number(c.venta))}</td>
                   <td className="amount">{euros(Number(c.compra))}</td>
-                  <td className="amount" style={{ color: Number(c.venta) - Number(c.compra) < 0 ? '#c0262d' : undefined }}>{euros(Number(c.venta) - Number(c.compra))}</td>
                 </tr>
               ))}
           </tbody>
@@ -104,7 +101,7 @@ export default function ControlFacturacion({ filas, cuadre, error }: { filas: Fi
         {error ? 'No se ha podido comprobar' : filas.length === 0 ? 'Todo cuadra' : graves > 0 ? `${numero(graves, 0)} caso${graves === 1 ? '' : 's'} grave${graves === 1 ? '' : 's'}` : 'Nada grave · algunas cosas por revisar'}
       </h3>
       {error ? null : filas.length === 0 ? (
-        <div className="modal-ok-box" id="control-todo-ok">Ningún envío entregado se ha quedado sin precio, sin pedido de venta, sin pasar a Holded o sin facturar. Ningún pedido ha cambiado después de pasarlo a Holded.</div>
+        <div className="modal-ok-box" id="control-todo-ok">Todos los envíos entregados tienen su pedido de venta y su pedido de compra en Holded, todas las penalizaciones están confirmadas y nada ha cambiado después de pasarlo.</div>
       ) : (
         <>
           <div className="tabs" id="control-tipos">

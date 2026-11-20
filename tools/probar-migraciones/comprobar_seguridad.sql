@@ -9581,6 +9581,10 @@ do $$ declare c uuid; e1 uuid; e2 uuid; v_con text; v_gx text; v_tot numeric; be
   if (select estado_pago_previo from envios where id = e1) <> 'pendiente' then
     raise exception 'FALLO 228 · el primer envío de un cliente sin crédito debía pedir pago previo';
   end if;
+  -- Los pedidos (venta y compra a la vez) nacen al tener transportista (2026-11-20).
+  alter table envios disable trigger user;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e1;
+  alter table envios enable trigger user;
   -- Sin pagar todavía: el concepto es el porte a secas.
   select "Concepto" into v_con from v_holded_pedido_venta
    where "Num Pedido (referencia_gx_carga)" = (select referencia_gx from envios where id = e1);
@@ -13486,8 +13490,7 @@ begin
   end loop;
   update envios set importe_cliente = null where id = ids[1];                                  -- 1: sin precio de cliente
   update envios set holded_pedido_compra = referencia_gx, holded_compra_total = 450 where id = ids[2];   -- 2: compra sin venta
-  update envios set holded_pedido_venta = referencia_gx, holded_venta_total = 600, holded_pedido_compra = referencia_gx, holded_compra_total = 450,
-                    facturado_compra = true where id = ids[4];                               -- 4: factura del transportista, cliente sin facturar
+  update envios set holded_pedido_venta = referencia_gx, holded_venta_total = 600 where id = ids[4];   -- 4: venta pasada, compra no
   update envios set operador_id = o, importe_cliente = null, importe_transportista = null, transportista_id = null where id = ids[5];   -- 5: manual: no cuenta
   update envios set holded_pedido_venta = referencia_gx, holded_venta_total = 600, holded_pedido_compra = referencia_gx, holded_compra_total = 450,
                     facturado_venta = true, facturado_compra = true where id = ids[6];       -- 6: todo bien
@@ -13510,8 +13513,8 @@ begin
     raise exception 'FALLO 303 · una compra pasada a Holded sin su venta no sale en el control'; end if;
   if not exists (select 1 from control_facturacion() c where c.envio_id = ids[3] and c.tipo = 'cambio_tras_holded' and c.detalle like '%600,00 €%650,00 €%') then
     raise exception 'FALLO 303 · un cambio de precio después de pasarlo a Holded no sale: %', (select array_agg(c.tipo || ': ' || c.detalle) from control_facturacion() c where c.envio_id = ids[3]); end if;
-  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[4] and c.tipo = 'compra_facturada_venta_no') then
-    raise exception 'FALLO 303 · la factura del transportista sin facturar al cliente no sale'; end if;
+  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[4] and c.tipo = 'venta_sin_compra') then
+    raise exception 'FALLO 303 · un pedido de venta pasado sin su compra no sale'; end if;
   if exists (select 1 from control_facturacion() c where c.envio_id in (ids[5], ids[6])) then
     raise exception 'FALLO 303 · sale un envío manual o uno que cuadra: %', (select array_agg(c.tipo) from control_facturacion() c where c.envio_id in (ids[5], ids[6])); end if;
 
@@ -13521,7 +13524,7 @@ begin
     raise exception 'FALLO 303 · «ya corregido en Holded» no lo quita del control: %', r; end if;
 
   -- El cuadre del mes: los entregados de Dynamo (el manual no) frente a lo pasado y facturado.
-  select q.entregados - (select count(*) from envios x where x.operador_id is null and x.estado = 'entregado'
+  select q.envios - (select count(*) from envios x where x.operador_id is null and x.estado = 'entregado'
                           and date_trunc('month', coalesce(x.fecha_carga_real, x.fecha_carga_desde)) = date_trunc('month', dia) and not (x.id = any (ids)))
     into n from cuadre_facturacion(2) q where q.mes = date_trunc('month', dia)::date;
   if n is distinct from 5 then raise exception 'FALLO 303 · el cuadre no cuenta los 5 entregados de Dynamo (cuenta %)', n; end if;
@@ -13531,7 +13534,7 @@ begin
   if avisar_control_facturacion(true) <> 1 or avisar_control_facturacion(true) <> 0 then
     raise exception 'FALLO 303 · el email del control no sale una sola vez por semana'; end if;
   if not exists (select 1 from emails_enviados where clave = 'control_facturacion:' || to_char((now() at time zone 'Europe/Madrid')::date, 'IYYY-IW')
-                 and tipo = 'control_facturacion' and cuerpo_html like '%>Abrir el control de facturación</a>%' and cuerpo_html like '%Compra pasada a Holded sin su venta%') then
+                 and tipo = 'control_facturacion' and cuerpo_html like '%>Abrir el control de facturación</a>%' and cuerpo_html like '%Pedido de compra pasado y el de venta no%') then
     raise exception 'FALLO 303 · el email del control no lleva el resumen ni el botón'; end if;
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
     if not exists (select 1 from cron.job where jobname = 'dynamo-control-facturacion') then raise exception 'FALLO 303 · falta la tarea del lunes'; end if;
@@ -13553,7 +13556,7 @@ do $$ begin
   exception when insufficient_privilege then null; end;
   begin perform * from cuadre_facturacion(); raise exception 'FALLO 303 · un cliente ve el cuadre de facturación';
   exception when insufficient_privilege then null; end;
-  raise notice 'OK 303 · control de facturación: entregado sin precio, compra sin venta, cambio después de Holded y factura del transportista sin facturar al cliente salen (los manuales y lo que cuadra, no); «ya corregido» lo quita; cuadre por meses; email del lunes una vez por semana; el cliente no lo ve';
+  raise notice 'OK 303 · control de facturación: entregado sin precio, compra sin venta, venta sin compra y cambio después de Holded salen (los manuales y lo que cuadra, no); «ya corregido» lo quita; cuadre por meses; email del lunes una vez por semana; el cliente no lo ve';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -13573,4 +13576,79 @@ do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e303'), ',')
   alter table envios enable trigger user; alter table envio_paradas enable trigger user;
   delete from operadores where id = current_setting('prueba.o303')::uuid;
   delete from transportistas where id = current_setting('prueba.t303')::uuid;
+end $$;
+
+-- ---- 304. Pedidos de venta y de compra a la par, también las líneas a 0 € ----------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare t uuid; e uuid; s uuid; p uuid; n int; ref text; cli uuid := current_setting('prueba.cliente')::uuid;
+  dia date := (now() at time zone 'Europe/Madrid')::date - 10;
+begin
+  insert into transportistas (razon_social, cif) values ('Transportes 304 SL', 'B30400001') returning id into t;
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta,
+                      transportista_id, estado, entregado_en, fecha_carga_real)
+    values (cli, 6, 5, 600, 450, dia, dia, t, 'entregado', now() - interval '10 days', dia) returning id, referencia_gx into e, ref;
+  -- Otro aún sin transportista: no saca ningún pedido (ni de venta ni de compra).
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta, estado)
+    values (cli, 6, 5, 600, dia + 40, dia + 41, 'programado') returning id into s;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28821', 'Coslada', 'ES'),
+                                                                                                       (s, 1, 'carga', '41001', 'Sevilla', 'ES'), (s, 2, 'descarga', '28821', 'Coslada', 'ES');
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  perform set_config('prueba.e304', e || ',' || s, false);
+  perform set_config('prueba.t304', t::text, false);
+
+  -- Paralización: 40 € al transportista, nada al cliente → la del cliente queda a 0 €.
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_transportista)
+    values (e, (select id from tipos_penalizacion where clave = 'paralizacion'), 'Espera 3 h en carga', 40) returning id into p;
+  update penalizaciones set estado = 'confirmada' where id = p;
+  if (select importe_cliente from penalizaciones where id = p) is distinct from 0 then
+    raise exception 'FALLO 304 · el importe vacío al cliente no se guarda como 0'; end if;
+  if (select count(*) from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref) <> 2
+     or (select count(*) from v_holded_pedido_compra where "Num Pedido (referencia_gx_carga)" = ref) <> 2
+     or not exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref and "Concepto" = 'paralizacion' and "Precio unidad" = 0)
+     or not exists (select 1 from v_holded_pedido_compra where "Num Pedido (referencia_gx_carga)" = ref and "Concepto" = 'paralizacion' and "Precio unidad" = 40) then
+    raise exception 'FALLO 304 · el porte y la paralización no salen en los dos pedidos (con su 0 €)'; end if;
+  if exists (select 1 from v_lineas_pedido where envio_id = s) then
+    raise exception 'FALLO 304 · un envío sin transportista saca un pedido sin el otro'; end if;
+
+  -- Pasados los dos; luego otra penalización a 0 € en los dos lados: se nota.
+  n := marcar_exportados('venta', array[ref], true) + marcar_exportados('compra', array[ref], true);
+  if n <> 2 or (select holded_venta_lineas from envios where id = e) <> 2 or (select holded_compra_lineas from envios where id = e) <> 2 then
+    raise exception 'FALLO 304 · al pasar a Holded no se guardan las líneas'; end if;
+  if exists (select 1 from control_facturacion() c where c.envio_id = e) then
+    raise exception 'FALLO 304 · con todo pasado sale en el control: %', (select array_agg(c.tipo) from control_facturacion() c where c.envio_id = e); end if;
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado)
+    values (e, (select id from tipos_penalizacion where clave = 'otro'), 'Repercusión anulada', 0, 0, 'confirmada');
+  if not exists (select 1 from control_facturacion() c where c.envio_id = e and c.tipo = 'cambio_tras_holded' and c.detalle like '%tenía 2 líneas y ahora 3%') then
+    raise exception 'FALLO 304 · una penalización nueva a 0 € después de pasarlo no sale en el control'; end if;
+end $$;
+-- El cliente ve la paralización, a 0 €.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := split_part(current_setting('prueba.e304'), ',', 1)::uuid; begin
+  if not exists (select 1 from mis_penalizaciones() m where m.envio_id = e and m.importe_cliente = 0) then
+    raise exception 'FALLO 304 · el cliente no ve la penalización que se le cobra a 0 €'; end if;
+  raise notice 'OK 304 · pedidos de venta y de compra a la par: el envío los saca a la vez al tener transportista; cada penalización sale en los dos aunque sea a 0 € (vacío = 0) y el cliente la ve a 0 €; una línea nueva después de pasarlo a Holded se nota';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e304'), ',')::uuid[]; begin
+  alter table penalizaciones disable trigger user;
+  delete from penalizaciones where envio_id = any (ids);
+  alter table penalizaciones enable trigger user;
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  delete from emails_enviados where envio_id = any (ids);
+  delete from avisos where envio_id = any (ids);
+  delete from envio_cambios where envio_id = any (ids);
+  alter table envio_hitos disable trigger user;
+  delete from envio_hitos where envio_id = any (ids);
+  alter table envio_hitos enable trigger user;
+  delete from envio_ofertas where envio_id = any (ids);
+  delete from envio_reservas where envio_id = any (ids);
+  delete from cmr_enlaces where envio_id = any (ids);
+  delete from envio_paradas where envio_id = any (ids);
+  delete from envios where id = any (ids);
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  delete from transportistas where id = current_setting('prueba.t304')::uuid;
 end $$;

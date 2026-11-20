@@ -2067,6 +2067,8 @@ export type Database = {
           pago_avisado_en: string | null
           holded_venta_total: number | null
           holded_compra_total: number | null
+          holded_venta_lineas: number | null
+          holded_compra_lineas: number | null
         }
         Insert: {
           id?: string
@@ -2190,6 +2192,8 @@ export type Database = {
           pago_avisado_en?: string | null
           holded_venta_total?: number | null
           holded_compra_total?: number | null
+          holded_venta_lineas?: number | null
+          holded_compra_lineas?: number | null
         }
         Update: {
           id?: string
@@ -2313,6 +2317,8 @@ export type Database = {
           pago_avisado_en?: string | null
           holded_venta_total?: number | null
           holded_compra_total?: number | null
+          holded_venta_lineas?: number | null
+          holded_compra_lineas?: number | null
         }
         Relationships: [
           {
@@ -4010,7 +4016,7 @@ export type Database = {
       credito_revisar_pagos_todos: { Args: Record<PropertyKey, never>; Returns: number }
       credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
-      cuadre_facturacion: { Args: { p_meses?: number | null }; Returns: { mes: string; entregados: number; venta_en_holded: number; compra_en_holded: number; venta_facturados: number; compra_facturados: number; venta: number; compra: number; cancelados_con_cobro: number }[] }
+      cuadre_facturacion: { Args: { p_meses?: number | null }; Returns: { mes: string; envios: number; con_transportista: number; venta_en_holded: number; compra_en_holded: number; penalizaciones: number; venta: number; compra: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
       cuadro_mando_sectores: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: { sector: string; clientes: number; realizados: number; facturacion: number; margen: number }[] }
       cuenta_mis_envios_sin_asignar: { Args: Record<PropertyKey, never>; Returns: number }

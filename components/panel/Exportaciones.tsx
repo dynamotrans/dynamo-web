@@ -105,7 +105,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
         <button type="button" id="export-control" className={`stat-card stat-card-link${verControl ? ' export-activa' : ''}`} onClick={() => { setVerControl(true); setAviso(null); }} aria-pressed={verControl}>
           <span className="stat-card-label">Control de facturación</span>
           <span className="stat-card-value" style={{ color: control.error || casos.graves > 0 ? '#c0262d' : casos.revisar > 0 ? '#d97706' : 'var(--green-dark, #15803d)' }}>{control.error ? '?' : casos.graves > 0 ? casos.graves : casos.revisar > 0 ? casos.revisar : '✓'}</span>
-          <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600 }}>{control.error ? 'No se ha podido comprobar' : casos.graves > 0 ? `grave${casos.graves === 1 ? '' : 's'} · envíos sin cobrar o mal pasados` : casos.revisar > 0 ? 'por revisar · nada grave' : 'Todo cuadra'}</span>
+          <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600 }}>{control.error ? 'No se ha podido comprobar' : casos.graves > 0 ? `caso${casos.graves === 1 ? '' : 's'} · pedidos que faltan o cambiaron` : casos.revisar > 0 ? 'por revisar · nada grave' : 'Todo cuadra'}</span>
         </button>
       </div>
 

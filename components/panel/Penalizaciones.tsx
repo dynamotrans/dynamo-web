@@ -255,7 +255,7 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
         </div>
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.5rem 0 0', lineHeight: 1.45 }}>
-        Una <strong>paralización</strong> la pide el transportista y Dynamo la repercute al cliente: rellena los dos importes. El cliente solo ve el suyo.
+        Una <strong>paralización</strong> la pide el transportista y Dynamo la repercute al cliente: rellena los dos importes. El cliente solo ve el suyo. El que dejes vacío se guarda a <strong>0 €</strong> y sale igual en su pedido (venta o compra) a 0 €: así consta que se aplicó, y el cliente la ve aunque no se le cobre.
         {fila?.generada_auto ? ' Si cambias los importes de una automática, queda marcada como renegociada y ya no se retira sola al deshacer la cancelación.' : ''}
       </p>
       <div className="modal-form-row" style={{ marginTop: '0.8rem' }}>
