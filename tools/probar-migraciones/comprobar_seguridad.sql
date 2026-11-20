@@ -13762,9 +13762,10 @@ begin
 
   perform recalcular_notas_transportistas();
   select * into d from transportista_notas where transportista_id = t;
-  -- puntualidad 3/4 · 35 % + (1 − 2·1/5) · 25 % + (1 − 2·1/4) · 15 % + (4,5−1)/4 · 25 % = 7,06 → menos 1 (ITV vencida) = 6,1
+  -- puntualidad 3/4 · 35 % + (1 − 2·1/5) · 25 % + (1 − 2·1/4) · 15 % + (4,5−1)/4 · 25 % = 7,06 → 7,1
+  -- (la ITV vencida de su camión NO cuenta: la documentación es cosa del transportista).
   if d.envios <> 4 or d.puntuales <> 3 or d.con_fechas <> 4 or d.cancelaciones <> 1 or d.con_incidencia <> 1
-     or d.valoracion <> 4.50 or d.valoraciones <> 2 or d.papeles_vencidos <> 1 or d.nota <> 6.1 then
+     or d.valoracion <> 4.50 or d.valoraciones <> 2 or d.nota <> 7.1 then
     raise exception 'FALLO 308 · la nota del transportista no sale como debe: %', row_to_json(d); end if;
   if (select nota from transportista_notas where transportista_id = t2) is not null
      or (select envios from transportista_notas where transportista_id = t2) <> 2 then
@@ -13784,7 +13785,7 @@ set role authenticated;
 do $$ begin
   if not exists (select 1 from transportista_notas where transportista_id = split_part(current_setting('prueba.t308'), ',', 1)::uuid) then
     raise exception 'FALLO 308 · Dynamo no ve la nota'; end if;
-  raise notice 'OK 308 · nota del transportista: puntualidad, cancelaciones, incidencias, valoraciones y papeles vencidos dan 6,1; con pocos envíos no hay nota; ordena la oferta escalonada; solo la ve Dynamo';
+  raise notice 'OK 308 · nota del transportista: puntualidad, cancelaciones, incidencias y valoraciones dan 7,1 (la ITV vencida no cuenta); con pocos envíos no hay nota; ordena la oferta escalonada; solo la ve Dynamo';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

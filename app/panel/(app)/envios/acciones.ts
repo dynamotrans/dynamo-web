@@ -792,7 +792,7 @@ export async function infoTransportista(id: string): Promise<{ estado: string; m
   const [{ data: t }, { data: c }, { data: n }] = await Promise.all([
     s.supabase.from('transportistas').select('estado_operativo, suspension_motivo').eq('id', id).maybeSingle(),
     s.supabase.rpc('cancelaciones_transportistas', { p_ids: [id] }).maybeSingle(),
-    s.supabase.from('transportista_notas').select('nota, envios, puntuales, con_fechas, cancelaciones, con_incidencia, valoracion, valoraciones, papeles_vencidos, calculada_en').eq('transportista_id', id).maybeSingle(),
+    s.supabase.from('transportista_notas').select('nota, envios, puntuales, con_fechas, cancelaciones, con_incidencia, valoracion, valoraciones, calculada_en').eq('transportista_id', id).maybeSingle(),
   ]);
   if (!t) return null;
   return { estado: t.estado_operativo, motivo: t.suspension_motivo ?? null, cancelaciones: c?.cancelaciones ?? 0, cargas: c?.cargas ?? 0,

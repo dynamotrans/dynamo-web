@@ -65,7 +65,7 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'El cliente ve el teléfono del conductor en la plataforma desde el día antes de la carga hasta estas horas después de marcar el envío como entregado. En los emails nunca va.',
     ejemplo: (v) => `Con ${v} h: entregado el martes a las 12:00 → lo ve hasta el ${Number(v) >= 24 ? 'miércoles' : 'martes'} a las ${String((12 + Number(v)) % 24).padStart(2, '0')}:00.` },
   nota_transportista_meses: { titulo: 'Nota del transportista: meses que cuenta',
-    explica: 'Cada noche se calcula una nota de 0 a 10 por transportista con sus envíos entregados de estos últimos meses: puntualidad (35 %), veces que nos dejó tirados (25 %), envíos con incidencia (15 %) y las estrellas de Dynamo y de los clientes (25 %); un punto menos si tiene un camión con la ITV, el seguro o la tarjeta vencidos. Ordena a quién se le ofrece antes la carga. Solo la ve Dynamo.',
+    explica: 'Cada noche se calcula una nota de 0 a 10 por transportista con sus envíos entregados de estos últimos meses: puntualidad (35 %), veces que nos dejó tirados (25 %), envíos con incidencia (15 %) y las estrellas de Dynamo y de los clientes (25 %). No mira su documentación (es cosa suya). Ordena a quién se le ofrece antes la carga. Solo la ve Dynamo.',
     ejemplo: (v) => `Con ${v}: lo que hizo hace más de ${v} meses ya no cuenta, ni para bien ni para mal.` },
   nota_transportista_min_envios: { titulo: 'Nota del transportista: envíos mínimos',
     explica: 'Con menos envíos entregados que este número en el periodo, no se le pone nota (sale «pocos envíos»): con uno o dos viajes la nota no sería justa.',

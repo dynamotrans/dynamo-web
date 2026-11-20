@@ -853,7 +853,7 @@ test.describe('novedades', () => {
     const sb = bd();
     const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
     const nota = { transportista_id: t!.id, nota: 8.4, envios: 12, puntuales: 11, con_fechas: 12, cancelaciones: 0, con_incidencia: 1,
-      valoracion: 4.5, valoraciones: 4, papeles_vencidos: 0 };
+      valoracion: 4.5, valoraciones: 4 };
     await sb.from('transportista_notas').upsert(nota);
     await entrar(page, 'dynamo');
     await page.goto(`/panel/transportistas?ver=${t!.id}`);

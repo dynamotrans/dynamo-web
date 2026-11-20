@@ -33,7 +33,7 @@ export type TransportistaFila = TransportistaDatos & {
   // Cancelaciones suyas («nos deja tirados») desde su última reactivación (usuario, 2026-11-20).
   cancel?: { cancelaciones: number; cargas: number; cancelaciones_ultimas: number; ultimas: number; ultima: string | null } | null;
   suspension_motivo?: string | null; suspendido_en?: string | null;
-  // Nota automática de 0 a 10 (puntualidad, cancelaciones, incidencias, valoraciones, papeles).
+  // Nota automática de 0 a 10 (puntualidad, cancelaciones, incidencias, valoraciones).
   nota?: NotaTransportista | null;
 };
 
@@ -379,7 +379,7 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
             {fila.nota && <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem', fontSize: 'var(--fs-s)', lineHeight: 1.55 }}>
               {piezasNota(fila.nota).map((l) => <li key={l}>{l}</li>)}
             </ul>}
-            {nota('Se calcula cada noche con sus envíos de los últimos meses (Parámetros): puntualidad 35 %, cancelaciones 25 %, incidencias 15 % y valoraciones 25 %; un punto menos con papeles vencidos. Ordena a quién se le ofrece antes la carga. El transportista no la ve.')}
+            {nota('Se calcula cada noche con sus envíos de los últimos meses (Parámetros): puntualidad 35 %, cancelaciones 25 %, incidencias 15 % y valoraciones 25 %. Ordena a quién se le ofrece antes la carga. El transportista no la ve.')}
           </div>
         )}
         {fila && (

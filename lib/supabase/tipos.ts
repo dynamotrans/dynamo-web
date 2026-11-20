@@ -3410,7 +3410,6 @@ export type Database = {
           con_incidencia: number
           valoracion: number | null
           valoraciones: number
-          papeles_vencidos: number
           calculada_en: string
         }
         Insert: {
@@ -3423,7 +3422,6 @@ export type Database = {
           con_incidencia?: number
           valoracion?: number | null
           valoraciones?: number
-          papeles_vencidos?: number
           calculada_en?: string
         }
         Update: {
@@ -3436,7 +3434,6 @@ export type Database = {
           con_incidencia?: number
           valoracion?: number | null
           valoraciones?: number
-          papeles_vencidos?: number
           calculada_en?: string
         }
         Relationships: [

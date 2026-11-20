@@ -45,7 +45,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
     const { data: canc } = await supabase.rpc('cancelaciones_transportistas', { p_ids: idsLeer });
     const cancelaciones = new Map((canc ?? []).map((c) => [c.transportista_id, c]));
     // Nota automática de 0 a 10 (usuario, 2026-11-20): la calcula la base de datos cada noche.
-    const { data: nts } = await supabase.from('transportista_notas').select('transportista_id, nota, envios, puntuales, con_fechas, cancelaciones, con_incidencia, valoracion, valoraciones, papeles_vencidos, calculada_en').in('transportista_id', idsLeer);
+    const { data: nts } = await supabase.from('transportista_notas').select('transportista_id, nota, envios, puntuales, con_fechas, cancelaciones, con_incidencia, valoracion, valoraciones, calculada_en').in('transportista_id', idsLeer);
     const notasAuto = new Map((nts ?? []).map((n) => [n.transportista_id, n]));
     if (tra.error) error = tra.error.message;
     const porTransportista = new Map<string, FilaContacto[]>();
