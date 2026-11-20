@@ -3983,7 +3983,8 @@ do $$ declare faltan text; begin
                            'recargos_tipo_sitio', 'restricciones_servicio', 'distancias_cp', 'distancias_sitios',
                            'conexion_minutos', 'consultas_precio', 'consultas_precio_web', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos',
                            'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
-                           'emails_enviados')              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
+                           'emails_enviados',              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
+                           'envio_cambios')                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -7437,7 +7438,8 @@ do $$ declare faltan text; begin
                            'auditoria',                -- registro inmutable: se consulta, no se mira en vivo
                            'emails_enviados',          -- registro/cola de emails operativos: Dynamo lo repasa en frío
                            'deca_motivos',             -- motivos del DeCA: solo los lee el PDF al generarse
-                           'envio_compartidos')        -- historial de envíos de DeCA, CMR y orden: se lee al abrir su ventana
+                           'envio_compartidos',        -- historial de envíos de DeCA, CMR y orden: se lee al abrir su ventana
+                           'envio_cambios')            -- contador de «anular el cambio»: se pide al pintar la lista y la ficha, que ya se refrescan con la señal de envios
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
     raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
@@ -10362,11 +10364,13 @@ reset role;
 do $$ declare v_src text; begin
   select prosrc into v_src from pg_proc where oid = 'public.enviar_emails_pendientes()'::regprocedure;
   if v_src not like '%for update skip locked%' then raise exception 'FALLO 247 · dos pasadas a la vez podrían mandar el mismo email (falta skip locked)'; end if;
-  if v_src not like '%15 seconds%' then raise exception 'FALLO 247 · la cola podría adelantarse al servidor web (falta el margen de 15 segundos)'; end if;
+  -- Desde 2026-11-20 los emails esperan su plazo (enviar_desde) y los del servidor web los manda él; la cola solo a los 2 minutos.
+  if v_src not like '%x.enviar_desde <= now()%' or v_src not like '%x.via = ''bd'' or x.enviar_desde < now() - interval ''2 minutes''%' then
+    raise exception 'FALLO 247 · la cola podría adelantarse al plazo de los emails o al servidor web'; end if;
   if v_src not like '%24 hours%' then raise exception 'FALLO 247 · se ha perdido la caducidad de 24 horas'; end if;
   if has_function_privilege('authenticated', 'public.enviar_emails_pendientes()', 'execute') then raise exception 'FALLO 247 · cualquiera con sesión puede lanzar la cola de emails'; end if;
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    if not exists (select 1 from cron.job where jobname = 'dynamo-emails-enviar' and schedule = '* * * * *') then
+    if not exists (select 1 from cron.job where jobname = 'dynamo-emails-enviar' and schedule in ('* * * * *', '10 seconds')) then
       raise exception 'FALLO 247 · falta la tarea que manda la cola cada minuto';
     end if;
   end if;
@@ -10700,7 +10704,7 @@ do $$ declare n int; begin
    where s.nspname = 'public' and p.prosrc like '%''Dynamo <%';
   if n <> 0 then raise exception 'FALLO 253 · quedan % funciones que mandan emails con el remitente «Dynamo»', n; end if;
   select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
-   where s.nspname = 'public' and p.proname = 'enviar_emails_pendientes' and p.prosrc like '%format(''Dynamotrans.com <%%s>''%';
+   where s.nspname = 'public' and p.proname = 'enviar_emails_pendientes' and p.prosrc like '%''Dynamotrans.com''), parametro(''dynamo_email'')%';
   if n <> 1 then raise exception 'FALLO 253 · la cola de emails no sale con el remitente «Dynamotrans.com»'; end if;
   raise notice 'OK 253 · los emails de la cola salen con el nombre de remitente «Dynamotrans.com»';
 end $$;
@@ -13211,7 +13215,7 @@ do $$ declare h text; d text; begin
   h := email_con_diseno('<p>Orden</p>', 'Textil Prueba, SL');
   if position('Textil Prueba, SL' in h) = 0 or position('Equipo de operaciones' in h) > 0 then raise exception 'FALLO 297 · email de un cliente a su transportista con la firma de Dynamo'; end if;
   d := pg_get_functiondef('public.enviar_emails_pendientes()'::regprocedure);
-  if position('email_con_diseno(r.cuerpo_html)' in d) = 0 then raise exception 'FALLO 297 · la cola no envuelve los emails'; end if;
+  if position('email_con_diseno(r.cuerpo_html' in d) = 0 then raise exception 'FALLO 297 · la cola no envuelve los emails'; end if;
   d := pg_get_functiondef('public.fn_email_envio_cliente(uuid,text,text,text,text)'::regprocedure);
   if position('>Ver el envío</a>' in d) = 0 then raise exception 'FALLO 297 · el email al cliente sigue con el enlace de texto'; end if;
   d := pg_get_functiondef('public.fn_avisos_reservas()'::regprocedure);
@@ -13224,3 +13228,83 @@ do $$ begin
   raise notice 'OK 297 · emails con diseño común: logo, botones a todo el ancho en el móvil, firma y pie de Parámetros; la cola los envuelve';
 end $$;
 reset role;
+
+-- ---- 298. Los emails esperan 30 s y el cambio de un envío se puede anular -----------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; x uuid; begin
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  insert into envios (cliente_id, estado, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, referencia_cliente)
+    values (cli, 'programado', 6, 5, 600, 450, current_date + 20, current_date + 22, 'C298') returning id into x;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, pais_codigo_iso) values (x, 1, 'carga', '41001', 'ES'), (x, 2, 'descarga', '28001', 'ES');
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  perform set_config('prueba.e298', x::text, false);
+  -- Sin persona (un proceso automático): el email espera, pero no se abre ningún cambio.
+  insert into emails_enviados (clave, tipo, envio_id, destinatario, asunto, cuerpo_html) values ('p298a', 'envio_modificado', x, 'a@b.prueba', 'A', '<p>a</p>');
+  if (select enviar_desde from emails_enviados where clave = 'p298a') < now() + interval '25 seconds' then raise exception 'FALLO 298 · el email no espera su plazo'; end if;
+  update envios set referencia_cliente = 'C298b' where id = x;
+  if exists (select 1 from envio_cambios where envio_id = x) then raise exception 'FALLO 298 · un proceso automático abre un cambio'; end if;
+  if position('x.enviar_desde <= now()' in pg_get_functiondef('public.enviar_emails_pendientes()'::regprocedure)) = 0 then
+    raise exception 'FALLO 298 · la cola no respeta el plazo de los emails'; end if;
+end $$;
+-- Dynamo cambia el envío y su ruta: se abre UN cambio con la foto de antes y el email se cuelga de él.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare x uuid := current_setting('prueba.e298')::uuid; c record; begin
+  update envios set metros_lineales = 8 where id = x;
+  update envio_paradas set codigo_postal = '28002' where envio_id = x and orden = 2;
+  insert into emails_enviados (clave, tipo, envio_id, destinatario, asunto, cuerpo_html) values ('p298b', 'envio_modificado', x, 'a@b.prueba', 'B', '<p>b</p>');
+  select * into c from envio_cambios where envio_id = x and estado = 'abierto';
+  if c.id is null or (select count(*) from envio_cambios where envio_id = x) <> 1 or c.tipo <> 'modificado'
+     or (c.antes ->> 'metros_lineales')::numeric <> 6 or c.paradas_antes -> 1 ->> 'codigo_postal' <> '28001' then
+    raise exception 'FALLO 298 · el cambio no guarda la foto de antes: %', c;
+  end if;
+  if (select cambio_id from emails_enviados where clave = 'p298b') is distinct from c.id
+     or (select enviar_desde from emails_enviados where clave = 'p298b') < c.vence_en then
+    raise exception 'FALLO 298 · el email no espera al final del cambio';
+  end if;
+end $$;
+-- Otro usuario (no es quien hizo el cambio ni Dynamo) no lo ve ni lo puede anular.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare x uuid := current_setting('prueba.e298')::uuid; begin
+  if exists (select 1 from pendientes_envios(array[x])) then raise exception 'FALLO 298 · otro usuario ve el contador del cambio de Dynamo'; end if;
+  begin perform anular_cambio_envio(x); raise exception 'FALLO 298 · otro usuario anula el cambio de Dynamo';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare x uuid := current_setting('prueba.e298')::uuid; r record; j jsonb; begin
+  select * into r from pendientes_envios(array[x]);
+  if r.envio_id is null or r.tipo <> 'modificado' or not r.puede_anular or r.vence_en < now() + interval '20 seconds' then
+    raise exception 'FALLO 298 · el contador de Dynamo no sale bien: %', r; end if;
+  j := anular_cambio_envio(x);
+  if j ->> 'resultado' <> 'anulado' then raise exception 'FALLO 298 · no se anula el cambio: %', j; end if;
+end $$;
+reset role;
+do $$ declare x uuid := current_setting('prueba.e298')::uuid; begin
+  if (select metros_lineales from envios where id = x) <> 6
+     or (select codigo_postal from envio_paradas where envio_id = x and orden = 2) <> '28001' then
+    raise exception 'FALLO 298 · al anular, el envío no vuelve a como estaba'; end if;
+  if (select estado from emails_enviados where clave = 'p298b') <> 'omitido' then raise exception 'FALLO 298 · al anular, el email sale igual'; end if;
+  if (select estado from envio_cambios where envio_id = x order by creado_en desc limit 1) <> 'anulado' then raise exception 'FALLO 298 · el cambio no queda anulado'; end if;
+  -- Pasado el plazo ya no se puede anular.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  update envios set metros_lineales = 9 where id = x;
+  update envio_cambios set vence_en = now() - interval '1 minute' where envio_id = x and estado = 'abierto';
+  if anular_cambio_envio(x) ->> 'resultado' <> 'ya_salio' or (select metros_lineales from envios where id = x) <> 9 then
+    raise exception 'FALLO 298 · se anula un cambio con el plazo vencido'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 298 · los emails esperan su plazo; el cambio guarda la foto de antes y solo lo anulan Dynamo o su autor: el envío vuelve atrás y el email no sale';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  delete from emails_enviados where clave in ('p298a', 'p298b') or envio_id = current_setting('prueba.e298')::uuid;
+  delete from envio_ofertas where envio_id = current_setting('prueba.e298')::uuid;
+  delete from avisos where envio_id = current_setting('prueba.e298')::uuid;
+  delete from envio_paradas where envio_id = current_setting('prueba.e298')::uuid;
+  delete from envios where id = current_setting('prueba.e298')::uuid;
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+end $$;

@@ -4,6 +4,7 @@
 // le toca ver (mis_envios(): sin precio del transportista, ni margen, ni factor; regla 11
 // aplicada). Si es una solicitud, aquí acepta o rechaza el precio. Puede cancelar mientras
 // el camión no va hacia la carga, reportar una incidencia y repetir el envío.
+import ContadorCambio from '@/components/panel/ContadorCambio';
 import CuentaAtras from './CuentaAtras';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
@@ -16,7 +17,7 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
-import { estadoVisual, fechaEntrega, type EnvioFila, type Parada } from '@/lib/envios';
+import { estadoVisual, fechaEntrega, type CambioPendiente, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
 import { avisarPagoTransferencia, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
@@ -78,7 +79,7 @@ export type EnvioCliente = EnvioClienteBase & {
 };
 const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic', fontWeight: 500 }}>Pendiente</span>;
 
-export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string }) {
+export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendiente = null }: { e: EnvioCliente; etapas?: Etapa[]; cerrarHref: string; pendiente?: CambioPendiente | null }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar' | 'llamarCancelar' | 'enviarOrden'>('ficha');
@@ -269,6 +270,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref }: { e: E
       sub={<span className={`badge badge-${ev.color}`}>{ev.label}</span>} icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {trabajando && <Cargando texto={trabajando} />}
+      {/* Contador de 30 s: el aviso del último cambio aún no ha salido y se puede anular. */}
+      <ContadorCambio barra envio={e.id} referencia={e.referencia_gx} pendiente={pendiente} />
       {/* CABECERA EN CAJA, la misma que la ficha de Dynamo (usuario, 2026-11-12: «mismo
           formato, diseño y botones que admin»): fecha, ruta con todas las paradas,
           mercancía y precio, cada cosa en su fila. */}

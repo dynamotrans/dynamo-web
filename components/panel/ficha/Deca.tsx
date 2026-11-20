@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from 'react';
 import Modal from '../Modal';
+import { useRefrescar } from '@/lib/useRefrescar';
 import CompartirSheet from '@/components/CompartirSheet';
 import type { Ficha } from '@/lib/fichaEnvio';
 import { emailDecaPlataforma, anotarCompartido } from '@/app/panel/(app)/envios/acciones';
@@ -22,6 +23,7 @@ const fila: CSSProperties = {
 export function Deca({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
   const e = ficha.envio;
   const token = ficha.cmrEnlace?.token ?? null;
+  const refrescar = useRefrescar();   // para que la ficha enseñe el contador de 30 s del email
   const [mandando, setMandando] = useState(false);
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [compartir, setCompartir] = useState(false);
@@ -33,9 +35,10 @@ export function Deca({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }
   async function enviar() {
     setAviso(null); setMandando(true);
     const r = await emailDecaPlataforma(e.id).catch(() => ({ ok: false as const, error: 'No se ha podido enviar.' }));
-    setAviso(r.ok ? { ok: true, txt: `DeCA enviado a ${r.para}, con el PDF adjunto.` } : { ok: false, txt: r.error });
+    setAviso(r.ok ? { ok: true, txt: `El DeCA sale en 30 segundos hacia ${r.para}, con el PDF adjunto. Hasta entonces lo puedes anular con el contador de la ficha.` } : { ok: false, txt: r.error });
     setMandando(false);
     setRecarga((n) => n + 1);
+    if (r.ok) refrescar();
   }
 
   return (

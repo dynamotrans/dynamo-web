@@ -3,7 +3,7 @@
 // Van después de los flujos clave (orden alfabético de ficheros, un solo trabajador) y
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
 import { expect } from '@playwright/test';
-import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, CIF_TRANSPORTISTA, EMAIL, CLAVE, codigoDelMovil } from './ayudas';
+import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, envioProgramadoDelTransportista, CIF_TRANSPORTISTA, EMAIL, CLAVE, codigoDelMovil } from './ayudas';
 
 const CIF_CLIENTE = 'B12345674';
 
@@ -470,6 +470,26 @@ test.describe('novedades', () => {
     await expect(page.locator('.dyn-cargando')).toHaveCount(0);
   });
 
+  // 30 s para arrepentirse (usuario, 2026-11-20): todos los emails esperan; la ficha y la lista
+  // enseñan el contador y, al pulsarlo, «¿Deseas anular el cambio realizado?» deja el envío
+  // como estaba (uno recién creado, anulado sin coste) y sus emails no salen.
+  test('contador de 30 s: anular el envío recién creado lo deja cancelado y sin emails', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await crearEnvioDeCliente(page);
+    const { id, referencia_gx } = await ultimoEnvio();
+    // En «Todas»: según la cuenta, el envío nace en «Pendientes de pago» o en «Programados».
+    await page.goto('/panel/envios?f=todas');
+    await expect(page.locator('tr', { hasText: `#${referencia_gx}` }).locator('.cc-chip')).toBeVisible();
+    await page.goto(`/panel/envios?ver=${id}`);
+    await page.locator('.cc-barra').click();
+    await expect(page.getByRole('heading', { name: '¿Deseas anular el cambio realizado?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Sí, anular el cambio' }).click();
+    await expect(page.getByText(/Envío anulado sin coste/)).toBeVisible();
+    await expect.poll(async () => (await ultimoEnvio()).estado).toBe('cancelado');
+    const { data: mails } = await bd().from('emails_enviados').select('estado').eq('envio_id', id);
+    expect((mails ?? []).filter((m) => m.estado !== 'omitido')).toEqual([]);
+  });
+
   // El contenido REAL de los ficheros (usuario, 2026-11-18): el almacén solo admite PDF e
   // imágenes, pero el tipo lo declara quien sube. Un programa con nombre de albarán no entra
   // por la pantalla, no se registra aunque alguien se salte la pantalla y, si ya estuviera
@@ -669,9 +689,7 @@ test.describe('novedades', () => {
 
   test('transportista sin matrículas: direcciones ocultas, aviso rojo y sin eCMR; con ellas, todo', async ({ page }) => {
     const sb = bd();
-    const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
-    const { data: e } = await sb.from('envios').select('id, matricula_camion, matricula_remolque').eq('transportista_id', t!.id)
-      .eq('estado', 'programado').order('creado_en', { ascending: false }).limit(1).single();
+    const { e } = await envioProgramadoDelTransportista('id, matricula_camion, matricula_remolque');
     await sb.from('envios').update({ matricula_camion: null, matricula_remolque: null }).eq('id', e!.id);
     try {
       await entrar(page, 'transportista');
@@ -691,9 +709,7 @@ test.describe('novedades', () => {
 
   test('página «Proporcionar matrículas»: resumen solo con CP, guarda y desaparece el aviso', async ({ page }) => {
     const sb = bd();
-    const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
-    const { data: e } = await sb.from('envios').select('id, matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono, fecha_carga_prevista, fecha_carga_desde')
-      .eq('transportista_id', t!.id).eq('estado', 'programado').order('creado_en', { ascending: false }).limit(1).single();
+    const { t, e } = await envioProgramadoDelTransportista('id, matricula_camion, matricula_remolque, conductor_nombre, conductor_telefono, fecha_carga_prevista, fecha_carga_desde');
     await sb.from('envios').update({ matricula_camion: null, matricula_remolque: null }).eq('id', e!.id);
     let { data: enl } = await sb.from('cmr_enlaces').select('token').eq('envio_id', e!.id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle();
     if (!enl) ({ data: enl } = await sb.from('cmr_enlaces').insert({ envio_id: e!.id }).select('token').single());
@@ -724,9 +740,7 @@ test.describe('novedades', () => {
 
   test('«Ver todas las cargas de vuelta»: solo con el enlace bueno', async ({ page }) => {
     const sb = bd();
-    const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
-    const { data: e } = await sb.from('envios').select('id').eq('transportista_id', t!.id).eq('estado', 'programado')
-      .order('creado_en', { ascending: false }).limit(1).single();
+    const { t, e } = await envioProgramadoDelTransportista();
     let { data: enl } = await sb.from('cmr_enlaces').select('token').eq('envio_id', e!.id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle();
     if (!enl) ({ data: enl } = await sb.from('cmr_enlaces').insert({ envio_id: e!.id }).select('token').single());
     await page.goto(`/cargas-de-vuelta/${enl!.token}?clave=00000000-0000-4000-8000-000000000000&tramo=descarga&tipo=completa`);

@@ -14,7 +14,10 @@ export type AdjuntoEmail = { nombre: string; base64: string; tipo: string };
 
 // Devuelve cómo fue, para los envíos MANUALES que lo enseñan en pantalla (el diálogo de
 // la orden); los avisos automáticos ignoran el resultado, como siempre.
-export type ResultadoEmail = { estado: 'enviado' | 'error'; error?: string };
+// estado «enviado» = aceptado para salir: desde el 2026-11-20 TODOS los emails esperan su
+// plazo (Parámetros → emails_espera_segundos, 30 s) por si el cambio que los provoca se
+// anula; `saleEn` dice cuándo sale.
+export type ResultadoEmail = { estado: 'enviado' | 'error'; error?: string; saleEn?: string };
 
 export async function enviarEmailOperativo(d: {
   clave: string; tipo: 'orden_carga' | 'firma_cmr' | 'cmr_completo' | 'deca' | 'proforma_calculo';
@@ -26,26 +29,35 @@ export async function enviarEmailOperativo(d: {
   // Sin la copia a Dynamo: solo para la orden que un cliente manda a SU transportista
   // (usuario, 2026-11-17: Dynamo no interviene en ese envío, no pinta nada en copia).
   sinCopiaDynamo?: boolean;
+  // Quién lo pide (para que pueda anularlo mientras espera). Sin él, solo Dynamo.
+  autorId?: string | null;
 }): Promise<ResultadoEmail> {
   try {
     const sb = supabaseServicio();
     if (!sb) return { estado: 'error', error: 'Falta la clave de servicio en el servidor (Vercel).' };
+    const opciones = {
+      ...(d.deNombre ? { de_nombre: d.deNombre.replace(/[<>"\r\n,;]/g, ' ').trim().slice(0, 80), remitente: d.deNombre.replace(/\s*\(vía [^)]*\)$/, '') } : {}),
+      ...(d.responderA ? { responder_a: d.responderA } : {}),
+      ...(d.copia ? { copia: d.copia } : {}),
+      ...(d.sinCopiaDynamo ? { sin_copia_dynamo: true } : {}),
+      ...(d.texto ? { texto: d.texto } : {}),
+      ...(d.adjuntos?.length ? { adjuntos: d.adjuntos.map((a) => ({ Name: a.nombre, Content: a.base64, ContentType: a.tipo })) } : {}),
+    };
     // El registro primero: si la clave ya existe, este aviso ya se mandó (o está en
-    // ello) y NO se repite — el insert falla por la clave única y aquí se acaba.
+    // ello) y NO se repite — el insert falla por la clave única y aquí se acaba. La base de
+    // datos le pone el plazo (enviar_desde) y lo cuelga del cambio abierto del envío.
     const { data: fila, error } = await sb.from('emails_enviados').insert({
       clave: d.clave, tipo: d.tipo, envio_id: d.envioId ?? null,
       destinatario: d.para || '—', asunto: d.asunto, cuerpo_html: d.html,
       estado: d.para ? 'pendiente' : 'error',
       error: d.para ? null : 'Sin destinatario con email: avisar a mano.',
-    }).select('id').single();
+      via: 'web', opciones, creado_por: d.autorId ?? null,
+    }).select('id, enviar_desde').single();
     if (error) {
       // Clave repetida (23505): ese aviso ya se mandó, y no se repite. Cualquier OTRO error
-      // es un fallo de verdad (antes salía también como «clave repetida» y tapaba la causa):
-      // se dice tal cual y queda en el registro del servidor.
+      // es un fallo de verdad: se dice tal cual y queda en el registro del servidor.
       if (error.code === '23505') return { estado: 'error', error: 'Este aviso ya se mandó (clave repetida).' };
       console.error('[email operativo] no se ha podido registrar', d.tipo, error.code, error.message);
-      // La clave de servicio de Supabase que hay en Vercel no vale para este proyecto
-      // (mal pegada, de otro proyecto o retirada): no se puede registrar ni enviar nada.
       if (/invalid api key|jwt|unauthorized/i.test(error.message ?? '')) {
         return { estado: 'error', error: 'El envío de emails de la plataforma no está bien configurado (la clave de servicio de Supabase en Vercel no es válida). No se ha enviado: avisa a Dynamo.' };
       }
@@ -60,42 +72,81 @@ export async function enviarEmailOperativo(d: {
       await sb.from('emails_enviados').update({ estado: 'omitido', error: 'Dirección de prueba (.invalid): no se envía.' }).eq('id', fila.id);
       return { estado: 'error', error: 'Es una dirección de prueba (.invalid): no se envía.' };
     }
-    // El diseño común (cabecera, firma y pie), el mismo que la cola de la base de datos: lo
-    // pone email_con_diseno(). Si fallara, sale el cuerpo tal cual (mejor que no mandarlo).
-    const { data: envuelto } = await sb.rpc('email_con_diseno', { p_html: d.html, p_remitente: d.deNombre ? d.deNombre.replace(/\s*\(vía [^)]*\)$/, '') : null });
-    const htmlFinal = (envuelto as string | null) || d.html;
-    const token = process.env.POSTMARK_SERVER_TOKEN;
-    if (!token) {
+    if (!process.env.POSTMARK_SERVER_TOKEN) {
       await sb.from('emails_enviados').update({ estado: 'error', error: 'Falta POSTMARK_SERVER_TOKEN en el servidor.' }).eq('id', fila.id);
       return { estado: 'error', error: 'Falta configurar el envío de email (claves de Postmark en Vercel): el email queda registrado pero SIN enviar.' };
     }
+    // Sale al terminar su plazo: lo manda este mismo servidor después de responder (after).
+    // Si no llega a hacerlo, la cola de la base de datos lo recoge a los 2 minutos.
+    try {
+      const { after } = await import('next/server');
+      after(() => mandarCuandoToque(fila.id));
+    } catch { /* fuera de una petición: lo manda la cola */ }
+    return { estado: 'enviado', saleEn: fila.enviar_desde };
+  } catch { /* nada: el aviso no puede romper la acción que lo dispara */ }
+  return { estado: 'error', error: 'No se ha podido enviar.' };
+}
+
+const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Espera a que termine el plazo del email (que puede alargarse si el envío se vuelve a
+// cambiar) y lo manda, salvo que en ese tiempo se haya anulado (estado ≠ pendiente) o el
+// envío se haya cancelado. Como mucho ~50 s: si no da tiempo, lo manda la cola.
+async function mandarCuandoToque(id: string): Promise<void> {
+  const sb = supabaseServicio();
+  const token = process.env.POSTMARK_SERVER_TOKEN;
+  if (!sb || !token) return;
+  const inicio = Date.now();
+  try {
+    for (;;) {
+      const { data: x } = await sb.from('emails_enviados').select('estado, enviar_desde').eq('id', id).maybeSingle();
+      if (!x || x.estado !== 'pendiente') return;
+      const falta = new Date(x.enviar_desde).getTime() - Date.now();
+      if (falta <= 0) break;
+      if (Date.now() - inicio + falta > 50_000) return;
+      await dormir(falta + 300);
+    }
+    // Lo coge solo uno (este servidor o la cola), aunque coincidan.
+    const { data: f } = await sb.from('emails_enviados').update({ estado: 'enviado', enviado_en: new Date().toISOString() })
+      .eq('id', id).eq('estado', 'pendiente').lte('enviar_desde', new Date().toISOString())
+      .select('id, tipo, envio_id, destinatario, asunto, cuerpo_html, opciones').maybeSingle();
+    if (!f) return;
+    if (f.envio_id && f.tipo !== 'aviso_parada_cancelada') {
+      const { data: e } = await sb.from('envios').select('estado').eq('id', f.envio_id).maybeSingle();
+      if (e?.estado === 'cancelado') {
+        await sb.from('emails_enviados').update({ estado: 'omitido', error: 'El envío se canceló antes de mandarlo.' }).eq('id', id);
+        return;
+      }
+    }
+    const op = (f.opciones ?? {}) as { de_nombre?: string; remitente?: string; responder_a?: string; copia?: string;
+      sin_copia_dynamo?: boolean; texto?: string; adjuntos?: { Name: string; Content: string; ContentType: string }[] };
+    // El diseño común (cabecera, firma y pie), el mismo que la cola: email_con_diseno().
+    const { data: envuelto } = await sb.rpc('email_con_diseno', { p_html: f.cuerpo_html, p_remitente: op.remitente ?? null });
     const res = await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Postmark-Server-Token': token },
       body: JSON.stringify({
-        From: `${(d.deNombre ?? '').replace(/[<>"\r\n,;]/g, ' ').trim().slice(0, 80) || 'Dynamotrans.com'} <${CONTACTO.email}>`,
-        To: d.para, Subject: d.asunto, HtmlBody: htmlFinal, MessageStream: 'outbound',
-        ...(d.texto ? { TextBody: d.texto } : {}),
-        ...(d.responderA ? { ReplyTo: d.responderA } : {}),
+        From: `${op.de_nombre || 'Dynamotrans.com'} <${CONTACTO.email}>`,
+        To: f.destinatario, Subject: f.asunto, HtmlBody: (envuelto as string | null) || f.cuerpo_html, MessageStream: 'outbound',
+        ...(op.texto ? { TextBody: op.texto } : {}),
+        ...(op.responder_a ? { ReplyTo: op.responder_a } : {}),
         // Copia a Dynamo en todos los emails del sistema (usuario, 2026-11-15), salvo
-        // cuando el destinatario ya es Dynamo. (Las ofertas de la difusión, la única
-        // excepción a la copia, no pasan por aquí: van por la cola de la base de datos.)
+        // cuando el destinatario ya es Dynamo o lo que un cliente manda a su transportista.
         ...(() => {
-          const cc = [d.copia, d.sinCopiaDynamo ? null : CONTACTO.email].filter((x): x is string => !!x && !d.para!.toLowerCase().includes(x.toLowerCase()));
+          const cc = [op.copia, op.sin_copia_dynamo ? null : CONTACTO.email].filter((x): x is string => !!x && !f.destinatario.toLowerCase().includes(x.toLowerCase()));
           return cc.length ? { Cc: [...new Set(cc.map((x) => x.toLowerCase()))].join(', ') } : {};
         })(),
-        ...(d.adjuntos?.length ? { Attachments: d.adjuntos.map((a) => ({ Name: a.nombre, Content: a.base64, ContentType: a.tipo })) } : {}),
+        ...(op.adjuntos?.length ? { Attachments: op.adjuntos } : {}),
       }),
     });
     const cuerpo = await res.json().catch(() => null) as { MessageID?: string } | null;
+    const sinAdjuntos = { ...op }; delete sinAdjuntos.adjuntos;   // el PDF no se guarda en la base de datos
     if (res.ok) {
-      await sb.from('emails_enviados').update({ estado: 'enviado', enviado_en: new Date().toISOString(), postmark_id: cuerpo?.MessageID ?? 'ok' }).eq('id', fila.id);
-      return { estado: 'enviado' };
+      await sb.from('emails_enviados').update({ postmark_id: cuerpo?.MessageID ?? 'ok', opciones: sinAdjuntos }).eq('id', id);
+    } else {
+      await sb.from('emails_enviados').update({ estado: 'error', error: `Postmark ${res.status}: ${JSON.stringify(cuerpo ?? {}).slice(0, 400)}` }).eq('id', id);
     }
-    await sb.from('emails_enviados').update({ estado: 'error', error: `Postmark ${res.status}: ${JSON.stringify(cuerpo ?? {}).slice(0, 400)}` }).eq('id', fila.id);
-    return { estado: 'error', error: `El servidor de email ha devuelto un error (${res.status}).` };
-  } catch { /* nada: el aviso no puede romper la acción que lo dispara */ }
-  return { estado: 'error', error: 'No se ha podido enviar.' };
+  } catch { /* si falla aquí, el email sigue pendiente y lo manda la cola */ }
 }
 
 // Escape mínimo para incrustar textos de datos en el HTML del email.

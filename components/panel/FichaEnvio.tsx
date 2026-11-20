@@ -5,6 +5,7 @@
 // primarias según el estado + el resto en «⋯ Más», y las secciones (Solicitud · Transporte
 // · Ruta · Mercancía · Precio · Documentos · Seguimiento · Historial…) en ACORDEÓN con su
 // resumen en la línea. Todo lo vuelve a comprobar el servidor y la base de datos.
+import ContadorCambio from '@/components/panel/ContadorCambio';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -17,7 +18,7 @@ import Documentos from './Documentos';
 import { documentosDe } from '@/app/panel/(app)/documentos/acciones';
 import Cargando from '@/components/Cargando';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
-import { fechaEntrega } from '@/lib/envios';
+import { fechaEntrega, type CambioPendiente } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha } from '@/lib/fichaEnvio';
 import PagoPrevio from './PagoPrevio';
@@ -79,7 +80,7 @@ function MasAcciones({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrarHref: string }) {
+export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { ficha: Ficha; cerrarHref: string; pendiente?: CambioPendiente | null }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const e = ficha.envio;
@@ -248,6 +249,8 @@ export default function FichaEnvio({ ficha, cerrarHref }: { ficha: Ficha; cerrar
         {manual && <span style={{ marginLeft: '0.45rem', background: '#fde047', color: '#111827', border: '1px solid #eab308', borderRadius: 999, padding: '0.15rem 0.6rem', fontWeight: 800, fontSize: 'var(--fs-s)', whiteSpace: 'nowrap' }}>Transportista propio del cliente</span>}</>}
       icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
+      {/* Contador de 30 s: el aviso del último cambio aún no ha salido y se puede anular. */}
+      <ContadorCambio barra envio={e.id} referencia={e.referencia_gx} pendiente={pendiente} />
       {/* CABECERA EN CAJA (usuario, 2026-11-10: «esa info es un caos; ponlo en caja
           simple, ordenado, claro»): fecha, ruta con TODAS las paradas (CP, localidad,
           provincia y país), mercancía y precios, cada cosa en su fila. */}

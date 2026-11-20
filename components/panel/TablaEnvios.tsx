@@ -1,4 +1,5 @@
 import CuentaAtras from './CuentaAtras';
+import ContadorCambio from '@/components/panel/ContadorCambio';
 import Link from 'next/link';
 import EstadoVacio from './EstadoVacio';
 import EtiquetaParada from './EtiquetaParada';
@@ -274,6 +275,8 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         {dynamo && e.requiere_revision_precio && <div className="meta" style={{ color: '#b42318', fontWeight: 800 }}>Revisar precio (ruta cambiada)</div>}
         <strong>#{e.referencia_gx}</strong>
         {e.referencia_cliente && <> <span className="ref-cli-inline">({e.referencia_cliente})</span></>}
+        {/* Contador de 30 s para anular el último cambio (usuario, 2026-11-20). */}
+        {e.pendiente && <div className="cc-en-fila"><ContadorCambio envio={e.id} referencia={e.referencia_gx} pendiente={e.pendiente} /></div>}
         {rol !== 'transportista' && (
           <div className="op-chip2-wrap">
             {manual ? (

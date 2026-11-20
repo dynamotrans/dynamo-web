@@ -1544,7 +1544,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             const r = await enviarProformaCalculo(a, baseP, lineasRuta.join('\n'), lineasDetalle.join('\n'), esCliente || !cliente ? null : cliente.id)
               .catch(() => ({ ok: false as const, error: 'No se ha podido enviar: revisa la conexión y vuelve a intentarlo.' }));
             setProfEnviando(false);
-            setProfMsg(r.ok ? { ok: true, txt: `Enviado a ${a.trim()} con la proforma en PDF adjunta.` } : { ok: false, txt: r.error });
+            setProfMsg(r.ok ? { ok: true, txt: `Sale en unos segundos hacia ${a.trim()}, con la proforma en PDF adjunta.` } : { ok: false, txt: r.error });
             if (r.ok) setProfOtro(null);
           };
           const btnAncho = { width: '100%', minHeight: 52, justifyContent: 'center' } as const;

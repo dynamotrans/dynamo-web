@@ -389,7 +389,7 @@ export async function enviarProformaCalculo(para: string, base: number, ruta: st
     + `<p>Un saludo,<br>Dynamo · ${esc(CONTACTO.telefono)} · ${esc(CONTACTO.email)}</p>`;
   const rutaTxt = rutaL.map((x) => x.split(',')[0].replace(/^\S+\s+/, '')).filter(Boolean).join(' → ');
   const res = await enviarEmailOperativo({
-    clave: `proforma_calculo:${s.perfil.id}:${randomUUID()}`, tipo: 'proforma_calculo', para: email,
+    clave: `proforma_calculo:${s.perfil.id}:${randomUUID()}`, tipo: 'proforma_calculo', para: email, autorId: s.perfil.id,
     asunto: `Precio de transporte${rutaTxt ? ` — ${rutaTxt}` : ''}`.slice(0, 180), html,
     adjuntos: [{ nombre: 'Proforma-calculo.pdf', base64: Buffer.from(r.bytes).toString('base64'), tipo: 'application/pdf' }],
   });

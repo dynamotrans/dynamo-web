@@ -102,6 +102,7 @@ export async function enviarOrdenEnvioManual(envio: string, para: string, guarda
     clave: `orden_propia:${perfil.id}:${envio}:${randomUUID()}`, tipo: 'orden_carga', envioId: envio, para: email,
     asunto: `Pedido de transporte ${ref} - ${empresa}`.slice(0, 180), html, texto,
     deNombre: empresa ? `${empresa} (vía Dynamotrans.com)` : undefined, responderA: mio, copia: mio, sinCopiaDynamo: true,
+    autorId: perfil.id,
     adjuntos: [{ nombre: r.nombre, base64: Buffer.from(r.bytes).toString('base64'), tipo: 'application/pdf' }],
   });
   // El email en su ficha: también si el envío del email ha fallado (lo ha escrito para eso).
@@ -111,7 +112,7 @@ export async function enviarOrdenEnvioManual(envio: string, para: string, guarda
     guardado = !eg;
   }
   return res.estado === 'enviado'
-    ? { ok: true, aviso: `Orden de carga enviada a ${email}.${guardado ? ' El email queda guardado en la ficha del transportista.' : ''}` }
+    ? { ok: true, aviso: `La orden de carga sale hacia ${email} en unos segundos (hasta entonces la puedes anular con el contador de la ficha).${guardado ? ' El email queda guardado en la ficha del transportista.' : ''}` }
     : { ok: false, error: res.error ?? 'No se ha podido enviar el email.' };
 }
 

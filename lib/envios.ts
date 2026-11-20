@@ -11,6 +11,10 @@ export type Parada = {
   provincia: string | null; pais_codigo_iso: string | null;
   tipo_sitio?: string | null;   // almacen_nave, obra_…, finca (para el icono de la pastilla)
 };
+// Lo que espera para salir de un envío (usuario, 2026-11-20): todos los emails esperan 30 s
+// por si hay que anular el cambio. tipo: creado / modificado / cancelado / asignado / email.
+export type CambioPendiente = { vence_en: string; tipo: string; autor: string | null; puede_anular: boolean; emails: number };
+
 export type EnvioFila = {
   id: string; referencia_gx: string; referencia_cliente: string | null;
   estado: string; estado_asignacion: string | null;
@@ -21,6 +25,8 @@ export type EnvioFila = {
   // Entrega estimada (entregas_estimadas): la fijada al asignar o, sin ella, la ventana de la
   // recogida más los días de viaje (usuario, 2026-11-19).
   entrega_desde?: string | null; entrega_hasta?: string | null;
+  // Cambio reciente o email esperando sus 30 s (pendientes_envios): el contador para anular.
+  pendiente?: CambioPendiente | null;
   descripcion_mercancia: string | null; toneladas: number | null; metros_lineales: number | null;
   tipo_carga: string | null; paletizado: boolean | null;
   poblacion_origen: string | null; codigo_postal_origen: string | null;

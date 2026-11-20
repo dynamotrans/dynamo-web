@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import Modal from '../Modal';
+import { useRefrescar } from '@/lib/useRefrescar';
 import { ACCESIBILIDAD_TITULO, ACCESIBILIDAD_TEXTO } from '@/lib/condicionesTransportista';
 import { euros, ventana, fecha, metros, pesoTn } from '@/lib/formato';
 import { telBonito, paisDe as nombrePais } from '@/lib/paises';
@@ -37,6 +38,7 @@ function dirCorta(p: ParadaFicha): string {
 
 export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }) {
   const e = ficha.envio;
+  const refrescar = useRefrescar();   // para que la ficha enseñe el contador de 30 s del email
   const [d, setD] = useState<{ email: string | null; telefono: string | null; idioma: string; clave: string; claveCliente: string | null; bolsa: string | null; codigoBolsa: string | null; clienteEmail: string | null; clienteTelefono: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [para, setPara] = useState<'transportista' | 'cliente'>('transportista');
@@ -171,9 +173,10 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   async function mandarDesdePlataforma(aQuien: 'transportista' | 'cliente') {
     setAvisoMail(null); setMandando(true);
     const r = await emailOrdenPlataforma(e.id, aQuien, aQuien === 'transportista' ? msg : msgCli).catch(() => ({ ok: false as const, error: 'No se ha podido enviar.' }));
-    setAvisoMail(r.ok ? { ok: true, txt: `Email enviado a ${r.para} con la orden en PDF adjunta.` } : { ok: false, txt: r.error });
+    setAvisoMail(r.ok ? { ok: true, txt: `Sale en 30 segundos hacia ${r.para}, con la orden en PDF adjunta. Hasta entonces la puedes anular con el contador de la ficha.` } : { ok: false, txt: r.error });
     setMandando(false);
     setRecarga((n) => n + 1);
+    if (r.ok) refrescar();
   }
 
   return (

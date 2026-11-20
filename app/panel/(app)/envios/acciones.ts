@@ -737,3 +737,23 @@ export async function resolverCambio(envio: string, aceptar: boolean, nota: stri
   if ((data as { resultado: string }).resultado !== 'ok') return { ok: false, error: 'Ese cambio ya no está pendiente.' };
   return { ok: true, aviso: aceptar ? 'Cambio aceptado. Si pedía cambiar la ruta o afecta al precio, hazlo con «Cambiar ruta» o «Modificar».' : 'Cambio rechazado: el cliente lo ve con tu nota.' };
 }
+
+// «¿Anular el cambio realizado?» del contador de 30 s (usuario, 2026-11-20): el envío vuelve a
+// como estaba y los emails de ese cambio no salen. Lo puede hacer Dynamo o quien hizo el cambio
+// (la base de datos lo comprueba).
+export async function anularCambioEnvio(envio: string): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/envios/acciones#anularCambioEnvio", [envio]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const { data, error } = await s.supabase.rpc('anular_cambio_envio', { p_envio: envio });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data ?? {}) as { resultado?: string; tipo?: string };
+  switch (r.resultado) {
+    case 'anulado':
+      return { ok: true, aviso: r.tipo === 'creado' ? 'Envío anulado sin coste: no se ha avisado a nadie.' : 'Cambio anulado: el envío vuelve a como estaba y no se ha avisado a nadie.' };
+    case 'email_anulado': return { ok: true, aviso: 'Email anulado: no ha salido.' };
+    case 'ya_salio': return { ok: false, error: 'Ya es tarde: el aviso acaba de salir. Si hace falta, modifica el envío de nuevo.' };
+    case 'nada': return { ok: false, error: 'No queda nada por anular en este envío.' };
+    default: return { ok: false, error: 'No se ha podido anular el cambio. Modifica el envío a mano si hace falta.' };
+  }
+}

@@ -61,6 +61,29 @@ export async function ultimoEnvio() {
   return data;
 }
 
+// Un envío del transportista de pruebas en «programado», con la carga la semana que viene.
+// Los recorridos anteriores le asignan envíos que cargan HOY y que el seguimiento automático
+// pasa solo a «Yendo a la carga» según la hora del día: buscar «el último programado» fallaba
+// cuando el CI corría a media mañana. Aquí se coge el último y se deja como hace falta.
+export async function envioProgramadoDelTransportista(campos = 'id') {
+  const sb = bd();
+  const { data: t } = await sb.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
+  const { data: ult, error } = await sb.from('envios').select('id').eq('transportista_id', t!.id)
+    .in('estado', ['programado', 'hacia_la_carga', 'cargando']).order('creado_en', { ascending: false }).limit(1).single();
+  if (error) throw error;
+  const d = new Date(); d.setDate(d.getDate() + 7);
+  if (d.getDay() === 6) d.setDate(d.getDate() + 2); else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  const dia = d.toISOString().slice(0, 10);
+  const sig = new Date(d); sig.setDate(sig.getDate() + (d.getDay() === 5 ? 3 : 1));
+  const { error: e2 } = await sb.from('envios').update({
+    estado: 'programado', ancla_paso: null, ancla_hora: null,
+    fecha_carga_desde: dia, fecha_carga_hasta: dia, fecha_carga_prevista: dia, fecha_entrega_estimada: sig.toISOString().slice(0, 10),
+  }).eq('id', ult!.id);
+  if (e2) throw e2;
+  const { data: e } = await sb.from('envios').select(campos).eq('id', ult!.id).single();
+  return { t: t!, e: e as unknown as Record<string, string | null> & { id: string } };
+}
+
 // El cliente (ya dentro) crea un envío Sevilla → Madrid con el primer día posible. Ya no hay
 // solicitudes de precio: el tarifador pone el precio y el envío nace programado, tras marcar
 // las condiciones en la ventana de confirmación.

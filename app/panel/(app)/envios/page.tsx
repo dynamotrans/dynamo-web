@@ -4,7 +4,7 @@ import { rangoRapido, esPendientePago } from '@/lib/envios';
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
-import type { EnvioFila, Parada, Pestana } from '@/lib/envios';
+import type { CambioPendiente, EnvioFila, Parada, Pestana } from '@/lib/envios';
 import TablaEnvios, { pestanaElegida, POR_PAGINA_ENVIOS } from '@/components/panel/TablaEnvios';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
@@ -187,6 +187,16 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const { data: ent } = await supabase.rpc('entregas_estimadas', { p_ids: filas.map((f) => f.id) });
     const me = new Map((ent ?? []).map((x) => [x.envio_id, x]));
     filas.forEach((f) => { const x = me.get(f.id); if (x) Object.assign(f, { entrega_desde: x.desde, entrega_hasta: x.hasta }); });
+    // Contador de 30 s: cambios recientes y emails que esperan para salir (usuario, 2026-11-20).
+    const { data: pen } = await supabase.rpc('pendientes_envios', { p_ids: filas.map((f) => f.id) });
+    const mp = new Map((pen ?? []).map((x) => [x.envio_id, x]));
+    filas.forEach((f) => { const x = mp.get(f.id); f.pendiente = x ? { vence_en: x.vence_en, tipo: x.tipo, autor: x.autor, puede_anular: x.puede_anular, emails: x.emails } : null; });
+  }
+  // El mismo contador para la ficha abierta.
+  let pendienteVer: CambioPendiente | null = null;
+  if (sp.ver && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
+    const { data: pv } = await supabase.rpc('pendientes_envios', { p_ids: [sp.ver] }).maybeSingle();
+    if (pv) pendienteVer = { vence_en: pv.vence_en, tipo: pv.tipo, autor: pv.autor, puede_anular: pv.puede_anular, emails: pv.emails };
   }
   // Etapas del envío abierto (cliente y transportista; la ficha de Dynamo las trae con ella).
   const etapasVer = !dynamo && sp.ver && /^[0-9a-f-]{36}$/i.test(sp.ver)
@@ -309,8 +319,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual}
         op={op} por={por} est={est} fr={fr} operadores={opcOperadores} creadores={opcCreadores}
         vista={vistaCal ? 'calendario' : 'lista'} mes={mes} hoy={hoy} vistaTransportista={vista.tipo === 'transportista'} />
-      {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} />}
-      {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} />}
+      {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} pendiente={pendienteVer} />}
+      {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} pendiente={pendienteVer} />}
       {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} etapas={etapasVer} cerrarHref={cerrarHref} cambio={cambioViaje} />}
     </>
   );

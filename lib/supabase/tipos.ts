@@ -1351,6 +1351,11 @@ export type Database = {
           postmark_id: string | null
           creado_en: string
           enviado_en: string | null
+          enviar_desde: string
+          creado_por: string | null
+          via: string
+          opciones: Json | null
+          cambio_id: string | null
         }
         Insert: {
           id?: string
@@ -1366,6 +1371,11 @@ export type Database = {
           postmark_id?: string | null
           creado_en?: string
           enviado_en?: string | null
+          enviar_desde?: string
+          creado_por?: string | null
+          via?: string
+          opciones?: Json | null
+          cambio_id?: string | null
         }
         Update: {
           id?: string
@@ -1381,12 +1391,67 @@ export type Database = {
           postmark_id?: string | null
           creado_en?: string
           enviado_en?: string | null
+          enviar_desde?: string
+          creado_por?: string | null
+          via?: string
+          opciones?: Json | null
+          cambio_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "emails_enviados_envio_id_fkey"
             columns: ["envio_id"]
             isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      envio_cambios: {
+        Row: {
+          id: string
+          envio_id: string
+          usuario_id: string | null
+          tipo: string
+          antes: Json | null
+          paradas_antes: Json | null
+          creado_en: string
+          vence_en: string
+          estado: string
+          anulado_en: string | null
+          anulado_por: string | null
+        }
+        Insert: {
+          id?: string
+          envio_id: string
+          usuario_id?: string | null
+          tipo: string
+          antes?: Json | null
+          paradas_antes?: Json | null
+          creado_en?: string
+          vence_en: string
+          estado?: string
+          anulado_en?: string | null
+          anulado_por?: string | null
+        }
+        Update: {
+          id?: string
+          envio_id?: string
+          usuario_id?: string | null
+          tipo?: string
+          antes?: Json | null
+          paradas_antes?: Json | null
+          creado_en?: string
+          vence_en?: string
+          estado?: string
+          anulado_en?: string | null
+          anulado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envio_cambios_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: true
             referencedRelation: "envios"
             referencedColumns: ["id"]
           },
@@ -3820,6 +3885,7 @@ export type Database = {
       anotar_compartido_envio: { Args: { p_envio: string | null; p_documento: string | null; p_via: string | null }; Returns: boolean }
       anotar_motivo_deca: { Args: { p_envio: string | null; p_motivo: string | null }; Returns: boolean }
       anotar_reservas_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_texto: string | null; p_fotos?: string[] | null }; Returns: Json }
+      anular_cambio_envio: { Args: { p_envio: string | null }; Returns: Json }
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }
       asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null; p_fecha_entrega_estimada?: string | null }; Returns: Json }
       autores_mis_envios: { Args: Record<PropertyKey, never>; Returns: { envio_id: string; creado_por: string; creado_email: string; modificado_por: string; modificado_en: string }[] }
@@ -3927,6 +3993,8 @@ export type Database = {
       entregas_estimadas: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; desde: string; hasta: string; fijada: boolean }[] }
       enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
+      envio_cambio_abrir: { Args: { p_envio: string | null; p_tipo: string | null; p_antes: Json | null }; Returns: string }
+      envio_columnas_tecnicas: { Args: Record<PropertyKey, never>; Returns: string[] }
       envio_con_transportista: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_cliente: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
@@ -3940,6 +4008,7 @@ export type Database = {
       envio_matriculas_completas: { Args: { p_envio: string | null }; Returns: boolean }
       envio_mercancia_texto: { Args: { p_metros: number | null; p_toneladas: number | null; p_tipo_carga: string | null; p_plataforma: boolean | null; p_descripcion: string | null; p_adr: boolean | null; p_nima: boolean | null }; Returns: string }
       envio_necesita_remolque: { Args: { p_envio: string | null }; Returns: boolean }
+      envio_restaurar: { Args: { p_envio: string | null; p_antes: Json | null; p_paradas: Json | null }; Returns: undefined }
       envio_texto_busqueda: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null }; Returns: string }
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }
       envio_transportista_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
@@ -4086,6 +4155,7 @@ export type Database = {
       patrones_busqueda: { Args: { p_q: string | null }; Returns: string[] }
       pausar_seguimiento_envio: { Args: { p_envio: string | null; p_pausar: boolean | null }; Returns: Json }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
+      pendientes_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; vence_en: string; tipo: string; autor: string; puede_anular: boolean; emails: number }[] }
       pin_aleatorio: { Args: { p_cifras: number | null }; Returns: string }
       poner_camion_mi_envio_manual: { Args: { p_envio: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_conductor_telefono: string | null }; Returns: Json }
       poner_datos_cmr: { Args: { p_envio: string | null; p_bultos: number | null; p_embalaje: string | null; p_volumen: number | null }; Returns: undefined }
