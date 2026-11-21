@@ -4125,6 +4125,7 @@ export type Database = {
       asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null; p_fecha_entrega_estimada?: string | null; p_forzar?: boolean | null }; Returns: Json }
       autores_mis_envios: { Args: Record<PropertyKey, never>; Returns: { envio_id: string; creado_por: string; creado_email: string; modificado_por: string; modificado_en: string }[] }
       autosuspender_cuentas: { Args: Record<PropertyKey, never>; Returns: number }
+      autosuspension_cancelaciones: { Args: { p_usuario: string | null; p_recientes?: boolean | null }; Returns: { envio_id: string; referencia_gx: string; cancelado_en: string; quien_nombre: string; quien_email: string; por_dynamo: boolean }[] }
       autosuspension_candidatos: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; email: string; motivo: string }[] }
       autosuspension_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       autosuspension_motivos: { Args: { p_usuario?: string | null }; Returns: { usuario_id: string; email: string; motivo: string }[] }

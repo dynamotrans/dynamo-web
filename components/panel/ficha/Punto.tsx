@@ -42,7 +42,7 @@ export function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'en
             <div style={{ whiteSpace: 'pre-line' }}><strong>Indicaciones del sitio:</strong> {s.anotaciones}</div>
           </div>
         )}
-        {merc && <div style={{ fontSize: 'var(--fs-m)', marginTop: 4, whiteSpace: 'pre-line' }}><strong>{label === 'Recogida' ? 'A recoger' : 'A entregar'}:</strong> {merc}</div>}
+        {merc && <div style={{ fontSize: 'var(--fs-m)', marginTop: 4, whiteSpace: 'pre-line' }}><strong>{label === 'Recogida' ? 'Recogida' : 'Entrega'}:</strong> {merc}</div>}
         {notas && (
           <div style={{ fontSize: 'var(--fs-m)', color: '#b45309', background: '#fef3c7', borderRadius: 8, padding: '0.35rem 0.5rem', marginTop: 4, whiteSpace: 'pre-line' }}>⚠ {notas}</div>
         )}

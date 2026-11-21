@@ -13907,3 +13907,25 @@ do $$ declare p text[] := string_to_array(current_setting('prueba.v311'), '|'); 
    where id = current_setting('prueba.e138')::uuid;
   alter table envios enable trigger user;
 end $$;
+
+-- ---- 312. Email de cuenta suspendida: qué envíos contaron, quién los canceló y cuándo --------
+-- (usuario, 2026-11-21). La suspensión por la regla 4 de la prueba 217 encoló su email.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare b uuid := current_setting('prueba.u_cli_b')::uuid; v_email text; n int; html text; r record;
+begin
+  select email into v_email from usuarios where id = b;
+  select count(*) into n from autosuspension_cancelaciones(b, false) c where c.quien_email = v_email and not c.por_dynamo;
+  if n < 2 then raise exception 'FALLO 312 · autosuspension_cancelaciones no lista las cancelaciones de la regla 4 (%)', n; end if;
+  select cuerpo_html into html from emails_enviados where tipo = 'cuenta_suspendida' and clave like 'cuenta_suspendida:' || b || ':%'
+   order by creado_en desc limit 1;
+  if position('Envíos que han contado' in coalesce(html, '')) = 0 then
+    raise exception 'FALLO 312 · el email de suspensión no lista los envíos que contaron'; end if;
+  for r in select * from autosuspension_cancelaciones(b, false) loop
+    if position('#' || r.referencia_gx in html) = 0 then raise exception 'FALLO 312 · falta el envío #% en el email', r.referencia_gx; end if;
+  end loop;
+  if position(v_email in html) = 0 or position(to_char(now() at time zone 'Europe/Madrid', 'DD/MM/YY') in html) = 0 then
+    raise exception 'FALLO 312 · el email no dice quién canceló ni cuándo'; end if;
+  raise notice 'OK 312 · email de cuenta suspendida por cancelaciones: lista cada envío que contó, quién lo canceló y cuándo';
+end $$;
