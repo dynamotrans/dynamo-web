@@ -377,13 +377,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   const precioAntesCli = editarCliente && be?.importe_cliente != null ? Number(be.importe_cliente) : null;
   const precioEdicionCli = tarifa?.neto ?? null;
   useEffect(() => {
-    // Registrar la consulta cuando el tarifador ENSEÑA precio a un cliente: una por
-    // ruta (claveRuta), nunca al editar un envío ya creado.
-    if (!esCliente || editar || !tarifa || !rutaCompleta) return;
+    // Registrar la consulta cuando el tarifador ENSEÑA precio a un cliente: al llegar al
+    // paso 3 «Fecha y precio», que es donde lo ve (usuario, 2026-11-21: en los pasos 1 y 2
+    // aún no ha visto precio y no cuenta). Una por ruta (claveRuta), nunca al editar un
+    // envío ya creado.
+    if (!esCliente || editar || paso < 3 || !tarifa || !rutaCompleta) return;
     if (consultaReg.current === claveRuta) return;
     consultaReg.current = claveRuta;
     void registrarConsultaPrecio().catch(() => { /* contar la consulta nunca rompe el tarifador */ });
-  }, [esCliente, editar, tarifa, rutaCompleta, claveRuta]);
+  }, [esCliente, editar, paso, tarifa, rutaCompleta, claveRuta]);
   // Tabla «Precios internos» (mockup): compra del tarifador (mock 72-84 % por hash de la
   // ruta), «Aplicado · media auto» y margen. Y el autorrelleno: venta = Aplicado, compra =
   // la más baja de la tabla; lo tecleado a mano no se pisa.

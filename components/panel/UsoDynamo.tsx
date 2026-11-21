@@ -53,7 +53,7 @@ export default function UsoDynamo({ datos, empresa = null, equipoSinVista = fals
 
       <div className="uso-grupo">
         <h3 className="uso-grupo-tit">Consultas de precio</h3>
-        <p className="uso-grupo-sub">Cada solicitud de precio cuenta, se cree o no el envío después.</p>
+        <p className="uso-grupo-sub">Cuenta cada vez que ves el precio de una ruta en Nuevo envío (paso 3, «Fecha y precio»), se cree o no el envío después.</p>
         <Fila titulo="Hoy" sub="Últimas 24 horas" valor={c.hoy} max={c.max_hoy} />
         <Fila titulo="Esta semana" sub="Últimos 7 días" valor={c.semana} max={c.max_semana} />
         <Fila titulo="Este mes" sub="Últimos 30 días" valor={c.mes} max={c.max_mes} />

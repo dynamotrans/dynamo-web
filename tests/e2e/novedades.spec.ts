@@ -642,6 +642,24 @@ test.describe('novedades', () => {
     await expect(page.locator('.ptar-sug')).toContainText(nombre);
   });
 
+  // Consultas de precio (usuario, 2026-11-21): solo cuentan al llegar al paso 3 «Fecha y
+  // precio», que es donde el cliente ve el precio; quedarse en los pasos 1 o 2 no cuenta.
+  test('consulta de precio: no cuenta en los pasos 1 y 2, sí al llegar al 3', async ({ page }) => {
+    await entrar(page, 'cliente');
+    const cuantas = async () => (await bd().from('consultas_precio').select('id', { count: 'exact', head: true }).eq('origen', 'tarifador')).count ?? 0;
+    const antes = await cuantas();
+    await page.goto('/panel/nuevo-envio');
+    const sitio = page.locator('.ptar-route-row input[type=text]');
+    await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+    await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    await expect(page.locator('.ptar-stepper, .ptar-pasos, body').first()).toContainText('Mercancía');
+    await page.waitForTimeout(1500);
+    expect(await cuantas()).toBe(antes);
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    await expect.poll(cuantas, { timeout: 10000 }).toBe(antes + 1);
+  });
+
   // Calendario de envíos (usuario, 2026-11-21): el primer clic en una fichita abre un mini
   // resumen (recogida, entrega, mercancía, fecha o ventana) con «Abrir detalle» y «Cerrar».
   test('calendario: la fichita abre un mini resumen y, desde él, el detalle del envío', async ({ page }) => {
