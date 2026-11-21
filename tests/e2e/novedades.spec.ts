@@ -905,4 +905,40 @@ test.describe('novedades', () => {
       await expect(page.getByLabel('Hasta')).toBeVisible();
     }
   });
+
+  test('sugerencias y fallos: el cliente manda una con foto desde Soporte y Dynamo la revisa', async ({ page }) => {
+    const texto = `En el móvil no se ve bien el filtro (prueba ${Date.now()})`;
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    await entrar(page, 'cliente');
+    await page.goto('/panel/soporte');
+    await page.locator('#soporte-sugerencias').getByRole('button', { name: 'Enviar una sugerencia' }).click();
+    const m = page.getByRole('dialog');
+    await expect(m.getByText('Hacer foto')).toBeVisible();
+    await expect(m.getByText('Subir foto')).toBeVisible();
+    await m.locator('input[type=file]:not([capture])').setInputFiles({ name: 'captura.png', mimeType: 'image/png', buffer: png });
+    await expect(m.locator('#sug-fotos')).toContainText('captura.png');
+    await m.locator('#sug-texto').fill(texto);
+    await m.locator('#sug-enviar').click();
+    await expect(m.locator('#sug-ok')).toContainText('Tu sugerencia nos ha llegado');
+    const fila = await bd().from('sugerencias').select('id, estado, pagina, cliente_id').eq('texto', texto).single();
+    expect(fila.data?.estado).toBe('activa');
+    expect(fila.data?.pagina).toBe('/panel/soporte');
+    expect(fila.data?.cliente_id).not.toBeNull();
+    await expect.poll(async () => (await bd().from('documentos').select('id', { count: 'exact', head: true }).eq('sugerencia_id', fila.data!.id)).count).toBe(1);
+
+    // Dynamo: en el menú, en su lista, y al pulsarla la ficha con el comentario y la foto.
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/sugerencias');
+    const f = page.locator('#sugerencias-lista tbody tr', { hasText: texto });
+    await expect(f).toContainText('Activa');
+    await f.click();
+    const ficha = page.locator('#sug-ficha');
+    await expect(ficha).toContainText(texto);
+    await expect(ficha).toContainText('/panel/soporte');
+    await expect(ficha.locator('#sug-fotos-ficha img')).toHaveCount(1);
+    await ficha.locator('[data-estado="realizada"]').click();
+    await ficha.locator('#sug-nota').fill('Arreglado');
+    await page.locator('#sug-guardar').click();
+    await expect.poll(async () => (await bd().from('sugerencias').select('estado, nota_dynamo').eq('id', fila.data!.id).single()).data?.estado).toBe('realizada');
+  });
 });

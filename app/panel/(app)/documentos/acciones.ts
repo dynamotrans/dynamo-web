@@ -12,14 +12,14 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 // Documentos del almacén de archivos. El fichero se sube desde el navegador directamente a
 // Supabase Storage (bucket privado `documentos`) y aquí se registra su fila. Los permisos
 // los impone la base de datos (tabla `documentos` y políticas del bucket).
-export type Dueno = { campo: 'envio_id' | 'incidencia_id' | 'almacenamiento_id' | 'transportista_id' | 'penalizacion_id' | 'operador_id' | 'usuario_id' | 'cliente_id'; id: string };
+export type Dueno = { campo: 'envio_id' | 'incidencia_id' | 'almacenamiento_id' | 'transportista_id' | 'penalizacion_id' | 'operador_id' | 'usuario_id' | 'cliente_id' | 'sugerencia_id'; id: string };
 export type DocumentoFila = { id: string; tipo: string; nombre_archivo: string; tamano_bytes: number | null; tipo_mime: string | null;
   visible_cliente: boolean; creado_en: string; autor: string | null };
 type Res<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; error: string };
 
-const CAMPOS = ['envio_id', 'incidencia_id', 'almacenamiento_id', 'transportista_id', 'penalizacion_id', 'operador_id', 'usuario_id', 'cliente_id'];
+const CAMPOS = ['envio_id', 'incidencia_id', 'almacenamiento_id', 'transportista_id', 'penalizacion_id', 'operador_id', 'usuario_id', 'cliente_id', 'sugerencia_id'];
 const CARPETA: Record<string, string> = { envio_id: 'envios', incidencia_id: 'incidencias', almacenamiento_id: 'almacenamientos',
-  transportista_id: 'transportistas', penalizacion_id: 'penalizaciones', operador_id: 'operadores', usuario_id: 'usuarios', cliente_id: 'clientes' };
+  transportista_id: 'transportistas', penalizacion_id: 'penalizaciones', operador_id: 'operadores', usuario_id: 'usuarios', cliente_id: 'clientes', sugerencia_id: 'sugerencias' };
 // Quién pide (sin redirigir: estas acciones se llaman en segundo plano desde las fichas).
 async function sesion() {
   const supabase = await supabaseServidor();

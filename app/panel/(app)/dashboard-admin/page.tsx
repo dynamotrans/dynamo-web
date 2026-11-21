@@ -62,7 +62,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
   const cnt = { count: 'exact' as const };
   // OJO: las solicitudes «esperando precio» y las revisiones de precio NO salen (decisión
   // del usuario 2026-11-08): el precio es del tarifador automático, no depende del equipo.
-  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, susp24, suspTotal] = await Promise.all([
+  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, susp24, suspTotal, sug] = await Promise.all([
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).in('estado', ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'])),
     supabase.rpc('pronto_pago_estado'),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
@@ -79,7 +79,9 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     // 24 h y el total histórico, con enlace a Usuarios filtrado por suspendidas.
     cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).in('estado', ['suspendida', 'suspendida_total'])
       .gte('suspendida_en', new Date(Date.now() - 24 * 3600 * 1000).toISOString())),
-    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).in('estado', ['suspendida', 'suspendida_total']))
+    cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).in('estado', ['suspendida', 'suspendida_total'])),
+    // Sugerencias y fallos que mandan los usuarios desde Soporte (usuario, 2026-11-21): las activas.
+    supabase.from('sugerencias').select('id, numero, texto, autor_email, creado_en', cnt).eq('estado', 'activa').order('creado_en').limit(MAX),
   ]);
   const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
   const ficha = (id: string) => `/panel/envios?ver=${id}`;
@@ -114,12 +116,15 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
       filas: incs.map((i) => ({ href: '/panel/incidencias', t: `${i.tipos_incidencia?.clave === 'siniestro' ? 'SINIESTRO · ' : ''}${i.titulo}`,
         s: [i.envios?.referencia_gx && `#${i.envios.referencia_gx}`, i.tipos_incidencia?.nombre, `prioridad ${i.prioridad}`].filter(Boolean).join(' · '), desde: i.creado_en,
         urgente: i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica' })) },
+    { id: 'sugerencias', nivel: 'info', corto: 'Sugerencias', titulo: 'Sugerencias y fallos por revisar', total: sug.count ?? 0, todo: '/panel/sugerencias',
+      sub: 'Mejoras y fallos técnicos que mandan los usuarios desde Soporte.',
+      filas: (sug.data ?? []).map((x) => ({ href: `/panel/sugerencias?ver=${x.id}`, t: `SUG-${x.numero} · ${x.texto.slice(0, 80)}`, s: x.autor_email ?? '', desde: x.creado_en })) },
     { id: 'penalizaciones', nivel: 'info', corto: 'Penalizaciones', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
       sub: 'Penalizaciones registradas pendientes de confirmar.',
       filas: (pen.data ?? []).map((p) => ({ href: '/panel/penalizaciones', t: `${p.tipos_penalizacion?.nombre ?? 'Penalización'}${p.envios?.referencia_gx ? ` · #${p.envios.referencia_gx}` : ''}`,
         s: [p.importe_cliente != null && `Cliente ${euros(p.importe_cliente)}`, p.importe_transportista != null && `Transportista ${euros(p.importe_transportista)}`].filter(Boolean).join(' · '), desde: p.creado_en })) },
   ];
-  const errores = [sinCamion, cofTra, sinPagar, inc, pen, altas].map((r) => r.error?.message).filter(Boolean);
+  const errores = [sinCamion, cofTra, sinPagar, inc, pen, altas, sug].map((r) => r.error?.message).filter(Boolean);
   const [cm, sec] = await Promise.all([
     supabase.rpc('cuadro_mando', { p_desde: per.desde, p_hasta: per.hasta, p_comp_desde: per.cDesde, p_comp_hasta: per.cHasta }),
     supabase.rpc('cuadro_mando_sectores', { p_desde: per.desde, p_hasta: per.hasta }),

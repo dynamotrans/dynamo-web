@@ -13815,3 +13815,43 @@ do $$ declare h text := email_con_diseno('<p>x</p>', null); begin
     raise exception 'FALLO 309 · el pie del email no lleva las esquinas de abajo redondeadas'; end if;
   raise notice 'OK 309 · emails: cabecera azul redondeada arriba y pie redondeado abajo (sin depender de overflow:hidden)';
 end $$;
+
+-- ---- 310. Sugerencias y fallos: cada uno las suyas; Dynamo todas, las revisa y las cuenta -----
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare v uuid; begin
+  v := enviar_sugerencia('Al filtrar por fecha en el móvil no se ve el calendario (prueba 310)', '/panel/envios', 'Safari · iPhone');
+  perform set_config('prueba.sug310', v::text, false);
+  if not exists (select 1 from sugerencias where id = v and estado = 'activa' and cliente_id is not null and pagina = '/panel/envios') then
+    raise exception 'FALLO 310 · el cliente no ve su sugerencia, o no entra activa con su empresa'; end if;
+  begin insert into sugerencias (usuario_id, texto) values (auth.uid(), 'a mano'); raise exception 'FALLO 310 · se puede escribir a mano en sugerencias';
+  exception when insufficient_privilege then null; end;
+  begin perform revisar_sugerencia(v, 'realizada', null); raise exception 'FALLO 310 · un cliente revisa sugerencias';
+  exception when insufficient_privilege then null; end;
+  begin perform enviar_sugerencia('  ', null, null); raise exception 'FALLO 310 · se manda una sugerencia vacía';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from sugerencias where id = current_setting('prueba.sug310')::uuid) then
+    raise exception 'FALLO 310 · otro cliente ve la sugerencia ajena'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare v uuid := current_setting('prueba.sug310')::uuid; begin
+  if not exists (select 1 from sugerencias where id = v) then raise exception 'FALLO 310 · Dynamo no ve la sugerencia'; end if;
+  if coalesce((contadores_panel() ->> 'sugerencias')::int, 0) < 1 then raise exception 'FALLO 310 · el menú no cuenta las sugerencias activas'; end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'sugerencia' and enlace = '/panel/sugerencias?ver=' || v) then
+    raise exception 'FALLO 310 · no avisa a Dynamo en la campana'; end if;
+  perform revisar_sugerencia(v, 'realizada', 'Arreglado');
+  if not exists (select 1 from sugerencias where id = v and estado = 'realizada' and nota_dynamo = 'Arreglado' and revisada_por = auth.uid() and revisada_en is not null) then
+    raise exception 'FALLO 310 · no se guarda la revisión'; end if;
+  raise notice 'OK 310 · sugerencias: el usuario manda la suya (con su empresa y pantalla) y solo ve las suyas; Dynamo las ve todas, recibe el aviso, las cuenta en el menú y las revisa';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+delete from avisos where tipo = 'sugerencia' and enlace = '/panel/sugerencias?ver=' || current_setting('prueba.sug310');
+delete from sugerencias where id = current_setting('prueba.sug310')::uuid;

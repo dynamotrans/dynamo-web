@@ -1220,6 +1220,7 @@ export type Database = {
           recurso_titulo: string | null
           recurso_descripcion: string | null
           cliente_id: string | null
+          sugerencia_id: string | null
         }
         Insert: {
           id?: string
@@ -1248,6 +1249,7 @@ export type Database = {
           recurso_titulo?: string | null
           recurso_descripcion?: string | null
           cliente_id?: string | null
+          sugerencia_id?: string | null
         }
         Update: {
           id?: string
@@ -1276,6 +1278,7 @@ export type Database = {
           recurso_titulo?: string | null
           recurso_descripcion?: string | null
           cliente_id?: string | null
+          sugerencia_id?: string | null
         }
         Relationships: [
           {
@@ -1318,6 +1321,13 @@ export type Database = {
             columns: ["penalizacion_id"]
             isOneToOne: false
             referencedRelation: "penalizaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_sugerencia_id_fkey"
+            columns: ["sugerencia_id"]
+            isOneToOne: false
+            referencedRelation: "sugerencias"
             referencedColumns: ["id"]
           },
           {
@@ -3283,6 +3293,86 @@ export type Database = {
           },
         ]
       }
+      sugerencias: {
+        Row: {
+          id: string
+          numero: number
+          usuario_id: string | null
+          autor_email: string | null
+          cliente_id: string | null
+          transportista_id: string | null
+          texto: string
+          pagina: string | null
+          navegador: string | null
+          estado: string
+          nota_dynamo: string | null
+          revisada_por: string | null
+          revisada_en: string | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          numero?: number
+          usuario_id?: string | null
+          autor_email?: string | null
+          cliente_id?: string | null
+          transportista_id?: string | null
+          texto: string
+          pagina?: string | null
+          navegador?: string | null
+          estado?: string
+          nota_dynamo?: string | null
+          revisada_por?: string | null
+          revisada_en?: string | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          numero?: number
+          usuario_id?: string | null
+          autor_email?: string | null
+          cliente_id?: string | null
+          transportista_id?: string | null
+          texto?: string
+          pagina?: string | null
+          navegador?: string | null
+          estado?: string
+          nota_dynamo?: string | null
+          revisada_por?: string | null
+          revisada_en?: string | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugerencias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_revisada_por_fkey"
+            columns: ["revisada_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_transportista_id_fkey"
+            columns: ["transportista_id"]
+            isOneToOne: false
+            referencedRelation: "transportistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugerencias_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tipos_incidencia: {
         Row: {
           id: string
@@ -4145,6 +4235,7 @@ export type Database = {
       entrega_estimada_sugerida: { Args: { p_envio: string | null; p_dia: string | null }; Returns: string }
       entregas_estimadas: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; desde: string; hasta: string; fijada: boolean }[] }
       enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
+      enviar_sugerencia: { Args: { p_texto: string | null; p_pagina?: string | null; p_navegador?: string | null }; Returns: string }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_cambio_abrir: { Args: { p_envio: string | null; p_tipo: string | null; p_antes: Json | null }; Returns: string }
       envio_columnas_tecnicas: { Args: Record<PropertyKey, never>; Returns: string[] }
@@ -4358,6 +4449,7 @@ export type Database = {
       restricciones_ruta: { Args: { p_envio: string | null }; Returns: { orden: number; punto: string; tipo: string; nombre: string; efecto: string; mensaje: string }[] }
       revisar_precio_envio: { Args: { p_envio: string | null; p_nuevo: number | null }; Returns: Json }
       revisar_precios_programados: { Args: Record<PropertyKey, never>; Returns: number }
+      revisar_sugerencia: { Args: { p_sugerencia: string | null; p_estado: string | null; p_nota?: string | null }; Returns: undefined }
       revocar_oferta: { Args: { p_oferta: string | null }; Returns: Json }
       riesgos_clientes: { Args: Record<PropertyKey, never>; Returns: { cliente_id: string; nombre: string; cif: string; riesgo_cesce: number; plazo_cesce: number; riesgo_manual: number; riesgo_efectivo: number; manda: string; envios: number; asumido_base: number; asumido: number; disponible: number; ultimo_envio: string }[] }
       riesgos_pagina: { Args: { p_q?: string | null; p_filtro?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { cliente_id: string; nombre: string; cif: string; riesgo_cesce: number; plazo_cesce: number; riesgo_manual: number; riesgo_efectivo: number; manda: string; envios: number; asumido_base: number; asumido: number; disponible: number; ultimo_envio: string; total: number }[] }

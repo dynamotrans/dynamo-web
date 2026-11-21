@@ -7,9 +7,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { CONTACTO, HORARIO_ONLINE, horarioTelefono } from '@/lib/atencion';
 import ModalHorarios from './ModalHorarios';
+import ModalSugerencia from './ModalSugerencia';
 
 export default function Soporte({ inicio }: { inicio: string }) {
   const [horarios, setHorarios] = useState(false);
+  const [sugerencia, setSugerencia] = useState(false);
   return (
     <section className="section active" id="sec-soporte">
       <div className="sec-header">
@@ -43,8 +45,18 @@ export default function Soporte({ inicio }: { inicio: string }) {
           </button>
           <p className="account-card-desc" style={{ marginTop: '0.7rem' }}>Temporadas (verano, Navidad, Semana Santa, agosto), festivos y jornada intensiva. Si tu envío está en curso y necesitas algo urgente, escríbenos por WhatsApp — lo verá un operador de guardia.</p>
         </div>
+        {/* Sugerencias y fallos (usuario, 2026-11-21): llega a Dynamo, que las revisa. */}
+        <div className="account-card" id="soporte-sugerencias">
+          <h3 className="account-card-title">Sugerencias y fallos</h3>
+          <p className="account-card-desc">¿Se te ocurre algo que mejorar o has visto un fallo? Cuéntanoslo, con una foto o captura si quieres: lo leemos todo.</p>
+          <button type="button" className="btn-primary" style={{ width: '100%' }} onClick={() => setSugerencia(true)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: -3, marginRight: 6 }}><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" /></svg>
+            Enviar una sugerencia
+          </button>
+        </div>
       </div>
       {horarios && <ModalHorarios onCerrar={() => setHorarios(false)} />}
+      {sugerencia && <ModalSugerencia onCerrar={() => setSugerencia(false)} />}
     </section>
   );
 }

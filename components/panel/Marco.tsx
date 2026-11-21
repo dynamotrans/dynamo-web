@@ -12,6 +12,7 @@ import { esDynamo, esSoloLectura, type Rol } from '@/lib/roles';
 import { CONTACTO, HORARIO_ONLINE, estadoAtencion, horarioTelefono } from '@/lib/atencion';
 import { useIdiomaGT } from '@/components/SelectorIdioma';
 import ModalHorarios from './ModalHorarios';
+import ModalSugerencia from './ModalSugerencia';
 import { EVENTO_RECARGAR } from './TirarParaRecargar';
 import SelectorVista from './SelectorVista';
 import { VISTA_ADMIN, inicioDe, type Vista } from '@/lib/vistaTipo';
@@ -28,7 +29,7 @@ const IDIOMAS_PANEL: [string, React.ReactNode, string][] = [
   ['nl', '🇳🇱', 'Nederlands'], ['pl', '🇵🇱', 'Polski'], ['ro', '🇷🇴', 'Română'], ['uk', '🇺🇦', 'Українська'], ['zh-CN', '🇨🇳', '中文'],
 ];
 
-export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas', number>>;
+export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias', number>>;
 export type Cobertura = 'disponible' | 'nulo' | 'sinclasif' | null;
 
 // Números del menú lateral por pantalla: [naranja, rojo] y qué significa cada uno.
@@ -41,6 +42,7 @@ function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: 
     case 'almacenamientos': return x(c.alm_sin_confirmar, 'Pendiente confirmar almacén');
     case 'administracion': return x(c.alm_sin_pagar, 'Proformas sin pagar', true);
     case 'altas': return x(c.altas, 'Altas pendientes de revisar');
+    case 'sugerencias': return x(c.sugerencias, 'Sugerencias por revisar');
     default: return [];
   }
 }
@@ -104,6 +106,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
   const [menu, setMenu] = useState<null | 'usuario' | 'soporte' | 'campana' | 'cesce' | 'vista'>(null);
   const [idiomas, setIdiomas] = useState(false);
   const [horarios, setHorarios] = useState(false);
+  const [sugerencia, setSugerencia] = useState(false);   // «Sugerencias y fallos», desde cualquier pantalla
   const [idioma, elegirIdioma] = useIdiomaGT(IDIOMAS_PANEL.map(([c]) => c));
   // Estado de Álvaro («En línea» / «He salido · Vuelvo…»), recalculado cada minuto.
   const fest = useMemo(() => new Set(festivos), [festivos]);
@@ -224,6 +227,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
     ...(visto !== 'transportista' ? [{ href: '/panel/envios?f=sin-pagar', t: 'Envíos pendientes de pago', s: 'Se asignan a un camión al pagar', cero: 'Ninguno pendiente de pago', n: contadores.envios_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(visto !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Envíos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(visto === 'admin' ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
+    ...(visto === 'admin' ? [{ href: '/panel/sugerencias', t: 'Sugerencias', s: 'Mejoras y fallos por revisar', cero: 'Ninguna por revisar', n: contadores.sugerencias ?? 0, color: 'fac', ico: ICO_CIRCULO }] : []),
   ];
   const pendientes = avisos.reduce((a, x) => a + x.n, 0);
   const totalAvisos = pendientes + nuevos;
@@ -309,6 +313,8 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
                     <div className="topbar-contact-sep" />
                     <button type="button" className="topbar-contact-hor" role="menuitem" style={{ width: '100%', background: 'none', border: 'none', fontFamily: 'inherit' }}
                             onClick={() => { setMenu(null); setHorarios(true); }}>Ver todos los horarios del año</button>
+                    <button type="button" className="topbar-contact-hor" role="menuitem" id="contacto-sugerencia" style={{ width: '100%', background: 'none', border: 'none', fontFamily: 'inherit', marginTop: 0 }}
+                            onClick={() => { setMenu(null); setSugerencia(true); }}>Sugerencias o fallos técnicos</button>
                   </div>
                 </div>
               )}
@@ -464,6 +470,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
       </div>
       <div id="google_translate_element" style={{ display: 'none' }} />
       {horarios && <ModalHorarios onCerrar={() => setHorarios(false)} />}
+      {sugerencia && <ModalSugerencia onCerrar={() => setSugerencia(false)} />}
     </>
   );
 }
