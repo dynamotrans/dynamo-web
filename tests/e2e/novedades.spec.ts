@@ -863,14 +863,18 @@ test.describe('novedades', () => {
     await expect(n).toContainText('Envíos con incidencia: 1 de 12');
   });
 
-  test('Administración → Facturas: Dynamo ve emitidas y recibidas (sin gastos financieros); el cliente, solo las suyas', async ({ page }) => {
+  test('Administración → Facturas: Dynamo ve ingresos y gastos con filtros de tipo y periodo (solo lectura); el cliente, solo las suyas', async ({ page }) => {
     await entrar(page, 'dynamo');
     await page.goto('/panel/administracion');
     await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
-    await expect(page.locator('#facturas-emitidas')).toContainText('facturas a clientes');
-    await page.locator('#facturas-dynamo').getByRole('button', { name: 'Recibidas' }).click();
-    await expect(page.locator('#facturas-recibidas')).toContainText('menos las de gastos financieros');
-    await expect(page.locator('#facturas-recibidas')).toContainText('confirming');
+    await expect(page.locator('#facturas-sin-conectar')).toContainText('menos las de gastos financieros');
+    await expect(page.locator('#facturas-dynamo')).toContainText('Solo lectura');
+    await expect(page.locator('#facturas-lista thead')).toContainText(/Fecha.*Tipo.*Concepto.*Empresa.*CIF.*Base.*IVA.*Retención.*Total.*Pago/);
+    await expect(page.locator('#fac-tipo option')).toHaveText(['Todas (ingresos y gastos)', 'Ingresos · emitidas', 'Gastos · recibidas']);
+    await page.locator('#fac-periodo').selectOption('trim');
+    await page.locator('#fac-periodo').selectOption('otro');
+    await expect(page.locator('#facturas-dynamo').getByLabel('Desde')).toBeVisible();
+    await expect(page.locator('#facturas-dynamo').getByLabel('Hasta')).toBeVisible();
     await entrar(page, 'cliente');
     await page.goto('/panel/administracion');
     await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
