@@ -695,7 +695,7 @@ test.describe('novedades', () => {
     const antes = (await bd().from('envios').select('id', { count: 'exact', head: true })).count ?? 0;
     await page.locator('#varios-crear').click();
     await page.locator('#varios-confirmar').click();
-    await expect(page.locator('#varios-creados')).toContainText('Se han creado 2 envíos', { timeout: 30000 });
+    await expect(page.locator('#varios-creados')).toContainText('¡2 envíos creados!', { timeout: 30000 });
     expect((await bd().from('envios').select('id', { count: 'exact', head: true })).count).toBe(antes + 2);
     // Con todos creados queda solo el mensaje: ni la tabla ni sus botones.
     await expect(page.locator('#varios-tabla')).toHaveCount(0);

@@ -180,6 +180,36 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   }
 
   const bloqueado = !cliente;
+  // Todos creados: la MISMA pantalla de éxito que al crear un envío solo, corta (usuario,
+  // 2026-11-21: «algo corto y simple… y ver mis envíos»).
+  if (creadas.length > 0 && pendientes.length === 0) {
+    const pagos = creadas.filter((c) => c.pago).length;
+    const btnAncho = { width: '100%', minHeight: 52, justifyContent: 'center' } as const;
+    return (
+      <section className="section active" id="sec-varios">
+        <div className="ptar-card" id="varios-creados" style={{ maxWidth: 560, margin: '0 auto' }}>
+          <div aria-hidden style={{ width: 64, height: 64, margin: '0.4rem auto 0.8rem', borderRadius: '50%', background: 'rgba(34,165,90,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+          <h2 style={{ margin: '0 0 0.6rem', textAlign: 'center' }}>{creadas.length === 1 ? '¡Envío creado!' : `¡${creadas.length} envíos creados!`}</h2>
+          <div className="varios-hecho-refs" style={{ justifyContent: 'center', marginBottom: '0.9rem' }}>
+            {creadas.map((c) => <Link key={c.ref} href={c.id ? `/panel/envios?ver=${c.id}` : '/panel/envios'}>#{c.ref}</Link>)}
+          </div>
+          <p style={{ margin: '0 0 1.1rem', color: 'var(--gray-500)', textAlign: 'center', fontSize: 'var(--fs-m)', lineHeight: 1.5 }}>
+            {esCliente
+              ? <>Quedan programados con su precio. Te avisaremos por email cuando tengan camión.</>
+              : <>Quedan programados y pendientes de transportista: asígnalos desde la ficha de cada uno.</>}
+            {pagos > 0 && <><br /><strong style={{ color: '#b91c1c' }}>{pagos === 1 ? '1 está pendiente de pago' : `${pagos} están pendientes de pago`}</strong>: no se reserva transporte hasta pagarlo (proforma por email y plazo en su ficha).</>}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+            <Link className="btn-primary" style={btnAncho} href="/panel/envios" id="varios-ver-envios">Ver mis envíos</Link>
+            <button type="button" className="btn-secondary" style={btnAncho} id="varios-otra-vez"
+              onClick={() => { setHechas([]); setInfos({}); setMarcar(false); setFilas([1, 2, 3].map(() => nuevaFila(cliente, sitios))); }}>Crear otros envíos</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="section active" id="sec-varios">
       <div className="sec-header" style={{ flexWrap: 'wrap', gap: '0.6rem' }}>
@@ -207,24 +237,15 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       )}
 
       {creadas.length > 0 && (
-        <div className={`varios-hecho${pendientes.length ? ' parcial' : ''}`} id="varios-creados">
+        <div className="varios-hecho parcial" id="varios-parcial">
           <div className="varios-hecho-tit">✓ {creadas.length === 1 ? 'Se ha creado 1 envío' : `Se han creado ${creadas.length} envíos`}
-            {pendientes.length > 0 && <span> · {pendientes.length === 1 ? 'uno no se ha podido crear' : `${pendientes.length} no se han podido crear`}: revísalo{pendientes.length === 1 ? '' : 's'} abajo.</span>}</div>
+            <span> · {pendientes.length === 1 ? 'uno no se ha podido crear' : `${pendientes.length} no se han podido crear`}: revísalo{pendientes.length === 1 ? '' : 's'} abajo.</span></div>
           <div className="varios-hecho-refs">
-            {creadas.map((c) => (
-              <Link key={c.ref} href={c.id ? `/panel/envios?ver=${c.id}` : '/panel/envios'}>#{c.ref}{c.pago && <span className="badge badge-cargando" style={{ marginLeft: 4 }}>Pendiente de pago</span>}</Link>
-            ))}
-          </div>
-          <div className="varios-hecho-acc">
-            <Link className="btn-primary" href="/panel/envios" id="varios-ver-envios">Ver mis envíos</Link>
-            {!pendientes.length && <button type="button" className="btn-ghost" id="varios-otra-vez"
-              onClick={() => { setHechas([]); setInfos({}); setMarcar(false); setFilas([1, 2, 3].map(() => nuevaFila(cliente, sitios))); }}>Crear otros envíos</button>}
+            {creadas.map((c) => <Link key={c.ref} href={c.id ? `/panel/envios?ver=${c.id}` : '/panel/envios'}>#{c.ref}</Link>)}
           </div>
         </div>
       )}
 
-      {/* Con todos creados, solo el mensaje: ni tabla ni botones. */}
-      {(creadas.length === 0 || pendientes.length > 0) && <>
       {/* Tabla ancha: en pantallas pequeñas se desliza hacia los lados, como el listado de envíos. */}
       <div className="varios-scroll" tabIndex={0}>
       <div className={`varios-tabla${bloqueado ? ' bloqueada' : ''}`} id="varios-tabla">
@@ -265,7 +286,6 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
           {pendientes.length > 1 ? `Crear ${pendientes.length} envíos` : 'Crear envío'}
         </button>
       </div>
-      </>}
       {trabajando && <Cargando texto={trabajando} />}
 
       <Modal abierto={confirmar} onCerrar={() => setConfirmar(false)} ancho={560} titulo={`Crear ${listas.length === 1 ? '1 envío' : `${listas.length} envíos`}`}
