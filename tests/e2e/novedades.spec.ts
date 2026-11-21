@@ -683,6 +683,18 @@ test.describe('novedades', () => {
     await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
     await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
     await expect(fila1.locator('.varios-importe')).toContainText('€', { timeout: 15000 });
+    // Requisitos: un desplegable de selección múltiple; enseña lo marcado o «Ninguno».
+    const req = fila1.locator('.varios-req-btn');
+    await expect(req).toHaveText('Ninguno');
+    await req.click();
+    await fila1.locator('.varios-req-menu label', { hasText: 'NIMA' }).locator('input').check();
+    await fila1.locator('.varios-req-menu label', { hasText: 'ADR' }).locator('input').check();
+    await expect(req).toHaveText('NIMA, ADR');
+    await fila1.locator('.varios-req-menu label', { hasText: 'NIMA' }).locator('input').uncheck();
+    await fila1.locator('.varios-req-menu label', { hasText: 'ADR' }).locator('input').uncheck();
+    await page.keyboard.press('Escape');
+    await expect(fila1.locator('.varios-req-menu')).toHaveCount(0);
+    await expect(req).toHaveText('Ninguno');
     // Duplicar la fila 1 y quitar las dos vacías: quedan 2 envíos listos.
     await fila1.locator('.varios-dup').click();
     await expect(filas).toHaveCount(4);

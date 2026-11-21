@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useMenuFuera } from './BotonNuevoEnvio';
 import { crearEnvio, crearEnvioCliente, sitiosDelCliente, kmRuta, factorTarifa, registrarConsultaPrecio, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { tramosDe } from '@/lib/horarios';
 import { calcularTarifa, aplicarDescuentoTarifa } from '@/lib/tarifador';
@@ -498,13 +499,12 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
           {FORMAS.map((x) => <option key={x} value={x}>{x}</option>)}
         </select>
       </div>
-      <div className="varios-c varios-checks">
-        <label><input type="checkbox" disabled={hecha} checked={f.plataforma} onChange={(e) => {
-          const v = e.target.checked;
+      <div className="varios-c">
+        <RequisitosMulti n={n} disabled={hecha} plataforma={f.plataforma} nima={f.nima} adr={f.adr} onCambio={(c) => {
+          if (c.plataforma === undefined) { onCambio(c); return; }
+          const v = c.plataforma;
           onCambio({ plataforma: v, ...(v ? { ml: Number(f.ml) > 8 ? '8' : f.ml, peso: Number(f.peso) > 14 ? '14' : f.peso } : { ml: f.ml, peso: f.peso === '14' ? '15' : f.peso }) });
-        }} /> Plataforma</label>
-        <label><input type="checkbox" disabled={hecha} checked={f.nima} onChange={(e) => onCambio({ nima: e.target.checked })} /> NIMA</label>
-        <label><input type="checkbox" disabled={hecha} checked={f.adr} onChange={(e) => onCambio({ adr: e.target.checked })} /> ADR</label>
+        }} />
       </div>
       <div className="varios-c">
         <select className="ptar-select" aria-label={`Tipo de fecha del envío ${n}`} disabled={hecha} value={f.urgencia}
@@ -558,6 +558,37 @@ function TelefonoSitio({ sitio, onGuardar }: { sitio: SitioOpcion; onGuardar: (s
       <button type="button" className="btn-secondary" disabled={guardando || !tel.trim()}
         onClick={async () => { setGuardando(true); setErr(await onGuardar(sitio, tel)); setGuardando(false); }}>{guardando ? 'Guardando…' : 'Guardar en el sitio'}</button>
       {err && <span className="varios-tel-err">{err}</span>}
+    </div>
+  );
+}
+
+// Requisitos del envío (usuario, 2026-11-22): un desplegable de selección múltiple en vez de
+// tres casillas sueltas, para que la fila no crezca. Enseña lo marcado o «Ninguno».
+function RequisitosMulti({ n, disabled, plataforma, nima, adr, onCambio }: {
+  n: number; disabled: boolean; plataforma: boolean; nima: boolean; adr: boolean;
+  onCambio: (c: { plataforma?: boolean; nima?: boolean; adr?: boolean }) => void;
+}) {
+  const m = useMenuFuera();
+  const ops = [
+    { k: 'plataforma' as const, t: 'Plataforma elevadora', corto: 'Plataforma', v: plataforma },
+    { k: 'nima' as const, t: 'Requiere NIMA', corto: 'NIMA', v: nima },
+    { k: 'adr' as const, t: 'Mercancía ADR', corto: 'ADR', v: adr },
+  ];
+  const marcados = ops.filter((o) => o.v).map((o) => o.corto);
+  const texto = marcados.length ? marcados.join(', ') : 'Ninguno';
+  return (
+    <div className="varios-req" ref={m.ref}>
+      <button type="button" className="ptar-select varios-req-btn" disabled={disabled} aria-haspopup="true" aria-expanded={m.abierto}
+        aria-label={`Requisitos del envío ${n}: ${texto}`} title={texto} onClick={() => m.setAbierto(!m.abierto)}>
+        <span className={marcados.length ? '' : 'vacio'}>{texto}</span>
+      </button>
+      {m.abierto && (
+        <div className="varios-req-menu" role="group" aria-label={`Requisitos del envío ${n}`}>
+          {ops.map((o) => (
+            <label key={o.k}><input type="checkbox" checked={o.v} onChange={(e) => onCambio({ [o.k]: e.target.checked })} /> {o.t}</label>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
