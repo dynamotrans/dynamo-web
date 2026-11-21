@@ -642,6 +642,33 @@ test.describe('novedades', () => {
     await expect(page.locator('.ptar-sug')).toContainText(nombre);
   });
 
+  // Calendario de envíos (usuario, 2026-11-21): el primer clic en una fichita abre un mini
+  // resumen (recogida, entrega, mercancía, fecha o ventana) con «Abrir detalle» y «Cerrar».
+  test('calendario: la fichita abre un mini resumen y, desde él, el detalle del envío', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await crearEnvioDeCliente(page);
+    const { data: e } = await bd().from('envios').select('id, referencia_gx, fecha_carga_desde, fecha_carga_real, fecha_carga_prevista')
+      .eq('id', (await ultimoEnvio()).id).single();
+    const dia = e!.fecha_carga_real || e!.fecha_carga_prevista || e!.fecha_carga_desde!;
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/envios?vista=calendario&mes=${dia.slice(0, 7)}`);
+    await page.locator(`.cal-envio[title^="#${e!.referencia_gx} "]`).first().click();
+    const res = page.locator('#cal-resumen');
+    await expect(res).toBeVisible();
+    await expect(page.getByText(`Envío #${e!.referencia_gx}`)).toBeVisible();
+    await expect(res).toContainText('Recogida');
+    await expect(res).toContainText('Entrega');
+    await expect(res).toContainText(/Fecha de recogida|Ventana de recogida/);
+    // Cerrar: no navega.
+    await page.locator('#cal-res-cerrar').click();
+    await expect(res).toHaveCount(0);
+    await expect(page).not.toHaveURL(/ver=/);
+    // Abrir detalle: la ficha del envío.
+    await page.locator(`.cal-envio[title^="#${e!.referencia_gx} "]`).first().click();
+    await page.locator('#cal-res-abrir').click();
+    await expect(page).toHaveURL(new RegExp(`ver=${e!.id}`));
+  });
+
   // Dashboard del cliente (usuario, 2026-11-21): «Mis envíos» solo enseña los programados,
   // los de fecha de carga más cercana primero.
   test('dashboard del cliente: «Mis envíos programados» solo lista programados', async ({ page }) => {

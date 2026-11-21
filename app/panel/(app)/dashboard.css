@@ -3248,6 +3248,13 @@ body.theme-dark .op-chip2-otro { background: rgba(190,140,90,0.15); color: #d8b4
 .cal-day-hoy { display: inline-block; background: var(--purple); color: #fff; border-radius: 7px; padding: 0 6px; }
 .cal-envio { display: block; width: 100%; text-align: left; border: none; cursor: pointer; border-left: 3px solid var(--purple); border-radius: 5px; color: var(--navy); font-size: var(--fs-s); font-weight: 700; line-height: 1.4; padding: 2px 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-envio:hover { filter: brightness(0.95); }
+/* Mini resumen del envío pulsado en el calendario (usuario, 2026-11-21). */
+.cal-res-et { font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); margin-bottom: 0.15rem; }
+.cal-res-lista { list-style: none; margin: 0.15rem 0 0; padding: 0; display: grid; gap: 0.35rem; }
+.cal-res-parada { display: flex; gap: 0.5rem; align-items: flex-start; line-height: 1.4; }
+.cal-res-parada .ml-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 0.4rem; }
+.cal-res-parada .ml-dot.orig { background: var(--orange); }
+.cal-res-parada .ml-dot.dest { background: var(--green); }
 .cal-envio-extra { display: none; }
 .cal-open .cal-envio-extra { display: block; }
 /* Día pulsable (hoy o futuro, cuentas que crean envíos): ofrece crear un envío con esa fecha. */

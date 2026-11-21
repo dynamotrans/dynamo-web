@@ -4,12 +4,14 @@
 // fichitas «origen→destino» coloreadas por estado, 3 por día y «+N más» para desplegar
 // el resto, el día de hoy resaltado, navegación ‹ › limitada a ±3 meses y leyenda debajo.
 // Cada envío se coloca en su fecha de carga efectiva (real → primer día pedido); pulsar
-// una fichita abre su ficha. El buscador y los filtros de arriba también filtran aquí.
+// una fichita abre primero un mini resumen (recogidas, entregas, mercancía, fecha o ventana)
+// con «Abrir detalle del envío» y «Cerrar» (usuario, 2026-11-21). El buscador y los filtros de arriba también filtran aquí.
 import { avisarNavegandoA } from './CargandoNavegacion';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { EnvioFila } from '@/lib/envios';
-import { paradasDe } from '@/lib/envios';
+import { paradasDe, estadoVisual, fechaCarga, medidas, dirParada } from '@/lib/envios';
+import { tipoCargaTxt } from '@/lib/formato';
 import Modal from './Modal';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -47,6 +49,8 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
   // Pulsar un día (hoy o futuro) abre la ventanita «¿Crear un envío para el…?» (usuario,
   // 2026-11-11). Guarda la fecha YYYY-MM-DD; las fichitas y el «+N más» no la disparan.
   const [diaNuevo, setDiaNuevo] = useState<string | null>(null);
+  // Primer clic en una fichita: su mini resumen; desde ahí, «Abrir detalle del envío».
+  const [resumen, setResumen] = useState<EnvioFila | null>(null);
   const [a, m] = mes.split('-').map(Number);
   const [ha, hm] = hoy.split('-').map(Number);
   const offset = (a - ha) * 12 + (m - hm);          // meses de distancia a hoy (límite ±3)
@@ -71,7 +75,7 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
     const col = colorDe(e);
     return (
       <button key={e.id} type="button" className="cal-envio" style={{ borderLeftColor: col, background: `${col}14` }}
-        title={`#${e.referencia_gx} · ${o} → ${d}`} onClick={() => { avisarNavegandoA(urlVer(e.id)); router.push(urlVer(e.id), { scroll: false }); }}>
+        title={`#${e.referencia_gx} · ${o} → ${d}`} onClick={() => setResumen(e)}>
         {o}→{d}
       </button>
     );
@@ -117,6 +121,8 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
         })}
       </div>
       {leyenda}
+      {resumen && <ResumenEnvio e={resumen} onCerrar={() => setResumen(null)}
+        onAbrir={() => { const u = urlVer(resumen.id); setResumen(null); avisarNavegandoA(u); router.push(u, { scroll: false }); }} />}
       <Modal abierto={!!diaNuevo} onCerrar={() => setDiaNuevo(null)} titulo="Crear un envío"
         pie={
           <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -138,5 +144,44 @@ export default function CalendarioEnvios({ filas, mes, hoy, q, op, por, puedeCre
         })()}
       </Modal>
     </div>
+  );
+}
+
+// Mini resumen del envío pulsado en el calendario: lo justo para reconocerlo sin abrir la ficha.
+function ResumenEnvio({ e, onCerrar, onAbrir }: { e: EnvioFila; onCerrar: () => void; onAbrir: () => void }) {
+  const { recogidas, entregas } = paradasDe(e);
+  const est = estadoVisual(e);
+  const fija = !!(e.fecha_carga_real || e.fecha_carga_prevista || (e.fecha_carga_desde && e.fecha_carga_desde === e.fecha_carga_hasta));
+  const carga = [e.descripcion_mercancia, tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora), medidas(e)].filter(Boolean).join(' · ');
+  const parada = (p: ReturnType<typeof paradasDe>['recogidas'][number], i: number, tipo: 'orig' | 'dest') => (
+    <li key={`${tipo}${i}`} className="cal-res-parada">
+      <span className={`ml-dot ${tipo}`} />
+      <span>{p.nombre_empresa && <strong>{p.nombre_empresa}</strong>}{p.nombre_empresa && <br />}{dirParada(p) || '—'}</span>
+    </li>
+  );
+  return (
+    <Modal abierto onCerrar={onCerrar} ancho={420} titulo={`Envío #${e.referencia_gx}`}
+      sub={e.referencia_cliente ? `Ref. cliente: ${e.referencia_cliente}` : undefined}
+      pie={<div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button type="button" className="btn-secondary" id="cal-res-cerrar" onClick={onCerrar}>Cerrar</button>
+        <button type="button" className="btn-primary" id="cal-res-abrir" onClick={onAbrir}>Abrir detalle del envío</button>
+      </div>}>
+      <div id="cal-resumen" style={{ display: 'grid', gap: '0.7rem' }}>
+        <div><span className={`badge badge-${est.color}`}>{est.label}</span></div>
+        <div>
+          <div className="cal-res-et">{recogidas.length > 1 ? 'Recogidas' : 'Recogida'}</div>
+          <ul className="cal-res-lista">{recogidas.map((p, i) => parada(p, i, 'orig'))}</ul>
+        </div>
+        <div>
+          <div className="cal-res-et">{entregas.length > 1 ? 'Entregas' : 'Entrega'}</div>
+          <ul className="cal-res-lista">{entregas.map((p, i) => parada(p, i, 'dest'))}</ul>
+        </div>
+        {carga && <div><div className="cal-res-et">Mercancía</div><div>{carga}</div></div>}
+        <div>
+          <div className="cal-res-et">{fija ? 'Fecha de recogida' : 'Ventana de recogida'}</div>
+          <div>{fechaCarga(e) || '—'}{!fija && <span className="meta" style={{ display: 'block' }}>Fecha aún sin confirmar</span>}</div>
+        </div>
+      </div>
+    </Modal>
   );
 }
