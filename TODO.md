@@ -143,6 +143,19 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 
+- [ ] 💳 **COBRAR A LA TARJETA DEL CLIENTE LAS PENALIZACIONES Y PARALIZACIONES (usuario, 2026-11-21)** — «anota que debemos poder cobrar… que quede constancia clara de que podemos cobrar a esa tarjeta las paralizaciones o penalizaciones que se den». Hoy el pago de Stripe cobra el envío y NO guarda la tarjeta: después no hay nada a lo que cargar. Hacer:
+  1. **Guardar la tarjeta al pagar** (pago de Stripe con la tarjeta guardada para cobros posteriores; el banco la confirma en ese pago con el móvil del cliente y luego se le puede cobrar sin que esté delante).
+  2. **Constancia clara de la autorización en DOS momentos**, guardando fecha, hora, usuario, IP y versión del texto:
+     - **al darse de alta** (aceptación de las condiciones generales): cláusula que diga que Dynamo puede cobrar en la tarjeta guardada las penalizaciones y paralizaciones confirmadas de sus envíos;
+     - **al meter los datos de la tarjeta** (pantalla de pago): casilla OBLIGATORIA y sin premarcar, p. ej. «Autorizo a Dynamo a cobrar en esta tarjeta las penalizaciones y paralizaciones de mis envíos según las condiciones generales». Solo las condiciones generales no bastan para las normas de Visa/Mastercard.
+  3. **Aviso antes de cobrar**: email (y campana) con importe, motivo y detalle (p. ej. «3 h de paralización en carga: 5 €») y la fecha del cobro; se cobra solo a los N días (parámetro, p. ej. 3) si el cliente no la discute.
+  4. **Si el cobro falla** (tarjeta caducada, el banco pide confirmación): enlace de pago automático por email; si tampoco paga, aviso a Dynamo.
+  5. **Factura / pedido de venta** de la penalización como ya va a Holded, con el cobro anotado en el concepto («COBRADA EN TARJETA · fecha · importe»).
+  6. Guardar para posibles reclamaciones al banco: autorización marcada, aviso enviado y registro de horas de la plataforma.
+  - Solo afecta a clientes de **pago previo**; los de crédito siguen pagando la penalización en su factura.
+  - **Textos legales**: Claude prepara una propuesta de la cláusula y de la casilla; los valida el usuario o su asesor antes de producción.
+  - Necesita las claves de Stripe en Vercel (con tope de gasto antes).
+
 - [ ] **Emails «Envío creado» / «Envío modificado» que no llegan en pruebas (2026-11-19).** El usuario creó y cambió envíos con un cliente de pruebas suyo y no le llegó nada, ni la copia a info@. Postmark va por 55 de 100 este mes (no es el tope). Esos emails salen de la COLA de la base de datos (clave `postmark_token` en el Vault de Supabase), la parte que nunca se llegó a comprobar. Mirar en Supabase (SQL Editor) `select creado_en, tipo, estado, error from emails_enviados order by creado_en desc limit 15;`: «pendiente» = la cola no manda (Vault sin clave o la tarea programada no corre); «error» = el texto dice la causa.
 - [x] **Diseño común de TODOS los emails (2026-11-19):** cabecera morada con el logo, cuerpo en tarjeta (todo el ancho en el móvil), botones con el nombre de la acción en vez de enlaces, firma «Equipo de operaciones · Dynamo» con botones de llamar y escribir, pie con los datos de Parámetros. Un solo envoltorio, `email_con_diseno()`, para la cola de la base de datos y para los que salen de la web. **Probar en Gmail, Outlook y el iPhone** con el primer email real.
 - [x] **Calendario propio en toda la plataforma (2026-11-19):** `components/CampoFecha.tsx` sustituye a los 12 campos de fecha del navegador (el de Chrome cambiaba la fecha al pasar de mes y cerraba la ventana).
