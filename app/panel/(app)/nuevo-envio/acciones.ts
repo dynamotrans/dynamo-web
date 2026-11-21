@@ -469,7 +469,14 @@ export async function kmRuta(puntos: PuntoKm[]): Promise<{ km: number; estimado:
 export async function sitiosDelCliente(cliente: string): Promise<SitioOpcion[]> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#sitiosDelCliente", [cliente]);
   const s = await sesion();
-  if (!s?.perfil || !esGestor(s.perfil.rol) || !/^[0-9a-f-]{36}$/i.test(cliente)) return [];
+  // Dynamo, de cualquier cliente; el CLIENTE, de su empresa (antes solo Dynamo: al cliente que
+  // creaba un sitio desde Nuevo envío no se le ponía en la parada ni le salía en la agenda
+  // hasta recargar — usuario, 2026-11-21). Lo que ve cada uno lo decide la base de datos.
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !/^[0-9a-f-]{36}$/i.test(cliente)) return [];
+  if (!esGestor(s.perfil.rol)) {
+    const { data: yo } = await s.supabase.from('usuarios').select('cliente_id').eq('id', s.perfil.id).maybeSingle();
+    if (yo?.cliente_id !== cliente) return [];
+  }
   const { data } = await s.supabase.from('sitios')
     .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
     .eq('borrado', false).eq('cliente_id', cliente).order('nombre_empresa').limit(2000);

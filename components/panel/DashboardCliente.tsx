@@ -104,9 +104,9 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
           </div>
         </div>
         <Link className="mini-list-card" href="/panel/envios" aria-label="Ver todos los envíos" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div className="mini-list-head"><h4>{dynamo ? 'Envíos en curso' : 'Mis envíos'} ({activos})</h4><span className="mini-list-ver">Ver todos →</span></div>
+          <div className="mini-list-head"><h4>{dynamo ? 'Envíos programados' : 'Mis envíos programados'} ({activos})</h4><span className="mini-list-ver">Ver todos →</span></div>
           <ul className="mini-list">
-            {envios.length === 0 ? <li style={{ color: 'var(--gray-500)' }}>No hay envíos en curso.</li> : envios.map((e) => {
+            {envios.length === 0 ? <li style={{ color: 'var(--gray-500)' }}>No hay envíos programados.</li> : envios.map((e) => {
               const est = ESTADO[e.estado] ?? ESTADO.programado;
               return (
                 <li key={e.id}>

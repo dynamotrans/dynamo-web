@@ -616,6 +616,43 @@ test.describe('novedades', () => {
     await expect(page.locator('#sitio-buscar')).toHaveValue('Zzlaos');
   });
 
+  // Fallo (usuario, 2026-11-21): el sitio creado desde la ruta no se quedaba en la parada ni
+  // salía en el desplegable hasta recargar. Ahora queda elegido y aparece en la agenda.
+  test('nuevo sitio desde la ruta: queda elegido en la parada y sale en el desplegable sin recargar', async ({ page }) => {
+    const nombre = `Naves Qwerty ${'abcdefghij'.split('').sort(() => Math.random() - 0.5).join('').slice(0, 5)}`;
+    await entrar(page, 'cliente');
+    await page.goto('/panel/nuevo-envio');
+    await page.locator('.ptar-route-row input[type=text]').nth(0).fill(nombre);
+    await page.locator('.ptar-sug li', { hasText: 'Crear nuevo sitio' }).click();
+    await page.locator('#sitio-buscar').focus();
+    await page.locator('li', { hasText: '¿No lo encuentras? + Crear un sitio nuevo' }).click();
+    await expect(page.locator('#sitio-nombre_empresa')).toHaveValue(nombre);
+    await page.selectOption('#sitio-tipo', { index: 1 });
+    await page.fill('#sitio-direccion', 'C/ Prueba, 1');
+    await page.fill('#sitio-codigo_postal', '41016');
+    await page.fill('#sitio-poblacion', 'Sevilla');
+    await page.fill('#sitio-provincia', 'Sevilla');
+    await page.fill('#ct-0-tel', '600111222');
+    await page.getByRole('button', { name: 'Crear sitio' }).click();
+    await expect(page.locator('#sitio-buscar')).toHaveCount(0);
+    // Queda elegido en la recogida…
+    await expect(page.locator('.ptar-route-row input[type=text]').nth(0)).toHaveValue(new RegExp(`^${nombre}`));
+    // …y la entrega ya lo encuentra en el desplegable, sin recargar.
+    await page.locator('.ptar-route-row input[type=text]').last().fill(nombre.slice(0, 12));
+    await expect(page.locator('.ptar-sug')).toContainText(nombre);
+  });
+
+  // Dashboard del cliente (usuario, 2026-11-21): «Mis envíos» solo enseña los programados,
+  // los de fecha de carga más cercana primero.
+  test('dashboard del cliente: «Mis envíos programados» solo lista programados', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/dashboard');
+    const caja = page.locator('.mini-list-card');
+    await expect(caja.locator('h4')).toContainText('Mis envíos programados');
+    const etiquetas = caja.locator('.mini-list .badge');
+    for (const t of await etiquetas.allTextContents()) expect(t.trim()).toBe('Programado');
+  });
+
   // Parámetros (usuario, 2026-11-19): el PIN de recogida y entrega queda para la v4 y los
   // campos del fichero de Holded se quitan; en su sección, un aviso de «pendiente de la API».
   test('parámetros: no salen el PIN ni los campos de Holded, y Holded avisa de que falta la API', async ({ page }) => {

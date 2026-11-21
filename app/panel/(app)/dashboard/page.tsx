@@ -8,7 +8,10 @@ export const dynamic = 'force-dynamic';
 
 type FilaVivo = Pick<Tabla<'envios'>, 'id' | 'referencia_gx' | 'referencia_cliente' | 'estado' | 'fecha_carga_desde' | 'fecha_carga_hasta' | 'fecha_carga_real'
   | 'codigo_postal_origen' | 'poblacion_origen' | 'codigo_postal_destino' | 'poblacion_destino' | 'metros_lineales' | 'toneladas' | 'descripcion_mercancia'>;
-const VIVOS: Enum<'estado_envio'>[] = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'];
+// «Mis envíos» del dashboard (usuario, 2026-11-21): SOLO los programados (con o sin
+// transportista asignado), los de fecha de carga más cercana primero. Los entregados, cancelados
+// o ya en marcha no salen aquí; están en Envíos.
+const VIVOS: Enum<'estado_envio'>[] = ['programado'];
 
 // Dashboard del cliente: diseño de #sec-dashboard de dashboard.html. El cliente ve sus
 // envíos (mis_envios); Dynamo ve el mismo panel con los de todos, para saber qué ve el cliente.
