@@ -1,14 +1,13 @@
 'use client';
 
 // «Nuevo envío» con una flechita al lado que despliega «Crear varios envíos» (usuario,
-// 2026-11-21). Se cierra al pulsar fuera o con Escape.
+// 2026-11-21). Solo esa opción: «Nuevo envío» ya es el botón grande. Se cierra al pulsar fuera o con Escape.
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 export function MenuNuevoEnvio({ onCerrar }: { onCerrar: () => void }) {
   return (
     <div className="btn-nuevo-menu" role="menu">
-      <Link role="menuitem" href="/panel/nuevo-envio" onClick={onCerrar}>Nuevo envío<span>Uno, paso a paso</span></Link>
       <Link role="menuitem" href="/panel/nuevo-envio/varios" id="menu-varios-envios" onClick={onCerrar}>Crear varios envíos<span>Hasta 20 de una vez, en una tabla</span></Link>
     </div>
   );

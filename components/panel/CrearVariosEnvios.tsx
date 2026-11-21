@@ -101,6 +101,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   const listas = pendientes.filter((f) => infos[f.k] && !infos[f.k].error);
   const total = listas.reduce((s, f) => s + (infos[f.k]?.neto ?? 0), 0);
   const creadas = filas.filter((f) => f.res?.ok);
+  const iva = Number(cliente?.iva ?? 21);
 
   async function proforma() {
     setAviso(null);
@@ -205,9 +206,12 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
         </div></div>
       )}
 
+      {/* Tabla ancha: en pantallas pequeñas se desliza hacia los lados, como el listado de envíos. */}
+      <div className="varios-scroll" tabIndex={0}>
       <div className={`varios-tabla${bloqueado ? ' bloqueada' : ''}`} id="varios-tabla">
         <div className="varios-cab" aria-hidden="true">
-          <span>#</span><span>Ruta</span><span>Mercancía</span><span>Fecha de recogida</span><span>Tu referencia</span><span className="der">Precio (sin IVA)</span>
+          <span>#</span><span>Recogida</span><span>Entrega</span><span>Mercancía</span><span>Metros</span><span>Peso</span><span>Forma de carga</span>
+          <span>Requisitos</span><span>Tipo de fecha</span><span>Día de recogida</span><span>Tu referencia</span><span className="der">Precio (sin IVA)</span>
         </div>
         {filas.map((f, i) => (
           <FilaEnvio key={f.k} f={f} n={i + 1} cliente={cliente} sitios={sitiosCliente} fest={fest} festivos={festivos} reglas={reglas}
@@ -226,6 +230,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
         ))}
       </div>
 
+      </div>
       <div className="varios-pie">
         <button type="button" className="btn-secondary" id="varios-anadir" disabled={bloqueado || filas.length >= MAX_FILAS}
           onClick={() => setFilas((l) => [...l, nuevaFila(cliente, sitios)])}>+ Añadir envío</button>
@@ -243,17 +248,39 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       </div>
       {trabajando && <Cargando texto={trabajando} />}
 
-      <Modal abierto={confirmar} onCerrar={() => setConfirmar(false)} titulo={`Crear ${listas.length === 1 ? '1 envío' : `${listas.length} envíos`}`}
+      <Modal abierto={confirmar} onCerrar={() => setConfirmar(false)} ancho={560} titulo={`Crear ${listas.length === 1 ? '1 envío' : `${listas.length} envíos`}`}
+        sub="Revisa la lista antes de confirmar"
         pie={<><button type="button" className="btn-ghost" onClick={() => setConfirmar(false)}>Volver a la tabla</button>
-          <button type="button" className="btn-primary" id="varios-confirmar" disabled={!acepta} onClick={crearTodos}>Confirmar {listas.length === 1 ? 'envío' : 'envíos'}</button></>}>
-        <p style={{ marginTop: 0 }}>Se van a crear <strong>{listas.length === 1 ? '1 envío' : `${listas.length} envíos`}</strong> por un total de <strong>{euros(total)}</strong> + IVA, cada uno con el precio de su fila.</p>
-        <p className="meta">Cada envío sigue sus condiciones como si lo crearas uno a uno: costes de cancelación una vez asignado el transportista y, si tu cuenta paga por adelantado, su plazo de pago.</p>
-        <button type="button" className="enlace-paso" onClick={() => setVerCond((v) => !v)}>{verCond ? '▾ Ocultar' : '▸ Ver'} condiciones generales de transporte</button>
-        {verCond && <div className="ptar-terms-scroll" style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem', marginTop: '0.4rem' }}><CondicionesGenerales /></div>}
-        <label className="ptar-confirm-check" style={{ marginTop: '0.9rem' }}>
-          <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)} />
-          <span>He leído y acepto las condiciones generales de transporte y los costes de cancelación para todos estos envíos.</span>
-        </label>
+          <button type="button" className="btn-primary" id="varios-confirmar" disabled={!acepta} onClick={crearTodos}>Confirmar {listas.length === 1 ? 'el envío' : `los ${listas.length} envíos`}</button></>}>
+        {/* Ordenada (usuario, 2026-11-21): la lista de envíos con su precio, los totales con
+            IVA y, debajo, las condiciones; todo con los tamaños de texto del panel. */}
+        <div className="varios-conf">
+          <ul className="varios-conf-lista" id="varios-conf-lista">
+            {listas.map((f) => {
+              const pob = (t: 'carga' | 'descarga') => f.puntos.filter((p) => p.tipo === t).map((p) => p.sitio?.poblacion || p.sitio?.nombre_empresa).filter(Boolean).join(', ');
+              return (
+                <li key={f.k}>
+                  <span className="varios-conf-n">{filas.indexOf(f) + 1}</span>
+                  <span className="varios-conf-ruta"><strong>{pob('carga') || '—'} → {pob('descarga') || '—'}</strong>
+                    <span className="meta">{f.urgencia === 'dia' ? fmtFecha(f.fecha) : `${corta(f.fecha)} a ${corta(infos[f.k]?.hasta || f.fecha)}`}{f.ref ? ` · ref. ${f.ref}` : ''}</span></span>
+                  <span className="varios-conf-precio">{euros(infos[f.k]?.neto ?? 0)}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="varios-conf-totales">
+            <div><span>Base imponible</span><span>{euros(total)}</span></div>
+            <div><span>IVA ({iva} %)</span><span>{euros(total * iva / 100)}</span></div>
+            <div className="total"><span>Total</span><span>{euros(total * (1 + iva / 100))}</span></div>
+          </div>
+          <p className="varios-conf-nota">Cada envío sigue sus condiciones como si lo crearas uno a uno: costes de cancelación una vez asignado el transportista y, si tu cuenta paga por adelantado, su plazo de pago.</p>
+          <button type="button" className="varios-conf-enlace" onClick={() => setVerCond((v) => !v)}>{verCond ? 'Ocultar' : 'Ver'} condiciones generales de transporte</button>
+          {verCond && <div className="ptar-terms-scroll" style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem' }}><CondicionesGenerales /></div>}
+          <label className="ptar-confirm-check varios-conf-check">
+            <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)} />
+            <span>He leído y acepto las condiciones generales de transporte y los costes de cancelación de estos envíos.</span>
+          </label>
+        </div>
       </Modal>
     </section>
   );
@@ -357,50 +384,58 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
         {!hecha && onQuitar && <button type="button" className="varios-quitar" aria-label={`Quitar el envío ${n}`} title="Quitar este envío" onClick={onQuitar}>✕</button>}
         {!hecha && onDuplicar && <button type="button" className="varios-dup" aria-label={`Duplicar el envío ${n}`} title="Duplicar esta fila" onClick={onDuplicar}>⧉</button>}
       </div>
-      <div className="varios-c varios-ruta">
-        <span className="varios-et">Ruta</span>
-        {f.puntos.map((p, i) => (
-          <div key={p.k} className="ptar-field ptar-field-full" data-parada={p.k}>
-            <CampoSitio punto={p} numero={i + 1} sitios={sitios} deshabilitado={hecha || !cliente} cliente={cliente} dynamo={!esCliente}
-              placeholder={i === 0 ? 'Recogida · busca en tus sitios' : i === total - 1 ? 'Entrega · busca en tus sitios' : p.tipo === 'carga' ? 'Otra recogida' : 'Otra entrega'}
-              onCreado={(id) => onSitioCreado(p.k, id)}
-              onCambio={(c) => onCambio({ puntos: f.puntos.map((x) => (x.k === p.k ? { ...x, ...c } : x)) })}
-              onQuitar={!hecha && quitable(p) ? () => onCambio({ puntos: f.puntos.filter((x) => x.k !== p.k) }) : undefined}
-              onAnadir={!hecha && total < 4 ? () => { const j = f.puntos.findIndex((x) => x.k === p.k); const c = [...f.puntos];
-                c.splice(j + 1, 0, { k: f.k * 1000 + sigParada.current++, tipo: p.tipo, sitio: null, nuevo: null }); onCambio({ puntos: c }); } : undefined}
-              onAlternar={i > 0 && i < total - 1 && !hecha ? () => onCambio({ puntos: f.puntos.map((x) => (x.k === p.k ? { ...x, tipo: x.tipo === 'carga' ? 'descarga' as const : 'carga' as const } : x)) }) : undefined} />
-          </div>
-        ))}
-      </div>
-      <div className="varios-c varios-merc">
-        <span className="varios-et">Mercancía</span>
+      {/* Recogidas y entregas en su columna cada una (usuario, 2026-11-21: «en filas, como el
+          listado de envíos, y cada columna desplegables»). La ruta va recogidas → entregas. */}
+      {(['carga', 'descarga'] as const).map((tipo) => (
+        <div key={tipo} className={`varios-c varios-${tipo === 'carga' ? 'rec' : 'ent'}`}>
+          {f.puntos.map((p, i) => ({ p, i })).filter(({ p }) => p.tipo === tipo).map(({ p, i }) => (
+            <div key={p.k} className="ptar-field ptar-field-full" data-parada={p.k}>
+              <CampoSitio punto={p} numero={i + 1} sitios={sitios} deshabilitado={hecha || !cliente} cliente={cliente} dynamo={!esCliente}
+                placeholder={tipo === 'carga' ? 'Busca la recogida' : 'Busca la entrega'}
+                onCreado={(id) => onSitioCreado(p.k, id)}
+                onCambio={(c) => onCambio({ puntos: f.puntos.map((x) => (x.k === p.k ? { ...x, ...c } : x)) })}
+                onQuitar={!hecha && quitable(p) ? () => onCambio({ puntos: f.puntos.filter((x) => x.k !== p.k) }) : undefined}
+                onAnadir={!hecha && total < 4 ? () => { const j = f.puntos.findIndex((x) => x.k === p.k); const c = [...f.puntos];
+                  c.splice(j + 1, 0, { k: f.k * 1000 + sigParada.current++, tipo, sitio: null, nuevo: null }); onCambio({ puntos: c }); } : undefined} />
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="varios-c">
         <select className="ptar-select" aria-label={`Mercancía del envío ${n}`} disabled={hecha} value={f.paletizada ? 'p' : 'n'} onChange={(e) => onCambio({ paletizada: e.target.value === 'p' })}>
           <option value="p">Paletizada</option><option value="n">No paletizada</option>
         </select>
+      </div>
+      <div className="varios-c">
         <select className="ptar-select" aria-label={`Metros lineales del envío ${n}`} disabled={hecha} value={f.ml} onChange={(e) => onCambio({ ml: e.target.value })}>
           {optsMl(mlMax).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
         </select>
+      </div>
+      <div className="varios-c">
         <select className="ptar-select" aria-label={`Peso del envío ${n}`} disabled={hecha} value={f.peso} onChange={(e) => onCambio({ peso: e.target.value })}>
           {optsPeso(pesoMax).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
         </select>
-        <select className="ptar-select" aria-label={`Forma de carga del envío ${n}`} disabled={hecha} value={f.forma} onChange={(e) => onCambio({ forma: e.target.value })}>
-          {FORMAS.map((x) => <option key={x} value={x}>Carga {x.toLowerCase()}</option>)}
-        </select>
-        <div className="varios-checks">
-          <label><input type="checkbox" disabled={hecha} checked={f.plataforma} onChange={(e) => {
-            const v = e.target.checked;
-            onCambio({ plataforma: v, ...(v ? { ml: Number(f.ml) > 8 ? '8' : f.ml, peso: Number(f.peso) > 14 ? '14' : f.peso } : { ml: f.ml, peso: f.peso === '14' ? '15' : f.peso }) });
-          }} /> Plataforma elevadora</label>
-          <label><input type="checkbox" disabled={hecha} checked={f.nima} onChange={(e) => onCambio({ nima: e.target.checked })} /> NIMA</label>
-          <label><input type="checkbox" disabled={hecha} checked={f.adr} onChange={(e) => onCambio({ adr: e.target.checked })} /> ADR</label>
-        </div>
       </div>
-      <div className="varios-c varios-fecha">
-        <span className="varios-et">Fecha de recogida</span>
+      <div className="varios-c">
+        <select className="ptar-select" aria-label={`Forma de carga del envío ${n}`} disabled={hecha} value={f.forma} onChange={(e) => onCambio({ forma: e.target.value })}>
+          {FORMAS.map((x) => <option key={x} value={x}>{x}</option>)}
+        </select>
+      </div>
+      <div className="varios-c varios-checks">
+        <label><input type="checkbox" disabled={hecha} checked={f.plataforma} onChange={(e) => {
+          const v = e.target.checked;
+          onCambio({ plataforma: v, ...(v ? { ml: Number(f.ml) > 8 ? '8' : f.ml, peso: Number(f.peso) > 14 ? '14' : f.peso } : { ml: f.ml, peso: f.peso === '14' ? '15' : f.peso }) });
+        }} /> Plataforma</label>
+        <label><input type="checkbox" disabled={hecha} checked={f.nima} onChange={(e) => onCambio({ nima: e.target.checked })} /> NIMA</label>
+        <label><input type="checkbox" disabled={hecha} checked={f.adr} onChange={(e) => onCambio({ adr: e.target.checked })} /> ADR</label>
+      </div>
+      <div className="varios-c">
         <select className="ptar-select" aria-label={`Tipo de fecha del envío ${n}`} disabled={hecha} value={f.urgencia}
           onChange={(e) => { const u = e.target.value as Urg; onCambio({ urgencia: u, fecha: primerDia(u, esGrupaje, fest, cortes) }); }}>
           {optsUrg(esGrupaje).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
         </select>
+      </div>
+      <div className="varios-c">
         <select className="ptar-select" aria-label={`Día de recogida del envío ${n}`} disabled={hecha} value={dias.includes(f.fecha) ? f.fecha : ''}
           onChange={(e) => onCambio({ fecha: e.target.value })}>
           {!dias.includes(f.fecha) && <option value="" disabled>Elige el día</option>}
@@ -408,11 +443,9 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
         </select>
       </div>
       <div className="varios-c varios-ref">
-        <span className="varios-et">Tu referencia</span>
         <input type="text" maxLength={60} disabled={hecha} value={f.ref} placeholder="Opcional" aria-label={`Referencia del envío ${n}`} onChange={(e) => onCambio({ ref: e.target.value })} />
       </div>
       <div className="varios-c varios-precio">
-        <span className="varios-et">Precio (sin IVA)</span>
         {hecha ? <strong>{f.res && f.res.ok ? '✓' : ''}</strong>
           : esCliente ? (tarifa ? <strong className="varios-importe">{euros(tarifa.neto)}</strong>
               : <span className="meta varios-sin-precio">{rutaCompleta ? 'Calculando…' : 'Pon la ruta'}</span>)

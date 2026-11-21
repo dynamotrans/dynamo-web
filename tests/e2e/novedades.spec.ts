@@ -1030,10 +1030,17 @@ test.describe('novedades', () => {
     await entrar(page, 'dynamo');
     // Envíos: filtra en el servidor, por la URL.
     await page.goto('/panel/envios');
+    // En el móvil los filtros van plegados tras el botón «Filtros»: se abren si hace falta.
+    const abrirFiltros = async () => {
+      const t = page.locator('.filters-toggle');
+      if (await t.isVisible() && (await t.getAttribute('aria-expanded')) !== 'true') await t.click();
+    };
+    await abrirFiltros();
     const fe = page.getByLabel('Filtrar por fecha de carga');
     await expect(fe.locator('option')).toContainText(['Todas las fechas', 'Hoy', 'Mañana', 'Este trimestre', 'Año pasado', 'Entre dos fechas…']);
     await fe.selectOption('trim');
     await expect(page).toHaveURL(/fr=trim/);
+    await abrirFiltros();
     await page.getByLabel('Filtrar por fecha de carga').selectOption('entre');
     await expect(page).toHaveURL(/fr=entre/);
     await expect(page.getByLabel('Desde')).toBeVisible();

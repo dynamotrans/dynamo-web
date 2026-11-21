@@ -5390,31 +5390,38 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .modal-ok-box { background: #ecfdf3; border: 1px solid #bbf7d0; border-radius: 10px; padding: 0.7rem 0.85rem; font-size: var(--fs-m); color: #14532d; margin-bottom: 1rem; line-height: 1.5; }
 .modal-ok-box strong { color: #166534; }
 
-/* ---- Crear varios envíos (usuario, 2026-11-21): una fila por envío, como tabla en
-   escritorio y como tarjetas apiladas en el móvil. Rejilla (no <table>) para que los
-   desplegables de los sitios no queden recortados por el scroll de una tabla. ---- */
+/* ---- Crear varios envíos (usuario, 2026-11-21): UNA FILA por envío, como el listado de
+   envíos, con cada dato en su columna y en su desplegable. La tabla es ancha: se desliza a
+   los lados (también en el móvil) con el nº de fila fijo a la izquierda. Rejilla, no
+   <table>, y al abrir el buscador de un sitio la caja crece por abajo para que su lista no
+   quede cortada por el deslizamiento lateral. ---- */
 .varios-cliente { max-width: 520px; margin-bottom: 1rem; }
-.varios-tabla { display: grid; gap: 0.6rem; }
+.varios-scroll { overflow-x: auto; overscroll-behavior-x: contain; border: 1.5px solid var(--gray-200); border-radius: 14px; background: #fff; }
+.varios-scroll:has(.ptar-sug) { padding-bottom: 320px; }
+.varios-tabla { display: grid; width: max-content; min-width: 100%; }
 .varios-tabla.bloqueada { opacity: 0.55; pointer-events: none; }
-.varios-cab, .varios-fila { display: grid; grid-template-columns: 40px minmax(250px, 2fr) minmax(190px, 1.2fr) minmax(200px, 1.2fr) minmax(96px, 0.55fr) 108px; gap: 0.65rem; align-items: start; }
-.varios-sin-precio { display: block; padding-top: 0.6rem; }
-.varios-cab { padding: 0 0.8rem; font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); }
+.varios-cab, .varios-fila { display: grid; grid-template-columns: 52px 250px 250px 150px 185px 150px 165px 118px 205px 175px 130px 118px; gap: 0.5rem; align-items: start; padding: 0.6rem 0.7rem; }
+.varios-cab { background: var(--gray-50, #f7f8fa); border-bottom: 1.5px solid var(--gray-200); font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); position: sticky; top: 0; z-index: 3; }
+.varios-cab > span:first-child, .varios-num { position: sticky; left: 0; z-index: 2; background: inherit; }
 .varios-cab .der, .varios-precio { text-align: right; }
-.varios-fila { background: #fff; border: 1.5px solid var(--gray-200); border-radius: 14px; padding: 0.8rem; position: relative; }
-.varios-fila.con-error { border-color: #f5b5b5; background: #fffafa; }
-.varios-fila.hecha { border-color: #b9e3c6; background: #f6fbf7; }
-.varios-num { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding-top: 0.45rem; }
+.varios-fila { border-bottom: 1px solid var(--gray-200); background: #fff; position: relative; }
+.varios-fila:last-child { border-bottom: none; }
+.varios-fila.con-error { background: #fffafa; }
+.varios-fila.con-error .varios-num { background: #fffafa; }
+.varios-fila.hecha { background: #f6fbf7; }
+.varios-fila.hecha .varios-num { background: #f6fbf7; }
+.varios-num { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding-top: 0.35rem; background: #fff; }
 .varios-num strong { color: var(--navy); font-size: var(--fs-l); }
 .varios-quitar, .varios-dup { width: 30px; height: 30px; border-radius: 9px; border: 1.5px solid var(--gray-200); background: #fff; color: var(--gray-500); cursor: pointer; font-size: 0.9rem; line-height: 1; }
 .varios-quitar:hover { color: #dc2626; border-color: #f5b5b5; background: #fff5f5; }
 .varios-dup:hover { color: var(--purple); border-color: var(--purple); }
 .varios-c { display: grid; gap: 0.4rem; min-width: 0; }
 .varios-c .ptar-field { margin: 0; }
-.varios-et { display: none; font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); }
-.varios-checks { display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; font-size: var(--fs-s); color: var(--navy); }
-.varios-checks label { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; margin: 0; }
-.varios-importe { font-size: var(--fs-xl, 1.15rem); color: var(--navy); padding-top: 0.55rem; display: block; }
+.varios-checks { gap: 0.15rem; font-size: var(--fs-s); color: var(--navy); }
+.varios-checks label { display: flex; align-items: center; gap: 0.35rem; font-weight: 600; margin: 0; }
+.varios-importe { font-size: var(--fs-l); color: var(--navy); padding-top: 0.6rem; display: block; }
 .varios-importe-input { text-align: right; font-weight: 700; }
+.varios-sin-precio { display: block; padding-top: 0.7rem; }
 .varios-res { grid-column: 2 / -1; font-size: var(--fs-m); font-weight: 600; }
 .varios-res.ok { color: #15803d; }
 .varios-res.error { color: #b91c1c; }
@@ -5422,18 +5429,22 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .varios-total { margin-left: auto; font-size: var(--fs-l); color: var(--navy); }
 .varios-acciones { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: flex-end; margin-top: 0.9rem; }
 .varios-acciones .btn-primary { min-width: 220px; }
-@media (max-width: 1100px) {
-  .varios-cab { display: none; }
-  .varios-fila { grid-template-columns: 44px 1fr 1fr; }
-  .varios-ruta { grid-column: 2 / -1; }
-  .varios-et { display: block; }
-  .varios-precio { text-align: left; }
-}
+/* Ventana «Crear N envíos»: lista, totales y condiciones, con los tamaños del panel. */
+.varios-conf { display: grid; gap: 0.8rem; font-size: var(--fs-m); color: var(--navy); }
+.varios-conf-lista { list-style: none; margin: 0; padding: 0; border: 1.5px solid var(--gray-200); border-radius: 12px; max-height: 260px; overflow-y: auto; }
+.varios-conf-lista li { display: grid; grid-template-columns: 28px 1fr auto; gap: 0.6rem; align-items: center; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--gray-200); }
+.varios-conf-lista li:last-child { border-bottom: none; }
+.varios-conf-n { width: 26px; height: 26px; border-radius: 8px; background: var(--gray-100, #f2f3f6); color: var(--gray-600, #555); font-size: var(--fs-s); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.varios-conf-ruta { min-width: 0; display: grid; }
+.varios-conf-ruta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.varios-conf-precio { font-weight: 700; white-space: nowrap; }
+.varios-conf-totales { background: var(--gray-50, #f7f8fa); border-radius: 12px; padding: 0.6rem 0.8rem; display: grid; gap: 0.25rem; }
+.varios-conf-totales > div { display: flex; justify-content: space-between; gap: 1rem; color: var(--gray-600, #555); }
+.varios-conf-totales > div.total { color: var(--navy); font-weight: 800; font-size: var(--fs-l); border-top: 1px solid var(--gray-200); padding-top: 0.35rem; margin-top: 0.15rem; }
+.varios-conf-nota { margin: 0; font-size: var(--fs-s); color: var(--gray-500); line-height: 1.5; }
+.varios-conf-enlace { justify-self: start; background: none; border: none; padding: 0; font: inherit; font-size: var(--fs-m); font-weight: 600; color: var(--purple); text-decoration: underline; cursor: pointer; }
+.varios-conf-check { margin: 0; font-size: var(--fs-m); }
 @media (max-width: 640px) {
-  .varios-fila { grid-template-columns: 1fr; padding: 0.7rem; }
-  .varios-num { flex-direction: row; justify-content: flex-start; padding-top: 0; }
-  .varios-num strong { margin-right: auto; }
-  .varios-ruta, .varios-res { grid-column: auto; }
   .varios-total { margin-left: 0; width: 100%; }
   .varios-acciones .btn-primary, .varios-acciones .btn-ghost { width: 100%; }
 }
