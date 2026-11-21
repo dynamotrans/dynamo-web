@@ -70,6 +70,9 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   };
   const [filas, setFilas] = useState<Fila[]>(() => [1, 2, 3].map(() => nuevaFila(cliente, sitiosIni)));
   const [infos, setInfos] = useState<Record<number, Info>>({});
+  // Envíos ya creados: salen de la tabla (usuario, 2026-11-21: «no vuelvas a poner ese listado
+  // con las funciones bloqueadas»); quedan solo los que no se pudieron crear.
+  const [hechas, setHechas] = useState<{ ref: string; id: string | null; pago: boolean }[]>([]);
   const [aviso, setAviso] = useState<string | null>(null);
   const [marcar, setMarcar] = useState(false);   // se intentó crear con filas incompletas: se marcan en rojo
   const [confirmar, setConfirmar] = useState(false);
@@ -100,7 +103,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   const pendientes = filas.filter((f) => !f.res?.ok);
   const listas = pendientes.filter((f) => infos[f.k] && !infos[f.k].error);
   const total = listas.reduce((s, f) => s + (infos[f.k]?.neto ?? 0), 0);
-  const creadas = filas.filter((f) => f.res?.ok);
+  const creadas = hechas;
   const iva = Number(cliente?.iva ?? 21);
 
   async function proforma() {
@@ -139,6 +142,8 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
     setConfirmar(false); setAviso(null);
     const cola = filas.filter((f) => !f.res?.ok && infos[f.k] && !infos[f.k].error);
     let n = 0;
+    const ok: { ref: string; id: string | null; pago: boolean }[] = [];
+    const okK = new Set<number>();
     for (const f of cola) {
       n++;
       setTrabajando(`Creando envío ${n} de ${cola.length}`);
@@ -165,7 +170,10 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
         }
       } catch { res = { ok: false, error: 'No se ha podido crear. Vuelve a intentarlo.' }; }
       cambiarFila(f.k, { res });
+      if (res.ok) { okK.add(f.k); ok.push({ ref: res.ref, id: res.id, pago: res.pago }); }
     }
+    setHechas((h) => [...h, ...ok]);
+    setFilas((l) => l.filter((x) => !okK.has(x.k)));
     setTrabajando(null);
     router.refresh();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -199,13 +207,24 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       )}
 
       {creadas.length > 0 && (
-        <div className="pt-aviso info" id="varios-creados" style={{ marginBottom: '0.9rem' }}><div>
-          <strong>{creadas.length === 1 ? 'Se ha creado 1 envío' : `Se han creado ${creadas.length} envíos`}</strong>
-          {pendientes.length > 0 ? ` · ${pendientes.length} sin crear: revísalos abajo.` : '.'}{' '}
-          <Link href="/panel/envios">Ver mis envíos →</Link>
-        </div></div>
+        <div className={`varios-hecho${pendientes.length ? ' parcial' : ''}`} id="varios-creados">
+          <div className="varios-hecho-tit">✓ {creadas.length === 1 ? 'Se ha creado 1 envío' : `Se han creado ${creadas.length} envíos`}
+            {pendientes.length > 0 && <span> · {pendientes.length === 1 ? 'uno no se ha podido crear' : `${pendientes.length} no se han podido crear`}: revísalo{pendientes.length === 1 ? '' : 's'} abajo.</span>}</div>
+          <div className="varios-hecho-refs">
+            {creadas.map((c) => (
+              <Link key={c.ref} href={c.id ? `/panel/envios?ver=${c.id}` : '/panel/envios'}>#{c.ref}{c.pago && <span className="badge badge-cargando" style={{ marginLeft: 4 }}>Pendiente de pago</span>}</Link>
+            ))}
+          </div>
+          <div className="varios-hecho-acc">
+            <Link className="btn-primary" href="/panel/envios" id="varios-ver-envios">Ver mis envíos</Link>
+            {!pendientes.length && <button type="button" className="btn-ghost" id="varios-otra-vez"
+              onClick={() => { setHechas([]); setInfos({}); setMarcar(false); setFilas([1, 2, 3].map(() => nuevaFila(cliente, sitios))); }}>Crear otros envíos</button>}
+          </div>
+        </div>
       )}
 
+      {/* Con todos creados, solo el mensaje: ni tabla ni botones. */}
+      {(creadas.length === 0 || pendientes.length > 0) && <>
       {/* Tabla ancha: en pantallas pequeñas se desliza hacia los lados, como el listado de envíos. */}
       <div className="varios-scroll" tabIndex={0}>
       <div className={`varios-tabla${bloqueado ? ' bloqueada' : ''}`} id="varios-tabla">
@@ -246,6 +265,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
           {pendientes.length > 1 ? `Crear ${pendientes.length} envíos` : 'Crear envío'}
         </button>
       </div>
+      </>}
       {trabajando && <Cargando texto={trabajando} />}
 
       <Modal abierto={confirmar} onCerrar={() => setConfirmar(false)} ancho={560} titulo={`Crear ${listas.length === 1 ? '1 envío' : `${listas.length} envíos`}`}

@@ -697,9 +697,13 @@ test.describe('novedades', () => {
     await page.locator('#varios-confirmar').click();
     await expect(page.locator('#varios-creados')).toContainText('Se han creado 2 envíos', { timeout: 30000 });
     expect((await bd().from('envios').select('id', { count: 'exact', head: true })).count).toBe(antes + 2);
-    await expect(page.locator('.varios-res.ok')).toHaveCount(2);
-    // Tope de 20 filas por subida.
-    for (let i = 0; i < 18; i++) await page.locator('#varios-anadir').click();
+    // Con todos creados queda solo el mensaje: ni la tabla ni sus botones.
+    await expect(page.locator('#varios-tabla')).toHaveCount(0);
+    await expect(page.locator('#varios-ver-envios')).toBeVisible();
+    // «Crear otros envíos» vuelve a la tabla vacía. Tope de 20 filas por subida.
+    await page.locator('#varios-otra-vez').click();
+    await expect(filas).toHaveCount(3);
+    for (let i = 0; i < 17; i++) await page.locator('#varios-anadir').click();
     await expect(filas).toHaveCount(20);
     await expect(page.locator('#varios-anadir')).toBeDisabled();
   });
