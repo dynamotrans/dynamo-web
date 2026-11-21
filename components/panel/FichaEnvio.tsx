@@ -278,7 +278,9 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
                 {!cancelado && !manual && <FechaParada etapas={ficha.etapas} num={ficha.paradas.indexOf(p) + 1} carga={p.tipo === 'carga'} />}</span>
             </div>
           ))}
-          <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}</span></div>
+          <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}{(e.requiere_plataforma_elevadora || e.requiere_nima || e.adr) && (
+            // Requisitos a la vista en el resumen (usuario, 2026-11-21).
+            <span className="ficha-reqs" id="ficha-requisitos">{e.requiere_plataforma_elevadora && <span className="ficha-req">Plataforma elevadora</span>}{e.requiere_nima && <span className="ficha-req">NIMA</span>}{e.adr && <span className="ficha-req ficha-req-adr">ADR</span>}</span>)}</span></div>
           {manual
             ? <div className="pen-sum-row"><span className="k">Precio acordado</span><span className="v">{e.precio_acordado_operador != null ? euros(e.precio_acordado_operador) : 'No anotado'}</span></div>
             : <div className="pen-sum-row pen-sum-3">

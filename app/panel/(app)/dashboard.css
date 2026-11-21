@@ -5470,3 +5470,8 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .caja-co2-tit strong { color: #15803d; font-size: var(--fs-l); }
 .caja-co2-sub { font-size: var(--fs-s); color: #3f6b4f; margin-top: 2px; }
 .caja-co2.compacta { padding: 0.55rem 0.75rem; }
+
+/* Requisitos del envío (plataforma, NIMA, ADR) en el resumen de la ficha (usuario, 2026-11-21). */
+.ficha-reqs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; }
+.ficha-req { display: inline-flex; align-items: center; padding: 0.15rem 0.55rem; border-radius: 999px; background: #ede9fe; color: var(--purple); font-size: var(--fs-s); font-weight: 700; }
+.ficha-req-adr { background: #fff1e6; color: #c2410c; }
