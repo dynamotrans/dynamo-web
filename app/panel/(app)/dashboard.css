@@ -5399,7 +5399,7 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .varios-scroll:has(.varios-req-menu) { padding-bottom: 160px; }
 .varios-tabla { display: grid; width: max-content; min-width: 100%; }
 .varios-tabla.bloqueada { opacity: 0.55; pointer-events: none; }
-.varios-cab, .varios-fila { display: grid; grid-template-columns: 52px 380px 380px 150px 185px 150px 165px 118px 205px 175px 130px 118px; gap: 0.5rem; align-items: start; padding: 0.6rem 0.7rem; }
+.varios-cab, .varios-fila { display: grid; grid-template-columns: 100px 380px 380px 150px 185px 150px 165px 118px 205px 175px 130px 118px; gap: 0.5rem; align-items: start; padding: 0.6rem 0.7rem; }
 .varios-cab { background: var(--gray-50, #f7f8fa); border-bottom: 1.5px solid var(--gray-200); font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); position: sticky; top: 0; z-index: 3; }
 .varios-cab > span:first-child, .varios-num { position: sticky; left: 0; z-index: 6; background: inherit; align-self: stretch; box-shadow: 6px 0 8px -6px rgba(14, 13, 54, 0.18); }
 .varios-cab .der, .varios-precio { text-align: right; }
@@ -5409,7 +5409,9 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .varios-fila.con-error .varios-num { background: #fffafa; }
 .varios-fila.hecha { background: #f6fbf7; }
 .varios-fila.hecha .varios-num { background: #f6fbf7; }
-.varios-num { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding-top: 0.35rem; background: #fff; }
+/* Nº, quitar y duplicar EN LÍNEA (usuario, 2026-11-22): la fila queda más baja. */
+.varios-num { display: flex; flex-direction: row; align-items: flex-start; gap: 0.3rem; padding-top: 7px; background: #fff; }
+.varios-num strong { min-width: 1.4rem; text-align: center; line-height: 30px; }
 .varios-num strong { color: var(--navy); font-size: var(--fs-l); }
 .varios-quitar, .varios-dup { width: 30px; height: 30px; border-radius: 9px; border: 1.5px solid var(--gray-200); background: #fff; color: var(--gray-500); cursor: pointer; font-size: 0.9rem; line-height: 1; }
 .varios-quitar:hover { color: #dc2626; border-color: #f5b5b5; background: #fff5f5; }
