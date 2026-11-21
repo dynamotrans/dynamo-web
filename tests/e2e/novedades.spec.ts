@@ -947,4 +947,28 @@ test.describe('novedades', () => {
     await page.locator('#sug-guardar').click();
     await expect.poll(async () => (await bd().from('sugerencias').select('estado, nota_dynamo').eq('id', fila.data!.id).single()).data?.estado).toBe('realizada');
   });
+
+  test('Nuevo envío: el aviso del corte solo con el primer día posible; la entrega estimada sigue a la recogida elegida', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/nuevo-envio');
+    const sitio = page.locator('.ptar-route-row input[type=text]');
+    await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+    await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    const sel = page.locator('select').filter({ has: page.locator('option', { hasText: 'Elige la fecha de recogida' }) });
+    // El primer día posible: sale el aviso del corte.
+    await sel.selectOption({ index: 1 });
+    await expect(page.locator('.ptar-cutoff-note')).toBeVisible();
+    // Un día posterior: el corte ya no le afecta, no sale; y la entrega estimada es posterior a esa recogida.
+    const opciones = await sel.locator('option').evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value).filter((v) => /^\d{4}-\d{2}-\d{2}$/.test(v)));
+    const tarde = opciones[opciones.length - 1];
+    await sel.selectOption(tarde);
+    await expect(page.locator('.ptar-cutoff-note')).toHaveCount(0);
+    const caja = page.locator('#caja-entrega-estimada .v');
+    await expect(caja).toContainText(/\d{2}\/\d{2}\/\d{2}/);
+    const txt = (await caja.textContent()) ?? '';
+    const [d, m, a] = (/(\d{2})\/(\d{2})\/(\d{2})/.exec(txt) ?? []).slice(1);
+    expect(`20${a}-${m}-${d}` > tarde).toBe(true);
+  });
 });

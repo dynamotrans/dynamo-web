@@ -1323,7 +1323,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                     </div>
                   )}
                   {avisoFestivo && <div className="ptar-field-full">{avisoFestivo}</div>}
-                  {!manual && !fechaPasada && (
+                  {/* El aviso del corte solo cuando influye (usuario, 2026-11-21): sin fecha aún o con
+                      el primer día posible elegido. Con una fecha posterior, el corte ya no le afecta. */}
+                  {!manual && !fechaPasada && (!fecha || !dias[0] || fecha <= dias[0]) && (
                     <div className="ptar-field-full">
                       <AvisoCorte urgencia={urgencia} festivos={festivos} ventana={ventanaDias} grupaje={esGrupaje} cortes={cortes} />
                     </div>
