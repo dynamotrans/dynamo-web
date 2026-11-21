@@ -1617,14 +1617,12 @@ body.theme-dark .sidebar { background: #060116; }
     background: rgba(51,0,204,0.05); border: 1px solid rgba(51,0,204,0.18); border-radius: 10px;
 }
 .pen-envio-sum[hidden] { display: none; }
-/* La fila ENVUELVE: si la etiqueta y el valor no caben juntos (móvil, fechas largas del
-   Seguimiento), el valor baja a su propia línea pegado a la derecha en vez de salirse. */
-.pen-sum-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.15rem 1rem; font-size: var(--fs-m); padding: 0.15rem 0; }
+/* Fila APILADA (usuario, 2026-11-21): etiqueta arriba y valor debajo, todo a la
+   izquierda. Antes iban etiqueta a la izquierda y valor a la derecha, y cuando el valor
+   no cabía bajaba a la línea siguiente pegado a la derecha, que quedaba feo. */
+.pen-sum-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0; font-size: var(--fs-m); padding: 0.2rem 0; }
 .pen-sum-row .k { color: var(--gray-500); font-weight: 600; min-width: 0; }
-.pen-sum-row .v { color: var(--navy); font-weight: 700; text-align: right; min-width: 0; margin-left: auto; }
-/* Fila APILADA para valores largos (mercancía, precios): etiqueta arriba y valor
-   debajo a la izquierda, en vez de un ajuste de línea a la derecha a trompicones. */
-.pen-sum-row.pen-sum-col { flex-direction: column; align-items: flex-start; gap: 0; }
+.pen-sum-row .v { color: var(--navy); font-weight: 700; text-align: left; min-width: 0; max-width: 100%; }
 .pen-sum-row.pen-sum-col .v { margin-left: 0; text-align: left; }
 /* --- Línea temporal del seguimiento (2026-11-10: «unifica ruta y seguimiento,
    una línea temporal con hitos, más visual») ---
@@ -1684,7 +1682,7 @@ body.theme-dark .sidebar { background: #060116; }
 
 /* Fila de precios en MINI-COLUMNAS (Cliente / Transp. / Margen): cada una con su
    etiqueta encima, para que no se parta un importe a la línea siguiente. */
-.pen-sum-row.pen-sum-3 { justify-content: flex-start; gap: 0.15rem 1.8rem; }
+.pen-sum-row.pen-sum-3 { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; gap: 0.15rem 1.8rem; }
 .pen-sum-3 .p3 { display: flex; flex-direction: column; min-width: 0; }
 .pen-sum-3 .p3 .v { margin-left: 0; text-align: left; }
 /* Historial de cambios: fecha arriba y la acción (que puede ser larga) debajo, a ancho

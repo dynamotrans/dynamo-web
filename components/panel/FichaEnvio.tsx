@@ -274,7 +274,7 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
           {[...recogidas, ...entregas].map((p, i) => (
             <div key={p.id} className="pen-sum-row">
               <span className="k"><EtiquetaParada num={i + 1} tipo={p.tipo} tipoSitio={p.sitio?.tipo} /></span>
-              <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}
+              <span className="v">{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}
                 {!cancelado && !manual && <FechaParada etapas={ficha.etapas} num={ficha.paradas.indexOf(p) + 1} carga={p.tipo === 'carga'} />}</span>
             </div>
           ))}
@@ -300,7 +300,7 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
                 : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
             </span></div>
             {ficha.transportista && <>
-              <div className="pen-sum-row"><span className="k">Transportista</span><span className="v" style={{ textAlign: 'right' }}>{ficha.transportista.nombre} · {ficha.transportista.cif}</span></div>
+              <div className="pen-sum-row"><span className="k">Transportista</span><span className="v">{ficha.transportista.nombre} · {ficha.transportista.cif}</span></div>
               {e.asignado_en && <div className="pen-sum-row"><span className="k">Asignado el</span><span className="v">{fechaHora(e.asignado_en)}</span></div>}
               {e.fecha_carga_real && e.fecha_carga_prevista && e.fecha_carga_prevista !== e.fecha_carga_real && (
                 <div className="pen-sum-row"><span className="k">Día previsto de carga</span><span className="v">{fecha(e.fecha_carga_prevista)}</span></div>
@@ -309,7 +309,7 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
                 {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : e.estado === 'entregado' ? '—' : <Reservado que="matrículas pendientes de anotar" />}
                 {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
               </span></div>
-              <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
+              <div className="pen-sum-row"><span className="k">Conductor</span><span className="v">
                 {e.conductor_nombre || (e.estado === 'entregado' ? '—' : <Reservado que="conductor pendiente de anotar" />)}
                 {e.conductor_telefono && <> · <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a></>}
               </span></div>
@@ -448,17 +448,17 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
         <div className="pen-envio-sum">
           <div className="pen-sum-row"><span className="k">Nº de envío</span><span className="v">#{e.referencia_gx}</span></div>
           <div className="pen-sum-row"><span className="k">Ref. cliente</span><span className="v">{e.referencia_cliente || '—'}</span></div>
-          <div className="pen-sum-row"><span className="k">Cliente</span><span className="v" style={{ textAlign: 'right' }}>{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</span></div>
-          <div className="pen-sum-row"><span className="k">Creado</span><span className="v" style={{ textAlign: 'right' }}>{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</span></div>
+          <div className="pen-sum-row"><span className="k">Cliente</span><span className="v">{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</span></div>
+          <div className="pen-sum-row"><span className="k">Creado</span><span className="v">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</span></div>
           {manual && <div className="pen-sum-row pen-sum-col"><span className="k">Operador de transporte</span><span className="v">{e.operador_id && <LogoOperador id={e.operador_id} />}<span style={{ color: '#b45309' }}>{ficha.operador ?? '—'}</span> · envío registrado a mano — Dynamo no interviene; el CMR y el DeCA se gestionan directamente con él</span></div>}
           {/* Camión y conductor del manual (usuario, 2026-11-14): editable en cualquier
               momento salvo cancelado — si se olvidó al crear, se completa aquí y la
               orden/CMR que se generen después salen completos. */}
-          {manual && <div className="pen-sum-row"><span className="k">Camión y conductor</span><span className="v" style={{ textAlign: 'right' }}>
+          {manual && <div className="pen-sum-row"><span className="k">Camión y conductor</span><span className="v">
             {[[e.matricula_camion, e.matricula_remolque].filter(Boolean).join(' / '), e.conductor_nombre].filter(Boolean).join(' · ') || <Pend />}
             {e.estado !== 'cancelado' && <button type="button" className="btn-ghost" style={{ padding: '0.15rem 0.6rem', marginLeft: '0.5rem' }} onClick={() => setCamionAbierto(true)}>{e.matricula_camion ? 'Cambiar' : 'Rellenar'}</button>}
           </span></div>}
-          <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
+          <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v">{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {/* El día que el transportista eligió dentro de la ventana, junto a ella. */}
           {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}
           <div className="pen-sum-row"><span className="k">Entrega estimada</span><span className="v">{e.fecha_entrega_estimada || ficha.entrega?.desde ? fechaEntrega({ fecha_entrega_estimada: e.fecha_entrega_estimada, entrega_desde: ficha.entrega?.desde, entrega_hasta: ficha.entrega?.hasta }) : <Pend />}</span></div>
@@ -475,11 +475,11 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
         </>}
         <SubTit>Mercancía</SubTit>
         <div className="pen-envio-sum">
-          <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v" style={{ textAlign: 'right' }}>{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</span></div>
+          <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</span></div>
           <div className="pen-sum-row"><span className="k">Medidas</span><span className="v">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Tipo de carga</span><span className="v">{[tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora), alturaMaxTxt(e.requiere_plataforma_elevadora)].filter(Boolean).join(' · ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Forma de carga</span><span className="v">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</span></div>
-          <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v" style={{ textAlign: 'right' }}>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</span></div>
+          <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v">{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</span></div>
           {e.anotaciones_cliente && <div className="pen-sum-row pen-sum-col"><span className="k">Anotaciones</span><span className="v">{e.anotaciones_cliente}</span></div>}
           {/* DatosCmr pinta su propia fila con el botón Rellenar/Cambiar (formato de parrilla). */}
           <div className="modal-info-grid" style={{ marginTop: '0.2rem' }}><DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} /></div>

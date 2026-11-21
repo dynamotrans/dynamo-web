@@ -304,7 +304,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
         {[...recogidas, ...entregas].map((p, i) => (
           <div key={p.id ?? i} className="pen-sum-row">
             <span className="k"><EtiquetaParada num={i + 1} tipo={p.tipo} tipoSitio={p.tipo_sitio} /></span>
-            <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}
+            <span className="v">{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}
               {conSeguimiento && <FechaParada etapas={etapas} num={paradas.indexOf(p) + 1} carga={p.tipo === 'carga'} />}</span>
           </div>
         ))}
@@ -329,7 +329,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
               {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : reservado && e.estado !== 'entregado' ? <Reservado que="matrículas pendientes de anotar" /> : <Pend />}
               {e.matricula_remolque && <span className="dtc-mat" style={{ marginLeft: '0.35rem' }}>{e.matricula_remolque}</span>}
             </span></div>
-            <div className="pen-sum-row"><span className="k">Conductor</span><span className="v" style={{ textAlign: 'right' }}>
+            <div className="pen-sum-row"><span className="k">Conductor</span><span className="v">
               {e.conductor_nombre || (e.estado === 'entregado' ? '—' : reservado ? <Reservado que="conductor pendiente de anotar" /> : <Pend />)}
               {/* El teléfono lo da la base de datos solo desde la víspera de la carga hasta 24 h
                   después de la entrega (usuario, 2026-11-20); antes, se dice cuándo saldrá. */}
@@ -389,8 +389,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
         <div className="pen-envio-sum">
           <div className="pen-sum-row"><span className="k">Nº de envío</span><span className="v">#{e.referencia_gx}</span></div>
           <div className="pen-sum-row"><span className="k">Tu referencia</span><span className="v">{e.referencia_cliente || '—'}</span></div>
-          <div className="pen-sum-row"><span className="k">Creado</span><span className="v" style={{ textAlign: 'right' }}>{fechaHora(e.creado_en)}</span></div>
-          <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v" style={{ textAlign: 'right' }}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
+          <div className="pen-sum-row"><span className="k">Creado</span><span className="v">{fechaHora(e.creado_en)}</span></div>
+          <div className="pen-sum-row"><span className="k">{e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}</span><span className="v">{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</span></div>
           {!e.fecha_carga_real && e.fecha_carga_prevista && <div className="pen-sum-row"><span className="k">Fecha de carga asignada</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{fecha(e.fecha_carga_prevista)}</span></div>}
           <div className="pen-sum-row"><span className="k">Entrega estimada</span><span className="v">{e.fecha_entrega_estimada || e.entrega_desde ? fechaEntrega(e) : <Pend />}</span></div>
           {e.modificado_en && <div className="pen-sum-row"><span className="k">Última modificación</span><span className="v">{fechaHora(e.modificado_en)}</span></div>}
@@ -405,11 +405,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
         </>}
         <SubTit>Mercancía</SubTit>
         <div className="pen-envio-sum">
-          <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v" style={{ textAlign: 'right' }}>{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</span></div>
+          <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</span></div>
           <div className="pen-sum-row"><span className="k">Medidas</span><span className="v">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Tipo de carga</span><span className="v">{[tipoCargaTxt(e.tipo_carga, e.requiere_plataforma_elevadora), alturaMaxTxt(e.requiere_plataforma_elevadora)].filter(Boolean).join(' · ') || '—'}</span></div>
           <div className="pen-sum-row"><span className="k">Forma de carga</span><span className="v">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</span></div>
-          <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v" style={{ textAlign: 'right' }}>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}{e.requiere_nima && <> <Tip texto={SIGLAS.NIMA} aria="Qué significa NIMA" /></>}{e.adr && <> <Tip texto={SIGLAS.ADR} aria="Qué significa ADR" /></>}</span></div>
+          <div className="pen-sum-row"><span className="k">Requisitos</span><span className="v">{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}{e.requiere_nima && <> <Tip texto={SIGLAS.NIMA} aria="Qué significa NIMA" /></>}{e.adr && <> <Tip texto={SIGLAS.ADR} aria="Qué significa ADR" /></>}</span></div>
           {e.anotaciones_cliente && <div className="pen-sum-row pen-sum-col"><span className="k">Anotaciones</span><span className="v">{e.anotaciones_cliente}</span></div>}
           {e.estado !== 'cancelado' && <div className="modal-info-grid" style={{ marginTop: '0.2rem' }}><DatosCmr envioId={e.id} puedeEditar={['borrador', 'programado', 'hacia_la_carga'].includes(e.estado)} bloquearSiFirmado /></div>}
         </div>
