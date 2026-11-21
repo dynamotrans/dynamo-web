@@ -119,18 +119,10 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         <CalendarioEnvios filas={filas} mes={mes || (hoy || hoyISO()).slice(0, 7)} hoy={hoy || hoyISO()} q={q} op={op} por={por}
           puedeCrear={rol !== 'transportista' && !vistaTransportista} />
       )}
-      {!vistaCal && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '-0.3rem 0 0.8rem', fontSize: 'var(--fs-s)' }}>
-        {(() => {
-          const h = hoyISO(), y = Number(h.slice(0, 4));
-          const atajos: [string, string, string][] = [
-            ['Este mes', `${h.slice(0, 7)}-01`, h], ['Este año', `${y}-01-01`, `${y}-12-31`], ['Año pasado', `${y - 1}-01-01`, `${y - 1}-12-31`], ['Todas las fechas', '', ''],
-          ];
-          return atajos.map(([t, d, hh]) => (
-            <Link key={t} className={`chip${desde === d && hasta === hh && (d || modoBusqueda) ? ' active' : ''}`} href={url({ desde: d || undefined, hasta: hh || undefined, pb: 1, p: 1 })}
-              style={{ padding: '0.2rem 0.6rem', borderRadius: 999, border: '1px solid var(--gray-300)', textDecoration: 'none' }}>{t}</Link>
-          ));
-        })()}
-        {modoBusqueda && <Link href="/panel/envios" style={{ marginLeft: 'auto' }}>✕ Quitar búsqueda</Link>}
+      {/* Fuera los atajos «Este mes / Este año / Año pasado / Todas las fechas» (usuario,
+          2026-11-21): el filtro de fecha de arriba ya lo cubre. */}
+      {!vistaCal && modoBusqueda && <div style={{ display: 'flex', margin: '-0.3rem 0 0.8rem', fontSize: 'var(--fs-s)' }}>
+        <Link href="/panel/envios" style={{ marginLeft: 'auto' }}>✕ Quitar búsqueda</Link>
       </div>}
 
       {nuevo && (
