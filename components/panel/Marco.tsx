@@ -313,7 +313,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
                     {/* Sugerencias y fallos (usuario, 2026-11-21): un canal más, con su círculo, debajo de llamar. */}
                     <button type="button" className="topbar-contact-item topbar-contact-accion" role="menuitem" id="contacto-sugerencia"
                             onClick={() => { setMenu(null); setSugerencia(true); }}>
-                      <span className="topbar-contact-icon act-sug-bg"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><line x1="12" y1="7" x2="12" y2="11" /><line x1="12" y1="14" x2="12.01" y2="14" /></svg></span>
+                      <span className="topbar-contact-icon act-sug-bg"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" /></svg></span>
                       <div className="topbar-contact-text"><span className="t">Sugerencias o fallos</span><span className="h">Cuéntanos qué mejorar o qué falla</span></div>
                     </button>
                     <div className="topbar-contact-sep" />
