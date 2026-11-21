@@ -5,6 +5,7 @@
 // del sitio editables, por si falta algún horario o teléfono de contacto que rellenar. Lo que
 // se cambie se guarda en la ficha del sitio al crear el envío (los almacenes de Dynamo no:
 // son datos fijos del catálogo). Las direcciones no se tocan aquí (se cambian en el paso 1).
+import CampoHora from '@/components/CampoHora';
 import { useEffect, useState } from 'react';
 import AvisoCierreSitio from './AvisoCierreSitio';
 import { Interruptor } from './Interruptor';
@@ -111,7 +112,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
           {ed?.cita && (<>
             <div className="ptar-cita-grid" style={{ display: 'contents' }}>
               <div><label>Hora de la cita</label>
-                <input type="time" value={ed?.citaHora ?? '08:00'} onChange={(e) => set(p, { citaHora: e.target.value })} /></div>
+                <CampoHora value={ed?.citaHora ?? '08:00'} aria-label="Hora de la cita" onChange={(v) => set(p, { citaHora: v })} style={{ width: '100%' }} /></div>
               <div className="full"><label>Detalles de la cita <Req si={false} /></label>
                 <input type="text" placeholder="Ej. muelle 4, preguntar por recepción…" value={ed?.citaDetalle ?? ''} onChange={(e) => set(p, { citaDetalle: e.target.value })} /></div>
             </div>

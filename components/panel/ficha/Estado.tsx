@@ -1,5 +1,7 @@
 'use client';
 
+import CampoFecha from '@/components/CampoFecha';
+import CampoHora from '@/components/CampoHora';
 import { useState } from 'react';
 import Modal from '../Modal';
 import Cargando from '@/components/Cargando';
@@ -62,8 +64,13 @@ export function Estado({ ficha, onVolver, hacer, trabajando, fallo }: SubProps) 
       {etapas.length > 0 && paso > 0 && (
         <div className="ptar-sitio-grid" style={{ marginTop: '0.8rem' }}>
           <div>
-            <label htmlFor="es-hora">¿Desde qué hora?</label>
-            <input id="es-hora" type="datetime-local" value={hora} onChange={(ev) => setHora(ev.target.value)} />
+            <label htmlFor="es-hora">¿Desde qué día y hora?</label>
+            {/* El calendario y la hora de toda la plataforma (antes, el del navegador). */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <CampoFecha id="es-hora" value={hora.slice(0, 10)} permitirBorrar={false} aria-label="Día"
+                onChange={(v) => v && setHora(`${v}T${hora.slice(11, 16) || '00:00'}`)} style={{ flex: '1 1 170px' }} />
+              <CampoHora value={hora.slice(11, 16)} paso={5} aria-label="Hora" onChange={(v) => setHora(`${hora.slice(0, 10)}T${v}`)} />
+            </div>
           </div>
         </div>
       )}

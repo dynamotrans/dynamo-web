@@ -1,5 +1,6 @@
 'use client';
 
+import CampoHora from '@/components/CampoHora';
 import { useState } from 'react';
 import Link from 'next/link';
 import Modal from '../Modal';
@@ -177,7 +178,7 @@ export function Ofrecer({ ficha, onVolver }: { ficha: Ficha; onVolver: () => voi
             {e.fecha_carga_desde && (
               <div style={{ marginBottom: '0.5rem' }}>
                 <label htmlFor="of-hora-carga">Hora límite de los emails <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
-                <input id="of-hora-carga" type="time" value={horaCarga} onChange={(ev) => setHoraCarga(ev.target.value)} style={{ maxWidth: 140 }} />
+                <CampoHora id="of-hora-carga" value={horaCarga} onChange={setHoraCarga} vacio="Sin hora" style={{ width: 140 }} />
                 <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.2rem' }}>Si la dejas vacía, los emails siguen hasta que <strong>cierra el sitio de carga</strong> el día de carga (con ventana de varios días, el último). Pon una hora solo si hay que tener el camión antes (una cita, por ejemplo).</div>
               </div>
             )}

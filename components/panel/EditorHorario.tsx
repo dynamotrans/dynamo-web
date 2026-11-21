@@ -3,6 +3,7 @@
 // Horario de un sitio: grupos de días (L M X J V S D) con uno o varios tramos cada uno
 // (mañana y tarde). Ej.: L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00. Los días que no
 // están en ningún grupo, cerrado. Va dentro de la rejilla .ptar-sitio-grid de la ficha.
+import CampoHora from '@/components/CampoHora';
 import { DIAS, type GrupoHorario, type Tramo } from '@/lib/horarios';
 
 const chip = (on: boolean, libre: boolean): React.CSSProperties => ({
@@ -73,15 +74,7 @@ function nuevoTramo(t: Tramo[]): Tramo {
   return ultimo && ultimo.cierra <= '15:00' ? { abre: '15:00', cierra: '18:00' } : { abre: '16:00', cierra: '19:00' };
 }
 
-// Desplegable de horas en formato 24 h y pasos de 15 minutos: igual en cualquier móvil u
-// ordenador (el <input type="time"> se ve en AM/PM según el idioma del sistema).
-const HORAS = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`);
+// La hora: el desplegable común de 24 h (components/CampoHora.tsx).
 function Hora({ valor, etiqueta, onCambio }: { valor: string; etiqueta: string; onCambio: (v: string) => void }) {
-  const opciones = HORAS.includes(valor) || !valor ? HORAS : [...HORAS, valor].sort();
-  return (
-    <select value={valor} aria-label={etiqueta} onChange={(e) => onCambio(e.target.value)}
-      style={{ width: 104, minWidth: 0, flex: '0 1 104px' }}>
-      {opciones.map((h) => <option key={h} value={h}>{h}</option>)}
-    </select>
-  );
+  return <CampoHora value={valor} aria-label={etiqueta} onChange={onCambio} style={{ width: 104, flex: '0 1 104px' }} />;
 }
