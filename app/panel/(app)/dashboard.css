@@ -5400,7 +5400,7 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .varios-scroll:has(.ptar-sug) { padding-bottom: 320px; }
 .varios-tabla { display: grid; width: max-content; min-width: 100%; }
 .varios-tabla.bloqueada { opacity: 0.55; pointer-events: none; }
-.varios-cab, .varios-fila { display: grid; grid-template-columns: 52px 250px 250px 150px 185px 150px 165px 118px 205px 175px 130px 118px; gap: 0.5rem; align-items: start; padding: 0.6rem 0.7rem; }
+.varios-cab, .varios-fila { display: grid; grid-template-columns: 52px 380px 380px 150px 185px 150px 165px 118px 205px 175px 130px 118px; gap: 0.5rem; align-items: start; padding: 0.6rem 0.7rem; }
 .varios-cab { background: var(--gray-50, #f7f8fa); border-bottom: 1.5px solid var(--gray-200); font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); position: sticky; top: 0; z-index: 3; }
 .varios-cab > span:first-child, .varios-num { position: sticky; left: 0; z-index: 6; background: inherit; align-self: stretch; box-shadow: 6px 0 8px -6px rgba(14, 13, 54, 0.18); }
 .varios-cab .der, .varios-precio { text-align: right; }
@@ -5486,3 +5486,6 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .varios-hecho-refs a { display: inline-flex; align-items: center; padding: 0.3rem 0.6rem; border-radius: 9px; background: #fff; border: 1px solid var(--gray-200); color: var(--purple); font-weight: 700; font-size: var(--fs-m); text-decoration: none; }
 .varios-hecho-acc { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 @media (max-width: 640px) { .varios-hecho-acc > * { flex: 1 1 100%; } }
+.varios-tel { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: var(--fs-m); color: var(--navy); }
+.varios-tel input { width: 200px; }
+.varios-tel-err { color: #b91c1c; font-weight: 600; }

@@ -661,6 +661,27 @@ test.describe('novedades', () => {
     await expect(page.locator('#caja-co2')).toContainText('Huella de CO₂ de este envío');
   });
 
+  // Crear varios envíos: un sitio sin teléfono de contacto no deja crear; se completa en la fila.
+  test('crear varios envíos: sitio sin teléfono marca la fila y se completa allí mismo', async ({ page }) => {
+    const { data: c } = await bd().from('contactos').select('id, telefono, sitios!inner(nombre_empresa)').eq('sitios.nombre_empresa', 'Nave Madrid').eq('es_principal', true).limit(1).single();
+    await bd().from('contactos').update({ telefono: null }).eq('id', c!.id);
+    try {
+      await entrar(page, 'cliente');
+      await page.goto('/panel/nuevo-envio/varios');
+      const fila1 = page.locator('.varios-fila').nth(0);
+      const sitio = fila1.locator('.ptar-route-row input[type=text]');
+      await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+      await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+      await expect(fila1.locator('.varios-res.error')).toContainText('Falta el teléfono de contacto de «Nave Madrid»');
+      await fila1.locator('.varios-tel input').fill('600123123');
+      await fila1.locator('.varios-tel button').click();
+      await expect(fila1.locator('.varios-tel')).toHaveCount(0);
+      await expect(fila1.locator('.varios-res.error')).toHaveCount(0);
+    } finally {
+      await bd().from('contactos').update({ telefono: c!.telefono }).eq('id', c!.id);
+    }
+  });
+
   // Crear varios envíos (usuario, 2026-11-21): desde la flechita de «Nuevo envío», una tabla
   // con un envío por fila (máximo 20), precio por fila, quitar/duplicar, proforma y crear.
   test('crear varios envíos: tabla con precio por fila, proforma y creación de golpe', async ({ page }) => {

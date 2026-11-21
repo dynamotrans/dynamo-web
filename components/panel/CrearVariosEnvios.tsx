@@ -11,10 +11,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { crearEnvio, crearEnvioCliente, sitiosDelCliente, kmRuta, factorTarifa, registrarConsultaPrecio, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearEnvioCliente, sitiosDelCliente, kmRuta, factorTarifa, registrarConsultaPrecio, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { tramosDe } from '@/lib/horarios';
 import { calcularTarifa, aplicarDescuentoTarifa } from '@/lib/tarifador';
 import { fecha as fmtFecha, euros, hoyMadrid } from '@/lib/formato';
-import { FORMAS, decimal, num, primerDia, sumarHabiles, type ClienteOpcion, type Punto, type ReglasPrecio, type SitioOpcion } from './nuevoEnvio/comun';
+import { FORMAS, decimal, num, primerDia, resolverFicha, sumarHabiles, type ClienteOpcion, type DatosSitios, type Punto, type ReglasPrecio, type SitioOpcion } from './nuevoEnvio/comun';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
@@ -92,6 +93,36 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
 
   const sitiosCliente = useMemo(() => sitios.filter((s) => !s.es_almacen_dynamo && cliente && s.cliente_id === cliente.id), [sitios, cliente]);
   const cambiarFila = (k: number, c: Partial<Fila>) => setFilas((l) => l.map((f) => (f.k === k ? { ...f, ...c } : f)));
+  // Datos obligatorios de cada sitio (usuario, 2026-11-21: «si falta un teléfono de sitio,
+  // ¿se controla?»): igual que en Nuevo envío, sin teléfono de contacto no se crea. Se piden
+  // los datos de los sitios que hay en la tabla (de 20 en 20) y se pueden completar en la fila.
+  const [datosSit, setDatosSit] = useState<DatosSitios>({});
+  const idsSitios = [...new Set(filas.flatMap((f) => f.puntos.map((p) => p.sitio?.id).filter((x): x is string => !!x)))].sort().join(',');
+  useEffect(() => {
+    const faltan = idsSitios ? idsSitios.split(',').filter((id) => !datosSit[id]) : [];
+    if (!faltan.length) return;
+    let vivo = true;
+    (async () => {
+      for (let i = 0; i < faltan.length; i += 20) {
+        const r = await datosEditablesDeSitios(faltan.slice(i, i + 20)).catch(() => ({}));
+        if (vivo) setDatosSit((d) => ({ ...d, ...r }));
+      }
+    })();
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsSitios]);
+  const sinTelefono = (s: SitioOpcion | null) => !!s && !s.es_almacen_dynamo && !!datosSit[s.id] && !datosSit[s.id].contacto.telefono.trim();
+  async function ponerTelefono(sitio: SitioOpcion, tel: string): Promise<string | null> {
+    if (tel.replace(/\D/g, '').length < 6) return 'Escribe un teléfono válido.';
+    const fch = resolverFicha({ k: 0, tipo: 'carga', sitio, nuevo: null }, datosSit, { telefono: tel.trim() });
+    const g = await guardarEdicionesSitios([{ sitio_id: sitio.id, contacto_id: fch.contacto_id, contacto_nombre: fch.contacto, contacto_telefono: tel.trim(),
+      contacto_email: fch.contactoEmail, anotaciones: fch.notas, emails_avisos: fch.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
+      url_google_maps: fch.maps || null, horario_tramos: tramosDe(fch.horario) }]).catch(() => ({ ok: false as const, error: 'No se ha podido guardar.' }));
+    if (!g.ok) return g.error;
+    const r = await datosEditablesDeSitios([sitio.id]).catch(() => ({}));
+    setDatosSit((d) => ({ ...d, ...r }));
+    return null;
+  }
   const ponInfo = (k: number, i: Info) => setInfos((x) => (JSON.stringify(x[k]) === JSON.stringify(i) ? x : { ...x, [k]: i }));
   const recargarSitios = async (id?: string) => {
     if (!cliente) return null;
@@ -256,6 +287,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
         {filas.map((f, i) => (
           <FilaEnvio key={f.k} f={f} n={i + 1} cliente={cliente} sitios={sitiosCliente} fest={fest} festivos={festivos} reglas={reglas}
             factor={factor} esCliente={esCliente} marcar={marcar}
+            sinTel={f.puntos.map((p) => p.sitio).filter((x): x is SitioOpcion => sinTelefono(x))} onTelefono={ponerTelefono}
             onCambio={(c) => cambiarFila(f.k, c)} onInfo={(x) => ponInfo(f.k, x)}
             onQuitar={filas.length > 1 ? () => { setFilas((l) => l.filter((x) => x.k !== f.k)); setInfos((x) => { const c = { ...x }; delete c[f.k]; return c; }); } : undefined}
             onDuplicar={filas.length < MAX_FILAS ? () => setFilas((l) => {
@@ -326,9 +358,10 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   );
 }
 
-function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCliente, marcar, onCambio, onInfo, onQuitar, onDuplicar, onSitioCreado }: {
+function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCliente, marcar, sinTel, onTelefono, onCambio, onInfo, onQuitar, onDuplicar, onSitioCreado }: {
   f: Fila; n: number; cliente: ClienteOpcion | null; sitios: SitioOpcion[]; fest: Set<string>; festivos: string[]; reglas: ReglasPrecio | null;
   factor: number | undefined; esCliente: boolean; marcar: boolean;
+  sinTel: SitioOpcion[]; onTelefono: (s: SitioOpcion, tel: string) => Promise<string | null>;
   onCambio: (c: Partial<Fila>) => void; onInfo: (i: Info) => void; onQuitar?: () => void; onDuplicar?: () => void;
   onSitioCreado: (puntoK: number, id: string) => void;
 }) {
@@ -394,6 +427,7 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
   const error = hecha ? null
     : !cliente ? 'Elige el cliente.'
     : !rutaCompleta ? 'Falta la recogida o la entrega.'
+    : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `«${x.nombre_empresa}»`).join(' y ')}.`
     : !f.fecha ? 'Elige la fecha de recogida.'
     : f.fecha < dias[0] ? `El primer día posible es el ${fmtFecha(dias[0])}.`
     : !esCliente && !(neto && neto > 0) && tarifa ? 'Pon el precio del cliente.'
@@ -503,6 +537,24 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
       )}
       {f.res && !f.res.ok && <div className="varios-res error">No se ha creado: {f.res.error}</div>}
       {!f.res && mostrarError && error && <div className="varios-res error">{error}</div>}
+      {!hecha && sinTel.map((x) => <TelefonoSitio key={x.id} sitio={x} onGuardar={onTelefono} />)}
+    </div>
+  );
+}
+
+// Completar en la misma fila el teléfono que le falta a un sitio (se guarda en su ficha).
+function TelefonoSitio({ sitio, onGuardar }: { sitio: SitioOpcion; onGuardar: (s: SitioOpcion, tel: string) => Promise<string | null> }) {
+  const [tel, setTel] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  return (
+    <div className="varios-tel">
+      <span>Teléfono de contacto de <strong>{sitio.nombre_empresa}</strong></span>
+      <input type="tel" inputMode="tel" value={tel} placeholder="Ej. 600 000 000" aria-label={`Teléfono de ${sitio.nombre_empresa}`}
+        onChange={(e) => { setTel(e.target.value); setErr(null); }} />
+      <button type="button" className="btn-secondary" disabled={guardando || !tel.trim()}
+        onClick={async () => { setGuardando(true); setErr(await onGuardar(sitio, tel)); setGuardando(false); }}>{guardando ? 'Guardando…' : 'Guardar en el sitio'}</button>
+      {err && <span className="varios-tel-err">{err}</span>}
     </div>
   );
 }
