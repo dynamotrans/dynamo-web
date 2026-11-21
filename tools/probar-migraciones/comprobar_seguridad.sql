@@ -13806,3 +13806,12 @@ do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e308'), ',')
   alter table envios enable trigger user;
   delete from transportistas where id = any (ts);
 end $$;
+
+-- ---- 309. Emails: cabecera azul y pie con sus propias esquinas redondeadas -------------------
+do $$ declare h text := email_con_diseno('<p>x</p>', null); begin
+  if h !~ 'linear-gradient\(135deg,#2a00b8[^"]*border-radius:18px 18px 0 0"' then
+    raise exception 'FALLO 309 · la cabecera azul del email no lleva las esquinas de arriba redondeadas'; end if;
+  if h !~ 'background:#faf9fd;padding:18px 32px;border-radius:0 0 18px 18px;' then
+    raise exception 'FALLO 309 · el pie del email no lleva las esquinas de abajo redondeadas'; end if;
+  raise notice 'OK 309 · emails: cabecera azul redondeada arriba y pie redondeado abajo (sin depender de overflow:hidden)';
+end $$;
