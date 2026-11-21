@@ -644,7 +644,12 @@ test.describe('novedades', () => {
 
   // Crear varios envíos: un sitio sin teléfono de contacto no deja crear; se completa en la fila.
   test('crear varios envíos: sitio sin teléfono marca la fila y se completa allí mismo', async ({ page }) => {
-    const { data: c } = await bd().from('contactos').select('id, telefono, sitios!inner(nombre_empresa)').eq('sitios.nombre_empresa', 'Nave Madrid').eq('es_principal', true).limit(1).single();
+    // Reintenta: justo tras reiniciar la base de datos, la primera consulta puede llegar vacía.
+    let c: { id: string; telefono: string | null } | null = null;
+    await expect.poll(async () => {
+      ({ data: c } = await bd().from('contactos').select('id, telefono, sitios!inner(nombre_empresa)').eq('sitios.nombre_empresa', 'Nave Madrid').eq('es_principal', true).limit(1).maybeSingle());
+      return !!c;
+    }, { timeout: 20000 }).toBe(true);
     await bd().from('contactos').update({ telefono: null }).eq('id', c!.id);
     try {
       await entrar(page, 'cliente');
@@ -696,6 +701,12 @@ test.describe('novedades', () => {
     // Crear los dos de golpe, con la aceptación de las condiciones.
     const antes = (await bd().from('envios').select('id', { count: 'exact', head: true })).count ?? 0;
     await page.locator('#varios-crear').click();
+    // Sin la casilla: no crea nada y avisa de qué falta.
+    await page.locator('.varios-conf-check input').uncheck();
+    await page.locator('#varios-confirmar').click();
+    await expect(page.locator('#varios-falta-acepta')).toContainText('Marca la casilla');
+    await page.locator('.varios-conf-check input').check();
+    await expect(page.locator('#varios-falta-acepta')).toHaveCount(0);
     await page.locator('#varios-confirmar').click();
     await expect(page.locator('#varios-creados')).toContainText('¡2 envíos creados!', { timeout: 30000 });
     expect((await bd().from('envios').select('id', { count: 'exact', head: true })).count).toBe(antes + 2);

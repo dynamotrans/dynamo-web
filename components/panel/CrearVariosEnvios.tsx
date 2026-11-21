@@ -78,6 +78,8 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   const [marcar, setMarcar] = useState(false);   // se intentó crear con filas incompletas: se marcan en rojo
   const [confirmar, setConfirmar] = useState(false);
   const [acepta, setAcepta] = useState(true);
+  // Sin la casilla, el botón no se bloquea en silencio: avisa de qué falta (como en Nuevo envío).
+  const [faltaAcepta, setFaltaAcepta] = useState(false);
   const [verCond, setVerCond] = useState(false);
   const [trabajando, setTrabajando] = useState<string | null>(null);
 
@@ -323,7 +325,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       <Modal abierto={confirmar} onCerrar={() => setConfirmar(false)} ancho={560} titulo={`Crear ${listas.length === 1 ? '1 envío' : `${listas.length} envíos`}`}
         sub="Revisa la lista antes de confirmar"
         pie={<><button type="button" className="btn-ghost" onClick={() => setConfirmar(false)}>Volver a la tabla</button>
-          <button type="button" className="btn-primary" id="varios-confirmar" disabled={!acepta} onClick={crearTodos}>Confirmar {listas.length === 1 ? 'el envío' : `los ${listas.length} envíos`}</button></>}>
+          <button type="button" className="btn-primary" id="varios-confirmar" onClick={() => { if (!acepta) { setFaltaAcepta(true); return; } crearTodos(); }}>Confirmar {listas.length === 1 ? 'el envío' : `los ${listas.length} envíos`}</button></>}>
         {/* Ordenada (usuario, 2026-11-21): la lista de envíos con su precio, los totales con
             IVA y, debajo, las condiciones; todo con los tamaños de texto del panel. */}
         <div className="varios-conf">
@@ -349,9 +351,10 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
           <button type="button" className="varios-conf-enlace" onClick={() => setVerCond((v) => !v)}>{verCond ? 'Ocultar' : 'Ver'} condiciones generales de transporte</button>
           {verCond && <div className="ptar-terms-scroll" style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem' }}><CondicionesGenerales /></div>}
           <label className="ptar-confirm-check varios-conf-check">
-            <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)} />
+            <input type="checkbox" checked={acepta} onChange={(e) => { setAcepta(e.target.checked); if (e.target.checked) setFaltaAcepta(false); }} />
             <span>He leído y acepto las condiciones generales de transporte y los costes de cancelación de estos envíos.</span>
           </label>
+          {faltaAcepta && !acepta && <div className="wiz-warn show" role="alert" id="varios-falta-acepta" style={{ marginTop: '0.5rem' }}>⚠ Marca la casilla de arriba para poder confirmar los envíos.</div>}
         </div>
       </Modal>
     </section>
