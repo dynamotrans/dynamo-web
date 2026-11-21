@@ -862,4 +862,19 @@ test.describe('novedades', () => {
     await expect(n).toContainText('Puntualidad: 11 de 12');
     await expect(n).toContainText('Envíos con incidencia: 1 de 12');
   });
+
+  test('Administración → Facturas: Dynamo ve emitidas y recibidas (sin gastos financieros); el cliente, solo las suyas', async ({ page }) => {
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/administracion');
+    await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
+    await expect(page.locator('#facturas-emitidas')).toContainText('facturas a clientes');
+    await page.locator('#facturas-dynamo').getByRole('button', { name: 'Recibidas' }).click();
+    await expect(page.locator('#facturas-recibidas')).toContainText('menos las de gastos financieros');
+    await expect(page.locator('#facturas-recibidas')).toContainText('confirming');
+    await entrar(page, 'cliente');
+    await page.goto('/panel/administracion');
+    await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
+    await expect(page.locator('#sec-facturas')).toContainText('te las seguimos enviando por email');
+    await expect(page.locator('#facturas-dynamo')).toHaveCount(0);
+  });
 });

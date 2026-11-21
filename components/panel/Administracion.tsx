@@ -51,6 +51,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   const [transferir, setTransferir] = useState<ProformaFila | null>(null);
   const [rechazar, setRechazar] = useState<ProformaFila | null>(null);   // «Pago no recibido»: se pregunta antes de anular
   const [motivoRechazo, setMotivoRechazo] = useState('');
+  const [subFact, setSubFact] = useState<'emitidas' | 'recibidas'>('emitidas');
 
   const sinPagar = proformas.filter((p) => !p.pagado_en).length;
   const porValidar = proformas.filter((p) => !p.pagado_en && p.avisado).length;
@@ -97,11 +98,27 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
         <button className={`tab${pestana === 'facturas' ? ' active' : ''}`} onClick={() => setPestana('facturas')}>Facturas</button>
       </div>
 
-      {pestana === 'facturas' ? (
+      {pestana === 'facturas' ? (dynamo ? (
+        // Dynamo: emitidas (a clientes) y recibidas (de transportistas y proveedores). Las
+        // recibidas llegan TODAS menos las de gastos financieros (usuario, 2026-11-21).
+        <div id="facturas-dynamo">
+          <div className="filters" role="group" aria-label="Qué facturas" style={{ gap: '0.4rem' }}>
+            <button type="button" className={subFact === 'emitidas' ? 'btn-primary' : 'btn-ghost'} aria-pressed={subFact === 'emitidas'} style={{ minHeight: 36, padding: '0 0.9rem' }} onClick={() => setSubFact('emitidas')}>Emitidas</button>
+            <button type="button" className={subFact === 'recibidas' ? 'btn-primary' : 'btn-ghost'} aria-pressed={subFact === 'recibidas'} style={{ minHeight: 36, padding: '0 0.9rem' }} onClick={() => setSubFact('recibidas')}>Recibidas</button>
+          </div>
+          <div className="pt-aviso info" style={{ maxWidth: 680 }} id={`facturas-${subFact}`}><div>
+            {subFact === 'emitidas' ? <>
+              <strong>Las facturas a clientes llegarán aquí al conectar la plataforma con la facturación.</strong> Mientras tanto, se emiten y consultan como siempre.
+            </> : <>
+              <strong>Las facturas recibidas llegarán aquí al conectar la plataforma con la facturación:</strong> todas (transportistas, proveedores, suministros…) <strong>menos las de gastos financieros</strong>: confirming, líneas y pólizas de crédito, préstamos, intereses y comisiones bancarias, descuento de efectos y factoring. Esas no se traen a la plataforma.
+            </>}
+          </div></div>
+        </div>
+      ) : (
         <div className="pt-aviso info" style={{ maxWidth: 680 }}><div>
-          <strong>Las facturas llegarán aquí al conectar la plataforma con la facturación.</strong> Mientras tanto, {dynamo ? 'se emiten y consultan como siempre.' : 'te las seguimos enviando por email como hasta ahora.'}
+          <strong>Las facturas llegarán aquí al conectar la plataforma con la facturación.</strong> Mientras tanto, te las seguimos enviando por email como hasta ahora.
         </div></div>
-      ) : <>
+      )) : <>
         <div className="filters">
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)}
             placeholder={pestana === 'proformas' ? `Buscar por nº de envío${dynamo ? ', cliente' : ''}, referencia, importe…` : 'Buscar por nº de envío, ruta, nombre del archivo…'} />
