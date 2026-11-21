@@ -5462,12 +5462,6 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .dash-cta-wrap .btn-nuevo-menu { top: 3.2rem; right: 0.6rem; }
 
 /* Huella de CO₂ del envío (usuario, 2026-11-21): cajita verde con un arbolito. */
-.caja-co2 { display: flex; gap: 0.75rem; align-items: center; background: #ecf8ef; border: 1.5px solid #bfe5c9; border-radius: 14px; padding: 0.75rem 0.9rem; margin: 0.7rem 0; color: #14532d; }
-.caja-co2-ico { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 12px; background: #d3f0dc; color: #15803d; display: inline-flex; align-items: center; justify-content: center; }
-.caja-co2-tit { font-size: var(--fs-m); font-weight: 600; }
-.caja-co2-tit strong { color: #15803d; font-size: var(--fs-l); }
-.caja-co2-sub { font-size: var(--fs-s); color: #3f6b4f; margin-top: 2px; }
-.caja-co2.compacta { padding: 0.55rem 0.75rem; }
 
 /* Requisitos del envío (plataforma, NIMA, ADR) en el resumen de la ficha (usuario, 2026-11-21). */
 .ficha-reqs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; }
