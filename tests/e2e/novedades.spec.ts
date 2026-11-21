@@ -642,6 +642,49 @@ test.describe('novedades', () => {
     await expect(page.locator('.ptar-sug')).toContainText(nombre);
   });
 
+  // Crear varios envíos (usuario, 2026-11-21): desde la flechita de «Nuevo envío», una tabla
+  // con un envío por fila (máximo 20), precio por fila, quitar/duplicar, proforma y crear.
+  test('crear varios envíos: tabla con precio por fila, proforma y creación de golpe', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/envios');
+    await page.locator('#btn-nuevo-mas').click();
+    await page.locator('#menu-varios-envios').click();
+    await expect(page).toHaveURL(/\/panel\/nuevo-envio\/varios/);
+    const filas = page.locator('.varios-fila');
+    await expect(filas).toHaveCount(3);
+    const fila1 = filas.nth(0);
+    const sitio = fila1.locator('.ptar-route-row input[type=text]');
+    await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+    await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+    await expect(fila1.locator('.varios-importe')).toContainText('€', { timeout: 15000 });
+    // Duplicar la fila 1 y quitar las dos vacías: quedan 2 envíos listos.
+    await fila1.locator('.varios-dup').click();
+    await expect(filas).toHaveCount(4);
+    await expect(filas.nth(1).locator('.varios-importe')).toContainText('€', { timeout: 15000 });
+    await filas.nth(3).locator('.varios-quitar').click();
+    await filas.nth(2).locator('.varios-quitar').click();
+    await expect(filas).toHaveCount(2);
+    await expect(page.locator('#varios-total')).toContainText('2 envíos listos');
+    // La proforma de precios sale en PDF.
+    const [resp] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/panel/nuevo-envio/varios/proforma')),
+      page.locator('#varios-proforma').click(),
+    ]);
+    expect(resp.status()).toBe(200);
+    expect(resp.headers()['content-type']).toContain('application/pdf');
+    // Crear los dos de golpe, con la aceptación de las condiciones.
+    const antes = (await bd().from('envios').select('id', { count: 'exact', head: true })).count ?? 0;
+    await page.locator('#varios-crear').click();
+    await page.locator('#varios-confirmar').click();
+    await expect(page.locator('#varios-creados')).toContainText('Se han creado 2 envíos', { timeout: 30000 });
+    expect((await bd().from('envios').select('id', { count: 'exact', head: true })).count).toBe(antes + 2);
+    await expect(page.locator('.varios-res.ok')).toHaveCount(2);
+    // Tope de 20 filas por subida.
+    for (let i = 0; i < 18; i++) await page.locator('#varios-anadir').click();
+    await expect(filas).toHaveCount(20);
+    await expect(page.locator('#varios-anadir')).toBeDisabled();
+  });
+
   // Consultas de precio (usuario, 2026-11-21): solo cuentan al llegar al paso 3 «Fecha y
   // precio», que es donde el cliente ve el precio; quedarse en los pasos 1 o 2 no cuenta.
   test('consulta de precio: no cuenta en los pasos 1 y 2, sí al llegar al 3', async ({ page }) => {

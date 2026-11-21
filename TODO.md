@@ -1046,3 +1046,13 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - [x] ⓘ «Sábados, domingos y festivos no cuentan…» junto a la fecha de recogida y la de entrega estimada (paso 3) y en cada fecha de las tarjetas de los sitios (Confirmar); caja «Solo cuentan días hábiles» en la ventana de confirmar; apartado 15 «Plazos en días hábiles» en las condiciones generales (revisar con el asesor).
 - [x] Cargas de vuelta: la fecha en cada carga; nunca desde su base hacia provincias limítrofes de su base; en cada bloque 6 de su tipo y 4 del otro, cada lista con «Ver más» (página /cargas-de-vuelta con esa misma lista).
 - [x] Página de aceptar carga: «Ver otros envíos disponibles» enseña SOLO las cargas de vuelta de ese envío y de su mismo tipo (las reglas del email), nunca todo Dynamo.
+
+## 2026-11-21 · Ideas nuevas y lo que se aplaza
+- [ ] **Pedidos por email o Excel con IA** (cuando conectemos la API de Claude): el cliente sube un Excel o pega un texto («te paso 3 cargas…») y la IA rellena las filas de **Crear varios envíos** (origen, destino, mercancía, ml, peso, fecha). La tabla manual de «Crear varios envíos» ya existe sin IA; esto solo la rellena. Clave de la API con tope de gasto, solo en el servidor.
+- [ ] **IPC mensual en el tarifador**: anotado en `TARIFADOR.md` (apartado 4 bis). Índice base 100, el día 1 de cada mes el IPC publicado, solo sobre la parte que no es combustible (~70 %).
+- [ ] **Autofacturación del transportista** (idea sin empezar).
+- [ ] **CO₂ de cada envío** (idea sin empezar).
+- [ ] **Protección extra de seguridad de la web** (idea sin empezar).
+- [ ] **Valoración tras la entrega** (email al cliente pidiendo que valore el envío): buena idea, para otra fase. Cuenta para el límite de emails de Postmark.
+- [ ] **Cobro de penalizaciones en la tarjeta**: en espera por decisión del usuario («mejor esperemos»). Lo anotado arriba sigue valiendo.
+- [x] ~~Días de la ventana elegidos en calendario~~: descartado (usuario, 2026-11-21).

@@ -62,7 +62,17 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   let y = 254;
   // Un concepto puede traer VARIAS líneas de detalle (la proforma del cálculo: la ruta
   // parada a parada y el detalle en 3 líneas, usuario 2026-11-13) o el sub de siempre.
+  // Con muchos conceptos (la proforma de «Crear varios envíos», hasta 20) se pasa de página:
+  // la siguiente empieza con la misma barra de CONCEPTO / IMPORTE.
+  const saltoSiHaceFalta = (alto: number) => {
+    if (y + alto <= 770) return;
+    l.nuevaPagina();
+    l.rect(mL, 40, mR - mL, 20, navy);
+    l.texto(mL + 10, 54, 'CONCEPTO (continuación)', 8.5, { bold: true, color: blanco }); l.textoDer(mR - 10, 54, 'IMPORTE', 8.5, { bold: true, color: blanco });
+    y = 80;
+  };
   const linea = (t: string, sub: string, imp: number, lineas?: string[]) => {
+    saltoSiHaceFalta(21 + Math.max((lineas?.length ? lineas : [sub]).filter(Boolean).length, 1) * 11);
     l.texto(mL + 10, y, t, 10, { bold: true }); l.textoDer(mR - 10, y, eur(imp), 10, { bold: true });
     const ls = (lineas?.length ? lineas : [sub]).filter(Boolean);
     ls.forEach((x, i) => l.texto(mL + 10, y + 13 + i * 11, x.slice(0, 120), 8.5, { color: gris }));
@@ -80,6 +90,8 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
     base = (d.importe_almacenaje ?? 0) + (d.importe_reparto ?? 0);
   }
   l.linea(mL, y - 8, mR, y - 8);
+  // Totales, aviso y condiciones juntos: si no caben, a la página siguiente.
+  if (y + 250 > 800) { l.nuevaPagina(); y = 60; }
 
   base = Math.round(base * 100) / 100;
   const iva = Math.round(base * d.iva) / 100, total = Math.round((base + iva) * 100) / 100;

@@ -6,6 +6,7 @@ import EtiquetaParada from './EtiquetaParada';
 import FilaEnlace from './FilaEnlace';
 import FiltrosEnvios, { type OpcionFiltro } from './FiltrosEnvios';
 import CalendarioEnvios from './CalendarioEnvios';
+import BotonNuevoEnvio from './BotonNuevoEnvio';
 import SelectorVistaEnvios from './SelectorVistaEnvios';
 import { euros, fechaHora, numero, tipoCargaTxt } from '@/lib/formato';
 import { esDynamo, type Rol } from '@/lib/sesion';
@@ -99,7 +100,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         <h2>{rol === 'transportista' ? 'Mis envíos' : 'Envíos'}</h2>
         <div className="sec-header-actions">
           <SelectorVistaEnvios vista={vistaCal ? 'calendario' : 'lista'} q={q} op={op} por={por} f={f} />
-          {rol !== 'transportista' && !vistaTransportista && <Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link>}
+          {rol !== 'transportista' && !vistaTransportista && <BotonNuevoEnvio />}
         </div>
       </div>
 

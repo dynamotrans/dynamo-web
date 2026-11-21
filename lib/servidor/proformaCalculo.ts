@@ -11,14 +11,20 @@ import type { Tabla } from '@/lib/supabase/tipos';
 // precios. La usan la descarga (/panel/nuevo-envio/proforma) y el envío por email con el
 // PDF adjunto (usuario, 2026-11-16).
 type ClienteProforma = Pick<Tabla<'clientes'>, 'razon_social' | 'cif' | 'direccion' | 'codigo_postal' | 'poblacion' | 'pais_codigo_iso'> & { iva_pct?: number | null };
-export type PeticionProforma = { base: number; ruta: string[]; det: string[]; cliente: string | null };
+// Una proforma con UN envío (ruta + detalle + base) o, desde «Crear varios envíos», con
+// VARIOS: cada uno su concepto (máximo 20).
+export type PeticionProforma = { base: number; ruta: string[]; det: string[]; cliente: string | null;
+  varios?: { titulo: string; lineas: string[]; base: number }[] };
 
 export const lineasProforma = (s: string, maxLargo: number, maxLineas: number) =>
   s.slice(0, maxLargo).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, maxLineas);
 
 export async function pdfProformaCalculo(sb: SupabaseClient, rol: string, p: PeticionProforma):
   Promise<{ bytes: Uint8Array; iva: number } | { error: string; status: number }> {
-  if (!Number.isFinite(p.base) || p.base <= 0 || p.base > 100000) return { error: 'Falta el importe del cálculo.', status: 400 };
+  if (p.varios) {
+    if (!p.varios.length || p.varios.length > 20) return { error: 'La proforma lleva de 1 a 20 envíos.', status: 400 };
+    if (p.varios.some((v) => !Number.isFinite(v.base) || v.base <= 0 || v.base > 100000)) return { error: 'Falta el importe de algún envío.', status: 400 };
+  } else if (!Number.isFinite(p.base) || p.base <= 0 || p.base > 100000) return { error: 'Falta el importe del cálculo.', status: 400 };
   // El cliente siempre es ÉL MISMO; Dynamo pasa el cliente elegido en el asistente, o
   // ninguno: se puede calcular (y mandar) un precio a quien llama a preguntar, sin alta.
   let c: ClienteProforma | null = null;
@@ -41,7 +47,9 @@ export async function pdfProformaCalculo(sb: SupabaseClient, rol: string, p: Pet
     codigo: 'CALCULO', referencia_cliente: null, creado_en: new Date().toISOString(),
     cliente: { razon_social: c.razon_social ?? '—', cif: c.cif ?? '—', direccion: c.direccion ?? null,
       codigo_postal: c.codigo_postal ?? null, poblacion: c.poblacion ?? null, pais: nombrePais(c.pais_codigo_iso) },
-    conceptos: [{ titulo: 'Transporte', lineas: [...p.ruta, ...p.det], importe: p.base }],
+    conceptos: p.varios
+      ? p.varios.map((v) => ({ titulo: v.titulo.slice(0, 90), lineas: v.lineas.slice(0, 6).map((x) => x.slice(0, 120)), importe: Math.round(v.base * 100) / 100 }))
+      : [{ titulo: 'Transporte', lineas: [...p.ruta, ...p.det], importe: p.base }],
     iva,
     sinPago: { aviso: 'Documento SIN NUMERAR y NO VINCULANTE: no crea ningún envío ni reserva, es solo el precio calculado hoy, para que lo veas. '
       + 'Por eso no lleva datos de pago. La proforma pagadera, con los datos de la transferencia, sale al crear el envío '

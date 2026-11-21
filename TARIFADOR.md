@@ -74,9 +74,25 @@ de la dirección de Sevilla.
 - La tabla de precios internos que ya enseña Nuevo envío (último precio de la misma ruta y de
   todas) es el embrión de esto (`tablaInterna` en `lib/tarifador.ts`).
 
+## 4 bis. IPC mensual sobre la parte que no es combustible (usuario, 2026-11-21)
+
+- Además del gasóleo, la base se actualiza con el **IPC mes a mes**, sin esperar a fin de año:
+  si al transportista le sube la vida (neumáticos, comida, sueldo, taller…), hay que
+  repercutirlo.
+- **Índice propio con base 100** en el día de arranque. El **día 1 de cada mes** se aplica el
+  IPC mensual que haya publicado el INE (positivo o negativo; p. ej. +0,3 %) sobre ese índice.
+  Tarea automática que lee el dato publicado; si un mes no hay dato, no se toca. Dynamo puede
+  ver y corregir el índice en Parámetros (con historial de cada mes).
+- El IPC se aplica **solo a la parte del coste que no es combustible**. Reparto orientativo
+  del coste de un km de tráiler (parametrizable): **~30 % combustible**, **~30 % conductor**,
+  **~40 % máquina** (tráiler, neumáticos, parking, mantenimiento, costes indirectos de la
+  empresa). Es decir: base × (% combustible × factor gasóleo + % resto × índice IPC / 100).
+- Va **antes** de aplicar el gasóleo y de todo lo demás: es una corrección de la base.
+
 ## 5. Orden de cálculo propuesto (borrador)
 
-1. Base por km y gasóleo, según ocupación (completo / grupaje, ml y peso).
+1. Base por km según ocupación (completo / grupaje, ml y peso), repartida en combustible
+   (× gasóleo del día) y resto (× índice IPC mensual, apartado 4 bis).
 2. Paradas extra y recargos por tipo de sitio.
 3. Suplementos de mercancía y forma de carga (techo, plataforma, NIMA, ADR…).
 4. Tipo de fecha (fija / urgente / ventanas).
