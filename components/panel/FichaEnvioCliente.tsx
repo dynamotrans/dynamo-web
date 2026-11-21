@@ -13,6 +13,8 @@ import { avisarNavegando } from './CargandoNavegacion';
 import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
 import Modal from './Modal';
+import CajaCo2 from './CajaCo2';
+import { kmDeEtapas } from '@/lib/co2';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
@@ -336,6 +338,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
           </div>
         )}
       </div>
+      {/* Huella de CO₂ orientativa del envío, con su arbolito, a la vista bajo el resumen (usuario, 2026-11-21). */}
+      {e.estado !== 'cancelado' && <CajaCo2 compacta km={kmDeEtapas(etapas)} ml={e.metros_lineales} toneladas={e.toneladas} plataforma={e.requiere_plataforma_elevadora} />}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {manual && e.estado !== 'cancelado' && (
         <div className="det-block" style={{ marginBottom: '0.6rem' }}>

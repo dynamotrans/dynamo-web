@@ -642,6 +642,25 @@ test.describe('novedades', () => {
     await expect(page.locator('.ptar-sug')).toContainText(nombre);
   });
 
+  // Huella de CO₂ (usuario, 2026-11-21): antes de crear el envío (resumen) y en su ficha,
+  // con su arbolito y la equivalencia en árboles.
+  test('huella de CO₂: en el resumen de Nuevo envío y en la ficha del envío', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/nuevo-envio');
+    const sitio = page.locator('.ptar-route-row input[type=text]');
+    await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+    await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    await page.locator('select').filter({ has: page.locator('option', { hasText: 'Elige la fecha de recogida' }) }).selectOption({ index: 1 });
+    await page.getByRole('button', { name: /Ver resumen/ }).click();
+    await expect(page.locator('#caja-co2')).toContainText(/≈ [\d.]+ kg/);
+    await expect(page.locator('#caja-co2')).toContainText('árbol');
+    await crearEnvioDeCliente(page);
+    await page.goto(`/panel/envios?ver=${(await ultimoEnvio()).id}`);
+    await expect(page.locator('#caja-co2')).toContainText('Huella de CO₂ de este envío');
+  });
+
   // Crear varios envíos (usuario, 2026-11-21): desde la flechita de «Nuevo envío», una tabla
   // con un envío por fila (máximo 20), precio por fila, quitar/duplicar, proforma y crear.
   test('crear varios envíos: tabla con precio por fila, proforma y creación de golpe', async ({ page }) => {

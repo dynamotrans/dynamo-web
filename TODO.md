@@ -1050,8 +1050,8 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 ## 2026-11-21 · Ideas nuevas y lo que se aplaza
 - [ ] **Pedidos por email o Excel con IA** (cuando conectemos la API de Claude): el cliente sube un Excel o pega un texto («te paso 3 cargas…») y la IA rellena las filas de **Crear varios envíos** (origen, destino, mercancía, ml, peso, fecha). La tabla manual de «Crear varios envíos» ya existe sin IA; esto solo la rellena. Clave de la API con tope de gasto, solo en el servidor.
 - [ ] **IPC mensual en el tarifador**: anotado en `TARIFADOR.md` (apartado 4 bis). Índice base 100, el día 1 de cada mes el IPC publicado, solo sobre la parte que no es combustible (~70 %).
-- [ ] **Autofacturación del transportista** (idea sin empezar).
-- [ ] **CO₂ de cada envío** (idea sin empezar).
+- [ ] **Autofacturación del transportista**: para una versión posterior (usuario, 2026-11-21).
+- [x] **CO₂ de cada envío** (2026-11-21): cajita verde con arbolito en el resumen de Nuevo envío (antes de crearlo) y en la ficha del envío. Cálculo orientativo en `lib/co2.ts` (km × consumo × factor del gasóleo; en grupaje, la parte del camión que ocupa). Cuando haya Google Routes, saldrá con los km reales.
 - [ ] **Protección extra de seguridad de la web** (idea sin empezar).
 - [ ] **Valoración tras la entrega** (email al cliente pidiendo que valore el envío): buena idea, para otra fase. Cuenta para el límite de emails de Postmark.
 - [ ] **Cobro de penalizaciones en la tarjeta**: en espera por decisión del usuario («mejor esperemos»). Lo anotado arriba sigue valiendo.

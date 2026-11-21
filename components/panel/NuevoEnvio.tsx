@@ -36,6 +36,7 @@ import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import AvisoCierreSitio from './nuevoEnvio/AvisoCierreSitio';
 import { SelectorUrgencia } from './nuevoEnvio/SelectorUrgencia';
 import Modal from './Modal';
+import CajaCo2 from './CajaCo2';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { AVISO_DIAS_HABILES } from '@/lib/fechasCarga';
 import Req from '@/components/Req';
@@ -1438,6 +1439,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   2026-11-11): lo que se confirma, a la vista junto a la base
                   imponible. El aviso del tráiler pasó junto a las paradas. */}
               {tarjetaMercancia}
+              {/* Huella de CO₂ orientativa antes de crear el envío (usuario, 2026-11-21). */}
+              <CajaCo2 km={kmInfo?.km} ml={Number(ml)} toneladas={Number(peso)} plataforma={plataforma} />
               {manual
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
                 : esCliente
