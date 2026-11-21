@@ -13855,3 +13855,55 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 delete from avisos where tipo = 'sugerencia' and enlace = '/panel/sugerencias?ver=' || current_setting('prueba.sug310');
 delete from sugerencias where id = current_setting('prueba.sug310')::uuid;
+
+-- ---- 311. Filtro de fecha de envíos: sin día concreto, cuenta toda la ventana de carga -------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e envios%rowtype; begin
+  select * into e from envios where id = current_setting('prueba.e138')::uuid;
+  -- format (no concat_ws: concat_ws se salta los vacíos y descuadra las posiciones).
+  perform set_config('prueba.v311', format('%s|%s|%s|%s|%s', e.fecha_carga_desde, e.fecha_carga_hasta, e.fecha_carga_real, e.fecha_carga_prevista, e.fecha_efectiva), false);
+  alter table envios disable trigger user;
+  -- Ventana de viernes a miércoles, sin transportista ni fecha concreta.
+  update envios set fecha_carga_desde = date '2031-03-07', fecha_carga_hasta = date '2031-03-12', fecha_carga_real = null,
+                    fecha_carga_prevista = null, fecha_efectiva = date '2031-03-07' where id = e.id;
+  alter table envios enable trigger user;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare v uuid := current_setting('prueba.e138')::uuid; begin
+  if not exists (select 1 from envios_pagina('todas', 1, 200, p_desde := date '2031-03-10', p_hasta := date '2031-03-10') where id = v) then
+    raise exception 'FALLO 311 · un día del medio de la ventana deja fuera el envío (lista)'; end if;
+  if not exists (select 1 from buscar_envios_pagina(null, date '2031-03-10', date '2031-03-10', 1, 500) where id = v) then
+    raise exception 'FALLO 311 · un día del medio de la ventana deja fuera el envío (buscador)'; end if;
+  if not exists (select 1 from envios_pagina('todas', 1, 200, p_desde := date '2031-03-12', p_hasta := date '2031-03-20') where id = v) then
+    raise exception 'FALLO 311 · un periodo que empieza el último día de la ventana lo deja fuera'; end if;
+  if exists (select 1 from envios_pagina('todas', 1, 200, p_desde := date '2031-03-13', p_hasta := date '2031-03-20') where id = v)
+     or exists (select 1 from envios_pagina('todas', 1, 200, p_desde := date '2031-03-01', p_hasta := date '2031-03-06') where id = v) then
+    raise exception 'FALLO 311 · sale fuera de su ventana'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  alter table envios disable trigger user;
+  update envios set fecha_carga_prevista = date '2031-03-09', fecha_efectiva = date '2031-03-09' where id = current_setting('prueba.e138')::uuid;
+  alter table envios enable trigger user;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare v uuid := current_setting('prueba.e138')::uuid; begin
+  if exists (select 1 from envios_pagina('todas', 1, 200, p_desde := date '2031-03-10', p_hasta := date '2031-03-10') where id = v) then
+    raise exception 'FALLO 311 · con el día de recogida ya fijado sigue saliendo en otro día de la ventana'; end if;
+  if not exists (select 1 from envios_pagina('todas', 1, 200, p_desde := date '2031-03-09', p_hasta := date '2031-03-09') where id = v) then
+    raise exception 'FALLO 311 · con el día de recogida fijado no sale ese día'; end if;
+  raise notice 'OK 311 · filtro de fecha de envíos: sin día concreto cuenta toda la ventana de carga; con día fijado (o carga real), solo ese día';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare p text[] := string_to_array(current_setting('prueba.v311'), '|'); begin
+  alter table envios disable trigger user;
+  update envios set fecha_carga_desde = nullif(p[1], '')::date, fecha_carga_hasta = nullif(p[2], '')::date, fecha_carga_real = nullif(p[3], '')::date,
+                    fecha_carga_prevista = nullif(p[4], '')::date, fecha_efectiva = nullif(p[5], '')::date
+   where id = current_setting('prueba.e138')::uuid;
+  alter table envios enable trigger user;
+end $$;
