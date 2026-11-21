@@ -1412,15 +1412,16 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
       {paso === 4 && cliente && (
         <div className="ptar-confirm-card">
-          {/* El cliente no ve «Revisión» ni su propio nombre: es su cuenta, sobra (usuario, 2026-11-21). */}
-          {!esCliente && <h3 className="ptar-section-head ptar-sh-conf">Revisión y precio</h3>}
+          {/* El cliente (y Dynamo en «Ver como cliente») no ve «Revisión» ni el nombre del cliente:
+              es su cuenta, sobra (usuario, 2026-11-21). */}
+          {!sinCampoCliente && <h3 className="ptar-section-head ptar-sh-conf">Revisión y precio</h3>}
           <div className="form-2col">
             <div className="form-2col-main">
               <div className="sum2">
-                {!esCliente && <div className="sum2-box">
+                {!sinCampoCliente && <div className="sum2-box">
                   <div className="sum2-cell sum2-full"><div className="sum2-k">Cliente</div><div className="sum2-v">{cliente.nombre} · {cliente.cif}</div></div>
                 </div>}
-                <h4 className="ptar-section-head" style={{ margin: esCliente ? '0 0 0.5rem' : '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
+                <h4 className="ptar-section-head" style={{ margin: sinCampoCliente ? '0 0 0.5rem' : '1rem 0 0.5rem', fontSize: 'var(--fs-l)' }}>
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
