@@ -31,7 +31,7 @@ import { CANALES, ESTADOS, ESTADO_OFERTA, HITOS, I, ICO, ORIGEN, Pend, Reservado
 import { Punto } from './ficha/Punto';
 import { Asignar } from './ficha/Asignar';
 import { Estado } from './ficha/Estado';
-import Etapas from './ficha/Etapas';
+import Etapas, { FechaParada } from './ficha/Etapas';
 import { Cancelar } from './ficha/Cancelar';
 import { Modificar } from './ficha/Modificar';
 import { Valoracion } from './ficha/Valoracion';
@@ -272,7 +272,8 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
           {[...recogidas, ...entregas].map((p, i) => (
             <div key={p.id} className="pen-sum-row">
               <span className="k"><EtiquetaParada num={i + 1} tipo={p.tipo} tipoSitio={p.sitio?.tipo} /></span>
-              <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}</span>
+              <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}
+                {!cancelado && !manual && <FechaParada etapas={ficha.etapas} num={ficha.paradas.indexOf(p) + 1} carga={p.tipo === 'carga'} />}</span>
             </div>
           ))}
           <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}</span></div>

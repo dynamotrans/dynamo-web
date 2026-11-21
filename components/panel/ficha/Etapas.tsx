@@ -12,6 +12,18 @@ import { fechaHora } from '@/lib/formato';
 import { etiquetaEtapa, ordinal, type Etapa } from '@/lib/estados';
 export type { Etapa };
 
+/** Día y hora de una parada según el seguimiento (la de llegada a cargar o descargar): la real si
+ *  ya pasó o la prevista. Para el resumen de arriba de la ficha (usuario, 2026-11-21). */
+export function FechaParada({ etapas, num, carga }: { etapas: Etapa[]; num: number; carga: boolean }) {
+  const x = etapas.find((e) => e.estado === 'cargando' && e.parada === num);
+  if (!x?.hora) return null;
+  return (
+    <div className="meta fecha-parada" style={{ marginTop: '0.1rem' }}>
+      {x.hecha ? (carga ? 'Cargado' : 'Descargado') : 'Prevista'}: <strong style={{ color: 'var(--navy)' }}>{fechaHora(x.hora)}</strong>
+    </div>
+  );
+}
+
 /** Nombre de la etapa: «Yendo a la carga · Sevilla», «En ruta a 2.ª parada · Madrid»… */
 export function nombreEtapa(x: Pick<Etapa, 'paso' | 'estado' | 'parada' | 'tipo_parada' | 'poblacion'>): string {
   if (x.paso === 0) return 'Programado';

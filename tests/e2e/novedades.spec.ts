@@ -971,4 +971,13 @@ test.describe('novedades', () => {
     const [d, m, a] = (/(\d{2})\/(\d{2})\/(\d{2})/.exec(txt) ?? []).slice(1);
     expect(`20${a}-${m}-${d}` > tarde).toBe(true);
   });
+
+  test('resumen de la ficha: cada parada con su día y hora del seguimiento (prevista o hecha)', async ({ page }) => {
+    const { e } = await envioProgramadoDelTransportista();
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    const fechas = page.locator('.fecha-parada');
+    await expect(fechas.first()).toContainText(/Prevista: .*\d{2}\/\d{2}\/\d{2}/);
+    expect(await fechas.count()).toBeGreaterThanOrEqual(2);
+  });
 });

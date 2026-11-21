@@ -32,7 +32,7 @@ import { CONTACTO } from '@/lib/atencion';
 import Tip from '@/components/Tip';
 import { SIGLAS } from '@/lib/siglas';
 import { ESTADOS_ENVIO, FASES_ENVIO, type Etapa } from '@/lib/estados';
-import Etapas from './ficha/Etapas';
+import Etapas, { FechaParada } from './ficha/Etapas';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 
@@ -302,7 +302,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
         {[...recogidas, ...entregas].map((p, i) => (
           <div key={p.id ?? i} className="pen-sum-row">
             <span className="k"><EtiquetaParada num={i + 1} tipo={p.tipo} tipoSitio={p.tipo_sitio} /></span>
-            <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}</span>
+            <span className="v" style={{ textAlign: 'right' }}>{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ') || '—'}
+              {conSeguimiento && <FechaParada etapas={etapas} num={paradas.indexOf(p) + 1} carga={p.tipo === 'carga'} />}</span>
           </div>
         ))}
         <div className="pen-sum-row pen-sum-col"><span className="k">Mercancía</span><span className="v">{mercResumen || '—'}</span></div>
