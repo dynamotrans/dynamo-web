@@ -310,11 +310,15 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
                       <span className="topbar-contact-icon act-call-bg"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z" /></svg></span>
                       <div className="topbar-contact-text"><span className="t">Llamar {CONTACTO.telefono}</span><span className="h">{atencion.tel}</span></div>
                     </a>
+                    {/* Sugerencias y fallos (usuario, 2026-11-21): un canal más, con su círculo, debajo de llamar. */}
+                    <button type="button" className="topbar-contact-item topbar-contact-accion" role="menuitem" id="contacto-sugerencia"
+                            onClick={() => { setMenu(null); setSugerencia(true); }}>
+                      <span className="topbar-contact-icon act-sug-bg"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><line x1="12" y1="7" x2="12" y2="11" /><line x1="12" y1="14" x2="12.01" y2="14" /></svg></span>
+                      <div className="topbar-contact-text"><span className="t">Sugerencias o fallos</span><span className="h">Cuéntanos qué mejorar o qué falla</span></div>
+                    </button>
                     <div className="topbar-contact-sep" />
                     <button type="button" className="topbar-contact-hor" role="menuitem" style={{ width: '100%', background: 'none', border: 'none', fontFamily: 'inherit' }}
                             onClick={() => { setMenu(null); setHorarios(true); }}>Ver todos los horarios del año</button>
-                    <button type="button" className="topbar-contact-hor" role="menuitem" id="contacto-sugerencia" style={{ width: '100%', background: 'none', border: 'none', fontFamily: 'inherit', marginTop: 0 }}
-                            onClick={() => { setMenu(null); setSugerencia(true); }}>Sugerencias o fallos técnicos</button>
                   </div>
                 </div>
               )}

@@ -910,6 +910,12 @@ test.describe('novedades', () => {
     const texto = `En el móvil no se ve bien el filtro (prueba ${Date.now()})`;
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
     await entrar(page, 'cliente');
+    // También desde la tarjeta de contacto de arriba (en cualquier pantalla), con su círculo.
+    await page.goto('/panel/envios');
+    await page.getByRole('button', { name: 'Soporte con Álvaro' }).click();
+    await page.locator('#contacto-sugerencia').click();
+    await expect(page.getByRole('dialog')).toContainText('Sugerencias y fallos');
+    await page.keyboard.press('Escape');
     await page.goto('/panel/soporte');
     await page.locator('#soporte-sugerencias').getByRole('button', { name: 'Enviar una sugerencia' }).click();
     const m = page.getByRole('dialog');

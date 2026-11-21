@@ -774,6 +774,9 @@ a.bell-nov:hover { background: var(--gray-100); }
 .act-email-bg { background: var(--purple); }
 .act-wa-bg    { background: #25D366; }
 .act-call-bg  { background: var(--navy); }
+.act-sug-bg   { background: #ea580c; }   /* sugerencias y fallos: naranja, como los avisos */
+.topbar-contact-accion { width: 100%; height: auto; background: none; border: none; border-radius: 10px; font: inherit; line-height: normal; text-align: left; cursor: pointer;
+    box-sizing: border-box; min-height: 0; padding: 0.6rem 0.7rem; margin: 0 0 0.15rem; gap: 0.75rem; color: inherit; letter-spacing: inherit; }
 .topbar-contact-text {
     display: flex; flex-direction: column; gap: 0.1rem; min-width: 0;
 }
