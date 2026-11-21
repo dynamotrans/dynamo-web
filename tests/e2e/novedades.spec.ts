@@ -1073,9 +1073,11 @@ test.describe('novedades', () => {
     // Las listas que filtran en el navegador: el mismo desplegable y sus dos calendarios.
     for (const [ruta, etiqueta] of [['/panel/incidencias', 'Filtrar por fecha de registro'], ['/panel/penalizaciones', 'Filtrar por fecha de la penalización'], ['/panel/administracion', 'Filtrar por fecha de la proforma']] as const) {
       await page.goto(ruta);
+      await abrirFiltros();
       const sel = page.getByLabel(etiqueta);
       await expect(sel.locator('option')).toContainText(['Todas las fechas', 'Últimos 7 días', 'Mes pasado', 'Trimestre pasado', 'Entre dos fechas…']);
       await sel.selectOption('anio-pasado');
+      await abrirFiltros();
       await sel.selectOption('entre');
       await expect(page.getByLabel('Desde')).toBeVisible();
       await expect(page.getByLabel('Hasta')).toBeVisible();
