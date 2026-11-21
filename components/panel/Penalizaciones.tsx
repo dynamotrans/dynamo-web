@@ -17,6 +17,8 @@ import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
 import { euros, numero, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import { enRango, diaMadridDe } from '@/lib/filtroFechas';
 import { descargarCsv } from '@/lib/exportaciones';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 import Req from '@/components/Req';
@@ -52,6 +54,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
   const [pestana, setPestana] = useState(qInicial ? 'todas' : 'pendiente_confirmar');
   const [q, setQ] = useState(qInicial);
   const [tipo, setTipo] = useState('');
+  const ff = useFiltroFechas();
   const [ficha, setFicha] = useState<{ fila: PenalizacionFila | null; envio?: string | null } | null>(
     nuevaPara ? { fila: null, envio: nuevaPara } : null);
 
@@ -62,10 +65,10 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
   }, [filas]);
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q));
-    return filas.filter((p) => (pestana === 'todas' || p.estado === pestana) && (!tipo || p.tipo_id === tipo)
+    return filas.filter((p) => (pestana === 'todas' || p.estado === pestana) && (!tipo || p.tipo_id === tipo) && enRango(diaMadridDe(p.creado_en), ff.rango)
       && (!w || norm([p.codigo, p.envio, p.referencia_cliente, p.tipo, p.transportista, p.cliente, p.descripcion].filter(Boolean).join(' ')).includes(w)));
-  }, [filas, pestana, q, tipo]);
-  const pg = usePaginas(lista, `${pestana}|${q}|${tipo}`);
+  }, [filas, pestana, q, tipo, ff.rango]);
+  const pg = usePaginas(lista, `${pestana}|${q}|${tipo}|${ff.clave}`);
   // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
   const exportar = () => descargarCsv('Penalizaciones', ['Penalización', 'Descripción', 'Envío', 'Ref. cliente', 'Tipo', 'Estado', 'Transportista', 'Cliente', 'P. cliente (sin IVA)', 'P. transportista (sin IVA)', 'Margen (sin IVA)', 'Fecha'],
     lista.map((p) => ({ 'Penalización': p.codigo, 'Descripción': p.descripcion ?? '', 'Envío': `#${p.envio}`, 'Ref. cliente': p.referencia_cliente ?? '',
@@ -86,12 +89,13 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
           <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta[k] ?? 0})</button>
         ))}
       </div>
-      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), tipo].filter(Boolean).length} onExportar={exportar}
+      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), tipo, ff.valor].filter(Boolean).length} onExportar={exportar}
         placeholder="Buscar por código, envío, tipo, transportista, cliente…">
         <select className="filter-estado" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Filtrar por tipo">
           <option value="">Tipo</option>
           {tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
         </select>
+        <FiltroFechas valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de la penalización" />
       </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar las penalizaciones: {error}</div>}
       <div className="table-wrap" tabIndex={0}>

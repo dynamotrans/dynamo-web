@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { hoyMadrid, textoBusqueda } from '@/lib/formato';
-import { rangoRapido, esPendientePago, colocarEnEspera } from '@/lib/envios';
+import { esPendientePago, colocarEnEspera } from '@/lib/envios';
+import { filtroFechaValido, rangoFiltroFecha } from '@/lib/filtroFechas';
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
@@ -45,8 +46,10 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   const op = sp.op === 'dynamo' ? 'dynamo' : uuidOk(sp.op);
   const por = uuidOk(sp.por);
   const est = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'veh:confirmada', 'veh:sin_asignar'].includes(sp.est ?? '') ? sp.est! : '';
-  const fr = (sp.fr && (['hoy', 'manana', 'ayer', 'esta-semana', 'proxima-semana', 'semana-pasada'].includes(sp.fr) || /^\d{4}-\d{2}$/.test(sp.fr))) ? sp.fr : '';
-  const rangoFr = fr ? rangoRapido(fr, hoy) : null;
+  // «Fecha» de la barra: el filtro único de los listados; en «entre», sus dos días (fd y fh).
+  const fr = sp.fr && filtroFechaValido(sp.fr) ? sp.fr : '';
+  const fd = fechaOk(sp.fd), fh = fechaOk(sp.fh);
+  const rangoFr = rangoFiltroFecha(fr, hoy, fd, fh);
   const vistaCal = sp.vista === 'calendario';
   const mes = (() => {
     const pedido = /^\d{4}-\d{2}$/.test(sp.mes ?? '') ? sp.mes! : hoy.slice(0, 7);
@@ -327,7 +330,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     <>
       {ofertas.length > 0 && <OfertasAbiertas ofertas={ofertas} />}
       <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual}
-        op={op} por={por} est={est} fr={fr} operadores={opcOperadores} creadores={opcCreadores}
+        op={op} por={por} est={est} fr={fr} fd={fd} fh={fh} operadores={opcOperadores} creadores={opcCreadores}
         vista={vistaCal ? 'calendario' : 'lista'} mes={mes} hoy={hoy} vistaTransportista={vista.tipo === 'transportista'} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} pendiente={pendienteVer} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} pendiente={pendienteVer} />}

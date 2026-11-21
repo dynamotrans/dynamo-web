@@ -14,13 +14,13 @@ import Cargando from '@/components/Cargando';
 import EstadoVacio from './EstadoVacio';
 import BuscaEnvio from './BuscaEnvio';
 import BarraFiltros from './BarraFiltros';
-import { opcionesFecha } from './FiltrosEnvios';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
 import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
 import { fecha, ventana, fechaHora, medidasTxt, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
-import { rangoRapido } from '@/lib/envios';
+import { enRango } from '@/lib/filtroFechas';
 import { descargarCsv } from '@/lib/exportaciones';
 import { CONTACTO } from '@/lib/atencion';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
@@ -60,20 +60,18 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
   const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>(qInicial ? 'todas' : 'abiertas');
   const [q, setQ] = useState(qInicial);
-  const [fr, setFr] = useState('');
+  const ff = useFiltroFechas();
   const [ficha, setFicha] = useState<{ fila: IncidenciaFila | null; envio?: string | null } | null>(nuevaPara != null ? { fila: null, envio: nuevaPara || null } : null);
-  const hoy = useMemo(() => diaMadrid(new Date().toISOString()), []);
 
   const cuenta = useMemo(() => ({ abiertas: filas.filter((x) => abierta(x.estado)).length, resueltas: filas.filter((x) => !abierta(x.estado)).length, todas: filas.length }), [filas]);
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
-    const r = fr ? rangoRapido(fr, hoy) : null;
     return filas.filter((x) => (pestana === 'todas' || (pestana === 'abiertas') === abierta(x.estado))
-      && (!r || (() => { const d = diaMadrid(x.creado_en); return d >= r.desde && d <= r.hasta; })())
+      && enRango(diaMadrid(x.creado_en), ff.rango)
       && (!w.length || (() => { const b = norm([x.codigo, x.tipo, x.titulo, x.detalle, x.cliente, x.envio?.referencia_gx, x.envio?.referencia_cliente,
         x.envio?.origen, x.envio?.destino, ESTADOS.find(([k]) => k === x.estado)?.[1], fecha(diaMadrid(x.creado_en))].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()));
-  }, [filas, pestana, q, fr, hoy]);
-  const pg = usePaginas(lista, `${pestana}|${q}|${fr}`);
+  }, [filas, pestana, q, ff.rango]);
+  const pg = usePaginas(lista, `${pestana}|${q}|${ff.clave}`);
   // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
   const exportar = () => descargarCsv('Incidencias', ['F. registro', 'Hora', 'Código', 'Tipo', 'Resumen', 'Detalle', 'Nº envío', 'Ref. cliente', ...(esCliente ? [] : ['Cliente']), 'F. carga', 'Origen', 'Destino', 'm · Tn', 'Estado', 'Prioridad'],
     lista.map((x) => ({ 'F. registro': fecha(diaMadrid(x.creado_en)), Hora: horaMadrid(x.creado_en), 'Código': x.codigo, Tipo: x.tipo, Resumen: x.titulo, Detalle: x.detalle,
@@ -94,12 +92,9 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
         <button className={`tab${pestana === 'resueltas' ? ' active' : ''}`} onClick={() => setPestana('resueltas')}>Resueltas ({cuenta.resueltas})</button>
         <button className={`tab${pestana === 'todas' ? ' active' : ''}`} onClick={() => setPestana('todas')}>Todas</button>
       </div>
-      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), fr].filter(Boolean).length} onExportar={exportar}
+      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), ff.valor].filter(Boolean).length} onExportar={exportar}
         placeholder={esCliente ? 'Buscar por descripción, nº de envío, ruta…' : 'Buscar por descripción, nº de envío, cliente, ruta…'}>
-        <select className="filter-estado" value={fr} aria-label="Filtrar por fecha de registro" onChange={(e) => setFr(e.target.value)}>
-          <option value="">Fecha</option>
-          {opcionesFecha(hoy).map((o) => <option key={o.v} value={o.v}>{o.t}</option>)}
-        </select>
+        <FiltroFechas valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de registro" />
       </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar las incidencias: {error}</div>}
       <div className="table-wrap" tabIndex={0}>

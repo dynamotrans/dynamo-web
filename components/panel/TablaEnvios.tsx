@@ -53,7 +53,7 @@ type Props = {
   // hay en cada pestaña, la pestaña elegida y la página (las filas ya son solo las de esa página).
   conteos?: Record<string, number> | null; pestana?: Pestana; pagina?: number; totalPestana?: number;
   // La barra de filtros del mockup y la vista (lista o calendario con su mes).
-  op?: string; por?: string; est?: string; fr?: string;
+  op?: string; por?: string; est?: string; fr?: string; fd?: string; fh?: string;
   operadores?: OpcionFiltro[]; creadores?: OpcionFiltro[];
   vista?: 'lista' | 'calendario'; mes?: string; hoy?: string;
   // «Ver como» un transportista (Dynamo): un transportista no crea envíos, así que el
@@ -63,7 +63,7 @@ type Props = {
 const hoyISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 
 export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota, nuevoManual, desde = '', hasta = '', busqueda = null, conteos = null, pestana, pagina, totalPestana = 0,
-  op = '', por = '', est = '', fr = '', operadores = [], creadores = [], vista = 'lista', mes = '', hoy = '', vistaTransportista = false }: Props) {
+  op = '', por = '', est = '', fr = '', fd = '', fh = '', operadores = [], creadores = [], vista = 'lista', mes = '', hoy = '', vistaTransportista = false }: Props) {
   const vistaCal = vista === 'calendario';
   const dynamo = esDynamo(rol);
   const modoBusqueda = !!busqueda;
@@ -82,7 +82,11 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
   const pbTotal = busqueda ? Math.max(1, Math.ceil(busqueda.total / busqueda.porPagina)) : 1;
   const url = (o: Record<string, string | number | undefined>) => {
     const u = new URLSearchParams();
-    const v: Record<string, string | number | undefined> = { f, q: q || undefined, desde: desde || undefined, hasta: hasta || undefined, pb: busqueda && busqueda.pagina > 1 ? busqueda.pagina : undefined, ...o };
+    // Las páginas, las pestañas y la ficha conservan los filtros de la barra (operador, creado por,
+    // fecha y, en la misma pestaña, el estado).
+    const v: Record<string, string | number | undefined> = { f, q: q || undefined, desde: desde || undefined, hasta: hasta || undefined, pb: busqueda && busqueda.pagina > 1 ? busqueda.pagina : undefined,
+      op: op || undefined, por: por || undefined, est: o.f && o.f !== f ? undefined : est || undefined,
+      fr: vistaCal ? undefined : fr || undefined, fd: fr === 'entre' ? fd || undefined : undefined, fh: fr === 'entre' ? fh || undefined : undefined, ...o };
     Object.entries(v).forEach(([k, x]) => { if (x !== undefined && x !== '' && !((k === 'p' || k === 'pb') && String(x) === '1')) u.set(k, String(x)); });
     return `/panel/envios${u.toString() ? `?${u}` : ''}`;
   };
@@ -107,7 +111,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         ))}
       </div>}
 
-      <FiltrosEnvios f={f} q={q} op={op} por={por} est={est} fr={fr} vistaCal={vistaCal} mes={mes} hoy={hoy || hoyISO()}
+      <FiltrosEnvios f={f} q={q} op={op} por={por} est={est} fr={fr} fd={fd} fh={fh} vistaCal={vistaCal} mes={mes}
         operadores={operadores} creadores={creadores} mostrarEstado={!vistaCal && f === 'programada'}
         placeholder={rol === 'transportista' ? 'Buscar: nº, matrícula, conductor, población…' : 'Buscar por cualquier dato: nº, empresa, dirección, matrícula, población, mercancía…'} />
       {vistaCal && (

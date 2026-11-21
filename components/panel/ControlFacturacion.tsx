@@ -10,6 +10,8 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import { controlFacturacionResuelto } from '@/app/panel/(app)/exportaciones/acciones';
 import { euros, numero } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import { enRango } from '@/lib/filtroFechas';
 
 export type FilaControl = {
   envio_id: string; referencia: string | null; cliente: string | null; transportista: string | null; estado: string | null;
@@ -44,6 +46,7 @@ function Parte({ n, de }: { n: number; de: number }) {
 export default function ControlFacturacion({ filas, cuadre, error }: { filas: FilaControl[]; cuadre: FilaCuadre[]; error: string | null }) {
   const refrescar = useRefrescar();
   const [tipo, setTipo] = useState('');
+  const ff = useFiltroFechas();   // por la fecha de carga del envío
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
 
@@ -54,9 +57,9 @@ export default function ControlFacturacion({ filas, cuadre, error }: { filas: Fi
     return [...m.values()].sort((a, b) => (a.gravedad === b.gravedad ? b.total - a.total : a.gravedad === 'grave' ? -1 : 1));
   }, [filas]);
   const graves = tipos.filter((t) => t.gravedad === 'grave').reduce((s, t) => s + t.total, 0);
-  const lista = useMemo(() => (tipo ? filas.filter((f) => f.tipo === tipo) : filas), [filas, tipo]);
-  const pg = usePaginas(lista, tipo, 25);
-  const cortado = tipos.find((t) => t.tipo === tipo && t.total > lista.length);
+  const lista = useMemo(() => filas.filter((f) => (!tipo || f.tipo === tipo) && enRango(f.fecha, ff.rango)), [filas, tipo, ff.rango]);
+  const pg = usePaginas(lista, `${tipo}|${ff.clave}`, 25);
+  const cortado = !ff.rango && tipos.find((t) => t.tipo === tipo && t.total > lista.length);
 
   async function resuelto(f: FilaControl) {
     setTrabajando(f.envio_id); setAviso(null);
@@ -112,11 +115,15 @@ export default function ControlFacturacion({ filas, cuadre, error }: { filas: Fi
               </button>
             ))}
           </div>
+          <div className="filters">
+            <FiltroFechas valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de carga" />
+          </div>
           {cortado && <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div>Se ven los {numero(lista.length, 0)} más antiguos de {numero(cortado.total, 0)}.</div></div>}
           <div className="table-wrap" tabIndex={0}>
             <table className="data" id="control-lista">
               <thead><tr><th>Envío</th><th>Fecha</th><th>Cliente</th><th>Transportista</th><th>Qué pasa</th><th className="amount">Importe</th><th></th></tr></thead>
               <tbody>
+                {lista.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--gray-500)' }}>Ningún caso en estas fechas.</td></tr>}
                 {pg.visibles.map((f) => (
                   <tr key={`${f.tipo}|${f.envio_id}|${f.detalle}`} data-tipo={f.tipo}>
                     <td className="ref" style={{ whiteSpace: 'nowrap' }}><a href={`/panel/envios?ver=${f.envio_id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>#{f.referencia}</a>

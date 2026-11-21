@@ -54,4 +54,3 @@ export function descargarCsv(archivo: string, columnas: string[], filas: FilaExp
 }
 
 // "dd/mm/yyyy" → "yyyy-mm" (para filtrar por mes).
-export const mesDe = (s: unknown) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s ?? '')); return m ? `${m[3]}-${m[2]}` : ''; };

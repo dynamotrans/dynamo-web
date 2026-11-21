@@ -14,10 +14,10 @@ import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, marcarPagadoAlmacen
 import { precioAlmacenamiento, diasAlmacen } from '@/lib/almacenamiento';
 import { euros, fecha, fechaHora, porcentaje, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
-import { rangoRapido } from '@/lib/envios';
+import { enRango } from '@/lib/filtroFechas';
 import { descargarCsv } from '@/lib/exportaciones';
 import BarraFiltros from './BarraFiltros';
-import { opcionesFecha } from './FiltrosEnvios';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -61,7 +61,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
   const router = useRouter();
   const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<EstadoAlm | 'todos' | 'pago'>(pestanaInicial ?? 'pendiente_confirmar');
-  const [fr, setFr] = useState('');
+  const ff = useFiltroFechas();
   const [q, setQ] = useState('');
   // El cliente no crea almacenamientos por ahora (usuario, 2026-11-11): los gestiona el
   // equipo de Dynamo. Solo ve los suyos; ?abrir=1 tampoco le abre el formulario.
@@ -76,14 +76,13 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
   }, [filas]);
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
-    const r = fr ? rangoRapido(fr, hoy()) : null;   // la Fecha filtra por el día de ENTRADA
     return filas.filter((f) => (pestana === 'todos' || (pestana === 'pago' ? sinPagar(f) : f.estado === pestana))
-      && (!r || (f.fecha_entrada >= r.desde && f.fecha_entrada <= r.hasta))
+      && enRango(f.fecha_entrada, ff.rango)   // la Fecha filtra por el día de ENTRADA
       && (!w.length || (() => { const b = norm([f.codigo, f.cliente, f.almacen, f.almacen_provincia, f.almacen_dir, f.entrega, f.descripcion, f.referencia_cliente, f.anotaciones].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()))
       // Lo vivo primero, por fecha de entrada; lo finalizado al final.
       .sort((a, b) => (Number(a.estado === 'finalizado') - Number(b.estado === 'finalizado')) || (a.fecha_entrada < b.fecha_entrada ? -1 : 1));
-  }, [filas, pestana, q, fr]);
-  const pg = usePaginas(lista, `${pestana}|${q}|${fr}`);
+  }, [filas, pestana, q, ff.rango]);
+  const pg = usePaginas(lista, `${pestana}|${q}|${ff.clave}`);
   // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
   const exportar = () => descargarCsv('Almacenamientos', ['Almacenamiento', ...(modoCliente ? [] : ['Cliente']), 'Ref. cliente', 'Almacén', 'Dirección', 'Entrada', 'Salida', 'Tráilers', 'Reparto urbano', 'Total (sin IVA)', 'Pago', 'Estado'],
     lista.map((f) => ({ Almacenamiento: `#${f.codigo}`, ...(modoCliente ? {} : { Cliente: f.cliente ?? '' }), 'Ref. cliente': f.referencia_cliente ?? '',
@@ -104,12 +103,9 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
         <button className={`tab${pestana === 'pago' ? ' active' : ''}`} onClick={() => setPestana('pago')}>Pendiente de pago ({cuenta.pago})</button>
         <button className={`tab${pestana === 'todos' ? ' active' : ''}`} onClick={() => setPestana('todos')}>Todos ({cuenta.todos})</button>
       </div>
-      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), fr].filter(Boolean).length} onExportar={exportar}
+      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), ff.valor].filter(Boolean).length} onExportar={exportar}
         placeholder={modoCliente ? 'Buscar por nº, almacén, dirección, referencia…' : 'Buscar por nº, cliente, almacén, dirección, referencia…'}>
-        <select className="filter-estado" value={fr} aria-label="Filtrar por fecha de entrada" onChange={(e) => setFr(e.target.value)}>
-          <option value="">Fecha</option>
-          {opcionesFecha(hoy()).map((o) => <option key={o.v} value={o.v}>{o.t}</option>)}
-        </select>
+        <FiltroFechas futuro valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de entrada" />
       </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar los almacenamientos: {error}</div>}
       <div className="table-wrap" tabIndex={0}>

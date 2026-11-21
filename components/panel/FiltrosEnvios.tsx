@@ -8,27 +8,13 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import FiltroFechas from './FiltroFechas';
 
 export type OpcionFiltro = { id: string; nombre: string };
 
-// Las opciones del desplegable «Fecha»: rápidas + 7 meses (del pasado al actual+5), como el mockup.
-export function opcionesFecha(hoy: string): { v: string; t: string }[] {
-  const [a, m] = hoy.split('-').map(Number);
-  const MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  const out: { v: string; t: string }[] = [
-    { v: 'hoy', t: 'Hoy' }, { v: 'manana', t: 'Mañana' }, { v: 'ayer', t: 'Ayer' },
-    { v: 'esta-semana', t: 'Esta semana' }, { v: 'proxima-semana', t: 'Próxima semana' }, { v: 'semana-pasada', t: 'Semana pasada' },
-  ];
-  for (let i = -1; i <= 5; i++) {
-    const d = new Date(a, m - 1 + i, 1);
-    out.push({ v: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, t: `${MES[d.getMonth()]} ${d.getFullYear()}` });
-  }
-  return out;
-}
-
-export default function FiltrosEnvios({ f, q, op, por, est, fr, vistaCal, mes, hoy, placeholder, operadores, creadores, mostrarEstado }: {
-  f: string; q: string; op: string; por: string; est: string; fr: string;
-  vistaCal: boolean; mes: string; hoy: string; placeholder: string;
+export default function FiltrosEnvios({ f, q, op, por, est, fr, fd, fh, vistaCal, mes, placeholder, operadores, creadores, mostrarEstado }: {
+  f: string; q: string; op: string; por: string; est: string; fr: string; fd: string; fh: string;
+  vistaCal: boolean; mes: string; placeholder: string;
   operadores: OpcionFiltro[]; creadores: OpcionFiltro[];
   mostrarEstado: boolean;   // el desplegable de Estado solo vive en la pestaña Programadas
 }) {
@@ -41,7 +27,7 @@ export default function FiltrosEnvios({ f, q, op, por, est, fr, vistaCal, mes, h
   useEffect(() => { if (!escribiendo.current) setTexto(q); }, [q]);
 
   function ir(cambios: Record<string, string>) {
-    const v = { f: vistaCal ? '' : f, q: texto.trim().length >= 2 ? texto.trim() : '', op, por, est: mostrarEstado ? est : '', fr: vistaCal ? '' : fr,
+    const v = { f: vistaCal ? '' : f, q: texto.trim().length >= 2 ? texto.trim() : '', op, por, est: mostrarEstado ? est : '', fr: vistaCal ? '' : fr, fd: vistaCal || fr !== 'entre' ? '' : fd, fh: vistaCal || fr !== 'entre' ? '' : fh,
       vista: vistaCal ? 'calendario' : '', mes: vistaCal ? mes : '', ...cambios };
     const u = new URLSearchParams();
     Object.entries(v).forEach(([k, x]) => { if (x) u.set(k, x); });
@@ -78,7 +64,8 @@ export default function FiltrosEnvios({ f, q, op, por, est, fr, vistaCal, mes, h
       </button>
       {operadores.length > 0 && sel(op, 'op', 'Operador', [{ v: 'dynamo', t: 'Dynamo' }, ...operadores.map((o) => ({ v: o.id, t: o.nombre }))])}
       {creadores.length > 0 && sel(por, 'por', 'Creado por', creadores.map((o) => ({ v: o.id, t: o.nombre })))}
-      {!vistaCal && sel(fr, 'fr', 'Fecha', opcionesFecha(hoy))}
+      {!vistaCal && <FiltroFechas futuro valor={fr} desde={fd} hasta={fh} etiqueta="Filtrar por fecha de carga"
+        onCambio={(v, d, h) => ir({ fr: v, fd: v === 'entre' ? d : '', fh: v === 'entre' ? h : '' })} />}
       {!vistaCal && mostrarEstado && sel(est, 'est', 'Estado', [
         { v: 'programado', t: 'Programado' }, { v: 'hacia_la_carga', t: 'Hacia la carga' },
         { v: 'cargando', t: 'Cargando' }, { v: 'en_ruta', t: 'En ruta' },

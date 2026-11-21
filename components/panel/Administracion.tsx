@@ -16,6 +16,8 @@ import { euros, fecha, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import CuentaAtras from './CuentaAtras';
 import FacturasDynamo from './FacturasDynamo';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import { enRango, diaMadridDe } from '@/lib/filtroFechas';
 
 export type ProformaFila = {
   // Proformas de ENVÍOS y de almacenamientos en la misma lista (usuario, 2026-11-14).
@@ -45,6 +47,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial);
   const [filtro, setFiltro] = useState<'sin_pagar' | 'pagadas' | 'todas' | 'por_validar'>('todas');   // por defecto TODAS, sin filtrar por pendientes (usuario, 2026-11-17)
   const [q, setQ] = useState('');
+  const ff = useFiltroFechas();   // proformas: día de creación; albaranes: día en que se subió
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   // Marcar una proforma de envío como pagada pide banco, concepto y fecha en una ventana
@@ -60,11 +63,12 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
     const casa = (t: string) => w.every((x) => norm(t).includes(x));
     if (pestana === 'proformas') {
       return proformas.filter((p) => (filtro === 'todas' || (filtro === 'por_validar' ? !p.pagado_en && !!p.avisado : (filtro === 'pagadas') === !!p.pagado_en))
+        && enRango(p.creado_en ? diaMadridDe(p.creado_en) : null, ff.rango)
         && casa([p.codigo, p.cliente, p.referencia_cliente, p.concepto, euros(p.total)].filter(Boolean).join(' ')));
     }
-    return albaranes.filter((a) => casa([a.gx, a.ruta, a.nombre].filter(Boolean).join(' ')));
-  }, [pestana, filtro, q, proformas, albaranes]);
-  const pg = usePaginas<ProformaFila | AlbaranFila>(lista, `${pestana}|${filtro}|${q}`);
+    return albaranes.filter((a) => enRango(diaMadridDe(a.creado_en), ff.rango) && casa([a.gx, a.ruta, a.nombre].filter(Boolean).join(' ')));
+  }, [pestana, filtro, q, proformas, albaranes, ff.rango]);
+  const pg = usePaginas<ProformaFila | AlbaranFila>(lista, `${pestana}|${filtro}|${q}|${ff.clave}`);
 
   async function pagar(p: ProformaFila, pagado: boolean) {
     // La transferencia de un ENVÍO no se marca de un toque: abre su ventana.
@@ -116,6 +120,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
               <option value="pagadas">Pagadas</option>
             </select>
           )}
+          <FiltroFechas valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta={pestana === 'proformas' ? 'Filtrar por fecha de la proforma' : 'Filtrar por fecha del albarán'} />
         </div>
         {error && <div className="pt-aviso error">No se ha podido cargar: {error}</div>}
         {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}

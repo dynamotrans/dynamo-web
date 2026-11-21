@@ -15,6 +15,8 @@ import { CONTACTO_VACIO } from '@/lib/contactos';
 
 import { fecha, euros, fechaHora } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import { enRango, diaMadridDe } from '@/lib/filtroFechas';
 import { estadoCola, duracionTxt, COLA_OBJETIVO_TXT } from '@/lib/colaAltas';
 import { resolverContraoferta } from '@/app/panel/(app)/envios/acciones';
 import { telBonito } from '@/lib/paises';
@@ -76,13 +78,14 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
     ...filas.map((a) => ({ tipo: 'cliente' as const, a })),
     ...transportistas.map((t) => ({ tipo: 'transportista' as const, t })),
   ].sort((x, y) => (x.tipo === 'cliente' ? x.a.solicitada_en : x.t.solicitada_en).localeCompare(y.tipo === 'cliente' ? y.a.solicitada_en : y.t.solicitada_en)), [filas, transportistas]);
+  const ff = useFiltroFechas();   // por el día en que se solicitó el alta
   const lista = useMemo(() => {
     const w = norm(q);
-    return todos.filter((i) => (!tipo || i.tipo === tipo) && (!w || norm(i.tipo === 'cliente'
+    return todos.filter((i) => (!tipo || i.tipo === tipo) && enRango(diaMadridDe(i.tipo === 'cliente' ? i.a.solicitada_en : i.t.solicitada_en), ff.rango) && (!w || norm(i.tipo === 'cliente'
       ? [i.a.email, i.a.nombre, i.a.documento, i.a.telefono, i.a.empresa, i.a.cif, i.a.poblacion, i.a.provincia].join(' ')
       : [i.t.nombre, i.t.cif, i.t.telefono, i.t.bolsa, i.t.codigo_bolsa, i.t.envio, i.t.ruta].join(' ')).includes(w)));
-  }, [todos, q, tipo]);
-  const pg = usePaginas(lista, `${q}|${tipo}`);
+  }, [todos, q, tipo, ff.rango]);
+  const pg = usePaginas(lista, `${q}|${tipo}|${ff.clave}`);
   const urgentes = todos.filter((i) => estadoCola(i.tipo === 'cliente' ? i.a.solicitada_en : i.t.solicitada_en, fest, ahora).urgente).length;
 
   return (
@@ -101,6 +104,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
         <select className="filter-estado" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)} aria-label="Tipo de alta">
           <option value="">Todas</option><option value="cliente">Clientes</option><option value="transportista">Transportistas</option>
         </select>
+        <FiltroFechas valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de la solicitud" />
       </div>
       {error && <div className="pt-aviso error">No se han podido cargar las altas: {error}</div>}
       <div className="table-wrap" tabIndex={0}>

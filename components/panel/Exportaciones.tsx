@@ -6,14 +6,17 @@
 import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
-import { FICHEROS, descargarCsv, esImporte, mesDe, type Fichero, type FilaExport } from '@/lib/exportaciones';
+import { FICHEROS, descargarCsv, esImporte, type Fichero, type FilaExport } from '@/lib/exportaciones';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import { enRango } from '@/lib/filtroFechas';
 import { marcarExportados, marcarFacturados } from '@/app/panel/(app)/exportaciones/acciones';
 import { euros, numero, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import ControlFacturacion, { type FilaControl, type FilaCuadre } from './ControlFacturacion';
 
 const PESTANAS: [string, string][] = [['pendientes', 'Pendientes'], ['hechos', 'Ya pasados'], ['todos', 'Todos']];
-const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+// Las fechas del fichero van «dd/mm/aaaa»; el filtro trabaja con «aaaa-mm-dd».
+const diaDe = (s: unknown) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s ?? '')); return m ? `${m[3]}-${m[2]}-${m[1]}` : null; };
 const CONCEPTO: Record<string, string> = { porte: 'Porte', penalizacion: 'Penalización', paralizacion: 'Paralización' };
 // El concepto del porte pagado por adelantado lleva detrás su proforma («porte · PROFORMA …»):
 // se traduce solo la primera parte.
@@ -40,7 +43,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
   }, [control.filas]);
   const [pestana, setPestana] = useState('pendientes');
   const [q, setQ] = useState('');
-  const [mes, setMes] = useState('');
+  const ff = useFiltroFechas();
   const [confirmar, setConfirmar] = useState<'marcar' | 'quitar' | 'facturar' | 'desfacturar' | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
@@ -49,7 +52,6 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
   const hechos = useMemo(() => new Set(hecho[fichero]), [hecho, fichero]);
   const filas = datos[fichero];
   const pendientes = (k: Fichero) => { const h = new Set(hecho[k]); return new Set(datos[k].map((f) => String(f[FICHEROS[k].ref])).filter((r) => !h.has(r))).size; };
-  const meses = useMemo(() => [...new Set(filas.map((f) => mesDe(f[F.fecha])).filter(Boolean))].sort().reverse(), [filas, F.fecha]);
 
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q));
@@ -57,11 +59,11 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
       const r = String(f[F.ref]);
       if (pestana === 'pendientes' && hechos.has(r)) return false;
       if (pestana === 'hechos' && !hechos.has(r)) return false;
-      if (mes && mesDe(f[F.fecha]) !== mes) return false;
+      if (ff.rango && !enRango(diaDe(f[F.fecha]), ff.rango)) return false;
       return !w || norm(Object.values(f).filter((v) => v != null).join(' ')).includes(w);
     });
-  }, [filas, F, pestana, hechos, mes, q]);
-  const pg = usePaginas(lista, `${fichero}|${pestana}|${mes}|${q}`, 50);
+  }, [filas, F, pestana, hechos, ff.rango, q]);
+  const pg = usePaginas(lista, `${fichero}|${pestana}|${ff.clave}|${q}`, 50);
   const refs = useMemo(() => [...new Set(lista.map((f) => String(f[F.ref])))], [lista, F.ref]);
   const cuenta = (p: string) => new Set(filas.filter((f) => { const h = hechos.has(String(f[F.ref])); return p === 'todos' || (p === 'hechos' ? h : !h); }).map((f) => String(f[F.ref]))).size;
 
@@ -85,7 +87,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
     setAviso({ ok: true, txt: quitar ? `${r.n} envío${r.n === 1 ? '' : 's'} vuelve${r.n === 1 ? '' : 'n'} a pendientes.` : `${r.n} envío${r.n === 1 ? '' : 's'} marcado${r.n === 1 ? '' : 's'} como ${F.marcado}.` });
     refrescar();
   }
-  const elegir = (k: Fichero) => { setVerControl(false); setFichero(k); setPestana('pendientes'); setMes(''); setQ(''); setAviso(null); };
+  const elegir = (k: Fichero) => { setVerControl(false); setFichero(k); setPestana('pendientes'); setQ(''); setAviso(null); };
 
   return (
     <section className="section active" id="sec-exportaciones">
@@ -119,10 +121,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
       </div>
       <div className="filters">
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por envío, cliente, transportista, población…" />
-        <select className="filter-estado" value={mes} onChange={(e) => setMes(e.target.value)} aria-label="Filtrar por mes">
-          <option value="">Fecha</option>
-          {meses.map((m) => <option key={m} value={m}>{MESES[Number(m.slice(5)) - 1]} {m.slice(0, 4)}</option>)}
-        </select>
+        <FiltroFechas futuro valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha" />
       </div>
       <div className="export-acciones">
         <button className="btn-primary" disabled={!lista.length} onClick={descargar}><Ico d={DESCARGA} />Descargar CSV ({lista.length} fila{lista.length === 1 ? '' : 's'})</button>

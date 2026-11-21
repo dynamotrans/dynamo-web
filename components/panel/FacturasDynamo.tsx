@@ -6,10 +6,10 @@
 // aquí por su API (aún sin conectar). Las recibidas de gastos financieros (confirming, líneas
 // de crédito, préstamos, intereses y comisiones bancarias…) no se traen.
 import { useMemo, useState } from 'react';
-import CampoFecha from '@/components/CampoFecha';
 import { euros, fecha, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
-import { rangoPeriodo, PERIODOS_FACTURAS, type PeriodoFacturas } from '@/lib/periodoFacturas';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import { enRango } from '@/lib/filtroFechas';
 
 export type FacturaFila = {
   id: string;
@@ -29,9 +29,6 @@ export type FacturaFila = {
 };
 
 type Tipo = 'todas' | 'emitida' | 'recibida';
-type Periodo = PeriodoFacturas;
-const PERIODOS = PERIODOS_FACTURAS;
-const hoyMadrid = () => { const [y, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()).split('-').map(Number); return new Date(y, m - 1, d); };
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -52,20 +49,17 @@ function TagEstado({ f }: { f: FacturaFila }) {
 
 export default function FacturasDynamo({ facturas, conectado }: { facturas: FacturaFila[]; conectado: boolean }) {
   const [tipo, setTipo] = useState<Tipo>('todas');
-  const [periodo, setPeriodo] = useState<Periodo>('todo');
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+  const ff = useFiltroFechas();
   const [q, setQ] = useState('');
 
   const lista = useMemo(() => {
-    const [d, h] = rangoPeriodo(periodo, hoyMadrid(), desde, hasta);
     const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     return facturas
-      .filter((f) => (tipo === 'todas' || f.tipo === tipo) && (!d || f.fecha >= d) && (!h || f.fecha <= h)
+      .filter((f) => (tipo === 'todas' || f.tipo === tipo) && enRango(f.fecha, ff.rango)
         && w.every((x) => norm([f.numero, f.concepto, f.empresa, f.cif, euros(f.total)].filter(Boolean).join(' ')).includes(x)))
       .sort((a, b) => (a.fecha === b.fecha ? 0 : a.fecha < b.fecha ? 1 : -1));
-  }, [facturas, tipo, periodo, desde, hasta, q]);
-  const pg = usePaginas(lista, `${tipo}|${periodo}|${desde}|${hasta}|${q}`, 25);
+  }, [facturas, tipo, ff.rango, q]);
+  const pg = usePaginas(lista, `${tipo}|${ff.clave}|${q}`, 25);
 
   const suma = (t: FacturaFila['tipo']) => lista.filter((f) => f.tipo === t).reduce((s, f) => s + Number(f.base), 0);
   const ingresos = suma('emitida'), gastos = suma('recibida');
@@ -79,13 +73,7 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
           <option value="emitida">Ingresos · emitidas</option>
           <option value="recibida">Gastos · recibidas</option>
         </select>
-        <select className="filter-estado" id="fac-periodo" value={periodo} onChange={(e) => setPeriodo(e.target.value as Periodo)} aria-label="Periodo">
-          {PERIODOS.map(([p, l]) => <option key={p} value={p}>{l}</option>)}
-        </select>
-        {periodo === 'otro' && <>
-          <CampoFecha className="param-input" value={desde} onChange={setDesde} aria-label="Desde" max={hasta || undefined} style={{ width: 'auto', minWidth: 160 }} />
-          <CampoFecha className="param-input" value={hasta} onChange={setHasta} aria-label="Hasta" min={desde || undefined} style={{ width: 'auto', minWidth: 160 }} />
-        </>}
+        <FiltroFechas id="fac-periodo" valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de la factura" />
       </div>
 
       {!conectado && (

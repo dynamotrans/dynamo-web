@@ -872,7 +872,7 @@ test.describe('novedades', () => {
     await expect(page.locator('#facturas-lista thead')).toContainText(/Fecha.*Tipo.*Concepto.*Empresa.*CIF.*Base.*IVA.*Retención.*Total.*Pago/);
     await expect(page.locator('#fac-tipo option')).toHaveText(['Todas (ingresos y gastos)', 'Ingresos · emitidas', 'Gastos · recibidas']);
     await page.locator('#fac-periodo').selectOption('trim');
-    await page.locator('#fac-periodo').selectOption('otro');
+    await page.locator('#fac-periodo').selectOption('entre');
     await expect(page.locator('#facturas-dynamo').getByLabel('Desde')).toBeVisible();
     await expect(page.locator('#facturas-dynamo').getByLabel('Hasta')).toBeVisible();
     await entrar(page, 'cliente');
@@ -880,5 +880,29 @@ test.describe('novedades', () => {
     await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
     await expect(page.locator('#sec-facturas')).toContainText('te las seguimos enviando por email');
     await expect(page.locator('#facturas-dynamo')).toHaveCount(0);
+  });
+
+  test('filtro de fecha único: periodos y «Entre dos fechas» con calendarios en envíos, incidencias, penalizaciones y proformas', async ({ page }) => {
+    await entrar(page, 'dynamo');
+    // Envíos: filtra en el servidor, por la URL.
+    await page.goto('/panel/envios');
+    const fe = page.getByLabel('Filtrar por fecha de carga');
+    await expect(fe.locator('option')).toContainText(['Todas las fechas', 'Hoy', 'Mañana', 'Este trimestre', 'Año pasado', 'Entre dos fechas…']);
+    await fe.selectOption('trim');
+    await expect(page).toHaveURL(/fr=trim/);
+    await page.getByLabel('Filtrar por fecha de carga').selectOption('entre');
+    await expect(page).toHaveURL(/fr=entre/);
+    await expect(page.getByLabel('Desde')).toBeVisible();
+    await expect(page.getByLabel('Hasta')).toBeVisible();
+    // Las listas que filtran en el navegador: el mismo desplegable y sus dos calendarios.
+    for (const [ruta, etiqueta] of [['/panel/incidencias', 'Filtrar por fecha de registro'], ['/panel/penalizaciones', 'Filtrar por fecha de la penalización'], ['/panel/administracion', 'Filtrar por fecha de la proforma']] as const) {
+      await page.goto(ruta);
+      const sel = page.getByLabel(etiqueta);
+      await expect(sel.locator('option')).toContainText(['Todas las fechas', 'Últimos 7 días', 'Mes pasado', 'Trimestre pasado', 'Entre dos fechas…']);
+      await sel.selectOption('anio-pasado');
+      await sel.selectOption('entre');
+      await expect(page.getByLabel('Desde')).toBeVisible();
+      await expect(page.getByLabel('Hasta')).toBeVisible();
+    }
   });
 });

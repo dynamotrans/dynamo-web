@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { euros, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { CONTACTO } from '@/lib/atencion';
+import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import { enRango, diaMadridDe } from '@/lib/filtroFechas';
 
 export type MiPenalizacion = { id: string; codigo: string; envio_id: string; referencia_gx: string; tipo: string;
   descripcion: string | null; importe_cliente: number | null; estado: string; creado_en: string };
@@ -17,8 +19,10 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
   // (por código, envío, tipo o descripción) y un enlace para volver a verlas todas.
   const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const ws = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
-  const filas = ws.length ? todas.filter((p) => { const b = norm([p.codigo, p.referencia_gx, p.tipo, p.descripcion].filter(Boolean).join(' ')); return ws.every((w) => b.includes(w)); }) : todas;
-  const pg = usePaginas(filas, q);
+  const ff = useFiltroFechas();
+  const filas = todas.filter((p) => enRango(diaMadridDe(p.creado_en), ff.rango)
+    && (!ws.length || (() => { const b = norm([p.codigo, p.referencia_gx, p.tipo, p.descripcion].filter(Boolean).join(' ')); return ws.every((w) => b.includes(w)); })()));
+  const pg = usePaginas(filas, `${q}|${ff.clave}`);
   return (
     <section className="section active" id="sec-penalizaciones">
       <div className="sec-header"><h2>Penalizaciones</h2></div>
@@ -28,6 +32,9 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
           : <>Costes que se aplican a un envío por una cancelación fuera de plazo, una paralización del camión o una parada que no estaba prevista.
             Si no estás conforme con alguna, abre una <Link href="/panel/incidencias?abrir=1" style={{ color: 'var(--purple)', fontWeight: 700 }}>incidencia</Link> y la revisamos.</>}
       </p>
+      {todas.length > 0 && <div className="filters">
+        <FiltroFechas valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de la penalización" />
+      </div>}
       {error && <div className="pt-aviso error">No se han podido cargar las penalizaciones: {error}</div>}
       {ws.length > 0 && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Buscando «{q.trim()}»: {filas.length} de {todas.length}. <Link href="/panel/penalizaciones" style={{ color: 'var(--purple)', fontWeight: 700 }}>Ver todas</Link></div></div>}
       <div className="table-wrap" tabIndex={0}>
@@ -35,7 +42,7 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
           <thead><tr><th>Penalización</th><th>Envío</th><th>Tipo</th><th>Importe<br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>base sin IVA</span></th><th>Fecha</th></tr></thead>
           <tbody>
             {filas.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{ws.length ? 'Ninguna penalización casa con la búsqueda.' : 'No tienes ninguna penalización.'}</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{ws.length ? 'Ninguna penalización casa con la búsqueda.' : todas.length ? 'No hay penalizaciones en estas fechas.' : 'No tienes ninguna penalización.'}</td></tr>
             ) : pg.visibles.map((p) => {
               const est = ESTADO[p.estado] ?? [p.estado, 'prog'];
               return (
