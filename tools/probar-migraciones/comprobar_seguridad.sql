@@ -3374,16 +3374,17 @@ do $$ declare u record; begin
   if (select estado from envios where id = current_setting('prueba.e99_3')::uuid) <> 'cancelado' then
     raise exception 'FALLO 99 · la cancelación que pasa del límite no se hace';
   end if;
-  -- Reactivado: ahora 16 consultas de precio en un día (máximo 15) → al momento, regla 3.
+  -- Reactivado: ahora una consulta de precio MÁS que el máximo del día (parámetro
+  -- autosuspension_consultas_dia) → al momento, regla 3.
   update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
-  for i in 1..15 loop insert into consultas_precio (usuario_id, cliente_id) values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid); end loop;
+  for i in 1..parametro_num('autosuspension_consultas_dia', 15)::int loop insert into consultas_precio (usuario_id, cliente_id) values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid); end loop;
   if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
-    raise exception 'FALLO 99 · suspende con 15 consultas (el máximo es «más de 15»)';
+    raise exception 'FALLO 99 · suspende al LLEGAR al máximo de consultas del día (el límite es «más de»)';
   end if;
   insert into consultas_precio (usuario_id, cliente_id) values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid);
   select estado, suspension_motivo into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
   if u.estado <> 'suspendida' or u.suspension_motivo not like 'Automática (al momento) · Regla 3%' then
-    raise exception 'FALLO 99 · la consulta 16 no suspende al momento: % %', u.estado, u.suspension_motivo;
+    raise exception 'FALLO 99 · la consulta que pasa del máximo no suspende al momento: % %', u.estado, u.suspension_motivo;
   end if;
   -- Con el interruptor apagado no suspende a nadie.
   update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
@@ -13928,4 +13929,16 @@ begin
   if position(v_email in html) = 0 or position(to_char(now() at time zone 'Europe/Madrid', 'DD/MM/YY') in html) = 0 then
     raise exception 'FALLO 312 · el email no dice quién canceló ni cuándo'; end if;
   raise notice 'OK 312 · email de cuenta suspendida por cancelaciones: lista cada envío que contó, quién lo canceló y cuándo';
+end $$;
+
+-- ---- 313. Límites de consultas de precio subidos (usuario, 2026-11-21) -------------------
+-- «Crear varios envíos» enseña hasta 20 precios de golpe y cada uno cuenta: el límite del
+-- día ya no puede ser 15.
+do $$ begin
+  if parametro_num('autosuspension_consultas_dia', 0) < 30 or parametro_num('autosuspension_consultas_semana', 0) < 100
+     or parametro_num('autosuspension_consultas_mes', 0) < 300 then
+    raise exception 'FALLO 313 · los límites de consultas de precio siguen bajos (% / % / %)', parametro_num('autosuspension_consultas_dia', 0),
+      parametro_num('autosuspension_consultas_semana', 0), parametro_num('autosuspension_consultas_mes', 0);
+  end if;
+  raise notice 'OK 313 · límites de consultas de precio: 30 al día, 100 a la semana y 300 al mes';
 end $$;

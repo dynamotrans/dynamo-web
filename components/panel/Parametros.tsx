@@ -252,8 +252,8 @@ const ETIQUETAS: Record<string, [string, string]> = {
 };
 // Valores por defecto de la base de datos (parametro_num), por si falta alguno.
 const DEFECTO: Record<string, number> = {
-  autosuspension_sin_envios_dias: 45, autosuspension_sin_acceso_dias: 400, autosuspension_consultas_dia: 15, autosuspension_consultas_semana: 30,
-  autosuspension_consultas_mes: 60, autosuspension_cancel_pct: 30, autosuspension_cancel_min_envios: 5, autosuspension_cancel_recientes: 3, autosuspension_cancel_recientes_dias: 10,
+  autosuspension_sin_envios_dias: 45, autosuspension_sin_acceso_dias: 400, autosuspension_consultas_dia: 30, autosuspension_consultas_semana: 100,
+  autosuspension_consultas_mes: 300, autosuspension_cancel_pct: 30, autosuspension_cancel_min_envios: 5, autosuspension_cancel_recientes: 3, autosuspension_cancel_recientes_dias: 10,
 };
 const pct = (a: number, b: number) => (b ? Math.round((a * 100) / b) : 0);
 function duracion(d: number) {
