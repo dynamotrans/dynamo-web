@@ -88,7 +88,10 @@ export async function cambiarMiEmail(nuevo: string, clave: string): Promise<{ ok
   const prueba = await pub.auth.signInWithPassword({ email: user.email, password: clave });
   if (prueba.error) return { ok: false, error: 'La contraseña no es correcta.' };
   await pub.auth.signOut({ scope: 'local' }).catch(() => {});
-  const { data: vetado } = await s.supabase.rpc('alta_bloqueada', { p_email: email });
+  // Un usuario de cliente tampoco puede pasar al email de un transportista (usuario, 2026-11-22).
+  const { data: vetado } = s.perfil.rol === 'cliente'
+    ? await s.supabase.rpc('email_admitido_para_cliente', { p_email: email }).then((r) => ({ data: r.data === false }))
+    : await s.supabase.rpc('alta_bloqueada', { p_email: email });
   if (vetado) return { ok: false, error: 'Ese email no se puede usar en la plataforma.' };
   const { error } = await s.supabase.auth.updateUser({ email }, { emailRedirectTo: `${await origen()}/panel` });
   if (error) {

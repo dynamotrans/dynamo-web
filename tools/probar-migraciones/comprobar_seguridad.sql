@@ -14193,3 +14193,49 @@ do $$ declare t uuid; c uuid; ok boolean; u uuid; r text; begin
   raise notice 'OK 319 · un CIF / NIF de transportista no se puede dar de alta como cliente (ni por la web ni por Dynamo)';
 end $$;
 reset role;
+
+-- ---- 320. El email de un transportista tampoco puede darse de alta como cliente (usuario, 2026-11-22) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare t uuid; ok boolean; u uuid; cli uuid := current_setting('prueba.cliente')::uuid; begin
+  insert into transportistas (razon_social, cif) values ('Transportes 320 SL', 'B32000001') returning id into t;
+  insert into contactos (transportista_id, funcion, email) values (t, 'trafico', 'Trafico320@T.prueba');
+  perform set_config('prueba.t320', t::text, false);
+  if not email_es_de_transportista(' trafico320@t.prueba ') then raise exception 'FALLO 320 · no reconoce el email de un transportista'; end if;
+  -- Darse de alta por su cuenta con ese email: no (aunque se salte la web).
+  ok := false;
+  begin insert into auth.users (email, raw_user_meta_data) values ('trafico320@t.prueba', '{"nombre":"Intruso"}');
+  exception when others then ok := sqlerrm like '%alta_bloqueada%'; end;
+  if not ok then raise exception 'FALLO 320 · se crea por su cuenta una cuenta con el email de un transportista'; end if;
+  -- Dynamo sí crea la cuenta del transportista (desde «Usuarios»)…
+  insert into auth.users (email, raw_user_meta_data) values ('trafico320@t.prueba', jsonb_build_object('nombre', 'Tráfico 320', 'anadido_por', current_setting('prueba.u_admin')))
+    returning id into u;
+  update usuarios set rol = 'transportista', transportista_id = t, estado = 'activa' where id = u;
+  -- …pero nunca como usuario de un cliente.
+  ok := false;
+  begin update usuarios set rol = 'cliente', transportista_id = null, cliente_id = cli where id = u;
+  exception when others then ok := sqlerrm like '%email es de un transportista%'; end;
+  if not ok then raise exception 'FALLO 320 · el email de un transportista pasa a ser usuario de un cliente'; end if;
+  -- Un usuario de cliente no puede cambiarse al email de un transportista.
+  ok := false;
+  begin update usuarios set email = 'trafico320@t.prueba ' where id = current_setting('prueba.u_cli')::uuid;
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 320 · un usuario de cliente se cambia al email de un transportista'; end if;
+  perform set_config('prueba.u320', u::text, false);
+end $$;
+-- El registro de la web (sin sesión) lo pregunta antes de mandar el código.
+set role anon;
+do $$ begin
+  if email_admitido_para_cliente('trafico320@t.prueba') then raise exception 'FALLO 320 · el registro de la web admite el email de un transportista'; end if;
+  if not email_admitido_para_cliente('cualquiera320@cliente.prueba') then raise exception 'FALLO 320 · el registro rechaza un email normal'; end if;
+end $$;
+reset role;
+do $$ begin
+  if has_function_privilege('anon', 'public.email_es_de_transportista(text)', 'execute') then
+    raise exception 'FALLO 320 · se puede preguntar sin sesión qué emails son de transportistas'; end if;
+  delete from usuarios where id = current_setting('prueba.u320')::uuid;
+  delete from auth.users where id = current_setting('prueba.u320')::uuid;
+  delete from contactos where transportista_id = current_setting('prueba.t320')::uuid;
+  delete from transportistas where id = current_setting('prueba.t320')::uuid;
+  raise notice 'OK 320 · el email de un transportista no se puede dar de alta como cliente (web, cuenta por su cuenta, Dynamo ni cambio de email); las cuentas de transportista que crea Dynamo siguen funcionando';
+end $$;
