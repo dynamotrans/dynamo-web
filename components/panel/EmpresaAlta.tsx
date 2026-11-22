@@ -7,6 +7,7 @@ import Req from '@/components/Req';
 import Documentos from './Documentos';
 import { paisDe } from '@/lib/paises';
 import CampoProvincia from '@/components/CampoProvincia';
+import { CampoCodigoPostal, CampoPoblacion, lugarDe, type Lugar } from '@/components/CamposLugar';
 import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { validaIdFiscalPais } from '@/lib/idFiscal';
 import {
@@ -45,6 +46,10 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
   }, []);
 
   // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const ponLugar = (c: Partial<Lugar>) => {
+    setD((x) => { const n = { ...x, ...c }; return 'codigo_postal' in c ? conProvinciaDelCp(n, n.pais) : n; });
+    setHecho(false);
+  };
   const pon = (k: keyof Datos, v: string) => {
     setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais' ? conProvinciaDelCp(n, n.pais) : n; });
     setHecho(false);
@@ -156,8 +161,16 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
             </div>
             <div className="ptar-section-head" style={{ gridColumn: '1/-1', marginTop: '0.3rem' }}>Domicilio fiscal</div>
             {campo('direccion', 'Dirección (calle y número)', 'Calle y número', true)}
-            {campo('codigo_postal', 'Código postal', '41001')}
-            {campo('poblacion', 'Población', 'Sevilla')}
+            <div>
+              <label htmlFor="ea-codigo_postal" style={ETIQ}>Código postal <Req /></label>
+              <CampoCodigoPostal id="ea-codigo_postal" pais={d.pais} placeholder="41001" lugar={lugarDe(d)} disabled={!cargado || trabajando}
+                style={{ width: '100%', boxSizing: 'border-box', ...rojo('codigo_postal') }} onCambio={ponLugar} />
+            </div>
+            <div>
+              <label htmlFor="ea-poblacion" style={ETIQ}>Población <Req /></label>
+              <CampoPoblacion id="ea-poblacion" pais={d.pais} placeholder="Sevilla" lugar={lugarDe(d)} disabled={!cargado || trabajando}
+                style={{ width: '100%', boxSizing: 'border-box', ...rojo('poblacion') }} onCambio={ponLugar} />
+            </div>
             <div>
               <label htmlFor="ea-provincia" style={ETIQ}>Provincia <Req /></label>
               <CampoProvincia id="ea-provincia" pais={d.pais} valor={d.provincia} disabled={!cargado || trabajando}

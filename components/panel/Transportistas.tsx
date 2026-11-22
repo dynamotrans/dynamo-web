@@ -19,6 +19,7 @@ import { fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import CampoProvincia from '@/components/CampoProvincia';
+import { CampoCodigoPostal, CampoPoblacion, lugarDe, type Lugar } from '@/components/CamposLugar';
 import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import Req from '@/components/Req';
@@ -187,6 +188,8 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
     onGuardado();
   }
   // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const ponLugar = (c: Partial<Lugar>) =>
+    setD((x) => { const n = { ...x, ...c }; return 'codigo_postal' in c ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
   const set = <K extends keyof TransportistaDatos>(k: K, v: TransportistaDatos[K]) =>
     setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais_codigo_iso' ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
 
@@ -299,8 +302,14 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
 
         {titulo('Domicilio fiscal')}
         {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, 'Calle y número', true)}
-        {campo('codigo_postal', <>Código postal <Req si={false} /></>, '41001')}
-        {campo('poblacion', <>Población <Req si={false} /></>, 'Sevilla')}
+        <div>
+          <label htmlFor="tra-codigo_postal">Código postal <Req si={false} /></label>
+          <CampoCodigoPostal id="tra-codigo_postal" pais={d.pais_codigo_iso} placeholder="41001" lugar={lugarDe(d)} onCambio={ponLugar} />
+        </div>
+        <div>
+          <label htmlFor="tra-poblacion">Población <Req si={false} /></label>
+          <CampoPoblacion id="tra-poblacion" pais={d.pais_codigo_iso} placeholder="Sevilla" lugar={lugarDe(d)} onCambio={ponLugar} />
+        </div>
         <div>
           <label htmlFor="tra-provincia">Provincia <Req si={false} /></label>
           <CampoProvincia id="tra-provincia" pais={d.pais_codigo_iso} valor={d.provincia ?? ''} onCambio={(v) => set('provincia', v)} />

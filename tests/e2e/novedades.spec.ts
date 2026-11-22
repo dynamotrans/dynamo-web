@@ -690,6 +690,39 @@ test.describe('novedades', () => {
     }
   });
 
+  // CP ↔ localidad ↔ provincia desde las fichas (usuario, 2026-11-22): escribir el CP rellena
+  // la localidad y la provincia; elegir la localidad rellena el CP si solo tiene uno.
+  test('dirección: el código postal rellena localidad y provincia, y la localidad rellena el CP', async ({ page }) => {
+    const t = Date.now().toString().slice(-5);
+    const loc = `Vila E2E ${t}`;
+    const { data: nave } = await bd().from('sitios').select('cliente_id').eq('nombre_empresa', 'Nave Madrid').limit(1).single();
+    const { data: s } = await bd().from('sitios').insert({ cliente_id: nave!.cliente_id, nombre_empresa: `Armazém CP ${t}`, direccion: 'Rua Um, 1',
+      codigo_postal: `4${t.slice(0, 3)}-${t.slice(2)}`, poblacion: loc, provincia: `Distrito E2E ${t}`, pais_codigo_iso: 'PT' }).select('id, codigo_postal').single();
+    try {
+      await entrar(page, 'cliente');
+      await page.goto('/panel/nuevo-envio');
+      await page.locator('.ptar-route-row input[type=text]').nth(0).fill(`Nuevo ${t}`);
+      await page.locator('.ptar-sug li', { hasText: 'Crear nuevo sitio' }).click();
+      await page.locator('#sitio-buscar').focus();
+      await page.locator('li', { hasText: '¿No lo encuentras? + Crear un sitio nuevo' }).click();
+      await page.locator('#sitio-pais').click();
+      await page.getByLabel('Buscar país').fill('Portugal');
+      await page.getByRole('option', { name: /Portugal/ }).first().click();
+      // 1) El CP rellena la localidad y la provincia.
+      await page.fill('#sitio-codigo_postal', s!.codigo_postal);
+      await expect(page.locator('#sitio-poblacion')).toHaveValue(loc, { timeout: 10000 });
+      await expect(page.locator('#sitio-provincia')).toHaveValue(`Distrito E2E ${t}`);
+      // 2) Al revés: sin CP, elegir la localidad rellena el CP (solo tiene uno).
+      await page.fill('#sitio-codigo_postal', '');
+      await page.fill('#sitio-poblacion', 'Vila E2E');
+      await expect(page.locator(`#sitio-poblacion-sugerencias option[value="${loc}"]`)).toHaveCount(1, { timeout: 10000 });
+      await page.fill('#sitio-poblacion', loc);
+      await expect(page.locator('#sitio-codigo_postal')).toHaveValue(s!.codigo_postal);
+    } finally {
+      await bd().from('sitios').delete().eq('id', s!.id);
+    }
+  });
+
   // Crear varios envíos: un sitio sin teléfono de contacto no deja crear; se completa en la fila.
   test('crear varios envíos: sitio sin teléfono marca la fila y se completa allí mismo', async ({ page }) => {
     // Reintenta: justo tras reiniciar la base de datos, la primera consulta puede llegar vacía.

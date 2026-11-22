@@ -4175,6 +4175,7 @@ export type Database = {
       cmr_ruta_permitida: { Args: { p_name: string | null }; Returns: boolean }
       cmr_subida_permitida: { Args: { p_name: string | null }; Returns: boolean }
       cmr_trazo_visible: { Args: { p_name: string | null }; Returns: boolean }
+      codigo_postal_comparable: { Args: { p: string | null }; Returns: string }
       completar_carga_publica: { Args: { p_reserva: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_telefono: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       comprobar_cobertura: { Args: { p_paradas: Json | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null }; Returns: { orden: number; punto: string; efecto: string; mensaje: string }[] }
       comunidad_de: { Args: { p_pais: string | null; p_cp: string | null }; Returns: string }
@@ -4223,6 +4224,8 @@ export type Database = {
       dias_ventana_carga: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: number }
       diccionario_datos: { Args: Record<PropertyKey, never>; Returns: { tabla: string; orden: number; columna: string; tipo: string; no_nulo: boolean; descripcion: string; tabla_descripcion: string }[] }
       difusion_espera_bolsa: { Args: { p_envio: string | null }; Returns: Json }
+      direcciones_compartidas: { Args: { p_pais: string | null; p_codigo_postal?: string | null; p_poblacion?: string | null }; Returns: { codigo_postal: string; poblacion: string; provincia: string }[] }
+      direcciones_en_uso: { Args: { p_pais: string | null; p_codigo_postal?: string | null; p_poblacion?: string | null }; Returns: { codigo_postal: string; poblacion: string; provincia: string }[] }
       doble_paso_cumplido: { Args: Record<PropertyKey, never>; Returns: boolean }
       doble_paso_del_equipo: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; email: string; nombre: string; rol: string; estado: string; activo: boolean; desde: string }[] }
       doble_paso_obligatorio: { Args: Record<PropertyKey, never>; Returns: boolean }
@@ -4493,6 +4496,7 @@ export type Database = {
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       telefono_conductor_visible: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_carga: string | null; p_entregado_en: string | null; p_entrega: string | null }; Returns: boolean }
       texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null }; Returns: string }
+      texto_comparable: { Args: { p: string | null }; Returns: string }
       texto_enlace_cmr_sitio: { Args: { p_recogida: boolean | null; p_url: string | null; p_hora: string | null }; Returns: string }
       tramo_aviso_parada: { Args: { p_hoy: string | null; p_fecha: string | null; p_pais?: string | null; p_cp?: string | null; p_poblacion?: string | null }; Returns: string }
       transportista_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }

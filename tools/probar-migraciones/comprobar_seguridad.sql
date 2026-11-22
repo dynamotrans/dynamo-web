@@ -14020,3 +14020,51 @@ do $$ begin
   delete from operadores where razon_social like 'Prueba 316%';
   raise notice 'OK 316 · sugerencias de provincia: las propias, y de otras empresas solo las que escriben dos o Dynamo';
 end $$;
+
+-- ---- 317. CP ↔ localidad ↔ provincia desde las fichas (usuario, 2026-11-22) ------------------
+do $$ declare ca uuid; cb uuid; begin
+  select cliente_id into ca from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  select cliente_id into cb from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso) values
+    (ca, 'Prueba 317 A1', 'Rua 1', '4999-001', 'Vila317 Solo', 'Prov317', 'PT'),
+    (ca, 'Prueba 317 A2', 'Rua 2', '4999-002', 'Vila317 Dos', 'Prov317', 'PT');
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from direcciones_en_uso('PT', '4999-001', null) where poblacion = 'Vila317 Solo' and provincia = 'Prov317') then
+    raise exception 'FALLO 317 · un cliente no ve la localidad de su propio CP'; end if;
+  if not exists (select 1 from direcciones_en_uso('PT', null, 'vila317 so') where codigo_postal = '4999-001') then
+    raise exception 'FALLO 317 · al escribir el principio de la localidad no sale su CP'; end if;
+  if exists (select 1 from direcciones_en_uso('PT', null, null)) then
+    raise exception 'FALLO 317 · sin CP ni localidad devuelve direcciones (no debe volcar todas)'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from direcciones_en_uso('PT', null, 'vila317')) then
+    raise exception 'FALLO 317 · a otro cliente le sale una localidad que solo ha escrito una empresa'; end if;
+end $$;
+reset role;
+do $$ declare cb uuid; begin
+  select cliente_id into cb from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
+    values (cb, 'Prueba 317 B', 'Rua 3', '4999 002', 'VILA317 DOS', 'Prov317', 'PT');
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from direcciones_en_uso('PT', '4999-002', null)) <> 1 then
+    raise exception 'FALLO 317 · la localidad que usan dos empresas no sale una sola vez con su CP'; end if;
+  if exists (select 1 from direcciones_en_uso('PT', '4999-001', null)) then
+    raise exception 'FALLO 317 · sale la localidad de una sola empresa ajena'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if exists (select 1 from direcciones_compartidas('PT', '4999-002', null)) then
+    raise exception 'FALLO 317 · sin sesión se pueden leer las direcciones compartidas'; end if;
+  delete from sitios where nombre_empresa like 'Prueba 317%';
+  raise notice 'OK 317 · CP, localidad y provincia se sugieren desde las fichas: las propias y las de dos empresas';
+end $$;

@@ -20,6 +20,7 @@ import { euros, fechaHora, numero } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import CampoProvincia from '@/components/CampoProvincia';
+import { CampoCodigoPostal, CampoPoblacion, lugarDe, type Lugar } from '@/components/CamposLugar';
 import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
@@ -276,6 +277,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     if (t && !d.nombre_empresa.trim() && !/\d{4}/.test(t)) set('nombre_empresa', t);
   };
   // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const ponLugar = (c: Partial<Lugar>) => {
+    setD((x) => { const n = { ...x, ...c }; return 'codigo_postal' in c ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
+    setRepetido(null);
+  };
   const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => {
     setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais_codigo_iso' ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
     setRepetido(null);
@@ -548,8 +553,15 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}
         {/* CP y Población en la MISMA fila; el CP, justo para 5-6 dígitos. */}
         <div className="ptar-sitio-grid" style={{ gridColumn: '1/-1', gridTemplateColumns: 'minmax(96px, 120px) minmax(0, 1fr)' }}>
-          {campo('codigo_postal', <>CP {obl}</>, '41016')}
-          {campo('poblacion', <>Población {obl}</>, 'Sevilla')}
+          {/* CP ↔ localidad ↔ provincia se rellenan entre sí desde las fichas (usuario, 2026-11-22). */}
+          <div>
+            <label htmlFor="sitio-codigo_postal">CP {obl}</label>
+            <CampoCodigoPostal id="sitio-codigo_postal" pais={d.pais_codigo_iso} placeholder="41016" lugar={lugarDe(d)} onCambio={ponLugar} />
+          </div>
+          <div>
+            <label htmlFor="sitio-poblacion">Población {obl}</label>
+            <CampoPoblacion id="sitio-poblacion" pais={d.pais_codigo_iso} placeholder="Sevilla" lugar={lugarDe(d)} onCambio={ponLugar} />
+          </div>
         </div>
         {/* Provincia y País SIEMPRE en la misma fila (también en el móvil), como rejilla
             ANIDADA de la estándar: mismos estilos, tamaños y separación que el resto. */}

@@ -18,6 +18,7 @@ import { euros, fechaHora, numero } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import CampoProvincia from '@/components/CampoProvincia';
+import { CampoCodigoPostal, CampoPoblacion, lugarDe, type Lugar } from '@/components/CamposLugar';
 import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
@@ -209,6 +210,8 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
     return () => { vivo = false; };
   }, [clienteId]);
   // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const ponLugar = (c: Partial<Lugar>) =>
+    setD((x) => { const n = { ...x, ...c }; return 'codigo_postal' in c ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
   const set = <K extends keyof ClienteDatos>(k: K, v: ClienteDatos[K]) =>
     setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais_codigo_iso' ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
   // Crédito CESCE desde el que los primeros envíos no se pagan antes (Parámetros; usuario, 2026-11-19).
@@ -301,8 +304,14 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
 
         {titulo('Domicilio fiscal')}
         {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, 'Calle y número', true)}
-        {campo('codigo_postal', <>Código postal <Req si={false} /></>, '41001')}
-        {campo('poblacion', <>Población <Req si={false} /></>, 'Sevilla')}
+        <div>
+          <label htmlFor="cli-codigo_postal">Código postal <Req si={false} /></label>
+          <CampoCodigoPostal id="cli-codigo_postal" pais={d.pais_codigo_iso} placeholder="41001" lugar={lugarDe(d)} onCambio={ponLugar} />
+        </div>
+        <div>
+          <label htmlFor="cli-poblacion">Población <Req si={false} /></label>
+          <CampoPoblacion id="cli-poblacion" pais={d.pais_codigo_iso} placeholder="Sevilla" lugar={lugarDe(d)} onCambio={ponLugar} />
+        </div>
         <div>
           <label htmlFor="cli-provincia">Provincia <Req si={false} /></label>
           <CampoProvincia id="cli-provincia" pais={d.pais_codigo_iso} valor={d.provincia ?? ''} onCambio={(v) => set('provincia', v)} />
