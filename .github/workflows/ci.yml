@@ -7,8 +7,9 @@
 #      completa, igual que en Vercel.
 #   3. Navegador: los flujos clave con Playwright contra un Supabase local completo, en Chrome
 #      de escritorio. Al lanzarlo A MANO (la pasada diaria y al rehacer fotos) se pasa además,
-#      en paralelo y cada uno con su base de datos, en el motor de Safari (WebKit) y en un
-#      iPhone. Incluye cómo se ven las pantallas (medidas y fotos de referencia).
+#      en paralelo y cada uno con su base de datos, en el motor de Safari (WebKit), en un
+#      iPhone, en Microsoft Edge y en Firefox. Incluye cómo se ven las pantallas (medidas y fotos
+#      de referencia).
 #
 # FOTOS DE REFERENCIA: tras un cambio de diseño hecho a propósito, lanzar el CI a mano
 # (Run workflow) con la casilla «fotos»: las rehace y las guarda en la rama.
@@ -96,13 +97,14 @@ jobs:
     permissions:
       contents: write
     strategy:
-      fail-fast: false          # que el fallo de un navegador no corte los otros dos
+      fail-fast: false          # que el fallo de un navegador no corte los demás
       # En cada SUBIDA, solo Chrome (unos 9 minutos de Actions por subida, como antes). Safari
       # e iPhone se pasan al lanzar el CI a mano: la pasada diaria y al rehacer las fotos
       # (usuario, 2026-11-18: «tú mandas»; con los tres en cada subida eran unos 25 minutos).
+      # Edge y Firefox, también en la pasada completa (usuario, 2026-11-22: «muchas empresas usan Edge»).
       matrix:
         include: ${{ fromJSON(github.event_name == 'workflow_dispatch'
-          && '[{"proyecto":"chromium","motor":"chromium","nombre":"Chrome de escritorio"},{"proyecto":"safari","motor":"webkit","nombre":"Safari de escritorio"},{"proyecto":"movil","motor":"webkit","nombre":"iPhone"}]'
+          && '[{"proyecto":"chromium","motor":"chromium","nombre":"Chrome de escritorio"},{"proyecto":"safari","motor":"webkit","nombre":"Safari de escritorio"},{"proyecto":"movil","motor":"webkit","nombre":"iPhone"},{"proyecto":"edge","motor":"msedge","nombre":"Edge de escritorio"},{"proyecto":"firefox","motor":"firefox","nombre":"Firefox de escritorio"}]'
           || '[{"proyecto":"chromium","motor":"chromium","nombre":"Chrome de escritorio"}]') }}
     steps:
       - uses: actions/checkout@v5
@@ -156,7 +158,9 @@ jobs:
           nohup npx next start -p 3000 > /tmp/next.log 2>&1 &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/panel/entrar && break; sleep 2; done
       - name: Navegador de Playwright
-        run: npx playwright install ${{ matrix.motor }}
+        # Edge se instala como el Edge de verdad (paquete de Microsoft): necesita permisos de sistema.
+        run: |
+          if [ "${{ matrix.motor }}" = msedge ]; then sudo -E env "PATH=$PATH" npx playwright install msedge; else npx playwright install ${{ matrix.motor }}; fi
       # LIBRERÍAS DEL SISTEMA que necesita el navegador (WebKit, unas 180 y 125 MB; Chromium,
       # solo fuentes). Se bajan con apt, y sus espejos van a rachas lentísimos o colgados
       # (2026-11-11; 2026-11-18: 13 MB en 4 minutos, trabajos parados sin arrancar una
@@ -195,7 +199,7 @@ jobs:
               if [ -f /etc/apt/apt-mirrors.txt ]; then echo "$espejo" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null; fi
               sudo sed -i -E "s#https?://[a-z0-9.-]*archive\.ubuntu\.com/ubuntu/?#$espejo#g" /etc/apt/sources.list.d/*.sources /etc/apt/sources.list 2>/dev/null || true
             fi
-            if timeout 240 npx playwright install-deps ${{ matrix.motor }}; then ok=si; break; fi
+            if timeout 240 npx playwright install-deps ${{ matrix.motor == 'msedge' && 'chromium' || matrix.motor }}; then ok=si; break; fi
             echo "Instalación fallida, lenta o colgada con este espejo."
             sudo pkill -9 apt-get || true; sudo pkill -9 dpkg || true
             sudo rm -f /var/lib/apt/lists/lock /var/cache/pw-debs/lock /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend
@@ -209,7 +213,7 @@ jobs:
             echo "guardar=si" >> "$GITHUB_OUTPUT"; exit 0
           fi
           if [ "$despues" != "$antes" ]; then echo "guardar=si" >> "$GITHUB_OUTPUT"; echo "Bajados $despues paquetes de momento; la próxima pasada sigue desde aquí."; fi
-          if [ "${{ matrix.motor }}" = chromium ]; then
+          if [ "${{ matrix.motor }}" = chromium ] || [ "${{ matrix.motor }}" = msedge ]; then
             echo "::warning::Fuentes del navegador sin instalar (espejos de paquetes lentos o caídos); las pruebas corren sin ellas"; exit 0
           fi
           echo "::error::No se han podido instalar las librerías de WebKit (espejos de paquetes lentos o caídos); lo bajado queda en caché para la próxima pasada"; exit 1

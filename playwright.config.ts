@@ -27,10 +27,14 @@ export default defineConfig({
   //   chromium · Chrome de escritorio (el de siempre)
   //   safari   · el motor de Safari (WebKit) en escritorio
   //   movil    · un iPhone (WebKit, pantalla de teléfono y dedo)
+  //   edge     · Microsoft Edge de verdad (motor Chromium, el de muchas empresas con Windows)
+  //   firefox  · Firefox (motor propio, Gecko)  — los dos desde el 2026-11-22, en la pasada completa
   // (E2E_MOVIL_MOTOR=chromium pasa el móvil con un Pixel, para probar en local sin WebKit.)
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'safari', use: { ...devices['Desktop Safari'] } },
     { name: 'movil', use: { ...(process.env.E2E_MOVIL_MOTOR === 'chromium' ? devices['Pixel 7'] : devices['iPhone 14']) } },
+    { name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge' } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   ].filter((p) => p.name === (process.env.E2E_PROYECTO ?? 'chromium')),
 });
