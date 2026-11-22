@@ -463,7 +463,7 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 - Facturas recibidas: todas MENOS las de gastos financieros (ni se descargan).
 
 **Orden de desarrollo**
-- **[v2/v3] Autorrelleno de datos fiscales en el alta de empresas con APIEmpresas.es** (2026-11-22): al escribir nombre o CIF de una empresa NUEVA se rellenan razón social y dirección, siempre editables. Pago con **bono de 9 € / 1.000 consultas sin caducidad** (sin suscripción) y **aviso a Dynamo cuando queden pocas**. Clave solo en el servidor, con tope; nunca devolver datos de nuestros clientes a quien se da de alta. Detalle en `TODO.md` (v2).
+- **[ANTES DE PRODUCCIÓN] Autorrelleno de datos fiscales en el alta de empresas con APIEmpresas.es** (2026-11-22; primero se apuntó para v2/v3 y el usuario lo adelantó): al escribir nombre o CIF de una empresa NUEVA se rellenan razón social y dirección, siempre editables. Pago con **bono de 9 € / 1.000 consultas sin caducidad** (sin suscripción) y **aviso a Dynamo cuando queden pocas**. Clave solo en el servidor, con tope; nunca devolver datos de nuestros clientes a quien se da de alta. Detalle en `TODO.md` (v2).
 - El tarifador público sigue apagado hasta que haya tarifas reales. El tarifador va el último; la API de la bolsa, después del tarifador.
 
 **Seguridad**
@@ -485,7 +485,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pruebas automáticas**: pasada diaria también desde GitHub (`pruebas-diarias.yml` en `main`, 6:17 Madrid, avisa por email si falla); una subida ya no corta la pasada completa (grupos de `concurrency` por tipo de evento).
 - **Emails de incidencias** (abierta, resuelta, retirada) y **de penalizaciones** (solo al confirmar y al cancelar/borrar; al guardarla no se avisa). Al transportista, «importe a su favor» con cifra. Pruebas 318.
 - **Barrera**: un CIF/NIF o un email de transportista no puede darse de alta como cliente (pruebas 319 y 320).
-- **Panel del transportista en stand-by** (no se ha tocado). **API de datos fiscales** (APIEmpresas.es, bono de 9 €) apuntada para v2/v3.
+- **Panel del transportista en stand-by** (no se ha tocado). **API de datos fiscales** (APIEmpresas.es, bono de 9 €) apuntada para **antes de producción**.
 - Limpieza de `TODO.md` (entradas viejas ya hechas marcadas).
 
 ### 2026-11-18 a 2026-11-22 — Claude Code web (nube)
