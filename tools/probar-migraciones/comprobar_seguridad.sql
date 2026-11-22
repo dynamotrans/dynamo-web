@@ -13964,3 +13964,26 @@ do $$ declare c uuid; o uuid; r record; begin
   delete from operadores where id = o;
   raise notice 'OK 314 · transportista propio con provincia, país (ISO) y tipos de camión (tráiler por defecto)';
 end $$;
+
+-- ---- 315. Provincias: CP → provincia, limpieza de España y sugerencias por país (2026-11-22) ----
+do $$ declare c uuid; s1 uuid; s2 uuid; n int; begin
+  if provincia_de_codigo_postal('41016') <> 'Sevilla' or provincia_de_codigo_postal('11201') <> 'Cádiz'
+     or provincia_de_codigo_postal('4101') is not null or provincia_de_codigo_postal('99000') is not null then
+    raise exception 'FALLO 315 · provincia_de_codigo_postal no casa el CP con su provincia'; end if;
+  if provincia_de_lista('SEVILLA') <> 'Sevilla' or provincia_de_lista('cadiz') <> 'Cádiz' or provincia_de_lista('Lisboa') is not null then
+    raise exception 'FALLO 315 · provincia_de_lista no reconoce la provincia escrita de otra forma'; end if;
+  select id into c from clientes limit 1;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
+    values (c, 'Prueba 315 ES', 'C/ Uno, 1', '41001', 'Sevilla', 'SEVILLA', 'ES') returning id into s1;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
+    values (c, 'Prueba 315 PT', 'Rua Um, 1', '1000-001', 'Lisboa', 'Prov315 Lisboa', 'PT') returning id into s2;
+  perform normalizar_provincias_es();
+  if (select provincia from sitios where id = s1) <> 'Sevilla' then raise exception 'FALLO 315 · la limpieza no deja «Sevilla»'; end if;
+  if (select provincia from sitios where id = s2) <> 'Prov315 Lisboa' then raise exception 'FALLO 315 · la limpieza tocó una provincia de fuera de España'; end if;
+  if not exists (select 1 from provincias_en_uso('PT') where provincia = 'Prov315 Lisboa') then
+    raise exception 'FALLO 315 · la provincia que usa una ficha de Portugal no sale en las sugerencias'; end if;
+  delete from sitios where id in (s1, s2);
+  if exists (select 1 from provincias_en_uso('PT') where provincia = 'Prov315 Lisboa') then
+    raise exception 'FALLO 315 · una provincia que ya no usa ninguna ficha sigue en las sugerencias'; end if;
+  raise notice 'OK 315 · provincia sacada del CP, limpieza de España y sugerencias por país que salen de las fichas vivas';
+end $$;

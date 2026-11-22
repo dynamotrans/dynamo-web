@@ -4389,6 +4389,7 @@ export type Database = {
       normalizar_cp: { Args: { p: string | null }; Returns: string }
       normalizar_id_fiscal: { Args: { p: string | null }; Returns: string }
       normalizar_matricula: { Args: { p: string | null }; Returns: string }
+      normalizar_provincias_es: { Args: Record<PropertyKey, never>; Returns: number }
       oferta_de_token: { Args: { p_token: string | null }; Returns: { envio_id: string; oferta_id: string; oferta_activa: boolean } }
       oferta_publica: { Args: { p_token: string | null }; Returns: Json }
       ofertar_envio: { Args: { p_envio: string | null; p_transportista: string | null; p_canal: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null }; Returns: string }
@@ -4432,6 +4433,9 @@ export type Database = {
       pronto_pago_estado: { Args: Record<PropertyKey, never>; Returns: Json }
       pronto_pago_estado_interno: { Args: Record<PropertyKey, never>; Returns: Json }
       proponer_cambio_transportista: { Args: { p_envio: string | null; p_precio_antes: number | null; p_precio_ahora: number | null; p_detalle: string | null }; Returns: Json }
+      provincia_de_codigo_postal: { Args: { p_codigo: string | null }; Returns: string }
+      provincia_de_lista: { Args: { p_nombre: string | null }; Returns: string }
+      provincias_en_uso: { Args: { p_pais: string | null }; Returns: string[] }
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
       quitar_logo: { Args: { p_documento: string | null }; Returns: undefined }

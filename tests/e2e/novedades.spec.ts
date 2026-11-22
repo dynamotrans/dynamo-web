@@ -667,6 +667,29 @@ test.describe('novedades', () => {
       .toEqual({ provincia: 'Sevilla', pais_codigo_iso: 'ES', tipos_camion: ['trailer_tauliner', 'rigido_plataforma'], otros_camiones: true });
   });
 
+  // Provincia fuera de España (usuario, 2026-11-22): texto libre con sugerencias que salen de
+  // las fichas vivas de ese país; en España, el desplegable de 52.
+  test('provincia fuera de España: se sugieren las que usan las fichas de ese país', async ({ page }) => {
+    const prov = `Distrito E2E ${Date.now()}`;
+    // Un sitio de Portugal del cliente de prueba (el mismo dueño que «Nave Madrid»).
+    const { data: nave } = await bd().from('sitios').select('cliente_id').eq('nombre_empresa', 'Nave Madrid').limit(1).single();
+    const { data: s } = await bd().from('sitios').insert({ cliente_id: nave!.cliente_id, nombre_empresa: `Armazém E2E ${Date.now()}`, direccion: 'Rua Um, 1',
+      codigo_postal: '1000-001', poblacion: 'Lisboa', provincia: prov, pais_codigo_iso: 'PT' }).select('id').single();
+    try {
+      await entrar(page, 'cliente');
+      await page.goto('/panel/operadores');
+      await page.getByRole('button', { name: '+ Nuevo transportista' }).click();
+      await expect(page.locator('#op-provincia')).toHaveJSProperty('tagName', 'SELECT');
+      await page.locator('#op-pais').click();
+      await page.getByLabel('Buscar país').fill('Portugal');
+      await page.getByRole('option', { name: /Portugal/ }).first().click();
+      await expect(page.locator('#op-provincia')).toHaveJSProperty('tagName', 'INPUT');
+      await expect(page.locator('#op-provincia-sugerencias option[value="' + prov + '"]')).toHaveCount(1, { timeout: 10000 });
+    } finally {
+      await bd().from('sitios').delete().eq('id', s!.id);
+    }
+  });
+
   // Crear varios envíos: un sitio sin teléfono de contacto no deja crear; se completa en la fila.
   test('crear varios envíos: sitio sin teléfono marca la fila y se completa allí mismo', async ({ page }) => {
     // Reintenta: justo tras reiniciar la base de datos, la primera consulta puede llegar vacía.
