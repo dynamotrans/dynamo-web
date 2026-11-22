@@ -90,6 +90,12 @@ export function estadoMapa(m: MapaEnvio): string {
   return `${pc.titulo} · ${pc.detalle}`;
 }
 
+/** Clave de una parada para buscar sus coordenadas: país, código postal y población
+ *  normalizados (la misma en el servidor y en la pantalla, y en geo_no_encontrados). */
+export function claveParada(p: { pais: string | null; codigo_postal: string | null; poblacion: string | null }): string {
+  return `${(p.pais || 'ES').toUpperCase()}|${(p.codigo_postal ?? '').replace(/\s/g, '').toUpperCase()}|${(p.poblacion ?? '').toLowerCase()}`;
+}
+
 export type HoraParada = { texto: string; real: boolean };
 /** La hora de una parada para el mapa: la REAL si ya se hizo —diciendo de dónde sale: firma del
  *  CMR, marcada en el seguimiento— o la PREVISTA del plan. */

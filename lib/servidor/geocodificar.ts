@@ -1,4 +1,6 @@
 import 'server-only';
+import { supabaseServicio } from '@/lib/supabase/servicio';
+import { claveParada } from '@/lib/mapaEnvio';
 
 // Centro de un código postal con OpenStreetMap (Nominatim), SOLO desde el servidor y solo la
 // primera vez: el resultado se guarda en geo_codigos_postales y no se vuelve a pedir. Normas de
@@ -73,4 +75,31 @@ export async function situarParada(p: { pais: string | null; codigo_postal: stri
   if (c3) return { ...c3, porCp: false };
   console.error('[mapa] parada sin situar', { pais, cp: p.codigo_postal, poblacion: p.poblacion });
   return null;
+}
+
+type ParadaBuscar = { pais: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; direccion?: string | null };
+/** Sitúa como mucho `max` paradas (1 por segundo, norma de OpenStreetMap), sin repetir las que
+ *  se buscaron sin éxito en los últimos 7 días (geo_no_encontrados). Lo encontrado se guarda por
+ *  su código postal; lo no encontrado se apunta. Devuelve las coordenadas por claveParada. */
+export async function situarConCache(paradas: ParadaBuscar[], max = 4): Promise<Map<string, { lat: number; lon: number }>> {
+  const hallados = new Map<string, { lat: number; lon: number }>();
+  const unicas = new Map<string, ParadaBuscar>();
+  for (const p of paradas) if (p.codigo_postal || p.poblacion) unicas.set(claveParada(p), p);
+  if (!unicas.size) return hallados;
+  const srv = supabaseServicio();
+  const desde = new Date(Date.now() - 7 * 864e5).toISOString();
+  // Sin la clave de servicio se busca igual, pero sin apuntar nada.
+  const { data: neg } = srv ? await srv.from('geo_no_encontrados').select('clave').in('clave', [...unicas.keys()]).gte('buscado_en', desde) : { data: [] };
+  const evitar = new Set((neg ?? []).map((x) => x.clave));
+  let n = 0;
+  for (const [k, p] of unicas) {
+    if (evitar.has(k)) continue;
+    if (n++ >= max) break;
+    const c = await situarParada(p);
+    if (!c) { if (srv) await srv.from('geo_no_encontrados').upsert({ clave: k, buscado_en: new Date().toISOString() }); continue; }
+    hallados.set(k, { lat: c.lat, lon: c.lon });
+    // Por su código postal (aunque saliera por la población: es el mismo sitio aproximado).
+    if (p.codigo_postal && srv) await srv.rpc('guardar_geo_cp', { p_pais: p.pais ?? 'ES', p_cp: p.codigo_postal, p_lat: c.lat, p_lon: c.lon, p_fuente: c.porCp ? 'nominatim' : 'nominatim_poblacion' });
+  }
+  return hallados;
 }

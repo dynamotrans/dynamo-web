@@ -14660,3 +14660,43 @@ do $$ declare e uuid; t uuid; tok uuid; r jsonb; begin
     raise exception 'FALLO 326 · las funciones del plazo están abiertas'; end if;
   raise notice 'OK 326 · la firma del CMR se cierra al final del 3.er día tras la entrega: después no se firma, ni se anotan reservas, ni se pide código; la hoja sigue abriendo para ver y descargar';
 end $$;
+
+-- ---- 327. Mapa general: coordenadas que faltan, aparte ----------------------------------
+-- Las paradas sin coordenadas de los envíos del mapa las dice la base de datos (Dynamo,
+-- todas; el cliente, las suyas; el transportista y otro cliente, nada); en cuanto su código
+-- postal tiene coordenadas, deja de salir. Los «no encontrados» solo los toca el servidor.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; r jsonb; ok boolean := false; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '99 327', 'Villa327', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  if not exists (select 1 from jsonb_array_elements(mapa_paradas_sin_coordenadas()) x where x ->> 'codigo_postal' = '99 327' and x ->> 'pais' = 'ES') then
+    raise exception 'FALLO 327 · Dynamo no ve la parada sin coordenadas'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  if not exists (select 1 from jsonb_array_elements(mapa_paradas_sin_coordenadas()) x where x ->> 'codigo_postal' = '99 327') then
+    raise exception 'FALLO 327 · el cliente no ve su parada sin coordenadas'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  if exists (select 1 from jsonb_array_elements(mapa_paradas_sin_coordenadas()) x where x ->> 'codigo_postal' = '99 327') then
+    raise exception 'FALLO 327 · otro cliente ve paradas ajenas'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+  if jsonb_array_length(mapa_paradas_sin_coordenadas()) <> 0 then raise exception 'FALLO 327 · el transportista ve paradas del mapa general'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into geo_codigos_postales (pais_codigo_iso, codigo_postal, lat, lon) values ('ES', '99327', 40, -3);
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  if exists (select 1 from jsonb_array_elements(mapa_paradas_sin_coordenadas()) x where x ->> 'codigo_postal' = '99 327') then
+    raise exception 'FALLO 327 · con su código postal situado sigue saliendo'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  delete from geo_codigos_postales where codigo_postal = '99327';
+  update envios set estado = 'cancelado' where id = e;
+  if has_function_privilege('anon', 'public.mapa_paradas_sin_coordenadas()', 'execute')
+     or has_table_privilege('authenticated', 'public.geo_no_encontrados', 'select')
+     or has_table_privilege('anon', 'public.geo_no_encontrados', 'insert') then
+    raise exception 'FALLO 327 · permisos de las coordenadas aparte mal puestos'; end if;
+  raise notice 'OK 327 · mapa general: las paradas sin coordenadas se piden aparte (Dynamo todas, el cliente las suyas, nadie más); en cuanto se sitúan dejan de salir; los «no encontrados» solo el servidor';
+end $$;

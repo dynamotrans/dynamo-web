@@ -10,8 +10,8 @@
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as MapaL, LayerGroup } from 'leaflet';
-import { mapaEnviosEnCurso, type EnvioMapa } from '@/app/panel/(app)/envios/acciones-mapa';
-import { posicionCamion } from '@/lib/mapaEnvio';
+import { mapaEnviosEnCurso, situarParadasDelMapa, type EnvioMapa } from '@/app/panel/(app)/envios/acciones-mapa';
+import { claveParada, posicionCamion } from '@/lib/mapaEnvio';
 import { fecha } from '@/lib/formato';
 import { nombreEstado } from '@/lib/estados';
 import { ATRIBUCION, BotonEncuadrar, CAJA_MAPA, COLOR, TESELAS, TONO, VentanaMapa } from './MapaEnvio';
@@ -25,9 +25,24 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [abierto, setAbierto] = useState<{ id: string; ref: string } | null>(null);
+  // Las coordenadas que faltan se buscan DESPUÉS de pintar (usuario, 2026-11-22: el mapa
+  // tardaba 5 s esperándolas) y se añaden al llegar.
+  const situando = useRef(false);
   const cargar = useCallback(async () => {
     const r = await mapaEnviosEnCurso().catch(() => ({ ok: false as const, error: 'No se ha podido cargar el mapa.' }));
-    if (r.ok) { setEnvios(r.envios); setError(null); } else setError(r.error);
+    if (!r.ok) { setError(r.error); return; }
+    setEnvios(r.envios); setError(null);
+    if (situando.current || !r.envios.some((e) => e.paradas.some((p) => p.lat == null || p.lon == null))) return;
+    situando.current = true;
+    try {
+      const x = await situarParadasDelMapa();
+      if (x.ok && Object.keys(x.hallados).length) {
+        setEnvios((l) => l && l.map((e) => ({ ...e, paradas: e.paradas.map((p) => {
+          const c = p.lat == null || p.lon == null ? x.hallados[claveParada(p)] : undefined;
+          return c ? { ...p, lat: c.lat, lon: c.lon, coord: 'codigo_postal' as const } : p;
+        }) })));
+      }
+    } catch { /* se reintenta en la próxima actualización */ } finally { situando.current = false; }
   }, []);
   useEffect(() => { void cargar(); const t = setInterval(() => void cargar(), 120_000); return () => clearInterval(t); }, [cargar]);
 
@@ -50,7 +65,7 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
       <p className="meta" style={{ margin: '0.2rem 0 0.7rem' }}>
         {dynamo ? 'Todos los envíos' : 'Tus envíos'} en programación y en marcha (los entregados y los cancelados no salen). La posición del camión es
         {' '}<strong>estimada</strong> con el horario previsto, las pausas del conductor y las firmas del CMR. Se actualiza sola cada 2 minutos.
-        {sinSituar > 0 && ` ${sinSituar} sin coordenadas todavía (se sitúan en las próximas actualizaciones).`}
+        {sinSituar > 0 && ` ${sinSituar} sin coordenadas todavía (se están buscando; salen en cuanto se encuentren).`}
       </p>
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.6rem' }}><div>{error}</div></div>}
       {envios && envios.length === 0 && <div className="pt-aviso ok" style={{ marginBottom: '0.6rem' }}><div>No hay envíos en programación ni en marcha ahora mismo.</div></div>}
