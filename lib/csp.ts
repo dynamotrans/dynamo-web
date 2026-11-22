@@ -31,14 +31,23 @@ const VERCEL = 'https://vercel.live';   // barra de comentarios de las vistas pr
 const TURNSTILE = 'https://challenges.cloudflare.com';
 const SENTRY = 'https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io';   // aviso de errores
 
+// La base de datos configurada (en producción ya entra en *.supabase.co; en las pruebas locales y
+// del CI es http://127.0.0.1:54321): su dirección y la de su canal en vivo (ws/wss).
+function baseDeDatos(): string {
+  try {
+    const u = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '');
+    return `${u.origin} ${u.protocol === 'https:' ? 'wss' : 'ws'}://${u.host}`;
+  } catch { return ''; }
+}
+
 export function cspPlataforma(nonce: string, desarrollo = false): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'${desarrollo ? " 'unsafe-eval'" : ''}`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${TRADUCTOR}`,
-    "img-src 'self' data: blob: https:",
+    `img-src 'self' data: blob: https: ${baseDeDatos().split(' ')[0]}`,
     "font-src 'self' data: https://fonts.gstatic.com",
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org ${TRADUCTOR} ${VERCEL} ${SENTRY} wss://ws-us3.pusher.com`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${baseDeDatos()} https://nominatim.openstreetmap.org ${TRADUCTOR} ${VERCEL} ${SENTRY} wss://ws-us3.pusher.com`,
     `frame-src 'self' ${TRADUCTOR} ${VERCEL} ${TURNSTILE}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
