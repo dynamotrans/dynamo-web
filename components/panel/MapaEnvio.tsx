@@ -11,8 +11,7 @@ import { createPortal } from 'react-dom';
 import type { Map as MapaL } from 'leaflet';
 import Modal from './Modal';
 import { mapaDelEnvio } from '@/app/panel/(app)/envios/acciones-mapa';
-import { estadoMapa, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
-import { fechaHora } from '@/lib/formato';
+import { estadoMapa, etiquetaParada, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
 
 export const TESELAS = process.env.NEXT_PUBLIC_MAPA_TESELAS || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const ATRIBUCION = process.env.NEXT_PUBLIC_MAPA_ATRIBUCION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -27,7 +26,7 @@ export const CAJA_MAPA: React.CSSProperties = { position: 'relative', isolation:
 export function BotonEncuadrar({ onClick, que }: { onClick: () => void; que: string }) {
   return (
     <button type="button" onClick={onClick} aria-label={`Encuadrar ${que}`} title={`Encuadrar ${que}`} data-encuadrar=""
-      style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, display: 'inline-flex', alignItems: 'center', gap: 6,
+      style={{ position: 'absolute', bottom: 12, left: 10, zIndex: 1000, display: 'inline-flex', alignItems: 'center', gap: 6,
         background: '#fff', border: '2px solid rgba(0,0,0,.2)', borderRadius: 8, padding: '5px 10px', font: '700 13px system-ui',
         color: 'var(--navy)', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -87,12 +86,12 @@ export function VentanaMapa({ envioId, referencia, onCerrar }: { envioId: string
         <Leyenda />
         <ol className="mapa-paradas" style={{ margin: '0.6rem 0 0', paddingLeft: '1.2rem', fontSize: '0.85rem' }}>
           {mapa.paradas.map((p) => {
-            const h = mapa.etapas.find((x) => x.estado === 'cargando' && x.parada === p.orden);
+            // La hora real (firma del CMR, marcada en el seguimiento) o la prevista.
+            const h = horaParada(mapa, p);
             return (
               <li key={p.orden} style={{ marginBottom: '0.2rem' }}>
                 <strong>{p.tipo === 'carga' ? 'Recogida' : 'Entrega'}</strong> · {[p.empresa, p.poblacion].filter(Boolean).join(' · ')}
-                {p.realizado_en ? <span style={{ color: COLOR.hecho }}> · ✓ {p.tipo === 'carga' ? 'cargado' : 'descargado'} {fechaHora(p.realizado_en)}</span>
-                  : h?.hora ? <span style={{ color: 'var(--gray-500)' }}> · prevista {fechaHora(h.hora)}</span> : null}
+                {h && <span style={{ color: h.real ? COLOR.hecho : 'var(--gray-500)', fontWeight: h.real ? 700 : 400 }}> · {h.texto}</span>}
                 {p.coord === 'codigo_postal' && <span style={{ color: 'var(--gray-500)' }}> · (situada por su código postal)</span>}
                 {p.coord === 'sin' && <span style={{ color: '#b45309' }}> · (sin coordenadas: no sale en el mapa)</span>}
               </li>
@@ -165,7 +164,7 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
       // parte hecha va hasta el camión.
       for (let i = 0; i + 1 < pts.length; i++) {
         const a = pts[i], b = pts[i + 1];
-        const hecho = !!b.realizado_en || c.modo === 'entregado';
+        const hecho = !!horaParada(mapa, b)?.real || c.modo === 'entregado';
         const enCurso = c.modo === 'en_ruta' && c.desde === a.orden && c.hasta === b.orden && pc;
         if (enCurso) {
           L.polyline([[+a.lat!, +a.lon!], [pc.lat, pc.lon]], { color: COLOR.ruta, weight: 4 }).addTo(g);
@@ -175,17 +174,20 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
         }
       }
       for (const p of pts) {
-        const color = p.realizado_en ? COLOR.hecho : p.tipo === 'carga' ? COLOR.carga : COLOR.descarga;
+        const hecha = !!horaParada(mapa, p)?.real;
+        const color = hecha ? COLOR.hecho : p.tipo === 'carga' ? COLOR.carga : COLOR.descarga;
         const icono = L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14],
-          html: `<div style="width:28px;height:28px;border-radius:14px;background:${color};color:#fff;font:800 13px/28px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${p.realizado_en ? '✓' : p.orden}</div>` });
-        const txt = `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}: ${[p.empresa, p.poblacion].filter(Boolean).join(' · ')}`;
-        L.marker([+p.lat!, +p.lon!], { icon: icono, title: txt, keyboard: false }).bindTooltip(txt).addTo(g);
+          html: `<div style="width:28px;height:28px;border-radius:14px;background:${color};color:#fff;font:800 13px/28px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${hecha ? '✓' : p.orden}</div>` });
+        // Ventanita en varias líneas cortas que se recoloca sola (el mapa se mueve para que se
+        // vea entera): antes era una etiqueta de una línea que se cortaba por el borde.
+        L.marker([+p.lat!, +p.lon!], { icon: icono, title: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`, keyboard: false })
+          .bindPopup(etiquetaParada(mapa, p), { maxWidth: 230, autoPanPadding: [16, 16], closeButton: true }).addTo(g);
       }
       if (pc) {
         const icono = L.divIcon({ className: '', iconSize: [38, 38], iconAnchor: [19, 19],
           html: `<div style="width:38px;height:38px;border-radius:19px;background:#fff;border:3px solid ${TONO[pc.tono]};font:20px/32px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)">🚚</div>` });
         L.marker([pc.lat, pc.lon], { icon: icono, title: pc.titulo, zIndexOffset: 1000, keyboard: false })
-          .bindTooltip(`<strong>${pc.titulo}</strong><br>${pc.detalle}<br><em>Posición estimada</em>`).addTo(g);
+          .bindPopup(`<strong>${pc.titulo}</strong><br>${pc.detalle}<br><em>Posición estimada</em>`, { maxWidth: 240, autoPanPadding: [16, 16] }).addTo(g);
       }
       // Encuadre: la primera vez, todas las paradas y el camión; después se respeta lo que
       // haya movido quien mira.

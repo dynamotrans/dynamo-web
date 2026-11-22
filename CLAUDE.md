@@ -485,6 +485,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 ### 2026-11-22 (tarde) — Claude Code web (nube)
 
+- Mapas: cada parada se abre en una ventanita de varias líneas que se recoloca sola, con su hora **real** (firma del CMR, marcada en el seguimiento) o **prevista**; las paradas sin coordenadas se sitúan por CP, si no por población/provincia y si no por dirección (migración `20261122230000`).
 - Mapas: el mapa va en su propia capa (`CAJA_MAPA`, isolation) para no tapar los menús de la cabecera; botón **«Encuadrar»** en los dos mapas (vuelve a enseñar justo todo lo pintado).
 - **Mapa general** de envíos en curso (`/panel/mapa`, Dynamo y cliente; nunca entregados ni cancelados). Decisiones: **Google Maps** para mapas/rutas/Places antes de producción; **Uanataca** para el sello electrónico del CMR; **API propia + webhooks** para ERP de clientes en v2/v3.
 - **Verificación de albaranes**: los albaranes que la tarea de Claude deja en Drive entran por un script de Google aparte y una entrada con clave (`/api/documentos-entrada`); esperan en «Verificación albaranes» (Gestión interna) hasta que Dynamo los acepta (visibles para el cliente, con aviso), los rechaza (se borra el archivo), los deja pendientes o les cambia el envío. Migración `20261122210000`, prueba 324. Falta la clave y el script en Google (TODO).

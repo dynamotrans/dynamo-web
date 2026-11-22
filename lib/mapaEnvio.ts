@@ -9,6 +9,8 @@ export type ParadaMapa = {
   poblacion: string | null; provincia: string | null; codigo_postal: string | null; pais: string | null;
   lat: number | null; lon: number | null; coord: 'sitio' | 'gps_firma' | 'codigo_postal' | 'sin';
   realizado_en: string | null;
+  firmada_en?: string | null;   // primera firma (no extra) en el CMR de esa parada
+  direccion?: string | null;
 };
 export type EtapaMapa = { paso: number; estado: string; parada: number | null; hora: string | null; hecha: boolean; actual: boolean };
 export type CamionMapa = {
@@ -78,4 +80,29 @@ export function estadoMapa(m: MapaEnvio): string {
   const pc = posicionCamion(m);
   if (!pc) return 'Sin coordenadas de las paradas: no se puede situar el camión.';
   return `${pc.titulo} · ${pc.detalle}`;
+}
+
+export type HoraParada = { texto: string; real: boolean };
+/** La hora de una parada para el mapa: la REAL si ya se hizo —diciendo de dónde sale: firma del
+ *  CMR, marcada en el seguimiento— o la PREVISTA del plan. */
+export function horaParada(m: MapaEnvio, p: ParadaMapa): HoraParada | null {
+  const verbo = p.tipo === 'carga' ? 'Cargado' : 'Descargado';
+  if (p.firmada_en) return { texto: `✓ ${verbo} ${fechaHora(p.firmada_en)} · firmado en el CMR`, real: true };
+  if (p.realizado_en) return { texto: `✓ ${verbo} ${fechaHora(p.realizado_en)} · marcado en el seguimiento`, real: true };
+  const e = m.etapas.find((x) => x.estado === 'cargando' && x.parada === p.orden);
+  if (!e?.hora) return null;
+  if (e.hecha) return { texto: `✓ Llegó ${fechaHora(e.hora)} · según el seguimiento`, real: true };
+  return { texto: `Prevista ${fechaHora(e.hora)}`, real: false };
+}
+
+/** Etiqueta de una parada en el mapa, en varias líneas cortas (HTML ya escapado). */
+export function etiquetaParada(m: MapaEnvio, p: ParadaMapa): string {
+  const esc = (t: string | null | undefined) => (t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const h = horaParada(m, p);
+  return [
+    `<strong>${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}</strong>`,
+    p.empresa ? esc(p.empresa) : '',
+    esc([p.codigo_postal, p.poblacion].filter(Boolean).join(' ')),
+    h ? `<span style="color:${h.real ? '#15803d' : '#6b7280'};font-weight:700">${esc(h.texto)}</span>` : '',
+  ].filter(Boolean).join('<br>');
 }

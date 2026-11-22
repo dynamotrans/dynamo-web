@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { posicionCamion, estadoMapa, type MapaEnvio } from '../../lib/mapaEnvio';
+import { posicionCamion, estadoMapa, horaParada, etiquetaParada, type MapaEnvio } from '../../lib/mapaEnvio';
 
 const base = (camion: MapaEnvio['camion']): MapaEnvio => ({
   resultado: 'ok', referencia: 'GX1', estado: 'en_ruta', ahora: '2026-11-23T10:00:00Z', gps_firma: null,
@@ -34,4 +34,15 @@ test('mapa: sin coordenadas no se inventa una posición', () => {
   const m = base(ruta); m.paradas[1].lat = null; m.paradas[1].lon = null;
   assert.equal(posicionCamion(m), null);
   assert.match(estadoMapa(m), /Sin coordenadas/);
+});
+
+test('mapa: la hora de cada parada dice si es real (firma, marcada, seguimiento) o prevista', () => {
+  const m = base(ruta);
+  m.etapas.push({ paso: 4, estado: 'cargando', parada: 2, hora: '2026-11-23T14:00:00Z', hecha: false, actual: false });
+  assert.match(horaParada(m, { ...m.paradas[0], firmada_en: '2026-11-23T08:05:00Z' })!.texto, /firmado en el CMR/);
+  assert.match(horaParada(m, m.paradas[0])!.texto, /marcado en el seguimiento/);
+  const h = horaParada(m, m.paradas[1])!;
+  assert.equal(h.real, false); assert.match(h.texto, /^Prevista/);
+  const et = etiquetaParada(m, { ...m.paradas[1], empresa: 'Nave <Madrid>' });
+  assert.match(et, /^<strong>Entrega 2<\/strong><br>Nave &lt;Madrid&gt;<br>28001 Madrid<br>/);
 });

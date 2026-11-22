@@ -1264,6 +1264,12 @@ test.describe('novedades', () => {
     await expect(page.locator('[data-mapa-envio].leaflet-container')).toBeVisible();
     // Las dos paradas, numeradas, en el mapa (los sitios de prueba tienen coordenadas).
     await expect(page.locator('[data-mapa-envio] .leaflet-marker-icon')).toHaveCount(2);
+    // Al pulsar una parada, su ventanita en varias líneas con la hora (prevista o real).
+    await page.locator('[data-mapa-envio] .leaflet-marker-icon').first().click();
+    await expect(page.locator('[data-mapa-envio] .leaflet-popup-content')).toContainText(/Recogida 1/);
+    await expect(page.locator('[data-mapa-envio] .leaflet-popup-content')).toContainText(/Prevista|Cargado|Llegó/);
+    // La lista de paradas también dice la hora.
+    await expect(page.locator('.mapa-paradas li').first()).toContainText(/Prevista|Cargado|Llegó/);
     await expect(page.getByLabel('Leyenda del mapa')).toContainText('Camión (posición estimada)');
   });
   test('verificación de albaranes: entran por la clave, Dynamo los revisa en carrusel y al aceptarlos los ve el cliente', async ({ page, request }) => {
