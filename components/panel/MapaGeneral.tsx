@@ -14,7 +14,7 @@ import { mapaEnviosEnCurso, type EnvioMapa } from '@/app/panel/(app)/envios/acci
 import { posicionCamion } from '@/lib/mapaEnvio';
 import { fecha } from '@/lib/formato';
 import { nombreEstado } from '@/lib/estados';
-import { ATRIBUCION, COLOR, TESELAS, TONO, VentanaMapa } from './MapaEnvio';
+import { ATRIBUCION, BotonEncuadrar, CAJA_MAPA, COLOR, TESELAS, TONO, VentanaMapa } from './MapaEnvio';
 
 type Filtro = 'todos' | 'marcha' | 'programados';
 const enMarcha = (e: EnvioMapa) => e.estado !== 'programado';
@@ -69,6 +69,14 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
   const inst = useRef<MapaL | null>(null);
   const capa = useRef<LayerGroup | null>(null);
   const encuadre = useRef('');
+  const todos = useRef<[number, number][]>([]);
+  // Todo lo que se ve (camiones, puntos y paradas), justo: ni falta ni sobra.
+  const encuadrar = useCallback(() => {
+    const m = inst.current, t = todos.current;
+    if (!m || !t.length) return;
+    if (t.length === 1) m.setView(t[0], 9);
+    else void import('leaflet').then((mod) => m.fitBounds((mod.default ?? mod).latLngBounds(t), { padding: [40, 40], maxZoom: 10 }));
+  }, []);
   const [listo, setListo] = useState(false);
   const abrir = useRef(onAbrir); abrir.current = onAbrir;
 
@@ -97,7 +105,7 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
     if (!listo || !inst.current || !capa.current) return;
     void import('leaflet').then((mod) => {
       const L = mod.default ?? mod;
-      const m = inst.current!, g = capa.current!;
+      const g = capa.current!;
       g.clearLayers();
       const puntos: [number, number][] = [];
       const esc = (t: string | null | undefined) => (t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -129,14 +137,16 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
       // Encuadre automático a lo que haya (solo cuando cambia QUÉ se ve, no en cada
       // actualización: si el usuario ha movido el mapa, se respeta).
       const clave = envios.map((e) => e.id).sort().join(',');
-      if (clave !== encuadre.current && puntos.length) {
-        encuadre.current = clave;
-        if (puntos.length === 1) m.setView(puntos[0], 9);
-        else m.fitBounds(L.latLngBounds(puntos), { padding: [40, 40], maxZoom: 10 });
-      }
+      todos.current = puntos;
+      if (clave !== encuadre.current && puntos.length) { encuadre.current = clave; encuadrar(); }
     });
-  }, [listo, envios, dynamo]);
+  }, [listo, envios, dynamo, encuadrar]);
 
-  return <div ref={div} data-mapa-general="" role="region" aria-label="Mapa de los envíos en curso"
-    style={{ width: '100%', height: 'min(72vh, 720px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />;
+  return (
+    <div style={CAJA_MAPA}>
+      <div ref={div} data-mapa-general="" role="region" aria-label="Mapa de los envíos en curso"
+        style={{ width: '100%', height: 'min(72vh, 720px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
+      <BotonEncuadrar onClick={encuadrar} que="todos los envíos" />
+    </div>
+  );
 }

@@ -19,6 +19,25 @@ export const ATRIBUCION = process.env.NEXT_PUBLIC_MAPA_ATRIBUCION || '© <a href
 export const COLOR = { carga: '#e07b00', descarga: '#3300cc', hecho: '#16a34a', ruta: '#3300cc', pendiente: '#9ca3af' };
 export const TONO: Record<string, string> = { gris: '#6b7280', azul: '#2563eb', ambar: '#d97706', verde: '#16a34a', rojo: '#dc2626' };
 
+// El mapa en su propia capa (isolation): los paneles de Leaflet llevan z-index altos y, sin
+// esto, quedaban POR ENCIMA del menú desplegable de la cabecera (usuario, 2026-11-22).
+export const CAJA_MAPA: React.CSSProperties = { position: 'relative', isolation: 'isolate', zIndex: 0 };
+
+/** «Encuadrar»: vuelve a enseñar todo lo pintado, justo (sin que falte ni sobre). */
+export function BotonEncuadrar({ onClick, que }: { onClick: () => void; que: string }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={`Encuadrar ${que}`} title={`Encuadrar ${que}`} data-encuadrar=""
+      style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, display: 'inline-flex', alignItems: 'center', gap: 6,
+        background: '#fff', border: '2px solid rgba(0,0,0,.2)', borderRadius: 8, padding: '5px 10px', font: '700 13px system-ui',
+        color: 'var(--navy)', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+      </svg>
+      Encuadrar
+    </button>
+  );
+}
+
 export const IcoMapa = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" /><path d="M9 4v14M15 6v14" />
@@ -107,6 +126,13 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
   const inst = useRef<MapaL | null>(null);
   const capa = useRef<import('leaflet').LayerGroup | null>(null);
   const encuadrado = useRef(false);
+  const puntos = useRef<[number, number][]>([]);
+  const encuadrar = useCallback(() => {
+    const m = inst.current, t = puntos.current;
+    if (!m || !t.length) return;
+    if (t.length === 1) m.setView(t[0], 10);
+    else void import('leaflet').then((mod) => m.fitBounds((mod.default ?? mod).latLngBounds(t), { padding: [40, 40], maxZoom: 12 }));
+  }, []);
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
@@ -130,7 +156,7 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
     if (!listo || !inst.current || !capa.current) return;
     void import('leaflet').then((mod) => {
       const L = mod.default ?? mod;
-      const m = inst.current!, g = capa.current!;
+      const g = capa.current!;
       g.clearLayers();
       const pts = mapa.paradas.filter((p) => p.lat != null && p.lon != null);
       const pc = posicionCamion(mapa);
@@ -163,16 +189,18 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
       }
       // Encuadre: la primera vez, todas las paradas y el camión; después se respeta lo que
       // haya movido quien mira.
-      if (!encuadrado.current) {
-        const todos: [number, number][] = pts.map((p) => [+p.lat!, +p.lon!]);
-        if (pc) todos.push([pc.lat, pc.lon]);
-        if (todos.length === 1) m.setView(todos[0], 10);
-        else if (todos.length > 1) m.fitBounds(L.latLngBounds(todos), { padding: [40, 40], maxZoom: 12 });
-        encuadrado.current = todos.length > 0;
-      }
+      const todos: [number, number][] = pts.map((p) => [+p.lat!, +p.lon!]);
+      if (pc) todos.push([pc.lat, pc.lon]);
+      puntos.current = todos;
+      if (!encuadrado.current) { encuadrar(); encuadrado.current = todos.length > 0; }
     });
-  }, [listo, mapa]);
+  }, [listo, mapa, encuadrar]);
 
-  return <div ref={div} data-mapa-envio="" role="region" aria-label="Mapa de la ruta del envío"
-    style={{ width: '100%', height: 'min(60vh, 460px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />;
+  return (
+    <div style={CAJA_MAPA}>
+      <div ref={div} data-mapa-envio="" role="region" aria-label="Mapa de la ruta del envío"
+        style={{ width: '100%', height: 'min(60vh, 460px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
+      <BotonEncuadrar onClick={encuadrar} que="la ruta" />
+    </div>
+  );
 }

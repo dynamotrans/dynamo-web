@@ -1324,6 +1324,14 @@ test.describe('novedades', () => {
       await page.getByRole('tab', { name: /^Programados/ }).click();
       await expect(page.getByRole('tab', { name: /^Programados/ })).toHaveAttribute('aria-selected', 'true');
       await expect(page.getByLabel('Leyenda del mapa general')).toContainText('En marcha');
+      // «Encuadrar» devuelve el mapa a todo lo pintado tras moverlo o acercarse.
+      await page.getByRole('tab', { name: /^Todos/ }).click();
+      await page.locator('[data-mapa-general] .leaflet-control-zoom-in').click();
+      await page.locator('[data-mapa-general] .leaflet-control-zoom-in').click();
+      await page.getByRole('button', { name: 'Encuadrar todos los envíos' }).click();
+      // El menú de la cuenta queda POR ENCIMA del mapa (antes el mapa lo tapaba): se puede pulsar.
+      await page.locator('.topbar-user').click();
+      await page.getByRole('menuitem', { name: 'Mi cuenta' }).click({ trial: true });
       await page.context().clearCookies();
     }
   });

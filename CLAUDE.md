@@ -485,6 +485,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 ### 2026-11-22 (tarde) — Claude Code web (nube)
 
+- Mapas: el mapa va en su propia capa (`CAJA_MAPA`, isolation) para no tapar los menús de la cabecera; botón **«Encuadrar»** en los dos mapas (vuelve a enseñar justo todo lo pintado).
 - **Mapa general** de envíos en curso (`/panel/mapa`, Dynamo y cliente; nunca entregados ni cancelados). Decisiones: **Google Maps** para mapas/rutas/Places antes de producción; **Uanataca** para el sello electrónico del CMR; **API propia + webhooks** para ERP de clientes en v2/v3.
 - **Verificación de albaranes**: los albaranes que la tarea de Claude deja en Drive entran por un script de Google aparte y una entrada con clave (`/api/documentos-entrada`); esperan en «Verificación albaranes» (Gestión interna) hasta que Dynamo los acepta (visibles para el cliente, con aviso), los rechaza (se borra el archivo), los deja pendientes o les cambia el envío. Migración `20261122210000`, prueba 324. Falta la clave y el script en Google (TODO).
 - **Mapa del envío** con la **posición estimada** del camión (sin GPS: plan del seguimiento + tacógrafo + firmas del CMR), ruta en línea recta, paradas y leyenda; botón «Mapa» en las tres fichas y en cada fila de la lista. Migración `20261122200000`, prueba 323. Teselas de OpenStreetMap solo para pruebas (en producción, proveedor con cuenta). **ERP/EDI** de clientes grandes apuntado en TODO para v2/v3.
