@@ -1,4 +1,5 @@
 import CuentaAtras from './CuentaAtras';
+import { BotonMapa } from './MapaEnvio';
 import ContadorCambio from '@/components/panel/ContadorCambio';
 import Link from 'next/link';
 import EstadoVacio from './EstadoVacio';
@@ -272,6 +273,8 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
         {dynamo && e.requiere_revision_precio && <div className="meta" style={{ color: '#b42318', fontWeight: 800 }}>Revisar precio (ruta cambiada)</div>}
         <strong>#{e.referencia_gx}</strong>
         {e.referencia_cliente && <> <span className="ref-cli-inline">({e.referencia_cliente})</span></>}
+        {/* Mapa con la posición estimada del camión (usuario, 2026-11-22). */}
+        {e.estado !== 'cancelado' && e.estado !== 'borrador' && <> <BotonMapa envioId={e.id} referencia={e.referencia_gx} compacto /></>}
         {/* Contador de 30 s para anular el último cambio (usuario, 2026-11-20). */}
         {e.pendiente && <div className="cc-en-fila"><ContadorCambio envio={e.id} referencia={e.referencia_gx} pendiente={e.pendiente} /></div>}
         {rol !== 'transportista' && (

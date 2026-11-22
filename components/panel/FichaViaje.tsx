@@ -5,6 +5,7 @@
 // Dynamo ni lo que paga. Desde aquí marca cómo va el viaje, sube el albarán y fotos, y
 // abre el CMR digital para que firmen en el muelle.
 import EtiquetaParada from './EtiquetaParada';
+import { BotonMapa } from './MapaEnvio';
 import AvisoDireccionesOcultas from '@/components/AvisoDireccionesOcultas';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -134,6 +135,7 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
       {e.estado !== 'cancelado' && !ocultas && <button className="btn-secondary" disabled={!!trabajando} onClick={abrirCmr}><I d={ICO.firma} />CMR digital para firmar</button>}
       {e.estado !== 'cancelado' && !!e.matricula_camion && <button className="btn-secondary" disabled={!!trabajando} onClick={abrirDeca}
         title="El documento de control que debe llevar el conductor"><I d={ICO.doc} />DeCA (PDF)</button>}
+      {e.estado !== 'cancelado' && <BotonMapa envioId={e.id} referencia={e.referencia_gx} />}
       {e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
       <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>
     </>

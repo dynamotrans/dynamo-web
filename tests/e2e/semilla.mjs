@@ -36,9 +36,10 @@ update usuarios set rol = 'admin', estado = 'activa' where id = '${ids.dynamo}';
 -- suite de la base de datos, no aquí.
 update usuarios set rol = 'cliente', estado = 'activa', exento_autosuspension = true, cliente_id = (select id from clientes where cif = 'B12345674') where id = '${ids.cliente}';
 update usuarios set rol = 'transportista', estado = 'activa', transportista_id = (select id from transportistas where cif = 'B76543214') where id = '${ids.transportista}';
-insert into sitios (cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
-  select c.id, x.n, 'almacen_nave', x.d, x.cp, x.p, x.pr, 'ES' from clientes c,
-    (values ('Almacén Sevilla', 'Calle Uno 1', '41001', 'Sevilla', 'Sevilla'), ('Nave Madrid', 'Calle Dos 2', '28001', 'Madrid', 'Madrid')) x(n, d, cp, p, pr)
+-- Con coordenadas (2026-11-22): el mapa del envío las usa para situar paradas y camión.
+insert into sitios (cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, lat, lon)
+  select c.id, x.n, 'almacen_nave', x.d, x.cp, x.p, x.pr, 'ES', x.la, x.lo from clientes c,
+    (values ('Almacén Sevilla', 'Calle Uno 1', '41001', 'Sevilla', 'Sevilla', 37.3891, -5.9845), ('Nave Madrid', 'Calle Dos 2', '28001', 'Madrid', 'Madrid', 40.4250, -3.6830)) x(n, d, cp, p, pr, la, lo)
    where c.cif = 'B12345674' and not exists (select 1 from sitios s where s.cliente_id = c.id and s.nombre_empresa = x.n);
 -- Teléfono y email del contacto del sitio son obligatorios al crear envío (2026-11-09).
 insert into contactos (sitio_id, nombre, telefono, email, es_principal)

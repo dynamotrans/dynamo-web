@@ -1243,4 +1243,27 @@ test.describe('novedades', () => {
     await expect(fechas.first()).toContainText(/Prevista: .*\d{2}\/\d{2}\/\d{2}/);
     expect(await fechas.count()).toBeGreaterThanOrEqual(2);
   });
+  test('mapa del envío: se abre desde la lista y desde la ficha, con las paradas y el estado del camión', async ({ page }) => {
+    const { e } = await envioProgramadoDelTransportista('id, referencia_gx');
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/envios?f=todas');
+    const fila = page.getByRole('button', { name: `Ver en el mapa el envío #${e.referencia_gx}` });
+    // La lista puede no tenerlo en la primera página: entonces se mira desde la ficha.
+    if (await fila.count()) {
+      await fila.first().click();
+      await expect(page.getByRole('heading', { name: `Mapa del envío #${e.referencia_gx}` })).toBeVisible();
+      // Un clic dentro del mapa NO abre la ficha de la fila.
+      await page.locator('[data-mapa-envio]').click({ position: { x: 30, y: 30 } });
+      await expect(page).not.toHaveURL(/ver=/);
+      await page.keyboard.press('Escape');
+      await expect(page.locator('[data-mapa-envio]')).toHaveCount(0);
+    }
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    await page.getByRole('button', { name: `Ver en el mapa el envío #${e.referencia_gx}` }).first().click();
+    await expect(page.locator('[data-mapa-estado]')).toContainText(/Aún no ha salido/);
+    await expect(page.locator('[data-mapa-envio].leaflet-container')).toBeVisible();
+    // Las dos paradas, numeradas, en el mapa (los sitios de prueba tienen coordenadas).
+    await expect(page.locator('[data-mapa-envio] .leaflet-marker-icon')).toHaveCount(2);
+    await expect(page.getByLabel('Leyenda del mapa')).toContainText('Camión (posición estimada)');
+  });
 });

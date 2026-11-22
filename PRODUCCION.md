@@ -460,6 +460,16 @@ en Production.
 SELLO de empresa comprado para esto (nunca el de representante del administrador); (5) **confirmación del
 asesor** de si vale como firma electrónica avanzada. **A futuro**: (3) sello de tiempo cualificado. Detalle en `TODO.md` (v1).
 
+## 17 · Mapa del envío  🟡
+
+**Hecho (2026-11-22)**: ventana con la ruta y el camión en su posición **estimada** (no es GPS), en las fichas
+y en la lista de envíos. **Antes de abrir**: las teselas de OpenStreetMap (`tile.openstreetmap.org`) son solo
+para pruebas — su norma no admite el uso intensivo de una empresa. Crear cuenta en un proveedor de mapas
+(MapTiler, Stadia Maps… plan gratis con **tope de gasto**) o usar Google Maps cuando se monte, y poner su
+dirección de teselas en Vercel: `NEXT_PUBLIC_MAPA_TESELAS` y `NEXT_PUBLIC_MAPA_ATRIBUCION`. La búsqueda de
+coordenadas de códigos postales (Nominatim, 1 petición/segundo, solo la primera vez de cada CP) puede
+quedarse, o pasarse a Google Geocoding.
+
 ---
 
 ## Lo que NO cambia respecto a hoy

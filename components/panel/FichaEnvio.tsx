@@ -6,6 +6,7 @@
 // · Ruta · Mercancía · Precio · Documentos · Seguimiento · Historial…) en ACORDEÓN con su
 // resumen en la línea. Todo lo vuelve a comprobar el servidor y la base de datos.
 import ContadorCambio from '@/components/panel/ContadorCambio';
+import { BotonMapa } from './MapaEnvio';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -169,6 +170,8 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
           </p>
         </Modal>
       )}
+      {/* Mapa con la posición estimada del camión (usuario, 2026-11-22). */}
+      {e.estado !== 'cancelado' && <BotonMapa envioId={e.id} referencia={e.referencia_gx} />}
       {/* DeCA: botón PROPIO (usuario, 2026-11-15), aparte del CMR. Aparece cuando el
           documento ya está emitido —transportista con sus matrículas— y abre sus tres
           opciones: enviar al transportista, compartir y abrir el PDF. */}

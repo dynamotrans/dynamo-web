@@ -2697,6 +2697,34 @@ export type Database = {
           },
         ]
       }
+      geo_codigos_postales: {
+        Row: {
+          pais_codigo_iso: string
+          codigo_postal: string
+          lat: number
+          lon: number
+          fuente: string
+          creado_en: string
+        }
+        Insert: {
+          pais_codigo_iso: string
+          codigo_postal: string
+          lat: number
+          lon: number
+          fuente?: string
+          creado_en?: string
+        }
+        Update: {
+          pais_codigo_iso?: string
+          codigo_postal?: string
+          lat?: number
+          lon?: number
+          fuente?: string
+          creado_en?: string
+        }
+        Relationships: [
+        ]
+      }
       ia_consultas: {
         Row: {
           id: string
@@ -4462,6 +4490,7 @@ export type Database = {
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
       fundir_cambios_html: { Args: { p_viejos: string | null; p_nuevos: string | null }; Returns: string }
       generar_codigo_aceptacion: { Args: Record<PropertyKey, never>; Returns: string }
+      guardar_geo_cp: { Args: { p_pais: string | null; p_cp: string | null; p_lat: number | null; p_lon: number | null; p_fuente?: string | null }; Returns: undefined }
       guardar_horario: { Args: { p_sitio: string | null; p_tramos: Json | null; p_temporada?: string | null }; Returns: undefined }
       guardar_horario_verano: { Args: { p_sitio: string | null; p_activo: boolean | null; p_desde: string | null; p_hasta: string | null; p_tramos: Json | null }; Returns: undefined }
       guardar_km_cp: { Args: { p_pais_codigo_iso_origen: string | null; p_codigo_postal_origen: string | null; p_pais_codigo_iso_destino: string | null; p_codigo_postal_destino: string | null; p_km: number | null; p_minutos?: number | null; p_proveedor?: string | null }; Returns: string }
@@ -4487,6 +4516,7 @@ export type Database = {
       latido: { Args: Record<PropertyKey, never>; Returns: undefined }
       liberar_reserva_publica: { Args: { p_reserva: string | null; p_motivo: string | null }; Returns: Json }
       mantenimiento_activo: { Args: Record<PropertyKey, never>; Returns: boolean }
+      mapa_envio: { Args: { p_envio: string | null }; Returns: Json }
       marcar_avisos_vistos: { Args: Record<PropertyKey, never>; Returns: undefined }
       marcar_estado_envio: { Args: { p_envio: string | null; p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_fecha_carga_real?: string | null; p_parada?: number | null; p_hora?: string | null }; Returns: Json }
       marcar_etapa_envio: { Args: { p_envio: string | null; p_paso: number | null; p_hora?: string | null }; Returns: Json }

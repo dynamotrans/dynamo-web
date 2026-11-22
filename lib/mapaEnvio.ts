@@ -1,0 +1,81 @@
+// Mapa del envío con la POSICIÓN ESTIMADA del camión (usuario, 2026-11-22). La base de datos
+// (mapa_envio) dice en qué tramo va y qué fracción lleva hecha (plan del seguimiento +
+// tacógrafo + firmas del CMR); aquí se pasa eso a un punto del mapa y a una frase. Sin red: se
+// prueba con pruebas unitarias.
+import { fechaHora } from './formato';
+
+export type ParadaMapa = {
+  orden: number; tipo: 'carga' | 'descarga' | string; empresa: string | null;
+  poblacion: string | null; provincia: string | null; codigo_postal: string | null; pais: string | null;
+  lat: number | null; lon: number | null; coord: 'sitio' | 'gps_firma' | 'codigo_postal' | 'sin';
+  realizado_en: string | null;
+};
+export type EtapaMapa = { paso: number; estado: string; parada: number | null; hora: string | null; hecha: boolean; actual: boolean };
+export type CamionMapa = {
+  modo: 'sin_salir' | 'hacia_carga' | 'en_parada' | 'en_ruta' | 'entregado' | 'cancelado';
+  desde: number | null; hasta: number | null; fraccion: number | null; parado: boolean; retraso: boolean;
+  salida: string | null; llegada_prevista: string | null;
+};
+export type MapaEnvio = {
+  resultado: 'ok' | 'sin_permiso'; referencia: string | null; estado: string; ahora: string;
+  paradas: ParadaMapa[]; etapas: EtapaMapa[]; camion: CamionMapa;
+  gps_firma: { lat: number; lon: number; cuando: string; parada: number | null } | null;
+};
+
+export type PuntoCamion = { lat: number; lon: number; titulo: string; detalle: string; tono: 'gris' | 'azul' | 'ambar' | 'verde' | 'rojo' } | null;
+
+const lugar = (p: ParadaMapa | undefined) => p?.poblacion || p?.empresa || (p ? `parada ${p.orden}` : '');
+const conCoord = (p: ParadaMapa | undefined): p is ParadaMapa & { lat: number; lon: number } =>
+  !!p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)) && p.lat !== null && p.lon !== null;
+
+/** Hora de una etapa del plan (la de llegada a cargar/descargar en la parada n, o la de salida). */
+function horaEtapa(m: MapaEnvio, estado: string, parada: number | null): string | null {
+  return m.etapas.find((e) => e.estado === estado && e.parada === parada)?.hora ?? null;
+}
+
+/** Dónde pintar el camión y qué decir de él. null = no se pinta (aún no ha salido, cancelado o sin coordenadas). */
+export function posicionCamion(m: MapaEnvio): PuntoCamion {
+  const c = m.camion;
+  const p = (n: number | null) => m.paradas.find((x) => x.orden === n);
+  if (c.modo === 'cancelado') return null;
+  if (c.modo === 'sin_salir') return null;
+  if (c.modo === 'entregado') {
+    const u = p(c.hasta);
+    if (!conCoord(u)) return null;
+    return { lat: +u.lat, lon: +u.lon, titulo: 'Entregado', detalle: `En ${lugar(u)}${u.realizado_en ? ` · ${fechaHora(u.realizado_en)}` : ''}`, tono: 'verde' };
+  }
+  if (c.modo === 'hacia_carga') {
+    const u = p(1);
+    if (!conCoord(u)) return null;
+    const h = horaEtapa(m, 'cargando', 1);
+    return { lat: +u.lat, lon: +u.lon, titulo: 'De camino a la carga', detalle: `Llegada prevista a ${lugar(u)}${h ? ` · ${fechaHora(h)}` : ''}`, tono: 'azul' };
+  }
+  if (c.modo === 'en_parada') {
+    const u = p(c.hasta);
+    if (!conCoord(u)) return null;
+    const carga = u.tipo === 'carga';
+    const sal = horaEtapa(m, 'en_ruta', (c.hasta ?? 0) + 1);
+    return { lat: +u.lat, lon: +u.lon, titulo: carga ? 'Cargando' : 'Descargando', detalle: `En ${lugar(u)}${sal ? ` · salida prevista ${fechaHora(sal)}` : ''}`, tono: 'ambar' };
+  }
+  // En ruta: en la fracción del tramo entre las dos paradas (línea recta, hasta tener rutas reales).
+  const a = p(c.desde), b = p(c.hasta);
+  if (!conCoord(a) || !conCoord(b)) return null;
+  const f = Math.min(Math.max(Number(c.fraccion ?? 0), 0), 1);
+  const lat = +a.lat + (+b.lat - +a.lat) * f, lon = +a.lon + (+b.lon - +a.lon) * f;
+  const llega = c.llegada_prevista ? fechaHora(c.llegada_prevista) : null;
+  if (c.retraso) return { lat, lon, titulo: 'Llegando (va más tarde de lo previsto)', detalle: `A ${lugar(b)}${llega ? ` · estaba prevista a las ${llega}` : ''}`, tono: 'rojo' };
+  if (c.parado) return { lat, lon, titulo: 'Parado: pausa o descanso del conductor', detalle: `Entre ${lugar(a)} y ${lugar(b)} (${Math.round(f * 100)} % del tramo)${llega ? ` · llegada prevista ${llega}` : ''}`, tono: 'gris' };
+  return { lat, lon, titulo: `En ruta a ${lugar(b)}`, detalle: `${Math.round(f * 100)} % del tramo desde ${lugar(a)}${llega ? ` · llegada prevista ${llega}` : ''}`, tono: 'azul' };
+}
+
+/** Frase de estado para la cabecera de la ventana (también cuando no hay camión que pintar). */
+export function estadoMapa(m: MapaEnvio): string {
+  if (m.camion.modo === 'cancelado') return 'Envío cancelado.';
+  if (m.camion.modo === 'sin_salir') {
+    const h = horaEtapa(m, 'cargando', 1);
+    return `Aún no ha salido${h ? `. Carga prevista: ${fechaHora(h)}` : ''}.`;
+  }
+  const pc = posicionCamion(m);
+  if (!pc) return 'Sin coordenadas de las paradas: no se puede situar el camión.';
+  return `${pc.titulo} · ${pc.detalle}`;
+}

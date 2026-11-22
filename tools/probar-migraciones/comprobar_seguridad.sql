@@ -14400,3 +14400,69 @@ begin
   perform set_config('request.jwt.claim.role', '', true);
   raise notice 'OK 322 · e-CMR: con la clave pública no se firma ni se anotan reservas (solo el servidor); código de 6 cifras por su huella, con topes y 5 intentos; firma «email verificado» que decide la base de datos, y se ve en la hoja y el PDF';
 end $$;
+
+-- ---- 323. Mapa del envío con la posición estimada del camión --------------------------
+-- Lo ven Dynamo, el cliente dueño y su transportista (otro cliente no; sin sesión, nada). Cada
+-- parada con coordenadas (las suyas o el centro de su código postal); el camión según el
+-- estado: sin salir, en una parada, en ruta entre dos (con la fracción del tramo) o entregado.
+-- Las coordenadas de los códigos postales solo las guarda el servidor.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; t uuid; begin
+  insert into transportistas (razon_social, cif) values ('Transp 323 SL', 'B32300323') returning id into t;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, lat, lon)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES', 37.3891, -5.9845), (e, 2, 'descarga', '28323', 'Madrid', 'ES', null, null);
+  update envios set estado = 'programado', transportista_id = t where id = e;
+  perform set_config('prueba.e323', e::text, false);
+end $$;
+do $$ declare ok boolean := false; begin
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform guardar_geo_cp('es', '28 323', 40.4250, -3.6830);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  begin perform guardar_geo_cp('ES', '28323', 1, 1); exception when others then ok := true; end;
+  perform set_config('request.jwt.claim.role', '', true);
+  if not ok or (select lat from geo_codigos_postales where pais_codigo_iso = 'ES' and codigo_postal = '28323') <> 40.425 then
+    raise exception 'FALLO 323 · las coordenadas del código postal no las guarda solo el servidor'; end if;
+  if has_function_privilege('anon', 'public.mapa_envio(uuid)', 'execute') then raise exception 'FALLO 323 · el mapa se abre sin sesión'; end if;
+end $$;
+do $$ declare e uuid := current_setting('prueba.e323')::uuid; r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  r := mapa_envio(e);
+  if r ->> 'resultado' <> 'ok' or r -> 'camion' ->> 'modo' <> 'sin_salir' then raise exception 'FALLO 323 · el cliente no ve su mapa (sin salir): %', r; end if;
+  if (r -> 'paradas' -> 1 ->> 'coord') <> 'codigo_postal' or (r -> 'paradas' -> 1 ->> 'lat')::numeric <> 40.425
+     or (r -> 'paradas' -> 0 ->> 'coord') <> 'sitio' then
+    raise exception 'FALLO 323 · coordenadas de las paradas mal resueltas: %', r -> 'paradas'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  if mapa_envio(e) ->> 'resultado' <> 'sin_permiso' then raise exception 'FALLO 323 · otro cliente ve el mapa de un envío ajeno'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+update envios set estado = 'hacia_la_carga' where id = current_setting('prueba.e323')::uuid;
+update envios set estado = 'cargando', parada_actual = 1 where id = current_setting('prueba.e323')::uuid;
+do $$ declare r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := mapa_envio(current_setting('prueba.e323')::uuid) -> 'camion';
+  if r ->> 'modo' <> 'en_parada' or (r ->> 'hasta')::int <> 1 then raise exception 'FALLO 323 · cargando, el camión no está en la 1.ª parada: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+update envios set estado = 'en_ruta', parada_actual = 2 where id = current_setting('prueba.e323')::uuid;
+do $$ declare r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := mapa_envio(current_setting('prueba.e323')::uuid) -> 'camion';
+  if r ->> 'modo' <> 'en_ruta' or (r ->> 'desde')::int <> 1 or (r ->> 'hasta')::int <> 2
+     or (r ->> 'fraccion')::numeric not between 0 and 1 or r ->> 'llegada_prevista' is null then
+    raise exception 'FALLO 323 · en ruta, el camión no va entre la 1.ª y la 2.ª parada: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+update envios set estado = 'entregado' where id = current_setting('prueba.e323')::uuid;
+do $$ declare r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := mapa_envio(current_setting('prueba.e323')::uuid) -> 'camion';
+  if r ->> 'modo' <> 'entregado' or (r ->> 'hasta')::int <> 2 then raise exception 'FALLO 323 · entregado, el camión no está en la última parada: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  delete from geo_codigos_postales where codigo_postal = '28323';
+  raise notice 'OK 323 · mapa del envío: lo ven Dynamo, el cliente y su transportista (otro cliente no); coordenadas de la parada o de su código postal (que solo guarda el servidor); camión sin salir, en parada, en ruta con su fracción y entregado';
+end $$;

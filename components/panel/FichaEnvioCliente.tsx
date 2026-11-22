@@ -5,6 +5,7 @@
 // aplicada). Si es una solicitud, aquí acepta o rechaza el precio. Puede cancelar mientras
 // el camión no va hacia la carga, reportar una incidencia y repetir el envío.
 import ContadorCambio from '@/components/panel/ContadorCambio';
+import { BotonMapa } from './MapaEnvio';
 import CuentaAtras from './CuentaAtras';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
@@ -260,6 +261,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
       {/* UN botón (usuario, 2026-11-17): abre la ventana con el PDF y el envío por email. */}
       {manual && e.estado !== 'cancelado' && <button className="btn-secondary" onClick={() => { setAviso(null); setVista('enviarOrden'); }} disabled={!!trabajando}><I d={ICO.doc} />Orden de carga (PDF)</button>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
+      {e.estado !== 'cancelado' && <BotonMapa envioId={e.id} referencia={e.referencia_gx} />}
       {modo === 'form' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
       {/* Con SU transportista lo modifica libremente: es suyo (usuario, 2026-11-16). */}
       {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
