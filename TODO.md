@@ -2,6 +2,15 @@
 
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
+> **🧭 FORMA DE TRABAJAR (decisión del usuario, 2026-11-22)**: todo se hace **dentro de la plataforma, con código
+> propio**, en un solo código guardado en GitHub con su historial y pasando por las pruebas automáticas.
+> Se trabaja con **vibe coding**: el usuario pide lo que quiere (hablando o con capturas) y Claude, en su mejor
+> modelo, lo programa, lo prueba y lo sube. **n8n queda DESCARTADO por defecto**: solo se usaría para algo muy
+> concreto (probar una idea rápida el propio usuario, o algo de oficina fuera de la plataforma); si nunca hace
+> falta, nunca se usa. Lo importante del negocio (precios, estados, permisos, avisos) nunca depende de un
+> servicio externo de flujos. Para no depender de una sola persona: código en GitHub, pruebas automáticas y las
+> notas del proyecto (este TODO, CLAUDE.md, TARIFADOR.md…) al día, para que cualquier sesión o programador siga.
+
 ## 🗂️ PENDIENTES ORDENADOS POR VERSIÓN (resumen vivo, 2026-11-15)
 
 > Índice rápido. El detalle de cada punto sigue más abajo, en su entrada. Al cerrar algo, se tacha aquí y allí.
