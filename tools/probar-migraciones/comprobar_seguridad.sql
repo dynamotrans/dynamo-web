@@ -14456,6 +14456,11 @@ do $$ declare r jsonb; begin
   if r ->> 'modo' <> 'en_ruta' or (r ->> 'desde')::int <> 1 or (r ->> 'hasta')::int <> 2
      or (r ->> 'fraccion')::numeric not between 0 and 1 or r ->> 'llegada_prevista' is null then
     raise exception 'FALLO 323 · en ruta, el camión no va entre la 1.ª y la 2.ª parada: %', r; end if;
+  -- Parado dice por qué (pausa, descanso, espera) y cuándo sigue; sin parar, sin motivo (2026-11-22).
+  if not (r ? 'motivo_parada' and r ? 'sigue_en')
+     or ((r ->> 'parado')::boolean and coalesce(r ->> 'motivo_parada', '') not in ('pausa', 'descanso', 'espera'))
+     or (not (r ->> 'parado')::boolean and r ->> 'motivo_parada' is not null) then
+    raise exception 'FALLO 323 · el motivo de la parada no cuadra: %', r; end if;
   perform set_config('request.jwt.claim.sub', '', false);
 end $$;
 update envios set estado = 'entregado' where id = current_setting('prueba.e323')::uuid;

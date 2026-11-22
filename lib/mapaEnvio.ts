@@ -17,6 +17,9 @@ export type CamionMapa = {
   modo: 'sin_salir' | 'hacia_carga' | 'en_parada' | 'en_ruta' | 'entregado' | 'cancelado';
   desde: number | null; hasta: number | null; fraccion: number | null; parado: boolean; retraso: boolean;
   salida: string | null; llegada_prevista: string | null;
+  // Por qué está parado (2026-11-22): pausa de 45 min, descanso del conductor (de noche) o
+  // espera para llegar (ya ha conducido todo el tramo y el sitio abre más tarde). Y cuándo sigue.
+  motivo_parada?: 'pausa' | 'descanso' | 'espera' | null; sigue_en?: string | null;
 };
 export type MapaEnvio = {
   resultado: 'ok' | 'sin_permiso'; referencia: string | null; estado: string; ahora: string;
@@ -66,7 +69,12 @@ export function posicionCamion(m: MapaEnvio): PuntoCamion {
   const lat = +a.lat + (+b.lat - +a.lat) * f, lon = +a.lon + (+b.lon - +a.lon) * f;
   const llega = c.llegada_prevista ? fechaHora(c.llegada_prevista) : null;
   if (c.retraso) return { lat, lon, titulo: 'Llegando (va más tarde de lo previsto)', detalle: `A ${lugar(b)}${llega ? ` · estaba prevista a las ${llega}` : ''}`, tono: 'rojo' };
-  if (c.parado) return { lat, lon, titulo: 'Parado: pausa o descanso del conductor', detalle: `Entre ${lugar(a)} y ${lugar(b)} (${Math.round(f * 100)} % del tramo)${llega ? ` · llegada prevista ${llega}` : ''}`, tono: 'gris' };
+  if (c.parado) {
+    const sigue = c.sigue_en ? fechaHora(c.sigue_en) : null;
+    if (c.motivo_parada === 'espera') return { lat, lon, titulo: `Parado: esperando para llegar a ${lugar(b)}`, detalle: `Ya ha hecho el tramo desde ${lugar(a)}${llega ? ` · llegada prevista ${llega}` : ''}`, tono: 'gris' };
+    const titulo = c.motivo_parada === 'pausa' ? 'Parado: pausa del conductor' : c.motivo_parada === 'descanso' ? 'Parado: descanso del conductor' : 'Parado: pausa o descanso del conductor';
+    return { lat, lon, titulo, detalle: `Entre ${lugar(a)} y ${lugar(b)} (${Math.round(f * 100)} % del tramo)${sigue ? ` · sigue ${sigue}` : ''}${llega ? ` · llegada prevista ${llega}` : ''}`, tono: 'gris' };
+  }
   return { lat, lon, titulo: `En ruta a ${lugar(b)}`, detalle: `${Math.round(f * 100)} % del tramo desde ${lugar(a)}${llega ? ` · llegada prevista ${llega}` : ''}`, tono: 'azul' };
 }
 

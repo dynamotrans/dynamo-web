@@ -23,6 +23,13 @@ test('mapa: parado (pausa) y con retraso cambian el aviso', () => {
   const r = posicionCamion(base({ ...ruta, fraccion: 1, retraso: true }))!;
   assert.equal(r.tono, 'rojo'); assert.equal(r.lat, 40);
 });
+test('mapa: parado dice por qué (pausa, descanso de noche, esperando para llegar) y cuándo sigue', () => {
+  const d = posicionCamion(base({ ...ruta, parado: true, motivo_parada: 'descanso', sigue_en: '2026-11-24T06:00:00Z' }))!;
+  assert.match(d.titulo, /descanso del conductor/); assert.match(d.detalle, /sigue/); assert.equal(d.tono, 'gris');
+  assert.match(posicionCamion(base({ ...ruta, parado: true, motivo_parada: 'pausa' }))!.titulo, /pausa del conductor/);
+  const w = posicionCamion(base({ ...ruta, fraccion: 1, parado: true, motivo_parada: 'espera' }))!;
+  assert.match(w.titulo, /esperando para llegar a Madrid/); assert.equal(w.tono, 'gris'); assert.equal(w.lat, 40);
+});
 test('mapa: sin salir no se pinta el camión; en parada y entregado, en la parada', () => {
   assert.equal(posicionCamion(base({ ...ruta, modo: 'sin_salir', desde: null, hasta: 1 })), null);
   assert.match(estadoMapa(base({ ...ruta, modo: 'sin_salir', desde: null, hasta: 1 })), /Aún no ha salido/);
