@@ -104,7 +104,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 **Antes de pasar a producción (checklist `PRODUCCION.md`):**
 - [ ] Revisión de TODOS los textos legales (incluye el repaso legal del DeCA electrónico: acceso del inspector, conservación 1 año).
-- [ ] CSP estricta, `SITE_URL` definitiva y redirecciones de Supabase solo propias.
+- [ ] ~~CSP estricta~~ **plataforma en modo bloquear desde el 2026-11-22** (la web pública sigue en solo avisar, va con su rama de `main`); falta `SITE_URL` definitiva y redirecciones de Supabase solo propias (al pasar a producción).
 - [ ] 💾 **COPIAS DE SEGURIDAD, antes del primer cliente real (usuario, 2026-11-18: «anótalo para antes de producción»)**. Supabase está en plan Pro desde el 2026-11-06 (factura vista), así que la copia diaria de la base de datos ya la hace Supabase. FALTA: (1) **copia propia fuera de Supabase**, automática cada noche (si se pierde o roban la cuenta, sus copias se van con ella); (2) **copia de los archivos subidos** — albaranes, fotos, firmas — que la copia de Supabase no incluye; (3) **probar una restauración** en un proyecto aparte, apuntar cuánto tarda y repetirla cada cierto tiempo; (4) que el usuario mire en Supabase → Database → Backups que salen las copias de los últimos días. Lo monta Claude; el usuario solo pega una clave en un sitio seguro (nunca por el chat). Punto 11 de `PRODUCCION.md`.
 - [ ] Quitar el login demo de `portal.html`.
 - [ ] Probar los emails en Gmail, Outlook y móvil (tras Postmark).

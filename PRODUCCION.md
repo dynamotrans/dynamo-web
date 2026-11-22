@@ -33,7 +33,7 @@ Leyenda: ✅ hecho y comprobado · 🟡 hecho en parte · ❌ falta · 👤 lo t
 | 03 | Control de versiones | ✅ Git + migraciones numeradas que nunca se editan. | — |
 | 04 | APIs de verdad (precio en el servidor) | 🟡 El cliente nunca pone el precio: lo pone Dynamo o la base de datos (contraofertas validadas en la BD). | El **tarifador** (lo último, decisión del usuario). |
 | 05 | Hosting y deploy | ✅ Vercel, preview por rama. | — |
-| 06 | Seguridad (CSP, cabeceras) | 🟡 CSP en modo *solo avisar* en `pruebas`. | Revisar los avisos y pasarla a bloquear antes de abrir. |
+| 06 | Seguridad (CSP, cabeceras) | 🟡 Plataforma en modo **bloquear** (2026-11-22); web pública en *solo avisar*. | Pasar la web pública a bloquear con su rama de `main`. |
 | 07 | Rate limiting | 🟡 Límites en la base de datos: consultas de precio (suspensión automática), intentos de CIF por carga y por reserva, alta online (3 por carga, 30 al día), contraofertas del cliente (3 en 24 h), PIN (3 fallos), cancelaciones. Login: los de Supabase Auth. | 👤 Revisar *Rate Limits* de Supabase Auth; valorar Vercel Firewall por IP. |
 | 08 | Caché | ✅ Las pantallas con datos de usuario son dinámicas (`force-dynamic`), no se cachean. | — |
 | 09 | Escalabilidad | 🟡 Plan gratuito de Supabase y Vercel Hobby. | 👤 Pasar a planes de pago antes de clientes reales (copias, límites, soporte). |
@@ -193,6 +193,15 @@ del mockup es un bypass a propósito.
 
 **En la plataforma real**:
 
+- **CSP de la PLATAFORMA — EN MODO BLOQUEAR desde el 2026-11-22** (`BLOQUEAR = true` en `lib/csp.ts`):
+  comprobado con las 114 pruebas de navegador (Chrome y móvil) en modo bloquear y una sonda que escucha
+  los avisos en /panel/entrar, /panel/registro, /panel/olvido, /panel/confirmar y /carga. Al hacerlo
+  salió que **/carga y /panel/confirmar se generaban fijas** (sin llave → sus scripts bloqueados, p. ej.
+  los enlaces de invitación y de «he olvidado mi contraseña»): ahora se generan en cada visita
+  (`dynamic = 'force-dynamic'`). ⚠️ **Regla**: toda página nueva bajo /panel, /carga, /cmr, /deca, /baja,
+  /matriculas o /cargas-de-vuelta tiene que ser dinámica (en el `next build` no debe salir con ○).
+  Sin `upgrade-insecure-requests` (todo va por https con HSTS y en local rompería). Lo que queda: la
+  **web pública** sigue en solo avisar (abajo).
 - **CSP** — **puesta en modo *solo avisar* (Report-Only) en `pruebas` el 2026-11-04**:
   · **Plataforma** (`/panel`, `/carga`, `/cmr`): estricta, con **llave de un solo uso (nonce)
     por página** y `'strict-dynamic'` (la pone `middleware.ts`; reglas en `lib/csp.ts`).

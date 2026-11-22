@@ -10,7 +10,7 @@
 //  · WEB PÚBLICA estática: lista de servicios que ya usa (no admite nonce: es HTML fijo).
 
 // Para pasar a BLOQUEAR: BLOQUEAR = true (cambia la cabecera y añade upgrade-insecure-requests).
-const BLOQUEAR = false as boolean;
+const BLOQUEAR = true as boolean;   // PLATAFORMA en modo bloquear desde el 2026-11-22 (pruebas de navegador limpias)
 export const CABECERA_CSP = BLOQUEAR ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
 export const INFORME_CSP = '/api/csp-informe';
 
@@ -19,8 +19,8 @@ const comunes = [
   "frame-ancestors 'none'",
   // Stripe: el formulario «Pagar con tarjeta» redirige a su página de pago.
   "form-action 'self' https://checkout.stripe.com",
-  // 'upgrade-insecure-requests' solo vale en modo bloquear: se añade al pasar a él.
-  ...(BLOQUEAR ? ['upgrade-insecure-requests'] : []),
+  // Sin 'upgrade-insecure-requests': todo va ya por https (HSTS de un año) y en local (http)
+  // rompería la web.
   `report-uri ${INFORME_CSP}`,
   'report-to csp',
 ];

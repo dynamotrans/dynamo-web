@@ -3,6 +3,10 @@ import SelectorIdioma from '@/components/SelectorIdioma';
 import CodigoCarga from './CodigoCarga';
 import './carga.css';
 
+// Se genera en cada visita (no fija): así lleva la llave de un solo uso de la CSP y sus scripts
+// no se bloquean (CSP en modo bloquear desde el 2026-11-22).
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = { title: 'Acceder a la carga · Dynamo', robots: { index: false, follow: false },
   formatDetection: { telephone: false, address: false, email: false, date: false } };
 
