@@ -123,6 +123,21 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
   opción** para algo concreto que sea mucho más fácil allí o para automatizaciones de oficina FUERA de la
   plataforma (adjuntos del correo a Drive, Brevo, informes en Sheets) que el usuario quiera probar él.
   Lo de negocio (precios, estados, permisos, avisos clave) nunca depende de n8n.
+  - **Cómo se monta la conversación de WhatsApp (usuario, 2026-11-22)**, todo en el código:
+    - **Caminos fijos** donde toca: la plataforma guarda en qué paso va cada conversación y, según la
+      respuesta, pasa al siguiente (p. ej. «¿crear o consultar?» → crear: origen, destino, fecha;
+      consultar: nº de envío).
+    - **Claude como cerebro** para entender lo que se escribe a su manera («¿mi camión de Sevilla ya ha
+      salido?») y elegir qué hacer, con acciones que le damos: consultar un envío, precio de una ruta,
+      preparar un pedido, pasar a una persona. Así no hay que prever cada frase.
+    - **Lo delicado, con pasos fijos y reglas de la plataforma**: crear, cambiar o cancelar un envío pide
+      SIEMPRE confirmación explícita («¿Confirmo … por 960 € + IVA? Responde SÍ»). Precios, permisos y
+      plazos los marca la plataforma, nunca la IA.
+    - **«Hablar con una persona»**: si el cliente lo pide o Claude no está seguro, la conversación pasa
+      al equipo de Dynamo.
+    - **Conversaciones guardadas** y visibles en el panel (qué se habló y qué se hizo).
+    - **Requisitos de Meta** (WhatsApp Business oficial): verificar la empresa; para escribir primero a
+      alguien que no ha hablado en 24 h, mensajes con plantilla aprobada.
   - **Orden acordado (usuario, 2026-11-22)**: 1) **primero lo escrito**: WhatsApp y email solo con
     Claude (el «cerebro»), programado en la plataforma. Basta para contestar, consultar envíos, recoger pedidos escritos y
     redactar avisos. 2) **Notas de voz que nos manden por WhatsApp**: solo pasarlas a texto (barato) y
