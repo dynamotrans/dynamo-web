@@ -468,6 +468,7 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 
 **Seguridad**
 - Cookies siempre «Secure», salvo en http local. Las acciones delicadas SIEMPRE piden la contraseña.
+- **CSP de la plataforma en modo BLOQUEAR** (2026-11-22, `lib/csp.ts`): toda página nueva bajo /panel, /carga, /cmr, /deca, /baja, /matriculas o /cargas-de-vuelta tiene que ser **dinámica** (que en `next build` no salga con ○); si no, no lleva la llave de un solo uso y sus scripts se bloquean.
 - No borrar los usuarios `@prueba.invalid` ni la cuenta del usuario.
 
 **Base de datos**
