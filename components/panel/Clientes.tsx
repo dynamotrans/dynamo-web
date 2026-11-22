@@ -17,6 +17,8 @@ import { euros, fechaHora, numero } from '@/lib/formato';
 
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
+import CampoProvincia from '@/components/CampoProvincia';
+import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import PagosCliente from './PagosCliente';
@@ -206,7 +208,9 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
     usuariosDeCliente(clienteId).then((l) => { if (vivo) setUsuarios(l); }).catch(() => { if (vivo) setUsuarios([]); });
     return () => { vivo = false; };
   }, [clienteId]);
-  const set = <K extends keyof ClienteDatos>(k: K, v: ClienteDatos[K]) => setD((x) => ({ ...x, [k]: v }));
+  // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const set = <K extends keyof ClienteDatos>(k: K, v: ClienteDatos[K]) =>
+    setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais_codigo_iso' ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
   // Crédito CESCE desde el que los primeros envíos no se pagan antes (Parámetros; usuario, 2026-11-19).
   const umbralCesce = bienvenida.cesceSinPrevio ?? 0;
   const cesceNum = num(textos.cesce);
@@ -299,7 +303,10 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
         {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, 'Calle y número', true)}
         {campo('codigo_postal', <>Código postal <Req si={false} /></>, '41001')}
         {campo('poblacion', <>Población <Req si={false} /></>, 'Sevilla')}
-        {campo('provincia', <>Provincia <Req si={false} /></>, 'Sevilla')}
+        <div>
+          <label htmlFor="cli-provincia">Provincia <Req si={false} /></label>
+          <CampoProvincia id="cli-provincia" pais={d.pais_codigo_iso} valor={d.provincia ?? ''} onCambio={(v) => set('provincia', v)} />
+        </div>
         <div>
           <label htmlFor="cli-pais">País</label>
           <SelectorPais id="cli-pais" valor={d.pais_codigo_iso} onCambio={(v) => { set('pais_codigo_iso', v); setTextos((t) => ({ ...t, iva: v === 'ES' ? '21' : '0' })); }} />

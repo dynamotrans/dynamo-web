@@ -19,6 +19,8 @@ import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, buscarAgend
 import { euros, fechaHora, numero } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
+import CampoProvincia from '@/components/CampoProvincia';
+import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import Req from '@/components/Req';
@@ -247,14 +249,14 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   }, [bq, d.cliente_id]);
   // Elegir una ficha de Google: autorrellena y avisa si ya hay un sitio muy parecido.
   function elegirGoogle(g: SitioGoogle) {
-    setD((x) => ({
+    setD((x) => conProvinciaDelCp({
       ...x, nombre_empresa: g.empresa, direccion: g.direccion, codigo_postal: g.codigo_postal,
       poblacion: g.poblacion, provincia: g.provincia, pais_codigo_iso: g.pais_codigo_iso || 'ES',
       url_google_maps: g.url_google_maps,
       contactos: g.telefono && !x.contactos.some((c) => c.telefono.trim())
         ? x.contactos.map((c, i) => (i === 0 ? { ...c, telefono: g.telefono } : c))
         : x.contactos,
-    }));
+    }, g.pais_codigo_iso || 'ES'));
     elegidoTxt.current = g.empresa;
     setCamposLibres(true);
     setBq(g.empresa); setSugAbierto(false); setAvisoParecido(null);
@@ -273,7 +275,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     const t = bq.trim();
     if (t && !d.nombre_empresa.trim() && !/\d{4}/.test(t)) set('nombre_empresa', t);
   };
-  const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => { setD((x) => ({ ...x, [k]: v })); setRepetido(null); };
+  // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => {
+    setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais_codigo_iso' ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
+    setRepetido(null);
+  };
 
   async function guardar(aunqueRepetido = false) {
     setError(null);
@@ -495,7 +501,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                 {sug.dir.map((x, i) => (
                   <li key={`d${i}`} onMouseDown={(e) => {
                     e.preventDefault();
-                    setD((v) => ({ ...v, direccion: x.direccion || v.direccion, codigo_postal: x.codigo_postal || v.codigo_postal, poblacion: x.poblacion || v.poblacion, provincia: x.provincia || v.provincia, pais_codigo_iso: x.pais || v.pais_codigo_iso }));
+                    setD((v) => { const n = { ...v, direccion: x.direccion || v.direccion, codigo_postal: x.codigo_postal || v.codigo_postal, poblacion: x.poblacion || v.poblacion, provincia: x.provincia || v.provincia, pais_codigo_iso: x.pais || v.pais_codigo_iso }; return conProvinciaDelCp(n, n.pais_codigo_iso); });
                     elegidoTxt.current = x.etiqueta;
                     setCamposLibres(true);
                     setBq(x.etiqueta); setSugAbierto(false);
@@ -549,7 +555,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             ANIDADA de la estándar: mismos estilos, tamaños y separación que el resto. */}
         <div className="ptar-sitio-grid" style={{ gridColumn: '1/-1', gridTemplateColumns: '1fr 1fr' }}>
           {/* Provincia obligatoria (usuario, 2026-11-12). */}
-          {campo('provincia', <>Provincia {obl}</>, 'Sevilla')}
+          <div>
+            <label htmlFor="sitio-provincia">Provincia {obl}</label>
+            <CampoProvincia id="sitio-provincia" pais={d.pais_codigo_iso} valor={d.provincia} onCambio={(v) => set('provincia', v)} />
+          </div>
           <div>
             <label htmlFor="sitio-pais">País</label>
             <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />

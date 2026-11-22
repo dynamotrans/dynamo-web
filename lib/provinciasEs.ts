@@ -17,3 +17,19 @@ export function lugarCorto(p: { codigo_postal?: string | null; provincia?: strin
   const prov = p.provincia || (pais === 'ES' && p.codigo_postal ? PROVINCIAS_ES[p.codigo_postal.slice(0, 2)] : null);
   return [`CP ${p.codigo_postal ?? '—'}`, prov].filter(Boolean).join(' · ') + ` (${pais})`;
 }
+
+// Las 52 provincias en orden alfabético, para los desplegables (usuario, 2026-11-22).
+export const PROVINCIAS_LISTA: string[] = [...new Set(Object.values(PROVINCIAS_ES))].sort((a, b) => a.localeCompare(b, 'es'));
+
+// La provincia que dice el código postal español (sus dos primeras cifras); null si no lo sabe.
+export function provinciaDeCodigoPostal(codigo: string | null | undefined): string | null {
+  const c = (codigo ?? '').replace(/\s/g, '');
+  return /^\d{2}/.test(c) ? PROVINCIAS_ES[c.slice(0, 2)] ?? null : null;
+}
+
+// Al cambiar el código postal o el país: en España, la provincia sale sola del CP (manda el CP).
+export function conProvinciaDelCp<T extends { codigo_postal: string; provincia: string }>(x: T, pais: string | null | undefined): T {
+  if ((pais || 'ES').toUpperCase() !== 'ES') return x;
+  const p = provinciaDeCodigoPostal(x.codigo_postal);
+  return p && p !== x.provincia ? { ...x, provincia: p } : x;
+}

@@ -25,10 +25,8 @@ import { telBonito } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
 import CampoTelefono from '@/components/CampoTelefono';
 import SelectorPais from '@/components/SelectorPais';
-import { PROVINCIAS_ES } from '@/lib/provinciasEs';
+import CampoProvincia from '@/components/CampoProvincia';
 
-// Provincias de España en orden alfabético, para el desplegable (usuario, 2026-11-22).
-const PROVINCIAS = [...new Set(Object.values(PROVINCIAS_ES))].sort((a, b) => a.localeCompare(b, 'es'));
 const CAMIONES: { k: 'trailer_tauliner' | 'rigido_plataforma'; t: string }[] = [
   { k: 'trailer_tauliner', t: 'Tráiler' },
   { k: 'rigido_plataforma', t: 'Rígido con plataforma · 8 m' },
@@ -291,12 +289,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         </div>
         <div>
           <label htmlFor="op-provincia">Provincia <Req si={false} /></label>
-          {d.pais_codigo_iso === 'ES'
-            ? <select id="op-provincia" className="ptar-select" value={PROVINCIAS.includes(d.provincia) ? d.provincia : ''} onChange={(e) => set('provincia', e.target.value)}>
-                <option value="">Elige la provincia…</option>
-                {PROVINCIAS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            : <input id="op-provincia" type="text" value={d.provincia} placeholder="Provincia o región" onChange={(e) => set('provincia', e.target.value)} />}
+          <CampoProvincia id="op-provincia" pais={d.pais_codigo_iso} valor={d.provincia} onCambio={(v) => set('provincia', v)} />
         </div>
         <fieldset style={{ gridColumn: '1/-1', border: 0, margin: 0, padding: 0 }}>
           <legend style={{ padding: 0, marginBottom: '0.3rem' }}>Tipos de camión <Req si={false} /></legend>

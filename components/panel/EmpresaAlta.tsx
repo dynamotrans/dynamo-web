@@ -6,6 +6,8 @@ import CampoTelefono from '@/components/CampoTelefono';
 import Req from '@/components/Req';
 import Documentos from './Documentos';
 import { paisDe } from '@/lib/paises';
+import CampoProvincia from '@/components/CampoProvincia';
+import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { validaIdFiscalPais } from '@/lib/idFiscal';
 import {
   empresaDeMiAlta, buscarEmpresaDeMiAlta, guardarEmpresaDeMiAlta, type EmpresaAlta as Datos, type PasoAlta,
@@ -42,7 +44,11 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
     }).catch(() => {}).finally(() => setCargado(true));
   }, []);
 
-  const pon = (k: keyof Datos, v: string) => { setD((x) => ({ ...x, [k]: v })); setHecho(false); };
+  // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const pon = (k: keyof Datos, v: string) => {
+    setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais' ? conProvinciaDelCp(n, n.pais) : n; });
+    setHecho(false);
+  };
 
   async function buscar() {
     setError(null); setMal(null); setTrabajando(true);
@@ -152,7 +158,11 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
             {campo('direccion', 'Dirección (calle y número)', 'Calle y número', true)}
             {campo('codigo_postal', 'Código postal', '41001')}
             {campo('poblacion', 'Población', 'Sevilla')}
-            {campo('provincia', 'Provincia', 'Sevilla')}
+            <div>
+              <label htmlFor="ea-provincia" style={ETIQ}>Provincia <Req /></label>
+              <CampoProvincia id="ea-provincia" pais={d.pais} valor={d.provincia} disabled={!cargado || trabajando}
+                style={{ width: '100%', boxSizing: 'border-box', ...rojo('provincia') }} onCambio={(v) => pon('provincia', v)} />
+            </div>
             <div className="ptar-section-head" style={{ gridColumn: '1/-1', marginTop: '0.3rem' }}>Contacto</div>
             <div>
               <label htmlFor="ea-telefono" style={{ ...ETIQ, ...(mal === 'telefono' ? { color: 'var(--red)' } : {}) }}>Teléfono <Req /></label>

@@ -18,6 +18,8 @@ import { notaTxt, notaColor, piezasNota, type NotaTransportista } from '@/lib/no
 import { fechaHora, numero } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
+import CampoProvincia from '@/components/CampoProvincia';
+import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -184,7 +186,9 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
     if (!r.ok) { setError(r.error); return; }
     onGuardado();
   }
-  const set = <K extends keyof TransportistaDatos>(k: K, v: TransportistaDatos[K]) => setD((x) => ({ ...x, [k]: v }));
+  // En España la provincia sale sola del código postal (usuario, 2026-11-22).
+  const set = <K extends keyof TransportistaDatos>(k: K, v: TransportistaDatos[K]) =>
+    setD((x) => { const n = { ...x, [k]: v }; return k === 'codigo_postal' || k === 'pais_codigo_iso' ? conProvinciaDelCp(n, n.pais_codigo_iso) : n; });
 
   async function guardar() {
     setError(null);
@@ -297,7 +301,10 @@ function FichaTransportista({ fila, admin, onCerrar, onGuardado }: { fila: Trans
         {campo('direccion', <>Dirección (calle y número) <Req si={false} /></>, 'Calle y número', true)}
         {campo('codigo_postal', <>Código postal <Req si={false} /></>, '41001')}
         {campo('poblacion', <>Población <Req si={false} /></>, 'Sevilla')}
-        {campo('provincia', <>Provincia <Req si={false} /></>, 'Sevilla')}
+        <div>
+          <label htmlFor="tra-provincia">Provincia <Req si={false} /></label>
+          <CampoProvincia id="tra-provincia" pais={d.pais_codigo_iso} valor={d.provincia ?? ''} onCambio={(v) => set('provincia', v)} />
+        </div>
         <div>
           <label htmlFor="tra-pais">País</label>
           <SelectorPais id="tra-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />

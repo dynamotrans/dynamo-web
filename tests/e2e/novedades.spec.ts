@@ -631,7 +631,12 @@ test.describe('novedades', () => {
     await page.fill('#sitio-direccion', 'C/ Prueba, 1');
     await page.fill('#sitio-codigo_postal', '41016');
     await page.fill('#sitio-poblacion', 'Sevilla');
-    await page.fill('#sitio-provincia', 'Sevilla');
+    // La provincia sale sola del código postal (usuario, 2026-11-22), en un desplegable.
+    await expect(page.locator('#sitio-provincia')).toHaveValue('Sevilla');
+    await page.fill('#sitio-codigo_postal', '11201');
+    await expect(page.locator('#sitio-provincia')).toHaveValue('Cádiz');
+    await page.fill('#sitio-codigo_postal', '41016');
+    await expect(page.locator('#sitio-provincia')).toHaveValue('Sevilla');
     await page.fill('#ct-0-tel', '600111222');
     await page.getByRole('button', { name: 'Crear sitio' }).click();
     await expect(page.locator('#sitio-buscar')).toHaveCount(0);
