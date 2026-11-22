@@ -1400,6 +1400,91 @@ export type Database = {
           },
         ]
       }
+      documentos_entrada: {
+        Row: {
+          id: string
+          estado: string
+          tipo: string
+          nombre_archivo: string
+          storage_ruta: string
+          tipo_mime: string | null
+          tamano_bytes: number | null
+          sha256: string | null
+          origen: string
+          origen_id: string | null
+          referencia_detectada: string | null
+          envio_id: string | null
+          datos: Json
+          recibido_en: string
+          revisado_en: string | null
+          revisado_por: string | null
+          motivo_rechazo: string | null
+          documento_id: string | null
+        }
+        Insert: {
+          id?: string
+          estado?: string
+          tipo?: string
+          nombre_archivo: string
+          storage_ruta: string
+          tipo_mime?: string | null
+          tamano_bytes?: number | null
+          sha256?: string | null
+          origen?: string
+          origen_id?: string | null
+          referencia_detectada?: string | null
+          envio_id?: string | null
+          datos?: Json
+          recibido_en?: string
+          revisado_en?: string | null
+          revisado_por?: string | null
+          motivo_rechazo?: string | null
+          documento_id?: string | null
+        }
+        Update: {
+          id?: string
+          estado?: string
+          tipo?: string
+          nombre_archivo?: string
+          storage_ruta?: string
+          tipo_mime?: string | null
+          tamano_bytes?: number | null
+          sha256?: string | null
+          origen?: string
+          origen_id?: string | null
+          referencia_detectada?: string | null
+          envio_id?: string | null
+          datos?: Json
+          recibido_en?: string
+          revisado_en?: string | null
+          revisado_por?: string | null
+          motivo_rechazo?: string | null
+          documento_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_entrada_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_entrada_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_entrada_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emails_enviados: {
         Row: {
           id: string
@@ -4410,6 +4495,8 @@ export type Database = {
       enlace_carga_caduca_en: { Args: { p_envio: string | null }; Returns: string }
       enlace_carga_vigente: { Args: { p_envio: string | null }; Returns: boolean }
       enlace_cmr_publico: { Args: { p_reserva: string | null }; Returns: string }
+      entrada_documento_confirmar: { Args: { p_id: string | null; p_sha256: string | null; p_tamano: number | null; p_mime: string | null }; Returns: Json }
+      entrada_documento_iniciar: { Args: { p_nombre: string | null; p_origen: string | null; p_origen_id: string | null; p_datos?: Json | null }; Returns: Json }
       entrega_estimada_sugerida: { Args: { p_envio: string | null; p_dia: string | null }; Returns: string }
       entregas_estimadas: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; desde: string; hasta: string; fijada: boolean }[] }
       enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
@@ -4418,6 +4505,7 @@ export type Database = {
       envio_cambio_abrir: { Args: { p_envio: string | null; p_tipo: string | null; p_antes: Json | null }; Returns: string }
       envio_columnas_tecnicas: { Args: Record<PropertyKey, never>; Returns: string[] }
       envio_con_transportista: { Args: { p_envio: string | null }; Returns: boolean }
+      envio_de_referencia_gx: { Args: { p_ref: string | null }; Returns: string }
       envio_del_cliente: { Args: { p_envio: string | null }; Returns: boolean }
       envio_del_transportista: { Args: { p_envio: string | null }; Returns: boolean }
       envio_detalle_html: { Args: { p_envio: string | null }; Returns: string }
@@ -4614,6 +4702,7 @@ export type Database = {
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
       recalcular_notas_transportistas: { Args: { p_transportista?: string | null }; Returns: number }
       rechazar_pago_transferencia: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
+      referencia_gx_de_nombre: { Args: { p_nombre: string | null }; Returns: string }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_acceso: { Args: { p_huella: string | null; p_descripcion?: string | null; p_ubicacion?: string | null }; Returns: Json }
       registrar_cambio_email: { Args: { p_usuario: string | null; p_antes: string | null; p_despues: string | null }; Returns: undefined }
@@ -4686,6 +4775,11 @@ export type Database = {
       ventana_texto: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: string }
       ver_revision_precio_envio: { Args: { p_envio: string | null }; Returns: { precio_calculado_en: string; estado_revision_precio: string; fecha_revision_precio: string; importe_revision_anterior: number; importe_revision_nuevo: number; revision_precio_en: string; margen_pct: number }[] }
       verano_sitios_fechas: { Args: Record<PropertyKey, never>; Returns: Json }
+      verificacion_albaran_aceptar: { Args: { p_id: string | null; p_tipo?: string | null }; Returns: Json }
+      verificacion_albaran_reasignar: { Args: { p_id: string | null; p_referencia: string | null }; Returns: Json }
+      verificacion_albaran_rechazar: { Args: { p_id: string | null; p_motivo?: string | null }; Returns: Json }
+      verificacion_albaran_tipo: { Args: { p_id: string | null; p_tipo: string | null }; Returns: Json }
+      verificacion_albaranes_lista: { Args: Record<PropertyKey, never>; Returns: Json }
     }
     Enums: {
       estado_almacenamiento: "pendiente_confirmar" | "confirmado" | "en_almacen" | "finalizado" | "cancelado"

@@ -7450,7 +7450,8 @@ do $$ declare faltan text; begin
                            'envio_compartidos',        -- historial de envíos de DeCA, CMR y orden: se lee al abrir su ventana
                            'envio_cambios',            -- contador de «anular el cambio»: se pide al pintar la lista y la ficha, que ya se refrescan con la señal de envios
                            'transportista_cancelaciones',  -- contador de la ficha del transportista: cambia al quitar o cambiar el transportista de un envío (señal de envios)
-                           'cmr_codigos_firma')        -- códigos de firma del CMR: solo los usa el servidor, no se pintan en el panel
+                           'cmr_codigos_firma',        -- códigos de firma del CMR: solo los usa el servidor, no se pintan en el panel
+                           'documentos_entrada')       -- bandeja de albaranes por verificar: solo Dynamo, se recarga al revisar (el envío cambia al aceptar, con la señal de documentos)
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
     raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
@@ -14465,4 +14466,106 @@ do $$ declare r jsonb; begin
   perform set_config('request.jwt.claim.sub', '', false);
   delete from geo_codigos_postales where codigo_postal = '28323';
   raise notice 'OK 323 · mapa del envío: lo ven Dynamo, el cliente y su transportista (otro cliente no); coordenadas de la parada o de su código postal (que solo guarda el servidor); camión sin salir, en parada, en ruta con su fracción y entregado';
+end $$;
+
+-- ---- 324. Verificación de albaranes ------------------------------------------------------
+-- La entrada (solo el servidor) apunta el archivo, no repite el mismo archivo de Drive ni el
+-- mismo contenido y lo asigna al envío de la GX del nombre. Solo Dynamo lo ve en la bandeja; el
+-- cliente no hasta que se acepta (entonces pasa a sus documentos, visible, con aviso). Rechazar
+-- devuelve la ruta para borrar el archivo. Se puede cambiar de envío (y cambia la GX del nombre).
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; e2 uuid; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e2;
+  perform set_config('request.jwt.claim.sub', '', false);
+  perform set_config('prueba.e324', e::text, false);
+  perform set_config('prueba.e324b', e2::text, false);
+end $$;
+set role anon;
+do $$ begin
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  if entrada_documento_iniciar('x.pdf', 'drive', 'anon-324') ->> 'resultado' <> 'solo_servidor' then
+    raise exception 'FALLO 324 · con la clave pública se mete un albarán'; end if;
+  perform set_config('request.jwt.claim.role', '', true);
+exception when insufficient_privilege then perform set_config('request.jwt.claim.role', '', true);
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e324')::uuid; ref text; ref2 text; r jsonb; id1 uuid; id2 uuid; id3 uuid; v_doc uuid; ok boolean := false;
+  sha1 text := repeat('a', 64); sha2 text := repeat('b', 64);
+begin
+  select referencia_gx into ref from envios where id = e;
+  select referencia_gx into ref2 from envios where id = current_setting('prueba.e324b')::uuid;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  -- (a) Entrada: dos pasos; el mismo archivo de Drive no entra dos veces; el mismo contenido tampoco.
+  r := entrada_documento_iniciar(ref || '_ALB_20261030_41001-SEVILLA_28001-MADRID_1234ABC.pdf', 'drive', 'drive-324-1', '{"origen":"41001 SEVILLA"}');
+  if r ->> 'resultado' <> 'ok' or r ->> 'ruta' !~ '^entrada/[0-9a-f-]{36}\.pdf$' then raise exception 'FALLO 324 · no apunta la entrada: %', r; end if;
+  id1 := (r ->> 'id')::uuid;
+  if (entrada_documento_iniciar('otro.pdf', 'drive', 'drive-324-1') ->> 'id')::uuid <> id1 then raise exception 'FALLO 324 · una subida a medias no se reintenta en su sitio'; end if;
+  if entrada_documento_iniciar('virus.exe', 'drive', 'drive-324-x') ->> 'resultado' <> 'tipo_no_valido' then raise exception 'FALLO 324 · deja entrar un .exe'; end if;
+  r := entrada_documento_confirmar(id1, sha1, 1234, 'application/pdf');
+  if r ->> 'resultado' <> 'ok' or (r ->> 'envio_id')::uuid <> e then raise exception 'FALLO 324 · no lo asigna al envío de su GX: %', r; end if;
+  if entrada_documento_iniciar('otro.pdf', 'drive', 'drive-324-1') ->> 'resultado' <> 'ya_existe' then raise exception 'FALLO 324 · el mismo archivo de Drive entra dos veces'; end if;
+  id2 := (entrada_documento_iniciar('copia.pdf', 'drive', 'drive-324-2') ->> 'id')::uuid;
+  r := entrada_documento_confirmar(id2, sha1, 1234, 'application/pdf');
+  if r ->> 'resultado' <> 'duplicado' or exists (select 1 from documentos_entrada where id = id2) then raise exception 'FALLO 324 · el mismo contenido entra dos veces: %', r; end if;
+  -- Uno sin GX (para reasignar) y otro para rechazar.
+  id2 := (entrada_documento_iniciar('escaneo sin nombre.pdf', 'drive', 'drive-324-3') ->> 'id')::uuid;
+  perform entrada_documento_confirmar(id2, sha2, 99, 'application/pdf');
+  id3 := (entrada_documento_iniciar(ref || '_ALB_factura.pdf', 'drive', 'drive-324-4') ->> 'id')::uuid;
+  perform entrada_documento_confirmar(id3, repeat('c', 64), 99, 'application/pdf');
+  perform set_config('request.jwt.claim.role', '', true);
+  if has_function_privilege('authenticated', 'public.entrada_documento_iniciar(text, text, text, jsonb)', 'execute') then raise exception 'FALLO 324 · un usuario puede meter albaranes'; end if;
+  perform set_config('prueba.d324', id1::text, false);
+  perform set_config('prueba.d324b', id2::text, false);
+  perform set_config('prueba.d324c', id3::text, false);
+  perform set_config('prueba.ref324b', ref2, false);
+end $$;
+-- (b) El cliente no ve la bandeja; Dynamo sí, con el envío y el contador del menú.
+do $$ declare r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  if jsonb_array_length(verificacion_albaranes_lista()) <> 0 or exists (select 1 from documentos_entrada) then
+    raise exception 'FALLO 324 · el cliente ve albaranes sin verificar'; end if;
+  if exists (select 1 from documentos where envio_id = current_setting('prueba.e324')::uuid) then raise exception 'FALLO 324 · el albarán sin verificar ya está en el envío'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  select x into r from jsonb_array_elements(verificacion_albaranes_lista()) x where x ->> 'id' = current_setting('prueba.d324');
+  if r is null or r -> 'envio' ->> 'id' <> current_setting('prueba.e324') then raise exception 'FALLO 324 · Dynamo no ve el albarán con su envío: %', r; end if;
+  if (contadores_panel() ->> 'albaranes')::int < 3 then raise exception 'FALLO 324 · el menú no cuenta los albaranes por verificar: %', contadores_panel(); end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+-- (c) Revisar: sin envío no se acepta; se reasigna (cambia la GX del nombre); aceptar lo hace
+-- visible para el cliente (con aviso); rechazar devuelve la ruta para borrar el archivo.
+do $$ declare r jsonb; v_doc uuid; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  if verificacion_albaran_aceptar(current_setting('prueba.d324b')::uuid) ->> 'resultado' <> 'sin_envio' then raise exception 'FALLO 324 · se acepta un albarán sin envío'; end if;
+  if verificacion_albaran_reasignar(current_setting('prueba.d324b')::uuid, 'hola') ->> 'resultado' <> 'referencia_no_valida' then raise exception 'FALLO 324 · acepta una referencia sin forma de GX'; end if;
+  if verificacion_albaran_reasignar(current_setting('prueba.d324b')::uuid, 'GX999999999') ->> 'resultado' <> 'sin_envio' then raise exception 'FALLO 324 · reasigna a un envío que no existe'; end if;
+  r := verificacion_albaran_reasignar(current_setting('prueba.d324b')::uuid, substr(current_setting('prueba.ref324b'), 3));
+  if r ->> 'resultado' <> 'ok' or r ->> 'nombre_archivo' <> current_setting('prueba.ref324b') || '_escaneo sin nombre.pdf'
+     or (select envio_id from documentos_entrada where id = current_setting('prueba.d324b')::uuid) <> current_setting('prueba.e324b')::uuid then
+    raise exception 'FALLO 324 · no reasigna bien (envío y nombre): %', r; end if;
+  r := verificacion_albaran_aceptar(current_setting('prueba.d324')::uuid, 'cmr_firmado');
+  v_doc := (r ->> 'documento_id')::uuid;
+  if r ->> 'resultado' <> 'ok' or not exists (select 1 from documentos where id = v_doc and visible_cliente and tipo = 'cmr_firmado' and envio_id = current_setting('prueba.e324')::uuid)
+     or (select estado from documentos_entrada where id = current_setting('prueba.d324')::uuid) <> 'aceptado' then
+    raise exception 'FALLO 324 · aceptar no lo pasa visible al envío: %', r; end if;
+  if not exists (select 1 from avisos where para = 'cliente' and envio_id = current_setting('prueba.e324')::uuid and titulo like 'CMR firmado disponible%') then
+    raise exception 'FALLO 324 · al aceptarlo no se avisa al cliente'; end if;
+  if verificacion_albaran_aceptar(current_setting('prueba.d324')::uuid) ->> 'resultado' <> 'no_pendiente' then raise exception 'FALLO 324 · se acepta dos veces'; end if;
+  r := verificacion_albaran_rechazar(current_setting('prueba.d324c')::uuid, 'Es una factura del transportista');
+  if r ->> 'resultado' <> 'ok' or r ->> 'ruta' !~ '^entrada/' or (select estado from documentos_entrada where id = current_setting('prueba.d324c')::uuid) <> 'rechazado' then
+    raise exception 'FALLO 324 · no rechaza bien: %', r; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  if not exists (select 1 from documentos where envio_id = current_setting('prueba.e324')::uuid and visible_cliente) then raise exception 'FALLO 324 · el cliente no ve el albarán aceptado'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 324 · verificación de albaranes: entrada solo del servidor, sin repetir archivo ni contenido, asignada por la GX del nombre; el cliente no los ve hasta aceptarlos (con aviso); rechazar borra; reasignar cambia envío y nombre';
 end $$;

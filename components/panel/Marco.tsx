@@ -29,7 +29,7 @@ const IDIOMAS_PANEL: [string, React.ReactNode, string][] = [
   ['nl', '🇳🇱', 'Nederlands'], ['pl', '🇵🇱', 'Polski'], ['ro', '🇷🇴', 'Română'], ['uk', '🇺🇦', 'Українська'], ['zh-CN', '🇨🇳', '中文'],
 ];
 
-export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias', number>>;
+export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias' | 'albaranes', number>>;
 export type Cobertura = 'disponible' | 'nulo' | 'sinclasif' | null;
 
 // Números del menú lateral por pantalla: [naranja, rojo] y qué significa cada uno.
@@ -43,6 +43,7 @@ function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: 
     case 'administracion': return x(c.alm_sin_pagar, 'Proformas sin pagar', true);
     case 'altas': return x(c.altas, 'Altas pendientes de revisar');
     case 'sugerencias': return x(c.sugerencias, 'Sugerencias por revisar');
+    case 'verificacion-albaranes': return x(c.albaranes, 'Albaranes por verificar');
     default: return [];
   }
 }

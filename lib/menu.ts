@@ -83,6 +83,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
       { slug: 'festivos', titulo: 'Festivos', icono: 'ajustes' },
       { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
+      // Albaranes que llegan de los transportistas, antes de que los vea el cliente (2026-11-22).
+      { slug: 'verificacion-albaranes', titulo: 'Verificación albaranes', icono: 'facturas' },
       // Lo que mandan los usuarios desde Soporte (usuario, 2026-11-21).
       { slug: 'sugerencias', titulo: 'Sugerencias', icono: 'sugerencias' },
       { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },

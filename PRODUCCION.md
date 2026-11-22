@@ -470,6 +470,14 @@ dirección de teselas en Vercel: `NEXT_PUBLIC_MAPA_TESELAS` y `NEXT_PUBLIC_MAPA_
 coordenadas de códigos postales (Nominatim, 1 petición/segundo, solo la primera vez de cada CP) puede
 quedarse, o pasarse a Google Geocoding.
 
+## 18 · Entrada de albaranes desde Drive  🟡
+
+**Hecho (2026-11-22)**: entrada `/api/documentos-entrada` (clave `ENTRADA_DOCUMENTOS_TOKEN`, comparada en
+tiempo constante; el archivo va directo al almacén con un enlace firmado; se mira su contenido real y su
+huella; tope de 300 al día) y pantalla «Verificación albaranes». **Antes de abrir**: clave en Vercel
+**Production** (distinta de la de pruebas), el script de Google apuntando al dominio de producción y, si
+la clave se viera alguna vez, cambiarla el mismo día (Vercel y propiedades del script).
+
 ---
 
 ## Lo que NO cambia respecto a hoy

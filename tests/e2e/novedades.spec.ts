@@ -1266,4 +1266,50 @@ test.describe('novedades', () => {
     await expect(page.locator('[data-mapa-envio] .leaflet-marker-icon')).toHaveCount(2);
     await expect(page.getByLabel('Leyenda del mapa')).toContainText('Camión (posición estimada)');
   });
+  test('verificación de albaranes: entran por la clave, Dynamo los revisa en carrusel y al aceptarlos los ve el cliente', async ({ page, request }) => {
+    const clave = process.env.ENTRADA_DOCUMENTOS_TOKEN!;
+    const { e } = await envioProgramadoDelTransportista('id, referencia_gx');
+    // PDF mínimo de una página, válido para el visor.
+    const pdf = (() => {
+      const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+        // Texto distinto en cada pasada: el mismo contenido no entra dos veces (se descarta repetido).
+        ((c: string) => `<< /Length ${c.length} >>\nstream\n${c}\nendstream`)(`BT /F1 14 Tf 20 100 Td (ALBARAN ${Date.now()}) Tj ET`),
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+      let t = '%PDF-1.4\n'; const pos: number[] = [];
+      objs.forEach((o, k) => { pos.push(t.length); t += `${k + 1} 0 obj\n${o}\nendobj\n`; });
+      const x = t.length;
+      t += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${pos.map((p) => `${String(p).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`;
+      return Buffer.from(t, 'latin1');
+    })();
+    const base = process.env.E2E_URL ?? 'http://localhost:3484';
+    // Sin la clave no entra nada.
+    expect((await request.post(`${base}/api/documentos-entrada`, { data: { accion: 'iniciar', nombre: 'x.pdf' } })).status()).toBe(401);
+    const nombre = `${e.referencia_gx}_ALB_20261030_41001-SEVILLA_28001-MADRID_1234ABC.pdf`;
+    const ini = await (await request.post(`${base}/api/documentos-entrada`, { headers: { Authorization: `Bearer ${clave}` },
+      data: { accion: 'iniciar', nombre, origen: 'drive', origen_id: `e2e-${Date.now()}` } })).json();
+    expect(ini.resultado).toBe('ok');
+    const put = await request.put(ini.subir_a, { headers: { 'content-type': 'application/pdf' }, data: pdf });
+    expect(put.ok()).toBeTruthy();
+    const conf = await (await request.post(`${base}/api/documentos-entrada`, { headers: { Authorization: `Bearer ${clave}` }, data: { accion: 'confirmar', id: ini.id } })).json();
+    expect(conf.resultado).toBe('ok');
+    expect(conf.envio_id).toBe(e.id);
+    // Antes de verificarlo, el envío no tiene ese documento.
+    const { count: antes } = await bd().from('documentos').select('*', { count: 'exact', head: true }).eq('envio_id', e.id).eq('visible_cliente', true).eq('tipo', 'albaran');
+
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/verificacion-albaranes');
+    await expect(page.getByRole('heading', { name: /Verificación de albaranes/ })).toBeVisible();
+    await page.getByRole('tab', { name: e.referencia_gx! }).click();
+    await expect(page.locator('[data-verif-envio]')).toContainText(`Envío #${e.referencia_gx}`);
+    await expect(page.locator('[data-verif-nombre]')).toHaveText(nombre);
+    // El PDF se dibuja (una página).
+    await expect(page.locator('[data-verif-paginas] canvas')).toHaveCount(1, { timeout: 20_000 });
+    await page.getByRole('button', { name: /Aceptar/ }).click();
+    await expect(page.getByText(/Aceptado: ya lo ve el cliente/)).toBeVisible();
+    await expect.poll(async () => {
+      const { count } = await bd().from('documentos').select('*', { count: 'exact', head: true }).eq('envio_id', e.id).eq('visible_cliente', true).eq('tipo', 'albaran');
+      return (count ?? 0) - (antes ?? 0);
+    }).toBe(1);
+  });
 });
