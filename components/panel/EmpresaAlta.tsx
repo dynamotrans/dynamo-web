@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SelectorPais from '@/components/SelectorPais';
 import CampoTelefono from '@/components/CampoTelefono';
 import Req from '@/components/Req';
@@ -13,6 +13,7 @@ import { validaIdFiscalPais } from '@/lib/idFiscal';
 import {
   empresaDeMiAlta, buscarEmpresaDeMiAlta, guardarEmpresaDeMiAlta, type EmpresaAlta as Datos, type PasoAlta,
 } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { buscarEnRegistro } from '@/app/panel/(app)/autorrelleno/acciones';
 
 // ---- La empresa de un alta pendiente, por pasos (usuario, 2026-11-16) --------------------
 // El registro solo pide los datos de la persona. Aquí dice de qué empresa es:
@@ -36,6 +37,9 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [mal, setMal] = useState<keyof Datos | null>(null);
   const [hecho, setHecho] = useState(false);
+  // Autorrelleno desde el Registro (APIEmpresas.es; apagado hasta tener clave): una vez por CIF.
+  const [delRegistro, setDelRegistro] = useState(false);
+  const registroPara = useRef('');
 
   useEffect(() => {
     empresaDeMiAlta().then((r) => {
@@ -92,6 +96,22 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
   // Lo que se reconoce mientras escribe (usuario, 2026-11-16: «que autocalcule qué tipo es»).
   const visto = d.cif.trim().length >= 8 ? validaIdFiscalPais(d.cif, d.pais) : null;
   const queEs = persona ? 'DNI / NIE — autónomo' : 'CIF — empresa';
+
+  // Empresa nueva (no autónomo: los autónomos no están en el Registro) y sin datos escritos: se
+  // piden al Registro y se rellenan los campos vacíos. Si no está o está apagado, a mano.
+  useEffect(() => {
+    if (!cargado || paso !== 'nueva' || persona || guardada || d.empresa.trim() || registroPara.current === d.cif) return;
+    registroPara.current = d.cif;
+    let vivo = true;
+    buscarEnRegistro(d.cif).then((r) => {
+      const e = r.ok ? r.empresas.find((x) => x.cif === cifLimpio(d.cif)) : null;
+      if (!vivo || !e) return;
+      setD((x) => conProvinciaDelCp({ ...x, empresa: x.empresa || e.razon_social, direccion: x.direccion || e.direccion,
+        codigo_postal: x.codigo_postal || e.codigo_postal, poblacion: x.poblacion || e.poblacion, provincia: x.provincia || e.provincia }, x.pais));
+      setDelRegistro(true);
+    }).catch(() => {});
+    return () => { vivo = false; };
+  }, [cargado, paso, persona, guardada, d.cif, d.empresa]);
 
   return (
     <>
@@ -153,6 +173,7 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
         <div className="account-card" style={{ marginTop: '1rem' }}>
           <div className="account-card-title">{persona ? '2 · Alta de nuevo AUTÓNOMO' : '2 · Alta de nueva EMPRESA'}</div>
           <p className="account-card-desc">Con estos datos creamos tu ficha de cliente. Todos son obligatorios.</p>
+          {delRegistro && <div className="pt-aviso info" style={{ marginBottom: '0.7rem' }}><div>Hemos rellenado los datos con los del <strong>Registro Mercantil</strong>. Revísalos y cambia lo que haga falta.</div></div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.65rem 0.8rem' }}>
             {campo('empresa', persona ? 'Nombre y apellidos (como en tu DNI)' : 'Razón social', persona ? 'Ej. Marta Ruiz Gómez' : 'Ej. Marbex Industrial S.L.', true)}
             <div style={{ gridColumn: '1/-1' }}>

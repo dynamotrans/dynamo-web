@@ -1417,6 +1417,72 @@ export type Database = {
           },
         ]
       }
+      empresas_registro: {
+        Row: {
+          cif: string
+          razon_social: string
+          direccion: string | null
+          codigo_postal: string | null
+          poblacion: string | null
+          provincia: string | null
+          estado: string | null
+          consultado_en: string
+        }
+        Insert: {
+          cif: string
+          razon_social: string
+          direccion?: string | null
+          codigo_postal?: string | null
+          poblacion?: string | null
+          provincia?: string | null
+          estado?: string | null
+          consultado_en?: string
+        }
+        Update: {
+          cif?: string
+          razon_social?: string
+          direccion?: string | null
+          codigo_postal?: string | null
+          poblacion?: string | null
+          provincia?: string | null
+          estado?: string | null
+          consultado_en?: string
+        }
+        Relationships: [
+        ]
+      }
+      empresas_registro_consultas: {
+        Row: {
+          id: string
+          usuario_id: string | null
+          tipo: string
+          texto: string
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          usuario_id?: string | null
+          tipo: string
+          texto: string
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          usuario_id?: string | null
+          tipo?: string
+          texto?: string
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_registro_consultas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       envio_cambios: {
         Row: {
           id: string
@@ -4136,6 +4202,8 @@ export type Database = {
       archivos_sueltos: { Args: { p_horas?: number | null }; Returns: { ruta: string; creado: string; bytes: number }[] }
       asignar_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_importe_transportista?: number | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_conductor_telefono?: string | null; p_fecha_carga_prevista?: string | null; p_fecha_entrega_estimada?: string | null; p_forzar?: boolean | null }; Returns: Json }
       autores_mis_envios: { Args: Record<PropertyKey, never>; Returns: { envio_id: string; creado_por: string; creado_email: string; modificado_por: string; modificado_en: string }[] }
+      autorrelleno_empresas_estado: { Args: Record<PropertyKey, never>; Returns: Json }
+      autorrelleno_empresas_quien: { Args: Record<PropertyKey, never>; Returns: string }
       autosuspender_cuentas: { Args: Record<PropertyKey, never>; Returns: number }
       autosuspension_cancelaciones: { Args: { p_usuario: string | null; p_recientes?: boolean | null }; Returns: { envio_id: string; referencia_gx: string; cancelado_en: string; quien_nombre: string; quien_email: string; por_dynamo: boolean }[] }
       autosuspension_candidatos: { Args: Record<PropertyKey, never>; Returns: { usuario_id: string; email: string; motivo: string }[] }
@@ -4243,6 +4311,10 @@ export type Database = {
       emails_del_cliente: { Args: { p_cliente: string | null }; Returns: string }
       emails_sin_prueba: { Args: { p: string | null }; Returns: string }
       emails_validos: { Args: { p: string[] | null }; Returns: boolean }
+      empresa_registro_apuntar_consulta: { Args: { p_tipo: string | null; p_texto: string | null }; Returns: number }
+      empresa_registro_guardada: { Args: { p_cif: string | null }; Returns: { cif: string; razon_social: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; estado: string }[] }
+      empresa_registro_guardar: { Args: { p_cif: string | null; p_razon_social: string | null; p_direccion: string | null; p_codigo_postal: string | null; p_poblacion: string | null; p_provincia: string | null; p_estado: string | null }; Returns: undefined }
+      empresa_registro_sin_saldo: { Args: Record<PropertyKey, never>; Returns: undefined }
       en_temporada: { Args: { p_fecha: string | null; p_desde: string | null; p_hasta: string | null }; Returns: boolean }
       encolar_anulacion_parada: { Args: { p_envio: string | null; p_parada: string | null; p_tipo: string | null; p_nombre: string | null; p_poblacion_sitio: string | null; p_sitio: string | null }; Returns: undefined }
       encolar_avisos_operativos: { Args: { p_ahora?: string | null }; Returns: number }
@@ -4308,6 +4380,7 @@ export type Database = {
       flota_publica: { Args: { p_reserva: string | null; p_cif?: string | null }; Returns: Json }
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
+      fn_aviso_saldo_autorrelleno: { Args: { p_quedan: number | null }; Returns: undefined }
       fn_bolsa_margen_minutos: { Args: { p_dias: number | null }; Returns: number }
       fn_credito_pagos_estado: { Args: { p_cliente: string | null }; Returns: Json }
       fn_difusion_avisa_bolsa: { Args: { p_envio: string | null }; Returns: undefined }

@@ -4,6 +4,7 @@
 // (columnas Cliente · Contacto · Domicilio fiscal · Crédito · Consumo · Factor · Creado ·
 // Estado; ficha en la ventana del panel con la rejilla .ptar-sitio-grid).
 import { useEffect, useState } from 'react';
+import BuscarEnRegistro from './BuscarEnRegistro';
 import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -286,6 +287,10 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
         : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0 0 0.7rem' }}>El logo de la empresa se puede añadir al abrir su ficha, una vez creado el cliente.</p>}
       <div className="ptar-sitio-grid">
         {titulo('Empresa')}
+        {/* Cliente nuevo: rellenar desde el Registro (APIEmpresas.es; apagado hasta tener clave). */}
+        {!fila && <BuscarEnRegistro id="cli-registro" onElegir={(e) => setD((x) => conProvinciaDelCp({ ...x, razon_social: e.razon_social, cif: e.cif,
+          direccion: e.direccion || x.direccion, codigo_postal: e.codigo_postal || x.codigo_postal, poblacion: e.poblacion || x.poblacion,
+          provincia: e.provincia || x.provincia, pais_codigo_iso: 'ES' }, 'ES'))} />}
         {campo('razon_social', <>Razón social <Req /></>, 'Ej. Marbex Industrial S.L.', true)}
         {campo('cif', <>CIF / NIF <Req /></>, 'B12345678 / 12345678Z')}
         <div>

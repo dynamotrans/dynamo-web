@@ -14239,3 +14239,74 @@ do $$ begin
   delete from transportistas where id = current_setting('prueba.t320')::uuid;
   raise notice 'OK 320 · el email de un transportista no se puede dar de alta como cliente (web, cuenta por su cuenta, Dynamo ni cambio de email); las cuentas de transportista que crea Dynamo siguen funcionando';
 end $$;
+
+-- ---- 321. Autorrelleno de datos fiscales (APIEmpresas.es): apagado, tope, saldo y aviso (usuario, 2026-11-22) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into auth.users (email, raw_user_meta_data) values ('alta321@prueba.es', '{"nombre":"Alta Trescientos Veintiuno"}');
+do $$ declare u uuid; ok boolean; r jsonb; n int; begin
+  select id into u from usuarios where email = 'alta321@prueba.es';
+  perform set_config('prueba.u321', u::text, false);
+  -- Nace APAGADO: ni Dynamo lo ve encendido ni se puede apuntar una consulta.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  if (autorrelleno_empresas_estado() ->> 'activo')::boolean then raise exception 'FALLO 321 · el autorrelleno nace encendido'; end if;
+  ok := false;
+  begin perform empresa_registro_apuntar_consulta('cif', 'B32100001'); exception when others then ok := sqlerrm like '%autorrelleno_apagado%'; end;
+  if not ok then raise exception 'FALLO 321 · apagado, se apunta una consulta de pago'; end if;
+  reset role;
+  update parametros set valor = 'true'::jsonb where clave = 'autorrelleno_empresas_activo';
+  update parametros set valor = '2'::jsonb where clave = 'autorrelleno_empresas_max_dia';
+  update parametros set valor = '52'::jsonb where clave = 'autorrelleno_empresas_consultas_restantes';
+  -- Quien tiene el alta pendiente: 2 al día y la tercera no.
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  r := autorrelleno_empresas_estado();
+  if not (r ->> 'activo')::boolean or (r ->> 'quedan_hoy')::int <> 2 then raise exception 'FALLO 321 · el estado para el alta no es el esperado: %', r; end if;
+  n := empresa_registro_apuntar_consulta('cif', 'B32100001');
+  if n <> 51 then raise exception 'FALLO 321 · no descuenta del saldo (%)', n; end if;
+  n := empresa_registro_apuntar_consulta('nombre', 'Marbex');
+  ok := false;
+  begin perform empresa_registro_apuntar_consulta('cif', 'B32100002'); exception when others then ok := sqlerrm like '%autorrelleno_tope%'; end;
+  if not ok then raise exception 'FALLO 321 · deja pasar del tope diario'; end if;
+  -- No puede guardar datos del Registro (solo el servidor).
+  ok := false;
+  begin perform empresa_registro_guardar('B32100001', 'FALSA SL', null, null, null, null, null); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 321 · un usuario guarda datos del Registro a mano'; end if;
+  reset role;
+  -- Al llegar al umbral (50): aviso a Dynamo en la campana y por email.
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'autorrelleno_saldo' and texto like '%Quedan 50 consultas%')
+     or not exists (select 1 from emails_enviados where tipo = 'autorrelleno_saldo' and clave like 'autorrelleno_saldo:50:%') then
+    raise exception 'FALLO 321 · al quedar 50 consultas no se avisa a Dynamo'; end if;
+  -- El servidor guarda lo que devolvió la API y se lee sin coste; un cliente ya activo no lo ve.
+  perform empresa_registro_guardar('b-321.00001', 'MARBEX INDUSTRIAL SL', 'CALLE EJEMPLO 1', '28001', 'MADRID', 'Madrid', 'activa');
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  if (select razon_social from empresa_registro_guardada('B32100001')) is distinct from 'MARBEX INDUSTRIAL SL' then
+    raise exception 'FALLO 321 · no se lee lo ya consultado de un CIF'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  if exists (select 1 from empresa_registro_guardada('B32100001')) or (autorrelleno_empresas_estado() ->> 'activo')::boolean then
+    raise exception 'FALLO 321 · un cliente ya activo usa el autorrelleno'; end if;
+  reset role;
+  -- Sin saldo: Dynamo tampoco consulta.
+  update parametros set valor = '0'::jsonb where clave = 'autorrelleno_empresas_consultas_restantes';
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  ok := false;
+  begin perform empresa_registro_apuntar_consulta('cif', 'B32100003'); exception when others then ok := sqlerrm like '%autorrelleno_sin_saldo%'; end;
+  if not ok then raise exception 'FALLO 321 · sin saldo se sigue consultando la API'; end if;
+  reset role;
+  if has_function_privilege('anon', 'public.autorrelleno_empresas_estado()', 'execute')
+     or has_function_privilege('authenticated', 'public.empresa_registro_guardar(text, text, text, text, text, text, text)', 'execute') then
+    raise exception 'FALLO 321 · permisos de las funciones del autorrelleno demasiado abiertos'; end if;
+  -- Vuelta a como estaba.
+  update parametros set valor = 'false'::jsonb where clave = 'autorrelleno_empresas_activo';
+  update parametros set valor = '10'::jsonb where clave = 'autorrelleno_empresas_max_dia';
+  update parametros set valor = '100'::jsonb where clave = 'autorrelleno_empresas_consultas_restantes';
+  delete from empresas_registro where cif = 'B32100001';
+  delete from empresas_registro_consultas where usuario_id = u;
+  raise notice 'OK 321 · autorrelleno de datos fiscales: nace apagado; tope diario, saldo que se descuenta, aviso a Dynamo al umbral y sin saldo no consulta; solo el servidor guarda lo de la API';
+end $$;
+reset role;

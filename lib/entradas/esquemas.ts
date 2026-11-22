@@ -26,6 +26,8 @@ export const ESQUEMAS = {
   "app/panel/(app)/altas/acciones#borrarAlta": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/altas/acciones#confirmarAlta": z.tuple([z.string().uuid().or(z.literal('')), z.union([z.object({ id: z.string().uuid().or(z.literal('')) }), z.object({ nuevo: z.object({ razon_social: z.string().max(1000), cif: z.string().max(1000), direccion: z.string().max(1000), codigo_postal: z.string().max(1000), poblacion: z.string().max(1000), provincia: z.string().max(1000), pais_codigo_iso: z.string().max(1000) }) })])]),
   "app/panel/(app)/altas/acciones#suspenderAlta": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/autorrelleno/acciones#autorrellenoActivo": z.tuple([]),
+  "app/panel/(app)/autorrelleno/acciones#buscarEnRegistro": z.tuple([z.string().max(5000)]),
   "app/panel/(app)/buscador/acciones#busquedaGlobal": z.tuple([z.string().max(1000)]),
   "app/panel/(app)/buscador/acciones#muestraGlobal": z.tuple([]),
   "app/panel/(app)/clientes/acciones#devolverCredito": z.tuple([z.string().max(1000)]),

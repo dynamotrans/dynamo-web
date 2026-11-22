@@ -406,6 +406,14 @@ DNI/NIE y teléfono de conductores, y **firmas de CMR con valor probatorio**.
 - **Alerta de presupuesto** por email al 50 % y al 80 %.
 - Vigilar el **plan de Supabase** según crezcan los datos: un salto de plan sorpresa a
   mitad de mes es mejor verlo venir.
+- **Autorrelleno de datos de empresas (APIEmpresas.es)** — construido y apagado (2026-11-22). Para
+  encenderlo: (1) cuenta en apiempresas.es; probar con las 100 consultas gratis usando CIF reales
+  conocidos; (2) comprar el **bono de 9 € / 1.000 consultas** (no caduca; nada de suscripción);
+  (3) crear la clave y pegarla en Vercel como `APIEMPRESAS_API_KEY` (Sensitive, Preview y
+  Production; nunca en el chat ni en el repo); (4) en Parámetros → Plataforma: encender, y en
+  «consultas que quedan» poner las del bono (p. ej. 1000). El aviso de saldo bajo llega solo.
+  **Al encenderlo, comprobar con su documentación** las rutas de la API y los nombres de los
+  campos (`lib/apiEmpresas.ts`; salieron de un ticket de Gemini) con una consulta real.
 
 ---
 
