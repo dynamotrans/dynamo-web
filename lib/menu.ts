@@ -25,6 +25,7 @@ export const ICONOS: Record<string, string> = {
   bandeja: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
   salir: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
   sugerencias: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/>',
+  mapa: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
   soporte: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
 };
 
@@ -48,6 +49,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
     return [{ items: [
       { slug: 'dashboard', titulo: 'Dashboard cliente', icono: 'dashboard' },
       { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
+      // Todos sus envíos en curso en un mapa (usuario, 2026-11-22).
+      { slug: 'mapa', titulo: 'Mapa de envíos', icono: 'mapa' },
       { slug: 'sitios', titulo: 'Sitios', icono: 'sitios' },
       { grupo: 'otras', titulo: 'Otras gestiones', icono: 'capas', enlaces: [
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
@@ -68,6 +71,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       // Dashboard admin (usuario, 2026-11-09); /panel/para-hoy redirige allí.
       { slug: 'dashboard-admin', titulo: 'Dashboard admin', icono: 'dashboard' },
       { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
+      { slug: 'mapa', titulo: 'Mapa de envíos', icono: 'mapa' },
       { grupo: 'otras', titulo: 'Operativa', icono: 'capas', enlaces: [
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
         { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },

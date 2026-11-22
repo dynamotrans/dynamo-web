@@ -14569,3 +14569,41 @@ do $$ declare r jsonb; v_doc uuid; begin
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 324 · verificación de albaranes: entrada solo del servidor, sin repetir archivo ni contenido, asignada por la GX del nombre; el cliente no los ve hasta aceptarlos (con aviso); rechazar borra; reasignar cambia envío y nombre';
 end $$;
+
+-- ---- 325. Mapa general de envíos en curso -----------------------------------------------
+-- Dynamo ve todos los que están en programación o en marcha; el cliente, solo los suyos; el
+-- transportista, nada. Nunca entregados ni cancelados.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.e325', e::text, false);
+end $$;
+do $$ declare r jsonb; ids text[]; e323 text := current_setting('prueba.e323'); e324 text := current_setting('prueba.e325'); begin
+  -- 323 está entregado; 325 está programado (del cliente de pruebas).
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := mapa_envios_en_curso();
+  select array_agg(x ->> 'id') into ids from jsonb_array_elements(r) x;
+  if not (e324 = any(ids)) or e323 = any(ids) then raise exception 'FALLO 325 · Dynamo no ve lo programado o ve lo entregado'; end if;
+  if exists (select 1 from jsonb_array_elements(r) x where x ->> 'estado' not in ('programado', 'hacia_la_carga', 'cargando', 'en_ruta')) then
+    raise exception 'FALLO 325 · salen entregados o cancelados'; end if;
+  if (select x ->> 'cliente' from jsonb_array_elements(r) x where x ->> 'id' = e324) is null then raise exception 'FALLO 325 · Dynamo no ve el cliente'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  r := mapa_envios_en_curso();
+  if not exists (select 1 from jsonb_array_elements(r) x where x ->> 'id' = e324)
+     or exists (select 1 from jsonb_array_elements(r) x join envios v on v.id = (x ->> 'id')::uuid where v.cliente_id <> current_setting('prueba.cliente')::uuid)
+     or exists (select 1 from jsonb_array_elements(r) x where x ->> 'cliente' is not null) then
+    raise exception 'FALLO 325 · el cliente no ve solo lo suyo (o ve el nombre del cliente)'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  if exists (select 1 from jsonb_array_elements(mapa_envios_en_curso()) x where x ->> 'id' = e324) then raise exception 'FALLO 325 · otro cliente ve envíos ajenos en el mapa'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+  if jsonb_array_length(mapa_envios_en_curso()) <> 0 then raise exception 'FALLO 325 · el transportista ve el mapa general'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 325 · mapa general: Dynamo ve todos los envíos en programación o en marcha (con cliente), el cliente solo los suyos, el transportista nada; nunca entregados ni cancelados';
+end $$;

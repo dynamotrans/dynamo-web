@@ -14,12 +14,12 @@ import { mapaDelEnvio } from '@/app/panel/(app)/envios/acciones-mapa';
 import { estadoMapa, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
 import { fechaHora } from '@/lib/formato';
 
-const TESELAS = process.env.NEXT_PUBLIC_MAPA_TESELAS || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const ATRIBUCION = process.env.NEXT_PUBLIC_MAPA_ATRIBUCION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
-const COLOR = { carga: '#e07b00', descarga: '#3300cc', hecho: '#16a34a', ruta: '#3300cc', pendiente: '#9ca3af' };
-const TONO: Record<string, string> = { gris: '#6b7280', azul: '#2563eb', ambar: '#d97706', verde: '#16a34a', rojo: '#dc2626' };
+export const TESELAS = process.env.NEXT_PUBLIC_MAPA_TESELAS || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const ATRIBUCION = process.env.NEXT_PUBLIC_MAPA_ATRIBUCION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+export const COLOR = { carga: '#e07b00', descarga: '#3300cc', hecho: '#16a34a', ruta: '#3300cc', pendiente: '#9ca3af' };
+export const TONO: Record<string, string> = { gris: '#6b7280', azul: '#2563eb', ambar: '#d97706', verde: '#16a34a', rojo: '#dc2626' };
 
-const IcoMapa = () => (
+export const IcoMapa = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" /><path d="M9 4v14M15 6v14" />
   </svg>

@@ -91,6 +91,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones-cmr#guardarDatosCmr": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000), z.string().max(1000), z.string().max(1000)]),
   "app/panel/(app)/envios/acciones-cmr#leerDatosCmr": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones-mapa#mapaDelEnvio": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/envios/acciones-mapa#mapaEnviosEnCurso": z.tuple([]),
   "app/panel/(app)/envios/acciones-transportista#enlaceCmrPropio": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones-transportista#marcarViaje": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/envios/acciones-transportista#responderCambioTransportista": z.tuple([z.string().max(1000), z.boolean(), z.string().max(5000).optional()]),

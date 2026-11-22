@@ -1312,4 +1312,19 @@ test.describe('novedades', () => {
       return (count ?? 0) - (antes ?? 0);
     }).toBe(1);
   });
+  test('mapa general: el cliente y Dynamo ven sus envíos en curso, con filtro y encuadre', async ({ page }) => {
+    await envioProgramadoDelTransportista('id');
+    for (const quien of ['cliente', 'dynamo'] as const) {
+      await entrar(page, quien);
+      await page.goto('/panel/mapa');
+      await expect(page.getByRole('heading', { name: 'Mapa de envíos' })).toBeVisible();
+      await expect(page.locator('[data-mapa-general].leaflet-container')).toBeVisible();
+      // Al menos un envío programado o en marcha, pintado (punto o camión).
+      await expect.poll(async () => page.locator('[data-mapa-general] .leaflet-interactive, [data-mapa-general] .leaflet-marker-icon').count(), { timeout: 15_000 }).toBeGreaterThan(0);
+      await page.getByRole('tab', { name: /^Programados/ }).click();
+      await expect(page.getByRole('tab', { name: /^Programados/ })).toHaveAttribute('aria-selected', 'true');
+      await expect(page.getByLabel('Leyenda del mapa general')).toContainText('En marcha');
+      await page.context().clearCookies();
+    }
+  });
 });
