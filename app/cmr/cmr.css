@@ -169,3 +169,4 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
 .cmr-page .sig-pista .sp-flecha { display: inline-block; font-size: 1.1rem; animation: sigPistaBote 1.1s ease infinite; }
 @keyframes sigPistaBote { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .cmr-page .sig-pista .sp-flecha { animation: none; } }
+.cmr-page .sig-foto-btn:disabled { opacity: 0.55; cursor: default; }

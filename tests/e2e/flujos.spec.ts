@@ -130,6 +130,10 @@ test.describe.serial('flujos clave', () => {
     await f.fill('#sigDni', '12345678Z');
     // El email es obligatorio desde 2026-11-14: a esa dirección va la copia del firmado.
     await f.fill('#sigEmail', 'pedro.cargador@prueba.invalid');
+    // Código al email (2026-11-22): opcional. A una dirección de prueba (.invalid) no se manda;
+    // la ventana lo dice y se firma igual, como «email sin verificar».
+    await f.getByRole('button', { name: /Verificar mi email con un código/ }).click();
+    await expect(f.getByText(/No hemos podido mandar el código/)).toBeVisible({ timeout: 15_000 });
     // Antes de firmar puede añadir fotos de otros documentos (misma ventana de subir, contra
     // el almacén de verdad): una página, y queda en los documentos del envío.
     const pagina = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
@@ -158,6 +162,9 @@ test.describe.serial('flujos clave', () => {
       const { count } = await bd().from('firmas_cmr').select('*', { count: 'exact', head: true }).eq('envio_id', envioAceptado);
       return count;
     }).toBe(1);
+    // Sin código: la base de datos la deja como «email sin verificar» (la firma la registró el servidor).
+    const { data: firma } = await bd().from('firmas_cmr').select('email_verificado, ip, navegador').eq('envio_id', envioAceptado).single();
+    expect(firma?.email_verificado).toBe(false);
 
     // Y quien no quiere firmar en el móvil sube el CMR en papel desde la misma hoja: se
     // añaden dos páginas, se quita una con su miniatura y se finaliza. Va contra el almacén

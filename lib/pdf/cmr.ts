@@ -526,7 +526,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       const cajas = [
         { tit: 'El QR abre el DeCA', txt: 'El código QR lleva al documento de control (DeCA) del transporte en PDF, siempre al día. El DeCA de la Orden FOM/2861/2012 es otro documento, sin firmas: este CMR es la carta de porte y no lo sustituye.' },
         { tit: 'Este CMR se verifica en línea', txt: 'En la dirección de verificación de abajo está el CMR original, con su nº único, sus firmas y su registro. En transporte internacional rigen el Convenio CMR y el Protocolo e-CMR (Ginebra, 2008).' },
-        { tit: 'Las firmas valen: Reglamento eIDAS (UE 910/2014), art. 25', txt: 'Firma electrónica con evidencias de identidad, tiempo y ubicación (hora del servidor, GPS y huella SHA-256): no se le pueden negar efectos jurídicos y es admisible como prueba ante organismos, peritos y tribunales.' },
+        { tit: 'Las firmas valen: Reglamento eIDAS (UE 910/2014), art. 25', txt: 'Firma electrónica con evidencias de identidad, tiempo y ubicación (hora del servidor, GPS, huella SHA-256 y, si quien firma lo confirma, su email verificado con código): no se le pueden negar efectos jurídicos y es admisible como prueba ante organismos, peritos y tribunales.' },
       ].map((c) => {
         const tit = l.partir(c.tit, 7.4, colAncho - 18, true);
         const txt = l.partir(c.txt, 6.6, colAncho - 18);
@@ -643,7 +643,7 @@ export async function cmr(d: DatosDoc, op: { sinDeca?: boolean } = {}): Promise<
       if (par) l.texto(tx, l.y + 24, corta(par, 7), 7, { color: COLOR.gris });
       l.texto(tx, l.y + (par ? 35 : 27), f.en_papel
         ? `Firmado en papel por ${quienFirmo(f)} · registrado el ${fechaFirma(f.firmado_en)}`
-        : `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)}`, 7.4, { color: COLOR.tinta });
+        : `Firmado por ${f.nombre} · ${f.documento} · ${fechaFirma(f.firmado_en)} · ${f.email_verificado ? 'email verificado con código' : 'email sin verificar'}`, 7.4, { color: COLOR.tinta });
       if (f.en_papel) l.texto(tx, l.y + (par ? 46 : 38), 'Firmó en un CMR en papel con esta misma referencia (CMR bis), que se añade a este CMR electrónico y lo completa.', 6.8, { color: COLOR.gris });
       if (f.lat != null && f.lon != null) {
         const gpsTxt = `GPS: ${f.lat.toFixed(5)}, ${f.lon.toFixed(5)}${f.gps_precision_m != null ? ` (±${f.gps_precision_m} m)` : ''}${f.gps_direccion ? ` · ${f.gps_direccion}` : ''}`;

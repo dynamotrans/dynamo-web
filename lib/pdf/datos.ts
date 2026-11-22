@@ -90,6 +90,7 @@ export function decaConMatriculas(d: { envio: { matricula_camion?: string | null
 
 export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; extra: boolean; lat: number | null; lon: number | null; gps_precision_m: number | null; gps_direccion: string | null; sha256: string | null; png: Uint8Array | null 
   en_papel?: boolean;     // firmada en papel (CMR bis) y registrada después: sin trazo
+  email_verificado?: boolean;   // quien firmó confirmó su email con el código de 6 cifras (2026-11-22)
   papel?: Uint8Array | null };   // la foto (o el PDF) de ese CMR en papel: va de anexo al final del CMR (usuario, 2026-11-17)
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la
@@ -104,7 +105,7 @@ export async function cargarFirmasCmr(sb: SB, envioId: string): Promise<FirmaDoc
     const blob = f.en_papel ? null : bajado;
     const papel = f.en_papel && bajado ? new Uint8Array(await bajado.arrayBuffer()) : null;
     return { en_papel: !!f.en_papel, papel, rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
-      extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion, sha256: f.sha256, png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
+      extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion, sha256: f.sha256, email_verificado: !!f.email_verificado, png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
   }));
 }
 
@@ -337,7 +338,7 @@ export async function cargarDatosCmrPorToken(sb: SB, token: string):
     papel: f.en_papel ? papeles.get(f.ruta) ?? null : null,
     rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: f.documento, firmado_en: f.firmado_en,
     extra: f.extra, lat: f.lat, lon: f.lon, gps_precision_m: f.gps_precision_m, gps_direccion: f.gps_direccion,
-    sha256: f.sha256, en_papel: !!f.en_papel, png: f.trazo && !f.en_papel ? new Uint8Array(Buffer.from(f.trazo, 'base64')) : null }));
+    sha256: f.sha256, en_papel: !!f.en_papel, email_verificado: !!f.email_verificado, png: f.trazo && !f.en_papel ? new Uint8Array(Buffer.from(f.trazo, 'base64')) : null }));
   let dynamo: DatosDynamo | undefined;
   if (j.dynamo) {
     const o: Record<string, string> = { ...DYNAMO };

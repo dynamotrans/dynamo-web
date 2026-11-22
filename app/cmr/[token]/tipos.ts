@@ -10,6 +10,7 @@ export type FirmaCmr = {
   rol: string; parada_id: string | null; ruta: string; nombre: string; documento: string;
   documento_pais?: string | null; firmado_en: string; extra?: boolean;
   en_papel?: boolean;   // firmó en un CMR en papel (CMR bis) y Dynamo lo registró después
+  email_verificado?: boolean;   // confirmó su email con el código de 6 cifras
 };
 export type ReservaCmr = { rol: string; parada_id: string | null; texto: string };
 

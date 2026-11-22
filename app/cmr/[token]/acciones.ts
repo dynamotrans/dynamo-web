@@ -3,6 +3,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { headers } from 'next/headers';
 import { supabasePublico } from '@/lib/supabase/publico';
+import { supabaseServicio } from '@/lib/supabase/servicio';
+import { codigoNuevo, huellaCodigo, mandarCodigoFirma } from '@/lib/servidor/codigoFirma';
 import { validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
@@ -51,6 +53,14 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(d.png);
   const png = m ? Buffer.from(m[1], 'base64') : null;
   if (!png || png.length < 200 || png.length > 600_000 || png.subarray(0, 4).toString('hex') !== '89504e47') return { ok: false, error: 'Falta la firma: firma con el dedo dentro del recuadro.' };
+  // La firma SOLO la registra este servidor, con la clave de servicio (usuario, 2026-11-22):
+  // la base de datos rechaza la clave pública, así que la hora, la IP, el navegador y la
+  // huella de lo firmado son siempre los que pone aquí el servidor, nunca los de quien llama.
+  const srv = supabaseServicio();
+  if (!srv) {
+    console.error('[cmr/firmar] falta SUPABASE_SERVICE_ROLE_KEY: no se puede registrar la firma');
+    return { ok: false, error: `Ahora mismo no se puede guardar la firma. Llámanos al ${CONTACTO.telefono}.` };
+  }
 
   // Lo que había en pantalla al firmar (sin las firmas): su huella prueba QUÉ se firmó.
   const rCmr = await reintentando(() => sb.rpc('cmr_publico', { p_token: token }), (x) => x.error?.message ?? null);
@@ -77,7 +87,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   if (reservas) {
     const fotos = (d.fotos ?? []).filter((f) => f.startsWith(`cmr/${token}/`)).slice(0, 6);
     if ((await ficherosNoValidos(fotos, `cmr/${token}/foto-`, true)).length) return { ok: false, error: 'Una de las fotos no es una imagen de verdad: quítala y vuelve a hacerla.' };
-    const { data: rv, error: er } = await sb.rpc('anotar_reservas_cmr_publico', { p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_texto: reservas, p_fotos: fotos.length ? fotos : null });
+    const { data: rv, error: er } = await srv.rpc('anotar_reservas_cmr_publico', { p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_texto: reservas, p_fotos: fotos.length ? fotos : null });
     const rr = (rv as { resultado?: string } | null)?.resultado;
     if (er || rr !== 'ok') return { ok: false, error: rr === 'texto_no_valido' ? 'Las reservas tienen que tener entre 3 y 1.000 caracteres.' : rr === 'demasiadas' ? `Ya hay varias reservas anotadas en esta casilla: llámanos al ${CONTACTO.telefono}.` : 'No se han podido guardar las reservas. Vuelve a intentarlo o llámanos.' };
   }
@@ -101,7 +111,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   // sea un par finito dentro de rango.
   const g = d.gps && Number.isFinite(d.gps.lat) && Number.isFinite(d.gps.lon)
     && Math.abs(d.gps.lat) <= 90 && Math.abs(d.gps.lon) <= 180 ? d.gps : null;
-  const { data, error } = await sb.rpc('firmar_cmr_publico', {
+  const { data, error } = await srv.rpc('firmar_cmr_publico', {
     p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_nombre: d.nombre, p_documento: v.norm, p_pais: d.pais,
     p_validado: !v.soft, p_email: d.email, p_ruta: ruta, p_ip: ip, p_navegador: h.get('user-agent'), p_sha256: sha, p_extra: !!d.extra,
     p_lat: g?.lat ?? null, p_lon: g?.lon ?? null,
@@ -121,8 +131,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     // el tope de ficheros del enlace. Con un fallo de transporte no se borra: la firma
     // podría haberse registrado igualmente y su trazo debe quedarse.
     try {
-      const { supabaseServicio } = await import('@/lib/supabase/servicio');
-      await supabaseServicio()?.storage.from('documentos').remove([ruta]);
+      await srv.storage.from('documentos').remove([ruta]);
     } catch { /* mejor un huérfano que romper el aviso de error */ }
   }
   if (error) {
@@ -143,6 +152,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   const msg: Record<string, string> = {
     ya_firmada: 'Esta casilla ya está firmada.', demasiadas_firmas: 'Ya hay 3 firmas extra en este CMR: no caben más.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
     parada_no_valida: 'Esa casilla no corresponde a este envío.', faltan_datos: 'Indica el documento y el nombre y apellidos.', falta_trazo: 'Falta la firma.',
+    solo_servidor: `Ahora mismo no se puede guardar la firma. Llámanos al ${CONTACTO.telefono}.`,
     sin_transportista: 'El envío no tiene transportista asignado ahora mismo: no se puede firmar hasta que se asigne.',
     faltan_matriculas: 'Faltan las matrículas del camión (tractora y semirremolque): ponlas en la ventana de firma (sin ellas no se puede salir de la 1.ª parada).',
     matricula_no_valida: 'La matrícula no es válida: solo letras, números, espacios y guiones (de 2 a 16).',
@@ -151,6 +161,52 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     faltan_sitios: 'El envío no tiene completos sus sitios de recogida y entrega: no se puede firmar hasta que Dynamo los complete.',
   };
   return { ok: false, error: msg[r ?? ''] ?? 'No se ha podido guardar la firma.' };
+}
+
+// CÓDIGO DE 6 CIFRAS AL EMAIL DE QUIEN FIRMA (usuario, 2026-11-22). Opcional: si lo escribe
+// bien antes de firmar, la base de datos marca su firma «email verificado» (sale en el PDF);
+// sin él se firma igual («email sin verificar»), para no dejar a nadie tirado en un muelle sin
+// cobertura de email. Todo con la clave de servicio: el código no viaja nunca al navegador.
+export type CasillaCodigo = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; email: string };
+const EMAIL_VALE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export async function pedirCodigoFirma(token: string, c: CasillaCodigo): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/cmr/[token]/acciones#pedirCodigoFirma", [token, c]);
+  const email = (c.email ?? '').trim().toLowerCase();
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return { ok: false, error: 'Este enlace no es válido.' };
+  if (!EMAIL_VALE.test(email)) return { ok: false, error: 'Pon antes un email válido.' };
+  const srv = supabaseServicio();
+  if (!srv) return { ok: false, error: 'Ahora mismo no se puede mandar el código. Puedes firmar sin él.' };
+  const codigo = codigoNuevo();
+  const { data, error } = await srv.rpc('cmr_codigo_firma_crear', { p_token: token, p_parada: c.parada_id, p_rol: c.rol, p_email: email, p_codigo_sha: huellaCodigo(token, codigo) });
+  const j = (error ? null : data) as { resultado?: string; id?: string; envio_id?: string; referencia?: string | null } | null;
+  if (j?.resultado === 'ok' && j.id && j.envio_id) {
+    const salio = await mandarCodigoFirma({ codigoId: j.id, envioId: j.envio_id, para: email, codigo, referencia: j.referencia ?? null });
+    return salio ? { ok: true, email } : { ok: false, error: 'No hemos podido mandar el código a ese email. Revisa que está bien escrito o firma sin código.' };
+  }
+  const msg: Record<string, string> = {
+    espera: 'Acabamos de mandarte un código: espera un minuto antes de pedir otro (mira también en «Spam»).',
+    demasiados: 'Se han pedido demasiados códigos. Firma sin código o llámanos.',
+    email_no_valido: 'Pon antes un email válido.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
+  };
+  if (error) console.error('[cmr/codigo] fallo al apuntar el código', { token, codigo: error.code, mensaje: error.message });
+  return { ok: false, error: msg[j?.resultado ?? ''] ?? 'No se ha podido mandar el código. Puedes firmar sin él.' };
+}
+
+export async function comprobarCodigoFirma(token: string, c: CasillaCodigo & { codigo: string }): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/cmr/[token]/acciones#comprobarCodigoFirma", [token, c]);
+  const codigo = (c.codigo ?? '').replace(/\D/g, '');
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return { ok: false, error: 'Este enlace no es válido.' };
+  if (codigo.length !== 6) return { ok: false, error: 'El código tiene 6 cifras.' };
+  const srv = supabaseServicio();
+  if (!srv) return { ok: false, error: 'Ahora mismo no se puede comprobar el código. Puedes firmar sin él.' };
+  const { data, error } = await srv.rpc('cmr_codigo_firma_comprobar', { p_token: token, p_parada: c.parada_id, p_rol: c.rol, p_email: (c.email ?? '').trim().toLowerCase(), p_codigo_sha: huellaCodigo(token, codigo) });
+  const j = (error ? null : data) as { resultado?: string; quedan?: number } | null;
+  if (j?.resultado === 'ok') return { ok: true };
+  if (j?.resultado === 'no_coincide') return { ok: false, error: `El código no coincide. Te quedan ${j.quedan ?? 0} intentos.` };
+  if (j?.resultado === 'bloqueado') return { ok: false, error: 'Demasiados intentos con este código: pide uno nuevo.' };
+  if (j?.resultado === 'caducado') return { ok: false, error: 'Ese código ha caducado (15 minutos) o es de otro email: pide uno nuevo.' };
+  return { ok: false, error: 'No se ha podido comprobar el código. Vuelve a intentarlo o firma sin él.' };
 }
 
 // Páginas del CMR / carta de porte EN PAPEL (usuario, 2026-11-17): quien no quiere firmar

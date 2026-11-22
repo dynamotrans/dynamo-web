@@ -7449,7 +7449,8 @@ do $$ declare faltan text; begin
                            'deca_motivos',             -- motivos del DeCA: solo los lee el PDF al generarse
                            'envio_compartidos',        -- historial de envíos de DeCA, CMR y orden: se lee al abrir su ventana
                            'envio_cambios',            -- contador de «anular el cambio»: se pide al pintar la lista y la ficha, que ya se refrescan con la señal de envios
-                           'transportista_cancelaciones')  -- contador de la ficha del transportista: cambia al quitar o cambiar el transportista de un envío (señal de envios)
+                           'transportista_cancelaciones',  -- contador de la ficha del transportista: cambia al quitar o cambiar el transportista de un envío (señal de envios)
+                           'cmr_codigos_firma')        -- códigos de firma del CMR: solo los usa el servidor, no se pintan en el panel
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
     raise exception 'FALLO 194 · tablas con envio_id sin señal en vivo (añadirla o justificarla en la lista): %', faltan;
@@ -14310,3 +14311,92 @@ do $$ declare u uuid; ok boolean; r jsonb; n int; begin
   raise notice 'OK 321 · autorrelleno de datos fiscales: nace apagado; tope diario, saldo que se descuenta, aviso a Dynamo al umbral y sin saldo no consulta; solo el servidor guarda lo de la API';
 end $$;
 reset role;
+
+-- ---- 322. e-CMR: la firma solo desde el servidor y código de 6 cifras al email ----------
+-- Con la clave pública (rol anon o authenticated) no se registra ninguna firma ni reservas:
+-- solo el servidor (clave de servicio). El código se apunta por su huella, con topes; si quien
+-- firma lo escribe bien, la firma queda «email verificado» (lo decide la base de datos) y el
+-- código se gasta; sin código, «sin verificar». Se ve en la hoja pública y en el PDF.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; t uuid; tok uuid; begin
+  insert into transportistas (razon_social, cif) values ('Transp 322 SL', 'B32200322') returning id into t;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado', transportista_id = t where id = e;
+  select token into tok from cmr_enlaces where envio_id = e and not revocado;
+  insert into storage.objects (bucket_id, name, metadata)
+  values ('documentos', 'cmr/' || tok::text || '/t322-1.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000)),
+         ('documentos', 'cmr/' || tok::text || '/t322-2.png', jsonb_build_object('mimetype', 'image/png', 'size', 2000));
+  perform set_config('prueba.tok322', tok::text, false);
+end $$;
+-- (a) Con la clave pública: rechazado, sin escribir nada.
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok322')::uuid; r jsonb; begin
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Falso', '12345678Z', 'ES', true, 'falso@x.com', 'cmr/' || tok::text || '/t322-1.png',
+                          '9.9.9.9', 'inventado', repeat('b', 64), p_matricula_camion => '3220AAA', p_matricula_remolque => 'R3220AAA');
+  if r ->> 'resultado' <> 'solo_servidor' then raise exception 'FALLO 322 · con la clave pública se registra una firma: %', r; end if;
+  r := anotar_reservas_cmr_publico(tok, null, 'transportista', 'Reservas inventadas');
+  if r ->> 'resultado' <> 'solo_servidor' then raise exception 'FALLO 322 · con la clave pública se anotan reservas: %', r; end if;
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Falso', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t322-1.png', null, null, null);
+  if r ->> 'resultado' <> 'solo_servidor' then raise exception 'FALLO 322 · con sesión de usuario se registra una firma: %', r; end if;
+  perform set_config('request.jwt.claim.role', '', true);
+end $$;
+reset role;
+do $$ declare tok uuid := current_setting('prueba.tok322')::uuid; e uuid; r jsonb; i int;
+  h text := encode(sha256(convert_to(current_setting('prueba.tok322') || ':322322', 'UTF8')), 'hex');
+  mal text := encode(sha256(convert_to(current_setting('prueba.tok322') || ':000000', 'UTF8')), 'hex');
+begin
+  select envio_id into e from cmr_enlaces where token = tok;
+  if exists (select 1 from firmas_cmr where envio_id = e) or exists (select 1 from incidencias where envio_id = e) then
+    raise exception 'FALLO 322 · la llamada rechazada ha dejado algo escrito'; end if;
+  if has_function_privilege('anon', 'public.cmr_codigo_firma_crear(uuid, uuid, text, text, text)', 'execute')
+     or has_function_privilege('authenticated', 'public.cmr_codigo_firma_comprobar(uuid, uuid, text, text, text)', 'execute')
+     or not has_function_privilege('service_role', 'public.cmr_codigo_firma_crear(uuid, uuid, text, text, text)', 'execute') then
+    raise exception 'FALLO 322 · permisos de los códigos de firma mal puestos'; end if;
+  -- (b) El servidor apunta el código (solo su huella) y lo comprueba.
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  r := cmr_codigo_firma_crear(tok, null, 'transportista', 'mal-email', h);
+  if r ->> 'resultado' <> 'email_no_valido' then raise exception 'FALLO 322 · acepta un email no válido: %', r; end if;
+  r := cmr_codigo_firma_crear(tok, null, 'transportista', ' Chofer@T322.com ', h);
+  if r ->> 'resultado' <> 'ok' or r ->> 'email' <> 'chofer@t322.com' then raise exception 'FALLO 322 · no apunta el código: %', r; end if;
+  if (select codigo_sha from cmr_codigos_firma where id = (r ->> 'id')::uuid) <> h then raise exception 'FALLO 322 · no guarda la huella'; end if;
+  r := cmr_codigo_firma_crear(tok, null, 'transportista', 'chofer@t322.com', h);
+  if r ->> 'resultado' <> 'espera' then raise exception 'FALLO 322 · deja pedir dos códigos seguidos: %', r; end if;
+  r := cmr_codigo_firma_comprobar(tok, null, 'transportista', 'chofer@t322.com', mal);
+  if r ->> 'resultado' <> 'no_coincide' or (r ->> 'quedan')::int <> 4 then raise exception 'FALLO 322 · un código mal no cuenta como fallo: %', r; end if;
+  r := cmr_codigo_firma_comprobar(tok, gen_random_uuid(), 'remitente', 'chofer@t322.com', h);
+  if r ->> 'resultado' <> 'caducado' then raise exception 'FALLO 322 · el código vale para otra casilla: %', r; end if;
+  r := cmr_codigo_firma_comprobar(tok, null, 'transportista', 'CHOFER@t322.com', h);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 322 · el código bueno no verifica: %', r; end if;
+  -- 5 fallos: el código ya no vale ni bien escrito.
+  r := cmr_codigo_firma_crear(tok, null, 'transportista', 'otro@t322.com', h);
+  for i in 1..5 loop r := cmr_codigo_firma_comprobar(tok, null, 'transportista', 'otro@t322.com', mal); end loop;
+  if r ->> 'resultado' <> 'bloqueado' then raise exception 'FALLO 322 · el 5.º fallo no bloquea: %', r; end if;
+  r := cmr_codigo_firma_comprobar(tok, null, 'transportista', 'otro@t322.com', h);
+  if r ->> 'resultado' <> 'bloqueado' then raise exception 'FALLO 322 · tras 5 fallos vale el código: %', r; end if;
+  -- (c) Firma con el email verificado (el código se gasta) y firma extra sin código.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Chófer 322', '12345678Z', 'ES', true, 'chofer@t322.com', 'cmr/' || tok::text || '/t322-1.png',
+                          '1.2.3.4', 'prueba', repeat('a', 64), p_matricula_camion => '3220AAA', p_matricula_remolque => 'R3220AAA');
+  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 322 · el servidor no puede firmar: %', r; end if;
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Ayudante 322', '12345678Z', 'ES', true, 'otro@t322.com', 'cmr/' || tok::text || '/t322-2.png',
+                          null, 'prueba', null, true);
+  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 322 · no firma la extra: %', r; end if;
+  if (select email_verificado from firmas_cmr where envio_id = e and not extra) is not true
+     or (select email_verificado from firmas_cmr where envio_id = e and extra) is not false then
+    raise exception 'FALLO 322 · la marca «email verificado» no es la esperada'; end if;
+  if exists (select 1 from cmr_codigos_firma where envio_id = e and email = 'chofer@t322.com' and usado_en is null) then
+    raise exception 'FALLO 322 · el código no se gasta al firmar'; end if;
+  if not exists (select 1 from jsonb_array_elements(cmr_publico(tok) -> 'firmas') f where (f ->> 'email_verificado')::boolean)
+     or not exists (select 1 from jsonb_array_elements(datos_cmr_por_token(tok) -> 'firmas') f where (f ->> 'email_verificado')::boolean)
+     or pg_get_function_result('public.firmas_envio(uuid)'::regprocedure) not like '%email_verificado boolean%' then
+    raise exception 'FALLO 322 · la hoja pública o el PDF no saben si el email se verificó'; end if;
+  perform set_config('request.jwt.claim.role', '', true);
+  raise notice 'OK 322 · e-CMR: con la clave pública no se firma ni se anotan reservas (solo el servidor); código de 6 cifras por su huella, con topes y 5 intentos; firma «email verificado» que decide la base de datos, y se ve en la hoja y el PDF';
+end $$;

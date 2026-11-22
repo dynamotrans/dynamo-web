@@ -446,6 +446,20 @@ solo lo que **hay que hacer o comprobar antes de abrir el portal**.
 | **Pruebas de carga (k6)** | Antes de abrir a clientes, Claude corre `tools/k6/carga.js` con los perfiles `carga` y `estres` contra la PREVIEW (nunca contra producción con clientes dentro) mirando el panel de Supabase, y guarda el resumen en `tools/k6/`. El perfil `humo` ya corre solo en cada push (CI). | El resumen de la pasada: `http_req_failed` ~0 % y p95 razonable a 40 usuarios; sin avisos de conexiones en Supabase. |
 | **Stripe (pago con tarjeta del previo pago)** | En Vercel, *Sensitive*: `STRIPE_SECRET_KEY` (clave secreta, `sk_live_…` en producción, `sk_test_…` en pruebas) y `STRIPE_WEBHOOK_SECRET` (`whsec_…`). En Stripe → Developers → Webhooks: `https://<dominio>/api/stripe/webhook`, eventos `checkout.session.completed` y `checkout.session.async_payment_succeeded`. Necesita también la clave de servicio de Supabase. | Pagar un envío de prueba con la tarjeta 4242 4242 4242 4242 en modo test → el envío pasa solo a «Pendiente de asignar» y Stripe muestra el webhook con 200. Un aviso con firma falsa da 400. |
 
+## 16 · e-CMR con validez reforzada  🟡
+
+**Hecho (2026-11-22)**: (1) la firma del CMR y sus reservas **solo las registra nuestro servidor** con la
+clave de servicio: hora, IP, navegador y huella SHA-256 de lo firmado los pone él, y la base de datos rechaza
+la clave pública (`solo_servidor`); necesita `SUPABASE_SERVICE_ROLE_KEY` en Vercel **también en Production**
+(sin ella no se puede firmar). (2) **Código de 6 cifras al email** de quien firma (opcional): con él la firma
+queda «email verificado» en la hoja y en el PDF; el código no se guarda (solo su huella), caduca a los 15 min,
+5 intentos, topes por email y envío; sale al momento, sin copia a Dynamo. Necesita `POSTMARK_SERVER_TOKEN`
+en Production.
+
+**Antes de abrir**: (3) **sello de tiempo cualificado** sobre la huella de cada firma y del PDF; (4) **sello
+electrónico de Dynamo** (PAdES) en el PDF del CMR; (5) **confirmación del asesor** de si vale como firma
+electrónica avanzada y si el código debe ser obligatorio. Detalle en `TODO.md` (v1).
+
 ---
 
 ## Lo que NO cambia respecto a hoy

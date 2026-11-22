@@ -7,7 +7,7 @@ import { pesoTn, metros, fecha, fechaHora } from '@/lib/formato';
 // documento de identidad validado por país. La firma la guarda el servidor (acciones.ts).
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { firmar, type DatosFirma } from './acciones';
+import { firmar, pedirCodigoFirma, comprobarCodigoFirma, type DatosFirma } from './acciones';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
@@ -350,7 +350,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
             {f ? <>
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
               {/* Firmó en papel (CMR bis): no hay trazo; el papel va anexo y completa este CMR. */}
-              <div className="firma-estado">{f.en_papel ? '✓ Firmada EN PAPEL (CMR bis anexo, que completa este CMR) · registrada el' : '✓ Firmada el'} {fechaHora(f.firmado_en)} · {quienFirmo(f)}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
+              <div className="firma-estado">{f.en_papel ? '✓ Firmada EN PAPEL (CMR bis anexo, que completa este CMR) · registrada el' : '✓ Firmada el'} {fechaHora(f.firmado_en)} · {quienFirmo(f)}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}{f.email_verificado ? ' · email verificado' : ''}</div>
             </> : <div className="firma-estado">Pendiente de firma</div>}
             {(cmr.reservas ?? []).filter((r: ReservaCmr) => r.rol === b.rol && (b.rol === 'transportista' || r.parada_id === b.parada_id)).map((r: ReservaCmr, i: number) => (
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>
@@ -364,7 +364,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
             <div className="firma-tit">Firma extra {extras.length > 1 ? i + 1 : ''}<span className="cas-quien"><span className="cas-firma">Firma:</span> {nombreBloque(f)}</span><span className="cas">Añadida a las casillas del CMR</span></div>
           </div>
           {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
-          <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
+          <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}{f.email_verificado ? ' · email verificado' : ''}</div>
         </div>
       ))}
       {extras.length < 3 && (
@@ -471,6 +471,31 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const [emailPropio, setEmailPropio] = useState('');
   const propio = emailPropio.trim().toLowerCase();
   const propioVale = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(propio) && propio !== (emailEmpresa ?? '').toLowerCase();
+  // El email que queda en la firma (y al que va el código).
+  const emailFirma = (emailEmpresa ? (propioVale ? propio : emailEmpresa) : email).trim().toLowerCase();
+  const emailFirmaVale = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailFirma);
+  // CÓDIGO DE 6 CIFRAS (usuario, 2026-11-22): opcional y recomendado. Si se escribe bien, la
+  // firma queda «email verificado» (lo decide la base de datos). Al cambiar el email, se pierde.
+  const [codigoA, setCodigoA] = useState<string | null>(null);       // email al que se mandó
+  const [verificadoA, setVerificadoA] = useState<string | null>(null); // email ya verificado
+  const [codigo, setCodigo] = useState('');
+  const [codigoMsg, setCodigoMsg] = useState<{ t: 'err' | 'okv'; m: string } | null>(null);
+  const [codigoOcupado, setCodigoOcupado] = useState(false);
+  const verificado = verificadoA === emailFirma && emailFirmaVale;
+  async function pedirCodigo() {
+    if (!emailFirmaVale) { setCodigoMsg({ t: 'err', m: 'Pon antes un email válido.' }); return; }
+    setCodigoOcupado(true); setCodigoMsg(null);
+    const r = await pedirCodigoFirma(token, { parada_id: b.parada_id, rol: b.rol, email: emailFirma }).catch(() => ({ ok: false as const, error: 'No hay cobertura: vuelve a intentarlo o firma sin código.' }));
+    setCodigoOcupado(false);
+    if (r.ok) { setCodigoA(r.email); setCodigo(''); setCodigoMsg({ t: 'okv', m: `Te lo hemos mandado a ${r.email}. Mira también en «Spam».` }); }
+    else setCodigoMsg({ t: 'err', m: r.error });
+  }
+  async function comprobarCodigo() {
+    setCodigoOcupado(true); setCodigoMsg(null);
+    const r = await comprobarCodigoFirma(token, { parada_id: b.parada_id, rol: b.rol, email: emailFirma, codigo }).catch(() => ({ ok: false as const, error: 'No hay cobertura: vuelve a intentarlo.' }));
+    setCodigoOcupado(false);
+    if (r.ok) { setVerificadoA(emailFirma); setCodigoMsg(null); } else setCodigoMsg({ t: 'err', m: r.error });
+  }
   // Matrículas (usuario, 2026-11-11): solo la cabecera (transportista o cargador de la
   // 1.ª parada) las ve — precargadas si el envío ya las tiene, editables, y obligatoria
   // la tractora salvo en envíos manuales. En firmas extra no salen: ya está en tránsito.
@@ -583,7 +608,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     const tLento = setTimeout(() => setLento(true), 3000);
     let r: Awaited<ReturnType<typeof firmar>>;
     try {
-      r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email: emailEmpresa ? (propioVale ? propio : emailEmpresa) : email, extra: !!b.extra,
+      r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email: emailFirma, extra: !!b.extra,
         reservas: b.extra ? '' : reservas, fotos: !b.extra && reservas.trim() ? fotos.map((f) => f.ruta) : [], png: canvas.current!.toDataURL('image/png'),
         gps, matricula_camion: pideMatricula ? matCam : undefined, matricula_remolque: pideMatricula && !rigido ? matRem : undefined,
         camion_rigido: pideMatricula ? rigido : undefined });
@@ -659,6 +684,27 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <label className="sig-lbl" htmlFor="sigEmail">Email <Req /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
           <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         </>}
+        {/* Código al email (usuario, 2026-11-22): opcional; la firma vale más como prueba. */}
+        <div style={{ marginTop: '0.55rem', padding: '0.55rem 0.65rem', border: '1.5px dashed var(--gray-300)', borderRadius: 10 }}>
+          {verificado
+            ? <div className="sig-msg okv" style={{ marginTop: 0 }}>✓ Email verificado con código: tu firma quedará como «email verificado».</div>
+            : codigoA === emailFirma && emailFirmaVale ? <>
+              <label className="sig-lbl" htmlFor="sigCodigo" style={{ marginTop: 0 }}>Código de 6 cifras que te hemos mandado</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input type="text" id="sigCodigo" autoComplete="one-time-code" inputMode="numeric" maxLength={6} placeholder="Ej. 123456"
+                  value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))} style={{ letterSpacing: '0.2em' }} />
+                <button type="button" className="sig-foto-btn" style={{ flex: '0 0 auto', padding: '0.5rem 0.8rem' }}
+                  disabled={codigoOcupado || codigo.length !== 6} onClick={comprobarCodigo}>{codigoOcupado ? '…' : 'Comprobar'}</button>
+              </div>
+              <button type="button" className="sig-link" style={{ fontSize: '0.78rem', marginTop: '0.3rem' }} disabled={codigoOcupado} onClick={pedirCodigo}>Mandar otro código</button>
+            </> : <button type="button" className="sig-foto-btn" style={{ width: '100%' }} disabled={codigoOcupado || !emailFirmaVale} onClick={pedirCodigo}>
+              {codigoOcupado ? 'Mandando…' : '✉ Verificar mi email con un código (recomendado)'}
+            </button>}
+          {codigoMsg && <div className={`sig-msg ${codigoMsg.t}`}>{codigoMsg.m}</div>}
+          {!verificado && <div style={{ fontSize: '0.72rem', color: 'var(--gray-500)', marginTop: '0.3rem' }}>
+            Opcional: con el código, tu firma queda como «email verificado» y vale más como prueba. Si no te llega, puedes firmar igual.
+          </div>}
+        </div>
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de
             salir de la 1.ª parada — verifica, corrige o ponlas; luego ya no se tocan. */}
         {pideMatricula && <>

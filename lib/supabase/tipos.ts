@@ -515,6 +515,60 @@ export type Database = {
           },
         ]
       }
+      cmr_codigos_firma: {
+        Row: {
+          id: string
+          envio_id: string
+          parada_id: string | null
+          rol: string
+          email: string
+          codigo_sha: string
+          intentos: number
+          creado_en: string
+          verificado_en: string | null
+          usado_en: string | null
+        }
+        Insert: {
+          id?: string
+          envio_id: string
+          parada_id?: string | null
+          rol: string
+          email: string
+          codigo_sha: string
+          intentos?: number
+          creado_en?: string
+          verificado_en?: string | null
+          usado_en?: string | null
+        }
+        Update: {
+          id?: string
+          envio_id?: string
+          parada_id?: string | null
+          rol?: string
+          email?: string
+          codigo_sha?: string
+          intentos?: number
+          creado_en?: string
+          verificado_en?: string | null
+          usado_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmr_codigos_firma_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmr_codigos_firma_parada_id_fkey"
+            columns: ["parada_id"]
+            isOneToOne: false
+            referencedRelation: "envio_paradas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cmr_enlaces: {
         Row: {
           id: string
@@ -2574,6 +2628,7 @@ export type Database = {
           trazo_png: string | null
           en_papel: boolean
           documento_papel_id: string | null
+          email_verificado: boolean
         }
         Insert: {
           id?: string
@@ -2598,6 +2653,7 @@ export type Database = {
           trazo_png?: string | null
           en_papel?: boolean
           documento_papel_id?: string | null
+          email_verificado?: boolean
         }
         Update: {
           id?: string
@@ -2622,6 +2678,7 @@ export type Database = {
           trazo_png?: string | null
           en_papel?: boolean
           documento_papel_id?: string | null
+          email_verificado?: boolean
         }
         Relationships: [
           {
@@ -4239,6 +4296,8 @@ export type Database = {
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       cliente_texto_busqueda: { Args: { k: Database["public"]["Tables"]["clientes"]["Row"] | null }; Returns: string }
       clientes_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_orden?: string | null }; Returns: { id: string; total: number }[] }
+      cmr_codigo_firma_comprobar: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_email: string | null; p_codigo_sha: string | null }; Returns: Json }
+      cmr_codigo_firma_crear: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_email: string | null; p_codigo_sha: string | null }; Returns: Json }
       cmr_envio_de_token: { Args: { p_token: string | null }; Returns: string }
       cmr_publico: { Args: { p_token: string | null }; Returns: Json }
       cmr_ruta_permitida: { Args: { p_name: string | null }; Returns: boolean }
@@ -4376,7 +4435,7 @@ export type Database = {
       festivos_entre: { Args: { p_desde: string | null; p_hasta: string | null; p_pais?: string | null; p_region?: string | null }; Returns: { fecha: string; nombre: string; region: string }[] }
       firma_email_persona: { Args: Record<PropertyKey, never>; Returns: string }
       firmar_cmr_publico: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_nombre: string | null; p_documento: string | null; p_pais: string | null; p_validado: boolean | null; p_email: string | null; p_ruta: string | null; p_ip: string | null; p_navegador: string | null; p_sha256: string | null; p_extra?: boolean | null; p_lat?: number | null; p_lon?: number | null; p_gps_precision_m?: number | null; p_gps_direccion?: string | null; p_trazo_png?: string | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_camion_rigido?: boolean | null }; Returns: Json }
-      firmas_envio: { Args: { p_envio: string | null }; Returns: { rol: string; parada_id: string; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string; firma_storage_ruta: string; extra: boolean; lat: number; lon: number; gps_precision_m: number; gps_direccion: string; sha256: string; en_papel: boolean }[] }
+      firmas_envio: { Args: { p_envio: string | null }; Returns: { rol: string; parada_id: string; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string; firma_storage_ruta: string; extra: boolean; lat: number; lon: number; gps_precision_m: number; gps_direccion: string; sha256: string; en_papel: boolean; email_verificado: boolean }[] }
       flota_publica: { Args: { p_reserva: string | null; p_cif?: string | null }; Returns: Json }
       flota_sugerencia: { Args: { p_transportista: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
       flota_sugerencia_publica: { Args: { p_reserva: string | null; p_matricula?: string | null; p_conductor_nombre?: string | null }; Returns: Json }
@@ -4553,6 +4612,7 @@ export type Database = {
       riesgos_clientes: { Args: Record<PropertyKey, never>; Returns: { cliente_id: string; nombre: string; cif: string; riesgo_cesce: number; plazo_cesce: number; riesgo_manual: number; riesgo_efectivo: number; manda: string; envios: number; asumido_base: number; asumido: number; disponible: number; ultimo_envio: string }[] }
       riesgos_pagina: { Args: { p_q?: string | null; p_filtro?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { cliente_id: string; nombre: string; cif: string; riesgo_cesce: number; plazo_cesce: number; riesgo_manual: number; riesgo_efectivo: number; manda: string; envios: number; asumido_base: number; asumido: number; disponible: number; ultimo_envio: string; total: number }[] }
       riesgos_totales: { Args: Record<PropertyKey, never>; Returns: { limite: number; asumido: number; pasados: number }[] }
+      rol_de_la_llamada: { Args: Record<PropertyKey, never>; Returns: string }
       ruta_envio_reemplazar: { Args: { p_envio: string | null; p_paradas: Json | null }; Returns: undefined }
       seguimiento_apertura: { Args: { p_sitio: string | null; p_t: string | null }; Returns: string }
       seguimiento_aplicar: { Args: { p_envio: string | null; p_a_mano?: boolean | null }; Returns: number }
