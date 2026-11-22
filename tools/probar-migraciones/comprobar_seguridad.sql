@@ -13987,3 +13987,36 @@ do $$ declare c uuid; s1 uuid; s2 uuid; n int; begin
     raise exception 'FALLO 315 · una provincia que ya no usa ninguna ficha sigue en las sugerencias'; end if;
   raise notice 'OK 315 · provincia sacada del CP, limpieza de España y sugerencias por país que salen de las fichas vivas';
 end $$;
+
+-- ---- 316. Sugerencias de provincia «punto medio» (usuario, 2026-11-22) ----------------------
+-- Lo que escribe una sola empresa no se sugiere a otra; lo que escriben dos, sí, a todos.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+insert into operadores (razon_social, provincia, pais_codigo_iso) values ('Prueba 316 A1', 'Prov316 Solo', 'PT'), ('Prueba 316 A2', 'Prov316 Dos', 'PT');
+do $$ begin
+  if not exists (select 1 from provincias_en_uso('PT') where provincia = 'Prov316 Solo') then
+    raise exception 'FALLO 316 · un cliente no ve como sugerencia la provincia de su propia ficha'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from provincias_en_uso('PT') where provincia in ('Prov316 Solo', 'Prov316 Dos')) then
+    raise exception 'FALLO 316 · a otro cliente le sale la provincia que solo ha escrito una empresa'; end if;
+  insert into operadores (razon_social, provincia, pais_codigo_iso) values ('Prueba 316 B', 'prov316 dos', 'PT');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from provincias_en_uso('PT') where lower(provincia) = 'prov316 dos') <> 1 then
+    raise exception 'FALLO 316 · la provincia que usan dos empresas no sale una sola vez'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if exists (select 1 from provincias_compartidas('PT')) then
+    raise exception 'FALLO 316 · sin sesión se pueden leer las provincias compartidas'; end if;
+  delete from operadores where razon_social like 'Prueba 316%';
+  raise notice 'OK 316 · sugerencias de provincia: las propias, y de otras empresas solo las que escriben dos o Dynamo';
+end $$;

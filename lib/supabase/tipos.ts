@@ -4435,6 +4435,7 @@ export type Database = {
       proponer_cambio_transportista: { Args: { p_envio: string | null; p_precio_antes: number | null; p_precio_ahora: number | null; p_detalle: string | null }; Returns: Json }
       provincia_de_codigo_postal: { Args: { p_codigo: string | null }; Returns: string }
       provincia_de_lista: { Args: { p_nombre: string | null }; Returns: string }
+      provincias_compartidas: { Args: { p_pais: string | null }; Returns: string[] }
       provincias_en_uso: { Args: { p_pais: string | null }; Returns: string[] }
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
