@@ -13942,3 +13942,25 @@ do $$ begin
   end if;
   raise notice 'OK 313 · límites de consultas de precio: 30 al día, 100 a la semana y 300 al mes';
 end $$;
+
+-- ---- 314. Transportista propio: provincia, país y tipos de camión (usuario, 2026-11-22) ----
+-- Nace con el tráiler marcado y España; el país se guarda en ISO y la provincia no puede ir vacía.
+do $$ declare c uuid; o uuid; r record; begin
+  select id into c from clientes limit 1;
+  insert into operadores (cliente_id, razon_social) values (c, 'Prueba 314 camiones') returning id into o;
+  select * into r from operadores where id = o;
+  if r.tipos_camion <> '{trailer_tauliner}'::tipo_camion[] or r.otros_camiones or r.pais_codigo_iso <> 'ES' then
+    raise exception 'FALLO 314 · el transportista propio no nace con el tráiler y España (% / % / %)', r.tipos_camion, r.otros_camiones, r.pais_codigo_iso;
+  end if;
+  update operadores set tipos_camion = '{trailer_tauliner,rigido_plataforma}', otros_camiones = true, provincia = 'Sevilla', pais_codigo_iso = 'PT' where id = o;
+  begin
+    update operadores set pais_codigo_iso = 'España' where id = o;
+    raise exception 'FALLO 314 · deja guardar un país que no es un código ISO';
+  exception when check_violation or string_data_right_truncation then null; end;
+  begin
+    update operadores set provincia = '  ' where id = o;
+    raise exception 'FALLO 314 · deja guardar una provincia en blanco';
+  exception when check_violation then null; end;
+  delete from operadores where id = o;
+  raise notice 'OK 314 · transportista propio con provincia, país (ISO) y tipos de camión (tráiler por defecto)';
+end $$;

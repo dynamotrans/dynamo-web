@@ -19,7 +19,7 @@ const CAMPOS: Record<string, string> = {
   estado_pago_previo: 'pago previo', estado_cambio_cliente: 'cambio pedido', num_bultos: 'bultos', embalaje: 'embalaje', volumen_m3: 'volumen',
   titulo: 'título', detalle: 'detalle', prioridad: 'prioridad', resolucion: 'resolución', nombre_empresa: 'nombre', direccion: 'dirección',
   codigo_postal: 'código postal', poblacion: 'población', provincia: 'provincia', horarios: 'horario', anotaciones: 'notas',
-  razon_social: 'razón social', telefono: 'teléfono', email: 'email', persona_contacto: 'contacto', fecha_entrada: 'entrada', fecha_salida: 'salida',
+  razon_social: 'razón social', telefono: 'teléfono', email: 'email', persona_contacto: 'contacto', pais_codigo_iso: 'país', tipos_camion: 'camiones', otros_camiones: 'otros camiones', fecha_entrada: 'entrada', fecha_salida: 'salida',
   num_trailers: 'tráileres', num_repartos: 'repartos', pagado_en: 'pago', borrado: 'borrado', precio_fijado_a_mano: 'precio a mano',
 };
 // Envíos (de lib/estados.ts) e incidencias, en minúscula para la frase del historial.

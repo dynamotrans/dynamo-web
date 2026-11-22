@@ -24,6 +24,15 @@ import { supabaseNavegador } from '@/lib/supabase/navegador';
 import { telBonito } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
 import CampoTelefono from '@/components/CampoTelefono';
+import SelectorPais from '@/components/SelectorPais';
+import { PROVINCIAS_ES } from '@/lib/provinciasEs';
+
+// Provincias de España en orden alfabético, para el desplegable (usuario, 2026-11-22).
+const PROVINCIAS = [...new Set(Object.values(PROVINCIAS_ES))].sort((a, b) => a.localeCompare(b, 'es'));
+const CAMIONES: { k: 'trailer_tauliner' | 'rigido_plataforma'; t: string }[] = [
+  { k: 'trailer_tauliner', t: 'Tráiler' },
+  { k: 'rigido_plataforma', t: 'Rígido con plataforma · 8 m' },
+];
 
 export type OperadorFila = OperadorDatos & {
   id: string; cliente: string | null; creado_en: string; modificado_en: string | null; envios: number;
@@ -142,6 +151,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
   const [d, setD] = useState<OperadorDatos>({
     cliente_id: fila?.cliente_id ?? null, razon_social: fila?.razon_social ?? '', cif: fila?.cif ?? '', telefono: fila?.telefono ?? '',
     email: fila?.email ?? '', persona_contacto: fila?.persona_contacto ?? '', web: fila?.web ?? '', anotaciones: fila?.anotaciones ?? '',
+    provincia: fila?.provincia ?? '', pais_codigo_iso: fila?.pais_codigo_iso || 'ES', tipos_camion: fila?.tipos_camion ?? ['trailer_tauliner'], otros_camiones: fila?.otros_camiones ?? false,
   });
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
@@ -273,6 +283,31 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         <div><label htmlFor="op-telefono">Teléfono <Req si={false} /></label><CampoTelefono id="op-telefono" valor={String(d.telefono ?? '')} onCambio={(v) => set('telefono', v as never)} /></div>
         {campo('email', 'Email', false, 'trafico@empresa.com', false, 'email')}
         {campo('persona_contacto', 'Persona de contacto', false, 'Nombre y apellidos')}
+        {/* Provincia, país y camiones (usuario, 2026-11-22). En España la provincia es un
+            desplegable con las 52; fuera, se escribe. */}
+        <div>
+          <label htmlFor="op-pais">País <Req si={false} /></label>
+          <SelectorPais id="op-pais" valor={d.pais_codigo_iso} onCambio={(v) => setD((x) => ({ ...x, pais_codigo_iso: v, provincia: v === 'ES' && x.pais_codigo_iso !== 'ES' ? '' : x.provincia }))} />
+        </div>
+        <div>
+          <label htmlFor="op-provincia">Provincia <Req si={false} /></label>
+          {d.pais_codigo_iso === 'ES'
+            ? <select id="op-provincia" className="ptar-select" value={PROVINCIAS.includes(d.provincia) ? d.provincia : ''} onChange={(e) => set('provincia', e.target.value)}>
+                <option value="">Elige la provincia…</option>
+                {PROVINCIAS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            : <input id="op-provincia" type="text" value={d.provincia} placeholder="Provincia o región" onChange={(e) => set('provincia', e.target.value)} />}
+        </div>
+        <fieldset style={{ gridColumn: '1/-1', border: 0, margin: 0, padding: 0 }}>
+          <legend style={{ padding: 0, marginBottom: '0.3rem' }}>Tipos de camión <Req si={false} /></legend>
+          <div className="op-camiones" id="op-camiones">
+            {CAMIONES.map((c) => (
+              <label key={c.k}><input type="checkbox" checked={d.tipos_camion.includes(c.k)}
+                onChange={(e) => set('tipos_camion', e.target.checked ? [...d.tipos_camion, c.k] : d.tipos_camion.filter((x) => x !== c.k))} /> {c.t}</label>
+            ))}
+            <label><input type="checkbox" checked={d.otros_camiones} onChange={(e) => set('otros_camiones', e.target.checked)} /> Otros</label>
+          </div>
+        </fieldset>
       </div>
       <div style={{ marginTop: '0.7rem' }}>
         <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga <Req si={false} /></label>

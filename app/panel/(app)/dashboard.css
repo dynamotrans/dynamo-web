@@ -5492,3 +5492,11 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .varios-tel { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: var(--fs-m); color: var(--navy); }
 .varios-tel input { width: 200px; }
 .varios-tel-err { color: #b91c1c; font-weight: 600; }
+
+/* Transportista propio: tipos de camión (usuario, 2026-11-22). La leyenda como las etiquetas
+   de la ficha; las casillas en fila (en el móvil se apilan solas). */
+.ptar-sitio-grid legend { font-size: var(--fs-m); color: var(--gray-500); font-weight: 600; }
+.op-camiones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ptar-sitio-grid .op-camiones label { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0; padding: 0.6rem 0.85rem; border: 1.5px solid var(--gray-200); border-radius: 10px; background: #fff; color: var(--navy); font-weight: 600; cursor: pointer; }
+.ptar-sitio-grid .op-camiones label:has(input:checked) { border-color: var(--purple); background: rgba(51,0,204,0.05); }
+.op-camiones input { width: 18px; height: 18px; accent-color: var(--purple); margin: 0; }

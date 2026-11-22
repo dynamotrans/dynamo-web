@@ -135,7 +135,7 @@ type EmpresaFila = Pick<Tabla<'clientes'>, 'id' | 'razon_social' | 'nombre_visib
 type FilaEnvioDoc = Tabla<'envios'> & {
   clientes: EmpresaFila | null;
   transportistas: (EmpresaFila & Pick<Tabla<'transportistas'>, 'codigo' | 'plazo_pago_dias'>) | null;
-  operadores: Pick<Tabla<'operadores'>, 'razon_social' | 'cif' | 'telefono' | 'email' | 'persona_contacto'> | null;
+  operadores: Pick<Tabla<'operadores'>, 'razon_social' | 'cif' | 'telefono' | 'email' | 'persona_contacto' | 'provincia' | 'pais_codigo_iso'> | null;
 };
 type FilaParadaDoc = Pick<Tabla<'envio_paradas'>, 'id' | 'orden' | 'tipo' | 'sitio_id' | 'nombre_empresa' | 'direccion' | 'codigo_postal' | 'poblacion' | 'provincia' | 'pais_codigo_iso' | 'referencia' | 'anotaciones'>
   & { sitios: Pick<Tabla<'sitios'>, 'tipo' | 'horarios' | 'anotaciones' | 'url_google_maps' | 'requiere_cita' | 'tiene_medios_carga'> | null };
@@ -145,7 +145,7 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   const { data: e, error } = await sb.from('envios')
     .select('*, clientes(id, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso), ' +
       'transportistas(id, codigo, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, plazo_pago_dias), ' +
-      'operadores(razon_social, cif, telefono, email, persona_contacto)')
+      'operadores(razon_social, cif, telefono, email, persona_contacto, provincia, pais_codigo_iso)')
     .eq('id', id).maybeSingle<FilaEnvioDoc>();
   if (error) return { datos: null, error: mensajeError(error.message) };
   if (!e) return { datos: null, error: 'Ese envío no existe.' };
@@ -191,7 +191,7 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   let porteador: Empresa | null = null;
   if (e.es_manual && o) {
     porteador = { nombre: o.razon_social, razon_social: o.razon_social, cif: o.cif, direccion: null, codigo_postal: null, poblacion: null,
-      provincia: null, pais: null, telefono: o.telefono, email: o.email, contacto: o.persona_contacto };
+      provincia: o.provincia, pais: o.pais_codigo_iso ? nombrePais(o.pais_codigo_iso) : null, telefono: o.telefono, email: o.email, contacto: o.persona_contacto };
   } else if (t) {
     const ctoT = de('transportista_id', e.transportista_id);
     porteador = { nombre: t.nombre_visible || t.razon_social, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo,

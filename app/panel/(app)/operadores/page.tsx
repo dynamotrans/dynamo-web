@@ -22,7 +22,7 @@ export default async function PaginaOperadores() {
   // (todo lo que se cree aquí es de ese cliente; lo resuelve la acción por la vista).
   const uiDynamo = dynamo && vista.tipo === 'admin';
   const [ops, envs, clis, logos] = await Promise.all([
-    leerTodo(filtrarVista(supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, creado_en, modificado_en, clientes(nombre_visible)'), vista, { transportista: null })
+    leerTodo(filtrarVista(supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, provincia, pais_codigo_iso, tipos_camion, otros_camiones, creado_en, modificado_en, clientes(nombre_visible)'), vista, { transportista: null })
       .eq('borrado', false).order('razon_social'), 10000),
     supabase.rpc('envios_por_empresa', { p_campo: 'operador' }),
     uiDynamo ? leerTodo(supabase.from('clientes').select('id, nombre_visible').order('nombre_visible'), 10000) : Promise.resolve({ data: [] as { id: string; nombre_visible: string }[] }),
@@ -36,6 +36,7 @@ export default async function PaginaOperadores() {
   const filas: OperadorFila[] = (ops.data ?? []).map((o) => ({
     id: o.id, cliente_id: o.cliente_id, cliente: o.clientes?.nombre_visible ?? null, razon_social: o.razon_social, cif: o.cif,
     telefono: o.telefono ?? '', email: o.email ?? '', persona_contacto: o.persona_contacto ?? '', web: o.web ?? '', anotaciones: o.anotaciones ?? '',
+    provincia: o.provincia ?? '', pais_codigo_iso: o.pais_codigo_iso ?? 'ES', tipos_camion: o.tipos_camion ?? ['trailer_tauliner'], otros_camiones: !!o.otros_camiones,
     creado_en: o.creado_en, modificado_en: o.modificado_en, envios: usos.get(o.id) ?? 0, logo: logoDe.get(o.id) ?? null,
   }));
   return <Operadores filas={filas} dynamo={uiDynamo} clientes={clis.data ?? []} error={ops.error?.message ?? null} />;

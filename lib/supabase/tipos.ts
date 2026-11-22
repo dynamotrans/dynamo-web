@@ -2797,6 +2797,10 @@ export type Database = {
           creado_por: string | null
           modificado_en: string | null
           modificado_por: string | null
+          provincia: string | null
+          pais_codigo_iso: string | null
+          tipos_camion: Database["public"]["Enums"]["tipo_camion"][]
+          otros_camiones: boolean
         }
         Insert: {
           id?: string
@@ -2815,6 +2819,10 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          provincia?: string | null
+          pais_codigo_iso?: string | null
+          tipos_camion?: Database["public"]["Enums"]["tipo_camion"][]
+          otros_camiones?: boolean
         }
         Update: {
           id?: string
@@ -2833,6 +2841,10 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          provincia?: string | null
+          pais_codigo_iso?: string | null
+          tipos_camion?: Database["public"]["Enums"]["tipo_camion"][]
+          otros_camiones?: boolean
         }
         Relationships: [
           {

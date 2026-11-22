@@ -12,6 +12,8 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 export type OperadorDatos = {
   cliente_id: string | null; razon_social: string; cif: string; telefono: string; email: string;
   persona_contacto: string; web: string; anotaciones: string;
+  // Provincia, país y camiones (usuario, 2026-11-22). El tráiler, marcado por defecto.
+  provincia: string; pais_codigo_iso: string; tipos_camion: ('trailer_tauliner' | 'rigido_plataforma')[]; otros_camiones: boolean;
 };
 type Res = { ok: true; id: string } | { ok: false; error: string };
 
@@ -44,6 +46,8 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
   const fila: Record<string, unknown> = {
     razon_social: d.razon_social.trim(), cif: vacio(d.cif)?.toUpperCase() ?? null, telefono: tel || null, email: vacio(d.email)?.toLowerCase() ?? null,
     persona_contacto: vacio(d.persona_contacto), web: vacio(d.web), anotaciones: vacio(d.anotaciones),
+    provincia: vacio(d.provincia), pais_codigo_iso: (vacio(d.pais_codigo_iso) ?? 'ES').toUpperCase(),
+    tipos_camion: [...new Set(d.tipos_camion)], otros_camiones: !!d.otros_camiones,
   };
   if (!id && dynamo) fila.cliente_id = d.cliente_id;   // un cliente: lo pone la base de datos
   const q = id ? s.supabase.from('operadores').update(fila as TablaUpdate<'operadores'>).eq('id', id).select('id').single()

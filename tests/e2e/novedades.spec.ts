@@ -642,6 +642,26 @@ test.describe('novedades', () => {
     await expect(page.locator('.ptar-sug')).toContainText(nombre);
   });
 
+  // Transportista propio (usuario, 2026-11-22): provincia (desplegable en España), país y
+  // tipos de camión, con el tráiler marcado por defecto.
+  test('transportista propio: provincia, país y tipos de camión (tráiler por defecto)', async ({ page }) => {
+    const nombre = `Camiones Prueba ${Date.now()}`;
+    await entrar(page, 'cliente');
+    await page.goto('/panel/operadores');
+    await page.getByRole('button', { name: '+ Nuevo transportista' }).click();
+    await page.locator('#op-razon_social').fill(nombre);
+    const cam = page.locator('#op-camiones');
+    await expect(cam.getByLabel('Tráiler')).toBeChecked();
+    await expect(cam.getByLabel('Rígido con plataforma · 8 m')).not.toBeChecked();
+    await expect(cam.getByLabel('Otros')).not.toBeChecked();
+    await page.locator('#op-provincia').selectOption('Sevilla');
+    await cam.getByLabel('Rígido con plataforma · 8 m').check();
+    await cam.getByLabel('Otros').check();
+    await page.getByRole('button', { name: 'Crear transportista' }).click();
+    await expect.poll(async () => (await bd().from('operadores').select('provincia, pais_codigo_iso, tipos_camion, otros_camiones').eq('razon_social', nombre).maybeSingle()).data, { timeout: 15000 })
+      .toEqual({ provincia: 'Sevilla', pais_codigo_iso: 'ES', tipos_camion: ['trailer_tauliner', 'rigido_plataforma'], otros_camiones: true });
+  });
+
   // Crear varios envíos: un sitio sin teléfono de contacto no deja crear; se completa en la fila.
   test('crear varios envíos: sitio sin teléfono marca la fila y se completa allí mismo', async ({ page }) => {
     // Reintenta: justo tras reiniciar la base de datos, la primera consulta puede llegar vacía.
