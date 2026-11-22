@@ -14068,3 +14068,97 @@ do $$ begin
   delete from sitios where nombre_empresa like 'Prueba 317%';
   raise notice 'OK 317 · CP, localidad y provincia se sugieren desde las fichas: las propias y las de dos empresas';
 end $$;
+
+-- ---- 318. Emails de incidencias y penalizaciones (usuario, 2026-11-22: «todo eso debería notificarse») ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; t uuid; i uuid; i2 uuid; p uuid; p2 uuid; r record; n int; cli uuid := current_setting('prueba.cliente')::uuid;
+  ti uuid := (select id from tipos_incidencia order by clave limit 1); tp uuid := (select id from tipos_penalizacion order by nombre limit 1);
+  hoy date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  insert into transportistas (razon_social, cif) values ('Transportes 318 SL', 'B31800001') returning id into t;
+  insert into contactos (transportista_id, funcion, email) values (t, 'trafico', 'trafico318@t.prueba');
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 913, 707, hoy + 20, hoy + 21) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado', transportista_id = t where id = e;
+  perform set_config('prueba.envio318', e::text, false);
+
+  -- INCIDENCIA que abre Dynamo sobre el cliente: email al cliente y aviso en su campana.
+  insert into incidencias (tipo_id, envio_id, titulo, detalle) values (ti, e, 'Retraso 318', 'Llega <tarde>') returning id into i;
+  select * into r from emails_enviados where clave = 'incidencia_abierta:' || i;
+  if r.id is null or r.envio_id <> e or r.asunto not like 'Incidencia abierta · envío #%' or position('Hemos abierto una incidencia' in r.cuerpo_html) = 0
+     or position('Llega &lt;tarde&gt;' in r.cuerpo_html) = 0 or position('/panel/incidencias' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 318 · la incidencia que abre Dynamo no manda bien el email al cliente: %', r;
+  end if;
+  if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'incidencia' and titulo like 'Incidencia abierta%') then
+    raise exception 'FALLO 318 · la incidencia que abre Dynamo no sale en la campana del cliente'; end if;
+  -- Resuelta: con la resolución. Retirada: su email.
+  update incidencias set estado = 'resuelto', resolucion = 'Hablado con el almacén' where id = i;
+  if not exists (select 1 from emails_enviados where tipo = 'incidencia_resuelta' and clave like 'incidencia_resuelta:' || i || ':%' and cuerpo_html like '%Hablado con el almacén%') then
+    raise exception 'FALLO 318 · al resolver la incidencia no sale el email con la resolución'; end if;
+  insert into incidencias (tipo_id, envio_id, titulo) values (ti, e, 'Otra 318') returning id into i2;
+  update incidencias set estado = 'cancelado' where id = i2;
+  if not exists (select 1 from emails_enviados where tipo = 'incidencia_retirada' and clave like 'incidencia_retirada:' || i2 || ':%') then
+    raise exception 'FALLO 318 · al retirar la incidencia no sale su email'; end if;
+  -- Incidencia sobre el transportista: el email va a su contacto, no al cliente.
+  insert into incidencias (tipo_id, envio_id, transportista_id, titulo) values (ti, e, t, 'Conductor 318') returning id into i;
+  select * into r from emails_enviados where clave = 'incidencia_abierta:' || i;
+  if r.id is null or r.destinatario <> 'trafico318@t.prueba' then
+    raise exception 'FALLO 318 · la incidencia del transportista no le llega a él: %', r.destinatario; end if;
+
+  -- PENALIZACIÓN pendiente de confirmar: todavía no se comunica.
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista)
+    values (e, tp, 'Espera 318', 120, 80) returning id into p;
+  if exists (select 1 from emails_enviados where clave like 'penalizacion%:' || p || ':%') then
+    raise exception 'FALLO 318 · se comunica una penalización sin confirmar'; end if;
+  -- Confirmada: un email al cliente (+ IVA) y otro al transportista (su importe), una vez.
+  update penalizaciones set estado = 'confirmada' where id = p;
+  select * into r from emails_enviados where clave = 'penalizacion:' || p || ':cliente';
+  if r.id is null or position('120,00' in r.cuerpo_html) = 0 or position('+ IVA' in r.cuerpo_html) = 0 or position('Espera 318' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 318 · el email de la penalización al cliente no lleva el importe o el motivo: %', r; end if;
+  if position('80,00' in r.cuerpo_html) > 0 then raise exception 'FALLO 318 · al cliente le llega el importe del transportista'; end if;
+  select * into r from emails_enviados where clave = 'penalizacion:' || p || ':transportista';
+  if r.id is null or r.destinatario <> 'trafico318@t.prueba' or position('80,00' in r.cuerpo_html) = 0 or position('120,00' in r.cuerpo_html) > 0 then
+    raise exception 'FALLO 318 · el email de la penalización al transportista no va bien: %', r; end if;
+  update penalizaciones set estado = 'pendiente_confirmar' where id = p;
+  update penalizaciones set estado = 'confirmada' where id = p;
+  select count(*) into n from emails_enviados where clave like 'penalizacion:' || p || ':%';
+  if n <> 2 then raise exception 'FALLO 318 · la penalización confirmada se comunica más de una vez (%)', n; end if;
+  -- Anulada: a los dos.
+  update penalizaciones set estado = 'cancelada' where id = p;
+  select count(*) into n from emails_enviados where tipo = 'penalizacion_anulada' and clave like 'penalizacion_anulada:' || p || ':%';
+  if n <> 2 then raise exception 'FALLO 318 · al anular la penalización no se avisa a los dos (%)', n; end if;
+  -- Nace confirmada y se borra: email al crearla, campana, y email al borrarla.
+  insert into penalizaciones (envio_id, tipo_id, importe_cliente, estado) values (e, tp, 50, 'confirmada') returning id into p2;
+  if not exists (select 1 from emails_enviados where clave = 'penalizacion:' || p2 || ':cliente') then
+    raise exception 'FALLO 318 · la penalización que nace confirmada no se comunica'; end if;
+  if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'penalizacion' and texto like '%50,00%') then
+    raise exception 'FALLO 318 · la penalización que nace confirmada no sale en la campana'; end if;
+  delete from penalizaciones where id = p2;
+  if not exists (select 1 from emails_enviados where tipo = 'penalizacion_anulada' and clave like 'penalizacion_anulada:' || p2 || ':cliente:%') then
+    raise exception 'FALLO 318 · al borrar una penalización confirmada no se avisa'; end if;
+  -- Pendiente que se anula sin haberse comunicado (y no es automática): sin email.
+  insert into penalizaciones (envio_id, tipo_id, importe_transportista) values (e, tp, 30) returning id into p2;
+  update penalizaciones set estado = 'cancelada' where id = p2;
+  if exists (select 1 from emails_enviados where clave like 'penalizacion%:' || p2 || ':%') then
+    raise exception 'FALLO 318 · se avisa de anular una penalización que nunca se comunicó'; end if;
+end $$;
+-- La abre el propio cliente: «la hemos recibido».
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare i uuid; begin
+  insert into incidencias (tipo_id, envio_id, titulo) values ((select id from tipos_incidencia order by clave limit 1), current_setting('prueba.envio318')::uuid, 'Mía 318') returning id into i;
+  perform set_config('prueba.inc318', i::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare i uuid := current_setting('prueba.inc318')::uuid; e uuid := current_setting('prueba.envio318')::uuid; begin
+  if not exists (select 1 from emails_enviados where clave = 'incidencia_abierta:' || i and position('Hemos recibido tu incidencia' in cuerpo_html) > 0) then
+    raise exception 'FALLO 318 · al cliente que abre una incidencia no le llega «la hemos recibido»'; end if;
+  -- Limpieza.
+  delete from penalizaciones where envio_id = e;
+  delete from emails_enviados where envio_id = e;
+  raise notice 'OK 318 · incidencias (abierta, resuelta, retirada) y penalizaciones (confirmada, anulada, borrada) avisan por email a quien le afectan, cada uno con su importe';
+end $$;
