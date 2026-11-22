@@ -414,6 +414,7 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 > choca con otra regla de este archivo, manda la más reciente; ante la duda, preguntar.
 
 **Forma de trabajar**
+- **Todo lo importante se guarda en el repositorio al momento, no solo en el chat** (usuario, 2026-11-22: «si algún día se borra la conversación sin querer, que quede todo»): cada regla o decisión nueva → aquí (regla 18) o en su regla; cada pendiente → `TODO.md`; lo hecho → la bitácora, al cerrar cada bloque de trabajo y no solo al final de la sesión. El chat se compacta y puede perderse; el repositorio es la memoria.
 - Todo se construye **dentro de la plataforma, con código propio**, en GitHub y con pruebas (vibe coding: el usuario pide, Claude programa, prueba y sube). **n8n descartado por defecto**; solo para algo muy concreto o fuera de la plataforma.
 - El usuario escribe desde el móvil: responder en español claro, el resultado primero.
 - En `pruebas` se sube sin preguntar. Las pruebas pueden ir después de subir («súbelo ya»); si fallan, se arreglan. **`main` siempre con OK explícito**; el portal NUNCA a `main` sin la frase explícita. Nunca force-push.
