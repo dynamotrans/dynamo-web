@@ -73,7 +73,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **CESCE** (riesgo de cada cliente): hoy el límite y el plazo de CESCE se escriben a mano en la ficha del cliente. Pendiente de ver qué ofrece CESCE para leerlos solos (clasificación, límite concedido, vencimiento de la póliza) y qué credenciales pide. **Sin empezar: hay que pedirle a CESCE la documentación.** **Cómo se leerá (usuario, 2026-11-21)**: copia en nuestra base de datos de la clasificación y el límite de cada cliente; la primera vez, todos los clientes por tandas en segundo plano; después, una vez al día solo los cambios; y al crear o confirmar un envío se pregunta a CESCE por ese cliente en ese momento (si no contesta, vale el último dato guardado: nunca se para un envío por un fallo de CESCE). Si un límite cambia, aviso en la campana.
 - [ ] **Google Maps** (`GOOGLE_MAPS_API_KEY`): buscador de sitios con Google real y kilómetros reales para el tarifador.
 - [ ] **Bolsa de cargas** (#66, al final): publicar y retirar las cargas solas; ver en qué campo admite el código de aceptación. **⚠️ MUY IMPORTANTE (usuario, 2026-11-17): cualquier cambio del envío que la bolsa vea debe llegar a la oferta publicada, con 3 minutos de espera — ver más abajo «PUBLICACIÓN DIFERIDA EN BOLSAS DE CARGA».**
-- [ ] **WhatsApp y n8n** (#80): aparcados para V2/V3.
+- [ ] **WhatsApp y email con Claude** (#80): aparcados para V2/V3 (dentro de la plataforma; n8n solo opcional).
 - Ya conectadas: **Postmark** (emails; falta pasar al plan de pago), **Cloudflare Turnstile** (captcha), **Supabase** y **Vercel**.
 
 **Decisiones del usuario:**
@@ -116,9 +116,15 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ### v3
 - [ ] **Asistente de IA del panel** (chatbot sobre la BD por rol, #72): montado y OCULTO (`IA_ACTIVA = false` en `app/panel/(app)/layout.tsx`); falta `ANTHROPIC_API_KEY` y encenderlo. **Antes de crear la clave: tope de gasto mensual y autorrecarga apagada** (ver «TOPE DE GASTO» en v1).
-- [ ] n8n como capa conversacional: WhatsApp (Meta) y email con Claude (#80).
+- [ ] **WhatsApp y email con Claude, DENTRO DE LA PLATAFORMA** (#80). **Decisión (usuario, 2026-11-22)**: como el
+  que programa es Claude y el usuario lo pide hablando, la ventaja de n8n (tocar flujos sin programar) casi
+  no aplica. Se hace todo en la plataforma: un solo sitio, en git con su historial, con las pruebas
+  automáticas, sin sacar claves ni datos a otro servicio y sin pagar uno más. **n8n queda solo como
+  opción** para algo concreto que sea mucho más fácil allí o para automatizaciones de oficina FUERA de la
+  plataforma (adjuntos del correo a Drive, Brevo, informes en Sheets) que el usuario quiera probar él.
+  Lo de negocio (precios, estados, permisos, avisos clave) nunca depende de n8n.
   - **Orden acordado (usuario, 2026-11-22)**: 1) **primero lo escrito**: WhatsApp y email solo con
-    Claude (el «cerebro») + n8n. Basta para contestar, consultar envíos, recoger pedidos escritos y
+    Claude (el «cerebro»), programado en la plataforma. Basta para contestar, consultar envíos, recoger pedidos escritos y
     redactar avisos. 2) **Notas de voz que nos manden por WhatsApp**: solo pasarlas a texto (barato) y
     Claude las trata como un mensaje escrito. 3) **Llamadas de voz, para después** y solo si hacen falta:
     Claude no habla por teléfono; harían falta oír (voz → texto), hablar (texto → voz) y la línea
@@ -129,7 +135,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
   - **Antes de crear cualquier clave (Claude, ElevenLabs, Twilio…): tope de gasto y autorrecarga apagada.**
     Grabar o transcribir llamadas obliga a avisar a quien llama (protección de datos). Clonar una voz, solo
     con permiso de su dueño (lo normal, la del usuario). Precios y funciones: mirarlos en su web al decidir.
-- [ ] Usuario «Automatizaciones n8n» cuando se conecte n8n.
+- [ ] Usuario «Automatizaciones n8n», solo si algún día se usa n8n.
 - **Chatbot y n8n, APARCADOS (usuario, 2026-11-17)**: «vamos a aparcar lo del chatbot y lo de n8n. Para más adelante, V2 o V3». No se toca nada de esto en la v1.
 - [ ] **Reserva anticipada de camiones en rutas recurrentes** (idea del usuario, 2026-11-16; #95). Con previsión de envíos
       fijos por ruta y día (p. ej. 10 diarios Sevilla → Madrid, de lunes a viernes), publicar «cargas previstas» a los
