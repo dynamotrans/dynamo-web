@@ -439,7 +439,7 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 **Documentos y emails**
 - Los datos de Dynamo en los PDF salen siempre de Parámetros.
 - Copia a Dynamo en todos los emails del sistema, salvo la difusión, la orden al transportista propio del cliente, el resumen mensual a los sitios y el **código de 6 cifras para firmar el CMR** (es un código de seguridad: sale al momento, sin los 30 s de espera, sin copia y sin guardarse; en el registro de emails va tapado).
-- e-CMR (2026-11-22): la firma y sus reservas **solo las registra nuestro servidor** con la clave de servicio (la base de datos rechaza la clave pública: `solo_servidor`). El código al email es **opcional**: con él la firma queda «email verificado» (lo decide la base de datos), sin él «email sin verificar»; las dos valen y lo dice el PDF.
+- e-CMR (2026-11-22): la firma y sus reservas **solo las registra nuestro servidor** con la clave de servicio (la base de datos rechaza la clave pública: `solo_servidor`). El **código de 6 cifras al email se pide al firmar**: sale solo al abrir la ventana de firma si ya tenemos su email (al transportista no, porque el de su empresa no suele ser el del conductor: pulsa él «Mandarme el código»); si no, lo escribe y lo pide. Con el código bien escrito la firma queda «email verificado» (lo decide la base de datos). Solo si no le llega (1 minuto sin verificar o fallo al mandarlo) puede «Firmar sin código» → «email sin verificar». Lo dice el PDF.
 - Los emails al transportista nunca llevan precios en los avisos de cambios.
 - En los emails, siempre el fijo **+34 955 225 945**; el móvil solo en los enlaces de WhatsApp.
 - El texto «Si rompen la mercancía» es de otra empresa: no copiarlo.
@@ -484,7 +484,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 ### 2026-11-22 (tarde) — Claude Code web (nube)
 
-- **e-CMR más sólido** (pasos 1 y 2 de 5): la firma solo se registra desde nuestro servidor (hora, IP, navegador y huella los pone él; con la clave pública se rechaza) y **código de 6 cifras al email** de quien firma, opcional, que deja la firma como «email verificado» en la hoja y en el PDF. Migración `20261122190000`, prueba 322 y el recorrido de la firma. Pasos 3-5 (sello de tiempo cualificado, sello electrónico de Dynamo, asesor) apuntados para antes de producción.
+- **e-CMR más sólido** (pasos 1 y 2 de 5): la firma solo se registra desde nuestro servidor (hora, IP, navegador y huella los pone él; con la clave pública se rechaza) y **código de 6 cifras al email** de quien firma: sale solo al abrir la ventana de firma (o al escribir el email) y se pide antes de firmar; deja la firma como «email verificado» en la hoja y en el PDF (sin código solo si no le llega). Migración `20261122190000`, prueba 322 y el recorrido de la firma. Pasos 3-5 (sello de tiempo cualificado, sello electrónico de Dynamo, asesor) apuntados para antes de producción.
 - **Pruebas automáticas**: pasada diaria también desde GitHub (`pruebas-diarias.yml` en `main`, 6:17 Madrid, avisa por email si falla); una subida ya no corta la pasada completa (grupos de `concurrency` por tipo de evento).
 - **Emails de incidencias** (abierta, resuelta, retirada) y **de penalizaciones** (solo al confirmar y al cancelar/borrar; al guardarla no se avisa). Al transportista, «importe a su favor» con cifra. Pruebas 318.
 - **Barrera**: un CIF/NIF o un email de transportista no puede darse de alta como cliente (pruebas 319 y 320).

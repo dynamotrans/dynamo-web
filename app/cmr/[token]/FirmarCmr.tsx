@@ -474,28 +474,49 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   // El email que queda en la firma (y al que va el código).
   const emailFirma = (emailEmpresa ? (propioVale ? propio : emailEmpresa) : email).trim().toLowerCase();
   const emailFirmaVale = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailFirma);
-  // CÓDIGO DE 6 CIFRAS (usuario, 2026-11-22): opcional y recomendado. Si se escribe bien, la
-  // firma queda «email verificado» (lo decide la base de datos). Al cambiar el email, se pierde.
+  // CÓDIGO DE 6 CIFRAS (usuario, 2026-11-22): al abrir la ventana de firma se manda solo al
+  // email de quien firma (si ya lo tenemos); si no, lo escribe y pulsa «Mandarme el código».
+  // Se pide antes de «Aceptar firma». Si se escribe bien, la firma queda «email verificado»
+  // (lo decide la base de datos). Si no le llega (pasado 1 minuto, o si no se pudo mandar),
+  // puede firmar sin código: queda «email sin verificar». Al cambiar el email, se pierde.
   const [codigoA, setCodigoA] = useState<string | null>(null);       // email al que se mandó
   const [verificadoA, setVerificadoA] = useState<string | null>(null); // email ya verificado
   const [codigo, setCodigo] = useState('');
   const [codigoMsg, setCodigoMsg] = useState<{ t: 'err' | 'okv'; m: string } | null>(null);
   const [codigoOcupado, setCodigoOcupado] = useState(false);
+  const [sinCodigo, setSinCodigo] = useState(false);
+  const [falloEnvio, setFalloEnvio] = useState(false);
+  const [esperaCumplida, setEsperaCumplida] = useState(false);       // pasó 1 minuto desde el envío
   const verificado = verificadoA === emailFirma && emailFirmaVale;
-  async function pedirCodigo() {
-    if (!emailFirmaVale) { setCodigoMsg({ t: 'err', m: 'Pon antes un email válido.' }); return; }
-    setCodigoOcupado(true); setCodigoMsg(null);
-    const r = await pedirCodigoFirma(token, { parada_id: b.parada_id, rol: b.rol, email: emailFirma }).catch(() => ({ ok: false as const, error: 'No hay cobertura: vuelve a intentarlo o firma sin código.' }));
+  const codigoMandado = codigoA === emailFirma && emailFirmaVale;
+  const puedeSinCodigo = falloEnvio || (codigoMandado && esperaCumplida);
+  async function pedirCodigo(email = emailFirma) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setCodigoMsg({ t: 'err', m: 'Pon antes un email válido.' }); return; }
+    setCodigoOcupado(true); setCodigoMsg(null); setEsperaCumplida(false);
+    const r = await pedirCodigoFirma(token, { parada_id: b.parada_id, rol: b.rol, email }).catch(() => ({ ok: false as const, error: 'No hay cobertura: vuelve a intentarlo.' }));
     setCodigoOcupado(false);
-    if (r.ok) { setCodigoA(r.email); setCodigo(''); setCodigoMsg({ t: 'okv', m: `Te lo hemos mandado a ${r.email}. Mira también en «Spam».` }); }
-    else setCodigoMsg({ t: 'err', m: r.error });
+    if (r.ok) {
+      setCodigoA(r.email); setCodigo(''); setFalloEnvio(false);
+      setCodigoMsg({ t: 'okv', m: `Te lo hemos mandado a ${r.email}. Mira también en «Spam».` });
+      setTimeout(() => setEsperaCumplida(true), 60_000);
+    } else { setFalloEnvio(true); setCodigoMsg({ t: 'err', m: r.error }); }
   }
-  async function comprobarCodigo() {
+  async function comprobarCodigo(c = codigo) {
     setCodigoOcupado(true); setCodigoMsg(null);
-    const r = await comprobarCodigoFirma(token, { parada_id: b.parada_id, rol: b.rol, email: emailFirma, codigo }).catch(() => ({ ok: false as const, error: 'No hay cobertura: vuelve a intentarlo.' }));
+    const r = await comprobarCodigoFirma(token, { parada_id: b.parada_id, rol: b.rol, email: emailFirma, codigo: c }).catch(() => ({ ok: false as const, error: 'No hay cobertura: vuelve a intentarlo.' }));
     setCodigoOcupado(false);
-    if (r.ok) { setVerificadoA(emailFirma); setCodigoMsg(null); } else setCodigoMsg({ t: 'err', m: r.error });
+    if (r.ok) { setVerificadoA(emailFirma); setCodigoMsg(null); setAviso(null); } else setCodigoMsg({ t: 'err', m: r.error });
   }
+  // Al abrir: si ya tenemos su email, el código sale solo. Al transportista no se le manda
+  // solo al email de su EMPRESA (quien firma suele ser el conductor): pulsa él el botón.
+  const autoMandado = useRef(false);
+  useEffect(() => {
+    if (autoMandado.current) return;
+    autoMandado.current = true;
+    const e = (b.preEmail ?? '').trim().toLowerCase();
+    if (b.rol !== 'transportista' && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) void pedirCodigo(e);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Matrículas (usuario, 2026-11-11): solo la cabecera (transportista o cargador de la
   // 1.ª parada) las ve — precargadas si el envío ya las tiene, editables, y obligatoria
   // la tractora salvo en envíos manuales. En firmas extra no salen: ya está en tránsito.
@@ -558,6 +579,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     // Email OBLIGATORIO (usuario, 2026-11-14): a esa dirección va la copia del firmado.
     if (!emailEmpresa && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) { setAviso('Pon tu email: te enviaremos la copia del documento firmado.'); avisaFaltas(['sigEmail']); return; }
     if (emailEmpresa && propio && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(propio)) { setAviso('Tu email no es válido. Corrígelo o déjalo vacío: es opcional.'); avisaFaltas(['sigEmailPropio']); return; }
+    if (!verificado && !sinCodigo) {
+      setAviso(codigoMandado ? 'Escribe el código de 6 cifras que te hemos mandado a tu email.' : 'Pulsa «Mandarme el código» para recibir en tu email el código de 6 cifras.');
+      avisaFaltas([codigoMandado ? 'sigCodigo' : 'sigEmail']); return;
+    }
     if (pideMatricula && b.matObligatoria && !matCam.trim()) {
       setAviso('Pon la matrícula del camión (tractora): sin ella no se puede salir de la 1.ª parada.');
       avisaFaltas(['sigMatCam']); return;
@@ -684,25 +709,31 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
           <label className="sig-lbl" htmlFor="sigEmail">Email <Req /> <strong style={{ color: 'var(--green-dark)', fontWeight: 800 }}>(recibirás tu copia al firmar y la copia final cuando firmen todos)</strong></label>
           <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="Ej. nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         </>}
-        {/* Código al email (usuario, 2026-11-22): opcional; la firma vale más como prueba. */}
+        {/* Código al email (usuario, 2026-11-22): se manda al abrir; se pide antes de firmar. */}
         <div style={{ marginTop: '0.55rem', padding: '0.55rem 0.65rem', border: '1.5px dashed var(--gray-300)', borderRadius: 10 }}>
           {verificado
             ? <div className="sig-msg okv" style={{ marginTop: 0 }}>✓ Email verificado con código: tu firma quedará como «email verificado».</div>
-            : codigoA === emailFirma && emailFirmaVale ? <>
-              <label className="sig-lbl" htmlFor="sigCodigo" style={{ marginTop: 0 }}>Código de 6 cifras que te hemos mandado</label>
+            : sinCodigo ? <div className="sig-msg warn" style={{ marginTop: 0 }}>
+              Firmarás sin código: tu firma quedará como «email sin verificar».{' '}
+              <button type="button" className="sig-link" onClick={() => setSinCodigo(false)}>Volver al código</button>
+            </div>
+            : codigoMandado ? <>
+              <label className="sig-lbl" htmlFor="sigCodigo" style={{ marginTop: 0 }}>Código de 6 cifras que te hemos mandado a {emailFirma} <Req /></label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input type="text" id="sigCodigo" autoComplete="one-time-code" inputMode="numeric" maxLength={6} placeholder="Ej. 123456"
-                  value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))} style={{ letterSpacing: '0.2em' }} />
+                  value={codigo} style={{ letterSpacing: '0.2em' }}
+                  onChange={(e) => { const c = e.target.value.replace(/\D/g, '').slice(0, 6); setCodigo(c); if (c.length === 6 && !codigoOcupado) void comprobarCodigo(c); }} />
                 <button type="button" className="sig-foto-btn" style={{ flex: '0 0 auto', padding: '0.5rem 0.8rem' }}
-                  disabled={codigoOcupado || codigo.length !== 6} onClick={comprobarCodigo}>{codigoOcupado ? '…' : 'Comprobar'}</button>
+                  disabled={codigoOcupado || codigo.length !== 6} onClick={() => comprobarCodigo()}>{codigoOcupado ? '…' : 'Comprobar'}</button>
               </div>
-              <button type="button" className="sig-link" style={{ fontSize: '0.78rem', marginTop: '0.3rem' }} disabled={codigoOcupado} onClick={pedirCodigo}>Mandar otro código</button>
-            </> : <button type="button" className="sig-foto-btn" style={{ width: '100%' }} disabled={codigoOcupado || !emailFirmaVale} onClick={pedirCodigo}>
-              {codigoOcupado ? 'Mandando…' : '✉ Verificar mi email con un código (recomendado)'}
+              <button type="button" className="sig-link" style={{ fontSize: '0.78rem', marginTop: '0.3rem' }} disabled={codigoOcupado} onClick={() => pedirCodigo()}>Mandar otro código</button>
+            </> : <button type="button" className="sig-foto-btn" style={{ width: '100%' }} disabled={codigoOcupado || !emailFirmaVale} onClick={() => pedirCodigo()}>
+              {codigoOcupado ? 'Mandando el código…' : emailFirmaVale ? `✉ Mandarme el código a ${emailFirma}` : '✉ Escribe tu email para recibir el código'}
             </button>}
-          {codigoMsg && <div className={`sig-msg ${codigoMsg.t}`}>{codigoMsg.m}</div>}
-          {!verificado && <div style={{ fontSize: '0.72rem', color: 'var(--gray-500)', marginTop: '0.3rem' }}>
-            Opcional: con el código, tu firma queda como «email verificado» y vale más como prueba. Si no te llega, puedes firmar igual.
+          {codigoMsg && !verificado && !sinCodigo && <div className={`sig-msg ${codigoMsg.t}`}>{codigoMsg.m}</div>}
+          {!verificado && !sinCodigo && <div style={{ fontSize: '0.72rem', color: 'var(--gray-500)', marginTop: '0.3rem' }}>
+            Para firmar te mandamos un código de 6 cifras a tu email: así tu firma queda como «email verificado».{emailEmpresa && !propioVale ? ' Si no es tu email, pon el tuyo en «Tu email».' : ' Si no es tu email, cámbialo arriba.'}
+            {puedeSinCodigo && <>{' '}<button type="button" className="sig-link" onClick={() => { setSinCodigo(true); setAviso(null); }}>¿No te llega? Firmar sin código</button></>}
           </div>}
         </div>
         {/* Matrículas en la CABECERA (usuario, 2026-11-11): el DeCA debe existir antes de

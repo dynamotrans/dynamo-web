@@ -451,14 +451,14 @@ solo lo que **hay que hacer o comprobar antes de abrir el portal**.
 **Hecho (2026-11-22)**: (1) la firma del CMR y sus reservas **solo las registra nuestro servidor** con la
 clave de servicio: hora, IP, navegador y huella SHA-256 de lo firmado los pone él, y la base de datos rechaza
 la clave pública (`solo_servidor`); necesita `SUPABASE_SERVICE_ROLE_KEY` en Vercel **también en Production**
-(sin ella no se puede firmar). (2) **Código de 6 cifras al email** de quien firma (opcional): con él la firma
+(sin ella no se puede firmar). (2) **Código de 6 cifras al email** de quien firma, que sale solo al abrir la ventana de firma y se pide antes de firmar (sin código solo si no le llega): con él la firma
 queda «email verificado» en la hoja y en el PDF; el código no se guarda (solo su huella), caduca a los 15 min,
 5 intentos, topes por email y envío; sale al momento, sin copia a Dynamo. Necesita `POSTMARK_SERVER_TOKEN`
 en Production.
 
-**Antes de abrir**: (3) **sello de tiempo cualificado** sobre la huella de cada firma y del PDF; (4) **sello
-electrónico de Dynamo** (PAdES) en el PDF del CMR; (5) **confirmación del asesor** de si vale como firma
-electrónica avanzada y si el código debe ser obligatorio. Detalle en `TODO.md` (v1).
+**Antes de abrir**: (4) **sello electrónico de Dynamo** (PAdES) en el PDF del CMR, con un certificado de
+SELLO de empresa comprado para esto (nunca el de representante del administrador); (5) **confirmación del
+asesor** de si vale como firma electrónica avanzada. **A futuro**: (3) sello de tiempo cualificado. Detalle en `TODO.md` (v1).
 
 ---
 

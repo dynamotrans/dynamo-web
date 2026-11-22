@@ -130,10 +130,12 @@ test.describe.serial('flujos clave', () => {
     await f.fill('#sigDni', '12345678Z');
     // El email es obligatorio desde 2026-11-14: a esa dirección va la copia del firmado.
     await f.fill('#sigEmail', 'pedro.cargador@prueba.invalid');
-    // Código al email (2026-11-22): opcional. A una dirección de prueba (.invalid) no se manda;
-    // la ventana lo dice y se firma igual, como «email sin verificar».
-    await f.getByRole('button', { name: /Verificar mi email con un código/ }).click();
+    // Código al email (2026-11-22): se pide antes de firmar. A una dirección de prueba (.invalid)
+    // no se manda; la ventana lo dice y deja firmar sin código, como «email sin verificar».
+    await f.getByRole('button', { name: /Mandarme el código a pedro\.cargador@prueba\.invalid/ }).click();
     await expect(f.getByText(/No hemos podido mandar el código/)).toBeVisible({ timeout: 15_000 });
+    await f.getByRole('button', { name: '¿No te llega? Firmar sin código' }).click();
+    await expect(f.getByText(/Firmarás sin código/)).toBeVisible();
     // Antes de firmar puede añadir fotos de otros documentos (misma ventana de subir, contra
     // el almacén de verdad): una página, y queda en los documentos del envío.
     const pagina = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
