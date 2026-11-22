@@ -2,7 +2,7 @@
 // (el del envío y el general) — usuario, 2026-11-22:
 //   · tramos hechos en línea continua y los que faltan en discontinua (en el tramo en curso, la
 //     parte hecha llega hasta el camión); en línea recta hasta tener las rutas de Google Maps;
-//   · cada parada, un círculo numerado (✓ en verde si ya se hizo);
+//   · cada parada, un círculo con su número (naranja recogida, morado entrega), también ya hecha;
 //   · al pulsar una parada o la línea, la ruta se RESALTA (más gruesa, por encima de las demás) y
 //     salen las etiquetas de TODAS sus paradas, en varias líneas, con su hora real o prevista,
 //     durante 4 segundos; pulsando fuera del envío se apaga al momento (eso lo lleva quien la
@@ -11,7 +11,7 @@ import type * as Leaflet from 'leaflet';
 import { etiquetaParada, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
 
 type L = typeof Leaflet;
-const MORADO = '#3300cc', GRIS = '#9ca3af', VERDE = '#16a34a', NARANJA = '#e07b00';
+const MORADO = '#3300cc', GRIS = '#9ca3af', NARANJA = '#e07b00';
 
 /** Estilo de las etiquetas de parada (varias líneas, estrechas). */
 export const ESTILO_MAPA = `.leaflet-tooltip.tt-parada{white-space:normal;width:max-content;max-width:190px;line-height:1.25;font-size:12px;padding:5px 8px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}`;
@@ -57,10 +57,12 @@ export function dibujarRuta(L: L, g: Leaflet.LayerGroup, mapa: MapaEnvio & { id?
   }
   const t = o.grande ? 28 : 20;
   for (const p of pts) {
-    const hecha = !!horaParada(mapa, p)?.real;
-    const color = hecha ? VERDE : p.tipo === 'carga' ? NARANJA : MORADO;
+    // Siempre su NÚMERO y su color (naranja recogida, morado entrega), también ya hecha
+    // (usuario, 2026-11-22: con un ✓ no se sabe si era la 1 o la 2; dónde va el camión ya
+    // dice por dónde ha pasado). La hora real sale en su etiqueta.
+    const color = p.tipo === 'carga' ? NARANJA : MORADO;
     const icono = L.divIcon({ className: 'parada-mapa', iconSize: [t, t], iconAnchor: [t / 2, t / 2],
-      html: `<div style="width:${t}px;height:${t}px;border-radius:${t / 2}px;background:${color};color:#fff;font:800 ${o.grande ? 13 : 11}px/${t}px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${hecha ? '✓' : p.orden}</div>` });
+      html: `<div style="width:${t}px;height:${t}px;border-radius:${t / 2}px;background:${color};color:#fff;font:800 ${o.grande ? 13 : 11}px/${t}px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${p.orden}</div>` });
     L.marker(ll(p), { icon: icono, title: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`, keyboard: false, bubblingMouseEvents: false })
       .on('click', pulsar).addTo(propia);
   }

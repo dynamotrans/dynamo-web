@@ -113,7 +113,7 @@ function Leyenda() {
   const punto = (c: string, t: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginRight: 14 }}><span style={{ width: 12, height: 12, borderRadius: 6, background: c, display: 'inline-block' }} />{t}</span>;
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: '0.78rem', color: 'var(--gray-700)', marginTop: '0.5rem' }} aria-label="Leyenda del mapa">
-      {punto(COLOR.carga, 'Recogida')}{punto(COLOR.descarga, 'Entrega')}{punto(COLOR.hecho, 'Parada hecha')}
+      {punto(COLOR.carga, 'Recogida')}{punto(COLOR.descarga, 'Entrega')}
       <span style={{ marginRight: 14 }}>🚚 Camión (posición estimada)</span>
       <span style={{ marginRight: 14 }}><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho</span>
       <span><span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer</span>
