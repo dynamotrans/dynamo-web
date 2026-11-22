@@ -407,11 +407,99 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 - Antes de subir: `npm run build` sin errores + comprobar en Chromium (`/`, una hoja de sección,
   `/panel/entrar`). Versiones de paquetes fijadas exactas y con al menos 2 semanas.
 
+### 18. REGLAS DICHAS EN EL CHAT, TODAS JUNTAS (recopiladas el 2026-11-22)
+
+> El usuario las ha ido diciendo en el chat a lo largo de las semanas. Se juntan aquí para que
+> no dependan de la memoria de una conversación (al compactarse se pierde detalle). Si una
+> choca con otra regla de este archivo, manda la más reciente; ante la duda, preguntar.
+
+**Forma de trabajar**
+- Todo se construye **dentro de la plataforma, con código propio**, en GitHub y con pruebas (vibe coding: el usuario pide, Claude programa, prueba y sube). **n8n descartado por defecto**; solo para algo muy concreto o fuera de la plataforma.
+- El usuario escribe desde el móvil: responder en español claro, el resultado primero.
+- En `pruebas` se sube sin preguntar. Las pruebas pueden ir después de subir («súbelo ya»); si fallan, se arreglan. **`main` siempre con OK explícito**; el portal NUNCA a `main` sin la frase explícita. Nunca force-push.
+- No ejecutar programas descargados de internet. Sin identificadores de modelo en commits (salvo la línea Co-Authored-By) ni en el código.
+- Nunca desactivar ni saltar una prueba para poner el CI en verde.
+- Si el usuario interrumpe una herramienta: parar y esperar.
+
+**Pruebas automáticas** (ver también la bitácora del 2026-11-22)
+- Cada subida a `pruebas`: CI (base de datos, web, Chrome). Cada mañana a las 6:17 Madrid: `.github/workflows/pruebas-diarias.yml` (en `main`) lanza el CI completo (Chrome + Safari + iPhone) y GitHub avisa por email si falla. A las 6:47, la tarea programada del chat lo revisa y arregla. Tras cada subida, una tarea de un solo uso vuelve a mirar el CI.
+
+**Claves y contraseñas**
+- Contraseñas, claves y tokens **nunca por el chat ni en el repositorio**: los pega el usuario en Vercel/Supabase. Pedirle que no mande capturas con claves visibles; no repetir nunca una clave (ni su principio) vista en una captura, y rotar el mismo día la que se haya visto.
+- **Tope de gasto** (y autorrecarga apagada) en todas las APIs de pago **antes** de poner la clave; recordárselo cada vez que haya que crear una. Claves restringidas a nuestro dominio/servidor y a lo que se usa; renovarlas cada año.
+- El email del usuario es privado frente a servicios externos.
+
+**Lo que NO ve el cliente**
+- Nunca nombrar **Holded** en la interfaz del cliente.
+- No ve: importes de crédito, el nombre del transportista de Dynamo, el descuento/factor de su precio, el banco de la transferencia, el código de Wtransnet, el código de aceptación de la carga, ni qué tipos de sitio llevan recargo.
+- Las reglas de impagos solo las ve y edita el Admin Master.
+- Los transportistas nunca ven todas las cargas de Dynamo.
+
+**Documentos y emails**
+- Los datos de Dynamo en los PDF salen siempre de Parámetros.
+- Copia a Dynamo en todos los emails del sistema, salvo la difusión, la orden al transportista propio del cliente y el resumen mensual a los sitios.
+- Los emails al transportista nunca llevan precios en los avisos de cambios.
+- En los emails, siempre el fijo **+34 955 225 945**; el móvil solo en los enlaces de WhatsApp.
+- El texto «Si rompen la mercancía» es de otra empresa: no copiarlo.
+- La orden de carga solo ofrece la carga de vuelta.
+
+**Envíos y operativa**
+- Un envío nunca sale en dos pestañas. Envío con precio a mano: solo lo modifica Dynamo.
+- Envíos con transportista propio (manuales): Dynamo no manda emails automáticos y no llevan pedidos.
+- Direcciones siempre a la vista; sin matrículas, solo el aviso rojo del DeCA.
+- Teléfono del conductor nunca en emails; en la plataforma, desde el día antes de cargar hasta 24 h después de entregar.
+- El botón «Aceptar carga» solo en `pruebas` (hasta que se publique la plataforma).
+- La documentación del transportista (ITV, seguro, tarjeta) NO se controla ni se guarda.
+- Margen negativo: lo decide el usuario (se permite).
+- Solo razón social (sin nombre comercial).
+- PIN: para la v4. En Parámetros no se enseñan `pin_*`, `holded_*` ni `seguimiento_km_por_defecto`.
+
+**Cobros y facturas**
+- Cobro y facturación son cosa de **Holded**; las facturas en la plataforma son de SOLO LECTURA.
+- Facturas recibidas: todas MENOS las de gastos financieros (ni se descargan).
+
+**Orden de desarrollo**
+- El tarifador público sigue apagado hasta que haya tarifas reales. El tarifador va el último; la API de la bolsa, después del tarifador.
+
+**Seguridad**
+- Cookies siempre «Secure», salvo en http local. Las acciones delicadas SIEMPRE piden la contraseña.
+- No borrar los usuarios `@prueba.invalid` ni la cuenta del usuario.
+
+**Base de datos**
+- Migraciones idempotentes; una migración aplicada no se edita nunca (se hace otra).
+- Los textos de la BD dicen «envío». La guarda 47 veta nombres viejos dentro de las funciones (`cp`, `localidad`, `pais`, `observaciones`, `notas`, `cp_origen/destino`): usar alias como `cod`.
+
 ---
 
 ## Bitácora
 
 Registro automático de sesiones. La entrada más reciente va arriba.
+
+### 2026-11-18 a 2026-11-22 — Claude Code web (nube)
+
+> Todo en la rama **`pruebas`** salvo un archivo nuevo en `main` (`.github/workflows/pruebas-diarias.yml`, `3a28a76`, sin cambios en la web). Las reglas dichas en el chat se han juntado en la **regla 18**. Detalle de cada cambio: `git log` de `pruebas`.
+
+**Crear varios envíos** (desplegable junto a «Nuevo envío»): tabla de hasta 20 envíos con precio por fila; columnas de sitio más anchas; aviso si a un sitio le falta el teléfono; requisitos (plataforma elevadora, NIMA, ADR) en un desplegable de selección múltiple; nº, quitar y duplicar en línea; sin la casilla de condiciones avisa en vez de bloquear; pantalla de éxito como la de un solo envío.
+
+**Direcciones**
+- Provincia en España: desplegable de 52 y la pone el código postal; limpieza de las fichas viejas por CP.
+- Fuera de España: provincia escrita con sugerencias sacadas de las fichas vivas (las propias + las que han escrito al menos 2 empresas o Dynamo, «punto medio»).
+- Código postal ↔ localidad ↔ provincia se rellenan entre sí con la misma regla (`direcciones_en_uso`), sin pisar lo escrito.
+- Transportista propio del cliente: provincia, país y tipos de camión (tráiler por defecto, rígido plataforma 8 m, otros).
+
+**Pantallas**: cajas de datos con la etiqueta arriba y el dato debajo, todo a la izquierda; fuera la cajita de huella de CO₂ (se queda `lib/co2.ts`); un solo filtro de fecha con «Entre dos fechas»; un solo calendario y selector de hora; calendario de envíos con mini resumen al primer clic; facturas de Dynamo (emitidas y recibidas) de solo lectura; botón «Sugerencias o fallos».
+
+**Emails**: todos esperan 30 s con contador y «Anular el cambio»; diseño común con botones, firma con foto y cargo; envíos con transportista propio sin avisos; cargas de vuelta en el email de la orden; email de cuenta suspendida con los envíos que contaron.
+
+**Seguridad y cuentas**: doble paso del equipo de Dynamo; contraseña en acciones delicadas; aviso de acceso desde dispositivo nuevo con «No he sido yo»; copia de seguridad propia cifrada; archivos comprobados por su contenido real; todas las listas del panel por páginas.
+
+**Otros**: teléfono del conductor solo en la plataforma; límites a transportistas que cancelan; direcciones siempre visibles; control de facturación (envíos ↔ pedidos de venta y compra); nota automática del transportista (0-10); tarifador de la web con 3 cálculos al día por IP; altas vetadas.
+
+**Decisiones**: todo dentro de la plataforma con código propio y vibe coding; **n8n descartado por defecto**; WhatsApp y email con Claude dentro de la plataforma (caminos fijos + Claude, confirmación en lo delicado, paso a una persona); voz (ElevenLabs o similar) más adelante. Apuntado en `TODO.md`.
+
+**Pruebas automáticas**: la pasada diaria ya no depende solo del chat: GitHub la lanza cada mañana a las 6:17 (Chrome + Safari + iPhone) y avisa por email si falla; la tarea del chat de las 6:47 la revisa y arregla. Fotos de referencia de las pantallas en el CI. Suite de BD hasta la prueba 317.
+
+**Pendientes** (detalle en `TODO.md`): claves en Vercel con tope de gasto (Turnstile real, Postmark, Google Maps); APIs de Holded y CESCE; Google Maps (#79); bolsas de carga (#66); tarifador con tarifas reales.
 
 ### 2026-11-17 — Claude Code web (nube)
 
