@@ -1264,10 +1264,16 @@ test.describe('novedades', () => {
     await expect(page.locator('[data-mapa-envio].leaflet-container')).toBeVisible();
     // Las dos paradas, numeradas, en el mapa (los sitios de prueba tienen coordenadas).
     await expect(page.locator('[data-mapa-envio] .leaflet-marker-icon')).toHaveCount(2);
-    // Al pulsar una parada, su ventanita en varias líneas con la hora (prevista o real).
-    await page.locator('[data-mapa-envio] .leaflet-marker-icon').first().click();
-    await expect(page.locator('[data-mapa-envio] .leaflet-popup-content')).toContainText(/Recogida 1/);
-    await expect(page.locator('[data-mapa-envio] .leaflet-popup-content')).toContainText(/Prevista|Cargado|Llegó/);
+    // Al pulsar una parada, la ruta se resalta y salen las etiquetas de TODAS sus paradas, en
+    // varias líneas y con la hora (prevista o real); pulsando fuera se apagan al momento.
+    await page.locator('[data-mapa-envio] .parada-mapa').first().click();
+    const etiquetas = page.locator('[data-mapa-envio] .leaflet-tooltip.tt-parada');
+    await expect(etiquetas).toHaveCount(2);
+    await expect(etiquetas.first()).toContainText(/Recogida 1/);
+    await expect(etiquetas.first()).toContainText(/Prevista|Cargado|Llegó/);
+    const caja = (await page.locator('[data-mapa-envio]').boundingBox())!;
+    await page.locator('[data-mapa-envio]').click({ position: { x: caja.width - 25, y: 25 } });
+    await expect(etiquetas).toHaveCount(0);
     // La lista de paradas también dice la hora.
     await expect(page.locator('.mapa-paradas li').first()).toContainText(/Prevista|Cargado|Llegó/);
     await expect(page.getByLabel('Leyenda del mapa')).toContainText('Camión (posición estimada)');
@@ -1330,6 +1336,13 @@ test.describe('novedades', () => {
       await page.getByRole('tab', { name: /^Programados/ }).click();
       await expect(page.getByRole('tab', { name: /^Programados/ })).toHaveAttribute('aria-selected', 'true');
       await expect(page.getByLabel('Leyenda del mapa general')).toContainText('En marcha');
+      // Al pulsar un programado, su ruta sale resaltada con las etiquetas de sus paradas y se
+      // apaga sola a los 4 segundos.
+      await page.locator('[data-mapa-general] .punto-programado').last().click({ force: true });
+      const etiquetas = page.locator('[data-mapa-general] .leaflet-tooltip.tt-parada');
+      await expect.poll(async () => etiquetas.count()).toBeGreaterThan(0);
+      await expect(etiquetas.first()).toContainText(/Prevista|Cargado|Llegó|Entrega|Recogida/);
+      await expect(etiquetas).toHaveCount(0, { timeout: 7_000 });
       // «Encuadrar» devuelve el mapa a todo lo pintado tras moverlo o acercarse.
       await page.getByRole('tab', { name: /^Todos/ }).click();
       await page.locator('[data-mapa-general] .leaflet-control-zoom-in').click();

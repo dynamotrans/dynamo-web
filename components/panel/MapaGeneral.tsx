@@ -15,6 +15,7 @@ import { posicionCamion } from '@/lib/mapaEnvio';
 import { fecha } from '@/lib/formato';
 import { nombreEstado } from '@/lib/estados';
 import { ATRIBUCION, BotonEncuadrar, CAJA_MAPA, COLOR, TESELAS, TONO, VentanaMapa } from './MapaEnvio';
+import { dibujarRuta, resaltador, ESTILO_MAPA, type Ruta } from './mapaRuta';
 
 type Filtro = 'todos' | 'marcha' | 'programados';
 const enMarcha = (e: EnvioMapa) => e.estado !== 'programado';
@@ -57,7 +58,8 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.9rem', fontSize: '0.78rem', color: 'var(--gray-700)', marginTop: '0.5rem' }} aria-label="Leyenda del mapa general">
         <span>🚚 En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: TONO.ambar }}>cargando/descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
         <span><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: '#9ca3af', verticalAlign: 'middle' }} /> Programado (en su 1.ª recogida)</span>
-        <span><span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Ruta (en línea recta)</span>
+        <span><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho · <span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer (en línea recta)</span>
+        <span>Pulsa una parada o una ruta para ver todas sus paradas con su hora.</span>
       </div>
       {abierto && <VentanaMapa envioId={abierto.id} referencia={abierto.ref} onCerrar={() => setAbierto(null)} />}
     </section>
@@ -79,13 +81,16 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
   }, []);
   const [listo, setListo] = useState(false);
   const abrir = useRef(onAbrir); abrir.current = onAbrir;
+  const res = useRef(resaltador());
 
   useEffect(() => {
     let vivo = true;
+    const r = res.current;
     void import('leaflet').then((mod) => {
       const L = mod.default ?? mod;
       if (!vivo || !div.current || inst.current) return;
       const m = L.map(div.current, { zoomControl: true });
+      m.on('click', () => r.apagar());   // pulsar fuera de un envío: se apaga al momento
       L.tileLayer(TESELAS, { maxZoom: 18, attribution: ATRIBUCION }).addTo(m);
       m.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
       m.setView([40.2, -3.7], 6);
@@ -98,7 +103,7 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
       setListo(true);
       setTimeout(() => m.invalidateSize(), 300);
     });
-    return () => { vivo = false; inst.current?.remove(); inst.current = null; };
+    return () => { vivo = false; r.apagar(); inst.current?.remove(); inst.current = null; };
   }, []);
 
   useEffect(() => {
@@ -106,8 +111,10 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
     void import('leaflet').then((mod) => {
       const L = mod.default ?? mod;
       const g = capa.current!;
+      res.current.apagar();
       g.clearLayers();
       const puntos: [number, number][] = [];
+      const rutas: Ruta[] = [];
       const esc = (t: string | null | undefined) => (t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
       for (const e of envios) {
         const pts = e.paradas.filter((p) => p.lat != null && p.lon != null);
@@ -115,25 +122,32 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
         const ruta = `${esc(pts[0].poblacion)} → ${esc(pts[pts.length - 1].poblacion)}`;
         const botones = `<div style="margin-top:6px;display:flex;gap:6px"><button type="button" data-abrir-mapa="${e.id}" data-ref="${esc(e.referencia)}" style="border:1px solid #3300cc;color:#3300cc;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font-weight:700">Mapa del envío</button><a href="/panel/envios?ver=${e.id}" style="font-weight:700">Ficha</a></div>`;
         const cabecera = `<strong>#${esc(e.referencia)}</strong>${dynamo && e.cliente ? ` · ${esc(e.cliente)}` : ''}<br>${ruta}`;
+        // La ruta de cada envío, como en el mapa del envío: al pulsar una parada o la línea se
+        // resalta (y se atenúan las demás) con las etiquetas de todas sus paradas, 4 segundos.
+        // Los programados no se dibujan hasta pulsar su punto: el mapa no se llena de líneas.
+        const r = dibujarRuta(L, g, e, { oculta: !enMarcha(e), alPulsar: () => res.current.resaltar(r) });
+        rutas.push(r);
         if (!enMarcha(e)) {
-          // Programado: un punto gris en su 1.ª recogida.
+          // Programado: un punto gris en su 1.ª recogida; al pulsarlo, su ficha breve y su ruta.
           const p = pts[0];
-          L.circleMarker([+p.lat!, +p.lon!], { radius: 6, color: '#fff', weight: 2, fillColor: '#9ca3af', fillOpacity: 1 })
-            .bindPopup(`${cabecera}<br>Programado${e.fecha_carga ? ` · carga ${fecha(e.fecha_carga)}` : ''}${botones}`).addTo(g);
+          L.circleMarker([+p.lat!, +p.lon!], { radius: 6, color: '#fff', weight: 2, fillColor: '#9ca3af', fillOpacity: 1, className: 'punto-programado', bubblingMouseEvents: false })
+            .bindPopup(`${cabecera}<br>Programado${e.fecha_carga ? ` · carga ${fecha(e.fecha_carga)}` : ''}${botones}`, { autoPanPadding: [16, 16] })
+            .on('click', () => res.current.resaltar(r, p.orden)).addTo(g);
           puntos.push([+p.lat!, +p.lon!]);
           continue;
         }
-        L.polyline(pts.map((p) => [+p.lat!, +p.lon!] as [number, number]), { color: COLOR.pendiente, weight: 2, dashArray: '6 6', opacity: 0.8 }).addTo(g);
         const pc = posicionCamion(e);
         const donde: [number, number] = pc ? [pc.lat, pc.lon] : [+pts[0].lat!, +pts[0].lon!];
         const tono = pc ? TONO[pc.tono] : TONO.gris;
         const icono = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15],
           html: `<div style="width:30px;height:30px;border-radius:15px;background:#fff;border:3px solid ${tono};font:16px/25px system-ui;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.35)">🚚</div>` });
-        L.marker(donde, { icon: icono, title: `#${e.referencia}`, keyboard: false })
-          .bindPopup(`${cabecera}<br><span style="color:${tono};font-weight:700">${esc(pc?.titulo ?? nombreEstado(e.estado))}</span>${pc ? `<br>${esc(pc.detalle)}` : ''}<br><em>Posición estimada</em>${botones}`).addTo(g);
+        L.marker(donde, { icon: icono, title: `#${e.referencia}`, keyboard: false, zIndexOffset: 1000 })
+          .bindPopup(`${cabecera}<br><span style="color:${tono};font-weight:700">${esc(pc?.titulo ?? nombreEstado(e.estado))}</span>${pc ? `<br>${esc(pc.detalle)}` : ''}<br><em>Posición estimada</em>${botones}`, { autoPanPadding: [16, 16] })
+          .on('click', () => res.current.resaltar(r)).addTo(g);
         puntos.push(donde);
         for (const p of pts) puntos.push([+p.lat!, +p.lon!]);
       }
+      res.current.poner(rutas);
       // Encuadre automático a lo que haya (solo cuando cambia QUÉ se ve, no en cada
       // actualización: si el usuario ha movido el mapa, se respeta).
       const clave = envios.map((e) => e.id).sort().join(',');
@@ -144,6 +158,7 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
 
   return (
     <div style={CAJA_MAPA}>
+      <style>{ESTILO_MAPA}</style>
       <div ref={div} data-mapa-general="" role="region" aria-label="Mapa de los envíos en curso"
         style={{ width: '100%', height: 'min(72vh, 720px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
       <BotonEncuadrar onClick={encuadrar} que="todos los envíos" />

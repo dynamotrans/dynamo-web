@@ -11,7 +11,8 @@ import { createPortal } from 'react-dom';
 import type { Map as MapaL } from 'leaflet';
 import Modal from './Modal';
 import { mapaDelEnvio } from '@/app/panel/(app)/envios/acciones-mapa';
-import { estadoMapa, etiquetaParada, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
+import { estadoMapa, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
+import { dibujarRuta, resaltador, ESTILO_MAPA } from './mapaRuta';
 
 export const TESELAS = process.env.NEXT_PUBLIC_MAPA_TESELAS || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const ATRIBUCION = process.env.NEXT_PUBLIC_MAPA_ATRIBUCION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -133,13 +134,16 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
     else void import('leaflet').then((mod) => m.fitBounds((mod.default ?? mod).latLngBounds(t), { padding: [40, 40], maxZoom: 12 }));
   }, []);
   const [listo, setListo] = useState(false);
+  const res = useRef(resaltador());
 
   useEffect(() => {
     let vivo = true;
+    const r = res.current;
     void import('leaflet').then((mod) => {
       const L = mod.default ?? mod;
       if (!vivo || !div.current || inst.current) return;
       const m = L.map(div.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: true });
+      m.on('click', () => r.apagar());   // pulsar fuera: se apaga al momento
       L.tileLayer(TESELAS, { maxZoom: 18, attribution: ATRIBUCION }).addTo(m);
       m.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
       m.setView([40.2, -3.7], 5);
@@ -148,7 +152,7 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
       // La ventana se abre con animación: recalcula el tamaño cuando ya está en su sitio.
       setTimeout(() => m.invalidateSize(), 350);
     });
-    return () => { vivo = false; inst.current?.remove(); inst.current = null; };
+    return () => { vivo = false; r.apagar(); inst.current?.remove(); inst.current = null; };
   }, []);
 
   useEffect(() => {
@@ -156,33 +160,13 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
     void import('leaflet').then((mod) => {
       const L = mod.default ?? mod;
       const g = capa.current!;
+      res.current.apagar();
       g.clearLayers();
-      const pts = mapa.paradas.filter((p) => p.lat != null && p.lon != null);
       const pc = posicionCamion(mapa);
-      const c = mapa.camion;
-      // Tramos: hecho (línea continua) o por hacer (discontinua). En el tramo en curso, la
-      // parte hecha va hasta el camión.
-      for (let i = 0; i + 1 < pts.length; i++) {
-        const a = pts[i], b = pts[i + 1];
-        const hecho = !!horaParada(mapa, b)?.real || c.modo === 'entregado';
-        const enCurso = c.modo === 'en_ruta' && c.desde === a.orden && c.hasta === b.orden && pc;
-        if (enCurso) {
-          L.polyline([[+a.lat!, +a.lon!], [pc.lat, pc.lon]], { color: COLOR.ruta, weight: 4 }).addTo(g);
-          L.polyline([[pc.lat, pc.lon], [+b.lat!, +b.lon!]], { color: COLOR.pendiente, weight: 3, dashArray: '8 8' }).addTo(g);
-        } else {
-          L.polyline([[+a.lat!, +a.lon!], [+b.lat!, +b.lon!]], hecho ? { color: COLOR.ruta, weight: 4 } : { color: COLOR.pendiente, weight: 3, dashArray: '8 8' }).addTo(g);
-        }
-      }
-      for (const p of pts) {
-        const hecha = !!horaParada(mapa, p)?.real;
-        const color = hecha ? COLOR.hecho : p.tipo === 'carga' ? COLOR.carga : COLOR.descarga;
-        const icono = L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14],
-          html: `<div style="width:28px;height:28px;border-radius:14px;background:${color};color:#fff;font:800 13px/28px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${hecha ? '✓' : p.orden}</div>` });
-        // Ventanita en varias líneas cortas que se recoloca sola (el mapa se mueve para que se
-        // vea entera): antes era una etiqueta de una línea que se cortaba por el borde.
-        L.marker([+p.lat!, +p.lon!], { icon: icono, title: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`, keyboard: false })
-          .bindPopup(etiquetaParada(mapa, p), { maxWidth: 230, autoPanPadding: [16, 16], closeButton: true }).addTo(g);
-      }
+      // La ruta (tramos y paradas) como en todos los mapas: al pulsar una parada o la línea
+      // salen las etiquetas de todas las paradas con su hora, 4 segundos o hasta pulsar fuera.
+      const ruta = dibujarRuta(L, g, mapa, { grande: true, alPulsar: () => res.current.resaltar(ruta) });
+      res.current.poner([ruta]);
       if (pc) {
         const icono = L.divIcon({ className: '', iconSize: [38, 38], iconAnchor: [19, 19],
           html: `<div style="width:38px;height:38px;border-radius:19px;background:#fff;border:3px solid ${TONO[pc.tono]};font:20px/32px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)">🚚</div>` });
@@ -191,7 +175,7 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
       }
       // Encuadre: la primera vez, todas las paradas y el camión; después se respeta lo que
       // haya movido quien mira.
-      const todos: [number, number][] = pts.map((p) => [+p.lat!, +p.lon!]);
+      const todos: [number, number][] = [...ruta.puntos];
       if (pc) todos.push([pc.lat, pc.lon]);
       puntos.current = todos;
       if (!encuadrado.current) { encuadrar(); encuadrado.current = todos.length > 0; }
@@ -200,6 +184,7 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
 
   return (
     <div style={CAJA_MAPA}>
+      <style>{ESTILO_MAPA}</style>
       <div ref={div} data-mapa-envio="" role="region" aria-label="Mapa de la ruta del envío"
         style={{ width: '100%', height: 'min(60vh, 460px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
       <BotonEncuadrar onClick={encuadrar} que="la ruta" />
