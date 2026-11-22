@@ -25,9 +25,11 @@ on:
         type: boolean
         default: false
 
+# Una subida nueva corta la ejecución anterior de su misma rama, pero nunca la pasada completa
+# lanzada a mano o por la pasada diaria (pruebas-diarias.yml): cada tipo va en su propio grupo.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
   base-de-datos:
