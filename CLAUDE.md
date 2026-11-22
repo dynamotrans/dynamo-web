@@ -443,6 +443,7 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 - En los emails, siempre el fijo **+34 955 225 945**; el móvil solo en los enlaces de WhatsApp.
 - El texto «Si rompen la mercancía» es de otra empresa: no copiarlo.
 - La orden de carga solo ofrece la carga de vuelta.
+- Penalizaciones (2026-11-22): se avisa al crearla («en revisión»), al confirmarla y al anularla/borrarla. Para el **transportista el importe es SIEMPRE A SU FAVOR** (nunca «penalización» ni «alegar»), y su email va **sin cifra**; al cliente, su importe + IVA.
 
 **Envíos y operativa**
 - Un envío nunca sale en dos pestañas. Envío con precio a mano: solo lo modifica Dynamo.

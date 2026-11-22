@@ -12,6 +12,8 @@ export type MiPenalizacion = { id: string; codigo: string; envio_id: string; ref
   descripcion: string | null; importe_cliente: number | null; estado: string; creado_en: string };
 
 const ESTADO: Record<string, [string, string]> = { pendiente_confirmar: ['En revisión', 'prog'], confirmada: ['Confirmada', 'red'] };
+// Para el transportista el importe es A SU FAVOR (usuario, 2026-11-22): «Confirmada» en verde.
+const ESTADO_T: Record<string, [string, string]> = { pendiente_confirmar: ['En revisión', 'prog'], confirmada: ['Confirmada', 'green'] };
 
 // esTransportista: las del transportista, con SU importe (mis_penalizaciones_transportista()).
 export default function MisPenalizaciones({ filas: todas, error, esTransportista = false, q = '' }: { filas: MiPenalizacion[]; error: string | null; esTransportista?: boolean; q?: string }) {
@@ -28,7 +30,7 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
       <div className="sec-header"><h2>Penalizaciones</h2></div>
       <p style={{ margin: '-0.4rem 0 1rem', fontSize: 'var(--fs-l)', color: 'var(--gray-500)', maxWidth: 820, lineHeight: 1.5 }}>
         {esTransportista
-          ? <>Lo que se te descuenta o se te abona en un envío (un retraso, una paralización, una parada de más…). Si no estás conforme con alguna, llámanos al <a href={CONTACTO.telHref} style={{ color: 'var(--purple)', fontWeight: 700 }}>{CONTACTO.telefono}</a> y la revisamos.</>
+          ? <>Importes a tu favor en un envío: lo que te pagamos de más por una paralización, una parada que no estaba prevista o una cancelación. Se suman a lo que te pagamos por ese envío. Si echas en falta alguno, llámanos al <a href={CONTACTO.telHref} style={{ color: 'var(--purple)', fontWeight: 700 }}>{CONTACTO.telefono}</a> y la revisamos.</>
           : <>Costes que se aplican a un envío por una cancelación fuera de plazo, una paralización del camión o una parada que no estaba prevista.
             Si no estás conforme con alguna, abre una <Link href="/panel/incidencias?abrir=1" style={{ color: 'var(--purple)', fontWeight: 700 }}>incidencia</Link> y la revisamos.</>}
       </p>
@@ -44,7 +46,7 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
             {filas.length === 0 ? (
               <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{ws.length ? 'Ninguna penalización casa con la búsqueda.' : todas.length ? 'No hay penalizaciones en estas fechas.' : 'No tienes ninguna penalización.'}</td></tr>
             ) : pg.visibles.map((p) => {
-              const est = ESTADO[p.estado] ?? [p.estado, 'prog'];
+              const est = (esTransportista ? ESTADO_T : ESTADO)[p.estado] ?? [p.estado, 'prog'];
               return (
                 <tr key={p.id}>
                   <td className="ref"><strong>{p.codigo}</strong>{p.descripcion && <div className="meta">{p.descripcion}</div>}</td>

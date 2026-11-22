@@ -14108,20 +14108,27 @@ begin
   if r.id is null or r.destinatario <> 'trafico318@t.prueba' then
     raise exception 'FALLO 318 · la incidencia del transportista no le llega a él: %', r.destinatario; end if;
 
-  -- PENALIZACIÓN pendiente de confirmar: todavía no se comunica.
+  -- PENALIZACIÓN al crearla (pendiente): «en revisión» al cliente (su importe + IVA) y al
+  -- transportista (importe A SU FAVOR, sin cifra en el email; con ella en su campana).
   insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista)
     values (e, tp, 'Espera 318', 120, 80) returning id into p;
-  if exists (select 1 from emails_enviados where clave like 'penalizacion%:' || p || ':%') then
-    raise exception 'FALLO 318 · se comunica una penalización sin confirmar'; end if;
-  -- Confirmada: un email al cliente (+ IVA) y otro al transportista (su importe), una vez.
+  select * into r from emails_enviados where clave = 'penalizacion_revision:' || p || ':cliente';
+  if r.id is null or position('120,00' in r.cuerpo_html) = 0 or position('+ IVA' in r.cuerpo_html) = 0 or position('incidencia' in r.cuerpo_html) = 0 or position('80,00' in r.cuerpo_html) > 0 then
+    raise exception 'FALLO 318 · el aviso «en revisión» al cliente no va bien: %', r; end if;
+  select * into r from emails_enviados where clave = 'penalizacion_revision:' || p || ':transportista';
+  if r.id is null or r.destinatario <> 'trafico318@t.prueba' or position('a tu favor' in r.cuerpo_html) = 0
+     or r.cuerpo_html ~ '(80|120),00' or position('€' in r.cuerpo_html) > 0 or r.asunto ilike '%penalizaci%' then
+    raise exception 'FALLO 318 · el aviso al transportista no es «importe a tu favor» sin cifra: %', r; end if;
+  if not exists (select 1 from avisos where para = 'transportista' and transportista_id = t and titulo like 'Importe a tu favor en revisión%' and texto like '%80,00%' and texto not like '%120,00%') then
+    raise exception 'FALLO 318 · la campana del transportista no dice su importe a favor'; end if;
+  -- Confirmada: otro aviso a cada uno, una vez.
   update penalizaciones set estado = 'confirmada' where id = p;
   select * into r from emails_enviados where clave = 'penalizacion:' || p || ':cliente';
-  if r.id is null or position('120,00' in r.cuerpo_html) = 0 or position('+ IVA' in r.cuerpo_html) = 0 or position('Espera 318' in r.cuerpo_html) = 0 then
-    raise exception 'FALLO 318 · el email de la penalización al cliente no lleva el importe o el motivo: %', r; end if;
-  if position('80,00' in r.cuerpo_html) > 0 then raise exception 'FALLO 318 · al cliente le llega el importe del transportista'; end if;
+  if r.id is null or position('120,00' in r.cuerpo_html) = 0 or position('Espera 318' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 318 · el email de la penalización confirmada al cliente no lleva el importe o el motivo: %', r; end if;
   select * into r from emails_enviados where clave = 'penalizacion:' || p || ':transportista';
-  if r.id is null or r.destinatario <> 'trafico318@t.prueba' or position('80,00' in r.cuerpo_html) = 0 or position('120,00' in r.cuerpo_html) > 0 then
-    raise exception 'FALLO 318 · el email de la penalización al transportista no va bien: %', r; end if;
+  if r.id is null or position('confirmado un importe a tu favor' in r.cuerpo_html) = 0 or r.cuerpo_html ~ '(80|120),00' then
+    raise exception 'FALLO 318 · el email de confirmación al transportista no va bien: %', r; end if;
   update penalizaciones set estado = 'pendiente_confirmar' where id = p;
   update penalizaciones set estado = 'confirmada' where id = p;
   select count(*) into n from emails_enviados where clave like 'penalizacion:' || p || ':%';
@@ -14130,20 +14137,20 @@ begin
   update penalizaciones set estado = 'cancelada' where id = p;
   select count(*) into n from emails_enviados where tipo = 'penalizacion_anulada' and clave like 'penalizacion_anulada:' || p || ':%';
   if n <> 2 then raise exception 'FALLO 318 · al anular la penalización no se avisa a los dos (%)', n; end if;
-  -- Nace confirmada y se borra: email al crearla, campana, y email al borrarla.
+  -- Nace confirmada y se borra: aviso al crearla (sin «en revisión»), campana, y aviso al borrarla.
   insert into penalizaciones (envio_id, tipo_id, importe_cliente, estado) values (e, tp, 50, 'confirmada') returning id into p2;
-  if not exists (select 1 from emails_enviados where clave = 'penalizacion:' || p2 || ':cliente') then
-    raise exception 'FALLO 318 · la penalización que nace confirmada no se comunica'; end if;
+  if not exists (select 1 from emails_enviados where clave = 'penalizacion:' || p2 || ':cliente')
+     or exists (select 1 from emails_enviados where clave like 'penalizacion_revision:' || p2 || ':%') then
+    raise exception 'FALLO 318 · la penalización que nace confirmada no se comunica bien'; end if;
   if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'penalizacion' and texto like '%50,00%') then
     raise exception 'FALLO 318 · la penalización que nace confirmada no sale en la campana'; end if;
   delete from penalizaciones where id = p2;
   if not exists (select 1 from emails_enviados where tipo = 'penalizacion_anulada' and clave like 'penalizacion_anulada:' || p2 || ':cliente:%') then
     raise exception 'FALLO 318 · al borrar una penalización confirmada no se avisa'; end if;
-  -- Pendiente que se anula sin haberse comunicado (y no es automática): sin email.
-  insert into penalizaciones (envio_id, tipo_id, importe_transportista) values (e, tp, 30) returning id into p2;
-  update penalizaciones set estado = 'cancelada' where id = p2;
-  if exists (select 1 from emails_enviados where clave like 'penalizacion%:' || p2 || ':%') then
-    raise exception 'FALLO 318 · se avisa de anular una penalización que nunca se comunicó'; end if;
+  -- La automática de cancelación no repite el «en revisión» al cliente (va en «Envío cancelado»).
+  insert into penalizaciones (envio_id, tipo_id, importe_cliente, generada_auto) values (e, tp, 70, true) returning id into p2;
+  if exists (select 1 from emails_enviados where clave = 'penalizacion_revision:' || p2 || ':cliente') then
+    raise exception 'FALLO 318 · la penalización automática repite el aviso al cliente'; end if;
 end $$;
 -- La abre el propio cliente: «la hemos recibido».
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
@@ -14160,5 +14167,5 @@ do $$ declare i uuid := current_setting('prueba.inc318')::uuid; e uuid := curren
   -- Limpieza.
   delete from penalizaciones where envio_id = e;
   delete from emails_enviados where envio_id = e;
-  raise notice 'OK 318 · incidencias (abierta, resuelta, retirada) y penalizaciones (confirmada, anulada, borrada) avisan por email a quien le afectan, cada uno con su importe';
+  raise notice 'OK 318 · incidencias (abierta, resuelta, retirada) y penalizaciones (en revisión, confirmada, anulada, borrada) avisan a quien le afectan: el cliente con su importe + IVA; el transportista, importe a su favor y sin cifra en el email';
 end $$;
