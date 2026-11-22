@@ -117,6 +117,18 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ### v3
 - [ ] **Asistente de IA del panel** (chatbot sobre la BD por rol, #72): montado y OCULTO (`IA_ACTIVA = false` en `app/panel/(app)/layout.tsx`); falta `ANTHROPIC_API_KEY` y encenderlo. **Antes de crear la clave: tope de gasto mensual y autorrecarga apagada** (ver «TOPE DE GASTO» en v1).
 - [ ] n8n como capa conversacional: WhatsApp (Meta) y email con Claude (#80).
+  - **Orden acordado (usuario, 2026-11-22)**: 1) **primero lo escrito**: WhatsApp y email solo con
+    Claude (el «cerebro») + n8n. Basta para contestar, consultar envíos, recoger pedidos escritos y
+    redactar avisos. 2) **Notas de voz que nos manden por WhatsApp**: solo pasarlas a texto (barato) y
+    Claude las trata como un mensaje escrito. 3) **Llamadas de voz, para después** y solo si hacen falta:
+    Claude no habla por teléfono; harían falta oír (voz → texto), hablar (texto → voz) y la línea
+    (p. ej. Twilio). **ElevenLabs** lo da todo junto y admite Claude como cerebro (hay alternativas: elegir
+    por precio cuando llegue). Usos: atender el +34 955 225 945 fuera de horario («tu envío está en ruta»),
+    llamar a transportistas en su idioma para ofrecer cargas o pedir matrículas, notas de voz a conductores
+    y resumen de llamadas en la ficha del envío.
+  - **Antes de crear cualquier clave (Claude, ElevenLabs, Twilio…): tope de gasto y autorrecarga apagada.**
+    Grabar o transcribir llamadas obliga a avisar a quien llama (protección de datos). Clonar una voz, solo
+    con permiso de su dueño (lo normal, la del usuario). Precios y funciones: mirarlos en su web al decidir.
 - [ ] Usuario «Automatizaciones n8n» cuando se conecte n8n.
 - **Chatbot y n8n, APARCADOS (usuario, 2026-11-17)**: «vamos a aparcar lo del chatbot y lo de n8n. Para más adelante, V2 o V3». No se toca nada de esto en la v1.
 - [ ] **Reserva anticipada de camiones en rutas recurrentes** (idea del usuario, 2026-11-16; #95). Con previsión de envíos
