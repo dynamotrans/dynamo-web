@@ -3,6 +3,7 @@
 // Van después de los flujos clave (orden alfabético de ficheros, un solo trabajador) y
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
 import { expect } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, envioProgramadoDelTransportista, CIF_TRANSPORTISTA, EMAIL, CLAVE, codigoDelMovil } from './ayudas';
 
 const CIF_CLIENTE = 'B12345674';
@@ -990,6 +991,31 @@ test.describe('novedades', () => {
     } finally {
       await sb.from('envios').update({ matricula_camion: e!.matricula_camion, matricula_remolque: e!.matricula_remolque,
         conductor_nombre: e!.conductor_nombre, conductor_telefono: e!.conductor_telefono, fecha_carga_prevista: e!.fecha_carga_prevista }).eq('id', e!.id);
+    }
+  });
+
+  test('CMR: 3 días después de la entrega la hoja de firmas solo deja ver y descargar', async ({ page }) => {
+    const sb = bd();
+    const { e } = await envioProgramadoDelTransportista('id');
+    let { data: enl } = await sb.from('cmr_enlaces').select('token').eq('envio_id', e!.id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle();
+    if (!enl) ({ data: enl } = await sb.from('cmr_enlaces').insert({ envio_id: e!.id }).select('token').single());
+    // La hora de entrega la protege la base de datos: se fecha a mano, sin disparadores.
+    const sql = (q: string) => execFileSync('psql', [process.env.DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-v', 'ON_ERROR_STOP=1', '-q', '-c',
+      `alter table envios disable trigger user; ${q}; alter table envios enable trigger user;`]);
+    sql(`update envios set estado = 'entregado', entregado_en = now() - interval '5 days' where id = '${e!.id}'`);
+    try {
+      await page.goto(`/cmr/${enl!.token}`);
+      await expect(page.locator('[data-firma-cerrada]')).toContainText('El plazo para firmar este CMR se cerró');
+      await expect(page.locator('[data-firma-cerrada] a')).toHaveAttribute('href', `/cmr/${enl!.token}/pdf`);
+      await expect(page.getByRole('button', { name: 'Firmar', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '+ Añadir' })).toHaveCount(0);
+      // Entregado hoy: se puede firmar, con el plazo a la vista.
+      sql(`update envios set entregado_en = now() where id = '${e!.id}'`);
+      await page.reload();
+      await expect(page.locator('[data-firma-cerrada]')).toHaveCount(0);
+      await expect(page.getByText(/Envío entregado: se puede firmar hasta el/)).toBeVisible();
+    } finally {
+      sql(`update envios set estado = 'programado', entregado_en = null where id = '${e!.id}'`);
     }
   });
 

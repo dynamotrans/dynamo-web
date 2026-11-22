@@ -24,4 +24,7 @@ export type CmrPublico = {
   conductor?: string | null; fecha_carga?: string | null; mercancia?: string | null;
   metros_lineales?: Num; toneladas?: Num; adr?: boolean | null;
   paradas?: ParadaCmr[]; firmas?: FirmaCmr[]; reservas?: ReservaCmr[];
+  // La firma se cierra al final del 3.er día tras la entrega (usuario, 2026-11-22): después
+  // la hoja solo deja ver y descargar. firma_hasta: null mientras no está entregado.
+  firma_abierta?: boolean; firma_hasta?: string | null;
 };

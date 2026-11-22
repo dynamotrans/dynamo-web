@@ -14607,3 +14607,51 @@ do $$ declare r jsonb; ids text[]; e323 text := current_setting('prueba.e323'); 
   perform set_config('request.jwt.claim.sub', '', false);
   raise notice 'OK 325 · mapa general: Dynamo ve todos los envíos en programación o en marcha (con cliente), el cliente solo los suyos, el transportista nada; nunca entregados ni cancelados';
 end $$;
+
+-- ---- 326. La firma del CMR se cierra 3 días después de la entrega ---------------------
+-- Mientras el envío está vivo se firma; entregado, hasta el final del 3.er día (hora de
+-- Madrid) después de la entrega en la última parada; pasado eso, ni firmas, ni reservas, ni
+-- código: la hoja sigue abriendo (para ver y descargar) y dice que está cerrada.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; t uuid; tok uuid; r jsonb; begin
+  insert into transportistas (razon_social, cif) values ('Transp 326 SL', 'B32600326') returning id into t;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado', transportista_id = t where id = e;
+  select token into tok from cmr_enlaces where envio_id = e and not revocado;
+  if not cmr_firma_abierta(e) or cmr_firma_hasta(e) is not null or (cmr_publico(tok) ->> 'firma_abierta')::boolean is not true then
+    raise exception 'FALLO 326 · un envío programado no se puede firmar'; end if;
+  -- Entregado hace un rato: abierta, con plazo hasta el final del 3.er día.
+  update envios set estado = 'entregado' where id = e;
+  if not cmr_firma_abierta(e)
+     or cmr_firma_hasta(e) <> ((((now() at time zone 'Europe/Madrid')::date + 4)::timestamp) at time zone 'Europe/Madrid') then
+    raise exception 'FALLO 326 · recién entregado, el plazo no es el final del 3.er día: %', cmr_firma_hasta(e); end if;
+  -- Entregado hace 5 días: cerrada.
+  alter table envios disable trigger user;
+  update envios set entregado_en = now() - interval '5 days' where id = e;
+  alter table envios enable trigger user;
+  if (select entregado_en from envios where id = e) > now() - interval '4 days' then raise exception 'FALLO 326 · no se pudo fechar la entrega'; end if;
+  if cmr_firma_abierta(e) then raise exception 'FALLO 326 · 5 días después de la entrega aún se puede firmar'; end if;
+  r := cmr_publico(tok);
+  if r ->> 'resultado' <> 'ok' or (r ->> 'firma_abierta')::boolean is not false or r ->> 'firma_hasta' is null then
+    raise exception 'FALLO 326 · la hoja no abre para ver o no dice que está cerrada: %', r - 'paradas' - 'firmas'; end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Tarde 326', '12345678Z', 'ES', true, null, 'cmr/' || tok::text || '/t326.png',
+                          null, 'prueba', null, p_matricula_camion => '3260AAA', p_matricula_remolque => 'R3260AAA');
+  if r ->> 'resultado' <> 'firma_cerrada' then raise exception 'FALLO 326 · se firma un CMR cerrado: %', r; end if;
+  r := anotar_reservas_cmr_publico(tok, null, 'transportista', 'Reservas tardías');
+  if r ->> 'resultado' <> 'firma_cerrada' then raise exception 'FALLO 326 · se anotan reservas en un CMR cerrado: %', r; end if;
+  r := cmr_codigo_firma_crear(tok, null, 'transportista', 'tarde@t326.com', repeat('c', 64));
+  if r ->> 'resultado' <> 'firma_cerrada' then raise exception 'FALLO 326 · se pide código en un CMR cerrado: %', r; end if;
+  perform set_config('request.jwt.claim.role', '', true);
+  if exists (select 1 from firmas_cmr where envio_id = e) or exists (select 1 from cmr_codigos_firma where envio_id = e) then
+    raise exception 'FALLO 326 · el CMR cerrado ha dejado algo escrito'; end if;
+  if has_function_privilege('anon', 'public.cmr_firma_abierta(uuid)', 'execute') or has_function_privilege('authenticated', 'public.cmr_firma_hasta(uuid)', 'execute') then
+    raise exception 'FALLO 326 · las funciones del plazo están abiertas'; end if;
+  raise notice 'OK 326 · la firma del CMR se cierra al final del 3.er día tras la entrega: después no se firma, ni se anotan reservas, ni se pide código; la hoja sigue abriendo para ver y descargar';
+end $$;

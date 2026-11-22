@@ -4412,6 +4412,8 @@ export type Database = {
       cmr_codigo_firma_comprobar: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_email: string | null; p_codigo_sha: string | null }; Returns: Json }
       cmr_codigo_firma_crear: { Args: { p_token: string | null; p_parada: string | null; p_rol: string | null; p_email: string | null; p_codigo_sha: string | null }; Returns: Json }
       cmr_envio_de_token: { Args: { p_token: string | null }; Returns: string }
+      cmr_firma_abierta: { Args: { p_envio: string | null }; Returns: boolean }
+      cmr_firma_hasta: { Args: { p_envio: string | null }; Returns: string }
       cmr_publico: { Args: { p_token: string | null }; Returns: Json }
       cmr_ruta_permitida: { Args: { p_name: string | null }; Returns: boolean }
       cmr_subida_permitida: { Args: { p_name: string | null }; Returns: boolean }

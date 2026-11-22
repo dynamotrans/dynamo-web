@@ -192,6 +192,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   // y las firmas extra esperan a que haya matrícula. La base de datos lo exige igualmente.
   // Un tráiler lleva DOS matrículas: sin la del semirremolque tampoco (2026-11-15).
   const sinMatricula = !cmr.manual && (!cmr.matricula_camion || (!!cmr.necesita_remolque && !cmr.matricula_remolque));
+  // FIRMA CERRADA (usuario, 2026-11-22): 3 días después de la entrega en la última parada ya
+  // no se firma (la base de datos lo rechaza igualmente): la hoja queda para ver y descargar.
+  const cerrada = cmr.firma_abierta === false;
   const bloqueado = (b: Bloque) => sinTransportista || (sinMatricula && !b.conMatricula);
   const avisar = () => { if (sinTransportista) setAvisoSinTra(true); else setAvisoSinMat(true); };
   const nombreBloque = (f: FirmaCmr) => bloques.find((b) => b.rol === f.rol && (f.rol === 'transportista' || b.parada_id === f.parada_id))?.titulo
@@ -241,7 +244,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
   return (
     <div className="card">
       {cabecera}
-      {qrMovil && (
+      {qrMovil && !cerrada && (
         <section className="qr-movil" aria-label="Firmar desde el móvil">
           <div className="qr-movil-img"><img src={qrMovil} alt="Código QR de esta página" width={132} height={132} /></div>
           <div className="qr-movil-txt">
@@ -291,8 +294,22 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       {hechas === bloques.length && bloques.length > 0
         ? <div className="banner-ok show" style={{ marginTop: 0, marginBottom: '0.8rem' }}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
         : <div className="prog">{hechas} de {bloques.length} firmas completadas</div>}
-      {sinTransportista && hechas < bloques.length && avisoSinTransportista}
-      {!sinTransportista && sinMatricula && hechas < bloques.length && (
+      {cerrada && (
+        <div data-firma-cerrada="" style={{ background: '#f3f4f6', border: '1.5px solid #d1d5db', color: 'var(--gray-700)', borderRadius: 12, padding: '0.9rem 1rem', margin: '0 0 0.8rem', fontSize: '1rem', lineHeight: 1.5, textAlign: 'center' }}>
+          <strong>El plazo para firmar este CMR se cerró{cmr.firma_hasta ? ` el ${fechaHora(cmr.firma_hasta)}` : ''}</strong> (3 días después de la entrega).
+          Ya no se pueden añadir firmas ni reservas: aquí puedes ver las que hay y descargar el CMR.
+          <a className="firma-btn" href={`/cmr/${token}/pdf`} target="_blank" rel="noopener" style={{ display: 'block', width: '100%', marginTop: '0.7rem', background: '#1d9e57', textAlign: 'center', textDecoration: 'none', padding: '0.85rem 1rem', borderRadius: 12 }}>
+            Descargar el CMR en PDF
+          </a>
+        </div>
+      )}
+      {!cerrada && cmr.firma_hasta && hechas < bloques.length && (
+        <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.9rem', fontWeight: 700, lineHeight: 1.45, textAlign: 'center' }}>
+          Envío entregado: se puede firmar hasta el {fechaHora(cmr.firma_hasta)}. Después, el CMR solo se podrá ver y descargar.
+        </div>
+      )}
+      {!cerrada && sinTransportista && hechas < bloques.length && avisoSinTransportista}
+      {!cerrada && !sinTransportista && sinMatricula && hechas < bloques.length && (
         <div style={{ background: '#fff7e6', border: '1.5px solid #ffd591', color: '#8a5a00', borderRadius: 12, padding: '0.7rem 0.85rem', margin: '0 0 0.8rem', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.45 }}>
           {cmr.matricula_camion ? <>Falta la <strong>matrícula del semirremolque</strong> (un tráiler lleva las dos)</> : <>Faltan las <strong>matrículas del camión</strong></>}: primero firma el transportista (o el cargador de la 1.ª recogida) poniéndolas;
           después se abren las demás firmas en esta misma página.
@@ -331,13 +348,13 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         const f = firmas.get(b.clave);
         // Toda la caja de una firma PENDIENTE es pulsable (usuario, 2026-11-11): abre el
         // mismo flujo que el botón «Firmar» (el botón se queda, de señal visual).
-        const pulsable = !f;
+        const pulsable = !f && !cerrada;
         return (<Fragment key={b.clave}>
           <div className={`firma firma-rol-${b.rol}${f ? ' firmada' : ''}${pulsable ? ' firma-pulsable' : ''}`}
             onClick={pulsable ? (ev) => { if (!(ev.target as HTMLElement).closest('button')) { if (bloqueado(b)) avisar(); else setPreFirma(b); } } : undefined}>
             <div className="firma-head">
               <div className="firma-tit">{b.titulo}<span className="cas-quien"><span className="cas-firma">Firma:</span> {b.firmante}</span>{b.lugar && <span className="cas-lugar">{b.lugar}</span>}<span className="cas">{b.casilla}</span></div>
-              {!f && <button type="button" className={`firma-btn${bloqueado(b) ? ' firma-btn-gris' : ''}`}
+              {!f && !cerrada && <button type="button" className={`firma-btn${bloqueado(b) ? ' firma-btn-gris' : ''}`}
                 onClick={() => { if (bloqueado(b)) avisar(); else setPreFirma(b); }}>Firmar</button>}
             </div>
             {/* El transportista con sus matrículas a la vista (usuario, 2026-11-11):
@@ -351,7 +368,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
               {/* Firmó en papel (CMR bis): no hay trazo; el papel va anexo y completa este CMR. */}
               <div className="firma-estado">{f.en_papel ? '✓ Firmada EN PAPEL (CMR bis anexo, que completa este CMR) · registrada el' : '✓ Firmada el'} {fechaHora(f.firmado_en)} · {quienFirmo(f)}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}{f.email_verificado ? ' · email verificado' : ''}</div>
-            </> : <div className="firma-estado">Pendiente de firma</div>}
+            </> : <div className="firma-estado">{cerrada ? 'Sin firmar (el plazo de firma ya se cerró)' : 'Pendiente de firma'}</div>}
             {(cmr.reservas ?? []).filter((r: ReservaCmr) => r.rol === b.rol && (b.rol === 'transportista' || r.parada_id === b.parada_id)).map((r: ReservaCmr, i: number) => (
               <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>
             ))}
@@ -367,7 +384,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}{f.email_verificado ? ' · email verificado' : ''}</div>
         </div>
       ))}
-      {extras.length < 3 && (
+      {extras.length < 3 && !cerrada && (
         <div className="firma">
           {eligiendoExtra ? (
             <>
@@ -397,6 +414,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           sale aquí, antes de firmar: solo en la pantalla de «Todo guardado», tras firmar. */}
       {/* En caja verde y con el texto más claro y algo más grande (usuario, 2026-11-11);
           lo de firmar en este mismo móvil, resaltado a marcador (usuario, 2026-11-12). */}
+      {!cerrada && (
       <div style={{ margin: '0.8rem 0 0', background: '#eafaf0', border: '1.5px solid #b7ebcd', color: '#0f6b3a', borderRadius: 12,
         padding: '0.65rem 0.85rem', fontSize: '0.95rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
         Cargador, transportista y destinatario ya la han recibido igual que tú, y{' '}
@@ -411,6 +429,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
           Compartir página de firmas eCMR
         </button>
       </div>
+      )}
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó (y tu ubicación GPS si das permiso). Firma electrónica simple (Reglamento eIDAS).</p>
       <Ayuda />
       {preFirma && (

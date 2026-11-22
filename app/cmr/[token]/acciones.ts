@@ -89,7 +89,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     if ((await ficherosNoValidos(fotos, `cmr/${token}/foto-`, true)).length) return { ok: false, error: 'Una de las fotos no es una imagen de verdad: quítala y vuelve a hacerla.' };
     const { data: rv, error: er } = await srv.rpc('anotar_reservas_cmr_publico', { p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_texto: reservas, p_fotos: fotos.length ? fotos : null });
     const rr = (rv as { resultado?: string } | null)?.resultado;
-    if (er || rr !== 'ok') return { ok: false, error: rr === 'texto_no_valido' ? 'Las reservas tienen que tener entre 3 y 1.000 caracteres.' : rr === 'demasiadas' ? `Ya hay varias reservas anotadas en esta casilla: llámanos al ${CONTACTO.telefono}.` : 'No se han podido guardar las reservas. Vuelve a intentarlo o llámanos.' };
+    if (er || rr !== 'ok') return { ok: false, error: rr === 'firma_cerrada' ? 'El plazo para firmar este CMR ya se ha cerrado (3 días después de la entrega): solo se puede ver y descargar.' : rr === 'texto_no_valido' ? 'Las reservas tienen que tener entre 3 y 1.000 caracteres.' : rr === 'demasiadas' ? `Ya hay varias reservas anotadas en esta casilla: llámanos al ${CONTACTO.telefono}.` : 'No se han podido guardar las reservas. Vuelve a intentarlo o llámanos.' };
   }
 
   const ruta = `cmr/${token}/${randomUUID()}.png`;
@@ -154,6 +154,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     parada_no_valida: 'Esa casilla no corresponde a este envío.', faltan_datos: 'Indica el documento y el nombre y apellidos.', falta_trazo: 'Falta la firma.',
     solo_servidor: `Ahora mismo no se puede guardar la firma. Llámanos al ${CONTACTO.telefono}.`,
     sin_transportista: 'El envío no tiene transportista asignado ahora mismo: no se puede firmar hasta que se asigne.',
+    firma_cerrada: 'El plazo para firmar este CMR ya se ha cerrado (3 días después de la entrega): solo se puede ver y descargar.',
     faltan_matriculas: 'Faltan las matrículas del camión (tractora y semirremolque): ponlas en la ventana de firma (sin ellas no se puede salir de la 1.ª parada).',
     matricula_no_valida: 'La matrícula no es válida: solo letras, números, espacios y guiones (de 2 a 16).',
     sin_matriculas: 'Faltan matrículas del camión (tractora y, si es un tráiler, también el semirremolque): primero firma el transportista (o el cargador de la 1.ª recogida) poniéndolas.',
@@ -188,6 +189,7 @@ export async function pedirCodigoFirma(token: string, c: CasillaCodigo): Promise
     espera: 'Acabamos de mandarte un código: espera un minuto antes de pedir otro (mira también en «Spam»).',
     demasiados: 'Se han pedido demasiados códigos. Firma sin código o llámanos.',
     email_no_valido: 'Pon antes un email válido.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
+    firma_cerrada: 'El plazo para firmar este CMR ya se ha cerrado (3 días después de la entrega): solo se puede ver y descargar.',
   };
   if (error) console.error('[cmr/codigo] fallo al apuntar el código', { token, codigo: error.code, mensaje: error.message });
   return { ok: false, error: msg[j?.resultado ?? ''] ?? 'No se ha podido mandar el código. Puedes firmar sin él.' };
