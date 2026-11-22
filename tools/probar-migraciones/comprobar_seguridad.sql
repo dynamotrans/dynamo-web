@@ -14123,7 +14123,7 @@ begin
     raise exception 'FALLO 318 · el email de la penalización confirmada al cliente no lleva el importe o el motivo: %', r; end if;
   select * into r from emails_enviados where clave = 'penalizacion:' || p || ':transportista';
   if r.id is null or r.destinatario <> 'trafico318@t.prueba' or position('confirmado un importe a tu favor' in r.cuerpo_html) = 0
-     or r.cuerpo_html ~ '(80|120),00' or position('€' in r.cuerpo_html) > 0 or r.asunto ilike '%penalizaci%' then
+     or position('80,00' in r.cuerpo_html) = 0 or position('120,00' in r.cuerpo_html) > 0 or r.asunto ilike '%penalizaci%' then
     raise exception 'FALLO 318 · el email de confirmación al transportista no va bien: %', r; end if;
   update penalizaciones set estado = 'pendiente_confirmar' where id = p;
   update penalizaciones set estado = 'confirmada' where id = p;
@@ -14159,5 +14159,37 @@ do $$ declare i uuid := current_setting('prueba.inc318')::uuid; e uuid := curren
   -- Limpieza.
   delete from penalizaciones where envio_id = e;
   delete from emails_enviados where envio_id = e;
-  raise notice 'OK 318 · incidencias (abierta, resuelta, retirada) y penalizaciones (al confirmarla, anularla o borrarla; guardarla no avisa) avisan a quien le afectan: el cliente con su importe + IVA; el transportista, importe a su favor y sin cifra en el email';
+  raise notice 'OK 318 · incidencias (abierta, resuelta, retirada) y penalizaciones (al confirmarla, anularla o borrarla; guardarla no avisa) avisan a quien le afectan: el cliente con su importe + IVA; el transportista, importe a su favor con su cifra (nunca la del cliente)';
 end $$;
+
+-- ---- 319. Un CIF de transportista nunca puede darse de alta como cliente (usuario, 2026-11-22) ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into auth.users (email, raw_user_meta_data) values ('alta319@prueba.es', '{"nombre":"Alta Trescientos Diecinueve"}');
+do $$ declare t uuid; c uuid; ok boolean; u uuid; r text; begin
+  insert into transportistas (razon_social, cif) values ('Transportes 319 SL', 'B31900001') returning id into t;
+  -- Ni Dynamo puede crear un cliente con ese CIF (escrito de otra forma, tampoco).
+  ok := false;
+  begin insert into clientes (razon_social, cif) values ('Cliente 319 SL', 'b-31900001');
+  exception when others then ok := sqlerrm like '%dado de alta como transportista%'; end;
+  if not ok then raise exception 'FALLO 319 · se crea un cliente con el CIF de un transportista'; end if;
+  -- Ni cambiar el CIF de un cliente al de un transportista.
+  insert into clientes (razon_social, cif) values ('Cliente 319 SL', 'B31900002') returning id into c;
+  ok := false;
+  begin update clientes set cif = 'B31900001' where id = c;
+  exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 319 · se cambia el CIF de un cliente al de un transportista'; end if;
+  -- Guardar otros datos de un cliente que ya existía (sin tocar el CIF) sigue funcionando.
+  update clientes set razon_social = 'Cliente 319 Bis SL' where id = c;
+  -- En el alta de la web: «no_admitido» (sin decir que es un transportista).
+  select id into u from usuarios where email = 'alta319@prueba.es';
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  r := buscar_empresa_de_mi_alta('B31900001');
+  if r <> 'no_admitido' then raise exception 'FALLO 319 · el alta de la web admite el CIF de un transportista: %', r; end if;
+  reset role;
+  delete from clientes where id = c;
+  delete from transportistas where id = t;
+  raise notice 'OK 319 · un CIF / NIF de transportista no se puede dar de alta como cliente (ni por la web ni por Dynamo)';
+end $$;
+reset role;

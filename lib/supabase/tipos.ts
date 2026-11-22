@@ -4167,6 +4167,7 @@ export type Database = {
       carga_aceptada_publica_completa: { Args: { p_reserva: string | null }; Returns: Json }
       carga_por_codigo: { Args: { p_codigo: string | null; p_ip?: string | null }; Returns: Json }
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
+      cif_es_de_transportista: { Args: { p_cif: string | null }; Returns: boolean }
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       cliente_texto_busqueda: { Args: { k: Database["public"]["Tables"]["clientes"]["Row"] | null }; Returns: string }
       clientes_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_orden?: string | null }; Returns: { id: string; total: number }[] }

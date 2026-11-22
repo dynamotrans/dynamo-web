@@ -116,6 +116,7 @@ export type PasoAlta = 'buscar' | 'existente' | 'nueva';
 export type MiAlta = { paso: PasoAlta; guardada: boolean; miEmail: string; d: EmpresaAlta };
 const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const cifLimpio = (v: string) => (v ?? '').toUpperCase().replace(/[\s.\-/]/g, '');
+const NO_ADMITIDO = `Esta empresa no se puede dar de alta como cliente. Si crees que es un error, llámanos al ${CONTACTO.telefono}.`;
 
 export async function empresaDeMiAlta(): Promise<MiAlta | null> {
   comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#empresaDeMiAlta", []);
@@ -148,6 +149,8 @@ export async function buscarEmpresaDeMiAlta(cif: string, pais: string): Promise<
   const { data, error } = await s.supabase.rpc('buscar_empresa_de_mi_alta', { p_cif: limpio });
   if (error) return { ok: false, error: mensajeError(error.message) };
   if (data === 'tope') return { ok: false, error: `Has hecho demasiadas búsquedas hoy. Escríbenos a ${CONTACTO.email} o llámanos al ${CONTACTO.telefono} y terminamos tu alta contigo.` };
+  // CIF de un transportista: nunca puede ser cliente (usuario, 2026-11-22). Sin decir por qué.
+  if (data === 'no_admitido') return { ok: false, error: NO_ADMITIDO };
   if (data !== 'encontrado' && data !== 'no_encontrado') return { ok: false, error: 'El CIF / NIF no es válido. Revísalo.' };
   const { data: { user } } = await s.supabase.auth.getUser();
   const mismo = cifLimpio(String((user?.user_metadata ?? {}).cif ?? '')) === limpio;
@@ -184,6 +187,7 @@ export async function guardarEmpresaDeMiAlta(d: EmpresaAlta): Promise<{ ok: true
   // Por si el CIF se ha dado de alta como cliente entretanto: entonces no hace falta nada de esto.
   const cif = cifLimpio(d.cif);
   const { data: hay } = await s.supabase.rpc('buscar_empresa_de_mi_alta', { p_cif: cif });
+  if (hay === 'no_admitido') return { ok: false, campo: 'cif', error: NO_ADMITIDO };
   if (hay === 'encontrado') {
     const g = await s.supabase.auth.updateUser({ data: { cif, pais, alta_paso: 'existente', empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', empresa_telefono: '', empresa_email: '' } });
     return g.error ? { ok: false, error: mensajeError(g.error.message) } : { ok: true, paso: 'existente' };

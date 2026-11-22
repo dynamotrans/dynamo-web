@@ -443,7 +443,9 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 - En los emails, siempre el fijo **+34 955 225 945**; el móvil solo en los enlaces de WhatsApp.
 - El texto «Si rompen la mercancía» es de otra empresa: no copiarlo.
 - La orden de carga solo ofrece la carga de vuelta.
-- Penalizaciones (2026-11-22): al **guardarla NO se avisa nunca**; solo al **confirmarla** y al **cancelarla/borrarla**. Para el **transportista el importe es SIEMPRE A SU FAVOR** (nunca «penalización» ni «alegar»), y su email va **sin cifra**; al cliente, su importe + IVA.
+- Penalizaciones (2026-11-22): al **guardarla NO se avisa nunca**; solo al **confirmarla** y al **cancelarla/borrarla**. Para el **transportista el importe es SIEMPRE A SU FAVOR** (nunca «penalización» ni «alegar»), y su email va **con la cifra**; al cliente, su importe + IVA.
+- **Un CIF / NIF de transportista NUNCA puede darse de alta como cliente** (2026-11-22; lo impide la base de datos).
+- **Panel propio del transportista: en stand-by** (2026-11-22): el usuario no quiere que entren a un panel; solo cargas sugeridas para aceptar y URL sueltas (matrículas, etc.). Pendiente de decidir si se apaga ya.
 
 **Envíos y operativa**
 - Un envío nunca sale en dos pestañas. Envío con precio a mano: solo lo modifica Dynamo.
