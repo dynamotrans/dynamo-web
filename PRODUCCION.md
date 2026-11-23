@@ -31,7 +31,7 @@ Leyenda: ✅ hecho y comprobado · 🟡 hecho en parte · ❌ falta · 👤 lo t
 | 01 | Front sin secretos | ✅ En el navegador solo van `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (públicas por diseño). Clave de servicio, Stripe y Holded, solo en el servidor. | 👤 Comprobar en Vercel que las claves secretas están marcadas *Sensitive* y sin `NEXT_PUBLIC_`. |
 | 02 | RLS en la base de datos | ✅ Todas las tablas con permisos por fila. **122 pruebas automáticas** (`tools/probar-migraciones`) antes de cada cambio. | Repetirlas contra el proyecto real el día del lanzamiento. `FORCE RLS` **no**: las funciones del sistema tienen que saltarse la RLS a propósito (con su propia comprobación de quién llama). |
 | 03 | Control de versiones | ✅ Git + migraciones numeradas que nunca se editan. | — |
-| 04 | APIs de verdad (precio en el servidor) | 🟡 El cliente nunca pone el precio: lo pone Dynamo o la base de datos (contraofertas validadas en la BD). | El **tarifador** (lo último, decisión del usuario). |
+| 04 | APIs de verdad (precio en el servidor) | 🟡 **Ojo (repaso 2026-11-23):** desde el 08-nov el cliente crea y modifica envíos con el precio del tarifador, y ese precio llega **desde su navegador**: la base de datos solo comprueba que esté entre 0 y 100.000 €. Contraofertas, revisión de precio y cancelaciones sí se validan en la BD. | **Recalcular el precio en el servidor** al crear/modificar (misma fórmula del tarifador) y usar ese, no el que llega. Antes de clientes reales. |
 | 05 | Hosting y deploy | ✅ Vercel, preview por rama. | — |
 | 06 | Seguridad (CSP, cabeceras) | 🟡 Plataforma en modo **bloquear** (2026-11-22); web pública en *solo avisar*. | Pasar la web pública a bloquear con su rama de `main`. |
 | 07 | Rate limiting | 🟡 Límites en la base de datos: consultas de precio (suspensión automática), intentos de CIF por carga y por reserva, alta online (3 por carga, 30 al día), contraofertas del cliente (3 en 24 h), PIN (3 fallos), cancelaciones. Login: los de Supabase Auth. | 👤 Revisar *Rate Limits* de Supabase Auth; valorar Vercel Firewall por IP. |
@@ -483,6 +483,15 @@ la clave se viera alguna vez, cambiarla el mismo día (Vercel y propiedades del 
 ## 19 · Control de pedidos: «revisar desde»  🟡
 
 - [ ] En **Parámetros → Control de facturación → «revisar desde»**, poner el **día de arranque** en producción (en pruebas está en 2026-11-23). Así el control y el email de los lunes no cuentan los envíos antiguos que se carguen ni los de prueba (usuario, 2026-11-23: el email decía «30054 casos» por los ~15.000 envíos ficticios de pruebas).
+
+## 20 · Repaso «que no me hackeen la app» (vídeo, 2026-11-23)  🟡
+
+Repasados los 25 puntos de la lista del vídeo contra el código. Bien: autenticación (Supabase, contraseñas con hash, doble paso de Dynamo), permisos por fila en todas las tablas, HTTPS forzado (HSTS), cabeceras (CSP en modo bloquear en la plataforma), cookies seguras, ninguna clave en git ni en el navegador, validación de entradas en el servidor (Zod en las 193 acciones), consultas parametrizadas, rutas de Dynamo blindadas en la BD, enlaces que caducan, límite de tamaño y tipo de archivo, sin modo depuración, aviso de acceso nuevo, Sentry. Pendiente:
+- [ ] **Precio en el servidor** (punto 04 de arriba): es el único hueco real.
+- [ ] **Zod 3 → 4**: aviso «alto» de consumo de memoria con listas enormes; riesgo bajo (Next limita cada petición a 1 MB), pero hay que migrar.
+- [ ] **Web pública**: CSP de «solo avisar» a «bloquear» (punto 06).
+- [ ] **Límites de Supabase Auth** (intentos de entrada) y **Vercel Firewall** por IP (punto 07).
+- [ ] Revisar dependencias cada mes (`npm audit`); hecho el 23-nov: Next 15.5.28 → 15.5.29 (5 avisos de Next y PostCSS). Quedan avisos solo de herramientas de compilación (PostCSS dentro de Next, glob/minimatch de Sentry), sin efecto en la web.
 
 ## Lo que NO cambia respecto a hoy
 

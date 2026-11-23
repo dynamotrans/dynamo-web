@@ -486,7 +486,8 @@ test.describe('novedades', () => {
     await expect(page.getByRole('heading', { name: '¿Deseas anular el cambio realizado?' })).toBeVisible();
     await page.getByRole('button', { name: 'Sí, anular', exact: true }).click();
     await expect(page.getByText(/Envío anulado sin coste/)).toBeVisible();
-    await expect.poll(async () => (await ultimoEnvio()).estado).toBe('cancelado');
+    // Se sigue ESTE envío por su id: «el último creado» puede ser otro que aparezca entretanto.
+    await expect.poll(async () => (await bd().from('envios').select('estado').eq('id', id).single()).data?.estado).toBe('cancelado');
     const { data: mails } = await bd().from('emails_enviados').select('estado').eq('envio_id', id);
     expect((mails ?? []).filter((m) => m.estado !== 'omitido')).toEqual([]);
   });

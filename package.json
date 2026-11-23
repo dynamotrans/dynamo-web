@@ -17,7 +17,7 @@
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.3",
     "leaflet": "1.9.4",
-    "next": "15.5.28",
+    "next": "15.5.29",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "4.10.38",
     "qrcode": "^1.5.4",
@@ -35,7 +35,7 @@
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "eslint": "9.39.5",
-    "eslint-config-next": "15.5.28",
+    "eslint-config-next": "15.5.29",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   },
