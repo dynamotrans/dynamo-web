@@ -13,6 +13,17 @@ import { etiquetaParada, horaParada, posicionCamion, type MapaEnvio } from '@/li
 type L = typeof Leaflet;
 const MORADO = '#3300cc', GRIS = '#9ca3af', NARANJA = '#e07b00';
 
+// EL CAMIÓN DEL MAPA (usuario, 2026-11-22: «nada de emoticono; un tráiler fino con el logo
+// de Dynamo en el remolque»): dibujo propio de perfil, remolque blanco con «dynamo» y la cabeza
+// morada. Va dentro de una cajita blanca cuyo borde lleva el color del estado.
+const SVG_CAMION = `<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 66 30" width="__W__" height="__H__"> <rect x="1" y="3" width="45" height="18" rx="1.8" fill="#fff" stroke="#1f2937" stroke-width="1.2"/> <text x="6.5" y="15.4" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="10" fill="#3300cc" letter-spacing="-0.3">dynamo</text> <path d="M37.4 7.2 a4.4 4.4 0 0 1 4.8 3.5" fill="none" stroke="#22a55a" stroke-width="1.8" stroke-linecap="round"/> <rect x="1" y="21" width="46" height="1.8" fill="#374151"/> <rect x="45" y="20.4" width="19" height="2.4" rx="1" fill="#374151"/> <path d="M49 6.5 h8.4 a2.2 2.2 0 0 1 1.8 .9 l3.9 5.4 a2.4 2.4 0 0 1 .4 1.3 V21.5 H49 Z" fill="#3300cc" stroke="#1f2937" stroke-width=".8"/> <path d="M56.9 8.4 l3.6 5 h-5.4 v-5 Z" fill="#dbe4ff"/> <rect x="50.4" y="9" width="3.4" height="9" rx=".8" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width=".7"/> <rect x="61.6" y="17" width="1.8" height="1.4" rx=".4" fill="#ffd400"/> <g fill="#111827"><circle cx="9" cy="24.8" r="2.9"/><circle cx="15.2" cy="24.8" r="2.9"/><circle cx="21.4" cy="24.8" r="2.9"/><circle cx="52" cy="24.8" r="2.9"/><circle cx="59.6" cy="24.8" r="2.9"/></g> <g fill="#9ca3af"><circle cx="9" cy="24.8" r="1"/><circle cx="15.2" cy="24.8" r="1"/><circle cx="21.4" cy="24.8" r="1"/><circle cx="52" cy="24.8" r="1"/><circle cx="59.6" cy="24.8" r="1"/></g> </svg>`;
+export const svgCamion = (ancho: number) => SVG_CAMION.replace('__W__', String(ancho)).replace('__H__', String(Math.round(ancho * 30 / 66)));
+/** HTML del marcador del camión: cajita blanca con el borde del color de su estado. */
+export function marcadorCamion(color: string, grande = false): { html: string; ancho: number; alto: number } {
+  const ancho = grande ? 62 : 52, alto = grande ? 36 : 31;
+  return { ancho, alto, html: `<div style="width:${ancho}px;height:${alto}px;box-sizing:border-box;border-radius:10px;background:#fff;border:2.5px solid ${color};box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center">${svgCamion(ancho - 10)}</div>` };
+}
+
 /** Estilo de las etiquetas de parada (varias líneas, estrechas). */
 export const ESTILO_MAPA = `.leaflet-tooltip.tt-parada{white-space:normal;width:max-content;max-width:190px;line-height:1.25;font-size:12px;padding:5px 8px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}`;
 

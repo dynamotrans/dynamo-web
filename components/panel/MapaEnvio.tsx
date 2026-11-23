@@ -12,7 +12,7 @@ import type { Map as MapaL } from 'leaflet';
 import Modal from './Modal';
 import { mapaDelEnvio } from '@/app/panel/(app)/envios/acciones-mapa';
 import { estadoMapa, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
-import { dibujarRuta, resaltador, ESTILO_MAPA } from './mapaRuta';
+import { dibujarRuta, resaltador, ESTILO_MAPA, marcadorCamion, svgCamion } from './mapaRuta';
 
 export const TESELAS = process.env.NEXT_PUBLIC_MAPA_TESELAS || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const ATRIBUCION = process.env.NEXT_PUBLIC_MAPA_ATRIBUCION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -114,7 +114,7 @@ function Leyenda() {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: '0.78rem', color: 'var(--gray-700)', marginTop: '0.5rem' }} aria-label="Leyenda del mapa">
       {punto(COLOR.carga, 'Recogida')}{punto(COLOR.descarga, 'Entrega')}
-      <span style={{ marginRight: 14 }}>🚚 Camión (posición estimada)</span>
+      <span style={{ marginRight: 14, display: 'inline-flex', alignItems: 'center', gap: 5 }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />Camión (posición estimada)</span>
       <span style={{ marginRight: 14 }}><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho</span>
       <span><span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer</span>
     </div>
@@ -168,8 +168,8 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
       const ruta = dibujarRuta(L, g, mapa, { grande: true, alPulsar: () => res.current.resaltar(ruta) });
       res.current.poner([ruta]);
       if (pc) {
-        const icono = L.divIcon({ className: '', iconSize: [38, 38], iconAnchor: [19, 19],
-          html: `<div style="width:38px;height:38px;border-radius:19px;background:#fff;border:3px solid ${TONO[pc.tono]};font:20px/32px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)">🚚</div>` });
+        const mc = marcadorCamion(TONO[pc.tono], true);
+        const icono = L.divIcon({ className: 'camion-mapa', iconSize: [mc.ancho, mc.alto], iconAnchor: [mc.ancho / 2, mc.alto / 2], html: mc.html });
         L.marker([pc.lat, pc.lon], { icon: icono, title: pc.titulo, zIndexOffset: 1000, keyboard: false })
           .bindPopup(`<strong>${pc.titulo}</strong><br>${pc.detalle}<br><em>Posición estimada</em>`, { maxWidth: 240, autoPanPadding: [16, 16] }).addTo(g);
       }

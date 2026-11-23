@@ -15,7 +15,7 @@ import { claveParada, posicionCamion } from '@/lib/mapaEnvio';
 import { fecha } from '@/lib/formato';
 import { nombreEstado } from '@/lib/estados';
 import { ATRIBUCION, BotonEncuadrar, CAJA_MAPA, COLOR, TESELAS, TONO, VentanaMapa } from './MapaEnvio';
-import { dibujarRuta, resaltador, ESTILO_MAPA, type Ruta } from './mapaRuta';
+import { dibujarRuta, resaltador, ESTILO_MAPA, marcadorCamion, svgCamion, type Ruta } from './mapaRuta';
 
 type Filtro = 'todos' | 'marcha' | 'programados';
 const enMarcha = (e: EnvioMapa) => e.estado !== 'programado';
@@ -71,7 +71,7 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
       {envios && envios.length === 0 && <div className="pt-aviso ok" style={{ marginBottom: '0.6rem' }}><div>No hay envíos en programación ni en marcha ahora mismo.</div></div>}
       <Lienzo envios={visibles} dynamo={dynamo} onAbrir={(id, ref) => setAbierto({ id, ref })} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.9rem', fontSize: '0.78rem', color: 'var(--gray-700)', marginTop: '0.5rem' }} aria-label="Leyenda del mapa general">
-        <span>🚚 En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: TONO.ambar }}>cargando/descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: TONO.ambar }}>cargando/descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
         <span><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: '#9ca3af', verticalAlign: 'middle' }} /> Programado (en su 1.ª recogida)</span>
         <span><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho · <span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer (en línea recta)</span>
         <span>Pulsa una parada o una ruta para ver todas sus paradas con su hora.</span>
@@ -154,8 +154,8 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
         const pc = posicionCamion(e);
         const donde: [number, number] = pc ? [pc.lat, pc.lon] : [+pts[0].lat!, +pts[0].lon!];
         const tono = pc ? TONO[pc.tono] : TONO.gris;
-        const icono = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15],
-          html: `<div style="width:30px;height:30px;border-radius:15px;background:#fff;border:3px solid ${tono};font:16px/25px system-ui;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.35)">🚚</div>` });
+        const mc = marcadorCamion(tono);
+        const icono = L.divIcon({ className: 'camion-mapa', iconSize: [mc.ancho, mc.alto], iconAnchor: [mc.ancho / 2, mc.alto / 2], html: mc.html });
         L.marker(donde, { icon: icono, title: `#${e.referencia}`, keyboard: false, zIndexOffset: 1000 })
           .bindPopup(`${cabecera}<br><span style="color:${tono};font-weight:700">${esc(pc?.titulo ?? nombreEstado(e.estado))}</span>${pc ? `<br>${esc(pc.detalle)}` : ''}<br><em>Posición estimada</em>${botones}`, { autoPanPadding: [16, 16] })
           .on('click', () => res.current.resaltar(r)).addTo(g);

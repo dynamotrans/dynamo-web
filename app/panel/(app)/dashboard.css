@@ -5500,3 +5500,8 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .ptar-sitio-grid .op-camiones label { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0; padding: 0.6rem 0.85rem; border: 1.5px solid var(--gray-200); border-radius: 10px; background: #fff; color: var(--navy); font-weight: 600; cursor: pointer; }
 .ptar-sitio-grid .op-camiones label:has(input:checked) { border-color: var(--purple); background: rgba(51,0,204,0.05); }
 .op-camiones input { width: 18px; height: 18px; accent-color: var(--purple); margin: 0; }
+/* Fichas de los sitios de una fila de «Crear varios envíos» (usuario, 2026-11-22): debajo de
+   la fila, pegadas a la izquierda y del ancho de la pantalla (la tabla es más ancha y se
+   desplaza de lado; las fichas no). */
+.varios-sitios { grid-column: 1 / -1; position: sticky; left: 0.7rem; width: min(860px, calc(100vw - 4rem)); display: grid; gap: 0.5rem; }
+.varios-sitios-btn { justify-self: start; }
