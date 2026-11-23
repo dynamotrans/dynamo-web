@@ -28,3 +28,12 @@ export function importeEscrito(t: string): number | null {
     : /^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, '') : s);
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
 }
+
+/** El importe con IVA que corresponde a una base (lo que se escribe en la ventana: «en las
+ *  empresas se habla de costes sin IVA», usuario 2026-11-23). Si por el redondeo se pasa un
+ *  céntimo de lo disponible, se queda en lo disponible (es devolverlo todo). */
+export function totalDesdeBase(base: number, ivaPct: number, disponible: number): number {
+  const c = Math.round(Math.round(base * 100) * (1 + ivaPct / 100));
+  const tope = cent(disponible);
+  return (c > tope && c - tope <= 1 ? tope : c) / 100;
+}

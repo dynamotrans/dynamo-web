@@ -6,7 +6,7 @@ import Cargando from '@/components/Cargando';
 import Req from '@/components/Req';
 import { euros, porcentaje } from '@/lib/formato';
 import { SIN_CONEXION } from '@/lib/mensajeError';
-import { cuentasDevolucion, importeEscrito } from '@/lib/devolucion';
+import { cuentasDevolucion, importeEscrito, totalDesdeBase } from '@/lib/devolucion';
 import { datosDevolucion, devolverPago, type DatosDevolucion, type ResultadoDevolucion } from '@/app/panel/(app)/envios/acciones-devolucion';
 import { cancelarEnvio } from '@/app/panel/(app)/envios/acciones';
 import type { Ficha } from '@/lib/fichaEnvio';
@@ -36,15 +36,19 @@ export function DevolverPago({ ficha, onVolver, onHecho }: { ficha: Ficha; onVol
     return () => { vivo = false; };
   }, [e.id]);
 
-  const importe = datos ? (modo === 'todo' ? datos.disponible : importeEscrito(parte)) : null;
+  // «Una parte» se escribe SIN IVA (en las empresas se habla de costes sin IVA: usuario,
+  // 2026-11-23); la ventana le suma el IVA del envío y eso es lo que se devuelve a la tarjeta.
+  const baseEscrita = modo === 'parte' ? importeEscrito(parte) : null;
+  const importe = datos ? (modo === 'todo' ? datos.disponible : baseEscrita != null ? totalDesdeBase(baseEscrita, datos.ivaPct, datos.disponible) : null) : null;
+  const baseMaxima = datos ? Math.round(datos.disponible / (1 + datos.ivaPct / 100) * 100) / 100 : 0;
   const importeVale = !!datos && importe != null && importe > 0 && importe <= datos.disponible + 1e-9;
   const c = useMemo(() => (datos && importeVale ? cuentasDevolucion(datos.disponible, importe!, datos.ivaPct) : null), [datos, importe, importeVale]);
   const listo = importeVale && clave.length > 0 && palabra.trim() === 'CONFIRMAR';
 
   async function devolver() {
-    if (!datos || !importeVale) { setFallo('Escribe un importe válido: mayor que cero y no más de lo cobrado.'); return; }
+    if (!datos || !importeVale) { setFallo('Escribe un importe válido, sin IVA: mayor que cero y no más de lo cobrado.'); return; }
     if (palabra.trim() !== 'CONFIRMAR') { setFallo('Escribe la palabra CONFIRMAR, en mayúsculas.'); return; }
-    if (!clave) { setFallo('Escribe tu contraseña.'); return; }
+    if (!clave) { setFallo('Escribe tu contraseña de la plataforma (la de iniciar sesión).'); return; }
     setTrabajando('Devolviendo el importe'); setFallo(null);
     const r = await devolverPago(e.id, importe!, clave, palabra, motivo).catch(() => ({ ok: false as const, error: SIN_CONEXION }));
     setTrabajando(null);
@@ -131,23 +135,24 @@ export function DevolverPago({ ficha, onVolver, onHecho }: { ficha: Ficha; onVol
         </fieldset>
         <div className="ptar-sitio-grid">
           <div>
-            <label htmlFor="dv-importe">Importe a devolver, con IVA <Req si={modo === 'parte'} /></label>
+            <label htmlFor="dv-importe">Importe a devolver, sin IVA <Req si={modo === 'parte'} /></label>
             <input id="dv-importe" type="text" inputMode="decimal" disabled={modo === 'todo'} placeholder="Ej. 500,00"
-              value={modo === 'todo' ? euros(datos.disponible) : parte} onChange={(ev) => setParte(ev.target.value)} />
-            {modo === 'parte' && parte.trim() !== '' && !importeVale && <small style={{ color: '#b42318' }}>Tiene que ser mayor que cero y no pasar de {euros(datos.disponible)}.</small>}
+              value={modo === 'todo' ? euros(baseMaxima) : parte} onChange={(ev) => setParte(ev.target.value)} />
+            {modo === 'parte' && parte.trim() !== '' && !importeVale && <small style={{ color: '#b42318' }}>Tiene que ser mayor que cero y no pasar de {euros(baseMaxima)} sin IVA.</small>}
+            {importeVale && c && <small id="dv-con-iva" style={{ color: 'var(--gray-500)' }}>Con el IVA ({porcentaje(datos.ivaPct)}) se devuelven <strong>{euros(c.devuelto)}</strong> a la tarjeta.</small>}
           </div>
           <div>
             <label htmlFor="dv-motivo">Motivo (queda en el historial) <Req si={false} /></label>
             <input id="dv-motivo" type="text" maxLength={500} value={motivo} placeholder="Ej. el cliente anula el transporte" onChange={(ev) => setMotivo(ev.target.value)} />
           </div>
         </div>
-        {c ? tabla(c) : <p className="dv-nota">Escribe el importe para ver las cuentas.</p>}
+        {c ? tabla(c) : <p className="dv-nota">Escribe el importe sin IVA para ver las cuentas.</p>}
         {c && c.retenido > 0 && (
           <p className="dv-nota">Por los <strong>{euros(c.retenido)}</strong> que se queda Dynamo se creará una penalización del envío («Cancelación transporte fuera de plazo»), sin confirmar y ya cobrada con este pago. Podrás editarla después.</p>
         )}
         <div className="ptar-sitio-grid" style={{ marginTop: '0.7rem' }}>
           <div>
-            <label htmlFor="dv-clave">Tu contraseña <Req si /></label>
+            <label htmlFor="dv-clave">Tu contraseña de la plataforma <Req si /></label>
             <input id="dv-clave" type="password" autoComplete="current-password" value={clave} onChange={(ev) => setClave(ev.target.value)} />
           </div>
           <div>

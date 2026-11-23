@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cuentasDevolucion, importeEscrito } from '../../lib/devolucion';
+import { cuentasDevolucion, importeEscrito, totalDesdeBase } from '../../lib/devolucion';
 
 test('devolución total: todo vuelve al cliente y Dynamo no se queda nada', () => {
   const c = cuentasDevolucion(1210, 1210, 21);
@@ -42,4 +42,18 @@ test('importe escrito a mano: a la española, con punto decimal y con miles', ()
 
 test('importe escrito a mano: lo que no vale', () => {
   for (const t of ['', '   ', '0', '-5', 'abc', '12abc', '1,2,3']) assert.equal(importeEscrito(t), null, t);
+});
+
+test('la parte se escribe sin IVA: la ventana le suma el IVA del envío', () => {
+  assert.equal(totalDesdeBase(500, 21, 1355.2), 605);
+  assert.equal(totalDesdeBase(413.22, 21, 1355.2), 500);
+  assert.equal(totalDesdeBase(700, 0, 1000), 700);
+  // Toda la base es todo el pago; y lo que resulta cuadra con las cuentas de la tabla.
+  assert.equal(totalDesdeBase(1120, 21, 1355.2), 1355.2);
+  assert.equal(cuentasDevolucion(1355.2, totalDesdeBase(500, 21, 1355.2), 21).baseDevuelta, 500);
+});
+
+test('sin IVA: un céntimo de más por el redondeo se queda en lo disponible; más, no vale', () => {
+  assert.equal(totalDesdeBase(82.65, 21, 100), 100);       // 100,01 → 100,00
+  assert.ok(totalDesdeBase(90, 21, 100) > 100);            // se pasa de verdad: la ventana no lo acepta
 });
