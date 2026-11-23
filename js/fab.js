@@ -67,8 +67,9 @@
         var btn = document.getElementById('contactFabBtn');
         if (!btn) return;
 
-        function open()   { wrap.classList.add('open');    btn.setAttribute('aria-expanded', 'true'); }
-        function close()  { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+        var backTop = document.getElementById('backTop');
+        function open()   { wrap.classList.add('open');    btn.setAttribute('aria-expanded', 'true');  if (backTop) backTop.classList.add('fab-hidden'); }
+        function close()  { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); if (backTop) backTop.classList.remove('fab-hidden'); }
         function toggle() { wrap.classList.contains('open') ? close() : open(); }
 
         btn.addEventListener('click', function (e) { e.stopPropagation(); toggle(); });
@@ -90,9 +91,24 @@
         setInterval(syncOnlineStatus, 60000);
     }
 
+    // Botón "volver arriba" (solo en las páginas que tienen #backTop, p. ej. el blog).
+    // Igual que en index.html: aparece tras 600px de scroll y en táctil actúa
+    // al primer toque (evita el "click fantasma" de iOS).
+    function initBackTop() {
+        var b = document.getElementById('backTop');
+        if (!b) return;
+        function sync() { b.classList.toggle('show', window.scrollY > 600); }
+        function up() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        window.addEventListener('scroll', sync, { passive: true });
+        b.addEventListener('click', up);
+        b.addEventListener('touchend', function (e) { e.preventDefault(); up(); }, { passive: false });
+        sync();
+    }
+
+    function start() { init(); initBackTop(); }
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', start);
     } else {
-        init();
+        start();
     }
 })();

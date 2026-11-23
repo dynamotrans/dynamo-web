@@ -1,4 +1,4 @@
-"""Genera la imagen del post (1080x1080) o de la historia (--format story, 1080x1920) de Dynamo Trans.
+"""Genera la imagen del post (1080x1350, vertical 4:5 para la cuadrícula de Instagram) o de la historia (--format story, 1080x1920) de Dynamo Trans.
 
 Uso:
   python3 redes/render.py --variant v1 --title "¿Grupaje o <em>carga completa</em>?" --body "Texto..." --out images/redes/AAAA-MM-DD-slug.jpg
@@ -21,13 +21,13 @@ async def render(a):
     t = (HERE / "plantilla.html").read_text()
     lis = "".join(f"<li>{x.strip()}</li>" for x in a.list.split("|")) if a.list else ""
     logo = "../images/2.png" if a.variant == "v4" else "../images/4.png"
-    t = (t.replace("{{VARIANT}}", a.variant).replace("{{FORMAT}}", "story" if a.format=="story" else "").replace("{{CTAON}}", "on" if a.format=="story" else "").replace("{{CTA}}", a.cta).replace("{{PHOTO}}", "alt" if a.photo == "alt" else "")
+    t = (t.replace("{{VARIANT}}", a.variant).replace("{{FORMAT}}", "story" if a.format=="story" else "post").replace("{{CTAON}}", "on" if a.format=="story" else "").replace("{{CTA}}", a.cta).replace("{{PHOTO}}", "alt" if a.photo == "alt" else "")
           .replace("{{LOGO}}", logo).replace("{{KICKER}}", a.kicker or "")
           .replace("{{TITLE}}", a.title or "").replace("{{BODY}}", a.body or "").replace("{{LIST}}", lis))
     tmp = HERE / "_tmp.html"; tmp.write_text(t)
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        pg = await b.new_page(viewport={"width": 1080, "height": 1920 if a.format=="story" else 1080}, device_scale_factor=1)
+        pg = await b.new_page(viewport={"width": 1080, "height": 1920 if a.format=="story" else 1350}, device_scale_factor=1)
         await pg.goto(tmp.as_uri()); await pg.wait_for_timeout(1500)
         await pg.screenshot(path=a.out, type="jpeg", quality=84)
         await b.close()
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     ap.add_argument("--variant", default="v1", choices=["v1", "v2", "v3", "v4"])
     ap.add_argument("--title"); ap.add_argument("--body"); ap.add_argument("--kicker")
     ap.add_argument("--list"); ap.add_argument("--photo", default="")
-    ap.add_argument("--format", default="post", choices=["post","story"], help="post 1080x1080 | story 1080x1920")
+    ap.add_argument("--format", default="post", choices=["post","story"], help="post 1080x1350 | story 1080x1920")
     ap.add_argument("--cta", default="Escríbenos por WhatsApp 👉", help="(story) texto del botón de llamada a la acción")
     ap.add_argument("--out", required=True)
     asyncio.run(render(ap.parse_args()))

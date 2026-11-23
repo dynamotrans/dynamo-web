@@ -2400,6 +2400,66 @@
         /* .cta-sec tiene un velo ::before; sin esto el enlace quedaría por detrás. */
         .cta-sec .sec-link-wrap{position:relative;z-index:1;}
         @media (prefers-reduced-motion:reduce){.sec-link svg{transition:none;}}
+
+        /* ===== RESEÑAS DE GOOGLE flotantes (usuario, 2026-11-23) =====
+           Cartel abajo a la izquierda (nota, estrellas y nº de opiniones) que al
+           pulsarlo abre la ventana con el reparto por estrellas y las últimas
+           opiniones. Las opiniones NO se escriben dos veces: el JS las copia de
+           las tarjetas de «Reseñas reales de Google» (#testi-track), así que al
+           añadir una reseña allí sale también aquí y el número sube solo. */
+        .gr-wrap { position:fixed; left:1.5rem; bottom:1.5rem; z-index:996; font-family:inherit; }
+        .gr-badge { display:flex; align-items:stretch; border:0; padding:0; margin:0; background:#fff; border-radius:14px;
+            box-shadow:0 8px 28px rgba(10,2,48,0.22); overflow:hidden; cursor:pointer; font-family:inherit; color:var(--navy); }
+        .gr-badge:focus-visible { outline:3px solid var(--purple-light); outline-offset:3px; }
+        .gr-nota { background:var(--purple-nav); color:#fff; font-size:1.55rem; font-weight:800; padding:0 0.85rem; display:flex; align-items:center; }
+        .gr-mid { padding:0.5rem 0.8rem 0.5rem 0.75rem; text-align:left; }
+        .gr-stars { color:#f5a623; font-size:1.05rem; letter-spacing:1px; line-height:1.1; }
+        .gr-cnt { display:flex; align-items:center; gap:0.35rem; font-size:0.82rem; color:var(--gray-600, #555); margin-top:0.15rem; white-space:nowrap; }
+        .gr-cnt svg { flex:none; }
+        .gr-chev { display:flex; align-items:center; padding:0 0.7rem; border-left:1px solid #eceaf3; color:var(--navy); }
+        .gr-chev svg { transition:transform .25s ease; }
+        .gr-wrap.open .gr-chev svg { transform:rotate(180deg); }
+        .gr-x { position:absolute; top:-10px; right:-10px; width:26px; height:26px; border-radius:50%; border:1px solid #e3e0ee;
+            background:#fff; color:var(--navy); font-size:0.95rem; line-height:1; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.15);
+            display:flex; align-items:center; justify-content:center; padding:0; }
+        .gr-panel { position:absolute; left:0; bottom:calc(100% + 12px); width:min(380px, calc(100vw - 2rem)); max-height:min(620px, calc(100svh - 200px));
+            overflow:auto; overscroll-behavior:contain; background:#fff; border-radius:18px; box-shadow:0 18px 50px rgba(10,2,48,0.30);
+            opacity:0; transform:translateY(10px); pointer-events:none; visibility:hidden; transition:opacity .22s ease, transform .22s ease, visibility 0s linear .22s; }
+        .gr-wrap.open { z-index:999; }   /* abierta, por encima del botón de Álvaro */
+        .gr-wrap.open .gr-panel { opacity:1; transform:none; pointer-events:auto; visibility:visible; transition:opacity .22s ease, transform .22s ease; }
+        .gr-head { background:var(--purple-nav); color:#fff; padding:1.1rem 1.3rem 1.2rem; }
+        .gr-head-t { font-weight:800; font-size:1.05rem; }
+        .gr-head-n { display:flex; align-items:center; gap:0.6rem; margin-top:0.3rem; }
+        .gr-head-n b { font-size:2.4rem; font-weight:900; line-height:1; }
+        .gr-head-n span { color:#f5a623; font-size:1.3rem; letter-spacing:2px; }
+        .gr-head-s { font-size:0.85rem; opacity:0.85; margin-top:0.25rem; }
+        .gr-bars { list-style:none; margin:0.8rem 0 0; padding:0; }
+        .gr-bars li { display:grid; grid-template-columns:2.1rem 1fr 1.6rem; align-items:center; gap:0.55rem; font-size:0.8rem; margin:0.28rem 0; }
+        .gr-bars i { display:block; height:7px; border-radius:4px; background:rgba(255,255,255,0.18); overflow:hidden; }
+        .gr-bars i em { display:block; height:100%; background:#f5a623; border-radius:4px; }
+        .gr-bars li span:last-child { text-align:right; }
+        .gr-body { padding:1rem 1.1rem 1.2rem; }
+        .gr-chip { display:flex; align-items:center; gap:0.45rem; background:#eefaf3; color:var(--green-dark); border:1px solid #bfe8d0;
+            border-radius:12px; padding:0.6rem 0.8rem; font-weight:700; font-size:0.88rem; }
+        .gr-lbl { font-size:0.72rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:#7a7590; margin:1rem 0 0.55rem; }
+        .gr-op { border:1px solid #ece9f4; background:#faf9fd; border-radius:12px; padding:0.75rem 0.9rem; margin-bottom:0.6rem; }
+        .gr-op-h { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+        .gr-op-h b { font-size:0.92rem; color:var(--navy); }
+        .gr-op-h span { color:#f5a623; font-size:0.85rem; letter-spacing:1px; }
+        .gr-op p { margin:0.35rem 0 0; font-size:0.88rem; line-height:1.45; color:#3d3a4a; }
+        .gr-mas { display:block; text-align:center; margin-top:0.4rem; padding:0.75rem; border:1.5px solid var(--purple); border-radius:12px;
+            color:var(--purple); font-weight:800; font-size:0.9rem; text-decoration:none; }
+        .gr-mas:hover { background:var(--purple); color:#fff; }
+        @media (max-width:600px) {
+            .gr-wrap { left:0.75rem; bottom:1rem; }
+            .gr-nota { font-size:1.3rem; padding:0 0.7rem; }
+            .gr-mid { padding:0.42rem 0.65rem 0.42rem 0.6rem; }
+            .gr-stars { font-size:0.92rem; }
+            .gr-cnt { font-size:0.76rem; }
+            .gr-chev { padding:0 0.55rem; }
+            .gr-panel { width:calc(100vw - 1.5rem); max-height:calc(100svh - 190px); }
+        }
+        @media (prefers-reduced-motion: reduce) { .gr-panel, .gr-chev svg { transition:none; } }
     </style>
     <!-- Registro único de festivos (nacionales 12 países). Fuente compartida con
          el portal; cambiar festivos solo aquí: /js/festivos.js -->
@@ -3630,6 +3690,33 @@ function openLegal(tab) {
 </footer>
 
 <!-- FLOATING CONTACT FAB -->
+<!-- RESEÑAS DE GOOGLE flotantes: el JS rellena la lista y el número a partir de #testi-track -->
+<div class="gr-wrap" id="grWrap" hidden>
+    <div class="gr-panel" id="grPanel" role="dialog" aria-label="Opiniones de clientes en Google">
+        <div class="gr-head">
+            <div class="gr-head-t notranslate" translate="no">Dynamo</div>
+            <div class="gr-head-n"><b>5,0</b><span aria-hidden="true">★★★★★</span></div>
+            <div class="gr-head-s"><span class="gr-n">0</span> opiniones de clientes en Google</div>
+            <ul class="gr-bars" id="grBars" aria-label="Reparto por estrellas"></ul>
+        </div>
+        <div class="gr-body">
+            <div class="gr-chip">✓ Más de 480 empresas confían en nosotros</div>
+            <div class="gr-lbl">Últimas opiniones</div>
+            <div id="grLista"></div>
+            <a class="gr-mas" href="/opiniones">Leer todas las opiniones</a>
+        </div>
+    </div>
+    <button type="button" class="gr-badge" id="grBadge" aria-expanded="false" aria-controls="grPanel">
+        <span class="gr-nota">5,0</span>
+        <span class="gr-mid">
+            <span class="gr-stars" aria-hidden="true">★★★★★</span>
+            <span class="gr-cnt"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span><span class="gr-n">0</span> opiniones</span></span>
+        </span>
+        <span class="gr-chev" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>
+    </button>
+    <button type="button" class="gr-x" id="grX" aria-label="Ocultar las opiniones">×</button>
+</div>
+
 <div class="contact-fab-wrap" id="contactFab">
     <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
         <span class="contact-fab-name" aria-hidden="true">
@@ -4013,6 +4100,53 @@ function openLegal(tab) {
         rows.forEach(function (row) {
             row.innerHTML += row.innerHTML;
         });
+    })();
+
+    // Reseñas de Google flotantes (usuario, 2026-11-23): copia las opiniones de las
+    // tarjetas de «Reseñas reales de Google» ANTES de que el carrusel las duplique, así
+    // el número y la lista salen siempre de un solo sitio. La × lo oculta en esta visita.
+    (function () {
+        var wrap = document.getElementById('grWrap');
+        var track = document.getElementById('testi-track');
+        if (!wrap || !track) return;
+        try { if (sessionStorage.getItem('grOculto') === '1') return; } catch (e) {}
+        var vistas = {}, ops = [];
+        Array.prototype.forEach.call(track.querySelectorAll('.testi-card'), function (c) {
+            var n = (c.querySelector('.testi-name') || {}).textContent || '';
+            var t = (c.querySelector('.testi-text') || {}).textContent || '';
+            var e = ((c.querySelector('.testi-stars') || {}).textContent || '').replace(/[^★]/g, '').length || 5;
+            if (!t || vistas[n + '|' + t]) return;
+            vistas[n + '|' + t] = 1;
+            ops.push({ n: n.trim(), t: t.trim(), e: e });
+        });
+        if (!ops.length) return;
+        Array.prototype.forEach.call(wrap.querySelectorAll('.gr-n'), function (x) { x.textContent = ops.length; });
+        var bars = document.getElementById('grBars');
+        for (var k = 5; k >= 1; k--) {
+            var c = ops.filter(function (o) { return o.e === k; }).length;
+            var li = document.createElement('li');
+            li.innerHTML = '<span>' + k + '★</span><i><em style="width:' + Math.round(c * 100 / ops.length) + '%"></em></i><span>' + c + '</span>';
+            bars.appendChild(li);
+        }
+        var lista = document.getElementById('grLista');
+        ops.forEach(function (o) {
+            var d = document.createElement('div'); d.className = 'gr-op';
+            var h = document.createElement('div'); h.className = 'gr-op-h';
+            var b = document.createElement('b'); b.className = 'notranslate'; b.setAttribute('translate', 'no'); b.textContent = o.n;
+            var s = document.createElement('span'); s.setAttribute('aria-label', o.e + ' estrellas'); s.textContent = '★★★★★'.slice(0, o.e);
+            var p = document.createElement('p'); p.textContent = o.t;
+            h.appendChild(b); h.appendChild(s); d.appendChild(h); d.appendChild(p); lista.appendChild(d);
+        });
+        var badge = document.getElementById('grBadge');
+        function abrir(si) { wrap.classList.toggle('open', si); badge.setAttribute('aria-expanded', si ? 'true' : 'false'); }
+        badge.addEventListener('click', function () { abrir(!wrap.classList.contains('open')); });
+        document.getElementById('grX').addEventListener('click', function () {
+            wrap.hidden = true;
+            try { sessionStorage.setItem('grOculto', '1'); } catch (e) {}
+        });
+        document.addEventListener('click', function (ev) { if (!wrap.contains(ev.target)) abrir(false); });
+        document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && wrap.classList.contains('open')) { abrir(false); badge.focus(); } });
+        wrap.hidden = false;
     })();
 
     // Carrusel infinito de reseñas — scroll continuo SIN reinicio visible.

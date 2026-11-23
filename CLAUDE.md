@@ -541,6 +541,19 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **Pendientes** (detalle en `TODO.md`): claves en Vercel con tope de gasto (Turnstile real, Postmark, Google Maps); APIs de Holded y CESCE; Google Maps (#79); bolsas de carga (#66); tarifador con tarifas reales.
 
+### 2026-11-19 — Claude (nube)
+
+> **Ajuste de redes al plan FREE de Metricool** (20 publicaciones/mes; cada elemento cuenta 1 aunque vaya a IG + FB). Álvaro no va a pagar. Solo se tocan las tareas programadas y `redes/TEMAS.md` + `blog/_backlog.md` (a `main`, con OK).
+
+- **Calendario nuevo** (tareas programadas actualizadas): lunes 11:00 artículo del blog + post de anuncio · martes 8:00 post · jueves 8:00 historia en vídeo · sábado 11:00 historia del blog (la programa la tarea del lunes) · 1.º y 3.º viernes 8:00 post extra. Máx. 18-20/mes. Blog pasa de lunes+viernes a solo lunes.
+- **Control del límite en todas las tareas**: antes de programar cuentan lo del mes en Metricool; si no cabe, no publican y avisan con N/20. El blog en la web se publica siempre.
+- **Temas vetados**: eventos/ferias/conciertos y horarios de atención (temas 13 y 30 marcados DESCARTADO en `redes/TEMAS.md`; eventos descartado en `blog/_backlog.md`). NIMA se mantiene.
+- Corregida la lista de países de las tareas (sin Irlanda ni Dinamarca, como la web).
+
+**Pendientes**:
+- El post del 14/11 en redes cita Irlanda y Dinamarca (ya no están en la web): corregirlo a mano en Facebook/Instagram si se quiere.
+- Noviembre llega a 20/20 el lunes 23: del 24 al 30 no sale nada en redes (aviso automático).
+
 ### 2026-11-17 — Claude Code web (nube)
 
 > Todo en la rama **`pruebas`** (plataforma; no toca `main` ni la web pública). Del 7 al 16 de noviembre no hay entradas aquí: el estado al día de esos días está en `TODO.md` (resumen por versiones, arriba del todo). Última subida del día: `8177ffb`, con las pruebas en verde.

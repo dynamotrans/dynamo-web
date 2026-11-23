@@ -79,6 +79,43 @@ svg{position:absolute}
 .story.v4 .list{top:900px;right:84px;font-size:38px}
 .story.v4 .map{right:40px;bottom:450px;width:300px}
 .story .cta{display:none}.story .cta.on{display:flex}
+/* ---------- Franja de llamada a la acción (pegada al pie) ---------- */
+.bar{display:none}
+.band{position:absolute;left:0;right:0;bottom:0;height:130px;background:#fff;color:var(--purple);display:flex;align-items:center;gap:22px;padding:6px 64px 0 72px;z-index:6}
+.band:before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(90deg,var(--yellow) 0 33.34%,var(--green2) 33.34% 66.67%,var(--orange) 66.67%)}
+.band .clk{position:static;width:60px;height:60px;flex:0 0 60px}
+.band .bt{display:flex;flex-direction:column;gap:4px}
+.band b{font-weight:900;font-size:44px;line-height:1;letter-spacing:-1px}
+.band span{font-weight:700;font-size:24px;color:#6b6888}
+.band .go{margin-left:auto;width:68px;height:68px;border-radius:50%;background:var(--purple);color:#fff;font-style:normal;font-weight:900;font-size:36px;display:flex;align-items:center;justify-content:center}
+.story .band{height:160px}
+.story .band b{font-size:50px}.story .band span{font-size:27px}
+/* sitio para la franja */
+.v1 .truck{bottom:172px}.v1 .road{bottom:160px}
+.v2 .pallets{bottom:170px}
+.v4 .map{bottom:168px;width:300px}
+.v4 .band .clk g{stroke:var(--green)}.v4 .band .clk > path{fill:#fff;stroke:var(--purple)}
+.v4 .band{background:var(--purple);color:#fff}.v4 .band span{color:rgba(255,255,255,.8)}.v4 .band .go{background:var(--green2)}
+.story .cta{bottom:300px}
+/* ---------- POST 1080x1350 (4:5). La cuadrícula del perfil recorta ~35px por lado: márgenes de 84px ---------- */
+.post{height:1350px}
+.post .logo{top:96px}.post .claim{top:104px}
+.post.v1 .title{top:360px;font-size:90px}
+.post.v1 .body{top:690px;font-size:36px}
+.post.v1 .truck{bottom:200px;width:500px}.post.v1 .road{bottom:188px}
+.post.v2 .kicker{top:350px}
+.post.v2 .title{top:400px;font-size:260px}
+.post.v2 .body{top:720px;width:600px;font-size:38px}
+.post.v2 .pallets{bottom:190px;width:380px}
+.post.v3 .photo{background-position:42% 80%}
+.post.v3 .title{top:300px;font-size:84px}
+.post.v3 .body{top:530px;font-size:33px}
+.post.v4 .title{top:340px;font-size:84px}
+.post.v4 .list{top:650px;font-size:36px}
+.post.v4 .map{bottom:190px;width:320px}
+.post .band{height:140px}
+/* ---------- STORY: franja pegada al pie (el vídeo ya no hace zoom, no se recorta) ---------- */
+.story .band{bottom:0;height:170px}
 </style></head>
 <body class="{{VARIANT}} {{FORMAT}}">
 <div class="bg"></div>
@@ -127,6 +164,6 @@ svg{position:absolute}
 </svg>
 
 <div class="cta {{CTAON}}"><span>{{CTA}}</span></div>
-<div class="foot"><div class="site">dynamotrans.com</div><div class="tag">Grupajes · Carga completa · España y Europa</div></div>
+<div class="band"><svg class="clk" viewBox="0 0 32 32" fill="none"><g stroke="#3300cc" stroke-width="2.6" stroke-linecap="round"><path d="M11 1.5v3.2"/><path d="M3.5 9h3.2"/><path d="M5.6 3.6l2.2 2.2"/><path d="M16.4 3.6l-2.2 2.2"/></g><path d="M11 9v18l4.5-4.5 3 6.5 3-1.3-2.9-6.4h5.9z" fill="#3300cc" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg><div class="bt"><b>Pide transporte online</b><span>en dynamotrans.com</span></div><i class="go">→</i></div>
 <div class="bar"><i></i><i></i><i></i></div>
 </body></html>

@@ -76,3 +76,16 @@
   .bl-body{font-size:1rem}
   .bl-body .bl-intro{font-size:1.05rem}
 }
+
+/* ---------- paginación del listado (tools/generar-blog-index.py) ---------- */
+.bl-pag{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.45rem;margin-top:2rem}
+.bl-pag a,.bl-pag span{display:inline-flex;align-items:center;justify-content:center;min-width:2.6rem;height:2.6rem;
+  padding:0 .9rem;border-radius:10px;font-weight:700;font-size:.9rem;text-decoration:none}
+.bl-pag a{background:#fff;border:1px solid var(--gray-200);color:var(--navy);transition:border-color .2s,color .2s}
+.bl-pag a:hover{border-color:var(--purple);color:var(--purple)}
+.bl-pag [aria-current="page"]{background:var(--purple);color:#fff;border:1px solid var(--purple)}
+.bl-pag .bl-pag-gap{min-width:1.4rem;padding:0;color:var(--gray-500)}
+@media (max-width:600px){
+  .bl-pag .bl-pag-prev,.bl-pag .bl-pag-next{flex-basis:100%;order:2}
+  .bl-pag .bl-pag-prev{order:-1}
+}

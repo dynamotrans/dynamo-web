@@ -7,10 +7,10 @@ Mezcla: intención informativa (qué es / cuánto cuesta / cómo funciona) + loc
 
 ## Capacidad, medidas y vehículos
 - [x] ¿Cuántos palets caben en un tráiler? Tauliner, rígido y cómo calcularlo (2026-11-05, cuantos-palets-caben-en-un-trailer)
-- [ ] ¿Qué es un metro lineal de camión y cómo se cotiza el grupaje por metros?
-- [ ] Peso máximo de un camión en España: carga útil real de un tráiler y de un rígido
-- [ ] Tauliner, rígido con plataforma, piso móvil, frigorífico: qué camión necesita tu mercancía
-- [ ] Trampilla elevadora: cuándo la necesitas y cuánto encarece el porte
+- [x] ¿Qué es un metro lineal de camión y cómo se cotiza el grupaje por metros? (2026-11-09, que-es-un-metro-lineal)
+- [x] Peso máximo de un camión en España: carga útil real de un tráiler y de un rígido (2026-11-13, peso-maximo-camion)
+- [x] Tauliner, rígido con plataforma, piso móvil, frigorífico: qué camión necesita tu mercancía (2026-11-16, tipos-de-camion-mercancias)
+- [x] Trampilla elevadora: cuándo la necesitas y cuánto encarece el porte (2026-11-23, trampilla-elevadora-camion)
 - [ ] Carga por techo (grúa) frente a carga lateral: cómo se carga una lona corredera
 - [ ] Mercancía paletizada frente a no paletizada: qué cambia en precio, seguro y manipulación
 - [ ] Palet europeo, americano, palot y medidas especiales: cómo influyen en el precio del transporte
@@ -49,7 +49,7 @@ Mezcla: intención informativa (qué es / cuánto cuesta / cómo funciona) + loc
 ## Situaciones concretas
 - [ ] Transporte a obra: accesos, descarga sin carretilla y qué avisar antes de cargar
 - [ ] Transporte a fincas y explotaciones agrícolas: qué camión entra y qué pedir
-- [ ] Transporte para eventos y ferias: plazos, horarios de descarga y cómo coordinarlo
+- [x] Transporte para eventos y ferias: plazos, horarios de descarga y cómo coordinarlo (descartado 2026-11-19: Álvaro no quiere temas de eventos)
 - [ ] Transporte de maquinaria y mercancía voluminosa no paletizada en tauliner
 - [ ] Almacenamiento de corta estancia: cuándo compensa y cómo funciona el cross-docking
 - [ ] Transporte de mercancías desde Sevilla: rutas habituales, plazos y cómo ahorrar
