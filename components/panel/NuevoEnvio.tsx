@@ -42,7 +42,7 @@ import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 import CampoFecha from '@/components/CampoFecha';
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, pagoPrevio = false, reglas = null, emailPropio = null }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, clienteFijo = false, operadores = [], esMaster = false, fechaInicial = null, pagoPrevio = false, tarjeta = false, reglas = null, emailPropio = null }: Props) {
   // El campo «Cliente» solo tiene sentido en la vista de gestión de Dynamo: un cliente,
   // o el equipo con «Ver como» un cliente, ya tiene el cliente decidido y no lo ve.
   const sinCampoCliente = esCliente || clienteFijo;
@@ -1016,8 +1016,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   // Pantalla de éxito: sustituye al asistente entero una vez creado el envío.
   if (creado) {
+    const pagoPendiente = !!(creado.pago ?? pagoPrevio) && creado.modo === 'cliente';
     const pasosExito = creado.modo === 'cliente' ? [
-      <>Tu envío está <strong>programado con el precio cerrado</strong> que acabas de confirmar.</>,
+      pagoPendiente
+        ? <>En cuanto recibamos el pago, tu envío queda <strong>programado con el precio cerrado</strong> que acabas de confirmar.</>
+        : <>Tu envío está <strong>programado con el precio cerrado</strong> que acabas de confirmar.</>,
       <>Dynamo asigna el camión: la <strong>matrícula y el conductor</strong> aparecerán en la ficha del envío y te avisaremos por <strong>email</strong>.</>,
       <>El día de la carga podrás seguir el <strong>estado en vivo</strong>; al finalizar el envío subiremos la <strong>documentación firmada</strong> a los documentos del envío o a la sección Administración / Albaranes.</>,
     ] : creado.modo === 'manual' ? [
@@ -1038,29 +1041,38 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
           </div>
           <h2 style={{ margin: '0 0 0.25rem', textAlign: 'center' }}>¡Envío #{creado.ref} creado!</h2>
           <p style={{ margin: '0 0 1.1rem', color: 'var(--gray-500)', textAlign: 'center' }}>Esto es lo que pasa ahora:</p>
-          {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): caja roja; si
-              no aplica, no se dice nada del pago. */}
-          {(creado.pago ?? pagoPrevio) && creado.modo === 'cliente' && (
-            <div className="pt-aviso error" role="alert" style={{ marginBottom: '1rem' }}><div>
-              <strong>Pendiente de pago.</strong> Hasta que no se abone, <strong>no se procesa ninguna reserva de
-              transporte</strong>. La <strong>fecha y la ventana de carga empiezan a contar a partir del pago</strong>
-              {' '}(te mandamos la proforma por email).
+          {/* Envío que hay que pagar por adelantado (usuario, 2026-11-14; rehecha el 2026-11-23:
+              «ajusta esos mensajes y botón pagar»): lo justo para decidir y los botones de pago aquí
+              mismo, sin tener que ir a la ficha. Si no aplica, no se dice nada del pago. */}
+          {pagoPendiente && (
+            <div className="exito-pago" role="alert">
+              <div className="ep-cab"><span className="badge badge-orange">Pendiente de pago</span></div>
+              <p className="ep-txt">Reservamos el transporte <strong>en cuanto recibamos el pago</strong>: la fecha y la ventana de carga cuentan desde ese momento. Te hemos enviado la proforma por email.</p>
               {creado.pagoLimite && (
-                <div id="exito-pago-plazo" style={{ marginTop: '0.45rem' }}>
+                <div id="exito-pago-plazo">
                   <CuentaAtras grande hasta={creado.pagoLimite} vencidoTxt="Plazo vencido: el envío se anula en breve" />
-                  <strong>Tienes hasta el {fechaHora(creado.pagoLimite)} para pagar</strong>: con tarjeta, o por transferencia inmediata avisándonos después con el botón «Ya he hecho la transferencia» de la ficha del envío (el plazo se para mientras la validamos).
-                  {' '}Pasado el plazo sin pago ni aviso, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crear un envío nuevo, con el precio de ese momento.
+                  <p className="ep-txt">Paga antes del <strong>{fechaHora(creado.pagoLimite)}</strong>. Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma <strong>se anulan solos</strong>.</p>
                 </div>
               )}
+              <div className="ep-botones">
+                {tarjeta && creado.id && (
+                  <form action="/api/stripe/pago" method="post">
+                    <input type="hidden" name="envio" value={creado.id} />
+                    <button type="submit" className="btn-primary">Pagar con tarjeta</button>
+                  </form>
+                )}
+                <button type="button" className={tarjeta && creado.id ? 'btn-secondary' : 'btn-primary'} onClick={() => ir(destinoCreado!)}>Pagar por transferencia</button>
+              </div>
+              <p className="ep-nota">{tarjeta && creado.id ? 'Con tarjeta se confirma al momento. ' : ''}Por transferencia inmediata: usa los datos de la proforma y avísanos con «Ya he hecho la transferencia» en la ficha del envío; el plazo se para mientras la validamos.</p>
               {creado.razon && (
-                <div id="exito-pago-razon" style={{ marginTop: '0.45rem' }}>
-                  <strong>¿Por qué?</strong>{' '}
-                  {creado.razon === 'primero' ? <>Es tu <strong>primer envío</strong> con nosotros y el primero se paga por adelantado. Tu cuenta tiene crédito: los siguientes irán a crédito.</>
-                    : creado.razon === 'primeros' ? <>Es uno de tus <strong>primeros envíos</strong> con nosotros y esos se pagan por adelantado. Tu cuenta tiene crédito: los siguientes irán a crédito.</>
-                    : <>Tu cuenta tiene crédito, pero <strong>con este envío superas el que te queda disponible</strong>, así que este se paga por adelantado. Si crees que es un error, contáctanos y lo revisamos.</>}
-                </div>
+                <p id="exito-pago-razon" className="ep-nota">
+                  <strong>¿Por qué se paga por adelantado?</strong>{' '}
+                  {creado.razon === 'primero' ? <>Es tu primer envío con nosotros. Los siguientes irán a crédito.</>
+                    : creado.razon === 'primeros' ? <>Es uno de tus primeros envíos con nosotros. Los siguientes irán a crédito.</>
+                    : <>Con este envío superas tu crédito disponible, que se irá liberando a medida que se paguen tus facturas. Si crees que es un error, contáctanos y lo revisamos.</>}
+                </p>
               )}
-            </div></div>
+            </div>
           )}
           <ol style={{ margin: '0 0 1.3rem', padding: 0, listStyle: 'none', display: 'grid', gap: '0.65rem' }}>
             {pasosExito.map((t, i) => (

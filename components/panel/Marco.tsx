@@ -30,7 +30,7 @@ const IDIOMAS_PANEL: [string, React.ReactNode, string][] = [
 ];
 
 export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias' | 'albaranes', number>>;
-export type Cobertura = 'disponible' | 'nulo' | 'sinclasif' | null;
+export type Cobertura = 'disponible' | 'superado' | 'nulo' | 'sinclasif' | null;
 
 // Números del menú lateral por pantalla: [naranja, rojo] y qué significa cada uno.
 function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: boolean }[] {
@@ -48,16 +48,20 @@ function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: 
   }
 }
 
-const COBERTURA: Record<Exclude<Cobertura, null>, { chip: string; badge: string; label: string; clasif: string; clasifCls: string; nota: React.ReactNode }> = {
-  disponible: { chip: 'cesce-status-ok', badge: 'cesce-b-ok', label: 'Con crédito disponible', clasif: 'Clasificado', clasifCls: 'ok',
+const COBERTURA: Record<Exclude<Cobertura, null>, { chip: string; badge: string; label: string; clasif: string; clasifCls: string; notaCls: string; nota: React.ReactNode }> = {
+  disponible: { chip: 'cesce-status-ok', badge: 'cesce-b-ok', label: 'Con crédito disponible', clasif: 'Clasificado', clasifCls: 'ok', notaCls: '',
     nota: <>CESCE es la compañía aseguradora de crédito que respalda esta cuenta: garantiza el cobro de los envíos, por eso puedes trabajar <strong>a crédito</strong> y pagar por transferencia o tarjeta cuando te lleguen las facturas.</> },
-  sinclasif: { chip: 'cesce-status-warn', badge: 'cesce-b-warn', label: 'Sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none',
+  // «Superado» (usuario, 2026-11-23): tiene crédito pero lo ha consumido, o un envío se le
+  // ha quedado esperando el pago porque no le cabía. Naranja, corto y claro; sin importes.
+  superado: { chip: 'cesce-status-naranja', badge: 'cesce-b-naranja', label: 'Crédito disponible superado', clasif: 'Clasificado', clasifCls: 'ok', notaCls: 'naranja',
+    nota: <>Has <strong>superado tu crédito disponible</strong>. Se irá liberando a medida que se paguen tus facturas; mientras tanto, los envíos que no quepan se pagan <strong>por adelantado</strong>.</> },
+  sinclasif: { chip: 'cesce-status-warn', badge: 'cesce-b-warn', label: 'Sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none', notaCls: 'warn',
     nota: <>Tu empresa está <strong>sin clasificar</strong> por CESCE (el trámite aún no se ha realizado), así que los envíos se cobran <strong>por adelantado</strong>. Puedes solicitar que CESCE clasifique tu empresa para trabajar a crédito.</> },
   // «Sin crédito disponible» (usuario, 2026-11-16): el crédito que manda es 0, venga de
   // CESCE o del crédito manual de Dynamo (que ahora manda siempre: 0 es 0). El texto no dice
   // de quién es el 0 ni manda a nadie a CESCE: el contacto es el nuestro y lo revisamos.
-  nulo: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Sin crédito disponible', clasif: 'Sin crédito', clasifCls: 'none',
-    nota: <>De momento esta cuenta <strong>no tiene crédito disponible</strong>, así que los envíos se cobran <strong>por adelantado</strong>. Si crees que debería tenerlo, contáctanos y lo revisamos.</> },
+  nulo: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Crédito no disponible', clasif: 'Sin crédito', clasifCls: 'none', notaCls: 'none',
+    nota: <>Esta cuenta <strong>no tiene crédito disponible</strong>: los envíos se pagan <strong>por anticipado</strong>. Si crees que debería tenerlo, contáctanos y lo revisamos.</> },
 };
 
 const ROL_TXT: Record<Rol, string> = { admin: 'Admin Master', empleado: 'Empleado gestor', admin_lectura: 'Admin lectura', empleado_lectura: 'Empleado lectura', cliente: 'Cliente', transportista: 'Transportista' };
@@ -398,7 +402,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
                   </div>
                   <div className={`cesce-menu-badge ${COBERTURA[cobertura].badge}`}><span className="dot" />{COBERTURA[cobertura].label}</div>
                   <div className="cesce-rows"><div className="cesce-row"><span className="k">Clasificación</span><span className={`v ${COBERTURA[cobertura].clasifCls}`}>{COBERTURA[cobertura].clasif}</span></div></div>
-                  <div className="cesce-note warn">{COBERTURA[cobertura].nota}</div>
+                  <div className={`cesce-note ${COBERTURA[cobertura].notaCls}`}>{COBERTURA[cobertura].nota}</div>
                   {cobertura === 'sinclasif' && (
                     <a className="cesce-reclamar" style={{ textDecoration: 'none' }}
                        href={`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`Solicitud de clasificación CESCE · ${empresa}`)}&body=${encodeURIComponent(`Hola, queremos que CESCE clasifique a ${empresa} para poder trabajar a crédito.\r\n\r\nGracias.`)}`}>

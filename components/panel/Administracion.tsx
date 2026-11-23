@@ -146,7 +146,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
                       ? <><span className="badge badge-entregado">Pagada el {fecha(diaMadrid(p.pagado_en))}</span>{p.banco ? <div className="meta">{p.banco}</div> : null}</>
                       : p.avisado
                         ? <><span className="badge badge-orange pago-avisado-chip">{dynamo ? 'Transferencia avisada · validar' : 'Validando tu transferencia'}</span><div className="meta">Avisada el {fechaHora(p.avisado)} · plazo parado</div></>
-                        : <><span className="badge badge-red">Sin pagar</span>{p.limite && <div className="meta pago-plazo" title={`Se puede pagar hasta el ${fechaHora(p.limite)}; después el envío y su proforma se anulan solos`}>Caduca: <CuentaAtras hasta={p.limite} corto vencidoTxt="plazo vencido" /></div>}</>}
+                        : <><span className="badge badge-red">Sin pagar</span>{p.limite && <div className="meta pago-plazo" title={`Se puede pagar hasta el ${fechaHora(p.limite)}; después el envío y su proforma se anulan solos`}><CuentaAtras hasta={p.limite} corto etiqueta="Caduca" vencidoTxt="Plazo vencido" /></div>}</>}
                       {gestor && <div style={{ marginTop: '0.3rem' }}>
                         <button type="button" className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', fontSize: 'var(--fs-s)' }} onClick={(ev) => { ev.stopPropagation(); pagar(p, !p.pagado_en); }}>
                           {p.pagado_en ? 'Quitar pago' : p.tipo === 'envio' ? 'Transferencia recibida' : 'Marcar pagada'}

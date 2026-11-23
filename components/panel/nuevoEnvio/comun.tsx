@@ -139,6 +139,7 @@ export type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos
   fechaInicial?: string | null;                       // fecha de recogida ya elegida (p. ej. al pulsar un día en la vista calendario)
   autosusp?: MiAutosusp | null;                       // lo que el cliente lleva contra los límites de uso (mi_autosuspension)
   pagoPrevio?: boolean;                               // la cuenta opera con pago por adelantado (mi_cobertura_credito sin crédito): el aviso sale SOLO entonces (usuario, 2026-11-14)
+  tarjeta?: boolean;                                  // el pago con tarjeta (Stripe) está conectado: botón «Pagar con tarjeta» al crear
   reglas?: ReglasPrecio | null;                       // antelación máxima y precio provisional (parámetros)
   emailPropio?: string | null };                      // email del usuario cliente: se le propone para enviarse la proforma
 // Lo que devuelve mi_autosuspension(): límites de uso vigentes y lo que lleva el cliente.

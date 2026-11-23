@@ -2719,7 +2719,7 @@ do $$ declare c jsonb; begin
   c := contadores_panel();
   if (c ->> 'incidencias')::int > (select count(*) from incidencias) then raise exception 'FALLO 86 · el cliente cuenta incidencias que no ve'; end if;
   if c ? 'altas' then raise exception 'FALLO 86 · el cliente ve el contador de altas de Dynamo'; end if;
-  if mi_cobertura_credito() not in ('disponible', 'nulo', 'sinclasif') then raise exception 'FALLO 86 · cobertura de crédito sin estado: %', mi_cobertura_credito(); end if;
+  if mi_cobertura_credito() not in ('disponible', 'superado', 'nulo', 'sinclasif') then raise exception 'FALLO 86 · cobertura de crédito sin estado: %', mi_cobertura_credito(); end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_al85'), false);
@@ -14905,5 +14905,44 @@ begin
      or has_function_privilege('authenticated', 'public.pack_ruta(uuid)', 'execute') then
     raise exception 'FALLO 329 · permisos de los packs mal puestos'; end if;
   raise notice 'OK 329 · packs de grupaje: misma ruta o al paso, un día en común y sin pasar del tráiler; asignar una partida asigna el pack; aceptada por separado, cambiada o cancelada sale del pack con aviso; solo Dynamo';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 330 · COBERTURA DE CRÉDITO «SUPERADO» (usuario, 2026-11-23): con crédito pero consumido, o con
+--       un envío esperando el pago porque no le cabía, el indicador ya no dice «disponible».
+do $$
+declare v_cli uuid; v_man numeric; v_ces numeric; e uuid; r text;
+begin
+  select cliente_id into v_cli from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  select riesgo_manual_euros, riesgo_cesce_euros into v_man, v_ces from clientes where id = v_cli;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  -- Sin clasificar y sin crédito, como antes.
+  update clientes set riesgo_cesce_euros = null, riesgo_manual_euros = null where id = v_cli;
+  if mi_cobertura_credito() <> 'sinclasif' then raise exception 'FALLO 330 · sin riesgo informado no sale «sinclasif»: %', mi_cobertura_credito(); end if;
+  update clientes set riesgo_manual_euros = 0 where id = v_cli;
+  if mi_cobertura_credito() <> 'nulo' then raise exception 'FALLO 330 · con crédito 0 no sale «nulo»: %', mi_cobertura_credito(); end if;
+  -- Con crédito de sobra y sin envíos esperando pago: disponible.
+  update clientes set riesgo_manual_euros = 1000000 where id = v_cli;
+  update envios set estado = 'cancelado' where cliente_id = v_cli and estado_pago_previo = 'pendiente' and estado not in ('borrador', 'cancelado');
+  r := mi_cobertura_credito();
+  if r <> 'disponible' then raise exception 'FALLO 330 · con crédito de sobra no sale «disponible»: %', r; end if;
+  -- Un envío esperando el pago porque no le cabía en el crédito: superado.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta)
+    values (v_cli, 3, 2, 500, current_date + 20, current_date + 22) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, nombre_empresa) values
+    (e, 1, 'carga', '41001', 'Sevilla', 'ES', 'Nave 330'), (e, 2, 'descarga', '28001', 'Madrid', 'ES', 'Destino 330');
+  update envios set estado = 'programado' where id = e;
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Crédito insuficiente (prueba 330)', pago_pendiente_en = now() where id = e;
+  r := mi_cobertura_credito();
+  if r <> 'superado' then raise exception 'FALLO 330 · con un envío pendiente de pago por crédito no sale «superado»: %', r; end if;
+  -- Cancelado ese envío vuelve a disponible; con el crédito consumido, superado otra vez.
+  update envios set estado = 'cancelado' where id = e;
+  if mi_cobertura_credito() <> 'disponible' then raise exception 'FALLO 330 · cancelado el envío pendiente no vuelve a «disponible»: %', mi_cobertura_credito(); end if;
+  update clientes set riesgo_manual_euros = 0.01 where id = v_cli;
+  if (select usado from credito_uso_cliente(v_cli)) >= 0.01 and mi_cobertura_credito() <> 'superado' then
+    raise exception 'FALLO 330 · con el crédito consumido no sale «superado»: %', mi_cobertura_credito(); end if;
+  update clientes set riesgo_manual_euros = v_man, riesgo_cesce_euros = v_ces where id = v_cli;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 330 · cobertura de crédito: sin clasificar, sin crédito (0), superado (consumido o con un envío esperando el pago por crédito) y disponible';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

@@ -6,8 +6,17 @@
 import { useEffect, useState } from 'react';
 import { tiempoQueda } from '@/lib/cuentaAtras';
 
-export default function CuentaAtras({ hasta, corto = false, grande = false, vencidoTxt = 'Plazo vencido', para = 'para pagar' }: {
+// Reloj dibujado (no el emoji ⏱, que cada sistema pinta a su manera y descuadra la línea).
+const Reloj = ({ lado }: { lado: number }) => (
+  <svg width={lado} height={lado} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2" /><path d="M9.5 2.5h5" />
+  </svg>
+);
+
+export default function CuentaAtras({ hasta, corto = false, grande = false, vencidoTxt = 'Plazo vencido', para = 'para pagar', etiqueta }: {
   hasta: string | null | undefined; corto?: boolean; grande?: boolean; vencidoTxt?: string; para?: string;
+  /** Texto que va DENTRO de la pastilla, delante del tiempo («Para pagar»). */
+  etiqueta?: string;
 }) {
   const [ahora, setAhora] = useState(() => Date.now());
   const q = tiempoQueda(hasta, ahora);
@@ -23,14 +32,14 @@ export default function CuentaAtras({ hasta, corto = false, grande = false, venc
     return (
       // El servidor y el navegador no pintan el mismo segundo: no es un fallo de hidratación.
       <div className="cuenta-atras cuenta-atras-grande" data-urgente={urgente} role="timer" suppressHydrationWarning>
-        <span className="ca-reloj" aria-hidden="true">⏱</span>
+        <span className="ca-reloj"><Reloj lado={16} /></span>
         <span>{q.vencido ? vencidoTxt : <>Te quedan <strong className="ca-tiempo">{q.texto}</strong> {para}</>}</span>
       </div>
     );
   }
   return (
     <span className="cuenta-atras" data-urgente={urgente} suppressHydrationWarning>
-      <span aria-hidden="true">⏱ </span>{q.vencido ? vencidoTxt : corto ? q.texto : `Quedan ${q.texto}`}
+      <Reloj lado={12} />{etiqueta && !q.vencido && <span className="ca-etq">{etiqueta}</span>}{q.vencido ? vencidoTxt : corto ? q.texto : `Quedan ${q.texto}`}
     </span>
   );
 }
