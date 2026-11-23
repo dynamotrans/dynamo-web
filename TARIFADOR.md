@@ -95,8 +95,8 @@ de la dirección de Sevilla.
   industrial**. El camión, al descargar, sale cargado desde ese polo: el precio tiene que
   contar con que **acaba en el polo** (donde encuentra la carga de vuelta), **no
   devolverlo a la capital de provincia** ni tratar el destino como un pueblo perdido.
-- Regla: cada destino se asigna a su **zona de salida**, que es el **polo industrial o de
-  carga más cercano** (por km de carretera, dentro de un radio a fijar), y no la capital.
+- Regla: cada destino (y cada origen) se asigna a su **polo industrial o de carga más
+  cercano** (por km de carretera, dentro del radio de ese polo), y no a la capital.
   Lo que dependa de «dónde se queda el camión» sale de ahí: el coste de la vuelta o de
   ir vacío hasta la siguiente carga, la facilidad de encontrar camión y el «misma ruta»
   del apartado 4 (provincia → provincia pasa a ser polo → polo cuando lo haya).
@@ -104,8 +104,13 @@ de la dirección de Sevilla.
   lo atractivo que es para recargar: alto / medio / bajo), con los grandes de inicio (en
   Andalucía, p. ej., la Bahía de Cádiz, Jerez, el Campo de Gibraltar, Huelva, Sevilla,
   Málaga…). Un destino lejos de cualquier polo sí lleva el recargo de «vuelta en vacío».
-- A decidir: si la misma regla vale para el **origen** (de dónde sale el camión que viene a
-  cargar), el radio máximo, y si los km hasta el polo se cobran enteros o con un descuento.
+- **Decidido (usuario, 2026-11-23):**
+  - **Vale también para el origen**: el camión que viene a cargar sale del polo industrial
+    más cercano a la recogida, no de la capital.
+  - **El radio es de cada polo**: se fija al dar de alta el polo (según su tamaño y su radio
+    de acción), no hay uno general.
+  - **Los km entre el punto y su polo se cobran con descuento** (menos que un km normal de
+    la ruta); el porcentaje se fija al montar ese módulo del tarifador.
 
 ## 5. Orden de cálculo propuesto (borrador)
 
