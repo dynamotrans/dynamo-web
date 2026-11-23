@@ -14785,3 +14785,125 @@ begin
     raise exception 'FALLO 328 · las funciones del precio se pueden llamar desde fuera'; end if;
   raise notice 'OK 328 · el precio del cliente lo comprueba la base de datos: a 1 € no entra, con el del tarifador sí (y guarda su precio de tarifa); el cálculo no se llama desde fuera';
 end $$;
+
+-- 329 · PACKS DE GRUPAJE (usuario, 2026-11-23): se juntan partidas programadas, sin
+-- transportista y de grupaje que van por la misma ruta de provincias (o le pillan al paso),
+-- con un día de carga en común y sin pasar del tráiler (13,30 m y 24 t). Solo Dynamo.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
+do $$
+declare d date := sumar_dias_habiles(current_date, 5); cli uuid := current_setting('prueba.cliente')::uuid;
+  v text; n uuid;
+begin
+  -- a, b, c, x: Sevilla → Madrid · e: Córdoba → Toledo (al paso) · f: con plataforma elevadora.
+  -- g/h e i/j, otras dos parejas para probar lo que saca a una partida de su pack.
+  foreach v in array array['a','b','c','x','e','f','g','h','i','j'] loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde, fecha_carga_hasta, requiere_plataforma_elevadora)
+      values (cli, case v when 'a' then 4 when 'b' then 5 when 'c' then 6 when 'e' then 3 when 'j' then 6 else 4 end, 5, 700,
+              case v when 'x' then d + 20 else d end, case v when 'x' then d + 22 when 'b' then d + 2 else d + 3 end, v = 'f')
+      returning id into n;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso, lat, lon) values
+      (n, 1, 'carga',    case v when 'e' then '14001' else '41001' end, case v when 'e' then 'Córdoba' else 'Sevilla' end, 'ES',
+                         case v when 'e' then 37.996 else 37.39 end, case v when 'e' then -5.524 else -5.98 end),
+      (n, 2, 'descarga', case v when 'e' then '45001' else '28001' end, case v when 'e' then 'Toledo' else 'Madrid' end, 'ES',
+                         case v when 'e' then 40.117 else 40.42 end, case v when 'e' then -3.928 else -3.70 end);
+    perform set_config('prueba.p329' || v, n::text, false);
+  end loop;
+  update envios set estado = 'programado' where id in (select current_setting('prueba.p329' || z)::uuid from unnest(array['a','b','c','x','e','f','g','h','i','j']) z);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform envio_pack_info(current_setting('prueba.p329a')::uuid); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 329 · un cliente ve los packs'; end if;
+  ok := false;
+  begin perform crear_pack(array[current_setting('prueba.p329a')::uuid, current_setting('prueba.p329b')::uuid]); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 329 · un cliente agrupa envíos'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$
+declare a uuid := current_setting('prueba.p329a')::uuid; b uuid := current_setting('prueba.p329b')::uuid;
+  c uuid := current_setting('prueba.p329c')::uuid; x uuid := current_setting('prueba.p329x')::uuid;
+  e uuid := current_setting('prueba.p329e')::uuid; f uuid := current_setting('prueba.p329f')::uuid;
+  info jsonb; ids text[]; r jsonb; ok boolean; k uuid;
+begin
+  info := envio_pack_info(a);
+  select array_agg(z ->> 'id') into ids from jsonb_array_elements(info -> 'compatibles') z;
+  if not (b::text = any(ids)) or not (c::text = any(ids)) or not (e::text = any(ids)) then
+    raise exception 'FALLO 329 · faltan partidas compatibles (misma ruta o al paso): %', info -> 'compatibles'; end if;
+  if x::text = any(ids) or f::text = any(ids) then raise exception 'FALLO 329 · salen partidas sin día común o con plataforma'; end if;
+  if (select z ->> 'tipo' from jsonb_array_elements(info -> 'compatibles') z where z ->> 'id' = e::text) <> 'al_paso'
+     or (select z ->> 'tipo' from jsonb_array_elements(info -> 'compatibles') z where z ->> 'id' = b::text) <> 'misma_ruta' then
+    raise exception 'FALLO 329 · no distingue misma ruta de al paso'; end if;
+  if envio_pack_info(f) ->> 'motivo' not like '%plataforma%' then raise exception 'FALLO 329 · no dice por qué no se agrupa el de plataforma'; end if;
+  -- a + b (9 m) entra; c (6 m más) ya no cabe; e (al paso, 3 m) sí.
+  r := crear_pack(array[a, b]); k := (r ->> 'pack_id')::uuid;
+  if (select count(*) from envios where pack_id = k) <> 2 then raise exception 'FALLO 329 · el pack no se crea'; end if;
+  if (select z ->> 'cabe' from jsonb_array_elements(envio_pack_info(a) -> 'compatibles') z where z ->> 'id' = c::text)::boolean then
+    raise exception 'FALLO 329 · dice que cabe una partida que pasa del tráiler'; end if;
+  ok := false;
+  begin perform crear_pack(array[c], k); exception when others then ok := sqlerrm like '%se pasan del tráiler%'; end;
+  if not ok then raise exception 'FALLO 329 · un pack pasa de 13,30 m'; end if;
+  ok := false;
+  begin perform crear_pack(array[c, x]); exception when others then ok := sqlerrm like '%ningún día en común%'; end;
+  if not ok then raise exception 'FALLO 329 · agrupa partidas sin un día de carga en común'; end if;
+  ok := false;
+  begin perform crear_pack(array[f, c]); exception when others then ok := sqlerrm like '%plataforma%'; end;
+  if not ok then raise exception 'FALLO 329 · agrupa una partida con plataforma elevadora'; end if;
+  perform crear_pack(array[e], k);
+  if (select count(*) from envios where pack_id = k) <> 3 then raise exception 'FALLO 329 · no añade la partida al paso'; end if;
+  if not exists (select 1 from jsonb_array_elements(packs_de_grupaje() -> 'creados') z where z -> 'pack' ->> 'id' = k::text) then
+    raise exception 'FALLO 329 · la lista no enseña el pack creado'; end if;
+  perform set_config('prueba.k329', k::text, false);
+end $$;
+-- Asignar el pack: Dynamo asigna una partida y se le asignan todas (mismo camión y día).
+do $$
+declare a uuid := current_setting('prueba.p329a')::uuid; k uuid := current_setting('prueba.k329')::uuid;
+  t uuid := current_setting('prueba.transp')::uuid; r jsonb; ok boolean := false; dd date;
+begin
+  select max(fecha_carga_desde) into dd from envios where pack_id = k;
+  -- Sin precio en las demás partidas, no se asigna.
+  begin perform asignar_transportista(a, t, 900, '1234ABC', null, 'Pepe', '600111222', dd);
+  exception when others then ok := sqlerrm like '%no tiene precio del transportista%'; end;
+  if not ok then raise exception 'FALLO 329 · asigna el pack con partidas sin precio del transportista'; end if;
+  update envios set importe_transportista = 300 where pack_id = k and id <> a;
+  ok := false;
+  begin perform asignar_transportista(a, t, 900, '1234ABC', null, 'Pepe', '600111222', dd + 3);
+  exception when others then ok := sqlerrm like '%día común%'; end;
+  if not ok then raise exception 'FALLO 329 · asigna el pack un día que no es común a todas sus partidas'; end if;
+  r := asignar_transportista(a, t, 900, '1234ABC', null, 'Pepe', '600111222', dd);
+  if r ->> 'resultado' <> 'asignado' then raise exception 'FALLO 329 · no asigna: %', r; end if;
+  if (select count(*) from envios where pack_id = k and transportista_id = t and matricula_camion = '1234ABC' and fecha_carga_prevista = dd) <> 3
+     or (select estado from packs where id = k) <> 'asignado' then
+    raise exception 'FALLO 329 · asignar una partida no asigna todo el pack con el mismo camión y día'; end if;
+end $$;
+-- Un transportista acepta una partida por su cuenta: sale del pack (y el pack de 2 se deshace).
+do $$
+declare g uuid := current_setting('prueba.p329g')::uuid; h uuid := current_setting('prueba.p329h')::uuid;
+  i uuid := current_setting('prueba.p329i')::uuid; j uuid := current_setting('prueba.p329j')::uuid; k uuid; k2 uuid;
+begin
+  k := (crear_pack(array[g, h]) ->> 'pack_id')::uuid;
+  k2 := (crear_pack(array[i, j]) ->> 'pack_id')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, fecha_carga_prevista = fecha_carga_desde where id = g;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  if (select pack_id from envios where id = g) is not null or (select pack_id from envios where id = h) is not null
+     or (select estado from packs where id = k) <> 'deshecho' then
+    raise exception 'FALLO 329 · la partida aceptada por un transportista sigue en el pack'; end if;
+  if (select transportista_id from envios where id = h) is not null then raise exception 'FALLO 329 · el transportista se lleva el pack entero sin saberlo'; end if;
+  if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'pack_partida_fuera' and envio_id = g) then
+    raise exception 'FALLO 329 · Dynamo no se entera de que una partida sale del pack'; end if;
+  -- Cambia de medidas y el pack se pasaría del tráiler: sale del pack.
+  update envios set metros_lineales = 10 where id = j;
+  if (select pack_id from envios where id = j) is not null then raise exception 'FALLO 329 · una partida que ya no cabe sigue en el pack'; end if;
+  update envios set estado = 'cancelado' where id in (g, h, i, j);
+  update envios set estado = 'cancelado' where id in (select current_setting('prueba.p329' || z)::uuid from unnest(array['c','x','f']) z) and transportista_id is null;
+  if has_function_privilege('anon', 'public.crear_pack(uuid[], uuid)', 'execute')
+     or has_table_privilege('authenticated', 'public.packs', 'insert')
+     or has_function_privilege('authenticated', 'public.pack_ruta(uuid)', 'execute') then
+    raise exception 'FALLO 329 · permisos de los packs mal puestos'; end if;
+  raise notice 'OK 329 · packs de grupaje: misma ruta o al paso, un día en común y sin pasar del tráiler; asignar una partida asigna el pack; aceptada por separado, cambiada o cancelada sale del pack con aviso; solo Dynamo';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

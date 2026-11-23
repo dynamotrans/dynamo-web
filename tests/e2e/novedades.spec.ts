@@ -550,6 +550,51 @@ test.describe('novedades', () => {
     expect(count).toBe(0);
   });
 
+  // PACKS DE GRUPAJE (usuario, 2026-11-23): en la ficha de Dynamo, un recuadro con las
+  // partidas que se pueden juntar (misma ruta de provincias, un día en común); se crea el
+  // pack y lo que ya no cabe en el tráiler no se deja marcar. La lista enseña el pack.
+  test('packs de grupaje: juntar partidas desde la ficha sin pasar del tráiler', async ({ page }) => {
+    const sb = bd();
+    const { data: u } = await sb.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const d = new Date(Date.now() + 12 * 86400000).toISOString().slice(0, 10);
+    const h = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
+    const ids: string[] = [];
+    for (const ml of [6, 5, 4]) {
+      const { data: e, error } = await sb.from('envios').insert({ cliente_id: u!.cliente_id, metros_lineales: ml, toneladas: 5, importe_cliente: 700,
+        fecha_carga_desde: d, fecha_carga_hasta: h }).select('id').single();
+      expect(error).toBeNull();
+      await sb.from('envio_paradas').insert([
+        { envio_id: e!.id, orden: 1, tipo: 'carga', codigo_postal: '41001', poblacion: 'Sevilla', pais_codigo_iso: 'ES', nombre_empresa: 'Nave pack' },
+        { envio_id: e!.id, orden: 2, tipo: 'descarga', codigo_postal: '28001', poblacion: 'Madrid', pais_codigo_iso: 'ES', nombre_empresa: 'Destino pack' }]);
+      await sb.from('envios').update({ estado: 'programado' }).eq('id', e!.id);
+      // Una partida pendiente de pago no se agrupa: estas, sin pago previo.
+      const { error: ep } = await sb.from('envios').update({ estado_pago_previo: 'exento', pago_exento_motivo: 'Prueba de packs' }).eq('id', e!.id);
+      expect(ep).toBeNull();
+      ids.push(e!.id);
+    }
+    const { data: refs } = await sb.from('envios').select('id, referencia_gx').in('id', ids);
+    const gx = (id: string) => `#${refs!.find((r) => r.id === id)!.referencia_gx}`;
+    try {
+      await entrar(page, 'dynamo');
+      await page.goto(`/panel/envios?ver=${ids[0]}`);
+      const caja = page.locator('[data-pack-box]');
+      await expect(caja).toContainText('Se puede agrupar');
+      const filaB = caja.locator('.pack-partida', { hasText: gx(ids[1]) });
+      await filaB.getByRole('checkbox').check();
+      await caja.getByRole('button', { name: 'Crear pack con 2 partidas' }).click();
+      await expect(caja).toContainText(/Pack de grupaje PK-\d{4}/);
+      await expect(caja.locator('.pack-cap')).toContainText('11,00 / 13,30 m');
+      // La tercera (4 m) ya no cabe: 6 + 5 + 4 = 15 m.
+      const filaC = caja.locator('.pack-partida', { hasText: gx(ids[2]) });
+      await expect(filaC).toContainText('No cabe en el tráiler');
+      await expect(filaC.getByRole('checkbox')).toBeDisabled();
+      await page.goto('/panel/packs');
+      await expect(page.locator('[data-pack-creado]', { hasText: gx(ids[0]) })).toContainText(gx(ids[1]));
+    } finally {
+      await sb.from('envios').update({ estado: 'cancelado' }).in('id', ids);
+    }
+  });
+
   // El contenido REAL de los ficheros (usuario, 2026-11-18): el almacén solo admite PDF e
   // imágenes, pero el tipo lo declara quien sube. Un programa con nombre de albarán no entra
   // por la pantalla, no se registra aunque alguien se salte la pantalla y, si ya estuviera

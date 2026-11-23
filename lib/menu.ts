@@ -74,6 +74,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'mapa', titulo: 'Mapa de envíos', icono: 'mapa' },
       { grupo: 'otras', titulo: 'Operativa', icono: 'capas', enlaces: [
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
+        // Grupajes que se pueden juntar en un viaje (usuario, 2026-11-23).
+        { slug: 'packs', titulo: 'Packs de grupaje', icono: 'capas' },
         { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
         { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
         // Apagado hasta la v4 (lib/modulos.ts).

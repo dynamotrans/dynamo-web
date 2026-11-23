@@ -2284,6 +2284,7 @@ export type Database = {
           holded_compra_total: number | null
           holded_venta_lineas: number | null
           holded_compra_lineas: number | null
+          pack_id: string | null
         }
         Insert: {
           id?: string
@@ -2409,6 +2410,7 @@ export type Database = {
           holded_compra_total?: number | null
           holded_venta_lineas?: number | null
           holded_compra_lineas?: number | null
+          pack_id?: string | null
         }
         Update: {
           id?: string
@@ -2534,6 +2536,7 @@ export type Database = {
           holded_compra_total?: number | null
           holded_venta_lineas?: number | null
           holded_compra_lineas?: number | null
+          pack_id?: string | null
         }
         Relationships: [
           {
@@ -2555,6 +2558,13 @@ export type Database = {
             columns: ["operador_id"]
             isOneToOne: false
             referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envios_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "packs"
             referencedColumns: ["id"]
           },
           {
@@ -3104,6 +3114,44 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packs: {
+        Row: {
+          id: string
+          codigo: string
+          estado: string
+          lider_envio_id: string | null
+          creado_en: string
+          creado_por: string | null
+          deshecho_en: string | null
+        }
+        Insert: {
+          id?: string
+          codigo?: string
+          estado?: string
+          lider_envio_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          deshecho_en?: string | null
+        }
+        Update: {
+          id?: string
+          codigo?: string
+          estado?: string
+          lider_envio_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          deshecho_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packs_lider_envio_id_fkey"
+            columns: ["lider_envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
             referencedColumns: ["id"]
           },
         ]
@@ -4451,6 +4499,7 @@ export type Database = {
       crear_envio: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_cliente: { Args: { p_datos: Json | null; p_paradas: Json | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null; p_cliente?: string | null }; Returns: { id: string; referencia_gx: string }[] }
+      crear_pack: { Args: { p_envios: string[] | null; p_pack?: string | null }; Returns: Json }
       credito_alcanza: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: boolean }
       credito_desbloquear: { Args: { p_cliente: string | null }; Returns: Json }
       credito_liberar_pendientes: { Args: { p_cliente: string | null }; Returns: number }
@@ -4479,6 +4528,7 @@ export type Database = {
       deca_mercancia_texto: { Args: { p_descripcion: string | null; p_toneladas: number | null; p_metros: number | null }; Returns: string }
       deca_ruta_texto: { Args: { p: Json | null }; Returns: string }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }
+      deshacer_pack: { Args: { p_pack: string | null }; Returns: Json }
       dias_habiles_antes: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       dias_ventana_carga: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: number }
       diccionario_datos: { Args: Record<PropertyKey, never>; Returns: { tabla: string; orden: number; columna: string; tipo: string; no_nulo: boolean; descripcion: string; tabla_descripcion: string }[] }
@@ -4536,6 +4586,7 @@ export type Database = {
       envio_matriculas_completas: { Args: { p_envio: string | null }; Returns: boolean }
       envio_mercancia_texto: { Args: { p_metros: number | null; p_toneladas: number | null; p_tipo_carga: string | null; p_plataforma: boolean | null; p_descripcion: string | null; p_adr: boolean | null; p_nima: boolean | null }; Returns: string }
       envio_necesita_remolque: { Args: { p_envio: string | null }; Returns: boolean }
+      envio_pack_info: { Args: { p_envio: string | null }; Returns: Json }
       envio_restaurar: { Args: { p_envio: string | null; p_antes: Json | null; p_paradas: Json | null }; Returns: undefined }
       envio_texto_busqueda: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null }; Returns: string }
       envio_texto_propio: { Args: { e: Database["public"]["Tables"]["envios"]["Row"] | null; p_quien: string | null }; Returns: string }
@@ -4675,6 +4726,13 @@ export type Database = {
       orden_oculta_sin_matriculas: { Args: { p_json: Json | null; p_envio: string | null }; Returns: Json }
       orden_sin_economia_cliente: { Args: { p_json: Json | null }; Returns: Json }
       otras_cargas_publicas: { Args: { p_token: string | null }; Returns: Json }
+      pack_al_paso: { Args: { r: Json | null; c: Json | null }; Returns: boolean }
+      pack_motivo_no: { Args: { p_envio: string | null }; Returns: string }
+      pack_partida_json: { Args: { p_envio: string | null; p_tipo?: string | null; p_cabe?: boolean | null }; Returns: Json }
+      pack_provincia_clave: { Args: { p_pais: string | null; p_cp: string | null; p_provincia: string | null; p_poblacion: string | null }; Returns: string }
+      pack_recoger: { Args: { p_pack: string | null }; Returns: undefined }
+      pack_ruta: { Args: { p_envio: string | null }; Returns: Json }
+      packs_de_grupaje: { Args: Record<PropertyKey, never>; Returns: Json }
       pago_envio_importes: { Args: { p_envio: string | null }; Returns: { base: number; iva: number; total: number }[] }
       pago_envio_pendiente: { Args: { p_envio: string | null }; Returns: number }
       pago_envio_stripe: { Args: { p_envio: string | null; p_pago: string | null; p_centimos: number | null }; Returns: Json }
@@ -4719,6 +4777,7 @@ export type Database = {
       provincias_en_uso: { Args: { p_pais: string | null }; Returns: string[] }
       puede_ver_envio: { Args: { p_envio: string | null }; Returns: boolean }
       purgar_datos_personales: { Args: Record<PropertyKey, never>; Returns: Json }
+      quitar_de_pack: { Args: { p_envio: string | null }; Returns: Json }
       quitar_logo: { Args: { p_documento: string | null }; Returns: undefined }
       quitar_transportista: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }

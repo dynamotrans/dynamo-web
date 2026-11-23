@@ -5505,3 +5505,33 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
    desplaza de lado; las fichas no). */
 .varios-sitios { grid-column: 1 / -1; position: sticky; left: 0.7rem; width: min(860px, calc(100vw - 4rem)); display: grid; gap: 0.5rem; }
 .varios-sitios-btn { justify-self: start; }
+
+/* ===== Packs de grupaje (usuario, 2026-11-23) ===== */
+.pack-box { border: 2px solid #c9b8ff; background: linear-gradient(180deg, #f6f2ff 0%, #fff 70%); border-radius: 14px; padding: 0.9rem 1rem 1rem; margin: 0 0 0.7rem; }
+.pack-cab { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; color: var(--purple); font-weight: 700; }
+.pack-cab b { color: var(--navy); }
+.pack-cab .pack-ruta { margin-left: auto; color: var(--gray-600, #555); font-weight: 600; font-size: 0.85rem; }
+.pack-cap { display: grid; gap: 0.3rem; margin: 0.7rem 0 0.4rem; }
+.pack-cap > div { display: grid; grid-template-columns: 4rem 1fr auto; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: var(--gray-600, #555); }
+.pack-cap i { display: block; height: 8px; border-radius: 5px; background: #e6e0f7; overflow: hidden; }
+.pack-cap em { display: block; height: 100%; border-radius: 5px; background: var(--purple); }
+.pack-cap em.mal { background: #dc2626; }
+.pack-cap b { color: var(--navy); font-variant-numeric: tabular-nums; }
+.pack-dias { font-size: 0.85rem; color: var(--gray-700, #374151); margin: 0.2rem 0 0.6rem; }
+.pack-sub { font-size: 0.78rem; font-weight: 700; color: var(--gray-600, #555); margin: 0.8rem 0 0.4rem; }
+.pack-partida { border: 1px solid #e6e0f7; background: #fff; border-radius: 10px; padding: 0.55rem 0.7rem; margin-bottom: 0.4rem; font-size: 0.85rem; }
+.pack-partida.actual { border-color: var(--purple); }
+.pack-partida .pp-1 { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.pack-partida .pp-1 a { font-weight: 800; color: var(--purple); text-decoration: none; }
+.pack-partida .pp-cli { color: var(--gray-600, #555); margin-left: auto; }
+.pack-partida .pp-2 { margin-top: 0.2rem; color: var(--navy); }
+.pack-partida .pp-3 { margin-top: 0.15rem; color: var(--gray-600, #555); font-size: 0.8rem; }
+.pack-chip { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 999px; background: #eef; color: var(--purple); }
+.pack-chip.ruta { background: #e8f7ee; color: #157a3f; }
+.pack-chip.paso { background: #fff4e5; color: #b45309; }
+.pack-marca { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.35rem; font-weight: 600; color: var(--purple); cursor: pointer; }
+.pack-marca.no { color: #9ca3af; cursor: not-allowed; }
+.pack-quitar { margin-top: 0.35rem; background: none; border: 0; padding: 0; color: #dc2626; font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.pack-nota { font-size: 0.78rem; color: var(--gray-600, #555); margin: 0.4rem 0 0; }
+.pack-deshacer { margin-top: 0.6rem; color: #dc2626; }
+.packs-lista { display: grid; gap: 0.8rem; max-width: 880px; }
