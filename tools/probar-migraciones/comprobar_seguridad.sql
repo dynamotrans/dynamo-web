@@ -13488,6 +13488,8 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), fa
 do $$ declare t uuid; o uuid; e uuid; i int; r jsonb; n int; ids uuid[] := '{}'; cli uuid := current_setting('prueba.cliente')::uuid;
   dia date := (now() at time zone 'Europe/Madrid')::date - 10;
 begin
+  -- Sin el «desde» de Parámetros (2026-11-23): aquí se prueba con envíos de hace 10 días.
+  update parametros set valor = '""' where clave = 'control_facturacion_desde';
   insert into transportistas (razon_social, cif) values ('Transportes 303 SL', 'B30300001') returning id into t;
   insert into operadores (cliente_id, razon_social, cif) values (cli, 'Operador 303', 'B30300002') returning id into o;
   alter table envios disable trigger user; alter table envio_paradas disable trigger user;
@@ -13567,6 +13569,21 @@ do $$ begin
   begin perform * from cuadre_facturacion(); raise exception 'FALLO 303 · un cliente ve el cuadre de facturación';
   exception when insufficient_privilege then null; end;
   raise notice 'OK 303 · control de facturación: entregado sin precio, compra sin venta, venta sin compra y cambio después de Holded salen (los manuales y lo que cuadra, no); «ya corregido» lo quita; cuadre por meses; email del lunes una vez por semana; el cliente no lo ve';
+end $$;
+reset role;
+-- «Revisar desde» de Parámetros (2026-11-23): con hoy, los entregados hace 10 días ya no salen
+-- (datos viejos o de prueba); mal escrito, cuenta como vacío.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e303'), ',')::uuid[]; begin
+  update parametros set valor = to_jsonb(((now() at time zone 'Europe/Madrid')::date)::text) where clave = 'control_facturacion_desde';
+  if exists (select 1 from control_facturacion() c where c.envio_id = any(ids)) then
+    raise exception 'FALLO 303 · con «desde» hoy siguen saliendo envíos entregados hace 10 días'; end if;
+  update parametros set valor = '"mal-escrito"' where clave = 'control_facturacion_desde';
+  if not exists (select 1 from control_facturacion() c where c.envio_id = ids[1]) then
+    raise exception 'FALLO 303 · con el «desde» mal escrito el control no cuenta como vacío'; end if;
+  -- El resto de las pruebas, sin «desde» (usan envíos de hace días).
+  update parametros set valor = '""' where clave = 'control_facturacion_desde';
+  raise notice 'OK 303b · control de facturación «desde»: con hoy no salen los envíos de hace 10 días; mal escrito, cuenta como vacío';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

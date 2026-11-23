@@ -20,11 +20,13 @@ export default async function PaginaExportaciones({ searchParams }: { searchPara
   const sp = await searchParams;
   const claves = Object.keys(FICHEROS) as Fichero[];
   // El control de facturación va a la vez que los ficheros: su contador sale en la tarjeta.
-  const [res, ctl, cua] = await Promise.all([
+  const [res, ctl, cua, des] = await Promise.all([
     Promise.all(claves.map((k) => supabase.from(FICHEROS[k].vista).select('*').range(0, TOPE - 1))),
     supabase.rpc('control_facturacion', { p_limite: 300 }),
     supabase.rpc('cuadre_facturacion', { p_meses: 6 }),
+    supabase.from('parametros').select('valor').eq('clave', 'control_facturacion_desde').maybeSingle(),
   ]);
+  const desdeTxt = typeof des.data?.valor === 'string' ? des.data.valor : '';
   const datos = {} as Record<Fichero, FilaExport[]>;
   const errores: string[] = [];
   claves.forEach((k, i) => { datos[k] = (res[i].data ?? []) as FilaExport[]; if (res[i].error) errores.push(`${FICHEROS[k].titulo}: ${res[i].error!.message}`); });
@@ -44,6 +46,7 @@ export default async function PaginaExportaciones({ searchParams }: { searchPara
   const control = {
     filas: (ctl.data ?? []) as FilaControl[], cuadre: (cua.data ?? []) as FilaCuadre[],
     error: [ctl.error?.message, cua.error?.message].filter(Boolean).join(' · ') || null,
+    desde: /^\d{4}-\d{2}-\d{2}$/.test(desdeTxt) ? desdeTxt : null,
   };
   return <Exportaciones datos={datos} columnas={columnas} hecho={hecho} tope={TOPE} error={errores.join(' · ') || null}
     control={control} inicio={sp.ver === 'cuadre' ? 'cuadre' : undefined} />;

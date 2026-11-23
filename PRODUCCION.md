@@ -480,6 +480,10 @@ la clave se viera alguna vez, cambiarla el mismo día (Vercel y propiedades del 
 
 ---
 
+## 19 · Control de pedidos: «revisar desde»  🟡
+
+- [ ] En **Parámetros → Control de facturación → «revisar desde»**, poner el **día de arranque** en producción (en pruebas está en 2026-11-23). Así el control y el email de los lunes no cuentan los envíos antiguos que se carguen ni los de prueba (usuario, 2026-11-23: el email decía «30054 casos» por los ~15.000 envíos ficticios de pruebas).
+
 ## Lo que NO cambia respecto a hoy
 
 Todo esto convive con las reglas que ya están en `CLAUDE.md` y no las sustituye: precios

@@ -28,7 +28,7 @@ const Ico = ({ d }: { d: string }) => <svg width="15" height="15" viewBox="0 0 2
 
 export default function Exportaciones({ datos, columnas, hecho, tope, error, control, inicio }: {
   datos: Record<Fichero, FilaExport[]>; columnas: Record<Fichero, string[]>; hecho: Record<Fichero, string[]>; tope: number; error: string | null;
-  control: { filas: FilaControl[]; cuadre: FilaCuadre[]; error: string | null }; inicio?: 'cuadre';
+  control: { filas: FilaControl[]; cuadre: FilaCuadre[]; error: string | null; desde?: string | null }; inicio?: 'cuadre';
 }) {
   const refrescar = useRefrescar();
   const [fichero, setFichero] = useState<Fichero>('venta');
@@ -111,7 +111,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
         </button>
       </div>
 
-      {verControl ? <ControlFacturacion filas={control.filas} cuadre={control.cuadre} error={control.error} /> : <>
+      {verControl ? <ControlFacturacion filas={control.filas} cuadre={control.cuadre} error={control.error} desde={control.desde ?? null} /> : <>
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se han podido leer algunos ficheros: {error}</div></div>}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {filas.length >= tope && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se muestran las primeras {numero(tope, 0)} filas de este fichero.</div></div>}

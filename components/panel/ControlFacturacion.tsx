@@ -8,7 +8,7 @@
 import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { controlFacturacionResuelto } from '@/app/panel/(app)/exportaciones/acciones';
-import { euros, numero } from '@/lib/formato';
+import { euros, fecha, numero } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
 import { enRango } from '@/lib/filtroFechas';
@@ -43,7 +43,7 @@ function Parte({ n, de }: { n: number; de: number }) {
   return <span style={{ fontWeight: 700, color: falta > 0 ? '#c0262d' : 'var(--green-dark, #15803d)', whiteSpace: 'nowrap' }}>{numero(n, 0)}{falta > 0 && <span style={{ fontWeight: 600, fontSize: 'var(--fs-s)' }}> · faltan {numero(falta, 0)}</span>}</span>;
 }
 
-export default function ControlFacturacion({ filas, cuadre, error }: { filas: FilaControl[]; cuadre: FilaCuadre[]; error: string | null }) {
+export default function ControlFacturacion({ filas, cuadre, error, desde = null }: { filas: FilaControl[]; cuadre: FilaCuadre[]; error: string | null; desde?: string | null }) {
   const refrescar = useRefrescar();
   const [tipo, setTipo] = useState('');
   const ff = useFiltroFechas();   // por la fecha de carga del envío
@@ -71,6 +71,10 @@ export default function ControlFacturacion({ filas, cuadre, error }: { filas: Fi
 
   return (
     <div id="control-facturacion">
+      {/* «Revisar desde» de Parámetros (2026-11-23): los envíos anteriores no se miran. */}
+      {desde && <p className="meta" data-control-desde="" style={{ margin: '0 0 0.6rem' }}>
+        Se revisan los envíos entregados o cancelados <strong>desde el {fecha(desde)}</strong> (se cambia en Parámetros → Control de facturación).
+      </p>}
       <p style={{ margin: '0 0 1rem', fontSize: 'var(--fs-l)', color: 'var(--gray-500)', maxWidth: 820, lineHeight: 1.5 }}>
         Cada envío saca <strong>a la vez</strong> su pedido de venta (al cliente) y su pedido de compra (al transportista), con el <strong>mismo número</strong> (la referencia GX).
         Cada penalización o paralización confirmada va en los dos, <strong>aunque sea a 0 €</strong>. Aquí se comprueba que no falte ninguno en Holded y que no haya cambiado nada después de pasarlo.

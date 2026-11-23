@@ -4772,6 +4772,7 @@ export type Database = {
       tarifa_web_apuntar: { Args: { p_ip_huella: string | null }; Returns: Json }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       telefono_conductor_visible: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_carga: string | null; p_entregado_en: string | null; p_entrega: string | null }; Returns: boolean }
+      texto_a_fecha: { Args: { p: string | null }; Returns: string }
       texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null }; Returns: string }
       texto_comparable: { Args: { p: string | null }; Returns: string }
       texto_enlace_cmr_sitio: { Args: { p_recogida: boolean | null; p_url: string | null; p_hora: string | null }; Returns: string }
