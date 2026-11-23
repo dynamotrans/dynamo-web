@@ -41,6 +41,7 @@ import { Ofrecer } from './ficha/Ofrecer';
 import { CompartirOrden } from './ficha/CompartirOrden';
 import { Deca } from './ficha/Deca';
 import { PackGrupaje } from './ficha/PackGrupaje';
+import { PACKS_GRUPAJE } from '@/lib/modulos';
 
 // ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
 // Rótulo de los bloques DENTRO de la sección unificada «Envío» (usuario, 2026-11-10:
@@ -408,7 +409,7 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
       ))}
       {e.estado === 'entregado' && ficha.transportista && !manual && <Valoracion ficha={ficha} hacer={hacer} trabajando={trabajando} />}
       {/* Packs de grupaje (usuario, 2026-11-23): en qué pack va o con qué partidas se puede juntar. */}
-      {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) && <PackGrupaje envioId={e.id} puedeEditar />}
+      {PACKS_GRUPAJE && !manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) && <PackGrupaje envioId={e.id} puedeEditar />}
 
       {/* ENVÍO Y SEGUIMIENTO unificados, LO PRIMERO del acordeón (usuario, 2026-11-10:
           «unifica seguimiento y envío; limpio, sin duplicar, sin eliminar»): el

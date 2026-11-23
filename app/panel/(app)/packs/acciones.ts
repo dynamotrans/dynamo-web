@@ -4,10 +4,13 @@ import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { PACKS_GRUPAJE } from '@/lib/modulos';
 
 // PACKS DE GRUPAJE (usuario, 2026-11-23): Dynamo junta partidas que van por la misma ruta de
 // provincias (o le pillan al paso), con un día de carga en común y sin pasar del tráiler.
 // Todas las reglas las comprueba la base de datos (migración 20261123110000).
+// MÓDULO APAGADO hasta la v3 (lib/modulos.ts): con él apagado, ninguna acción hace nada.
+const APAGADO = 'Los packs de grupaje no están disponibles todavía.';
 
 export type PartidaPack = {
   id: string; referencia_gx: string | null; cliente: string | null; origen: string | null; destino: string | null;
@@ -27,6 +30,7 @@ type Res = { ok: true; codigo?: string } | { ok: false; error: string };
 
 export async function infoPack(envio: string): Promise<InfoPack | null> {
   comprobarEntrada("app/panel/(app)/packs/acciones#infoPack", [envio]);
+  if (!PACKS_GRUPAJE) return null;
   const s = await sesion();
   if (!s?.perfil || !esDynamo(s.perfil.rol)) return null;
   const { data, error } = await s.supabase.rpc('envio_pack_info', { p_envio: envio });
@@ -35,6 +39,7 @@ export async function infoPack(envio: string): Promise<InfoPack | null> {
 
 export async function packsDeGrupaje(): Promise<{ creados: InfoPack[]; posibles: PackPosible[] } | null> {
   comprobarEntrada("app/panel/(app)/packs/acciones#packsDeGrupaje", []);
+  if (!PACKS_GRUPAJE) return null;
   const s = await sesion();
   if (!s?.perfil || !esDynamo(s.perfil.rol)) return null;
   const { data, error } = await s.supabase.rpc('packs_de_grupaje');
@@ -43,6 +48,7 @@ export async function packsDeGrupaje(): Promise<{ creados: InfoPack[]; posibles:
 
 export async function crearPack(envios: string[], pack: string | null): Promise<Res> {
   comprobarEntrada("app/panel/(app)/packs/acciones#crearPack", [envios, pack]);
+  if (!PACKS_GRUPAJE) return { ok: false, error: APAGADO };
   const s = await soloGestor();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo agrupa envíos.' };
   const { data, error } = await s.supabase.rpc('crear_pack', pack ? { p_envios: envios, p_pack: pack } : { p_envios: envios });
@@ -52,6 +58,7 @@ export async function crearPack(envios: string[], pack: string | null): Promise<
 
 export async function quitarDePack(envio: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/packs/acciones#quitarDePack", [envio]);
+  if (!PACKS_GRUPAJE) return { ok: false, error: APAGADO };
   const s = await soloGestor();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo agrupa envíos.' };
   const { error } = await s.supabase.rpc('quitar_de_pack', { p_envio: envio });
@@ -60,6 +67,7 @@ export async function quitarDePack(envio: string): Promise<Res> {
 
 export async function deshacerPack(pack: string): Promise<Res> {
   comprobarEntrada("app/panel/(app)/packs/acciones#deshacerPack", [pack]);
+  if (!PACKS_GRUPAJE) return { ok: false, error: APAGADO };
   const s = await soloGestor();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo agrupa envíos.' };
   const { error } = await s.supabase.rpc('deshacer_pack', { p_pack: pack });

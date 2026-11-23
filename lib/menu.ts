@@ -2,7 +2,7 @@
 // `listo` = pantalla ya pasada a datos reales; el resto lleva a un aviso de
 // "se está pasando a la plataforma real" hasta que toque (patrón estrangulador).
 import { esDynamo, type Rol } from './roles';
-import { ALMACENAMIENTOS } from './modulos';
+import { ALMACENAMIENTOS, PACKS_GRUPAJE } from './modulos';
 
 export const ICONOS: Record<string, string> = {
   escudo: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
@@ -75,7 +75,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { grupo: 'otras', titulo: 'Operativa', icono: 'capas', enlaces: [
         { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
         // Grupajes que se pueden juntar en un viaje (usuario, 2026-11-23).
-        { slug: 'packs', titulo: 'Packs de grupaje', icono: 'capas' },
+        ...(PACKS_GRUPAJE ? [{ slug: 'packs', titulo: 'Packs de grupaje', icono: 'capas' } as Enlace] : []),
         { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
         { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
         // Apagado hasta la v4 (lib/modulos.ts).

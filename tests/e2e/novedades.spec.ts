@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { tarifaDeEnvio, type DatosPrecioEnvio } from '../../lib/tarifador';
 import { primerDia, sumarHabiles } from '../../lib/fechasCarga';
 import { hoyMadrid } from '../../lib/formato';
+import { PACKS_GRUPAJE } from '../../lib/modulos';
 import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, envioProgramadoDelTransportista, CIF_TRANSPORTISTA, EMAIL, CLAVE, codigoDelMovil } from './ayudas';
 
 const CIF_CLIENTE = 'B12345674';
@@ -553,7 +554,10 @@ test.describe('novedades', () => {
   // PACKS DE GRUPAJE (usuario, 2026-11-23): en la ficha de Dynamo, un recuadro con las
   // partidas que se pueden juntar (misma ruta de provincias, un día en común); se crea el
   // pack y lo que ya no cabe en el tráiler no se deja marcar. La lista enseña el pack.
-  test('packs de grupaje: juntar partidas desde la ficha sin pasar del tráiler', async ({ page }) => {
+  // APARCADOS PARA LA V3 (usuario, 2026-11-23: «dejamos eso del pack para v3 mejor»): con el
+  // módulo apagado en lib/modulos.ts no se ve nada (ni recuadro, ni menú, ni pantalla), pero la
+  // base de datos sigue sin dejar pasar del tráiler. Al encenderlo, vuelve la prueba de pantalla.
+  test('packs de grupaje: apagados no se ven; la base no deja pasar del tráiler', async ({ page }) => {
     const sb = bd();
     const { data: u } = await sb.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
     const d = new Date(Date.now() + 12 * 86400000).toISOString().slice(0, 10);
@@ -578,6 +582,24 @@ test.describe('novedades', () => {
       await entrar(page, 'dynamo');
       await page.goto(`/panel/envios?ver=${ids[0]}`);
       const caja = page.locator('[data-pack-box]');
+      if (!PACKS_GRUPAJE) {
+        await expect(page.getByText(gx(ids[0])).first()).toBeVisible();   // la ficha está abierta
+        await expect(caja).toHaveCount(0);
+        await expect(page.locator('a[href="/panel/packs"]')).toHaveCount(0);
+        await page.goto('/panel/packs');
+        await expect(page).not.toHaveURL(/\/panel\/packs/);
+        // La regla sigue viva en la base de datos: dos partidas se juntan, la tercera no cabe.
+        const dy = await como('dynamo');
+        const r1 = await dy.rpc('crear_pack', { p_envios: [ids[0], ids[1]] });
+        expect(r1.error).toBeNull();
+        const pack = r1.data as { pack_id: string; codigo: string };
+        expect(pack.codigo).toMatch(/^PK-\d{4}$/);
+        const r2 = await dy.rpc('crear_pack', { p_envios: [ids[2]], p_pack: pack.pack_id });
+        expect(r2.error?.message).toContain('se pasan del tráiler');
+        const r3 = await dy.rpc('deshacer_pack', { p_pack: pack.pack_id });
+        expect(r3.error).toBeNull();
+        return;
+      }
       await expect(caja).toContainText('Se puede agrupar');
       const filaB = caja.locator('.pack-partida', { hasText: gx(ids[1]) });
       await filaB.getByRole('checkbox').check();
