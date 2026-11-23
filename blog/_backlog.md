@@ -10,7 +10,7 @@ Mezcla: intención informativa (qué es / cuánto cuesta / cómo funciona) + loc
 - [x] ¿Qué es un metro lineal de camión y cómo se cotiza el grupaje por metros? (2026-11-09, que-es-un-metro-lineal)
 - [x] Peso máximo de un camión en España: carga útil real de un tráiler y de un rígido (2026-11-13, peso-maximo-camion)
 - [x] Tauliner, rígido con plataforma, piso móvil, frigorífico: qué camión necesita tu mercancía (2026-11-16, tipos-de-camion-mercancias)
-- [ ] Trampilla elevadora: cuándo la necesitas y cuánto encarece el porte
+- [x] Trampilla elevadora: cuándo la necesitas y cuánto encarece el porte (2026-11-23, trampilla-elevadora-camion)
 - [ ] Carga por techo (grúa) frente a carga lateral: cómo se carga una lona corredera
 - [ ] Mercancía paletizada frente a no paletizada: qué cambia en precio, seguro y manipulación
 - [ ] Palet europeo, americano, palot y medidas especiales: cómo influyen en el precio del transporte
