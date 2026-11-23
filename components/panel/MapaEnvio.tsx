@@ -79,7 +79,7 @@ export function VentanaMapa({ envioId, referencia, onCerrar }: { envioId: string
   const ref = mapa?.referencia ?? referencia;
   const pc = mapa ? posicionCamion(mapa) : null;
   return (
-    <Modal abierto envivo ancho={920} onCerrar={onCerrar} icono={<IcoMapa />}
+    <Modal abierto envivo plano ancho={920} onCerrar={onCerrar} icono={<IcoMapa />}
       titulo={`Mapa del envío${ref ? ` #${ref}` : ''}`}
       sub={mapa ? <span data-mapa-estado="" style={{ color: pc ? TONO[pc.tono] : undefined, fontWeight: 700 }}>{estadoMapa(mapa)}</span> : error ?? 'Cargando el mapa…'}>
       {mapa && <>

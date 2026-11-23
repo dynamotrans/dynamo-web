@@ -95,6 +95,11 @@ test.describe('novedades', () => {
     await page.goto(`/panel/envios?ver=${e.id}`);
     await expect(page.locator('#pago-plazo .cuenta-atras-grande')).toContainText(/Te quedan .*\d.* para pagar/);
     await expect(page.locator('#pago-plazo')).toContainText('Paga antes del');
+    // La caja del pago va la primera de la ficha, por delante del resumen del envío (usuario, 2026-11-23).
+    expect(await page.evaluate(() => {
+      const pago = document.querySelector('#pago-plazo'), resumen = document.querySelector('.pen-envio-sum');
+      return !!pago && !!resumen && !!(pago.compareDocumentPosition(resumen) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })).toBe(true);
     await expect(page.locator('#pago-plazo')).toContainText('tendrás que crear un envío nuevo');
     await page.goto('/panel/administracion');
     const proforma = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });

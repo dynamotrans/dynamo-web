@@ -127,6 +127,8 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
   // botones quedan apagados y la ficha lo avisa; si no, el cliente vería «sin transportista»
   // y cancelaría gratis justo cuando ya hay uno comprometiéndose.
   const asignandose = !!e.asignandose && e.estado === 'programado';
+  // La caja del pago va la primera mientras el envío espera el pago.
+  const pagoPrimero = !!e.pago && e.estado !== 'cancelado' && e.pago.estado_pago_previo === 'pendiente';
   // CAMIÓN RESERVADO (usuario, 2026-11-19): con transportista asignado el transporte está
   // confirmado aunque aún falten la matrícula o el conductor; en vez de «Pendiente», se dice
   // «Camión reservado, … pendiente de anotar» para que el cliente esté tranquilo.
@@ -283,6 +285,10 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
       {trabajando && <Cargando texto={trabajando} />}
       {/* Contador de 30 s: el aviso del último cambio aún no ha salido y se puede anular. */}
       <ContadorCambio barra envio={e.id} referencia={e.referencia_gx} pendiente={pendiente} />
+      {/* PENDIENTE DE PAGO, LO PRIMERO (usuario, 2026-11-23: «esto irá lo primero, delante de
+          Fecha de carga…»): mientras falta el pago es lo único que el cliente tiene que hacer.
+          Ya pagado, su caja se queda donde estaba, debajo del resumen. */}
+      {pagoPrimero && <PagoCliente e={e} />}
       {/* CABECERA EN CAJA, la misma que la ficha de Dynamo (usuario, 2026-11-12: «mismo
           formato, diseño y botones que admin»): fecha, ruta con todas las paradas,
           mercancía y precio, cada cosa en su fila. */}
@@ -370,7 +376,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
         </div></div>
       )}
       {!manual && <RevisionCliente envio={e} r={e.revision} hacer={hacer} />}
-      {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
+      {e.pago && e.estado !== 'cancelado' && !pagoPrimero && <PagoCliente e={e} />}
       {!manual && <PedirCambio cambio={e.cambio} />}
       {!manual && ['cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro quien="cliente" incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {/* ENVÍO Y SEGUIMIENTO unificados, lo primero del acordeón — el mismo esqueleto
@@ -544,8 +550,9 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
         ) : <>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
-          {e.tarjeta
-            ? <form action="/api/stripe/pago" method="post"><input type="hidden" name="envio" value={e.id} /><button type="submit" className="btn-primary">Pagar {total} con tarjeta</button></form>
+          {/* Con la transferencia ya avisada no se ofrece la tarjeta (usuario, 2026-11-23): pagaría dos veces. */}
+          {e.tarjeta && !p.pago_avisado_en
+            ? <form action="/api/stripe/pago" method="post"><input type="hidden" name="envio" value={e.id} /><button type="submit" className="btn-primary" id="pago-tarjeta">Pagar {total} con tarjeta</button></form>
             : null}
           <a className="btn-secondary" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Ver proforma (transferencia)</a>
           {!p.pago_avisado_en && !preguntaAviso && <button type="button" id="pago-avisar" className="btn-primary" onClick={() => { setResAviso(null); setPreguntaAviso(true); }}>Ya he hecho la transferencia</button>}
@@ -563,8 +570,12 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         {resAviso && <div className={resAviso.ok ? 'pt-aviso info' : 'wiz-warn show'} role="status" style={{ marginTop: '0.5rem' }}><div>{resAviso.ok ? resAviso.txt : `⚠ ${resAviso.txt}`}</div></div>}
         {avisando && <Cargando texto="Enviando tu aviso" />}
         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
-          {e.tarjeta ? 'Con tarjeta se confirma al momento. ' : 'El pago con tarjeta estará disponible muy pronto. '}
-          Con <strong>tarjeta</strong> el envío pasa a <strong>programación de envíos al momento</strong>. Por <strong>transferencia inmediata</strong> (llega en segundos y tu banco no te cobra más que por una normal), usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y pulsa <strong>«Ya he hecho la transferencia»</strong>: el plazo se para mientras la validamos.
+          {p.pago_avisado_en
+            ? <>Estamos comprobando tu transferencia en el banco. Si al final prefieres pagar de otra forma, llámanos antes para no pagar dos veces.</>
+            : <>{e.tarjeta
+                ? <>Con <strong>tarjeta</strong> el envío pasa a <strong>programación de envíos al momento</strong>. </>
+                : <>El pago con tarjeta estará disponible muy pronto. </>}
+              Por <strong>transferencia inmediata</strong> (llega en segundos y tu banco no te cobra más que por una normal), usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y pulsa <strong>«Ya he hecho la transferencia»</strong>: el plazo se para mientras la validamos.</>}
         </div>
         </>}
       </div>

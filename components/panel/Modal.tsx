@@ -3,12 +3,13 @@
 // Ventana del panel: la misma de dashboard.html (#dashModal, clases dash-modal-*).
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-export default function Modal({ titulo, sub, icono, abierto, onCerrar, pie, acciones, ancho, envivo, children }: {
+export default function Modal({ titulo, sub, icono, abierto, onCerrar, pie, acciones, ancho, envivo, plano, children }: {
   titulo: string; sub?: React.ReactNode; icono?: React.ReactNode; abierto: boolean;
   onCerrar: () => void; pie?: React.ReactNode; children: React.ReactNode;
   acciones?: React.ReactNode;   // barra de acciones bajo el título (la del "Ver detalle" del mockup)
   ancho?: number;               // ancho máximo de la ventana, si hace falta más que el normal
   envivo?: boolean;             // ventana de LECTURA (fichas): no bloquea el refresco en vivo
+  plano?: boolean;              // sin animación ni capa propia: para las ventanas con MAPA (Safari las pintaba a baja resolución)
 }) {
   useEffect(() => {
     if (!abierto) return;
@@ -47,11 +48,11 @@ export default function Modal({ titulo, sub, icono, abierto, onCerrar, pie, acci
     // Pulsar fuera de la tarjeta (en la zona oscurecida) cierra, igual que la X. Se usa
     // onMouseDown y se comprueba que el punto pulsado es el fondo o el contenedor, no la
     // tarjeta: así no se cierra sin querer al soltar fuera tras seleccionar texto dentro.
-    <div ref={raiz} className={`dash-modal${lista ? ' open' : ''}`} role="dialog" aria-modal="true" aria-labelledby="dashModalTitle"
+    <div ref={raiz} className={`dash-modal${plano ? ' plano' : ''}${lista ? ' open' : ''}`} role="dialog" aria-modal="true" aria-labelledby="dashModalTitle"
       data-envivo-permitir={envivo ? '' : undefined}
       onMouseDown={(ev) => { if (ev.button === 0 && ev.target === ev.currentTarget) onCerrar(); }}>
       <div className="dash-modal-backdrop" onMouseDown={(ev) => { if (ev.button === 0) onCerrar(); }} />
-      <div className="dash-modal-card" role="document" style={ancho ? { maxWidth: ancho } : undefined}>
+      <div className={`dash-modal-card${plano ? ' plano' : ''}`} role="document" style={ancho ? { maxWidth: ancho } : undefined}>
         <button className="dash-modal-close" onClick={onCerrar} aria-label="Cerrar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
