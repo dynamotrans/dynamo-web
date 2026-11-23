@@ -161,6 +161,12 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Ranking de la difusión por tasa real de respuesta (cuando haya historial) y etiqueta manual «autónomo» para extranjeros.
 
 ### v3
+- [ ] 📦 **PALETERÍA Y PAQUETERÍA CON DHL, DENTRO DE LA PLATAFORMA — v3 o v4 (usuario, 2026-11-23: «para tener all in one»)**. Además de grupaje y carga completa, que el cliente pueda mandar **palets sueltos (paletería)** y **paquetes (paquetería)** con DHL desde el mismo «Nuevo envío», sin salir de la plataforma. Cómo se haría:
+  - **Conexión por la API de DHL** (DHL Express / DHL Parcel / DHL Freight según el servicio; hay que pedir a DHL la cuenta de empresa y el acceso a su API): **tarifa al momento** (precio de DHL + margen de Dynamo, como el tarifador), **crear el envío y la etiqueta** (PDF para imprimir y pegar), **recogida** programada y **seguimiento** (los estados de DHL entran como etapas del envío, igual que ahora).
+  - En «Nuevo envío», un tipo más: **Paquetería** (bultos con peso y medidas de cada uno) y **Paletería** (nº de palets, tipo europeo/americano, peso y alto por palet); la plataforma elige el servicio de DHL que toque.
+  - Facturación y pago como los demás envíos (crédito o pago previo); la factura de DHL a Dynamo entra en el control de facturación.
+  - Antes de poner la clave: **tope de gasto** y claves solo en el servidor (como todas las APIs de pago).
+  - Por decidir con el usuario: qué servicios de DHL (nacional, internacional, express), margen por tipo, quién imprime la etiqueta (el cliente o el almacén) y si se compara con otras empresas de paquetería (SEUR, GLS, DB Schenker…).
 - [ ] **Asistente de IA del panel** (chatbot sobre la BD por rol, #72): montado y OCULTO (`IA_ACTIVA = false` en `app/panel/(app)/layout.tsx`); falta `ANTHROPIC_API_KEY` y encenderlo. **Antes de crear la clave: tope de gasto mensual y autorrecarga apagada** (ver «TOPE DE GASTO» en v1).
 - [ ] **WhatsApp y email con Claude, DENTRO DE LA PLATAFORMA** (#80). **Decisión (usuario, 2026-11-22)**: como el
   que programa es Claude y el usuario lo pide hablando, la ventaja de n8n (tocar flujos sin programar) casi
