@@ -14,7 +14,10 @@
 //   + paradas extra (40 € cada una) + recargo por tipo de sitio (% del envío base, por punto)
 //   + suplementos (no paletizada, techo, plataforma, NIMA, ADR) + suplemento de fecha fija
 //   − descuento por peso bajo en tráiler completo
-import { sumarHabiles } from '@/lib/fechasCarga';
+//
+// ⚠ La base de datos tiene una copia de este cálculo (precio_tarifa_cliente) para comprobar
+// el precio que manda el cliente: cualquier cambio de cifras va en los dos sitios.
+import { primerDia, sumarHabiles } from '@/lib/fechasCarga';
 
 export type EntradaTarifa = {
   km: number;                          // suma de los tramos de la ruta (estimada si no hay caché)
@@ -272,4 +275,44 @@ export function tablaInterna(tarVenta: number, tarCompra: number, mismo: UltimoR
     margenMin: hayMargen ? Math.min(...ventas) - Math.max(...compras) : null,
     margenMax: hayMargen ? Math.max(...ventas) - Math.min(...compras) : null,
   };
+}
+
+// ---- El precio de un envío YA RELLENO (para el servidor) ---------------------------------
+// El cliente ve el precio en su pantalla y lo manda al crear o modificar el envío, pero un
+// precio que llega del navegador se puede trucar (repaso de seguridad, 2026-11-23). La
+// base de datos lo vuelve a calcular con una COPIA de esta fórmula (precio_tarifa_cliente,
+// migración 20261123100000) y rechaza el envío si no coincide. Esta función reproduce el
+// cálculo a partir de los datos ya guardados (camión según la plataforma, tipo de fecha
+// según la ventana, primer día según la hora de corte) y la prueba «precio del cliente»
+// la compara con la de la base de datos: QUIEN CAMBIE UNA CIFRA AQUÍ, LA CAMBIA ALLÍ.
+export type DatosPrecioEnvio = {
+  metros_lineales: number; toneladas: number; paletizado: boolean; carga_techo: boolean;
+  requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean;
+  fecha_carga_desde: string; fecha_carga_hasta: string;
+};
+type CortesTarifa = { fija?: number; v12?: number; v13?: number; v14?: number };
+
+// El tipo de fecha sale de la ventana que se pide: un día = fecha fija; dos días hábiles =
+// la corta; más = la estándar (la pantalla pone el «hasta» sumando días hábiles al «desde»).
+export function urgenciaDeVentana(desde: string, hasta: string, fest: Set<string>): 'dia' | 'estandar' | 'corta' {
+  if (!hasta || hasta <= desde) return 'dia';
+  return sumarHabiles(desde, 1, fest) === hasta ? 'corta' : 'estandar';
+}
+
+export function tarifaDeEnvio(d: DatosPrecioEnvio, x: {
+  km: number; tiposSitio: string[]; festivos: string[]; cortes: CortesTarifa; factor: number; ahora?: Date;
+}): Tarifa {
+  const ahora = x.ahora ?? new Date();
+  const fest = new Set(x.festivos);
+  const mlMax = d.requiere_plataforma_elevadora ? 8 : 13;
+  const pesoMax = d.requiere_plataforma_elevadora ? 14 : 24;
+  const ml = Number(d.metros_lineales) || 0;
+  const urgencia = urgenciaDeVentana(d.fecha_carga_desde, d.fecha_carga_hasta, fest);
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(ahora);
+  const t = calcularTarifa({ km: x.km, puntos: x.tiposSitio.length, tiposSitio: x.tiposSitio,
+    ml, peso: Number(d.toneladas) || 0, mlMax, pesoMax,
+    paletizada: d.paletizado, techo: d.carga_techo, plataforma: d.requiere_plataforma_elevadora,
+    nima: d.requiere_nima, adr: d.adr, urgencia, fecha: d.fecha_carga_desde || null,
+    primerDia: primerDia(urgencia, ml < mlMax - 0.01, fest, x.cortes, ahora), hoy, festivos: x.festivos });
+  return aplicarDescuentoTarifa(t, x.factor);
 }

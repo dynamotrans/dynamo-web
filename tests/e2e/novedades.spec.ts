@@ -4,6 +4,9 @@
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
 import { expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { tarifaDeEnvio, type DatosPrecioEnvio } from '../../lib/tarifador';
+import { primerDia, sumarHabiles } from '../../lib/fechasCarga';
+import { hoyMadrid } from '../../lib/formato';
 import { test, entrar, ultimoEnvio, bd, como, crearEnvioDeCliente, envioListo, envioProgramadoDelTransportista, CIF_TRANSPORTISTA, EMAIL, CLAVE, codigoDelMovil } from './ayudas';
 
 const CIF_CLIENTE = 'B12345674';
@@ -490,6 +493,61 @@ test.describe('novedades', () => {
     await expect.poll(async () => (await bd().from('envios').select('estado').eq('id', id).single()).data?.estado).toBe('cancelado');
     const { data: mails } = await bd().from('emails_enviados').select('estado').eq('envio_id', id);
     expect((mails ?? []).filter((m) => m.estado !== 'omitido')).toEqual([]);
+  });
+
+  // EL PRECIO NO SE FÍA DEL NAVEGADOR (repaso de seguridad, 2026-11-23). La base de datos
+  // recalcula el precio del cliente con la misma fórmula que la pantalla y rechaza el envío
+  // si no coincide: (1) las dos fórmulas dan lo mismo en muchas combinaciones; (2) un envío
+  // a 1 € llamando a la base de datos directamente, sin la pantalla, no se crea.
+  test('precio del cliente: la base de datos y la pantalla calculan igual y un precio trucado no entra', async () => {
+    const sb = bd();
+    const ahora = new Date();
+    const { data: fes } = await sb.rpc('festivos_entre', { p_desde: hoyMadrid(), p_hasta: hoyMadrid(400) });
+    const festivos = ((fes ?? []) as { fecha: string }[]).map((f) => f.fecha);
+    const fest = new Set(festivos);
+    const { data: reg } = await sb.rpc('reglas_precio_envio');
+    const r = (reg ?? {}) as Record<string, number>;
+    const cortes = { fija: r.corte_fija_hora, v12: r.corte_ventana_1_2_hora, v13: r.corte_ventana_1_3_hora, v14: r.corte_ventana_1_4_hora };
+    const tipos = [['almacen_nave', 'almacen_nave'], ['obra_zona_amplia', 'finca'], ['obra_zona_urbana', 'almacen_nave', 'finca'], ['finca', 'obra_zona_urbana', 'obra_zona_amplia', 'almacen_nave']];
+    const casos: { d: DatosPrecioEnvio; tipos: string[]; factor: number }[] = [];
+    let k = 0;
+    for (const [ml, peso, plat] of [[13.3, 24, false], [13.3, 3, false], [13.3, 18, false], [6, 9, false], [8, 14, true], [3, 1, true]] as [number, number, boolean][]) {
+      for (const dias of [1, 2, 4, 3]) {
+        const mlMax = plat ? 8 : 13;
+        const grupaje = ml < mlMax - 0.01;
+        const urg = dias === 1 ? 'dia' : dias === 2 ? 'corta' : 'estandar';
+        for (const empieza of [0, 1, 40, 230]) {
+          const desde = empieza === 0 ? primerDia(urg, grupaje, fest, cortes, ahora) : sumarHabiles(primerDia(urg, grupaje, fest, cortes, ahora), empieza, fest);
+          const hasta = dias > 1 ? sumarHabiles(desde, dias - 1, fest) : desde;
+          k++;
+          casos.push({ tipos: tipos[k % tipos.length], factor: [0, -7, 12.5, -3, 5][k % 5], d: {
+            metros_lineales: ml, toneladas: peso, requiere_plataforma_elevadora: plat,
+            paletizado: k % 3 !== 0, carga_techo: k % 4 === 0, requiere_nima: k % 5 === 0, adr: k % 7 === 0,
+            fecha_carga_desde: desde, fecha_carga_hasta: hasta } });
+        }
+      }
+    }
+    for (const c of casos) {
+      const t = tarifaDeEnvio(c.d, { km: 500, tiposSitio: c.tipos, festivos, cortes, factor: c.factor, ahora });
+      const { data, error } = await sb.rpc('precio_tarifa_cliente', { p_datos: c.d, p_tipos: c.tipos, p_factor: c.factor, p_instante: ahora.toISOString() });
+      expect(error).toBeNull();
+      expect({ caso: c, neto: Number((data as { neto: number }).neto), base: Number((data as { base: number }).base) })
+        .toEqual({ caso: c, neto: t.neto, base: t.netoBase ?? t.neto });
+    }
+
+    // (2) El cliente llama a la base de datos con su sesión y un precio de 1 €: no se crea.
+    const cli = await como('cliente');
+    const { data: sit } = await cli.from('sitios').select('id').eq('borrado', false).eq('es_almacen_dynamo', false).limit(2);
+    expect((sit ?? []).length).toBe(2);
+    const desde = primerDia('estandar', false, fest, cortes);
+    const datos = { fecha_carga_desde: desde, fecha_carga_hasta: sumarHabiles(desde, 2, fest), metros_lineales: 13.3, toneladas: 24,
+      paletizado: true, carga_lateral: true, carga_trasera: false, carga_techo: false, requiere_plataforma_elevadora: false,
+      requiere_nima: false, adr: false, discrecion_comercial: false, importe_cliente: 1, importe_tarifa: 1 };
+    const paradas = [{ tipo: 'carga', sitio_id: sit![0].id }, { tipo: 'descarga', sitio_id: sit![1].id }];
+    const trucado = await cli.rpc('crear_envio_cliente', { p_datos: datos, p_paradas: paradas });
+    expect(trucado.error?.message).toMatch(/El precio de este envío ha cambiado/);
+    const { count } = await sb.from('envios').select('id', { count: 'exact', head: true }).eq('importe_cliente', 1);
+    expect(count).toBe(0);
   });
 
   // El contenido REAL de los ficheros (usuario, 2026-11-18): el almacén solo admite PDF e

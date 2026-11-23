@@ -6310,17 +6310,31 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; o uuid; e uuid;
 end $$;
 reset role;
 
+-- Ayuda SOLO de las pruebas (esquema aparte, fuera de la API y de los tipos): pone en unos
+-- datos de envío el precio del tarifador, como hace la pantalla del cliente. Desde el
+-- 2026-11-23 la base de datos rechaza cualquier otro (migración 20261123100000).
+reset role;
+create schema if not exists prueba;
+grant usage on schema prueba to authenticated;
+create or replace function prueba.con_precio(p_datos jsonb, p_paradas jsonb default null, p_envio uuid default null) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  return p_datos || jsonb_build_object('importe_cliente', (precio_tarifa_cliente(p_datos, tarifa_tipos_ruta(p_envio, p_paradas),
+    factor_tarifa_envio(coalesce((select cliente_id from envios where id = p_envio), cliente_del_usuario()), p_envio)) ->> 'neto')::numeric);
+end $$;
+grant execute on function prueba.con_precio(jsonb, jsonb, uuid) to authenticated;
+
 -- ---- 168. El cliente crea su envío YA con el precio del tarifador (sin solicitudes) --------
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare e uuid; begin
-  select s.id into e from crear_envio_cliente(
-    jsonb_build_object('importe_cliente', 850, 'metros_lineales', 6, 'toneladas', 8, 'fecha_carga_desde', sumar_dias_habiles(current_date, 5)),
-    jsonb_build_array(
+do $$ declare e uuid; d jsonb; p jsonb := jsonb_build_array(
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 168', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
-      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 168', 'codigo_postal', '28001', 'poblacion', 'Madrid'))) s;
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 168', 'codigo_postal', '28001', 'poblacion', 'Madrid'));
+begin
+  d := prueba.con_precio(jsonb_build_object('metros_lineales', 6, 'toneladas', 8, 'fecha_carga_desde', sumar_dias_habiles(current_date, 5)), p);
+  select s.id into e from crear_envio_cliente(d, p) s;
   if (select (m.estado::text, m.importe_cliente, m.estado_solicitud) from mis_envios() m where m.id = e)
-     is distinct from ('programado'::text, 850::numeric, 'aceptada'::text) then
+     is distinct from ('programado'::text, (d ->> 'importe_cliente')::numeric, 'aceptada'::text) then
     raise exception 'FALLO 168 · el envío del cliente no nace programado con su precio';
   end if;
   -- Sin precio (o con uno absurdo), no se crea.
@@ -6369,10 +6383,10 @@ do $$ declare e uuid; begin
   -- El cliente crea una VENTANA que empieza hoy: la base de datos la admite (el corte
   -- horario fino lo aplica la pantalla con primera_fecha_carga).
   select s.id into e from crear_envio_cliente(
-    jsonb_build_object('importe_cliente', 900, 'metros_lineales', 4, 'toneladas', 6,
+    prueba.con_precio(jsonb_build_object('metros_lineales', 4, 'toneladas', 6,
                        -- El primer día que permite el corte AHORA (hoy antes de las 14:00; si no,
                        -- el siguiente hábil): así la prueba vale a cualquier hora y cualquier día.
-                       'fecha_carga_desde', primera_fecha_carga(false), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 2)),
+                       'fecha_carga_desde', primera_fecha_carga(false), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 2))),
     jsonb_build_array(
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Nave 169', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 169', 'codigo_postal', '28001', 'poblacion', 'Madrid'))) s;
@@ -7026,8 +7040,8 @@ begin
   end;
   if not mal then raise exception 'FALLO 186 · deja una fecha fija en sábado'; end if;
   -- Y con el primer día válido, se crea sin más.
-  select s.id into e from crear_envio_cliente(jsonb_build_object('importe_cliente', 500,
-    'fecha_carga_desde', primera_fecha_carga(false), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 2)), paradas) s;
+  select s.id into e from crear_envio_cliente(prueba.con_precio(jsonb_build_object(
+    'fecha_carga_desde', primera_fecha_carga(false), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 2)), paradas), paradas) s;
   if e is null then raise exception 'FALLO 186 · no crea con el primer día válido'; end if;
   raise notice 'OK 186 · el cliente no puede saltarse días hábiles ni horas de corte, ni llamando a la base de datos directamente';
 end $$;
@@ -11001,17 +11015,21 @@ do $$ declare e uuid; f uuid; g uuid; h uuid; i uuid; begin
 end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; ok boolean; x record; begin
-  -- Ruta nueva (la recogida sigue, la entrega cambia), más metros y precio recalculado; la fecha no se toca.
-  d := jsonb_build_object('importe_cliente', 750, 'fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
-                          'metros_lineales', 8, 'toneladas', 10, 'referencia_cliente', 'PED-259');
-  r := modificar_envio_cliente(e, d, jsonb_build_array(jsonb_build_object('id', current_setting('prueba.p259')),
-         jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Nave Getafe', 'poblacion', 'Getafe', 'codigo_postal', '28901')));
-  if r->>'resultado' <> 'modificado' or (r->>'precio_antes')::numeric <> 600 or (r->>'precio_ahora')::numeric <> 750 then
+do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; ok boolean; x record; ruta jsonb; tot numeric; begin
+  -- Ruta nueva (la recogida sigue, la entrega cambia), más metros y el precio que da el
+  -- tarifador (desde el 2026-11-23 la base de datos no admite otro); la fecha no se toca.
+  ruta := jsonb_build_array(jsonb_build_object('id', current_setting('prueba.p259')),
+         jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Nave Getafe', 'poblacion', 'Getafe', 'codigo_postal', '28901'));
+  d := prueba.con_precio(jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
+                          'metros_lineales', 8, 'toneladas', 10, 'referencia_cliente', 'PED-259'), ruta, e);
+  r := modificar_envio_cliente(e, d, ruta);
+  if r->>'resultado' <> 'modificado' or (r->>'precio_antes')::numeric <> 600 or (r->>'precio_ahora')::numeric <> (d ->> 'importe_cliente')::numeric then
     raise exception 'FALLO 259 · el cliente no puede modificar su envío sin transportista: %', r;
   end if;
+  perform set_config('prueba.precio259a', d ->> 'importe_cliente', false);
   -- Cambiar la fecha con tiempo: vale, con las reglas de un envío nuevo.
-  d := d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 8), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 9));
+  d := prueba.con_precio(d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 8), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 9)), null, e);
+  perform set_config('prueba.precio259', d ->> 'importe_cliente', false);
   perform modificar_envio_cliente(e, d, null);
   -- Una fecha que ya no llega al corte no entra.
   ok := false;
@@ -11023,16 +11041,19 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; 
   begin perform modificar_envio_cliente(current_setting('prueba.f259')::uuid, d, null);
   exception when others then ok := sqlerrm like '%transportista asignado%'; end;
   if not ok then raise exception 'FALLO 259 · el cliente modifica un envío con transportista asignado'; end if;
-  -- Pagado por adelantado (600 € + 21 % = 726 €) y el precio SUBE a 750 € (907,50 €): lo
-  -- pagado queda a cuenta y faltan 181,50 €; el envío vuelve a pendiente de pago.
-  d := jsonb_build_object('importe_cliente', 750, 'fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
-                          'metros_lineales', 6, 'toneladas', 5, 'referencia_cliente', 'PED-G');
+  -- Pagado por adelantado (600 € + 21 % = 726 €) y el precio SUBE al del tarifador (más de
+  -- 700 €): lo pagado queda a cuenta y falta la diferencia; el envío vuelve a pendiente de pago.
+  d := prueba.con_precio(jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 4), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 5),
+                          'metros_lineales', 6, 'toneladas', 5, 'referencia_cliente', 'PED-G'), null, current_setting('prueba.g259')::uuid);
+  tot := round((d ->> 'importe_cliente')::numeric * 1.21, 2);
+  if tot <= 726 then raise exception 'FALLO 259 · la prueba necesita que el precio suba (tarifador: %)', d ->> 'importe_cliente'; end if;
+  perform set_config('prueba.total259', tot::text, false);
   r := modificar_envio_cliente(current_setting('prueba.g259')::uuid, d, null);
-  if (r->>'falta_pagar')::numeric <> 181.50 or (r->>'pagado_de_mas')::numeric <> 0 then
+  if (r->>'falta_pagar')::numeric <> tot - 726 or (r->>'pagado_de_mas')::numeric <> 0 then
     raise exception 'FALLO 259 · pagado y el precio sube: no calcula bien la diferencia que falta: %', r;
   end if;
   select * into x from pagos_envio(current_setting('prueba.g259')::uuid);
-  if x.estado_pago_previo <> 'pendiente' or x.a_cuenta <> 726 or x.pendiente <> 181.50 or x.total <> 907.50 or x.pago_limite is not null then
+  if x.estado_pago_previo <> 'pendiente' or x.a_cuenta <> 726 or x.pendiente <> tot - 726 or x.total <> tot or x.pago_limite is not null then
     raise exception 'FALLO 259 · pagado y el precio sube: el envío no queda pendiente por la diferencia (sin hora límite): %', x;
   end if;
   -- Un transportista asignándose ahora mismo: ni modificar ni cancelar.
@@ -11049,10 +11070,14 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; r jsonb; d jsonb; 
   if not ok then raise exception 'FALLO 259 · el cliente cancela un envío con un transportista asignándose'; end if;
   -- Pasada la hora límite de cancelar: sin transportista es como un envío nuevo, también la
   -- fecha (usuario, 2026-11-16: «si cancelar no tenía coste, modificar tampoco»).
-  d := jsonb_build_object('importe_cliente', 640, 'fecha_carga_desde', current_date, 'fecha_carga_hasta', current_date, 'metros_lineales', 7, 'toneladas', 5);
+  d := prueba.con_precio(jsonb_build_object('fecha_carga_desde', current_date, 'fecha_carga_hasta', current_date, 'metros_lineales', 7, 'toneladas', 5),
+                         null, current_setting('prueba.h259')::uuid);
   perform modificar_envio_cliente(current_setting('prueba.h259')::uuid, d, null);
-  perform modificar_envio_cliente(current_setting('prueba.h259')::uuid,
-    d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 60), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 60)), null);
+  -- A una fecha fija dentro de 60 días (con su suplemento de fecha fija).
+  d := prueba.con_precio(d || jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 60), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 60)),
+                         null, current_setting('prueba.h259')::uuid);
+  perform set_config('prueba.precio259h', d ->> 'importe_cliente', false);
+  perform modificar_envio_cliente(current_setting('prueba.h259')::uuid, d, null);
   -- La función interna de la ruta no se puede llamar desde fuera.
   ok := false;
   begin perform ruta_envio_reemplazar(e, '[]'::jsonb); exception when insufficient_privilege then ok := true; end;
@@ -11065,11 +11090,15 @@ select set_config('request.jwt.claim.sub', '', false);
 update envios set estado_pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = current_setting('prueba.h259')::uuid;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare r jsonb; begin
-  -- h está en 640 € (774,40 € con IVA) y baja a 500 € (605 €): sobran 169,40 €.
-  r := modificar_envio_cliente(current_setting('prueba.h259')::uuid, jsonb_build_object('importe_cliente', 500,
-         'fecha_carga_desde', sumar_dias_habiles(current_date, 60), 'fecha_carga_hasta', sumar_dias_habiles(current_date, 60), 'metros_lineales', 7, 'toneladas', 5), null);
-  if (r->>'pagado_de_mas')::numeric <> 169.40 or (r->>'falta_pagar')::numeric <> 0 then
+do $$ declare r jsonb; d jsonb; sobra numeric; begin
+  -- h está con fecha fija y pasa a una ventana de 1 a 4 días el mismo día: sin el suplemento
+  -- de fecha fija el precio baja, y sobra la diferencia (con IVA).
+  d := prueba.con_precio(jsonb_build_object('fecha_carga_desde', sumar_dias_habiles(current_date, 60),
+         'fecha_carga_hasta', sumar_dias_habiles(current_date, 63), 'metros_lineales', 7, 'toneladas', 5), null, current_setting('prueba.h259')::uuid);
+  sobra := round(current_setting('prueba.precio259h')::numeric * 1.21, 2) - round((d ->> 'importe_cliente')::numeric * 1.21, 2);
+  if sobra <= 0 then raise exception 'FALLO 259 · la prueba necesita que el precio baje (% → %)', current_setting('prueba.precio259h'), d ->> 'importe_cliente'; end if;
+  r := modificar_envio_cliente(current_setting('prueba.h259')::uuid, d, null);
+  if (r->>'pagado_de_mas')::numeric <> sobra or (r->>'falta_pagar')::numeric <> 0 then
     raise exception 'FALLO 259 · pagado y el precio baja: no calcula lo pagado de más: %', r;
   end if;
   if (select estado_pago_previo from pagos_envio(current_setting('prueba.h259')::uuid)) <> 'pagado' then
@@ -11087,7 +11116,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record; begin
   select importe_cliente, metros_lineales, referencia_cliente, fecha_carga_desde into x from envios where id = e;
-  if x.importe_cliente <> 750 or x.metros_lineales <> 8 or x.referencia_cliente <> 'PED-259' then
+  if x.importe_cliente <> current_setting('prueba.precio259')::numeric or x.metros_lineales <> 8 or x.referencia_cliente <> 'PED-259' then
     raise exception 'FALLO 259 · la modificación no guarda precio, mercancía o referencia: %', x;
   end if;
   if x.fecha_carga_desde <> sumar_dias_habiles(current_date, 8) then raise exception 'FALLO 259 · el cliente no puede cambiar la fecha con tiempo'; end if;
@@ -11109,16 +11138,17 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record
     raise exception 'FALLO 259 · se anula por falta de pago un envío ya pagado en parte';
   end if;
   if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'envio_modificado_cliente' and nivel = 'urgente'
-                    and envio_id = current_setting('prueba.g259')::uuid and texto like '%le faltan 181,50 €%') then
+                    and envio_id = current_setting('prueba.g259')::uuid
+                    and texto like '%le faltan ' || euros_texto(current_setting('prueba.total259')::numeric - 726) || '%') then
     raise exception 'FALLO 259 · Dynamo no se entera de que falta pagar la diferencia';
   end if;
-  -- La tarjeta cobra SOLO la diferencia (18.150 céntimos), no el total.
-  if (pago_envio_stripe(current_setting('prueba.g259')::uuid, 'pi_259a', 90750))->>'resultado' <> 'importe_distinto' then
+  -- La tarjeta cobra SOLO la diferencia, no el total.
+  if (pago_envio_stripe(current_setting('prueba.g259')::uuid, 'pi_259a', (current_setting('prueba.total259')::numeric * 100)::int))->>'resultado' <> 'importe_distinto' then
     raise exception 'FALLO 259 · la tarjeta acepta el total de un envío ya pagado en parte';
   end if;
   update envios set stripe_cobro_sin_aplicar = null where id = current_setting('prueba.g259')::uuid;
   x := null;
-  select pago_envio_stripe(current_setting('prueba.g259')::uuid, 'pi_259b', 18150) as r into x;
+  select pago_envio_stripe(current_setting('prueba.g259')::uuid, 'pi_259b', ((current_setting('prueba.total259')::numeric - 726) * 100)::int) as r into x;
   if x.r->>'resultado' <> 'ok' or (select estado_pago_previo from envios where id = current_setting('prueba.g259')::uuid) <> 'pagado' then
     raise exception 'FALLO 259 · pagar la diferencia con tarjeta no deja el envío pagado: % · %', x.r, (select estado_pago_previo from envios where id = current_setting('prueba.g259')::uuid);
   end if;
@@ -11129,7 +11159,7 @@ do $$ declare e uuid := current_setting('prueba.e259')::uuid; a record; x record
   -- Dynamo se entera, con el antes → ahora del precio; y como estaba en la bolsa, se le dice.
   select * into a from avisos where para = 'dynamo' and tipo = 'envio_modificado_cliente' and envio_id = e order by creado_en, id limit 1;
   if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'envio_modificado_cliente' and envio_id = e
-                    and texto like '%ruta nueva%' and texto like '%600,00 € → 750,00 €%' and texto like '%en la bolsa%') then
+                    and texto like '%ruta nueva%' and texto like '%600,00 € → ' || euros_texto(current_setting('prueba.precio259a')::numeric) || '%' and texto like '%en la bolsa%') then
     raise exception 'FALLO 259 · Dynamo no recibe el aviso del envío modificado por el cliente: %', a.texto;
   end if;
   -- El cliente recibe su email «Envío modificado».
@@ -11179,9 +11209,10 @@ begin
   if (select estado_pago_previo from envios where id = d) <> 'no_requerido' then raise exception 'FALLO 260 · con la regla apagada sigue pidiendo pago por pasarse del crédito'; end if;
   update parametros set valor = 'true'::jsonb where clave = 'credito_limite_exige_pago';
   update envios set estado = 'cancelado' where id = d;
-  -- Al MODIFICAR: c iba a crédito con 200 €; el cliente lo sube a 400 € y ya no cabe → pendiente de pago.
+  -- Al MODIFICAR: c iba a crédito con 200 €; el cliente lo sube (al precio del tarifador) y ya no cabe → pendiente de pago.
   perform set_config('request.jwt.claim.sub', uc::text, false);
-  r := modificar_envio_cliente(c, jsonb_build_object('importe_cliente', 400, 'fecha_carga_desde', lun, 'fecha_carga_hasta', lun, 'metros_lineales', 6, 'toneladas', 5), null);
+  -- (El precio, el del tarifador: más de 600 €, que tampoco caben en los 274 € que quedan.)
+  r := modificar_envio_cliente(c, prueba.con_precio(jsonb_build_object('fecha_carga_desde', lun, 'fecha_carga_hasta', lun, 'metros_lineales', 6, 'toneladas', 5), null, c), null);
   perform set_config('request.jwt.claim.sub', '', false);
   select estado_pago_previo, pago_motivo into x from envios where id = c;
   if x.estado_pago_previo <> 'pendiente' or x.pago_motivo not like 'Crédito insuficiente%' then
@@ -11280,8 +11311,9 @@ begin
   begin perform factor_tarifa_envio(current_setting('prueba.otro262')::uuid);
   exception when insufficient_privilege then ok := true; end;
   if not ok then raise exception 'FALLO 262 · un cliente consulta el factor de otra empresa'; end if;
-  -- Crea su envío: tarifa 1.000 €, con su −7 % le sale a 930 €.
-  select s.id into e from crear_envio_cliente(jsonb_build_object('importe_cliente', 930, 'importe_tarifa', 1000,
+  -- Crea su envío: tarifa 780 € (grupaje con la ventana corta), con su −7 % le sale a 730 €
+  -- (725,40 a la decena). La tarifa sin el factor la pone la base de datos, no la pantalla.
+  select s.id into e from crear_envio_cliente(jsonb_build_object('importe_cliente', 730, 'importe_tarifa', 1,
     'fecha_carga_desde', sumar_dias_habiles(primera_fecha_carga(false), 3), 'fecha_carga_hasta', sumar_dias_habiles(primera_fecha_carga(false), 4),
     'metros_lineales', 6, 'toneladas', 5), paradas) s;
   if e is null then raise exception 'FALLO 262 · el cliente no puede crear el envío'; end if;
@@ -11295,7 +11327,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid := current_setting('prueba.e262')::uuid; x record; begin
   select importe_cliente, importe_tarifa, factor_tarifa_pct into x from envios where id = e;
-  if x.importe_cliente <> 930 or x.importe_tarifa is distinct from 1000 or x.factor_tarifa_pct is distinct from -7 then
+  if x.importe_cliente <> 730 or x.importe_tarifa is distinct from 780 or x.factor_tarifa_pct is distinct from -7 then
     raise exception 'FALLO 262 · el envío no guarda la tarifa original y el factor aplicado: %', x;
   end if;
   -- Al cliente se le acaba el descuento…
@@ -11308,15 +11340,16 @@ do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid := cur
   if factor_tarifa_envio(cli) <> 0 or factor_tarifa_envio(cli, e) <> -7 then
     raise exception 'FALLO 262 · al modificar, el envío no conserva su factor (cliente %, envío %)', factor_tarifa_envio(cli), factor_tarifa_envio(cli, e);
   end if;
-  select jsonb_build_object('importe_cliente', 1020, 'importe_tarifa', 1100, 'fecha_carga_desde', m.fecha_carga_desde, 'fecha_carga_hasta', m.fecha_carga_hasta,
-                            'metros_lineales', 8, 'toneladas', 6) into d from mis_envios() m where m.id = e;
+  -- Ahora con residuos (NIMA, +50 €): tarifa 830 €, con el −7 % del envío 770 € (771,90).
+  select jsonb_build_object('importe_cliente', 770, 'importe_tarifa', 1, 'fecha_carga_desde', m.fecha_carga_desde, 'fecha_carga_hasta', m.fecha_carga_hasta,
+                            'metros_lineales', 8, 'toneladas', 6, 'requiere_nima', true) into d from mis_envios() m where m.id = e;
   perform modificar_envio_cliente(e, d, null);
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare cli uuid := current_setting('prueba.cliente')::uuid; e uuid := current_setting('prueba.e262')::uuid; x record; g uuid; begin
   select importe_cliente, importe_tarifa, factor_tarifa_pct into x from envios where id = e;
-  if x.importe_cliente <> 1020 or x.importe_tarifa is distinct from 1100 or x.factor_tarifa_pct is distinct from -7 then
+  if x.importe_cliente <> 770 or x.importe_tarifa is distinct from 830 or x.factor_tarifa_pct is distinct from -7 then
     raise exception 'FALLO 262 · al modificar no se guarda la tarifa nueva con el factor del envío: %', x;
   end if;
   -- Dynamo pone el precio a mano: ese precio ya no lleva el factor.
@@ -14716,4 +14749,39 @@ do $$ declare e uuid; r jsonb; ok boolean := false; begin
      or has_table_privilege('anon', 'public.geo_no_encontrados', 'insert') then
     raise exception 'FALLO 327 · permisos de las coordenadas aparte mal puestos'; end if;
   raise notice 'OK 327 · mapa general: las paradas sin coordenadas se piden aparte (Dynamo todas, el cliente las suyas, nadie más); en cuanto se sitúan dejan de salir; los «no encontrados» solo el servidor';
+end $$;
+
+-- 328 · EL PRECIO DEL CLIENTE LO COMPRUEBA LA BASE DE DATOS (repaso de seguridad, 2026-11-23):
+-- crear_envio_cliente rechaza un precio que no es el del tarifador y, con el bueno, guarda
+-- también el de tarifa que calcula ella; las funciones del cálculo no se llaman desde fuera.
+do $$
+declare v_desde date := primera_fecha_carga(false, now(), 3); v_datos jsonb; v_p jsonb; v_precio jsonb;
+  v_id uuid; ok boolean := false; e envios%rowtype;
+begin
+  v_datos := jsonb_build_object('fecha_carga_desde', v_desde, 'fecha_carga_hasta', sumar_dias_habiles(v_desde, 2),
+    'metros_lineales', 13.3, 'toneladas', 24, 'paletizado', true, 'requiere_plataforma_elevadora', false);
+  v_p := jsonb_build_array(
+    jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'Origen 328', 'poblacion', 'Sevilla', 'codigo_postal', '41001', 'pais_codigo_iso', 'ES', 'tipo_sitio', 'finca'),
+    jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 328', 'poblacion', 'Madrid', 'codigo_postal', '28001', 'pais_codigo_iso', 'ES'));
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  begin
+    perform crear_envio_cliente(v_datos || '{"importe_cliente": 1, "importe_tarifa": 1}', v_p);
+  exception when others then ok := sqlerrm like 'El precio de este envío ha cambiado%';
+  end;
+  if not ok then raise exception 'FALLO 328 · un envío del cliente a 1 € se ha creado'; end if;
+  -- Con el del tarifador (finca: +180 € sobre los 700, con el factor del cliente) sí entra.
+  v_precio := precio_tarifa_cliente(v_datos, array['finca', 'almacen_nave'], factor_tarifa_envio(cliente_del_usuario()));
+  if (v_precio ->> 'base')::numeric <> 880 then raise exception 'FALLO 328 · el precio de tarifa no es 880 (%)', v_precio; end if;
+  select x.id into v_id from crear_envio_cliente(v_datos || jsonb_build_object('importe_cliente', v_precio -> 'neto', 'importe_tarifa', 1), v_p) x;
+  perform set_config('request.jwt.claim.sub', '', false);
+  select * into e from envios where id = v_id;
+  if e.importe_cliente <> (v_precio ->> 'neto')::numeric or e.importe_tarifa <> 880 then
+    raise exception 'FALLO 328 · guardado % / tarifa % (esperado % / 880)', e.importe_cliente, e.importe_tarifa, v_precio ->> 'neto'; end if;
+  update envios set estado = 'cancelado' where id = v_id;
+  if has_function_privilege('authenticated', 'public.precio_tarifa_cliente(jsonb, text[], numeric, timestamptz)', 'execute')
+     or has_function_privilege('anon', 'public.precio_tarifa_cliente(jsonb, text[], numeric, timestamptz)', 'execute')
+     or has_function_privilege('authenticated', 'public.precio_cliente_comprobado(jsonb, text[], numeric)', 'execute')
+     or has_function_privilege('authenticated', 'public.tarifa_tipos_ruta(uuid, jsonb)', 'execute') then
+    raise exception 'FALLO 328 · las funciones del precio se pueden llamar desde fuera'; end if;
+  raise notice 'OK 328 · el precio del cliente lo comprueba la base de datos: a 1 € no entra, con el del tarifador sí (y guarda su precio de tarifa); el cálculo no se llama desde fuera';
 end $$;

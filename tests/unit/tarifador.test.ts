@@ -3,7 +3,7 @@
 // cambian con la tarifa real, estas pruebas se actualizan con ellos.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularTarifa, combinaciones, precioTransportistaSugerido, type EntradaTarifa } from '../../lib/tarifador';
+import { calcularTarifa, combinaciones, precioTransportistaSugerido, tarifaDeEnvio, urgenciaDeVentana, type EntradaTarifa } from '../../lib/tarifador';
 
 // Un envío de referencia: tráiler completo Sevilla→Madrid (530 km), almacenes, ventana.
 const BASE: EntradaTarifa = {
@@ -170,4 +170,29 @@ test('diasDesde: hoy 0, ayer 1, futuro negativo, sin fecha null', () => {
   assert.equal(diasDesde('2026-11-07', '2026-11-08'), 1);
   assert.equal(diasDesde('2026-11-10', '2026-11-08'), -2);
   assert.equal(diasDesde(null, '2026-11-08'), null);
+});
+
+// El precio de un envío ya relleno: la copia de la base de datos (precio_tarifa_cliente)
+// tiene que dar lo mismo; la prueba en navegador «precio del cliente» las compara.
+const AHORA = new Date('2026-11-23T09:00:00Z');   // lunes, 10:00 en Madrid (antes de todos los cortes)
+const DATOS = { metros_lineales: 13.3, toneladas: 24, paletizado: true, carga_techo: false,
+  requiere_plataforma_elevadora: false, requiere_nima: false, adr: false };
+const EXTRA = { km: 500, tiposSitio: ['almacen_nave', 'finca'], festivos: [], cortes: { fija: 12, v12: 14, v13: 14, v14: 14 }, factor: 0, ahora: AHORA };
+
+test('envío relleno: el tipo de fecha sale de la ventana', () => {
+  const f = new Set<string>();
+  assert.equal(urgenciaDeVentana('2026-11-25', '2026-11-25', f), 'dia');
+  assert.equal(urgenciaDeVentana('2026-11-27', '2026-11-30', f), 'corta');      // viernes → lunes: 2 días hábiles
+  assert.equal(urgenciaDeVentana('2026-11-25', '2026-11-27', f), 'estandar');
+});
+
+test('envío relleno: suplementos, fecha fija y factor como en la pantalla', () => {
+  // Tráiler completo de 24 t con ventana: 700 + finca 180.
+  assert.equal(tarifaDeEnvio({ ...DATOS, fecha_carga_desde: '2026-11-23', fecha_carga_hasta: '2026-11-25' }, EXTRA).neto, 880);
+  // Fecha fija el primer día posible (mañana): +100; un día después: +50.
+  assert.equal(tarifaDeEnvio({ ...DATOS, fecha_carga_desde: '2026-11-24', fecha_carga_hasta: '2026-11-24' }, EXTRA).neto, 980);
+  assert.equal(tarifaDeEnvio({ ...DATOS, fecha_carga_desde: '2026-11-25', fecha_carga_hasta: '2026-11-25' }, EXTRA).neto, 930);
+  // Con el −7 % del cliente: 880 × 0,93 = 818,40 → 820; la tarifa sin el factor va aparte.
+  const t = tarifaDeEnvio({ ...DATOS, fecha_carga_desde: '2026-11-23', fecha_carga_hasta: '2026-11-25' }, { ...EXTRA, factor: -7 });
+  assert.deepEqual([t.neto, t.netoBase], [820, 880]);
 });

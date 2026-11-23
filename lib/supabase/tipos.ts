@@ -4698,8 +4698,10 @@ export type Database = {
       poner_camion_mi_envio_manual: { Args: { p_envio: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_conductor_telefono: string | null }; Returns: Json }
       poner_datos_cmr: { Args: { p_envio: string | null; p_bultos: number | null; p_embalaje: string | null; p_volumen: number | null }; Returns: undefined }
       poner_horario_por_defecto: { Args: { p_sitio: string | null }; Returns: undefined }
+      precio_cliente_comprobado: { Args: { p_datos: Json | null; p_tipos: string[] | null; p_factor: number | null }; Returns: Json }
       precio_dia_cierre: { Args: { p_carga: string | null }; Returns: string }
       precio_por_revisar: { Args: { p: string | null }; Returns: boolean }
+      precio_tarifa_cliente: { Args: { p_datos: Json | null; p_tipos: string[] | null; p_factor: number | null; p_instante?: string | null }; Returns: Json }
       preparar_pines_envio: { Args: { p_envio: string | null }; Returns: number }
       primera_carga_posible: { Args: { p_envio: string | null }; Returns: string }
       primera_fecha_carga: { Args: { p_fija: boolean | null; p_instante?: string | null; p_ventana_dias?: number | null }; Returns: string }
@@ -4769,6 +4771,8 @@ export type Database = {
       sugerencias_transportistas_publicas: { Args: { p_reserva: string | null; p_q: string | null }; Returns: { nombre: string; cif: string; poblacion: string }[] }
       sumar_dias_habiles: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       tarifa_almacen: { Args: { p_almacen: string | null }; Returns: { semana: number; reparto: number }[] }
+      tarifa_r10: { Args: { p: number | null }; Returns: number }
+      tarifa_tipos_ruta: { Args: { p_envio: string | null; p_paradas: Json | null }; Returns: string[] }
       tarifa_web_apuntar: { Args: { p_ip_huella: string | null }; Returns: Json }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       telefono_conductor_visible: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_carga: string | null; p_entregado_en: string | null; p_entrega: string | null }; Returns: boolean }
