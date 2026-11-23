@@ -96,7 +96,9 @@ export function dibujarRuta(L: L, g: Leaflet.LayerGroup, mapa: MapaEnvio & { id?
   ];
   const colocar = () => {
     const caja = mapaL?.getContainer().getBoundingClientRect();
-    const puestas: DOMRect[] = marcas.map((m) => m.getElement()?.getBoundingClientRect()).filter((r): r is DOMRect => !!r);
+    // Estorbos: los círculos de las paradas y los camiones del mapa (tampoco se tapan).
+    const camiones = Array.from(mapaL?.getContainer().querySelectorAll<HTMLElement>('.camion-mapa') ?? []);
+    const puestas: DOMRect[] = [...marcas.map((m) => m.getElement()), ...camiones].map((el) => el?.getBoundingClientRect()).filter((r): r is DOMRect => !!r);
     const pisa = (r: DOMRect) => {
       let a = 0;
       for (const q of puestas) {
