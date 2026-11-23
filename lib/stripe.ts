@@ -56,3 +56,38 @@ export function eventoStripe(cuerpo: string, firma: string | null, toleranciaSeg
   if (!vale) return null;
   try { return JSON.parse(cuerpo); } catch { return null; }
 }
+
+// ---- Devoluciones (usuario, 2026-11-23: «devolver importe» desde la plataforma) -----------
+// Lo cobrado y lo ya devuelto de un pago, en céntimos, según Stripe (él manda: es su dinero).
+export async function pagoStripe(ref: string): Promise<{ ok: true; cobrado: number; devuelto: number } | { ok: false; error: string }> {
+  if (!process.env.STRIPE_SECRET_KEY) return { ok: false, error: 'El pago con tarjeta no está conectado en este entorno.' };
+  if (!/^pi_[A-Za-z0-9_]+$/.test(ref)) return { ok: false, error: 'Este pago no tiene una referencia de Stripe que se pueda devolver desde aquí.' };
+  try {
+    const r = await fetch(`https://api.stripe.com/v1/payment_intents/${ref}?expand[]=latest_charge`, {
+      headers: { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}` }, cache: 'no-store' });
+    const j = await r.json();
+    if (!r.ok) return { ok: false, error: j?.error?.message ?? 'Stripe no ha devuelto los datos del pago.' };
+    const cargo = j.latest_charge && typeof j.latest_charge === 'object' ? j.latest_charge as { amount_refunded?: number } : null;
+    return { ok: true, cobrado: Number(j.amount_received ?? 0), devuelto: Number(cargo?.amount_refunded ?? 0) };
+  } catch { return { ok: false, error: 'No se ha podido hablar con Stripe. Prueba otra vez en un momento.' }; }
+}
+
+/** Pide a Stripe la devolución. `clave` (el id de nuestra devolución) evita repetirla: dos
+    llamadas con la misma clave son una sola devolución. `dudoso`: no se sabe si se hizo. */
+export async function devolverStripe(p: { ref: string; centimos: number; clave: string; envioId: string }):
+  Promise<{ ok: true; id: string } | { ok: false; error: string; dudoso?: boolean }> {
+  try {
+    const f = new URLSearchParams({ payment_intent: p.ref, amount: String(p.centimos), reason: 'requested_by_customer',
+      'metadata[envio_id]': p.envioId, 'metadata[devolucion_id]': p.clave });
+    const r = await fetch('https://api.stripe.com/v1/refunds', {
+      method: 'POST', body: f,
+      headers: { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, 'content-type': 'application/x-www-form-urlencoded',
+        'idempotency-key': `devolucion-${p.clave}` },
+    });
+    const j = await r.json().catch(() => null) as { id?: string; status?: string; error?: { message?: string } } | null;
+    if (r.ok && j?.id && j.status !== 'failed' && j.status !== 'canceled') return { ok: true, id: j.id };
+    // 5xx: Stripe puede haberla hecho o no; con la misma clave, reintentar no la duplica.
+    if (r.status >= 500 || !j) return { ok: false, dudoso: true, error: 'Stripe no ha contestado bien.' };
+    return { ok: false, error: j?.error?.message ?? 'Stripe no ha aceptado la devolución.' };
+  } catch { return { ok: false, dudoso: true, error: 'Se ha cortado la conexión con Stripe.' }; }
+}

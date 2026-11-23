@@ -61,6 +61,8 @@ export type Ficha = {
     banco: string | null; concepto: string | null; fecha_transferencia: string | null;   // de la transferencia (solo Dynamo)
           base: number; iva: number; total: number; conCredito: boolean; limite: string | null; avisado_en: string | null; provisional: boolean;
           aCuenta: number; pendiente: number } | null;   // ya pagado a cuenta y lo que falta (precio subido al modificar un envío pagado)
+  // Devoluciones de pagos con tarjeta ya hechas (usuario, 2026-11-23), para verlas en la ficha.
+  devoluciones: { importe: number; retenido: number; hecha_en: string | null; motivo: string | null; penalizacion: string | null }[];
 };
 
 export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | null; error: string | null }> {
@@ -70,7 +72,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   if (error) return { ficha: null, error: mensajeError(error.message) };
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
-  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam, dif, bol] = await Promise.all([
+  const [par, hit, pen, ofe, res, enl, fir, pag, reg, eta, cam, dif, bol, dev] = await Promise.all([
     sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, sitios(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
@@ -86,6 +88,7 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
     sb.from('difusiones').select('id, estado, precio, contactados, max_contactados, minutos_entre_emails, ultimo_email_en, fin_motivo, empieza_en, carga_prevista_en, corte_en')
       .eq('envio_id', id).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
     sb.rpc('difusion_espera_bolsa', { p_envio: id }),
+    sb.from('devoluciones_pago').select('importe, cobrado, hecha_en, motivo, penalizaciones(codigo)').eq('envio_id', id).eq('estado', 'hecha').order('hecha_en'),
   ]);
   const pg = pag.data;
 
@@ -152,6 +155,8 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
         base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, avisado_en: pg.pago_avisado_en ?? null, provisional: !!pg.precio_provisional,
         aCuenta: Number(pg.a_cuenta ?? 0), pendiente: Number(pg.pendiente ?? 0) } : null,
       margenRevision: Number((reg.data as { margen_pct?: number } | null)?.margen_pct ?? 5),
+      devoluciones: (dev.data ?? []).map((d) => ({ importe: Number(d.importe), retenido: Math.round((Number(d.cobrado) - Number(d.importe)) * 100) / 100,
+        hecha_en: d.hecha_en, motivo: d.motivo, penalizacion: d.penalizaciones?.codigo ?? null })),
     },
   };
 }

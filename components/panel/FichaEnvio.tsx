@@ -23,6 +23,7 @@ import { fechaEntrega, type CambioPendiente } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha } from '@/lib/fichaEnvio';
 import PagoPrevio from './PagoPrevio';
+import { DevolverPago } from './ficha/DevolverPago';
 import { RevisionDynamo, SelloPrecio } from './RevisionPrecio';
 import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
@@ -83,7 +84,7 @@ function MasAcciones({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { ficha: Ficha; cerrarHref: string; pendiente?: CambioPendiente | null }) {
+export default function FichaEnvio({ ficha, cerrarHref, pendiente = null, esMaster = false }: { ficha: Ficha; cerrarHref: string; pendiente?: CambioPendiente | null; esMaster?: boolean }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const e = ficha.envio;
@@ -235,6 +236,7 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} onVolver={() => { setVista('ficha'); refrescar(); }} />;
   if (vista === 'orden') return <CompartirOrden ficha={ficha} onVolver={() => setVista('ficha')} />;
   if (vista === 'deca') return <Deca ficha={ficha} onVolver={() => setVista('ficha')} />;
+  if (vista === 'devolver') return <DevolverPago ficha={ficha} onVolver={() => setVista('ficha')} onHecho={() => { setVista('ficha'); refrescar(); }} />;
 
   // ---- Cabecera «vital»: lo que se mira el 90 % de las veces, sin scroll ------------
   const rutaCorta = [recogidas[0]?.poblacion, entregas[entregas.length - 1]?.poblacion].filter(Boolean).join(' → ');
@@ -375,7 +377,16 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null }: { fi
       })()}
       {!manual && <RevisionDynamo envio={e} r={{ ...e, margen_pct: ficha.margenRevision }} hacer={hacer} />}
       {!manual && <PagoPrevio envio={e} pago={ficha.pago} hacer={hacer}
-        libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en} />}
+        libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en}
+        onDevolver={esMaster ? () => setVista('devolver') : undefined} />}
+      {/* Devoluciones de pagos con tarjeta ya hechas (usuario, 2026-11-23). */}
+      {ficha.devoluciones.map((d, i) => (
+        <div key={i} className="pt-aviso info" data-devolucion style={{ marginBottom: '0.8rem' }}><div>
+          <strong>Pago con tarjeta devuelto</strong>{d.hecha_en ? ` el ${fechaHora(d.hecha_en)}` : ''}: <strong>{euros(d.importe)}</strong> al cliente
+          {d.retenido > 0 && <> · se quedan en Dynamo {euros(d.retenido)}{d.penalizacion ? <> (penalización <strong>{d.penalizacion}</strong>, ya cobrada)</> : null}</>}
+          {d.motivo ? <> · «{d.motivo}»</> : null}.
+        </div></div>
+      ))}
       {/* El código de aceptación (usuario, 2026-11-17): el que va en la bolsa, donde no caben
           enlaces. El transportista lo teclea en /carga y llega a la pantalla de aceptar. Solo
           lo ve Dynamo: con él se ve el precio del transportista. */}

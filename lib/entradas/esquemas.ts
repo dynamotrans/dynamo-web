@@ -90,6 +90,8 @@ export const ESQUEMAS = {
   "app/panel/(app)/envios/acciones-cliente#valorarMiEnvio": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones-cmr#guardarDatosCmr": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000), z.string().max(1000), z.string().max(1000)]),
   "app/panel/(app)/envios/acciones-cmr#leerDatosCmr": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/envios/acciones-devolucion#datosDevolucion": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/envios/acciones-devolucion#devolverPago": z.tuple([z.string().uuid().or(z.literal('')), z.number().or(z.nan()), z.string().max(1000), z.string().max(1000), z.string().max(5000)]),
   "app/panel/(app)/envios/acciones-mapa#mapaDelEnvio": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/envios/acciones-mapa#mapaEnviosEnCurso": z.tuple([]),
   "app/panel/(app)/envios/acciones-mapa#situarParadasDelMapa": z.tuple([]),

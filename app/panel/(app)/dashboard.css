@@ -3078,6 +3078,14 @@ table.data tr.row-overdue > td:first-child { box-shadow: inset 6px 0 0 0 #b91c1c
 /* Rampa AZUL serena que se aclara con la distancia (en días HÁBILES).
    Más suave que el ámbar anterior: descansa la vista. */
 /* Hoy: ÁMBAR suave (destaca en cálido frente al azul de +1/+2). */
+/* Transferencia avisada por el cliente: espera a que Dynamo la valide (usuario, 2026-11-23:
+   «más llamativo, para entrar y poder revisarlo»). Fila marcada y pastilla llena con un punto vivo. */
+table.data tr.row-validar { background: #fff3e6; }
+table.data tr.row-validar > td:first-child { box-shadow: inset 6px 0 0 0 #c2410c; }
+.badge.chip-validar { background: #c2410c; color: #fff; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.28rem 0.65rem; box-shadow: 0 2px 8px rgba(194,65,12,0.28); }
+.chip-validar-pto { width: 8px; height: 8px; border-radius: 50%; background: #fff; flex: none; animation: badgeDotBlink 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .chip-validar-pto { animation: none; } }
+body.theme-dark table.data tr.row-validar { background: rgba(194,65,12,0.16); }
 table.data tr.row-today { background: #fdefd0; }
 table.data tr.row-today > td:first-child { box-shadow: inset 4px 0 0 0 #f0a72e; }
 /* Hoy + 1 día hábil: más claro */
@@ -5407,6 +5415,16 @@ table.data .pago-plazo .cuenta-atras .ca-t { font-weight: 800; }
 .exito-pago .ep-botones button { width: 100%; min-height: 48px; justify-content: center; }
 .exito-pago .ep-nota { margin: 0.35rem 0 0; font-size: var(--fs-s); color: var(--gray-600); line-height: 1.45; }
 .exito-pago .ep-nota strong { color: var(--navy); }
+/* «Devolver importe» (DevolverPago.tsx): las cuentas de lo que se devuelve y lo que se queda. */
+.dv-modo { border: 0; padding: 0; margin: 0.8rem 0 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; }
+.dv-modo legend { font-weight: 800; padding: 0; margin-bottom: 0.3rem; }
+.dv-modo label { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; cursor: pointer; }
+.dv-cuentas { width: 100%; border-collapse: collapse; margin: 0.8rem 0 0.4rem; font-size: var(--fs-m); font-variant-numeric: tabular-nums; }
+.dv-cuentas th, .dv-cuentas td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--gray-200); text-align: right; white-space: nowrap; }
+.dv-cuentas thead th { font-size: var(--fs-s); color: var(--gray-500); font-weight: 600; }
+.dv-cuentas tbody th { text-align: left; font-weight: 700; white-space: normal; }
+.dv-cuentas .dv-fuerte { font-weight: 800; color: #b42318; }
+.dv-nota { margin: 0.5rem 0 0; font-size: var(--fs-s); color: var(--gray-600); line-height: 1.45; }
 /* Transferencia avisada: el plazo está parado, lo valida Dynamo. */
 .pago-avisado {
     display: flex; gap: 0.55rem; align-items: flex-start; padding: 0.7rem 0.9rem; border-radius: 12px; margin: 0.6rem 0 0.4rem;
@@ -5517,6 +5535,12 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .btn-nuevo-menu a:hover { background: var(--gray-100, #f4f4f7); }
 .btn-nuevo-menu a span { display: block; font-weight: 400; font-size: var(--fs-s); color: var(--gray-500); }
 .dash-cta-wrap { position: relative; }
+/* «Nuevo envío» va envuelto (por la flechita), así que es el envoltorio el que ocupa la
+   fila 1 entera; los tres accesos quedan juntos en la fila 2 (usuario, 2026-11-23). */
+.dash-cta-wrap > .dash-cta { width: 100%; height: 100%; }
+@media (min-width: 769px) {
+    .dash-top-2 .dash-cta-stack > .dash-cta-wrap { grid-column: 1 / -1; display: flex; }
+}
 .dash-cta-flecha { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 2; width: 38px; height: 38px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.16); color: #fff; font-size: 1rem; cursor: pointer; }
 .dash-cta-flecha:hover { background: rgba(255,255,255,0.28); }
 .dash-cta-wrap .btn-nuevo-menu { top: 3.2rem; right: 0.6rem; }

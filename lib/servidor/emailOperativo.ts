@@ -116,7 +116,7 @@ async function mandarCuandoToque(id: string): Promise<void> {
       .eq('id', id).eq('estado', 'pendiente').lte('enviar_desde', new Date().toISOString())
       .select('id, tipo, envio_id, destinatario, asunto, cuerpo_html, opciones').maybeSingle();
     if (!f) return;
-    if (f.envio_id && f.tipo !== 'aviso_parada_cancelada') {
+    if (f.envio_id && f.tipo !== 'aviso_parada_cancelada' && f.tipo !== 'pago_devuelto') {
       const { data: e } = await sb.from('envios').select('estado').eq('id', f.envio_id).maybeSingle();
       if (e?.estado === 'cancelado') {
         await sb.from('emails_enviados').update({ estado: 'omitido', error: 'El envío se canceló antes de mandarlo.' }).eq('id', id);

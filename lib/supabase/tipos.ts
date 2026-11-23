@@ -1046,6 +1046,72 @@ export type Database = {
           },
         ]
       }
+      devoluciones_pago: {
+        Row: {
+          id: string
+          envio_id: string
+          pago_ref: string
+          cobrado: number
+          importe: number
+          iva_pct: number
+          estado: string
+          stripe_devolucion_ref: string | null
+          error: string | null
+          motivo: string | null
+          penalizacion_id: string | null
+          creado_en: string
+          creado_por: string | null
+          hecha_en: string | null
+        }
+        Insert: {
+          id?: string
+          envio_id: string
+          pago_ref: string
+          cobrado: number
+          importe: number
+          iva_pct: number
+          estado?: string
+          stripe_devolucion_ref?: string | null
+          error?: string | null
+          motivo?: string | null
+          penalizacion_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          hecha_en?: string | null
+        }
+        Update: {
+          id?: string
+          envio_id?: string
+          pago_ref?: string
+          cobrado?: number
+          importe?: number
+          iva_pct?: number
+          estado?: string
+          stripe_devolucion_ref?: string | null
+          error?: string | null
+          motivo?: string | null
+          penalizacion_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          hecha_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devoluciones_pago_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: true
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_pago_penalizacion_id_fkey"
+            columns: ["penalizacion_id"]
+            isOneToOne: false
+            referencedRelation: "penalizaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       difusiones: {
         Row: {
           id: string
@@ -3206,6 +3272,9 @@ export type Database = {
           creado_por: string | null
           modificado_en: string | null
           modificado_por: string | null
+          cobrada_importe: number | null
+          cobrada_pago_ref: string | null
+          cobrada_en: string | null
         }
         Insert: {
           id?: string
@@ -3222,6 +3291,9 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          cobrada_importe?: number | null
+          cobrada_pago_ref?: string | null
+          cobrada_en?: string | null
         }
         Update: {
           id?: string
@@ -3238,6 +3310,9 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          cobrada_importe?: number | null
+          cobrada_pago_ref?: string | null
+          cobrada_en?: string | null
         }
         Relationships: [
           {
@@ -4529,6 +4604,8 @@ export type Database = {
       deca_ruta_texto: { Args: { p: Json | null }; Returns: string }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }
       deshacer_pack: { Args: { p_pack: string | null }; Returns: Json }
+      devolucion_pago_abrir: { Args: { p_envio: string | null; p_importe: number | null; p_cobrado: number | null; p_motivo?: string | null }; Returns: Json }
+      devolucion_pago_cerrar: { Args: { p_id: string | null; p_ok: boolean | null; p_ref?: string | null; p_error?: string | null }; Returns: Json }
       dias_habiles_antes: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
       dias_ventana_carga: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: number }
       diccionario_datos: { Args: Record<PropertyKey, never>; Returns: { tabla: string; orden: number; columna: string; tipo: string; no_nulo: boolean; descripcion: string; tabla_descripcion: string }[] }
@@ -4880,7 +4957,7 @@ export type Database = {
       tipo_camion: "trailer_tauliner" | "rigido_plataforma"
       tipo_carga: "completa" | "grupaje"
       tipo_concepto: "porte" | "almacenaje" | "paralizacion" | "penalizacion" | "otros"
-      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "descargando" | "cargado" | "descargado" | "etapa_corregida" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida" | "fecha_carga_cambiada" | "mercancia_cambiada"
+      tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "descargando" | "cargado" | "descargado" | "etapa_corregida" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida" | "fecha_carga_cambiada" | "mercancia_cambiada" | "pago_devuelto"
       tipo_sitio: "almacen_nave" | "obra_zona_amplia" | "obra_zona_urbana" | "finca"
       tipo_vehiculo: "tractora" | "remolque" | "rigido"
     }

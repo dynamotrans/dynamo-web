@@ -29,6 +29,8 @@ export type PenalizacionFila = {
   importe_cliente: number | null; importe_transportista: number | null;
   estado: 'pendiente_confirmar' | 'confirmada' | 'cancelada'; generada_auto: boolean; editada_a_mano: boolean;
   creado_en: string; modificado_en: string | null;
+  // Ya cobrada: se retuvo de un pago con tarjeta al devolver solo una parte (con IVA).
+  cobrada_importe: number | null; cobrada_pago_ref: string | null; cobrada_en: string | null;
   envio: string; referencia_cliente: string | null; cliente: string | null; transportista: string | null;
 };
 type Tipo = { id: string; nombre: string; activo: boolean };
@@ -117,7 +119,8 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
                   <td className="ref"><strong>{p.codigo}</strong><div className="meta">{desc.slice(0, 60)}{desc.length > 60 ? '…' : ''}</div></td>
                   <td><strong>#{p.envio}</strong>{p.referencia_cliente && <div className="meta">{p.referencia_cliente}</div>}</td>
                   <td><span className="badge badge-prog">{p.tipo}</span> <span className={`badge badge-${est[1]}`}>{est[0]}</span>
-                    {p.generada_auto && <div className="meta" style={{ color: 'var(--purple)', fontWeight: 700 }}>Generada automáticamente{p.editada_a_mano ? ' · renegociada' : ''}</div>}</td>
+                    {p.generada_auto && <div className="meta" style={{ color: 'var(--purple)', fontWeight: 700 }}>Generada automáticamente{p.editada_a_mano ? ' · renegociada' : ''}</div>}
+                    {p.cobrada_importe != null && <div className="meta" data-pen-cobrada style={{ color: '#166534', fontWeight: 700 }}>Ya cobrada con tarjeta: {euros(p.cobrada_importe)} con IVA</div>}</td>
                   <td>{p.transportista ?? '—'}<div className="meta">{p.cliente ?? ''}</div></td>
                   <td className="amount"><strong>{p.importe_cliente != null ? euros(p.importe_cliente) : '—'}</strong></td>
                   <td className="amount"><strong>{p.importe_transportista != null ? euros(p.importe_transportista) : '—'}</strong></td>
@@ -262,6 +265,13 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
         Una <strong>paralización</strong> la pide el transportista y Dynamo la repercute al cliente: rellena los dos importes. El cliente solo ve el suyo. El que dejes vacío se guarda a <strong>0 €</strong> y sale igual en su pedido (venta o compra) a 0 €: así consta que se aplicó, y el cliente la ve aunque no se le cobre.
         {fila?.generada_auto ? ' Si cambias los importes de una automática, queda marcada como renegociada y ya no se retira sola al deshacer la cancelación.' : ''}
       </p>
+      {fila?.cobrada_importe != null && (
+        <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>
+          <strong>Ya cobrada con tarjeta: {euros(fila.cobrada_importe)} (IVA incluido)</strong>{fila.cobrada_en ? `, el ${fechaHora(fila.cobrada_en)}` : ''}. Es lo que se quedó Dynamo al devolver solo una parte del pago del envío: <strong>no hay que volver a cobrarla</strong>.
+          {fila.cobrada_pago_ref && <> Referencia del pago en Stripe: <code style={{ userSelect: 'all' }}>{fila.cobrada_pago_ref}</code>.</>}
+          {' '}Si cambias el importe al cliente, la diferencia con lo ya cobrado se arregla aparte.
+        </div></div>
+      )}
       <div className="modal-form-row" style={{ marginTop: '0.8rem' }}>
         <label>Adjuntar fotos / documentos</label>
         {fila ? <Documentos dueno={{ campo: 'penalizacion_id', id: fila.id }} tipos={['gps_tacografo', 'albaran', 'cmr_firmado', 'foto_incidencia', 'otro']}

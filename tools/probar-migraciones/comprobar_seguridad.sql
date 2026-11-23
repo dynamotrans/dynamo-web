@@ -7465,6 +7465,7 @@ do $$ declare faltan text; begin
                            'envio_cambios',            -- contador de «anular el cambio»: se pide al pintar la lista y la ficha, que ya se refrescan con la señal de envios
                            'transportista_cancelaciones',  -- contador de la ficha del transportista: cambia al quitar o cambiar el transportista de un envío (señal de envios)
                            'cmr_codigos_firma',        -- códigos de firma del CMR: solo los usa el servidor, no se pintan en el panel
+                           'devoluciones_pago',        -- devoluciones de tarjeta: al hacerse cambia el envío (señal de envios) y la ficha, que es quien las pinta, se recarga
                            'documentos_entrada')       -- bandeja de albaranes por verificar: solo Dynamo, se recarga al revisar (el envío cambia al aceptar, con la señal de documentos)
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
@@ -14993,3 +14994,161 @@ begin
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 
+
+-- 332 · DEVOLUCIÓN DE UN PAGO CON TARJETA (usuario, 2026-11-23): solo el Admin Master; el importe
+--       no pasa de lo cobrado; total → el envío deja de estar pagado, con hito y email al cliente;
+--       parcial → además una penalización sin confirmar por lo retenido, ya cobrada con ese pago;
+--       si Stripe falla no cambia nada; cerrada una vez, no se cierra dos.
+do $$
+declare cli uuid; adm uuid := current_setting('prueba.u_admin')::uuid; e uuid; e2 uuid; r jsonb; d uuid; lun date; v_man numeric; v_ces numeric;
+        p record; n int; ok boolean;
+begin
+  select cliente_id into cli from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  select riesgo_manual_euros, riesgo_cesce_euros into v_man, v_ces from clientes where id = cli;
+  update clientes set riesgo_manual_euros = 0, riesgo_cesce_euros = 0 where id = cli;   -- sin crédito: al devolver vuelve a pendiente
+  lun := current_date + ((8 - extract(isodow from current_date)::int) % 7) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 1000, 700, lun, lun + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_pendiente_en = now() where id = e;
+  update envios set estado = 'programado' where id = e;
+  update envios set estado_pago_previo = 'pagado', pago_metodo = 'stripe', pagado_en = now(), stripe_pago_ref = 'pi_332a' where id = e;
+
+  -- Nadie más que el Admin Master: ni el cliente, ni un usuario de Dynamo de solo lectura.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  ok := false;
+  begin perform devolucion_pago_abrir(e, 1210, 1210, null); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 332 · un cliente puede abrir una devolución'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_al85'), false);
+  ok := false;
+  begin perform devolucion_pago_abrir(e, 1210, 1210, null); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 332 · un usuario de solo lectura puede abrir una devolución'; end if;
+  ok := false;
+  begin perform devolucion_pago_cerrar(gen_random_uuid(), true, 're_x', null); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 332 · un usuario de solo lectura puede cerrar una devolución'; end if;
+
+  perform set_config('request.jwt.claim.sub', adm::text, false);
+  -- Importes que no valen.
+  r := devolucion_pago_abrir(e, 1300, 1210, null);
+  if r->>'resultado' <> 'importe_excesivo' then raise exception 'FALLO 332 · deja devolver más de lo cobrado: %', r; end if;
+  r := devolucion_pago_abrir(e, 0, 1210, null);
+  if r->>'resultado' <> 'importe_no_valido' then raise exception 'FALLO 332 · deja devolver 0: %', r; end if;
+
+  -- Si Stripe la rechaza: fallida y el envío sigue pagado.
+  r := devolucion_pago_abrir(e, 1210, 1210, 'Prueba 332');
+  if r->>'resultado' <> 'ok' or r->>'pago_ref' <> 'pi_332a' then raise exception 'FALLO 332 · no abre la devolución: %', r; end if;
+  d := (r->>'id')::uuid;
+  -- Abrirla otra vez con el mismo importe la retoma (misma fila); con otro importe, espera.
+  r := devolucion_pago_abrir(e, 1210, 1210, null);
+  if (r->>'id')::uuid is distinct from d then raise exception 'FALLO 332 · repetir la misma devolución abre otra: %', r; end if;
+  r := devolucion_pago_abrir(e, 500, 1210, null);
+  if r->>'resultado' <> 'en_curso' then raise exception 'FALLO 332 · con una en curso deja abrir otra distinta: %', r; end if;
+  r := devolucion_pago_cerrar(d, false, null, 'tarjeta caducada');
+  if r->>'resultado' <> 'fallida' or (select estado_pago_previo from envios where id = e) <> 'pagado' then
+    raise exception 'FALLO 332 · una devolución fallida cambia el envío: %', r; end if;
+  if exists (select 1 from envio_hitos where envio_id = e and hito = 'pago_devuelto') then raise exception 'FALLO 332 · una devolución fallida deja hito'; end if;
+
+  -- TOTAL: el envío vuelve a pendiente de pago (sin crédito), con plazo nuevo, hito y email; sin penalización.
+  d := (devolucion_pago_abrir(e, 1210, 1210, 'Lo pide el cliente')->>'id')::uuid;
+  r := devolucion_pago_cerrar(d, true, 're_332a', null);
+  if r->>'resultado' <> 'ok' or (r->>'retenido')::numeric <> 0 or r->>'estado_pago' <> 'pendiente' or r->>'penalizacion' is not null then
+    raise exception 'FALLO 332 · devolución total: %', r; end if;
+  if (r->>'base_devuelta')::numeric <> 1000 then raise exception 'FALLO 332 · base devuelta mal: %', r; end if;
+  select estado_pago_previo, pago_metodo, pagado_en, stripe_pago_ref, pago_pendiente_en into p from envios where id = e;
+  if p.estado_pago_previo <> 'pendiente' or p.pago_metodo is not null or p.pagado_en is not null or p.stripe_pago_ref is not null then
+    raise exception 'FALLO 332 · tras devolver, el envío sigue con datos del pago: %', p; end if;
+  if p.pago_pendiente_en is null or p.pago_pendiente_en < now() - interval '1 minute' then
+    raise exception 'FALLO 332 · al volver a pendiente no empieza un plazo nuevo: %', p.pago_pendiente_en; end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'pago_devuelto' and (datos->>'devuelto')::numeric = 1210) then
+    raise exception 'FALLO 332 · no queda el hito de la devolución'; end if;
+  if not hito_visible_fuera('pago_devuelto') then raise exception 'FALLO 332 · el cliente no ve el hito «pago devuelto»'; end if;
+  if not exists (select 1 from emails_enviados where clave = 'pago_devuelto:' || d and tipo = 'pago_devuelto' and position('1.210,00' in cuerpo_html) > 0) then
+    raise exception 'FALLO 332 · no se encola el email «Pago devuelto» con el importe'; end if;
+  if (select estado from devoluciones_pago where id = d) <> 'hecha' or (select stripe_devolucion_ref from devoluciones_pago where id = d) <> 're_332a' then
+    raise exception 'FALLO 332 · la devolución no queda hecha con su referencia'; end if;
+  r := devolucion_pago_cerrar(d, true, 're_otra', null);
+  if r->>'resultado' <> 'ya_cerrada' then raise exception 'FALLO 332 · una devolución se cierra dos veces: %', r; end if;
+  r := devolucion_pago_abrir(e, 100, 1210, null);
+  if r->>'resultado' <> 'no_pagado_con_tarjeta' then raise exception 'FALLO 332 · deja devolver un envío que ya no está pagado: %', r; end if;
+  update envios set estado = 'cancelado' where id = e;
+
+  -- PARCIAL sobre un envío ya cancelado: se devuelven 847 de 1.210; los 363 (300 + IVA) quedan
+  -- en una penalización sin confirmar, ya cobrada con ese pago; el envío no pide pago.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 1000, 700, lun, lun + 1) returning id into e2;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_pendiente_en = now() where id = e2;
+  update envios set estado = 'programado' where id = e2;
+  update envios set estado_pago_previo = 'pagado', pago_metodo = 'stripe', pagado_en = now(), stripe_pago_ref = 'pi_332b' where id = e2;
+  update envios set estado = 'cancelado' where id = e2;
+  select count(*) into n from penalizaciones where envio_id = e2;
+  d := (devolucion_pago_abrir(e2, 847, 1210, null)->>'id')::uuid;
+  r := devolucion_pago_cerrar(d, true, 're_332b', null);
+  if r->>'resultado' <> 'ok' or (r->>'retenido')::numeric <> 363 or (r->>'base_retenida')::numeric <> 300 or (r->>'base_devuelta')::numeric <> 700
+     or r->>'estado_pago' <> 'no_requerido' or r->>'penalizacion' is null then
+    raise exception 'FALLO 332 · devolución parcial: %', r; end if;
+  select * into p from penalizaciones where id = (select penalizacion_id from devoluciones_pago where id = d);
+  if p.id is null or p.envio_id <> e2 or p.estado <> 'pendiente_confirmar' or p.importe_cliente <> 300 or p.descripcion <> 'Cancelación transporte fuera de plazo'
+     or p.cobrada_importe <> 363 or p.cobrada_pago_ref <> 'pi_332b' or p.cobrada_en is null then
+    raise exception 'FALLO 332 · la penalización por lo retenido no queda bien: %', p; end if;
+  if (select count(*) from penalizaciones where envio_id = e2) <> n + 1 then raise exception 'FALLO 332 · la devolución parcial no crea exactamente una penalización'; end if;
+  if (select estado from envios where id = e2) <> 'cancelado' then raise exception 'FALLO 332 · devolver cambia el estado del envío'; end if;
+  -- Lo cobrado no se toca a mano desde el panel (aunque el equipo pueda editar la penalización).
+  set local role authenticated;
+  update penalizaciones set cobrada_importe = 1, cobrada_pago_ref = 'pi_falso', descripcion = 'Cancelación fuera de plazo (editada)' where id = p.id;
+  reset role;
+  select * into p from penalizaciones where id = p.id;
+  if p.cobrada_importe <> 363 or p.cobrada_pago_ref <> 'pi_332b' or p.descripcion <> 'Cancelación fuera de plazo (editada)' then
+    raise exception 'FALLO 332 · lo cobrado de una penalización se puede cambiar a mano: %', p; end if;
+  if not exists (select 1 from emails_enviados where clave = 'pago_devuelto:' || d and position('847,00' in cuerpo_html) > 0 and position('1.210,00' in cuerpo_html) > 0) then
+    raise exception 'FALLO 332 · el email de la devolución parcial no dice lo devuelto y lo pagado'; end if;
+
+  update clientes set riesgo_manual_euros = v_man, riesgo_cesce_euros = v_ces where id = cli;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 332 · devolución de un pago con tarjeta: solo el Admin Master, importe acotado, total y parcial (con su penalización ya cobrada), fallo de Stripe sin cambios, hito y email';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 333 · TRANSFERENCIAS AVISADAS, ARRIBA (usuario, 2026-11-23): en «Pendientes de pago» y en
+--       «Todas» salen primero los envíos con la transferencia avisada (el que más espera, antes);
+--       el resto, como siempre, lo más nuevo arriba. Pagado o cancelado, deja de ir arriba.
+do $$
+declare cli uuid; a uuid; b uuid; c uuid; lun date; ids uuid[]; base uuid[];
+begin
+  select cliente_id into cli from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  lun := current_date + ((8 - extract(isodow from current_date)::int) % 7) + 7;
+  for i in 1..3 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+      values (cli, 13.30, 20, 900, 700, lun, lun + 1) returning id into c;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (c, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (c, 2, 'descarga', '28821', 'Coslada', 'ES');
+    update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_pendiente_en = now() where id = c;
+    update envios set estado = 'programado' where id = c;
+    base := array_append(base, c);
+  end loop;
+  -- Sin avisos: el orden de siempre (lo más nuevo arriba; nacidos a la vez, por su id).
+  select array_agg(id) into ids from (select id from envios_pagina('sin-pagar', 1, 200, cli) where id = any(base)) x;
+  if ids is distinct from (select array_agg(id order by creado_en desc, id) from envios where id = any(base)) then
+    raise exception 'FALLO 333 · sin avisos el orden no es por creación: %', ids; end if;
+  -- Para que el aviso cambie el orden de verdad: «a» es el ÚLTIMO de la lista, «b» el del medio.
+  a := ids[3]; b := ids[2]; c := ids[1];
+  -- Avisan a (el más antiguo) y luego b: a va primero (lleva más esperando), después b, después c.
+  update envios set pago_avisado_en = now() - interval '2 hours' where id = a;
+  update envios set pago_avisado_en = now() - interval '1 hour' where id = b;
+  select array_agg(id) into ids from (select id from envios_pagina('sin-pagar', 1, 200, cli) where id in (a, b, c)) x;
+  if ids is distinct from array[a, b, c] then raise exception 'FALLO 333 · las transferencias avisadas no van arriba en «Pendientes de pago»: %', ids; end if;
+  select array_agg(id) into ids from (select id from envios_pagina('todas', 1, 200, cli) where id in (a, b, c)) x;
+  if ids is distinct from array[a, b, c] then raise exception 'FALLO 333 · las transferencias avisadas no van arriba en «Todas»: %', ids; end if;
+  if (select id from envios_pagina('sin-pagar', 1, 1, cli)) is distinct from a then raise exception 'FALLO 333 · la avisada que más espera no es la primera de la página'; end if;
+  -- Cancelado a, deja de ir arriba en «Todas» (ya no espera nada de Dynamo).
+  update envios set estado = 'cancelado' where id = a;
+  select array_agg(id) into ids from (select id from envios_pagina('todas', 1, 200, cli) where id in (a, b, c)) x;
+  if ids is distinct from array[b, c, a] then raise exception 'FALLO 333 · un envío cancelado sigue arriba por su aviso: %', ids; end if;
+  update envios set estado = 'cancelado' where id in (b, c);
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 333 · lista de envíos: las transferencias avisadas van arriba (la que más espera, primero) en «Pendientes de pago» y «Todas»';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

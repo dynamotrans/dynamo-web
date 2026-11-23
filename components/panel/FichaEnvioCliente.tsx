@@ -45,6 +45,7 @@ const HITOS: Record<string, string> = {
   cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', cmr_firmado: 'CMR firmado',
   fecha_carga_movida: 'Fecha de carga movida (el pago llegó tarde)',
   fecha_carga_cambiada: 'Fecha de carga cambiada',
+  pago_devuelto: 'Pago con tarjeta devuelto',
   mercancia_cambiada: 'Mercancía cambiada',
 };
 const I = ({ d }: { d: string[] }) => (
@@ -567,7 +568,9 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
             </div>
           </div>
         )}
-        {resAviso && <div className={resAviso.ok ? 'pt-aviso info' : 'wiz-warn show'} role="status" style={{ marginTop: '0.5rem' }}><div>{resAviso.ok ? resAviso.txt : `⚠ ${resAviso.txt}`}</div></div>}
+        {/* El «Aviso recibido» solo mientras el aviso sigue en pie: si se anula (contador de 30 s),
+            se quita con él (usuario, 2026-11-23: «el mensaje de haber pagado no se quita»). */}
+        {resAviso && (!resAviso.ok || !!p.pago_avisado_en) && <div className={resAviso.ok ? 'pt-aviso info' : 'wiz-warn show'} role="status" style={{ marginTop: '0.5rem' }}><div>{resAviso.ok ? resAviso.txt : `⚠ ${resAviso.txt}`}</div></div>}
         {avisando && <Cargando texto="Enviando tu aviso" />}
         <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
           {p.pago_avisado_en

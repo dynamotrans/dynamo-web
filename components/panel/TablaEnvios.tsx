@@ -252,9 +252,11 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
   const margen = pc != null && pt != null ? pc - pt : null;
   const fijado = e.precio_fijado_a_mano ? <div className="meta-manual">fijado a mano</div> : null;
   const completo = e.tipo_carga === 'completa';
+  // Transferencia avisada: Dynamo tiene que validarla. Fila marcada (usuario, 2026-11-23).
+  const porValidar = dynamo && esPendientePago(e) && !!e.pago_avisado_en;
 
   return (
-    <Fila href={href} className={urgencia(e) || undefined}>
+    <Fila href={href} className={porValidar ? 'row-validar' : urgencia(e) || undefined}>
       {dynamo && (
         <td className="creadopor">
           <span className="cli-tag" title={e.cliente ?? undefined}>{e.cliente ?? 'Sin cliente'}</span>
@@ -267,7 +269,9 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
       <td className="ref">
         <div className="envio-estado envio-estado-top"><span className={`badge badge-${ev.color}`}>{ev.label}</span></div>
         {esPendientePago(e) && (e.pago_avisado_en
-          ? <div className="meta pago-plazo" title="El cliente avisó de su transferencia: el plazo está parado hasta que Dynamo la valide o la rechace"><span className="badge badge-orange">{dynamo ? 'Transferencia avisada · validar' : 'Validando tu transferencia'}</span></div>
+          ? <div className="meta pago-plazo" title="El cliente avisó de su transferencia: el plazo está parado hasta que Dynamo la valide o la rechace">{dynamo
+            ? <span className="badge chip-validar"><span className="chip-validar-pto" aria-hidden="true" />Transferencia avisada · validar</span>
+            : <span className="badge badge-orange">Validando tu transferencia</span>}</div>
           : e.pago_limite && <div className="meta pago-plazo" title="Tiempo que queda para pagar; pasado el plazo, el envío se anula solo"><CuentaAtras hasta={e.pago_limite} corto etiqueta="Para pagar" vencidoTxt="Plazo vencido" /></div>)}
         {dynamo && e.estado_cambio_cliente === 'pendiente' && <div className="meta" style={{ color: '#b45309', fontWeight: 800 }}>Cambio pedido por el cliente</div>}
         {dynamo && e.requiere_revision_precio && <div className="meta" style={{ color: '#b42318', fontWeight: 800 }}>Revisar precio (ruta cambiada)</div>}

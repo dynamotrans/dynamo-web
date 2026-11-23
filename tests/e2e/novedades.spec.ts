@@ -593,6 +593,51 @@ test.describe('novedades', () => {
     }
   });
 
+  // DEVOLVER EL IMPORTE de un pago con tarjeta (usuario, 2026-11-23): el botón solo lo ve el Admin
+  // Master en un envío pagado con tarjeta, y la ventana pide importe, contraseña y la palabra
+  // CONFIRMAR. Aquí no hay Stripe: la ventana lo dice y no deja devolver nada (las reglas y las
+  // cuentas van en la prueba 332 de la base de datos y en las pruebas unitarias).
+  test('devolver importe: el botón sale en un envío pagado con tarjeta y la ventana pide importe, contraseña y CONFIRMAR', async ({ page }) => {
+    const sv = bd();
+    const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const d = new Date(Date.now() + 12 * 86400000).toISOString().slice(0, 10);
+    const h = new Date(Date.now() + 13 * 86400000).toISOString().slice(0, 10);
+    const { data: e, error } = await sv.from('envios').insert({ cliente_id: u!.cliente_id, metros_lineales: 13.3, toneladas: 20, importe_cliente: 1000,
+      fecha_carga_desde: d, fecha_carga_hasta: h }).select('id').single();
+    expect(error).toBeNull();
+    await sv.from('envio_paradas').insert([
+      { envio_id: e!.id, orden: 1, tipo: 'carga', codigo_postal: '41001', poblacion: 'Sevilla', pais_codigo_iso: 'ES', nombre_empresa: 'Nave devolución' },
+      { envio_id: e!.id, orden: 2, tipo: 'descarga', codigo_postal: '28821', poblacion: 'Coslada', pais_codigo_iso: 'ES', nombre_empresa: 'Destino devolución' },
+    ]);
+    await sv.from('envios').update({ estado_pago_previo: 'pendiente', pago_motivo: 'Pedido por Dynamo' }).eq('id', e!.id);
+    await sv.from('envios').update({ estado: 'programado' }).eq('id', e!.id);
+    const pagado = await sv.from('envios').update({ estado_pago_previo: 'pagado', pago_metodo: 'stripe', pagado_en: new Date().toISOString(), stripe_pago_ref: 'pi_e2e_devolucion' }).eq('id', e!.id);
+    expect(pagado.error).toBeNull();
+    try {
+      await entrar(page, 'dynamo');
+      await page.goto(`/panel/envios?ver=${e!.id}`);
+      const boton = page.locator('#pago-devolver');
+      await expect(boton).toBeVisible();
+      await boton.click();
+      const ventana = page.locator('.dash-modal.open');
+      await expect(ventana).toContainText('Devolver importe');
+      // Sin Stripe en este entorno: lo dice y no hay nada que devolver.
+      await expect(ventana.getByRole('alert')).toContainText('no está conectado');
+      await expect(page.locator('#dv-devolver')).toBeDisabled();
+      await ventana.getByRole('button', { name: 'No, volver' }).click();
+      await expect(boton).toBeVisible();
+      // Un envío que no está pagado con tarjeta no ofrece devolver nada.
+      await sv.from('envios').update({ pago_metodo: 'transferencia', stripe_pago_ref: null }).eq('id', e!.id);
+      await page.goto(`/panel/envios?ver=${e!.id}`);
+      await expect(page.locator('.dash-modal.open')).toContainText('Pagado por adelantado');
+      await expect(page.locator('#pago-devolver')).toHaveCount(0);
+      // (Que solo el Admin Master pueda devolver lo comprueban la acción del servidor y la
+      // prueba 332 de la base de datos: aquí no se puede degradar al único Admin Master.)
+    } finally {
+      await sv.from('envios').update({ estado: 'cancelado' }).eq('id', e!.id);
+    }
+  });
+
   // APARCADOS PARA LA V3 (usuario, 2026-11-23: «dejamos eso del pack para v3 mejor»): con el
   // módulo apagado en lib/modulos.ts no se ve nada (ni recuadro, ni menú, ni pantalla), pero la
   // base de datos sigue sin dejar pasar del tráiler. Al encenderlo, vuelve la prueba de pantalla.

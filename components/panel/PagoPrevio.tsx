@@ -16,8 +16,9 @@ import { avisaFaltas } from '@/lib/faltas';
 
 type Hacer = (texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => Promise<boolean>;
 
-export default function PagoPrevio({ envio, pago, libre, hacer }: {
+export default function PagoPrevio({ envio, pago, libre, hacer, onDevolver }: {
   envio: { id: string; estado: string; referencia_gx: string; stripe_cobro_sin_aplicar?: string | null }; pago: Ficha['pago']; libre: boolean; hacer: Hacer;
+  onDevolver?: () => void;   // solo el Admin Master: abre «Devolver importe» (pago con tarjeta)
 }) {
   const [exento, setExento] = useState(false);
   const [transferencia, setTransferencia] = useState(false);   // abierto el formulario de banco, concepto y fecha
@@ -127,6 +128,12 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
             <span style={{ color: 'var(--gray-500)' }}> · va en el concepto del pedido de venta al exportar</span></>
         : <><strong>Sin pago previo</strong> (cobro a vencimiento){pago.exento_motivo ? <> · {pago.exento_motivo}</> : null}. Se pedía por: {pago.motivo ?? '—'}.</>}
       {deshacer}
+      {/* Devolver el importe de un pago con tarjeta: decisión de una persona, solo el Admin Master. */}
+      {pago.estado === 'pagado' && pago.metodo === 'stripe' && onDevolver && (
+        <div style={{ marginTop: '0.55rem' }}>
+          <button type="button" className="btn-secondary" id="pago-devolver" onClick={onDevolver}>Devolver importe</button>
+        </div>
+      )}
     </div></div>
   );
 }

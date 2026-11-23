@@ -32,7 +32,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
   const vista = await vistaDe(supabase, perfil.rol);
   const [pen, tipos, envios] = await Promise.all([
     leerTodo(filtrarVista(supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
-      'editada_a_mano, creado_en, modificado_en, tipos_penalizacion(nombre), ' +
+      'editada_a_mano, creado_en, modificado_en, cobrada_importe, cobrada_pago_ref, cobrada_en, tipos_penalizacion(nombre), ' +
       (vista.tipo === 'admin' ? 'envios' : 'envios!inner') + '(referencia_gx, referencia_cliente, cliente_id, transportista_id, clientes(nombre_visible), transportistas(nombre_visible))'),
       vista, { cliente: 'envios.cliente_id', transportista: 'envios.transportista_id' })
       .order('creado_en', { ascending: false }), 5000),
@@ -44,6 +44,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     descripcion: p.descripcion, importe_cliente: p.importe_cliente != null ? Number(p.importe_cliente) : null,
     importe_transportista: p.importe_transportista != null ? Number(p.importe_transportista) : null,
     estado: p.estado, generada_auto: p.generada_auto, editada_a_mano: p.editada_a_mano, creado_en: p.creado_en, modificado_en: p.modificado_en,
+    cobrada_importe: p.cobrada_importe != null ? Number(p.cobrada_importe) : null, cobrada_pago_ref: p.cobrada_pago_ref, cobrada_en: p.cobrada_en,
     envio: p.envios?.referencia_gx ?? '—', referencia_cliente: p.envios?.referencia_cliente ?? null,
     cliente: p.envios?.clientes?.nombre_visible ?? null, transportista: p.envios?.transportistas?.nombre_visible ?? null,
   }));

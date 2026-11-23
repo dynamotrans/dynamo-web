@@ -332,7 +332,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual}
         op={op} por={por} est={est} fr={fr} fd={fd} fh={fh} operadores={opcOperadores} creadores={opcCreadores}
         vista={vistaCal ? 'calendario' : 'lista'} mes={mes} hoy={hoy} vistaTransportista={vista.tipo === 'transportista'} />
-      {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} pendiente={pendienteVer} />}
+      {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} cerrarHref={cerrarHref} pendiente={pendienteVer} esMaster={perfil.rol === 'admin'} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} etapas={etapasVer} cerrarHref={cerrarHref} pendiente={pendienteVer} />}
       {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} etapas={etapasVer} cerrarHref={cerrarHref} cambio={cambioViaje} />}
     </>
