@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { sesion, esGestor, esDynamo } from '@/lib/sesion';
 import { pdfProformaCalculo, lineasProforma } from '@/lib/servidor/proformaCalculo';
 import { enviarEmailOperativo } from '@/lib/servidor/emailOperativo';
+import { completarEmailEnvioCreado } from '@/lib/servidor/emailEnvioCreado';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { CONTACTO } from '@/lib/atencion';
 import { euros, porcentaje } from '@/lib/formato';
@@ -114,6 +115,8 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
     await s.supabase.from('envios').update({ negociacion_pct }).eq('id', fila.id);
   }
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas);
+  // Si nace pendiente de pago, su email «Envío creado» sale con la proforma adjunta.
+  if (fila?.id) await completarEmailEnvioCreado(s.supabase, fila.id, true);
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null };
 }
 
@@ -263,6 +266,8 @@ export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | '
     const m = pagoPendiente ? (pg?.pago_motivo ?? '') : '';
     pagoRazon = m.startsWith('Primer') ? 'primero' : m.startsWith('Uno de los') ? 'primeros'
       : m.startsWith('Crédito insuficiente') ? 'credito' : null;
+    // El email «Envío creado» lleva la proforma adjunta y dice cómo pagar (usuario, 2026-11-23).
+    if (pagoPendiente) await completarEmailEnvioCreado(s.supabase, fila.id, false);
   }
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '', id: fila?.id ?? null, pagoPendiente, pagoRazon, pagoLimite };
 }

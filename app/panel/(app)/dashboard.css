@@ -5366,7 +5366,13 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
 .cuenta-atras[data-urgente] { background: #fde6e3; border-color: #f0a097; color: #b42318; }
 /* En las tablas, la pastilla del plazo va como las etiquetas de estado (usuario, 2026-11-23:
    «se ve mal, no proporcionado»): mismo tamaño y alto que la de «Pendiente de pago». */
-table.data .pago-plazo { margin: 0; min-height: var(--rl); display: flex; align-items: center; }
+table.data .pago-plazo { margin: 0.4rem 0 0.45rem; display: flex; align-items: center; }
+/* Con aire (usuario, 2026-11-23: «está muy apretado»): separada de la etiqueta de estado y de
+   la referencia, sin borde (como las demás etiquetas) y con el reloj y el tiempo holgados. */
+table.data .pago-plazo .cuenta-atras { border: 0; padding: 0.22rem 0.7rem 0.22rem 0.6rem; gap: 0.4rem; line-height: 1.35; }
+table.data .pago-plazo .cuenta-atras .ca-etq { font-weight: 600; opacity: 0.9; }
+table.data .pago-plazo .cuenta-atras .ca-etq::after { content: ''; }
+table.data .pago-plazo .cuenta-atras .ca-t { font-weight: 800; }
 /* Banda de la ficha (usuario, 2026-11-23: «también sale grande; diseño profesional»): una
    línea sobria, reloj dibujado en un círculo y el tiempo en negrita del mismo color. */
 .cuenta-atras-grande {

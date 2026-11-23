@@ -554,6 +554,40 @@ test.describe('novedades', () => {
   // PACKS DE GRUPAJE (usuario, 2026-11-23): en la ficha de Dynamo, un recuadro con las
   // partidas que se pueden juntar (misma ruta de provincias, un día en común); se crea el
   // pack y lo que ya no cabe en el tráiler no se deja marcar. La lista enseña el pack.
+  // Email «Envío creado» de un envío pendiente de pago (usuario, 2026-11-23): dice cómo pagar,
+  // lleva el botón «Pagar el envío» y la proforma ADJUNTA en PDF; y la pantalla de «¡Envío
+  // creado!» trae los botones de pago dentro de su caja.
+  test('envío pendiente de pago: caja con botones al crearlo y email con cómo pagar y la proforma adjunta', async ({ page }) => {
+    const sv = bd();
+    const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const { data: c } = await sv.from('clientes').select('riesgo_manual_euros').eq('id', u!.cliente_id).single();
+    // Con 1 € de crédito cualquier envío se queda pendiente de pago (no le cabe).
+    await sv.from('clientes').update({ riesgo_manual_euros: 1 }).eq('id', u!.cliente_id);
+    try {
+      await entrar(page, 'cliente');
+      await crearEnvioDeCliente(page);
+      const caja = page.locator('.exito-pago');
+      await expect(caja).toContainText('Pendiente de pago');
+      await expect(caja.getByRole('button', { name: 'Pagar por transferencia' })).toBeVisible();
+      await expect(caja.locator('.cuenta-atras-grande')).toContainText(/Te quedan .*\d.* para pagar/);
+      const e = await ultimoEnvio();
+      const { data: em, error } = await sv.from('emails_enviados').select('cuerpo_html, opciones').eq('clave', `envio_creado:${e.id}`).single();
+      expect(error).toBeNull();
+      expect(em!.cuerpo_html).toContain('Cómo pagar');
+      expect(em!.cuerpo_html).toContain('>Pagar el envío</a>');
+      expect(em!.cuerpo_html).toContain('adjunta en PDF');
+      expect(em!.cuerpo_html).toContain('ha llegado a nuestra cuenta');
+      expect(em!.cuerpo_html).not.toContain('<!--pago-proforma-->');
+      const adj = ((em!.opciones ?? {}) as { adjuntos?: { Name: string; ContentType: string; Content: string }[] }).adjuntos ?? [];
+      expect(adj).toHaveLength(1);
+      expect(adj[0].Name).toMatch(/^Proforma-.+\.pdf$/);
+      expect(adj[0].ContentType).toBe('application/pdf');
+      expect(Buffer.from(adj[0].Content, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
+    } finally {
+      await sv.from('clientes').update({ riesgo_manual_euros: c!.riesgo_manual_euros }).eq('id', u!.cliente_id);
+    }
+  });
+
   // APARCADOS PARA LA V3 (usuario, 2026-11-23: «dejamos eso del pack para v3 mejor»): con el
   // módulo apagado en lib/modulos.ts no se ve nada (ni recuadro, ni menú, ni pantalla), pero la
   // base de datos sigue sin dejar pasar del tráiler. Al encenderlo, vuelve la prueba de pantalla.

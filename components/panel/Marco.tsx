@@ -389,7 +389,9 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
                 </div>
               </div>
             </div>
-            {visto === 'cliente' && cobertura && (
+            {/* Un estado que esta versión no conozca (la base de datos puede ir unos minutos por
+                delante del despliegue) no tumba el panel: simplemente no se pinta el indicador. */}
+            {visto === 'cliente' && cobertura && COBERTURA[cobertura] && (
               <div className="topbar-cesce-wrap">
                 <button type="button" className={`topbar-ind topbar-ind-cesce ${COBERTURA[cobertura].chip}${menu === 'cesce' ? ' cesce-open' : ''}`} aria-haspopup="menu" aria-expanded={menu === 'cesce'}
                         title="Cobertura de crédito CESCE" aria-label="Cobertura de crédito CESCE" onClick={() => setMenu(menu === 'cesce' ? null : 'cesce')}>

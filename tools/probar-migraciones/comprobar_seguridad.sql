@@ -14946,3 +14946,50 @@ begin
   raise notice 'OK 330 · cobertura de crédito: sin clasificar, sin crédito (0), superado (consumido o con un envío esperando el pago por crédito) y disponible';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 331 · EMAIL «ENVÍO CREADO» PENDIENTE DE PAGO (usuario, 2026-11-23): dice cómo pagar, lleva el
+--       botón «Pagar el envío» y deja los dos huecos que completa el servidor web (tarjeta y
+--       proforma adjunta). Sin pago pendiente no dice nada de pagar.
+do $$
+declare cli uuid; adm uuid; e uuid; s uuid; r record; lun date;
+begin
+  select cliente_id into cli from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  adm := current_setting('prueba.u_al85', true)::uuid;
+  lun := current_date + ((8 - extract(isodow from current_date)::int) % 7) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 900, 700, lun, lun + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_pendiente_en = now() where id = e;
+  update envios set estado = 'programado' where id = e;
+  select * into r from emails_enviados where clave = 'envio_creado:' || e;
+  if r.id is null then raise exception 'FALLO 331 · no se encola el email «Envío creado»'; end if;
+  if coalesce(precio_por_revisar((select estado_revision_precio from envios where id = e)), false) then
+    if position('Cómo pagar' in r.cuerpo_html) > 0 or position('Pagar el envío' in r.cuerpo_html) > 0 then
+      raise exception 'FALLO 331 · con el precio provisional el email invita a pagar'; end if;
+    if position('provisional' in r.cuerpo_html) = 0 then raise exception 'FALLO 331 · con el precio provisional el email no lo dice'; end if;
+  else
+    if position('Cómo pagar' in r.cuerpo_html) = 0 or position('Ya he hecho la transferencia' in r.cuerpo_html) = 0
+       or position('ha llegado a nuestra cuenta' in r.cuerpo_html) = 0 then
+      raise exception 'FALLO 331 · el email de un envío pendiente de pago no dice cómo pagar: %', r.cuerpo_html; end if;
+    if position('<!--pago-tarjeta-->' in r.cuerpo_html) = 0 or position('<!--pago-proforma-->' in r.cuerpo_html) = 0 then
+      raise exception 'FALLO 331 · faltan los huecos que completa el servidor web (tarjeta y proforma adjunta)'; end if;
+    if position('/panel/envios?ver=' || e in r.cuerpo_html) = 0 or position('>Pagar el envío</a>' in r.cuerpo_html) = 0 then
+      raise exception 'FALLO 331 · falta el botón «Pagar el envío» a la ficha'; end if;
+  end if;
+  update envios set estado = 'cancelado' where id = e;
+  -- Un envío que no espera pago: ni cómo pagar, ni botón de pagar, ni huecos.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (cli, 13.30, 20, 900, 700, lun, lun + 1) returning id into s;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (s, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (s, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado_pago_previo = 'exento', pago_exento_motivo = 'Prueba 331' where id = s;
+  update envios set estado = 'programado' where id = s;
+  select * into r from emails_enviados where clave = 'envio_creado:' || s;
+  if r.id is not null and (position('Cómo pagar' in r.cuerpo_html) > 0 or position('Pagar el envío' in r.cuerpo_html) > 0 or position('<!--pago-' in r.cuerpo_html) > 0) then
+    raise exception 'FALLO 331 · un envío sin pago pendiente recibe instrucciones de pago'; end if;
+  update envios set estado = 'cancelado' where id = s;
+  raise notice 'OK 331 · email «Envío creado» pendiente de pago: cómo pagar, botón «Pagar el envío» y huecos para la tarjeta y la proforma adjunta; sin pago pendiente, nada de eso';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+

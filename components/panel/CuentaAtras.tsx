@@ -39,7 +39,7 @@ export default function CuentaAtras({ hasta, corto = false, grande = false, venc
   }
   return (
     <span className="cuenta-atras" data-urgente={urgente} suppressHydrationWarning>
-      <Reloj lado={12} />{etiqueta && !q.vencido && <span className="ca-etq">{etiqueta}</span>}{q.vencido ? vencidoTxt : corto ? q.texto : `Quedan ${q.texto}`}
+      <Reloj lado={13} />{etiqueta && !q.vencido && <span className="ca-etq">{etiqueta}</span>}<span className="ca-t">{q.vencido ? vencidoTxt : corto ? q.texto : `Quedan ${q.texto}`}</span>
     </span>
   );
 }

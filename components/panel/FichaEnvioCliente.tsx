@@ -323,7 +323,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
             <div className="pen-sum-row"><span className="k">Transporte</span><span className="v">
               {e.estado === 'entregado' ? 'Entregado' : reservado
                 ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
-                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin camión todavía</span>}
+                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Asignando transportista</span>}
             </span></div>
             <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
               {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : reservado && e.estado !== 'entregado' ? <Reservado que="matrículas pendientes de anotar" /> : <Pend />}
