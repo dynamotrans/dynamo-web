@@ -116,7 +116,8 @@ function Leyenda() {
       {punto(COLOR.carga, 'Recogida')}{punto(COLOR.descarga, 'Entrega')}
       <span style={{ marginRight: 14, display: 'inline-flex', alignItems: 'center', gap: 5 }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />Camión (posición estimada)</span>
       <span style={{ marginRight: 14 }}><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho</span>
-      <span><span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer</span>
+      <span style={{ marginRight: 14 }}><span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer</span>
+      <span>Pulsa una parada o la ruta para ver sus etiquetas (si no caben todas, toca una parada o acerca el mapa).</span>
     </div>
   );
 }

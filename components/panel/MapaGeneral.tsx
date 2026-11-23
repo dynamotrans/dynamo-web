@@ -74,7 +74,7 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: TONO.ambar }}>cargando/descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
         <span><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: '#9ca3af', verticalAlign: 'middle' }} /> Programado (en su 1.ª recogida)</span>
         <span><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho · <span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer (en línea recta)</span>
-        <span>Pulsa una parada o una ruta para ver todas sus paradas con su hora.</span>
+        <span>Pulsa una parada o una ruta para ver todas sus paradas con su hora (si no caben todas, toca una parada o acerca el mapa).</span>
       </div>
       {abierto && <VentanaMapa envioId={abierto.id} referencia={abierto.ref} onCerrar={() => setAbierto(null)} />}
     </section>

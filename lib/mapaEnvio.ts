@@ -96,17 +96,23 @@ export function claveParada(p: { pais: string | null; codigo_postal: string | nu
   return `${(p.pais || 'ES').toUpperCase()}|${(p.codigo_postal ?? '').replace(/\s/g, '').toUpperCase()}|${(p.poblacion ?? '').toLowerCase()}`;
 }
 
-export type HoraParada = { texto: string; real: boolean };
+export type HoraParada = { texto: string; real: boolean; corto: string };
+/** «13/11 13:50» (hora de Madrid): para las etiquetas cortas del mapa. */
+function diaHoraCorto(iso: string): string {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(iso));
+  const v = (t: string) => p.find((x) => x.type === t)?.value ?? '';
+  return `${v('day')}/${v('month')} ${v('hour') === '24' ? '00' : v('hour')}:${v('minute')}`;
+}
 /** La hora de una parada para el mapa: la REAL si ya se hizo —diciendo de dónde sale: firma del
  *  CMR, marcada en el seguimiento— o la PREVISTA del plan. */
 export function horaParada(m: MapaEnvio, p: ParadaMapa): HoraParada | null {
   const verbo = p.tipo === 'carga' ? 'Cargado' : 'Descargado';
-  if (p.firmada_en) return { texto: `✓ ${verbo} ${fechaHora(p.firmada_en)} · firmado en el CMR`, real: true };
-  if (p.realizado_en) return { texto: `✓ ${verbo} ${fechaHora(p.realizado_en)} · marcado en el seguimiento`, real: true };
+  if (p.firmada_en) return { texto: `✓ ${verbo} ${fechaHora(p.firmada_en)} · firmado en el CMR`, real: true, corto: `✓ ${verbo} ${diaHoraCorto(p.firmada_en)}` };
+  if (p.realizado_en) return { texto: `✓ ${verbo} ${fechaHora(p.realizado_en)} · marcado en el seguimiento`, real: true, corto: `✓ ${verbo} ${diaHoraCorto(p.realizado_en)}` };
   const e = m.etapas.find((x) => x.estado === 'cargando' && x.parada === p.orden);
   if (!e?.hora) return null;
-  if (e.hecha) return { texto: `✓ Llegó ${fechaHora(e.hora)} · según el seguimiento`, real: true };
-  return { texto: `Prevista ${fechaHora(e.hora)}`, real: false };
+  if (e.hecha) return { texto: `✓ Llegó ${fechaHora(e.hora)} · según el seguimiento`, real: true, corto: `✓ Llegó ${diaHoraCorto(e.hora)}` };
+  return { texto: `Prevista ${fechaHora(e.hora)}`, real: false, corto: `Prevista ${diaHoraCorto(e.hora)}` };
 }
 
 /** Etiqueta de una parada en el mapa, en varias líneas cortas (HTML ya escapado). */
@@ -118,5 +124,17 @@ export function etiquetaParada(m: MapaEnvio, p: ParadaMapa): string {
     p.empresa ? esc(p.empresa) : '',
     esc([p.codigo_postal, p.poblacion].filter(Boolean).join(' ')),
     h ? `<span style="color:${h.real ? '#15803d' : '#6b7280'};font-weight:700">${esc(h.texto)}</span>` : '',
+  ].filter(Boolean).join('<br>');
+}
+
+/** Etiqueta CORTA (dos líneas) para cuando la larga no cabe sin pisar a otra (usuario,
+ *  2026-11-23: «se pisan los carteles»): «Recogida 1 · Bruxelles» y la hora corta. */
+export function etiquetaParadaCorta(m: MapaEnvio, p: ParadaMapa): string {
+  const esc = (t: string | null | undefined) => (t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const h = horaParada(m, p);
+  const lugar = p.poblacion || p.empresa;
+  return [
+    `<strong>${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}</strong>${lugar ? ` · ${esc(lugar)}` : ''}`,
+    h ? `<span style="color:${h.real ? '#15803d' : '#6b7280'};font-weight:700">${esc(h.corto)}</span>` : '',
   ].filter(Boolean).join('<br>');
 }

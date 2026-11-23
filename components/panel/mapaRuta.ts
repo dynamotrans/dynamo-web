@@ -8,7 +8,7 @@
 //     durante 4 segundos; pulsando fuera del envío se apaga al momento (eso lo lleva quien la
 //     usa, con `resaltador`).
 import type * as Leaflet from 'leaflet';
-import { etiquetaParada, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
+import { etiquetaParada, etiquetaParadaCorta, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
 
 type L = typeof Leaflet;
 const MORADO = '#3300cc', GRIS = '#9ca3af', NARANJA = '#e07b00';
@@ -46,7 +46,7 @@ export function dibujarRuta(L: L, g: Leaflet.LayerGroup, mapa: MapaEnvio & { id?
   const pc = posicionCamion(mapa);
   const propia = L.layerGroup();
   const tramos: { linea: Leaflet.Polyline; base: Leaflet.PathOptions }[] = [];
-  const pulsar = (ev: Leaflet.LeafletMouseEvent) => { L.DomEvent.stop(ev); o.alPulsar(); };
+  const pulsar = (ev: Leaflet.LeafletMouseEvent) => { L.DomEvent.stop(ev); solo = null; o.alPulsar(); };
   const tramo = (a: [number, number], b: [number, number], hecho: boolean) => {
     const base: Leaflet.PathOptions = hecho
       ? { color: MORADO, weight: o.grande ? 4 : 3, opacity: 0.9, dashArray: undefined }
@@ -67,6 +67,8 @@ export function dibujarRuta(L: L, g: Leaflet.LayerGroup, mapa: MapaEnvio & { id?
     L.polyline(pts.map(ll), { opacity: 0, weight: 18, bubblingMouseEvents: false, className: 'ruta-toque' }).on('click', pulsar).addTo(propia);
   }
   const t = o.grande ? 28 : 20;
+  const marcas: Leaflet.Marker[] = [];
+  let solo: number | null = null;   // la parada pulsada: su etiqueta sale siempre
   for (const p of pts) {
     // Siempre su NÚMERO y su color (naranja recogida, morado entrega), también ya hecha
     // (usuario, 2026-11-22: con un ✓ no se sabe si era la 1 o la 2; dónde va el camión ya
@@ -74,25 +76,83 @@ export function dibujarRuta(L: L, g: Leaflet.LayerGroup, mapa: MapaEnvio & { id?
     const color = p.tipo === 'carga' ? NARANJA : MORADO;
     const icono = L.divIcon({ className: 'parada-mapa', iconSize: [t, t], iconAnchor: [t / 2, t / 2],
       html: `<div style="width:${t}px;height:${t}px;border-radius:${t / 2}px;background:${color};color:#fff;font:800 ${o.grande ? 13 : 11}px/${t}px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${p.orden}</div>` });
-    L.marker(ll(p), { icon: icono, title: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`, keyboard: false, bubblingMouseEvents: false })
-      .on('click', pulsar).addTo(propia);
+    marcas.push(L.marker(ll(p), { icon: icono, title: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`, keyboard: false, bubblingMouseEvents: false })
+      .on('click', (ev: Leaflet.LeafletMouseEvent) => { L.DomEvent.stop(ev); solo = p.orden; o.alPulsar(); }).addTo(propia));
   }
   if (!o.oculta) propia.addTo(g);
 
-  let etiquetas: Leaflet.Tooltip[] = [];
+  let etiquetas: { tt: Leaflet.Tooltip; larga: string; corta: string; orden: number }[] = [];
+  let mapaL: Leaflet.Map | null = null;
+  // SIN PISARSE (usuario, 2026-11-23: «se pisan los carteles»): cada etiqueta prueba varias
+  // posiciones alrededor de su parada (arriba, abajo, a los lados y en diagonal) y se queda
+  // donde no pise a otra etiqueta ni a un círculo de parada ni se salga del mapa; si no cabe,
+  // prueba la versión corta («Recogida 1 · Bruxelles» y la hora); y si ni así, NO sale (se ve
+  // acercándose o tocando esa parada, que tiene preferencia). Se recoloca al hacer zoom.
+  const off = t / 2 + 2;
+  const POS: [Leaflet.Direction, [number, number]][] = [
+    ['top', [0, -off]], ['bottom', [0, off]], ['right', [off, 0]], ['left', [-off, 0]],
+    ['top', [70, -off]], ['top', [-70, -off]], ['bottom', [70, off]], ['bottom', [-70, off]],
+    ['right', [off, -28]], ['right', [off, 28]], ['left', [-off, -28]], ['left', [-off, 28]],
+  ];
+  const colocar = () => {
+    const caja = mapaL?.getContainer().getBoundingClientRect();
+    const puestas: DOMRect[] = marcas.map((m) => m.getElement()?.getBoundingClientRect()).filter((r): r is DOMRect => !!r);
+    const pisa = (r: DOMRect) => {
+      let a = 0;
+      for (const q of puestas) {
+        const w = Math.min(r.right, q.right) - Math.max(r.left, q.left) + 3, h = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top) + 3;
+        if (w > 0 && h > 0) a += w * h;
+      }
+      if (caja) a += Math.max(0, caja.top - r.top) * r.width + Math.max(0, r.bottom - caja.bottom) * r.width
+        + Math.max(0, caja.left - r.left) * r.height + Math.max(0, r.right - caja.right) * r.height;
+      return a;
+    };
+    const poner = (e: (typeof etiquetas)[number], corta: boolean, i: number) => {
+      e.tt.setContent(corta ? e.corta : e.larga);
+      e.tt.options.direction = POS[i][0]; e.tt.options.offset = POS[i][1]; e.tt.update();
+    };
+    // La pulsada, primero (siempre sale).
+    const orden = [...etiquetas].sort((a, b) => (a.orden === solo ? -1 : b.orden === solo ? 1 : 0));
+    for (const e of orden) {
+      const el = () => e.tt.getElement();
+      el()?.style.removeProperty('display');
+      let mejor: { i: number; corta: boolean; s: number } | null = null;
+      for (const corta of [false, true]) {
+        for (let i = 0; i < POS.length; i++) {
+          poner(e, corta, i);
+          const r = el()?.getBoundingClientRect();
+          const s = r ? pisa(r) : 0;
+          if (!mejor || s < mejor.s) mejor = { i, corta, s };
+          if (s === 0) break;
+        }
+        if (mejor && mejor.s === 0) break;
+      }
+      if (!mejor) continue;
+      poner(e, mejor.corta, mejor.i);
+      if (mejor.s > 0 && e.orden !== solo) { const x = el(); if (x) x.style.display = 'none'; continue; }
+      const r = el()?.getBoundingClientRect();
+      if (r) puestas.push(r);
+    }
+  };
   const ruta: Ruta = {
     id: mapa.id ?? '',
     puntos: pts.map(ll),
     activar(excepto) {
       if (o.oculta) propia.addTo(g);
       for (const x of tramos) x.linea.setStyle({ ...x.base, weight: (x.base.weight ?? 3) + 3, opacity: 1, color: x.base.color === GRIS ? MORADO : x.base.color }).bringToFront();
-      for (const x of etiquetas) x.remove();
-      etiquetas = pts.filter((p) => p.orden !== excepto).map((p) =>
-        L.tooltip({ permanent: true, direction: 'top', offset: [0, -t / 2 - 2], className: 'tt-parada', interactive: false })
-          .setLatLng(ll(p)).setContent(etiquetaParada(mapa, p)).addTo(g));
+      for (const x of etiquetas) x.tt.remove();
+      etiquetas = pts.filter((p) => p.orden !== excepto).map((p) => ({
+        orden: p.orden, larga: etiquetaParada(mapa, p), corta: etiquetaParadaCorta(mapa, p),
+        tt: L.tooltip({ permanent: true, direction: 'top', offset: [0, -off], className: 'tt-parada', interactive: false })
+          .setLatLng(ll(p)).setContent(etiquetaParada(mapa, p)).addTo(g),
+      }));
+      mapaL = (g as unknown as { _map?: Leaflet.Map })._map ?? null;
+      colocar();
+      mapaL?.on('zoomend', colocar);
     },
     desactivar() {
-      for (const x of etiquetas) x.remove();
+      mapaL?.off('zoomend', colocar);
+      for (const x of etiquetas) x.tt.remove();
       etiquetas = [];
       for (const x of tramos) x.linea.setStyle(x.base);
       if (o.oculta) propia.remove();

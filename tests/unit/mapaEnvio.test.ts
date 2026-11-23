@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { posicionCamion, estadoMapa, horaParada, etiquetaParada, type MapaEnvio } from '../../lib/mapaEnvio';
+import { posicionCamion, estadoMapa, horaParada, etiquetaParada, etiquetaParadaCorta, type MapaEnvio } from '../../lib/mapaEnvio';
 
 const base = (camion: MapaEnvio['camion']): MapaEnvio => ({
   resultado: 'ok', referencia: 'GX1', estado: 'en_ruta', ahora: '2026-11-23T10:00:00Z', gps_firma: null,
@@ -52,4 +52,12 @@ test('mapa: la hora de cada parada dice si es real (firma, marcada, seguimiento)
   assert.equal(h.real, false); assert.match(h.texto, /^Prevista/);
   const et = etiquetaParada(m, { ...m.paradas[1], empresa: 'Nave <Madrid>' });
   assert.match(et, /^<strong>Entrega 2<\/strong><br>Nave &lt;Madrid&gt;<br>28001 Madrid<br>/);
+});
+
+test('mapa: la etiqueta corta lleva tipo, número, población y la hora corta', () => {
+  const m = base(ruta);
+  const c = etiquetaParadaCorta(m, m.paradas[0]);
+  assert.match(c, /Recogida 1<\/strong> · Sevilla/);
+  assert.match(c, /✓ Cargado 23\/11 09:00/);
+  assert.doesNotMatch(c, /Almacén|41001|seguimiento/);
 });
