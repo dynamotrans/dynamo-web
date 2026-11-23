@@ -89,10 +89,29 @@ de la dirección de Sevilla.
   empresa). Es decir: base × (% combustible × factor gasóleo + % resto × índice IPC / 100).
 - Va **antes** de aplicar el gasóleo y de todo lo demás: es una corrección de la base.
 
+## 4 ter. ⚠️ MUY IMPORTANTE · El destino se mide hasta el POLO INDUSTRIAL más cercano, no hasta la capital (usuario, 2026-11-23)
+
+- Ejemplo: Sevilla → un pueblo que linda con Cádiz pero está **muy cerca de un polo
+  industrial**. El camión, al descargar, sale cargado desde ese polo: el precio tiene que
+  contar con que **acaba en el polo** (donde encuentra la carga de vuelta), **no
+  devolverlo a la capital de provincia** ni tratar el destino como un pueblo perdido.
+- Regla: cada destino se asigna a su **zona de salida**, que es el **polo industrial o de
+  carga más cercano** (por km de carretera, dentro de un radio a fijar), y no la capital.
+  Lo que dependa de «dónde se queda el camión» sale de ahí: el coste de la vuelta o de
+  ir vacío hasta la siguiente carga, la facilidad de encontrar camión y el «misma ruta»
+  del apartado 4 (provincia → provincia pasa a ser polo → polo cuando lo haya).
+- Hace falta una **lista de polos** editable por Dynamo (nombre, punto en el mapa, radio y
+  lo atractivo que es para recargar: alto / medio / bajo), con los grandes de inicio (en
+  Andalucía, p. ej., la Bahía de Cádiz, Jerez, el Campo de Gibraltar, Huelva, Sevilla,
+  Málaga…). Un destino lejos de cualquier polo sí lleva el recargo de «vuelta en vacío».
+- A decidir: si la misma regla vale para el **origen** (de dónde sale el camión que viene a
+  cargar), el radio máximo, y si los km hasta el polo se cobran enteros o con un descuento.
+
 ## 5. Orden de cálculo propuesto (borrador)
 
 1. Base por km según ocupación (completo / grupaje, ml y peso), repartida en combustible
-   (× gasóleo del día) y resto (× índice IPC mensual, apartado 4 bis).
+   (× gasóleo del día) y resto (× índice IPC mensual, apartado 4 bis). El final de la ruta
+   se mide hasta el **polo industrial más cercano**, no hasta la capital (apartado 4 ter).
 2. Paradas extra y recargos por tipo de sitio.
 3. Suplementos de mercancía y forma de carga (techo, plataforma, NIMA, ADR…).
 4. Tipo de fecha (fija / urgente / ventanas).
