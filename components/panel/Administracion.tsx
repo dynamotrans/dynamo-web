@@ -15,7 +15,7 @@ import FormTransferencia, { type DatosTransferencia } from './FormTransferencia'
 import { euros, fecha, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import CuentaAtras from './CuentaAtras';
-import FacturasDynamo from './FacturasDynamo';
+import FacturasDynamoVivo from './FacturasDynamoVivo';
 import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
 import { enRango, diaMadridDe } from '@/lib/filtroFechas';
 
@@ -105,7 +105,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
       </div>
 
       {pestana === 'facturas' ? (dynamo ? (
-        <FacturasDynamo facturas={[]} conectado={false} />
+        <FacturasDynamoVivo />
       ) : (
         <div className="pt-aviso info" style={{ maxWidth: 680 }}><div>
           <strong>Las facturas llegarán aquí al conectar la plataforma con la facturación.</strong> Mientras tanto, te las seguimos enviando por email como hasta ahora.
