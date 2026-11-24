@@ -84,26 +84,27 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
     ] },
     // Sin submenú desplegable (usuario, 2026-11-11: «quita submenú, directo lo de
-    // abajo»): los enlaces cuelgan directos del separador, en este orden.
+    // abajo»): los enlaces cuelgan directos del separador. ORDEN pedido por el usuario
+    // (2026-11-24): primero lo del día a día (altas, riesgos, cuentas y agendas), luego
+    // exportaciones y, al final, la configuración.
     { sep: 'Gestión interna · Admin', items: [
+      { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
+      { slug: 'riesgos', titulo: 'CESCE - Riesgos', icono: 'escudo' },
+      { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
+      { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
+      { slug: 'clientes', titulo: 'Clientes', icono: 'clientes' },
+      // La agenda de sitios de TODOS los clientes (tabla con columna Cliente; duplicados permitidos).
+      { slug: 'sitios', titulo: 'Sitios de clientes', icono: 'sitios' },
+      { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
+      ...(ALMACENAMIENTOS ? [{ slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' } as Enlace] : []),
+      { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
       { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
       { slug: 'festivos', titulo: 'Festivos', icono: 'ajustes' },
-      { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
       // Albaranes que llegan de los transportistas, antes de que los vea el cliente (2026-11-22).
       { slug: 'verificacion-albaranes', titulo: 'Verificación albaranes', icono: 'facturas' },
       // Lo que mandan los usuarios desde Soporte (usuario, 2026-11-21).
       { slug: 'sugerencias', titulo: 'Sugerencias', icono: 'sugerencias' },
-      { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
-      { slug: 'clientes', titulo: 'Clientes', icono: 'clientes' },
-      { slug: 'riesgos', titulo: 'CESCE - Riesgos', icono: 'escudo' },
-      { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
-      { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
-      // Debajo de los transportistas de clientes (usuario, 2026-11-13): la agenda de
-      // sitios de TODOS los clientes (tabla con columna Cliente; duplicados permitidos).
-      { slug: 'sitios', titulo: 'Sitios de clientes', icono: 'sitios' },
-      ...(ALMACENAMIENTOS ? [{ slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' } as Enlace] : []),
       { slug: 'proteccion-datos', titulo: 'Protección de datos', icono: 'escudo' },
-      { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
       { slug: 'mantenimiento', titulo: 'Modo mantenimiento', icono: 'mantenimiento' },
     ] },
   ];
