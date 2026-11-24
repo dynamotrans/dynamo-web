@@ -512,3 +512,10 @@ Por defecto, **1.000**. La plataforma lee las listas largas por tandas de 1.000
 (`lib/leerTodo.ts`) y los conteos los hace la base de datos, así que funciona con ese valor.
 **No bajarlo de 1.000** (si se baja, cambiar también `PAG` en `lib/leerTodo.ts`).
 
+## 20 · Verificación de identidad digital (Stripe Identity)  🔴
+
+Pedido por el usuario el 2026-11-24: **antes de publicar en producción**, verificación de identidad
+online con Stripe Identity. Sin empezar. Falta decidir a quién se verifica y cuándo, qué pasa si no
+se supera, y dejar hecho lo legal (datos biométricos: política de privacidad, consentimiento expreso
+y registro de tratamientos, punto 13) y el tope de gasto (se cobra por verificación, punto 14).
+Detalle en `TODO.md` → «v1 · ANTES DE ABRIR».
