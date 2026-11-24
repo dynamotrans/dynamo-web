@@ -2544,6 +2544,14 @@ body.theme-dark .dash-cta-chev { background: rgba(255,255,255,0.06); border-colo
 }
 .alm-price-row { display: flex; justify-content: space-between; gap: 1rem; font-size: var(--fs-l); padding: 0.28rem 0; color: var(--gray-700); }
 .alm-price-row .v { font-weight: 700; color: var(--navy); }
+/* Cada fila de precio en UNA línea (usuario, 2026-11-24): el importe nunca se parte (ni con
+   miles y decimales) y el concepto se corta con puntos suspensivos; el que se corta se abre
+   entero al tocarlo (ConceptoPrecio). */
+.alm-price-row { align-items: baseline; }
+.alm-price-row .k { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alm-price-row .k.pulsable { cursor: pointer; }
+.alm-price-row .k.abierta { white-space: normal; overflow: visible; }
+.alm-price-row .v { flex: none; white-space: nowrap; }
 .alm-price-total { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
 .alm-price-total .k { font-weight: 800; color: var(--navy); font-size: var(--fs-l); }
 .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: var(--fs-d1); }

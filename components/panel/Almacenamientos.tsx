@@ -13,6 +13,7 @@ import Cargando from '@/components/Cargando';
 import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, marcarPagadoAlmacenamiento, sitiosDelCliente, pedirAlmacenamiento, cancelarMiAlmacenamiento, type AlmacenamientoDatos, type EstadoAlm } from '@/app/panel/(app)/almacenamientos/acciones';
 import { precioAlmacenamiento, diasAlmacen } from '@/lib/almacenamiento';
 import { euros, fecha, fechaHora, porcentaje, textoBusqueda } from '@/lib/formato';
+import ConceptoPrecio from './ConceptoPrecio';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { enRango } from '@/lib/filtroFechas';
 import { descargarCsv } from '@/lib/exportaciones';
@@ -333,8 +334,8 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
 
       {base && (
         <div className="alm-price" style={{ marginTop: '0.9rem' }}>
-          <div className="alm-price-row"><span className="k">Almacenamiento{cambiaPrecio && precio ? ` · ${d.num_trailers} tráiler${d.num_trailers > 1 ? 'es' : ''} × ${precio.semanas} semana${precio.semanas > 1 ? 's' : ''}` : ''}</span><span className="v">{euros(base.almacenaje)}</span></div>
-          {base.reparto > 0 && <div className="alm-price-row"><span className="k">Reparto urbano · {d.num_repartos} camión{d.num_repartos > 1 ? 'es' : ''}</span><span className="v">{euros(base.reparto)}</span></div>}
+          <div className="alm-price-row"><ConceptoPrecio texto={`Almacenamiento${cambiaPrecio && precio ? ` · ${d.num_trailers} tráiler${d.num_trailers > 1 ? 'es' : ''} × ${precio.semanas} semana${precio.semanas > 1 ? 's' : ''}` : ''}`} /><span className="v">{euros(base.almacenaje)}</span></div>
+          {base.reparto > 0 && <div className="alm-price-row"><ConceptoPrecio texto={`Reparto urbano · ${d.num_repartos} camión${d.num_repartos > 1 ? 'es' : ''}`} /><span className="v">{euros(base.reparto)}</span></div>}
           <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(base.total)}</span></div>
           <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(iva)})</span><span className="v">{euros(base.total * iva / 100)}</span></div>
           <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(base.total * (1 + iva / 100))}</span></div>

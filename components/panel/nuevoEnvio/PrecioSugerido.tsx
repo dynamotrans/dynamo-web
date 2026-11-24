@@ -12,6 +12,7 @@
 // Números del tarifador en BORRADOR (MOCK) hasta la tarifa real.
 import { useEffect, useRef, useState } from 'react';
 import { euros, fecha as fmtFecha } from '@/lib/formato';
+import ConceptoPrecio from '../ConceptoPrecio';
 import { diasDesde, type Tarifa, type TablaInterna, type UltimoRuta } from '@/lib/tarifador';
 
 // Contador animado del mockup: rueda del valor anterior al nuevo en ~480 ms (easeOutCubic,
@@ -83,7 +84,7 @@ export function BloquePrecio({ tarifa, cargando, ivaPct, pasada, fechaFija, enci
       {encima}
       <div className="alm-price ptar-eta-pricebox">
         {tarifa.lineas.map((l, i) => (
-          <div key={i} className="alm-price-row"><span className="k">{l.k}</span><span className="v" style={l.v < 0 ? { color: 'var(--green-dark, #157a3f)' } : undefined}>{euros(l.v)}</span></div>
+          <div key={i} className="alm-price-row"><ConceptoPrecio texto={l.k} /><span className="v" style={l.v < 0 ? { color: 'var(--green-dark, #157a3f)' } : undefined}>{euros(l.v)}</span></div>
         ))}
         <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(neto)}</span></div>
         <div className="alm-price-row alm-price-sub"><span className="k">IVA ({String(ivaPct).replace('.', ',')}%)</span><span className="v">{euros(neto * ivaPct / 100)}</span></div>
