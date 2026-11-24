@@ -157,7 +157,9 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
                     <div className="meta sitio-fechas">Creado: {fechaHora(f.creado_en)}{f.modificado_en ? ` · Modificado: ${fechaHora(f.modificado_en)}` : ''}</div>
                   </td>
                   {dynamo && <td>{cli?.nombre ?? '—'}<div className="meta">{cli?.cif}</div></td>}
-                  <td>{f.direccion || '—'}<div className="meta">{[f.codigo_postal, f.poblacion, f.provincia && f.provincia !== f.poblacion ? f.provincia : '', paisDe(f.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
+                  <td>{f.direccion || '—'}<div className="meta">{[f.codigo_postal, f.poblacion, f.provincia && f.provincia !== f.poblacion ? f.provincia : '', paisDe(f.pais_codigo_iso)].filter(Boolean).join(', ')}</div>
+                    {f.url_google_maps && <div className="meta"><a href={f.url_google_maps} target="_blank" rel="noopener" data-sitio-mapa="" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--purple)', fontWeight: 700, whiteSpace: 'nowrap' }}>Ver en Google Maps</a></div>}
+                  </td>
                   <td>{f.horarios || '—'}
                     {f.horario_sin_verificar && <div className="meta"><span className="badge badge-orange" title="El horario se tomó de Google y nadie lo ha comprobado con el sitio">Horario sin verificar</span></div>}
                     {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
@@ -594,6 +596,12 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
           </div>
         </div>
+        {/* La ubicación: el enlace de Google Maps del sitio (el que trae Google o, si no, el de sus
+            coordenadas, que busca el servidor al guardar). */}
+        {d.url_google_maps && <p className="meta" style={{ margin: '0.5rem 0 0' }}>
+          Ubicación: <a href={d.url_google_maps} target="_blank" rel="noopener" style={{ color: 'var(--purple)', fontWeight: 700 }}>Ver en Google Maps</a>.
+          {' '}Es el enlace que recibe el transportista. Si cambias la dirección, se actualiza al guardar.
+        </p>}
         {/* «Requiere cita», «Tiene medios de carga» y «Enlace de Google Maps» ocultos de momento
             (decisión del usuario, 2026-11-08): no se usan por ahora; se dejan desactivados al
             guardar. No se tocan las tablas. */}

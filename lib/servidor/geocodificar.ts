@@ -49,6 +49,19 @@ export async function direccionDeCoordenadas(lat: number, lon: number): Promise<
   return d ? String(d).slice(0, 300) : null;
 }
 
+/** Las coordenadas de una DIRECCIÓN completa (la de un sitio), con Google. Si la calle no se
+ *  encuentra, Google da el centro del código postal: vale como aproximación. Sin clave, null. */
+export async function coordenadasDeDireccion(d: { direccion?: string | null; codigo_postal?: string | null; poblacion?: string | null;
+  provincia?: string | null; pais_codigo_iso?: string | null }): Promise<{ lat: number; lon: number } | null> {
+  if (!geocodingGoogle()) return null;
+  const pais = (d.pais_codigo_iso || 'ES').slice(0, 2).toUpperCase();
+  const cp = (d.codigo_postal ?? '').replace(/\s/g, '');
+  const direccion = [d.direccion?.trim(), [cp, d.poblacion?.trim()].filter(Boolean).join(' '), d.provincia?.trim()].filter(Boolean).join(', ').slice(0, 300);
+  if (direccion.length < 5) return null;
+  return (cp.length >= 3 ? punto(await consultaGoogle({ address: direccion, components: `country:${pais}|postal_code:${cp}` })) : null)
+    ?? punto(await consultaGoogle({ address: direccion, components: `country:${pais}` }));
+}
+
 export async function centroCodigoPostal(pais: string, cp: string, poblacion?: string | null): Promise<{ lat: number; lon: number } | null> {
   const c = (cp ?? '').replace(/\s/g, '');
   const p = (pais || 'ES').slice(0, 2).toLowerCase();

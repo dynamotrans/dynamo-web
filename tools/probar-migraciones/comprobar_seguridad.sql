@@ -15280,3 +15280,48 @@ begin
   raise notice 'OK 336 · rutas pintadas: trazado guardado de cada tramo (sitios o códigos postales) solo para quien ve el envío';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 337 · UBICACIÓN DE CADA SITIO (usuario, 2026-11-24): con coordenadas y sin enlace propio, el
+--       sitio lleva un enlace de Google Maps a sus coordenadas; el de Google (ficha del negocio)
+--       se respeta; si cambia la dirección sin coordenadas nuevas, se vacían (y el enlace
+--       automático con ellas); y un cliente no cambia las coordenadas de sus sitios.
+do $$
+declare s1 uuid; s2 uuid; s3 uuid; v_u uuid; r record;
+begin
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, lat, lon)
+    values (current_setting('prueba.cliente')::uuid, 'Sitio 337 A', 'C/ Uno, 1', '41001', 'Sevilla', 'Sevilla', 37.3891, -5.9845) returning id into s1;
+  if (select url_google_maps from sitios where id = s1) is distinct from 'https://www.google.com/maps/search/?api=1&query=37.3891,-5.9845' then
+    raise exception 'FALLO 337 · un sitio con coordenadas no lleva su enlace de ubicación: %', (select url_google_maps from sitios where id = s1); end if;
+  update sitios set lat = 37.4, lon = -5.99 where id = s1;
+  if (select url_google_maps from sitios where id = s1) is distinct from 'https://www.google.com/maps/search/?api=1&query=37.4,-5.99' then
+    raise exception 'FALLO 337 · el enlace no sigue a las coordenadas nuevas'; end if;
+  update sitios set direccion = 'C/ Otra, 9' where id = s1;
+  select lat, lon, url_google_maps into r from sitios where id = s1;
+  if r.lat is not null or r.lon is not null or r.url_google_maps is not null then
+    raise exception 'FALLO 337 · al cambiar la dirección siguen las coordenadas viejas: %', r; end if;
+  update sitios set direccion = 'C/ Tres, 3', lat = 37.41, lon = -5.98 where id = s1;
+  if (select url_google_maps from sitios where id = s1) is distinct from 'https://www.google.com/maps/search/?api=1&query=37.41,-5.98' then
+    raise exception 'FALLO 337 · dirección y coordenadas nuevas a la vez no dejan su enlace'; end if;
+  -- El enlace que trae Google (la ficha del negocio) se respeta.
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, lat, lon, url_google_maps)
+    values (current_setting('prueba.cliente')::uuid, 'Sitio 337 B', 'C/ Dos, 2', '41001', 'Sevilla', 'Sevilla', 37.39, -5.98, 'https://maps.google.com/?cid=337') returning id into s2;
+  update sitios set lat = 37.5 where id = s2;
+  if (select url_google_maps from sitios where id = s2) <> 'https://maps.google.com/?cid=337' then
+    raise exception 'FALLO 337 · se pisa el enlace de Google del sitio'; end if;
+  -- Un cliente no pone ni cambia coordenadas.
+  insert into auth.users (email) values ('sitios337@cliente.prueba') returning id into v_u;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = current_setting('prueba.cliente')::uuid where id = v_u;
+  perform set_config('request.jwt.claim.sub', v_u::text, false);
+  set local role authenticated;
+  update sitios set lat = 1, lon = 1 where id = s1;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, lat, lon)
+    values ((select cliente_id from usuarios where id = auth.uid()), 'Sitio 337 C', 'C/ Cuatro, 4', '41001', 'Sevilla', 'Sevilla', 1, 1) returning id into s3;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if (select lat from sitios where id = s1) <> 37.41 then raise exception 'FALLO 337 · un cliente cambia las coordenadas de un sitio'; end if;
+  select lat, lon, url_google_maps into r from sitios where id = s3;
+  if r.lat is not null or r.url_google_maps is not null then raise exception 'FALLO 337 · un cliente crea un sitio con coordenadas puestas por él: %', r; end if;
+  update sitios set borrado = true where id in (s1, s2, s3);
+  raise notice 'OK 337 · ubicación del sitio: enlace de Google Maps a sus coordenadas, que solo ponen el servidor o Dynamo';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

@@ -8,6 +8,7 @@ import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosSe
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { gestorOCliente, soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { situarSitio } from '@/lib/servidor/ubicacionSitio';
 import { googleLugaresListo, autocompletarLugares, fichaLugar, SESION_GOOGLE, LUGAR_GOOGLE } from '@/lib/servidor/googleLugares';
 
 export type SitioDatos = {
@@ -135,6 +136,9 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   }
   const e2 = await guardarContactos(s.supabase, { sitio_id: sitioId }, contactos);
   if (e2) return { ok: false, error: traducir(e2) };
+  // Su ubicación (coordenadas y, si no trae otro, su enlace de Google Maps): la busca el servidor
+  // si el sitio es nuevo o le ha cambiado la dirección.
+  await situarSitio(sitioId);
   return { ok: true, id: sitioId };
 }
 

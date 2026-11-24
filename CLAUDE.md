@@ -483,6 +483,24 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 
 Registro automático de sesiones. La entrada más reciente va arriba.
 
+### 2026-11-24 — Claude Code web (nube)
+
+> **Google Maps en toda la plataforma** (usuario: «todo entorno Google, nada de Leaflet | © OpenStreetMap»). Las claves, el presupuesto (50 €/mes, solo avisa) y las cuotas diarias las puso el usuario en Google Cloud y en Vercel (Preview): `GOOGLE_MAPS_API_KEY` (servidor: Places, Routes, Geocoding) y `NEXT_PUBLIC_GOOGLE_MAPS_KEY` (navegador: solo Maps JavaScript, restringida a nuestras webs).
+
+- **Sitios con Google** (`4a210b8`): sugerencias (Autocomplete) + ficha (Place Details) con sesión; trae teléfono, horario («sin verificar» hasta que alguien lo confirme) y enlace de Maps. Aviso a Dynamo (campana + email, una vez al día y API) si se agota la cuota: `aviso_limite_api`.
+- **Direcciones y kilómetros reales** (`2d1fb94`): el autocompletar de direcciones y la geocodificación van por Google; `kmRuta` pide la ruta a Google Routes una sola vez por origen-destino y la guarda con su trazado (`distancias_sitios` / `distancias_cp`, columna `linea`).
+- **Mapas con Google y rutas pintadas** (`c1ae1f9`): un solo «motor» de mapa (`components/panel/mapa/`): Google con clave, Leaflet de reserva SOLO sin clave (CI y local; las pruebas e2e usan sus clases). `mapa_trazados` (prueba 336) + `trazadosDeEnvios`: cada tramo va por la carretera, el camión va sobre ella y lo hecho llega hasta él. CSP con los dominios de Google.
+- **Ubicación de cada sitio**: coordenadas por el servidor al guardar (`situarSitio`) y enlace de Google Maps automático si no hay otro (`fn_sitios_ubicacion`, prueba 337).
+- **Devolver importe** de un pago con tarjeta (parte escrita SIN IVA), lista de Dynamo con «Transferencia avisada · validar» arriba, y barra de la ventana de reseñas de la web pública arreglada (`main`, `9deef04`, con OK del usuario).
+
+**Cómo se prueba Google en local sin gastar** (anotado porque costó): servidor con `NODE_OPTIONS=--require <google-falso.cjs>` (un `fetch` simulado para Places/Routes/Geocoding) y, para el mapa, compilar con `NEXT_PUBLIC_GOOGLE_MAPS_KEY=prueba` y en Playwright quitar el `key` de la petición a `maps/api/js`: Google lo carga en «modo de desarrollo» (oscuro y con marca de agua), suficiente para ver líneas, marcas y ventanas.
+
+**Pendientes**:
+- El usuario: probar en la preview con Google de verdad (crear un sitio buscando una empresa, abrir el mapa de un envío y el mapa general) y decir si algo se ve raro; en Safari no se puede probar desde aquí.
+- Hoy «sin falta»: APIs de CESCE, Wtransnet y Holded. Después, el tarifador con tarifas reales (y con él, las direcciones del tarifador de la web pública por un punto de entrada de la plataforma).
+- Mover a mano el punto de un sitio en el mapa; situar de golpe los sitios antiguos.
+- Unir `main` (`9deef04`) a `pruebas`.
+
 ### 2026-11-23 — Claude Code web (nube)
 
 - **Repaso de seguridad del vídeo** (25 puntos): casi todo estaba cubierto; en `PRODUCCION.md` §20 queda lo pendiente (Zod 4, CSP de la web pública en modo bloquear, límites de Supabase Auth y Vercel Firewall, `npm audit` mensual). Next sube a 15.5.29.
