@@ -132,6 +132,36 @@ test.describe('novedades', () => {
     await expect(fila).toHaveCount(0);
   });
 
+  // Aviso del tráiler en el paso 2, antes de «Siguiente» (usuario, 2026-11-24): el enlace
+  // «añádela en opciones» abre el desplegable y lleva hasta «Plataforma elevadora»; al
+  // activarla, el aviso desaparece. En el paso 3, con fecha fija, el aviso del corte ya no
+  // lleva la coletilla de «Lo más barato y seguro…».
+  test('Nuevo envío: el aviso del tráiler del paso 2 lleva a la plataforma elevadora', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/nuevo-envio');
+    const sitio = page.locator('.ptar-route-row input[type=text]');
+    await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+    await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    const aviso = page.locator('#aviso-trailer-paso2');
+    await expect(aviso).toContainText('Envío en tráiler');
+    await expect(page.locator('#ne-plataforma')).toHaveCount(0);   // las opciones nacen plegadas
+    await aviso.getByRole('button', { name: 'añádela en opciones' }).click();
+    const plataforma = page.locator('#ne-plataforma');
+    await expect(plataforma).toBeInViewport();
+    await plataforma.locator('.ptar-tramp-box').click();
+    await expect(aviso).toHaveCount(0);
+    await plataforma.locator('.ptar-tramp-box').click();
+    await expect(aviso).toBeVisible();
+    // Paso 3 con fecha fija: solo hasta cuándo pedir y el primer día de carga.
+    await page.getByRole('button', { name: /Siguiente/ }).click();
+    await page.getByRole('button', { name: 'Días de recogida' }).click();
+    await page.getByRole('option', { name: /Fecha fija/ }).click();
+    const corte = page.locator('.ptar-cutoff-note');
+    await expect(corte).toContainText('El primer día de carga posible es');
+    await expect(corte).not.toContainText('Lo más barato y seguro');
+  });
+
   test('Nuevo envío: la línea de medidas dice alto y ancho, y el rígido va a 2,40 m', async ({ page }) => {
     await entrar(page, 'cliente');
     await page.goto('/panel/nuevo-envio');
@@ -585,7 +615,12 @@ test.describe('novedades', () => {
         // Solo la pregunta, con el plazo dentro (usuario, 2026-11-24).
         await expect(aviso).toContainText(/dentro del\s+plazo de .*\d/);
         await expect(aviso.locator('#conf-pago-plazo')).toContainText(/\d/);
-        await expect(aviso).not.toContainText('proforma');
+        // El motivo en corto en el título; lo de «se anulan solos», en su globo de ayuda (usuario, 2026-11-24).
+        await expect(aviso).toContainText('En este momento no dispones de crédito comercial.');
+        const globoPago = page.locator('#tip-conf-pago [role=tooltip]');
+        await expect(globoPago).toBeHidden();
+        await page.locator('#tip-conf-pago .tip-i-btn').click();
+        await expect(globoPago).toContainText('el envío y su proforma se anulan solos');
         // La frase del uso abusivo ya no ocupa la caja verde: sale en su globo de ayuda al pulsar la ⓘ.
         const globo = page.locator('#tip-uso-abusivo [role=tooltip]');
         await expect(globo).toBeHidden();

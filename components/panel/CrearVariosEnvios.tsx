@@ -8,6 +8,7 @@
 // añadir más; al final, «Crear N envíos» los crea todos (con la misma aceptación de las
 // condiciones que el asistente) o «Proforma de precios» saca la lista en un PDF.
 // Manual por ahora: más adelante la IA rellenará esta misma tabla desde un Excel o un email.
+import Tip from '@/components/Tip';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -470,7 +471,11 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
             <div className="modal-warn-box conf-pago" id="varios-conf-pago" role="alert" style={{ margin: '0.7rem 0 0' }}>
               <div className="conf-pago-tit">⚠ {conPago.size === listas.length
                 ? (listas.length === 1 ? 'Este envío se paga por adelantado' : 'Estos envíos se pagan por adelantado')
-                : conPago.size === 1 ? '1 de estos envíos se paga por adelantado' : `${conPago.size} de estos envíos se pagan por adelantado`}</div>
+                : conPago.size === 1 ? '1 de estos envíos se paga por adelantado' : `${conPago.size} de estos envíos se pagan por adelantado`}.{' '}
+                {/* El motivo en corto, como en Nuevo envío; si solo es una parte, es que el crédito
+                    no llega para todos. En el globo, qué pasa si no se paga (usuario, 2026-11-24). */}
+                <span className="conf-pago-motivo">{conPago.size === listas.length ? 'En este momento no dispones de crédito comercial.' : 'Tu crédito comercial no alcanza para todos.'}</span>{' '}
+                <Tip id="tip-varios-conf-pago" aria="Qué pasa si no se paga dentro del plazo" texto="Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma se anulan solos." /></div>
               {/* Solo la pregunta, con el plazo dentro (usuario, 2026-11-24: lo demás sobraba). */}
               <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo{conPago.size === 1 ? '' : 's'} ahora?</strong> Si no vas a tramitar el pago dentro del
                 plazo{plazoPago ? <> de <strong>{duracionTxt(plazoPago.minutos)}</strong></> : null}, no {conPago.size === 1 ? 'lo' : 'los'} confirmes todavía:

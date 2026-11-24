@@ -6,11 +6,12 @@ import Tip from '@/components/Tip';
 // Las coletillas por defecto hablan de precio (plataforma, NIMA, ADR encarecen); para un
 // interruptor que no toca el precio (p. ej. Cita previa) se pasan otras con noTxt/siTxt.
 // `tip` añade un ⓘ junto al título con la explicación de la sigla (tarea 86).
-export function Interruptor({ titulo, valor, onCambio, noTxt = 'No (más económico)', siTxt = 'Sí (más caro)', tip }: {
+export function Interruptor({ titulo, valor, onCambio, noTxt = 'No (más económico)', siTxt = 'Sí (más caro)', tip, id }: {
   titulo: string; valor: boolean; onCambio: (v: boolean) => void; noTxt?: string; siTxt?: string; tip?: string;
+  id?: string;   // para llevar la vista hasta él desde un enlace (p. ej. el aviso del tráiler)
 }) {
   return (
-    <div className="ptar-field">
+    <div className="ptar-field" id={id}>
       <label className="ptar-label">{titulo}{tip && <> <Tip texto={tip} aria={`Qué significa ${titulo}`} /></>}</label>
       <label className="ptar-tramp-box">
         <input type="checkbox" className="ptar-switch-input" checked={valor} onChange={(e) => onCambio(e.target.checked)} />

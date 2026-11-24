@@ -5,7 +5,7 @@
 // sum2-*, alm-price). Etapa A: lo usa Dynamo para un cliente y pone el precio a mano;
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { avisarNavegando, avisarNavegandoA } from './CargandoNavegacion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { plazoPagoPrevisto, pagoPrevioPrevisto, crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
@@ -127,6 +127,18 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // a las anotaciones de esa parada, no a las del envío.
   const notasEnvio = notas;
   const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente || be.discrecion_comercial)));
+  // Al pulsar «añádela en opciones» del aviso del tráiler: con el desplegable ya abierto y el
+  // paso 2 pintado, la vista baja hasta el interruptor de la plataforma elevadora.
+  const [buscaPlataforma, setBuscaPlataforma] = useState(0);
+  useEffect(() => {
+    if (!buscaPlataforma || paso !== 2 || !notasAbiertas) return;
+    const el = document.getElementById('ne-plataforma');
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    el.classList.add('ptar-destacado');
+    const t = setTimeout(() => el.classList.remove('ptar-destacado'), 2200);
+    return () => { clearTimeout(t); el.classList.remove('ptar-destacado'); };
+  }, [buscaPlataforma, paso, notasAbiertas]);
 
   // ---- Paso 3: fecha y precio
   // Al EDITAR, el tipo de fecha sale de la ventana guardada (un día → fija; 2 días hábiles
@@ -1025,6 +1037,18 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   // Botonera del asistente (usuario, 2026-11-09): en el paso 3 va DENTRO de la columna
   // del precio, justo debajo de la caja «Precio sugerido»; en los pasos 1-2, al fondo.
+  // Aviso del TRÁILER (solo sin plataforma elevadora): sale en el paso 2, justo antes de
+  // «Siguiente», y en el 4, bajo los sitios. El enlace «añádela en opciones» abre el
+  // desplegable de opciones del paso 2 y lleva la vista hasta «Plataforma elevadora»
+  // (usuario, 2026-11-24; antes decía «añádela en el paso 2» y solo cambiaba de paso).
+  const irAPlataforma = () => { setNotasAbiertas(true); setPaso(2); setBuscaPlataforma((n) => n + 1); };
+  const avisoTrailer = (id: string, estilo: CSSProperties) => (!manual && !plataforma ? (
+    <div id={id} className="pt-aviso" style={estilo}><IcoAviso /><div>
+      <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>),{' '}
+      <button type="button" className="enlace-paso" onClick={irAPlataforma}>añádela en opciones</button>.
+    </div></div>
+  ) : null);
+
   const navBotones = (
     <div className="wiz-navwrap">
       <div className="wiz-nav">
@@ -1296,7 +1320,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                           <input id="ne-ref" type="text" className="ptar-select" placeholder="Ej. PED-0426 / ALB-1234, instrucciones breves…" value={refCli} onChange={(e) => setRefCli(e.target.value)} />
                         </div>
                         <div className="ptar-pair" style={{ marginTop: '0.9rem' }}>
-                          <Interruptor titulo="Plataforma elevadora" valor={plataforma}
+                          <Interruptor id="ne-plataforma" titulo="Plataforma elevadora" valor={plataforma}
                             onCambio={(v) => {
                               // Los metros y el peso elegidos SE MANTIENEN (usuario, 2026-11-11):
                               // solo se recortan si superan el máximo del rígido (8 m / 14 Tn);
@@ -1324,6 +1348,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                       </div>
                     )}
                   </div>
+                  {/* Aviso del tráiler también aquí, justo antes de «Siguiente» (usuario,
+                      2026-11-24): es donde se puede añadir la plataforma. Con ella, desaparece. */}
+                  {!manual && !plataforma && <div className="ptar-field-full">{avisoTrailer('aviso-trailer-paso2', { margin: 0 })}</div>}
                 </>)}
 
                 {paso === 3 && (<>
@@ -1472,11 +1499,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
                 {/* Aviso del tráiler debajo de los sitios (usuario, 2026-11-19; antes iba en la
-                    ventana de confirmar). Solo sin plataforma elevadora; el enlace lleva al paso 2. */}
-                {!manual && !plataforma && <div id="aviso-trailer-sitios" className="pt-aviso" style={{ marginTop: '0.8rem', marginBottom: 0 }}><IcoAviso /><div>
-                  <strong>Envío en tráiler</strong>, asegúrate de que los sitios son <strong>accesibles</strong> y de que hay <strong>medios de carga/descarga</strong>. Si requieres plataforma elevadora (<strong>más caro, menor disponibilidad y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
-                  <button type="button" className="enlace-paso" onClick={() => { setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</button>.
-                </div></div>}
+                    ventana de confirmar). Solo sin plataforma elevadora. */}
+                {avisoTrailer('aviso-trailer-sitios', { marginTop: '0.8rem', marginBottom: 0 })}
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar
                     envío, solo en la vista de admin. */}
@@ -1692,8 +1716,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             sin ser luego pagados»). Si no aplica, no se dice nada. Sin cifras ni motivos de crédito. */}
         {avisaPago && (
           <div className="modal-warn-box conf-pago" id="conf-pago" role="alert" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
-            <div className="conf-pago-tit">⚠ Este envío se paga por adelantado</div>
-            {/* Solo la pregunta, con el plazo dentro (usuario, 2026-11-24: lo demás sobraba). */}
+            {/* Título con el motivo en corto y, en el globo, qué pasa si no se paga; debajo solo
+                la pregunta, con el plazo dentro (usuario, 2026-11-24). Sin cifras de crédito. */}
+            <div className="conf-pago-tit">⚠ Este envío se paga por adelantado. <span className="conf-pago-motivo">En este momento no dispones de crédito comercial.</span>{' '}
+              <Tip id="tip-conf-pago" aria="Qué pasa si no se paga dentro del plazo" texto="Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma se anulan solos." /></div>
             <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo ahora?</strong> Si no vas a tramitar el pago dentro del
               plazo{plazoPago ? <span id="conf-pago-plazo"> de <strong>{duracionTxt(plazoPago.minutos)}</strong></span> : null}, no lo confirmes
               todavía: <strong>crea el envío más tarde</strong>, cuando vayas a pagarlo.</p>
