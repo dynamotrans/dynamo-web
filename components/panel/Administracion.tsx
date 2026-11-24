@@ -97,10 +97,11 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
     <section className="section active" id="sec-facturas">
       <div className="sec-header"><h2>Administración</h2></div>
       <div className="tabs" style={{ marginBottom: '0.8rem' }}>
-        <button className={`tab${pestana === 'proformas' ? ' active' : ''}`} onClick={() => { setPestana('proformas'); setQ(''); }}>Proformas{sinPagar ? ` (${sinPagar} sin pagar)` : ''}</button>
-        {/* Orden pedido por el usuario (2026-11-24): Proformas · Facturas · Albaranes. */}
-        <button className={`tab${pestana === 'facturas' ? ' active' : ''}`} onClick={() => setPestana('facturas')}>Facturas</button>
+        {/* Orden pedido por el usuario (2026-11-24): Albaranes · Proformas · Facturas. La que se abre
+            al entrar sigue siendo Proformas (ahí llevan los avisos de pago). */}
         <button className={`tab${pestana === 'albaranes' ? ' active' : ''}`} onClick={() => { setPestana('albaranes'); setQ(''); }}>Albaranes ({albaranes.length})</button>
+        <button className={`tab${pestana === 'proformas' ? ' active' : ''}`} onClick={() => { setPestana('proformas'); setQ(''); }}>Proformas{sinPagar ? ` (${sinPagar} sin pagar)` : ''}</button>
+        <button className={`tab${pestana === 'facturas' ? ' active' : ''}`} onClick={() => setPestana('facturas')}>Facturas</button>
       </div>
 
       {pestana === 'facturas' ? (dynamo ? (
