@@ -22,7 +22,8 @@ import { CONTACTO } from '@/lib/atencion';
 import { SIGLAS } from '@/lib/siglas';
 import { paisDe as nombrePais } from '@/lib/paises';
 import { nombreTipo } from './TipoSitio';
-import { Base, CardEdit, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles } from './nuevoEnvio/comun';
+import { Base, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles, useEdicionesSitios } from './nuevoEnvio/comun';
+import { nombreParada } from '@/lib/edicionesSitios';
 import { diaCierrePrecio } from '@/lib/fechasCarga';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
@@ -245,7 +246,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // de los sitios de la agenda que hay en la ruta al llegar al paso 4, para poder corregir
   // ahí lo que falte (horario, teléfono de contacto…). Lo tocado va en `edicSitios`.
   const [datosSitios, setDatosSitios] = useState<DatosSitios>({});
-  const [edicSitios, setEdicSitios] = useState<Record<number, CardEdit>>({});
+  const [edicSitios, setEdicSitios] = useEdicionesSitios(puntos);
   // Puntos con datos obligatorios del sitio sin rellenar (teléfono, email; empresa si es
   // nuevo). Se marca al intentar crear: las tarjetas se abren solas y pintan en rojo.
   const [faltasSitios, setFaltasSitios] = useState<Set<number>>(new Set());
@@ -693,7 +694,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   }
   function avisarFaltasSitios(faltas: Set<number>) {
     setFaltasSitios(faltas);
-    setAviso('Faltan datos obligatorios de los sitios: teléfono de contacto (y la empresa en los sitios nuevos). Revisa las tarjetas marcadas en rojo.');
+    // El aviso dice QUÉ falta y EN QUÉ parada (usuario, 2026-11-24: «pon más detalle»).
+    const lista = puntos.map((p, i) => ({ p, i })).filter(({ p }) => faltas.has(p.k)).map(({ p, i }) => {
+      const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
+      const que = [f.nuevo && !f.empresa.trim() ? 'el nombre de la empresa' : '', !f.telefono.trim() ? 'el teléfono de contacto' : ''].filter(Boolean).join(' y ');
+      return `${que} de ${nombreParada(i, p.tipo)}${f.empresa.trim() ? `: «${f.empresa.trim()}»` : ''}`;
+    });
+    setAviso(lista.length ? `Falta ${lista.join('; ')}. Rellénalo en ${lista.length === 1 ? 'su tarjeta, marcada' : 'las tarjetas marcadas'} en rojo.`
+      : 'Faltan datos obligatorios de los sitios: revisa las tarjetas marcadas en rojo.');
     setTimeout(() => document.querySelector('.ptar-sitio-card.falta')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
   }
 

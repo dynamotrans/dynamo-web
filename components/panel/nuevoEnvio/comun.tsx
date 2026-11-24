@@ -1,7 +1,9 @@
 'use client';
 
 // Lo que comparten la ficha y sus partes (iconos, celdas, nombres, ayudantes).
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { paisDe } from '@/lib/paises';
+import { ajustarAPuntos, extenderAlSitio } from '@/lib/edicionesSitios';
 import { HORARIO_POR_DEFECTO, HORARIO_VERANO_POR_DEFECTO, VERANO_GENERICO, type GrupoHorario, type Verano } from '@/lib/horarios';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
@@ -101,6 +103,26 @@ export function resolverFicha(p: Punto, datos: DatosSitios, edic?: CardEdit, mer
     contacto: edic.contacto ?? base.contacto, telefono: edic.telefono ?? base.telefono, contactoEmail: edic.contactoEmail ?? base.contactoEmail,
     notas: edic.notas ?? base.notas, emails: edic.emails ?? base.emails, maps: edic.maps ?? base.maps, mercancia: edic.mercancia ?? base.mercancia,
   };
+}
+
+// Lo tocado en las fichas, por parada, con las reglas de `lib/edicionesSitios`: lo que es del
+// SITIO vale para todas las paradas de ese sitio, una parada que estrena sitio hereda lo ya
+// tocado y, al cambiar de sitio, lo del anterior no se arrastra (usuario, 2026-11-24).
+export function useEdicionesSitios(puntos: Punto[]) {
+  const [edic, setCrudo] = useState<Record<number, CardEdit>>({});
+  const actuales = useRef(puntos);
+  useEffect(() => { actuales.current = puntos; });
+  const setEdic: Dispatch<SetStateAction<Record<number, CardEdit>>> = useCallback(
+    (a) => setCrudo((prev) => extenderAlSitio(prev, typeof a === 'function' ? a(prev) : a, actuales.current)), []);
+  const firma = puntos.map((p) => `${p.k}:${p.sitio?.id ?? ''}`).join('|');
+  const sitioAntes = useRef(new Map<number, string>());
+  useEffect(() => {
+    const antes = sitioAntes.current;
+    sitioAntes.current = new Map(puntos.map((p) => [p.k, p.sitio?.id ?? '']));
+    setCrudo((prev) => ajustarAPuntos(prev, puntos, antes));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firma]);
+  return [edic, setEdic] as const;
 }
 
 export const FORMAS = ['Lateral', 'Trasera', 'Techo', 'Lateral y trasera', 'Lateral y techo', 'Trasera y techo', 'Lateral, trasera y techo'];

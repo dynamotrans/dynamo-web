@@ -16,7 +16,8 @@ import { crearEnvio, crearEnvioCliente, sitiosDelCliente, kmRuta, factorTarifa, 
 import { tramosDe } from '@/lib/horarios';
 import { calcularTarifa, aplicarDescuentoTarifa } from '@/lib/tarifador';
 import { fecha as fmtFecha, euros, hoyMadrid } from '@/lib/formato';
-import { FORMAS, decimal, num, primerDia, resolverFicha, sumarHabiles, type CardEdit, type ClienteOpcion, type DatosSitios, type EdicionSitio, type Punto, type ReglasPrecio, type SitioOpcion } from './nuevoEnvio/comun';
+import { FORMAS, decimal, num, primerDia, resolverFicha, sumarHabiles, type CardEdit, type ClienteOpcion, type DatosSitios, type EdicionSitio, type Punto, type ReglasPrecio, type SitioOpcion, useEdicionesSitios } from './nuevoEnvio/comun';
+import { nombreParada } from '@/lib/edicionesSitios';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
@@ -119,11 +120,22 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   // fila las mismas fichas desplegables de Nuevo envío (horario, contacto, emails,
   // indicaciones, cita y detalle de la parada). Lo tocado se guarda en el sitio al crear; con
   // un dato obligatorio sin rellenar, al pulsar «Crear» se abren solas y salen en rojo.
-  const [edicSit, setEdicSit] = useState<Record<number, CardEdit>>({});
+  const [edicSit, setEdicSit] = useEdicionesSitios(filas.flatMap((f) => f.puntos));
   const [conFichas, setConFichas] = useState<Set<number>>(new Set());      // filas con las fichas abiertas
   const [faltasSit, setFaltasSit] = useState<Set<number>>(new Set());      // paradas con datos obligatorios por rellenar
   // Sin teléfono de contacto (con lo escrito en su ficha encima): no se crea.
   const faltaTel = (p: Punto) => !!p.sitio && !p.sitio.es_almacen_dynamo && !!datosSit[p.sitio.id] && !resolverFicha(p, datosSit, edicSit[p.k]).telefono.trim();
+  // Los sitios de una fila sin teléfono, cada uno con las paradas EXACTAS en las que falta.
+  const sinTelefono = (puntos: Punto[]): SinTel[] => {
+    const m = new Map<string, SinTel>();
+    puntos.forEach((p, i) => {
+      if (!faltaTel(p)) return;
+      const e = m.get(p.sitio!.id) ?? { sitio: p.sitio!, donde: '' };
+      e.donde = [e.donde, nombreParada(i, p.tipo)].filter(Boolean).join(' y ');
+      m.set(p.sitio!.id, e);
+    });
+    return [...m.values()];
+  };
   async function ponerTelefono(sitio: SitioOpcion, tel: string): Promise<string | null> {
     if (tel.replace(/\D/g, '').length < 6) return 'Escribe un teléfono válido.';
     const fch = resolverFicha({ k: 0, tipo: 'carga', sitio, nuevo: null }, datosSit, { telefono: tel.trim() });
@@ -349,7 +361,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
         {filas.map((f, i) => (
           <FilaEnvio key={f.k} f={f} n={i + 1} cliente={cliente} sitios={sitiosCliente} fest={fest} festivos={festivos} reglas={reglas}
             factor={factor} esCliente={esCliente} marcar={marcar}
-            sinTel={[...new Map(f.puntos.filter(faltaTel).map((p) => [p.sitio!.id, p.sitio!] as const)).values()]} onTelefono={ponerTelefono}
+            sinTel={sinTelefono(f.puntos)} onTelefono={ponerTelefono}
             fichas={{ abiertas: conFichas.has(f.k), datos: datosSit, edic: edicSit, setEdic: setEdicSit, faltas: faltasSit,
               alternar: () => setConFichas((x) => { const c = new Set(x); if (c.has(f.k)) c.delete(f.k); else c.add(f.k); return c; }) }}
             onCambio={(c) => cambiarFila(f.k, c)} onInfo={(x) => ponInfo(f.k, x)}
@@ -423,10 +435,11 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   );
 }
 
+type SinTel = { sitio: SitioOpcion; donde: string };   // donde: «1 · Recogida y 2 · Entrega»
 function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCliente, marcar, sinTel, onTelefono, fichas, onCambio, onInfo, onQuitar, onDuplicar, onSitioCreado }: {
   f: Fila; n: number; cliente: ClienteOpcion | null; sitios: SitioOpcion[]; fest: Set<string>; festivos: string[]; reglas: ReglasPrecio | null;
   factor: number | undefined; esCliente: boolean; marcar: boolean;
-  sinTel: SitioOpcion[]; onTelefono: (s: SitioOpcion, tel: string) => Promise<string | null>;
+  sinTel: SinTel[]; onTelefono: (s: SitioOpcion, tel: string) => Promise<string | null>;
   fichas: { abiertas: boolean; alternar: () => void; datos: DatosSitios; edic: Record<number, CardEdit>;
     setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>; faltas: Set<number> };
   onCambio: (c: Partial<Fila>) => void; onInfo: (i: Info) => void; onQuitar?: () => void; onDuplicar?: () => void;
@@ -492,14 +505,11 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
   const mlTxt = f.ml === '13.3' ? '13,30 metros · tráiler completo' : `${f.ml.replace('.', ',')} ${f.ml === '1' ? 'metro' : 'metros'} · grupaje`;
   const pesoTxt = optsPeso(pesoMax).find(([v]) => v === f.peso)?.[1] ?? '';
   const merc = [mlTxt, pesoTxt].filter(Boolean).join(' · ');
-  // En qué parada de la fila está un sitio («2 · Entrega»): el nombre solo no basta cuando la
-  // misma empresa sale en varias paradas (usuario, 2026-11-24).
-  const dondeEsta = (x: SitioOpcion) => f.puntos.map((p, i) => (p.sitio?.id === x.id ? `${i + 1} · ${p.tipo === 'carga' ? 'Recogida' : 'Entrega'}` : ''))
-    .filter(Boolean).join(' y ');
+  const sinSitio = f.puntos.map((p, i) => (p.sitio ? '' : nombreParada(i, p.tipo))).filter(Boolean);   // el aviso dice en qué parada
   const error = hecha ? null
     : !cliente ? 'Elige el cliente.'
-    : !rutaCompleta ? 'Falta la recogida o la entrega.'
-    : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `${dondeEsta(x)}: «${x.nombre_empresa}»`).join('; ')}.`
+    : !rutaCompleta ? (sinSitio.length ? `Falta elegir el sitio de ${sinSitio.join(' y ')}.` : 'Falta la recogida o la entrega.')
+    : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `${x.donde}: «${x.sitio.nombre_empresa}»`).join('; ')}.`
     : !f.fecha ? 'Elige la fecha de recogida.'
     : f.fecha < dias[0] ? `El primer día posible es el ${fmtFecha(dias[0])}.`
     : !esCliente && !(neto && neto > 0) && tarifa ? 'Pon el precio del cliente.'
@@ -608,7 +618,7 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
       )}
       {f.res && !f.res.ok && <div className="varios-res error">No se ha creado: {f.res.error}</div>}
       {!f.res && mostrarError && error && <div className="varios-res error">{error}</div>}
-      {!hecha && sinTel.map((x) => <TelefonoSitio key={x.id} sitio={x} donde={dondeEsta(x)} onGuardar={onTelefono} />)}
+      {!hecha && sinTel.map((x) => <TelefonoSitio key={x.sitio.id} sitio={x.sitio} donde={x.donde} onGuardar={onTelefono} />)}
       {!hecha && conSitio.length > 0 && (
         <button type="button" className="varios-sitios-btn" aria-expanded={fichas.abiertas} onClick={fichas.alternar}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>

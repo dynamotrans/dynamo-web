@@ -1016,6 +1016,42 @@ test.describe('novedades', () => {
     }
   });
 
+  // El mismo sitio en varias paradas (usuario, 2026-11-24): el teléfono puesto en la ficha de
+  // una vale para las demás, y el aviso dice en qué parada falta.
+  test('crear varios envíos: lo puesto en la ficha de un sitio vale para sus otras paradas', async ({ page }) => {
+    let c: { id: string; telefono: string | null } | null = null;
+    await expect.poll(async () => {
+      ({ data: c } = await bd().from('contactos').select('id, telefono, sitios!inner(nombre_empresa)').eq('sitios.nombre_empresa', 'Nave Madrid').eq('es_principal', true).limit(1).maybeSingle());
+      return !!c;
+    }, { timeout: 20000 }).toBe(true);
+    await bd().from('contactos').update({ telefono: null }).eq('id', c!.id);
+    try {
+      await entrar(page, 'cliente');
+      await page.goto('/panel/nuevo-envio/varios');
+      if (await variosSoloEnOrdenador(page)) return;
+      const filas = page.locator('.varios-fila');
+      const fila1 = filas.nth(0);
+      const sitio = fila1.locator('.ptar-route-row input[type=text]');
+      await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
+      await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+      await filas.nth(1).locator('.varios-quitar').click();
+      await fila1.locator('.varios-dup').click();
+      await expect(filas).toHaveCount(2);
+      const fila2 = filas.nth(1);
+      // Al pulsar «Crear», las fichas a las que les falta el teléfono se abren en las dos filas.
+      await page.locator('#varios-crear').click();
+      await expect(fila2.locator('.varios-res.error')).toContainText('Falta el teléfono de contacto de 2 · Entrega: «Nave Madrid»');
+      await expect(fila2.locator('.ptar-sitio-card.falta')).toHaveCount(1);
+      // Se pone en la ficha de la fila 1 y la fila 2 lo tiene también: sin aviso y con el número.
+      await fila1.locator('.ptar-sitio-card.falta input[type=tel]').fill('600123125');
+      await expect(fila1.locator('.varios-res.error')).toHaveCount(0);
+      await expect(fila2.locator('.varios-res.error')).toHaveCount(0);
+      await expect(fila2.locator('.ptar-sitio-card', { hasText: 'Nave Madrid' }).locator('input[type=tel]').first()).toHaveValue('600123125');
+    } finally {
+      await bd().from('contactos').update({ telefono: c!.telefono }).eq('id', c!.id);
+    }
+  });
+
   // Crear varios envíos (usuario, 2026-11-21): desde la flechita de «Nuevo envío», una tabla
   // con un envío por fila (máximo 20), precio por fila, quitar/duplicar, proforma y crear.
   test('crear varios envíos: tabla con precio por fila, proforma y creación de golpe', async ({ page }) => {
