@@ -6,6 +6,7 @@
 // tramo recto, sube con una curva suave y sigue recta («como la de GLS: recta horizontal, sube,
 // horizontal, con curvas suaves»). TODA la franja es el botón: debajo no hay otro botón verde
 // («no tiene sentido, ya es botón arriba», usuario, mismo día).
+// El título dice «Crear envío» (usuario, 2026-11-24; antes «Nuevo envío»).
 // «Crear varios envíos»: en el ordenador, un enlace en la franja blanca de abajo; en el móvil,
 // la flechita que despliega la opción, como en el botón de antes («ponlo como antes en móvil»).
 // Para todos: equipo de Dynamo y clientes («claro, cliente también», usuario, mismo día).
@@ -20,7 +21,7 @@ export default function BannerNuevoEnvio() {
     <div className="ne-banner" id="banner-nuevo-envio" ref={m.ref}>
       <Link className="ne-banner-arriba" href="/panel/nuevo-envio">
         <span className="ne-banner-txt">
-          <span className="ne-banner-tit">Nuevo envío</span>
+          <span className="ne-banner-tit">Crear envío</span>
           <span className="ne-banner-sub">Solicita un transporte o mira el coste de un envío</span>
         </span>
         <span className="ne-linea" aria-hidden="true">
