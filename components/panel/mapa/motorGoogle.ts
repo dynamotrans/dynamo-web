@@ -2,6 +2,7 @@
 // webs). Las marcas y las etiquetas son HTML nuestro colocado sobre el mapa (una sola capa de
 // Google las sitúa todas), así que se ven igual que en el mapa de reserva. Ver ./motor.
 import type { Direccion, Etiqueta, EstiloLinea, Grupo, LL, Motor } from './motor';
+import { zoomConUnDedo } from './zoomUnDedo';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- la API de Google se carga en la página, sin tipos propios */
 type G = any;
@@ -27,6 +28,7 @@ const ESTILO = `
 .gm-dynamo-marca{position:absolute;transform:translate(-50%,-50%);cursor:pointer}
 .gm-dynamo-ventana{font:13px/1.4 system-ui,sans-serif;color:#1f2937;padding:2px 2px 0}
 .gm-dynamo-ventana strong{font-weight:700}
+.gm-dynamo-vista{margin:10px;background:#fff;border:2px solid rgba(0,0,0,.2);border-radius:8px;padding:5px 10px;font:700 13px system-ui,sans-serif;color:#0b0a33;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .gm-dynamo-etq{position:absolute;pointer-events:none;background:#fff;color:#1f2937;border:1px solid rgba(0,0,0,.15);font-family:system-ui,sans-serif}
 `;
 
@@ -38,13 +40,30 @@ export async function crearMotorGoogle(div: HTMLElement, centro: LL, zoom: numbe
     const st = document.createElement('style'); st.id = 'gm-dynamo-estilo'; st.textContent = ESTILO; document.head.appendChild(st);
   }
   const m = new gm.Map(div, {
-    // Vista simple (callejero) por defecto; el satélite, opcional, con su botón arriba a la
-    // derecha (usuario, 2026-11-24).
+    // Vista simple (callejero) por defecto; el satélite, opcional (usuario, 2026-11-24).
     center: { lat: centro[0], lng: centro[1] }, zoom, mapTypeId: 'roadmap', disableDefaultUI: true, zoomControl: true,
-    mapTypeControl: true, mapTypeControlOptions: { mapTypeIds: ['roadmap', 'hybrid'], position: gm.ControlPosition?.TOP_RIGHT },
+    // Zoom con decimales: hace falta para el zoom continuo con un dedo (ver ./zoomUnDedo).
+    isFractionalZoomEnabled: true,
     gestureHandling: 'greedy', clickableIcons: false, keyboardShortcuts: false, maxZoom: 18, minZoom: 3,
   });
   div.classList.add('gm-dynamo');
+  // «Satélite» / «Mapa»: un botón nuestro, pequeño, arriba a la derecha (los de Google tapaban
+  // media anchura del mapa en el móvil). El satélite va con los nombres de calles y pueblos.
+  const vista = document.createElement('button');
+  vista.type = 'button'; vista.className = 'gm-dynamo-vista'; vista.dataset.vista = 'mapa';
+  const rotular = () => {
+    const sat = m.getMapTypeId() === 'hybrid';
+    vista.dataset.vista = sat ? 'satelite' : 'mapa';
+    vista.textContent = sat ? 'Mapa' : 'Satélite';
+    vista.setAttribute('aria-label', sat ? 'Ver el mapa simple' : 'Ver la vista de satélite');
+    vista.title = vista.getAttribute('aria-label')!;
+  };
+  vista.addEventListener('click', () => { m.setMapTypeId(m.getMapTypeId() === 'hybrid' ? 'roadmap' : 'hybrid'); });
+  m.addListener('maptypeid_changed', rotular); rotular();
+  if (gm.ControlPosition) m.controls[gm.ControlPosition.TOP_RIGHT].push(vista);
+  // El zoom que hay, a la vista en el propio mapa (para las pruebas).
+  const anotarZoom = () => { div.dataset.zoom = String(Math.round((m.getZoom() ?? 0) * 100) / 100); };
+  m.addListener('zoom_changed', anotarZoom); anotarZoom();
 
   // UNA capa nuestra sitúa todo el HTML (marcas y etiquetas) cada vez que el mapa se mueve.
   const piezas = new Set<Pieza>();
@@ -63,6 +82,7 @@ export async function crearMotorGoogle(div: HTMLElement, centro: LL, zoom: numbe
   capa.setMap(m);
   await preparada;
   const panel = (cual: 'overlayMouseTarget' | 'floatPane'): HTMLElement => capa.getPanes()[cual];
+  const quitarZoomUnDedo = zoomConUnDedo(gm, m, div, (x, y) => capa.getProjection()?.fromContainerPixelToLatLng(new gm.Point(x, y)) ?? null);
 
   // Sin la cabecera de Google (dejaba un hueco arriba): se cierra pulsando fuera, como las etiquetas.
   const ventana = new gm.InfoWindow({ maxWidth: 260, headerDisabled: true });
@@ -162,6 +182,6 @@ export async function crearMotorGoogle(div: HTMLElement, centro: LL, zoom: numbe
     },
     centrar: (en, zm) => { m.setCenter({ lat: en[0], lng: en[1] }); m.setZoom(zm); },
     recalcular: () => { gm.event.trigger(m, 'resize'); },
-    destruir: () => { capa.setMap(null); gm.event.clearInstanceListeners(m); div.classList.remove('gm-dynamo'); div.innerHTML = ''; },
+    destruir: () => { quitarZoomUnDedo(); delete div.dataset.zoom; capa.setMap(null); gm.event.clearInstanceListeners(m); div.classList.remove('gm-dynamo'); div.innerHTML = ''; },
   };
 }
