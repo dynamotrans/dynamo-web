@@ -1034,6 +1034,11 @@ test.describe('novedades', () => {
       await expect(page.locator('#varios-movil')).toHaveCount(0);
       await expect(page.locator('#varios-tabla')).toBeVisible();
       await expect(page.locator('#varios-elige-cliente')).toContainText('Elige primero el cliente');
+      // En su panel, la flechita del cartel «Nuevo envío» despliega «Crear varios envíos».
+      await page.goto('/panel/dashboard-admin');
+      await page.locator('#banner-mas').click();
+      await page.locator('#menu-varios-envios').click();
+      await expect(page).toHaveURL(/\/panel\/nuevo-envio\/varios/);
       return;
     }
     await page.locator('#btn-nuevo-mas').click();
