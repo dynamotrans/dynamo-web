@@ -100,7 +100,13 @@ test.describe('novedades', () => {
       const pago = document.querySelector('#pago-plazo'), resumen = document.querySelector('.pen-envio-sum');
       return !!pago && !!resumen && !!(pago.compareDocumentPosition(resumen) & Node.DOCUMENT_POSITION_FOLLOWING);
     })).toBe(true);
-    await expect(page.locator('#pago-plazo')).toContainText('tendrás que crear un envío nuevo');
+    // Lo que pasa si no se paga ya no ocupa la caja: sale en su globo de ayuda (usuario, 2026-11-24).
+    const globoPlazo = page.locator('#tip-pago-plazo [role=tooltip]');
+    await expect(globoPlazo).toBeHidden();
+    await page.locator('#tip-pago-plazo .tip-i-btn').click();
+    await expect(globoPlazo).toContainText('tendrás que crear un envío nuevo');
+    // Y el cómo pagar, en un desplegable cerrado.
+    await expect(page.locator('#pago-como')).not.toHaveAttribute('open', '');
     await page.goto('/panel/administracion');
     const proforma = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
     await expect(proforma.locator('.pago-plazo .cuenta-atras')).toBeVisible();

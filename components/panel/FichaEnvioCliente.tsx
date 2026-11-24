@@ -545,15 +545,24 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
   const resto = aCuenta > 0;
   const total = euros(resto ? Number(p.pendiente) : Number(p.total));
   if (p.estado_pago_previo === 'pendiente') {
+    const conTarjeta = !!e.tarjeta && !p.pago_avisado_en;
+    const conAvisar = !p.pago_avisado_en && !preguntaAviso;
+    const nBotones = 1 + (conTarjeta ? 1 : 0) + (conAvisar ? 1 : 0);
     return (
       <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
         {e.pagoVuelta === 'ok' && <div style={{ color: '#0f6b3a', fontWeight: 800, marginBottom: '0.4rem' }}>Pago con tarjeta hecho. En unos segundos se confirma aquí (recarga si no cambia).</div>}
         {(e.pagoVuelta === 'error' || e.pagoVuelta === 'no_disponible') && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.4rem' }}>No se ha podido abrir el pago con tarjeta. Prueba otra vez en un momento o paga por transferencia.</div>}
         {e.pagoVuelta === 'caducado' && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.4rem' }}>Ha pasado el plazo para pagar este envío: se va a anular. Vuelve a pedirlo con «Repetir envío».</div>}
         {e.pagoVuelta === 'cancelado' && <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Has salido del pago con tarjeta sin pagar. Puedes intentarlo de nuevo o pagar por transferencia.</div>}
-        <div><strong style={{ color: '#b42318' }}>{resto ? 'Falta por pagar' : 'Pendiente de pago'} · {total}</strong> (IVA incluido).</div>
+        {/* CORTA (usuario, 2026-11-24: «es gigante para decir que deben pagar… sintetiza al máximo
+            y lo demás, en algo que se despliegue o abra una mini ventana»): importe, cuenta atrás,
+            hasta cuándo y los botones. El motivo y lo que pasa si no se paga van en globos de
+            ayuda (ⓘ); el cómo pagar, en un desplegable. */}
+        <div className="pago-cli-cab"><strong style={{ color: '#b42318' }}>{resto ? 'Falta por pagar' : 'Pendiente de pago'} · {total}</strong> <span className="pago-cli-iva">(IVA incl.)</span>
+          {!resto && <Tip id="tip-pago-motivo" aria="Por qué se paga por adelantado"
+            texto={`${p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: este' : p.pago_motivo?.startsWith('Uno de los') ? 'Es uno de tus primeros envíos con nosotros: este' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: este' : 'Este'} envío se paga por adelantado. Pasamos a programación en cuanto recibimos el pago.`} />}
+        </div>
         {resto && <div style={{ marginTop: '0.3rem' }}>Has modificado el envío y el precio ha subido: ya tenías pagados <strong>{euros(aCuenta)}</strong> y el envío cuesta ahora <strong>{euros(Number(p.total))}</strong>. <strong>El envío no sigue adelante hasta que pagues la diferencia.</strong></div>}
-        <div style={{ marginTop: '0.3rem', display: resto ? 'none' : undefined }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: este' : p.pago_motivo?.startsWith('Uno de los') ? 'Es uno de tus primeros envíos con nosotros: este' : p.pago_motivo?.startsWith('Crédito insuficiente') ? 'Con este envío superas tu línea de crédito disponible: este' : 'Este'} envío se paga por adelantado. <strong>Pasamos a programación en cuanto recibimos el pago.</strong></div>
         {p.pago_avisado_en ? (
           <div id="pago-avisado" className="pago-avisado" role="status">
             <span className="pa-ico" aria-hidden="true">✓</span>
@@ -562,19 +571,21 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         ) : p.pago_limite && (
           <div id="pago-plazo">
             <CuentaAtras grande hasta={p.pago_limite} vencidoTxt="Plazo vencido: el envío se anula en breve" />
-            <div>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si para entonces no has pagado con tarjeta ni nos has avisado de tu transferencia, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crear un envío nuevo (con el precio de ese momento).</div>
+            <div className="pago-cli-limite">Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>.{' '}
+              <Tip id="tip-pago-plazo" aria="Qué pasa si no pagas a tiempo" texto="Si para entonces no has pagado con tarjeta ni nos has avisado de tu transferencia, el envío y su proforma se anulan solos y tendrás que crear un envío nuevo (con el precio de ese momento)." /></div>
           </div>
         )}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
         ) : <>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
+        {/* Botones a medias en la misma fila; el que queda suelto (impar) ocupa la fila entera. */}
+        <div className={`pago-cli-botones${nBotones % 2 ? ' impar' : ''}`}>
           {/* Con la transferencia ya avisada no se ofrece la tarjeta (usuario, 2026-11-23): pagaría dos veces. */}
-          {e.tarjeta && !p.pago_avisado_en
-            ? <PagoTarjeta envioId={e.id} id="pago-tarjeta" texto={`Pagar ${total} con tarjeta`} />
+          {conTarjeta
+            ? <PagoTarjeta envioId={e.id} id="pago-tarjeta" texto="Pagar con tarjeta" />
             : null}
-          <a className="btn-secondary" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Ver proforma (transferencia)</a>
-          {!p.pago_avisado_en && !preguntaAviso && <button type="button" id="pago-avisar" className="btn-primary" onClick={() => { setResAviso(null); setPreguntaAviso(true); }}>Ya he hecho la transferencia</button>}
+          <a className="btn-secondary" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Ver proforma</a>
+          {conAvisar && <button type="button" id="pago-avisar" className={conTarjeta ? 'btn-secondary' : 'btn-primary'} onClick={() => { setResAviso(null); setPreguntaAviso(true); }}>Ya he hecho la transferencia</button>}
         </div>
         {preguntaAviso && !p.pago_avisado_en && (
           <div id="pago-avisar-confirmar" style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
@@ -590,14 +601,17 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
             se quita con él (usuario, 2026-11-23: «el mensaje de haber pagado no se quita»). */}
         {resAviso && (!resAviso.ok || !!p.pago_avisado_en) && <div className={resAviso.ok ? 'pt-aviso info' : 'wiz-warn show'} role="status" style={{ marginTop: '0.5rem' }}><div>{resAviso.ok ? resAviso.txt : `⚠ ${resAviso.txt}`}</div></div>}
         {avisando && <Cargando texto="Enviando tu aviso" />}
-        <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
-          {p.pago_avisado_en
-            ? <>Estamos comprobando tu transferencia en el banco. Si al final prefieres pagar de otra forma, llámanos antes para no pagar dos veces.</>
-            : <>{e.tarjeta
-                ? <>Con <strong>tarjeta</strong> el envío pasa a <strong>programación de envíos al momento</strong>. </>
-                : <>El pago con tarjeta estará disponible muy pronto. </>}
-              Por <strong>transferencia inmediata</strong> (llega en segundos y tu banco no te cobra más que por una normal), usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y pulsa <strong>«Ya he hecho la transferencia»</strong>: el plazo se para mientras la validamos.</>}
-        </div>
+        {p.pago_avisado_en
+          ? <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>Estamos comprobando tu transferencia en el banco. Si al final prefieres pagar de otra forma, llámanos antes para no pagar dos veces.</div>
+          : (
+            <details className="pago-cli-como" id="pago-como">
+              <summary>¿Cómo pagar?</summary>
+              <p>{e.tarjeta
+                ? <><strong>Con tarjeta</strong>: el envío pasa a programación al momento.</>
+                : <>El pago con tarjeta estará disponible muy pronto.</>}</p>
+              <p><strong>Por transferencia inmediata</strong> (llega en segundos y tu banco no te cobra más que por una normal): usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y pulsa <strong>«Ya he hecho la transferencia»</strong>. El plazo se para mientras la validamos.</p>
+            </details>
+          )}
         </>}
       </div>
     );
