@@ -469,17 +469,18 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
               a pagar (usuario, 2026-11-24). Sin cifras ni motivos de crédito. */}
           {esCliente && conPago.size > 0 && (
             <div className="modal-warn-box conf-pago" id="varios-conf-pago" role="alert" style={{ margin: '0.7rem 0 0' }}>
-              <div className="conf-pago-tit">⚠ {conPago.size === listas.length
+              {/* Misma hechura que en Nuevo envío: arranque en negrita en línea, el motivo en corto
+                  (si solo es una parte, es que el crédito no llega para todos) y, en el globo, qué
+                  pasa si no se paga (usuario, 2026-11-24). */}
+              <p className="conf-pago-tit"><strong>⚠ {conPago.size === listas.length
                 ? (listas.length === 1 ? 'Este envío se paga por adelantado' : 'Estos envíos se pagan por adelantado')
-                : conPago.size === 1 ? '1 de estos envíos se paga por adelantado' : `${conPago.size} de estos envíos se pagan por adelantado`}.{' '}
-                {/* El motivo en corto, como en Nuevo envío; si solo es una parte, es que el crédito
-                    no llega para todos. En el globo, qué pasa si no se paga (usuario, 2026-11-24). */}
-                <span className="conf-pago-motivo">{conPago.size === listas.length ? 'En este momento no dispones de crédito comercial.' : 'Tu crédito comercial no alcanza para todos.'}</span>{' '}
-                <Tip id="tip-varios-conf-pago" aria="Qué pasa si no se paga dentro del plazo" texto="Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma se anulan solos." /></div>
+                : conPago.size === 1 ? '1 de estos envíos se paga por adelantado' : `${conPago.size} de estos envíos se pagan por adelantado`}.</strong>{' '}
+                {conPago.size === listas.length ? 'En este momento no dispones de crédito comercial.' : 'Tu crédito comercial no alcanza para todos.'}{' '}
+                <Tip id="tip-varios-conf-pago" aria="Qué pasa si no se paga dentro del plazo" texto="Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma se anulan solos." /></p>
               {/* Solo la pregunta, con el plazo dentro (usuario, 2026-11-24: lo demás sobraba). */}
               <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo{conPago.size === 1 ? '' : 's'} ahora?</strong> Si no vas a tramitar el pago dentro del
-                plazo{plazoPago ? <> de <strong>{duracionTxt(plazoPago.minutos)}</strong></> : null}, no {conPago.size === 1 ? 'lo' : 'los'} confirmes todavía:
-                <strong> créalo{conPago.size === 1 ? '' : 's'} más tarde</strong>, cuando vayas a pagar.</p>
+                plazo{plazoPago ? <> de <strong>{duracionTxt(plazoPago.minutos)}</strong></> : null} <strong>{conPago.size === 1 ? 'el envío se anula' : 'los envíos se anulan'}</strong>.
+                En ese caso, <strong>créalo{conPago.size === 1 ? '' : 's'} más tarde</strong>, cuando vayas a pagar.</p>
             </div>
           )}
           <p className="varios-conf-nota">Cada envío sigue sus condiciones como si lo crearas uno a uno: costes de cancelación una vez asignado el transportista y, si tu cuenta paga por adelantado, su plazo de pago.</p>

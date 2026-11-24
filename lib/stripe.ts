@@ -27,6 +27,10 @@ function camposSesion(p: DatosPago): { f: URLSearchParams; tanda: number } {
     'line_items[0][price_data][product_data][description]': p.descripcion.slice(0, 300) || `Envío ${p.referencia}`,
     'metadata[envio_id]': p.envioId, 'payment_intent_data[metadata][envio_id]': p.envioId,
     'payment_intent_data[description]': `Dynamo · envío ${p.referencia}`,
+    // Solo TARJETA (usuario, 2026-11-24): con ella viajan Apple Pay y Google Pay. Sin esto Stripe
+    // ofrecía todo lo que la cuenta tiene encendido (Klarna, Scalapay, Amazon Pay, MB WAY…):
+    // pagos a plazos o que tardan en confirmarse, que no cuadran con un plazo de pago de una hora.
+    'payment_method_types[0]': 'card',
   });
   if (p.email) f.set('customer_email', p.email);
   // El enlace caduca con el plazo para pagar más su margen (Stripe admite entre 30 min y 24 h).
@@ -48,7 +52,7 @@ async function pedirSesion(f: URLSearchParams, clave: string): Promise<{ ok: boo
 export async function crearPagoStripe(p: DatosPago): Promise<string> {
   const { f, tanda } = camposSesion(p);
   f.set('success_url', `${p.vuelta}&pago=ok`); f.set('cancel_url', `${p.vuelta}&pago=cancelado`);
-  const { ok, j } = await pedirSesion(f, `envio-${p.envioId}-${p.centimos}-${tanda / 600000}`);
+  const { ok, j } = await pedirSesion(f, `envio2-${p.envioId}-${p.centimos}-${tanda / 600000}`);
   if (!ok || !j?.url) throw new Error(j?.error?.message ?? 'Stripe no ha devuelto la página de pago.');
   return j.url;
 }
@@ -71,7 +75,7 @@ export async function crearPagoEnVentana(p: DatosPago): Promise<string> {
     // Tarjeta, Apple Pay y Google Pay terminan en la propia ventana; los medios que obligan a
     // salir (redirección al banco) vuelven a la ficha del envío.
     f.set('redirect_on_completion', 'if_required'); f.set('return_url', `${p.vuelta}&pago=ok`);
-    const { ok, j } = await pedirSesion(f, `envio-ventana-${modo}-${p.envioId}-${p.centimos}-${tanda / 600000}`);
+    const { ok, j } = await pedirSesion(f, `envio2-ventana-${modo}-${p.envioId}-${p.centimos}-${tanda / 600000}`);
     if (ok && j?.client_secret) return j.client_secret;
     ultimo = j;
     if (j?.error?.param !== 'ui_mode') break;   // otro fallo: no es cosa del nombre del modo

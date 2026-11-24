@@ -1854,13 +1854,14 @@ body.theme-dark .sidebar { background: #060116; }
     color: var(--navy); margin-bottom: 1rem; line-height: 1.5;
 }
 .modal-warn-box strong { color: var(--orange); }
-/* Confirmar envío: el envío nacerá pendiente de pago (usuario, 2026-11-24). Caja naranja más
-   marcada que el aviso normal: es lo último que se lee antes de confirmar. */
-.conf-pago { background: #fff4e5; border: 1.5px solid #ff9a3c; border-left-width: 5px; }
-.conf-pago p { margin: 0.35rem 0 0; }
-.conf-pago strong { color: #9a3f00; }
-.conf-pago-tit { font-weight: 800; color: #9a3f00; font-size: var(--fs-l, 1rem); }
-.conf-pago-motivo { font-weight: 600; }
+/* Confirmar envío: el envío nacerá pendiente de pago (usuario, 2026-11-24). MISMA hechura que
+   la caja verde de «Cancelación y cambios gratis» que tiene encima (usuario, 2026-11-24:
+   «mismos tamaños, diseño acorde, armonía»): mismo tamaño de letra, borde fino, relleno y
+   esquinas; solo cambia el color. El arranque en negrita va en línea, como en la verde. */
+.conf-pago { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+.conf-pago p { margin: 0; }
+.conf-pago p + p { margin-top: 0.3rem; }
+.conf-pago strong { color: inherit; }
 /* Destello breve del campo al que lleva un enlace (p. ej. «añádela en opciones» → Plataforma elevadora). */
 .ptar-destacado { border-radius: 10px; animation: ptarDestacado 2.2s ease-out 1; }
 @keyframes ptarDestacado { 0%, 60% { box-shadow: 0 0 0 4px rgba(255,122,0,0.35); } 100% { box-shadow: 0 0 0 4px rgba(255,122,0,0); } }

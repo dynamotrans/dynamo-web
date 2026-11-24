@@ -1713,15 +1713,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
             a pagar — si no, que lo cree más tarde (usuario, 2026-11-24: «por evitar crear envíos
             sin ser luego pagados»). Si no aplica, no se dice nada. Sin cifras ni motivos de crédito. */}
         {avisaPago && (
-          <div className="modal-warn-box conf-pago" id="conf-pago" role="alert" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
+          <div className="pt-aviso conf-pago" id="conf-pago" role="alert" style={{ marginTop: '0.6rem', marginBottom: 0 }}><div>
             {/* Título con el motivo en corto y, en el globo, qué pasa si no se paga; debajo solo
                 la pregunta, con el plazo dentro (usuario, 2026-11-24). Sin cifras de crédito. */}
-            <div className="conf-pago-tit">⚠ Este envío se paga por adelantado. <span className="conf-pago-motivo">En este momento no dispones de crédito comercial.</span>{' '}
-              <Tip id="tip-conf-pago" aria="Qué pasa si no se paga dentro del plazo" texto="Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma se anulan solos." /></div>
+            <p className="conf-pago-tit"><strong>⚠ Este envío se paga por adelantado.</strong> En este momento no dispones de crédito comercial.{' '}
+              <Tip id="tip-conf-pago" aria="Qué pasa si no se paga dentro del plazo" texto="Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma se anulan solos." /></p>
             <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo ahora?</strong> Si no vas a tramitar el pago dentro del
-              plazo{plazoPago ? <span id="conf-pago-plazo"> de <strong>{duracionTxt(plazoPago.minutos)}</strong></span> : null}, no lo confirmes
-              todavía: <strong>crea el envío más tarde</strong>, cuando vayas a pagarlo.</p>
-          </div>
+              plazo{plazoPago ? <span id="conf-pago-plazo"> de <strong>{duracionTxt(plazoPago.minutos)}</strong></span> : null} <strong>el envío se anula</strong>.
+              En ese caso, <strong>crea el envío más tarde</strong>, cuando vayas a pagarlo.</p>
+          </div></div>
         )}
         {/* Los avisos del tráiler (accesos y medios de carga) y de los días hábiles ya no van
             en cajas aquí (usuario, 2026-11-19): están en las condiciones generales, apartados 9 y 15. */}
