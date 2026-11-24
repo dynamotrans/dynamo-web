@@ -17,9 +17,16 @@ export function direccionEnLinea(p: { direccion?: string | null; codigo_postal?:
   return [p.direccion?.trim(), [p.codigo_postal?.trim(), p.poblacion?.trim()].filter(Boolean).join(' '), PAIS[iso] ?? iso].filter(Boolean).join(', ');
 }
 
-const escala = (p: PuntoRuta) => (p.direccion && p.direccion.trim().length >= 3
-  ? { address: p.direccion.trim().slice(0, 300) }
-  : Number.isFinite(p.lat) && Number.isFinite(p.lon) ? { location: { latLng: { latitude: p.lat!, longitude: p.lon! } } } : null);
+// Cada extremo se manda por sus COORDENADAS si las tiene (usuario, 2026-11-24: un envío salía
+// pintado Madrid → Murcia cuando iba de Granada a Castellón). Antes mandaba el texto de la
+// dirección, y con una dirección rara o incompleta Google elegía por su cuenta otro sitio
+// distinto del punto que enseñamos en el mapa: los kilómetros y la ruta salían de ahí. El
+// texto solo se usa cuando no hay coordenadas (p. ej. un código postal suelto).
+const conCoordenadas = (p: PuntoRuta) => typeof p.lat === 'number' && typeof p.lon === 'number'
+  && Number.isFinite(p.lat) && Number.isFinite(p.lon) && Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180 && !(p.lat === 0 && p.lon === 0);
+export const escala = (p: PuntoRuta) => (conCoordenadas(p)
+  ? { location: { latLng: { latitude: p.lat!, longitude: p.lon! } } }
+  : p.direccion && p.direccion.trim().length >= 3 ? { address: p.direccion.trim().slice(0, 300) } : null);
 
 /** Lee la respuesta de Google (se prueba aparte). */
 export function leerRuta(j: { routes?: { distanceMeters?: number; duration?: string; polyline?: { encodedPolyline?: string } }[] } | null): { km: number; minutos: number; linea: string | null } | null {

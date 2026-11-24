@@ -6,7 +6,7 @@ import { situarConCache } from '@/lib/servidor/geocodificar';
 import { claveParada, type MapaEnvio } from '@/lib/mapaEnvio';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { googleRutasListo, rutaGoogle } from '@/lib/servidor/googleRutas';
-import type { Trazados } from '@/lib/lineaRuta';
+import { lineaEncaja, type Trazados } from '@/lib/lineaRuta';
 
 // Mapa del envío (usuario, 2026-11-22): lo puede abrir quien ve el envío (Dynamo, el cliente
 // dueño o su transportista; lo comprueba la base de datos). Si alguna parada no tiene
@@ -66,6 +66,7 @@ type TramoGuardado = {
   envio: string; desde: number; hasta: number; linea: string | null; invertida?: boolean; a: [number, number]; b: [number, number];
   sitio_a: string | null; sitio_b: string | null; pais_a: string | null; cp_a: string | null; pais_b: string | null; cp_b: string | null;
   fila_sitios: string | null; fila_cp: string | null;
+  mala?: boolean;   // traía una línea guardada que no era de este tramo (se vuelve a pedir)
 };
 const POR_VEZ = 6;
 export async function trazadosDeEnvios(envios: string[]): Promise<({ ok: true; faltan: number } & Trazados) | { ok: false }> {
@@ -75,6 +76,11 @@ export async function trazadosDeEnvios(envios: string[]): Promise<({ ok: true; f
   const { data, error } = await s.supabase.rpc('mapa_trazados', { p_envios: envios.slice(0, 400) });
   if (error) return { ok: false };
   const tramos = (data ?? []) as unknown as TramoGuardado[];
+  // Una línea guardada que no empieza y acaba junto a las paradas de su tramo NO es su ruta
+  // (usuario, 2026-11-24: un Granada → Castellón pintado por Madrid y Murcia; se había calculado
+  // con el texto de una dirección que Google situó en otro sitio). Se descarta y se pide de
+  // nuevo por coordenadas; hasta entonces, línea recta.
+  for (const t of tramos) if (t.linea && !lineaEncaja(t.linea, t.a, t.b, !!t.invertida)) { t.linea = null; t.invertida = false; t.mala = true; }
   // Dónde se guarda cada tramo: entre sus dos sitios si lo son; si no, entre sus códigos postales.
   const clave = (t: TramoGuardado) => (t.sitio_a && t.sitio_b ? `s|${t.sitio_a}|${t.sitio_b}`
     : t.cp_a && t.cp_b && t.pais_a && t.pais_b ? `c|${t.pais_a}|${t.cp_a}|${t.pais_b}|${t.cp_b}` : null);
@@ -94,9 +100,18 @@ export async function trazadosDeEnvios(envios: string[]): Promise<({ ok: true; f
       // Se guarda con sus kilómetros; si la distancia ya estaba guardada, solo se le añade la
       // línea. Entre sus dos sitios Y entre sus dos códigos postales (usuario, 2026-11-24): así
       // la aprovecha cualquier otra empresa de esos mismos códigos, a la ida y a la vuelta.
+      // Si lo guardado era de otra ruta (`mala`), se corrigen también sus kilómetros; y entre dos
+      // sitios no se toca lo de sus códigos postales, que puede estar bien y lo usan otros.
       if (t.sitio_a && t.sitio_b) {
-        const id = t.fila_sitios ?? (await srv.rpc('guardar_km_sitios', { p_origen: t.sitio_a, p_destino: t.sitio_b, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' })).data;
+        const id = (!t.mala && t.fila_sitios) || (await srv.rpc('guardar_km_sitios', { p_origen: t.sitio_a, p_destino: t.sitio_b, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' })).data;
         if (id) await srv.from('distancias_sitios').update({ linea: g.linea }).eq('id', id);
+        if (t.mala) return;
+      }
+      if (t.mala && t.cp_a && t.cp_b && t.pais_a && t.pais_b) {
+        const id = (await srv.rpc('guardar_km_cp', { p_pais_codigo_iso_origen: t.pais_a, p_codigo_postal_origen: t.cp_a,
+          p_pais_codigo_iso_destino: t.pais_b, p_codigo_postal_destino: t.cp_b, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' })).data;
+        if (id) await srv.from('distancias_cp').update({ linea: g.linea }).eq('id', id);
+        return;
       }
       if (t.cp_a && t.cp_b && t.pais_a && t.pais_b) {
         const id = t.fila_cp ?? (await srv.rpc('guardar_km_cp', { p_pais_codigo_iso_origen: t.pais_a, p_codigo_postal_origen: t.cp_a,

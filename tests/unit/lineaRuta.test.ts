@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { descifrarLinea, partirLinea, repartirTrazados, trazadoEntre } from '../../lib/lineaRuta';
+import { descifrarLinea, kmRectos, lineaEncaja, partirLinea, repartirTrazados, trazadoEntre } from '../../lib/lineaRuta';
 import { posicionCamion, type MapaEnvio } from '../../lib/mapaEnvio';
 
 test('descifrarLinea: el ejemplo de la documentación de Google', () => {
@@ -59,4 +59,26 @@ test('posicionCamion: en ruta va sobre la carretera si hay trazado, y sobre la r
   const curva = posicionCamion({ ...base, trazados: { '1-2': [[1, 0], [1, 2]] } })!;
   assert.equal(Math.round(curva.lat * 100) / 100, 1);
   assert.equal(Math.round(curva.lon * 100) / 100, 1);
+});
+
+// Una línea guardada solo vale para un tramo si empieza y acaba junto a sus paradas (usuario,
+// 2026-11-24: un Granada → Castellón salía pintado por Madrid y Murcia).
+test('lineaEncaja: la línea de otra ruta no vale para este tramo', () => {
+  // El ejemplo de Google: de (38.5, -120.2) a (43.252, -126.453).
+  const linea = '_p~iF~ps|U_ulLnnqC_mqNvxq`@';
+  const ini: [number, number] = [38.5, -120.2], fin: [number, number] = [43.252, -126.453];
+  assert.equal(lineaEncaja(linea, ini, fin), true);
+  assert.equal(lineaEncaja(linea, [38.6, -120.3], [43.2, -126.4]), true);        // a unos kilómetros: vale
+  assert.equal(lineaEncaja(linea, fin, ini), false);                             // al revés, sin decirlo: no
+  assert.equal(lineaEncaja(linea, fin, ini, true), true);                        // guardada en el otro sentido
+  assert.equal(lineaEncaja(linea, [37.18, -3.6], [39.98, -0.03]), false);        // otra ruta: no
+  assert.equal(lineaEncaja(linea, ini, [39.98, -0.03]), false);                  // un extremo no encaja: no
+  assert.equal(lineaEncaja(null, ini, fin), false);
+  assert.equal(lineaEncaja('', ini, fin), false);
+});
+
+test('kmRectos: Granada–Madrid ronda los 360 km', () => {
+  const km = kmRectos([37.18, -3.6], [40.42, -3.7]);
+  assert.ok(km > 340 && km < 380, String(km));
+  assert.equal(kmRectos([40, -3], [40, -3]), 0);
 });

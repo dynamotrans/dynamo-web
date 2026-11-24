@@ -59,6 +59,23 @@ export function trazadoEntre(a: PuntoLinea, b: PuntoLinea, linea: PuntoLinea[] |
   return [a, ...linea, b];
 }
 
+// Kilómetros en línea recta entre dos puntos (haversine).
+export function kmRectos(a: PuntoLinea, b: PuntoLinea): number {
+  const rad = Math.PI / 180, dLat = (b[0] - a[0]) * rad, dLon = (b[1] - a[1]) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+/** ¿La línea guardada es la de ESTE tramo? Tiene que empezar cerca de una parada y acabar cerca
+ *  de la otra (`invertida`: se guardó en el sentido contrario). El margen deja sitio a que el
+ *  trazado sea el de los códigos postales (acaba en su centro) y no el de la puerta exacta. Una
+ *  línea que no encaja no se pinta: es de una ruta calculada sobre otro sitio. */
+export function lineaEncaja(linea: string | null | undefined, a: PuntoLinea, b: PuntoLinea, invertida = false, margenKm = 40): boolean {
+  const p = descifrarLinea(linea);
+  if (p.length < 2) return false;
+  const [ini, fin] = invertida ? [p[p.length - 1], p[0]] : [p[0], p[p.length - 1]];
+  return kmRectos(ini, a) <= margenKm && kmRectos(fin, b) <= margenKm;
+}
+
 /** Lo que devuelve el servidor (trazadosDeEnvios): las líneas sin repetir y qué tramo usa cuál. */
 // `alreves`: la línea guardada es la del sentido contrario (la vuelta): se pinta invertida.
 export type Trazados = { lineas: string[]; tramos: { envio: string; desde: number; hasta: number; linea: number; alreves?: boolean }[] };

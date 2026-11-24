@@ -474,7 +474,8 @@ export async function kmRuta(puntos: PuntoKm[]): Promise<{ km: number; estimado:
     if (st) return st.direccion || st.codigo_postal
       ? { direccion: direccionEnLinea({ direccion: st.direccion, codigo_postal: st.codigo_postal, poblacion: st.poblacion, pais: st.pais_codigo_iso }), lat: st.lat, lon: st.lon }
       : { lat: st.lat, lon: st.lon };
-    if (p.cp) return { direccion: direccionEnLinea({ codigo_postal: p.cp, pais: p.pais }) };
+    // Con coordenadas, mandan ellas (lib/servidor/googleRutas.ts); el código postal en texto es el respaldo.
+    if (p.cp) return { direccion: direccionEnLinea({ codigo_postal: p.cp, pais: p.pais }), lat: p.lat, lon: p.lon };
     return p.lat != null && p.lon != null ? { lat: p.lat, lon: p.lon } : null;
   };
   let km = 0, estimado = false;
