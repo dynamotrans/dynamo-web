@@ -14,7 +14,9 @@ export default function CampoTelefono({ id, valor, onCambio, placeholder = '600 
   const [prefVacio, setPrefVacio] = useState(t.pref);
   // Con número, el prefijo sale del propio valor; sin número, del último elegido.
   const pref = t.num ? t.pref : prefVacio;
-  const poner = (p: string, n: string) => onCambio(n.trim() ? p + n.replace(/\D/g, '') : '');
+  // Sin cifras no hay teléfono: antes, con letras o signos, salía el prefijo solo («+34»),
+  // que contaba como teléfono puesto aunque la casilla se viera vacía.
+  const poner = (p: string, n: string) => { const cifras = n.replace(/\D/g, ''); onCambio(cifras ? p + cifras : ''); };
   return (
     <div className="campo-tel">
       <SelectorPais modo="prefijo" valor={pref} disabled={disabled} onCambio={(v) => { setPrefVacio(v); poner(v, t.num); }} />

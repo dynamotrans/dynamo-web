@@ -27,16 +27,6 @@ const ESTADO: Record<string, [string, string]> = Object.fromEntries(Object.entri
 const RECOMIENDA_MSG = `Hola,\n\nos envío contacto de Dynamo Operador Logístico, S.L.. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n${CONTACTO.telefono}\n${CONTACTO.email}`;
 // Enlace DIRECTO de reseña de la ficha de Google (el que va en las órdenes de carga).
 const GOOGLE_RESENA = 'https://g.page/r/Cdy34Hp-P-IEEBI/review';
-const LOGOS: [string, string, string][] = [
-  ['jardipond.webp', 'Jardí Pond', ''], ['ferticenter.webp', 'Ferticenter', ''], ['rosport.webp', 'Rosport', 'Servicios Integrales'], ['talsa.webp', 'TALSA', ''],
-  ['aceitunascazorla.webp', 'Aceitunas Cazorla', ''], ['solbau.webp', 'SOLBAU', ''], ['poolback.webp', 'PoolBack', 'Logística del Envase'], ['pansur.webp', 'PANSUR', ''],
-  ['sagredo.webp', 'Sagredo', 'Abonos y Semillas'], ['jysk.webp', 'JYSK', ''], ['alquibox.webp', 'AlquiBox', 'Andalucía'], ['ghi.webp', 'ghi', 'Smart Furnaces'],
-  ['rivi.webp', 'RIVI', 'Technical Group'], ['almendrun.webp', 'Almendrun', ''], ['prodisa.webp', 'Prodisa', 'Comunicación'], ['grupopuma.webp', 'Grupo Puma', ''],
-  ['aguacates.webp', 'Aguacates', 'Valle del Guadiana'], ['GRAMOFLOR.webp', 'Gramoflor', 'Ibérica'], ['TRANSMETALICAS.webp', 'Transmetálicas', ''], ['DIMASIBER.webp', 'Dimasiber', ''],
-  ['COAVANTIA.webp', 'Coavantia', ''], ['TODOEMBALAJE.webp', 'Todoembalaje', '.com'], ['hidrodiseno.webp', 'Hydrodiseño', 'Global'], ['QUIMICAS%20ORO.webp', 'Químicas Oro', ''],
-  ['JUMASA.webp', 'Jumasa', 'Parts'], ['BRELLO.webp', 'Brello', 'Plásticos'], ['PISCIMAR.webp', 'Piscimar', 'Pools'], ['BIGMAT.webp', 'BigMat', 'Logística'],
-  ['STRUGAL.webp', 'Strugal', ''], ['COTAIN%20SA.webp', 'Cotain', ''], ['RIMOBEL.webp', 'Rimobel', ''], ['SKLUM.webp', 'SKLUM', ''],
-];
 const SERVICIOS = [
   { t: 'Grupajes', chip: 'Nacional 24 h', img: '/images/FOTO 1 - copia55420ac5170e2.jpeg', pos: '', d: 'Comparte espacio y optimiza costes. Envío directo sin transbordos ni manipulaciones, tal y como se carga, se entrega. Mercancía paletizada y cargas especiales. Recogidas desde mismo día. Entregas desde 24h.' },
   { t: 'Carga Completa', chip: 'Tráfico directo', img: '/images/HERO-DYNAMO.webp', pos: '34% center', d: 'El camión es tuyo. Sin transbordos: máxima seguridad, rapidez y entrega directa origen-destino.' },
@@ -47,20 +37,10 @@ const Svg = ({ size = 16, children }: { size?: number; children: React.ReactNode
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
 );
 
-function Logo({ l }: { l: [string, string, string] }) {
-  return (
-    <div className="logo-pill"><div className="logo-box">
-      <div className="logo-icon"><img loading="lazy" src={`/images/logos/${l[0]}`} alt={l[1]} /></div>
-      <div><span className="logo-name">{l[1]}</span>{l[2] && <span className="logo-sub">{l[2]}</span>}</div>
-    </div></div>
-  );
-}
-
 export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }: { envios: MiniEnvio[]; activos: number; dynamo: boolean; sinEnvios: boolean }) {
   const [ventanaAbierta, setVentana] = useState<null | 'recomendar' | 'google' | number>(null);
   const [texto, setTexto] = useState(RECOMIENDA_MSG);
   const [copiado, setCopiado] = useState(false);
-  const filas = [0, 1, 2].map((r) => LOGOS.filter((_, i) => i % 3 === r));
 
   return (
     <section className="section active" id="sec-dashboard">
@@ -135,19 +115,9 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
         </div>
       </div>
 
+      {/* El carrusel «Nuestros clientes» (logos de empresas) se quitó de la plataforma (usuario,
+          2026-11-24: «estorba, distrae»); se queda solo en la web pública. */}
       <div className="dash-carousels">
-        <div className="dash-clientes">
-          <p className="dash-flota-eyebrow">Nuestros clientes</p>
-          <h4 className="dash-flota-title">Más de 480 empresas confían en Dynamo</h4>
-          <p className="dash-flota-desc">Empresas de todos los sectores que ya mueven su mercancía con nosotros.</p>
-          <div className="clientes-wall" translate="no">
-            {filas.map((f, i) => (
-              <div key={i} className="clientes-row" data-dir={i === 1 ? 'rtl' : 'ltr'} style={{ '--dur': `${[30, 38, 45][i]}s` } as React.CSSProperties}>
-                <div className="clientes-row-track">{[...f, ...f].map((l, k) => <Logo key={k} l={l} />)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
         {MOSTRAR_SERVICIOS_Y_FLOTA && (<>
         <div className="dash-servicios">
           <p className="dash-flota-eyebrow">Nuestros servicios</p>

@@ -1,14 +1,15 @@
 'use client';
 
 // «NUEVO ENVÍO», en grande (usuario, 2026-11-24: «algo con más diseño, adaptado a móvil y web,
-// para todos los roles»; después: «más fino, simple, lineal; quita el camión»; y «la línea,
-// curva, bonita»). La franja morada con el título y UNA línea fina y curva que va del punto de
-// recogida (naranja) al de entrega (blanco). TODA la franja es el botón: debajo no hay otro
-// botón verde («no tiene sentido, ya es botón arriba», usuario, mismo día).
+// para todos los roles»; después: «más fino, simple, lineal; quita el camión»). La franja morada
+// con el título y UNA línea fina que va del punto de recogida (naranja) al de entrega (blanco):
+// tramo recto, sube con una curva suave y sigue recta («como la de GLS: recta horizontal, sube,
+// horizontal, con curvas suaves»). TODA la franja es el botón: debajo no hay otro botón verde
+// («no tiene sentido, ya es botón arriba», usuario, mismo día).
 // «Crear varios envíos»: en el ordenador, un enlace en la franja blanca de abajo; en el móvil,
 // la flechita que despliega la opción, como en el botón de antes («ponlo como antes en móvil»).
-// La curva se estira con el ancho del cartel sin engordar (trazo de grosor fijo) y los dos
-// puntos van aparte, para que sigan redondos.
+// La línea son tres piezas: dos tramos rectos que se estiran con el ancho y, entre ellos, la
+// subida, un dibujo de tamaño fijo: así la curva es la misma a cualquier ancho.
 import Link from 'next/link';
 import { MenuNuevoEnvio, useMenuFuera } from './BotonNuevoEnvio';
 
@@ -24,9 +25,9 @@ export default function BannerNuevoEnvio({ variosEnMovil }: { variosEnMovil: boo
           <span className="ne-banner-sub">Solicita un transporte o mira el coste de un envío</span>
         </span>
         <span className="ne-linea" aria-hidden="true">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">
-            <path d="M0 80 C 26 80, 38 97, 56 68 S 78 24, 100 24" />
-          </svg>
+          <i className="ne-tramo ne-tramo-1" />
+          <svg className="ne-sube" width="72" height="65.5" viewBox="0 0 72 65.5" focusable="false"><path d="M0 64.75 C36 64.75 36 0.75 72 0.75" /></svg>
+          <i className="ne-tramo ne-tramo-2" />
           <i className="ne-punto ne-punto-1" /><i className="ne-punto ne-punto-2" />
         </span>
       </Link>

@@ -18,6 +18,7 @@ import { calcularTarifa, aplicarDescuentoTarifa } from '@/lib/tarifador';
 import { fecha as fmtFecha, euros, hoyMadrid } from '@/lib/formato';
 import { FORMAS, decimal, num, primerDia, resolverFicha, sumarHabiles, type CardEdit, type ClienteOpcion, type DatosSitios, type EdicionSitio, type Punto, type ReglasPrecio, type SitioOpcion, useEdicionesSitios } from './nuevoEnvio/comun';
 import { nombreParada } from '@/lib/edicionesSitios';
+import { telPuesto } from '@/lib/paises';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
@@ -103,19 +104,34 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   // los datos de los sitios que hay en la tabla (de 20 en 20) y se pueden completar en la fila.
   const [datosSit, setDatosSit] = useState<DatosSitios>({});
   const idsSitios = [...new Set(filas.flatMap((f) => f.puntos.map((p) => p.sitio?.id).filter((x): x is string => !!x)))].sort().join(',');
+  // Si la lectura falla (un corte de red, la web recién actualizada…), se reintenta sola; a
+  // la tercera, el sitio queda como «no se ha podido leer» y su fila no deja crear. Antes un
+  // sitio sin leer pasaba como si no le faltara nada (usuario, 2026-11-24: «sin teléfono no
+  // salta el aviso»).
+  const intentos = useRef(new Map<string, number>());
+  const [sinLeer, setSinLeer] = useState<Set<string>>(new Set());
+  const [otraVez, setOtraVez] = useState(0);
   useEffect(() => {
-    const faltan = idsSitios ? idsSitios.split(',').filter((id) => !datosSit[id]) : [];
+    const faltan = idsSitios ? idsSitios.split(',').filter((id) => !datosSit[id] && (intentos.current.get(id) ?? 0) < 3) : [];
     if (!faltan.length) return;
     let vivo = true;
     (async () => {
+      const leidos = new Set<string>();
       for (let i = 0; i < faltan.length; i += 20) {
         const r = await datosEditablesDeSitios(faltan.slice(i, i + 20)).catch(() => ({}));
+        Object.keys(r).forEach((id) => leidos.add(id));
         if (vivo) setDatosSit((d) => ({ ...d, ...r }));
       }
+      if (!vivo) return;
+      const fallan = faltan.filter((id) => !leidos.has(id));
+      fallan.forEach((id) => intentos.current.set(id, (intentos.current.get(id) ?? 0) + 1));
+      const agotados = fallan.filter((id) => (intentos.current.get(id) ?? 0) >= 3);
+      if (agotados.length) setSinLeer((x) => new Set([...x, ...agotados]));
+      if (fallan.length > agotados.length) setTimeout(() => { if (vivo) setOtraVez((n) => n + 1); }, 2500);
     })();
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsSitios]);
+  }, [idsSitios, otraVez]);
   // FICHAS DE LOS SITIOS EN CADA FILA (usuario, 2026-11-22): «Ver sitios» abre debajo de la
   // fila las mismas fichas desplegables de Nuevo envío (horario, contacto, emails,
   // indicaciones, cita y detalle de la parada). Lo tocado se guarda en el sitio al crear; con
@@ -124,7 +140,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   const [conFichas, setConFichas] = useState<Set<number>>(new Set());      // filas con las fichas abiertas
   const [faltasSit, setFaltasSit] = useState<Set<number>>(new Set());      // paradas con datos obligatorios por rellenar
   // Sin teléfono de contacto (con lo escrito en su ficha encima): no se crea.
-  const faltaTel = (p: Punto) => !!p.sitio && !p.sitio.es_almacen_dynamo && !!datosSit[p.sitio.id] && !resolverFicha(p, datosSit, edicSit[p.k]).telefono.trim();
+  const faltaTel = (p: Punto) => !!p.sitio && !p.sitio.es_almacen_dynamo && !!datosSit[p.sitio.id] && !telPuesto(resolverFicha(p, datosSit, edicSit[p.k]).telefono);
   // Los sitios de una fila sin teléfono, cada uno con las paradas EXACTAS en las que falta.
   const sinTelefono = (puntos: Punto[]): SinTel[] => {
     const m = new Map<string, SinTel>();
@@ -193,7 +209,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   function abrirConfirmar() {
     setAviso(null);
     if (!cliente) { setAviso('Elige primero el cliente.'); return; }
-    const malas = pendientes.filter((f) => infos[f.k]?.error);
+    const malas = pendientes.filter((f) => infos[f.k]?.error && !ESPERA.includes(infos[f.k].error!));   // las que solo esperan (precio, datos) no son un error
     if (!pendientes.length) { setAviso('No queda ningún envío por crear.'); return; }
     if (malas.length) {
       setMarcar(true);
@@ -207,7 +223,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       setTimeout(() => document.querySelector('.varios-fila.con-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
       return;
     }
-    if (listas.length !== pendientes.length) { setAviso('Aún se están calculando precios: espera un momento y vuelve a pulsar.'); return; }
+    if (listas.length !== pendientes.length) { setAviso('Aún se están cargando datos o calculando precios: espera un momento y vuelve a pulsar.'); return; }
     setAcepta(true); setConfirmar(true);
   }
 
@@ -374,7 +390,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
         {filas.map((f, i) => (
           <FilaEnvio key={f.k} f={f} n={i + 1} cliente={cliente} sitios={sitiosCliente} fest={fest} festivos={festivos} reglas={reglas}
             factor={factor} esCliente={esCliente} marcar={marcar}
-            sinTel={sinTelefono(f.puntos)} onTelefono={ponerTelefono}
+            sinTel={sinTelefono(f.puntos)} sinLeer={sinLeer} onTelefono={ponerTelefono}
             fichas={{ abiertas: conFichas.has(f.k), datos: datosSit, edic: edicSit, setEdic: setEdicSit, faltas: faltasSit,
               alternar: () => setConFichas((x) => { const c = new Set(x); if (c.has(f.k)) c.delete(f.k); else c.add(f.k); return c; }) }}
             onCambio={(c) => cambiarFila(f.k, c)} onInfo={(x) => ponInfo(f.k, x)}
@@ -448,11 +464,13 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   );
 }
 
+// Avisos de «todavía no»: la fila no tiene un error, solo espera (no se pinta en rojo).
+const ESPERA = ['Calculando el precio…', 'Cargando los datos de los sitios…'];
 type SinTel = { sitio: SitioOpcion; donde: string };   // donde: «1 · Recogida y 2 · Entrega»
-function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCliente, marcar, sinTel, onTelefono, fichas, onCambio, onInfo, onQuitar, onDuplicar, onSitioCreado }: {
+function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCliente, marcar, sinTel, sinLeer, onTelefono, fichas, onCambio, onInfo, onQuitar, onDuplicar, onSitioCreado }: {
   f: Fila; n: number; cliente: ClienteOpcion | null; sitios: SitioOpcion[]; fest: Set<string>; festivos: string[]; reglas: ReglasPrecio | null;
   factor: number | undefined; esCliente: boolean; marcar: boolean;
-  sinTel: SinTel[]; onTelefono: (s: SitioOpcion, tel: string) => Promise<string | null>;
+  sinTel: SinTel[]; sinLeer: Set<string>; onTelefono: (s: SitioOpcion, tel: string) => Promise<string | null>;
   fichas: { abiertas: boolean; alternar: () => void; datos: DatosSitios; edic: Record<number, CardEdit>;
     setEdic: React.Dispatch<React.SetStateAction<Record<number, CardEdit>>>; faltas: Set<number> };
   onCambio: (c: Partial<Fila>) => void; onInfo: (i: Info) => void; onQuitar?: () => void; onDuplicar?: () => void;
@@ -518,15 +536,20 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
   const mlTxt = f.ml === '13.3' ? '13,30 metros · tráiler completo' : `${f.ml.replace('.', ',')} ${f.ml === '1' ? 'metro' : 'metros'} · grupaje`;
   const pesoTxt = optsPeso(pesoMax).find(([v]) => v === f.peso)?.[1] ?? '';
   const merc = [mlTxt, pesoTxt].filter(Boolean).join(' · ');
+  // Datos de los sitios de la fila: hasta que no se han leído no se sabe si les falta algo.
+  const noLeido = f.puntos.find((p) => p.sitio && sinLeer.has(p.sitio.id))?.sitio;
+  const leyendoSitios = f.puntos.some((p) => p.sitio && !fichas.datos[p.sitio.id]);
   const sinSitio = f.puntos.map((p, i) => (p.sitio ? '' : nombreParada(i, p.tipo))).filter(Boolean);   // el aviso dice en qué parada
   const error = hecha ? null
     : !cliente ? 'Elige el cliente.'
     : !rutaCompleta ? (sinSitio.length ? `Falta elegir el sitio de ${sinSitio.join(' y ')}.` : 'Falta la recogida o la entrega.')
+    : noLeido ? `No se han podido cargar los datos de «${noLeido.nombre_empresa}». Recarga la página.`
+    : leyendoSitios ? ESPERA[1]
     : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `${x.donde}: «${x.sitio.nombre_empresa}»`).join('; ')}.`
     : !f.fecha ? 'Elige la fecha de recogida.'
     : f.fecha < dias[0] ? `El primer día posible es el ${fmtFecha(dias[0])}.`
     : !esCliente && !(neto && neto > 0) && tarifa ? 'Pon el precio del cliente.'
-    : neto == null ? 'Calculando el precio…' : null;
+    : neto == null ? ESPERA[0] : null;
   useEffect(() => {
     onInfo({ error, neto, base: tarifa ? (tarifa.netoBase ?? tarifa.neto) : null, hasta, merc,
       lineas: [
@@ -545,7 +568,7 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
     return c.length >= 2 && c[0].tipo === 'carga' && c[c.length - 1].tipo === 'descarga';
   };
   // Los avisos de la fila salen al intentar crear (marcar) o cuando la ruta ya está puesta.
-  const mostrarError = !hecha && !!error && error !== 'Calculando el precio…' && (marcar || rutaCompleta);
+  const mostrarError = !hecha && !!error && !ESPERA.includes(error) && (marcar || rutaCompleta);
   return (
     <div className={`varios-fila${hecha ? ' hecha' : ''}${mostrarError ? ' con-error' : ''}`} data-fila={n}>
       <div className="varios-num">
@@ -615,7 +638,7 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
       </div>
       <div className="varios-c varios-precio">
         {hecha ? <strong>{f.res && f.res.ok ? '✓' : ''}</strong>
-          : esCliente ? (tarifa ? <strong className="varios-importe">{euros(tarifa.neto)}</strong>
+          : esCliente ? (tarifa && !leyendoSitios ? <strong className="varios-importe">{euros(tarifa.neto)}</strong>
               : <span className="meta varios-sin-precio">{rutaCompleta ? 'Calculando…' : 'Pon la ruta'}</span>)
           : <>
               <input type="text" inputMode="decimal" className="varios-importe-input" aria-label={`Precio del cliente del envío ${n}`} value={precioDynamo}

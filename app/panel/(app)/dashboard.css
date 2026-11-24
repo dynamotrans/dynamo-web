@@ -1732,7 +1732,6 @@ body.theme-dark .sidebar { background: #060116; }
 /* ==== Carruseles del dashboard: muro de clientes (triple, como la
    web pública) + servicios en una línea. CSS portado de index.html. */
 .dash-carousel-title { font-size: var(--fs-m); font-weight: 700; color: var(--navy); margin: 0 0 0.2rem; }
-.dash-clientes { margin-top: 1.6rem; }
 .dash-servicios { margin-top: 1.2rem; padding-bottom: 0.4rem; }
 /* En ESCRITORIO el orden es: Nuestra flota → Nuestros servicios →
    muro de clientes (decisión 2026-07-23). En MÓVIL se respeta el
@@ -1741,31 +1740,9 @@ body.theme-dark .sidebar { background: #060116; }
 @media (min-width: 1024px) {
     .dash-carousels .dash-flota { order: 1; }
     .dash-carousels .dash-servicios { order: 2; margin-top: 1.6rem; }
-    .dash-carousels .dash-clientes { order: 3; margin-top: 1.2rem; }
 }
 /* Mismo difuminado lateral que el muro de clientes (sin corte seco). */
 .dash-servicios .clientes-row {
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
-}
-.logo-pill {
-    display: flex; align-items: center; justify-content: center;
-    height: 54px; padding: 0 1.1rem; border-radius: 14px;
-    border: 1.5px solid var(--gray-200);
-    background: linear-gradient(135deg, #fff, #f8f7ff);
-    min-width: 110px;
-    transition: all 0.25s; cursor: default; white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-.logo-pill:hover { border-color: var(--purple); box-shadow: 0 6px 20px rgba(51,0,204,0.12); transform: translateY(-3px); }
-.logo-pill .logo-box { display: flex; align-items: center; gap: 0.45rem; }
-.logo-icon { width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-.logo-icon img { width: 100%; height: 100%; object-fit: contain; }
-.logo-name { font-weight: 800; font-size: var(--fs-s); color: var(--gray-700); letter-spacing: -0.2px; }
-.logo-sub  { font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); display: block; margin-top: 1px; }
-.clientes-wall {
-    margin-top: 0.4rem;
-    display: flex; flex-direction: column; gap: 0.3rem;
     -webkit-mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
     mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
 }
@@ -1783,7 +1760,6 @@ body.theme-dark .sidebar { background: #060116; }
 .clientes-row[data-dir="rtl"] .clientes-row-track { animation-direction: reverse; }
 @keyframes clientesScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 @media (hover: hover) { .clientes-row-track:hover { animation-play-state: paused; } }
-.clientes-row .logo-pill { flex-shrink: 0; }
 @media (prefers-reduced-motion: reduce) { .clientes-row-track { animation: none; } }
 /* Fila de 3: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto.
    Selector doble clase: gana a la regla base de .dash-top-row (2 col)
@@ -5657,14 +5633,19 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .ne-banner-tit { font-size: clamp(1.45rem, 5cqi, 1.9rem); font-weight: 700; letter-spacing: -0.015em; line-height: 1.1; color: #fff; }
 .ne-banner-sub { font-size: var(--fs-s); line-height: 1.4; color: rgba(255, 255, 255, 0.86); }
 .ne-banner-arriba:hover .ne-banner-tit { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; }
-/* La línea: una curva suave del punto naranja (abajo a la izquierda) al blanco (arriba a la
-   derecha). El dibujo se estira a lo ancho y a lo alto del cartel; el trazo no engorda. */
-.ne-linea { position: absolute; left: calc(1.5rem + 5px); right: calc(1.5rem + 5px); top: 20px; bottom: 14px; pointer-events: none; }
-.ne-linea svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.ne-linea path { fill: none; stroke: rgba(255, 255, 255, 0.9); stroke-width: 1.5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.ne-punto { position: absolute; width: 9px; height: 9px; border-radius: 50%; transform: translate(-50%, -50%); }
-.ne-punto-1 { left: 0; top: 80%; background: var(--orange); box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.25); }
-.ne-punto-2 { left: 100%; top: 24%; background: #fff; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22); }
+/* La línea, como la de GLS: sale recta del punto naranja, sube con una curva suave y sigue
+   recta hasta el punto blanco. Tres piezas: dos tramos rectos que se estiran y, entre ellos,
+   la subida (dibujo de 72 × 64 px, centrado en --ne-x). Todo se mide desde abajo. */
+.ne-linea { position: absolute; inset: 0; pointer-events: none; --ne-x: 72%; --ne-m: 1.5rem; --ne-c: #ece8ff; }
+.ne-linea > * { position: absolute; display: block; }
+.ne-tramo { height: 1.5px; background: var(--ne-c); border-radius: 1px; }
+.ne-tramo-1 { left: calc(var(--ne-m) + 5px); right: calc(100% - var(--ne-x) + 35.5px); bottom: 20px; }
+.ne-tramo-2 { left: calc(var(--ne-x) + 35.5px); right: calc(var(--ne-m) + 5px); bottom: 84px; }
+.ne-sube { left: calc(var(--ne-x) - 36px); bottom: 20px; overflow: visible; }
+.ne-sube path { fill: none; stroke: var(--ne-c); stroke-width: 1.5; }
+.ne-linea .ne-punto { width: 9px; height: 9px; border-radius: 50%; }
+.ne-punto-1 { left: var(--ne-m); bottom: 16.25px; background: var(--orange); box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.25); }
+.ne-punto-2 { right: var(--ne-m); bottom: 80.25px; background: #fff; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22); }
 .ne-banner-abajo { display: flex; align-items: center; padding: 0.3rem 1rem 0.3rem 1.5rem; background: #fff; border-radius: 0 0 15px 15px; }
 /* La flechita de «Crear varios envíos»: solo en el móvil, en la esquina de la franja morada. */
 .ne-banner-flecha { display: none; position: absolute; right: 0.85rem; bottom: 0.75rem; z-index: 2; width: 44px; height: 44px; border-radius: 50%; align-items: center; justify-content: center;
@@ -5682,7 +5663,7 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .ne-banner-arriba:focus-visible { outline-offset: -3px; }
 @container (max-width: 520px) {
     .ne-banner-arriba { padding: 1.1rem 1.15rem 2.6rem; }
-    .ne-linea { left: calc(1.15rem + 5px); right: calc(1.15rem + 5px); }
+    .ne-linea { --ne-m: 1.15rem; --ne-x: 64%; }
     .ne-banner-abajo { padding: 0.3rem 1.15rem; }
 }
 /* Móvil: sin franja blanca; «Crear varios envíos» va en la flechita (quien la tenga). */

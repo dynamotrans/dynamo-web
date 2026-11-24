@@ -24,6 +24,7 @@ import { paisDe as nombrePais } from '@/lib/paises';
 import { nombreTipo } from './TipoSitio';
 import { Base, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles, useEdicionesSitios } from './nuevoEnvio/comun';
 import { nombreParada } from '@/lib/edicionesSitios';
+import { telPuesto } from '@/lib/paises';
 import { diaCierrePrecio } from '@/lib/fechasCarga';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
@@ -681,23 +682,36 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Teléfono y email del contacto de cada sitio son OBLIGATORIOS (usuario, 2026-11-09):
   // sin ellos no se crea el envío. Los almacenes Dynamo y las fichas aún sin cargar no
   // se exigen (sus datos no se editan aquí / no se conocen todavía).
-  function sitiosConFaltas(): Set<number> {
+  function sitiosConFaltas(datos: DatosSitios = datosSitios): Set<number> {
     const s = new Set<number>();
     for (const p of puntos) {
       if (p.sitio?.es_almacen_dynamo) continue;
-      if (p.sitio && !datosSitios[p.sitio.id]) continue;
-      const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
+      if (p.sitio && !datos[p.sitio.id]) continue;
+      const f = resolverFicha(p, datos, edicSitios[p.k]);
       if (f.dynamo) continue;
-      if ((f.nuevo && !f.empresa.trim()) || !f.telefono.trim()) s.add(p.k);
+      if ((f.nuevo && !f.empresa.trim()) || !telPuesto(f.telefono)) s.add(p.k);
     }
     return s;
+  }
+  // Antes de crear: si los datos de algún sitio no se llegaron a leer (un corte de red…), se
+  // vuelven a pedir; sin ellos no se sabe si falta el teléfono, así que no se sigue a ciegas
+  // (usuario, 2026-11-24). Devuelve las paradas con faltas, o null si no se han podido leer.
+  async function faltasConDatos(): Promise<Set<number> | null> {
+    const sinLeer = (d: DatosSitios) => puntos.some((p) => p.sitio && !d[p.sitio.id]);
+    let datos = datosSitios;
+    if (sinLeer(datos)) {
+      datos = { ...datos, ...(await datosEditablesDeSitios(idsSitios.split(',')).catch(() => ({}))) };
+      setDatosSitios(datos);
+      if (sinLeer(datos)) { setAviso('No se han podido cargar los datos de los sitios. Comprueba la conexión y vuelve a pulsar.'); return null; }
+    }
+    return sitiosConFaltas(datos);
   }
   function avisarFaltasSitios(faltas: Set<number>) {
     setFaltasSitios(faltas);
     // El aviso dice QUÉ falta y EN QUÉ parada (usuario, 2026-11-24: «pon más detalle»).
     const lista = puntos.map((p, i) => ({ p, i })).filter(({ p }) => faltas.has(p.k)).map(({ p, i }) => {
       const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
-      const que = [f.nuevo && !f.empresa.trim() ? 'el nombre de la empresa' : '', !f.telefono.trim() ? 'el teléfono de contacto' : ''].filter(Boolean).join(' y ');
+      const que = [f.nuevo && !f.empresa.trim() ? 'el nombre de la empresa' : '', !telPuesto(f.telefono) ? 'el teléfono de contacto' : ''].filter(Boolean).join(' y ');
       return `${que} de ${nombreParada(i, p.tipo)}${f.empresa.trim() ? `: «${f.empresa.trim()}»` : ''}`;
     });
     setAviso(lista.length ? `Falta ${lista.join('; ')}. Rellénalo en ${lista.length === 1 ? 'su tarjeta, marcada' : 'las tarjetas marcadas'} en rojo.`
@@ -707,7 +721,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
 
   async function crear() {
     if (!cliente) return;
-    const faltas = sitiosConFaltas();
+    const faltas = await faltasConDatos();
+    if (!faltas) { setRevisarLegal(false); return; }
     if (faltas.size) { setRevisarLegal(false); avisarFaltasSitios(faltas); return; }
     for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
     setEnviando(true); setAviso(null);
@@ -1501,8 +1516,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         la base de datos apunta condiciones_aceptadas_en). Al editar se guarda directo:
                         no hay nada nuevo que aceptar. */}
                     <button type="button" className="btn-primary"
-                      onClick={() => {
-                        const faltas = sitiosConFaltas();
+                      onClick={async () => {
+                        const faltas = await faltasConDatos();
+                        if (!faltas) return;
                         if (faltas.size) { avisarFaltasSitios(faltas); return; }
                         if (editar) { guardarEdicion(); return; }
                         if (!cliente) { setAviso('Para crear el envío hace falta el cliente: elígelo o dalo de alta en el paso 1. Sin cliente, esta pantalla solo calcula el precio.'); setPaso(1); return; }

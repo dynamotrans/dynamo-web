@@ -301,6 +301,9 @@ export function partirTel(t: string): { pref: string; num: string } {
   const p = PREF_POR_LARGO.find((k) => v.startsWith(k));
   return p ? { pref: p, num: v.slice(p.length) } : { pref: '+34', num: v.replace(/^\+/, '') };
 }
+// ¿Hay un teléfono de verdad? Al menos 6 cifras además del prefijo: un prefijo solo («+34») o
+// un par de cifras no cuentan como teléfono puesto (usuario, 2026-11-24).
+export const telPuesto = (t: string | null | undefined) => partirTel(t ?? '').num.replace(/\D/g, '').length >= 6;
 // Teléfono para guardar: solo el «+» inicial y cifras (00 → +). Uno solo para toda la web.
 export const normalizaTel = (t: string | null | undefined) => (t ?? '').trim().replace(/^00/, '+').replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
 

@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import AvisoCierreSitio from './AvisoCierreSitio';
 import { Interruptor } from './Interruptor';
 import CampoTelefono from '@/components/CampoTelefono';
+import { telPuesto } from '@/lib/paises';
 import { resumenHorario } from '@/lib/horarios';
 import { HorarioSitio } from '../Sitios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
@@ -98,7 +99,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
         const falta = f.nuevo && !f.empresa.trim();   // sitio nuevo sin nombre: datos obligatorios pendientes
         // Marcada por el padre al intentar crear: lo que siga vacío se pinta en rojo.
         const marcada = !!faltas?.has(p.k) && !f.dynamo;
-        const telOk = !!f.telefono.trim();
+        const telOk = telPuesto(f.telefono);
         const faltaCampos = marcada && ((f.nuevo && !f.empresa.trim()) || !telOk);
         const abierta = abiertas.has(p.k);
         // CITA PREVIA por sitio (usuario, 2026-11-09): el activador vive aquí, encima del
