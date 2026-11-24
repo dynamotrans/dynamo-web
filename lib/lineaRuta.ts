@@ -60,14 +60,17 @@ export function trazadoEntre(a: PuntoLinea, b: PuntoLinea, linea: PuntoLinea[] |
 }
 
 /** Lo que devuelve el servidor (trazadosDeEnvios): las líneas sin repetir y qué tramo usa cuál. */
-export type Trazados = { lineas: string[]; tramos: { envio: string; desde: number; hasta: number; linea: number }[] };
+// `alreves`: la línea guardada es la del sentido contrario (la vuelta): se pinta invertida.
+export type Trazados = { lineas: string[]; tramos: { envio: string; desde: number; hasta: number; linea: number; alreves?: boolean }[] };
 /** Lo reparte por envío y tramo («1-2»), descifrando cada línea una sola vez. */
 export function repartirTrazados(t: Trazados): Record<string, Record<string, PuntoLinea[]>> {
   const puntos = t.lineas.map((l) => descifrarLinea(l));
+  const vuelta: (PuntoLinea[] | undefined)[] = [];
   const r: Record<string, Record<string, PuntoLinea[]>> = {};
   for (const x of t.tramos) {
-    const p = puntos[x.linea];
-    if (!p || p.length < 2) continue;
+    const ida = puntos[x.linea];
+    if (!ida || ida.length < 2) continue;
+    const p = x.alreves ? (vuelta[x.linea] ??= [...ida].reverse()) : ida;
     (r[x.envio] ??= {})[`${x.desde}-${x.hasta}`] = p;
   }
   return r;

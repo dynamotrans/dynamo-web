@@ -15325,3 +15325,42 @@ begin
   raise notice 'OK 337 · ubicación del sitio: enlace de Google Maps a sus coordenadas, que solo ponen el servidor o Dynamo';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 338 · LA IDA VALE PARA LA VUELTA (usuario, 2026-11-24): los km guardados entre dos códigos
+--       postales o dos sitios sirven en los dos sentidos (manda el sentido exacto si está), y
+--       el trazado del sentido contrario sale marcado como invertido.
+do $$
+declare e uuid := current_setting('prueba.e323')::uuid; t jsonb; s1 uuid; s2 uuid;
+begin
+  perform guardar_km_cp('ES', '41011', 'ES', '28340', 512.40, 300, 'google_routes');
+  if km_cp('ES', '28340', 'ES', '41011', interval '100 years') is distinct from 512.40 then raise exception 'FALLO 338 · la ida entre códigos postales no vale para la vuelta'; end if;
+  perform guardar_km_cp('ES', '28340', 'ES', '41011', 514.10, 301, 'google_routes');
+  if km_cp('ES', '28340', 'ES', '41011', interval '100 years') <> 514.10 or km_cp('ES', '41011', 'ES', '28340', interval '100 years') <> 512.40 then
+    raise exception 'FALLO 338 · con los dos sentidos guardados no manda el pedido'; end if;
+  if km_cp('ES', '41011', 'ES', '08200', interval '100 years') is not null then raise exception 'FALLO 338 · salen km de una pareja que no está guardada'; end if;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, lat, lon)
+    values (current_setting('prueba.cliente')::uuid, 'Sitio A 338', 'C/ Uno, 1', '41011', 'Sevilla', 'Sevilla', 37.37, -6.0) returning id into s1;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, lat, lon)
+    values (current_setting('prueba.cliente')::uuid, 'Sitio B 338', 'C/ Dos, 2', '28340', 'Valdemoro', 'Madrid', 40.19, -3.67) returning id into s2;
+  perform guardar_km_sitios(s1, s2, 520, 305, 'google_routes');
+  if km_sitios(s2, s1, interval '100 years') is distinct from 520 then raise exception 'FALLO 338 · la ida entre sitios no vale para la vuelta'; end if;
+  update sitios set lat = 37.38 where id = s1;
+  if km_sitios(s2, s1, interval '100 years') is not null then raise exception 'FALLO 338 · la vuelta vale aunque el sitio se haya movido'; end if;
+  -- El trazado del sentido contrario: sale, marcado para pintarlo al revés.
+  delete from distancias_cp where codigo_postal_origen in ('41001', '28323') and codigo_postal_destino in ('41001', '28323');
+  perform guardar_km_cp('ES', '28323', 'ES', '41001', 530, 320, 'google_routes');
+  update distancias_cp set linea = 'vuelta338' where codigo_postal_origen = '28323' and codigo_postal_destino = '41001';
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  t := mapa_trazados(array[e]) -> 0;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if t ->> 'linea' is distinct from 'vuelta338' or (t ->> 'invertida')::boolean is not true then raise exception 'FALLO 338 · el trazado de la vuelta no sale invertido: %', t; end if;
+  perform guardar_km_cp('ES', '41001', 'ES', '28323', 530, 320, 'google_routes');
+  update distancias_cp set linea = 'ida338' where codigo_postal_origen = '41001' and codigo_postal_destino = '28323';
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  t := mapa_trazados(array[e]) -> 0;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if t ->> 'linea' is distinct from 'ida338' or (t ->> 'invertida')::boolean then raise exception 'FALLO 338 · con el trazado de ida guardado no manda la ida: %', t; end if;
+  update sitios set borrado = true where id in (s1, s2);
+  raise notice 'OK 338 · rutas guardadas: la ida vale para la vuelta (km y trazado), y manda el sentido exacto si está';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

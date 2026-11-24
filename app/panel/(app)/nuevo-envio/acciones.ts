@@ -484,12 +484,15 @@ export async function kmRuta(puntos: PuntoKm[]): Promise<{ km: number; estimado:
       const g = o && d ? await rutaGoogle(o, d) : null;
       if (g?.ok) {
         tramo = g.km;
-        // Se guarda (solo el servidor): entre los dos sitios si lo son, y si no por código postal.
+        // Se guarda (solo el servidor) entre los dos sitios, si lo son, Y entre sus dos códigos
+        // postales (usuario, 2026-11-24): así el tramo lo aprovecha cualquier otra empresa de
+        // esos mismos códigos, a la ida y a la vuelta, sin volver a pedirlo.
         if (srv) {
           if (dosSitios) {
             const r = await srv.rpc('guardar_km_sitios', { p_origen: a.sitio_id!, p_destino: b.sitio_id!, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' });
             if (r.data && g.linea) await srv.from('distancias_sitios').update({ linea: g.linea }).eq('id', r.data);
-          } else if (dosCp) {
+          }
+          if (dosCp) {
             const r = await srv.rpc('guardar_km_cp', { p_pais_codigo_iso_origen: a.pais!, p_codigo_postal_origen: a.cp!,
               p_pais_codigo_iso_destino: b.pais!, p_codigo_postal_destino: b.cp!, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' });
             if (r.data && g.linea) await srv.from('distancias_cp').update({ linea: g.linea }).eq('id', r.data);

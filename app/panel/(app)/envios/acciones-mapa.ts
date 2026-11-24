@@ -58,11 +58,12 @@ export async function situarParadasDelMapa(): Promise<{ ok: true; hallados: Reco
 // RUTAS PINTADAS POR CARRETERA (usuario, 2026-11-24). De los envíos pedidos que ve quien
 // pregunta (lo comprueba la base de datos), el trazado de cada tramo entre paradas. Los que ya
 // están guardados salen al momento; de los que faltan se piden a Google como mucho 6 por vez
-// (y se guardan: el mismo origen-destino no se vuelve a pedir). `faltan` dice cuántos quedan
+// (y se guardan, entre sitios y entre códigos postales: el mismo origen-destino no se vuelve
+// a pedir, ni a la ida ni a la vuelta). `faltan` dice cuántos quedan
 // para la próxima actualización del mapa. Sin clave de Google, o sin consultas por hoy, los
 // tramos que falten se quedan en línea recta.
 type TramoGuardado = {
-  envio: string; desde: number; hasta: number; linea: string | null; a: [number, number]; b: [number, number];
+  envio: string; desde: number; hasta: number; linea: string | null; invertida?: boolean; a: [number, number]; b: [number, number];
   sitio_a: string | null; sitio_b: string | null; pais_a: string | null; cp_a: string | null; pais_b: string | null; cp_b: string | null;
   fila_sitios: string | null; fila_cp: string | null;
 };
@@ -90,14 +91,17 @@ export async function trazadosDeEnvios(envios: string[]): Promise<({ ok: true; f
       if (!g.ok) { limite ||= g.limite; return; }
       if (!g.linea || g.linea.length > 60000) return;
       nuevas.set(k, g.linea);
-      // Se guarda con sus kilómetros; si la distancia ya estaba guardada, solo se le añade la línea.
+      // Se guarda con sus kilómetros; si la distancia ya estaba guardada, solo se le añade la
+      // línea. Entre sus dos sitios Y entre sus dos códigos postales (usuario, 2026-11-24): así
+      // la aprovecha cualquier otra empresa de esos mismos códigos, a la ida y a la vuelta.
       if (t.sitio_a && t.sitio_b) {
         const id = t.fila_sitios ?? (await srv.rpc('guardar_km_sitios', { p_origen: t.sitio_a, p_destino: t.sitio_b, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' })).data;
         if (id) await srv.from('distancias_sitios').update({ linea: g.linea }).eq('id', id);
-      } else {
+      }
+      if (t.cp_a && t.cp_b && t.pais_a && t.pais_b) {
         const id = t.fila_cp ?? (await srv.rpc('guardar_km_cp', { p_pais_codigo_iso_origen: t.pais_a, p_codigo_postal_origen: t.cp_a,
           p_pais_codigo_iso_destino: t.pais_b, p_codigo_postal_destino: t.cp_b, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' })).data;
-        if (id) await srv.from('distancias_cp').update({ linea: g.linea }).eq('id', id);
+        if (id) await srv.from('distancias_cp').update({ linea: g.linea }).eq('id', id).is('linea', null);
       }
     }));
     // Sin consultas por hoy: Dynamo se entera y lo que falte se queda en línea recta.
@@ -113,7 +117,7 @@ export async function trazadosDeEnvios(envios: string[]): Promise<({ ok: true; f
     if (!l) continue;
     let i = indice.get(l);
     if (i === undefined) { i = lineas.push(l) - 1; indice.set(l, i); }
-    salida.push({ envio: t.envio, desde: t.desde, hasta: t.hasta, linea: i });
+    salida.push({ envio: t.envio, desde: t.desde, hasta: t.hasta, linea: i, ...(t.linea && t.invertida ? { alreves: true } : {}) });
   }
   return { ok: true, lineas, tramos: salida, faltan };
 }

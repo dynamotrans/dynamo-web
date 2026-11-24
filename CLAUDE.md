@@ -492,6 +492,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Mapas con Google y rutas pintadas** (`c1ae1f9`): un solo «motor» de mapa (`components/panel/mapa/`): Google con clave, Leaflet de reserva SOLO sin clave (CI y local; las pruebas e2e usan sus clases). `mapa_trazados` (prueba 336) + `trazadosDeEnvios`: cada tramo va por la carretera, el camión va sobre ella y lo hecho llega hasta él. CSP con los dominios de Google.
 - **Ubicación de cada sitio**: coordenadas por el servidor al guardar (`situarSitio`) y enlace de Google Maps automático si no hay otro (`fn_sitios_ubicacion`, prueba 337).
 - **Tipo de sitio automático** al elegir una ficha de Google (`lib/tipoSitioAuto.ts`): negocio de Google → palabras de la dirección → tipo de suelo (OpenStreetMap/Overpass, solo servidor). Nunca propone una obra; avisa «Puesto automáticamente…» y se puede cambiar.
+- **Rutas guardadas por tramos, entre sitios y entre códigos postales, válidas a la ida y a la vuelta** (migración `20261124140000`, prueba 338); mapa en vista simple con satélite opcional.
 - **Devolver importe** de un pago con tarjeta (parte escrita SIN IVA), lista de Dynamo con «Transferencia avisada · validar» arriba, y barra de la ventana de reseñas de la web pública arreglada (`main`, `9deef04`, con OK del usuario).
 
 **Cómo se prueba Google en local sin gastar** (anotado porque costó): servidor con `NODE_OPTIONS=--require <google-falso.cjs>` (un `fetch` simulado para Places/Routes/Geocoding) y, para el mapa, compilar con `NEXT_PUBLIC_GOOGLE_MAPS_KEY=prueba` y en Playwright quitar el `key` de la petición a `maps/api/js`: Google lo carga en «modo de desarrollo» (oscuro y con marca de agua), suficiente para ver líneas, marcas y ventanas.
@@ -500,7 +501,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - El usuario: probar en la preview con Google de verdad (crear un sitio buscando una empresa, abrir el mapa de un envío y el mapa general) y decir si algo se ve raro; en Safari no se puede probar desde aquí.
 - Hoy «sin falta»: APIs de CESCE, Wtransnet y Holded. Después, el tarifador con tarifas reales (y con él, las direcciones del tarifador de la web pública por un punto de entrada de la plataforma).
 - Mover a mano el punto de un sitio en el mapa; situar de golpe los sitios antiguos.
-- Unir `main` (`9deef04`) a `pruebas`.
+- Antes de producción: leer las condiciones de Google sobre guardar kilómetros y trazados (hoy, sin caducidad).
 
 ### 2026-11-23 — Claude Code web (nube)
 

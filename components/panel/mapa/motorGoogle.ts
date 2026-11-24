@@ -38,7 +38,10 @@ export async function crearMotorGoogle(div: HTMLElement, centro: LL, zoom: numbe
     const st = document.createElement('style'); st.id = 'gm-dynamo-estilo'; st.textContent = ESTILO; document.head.appendChild(st);
   }
   const m = new gm.Map(div, {
+    // Vista simple (callejero) por defecto; el satélite, opcional, con su botón arriba a la
+    // derecha (usuario, 2026-11-24).
     center: { lat: centro[0], lng: centro[1] }, zoom, mapTypeId: 'roadmap', disableDefaultUI: true, zoomControl: true,
+    mapTypeControl: true, mapTypeControlOptions: { mapTypeIds: ['roadmap', 'hybrid'], position: gm.ControlPosition?.TOP_RIGHT },
     gestureHandling: 'greedy', clickableIcons: false, keyboardShortcuts: false, maxZoom: 18, minZoom: 3,
   });
   div.classList.add('gm-dynamo');

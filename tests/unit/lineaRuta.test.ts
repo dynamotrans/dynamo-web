@@ -38,6 +38,12 @@ test('repartirTrazados: por envío y tramo, cada línea una sola vez', () => {
   assert.equal(r.c, undefined);
 });
 
+test('repartirTrazados: el trazado de la vuelta se pinta al revés', () => {
+  const r = repartirTrazados({ lineas: ['_p~iF~ps|U_ulLnnqC'], tramos: [{ envio: 'a', desde: 1, hasta: 2, linea: 0 }, { envio: 'b', desde: 1, hasta: 2, linea: 0, alreves: true }] });
+  assert.deepEqual(r.a['1-2'], [[38.5, -120.2], [40.7, -120.95]]);
+  assert.deepEqual(r.b['1-2'], [[40.7, -120.95], [38.5, -120.2]]);
+});
+
 test('posicionCamion: en ruta va sobre la carretera si hay trazado, y sobre la recta si no', () => {
   const base: MapaEnvio = {
     resultado: 'ok', referencia: 'X', estado: 'en_ruta', ahora: '2026-11-24T10:00:00Z', etapas: [], gps_firma: null,
