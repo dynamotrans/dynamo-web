@@ -26,12 +26,10 @@ export function useMenuFuera() {
   return { abierto, setAbierto, ref };
 }
 
-// `sinVariosEnMovil`: para los clientes, en el móvil no sale la flechita de «Crear varios
-// envíos» (usuario, 2026-11-24); el equipo de Dynamo la tiene siempre.
-export default function BotonNuevoEnvio({ texto = '+ Nuevo envío', sinVariosEnMovil = false }: { texto?: string; sinVariosEnMovil?: boolean }) {
+export default function BotonNuevoEnvio({ texto = '+ Nuevo envío' }: { texto?: string }) {
   const m = useMenuFuera();
   return (
-    <div className={`btn-nuevo-grupo${sinVariosEnMovil ? ' sin-varios-movil' : ''}`} ref={m.ref}>
+    <div className="btn-nuevo-grupo" ref={m.ref}>
       <Link className="btn-primary" href="/panel/nuevo-envio">{texto}</Link>
       <button type="button" className="btn-primary btn-nuevo-flecha" id="btn-nuevo-mas" aria-haspopup="menu" aria-expanded={m.abierto}
         aria-label="Más formas de crear envíos" onClick={() => m.setAbierto((v) => !v)}>▾</button>

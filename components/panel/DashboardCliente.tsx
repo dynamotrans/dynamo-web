@@ -69,7 +69,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
         <div className="dash-left-col">
           <div className="dash-cta-stack">
             {/* «Nuevo envío» en grande, con su dibujo y «Crear varios envíos» al lado (usuario, 2026-11-24). */}
-            <BannerNuevoEnvio variosEnMovil={dynamo} />
+            <BannerNuevoEnvio />
             {/* «Otras gestiones» en cuadrícula (usuario, 2026-11-10), siempre a la vista:
                 Reportar incidencia · Crear sitio · Administración, los tres en una fila. */}
             <div className="dash-cta-grid">

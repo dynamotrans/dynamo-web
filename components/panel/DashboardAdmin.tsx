@@ -71,7 +71,7 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
       <div style={{ marginBottom: '0.8rem' }}><CajaBuscadorGlobal gestor /></div>
       {/* Accesos rápidos del dashboard principal, también aquí (usuario, 2026-11-13):
           una fila a lo ancho con los cuatro botones del mismo tamaño. */}
-      <div style={{ marginBottom: '0.6rem' }}><BannerNuevoEnvio variosEnMovil /></div>
+      <div style={{ marginBottom: '0.6rem' }}><BannerNuevoEnvio /></div>
       <div className="dashadm-accesos tres">
         <Link className="dash-cta-mini" href="/panel/incidencias?abrir=1"><span className="dash-cta-mini-ico"><Svg><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></Svg></span><span>Reportar incidencia</span></Link>
         <Link className="dash-cta-mini" href="/panel/sitios"><span className="dash-cta-mini-ico"><Svg><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></Svg></span><span>Crear sitio</span></Link>

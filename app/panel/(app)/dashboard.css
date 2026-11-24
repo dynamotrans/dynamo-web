@@ -5608,18 +5608,6 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .mapa-general-lienzo { height: min(72vh, 720px); }
 @media (max-width: 760px) { .mapa-general-lienzo { height: min(60vh, 460px); } }
 
-/* «CREAR VARIOS ENVÍOS» EN EL MÓVIL: solo para el equipo de Dynamo (usuario, 2026-11-24). A
-   los clientes se les quita la flechita y, si llegan a la pantalla, se les dice que es cosa
-   del ordenador y se les manda a «Nuevo envío». */
-.varios-movil { display: none; }
-@media (max-width: 768px) {
-    .dash-cta-flecha.sin-varios-movil,
-    .btn-nuevo-grupo.sin-varios-movil > .btn-nuevo-flecha { display: none !important; }
-    .btn-nuevo-grupo.sin-varios-movil > .btn-primary:first-child { border-radius: 12px; }
-    .varios-de-cliente > *:not(.sec-header):not(.varios-movil) { display: none !important; }
-    .varios-de-cliente > .sec-header .btn-ghost { display: none; }
-    .varios-de-cliente > .varios-movil { display: flex; }
-}
 
 /* «NUEVO ENVÍO» EN GRANDE (usuario, 2026-11-24; «más fino, simple, lineal»): franja morada con
    el título y UNA línea fina de un punto a otro, y franja blanca con el botón. Se adapta a su

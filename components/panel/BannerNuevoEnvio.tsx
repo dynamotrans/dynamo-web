@@ -8,14 +8,13 @@
 // («no tiene sentido, ya es botón arriba», usuario, mismo día).
 // «Crear varios envíos»: en el ordenador, un enlace en la franja blanca de abajo; en el móvil,
 // la flechita que despliega la opción, como en el botón de antes («ponlo como antes en móvil»).
+// Para todos: equipo de Dynamo y clientes («claro, cliente también», usuario, mismo día).
 // La línea son tres piezas: dos tramos rectos que se estiran con el ancho y, entre ellos, la
 // subida, un dibujo de tamaño fijo: así la curva es la misma a cualquier ancho.
 import Link from 'next/link';
 import { MenuNuevoEnvio, useMenuFuera } from './BotonNuevoEnvio';
 
-/** `variosEnMovil`: el equipo de Dynamo tiene «Crear varios envíos» también en el móvil (con la
- *  flechita); los clientes, solo en el ordenador. */
-export default function BannerNuevoEnvio({ variosEnMovil }: { variosEnMovil: boolean }) {
+export default function BannerNuevoEnvio() {
   const m = useMenuFuera();
   return (
     <div className="ne-banner" id="banner-nuevo-envio" ref={m.ref}>
@@ -31,13 +30,11 @@ export default function BannerNuevoEnvio({ variosEnMovil }: { variosEnMovil: boo
           <i className="ne-punto ne-punto-1" /><i className="ne-punto ne-punto-2" />
         </span>
       </Link>
-      {variosEnMovil && (
-        <button type="button" className="ne-banner-flecha" id="banner-mas" aria-haspopup="menu" aria-expanded={m.abierto}
-          aria-label="Más formas de crear envíos" onClick={() => m.setAbierto((v) => !v)}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-        </button>
-      )}
-      {variosEnMovil && m.abierto && <MenuNuevoEnvio onCerrar={() => m.setAbierto(false)} />}
+      <button type="button" className="ne-banner-flecha" id="banner-mas" aria-haspopup="menu" aria-expanded={m.abierto}
+        aria-label="Más formas de crear envíos" onClick={() => m.setAbierto((v) => !v)}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+      {m.abierto && <MenuNuevoEnvio onCerrar={() => m.setAbierto(false)} />}
       <div className="ne-banner-abajo">
         <Link className="ne-banner-varios" href="/panel/nuevo-envio/varios" data-varios-envios="">
           <span>¿Muchos de golpe? <strong>Crear varios envíos</strong></span>
