@@ -15373,3 +15373,24 @@ begin
   end if;
   raise notice 'OK 339 · «Asignando transportista» se ve a 12 h de la primera posibilidad de cargar';
 end $$;
+
+-- 340 · Cuadro de mando: la evolución lleva los clientes distintos con envío REALIZADO de cada mes.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; hoy date := (now() at time zone 'Europe/Madrid')::date; mal int; total int; begin
+  r := cuadro_mando(hoy - 400, hoy + 60);
+  if exists (select 1 from jsonb_array_elements(r -> 'serie') x where x -> 'clientes' is null) then raise exception 'FALLO 340 · la serie no trae «clientes»'; end if;
+  select count(*) filter (where (x ->> 'clientes')::int is distinct from
+           (select count(distinct e.cliente_id) from envios e
+             where not coalesce(e.es_manual, false) and e.estado in ('hacia_la_carga', 'cargando', 'en_ruta', 'entregado')
+               and e.fecha_efectiva between hoy - 400 and hoy + 60
+               and date_trunc('month', e.fecha_efectiva)::date = (x ->> 'k')::date)),
+         coalesce(sum((x ->> 'clientes')::int), 0)
+    into mal, total from jsonb_array_elements(r -> 'serie') x;
+  if mal > 0 then raise exception 'FALLO 340 · % meses con un número de clientes que no cuadra con los envíos realizados', mal; end if;
+  if exists (select 1 from jsonb_array_elements(r -> 'serie') x where (x ->> 'clientes')::int > (x ->> 'realizados')::int) then raise exception 'FALLO 340 · más clientes que envíos realizados en un mes'; end if;
+  raise notice 'OK 340 · cuadro de mando: clientes distintos con envío realizado por mes (% en el periodo)', total;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -19,7 +19,7 @@ export type Totales = { realizados: number; solicitados: number; cancelados: num
 export type Cuadro = {
   desde: string; hasta: string; granularidad: 'dia' | 'mes';
   totales: Totales; comparacion: Totales | null;
-  serie: { k: string; realizados: number; solicitados: number; facturacion: number; margen: number }[];
+  serie: { k: string; realizados: number; solicitados: number; facturacion: number; margen: number; clientes?: number }[];
   meses: { k: string; realizados: number; solicitados: number; facturacion: number; margen: number; km: number; realizados_ant: number; facturacion_ant: number; margen_ant: number }[];
   semana: { dow: number; realizados: number; facturacion: number; margen: number; km: number; fact_con_km: number; coste_con_km: number }[];
   clientes: { id: string; nombre: string | null; cif: string; realizados: number; solicitados: number; facturacion: number; margen: number; riesgo: number | null; disponible: number | null; plazo_pago_dias: number | null }[];
@@ -122,13 +122,13 @@ function techo(v: number, paso: number): number {
   return Math.max(paso, Math.ceil(v / paso) * paso);
 }
 const eurosCortos = (v: number) => (Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(1).replace('.', ',')} M€` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0).replace('.', ',')} k€` : `${Math.round(v)} €`);
-const COLOR_FACT = '#3300cc', COLOR_MARGEN = '#22a55a', COLOR_ENVIOS = '#ff7a00';
+const COLOR_FACT = '#3300cc', COLOR_MARGEN = '#22a55a', COLOR_ENVIOS = '#ff7a00', COLOR_CLIENTES = '#9ca3af';
 
 // Evolución: barras de facturación (eje izquierdo, €) + línea de margen (eje derecho, €, con su
 // propia escala para que no se aplaste contra la facturación) + línea de envíos realizados sin
 // eje (se escala sola a su máximo). Al pasar el ratón o pulsar un mes, etiqueta flotante con los
 // tres valores (al pulsar se queda unos segundos, para el móvil).
-function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number; margen: number; realizados: number; solicitados: number }[]; titulo: string }) {
+export function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number; margen: number; realizados: number; solicitados: number; clientes: number }[]; titulo: string }) {
   const [sel, setSel] = useState<number | null>(null);
   const [fijo, setFijo] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,7 +166,17 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
   const margBajo = margMin < 0 ? -techo(-margMin, 5000) : 0;
   const maxEnv = Math.max(1, ...datos.map((d) => d.realizados)) * 1.5;
   const w = (ancho - izq - der) / Math.max(datos.length, 1);
-  const barra = Math.max(2, Math.min(w - 4, 36));
+  // Dos barras por fecha: la de facturación y, a su lado y más estrecha, la GRIS de clientes
+  // distintos con envío realizado, mismo criterio que el resto (usuario, 2026-11-24). La gris no tiene eje: se escala a su
+  // máximo (que llega al 55 % del alto, para no competir con la facturación) y lleva su número
+  // encima cuando hay sitio; siempre está en la etiqueta al pulsar.
+  const grupo = Math.max(3, Math.min(w - 4, 54));
+  const hueco = grupo >= 12 ? 3 : 1;
+  const barraCli = Math.max(1, Math.round((grupo - hueco) * 0.36));
+  const barra = Math.max(2, grupo - hueco - barraCli);
+  const maxCli = Math.max(1, ...datos.map((d) => d.clientes)) / 0.55;
+  const yC = (v: number) => arriba + H * (1 - v / maxCli);
+  const cifraCli = barraCli >= 12;   // el número encima de la barra gris, solo si cabe
   const yF = (v: number) => arriba + H * (1 - v / maxFact);
   const yM = (v: number) => arriba + H * (1 - (v - margBajo) / (margAlto - margBajo));
   const yN = (v: number) => arriba + H * (1 - v / maxEnv);
@@ -183,6 +193,7 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
         <span><i style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: COLOR_FACT, verticalAlign: '-1px', marginRight: 5 }} />Facturación (€, eje izquierdo)</span>
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_MARGEN, verticalAlign: '3px', marginRight: 5 }} />Margen (€, eje derecho)</span>
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_ENVIOS, verticalAlign: '3px', marginRight: 5 }} />Envíos realizados (línea)</span>
+        <span><i style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: COLOR_CLIENTES, verticalAlign: '-1px', marginRight: 5 }} />Clientes con envío realizado (barra gris)</span>
       </div>
       <div className="cm-chart-scroll"><div className="cm-chart-lienzo" ref={lienzo}>
       <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}>
@@ -197,12 +208,15 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
           );
         })}
         {datos.map((p, i) => {
-          const x = izq + i * w + (w - barra) / 2;
+          const x = izq + i * w + (w - grupo) / 2;
           const h = Math.max(0, yF(0) - yF(p.facturacion));
+          const xg = x + barra + hueco, hg = Math.max(0, yC(0) - yC(p.clientes));
           return (
             <g key={p.k}>
               <rect x={x} y={yF(p.facturacion)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={COLOR_FACT} opacity={sel == null || sel === i ? 0.9 : 0.4} />
               {p.facturacion > 0 && h < 3 && <rect x={x} y={yF(0) - 2} width={barra} height={2} fill={COLOR_FACT} />}
+              <rect className="cm-barra-clientes" x={xg} y={yC(p.clientes)} width={barraCli} height={hg} rx={Math.min(3, barraCli / 2)} fill={COLOR_CLIENTES} opacity={sel == null || sel === i ? 1 : 0.45} />
+              {cifraCli && p.clientes > 0 && <text x={xg + barraCli / 2} y={yC(p.clientes) - 4} textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--gray-600, #4b5563)" stroke="#fff" strokeWidth="3" paintOrder="stroke">{p.clientes}</text>}
               {i % cada === 0 && <text x={xc(i)} y={alto - 8} textAnchor="middle" fontSize={letra} fill="var(--gray-500)">{p.k}</text>}
             </g>
           );
@@ -230,6 +244,7 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
           <span><i style={{ background: COLOR_FACT }} />Facturación {euros(d.facturacion)}</span>
           <span><i style={{ background: COLOR_MARGEN }} />Margen {euros(d.margen)}{d.facturacion ? ` (${pct(d.margen, d.facturacion)})` : ''}</span>
           <span><i style={{ background: COLOR_ENVIOS }} />Envíos {n(d.realizados)} realizados / {n(d.solicitados)} solicitados</span>
+          <span><i style={{ background: COLOR_CLIENTES }} />Clientes {n(d.clientes)} con envío realizado</span>
         </div>
       )}
     </div>
@@ -258,7 +273,7 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
   const t = datos?.totales, c = datos?.comparacion ?? undefined;
   const serie = useMemo(() => (datos?.serie ?? []).map((s) => ({
     k: datos!.granularidad === 'dia' ? etiquetaDia(s.k) : etiquetaMes(s.k),
-    facturacion: n(s.facturacion), margen: n(s.margen), realizados: n(s.realizados), solicitados: n(s.solicitados),
+    facturacion: n(s.facturacion), margen: n(s.margen), realizados: n(s.realizados), solicitados: n(s.solicitados), clientes: n(s.clientes),
   })), [datos]);
   const totFact = n(t?.facturacion);
   // Por defecto, últimos 5 años (usuario, 2026-11-06).
@@ -297,7 +312,7 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
 
           <div className="mini-list-card" style={{ marginTop: '1rem' }}>
             <div className="mini-list-head"><h4>Evolución {datos!.granularidad === 'dia' ? 'por día' : 'por mes'}</h4><span className="meta">pulsa un {datos!.granularidad === 'dia' ? 'día' : 'mes'} para ver sus cifras</span></div>
-            <Evolucion datos={serie} titulo="Evolución de facturación, margen y envíos" />
+            <Evolucion datos={serie} titulo="Evolución de facturación, margen, envíos y clientes" />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1rem', alignItems: 'start', marginTop: '1rem' }}>
@@ -326,7 +341,7 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
             </div>
           )}
           <p className="meta" style={{ marginTop: '0.8rem' }}>
-            Cuenta los envíos de Dynamo (no los manuales de otros operadores) por su día de carga (real, previsto o primer día de la ventana). Realizados = en marcha o entregados; solicitados = todos los pedidos, también sin aceptar o cancelados. Facturación y compra en base sin IVA; sin precio de transportista, el margen cuenta 0. €/km solo con los envíos que tienen km.
+            Cuenta los envíos de Dynamo (no los manuales de otros operadores) por su día de carga (real, previsto o primer día de la ventana). Realizados = en marcha o entregados; solicitados = todos los pedidos, también sin aceptar o cancelados. Clientes de la evolución = clientes distintos con algún envío realizado ese día o ese mes. Facturación y compra en base sin IVA; sin precio de transportista, el margen cuenta 0. €/km solo con los envíos que tienen km.
           </p>
         </>
       )}
