@@ -1038,7 +1038,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Botonera del asistente (usuario, 2026-11-09): en el paso 3 va DENTRO de la columna
   // del precio, justo debajo de la caja «Precio sugerido»; en los pasos 1-2, al fondo.
   // Aviso del TRÁILER (solo sin plataforma elevadora): sale en el paso 2, justo antes de
-  // «Siguiente», y en el 4, bajo los sitios. El enlace «añádela en opciones» abre el
+  // «Siguiente» (en el 4 se quitó: usuario, 2026-11-24). El enlace «añádela en opciones» abre el
   // desplegable de opciones del paso 2 y lleva la vista hasta «Plataforma elevadora»
   // (usuario, 2026-11-24; antes decía «añádela en el paso 2» y solo cambiaba de paso).
   const irAPlataforma = () => { setNotasAbiertas(true); setPaso(2); setBuscaPlataforma((n) => n + 1); };
@@ -1498,9 +1498,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
-                {/* Aviso del tráiler debajo de los sitios (usuario, 2026-11-19; antes iba en la
-                    ventana de confirmar). Solo sin plataforma elevadora. */}
-                {avisoTrailer('aviso-trailer-sitios', { marginTop: '0.8rem', marginBottom: 0 })}
+                {/* El aviso del tráiler ya no sale aquí (usuario, 2026-11-24: «ya lo pusimos en el paso 2»). */}
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar
                     envío, solo en la vista de admin. */}
