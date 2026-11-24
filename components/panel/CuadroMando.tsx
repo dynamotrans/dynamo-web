@@ -127,12 +127,17 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
   const [ancho, setAncho] = useState(720);
   useLayoutEffect(() => {
     const el = lienzo.current; if (!el) return;
-    const medir = () => setAncho(Math.max(320, Math.floor(el.clientWidth)));
+    const medir = () => setAncho(Math.max(240, Math.floor(el.clientWidth)));
     medir();
     const ro = new ResizeObserver(medir); ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const alto = 240, izq = 64, der = 58, arriba = 12, abajo = 26;
+  // SIEMPRE cabe en el ancho visible, sin desplazarse de lado (usuario, 2026-11-24): en el
+  // móvil los ejes se estrechan y la letra baja un punto; el periodo entero (el mes, el año)
+  // se ve de una vez.
+  const estrecho = ancho < 520;
+  const letra = estrecho ? 11 : 13;
+  const alto = 240, izq = estrecho ? 46 : 64, der = estrecho ? 42 : 58, arriba = 12, abajo = 26;
   const H = alto - arriba - abajo;
   // Eje izquierdo = facturación, tope al cien mil por encima del máximo (340.000 → 400.000).
   // Eje derecho = margen, tope al cinco mil por encima (11.422 → 15.000); si algún mes el
@@ -149,11 +154,11 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
   const yM = (v: number) => arriba + H * (1 - (v - margBajo) / (margAlto - margBajo));
   const yN = (v: number) => arriba + H * (1 - v / maxEnv);
   const xc = (i: number) => izq + i * w + w / 2;
-  const cada = Math.max(1, Math.ceil(datos.length / Math.max(4, Math.floor((ancho - izq - der) / 64))));
+  const cada = Math.max(1, Math.ceil(datos.length / Math.max(3, Math.floor((ancho - izq - der) / 64))));
   const ticks = [0, 0.2, 0.4, 0.6, 0.8, 1];
   const linea = (f: (d: typeof datos[number]) => number, y: (v: number) => number) => datos.map((d, i) => `${i ? 'L' : 'M'}${xc(i).toFixed(1)},${y(f(d)).toFixed(1)}`).join(' ');
   const d = sel != null ? datos[sel] : null;
-  const muchos = datos.length > 40;   // con muchos puntos, las líneas van sin los circulitos
+  const muchos = datos.length > 40 || w < 14;   // con muchos puntos (o muy juntos), las líneas van sin los circulitos
   const derecha = sel != null && xc(sel) > ancho / 2;   // la etiqueta se pone al otro lado del mes marcado
   return (
     <div className="cm-chart" style={{ position: 'relative' }}>
@@ -162,17 +167,15 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_MARGEN, verticalAlign: '3px', marginRight: 5 }} />Margen (€, eje derecho)</span>
         <span><i style={{ display: 'inline-block', width: 14, height: 3, borderRadius: 2, background: COLOR_ENVIOS, verticalAlign: '3px', marginRight: 5 }} />Envíos realizados (línea)</span>
       </div>
-      {/* Con foco de teclado: en pantallas estrechas el gráfico se desplaza de lado y hay que
-          poder moverlo sin ratón (prueba de accesibilidad en móvil, 2026-11-18). */}
-      <div className="cm-chart-scroll" tabIndex={0} role="group" aria-label={`${titulo} (gráfico desplazable)`}><div className="cm-chart-lienzo" ref={lienzo}>
+      <div className="cm-chart-scroll"><div className="cm-chart-lienzo" ref={lienzo}>
       <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}>
         {ticks.map((f) => {
           const y = arriba + H * (1 - f);
           return (
             <g key={f}>
               <line x1={izq} x2={ancho - der} y1={y} y2={y} stroke="var(--gray-200)" strokeWidth="1" />
-              <text x={izq - 8} y={y + 4} textAnchor="end" fontSize="13" fill={COLOR_FACT}>{eurosCortos(maxFact * f)}</text>
-              <text x={ancho - der + 8} y={y + 4} textAnchor="start" fontSize="13" fill={COLOR_MARGEN}>{eurosCortos(margBajo + (margAlto - margBajo) * f)}</text>
+              <text x={izq - 8} y={y + 4} textAnchor="end" fontSize={letra} fill={COLOR_FACT}>{eurosCortos(maxFact * f)}</text>
+              <text x={ancho - der + 8} y={y + 4} textAnchor="start" fontSize={letra} fill={COLOR_MARGEN}>{eurosCortos(margBajo + (margAlto - margBajo) * f)}</text>
             </g>
           );
         })}
@@ -183,7 +186,7 @@ function Evolucion({ datos, titulo }: { datos: { k: string; facturacion: number;
             <g key={p.k}>
               <rect x={x} y={yF(p.facturacion)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={COLOR_FACT} opacity={sel == null || sel === i ? 0.9 : 0.4} />
               {p.facturacion > 0 && h < 3 && <rect x={x} y={yF(0) - 2} width={barra} height={2} fill={COLOR_FACT} />}
-              {i % cada === 0 && <text x={xc(i)} y={alto - 8} textAnchor="middle" fontSize="13" fill="var(--gray-500)">{p.k}</text>}
+              {i % cada === 0 && <text x={xc(i)} y={alto - 8} textAnchor="middle" fontSize={letra} fill="var(--gray-500)">{p.k}</text>}
             </g>
           );
         })}

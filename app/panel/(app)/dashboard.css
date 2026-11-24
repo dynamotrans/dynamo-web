@@ -5040,9 +5040,10 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 .cm .cm-chart { margin-top: 1.6rem; }
 /* La pista de la cabecera morada («pulsa un mes…») va en blanco suave, no en gris. */
 .cm .mini-list-head .meta { color: rgba(255,255,255,0.78); font-weight: 500; }
-/* Evolución: en pantallas estrechas el gráfico se desplaza en horizontal (si no, los ejes no se leen). */
-.cm .cm-chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.cm .cm-chart-lienzo { position: relative; min-width: 640px; }
+/* Evolución: el gráfico cabe SIEMPRE en el ancho visible, sin desplazarse de lado (usuario,
+   2026-11-24): el periodo entero se ve de una vez; en el móvil se estrechan los ejes. */
+.cm .cm-chart-scroll { overflow: hidden; }
+.cm .cm-chart-lienzo { position: relative; min-width: 0; }
 .cm .cm-tip.cm-tip-3 { top: 2.2rem; transform: none; display: grid; gap: 2px; text-align: left; line-height: 1.35; max-width: 260px; white-space: normal; z-index: 2; }
 @media (max-width: 640px) {
   /* En el móvil la etiqueta va debajo del gráfico (fuera del desplazamiento) y sobra la pista de la cabecera. */
