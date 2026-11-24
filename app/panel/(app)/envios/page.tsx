@@ -282,8 +282,11 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
         const { data: sg } = await supabase.rpc('seguimiento_envios', { p_ids: [base.id] }).maybeSingle();
         base = { ...base, asignando: sg?.asignando === true };
       }
+      // Cancelado: ¿lo anuló el sistema por no pagar dentro del plazo? La ficha lo dice en una
+      // caja amarilla, para que el cliente sepa por qué (usuario, 2026-11-24).
+      const { data: sinPago } = base.estado === 'cancelado' ? await supabase.rpc('envio_anulado_sin_pago', { p_envio: base.id }) : { data: false };
       // Pago con tarjeta: solo si Stripe está conectado (claves en Vercel).
-      fichaCli = { ...base, asignandose: asig === true, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, cambio: cb ?? null, revision: rv ?? null, corte: (corte as string | null) ?? null,
+      fichaCli = { ...base, anuladoSinPago: sinPago === true, asignandose: asig === true, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, cambio: cb ?? null, revision: rv ?? null, corte: (corte as string | null) ?? null,
         tarjeta: stripeListo(), pagoVuelta: sp.pago ?? null };
     }
   }

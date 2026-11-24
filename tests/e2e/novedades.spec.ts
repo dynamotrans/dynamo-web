@@ -610,6 +610,32 @@ test.describe('novedades', () => {
     }
   });
 
+  // CANCELADO POR NO PAGAR DENTRO DEL PLAZO (usuario, 2026-11-24): la ficha del cliente dice el
+  // motivo en una caja amarilla, lo primero, antes de «Fecha de carga».
+  test('envío anulado por falta de pago: la ficha del cliente dice el motivo en amarillo', async ({ page }) => {
+    const sv = bd();
+    await entrar(page, 'cliente');
+    await crearEnvioDeCliente(page);
+    const e = await ultimoEnvio();
+    expect(e.estado_pago_previo).toBe('pendiente');
+    // Con el plazo vencido hace horas, la tarea automática lo anula.
+    await sv.from('envios').update({ pago_pendiente_en: new Date(Date.now() - 30 * 3_600_000).toISOString() }).eq('id', e.id);
+    await sv.rpc('caducar_pagos_pendientes');
+    expect((await sv.from('envios').select('estado').eq('id', e.id).single()).data!.estado).toBe('cancelado');
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    const aviso = page.locator('#aviso-anulado-sin-pago');
+    await expect(aviso).toContainText('Cancelado por falta de pago');
+    await expect(aviso).toContainText('No recibimos el pago dentro del plazo');
+    await expect(aviso).toContainText('Repetir envío');
+    await expect(page.locator('.dash-modal-card .badge').first()).toHaveText('Anulado sin pago');
+    // Va antes de la fecha de carga.
+    const antes = await aviso.evaluate((el) => {
+      const fila = [...document.querySelectorAll('.pen-sum-row')].find((r) => r.textContent?.includes('Fecha de carga'));
+      return !!fila && !!(el.compareDocumentPosition(fila) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(antes).toBe(true);
+  });
+
   // DEVOLVER EL IMPORTE de un pago con tarjeta (usuario, 2026-11-23): el botón solo lo ve el Admin
   // Master en un envío pagado con tarjeta, y la ventana pide importe, contraseña y la palabra
   // CONFIRMAR. Aquí no hay Stripe: la ventana lo dice y no deja devolver nada (las reglas y las
@@ -1698,9 +1724,16 @@ test.describe('novedades', () => {
       await expect(page.getByLabel('Leyenda del mapa general')).toContainText('En marcha');
       // Al pulsar un programado, su ruta sale resaltada con las etiquetas de sus paradas y se
       // apaga sola a los 4 segundos.
-      await page.locator('[data-mapa-general] .punto-programado').last().click({ force: true });
+      // Se pulsa con «force» (los puntos de varios envíos caen unos encima de otros), y eso se
+      // salta la espera a que el mapa esté quieto: justo después de cambiar de pestaña el mapa
+      // se vuelve a encuadrar, y con él en movimiento (o repintándose al llegar las rutas) la
+      // pulsación puede caer fuera del punto. Como haría una persona, se vuelve a pulsar hasta
+      // que la ruta sale resaltada (fallaba así en Firefox y en el iPhone, 2026-11-24).
       const etiquetas = page.locator('[data-mapa-general] .leaflet-tooltip.tt-parada');
-      await expect.poll(async () => etiquetas.count()).toBeGreaterThan(0);
+      await expect(async () => {
+        await page.locator('[data-mapa-general] .punto-programado').last().click({ force: true });
+        await expect.poll(async () => etiquetas.count(), { timeout: 1_500 }).toBeGreaterThan(0);
+      }).toPass({ timeout: 20_000 });
       await expect(etiquetas.first()).toContainText(/Prevista|Cargado|Llegó|Entrega|Recogida/);
       await expect(etiquetas).toHaveCount(0, { timeout: 7_000 });
       // «Encuadrar» devuelve el mapa a todo lo pintado tras moverlo o acercarse.

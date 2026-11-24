@@ -74,6 +74,7 @@ export type EnvioClienteBase = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiEnvio
   & { paradas: (Parada & { id?: string; referencia?: string | null; anotaciones?: string | null; notas_sitio?: string | null })[];
       operador_email?: string | null };   // envío propio: el email de SU transportista, para enviarle la orden de carga
 export type EnvioCliente = EnvioClienteBase & {
+  anuladoSinPago?: boolean;   // cancelado por el sistema al no llegar el pago dentro del plazo
   hitos: Funcion<'mis_hitos'>; valoracion: Funcion<'mi_valoracion_envio'>[number] | null;
   pago: Funcion<'pagos_envio'>[number] | null;
   cambio: Funcion<'mi_cambio_envio'>[number] | null; revision: Revision | null; corte: string | null;
@@ -109,7 +110,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
   const [cerrando, setCerrando] = useState(false);
   const cerrar = () => { setCerrando(true); avisarNavegando(); router.push(cerrarHref, { scroll: false }); };
   const act = etapas.find((x) => x.actual);
-  const ev = estadoVisual({ ...e, parada_actual: e.parada_actual ?? act?.parada ?? null, tipo_parada: e.tipo_parada ?? act?.tipo_parada ?? null });
+  const ev0 = estadoVisual({ ...e, parada_actual: e.parada_actual ?? act?.parada ?? null, tipo_parada: e.tipo_parada ?? act?.tipo_parada ?? null });
+  // Anulado por el sistema al no llegar el pago: la etiqueta lo dice, como en la lista.
+  const ev = e.anuladoSinPago ? { ...ev0, label: 'Anulado sin pago' } : ev0;
   const manual = !!e.es_manual;
   const paradas = e.paradas ?? [];
   const recogidas = paradas.filter((p) => p.tipo === 'carga'), entregas = paradas.filter((p) => p.tipo === 'descarga');
@@ -295,6 +298,16 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
           formato, diseño y botones que admin»): fecha, ruta con todas las paradas,
           mercancía y precio, cada cosa en su fila. */}
       <div className="pen-envio-sum" style={{ marginBottom: '0.8rem' }}>
+        {/* CANCELADO POR NO PAGAR DENTRO DEL PLAZO (usuario, 2026-11-24): el motivo, en amarillo y
+            lo primero, para que el cliente sepa por qué está cancelado y qué puede hacer. */}
+        {e.anuladoSinPago && (
+          <div id="aviso-anulado-sin-pago" role="status" style={{ background: '#fef9c3', color: '#111827', border: '1px solid #fde047', borderRadius: 8, padding: '0.5rem 0.7rem', marginBottom: '0.45rem', fontSize: 'var(--fs-m)', lineHeight: 1.45 }}>
+            <strong>Cancelado por falta de pago.</strong>{' '}
+            No recibimos el pago dentro del plazo{e.pago?.pago_limite ? <> (terminaba el <strong>{fechaHora(e.pago.pago_limite)}</strong>)</> : null} y
+            el envío se anuló automáticamente, junto con su proforma. No tiene ningún coste.
+            {!manual && <> Si aún lo necesitas, pulsa <strong>«Repetir envío»</strong>: se crea uno nuevo con el precio de ese momento.</>}
+          </div>
+        )}
         {/* Banda AMARILLO CLARO del envío con SU transportista (usuario, 2026-11-17): la
             misma idea que la de la ficha de Dynamo, contada al cliente. */}
         {manual && (

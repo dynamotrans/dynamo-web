@@ -15512,3 +15512,40 @@ do $$ declare c uuid; e uuid; antes jsonb; mal boolean := false; h numeric := pa
   raise notice 'OK 343 · anulación por falta de pago: margen de 5 minutos y espera al enlace de pago abierto';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 344 · El cliente sabe si su envío se anuló por no pagar dentro del plazo (usuario, 2026-11-24):
+-- sí/no solo para SU envío; un envío cancelado por otra causa, o de otro cliente, dice que no.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; uc uuid; e uuid; e2 uuid; antes jsonb; h numeric := parametro_num('pago_previo_horas', 24); begin
+  select valor into antes from parametros where clave = 'pago_previo_activo';
+  update parametros set valor = 'true'::jsonb where clave = 'pago_previo_activo';
+  if has_function_privilege('anon', 'envio_anulado_sin_pago(uuid)', 'execute') then raise exception 'FALLO 344 · un visitante sin sesión puede preguntar por qué se canceló un envío'; end if;
+  insert into clientes (razon_social, cif) values ('No Paga 344 SL', 'B34400344') returning id into c;
+  insert into auth.users (email) values ('nopaga344@cliente.prueba') returning id into uc;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = c where id = uc;
+  for i in 1..2 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista) values (c, 13.30, 20, 1000, 800) returning id into e2;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 1, 'carga', '41001', 'Sevilla', 'ES'), (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e2;
+    if i = 1 then e := e2; end if;
+  end loop;
+  -- e: lo anula el sistema por falta de pago. e2: se cancela por otra causa.
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  update envios set pago_pendiente_en = now() - make_interval(mins => round(h * 60)::int + 120) where id = e;
+  perform caducar_pagos_pendientes();
+  update envios set estado = 'cancelado' where id = e2;
+  perform set_config('request.jwt.claim.role', '', true);
+  if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 344 · el envío de prueba no se ha anulado por falta de pago'; end if;
+  -- Su dueño: sí en el anulado sin pago, no en el otro.
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  if envio_anulado_sin_pago(e) is not true then raise exception 'FALLO 344 · el cliente no ve que su envío se anuló por falta de pago'; end if;
+  if envio_anulado_sin_pago(e2) is not false then raise exception 'FALLO 344 · un envío cancelado por otra causa sale como anulado por falta de pago'; end if;
+  -- Otro cliente: no.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  if envio_anulado_sin_pago(e) is not false then raise exception 'FALLO 344 · un cliente ve por qué se canceló el envío de otro'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update parametros set valor = antes where clave = 'pago_previo_activo';
+  raise notice 'OK 344 · el cliente ve si su envío se anuló por no pagar dentro del plazo, y solo el suyo';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

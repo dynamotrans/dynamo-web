@@ -4659,6 +4659,7 @@ export type Database = {
       entregas_estimadas: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; desde: string; hasta: string; fijada: boolean }[] }
       enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       enviar_sugerencia: { Args: { p_texto: string | null; p_pagina?: string | null; p_navegador?: string | null }; Returns: string }
+      envio_anulado_sin_pago: { Args: { p_envio: string | null }; Returns: boolean }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_cambio_abrir: { Args: { p_envio: string | null; p_tipo: string | null; p_antes: Json | null }; Returns: string }
       envio_columnas_tecnicas: { Args: Record<PropertyKey, never>; Returns: string[] }
