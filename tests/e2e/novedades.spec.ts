@@ -196,6 +196,9 @@ test.describe('novedades', () => {
     // Seis cajitas, como las del código de recuperar la contraseña: al completarlas se
     // comprueba solo, sin pulsar el botón; si el código no vale, se vacían.
     await expect(t.locator('.otp-box')).toHaveCount(6);
+    // La página ya está viva cuando la primera cajita coge el foco (lo hace ella sola al
+    // arrancar): teclear antes se perdía y la prueba fallaba de vez en cuando.
+    await expect(t.locator('#codigo-carga')).toBeFocused({ timeout: 20_000 });
     const teclear = (texto: string) => Promise.all([
       t.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/carga'),
       t.fill('#codigo-carga', texto),
