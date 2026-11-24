@@ -15152,3 +15152,59 @@ begin
   raise notice 'OK 333 · lista de envíos: las transferencias avisadas van arriba (la que más espera, primero) en «Pendientes de pago» y «Todas»';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 334 · GOOGLE MAPS (usuario, 2026-11-24): el sitio guarda si su horario está sin verificar (por
+--       defecto no), y el aviso de «límite diario alcanzado» llega a Dynamo una sola vez por día
+--       y por API, con el texto que pone la base de datos; sin sesión no se puede lanzar.
+do $$
+declare v_s uuid; v_u uuid; ok boolean; n int; m int; r record;
+begin
+  if (select column_default from information_schema.columns where table_schema = 'public' and table_name = 'sitios' and column_name = 'horario_sin_verificar') <> 'false' then
+    raise exception 'FALLO 334 · un sitio nace con el horario sin verificar'; end if;
+  -- Sin sesión (anónimo): no se puede.
+  perform set_config('request.jwt.claim.sub', '', false);
+  set local role anon;
+  ok := false;
+  begin perform aviso_limite_api('sitios'); exception when insufficient_privilege then ok := true; end;
+  reset role;
+  if not ok then raise exception 'FALLO 334 · un anónimo puede lanzar el aviso de límite'; end if;
+  -- Un cliente (es quien está buscando cuando Google se queda sin consultas).
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  select count(*) into n from avisos where tipo = 'api_limite';
+  if aviso_limite_api('cualquier cosa') then raise exception 'FALLO 334 · avisa de una API que no existe'; end if;
+  if not aviso_limite_api('sitios') then raise exception 'FALLO 334 · no avisa la primera vez'; end if;
+  if aviso_limite_api('sitios') then raise exception 'FALLO 334 · avisa dos veces el mismo día por la misma API'; end if;
+  if not aviso_limite_api('kilometros') then raise exception 'FALLO 334 · no avisa de otra API el mismo día'; end if;
+  select count(*) into m from avisos where tipo = 'api_limite';
+  if m <> n + 2 then raise exception 'FALLO 334 · avisos en la campana: % (esperados %)', m, n + 2; end if;
+  select * into r from avisos where tipo = 'api_limite' and titulo like '%buscador de sitios%' order by creado_en desc limit 1;
+  if r.para <> 'dynamo' or r.cliente_id is not null then raise exception 'FALLO 334 · el aviso no es solo para Dynamo: %', r; end if;
+  select * into r from emails_enviados where tipo = 'api_limite' and clave like 'api_limite:google:sitios:%';
+  if r.id is null or r.destinatario <> email_dynamo() or position('límite diario' in r.asunto) = 0 then
+    raise exception 'FALLO 334 · no se encola el email a Dynamo: %', r; end if;
+  -- El enlace de Maps: un cliente lo guarda al CREAR (si es de Google Maps) y no lo cambia después.
+  -- (Con un usuario de cliente recién creado: los de otras pruebas pueden haber quedado suspendidos.)
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into auth.users (email) values ('sitios334@cliente.prueba') returning id into v_u;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = current_setting('prueba.cliente')::uuid where id = v_u;
+  perform set_config('request.jwt.claim.sub', v_u::text, false);
+  set local role authenticated;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, url_google_maps)
+    values ((select cliente_id from usuarios where id = auth.uid()), 'Sitio Google 334', 'C/ Uno, 1', '41001', 'Sevilla', 'Sevilla', 'https://maps.google.com/?cid=334')
+    returning id into v_s;
+  if (select url_google_maps from sitios where id = v_s) is distinct from 'https://maps.google.com/?cid=334' then
+    raise exception 'FALLO 334 · al crear un sitio no se guarda el enlace de Google Maps'; end if;
+  update sitios set url_google_maps = 'https://maps.google.com/?cid=otro' where id = v_s;
+  if (select url_google_maps from sitios where id = v_s) <> 'https://maps.google.com/?cid=334' then
+    raise exception 'FALLO 334 · un cliente cambia el enlace del mapa de un sitio ya creado'; end if;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, url_google_maps)
+    values ((select cliente_id from usuarios where id = auth.uid()), 'Sitio no Google 334', 'C/ Dos, 2', '41001', 'Sevilla', 'Sevilla', 'https://ejemplo.malo/mapa')
+    returning id into v_s;
+  if (select url_google_maps from sitios where id = v_s) is not null then
+    raise exception 'FALLO 334 · un cliente guarda un enlace que no es de Google Maps'; end if;
+  reset role;
+  update sitios set borrado = true where nombre_empresa in ('Sitio Google 334', 'Sitio no Google 334');
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 334 · Google Maps: horario sin verificar (por defecto no), aviso de límite diario a Dynamo una vez por día y API, y enlace de Maps al crear el sitio';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

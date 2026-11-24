@@ -108,3 +108,27 @@ export function enTemporada(fecha: string, desde: string, hasta: string): boolea
   const md = fecha.slice(5, 10);
   return desde <= hasta ? md >= desde && md <= hasta : md >= desde || md <= hasta;
 }
+
+// El horario que da Google (Places · regularOpeningHours.periods) en nuestros grupos. Google
+// numera los días 0 = domingo … 6 = sábado; aquí 1 = lunes … 7 = domingo. Un tramo que pasa
+// de medianoche se corta a las 23:59 de su día. Devuelve null si Google no da horario, si el
+// sitio abre las 24 horas (un periodo sin cierre) o si lo que sale no pasa nuestras reglas:
+// en esos casos la ficha se queda con el horario por defecto.
+export type PeriodoGoogle = { open?: { day?: number; hour?: number; minute?: number }; close?: { day?: number; hour?: number; minute?: number } };
+export function horarioDeGoogle(periodos: PeriodoGoogle[] | null | undefined): GrupoHorario[] | null {
+  if (!periodos?.length) return null;
+  const dos = (n: number) => String(n).padStart(2, '0');
+  const filas: FilaHorario[] = [];
+  for (const p of periodos) {
+    const a = p.open, c = p.close;
+    if (!a || !c || a.day == null || c.day == null || a.hour == null || c.hour == null) return null;
+    if (a.day < 0 || a.day > 6 || a.hour > 23 || c.hour > 23) return null;
+    const abre = `${dos(a.hour)}:${dos(a.minute ?? 0)}`;
+    const cierra = c.day === a.day ? `${dos(c.hour)}:${dos(c.minute ?? 0)}` : '23:59';
+    if (cierra <= abre) continue;
+    filas.push({ dia_semana: a.day === 0 ? 7 : a.day, abre, cierra });
+  }
+  if (!filas.length) return null;
+  const grupos = gruposDe(filas);
+  return validarHorario(grupos) ? null : grupos;
+}

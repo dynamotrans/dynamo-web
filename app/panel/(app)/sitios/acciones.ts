@@ -8,6 +8,7 @@ import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosSe
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { gestorOCliente, soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { googleLugaresListo, autocompletarLugares, fichaLugar, SESION_GOOGLE, LUGAR_GOOGLE } from '@/lib/servidor/googleLugares';
 
 export type SitioDatos = {
   cliente_id: string; nombre_empresa: string; tipo: string;
@@ -16,6 +17,8 @@ export type SitioDatos = {
   verano?: Verano;                // horario de verano (opcional; temporada verano)
   url_google_maps: string; anotaciones: string;
   requiere_cita: boolean; tiene_medios_carga: boolean;
+  // El horario se tomó de Google y nadie lo ha comprobado aún con el sitio.
+  horario_sin_verificar?: boolean;
   contactos: ContactoDatos[];     // personas (tabla contactos, una o varias)
   emails_avisos: string;          // uno o varios, separados por comas (sitios.emails_avisos)
   // Solo en los almacenes de Dynamo (catálogo interno): disponibilidad y tarifa propia.
@@ -100,9 +103,14 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
     anotaciones: vacio(d.anotaciones),
     requiere_cita: d.requiere_cita, tiene_medios_carga: d.tiene_medios_carga,
     emails_avisos: emails,
+    horario_sin_verificar: !!d.horario_sin_verificar,
   };
-  // El enlace de Google Maps solo lo toca Dynamo (en el mockup, el cliente lo ve fijo).
-  if (esGestor(s.perfil!.rol)) fila.url_google_maps = vacio(d.url_google_maps);
+  // El enlace de Google Maps solo lo toca Dynamo (en el mockup, el cliente lo ve fijo). Al
+  // CREAR un sitio con el buscador de Google también se guarda el que trae Google, sea quien
+  // sea: tiene que ser un enlace de Google Maps de verdad.
+  const maps = vacio(d.url_google_maps);
+  if (esGestor(s.perfil!.rol)) fila.url_google_maps = maps;
+  else if (!id && maps && ENLACE_MAPS.test(maps)) fila.url_google_maps = maps;
   if (esAlmacen) {
     fila.disponible = d.almacen!.disponible;
     fila.precio_almacenamiento_semana = d.almacen!.precio_almacenamiento_semana;
@@ -156,10 +164,15 @@ export async function marcarPrincipal(clienteId: string, sitioId: string | null)
 // verdad en Google Places y los resultados salen reales; sin clave, una lista de EJEMPLO
 // (la del mockup) para que el flujo completo se pueda probar ya. El usuario lo decidió
 // así el 2026-11-09: «cuando paguemos la API saldrán reales en búsqueda».
+// Con Google de verdad, la lista trae solo SUGERENCIAS (nombre y zona, con su `place_id`):
+// los datos completos se piden al elegir una (`detalleSitioGoogle`), que es la consulta cara.
 export type SitioGoogle = {
   empresa: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string;
   pais_codigo_iso: string; telefono: string; url_google_maps: string; etiqueta: string;
+  place_id?: string; horario?: GrupoHorario[] | null;
 };
+const ENLACE_MAPS = /^https:\/\/(maps\.google\.com|www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)[/?]/i;
+const SIN_DATOS = { direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', telefono: '', url_google_maps: '' };
 const GOOGLE_EJEMPLO: SitioGoogle[] = [
   { empresa: 'Grupal Art SL', direccion: 'Carrer Perdellot, 12', codigo_postal: '08185', poblacion: 'Lliçà de Vall', provincia: 'Barcelona', pais_codigo_iso: 'ES', telefono: '+34938445187', url_google_maps: 'https://goo.gl/maps/q4ECJQVWoezFTaHA6', etiqueta: 'Carrer Perdellot, 12, 08185 Lliçà de Vall, Barcelona' },
   { empresa: 'Modular Normalizada S.L.', direccion: 'Calle del Berilio, 3', codigo_postal: '28946', poblacion: 'Fuenlabrada', provincia: 'Madrid', pais_codigo_iso: 'ES', telefono: '+34916421761', url_google_maps: 'https://maps.app.goo.gl/wm2DhtjTyovfFkXe6', etiqueta: 'Calle del Berilio, 3, 28946 Fuenlabrada, Madrid' },
@@ -172,14 +185,24 @@ const GOOGLE_EJEMPLO: SitioGoogle[] = [
 ];
 const normTxt = (s: string) => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export async function buscarSitiosGoogle(q: string): Promise<SitioGoogle[]> {
-  comprobarEntrada("app/panel/(app)/sitios/acciones#buscarSitiosGoogle", [q]);
+export async function buscarSitiosGoogle(q: string, sesion: string): Promise<SitioGoogle[]> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#buscarSitiosGoogle", [q, sesion]);
   const s = await puede();
   if (!s) return [];
   q = (q ?? '').trim().slice(0, 120);
   if (q.length < 2) return [];
-  const clave = process.env.GOOGLE_MAPS_API_KEY;
-  if (!clave) {
+  if (googleLugaresListo()) {
+    if (!SESION_GOOGLE.test(sesion ?? '')) return [];
+    const r = await autocompletarLugares(q, sesion);
+    if (!r.ok) {
+      // Sin consultas por hoy: Dynamo se entera (campana y email, una vez al día) y el
+      // buscador sigue con la agenda y la dirección a mano.
+      if (r.limite) await s.supabase.rpc('aviso_limite_api', { p_api: 'sitios' }).then(() => null, () => null);
+      return [];
+    }
+    return r.lista.map((x) => ({ ...SIN_DATOS, empresa: x.titulo, etiqueta: x.detalle, place_id: x.place_id }));
+  }
+  {
     // SIN clave: como en el mockup, «casi cualquier empresa aparece en Google» — si la
     // lista curada no casa, se generan fichas de EJEMPLO deterministas a partir de lo
     // escrito (mismo texto → mismos resultados), para poder probar el flujo con todo.
@@ -214,35 +237,23 @@ export async function buscarSitiosGoogle(q: string): Promise<SitioGoogle[]> {
     };
     return [...lista, inventada(0), inventada(1)].slice(0, 3);
   }
-  try {
-    // Places API (New) · Text Search. Campos mínimos para autorrellenar la ficha.
-    const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json', 'X-Goog-Api-Key': clave,
-        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.addressComponents,places.nationalPhoneNumber,places.googleMapsUri',
-      },
-      body: JSON.stringify({ textQuery: q, languageCode: 'es', regionCode: 'ES', pageSize: 4 }),
-    });
-    if (!r.ok) return [];
-    const j = (await r.json()) as { places?: { displayName?: { text?: string }; formattedAddress?: string; nationalPhoneNumber?: string; googleMapsUri?: string; addressComponents?: { longText?: string; shortText?: string; types?: string[] }[] }[] };
-    return (j.places ?? []).map((p) => {
-      const comp = (tipo: string, corto = false) => {
-        const c = (p.addressComponents ?? []).find((x) => x.types?.includes(tipo));
-        return (corto ? c?.shortText : c?.longText) ?? '';
-      };
-      return {
-        empresa: p.displayName?.text ?? '',
-        direccion: [comp('route'), comp('street_number')].filter(Boolean).join(', '),
-        codigo_postal: comp('postal_code'), poblacion: comp('locality'),
-        provincia: comp('administrative_area_level_2'), pais_codigo_iso: comp('country', true) || 'ES',
-        telefono: (p.nationalPhoneNumber ?? '').replace(/\s/g, ''), url_google_maps: p.googleMapsUri ?? '',
-        etiqueta: p.formattedAddress ?? '',
-      };
-    }).filter((g) => g.empresa);
-  } catch {
-    return [];
+}
+
+/** Los datos completos del sitio elegido en la lista de Google: dirección, teléfono, enlace
+ *  de Maps y horario (si Google lo da). Es la consulta de pago: una por sitio elegido. */
+export async function detalleSitioGoogle(placeId: string, sesion: string): Promise<{ ok: true; sitio: SitioGoogle } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#detalleSitioGoogle", [placeId, sesion]);
+  const s = await puede();
+  if (!s) return { ok: false, error: 'No tienes permiso.' };
+  if (!LUGAR_GOOGLE.test(placeId ?? '') || !SESION_GOOGLE.test(sesion ?? '')) return { ok: false, error: 'Ese resultado ya no vale: vuelve a buscar.' };
+  const r = await fichaLugar(placeId, sesion);
+  if (!r.ok) {
+    if (r.limite) await s.supabase.rpc('aviso_limite_api', { p_api: 'sitios' }).then(() => null, () => null);
+    return { ok: false, error: r.limite
+      ? 'Google no da más datos por hoy. Rellena la ficha a mano.'
+      : 'Google no ha devuelto los datos de ese sitio. Rellena la ficha a mano.' };
   }
+  return { ok: true, sitio: { ...r.ficha, place_id: placeId } };
 }
 
 // La agenda del cliente para el buscador de la ficha (los 4 que mejor casan).

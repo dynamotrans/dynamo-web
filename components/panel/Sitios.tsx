@@ -14,7 +14,7 @@ import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_SITIO } from './TipoSitio';
-import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, buscarAgendaSitios, buscarSitiosGoogle, leerSitio, sitioParecido, type SitioDatos, type ClienteOpcion, type SitioGoogle } from '@/app/panel/(app)/sitios/acciones';
+import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, buscarAgendaSitios, buscarSitiosGoogle, detalleSitioGoogle, leerSitio, sitioParecido, type SitioDatos, type ClienteOpcion, type SitioGoogle } from '@/app/panel/(app)/sitios/acciones';
 
 import { euros, fechaHora, numero } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
@@ -42,6 +42,7 @@ const NUEVO: SitioDatos = {
   cliente_id: '', nombre_empresa: '', tipo: '', direccion: '', codigo_postal: '', poblacion: '',
   provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '',
   requiere_cita: false, tiene_medios_carga: true, contactos: [CONTACTO_VACIO()], emails_avisos: '',
+  horario_sin_verificar: false,
 };
 
 // Los datos de la ficha a partir de una fila (o vacíos): lo usa el estado inicial y el
@@ -174,6 +175,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
                   {dynamo && <td>{cli?.nombre ?? '—'}<div className="meta">{cli?.cif}</div></td>}
                   <td>{f.direccion || '—'}<div className="meta">{[f.codigo_postal, f.poblacion, f.provincia && f.provincia !== f.poblacion ? f.provincia : '', paisDe(f.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{f.horarios || '—'}
+                    {f.horario_sin_verificar && <div className="meta"><span className="badge badge-orange" title="El horario se tomó de Google y nadie lo ha comprobado con el sitio">Horario sin verificar</span></div>}
                     {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
                   </td>
                   <td>{(() => { const k = principal(f.contactos); return <>{telBonito(k?.telefono ?? '') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
@@ -231,6 +233,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [sugAbierto, setSugAbierto] = useState(false);
   const [avisoParecido, setAvisoParecido] = useState<{ id: string; nombre: string } | null>(null);
   const bqViva = useRef('');
+  // Google factura juntas las sugerencias y la ficha del sitio elegido si van con la misma
+  // «sesión»: un identificador por búsqueda, que se renueva al elegir.
+  const nuevaSesion = () => (globalThis.crypto?.randomUUID?.() ?? `s${Date.now()}${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, '');
+  const sesionGoogle = useRef('');
+  const [cargandoGoogle, setCargandoGoogle] = useState(false);
   const elegidoTxt = useRef('');   // lo último ELEGIDO: ese texto no relanza la búsqueda
   useEffect(() => {
     const q = bq.trim(); bqViva.current = q;
@@ -240,7 +247,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     const t = setTimeout(async () => {
       const [ag, go, dir] = await Promise.all([
         buscarAgendaSitios(q, d.cliente_id || null).catch(() => []),
-        buscarSitiosGoogle(q).catch(() => []),
+        buscarSitiosGoogle(q, (sesionGoogle.current ||= nuevaSesion())).catch(() => []),
         buscarDireccionesOSM(q).catch(() => []),
       ]);
       if (bqViva.current === q) { setSug({ ag, go, dir }); setSugAbierto(true); }
@@ -248,19 +255,40 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- la búsqueda depende solo del texto y del cliente
   }, [bq, d.cliente_id]);
-  // Elegir una ficha de Google: autorrellena y avisa si ya hay un sitio muy parecido.
-  function elegirGoogle(g: SitioGoogle) {
+  // Elegir una ficha de Google: autorrellena y avisa si ya hay un sitio muy parecido. Con
+  // Google de verdad la lista trae solo el nombre: los datos se piden ahora (una consulta).
+  async function elegirGoogle(sugerida: SitioGoogle) {
+    let g = sugerida;
+    setSugAbierto(false); setAvisoParecido(null);
+    if (sugerida.place_id) {
+      const sesion = sesionGoogle.current || nuevaSesion();
+      sesionGoogle.current = '';   // la siguiente búsqueda es otra sesión
+      setCargandoGoogle(true);
+      const r = await detalleSitioGoogle(sugerida.place_id, sesion).catch(() => ({ ok: false as const, error: 'No se ha podido hablar con Google. Rellena la ficha a mano.' }));
+      setCargandoGoogle(false);
+      if (!r.ok) {
+        // Sin datos de Google: se queda con el nombre y se rellena el resto a mano.
+        setD((x) => ({ ...x, nombre_empresa: x.nombre_empresa || sugerida.empresa }));
+        elegidoTxt.current = sugerida.empresa;
+        setCamposLibres(true); setBq(sugerida.empresa); setError(r.error);
+        return;
+      }
+      g = r.sitio;
+    }
+    const conHorario = !!g.horario?.length;
     setD((x) => conProvinciaDelCp({
       ...x, nombre_empresa: g.empresa, direccion: g.direccion, codigo_postal: g.codigo_postal,
       poblacion: g.poblacion, provincia: g.provincia, pais_codigo_iso: g.pais_codigo_iso || 'ES',
       url_google_maps: g.url_google_maps,
+      // El horario de Google es una propuesta sin verificar (usuario, 2026-11-23).
+      ...(conHorario ? { horario: g.horario!, horario_sin_verificar: true } : {}),
       contactos: g.telefono && !x.contactos.some((c) => c.telefono.trim())
         ? x.contactos.map((c, i) => (i === 0 ? { ...c, telefono: g.telefono } : c))
         : x.contactos,
     }, g.pais_codigo_iso || 'ES'));
     elegidoTxt.current = g.empresa;
     setCamposLibres(true);
-    setBq(g.empresa); setSugAbierto(false); setAvisoParecido(null);
+    setBq(g.empresa);
     sitioParecido(d.cliente_id || null, g.empresa, g.codigo_postal).then(setAvisoParecido).catch(() => {});
   }
   // El comparador de duplicados al guardar: el registro guardado entero + lo que ibas a
@@ -488,6 +516,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             <input id="sitio-buscar" autoComplete="off" placeholder="Escribe empresa o dirección…" value={bq}
               onChange={(e) => { setBq(e.target.value); setAvisoParecido(null); }}
               onFocus={() => setSugAbierto(true)} onBlur={() => setTimeout(() => setSugAbierto(false), 150)} />
+            {cargandoGoogle && <small role="status" style={{ color: 'var(--gray-500)' }}>Trayendo los datos del sitio desde Google…</small>}
             {sugAbierto && bq.trim().length >= 2 && (
               <ul className="ptar-sug ptar-sug-flujo">
                 {sug.ag.length === 0 && sug.go.length === 0 && sug.dir.length === 0 && (
@@ -499,7 +528,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                   </li>
                 ))}
                 {sug.go.map((g, i) => (
-                  <li key={`g${i}`} onMouseDown={(e) => { e.preventDefault(); elegirGoogle(g); }}>
+                  <li key={`g${i}`} data-sug-google onMouseDown={(e) => { e.preventDefault(); void elegirGoogle(g); }}>
                     <span className="sug-chip sug-chip-google">Google</span><strong>{g.empresa}</strong><span className="sug-dir">{g.etiqueta}</span>
                   </li>
                 ))}
@@ -586,8 +615,22 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         <button type="button" className="campo-plegado" aria-expanded={abierto.horario} onClick={() => plegar('horario')}>
           <span className="cp-ico" aria-hidden="true">{abierto.horario ? '−' : '+'}</span>
           <span className="cp-txt">Horario de carga y descarga
-            <span className="cp-val">· {resumenHorario(d.horario) || 'sin definir'}{d.verano?.activo ? ' · verano activo' : ''}</span></span>
+            <span className="cp-val">· {resumenHorario(d.horario) || 'sin definir'}{d.verano?.activo ? ' · verano activo' : ''}</span>
+            {d.horario_sin_verificar && <span className="badge badge-orange" style={{ marginLeft: '0.45rem' }}>Sin verificar</span>}</span>
         </button>
+        {/* El horario vino de Google y nadie lo ha comprobado con el sitio (usuario, 2026-11-23). */}
+        {d.horario_sin_verificar && (
+          <div className="modal-warn-box" id="horario-sin-verificar" style={{ margin: 0 }}>
+            <strong>Horario sin verificar: compruébalo con el sitio.</strong> Lo hemos tomado de Google, que da el horario de atención
+            al público; el de <strong>carga y descarga</strong> puede ser otro. Cámbialo aquí si hace falta. <strong>Verificar que es el
+            real es tu responsabilidad</strong>: si un camión llega dentro del horario indicado y el sitio está cerrado, las posibles
+            penalizaciones corren a cargo del cliente.
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem', fontWeight: 700 }}>
+              <input type="checkbox" id="horario-comprobado" checked={false} onChange={() => set('horario_sin_verificar', false)} />
+              Ya lo he comprobado con el sitio
+            </label>
+          </div>
+        )}
         {abierto.horario && (
           <div className="ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
             <HorarioSitio horario={d.horario} verano={d.verano!} onHorario={(g) => set('horario', g)} onVerano={(v) => set('verano', v)} tab={tabHorario} onTab={setTabHorario} />
@@ -596,7 +639,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       </div>
       {/* SOLO en sitios nuevos (usuario, 2026-11-14): el horario (el por defecto o el que
           llegue de Google) es una PROPUESTA — avisar de que hay que confirmarlo. */}
-      {!fila && (
+      {!fila && !d.horario_sin_verificar && (
         <div className="modal-warn-box" style={{ marginTop: '0.55rem', marginBottom: 0 }}>
           <strong>Horario propuesto — revísalo y confírmalo con el sitio.</strong> Lo ponemos por defecto (o llega
           sugerido de Google) para ir rápido, pero <strong>verificar que es el real es tu responsabilidad</strong>:

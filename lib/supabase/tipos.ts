@@ -3593,6 +3593,7 @@ export type Database = {
           verano_hasta: string | null
           horarios_verano: string | null
           texto_busqueda: string | null
+          horario_sin_verificar: boolean
         }
         Insert: {
           id?: string
@@ -3631,6 +3632,7 @@ export type Database = {
           verano_hasta?: string | null
           horarios_verano?: string | null
           texto_busqueda?: string | null
+          horario_sin_verificar?: boolean
         }
         Update: {
           id?: string
@@ -3669,6 +3671,7 @@ export type Database = {
           verano_hasta?: string | null
           horarios_verano?: string | null
           texto_busqueda?: string | null
+          horario_sin_verificar?: boolean
         }
         Relationships: [
           {
@@ -4522,6 +4525,7 @@ export type Database = {
       avanzar_estados_envios: { Args: Record<PropertyKey, never>; Returns: number }
       avisar_control_facturacion: { Args: { p_forzar?: boolean | null }; Returns: number }
       avisar_pago_transferencia: { Args: { p_envio: string | null }; Returns: Json }
+      aviso_limite_api: { Args: { p_api: string | null }; Returns: boolean }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
       borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
