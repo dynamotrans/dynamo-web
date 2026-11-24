@@ -5013,8 +5013,10 @@ do $$ declare e uuid; begin
   update envios set estado = 'programado' where id = e;
   perform set_config('prueba.tok139', (select token_publico::text from envios where id = e), false);
   -- El plazo para pagar son las horas del parámetro, sin más (usuario, 2026-11-19: tarjeta y
-  -- transferencia inmediata funcionan todos los días): viernes 18:00 + 24 h → sábado 18:00.
-  if pago_limite(timestamptz '2026-11-06 18:00:00+01') <> timestamptz '2026-11-07 18:00:00+01' then
+  -- transferencia inmediata funcionan todos los días): viernes 18:00 + las horas del parámetro,
+  -- sin saltar el fin de semana (eran 24 h → sábado 18:00; desde el 2026-11-24 es 1 h → viernes 19:00).
+  if pago_limite(timestamptz '2026-11-06 18:00:00+01')
+     <> timestamptz '2026-11-06 18:00:00+01' + make_interval(mins => round(parametro_num('pago_previo_horas', 24) * 60)::int) then
     raise exception 'FALLO 139 · el plazo para pagar no son las horas del parámetro: %', pago_limite(timestamptz '2026-11-06 18:00:00+01');
   end if;
 end $$;
@@ -15461,3 +15463,12 @@ begin
   raise notice 'OK 341 · previsión de pago por adelantado antes de crear: crédito que no alcanza, primeros envíos, sin crédito y apagado';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 342 · El plazo para pagar un envío pendiente de pago es de 60 minutos (usuario, 2026-11-24; antes 24 h).
+do $$ declare t timestamptz := '2026-11-24 10:00:00+01'; begin
+  if (parametro('pago_previo_horas') #>> '{}')::numeric <> 1 then
+    raise exception 'FALLO 342 · el plazo para pagar debe ser de 1 hora y está en % h', parametro('pago_previo_horas') #>> '{}';
+  end if;
+  if pago_limite(t) <> t + interval '60 minutes' then raise exception 'FALLO 342 · el límite de pago no cae 60 minutos después: %', pago_limite(t); end if;
+  raise notice 'OK 342 · plazo para pagar: 60 minutos desde que el envío queda pendiente de pago';
+end $$;
