@@ -5389,17 +5389,33 @@ table.data .pago-plazo .cuenta-atras .ca-t { font-weight: 800; }
 /* Caja de pago de la pantalla «¡Envío creado!» (usuario, 2026-11-23): sobria, con los
    botones de pago dentro. */
 .exito-pago {
-    margin: 0 0 1.1rem; padding: 0.9rem 1rem; border-radius: 12px; background: #fff8f1; border: 1px solid #fbd5b0;
+    margin: 0 0 0.7rem; padding: 0.8rem 0.9rem; border-radius: 12px; background: #fff8f1; border: 1px solid #fbd5b0;
     color: var(--navy); font-size: var(--fs-m); line-height: 1.5;
 }
 .exito-pago .ep-cab { margin-bottom: 0.45rem; }
 .exito-pago .ep-txt { margin: 0; }
 .exito-pago .cuenta-atras-grande { margin: 0.6rem 0 0.45rem; }
 .exito-pago .ep-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 0.55rem; }
-.exito-pago .ep-botones > * { flex: 1 1 200px; display: flex; }
+.exito-pago .ep-botones > * { flex: 1 1 130px; min-width: 0; display: flex; }
 .exito-pago .ep-botones button { width: 100%; min-height: 48px; justify-content: center; }
 .exito-pago .ep-nota { margin: 0.35rem 0 0; font-size: var(--fs-s); color: var(--gray-600); line-height: 1.45; }
 .exito-pago .ep-nota strong { color: var(--navy); }
+/* «¡Envío creado!»: el visto bueno, los pasos plegados y los botones de abajo. Con el pago
+   pendiente todo va en corto para que quepa en una vista del móvil (usuario, 2026-11-24). */
+.exito-ok { width: 64px; height: 64px; margin: 0.4rem auto 0.8rem; border-radius: 50%; background: rgba(34,165,90,0.12); display: flex; align-items: center; justify-content: center; }
+.exito-ok svg { width: 34px; height: 34px; }
+.exito-ok.corto { width: 40px; height: 40px; margin: 0 auto 0.4rem; }
+.exito-ok.corto svg { width: 22px; height: 22px; }
+@media (max-width: 480px) { .exito-tit.corto { font-size: 1.15rem; } }
+.exito-pago .ep-ayudas { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; }
+.exito-pago .ep-ayudas > span { display: inline-flex; align-items: center; gap: 0.25rem; }
+.exito-despues { margin: 0 0 0.8rem; border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.75rem; }
+.exito-despues > summary { cursor: pointer; font-weight: 700; color: var(--purple); font-size: var(--fs-m); }
+.exito-acciones { display: flex; flex-direction: column; gap: 0.55rem; }
+.exito-acciones.corto { flex-direction: row; flex-wrap: wrap; gap: 0.5rem; }
+.exito-acciones.corto > button { flex: 1 1 0; min-width: 0; width: auto !important; padding-left: 0.5rem; padding-right: 0.5rem; }
+.exito-acciones.corto > .exito-lista { flex-basis: 100%; }
+
 /* «Devolver importe» (DevolverPago.tsx): las cuentas de lo que se devuelve y lo que se queda. */
 .dv-modo { border: 0; padding: 0; margin: 0.8rem 0 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; }
 .dv-modo legend { font-weight: 800; padding: 0; margin-bottom: 0.3rem; }

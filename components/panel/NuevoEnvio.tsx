@@ -1066,55 +1066,70 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     return (
       <section className="section active" id="sec-nueva-carga">
         <div className="ptar-card" style={{ maxWidth: 560, margin: '0 auto' }}>
-          <div aria-hidden style={{ width: 64, height: 64, margin: '0.4rem auto 0.8rem', borderRadius: '50%', background: 'rgba(34,165,90,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          {/* CON PAGO PENDIENTE, TODO EN UNA VISTA (usuario, 2026-11-24: «excesivamente largo, debe
+              entrar en una vista»): cabecera pequeña, la caja con lo justo (cuánto queda, hasta
+              cuándo y los dos botones), las explicaciones en globos de ayuda, los pasos de después
+              plegados y los botones de abajo en una fila. */}
+          <div aria-hidden className={`exito-ok${pagoPendiente ? ' corto' : ''}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
           </div>
-          <h2 style={{ margin: '0 0 0.25rem', textAlign: 'center' }}>¡Envío #{creado.ref} creado!</h2>
-          <p style={{ margin: '0 0 1.1rem', color: 'var(--gray-500)', textAlign: 'center' }}>Esto es lo que pasa ahora:</p>
-          {/* Envío que hay que pagar por adelantado (usuario, 2026-11-14; rehecha el 2026-11-23:
-              «ajusta esos mensajes y botón pagar»): lo justo para decidir y los botones de pago aquí
-              mismo, sin tener que ir a la ficha. Si no aplica, no se dice nada del pago. */}
+          <h2 className={`exito-tit${pagoPendiente ? ' corto' : ''}`} style={{ margin: pagoPendiente ? '0 0 0.6rem' : '0 0 0.25rem', textAlign: 'center' }}>¡Envío #{creado.ref} creado!</h2>
+          {!pagoPendiente && <p style={{ margin: '0 0 1.1rem', color: 'var(--gray-500)', textAlign: 'center' }}>Esto es lo que pasa ahora:</p>}
+          {/* Envío que hay que pagar por adelantado (usuario, 2026-11-14; rehecha el 2026-11-23 y
+              acortada el 2026-11-24): los botones de pago aquí mismo, sin tener que ir a la ficha.
+              Si no aplica, no se dice nada del pago. */}
           {pagoPendiente && (
             <div className="exito-pago" role="alert">
               <div className="ep-cab"><span className="badge badge-orange">Pendiente de pago</span></div>
-              <p className="ep-txt">Reservamos el transporte <strong>en cuanto recibamos el pago</strong>: la fecha y la ventana de carga cuentan desde ese momento. Te hemos enviado la proforma por email.</p>
               {creado.pagoLimite && (
                 <div id="exito-pago-plazo">
                   <CuentaAtras grande hasta={creado.pagoLimite} vencidoTxt="Plazo vencido: el envío se anula en breve" />
-                  <p className="ep-txt">Paga antes del <strong>{fechaHora(creado.pagoLimite)}</strong>. Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma <strong>se anulan solos</strong>.</p>
                 </div>
               )}
+              <p className="ep-txt">
+                {creado.pagoLimite ? <>Paga antes del <strong>{fechaHora(creado.pagoLimite)}</strong> o el envío <strong>se anula solo</strong>. </> : null}
+                Reservamos el transporte <strong>al recibir el pago</strong>; tienes la proforma en tu email.
+              </p>
               <div className="ep-botones">
                 {tarjeta && creado.id && (
                   <PagoTarjeta envioId={creado.id} texto="Pagar con tarjeta" />
                 )}
                 <button type="button" className={tarjeta && creado.id ? 'btn-secondary' : 'btn-primary'} onClick={() => ir(destinoCreado!)}>Pagar por transferencia</button>
               </div>
-              <p className="ep-nota">{tarjeta && creado.id ? 'Con tarjeta se confirma al momento. ' : ''}Por transferencia inmediata: usa los datos de la proforma y avísanos con «Ya he hecho la transferencia» en la ficha del envío; el plazo se para mientras la validamos.</p>
-              {creado.razon && (
-                <p id="exito-pago-razon" className="ep-nota">
-                  <strong>¿Por qué se paga por adelantado?</strong>{' '}
-                  {creado.razon === 'primero' ? <>Es tu primer envío con nosotros. Los siguientes irán a crédito.</>
-                    : creado.razon === 'primeros' ? <>Es uno de tus primeros envíos con nosotros. Los siguientes irán a crédito.</>
-                    : <>Con este envío superas tu crédito disponible, que se irá liberando a medida que se paguen tus facturas. Si crees que es un error, contáctanos y lo revisamos.</>}
-                </p>
-              )}
+              <p className="ep-nota ep-ayudas">
+                <span>Cómo pagar <Tip id="tip-exito-como-pagar" aria="Cómo pagar"
+                  texto={`${tarjeta && creado.id ? 'Con tarjeta se confirma al momento. ' : ''}Por transferencia inmediata: usa los datos de la proforma y avísanos con «Ya he hecho la transferencia» en la ficha del envío; el plazo se para mientras la validamos.`} /></span>
+                {creado.razon && (
+                  <span id="exito-pago-razon">¿Por qué por adelantado? <Tip id="tip-exito-razon" aria="Por qué se paga por adelantado"
+                    texto={creado.razon === 'primero' ? 'Es tu primer envío con nosotros. Los siguientes irán a crédito.'
+                      : creado.razon === 'primeros' ? 'Es uno de tus primeros envíos con nosotros. Los siguientes irán a crédito.'
+                      : 'Con este envío superas tu crédito disponible, que se irá liberando a medida que se paguen tus facturas. Si crees que es un error, contáctanos y lo revisamos.'} /></span>
+                )}
+              </p>
             </div>
           )}
-          <ol style={{ margin: '0 0 1.3rem', padding: 0, listStyle: 'none', display: 'grid', gap: '0.65rem' }}>
-            {pasosExito.map((t, i) => (
-              <li key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
-                <span aria-hidden style={{ flex: 'none', width: 26, height: 26, borderRadius: '50%', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-s)' }}>{i + 1}</span>
-                <span style={{ fontSize: 'var(--fs-m)', color: 'var(--navy)', lineHeight: 1.45 }}>{t}</span>
-              </li>
-            ))}
-          </ol>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-            <button type="button" className="btn-primary" style={btnAncho}
+          {(() => {
+            const pasos = (
+              <ol style={{ margin: pagoPendiente ? '0.6rem 0 0' : '0 0 1.3rem', padding: 0, listStyle: 'none', display: 'grid', gap: '0.65rem' }}>
+                {pasosExito.map((t, i) => (
+                  <li key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+                    <span aria-hidden style={{ flex: 'none', width: 26, height: 26, borderRadius: '50%', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-s)' }}>{i + 1}</span>
+                    <span style={{ fontSize: 'var(--fs-m)', color: 'var(--navy)', lineHeight: 1.45 }}>{t}</span>
+                  </li>
+                ))}
+              </ol>
+            );
+            // Con el pago pendiente, lo de después va plegado: lo primero es pagar.
+            return pagoPendiente
+              ? <details className="exito-despues" id="exito-despues"><summary>¿Qué pasa después de pagar?</summary>{pasos}</details>
+              : pasos;
+          })()}
+          <div className={`exito-acciones${pagoPendiente ? ' corto' : ''}`}>
+            <button type="button" className={pagoPendiente ? 'btn-secondary' : 'btn-primary'} style={btnAncho}
               onClick={() => ir(destinoCreado!)}>
               {creado.modo === 'admin' ? 'Abrir el envío (asignar transportista)' : 'Ver mi envío'}</button>
             <button type="button" className="btn-secondary" style={btnAncho} onClick={() => { avisarNavegando(); window.location.assign('/panel/nuevo-envio'); }}>Crear otro envío</button>
-            <button type="button" className="btn-ghost" style={{ ...btnAncho, minHeight: 48 }} onClick={() => ir('/panel/envios')}>Ir a la lista de envíos</button>
+            <button type="button" className="btn-ghost exito-lista" style={{ ...btnAncho, minHeight: pagoPendiente ? 40 : 48 }} onClick={() => ir('/panel/envios')}>Ir a la lista de envíos</button>
           </div>
         </div>
       </section>
