@@ -9,6 +9,8 @@ import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { gestorOCliente, soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { situarSitio } from '@/lib/servidor/ubicacionSitio';
+import { usosDelSuelo } from '@/lib/servidor/usoSuelo';
+import { tipoPorSuelo, type TipoPropuesto } from '@/lib/tipoSitioAuto';
 import { googleLugaresListo, autocompletarLugares, fichaLugar, SESION_GOOGLE, LUGAR_GOOGLE } from '@/lib/servidor/googleLugares';
 
 export type SitioDatos = {
@@ -176,6 +178,7 @@ export type SitioGoogle = {
   place_id?: string; horario?: GrupoHorario[] | null;
   es_direccion?: boolean;   // una calle o una población, no una empresa
   lat?: number | null; lon?: number | null;
+  tipo_sugerido?: TipoPropuesto | null;   // el tipo de sitio que se propone solo
 };
 const ENLACE_MAPS = /^https:\/\/(maps\.google\.com|www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)[/?]/i;
 const SIN_DATOS = { direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', telefono: '', url_google_maps: '' };
@@ -260,6 +263,16 @@ export async function detalleSitioGoogle(placeId: string, sesion: string, esDire
       : 'Google no ha devuelto los datos de ese sitio. Rellena la ficha a mano.' };
   }
   return { ok: true, sitio: { ...r.ficha, place_id: placeId } };
+}
+
+// El tipo de sitio por el TIPO DE SUELO del punto (industrial → nave; agrícola → finca), para
+// cuando la ficha de Google no lo aclara (una dirección sin empresa). Sin propuesta si es
+// zona de viviendas, si hay dudas o si el servicio no contesta: lo elige quien crea el sitio.
+export async function tipoSitioPorSuelo(lat: number, lon: number): Promise<{ tipo: TipoPropuesto['tipo'] | null }> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#tipoSitioPorSuelo", [lat, lon]);
+  const s = await puede();
+  if (!s || !Number.isFinite(lat) || !Number.isFinite(lon)) return { tipo: null };
+  return { tipo: tipoPorSuelo(await usosDelSuelo(lat, lon))?.tipo ?? null };
 }
 
 // DIRECCIONES con Google (usuario, 2026-11-24: «todo entorno Google», nada de OpenStreetMap):

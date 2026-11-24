@@ -54,7 +54,7 @@ test('ficha de Google: dirección, CP, localidad, provincia, país, teléfono, e
     pais_codigo_iso: 'ES', telefono: '+34916730000', url_google_maps: 'https://maps.google.com/?cid=123',
     etiqueta: 'Av. de la Constitución, 85, 28821 Coslada, Madrid, España',
     horario: [{ dias: [1], tramos: [{ abre: '09:00', cierra: '21:30' }] }],
-    es_direccion: false, lat: 40.4237, lon: -3.5613,
+    es_direccion: false, lat: 40.4237, lon: -3.5613, tipo_sugerido: { tipo: 'almacen_nave', por: 'google' },
   });
 });
 

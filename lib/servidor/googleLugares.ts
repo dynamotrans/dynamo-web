@@ -5,6 +5,7 @@
 //     solo se pide al ELEGIR un sitio, una por sitio creado).
 // Las dos van con la misma «sesión» (un identificador por búsqueda), como pide Google para
 // facturarlas juntas. La clave (GOOGLE_MAPS_API_KEY) solo vive en el servidor.
+import { tipoPorGoogle, type TipoPropuesto } from '@/lib/tipoSitioAuto';
 import { horarioDeGoogle, type GrupoHorario, type PeriodoGoogle } from '@/lib/horarios';
 
 const BASE = 'https://places.googleapis.com/v1';
@@ -27,6 +28,7 @@ export type FichaGoogle = {
   pais_codigo_iso: string; telefono: string; url_google_maps: string; etiqueta: string;
   horario: GrupoHorario[] | null;
   es_direccion: boolean; lat: number | null; lon: number | null;
+  tipo_sugerido: TipoPropuesto | null;   // el tipo de sitio que se propone solo (ver lib/tipoSitioAuto)
 };
 /** `limite`: Google dice que no quedan consultas hoy (hay que avisar a Dynamo). */
 type Fallo = { ok: false; limite: boolean };
@@ -79,9 +81,10 @@ export function fichaDeLugar(p: LugarGoogle): FichaGoogle {
   };
   const pais = (comp('country', true) || 'ES').toUpperCase();
   const tel = p.internationalPhoneNumber || p.nationalPhoneNumber || '';
+  const direccion = [comp('route'), comp('street_number')].filter(Boolean).join(', ');
   return {
     empresa: p.displayName?.text ?? '',
-    direccion: [comp('route'), comp('street_number')].filter(Boolean).join(', '),
+    direccion,
     codigo_postal: comp('postal_code'),
     poblacion: comp('locality') || comp('postal_town') || comp('administrative_area_level_3') || comp('sublocality'),
     provincia: comp('administrative_area_level_2') || comp('administrative_area_level_1'),
@@ -93,6 +96,7 @@ export function fichaDeLugar(p: LugarGoogle): FichaGoogle {
     es_direccion: esDireccion(p.types),
     lat: Number.isFinite(p.location?.latitude) ? p.location!.latitude! : null,
     lon: Number.isFinite(p.location?.longitude) ? p.location!.longitude! : null,
+    tipo_sugerido: tipoPorGoogle({ tipos: p.types, empresa: p.displayName?.text, direccion: `${direccion} · ${p.formattedAddress ?? ''}`, esDireccion: esDireccion(p.types) }),
   };
 }
 

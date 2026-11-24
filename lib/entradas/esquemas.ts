@@ -173,6 +173,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/sitios/acciones#leerSitio": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/sitios/acciones#marcarPrincipal": z.tuple([z.string().uuid().or(z.literal('')), z.string().uuid().or(z.literal('')).nullable()]),
   "app/panel/(app)/sitios/acciones#sitioParecido": z.tuple([z.string().uuid().or(z.literal('')).nullable(), z.string().max(1000), z.string().max(1000)]),
+  "app/panel/(app)/sitios/acciones#tipoSitioPorSuelo": z.tuple([z.number().or(z.nan()), z.number().or(z.nan())]),
   "app/panel/(app)/sugerencias/acciones#enviarSugerencia": z.tuple([z.string().max(5000), z.string().max(1000), z.string().max(1000)]),
   "app/panel/(app)/sugerencias/acciones#revisarSugerencia": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["activa", "desestimada", "realizada"]), z.string().max(5000)]),
   "app/panel/(app)/transportistas/acciones#borrarTransportista": z.tuple([z.string().uuid().or(z.literal(''))]),

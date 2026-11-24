@@ -15,7 +15,8 @@ import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_SITIO } from './TipoSitio';
 import { buscarDirecciones, CON_GOOGLE, nuevaSesionGoogle, type Direccion } from './direcciones';
-import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, buscarAgendaSitios, buscarSitiosGoogle, detalleSitioGoogle, leerSitio, sitioParecido, type SitioDatos, type ClienteOpcion, type SitioGoogle } from '@/app/panel/(app)/sitios/acciones';
+import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, buscarAgendaSitios, buscarSitiosGoogle, detalleSitioGoogle, tipoSitioPorSuelo, leerSitio, sitioParecido, type SitioDatos, type ClienteOpcion, type SitioGoogle } from '@/app/panel/(app)/sitios/acciones';
+import { tipoPorGoogle, type TipoPropuesto } from '@/lib/tipoSitioAuto';
 
 import { euros, fechaHora, numero } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
@@ -224,6 +225,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const nuevaSesion = nuevaSesionGoogle;
   const sesionGoogle = useRef('');
   const [cargandoGoogle, setCargandoGoogle] = useState(false);
+  // El TIPO DE SITIO se propone solo al elegir una ficha de Google (usuario, 2026-11-24): por lo
+  // que dice Google, por la dirección o por el tipo de suelo. Se avisa de dónde sale y se quita
+  // el aviso en cuanto alguien lo elige a mano. Nunca pisa un tipo ya elegido.
+  const [tipoAuto, setTipoAuto] = useState<TipoPropuesto['por'] | null>(null);
+  const tipoActual = useRef(d.tipo); tipoActual.current = d.tipo;
   const elegidoTxt = useRef('');   // lo último ELEGIDO: ese texto no relanza la búsqueda
   useEffect(() => {
     const q = bq.trim(); bqViva.current = q;
@@ -266,8 +272,19 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     // Una DIRECCIÓN (calle, población) no es el nombre de la empresa: ese se escribe a mano.
     const soloDir = !!(g.es_direccion ?? sugerida.es_direccion);
     const titulo = soloDir ? (g.etiqueta || sugerida.empresa) : g.empresa;
+    // El tipo propuesto: el que trae la ficha (Google de verdad) o, en las de ejemplo, el mismo
+    // cálculo con su nombre y su dirección. Si no sale y hay coordenadas, se mira el suelo.
+    const propuesto = tipoActual.current ? null
+      : g.tipo_sugerido !== undefined ? g.tipo_sugerido
+      : tipoPorGoogle({ empresa: g.empresa, direccion: `${g.direccion} · ${g.etiqueta}`, esDireccion: soloDir });
+    if (propuesto) setTipoAuto(propuesto.por);
+    else if (!tipoActual.current && g.lat != null && g.lon != null) {
+      tipoSitioPorSuelo(g.lat, g.lon).then((r) => {
+        if (r.tipo && !tipoActual.current) { set('tipo', r.tipo); setTipoAuto('suelo'); }
+      }).catch(() => {});
+    }
     setD((x) => conProvinciaDelCp({
-      ...x, nombre_empresa: soloDir ? x.nombre_empresa : g.empresa, direccion: g.direccion || (soloDir ? sugerida.empresa : ''), codigo_postal: g.codigo_postal,
+      ...x, ...(propuesto && !x.tipo ? { tipo: propuesto.tipo } : {}), nombre_empresa: soloDir ? x.nombre_empresa : g.empresa, direccion: g.direccion || (soloDir ? sugerida.empresa : ''), codigo_postal: g.codigo_postal,
       poblacion: g.poblacion, provincia: g.provincia, pais_codigo_iso: g.pais_codigo_iso || 'ES',
       url_google_maps: g.url_google_maps,
       // El horario de Google es una propuesta sin verificar (usuario, 2026-11-23).
@@ -565,10 +582,13 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         {campo('nombre_empresa', <>Empresa {obl}</>, 'Ej. Talleres Vega e Hijos S.L.')}
         <div>
           <label htmlFor="sitio-tipo">Tipo de sitio {!d.tipo && obl}</label>
-          <select id="sitio-tipo" value={d.tipo} onChange={(e) => set('tipo', e.target.value)}>
+          <select id="sitio-tipo" value={d.tipo} onChange={(e) => { set('tipo', e.target.value); setTipoAuto(null); }}>
             <option value="" disabled>Elige tipo de sitio…</option>
             {TIPOS_SITIO.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
+          {tipoAuto && d.tipo && <p className="meta" id="tipo-auto" style={{ margin: '0.25rem 0 0' }}>
+            Puesto automáticamente {tipoAuto === 'google' ? 'según Google' : tipoAuto === 'direccion' ? 'por la dirección' : 'por la zona donde está'}. Cámbialo si no es así.
+          </p>}
         </div>
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}
         {/* CP y Población en la MISMA fila; el CP, justo para 5-6 dígitos. */}
