@@ -492,10 +492,14 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
   const mlTxt = f.ml === '13.3' ? '13,30 metros · tráiler completo' : `${f.ml.replace('.', ',')} ${f.ml === '1' ? 'metro' : 'metros'} · grupaje`;
   const pesoTxt = optsPeso(pesoMax).find(([v]) => v === f.peso)?.[1] ?? '';
   const merc = [mlTxt, pesoTxt].filter(Boolean).join(' · ');
+  // En qué parada de la fila está un sitio («2 · Entrega»): el nombre solo no basta cuando la
+  // misma empresa sale en varias paradas (usuario, 2026-11-24).
+  const dondeEsta = (x: SitioOpcion) => f.puntos.map((p, i) => (p.sitio?.id === x.id ? `${i + 1} · ${p.tipo === 'carga' ? 'Recogida' : 'Entrega'}` : ''))
+    .filter(Boolean).join(' y ');
   const error = hecha ? null
     : !cliente ? 'Elige el cliente.'
     : !rutaCompleta ? 'Falta la recogida o la entrega.'
-    : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `«${x.nombre_empresa}»`).join(' y ')}.`
+    : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `${dondeEsta(x)}: «${x.nombre_empresa}»`).join('; ')}.`
     : !f.fecha ? 'Elige la fecha de recogida.'
     : f.fecha < dias[0] ? `El primer día posible es el ${fmtFecha(dias[0])}.`
     : !esCliente && !(neto && neto > 0) && tarifa ? 'Pon el precio del cliente.'
@@ -604,17 +608,17 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
       )}
       {f.res && !f.res.ok && <div className="varios-res error">No se ha creado: {f.res.error}</div>}
       {!f.res && mostrarError && error && <div className="varios-res error">{error}</div>}
-      {!hecha && sinTel.map((x) => <TelefonoSitio key={x.id} sitio={x} onGuardar={onTelefono} />)}
+      {!hecha && sinTel.map((x) => <TelefonoSitio key={x.id} sitio={x} donde={dondeEsta(x)} onGuardar={onTelefono} />)}
       {!hecha && conSitio.length > 0 && (
+        <button type="button" className="varios-sitios-btn" aria-expanded={fichas.abiertas} onClick={fichas.alternar}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+          <span>{fichas.abiertas ? 'Ocultar sitios' : 'Ver sitios'}<span className="vs-que"> · horario, contacto, indicaciones y cita</span></span>
+        </button>
+      )}
+      {!hecha && conSitio.length > 0 && fichas.abiertas && (
         <div className="varios-sitios">
-          <button type="button" className="campo-plegado varios-sitios-btn" aria-expanded={fichas.abiertas} onClick={fichas.alternar}>
-            <span className="cp-ico" aria-hidden="true">{fichas.abiertas ? '−' : '+'}</span>
-            <span className="cp-txt">{fichas.abiertas ? 'Ocultar sitios' : 'Ver sitios'}<span className="cp-val"> · horario, contacto, emails, indicaciones y cita</span></span>
-          </button>
-          {fichas.abiertas && (
-            <FichasSitios puntos={conSitio} datos={fichas.datos} edic={fichas.edic} setEdic={fichas.setEdic}
-              fechaCargaTxt={f.fecha ? fmtFecha(f.fecha) : ''} faltas={fichas.faltas} cargaHoy={f.fecha === hoyMadrid()} mercanciaDefecto={merc} />
-          )}
+          <FichasSitios puntos={conSitio} datos={fichas.datos} edic={fichas.edic} setEdic={fichas.setEdic}
+            fechaCargaTxt={f.fecha ? fmtFecha(f.fecha) : ''} faltas={fichas.faltas} cargaHoy={f.fecha === hoyMadrid()} mercanciaDefecto={merc} />
         </div>
       )}
     </div>
@@ -622,14 +626,14 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
 }
 
 // Completar en la misma fila el teléfono que le falta a un sitio (se guarda en su ficha).
-function TelefonoSitio({ sitio, onGuardar }: { sitio: SitioOpcion; onGuardar: (s: SitioOpcion, tel: string) => Promise<string | null> }) {
+function TelefonoSitio({ sitio, donde, onGuardar }: { sitio: SitioOpcion; donde: string; onGuardar: (s: SitioOpcion, tel: string) => Promise<string | null> }) {
   const [tel, setTel] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   return (
     <div className="varios-tel">
-      <span>Teléfono de contacto de <strong>{sitio.nombre_empresa}</strong></span>
-      <input type="tel" inputMode="tel" value={tel} placeholder="Ej. 600 000 000" aria-label={`Teléfono de ${sitio.nombre_empresa}`}
+      <span>Teléfono de contacto de <strong>{donde}: {sitio.nombre_empresa}</strong></span>
+      <input type="tel" inputMode="tel" value={tel} placeholder="Ej. 600 000 000" aria-label={`Teléfono de ${donde}: ${sitio.nombre_empresa}`}
         onChange={(e) => { setTel(e.target.value); setErr(null); }} />
       <button type="button" className="btn-secondary" disabled={guardando || !tel.trim()}
         onClick={async () => { setGuardando(true); setErr(await onGuardar(sitio, tel)); setGuardando(false); }}>{guardando ? 'Guardando…' : 'Guardar en el sitio'}</button>

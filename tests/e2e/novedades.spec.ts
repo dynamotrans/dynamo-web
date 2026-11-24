@@ -964,7 +964,7 @@ test.describe('novedades', () => {
       const sitio = fila1.locator('.ptar-route-row input[type=text]');
       await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
       await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
-      await expect(fila1.locator('.varios-res.error')).toContainText('Falta el teléfono de contacto de «Nave Madrid»');
+      await expect(fila1.locator('.varios-res.error')).toContainText('Falta el teléfono de contacto de 2 · Entrega: «Nave Madrid»');
       await fila1.locator('.varios-tel input').fill('600123123');
       await fila1.locator('.varios-tel button').click();
       await expect(fila1.locator('.varios-tel')).toHaveCount(0);
