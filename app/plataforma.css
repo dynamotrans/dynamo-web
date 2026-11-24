@@ -159,6 +159,11 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); opacity: 1; 
 @media (max-width: 480px) { .cal-dia { height: 42px; } .cal-panel { font-size: 16px; } }
 
 /* Un «enlace» que en realidad es una acción (ir a otro paso): botón con aspecto de texto subrayado. */
+/* Nombre de la lista de clientes: enlace azul que entra en su panel («Ver como»). */
+.enlace-ver-como { background: none; border: none; padding: 0; font: inherit; font-weight: 800; color: #1a56db; text-align: left;
+    text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.enlace-ver-como:hover { color: #1e3a8a; }
+.enlace-ver-como:disabled { cursor: progress; opacity: 0.7; }
 .enlace-paso { background: none; border: none; padding: 0; font: inherit; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 
 /* ---- Contador de 30 s para anular un cambio (usuario, 2026-11-20) ---------------------- */

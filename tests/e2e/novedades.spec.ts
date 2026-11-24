@@ -159,7 +159,9 @@ test.describe('novedades', () => {
     await expect(aviso).toHaveCount(0);
     await plataforma.locator('.ptar-tramp-box').click();
     await expect(aviso).toBeVisible();
-    // Paso 3 con fecha fija: solo hasta cuándo pedir y el primer día de carga.
+    // Paso 3 con fecha fija: solo hasta cuándo pedir y el primer día de carga. (La plataforma
+    // recortó la mercancía a 8 m; se vuelve al tráiler completo, que es el que admite fecha fija.)
+    await page.selectOption('#ne-ml', '13.3');
     await page.getByRole('button', { name: /Siguiente/ }).click();
     await page.getByRole('button', { name: 'Días de recogida' }).click();
     await page.getByRole('option', { name: /Fecha fija/ }).click();

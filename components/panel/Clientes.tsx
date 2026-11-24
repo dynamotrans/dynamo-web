@@ -3,7 +3,10 @@
 // Clientes (solo Dynamo): tabla y ficha con el diseño de #sec-clientes de dashboard.html
 // (columnas Cliente · Contacto · Domicilio fiscal · Crédito · Consumo · Factor · Creado ·
 // Estado; ficha en la ventana del panel con la rejilla .ptar-sitio-grid).
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { cambiarVista } from '@/app/panel/vista';
+import { inicioDe } from '@/lib/vistaTipo';
 import BuscarEnRegistro from './BuscarEnRegistro';
 import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
@@ -84,6 +87,21 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
     if (p > 1) u.set('p', String(p)); if (lista.porPagina !== 20) u.set('n', String(lista.porPagina));
     const s = u.toString(); return `/panel/clientes${s ? `?${s}` : ''}`;
   };
+  // Pulsar el NOMBRE (enlace azul) entra en la plataforma como ese cliente — lo mismo que
+  // elegirlo en «Ver como» —; el resto de la fila abre su ficha (usuario, 2026-11-24).
+  const router = useRouter();
+  const [entrando, setEntrando] = useState<string | null>(null);
+  const [errorVista, setErrorVista] = useState<string | null>(null);
+  const [, empezar] = useTransition();
+  function entrarComo(id: string) {
+    if (entrando) return;
+    setErrorVista(null); setEntrando(id);
+    empezar(async () => {
+      const r = await cambiarVista('cliente', id).catch(() => ({ ok: false as const, error: 'No se ha podido cambiar de vista. Prueba otra vez.' }));
+      if (!r.ok) { setErrorVista(r.error); setEntrando(null); return; }
+      router.push(inicioDe('cliente')); router.refresh();
+    });
+  }
   // ?ver=<id> (p. ej. desde CESCE - Riesgos) abre su ficha directamente.
   const [ficha, setFicha] = useState<{ fila: ClienteFila | null } | null>(() => { const f = abrir ? filas.find((c) => c.id === abrir) : null; return f ? { fila: f } : null; });
 
@@ -97,7 +115,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
       </div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
-        Ficha de cada cliente: datos fiscales, contacto y condiciones de pago. Pulsa una fila para ver o editar la ficha.
+        Ficha de cada cliente: datos fiscales, contacto y condiciones de pago. Pulsa el <strong>nombre</strong> para entrar en su panel (lo verás como lo ve él) o el resto de la fila para ver o editar su ficha.
       </p>
       <BuscadorUrl accion="/panel/clientes" valor={lista.q} placeholder="Buscar por empresa, CIF, email, teléfono, localidad…" campos={<>
         <select name="estado" defaultValue={lista.estado} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Filtrar por estado">
@@ -114,6 +132,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
         {lista.porPagina !== 20 && <input type="hidden" name="n" value={lista.porPagina} />}
       </>} />
       {error && <div className="pt-aviso error">No se han podido cargar los clientes: {error}</div>}
+      {errorVista && <div className="pt-aviso error" role="alert">{errorVista}</div>}
 
       <div className="table-wrap" tabIndex={0}>
         <table className="data">
@@ -136,7 +155,12 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
               const dyn = c.riesgo_manual_euros == null ? null : Number(c.riesgo_manual_euros);
               return (
                 <tr key={c.id} onClick={() => setFicha({ fila: c })} style={{ cursor: 'pointer' }}>
-                  <td><strong>{c.nombre_visible}</strong><div className="meta">{c.cif}</div></td>
+                  <td>
+                    <button type="button" className="enlace-ver-como" disabled={!!entrando} title="Entrar en su panel: ver la plataforma como este cliente"
+                      aria-label={`Entrar en el panel de ${c.nombre_visible}`}
+                      onClick={(ev) => { ev.stopPropagation(); entrarComo(c.id); }}>{entrando === c.id ? 'Entrando…' : c.nombre_visible}</button>
+                    <div className="meta">{c.cif}</div>
+                  </td>
                   <td>{(() => { const k = principal(c.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{c.contactos.length > 1 && <div className="meta">+{c.contactos.length - 1} contacto{c.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{c.direccion || '—'}<div className="meta">{[c.codigo_postal, c.poblacion, c.provincia, paisDe(c.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
