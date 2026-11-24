@@ -257,7 +257,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="as-tra">Transportista <Req /></label>
           <Buscador id="as-tra" valor={t} buscar={opciones} onElegir={setT} placeholder="Busca por nombre, CIF, código de bolsa, teléfono o matrícula…"
-            vacio="Ningún transportista coincide. Si es nuevo, dalo de alta en Otras gestiones → Transportistas." />
+            vacio="Ningún transportista coincide. Si es nuevo, dalo de alta en «Transportistas», en el menú." />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="as-dia">Día en que carga {conVentana ? <Req /> : null}</label>

@@ -52,15 +52,14 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       // Todos sus envíos en curso en un mapa (usuario, 2026-11-22).
       { slug: 'mapa', titulo: 'Mapa de envíos', icono: 'mapa' },
       { slug: 'sitios', titulo: 'Sitios', icono: 'sitios' },
-      { grupo: 'otras', titulo: 'Otras gestiones', icono: 'capas', enlaces: [
-        { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
-        { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
-        { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
-        { slug: 'operadores', titulo: 'Transportistas', icono: 'camion' },
-        // «Almacenamientos» oculto a clientes (usuario, 2026-11-14): los almacenes
-        // Dynamo y el almacenaje son módulo v3 — de momento solo lo ve el equipo.
-        // «Recursos» también solo para el equipo (usuario, 2026-11-14).
-      ] },
+      // Sin el desplegable «Otras gestiones» (usuario, 2026-11-24): todo a la vista.
+      { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
+      { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
+      { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
+      { slug: 'operadores', titulo: 'Transportistas', icono: 'camion' },
+      // «Almacenamientos» oculto a clientes (usuario, 2026-11-14): los almacenes
+      // Dynamo y el almacenaje son módulo v3 — de momento solo lo ve el equipo.
+      // «Recursos» también solo para el equipo (usuario, 2026-11-14).
       { slug: 'soporte', titulo: 'Soporte', icono: 'soporte', listo: true },
     ] }];
   }
