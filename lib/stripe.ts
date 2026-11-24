@@ -1,6 +1,6 @@
 import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { caducidadEnlace } from './stripeCaducidad';
+import { caducidadEnlace, lecturaCierre, type CierreSesion } from './stripeCaducidad';
 
 // Stripe sin librería: crear el pago (en su página o en una ventana nuestra) y comprobar la
 // firma del aviso. Claves SOLO en Vercel: STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET (nunca en el
@@ -11,7 +11,7 @@ export const stripeListo = () => !!process.env.STRIPE_SECRET_KEY && !!process.en
 // instante con el que se calcula todo (el mismo con el que se apuntó la caducidad del enlace).
 type DatosPago = { envioId: string; referencia: string; centimos: number; email: string | null; vuelta: string; descripcion: string;
   expiraEn?: Date | null; graciaMin?: number; ahora?: number };
-type RespuestaSesion = { url?: string; client_secret?: string; error?: { message?: string; param?: string } } | null;
+type RespuestaSesion = { id?: string; url?: string; client_secret?: string; error?: { message?: string; param?: string } } | null;
 
 // Lo común de una sesión de pago (la página de Stripe o la ventana dentro de la plataforma).
 // `tanda`: el tramo de 10 minutos de la clave de idempotencia; los topes de caducidad se
@@ -48,13 +48,14 @@ async function pedirSesion(f: URLSearchParams, clave: string): Promise<{ ok: boo
   return { ok: r.ok, j: await r.json().catch(() => null) as RespuestaSesion };
 }
 
-/** Crea una sesión de Stripe Checkout (su página de pago) y devuelve su URL. */
-export async function crearPagoStripe(p: DatosPago): Promise<string> {
+/** Crea una sesión de Stripe Checkout (su página de pago) y devuelve su URL y su identificador
+    (`sesion`, «cs_…»: se apunta en el envío para poder cerrarla al acabar el plazo). */
+export async function crearPagoStripe(p: DatosPago): Promise<{ url: string; sesion: string | null }> {
   const { f, tanda } = camposSesion(p);
   f.set('success_url', `${p.vuelta}&pago=ok`); f.set('cancel_url', `${p.vuelta}&pago=cancelado`);
   const { ok, j } = await pedirSesion(f, `envio2-${p.envioId}-${p.centimos}-${tanda / 600000}`);
   if (!ok || !j?.url) throw new Error(j?.error?.message ?? 'Stripe no ha devuelto la página de pago.');
-  return j.url;
+  return { url: j.url, sesion: j.id ?? null };
 }
 
 // PAGO EN VENTANA, sin salir de la plataforma (usuario, 2026-11-23/24): la misma sesión de
@@ -67,7 +68,7 @@ export const clavePublicaStripe = (): string | null => {
   const k = (e['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'] ?? e['STRIPE_PUBLISHABLE_KEY'] ?? '').trim();
   return /^pk_(test|live)_[A-Za-z0-9]+$/.test(k) ? k : null;
 };
-export async function crearPagoEnVentana(p: DatosPago): Promise<string> {
+export async function crearPagoEnVentana(p: DatosPago): Promise<{ secreto: string; sesion: string | null }> {
   let ultimo: RespuestaSesion = null;
   for (const modo of ['embedded_page', 'embedded']) {
     const { f, tanda } = camposSesion(p);
@@ -76,11 +77,27 @@ export async function crearPagoEnVentana(p: DatosPago): Promise<string> {
     // salir (redirección al banco) vuelven a la ficha del envío.
     f.set('redirect_on_completion', 'if_required'); f.set('return_url', `${p.vuelta}&pago=ok`);
     const { ok, j } = await pedirSesion(f, `envio2-ventana-${modo}-${p.envioId}-${p.centimos}-${tanda / 600000}`);
-    if (ok && j?.client_secret) return j.client_secret;
+    if (ok && j?.client_secret) return { secreto: j.client_secret, sesion: j.id ?? null };
     ultimo = j;
     if (j?.error?.param !== 'ui_mode') break;   // otro fallo: no es cosa del nombre del modo
   }
   throw new Error(ultimo?.error?.message ?? 'Stripe no ha devuelto la ventana de pago.');
+}
+
+// CORTE DEL ENLACE AL ACABAR EL PLAZO (usuario, 2026-11-24): se le ordena a Stripe que cierre
+// la sesión de pago. Si no se deja (solo se cierran las abiertas), se le pregunta cómo está:
+// ya caducada cuenta como cerrada; completada quiere decir PAGADA y entonces no se toca nada.
+export async function cerrarSesionStripe(sesion: string): Promise<CierreSesion> {
+  if (!process.env.STRIPE_SECRET_KEY || !/^cs_[A-Za-z0-9_]+$/.test(sesion)) return 'fallo';
+  const cabeceras = { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}` };
+  try {
+    const r = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sesion}/expire`, { method: 'POST', headers: cabeceras, cache: 'no-store' });
+    const j = await r.json().catch(() => null) as { status?: string } | null;
+    if (r.ok) return lecturaCierre(true, j?.status);
+    const r2 = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sesion}`, { headers: cabeceras, cache: 'no-store' });
+    const j2 = await r2.json().catch(() => null) as { status?: string } | null;
+    return lecturaCierre(false, r2.ok ? j2?.status : undefined);
+  } catch { return 'fallo'; }
 }
 
 /** Comprueba la firma del aviso de Stripe (cabecera Stripe-Signature) y devuelve el evento. */

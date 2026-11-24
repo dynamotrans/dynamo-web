@@ -15,3 +15,26 @@ export function caducidadEnlace(limite: Date | null | undefined, ahora: number, 
   const t = Math.min(Math.max(limite.getTime() + gracia, tanda + 41 * 60_000), tanda + 23.5 * 3_600_000);
   return { tanda, caduca: Math.floor(t / 1000) * 1000 };
 }
+
+// CORTE DEL ENLACE AL ACABAR EL PLAZO (usuario, 2026-11-24: «corte duro del enlace al minuto
+// 65»). Pasado el plazo y su margen, el servidor ordena a Stripe cerrar los enlaces abiertos
+// del envío. Qué ha pasado con cada uno:
+//   · 'cerrada': Stripe la ha cerrado ahora, o ya estaba caducada.
+//   · 'pagada':  está completada: el cliente pagó; el pago entra por su camino normal.
+//   · 'fallo':   no se sabe (Stripe no contesta, sigue abierta…).
+export type CierreSesion = 'cerrada' | 'pagada' | 'fallo';
+export function lecturaCierre(cerradaAhora: boolean, estado: string | undefined): CierreSesion {
+  if (estado === 'complete') return 'pagada';
+  if (cerradaAhora || estado === 'expired') return 'cerrada';
+  return 'fallo';
+}
+// Qué se hace con el envío visto el resultado de TODOS sus enlaces:
+//   · 'anular':  todos cerrados → el envío deja de esperar y se anula al momento.
+//   · 'pagado':  alguno está pagado → no se toca nada (el aviso de Stripe lo deja pagado).
+//   · 'esperar': alguno sin aclarar, o no hay ninguno apuntado → como antes, el envío espera
+//                a que el enlace caduque solo. Nunca se anula sin estar seguros.
+export function decisionCorte(resultados: CierreSesion[]): 'anular' | 'pagado' | 'esperar' {
+  if (resultados.includes('pagada')) return 'pagado';
+  if (!resultados.length || resultados.includes('fallo')) return 'esperar';
+  return 'anular';
+}

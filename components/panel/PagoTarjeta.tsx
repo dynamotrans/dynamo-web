@@ -82,6 +82,13 @@ export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; t
           reloj = setTimeout(() => {
             try { pagina?.destroy(); } catch { /* ya no está */ }
             pagina = null;
+            // Y se le pide al servidor que cierre el enlace también en Stripe: así el envío
+            // se anula ya, sin esperar a que el enlace caduque solo.
+            // (Un par de segundos después: que el reloj del servidor también haya pasado la hora.)
+            setTimeout(() => {
+              fetch('/api/stripe/caducar', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ envio: envioId }) }).catch(() => { /* lo hará la tarea automática */ });
+            }, 3000);
             if (vivo) { setAviso(AVISOS.caducado); setEstado('aviso'); }
           }, Math.min(j.quedan, 2_000_000_000));
         }

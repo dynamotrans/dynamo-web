@@ -15549,3 +15549,52 @@ do $$ declare c uuid; uc uuid; e uuid; e2 uuid; antes jsonb; h numeric := parame
   raise notice 'OK 344 · el cliente ve si su envío se anuló por no pagar dentro del plazo, y solo el suyo';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 345 · CORTE DEL ENLACE DE PAGO AL ACABAR EL PLAZO (usuario, 2026-11-24): el servidor apunta
+-- los enlaces de Stripe que abre; pasado el plazo y su margen se sabe cuáles hay que cerrar
+-- y, una vez cerrados, el envío se anula sin esperar a que el enlace caduque solo.
+do $$ declare c uuid; e uuid; antes jsonb; mal boolean := false; f text; h numeric := parametro_num('pago_previo_horas', 24); begin
+  select valor into antes from parametros where clave = 'pago_previo_activo';
+  update parametros set valor = 'true'::jsonb where clave = 'pago_previo_activo';
+  foreach f in array array['pago_sesion_stripe(uuid, text)', 'pago_sesiones_por_cerrar(uuid)', 'pago_enlace_cerrado(uuid)'] loop
+    if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then
+      raise exception 'FALLO 345 · un usuario puede llamar a % (solo el servidor)', f; end if;
+  end loop;
+  insert into clientes (razon_social, cif) values ('Corta Enlace SL', 'B34500345') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista) values (c, 13.30, 20, 1000, 800) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  if (select estado_pago_previo from envios where id = e) <> 'pendiente' then raise exception 'FALLO 345 · el envío de prueba no nace pendiente de pago'; end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  begin perform pago_sesion_stripe(e, 'cualquier cosa; drop'); mal := true; exception when others then null; end;
+  if mal then raise exception 'FALLO 345 · se apunta un identificador de enlace que no es de Stripe'; end if;
+  perform pago_sesion_stripe(e, 'cs_test_aaaaa1');
+  perform pago_sesion_stripe(e, 'cs_test_bbbbb2');
+  perform pago_sesion_stripe(e, 'cs_test_aaaaa1');   -- repetido: no se duplica, pasa a ser el último
+  if (select stripe_sesiones from envios where id = e) <> array['cs_test_bbbbb2', 'cs_test_aaaaa1'] then
+    raise exception 'FALLO 345 · los enlaces de pago abiertos no se apuntan bien: %', (select stripe_sesiones from envios where id = e); end if;
+  -- Dentro del plazo, con el enlace abierto: no toca cortar nada.
+  perform pago_enlace_stripe(e, now() + interval '30 minutes');
+  if pago_sesiones_por_cerrar(e) is not null then raise exception 'FALLO 345 · se manda cortar el enlace de un envío que aún está en plazo'; end if;
+  -- Dentro del margen (plazo vencido hace 3 minutos): tampoco.
+  update envios set pago_pendiente_en = now() - make_interval(mins => round(h * 60)::int + 3) where id = e;
+  if pago_sesiones_por_cerrar(e) is not null then raise exception 'FALLO 345 · se manda cortar el enlace dentro del margen de 5 minutos'; end if;
+  -- Plazo y margen vencidos, enlace todavía abierto: toca cortarlo; mientras, el envío espera.
+  update envios set pago_pendiente_en = now() - make_interval(mins => round(h * 60)::int + 7) where id = e;
+  if pago_sesiones_por_cerrar(e) is distinct from array['cs_test_bbbbb2', 'cs_test_aaaaa1'] then
+    raise exception 'FALLO 345 · pasado el plazo y su margen no se sabe qué enlaces hay que cerrar'; end if;
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = e) <> 'programado' then raise exception 'FALLO 345 · se anula un envío con el enlace de pago aún sin cerrar'; end if;
+  -- Stripe confirma el cierre: se vacía lo apuntado y el envío se anula en la misma pasada.
+  perform pago_enlace_cerrado(e);
+  if cardinality((select stripe_sesiones from envios where id = e)) <> 0 or pago_sesiones_por_cerrar(e) is not null then
+    raise exception 'FALLO 345 · cerrado el enlace, siguen apuntados enlaces por cerrar'; end if;
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 345 · con el enlace ya cerrado en Stripe el envío no se anula al momento'; end if;
+  -- En un envío ya anulado no se apunta nada más.
+  perform pago_sesion_stripe(e, 'cs_test_ccccc3');
+  if cardinality((select stripe_sesiones from envios where id = e)) <> 0 then raise exception 'FALLO 345 · se apuntan enlaces de pago en un envío anulado'; end if;
+  perform set_config('request.jwt.claim.role', '', true);
+  update parametros set valor = antes where clave = 'pago_previo_activo';
+  raise notice 'OK 345 · corte del enlace de pago: se apuntan los enlaces, se cierran pasado el plazo y el envío se anula al momento';
+end $$;

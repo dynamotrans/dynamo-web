@@ -519,3 +519,11 @@ online con Stripe Identity. Sin empezar. Falta decidir a quién se verifica y cu
 se supera, y dejar hecho lo legal (datos biométricos: política de privacidad, consentimiento expreso
 y registro de tratamientos, punto 13) y el tope de gasto (se cobra por verificación, punto 14).
 Detalle en `TODO.md` → «v1 · ANTES DE ABRIR».
+
+## 21 · Repaso de textos legales  🔴
+
+(usuario, 2026-11-24: «anota a revisar antes de subir a producción».) Listado en `LEGAL-REPASO.md`:
+35 puntos (13 antes de abrir, 19 recomendables, 3 menores) y 12 preguntas al usuario. No se ha
+cambiado ningún texto: se cambia lo que él valide y, lo jurídico, lo que confirme su asesor
+(transporte y protección de datos). Hecho ya: la ubicación de la firma del CMR, que Vercel
+bloqueaba (falta comprobarla firmando un CMR real en la preview).

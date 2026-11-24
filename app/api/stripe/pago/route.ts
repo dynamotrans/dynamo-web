@@ -58,13 +58,23 @@ export async function POST(req: Request) {
     vuelta: `${origen}/panel/envios?ver=${id}`, expiraEn: limite, graciaMin, ahora,
     descripcion: p.referencia_cliente ? `Tu referencia: ${p.referencia_cliente}` : '' };
   try {
+    // Se apunta el enlace abierto para poder cerrarlo en Stripe al acabar el plazo (si no se
+    // pudiera apuntar, ese enlace caduca solo, como antes).
+    const apuntar = async (sesion: string | null) => {
+      if (!sesion || !sv) return;
+      const { error } = await sv.rpc('pago_sesion_stripe', { p_envio: id, p_sesion: sesion });
+      if (error) console.error('[Stripe] apuntar el enlace de pago', id, error.message);
+    };
     if (enVentana) {
-      const secreto = await crearPagoEnVentana(pago);
+      const { secreto, sesion } = await crearPagoEnVentana(pago);
+      await apuntar(sesion);
       // `quedan`: lo que falta para el final del plazo más el margen; la ventana se cierra sola entonces.
       const quedan = limite ? Math.max(0, limite.getTime() + graciaMin * 60_000 - Date.now()) : null;
       return Response.json({ ok: true, secreto, clave, quedan }, { headers: { 'cache-control': 'no-store' } });
     }
-    return Response.redirect(await crearPagoStripe(pago), 303);
+    const { url, sesion } = await crearPagoStripe(pago);
+    await apuntar(sesion);
+    return Response.redirect(url, 303);
   } catch (e) {
     console.error('[Stripe] crear pago', e);
     return no('error', 502);

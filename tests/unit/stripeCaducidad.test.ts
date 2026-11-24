@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { caducidadEnlace, TANDA_MS } from '../../lib/stripeCaducidad';
+import { caducidadEnlace, decisionCorte, lecturaCierre, TANDA_MS } from '../../lib/stripeCaducidad';
 
 const MIN = 60_000;
 const ahora = Date.UTC(2026, 10, 24, 10, 3, 20);            // 10:03:20 → tanda 10:00
@@ -39,4 +39,21 @@ test('enlace de pago: un margen raro no rompe la cuenta', () => {
   const limite = new Date(ahora + 57 * MIN);
   assert.equal(caducidadEnlace(limite, ahora, -3).caduca, Math.floor(limite.getTime() / 1000) * 1000);
   assert.equal(caducidadEnlace(limite, ahora, NaN).caduca, Math.floor(limite.getTime() / 1000) * 1000);
+});
+
+test('corte del enlace: cerrada ahora o ya caducada cuenta como cerrada; completada es pagada', () => {
+  assert.equal(lecturaCierre(true, 'expired'), 'cerrada');
+  assert.equal(lecturaCierre(false, 'expired'), 'cerrada');
+  assert.equal(lecturaCierre(false, 'complete'), 'pagada');
+  assert.equal(lecturaCierre(true, 'complete'), 'pagada');
+  assert.equal(lecturaCierre(false, 'open'), 'fallo');
+  assert.equal(lecturaCierre(false, undefined), 'fallo');
+});
+
+test('corte del enlace: el envío solo se anula si TODOS sus enlaces quedan cerrados', () => {
+  assert.equal(decisionCorte(['cerrada', 'cerrada']), 'anular');
+  assert.equal(decisionCorte(['cerrada', 'pagada']), 'pagado');
+  assert.equal(decisionCorte(['fallo', 'pagada']), 'pagado');
+  assert.equal(decisionCorte(['cerrada', 'fallo']), 'esperar');
+  assert.equal(decisionCorte([]), 'esperar');     // sin enlaces apuntados no se puede asegurar nada
 });

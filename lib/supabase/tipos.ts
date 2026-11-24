@@ -2358,6 +2358,7 @@ export type Database = {
           holded_compra_lineas: number | null
           pack_id: string | null
           stripe_enlace_caduca_en: string | null
+          stripe_sesiones: string[]
         }
         Insert: {
           id?: string
@@ -2485,6 +2486,7 @@ export type Database = {
           holded_compra_lineas?: number | null
           pack_id?: string | null
           stripe_enlace_caduca_en?: string | null
+          stripe_sesiones?: string[]
         }
         Update: {
           id?: string
@@ -2612,6 +2614,7 @@ export type Database = {
           holded_compra_lineas?: number | null
           pack_id?: string | null
           stripe_enlace_caduca_en?: string | null
+          stripe_sesiones?: string[]
         }
         Relationships: [
           {
@@ -4825,6 +4828,7 @@ export type Database = {
       pack_recoger: { Args: { p_pack: string | null }; Returns: undefined }
       pack_ruta: { Args: { p_envio: string | null }; Returns: Json }
       packs_de_grupaje: { Args: Record<PropertyKey, never>; Returns: Json }
+      pago_enlace_cerrado: { Args: { p_envio: string | null }; Returns: undefined }
       pago_enlace_stripe: { Args: { p_envio: string | null; p_caduca: string | null }; Returns: undefined }
       pago_envio_importes: { Args: { p_envio: string | null }; Returns: { base: number; iva: number; total: number }[] }
       pago_envio_pendiente: { Args: { p_envio: string | null }; Returns: number }
@@ -4833,6 +4837,8 @@ export type Database = {
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_motivo_credito: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_previsto: { Args: { p_importes: number[] | null; p_cliente?: string | null }; Returns: boolean[] }
+      pago_sesion_stripe: { Args: { p_envio: string | null; p_sesion: string | null }; Returns: undefined }
+      pago_sesiones_por_cerrar: { Args: { p_envio: string | null }; Returns: string[] }
       pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number; pago_avisado_en: string }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
       paradas_json: { Args: { p_envio: string | null }; Returns: Json }
