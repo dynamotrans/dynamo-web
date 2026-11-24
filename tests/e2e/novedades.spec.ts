@@ -978,7 +978,6 @@ test.describe('novedades', () => {
       const sitio = fila1.locator('.ptar-route-row input[type=text]');
       await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
       await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
-      await filas.nth(2).locator('.varios-quitar').click();
       await filas.nth(1).locator('.varios-quitar').click();
       // Se pueden abrir y cerrar a mano.
       await fila1.locator('.varios-sitios-btn').click();
@@ -1011,7 +1010,7 @@ test.describe('novedades', () => {
     await page.locator('#menu-varios-envios').click();
     await expect(page).toHaveURL(/\/panel\/nuevo-envio\/varios/);
     const filas = page.locator('.varios-fila');
-    await expect(filas).toHaveCount(3);
+    await expect(filas).toHaveCount(2);   // dos filas de entrada (usuario, 2026-11-24)
     const fila1 = filas.nth(0);
     const sitio = fila1.locator('.ptar-route-row input[type=text]');
     await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
@@ -1029,11 +1028,10 @@ test.describe('novedades', () => {
     await page.keyboard.press('Escape');
     await expect(fila1.locator('.varios-req-menu')).toHaveCount(0);
     await expect(req).toHaveText('Ninguno');
-    // Duplicar la fila 1 y quitar las dos vacías: quedan 2 envíos listos.
+    // Duplicar la fila 1 y quitar la vacía: quedan 2 envíos listos.
     await fila1.locator('.varios-dup').click();
-    await expect(filas).toHaveCount(4);
+    await expect(filas).toHaveCount(3);
     await expect(filas.nth(1).locator('.varios-importe')).toContainText('€', { timeout: 15000 });
-    await filas.nth(3).locator('.varios-quitar').click();
     await filas.nth(2).locator('.varios-quitar').click();
     await expect(filas).toHaveCount(2);
     await expect(page.locator('#varios-total')).toContainText('2 envíos listos');
@@ -1061,8 +1059,8 @@ test.describe('novedades', () => {
     await expect(page.locator('#varios-ver-envios')).toBeVisible();
     // «Crear otros envíos» vuelve a la tabla vacía. Tope de 20 filas por subida.
     await page.locator('#varios-otra-vez').click();
-    await expect(filas).toHaveCount(3);
-    for (let i = 0; i < 17; i++) await page.locator('#varios-anadir').click();
+    await expect(filas).toHaveCount(2);
+    for (let i = 0; i < 18; i++) await page.locator('#varios-anadir').click();
     await expect(filas).toHaveCount(20);
     await expect(page.locator('#varios-anadir')).toBeDisabled();
   });

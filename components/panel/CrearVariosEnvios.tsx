@@ -71,7 +71,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       paletizada: true, forma: 'Lateral', plataforma: false, ml: '13.3', peso: '24', nima: !!cli?.nima, adr: false,
       urgencia: 'estandar', fecha: '', ref: '', precio: '', precioTocado: false };
   };
-  const [filas, setFilas] = useState<Fila[]>(() => [1, 2, 3].map(() => nuevaFila(cliente, sitiosIni)));
+  const [filas, setFilas] = useState<Fila[]>(() => [1, 2].map(() => nuevaFila(cliente, sitiosIni)));   // dos filas de entrada (usuario, 2026-11-24)
   const [infos, setInfos] = useState<Record<number, Info>>({});
   // Envíos ya creados: salen de la tabla (usuario, 2026-11-21: «no vuelvas a poner ese listado
   // con las funciones bloqueadas»); quedan solo los que no se pudieron crear.
@@ -280,7 +280,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
             <Link className="btn-primary" style={btnAncho} href="/panel/envios" id="varios-ver-envios">Ver mis envíos</Link>
             <button type="button" className="btn-secondary" style={btnAncho} id="varios-otra-vez"
-              onClick={() => { setHechas([]); setInfos({}); setMarcar(false); setFilas([1, 2, 3].map(() => nuevaFila(cliente, sitios))); }}>Crear otros envíos</button>
+              onClick={() => { setHechas([]); setInfos({}); setMarcar(false); setFilas([1, 2].map(() => nuevaFila(cliente, sitios))); }}>Crear otros envíos</button>
           </div>
         </div>
       </section>
