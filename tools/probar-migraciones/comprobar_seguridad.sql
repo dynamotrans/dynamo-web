@@ -15230,3 +15230,53 @@ begin
   raise notice 'OK 335 · rutas de Google: la distancia guardada admite su línea y los clientes no leen esas tablas';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 336 · RUTAS PINTADAS POR CARRETERA (usuario, 2026-11-24): mapa_trazados da, de los envíos que
+--       ve quien pregunta, el trazado guardado de cada tramo: el de sus dos sitios (con las
+--       coordenadas de ahora: si un sitio se muda, deja de valer) y, si no, el de sus códigos
+--       postales. De un envío ajeno no da nada; sin sesión no se puede llamar.
+do $$
+declare e uuid := current_setting('prueba.e323')::uuid; r jsonb; t jsonb; s1 uuid; s2 uuid; f uuid;
+begin
+  if has_function_privilege('anon', 'public.mapa_trazados(uuid[])', 'execute') then raise exception 'FALLO 336 · los trazados se piden sin sesión'; end if;
+  perform guardar_km_cp('ES', '41001', 'ES', '28323', 530, 320, 'google_routes');
+  -- La 2.ª parada no tiene coordenadas propias: se sitúa por el centro de su código postal.
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform guardar_geo_cp('ES', '28323', 40.4250, -3.6830);
+  perform set_config('request.jwt.claim.role', '', true);
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  r := mapa_trazados(array[e]);
+  t := r -> 0;
+  if jsonb_array_length(r) <> 1 or (t ->> 'desde')::int <> 1 or (t ->> 'hasta')::int <> 2 or t ->> 'linea' is not null
+     or t ->> 'fila_cp' is null or t ->> 'cp_a' <> '41001' or t ->> 'cp_b' <> '28323' or (t -> 'b' ->> 0)::numeric <> 40.425 then
+    raise exception 'FALLO 336 · tramo sin trazado mal descrito: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update distancias_cp set linea = 'trazado336' where pais_codigo_iso_origen = 'ES' and codigo_postal_origen = '41001' and codigo_postal_destino = '28323';
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  if mapa_trazados(array[e]) -> 0 ->> 'linea' is distinct from 'trazado336' then raise exception 'FALLO 336 · no sale el trazado guardado por código postal'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  if jsonb_array_length(mapa_trazados(array[e])) <> 0 then raise exception 'FALLO 336 · otro cliente ve los trazados de un envío ajeno'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- Entre dos sitios: manda su trazado; si uno se muda (cambian sus coordenadas), deja de valer.
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, lat, lon)
+    values (current_setting('prueba.cliente')::uuid, 'Sitio A 336', 'C/ Uno, 1', '41001', 'Sevilla', 'Sevilla', 37.39, -5.98) returning id into s1;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, lat, lon)
+    values (current_setting('prueba.cliente')::uuid, 'Sitio B 336', 'C/ Dos, 2', '28323', 'Madrid', 'Madrid', 40.42, -3.68) returning id into s2;
+  update envio_paradas set sitio_id = s1 where envio_id = e and orden = 1;
+  update envio_paradas set sitio_id = s2 where envio_id = e and orden = 2;
+  f := guardar_km_sitios(s1, s2, 531, 321, 'google_routes');
+  update distancias_sitios set linea = 'sitios336' where id = f;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  t := mapa_trazados(array[e]) -> 0;
+  if t ->> 'linea' is distinct from 'sitios336' or t ->> 'fila_sitios' is distinct from f::text then raise exception 'FALLO 336 · no sale el trazado entre los dos sitios: %', t; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update sitios set lat = 37.40 where id = s1;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  t := mapa_trazados(array[e]) -> 0;
+  if t ->> 'linea' is distinct from 'trazado336' or t ->> 'fila_sitios' is not null then raise exception 'FALLO 336 · un sitio que se muda conserva el trazado viejo: %', t; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envio_paradas set sitio_id = null where envio_id = e;
+  update sitios set borrado = true where id in (s1, s2);
+  raise notice 'OK 336 · rutas pintadas: trazado guardado de cada tramo (sitios o códigos postales) solo para quien ve el envío';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

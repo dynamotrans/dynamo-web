@@ -3,6 +3,7 @@
 // tacógrafo + firmas del CMR); aquí se pasa eso a un punto del mapa y a una frase. Sin red: se
 // prueba con pruebas unitarias.
 import { fechaHora } from './formato';
+import { partirLinea, trazadoEntre, type PuntoLinea } from './lineaRuta';
 
 export type ParadaMapa = {
   orden: number; tipo: 'carga' | 'descarga' | string; empresa: string | null;
@@ -25,7 +26,14 @@ export type MapaEnvio = {
   resultado: 'ok' | 'sin_permiso'; referencia: string | null; estado: string; ahora: string;
   paradas: ParadaMapa[]; etapas: EtapaMapa[]; camion: CamionMapa;
   gps_firma: { lat: number; lon: number; cuando: string; parada: number | null } | null;
+  // El trazado por carretera de cada tramo («1-2»: de la parada 1 a la 2), si se tiene: lo
+  // añade la pantalla cuando llega (ver trazadosDeEnvios). Sin él, el tramo es una recta.
+  trazados?: Record<string, PuntoLinea[]>;
 };
+/** Los puntos de un tramo entre dos paradas: por la carretera si se tiene su trazado; si no, la recta. */
+export function puntosTramo(m: MapaEnvio, a: ParadaMapa, b: ParadaMapa): PuntoLinea[] {
+  return trazadoEntre([+a.lat!, +a.lon!], [+b.lat!, +b.lon!], m.trazados?.[`${a.orden}-${b.orden}`]);
+}
 
 export type PuntoCamion = { lat: number; lon: number; titulo: string; detalle: string; tono: 'gris' | 'azul' | 'ambar' | 'verde' | 'rojo' } | null;
 
@@ -62,11 +70,13 @@ export function posicionCamion(m: MapaEnvio): PuntoCamion {
     const sal = horaEtapa(m, 'en_ruta', (c.hasta ?? 0) + 1);
     return { lat: +u.lat, lon: +u.lon, titulo: carga ? 'Cargando' : 'Descargando', detalle: `En ${lugar(u)}${sal ? ` · salida prevista ${fechaHora(sal)}` : ''}`, tono: 'ambar' };
   }
-  // En ruta: en la fracción del tramo entre las dos paradas (línea recta, hasta tener rutas reales).
+  // En ruta: en la fracción del tramo entre las dos paradas, sobre la carretera si se tiene su
+  // trazado (y si no, en la recta).
   const a = p(c.desde), b = p(c.hasta);
   if (!conCoord(a) || !conCoord(b)) return null;
   const f = Math.min(Math.max(Number(c.fraccion ?? 0), 0), 1);
-  const lat = +a.lat + (+b.lat - +a.lat) * f, lon = +a.lon + (+b.lon - +a.lon) * f;
+  const corte = partirLinea(puntosTramo(m, a, b), f);
+  const lat = corte ? corte.punto[0] : +a.lat + (+b.lat - +a.lat) * f, lon = corte ? corte.punto[1] : +a.lon + (+b.lon - +a.lon) * f;
   const llega = c.llegada_prevista ? fechaHora(c.llegada_prevista) : null;
   if (c.retraso) return { lat, lon, titulo: 'Llegando (va más tarde de lo previsto)', detalle: `A ${lugar(b)}${llega ? ` · estaba prevista a las ${llega}` : ''}`, tono: 'rojo' };
   if (c.parado) {

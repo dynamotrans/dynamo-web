@@ -4,30 +4,30 @@
 // hasta tener las rutas de Google Maps), el camión en su POSICIÓN ESTIMADA (plan del
 // seguimiento + tacógrafo + firmas del CMR, ver lib/mapaEnvio.ts), su estado y la leyenda.
 // Se abre con el botón «Mapa» de la ficha del envío y de cada fila de la lista. Se actualiza
-// sola cada minuto mientras está abierta. Mapa libre (Leaflet + OpenStreetMap), sin clave.
-import 'leaflet/dist/leaflet.css';
-import { useCallback, useEffect, useRef, useState } from 'react';
+// sola cada minuto mientras está abierta. El mapa es el de Google (o el de reserva sin su
+// clave): lo pone ./mapa/motor.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Map as MapaL } from 'leaflet';
 import Modal from './Modal';
-import { mapaDelEnvio } from '@/app/panel/(app)/envios/acciones-mapa';
+import { mapaDelEnvio, trazadosDeEnvios } from '@/app/panel/(app)/envios/acciones-mapa';
+import { repartirTrazados, type PuntoLinea } from '@/lib/lineaRuta';
 import { estadoMapa, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
-import { dibujarRuta, resaltador, ESTILO_MAPA, marcadorCamion, svgCamion } from './mapaRuta';
+import { dibujarRuta, resaltador, ESTILO_MAPA, marcadorCamion, svgCamion, type Ruta } from './mapaRuta';
+import { crearMotor, type Grupo, type LL, type Motor } from './mapa/motor';
 
-export const TESELAS = process.env.NEXT_PUBLIC_MAPA_TESELAS || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-export const ATRIBUCION = process.env.NEXT_PUBLIC_MAPA_ATRIBUCION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
 export const COLOR = { carga: '#e07b00', descarga: '#3300cc', hecho: '#16a34a', ruta: '#3300cc', pendiente: '#9ca3af' };
 export const TONO: Record<string, string> = { gris: '#6b7280', azul: '#2563eb', ambar: '#d97706', verde: '#16a34a', rojo: '#dc2626' };
 
-// El mapa en su propia capa (isolation): los paneles de Leaflet llevan z-index altos y, sin
+// El mapa en su propia capa (isolation): los paneles del mapa llevan z-index altos y, sin
 // esto, quedaban POR ENCIMA del menú desplegable de la cabecera (usuario, 2026-11-22).
 export const CAJA_MAPA: React.CSSProperties = { position: 'relative', isolation: 'isolate', zIndex: 0 };
 
 /** «Encuadrar»: vuelve a enseñar todo lo pintado, justo (sin que falte ni sobre). */
-export function BotonEncuadrar({ onClick, que }: { onClick: () => void; que: string }) {
+export function BotonEncuadrar({ onClick, que, arriba }: { onClick: () => void; que: string; arriba?: boolean }) {
+  // En el mapa de Google va ARRIBA: abajo a la izquierda está su logotipo, que no se tapa.
   return (
     <button type="button" onClick={onClick} aria-label={`Encuadrar ${que}`} title={`Encuadrar ${que}`} data-encuadrar=""
-      style={{ position: 'absolute', bottom: 12, left: 10, zIndex: 1000, display: 'inline-flex', alignItems: 'center', gap: 6,
+      style={{ position: 'absolute', ...(arriba ? { top: 10 } : { bottom: 12 }), left: 10, zIndex: 1000, display: 'inline-flex', alignItems: 'center', gap: 6,
         background: '#fff', border: '2px solid rgba(0,0,0,.2)', borderRadius: 8, padding: '5px 10px', font: '700 13px system-ui',
         color: 'var(--navy)', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -69,13 +69,27 @@ export function BotonMapa({ envioId, referencia, compacto, className }: { envioI
 }
 
 export function VentanaMapa({ envioId, referencia, onCerrar }: { envioId: string; referencia?: string | null; onCerrar: () => void }) {
-  const [mapa, setMapa] = useState<MapaEnvio | null>(null);
+  const [datos, setDatos] = useState<MapaEnvio | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // La ruta POR LA CARRETERA llega aparte, después de pintar (no hace esperar al mapa): hasta
+  // entonces los tramos van en línea recta. Se vuelve a pedir mientras falte alguno.
+  const [trazados, setTrazados] = useState<Record<string, PuntoLinea[]> | null>(null);
+  const pedirRuta = useRef(true);
   const cargar = useCallback(async () => {
     const r = await mapaDelEnvio(envioId).catch(() => ({ ok: false as const, error: 'No se ha podido cargar el mapa.' }));
-    if (r.ok) { setMapa(r.mapa); setError(null); } else setError(r.error);
+    if (!r.ok) { setError(r.error); return; }
+    setDatos(r.mapa); setError(null);
+    if (!pedirRuta.current) return;
+    pedirRuta.current = false;
+    const t = await trazadosDeEnvios([envioId]).catch(() => ({ ok: false as const }));
+    if (!t.ok) return;
+    pedirRuta.current = t.faltan > 0;
+    const mios = repartirTrazados(t)[envioId];
+    if (mios) setTrazados(mios);
   }, [envioId]);
   useEffect(() => { void cargar(); const t = setInterval(() => void cargar(), 60_000); return () => clearInterval(t); }, [cargar]);
+  const mapa = useMemo(() => (datos && trazados ? { ...datos, trazados } : datos), [datos, trazados]);
+  const porCarretera = !!trazados;
   const ref = mapa?.referencia ?? referencia;
   const pc = mapa ? posicionCamion(mapa) : null;
   return (
@@ -101,8 +115,9 @@ export function VentanaMapa({ envioId, referencia, onCerrar }: { envioId: string
         </ol>
         <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>
           Posición <strong>estimada</strong>, no GPS: sale del horario previsto de cada parada, la velocidad media y las pausas obligatorias del
-          conductor, corregida con las firmas del CMR (hora exacta y, si se dio permiso, su ubicación). La ruta se dibuja en línea recta
-          entre paradas. Se actualiza sola cada minuto.
+          conductor, corregida con las firmas del CMR (hora exacta y, si se dio permiso, su ubicación). {porCarretera
+            ? 'La ruta sigue la carretera (ruta de un turismo: un camión puede tener que desviarse).'
+            : 'La ruta se dibuja en línea recta entre paradas.'} Se actualiza sola cada minuto.
         </p>
       </>}
     </Modal>
@@ -124,71 +139,65 @@ function Leyenda() {
 
 function Lienzo({ mapa }: { mapa: MapaEnvio }) {
   const div = useRef<HTMLDivElement>(null);
-  const inst = useRef<MapaL | null>(null);
-  const capa = useRef<import('leaflet').LayerGroup | null>(null);
+  const motor = useRef<Motor | null>(null);
+  const capa = useRef<Grupo | null>(null);
+  const ruta = useRef<Ruta | null>(null);
   const encuadrado = useRef(false);
-  const puntos = useRef<[number, number][]>([]);
+  const puntos = useRef<LL[]>([]);
   const encuadrar = useCallback(() => {
-    const m = inst.current, t = puntos.current;
+    const m = motor.current, t = puntos.current;
     if (!m || !t.length) return;
-    if (t.length === 1) m.setView(t[0], 10);
-    else void import('leaflet').then((mod) => m.fitBounds((mod.default ?? mod).latLngBounds(t), { padding: [40, 40], maxZoom: 12 }));
+    if (t.length === 1) m.centrar(t[0], 10); else m.encuadrar(t, 12);
   }, []);
-  const [listo, setListo] = useState(false);
+  const [listo, setListo] = useState<'google' | 'libre' | null>(null);
   const res = useRef(resaltador());
 
   useEffect(() => {
     let vivo = true;
     const r = res.current;
-    void import('leaflet').then((mod) => {
-      const L = mod.default ?? mod;
-      if (!vivo || !div.current || inst.current) return;
-      const m = L.map(div.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: true });
-      m.on('click', () => r.apagar());   // pulsar fuera: se apaga al momento
-      L.tileLayer(TESELAS, { maxZoom: 18, attribution: ATRIBUCION }).addTo(m);
-      m.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
-      m.setView([40.2, -3.7], 5);
-      inst.current = m; capa.current = L.layerGroup().addTo(m);
-      setListo(true);
+    if (!div.current) return;
+    void crearMotor(div.current, [40.2, -3.7], 5).then((m) => {
+      if (!vivo) { m.destruir(); return; }
+      m.alPulsarFondo(() => r.apagar());   // pulsar fuera: se apaga al momento
+      motor.current = m; capa.current = m.grupo();
+      setListo(m.nombre);
       // La ventana se abre con animación: recalcula el tamaño cuando ya está en su sitio.
-      setTimeout(() => m.invalidateSize(), 350);
+      setTimeout(() => m.recalcular(), 350);
     });
-    return () => { vivo = false; r.apagar(); inst.current?.remove(); inst.current = null; };
+    return () => { vivo = false; r.apagar(); ruta.current = null; motor.current?.destruir(); motor.current = null; };
   }, []);
 
   useEffect(() => {
-    if (!listo || !inst.current || !capa.current) return;
-    void import('leaflet').then((mod) => {
-      const L = mod.default ?? mod;
-      const g = capa.current!;
-      res.current.apagar();
-      g.clearLayers();
-      const pc = posicionCamion(mapa);
-      // La ruta (tramos y paradas) como en todos los mapas: al pulsar una parada o la línea
-      // salen las etiquetas de todas las paradas con su hora, 4 segundos o hasta pulsar fuera.
-      const ruta = dibujarRuta(L, g, mapa, { grande: true, alPulsar: () => res.current.resaltar(ruta) });
-      res.current.poner([ruta]);
-      if (pc) {
-        const mc = marcadorCamion(TONO[pc.tono], true);
-        const icono = L.divIcon({ className: 'camion-mapa', iconSize: [mc.ancho, mc.alto], iconAnchor: [mc.ancho / 2, mc.alto / 2], html: mc.html });
-        L.marker([pc.lat, pc.lon], { icon: icono, title: pc.titulo, zIndexOffset: 1000, keyboard: false })
-          .bindPopup(`<strong>${pc.titulo}</strong><br>${pc.detalle}<br><em>Posición estimada</em>`, { maxWidth: 240, autoPanPadding: [16, 16] }).addTo(g);
-      }
-      // Encuadre: la primera vez, todas las paradas y el camión; después se respeta lo que
-      // haya movido quien mira.
-      const todos: [number, number][] = [...ruta.puntos];
-      if (pc) todos.push([pc.lat, pc.lon]);
-      puntos.current = todos;
-      if (!encuadrado.current) { encuadrar(); encuadrado.current = todos.length > 0; }
-    });
+    const m = motor.current, g = capa.current;
+    if (!listo || !m || !g) return;
+    res.current.apagar();
+    ruta.current?.quitar();
+    g.vaciar();
+    const pc = posicionCamion(mapa);
+    // La ruta (tramos y paradas) como en todos los mapas: al pulsar una parada o la línea
+    // salen las etiquetas de todas las paradas con su hora, 4 segundos o hasta pulsar fuera.
+    const r = dibujarRuta(m, mapa, { grande: true, alPulsar: () => res.current.resaltar(r) });
+    ruta.current = r;
+    res.current.poner([r]);
+    if (pc) {
+      const mc = marcadorCamion(TONO[pc.tono], true);
+      g.marca([pc.lat, pc.lon], { clase: 'camion-mapa', ancho: mc.ancho, alto: mc.alto, html: mc.html, titulo: pc.titulo, encima: true,
+        ventana: `<strong>${pc.titulo}</strong><br>${pc.detalle}<br><em>Posición estimada</em>` });
+    }
+    // Encuadre: la primera vez, todas las paradas y el camión; después se respeta lo que
+    // haya movido quien mira.
+    const todos: LL[] = [...r.puntos];
+    if (pc) todos.push([pc.lat, pc.lon]);
+    puntos.current = todos;
+    if (!encuadrado.current) { encuadrar(); encuadrado.current = todos.length > 0; }
   }, [listo, mapa, encuadrar]);
 
   return (
     <div style={CAJA_MAPA}>
       <style>{ESTILO_MAPA}</style>
-      <div ref={div} data-mapa-envio="" role="region" aria-label="Mapa de la ruta del envío"
+      <div ref={div} data-mapa-envio="" data-motor={listo ?? undefined} role="region" aria-label="Mapa de la ruta del envío"
         style={{ width: '100%', height: 'min(60vh, 460px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
-      <BotonEncuadrar onClick={encuadrar} que="la ruta" />
+      <BotonEncuadrar onClick={encuadrar} que="la ruta" arriba={listo === 'google'} />
     </div>
   );
 }

@@ -1,16 +1,18 @@
-// La RUTA de un envío dibujada en un mapa de Leaflet, igual en todos los mapas de la plataforma
+// La RUTA de un envío dibujada en el mapa (Google, o el de reserva: ver ./mapa/motor), igual en
+// todos los mapas de la plataforma
 // (el del envío y el general) — usuario, 2026-11-22:
 //   · tramos hechos en línea continua y los que faltan en discontinua (en el tramo en curso, la
-//     parte hecha llega hasta el camión); en línea recta hasta tener las rutas de Google Maps;
+//     parte hecha llega hasta el camión); cada tramo va POR LA CARRETERA cuando se tiene su
+//     trazado de Google (mapa.trazados) y en línea recta mientras no;
 //   · cada parada, un círculo con su número (naranja recogida, morado entrega), también ya hecha;
 //   · al pulsar una parada o la línea, la ruta se RESALTA (más gruesa, por encima de las demás) y
 //     salen las etiquetas de TODAS sus paradas, en varias líneas, con su hora real o prevista,
 //     durante 4 segundos; pulsando fuera del envío se apaga al momento (eso lo lleva quien la
 //     usa, con `resaltador`).
-import type * as Leaflet from 'leaflet';
-import { etiquetaParada, etiquetaParadaCorta, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
+import { etiquetaParada, etiquetaParadaCorta, horaParada, posicionCamion, puntosTramo, type MapaEnvio } from '@/lib/mapaEnvio';
+import { partirLinea } from '@/lib/lineaRuta';
+import type { Direccion, EstiloLinea, Etiqueta, Linea, LL, Marca, Motor } from './mapa/motor';
 
-type L = typeof Leaflet;
 const MORADO = '#3300cc', GRIS = '#9ca3af', NARANJA = '#e07b00';
 
 // EL CAMIÓN DEL MAPA (usuario, 2026-11-22: «nada de emoticono; un tráiler fino con el logo
@@ -25,98 +27,100 @@ export function marcadorCamion(color: string, grande = false): { html: string; a
 }
 
 /** Estilo de las etiquetas de parada (varias líneas, estrechas). */
-export const ESTILO_MAPA = `.leaflet-tooltip.tt-parada{white-space:normal;width:max-content;max-width:190px;line-height:1.25;font-size:12px;padding:5px 8px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}`;
+export const ESTILO_MAPA = `.leaflet-tooltip.tt-parada,.gm-dynamo-etq.tt-parada{white-space:normal;width:max-content;max-width:190px;line-height:1.25;font-size:12px;padding:5px 8px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}`;
 
 export type Ruta = {
   id: string;
-  puntos: [number, number][];
+  puntos: LL[];
   activar: (excepto?: number) => void;
   desactivar: () => void;
   atenuar: (si: boolean) => void;
+  quitar: () => void;
 };
 
-export function dibujarRuta(L: L, g: Leaflet.LayerGroup, mapa: MapaEnvio & { id?: string }, o: {
+export function dibujarRuta(motor: Motor, mapa: MapaEnvio & { id?: string }, o: {
   grande?: boolean;          // paradas más grandes (el mapa de un solo envío)
   oculta?: boolean;          // no se ve hasta activarla (los programados del mapa general)
   alPulsar: () => void;      // al pulsar la línea o una parada
 }): Ruta {
   const pts = mapa.paradas.filter((p) => p.lat != null && p.lon != null);
-  const ll = (p: { lat: number | null; lon: number | null }) => [+p.lat!, +p.lon!] as [number, number];
+  const ll = (p: { lat: number | null; lon: number | null }): LL => [+p.lat!, +p.lon!];
   const c = mapa.camion;
   const pc = posicionCamion(mapa);
-  const propia = L.layerGroup();
-  const tramos: { linea: Leaflet.Polyline; base: Leaflet.PathOptions }[] = [];
-  const pulsar = (ev: Leaflet.LeafletMouseEvent) => { L.DomEvent.stop(ev); solo = null; o.alPulsar(); };
-  const tramo = (a: [number, number], b: [number, number], hecho: boolean) => {
-    const base: Leaflet.PathOptions = hecho
-      ? { color: MORADO, weight: o.grande ? 4 : 3, opacity: 0.9, dashArray: undefined }
-      : { color: GRIS, weight: o.grande ? 3 : 2, opacity: 0.85, dashArray: '8 8' };
-    const linea = L.polyline([a, b], { ...base, bubblingMouseEvents: false }).on('click', pulsar).addTo(propia);
-    tramos.push({ linea, base });
+  const propia = motor.grupo(!o.oculta);
+  const rotulos = motor.grupo(true);
+  const tramos: { linea: Linea; base: EstiloLinea }[] = [];
+  let solo: number | null = null;   // la parada pulsada: su etiqueta sale siempre
+  const pulsar = () => { solo = null; o.alPulsar(); };
+  const tramo = (puntos: LL[], hecho: boolean) => {
+    if (puntos.length < 2) return;
+    const base: EstiloLinea = hecho
+      ? { color: MORADO, grosor: o.grande ? 4 : 3, opacidad: 0.9 }
+      : { color: GRIS, grosor: o.grande ? 3 : 2, opacidad: 0.85, discontinua: true };
+    tramos.push({ linea: propia.linea(puntos, base, pulsar), base });
   };
+  const entera: LL[] = [];
   for (let i = 0; i + 1 < pts.length; i++) {
     const a = pts[i], b = pts[i + 1];
+    const camino = puntosTramo(mapa, a, b);
+    entera.push(...camino);
     const hecho = !!horaParada(mapa, b)?.real || c.modo === 'entregado';
-    if (c.modo === 'en_ruta' && c.desde === a.orden && c.hasta === b.orden && pc) {
-      tramo(ll(a), [pc.lat, pc.lon], true);
-      tramo([pc.lat, pc.lon], ll(b), false);
-    } else tramo(ll(a), ll(b), hecho);
+    // En el tramo en curso, lo hecho llega hasta el camión (que va sobre el mismo trazado).
+    const corte = c.modo === 'en_ruta' && c.desde === a.orden && c.hasta === b.orden && pc
+      ? partirLinea(camino, Math.min(Math.max(Number(c.fraccion ?? 0), 0), 1)) : null;
+    if (corte) { tramo(corte.hecho, true); tramo(corte.falta, false); }
+    else tramo(camino, hecho);
   }
   // Una línea invisible y ANCHA encima, para que sea fácil acertar con el dedo.
-  if (pts.length > 1) {
-    L.polyline(pts.map(ll), { opacity: 0, weight: 18, bubblingMouseEvents: false, className: 'ruta-toque' }).on('click', pulsar).addTo(propia);
-  }
+  if (pts.length > 1) propia.toque(entera, pulsar);
   const t = o.grande ? 28 : 20;
-  const marcas: Leaflet.Marker[] = [];
-  let solo: number | null = null;   // la parada pulsada: su etiqueta sale siempre
+  const marcas: Marca[] = [];
   for (const p of pts) {
     // Siempre su NÚMERO y su color (naranja recogida, morado entrega), también ya hecha
     // (usuario, 2026-11-22: con un ✓ no se sabe si era la 1 o la 2; dónde va el camión ya
     // dice por dónde ha pasado). La hora real sale en su etiqueta.
     const color = p.tipo === 'carga' ? NARANJA : MORADO;
-    const icono = L.divIcon({ className: 'parada-mapa', iconSize: [t, t], iconAnchor: [t / 2, t / 2],
-      html: `<div style="width:${t}px;height:${t}px;border-radius:${t / 2}px;background:${color};color:#fff;font:800 ${o.grande ? 13 : 11}px/${t}px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${p.orden}</div>` });
-    marcas.push(L.marker(ll(p), { icon: icono, title: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`, keyboard: false, bubblingMouseEvents: false })
-      .on('click', (ev: Leaflet.LeafletMouseEvent) => { L.DomEvent.stop(ev); solo = p.orden; o.alPulsar(); }).addTo(propia));
+    marcas.push(propia.marca(ll(p), { clase: 'parada-mapa', ancho: t, alto: t, titulo: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`,
+      html: `<div style="width:${t}px;height:${t}px;border-radius:${t / 2}px;background:${color};color:#fff;font:800 ${o.grande ? 13 : 11}px/${t}px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${p.orden}</div>`,
+      alPulsar: () => { solo = p.orden; o.alPulsar(); } }));
   }
-  if (!o.oculta) propia.addTo(g);
 
-  let etiquetas: { tt: Leaflet.Tooltip; larga: string; corta: string; orden: number }[] = [];
-  let mapaL: Leaflet.Map | null = null;
+  let etiquetas: { tt: Etiqueta; larga: string; corta: string; orden: number }[] = [];
+  let dejarDeMirarZoom: (() => void) | null = null;
   // SIN PISARSE (usuario, 2026-11-23: «se pisan los carteles»): cada etiqueta prueba varias
   // posiciones alrededor de su parada (arriba, abajo, a los lados y en diagonal) y se queda
   // donde no pise a otra etiqueta ni a un círculo de parada ni se salga del mapa; si no cabe,
   // prueba la versión corta («Recogida 1 · Bruxelles» y la hora); y si ni así, NO sale (se ve
   // acercándose o tocando esa parada, que tiene preferencia). Se recoloca al hacer zoom.
   const off = t / 2 + 2;
-  const POS: [Leaflet.Direction, [number, number]][] = [
+  const POS: [Direccion, [number, number]][] = [
     ['top', [0, -off]], ['bottom', [0, off]], ['right', [off, 0]], ['left', [-off, 0]],
     ['top', [70, -off]], ['top', [-70, -off]], ['bottom', [70, off]], ['bottom', [-70, off]],
     ['right', [off, -28]], ['right', [off, 28]], ['left', [-off, -28]], ['left', [-off, 28]],
   ];
   const colocar = () => {
-    const caja = mapaL?.getContainer().getBoundingClientRect();
+    const caja = motor.contenedor().getBoundingClientRect();
     // Estorbos: los círculos de las paradas y los camiones del mapa (tampoco se tapan).
-    const camiones = Array.from(mapaL?.getContainer().querySelectorAll<HTMLElement>('.camion-mapa') ?? []);
-    const puestas: DOMRect[] = [...marcas.map((m) => m.getElement()), ...camiones].map((el) => el?.getBoundingClientRect()).filter((r): r is DOMRect => !!r);
+    const camiones = Array.from(motor.contenedor().querySelectorAll<HTMLElement>('.camion-mapa'));
+    const puestas: DOMRect[] = [...marcas.map((m) => m.el()), ...camiones].map((el) => el?.getBoundingClientRect()).filter((r): r is DOMRect => !!r);
     const pisa = (r: DOMRect) => {
       let a = 0;
       for (const q of puestas) {
         const w = Math.min(r.right, q.right) - Math.max(r.left, q.left) + 3, h = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top) + 3;
         if (w > 0 && h > 0) a += w * h;
       }
-      if (caja) a += Math.max(0, caja.top - r.top) * r.width + Math.max(0, r.bottom - caja.bottom) * r.width
+      a += Math.max(0, caja.top - r.top) * r.width + Math.max(0, r.bottom - caja.bottom) * r.width
         + Math.max(0, caja.left - r.left) * r.height + Math.max(0, r.right - caja.right) * r.height;
       return a;
     };
     const poner = (e: (typeof etiquetas)[number], corta: boolean, i: number) => {
-      e.tt.setContent(corta ? e.corta : e.larga);
-      e.tt.options.direction = POS[i][0]; e.tt.options.offset = POS[i][1]; e.tt.update();
+      e.tt.contenido(corta ? e.corta : e.larga);
+      e.tt.colocar(POS[i][0], POS[i][1]);
     };
     // La pulsada, primero (siempre sale).
     const orden = [...etiquetas].sort((a, b) => (a.orden === solo ? -1 : b.orden === solo ? 1 : 0));
     for (const e of orden) {
-      const el = () => e.tt.getElement();
+      const el = () => e.tt.el();
       el()?.style.removeProperty('display');
       let mejor: { i: number; corta: boolean; s: number } | null = null;
       for (const corta of [false, true]) {
@@ -136,32 +140,34 @@ export function dibujarRuta(L: L, g: Leaflet.LayerGroup, mapa: MapaEnvio & { id?
       if (r) puestas.push(r);
     }
   };
+  const quitarEtiquetas = () => {
+    dejarDeMirarZoom?.(); dejarDeMirarZoom = null;
+    for (const x of etiquetas) x.tt.quitar();
+    etiquetas = [];
+  };
   const ruta: Ruta = {
     id: mapa.id ?? '',
     puntos: pts.map(ll),
     activar(excepto) {
-      if (o.oculta) propia.addTo(g);
-      for (const x of tramos) x.linea.setStyle({ ...x.base, weight: (x.base.weight ?? 3) + 3, opacity: 1, color: x.base.color === GRIS ? MORADO : x.base.color }).bringToFront();
-      for (const x of etiquetas) x.tt.remove();
+      if (o.oculta) propia.mostrar();
+      for (const x of tramos) { x.linea.estilo({ ...x.base, grosor: x.base.grosor + 3, opacidad: 1, color: x.base.color === GRIS ? MORADO : x.base.color }); x.linea.alFrente(); }
+      quitarEtiquetas();
       etiquetas = pts.filter((p) => p.orden !== excepto).map((p) => ({
         orden: p.orden, larga: etiquetaParada(mapa, p), corta: etiquetaParadaCorta(mapa, p),
-        tt: L.tooltip({ permanent: true, direction: 'top', offset: [0, -off], className: 'tt-parada', interactive: false })
-          .setLatLng(ll(p)).setContent(etiquetaParada(mapa, p)).addTo(g),
+        tt: rotulos.etiqueta(ll(p), etiquetaParada(mapa, p), 'tt-parada'),
       }));
-      mapaL = (g as unknown as { _map?: Leaflet.Map })._map ?? null;
       colocar();
-      mapaL?.on('zoomend', colocar);
+      dejarDeMirarZoom = motor.alCambiarZoom(colocar);
     },
     desactivar() {
-      mapaL?.off('zoomend', colocar);
-      for (const x of etiquetas) x.tt.remove();
-      etiquetas = [];
-      for (const x of tramos) x.linea.setStyle(x.base);
-      if (o.oculta) propia.remove();
+      quitarEtiquetas();
+      for (const x of tramos) x.linea.estilo(x.base);
+      if (o.oculta) propia.ocultar();
     },
     atenuar(si) {
-      for (const x of tramos) x.linea.setStyle(si ? { ...x.base, opacity: 0.25 } : x.base);
+      for (const x of tramos) x.linea.estilo(si ? { ...x.base, opacidad: 0.25 } : x.base);
     },
+    quitar() { quitarEtiquetas(); propia.vaciar(); rotulos.vaciar(); },
   };
   return ruta;
 }

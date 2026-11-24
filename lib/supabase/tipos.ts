@@ -4763,6 +4763,7 @@ export type Database = {
       mapa_envio: { Args: { p_envio: string | null }; Returns: Json }
       mapa_envios_en_curso: { Args: Record<PropertyKey, never>; Returns: Json }
       mapa_paradas_sin_coordenadas: { Args: Record<PropertyKey, never>; Returns: Json }
+      mapa_trazados: { Args: { p_envios: string[] | null }; Returns: Json }
       marcar_avisos_vistos: { Args: Record<PropertyKey, never>; Returns: undefined }
       marcar_estado_envio: { Args: { p_envio: string | null; p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_fecha_carga_real?: string | null; p_parada?: number | null; p_hora?: string | null }; Returns: Json }
       marcar_etapa_envio: { Args: { p_envio: string | null; p_paso: number | null; p_hora?: string | null }; Returns: Json }

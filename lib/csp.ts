@@ -29,6 +29,11 @@ const VERCEL = 'https://vercel.live';   // barra de comentarios de las vistas pr
 // Captcha de registro y olvido (tarea 76): su script se inyecta desde el bundle (lo
 // permite 'strict-dynamic'), pero el widget pinta un iframe de este dominio.
 const TURNSTILE = 'https://challenges.cloudflare.com';
+// El mapa (Google Maps JavaScript API): su script lo inserta el nuestro ('strict-dynamic'),
+// pero pide las teselas y los datos a estos dominios. Con la clave de Google puesta ya no se
+// llama a OpenStreetMap desde el navegador (direcciones y mapa van por Google).
+const GOOGLE_MAPAS = 'https://*.googleapis.com https://*.gstatic.com https://*.google.com';
+const SIN_GOOGLE = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ? '' : 'https://nominatim.openstreetmap.org';
 const SENTRY = 'https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io';   // aviso de errores
 
 // La base de datos configurada (en producción ya entra en *.supabase.co; en las pruebas locales y
@@ -47,7 +52,7 @@ export function cspPlataforma(nonce: string, desarrollo = false): string {
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${TRADUCTOR}`,
     `img-src 'self' data: blob: https: ${baseDeDatos().split(' ')[0]}`,
     "font-src 'self' data: https://fonts.gstatic.com",
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${baseDeDatos()} https://nominatim.openstreetmap.org ${TRADUCTOR} ${VERCEL} ${SENTRY} wss://ws-us3.pusher.com`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${baseDeDatos()} ${GOOGLE_MAPAS} ${SIN_GOOGLE} ${TRADUCTOR} ${VERCEL} ${SENTRY} wss://ws-us3.pusher.com`,
     `frame-src 'self' ${TRADUCTOR} ${VERCEL} ${TURNSTILE}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
