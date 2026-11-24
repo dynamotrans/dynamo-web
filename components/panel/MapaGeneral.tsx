@@ -34,7 +34,7 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
   // refresco de 2 minutos): el gasto total es el mismo, solo llega antes. Si tres tandas
   // seguidas no avanzan (p. ej. Google ha llegado a su tope del día), se vuelve al paso de 2 minutos.
   const [trazados, setTrazados] = useState<Record<string, Record<string, PuntoLinea[]>>>({});
-  const rutas = useRef({ clave: '', faltan: false, pidiendo: false, antes: -1, sinAvance: 0, lista: [] as EnvioMapa[], reloj: null as ReturnType<typeof setTimeout> | null, vivo: true });
+  const rutas = useRef({ clave: '', faltan: false, pidiendo: false, antes: -1, sinAvance: 0, huella: '', lista: [] as EnvioMapa[], reloj: null as ReturnType<typeof setTimeout> | null, vivo: true });
   const pedirRutas = useCallback(async (lista: EnvioMapa[]) => {
     const r = rutas.current;
     r.lista = lista;
@@ -47,7 +47,10 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
       if (t.ok) {
         r.sinAvance = clave === r.clave && t.faltan >= r.antes && r.antes >= 0 ? r.sinAvance + 1 : 0;
         r.clave = clave; r.faltan = t.faltan > 0; r.antes = t.faltan;
-        setTrazados(repartirTrazados(t));
+        // Solo se repinta si han llegado rutas nuevas: repintar apaga la ruta que el usuario
+        // tenga resaltada, y una tanda de las de cada 20 s que no trae nada no debe hacerlo.
+        const huella = `${clave}|${t.faltan}|${t.tramos.length}|${t.lineas.length}`;
+        if (huella !== r.huella) { r.huella = huella; setTrazados(repartirTrazados(t)); }
       }
     } catch { /* se reintenta en la próxima actualización */ } finally { r.pidiendo = false; }
     if (r.reloj) { clearTimeout(r.reloj); r.reloj = null; }
