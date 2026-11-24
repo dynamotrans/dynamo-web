@@ -98,8 +98,9 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
       <div className="sec-header"><h2>Administración</h2></div>
       <div className="tabs" style={{ marginBottom: '0.8rem' }}>
         <button className={`tab${pestana === 'proformas' ? ' active' : ''}`} onClick={() => { setPestana('proformas'); setQ(''); }}>Proformas{sinPagar ? ` (${sinPagar} sin pagar)` : ''}</button>
-        <button className={`tab${pestana === 'albaranes' ? ' active' : ''}`} onClick={() => { setPestana('albaranes'); setQ(''); }}>Albaranes ({albaranes.length})</button>
+        {/* Orden pedido por el usuario (2026-11-24): Proformas · Facturas · Albaranes. */}
         <button className={`tab${pestana === 'facturas' ? ' active' : ''}`} onClick={() => setPestana('facturas')}>Facturas</button>
+        <button className={`tab${pestana === 'albaranes' ? ' active' : ''}`} onClick={() => { setPestana('albaranes'); setQ(''); }}>Albaranes ({albaranes.length})</button>
       </div>
 
       {pestana === 'facturas' ? (dynamo ? (
