@@ -245,7 +245,7 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
   })), [datos]);
   const totFact = n(t?.facturacion);
   // Por defecto, últimos 5 años (usuario, 2026-11-06).
-  const PERIODOS: [Periodo, string][] = [['5a', 'Últimos 5 años'], ['12m', 'Últimos 12 meses'], ['mes', 'Este mes'], ['mes-ant', 'Mes pasado'], ['anio', 'Este año'], ['anio-ant', 'Año pasado'], ['todo', 'Todo'], ['otro', 'Otro periodo…']];
+  const PERIODOS: [Periodo, string][] = [['12m', 'Últimos 12 meses'], ['5a', 'Últimos 5 años'], ['mes', 'Este mes'], ['mes-ant', 'Mes pasado'], ['anio', 'Este año'], ['anio-ant', 'Año pasado'], ['todo', 'Todo'], ['otro', 'Otro periodo…']];
 
   return (
     <div className="cm">

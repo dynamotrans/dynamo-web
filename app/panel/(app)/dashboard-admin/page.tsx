@@ -15,7 +15,7 @@ function periodoDe(sp: Record<string, string | undefined>, primerDia: string | n
   const ult = (y: number, mm: number) => new Date(Date.UTC(y, mm + 1, 0, 12));
   const ok = (x?: string) => (/^\d{4}-\d{2}-\d{2}$/.test(x ?? '') ? x! : '');
   // Sin elegir nada: últimos 5 años (usuario, 2026-11-06).
-  const p = (['5a', '12m', 'mes', 'mes-ant', 'anio', 'anio-ant', 'todo', 'otro'] as Periodo[]).includes(sp.cm as Periodo) ? (sp.cm as Periodo) : '5a';
+  const p = (['5a', '12m', 'mes', 'mes-ant', 'anio', 'anio-ant', 'todo', 'otro'] as Periodo[]).includes(sp.cm as Periodo) ? (sp.cm as Periodo) : '12m';   // por defecto, los últimos 12 meses (usuario, 2026-11-24)
   switch (p) {
     case 'mes-ant': return { p, desde: iso(new Date(Date.UTC(a, m - 1, 1, 12))), hasta: iso(ult(a, m - 1)), cDesde: iso(new Date(Date.UTC(a, m - 2, 1, 12))), cHasta: iso(ult(a, m - 2)) };
     case 'anio': return { p, desde: `${a}-01-01`, hasta: iso(hoy), cDesde: `${a - 1}-01-01`, cHasta: iso(new Date(Date.UTC(a - 1, m, hoy.getUTCDate(), 12))) };
