@@ -958,7 +958,10 @@ test.describe('novedades', () => {
       // guardar desde la fila el aviso se quita (usuario, 2026-11-24).
       await page.locator('#varios-crear').click();
       const enFicha = fila1.locator('.ptar-sitio-card.falta input[type=tel]');
+      // Un par de cifras no es un teléfono: el aviso sigue. Con un número de verdad, se quita.
       await enFicha.fill('6');
+      await expect(fila1.locator('.varios-tel')).toHaveCount(1);
+      await fila1.locator('.ptar-sitio-card', { hasText: 'Nave Madrid' }).locator('input[type=tel]').first().fill('611222333');
       await expect(fila1.locator('.varios-tel')).toHaveCount(0);
       await fila1.locator('.ptar-sitio-card', { hasText: 'Nave Madrid' }).locator('input[type=tel]').first().fill('');
       await fila1.locator('.varios-tel input').fill('600123123');
