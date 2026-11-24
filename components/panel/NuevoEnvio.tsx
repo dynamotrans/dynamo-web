@@ -1080,32 +1080,31 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               Si no aplica, no se dice nada del pago. */}
           {pagoPendiente && (
             <div className="exito-pago" role="alert">
-              <div className="ep-cab"><span className="badge badge-orange">Pendiente de pago</span></div>
+              {/* Los textos, los de siempre; las dos explicaciones largas («cómo pagar» y «por qué
+                  por adelantado») van en UN globo de ayuda junto a la etiqueta, y los dos botones en
+                  la misma fila: tarjeta a la izquierda, transferencia a la derecha (usuario, 2026-11-24). */}
+              <div className="ep-cab"><span className="badge badge-orange">Pendiente de pago</span>
+                <Tip id="tip-exito-pago" aria="Cómo pagar y por qué se paga por adelantado"
+                  texto={[
+                    `${tarjeta && creado.id ? 'Con tarjeta se confirma al momento. ' : ''}Por transferencia inmediata: usa los datos de la proforma y avísanos con «Ya he hecho la transferencia» en la ficha del envío; el plazo se para mientras la validamos.`,
+                    creado.razon === 'primero' ? '¿Por qué se paga por adelantado? Es tu primer envío con nosotros. Los siguientes irán a crédito.'
+                      : creado.razon === 'primeros' ? '¿Por qué se paga por adelantado? Es uno de tus primeros envíos con nosotros. Los siguientes irán a crédito.'
+                      : creado.razon ? '¿Por qué se paga por adelantado? Con este envío superas tu crédito disponible, que se irá liberando a medida que se paguen tus facturas. Si crees que es un error, contáctanos y lo revisamos.'
+                      : '',
+                  ].filter(Boolean).join('\n\n')} /></div>
+              <p className="ep-txt">Reservamos el transporte <strong>en cuanto recibamos el pago</strong>: la fecha y la ventana de carga cuentan desde ese momento. Te hemos enviado la proforma por email.</p>
               {creado.pagoLimite && (
                 <div id="exito-pago-plazo">
                   <CuentaAtras grande hasta={creado.pagoLimite} vencidoTxt="Plazo vencido: el envío se anula en breve" />
+                  <p className="ep-txt">Paga antes del <strong>{fechaHora(creado.pagoLimite)}</strong>. Pasado el plazo sin pago ni aviso de transferencia, el envío y su proforma <strong>se anulan solos</strong>.</p>
                 </div>
               )}
-              <p className="ep-txt">
-                {creado.pagoLimite ? <>Paga antes del <strong>{fechaHora(creado.pagoLimite)}</strong> o el envío <strong>se anula solo</strong>. </> : null}
-                Reservamos el transporte <strong>al recibir el pago</strong>; tienes la proforma en tu email.
-              </p>
               <div className="ep-botones">
                 {tarjeta && creado.id && (
                   <PagoTarjeta envioId={creado.id} texto="Pagar con tarjeta" />
                 )}
                 <button type="button" className={tarjeta && creado.id ? 'btn-secondary' : 'btn-primary'} onClick={() => ir(destinoCreado!)}>Pagar por transferencia</button>
               </div>
-              <p className="ep-nota ep-ayudas">
-                <span>Cómo pagar <Tip id="tip-exito-como-pagar" aria="Cómo pagar"
-                  texto={`${tarjeta && creado.id ? 'Con tarjeta se confirma al momento. ' : ''}Por transferencia inmediata: usa los datos de la proforma y avísanos con «Ya he hecho la transferencia» en la ficha del envío; el plazo se para mientras la validamos.`} /></span>
-                {creado.razon && (
-                  <span id="exito-pago-razon">¿Por qué por adelantado? <Tip id="tip-exito-razon" aria="Por qué se paga por adelantado"
-                    texto={creado.razon === 'primero' ? 'Es tu primer envío con nosotros. Los siguientes irán a crédito.'
-                      : creado.razon === 'primeros' ? 'Es uno de tus primeros envíos con nosotros. Los siguientes irán a crédito.'
-                      : 'Con este envío superas tu crédito disponible, que se irá liberando a medida que se paguen tus facturas. Si crees que es un error, contáctanos y lo revisamos.'} /></span>
-                )}
-              </p>
             </div>
           )}
           {(() => {
@@ -1694,14 +1693,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         {avisaPago && (
           <div className="modal-warn-box conf-pago" id="conf-pago" role="alert" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
             <div className="conf-pago-tit">⚠ Este envío se paga por adelantado</div>
-            {/* Primero la pregunta y después el detalle, corto (usuario, 2026-11-24). */}
-            <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo ahora?</strong> Si no vas a tramitar el pago dentro del plazo,
-              no lo confirmes todavía: <strong>crea el envío más tarde</strong>, cuando vayas a pagarlo.</p>
-            <p className="conf-pago-detalle">Queda <strong>pendiente de pago</strong> y te mandamos la <strong>proforma</strong>; no reservamos
-              el transporte hasta recibir el pago.
-              {plazoPago && <span id="conf-pago-plazo"> <strong>Plazo: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes
-                (hasta el <strong>{fechaHora(plazoPago.limite)}</strong>). Sin pago con tarjeta ni aviso de transferencia en ese plazo,
-                <strong> se anula solo</strong> y tendrás que crear un envío nuevo, al precio de ese momento.</span>}</p>
+            {/* Solo la pregunta, con el plazo dentro (usuario, 2026-11-24: lo demás sobraba). */}
+            <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo ahora?</strong> Si no vas a tramitar el pago dentro del
+              plazo{plazoPago ? <span id="conf-pago-plazo"> de <strong>{duracionTxt(plazoPago.minutos)}</strong></span> : null}, no lo confirmes
+              todavía: <strong>crea el envío más tarde</strong>, cuando vayas a pagarlo.</p>
           </div>
         )}
         {/* Los avisos del tráiler (accesos y medios de carga) y de los días hábiles ya no van

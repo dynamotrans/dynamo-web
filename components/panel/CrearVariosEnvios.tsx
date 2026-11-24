@@ -15,7 +15,7 @@ import { useMenuFuera } from './BotonNuevoEnvio';
 import { crearEnvio, crearEnvioCliente, plazoPagoPrevisto, pagoPrevioPrevisto, sitiosDelCliente, kmRuta, factorTarifa, registrarConsultaPrecio, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { tramosDe } from '@/lib/horarios';
 import { calcularTarifa, aplicarDescuentoTarifa } from '@/lib/tarifador';
-import { fecha as fmtFecha, fechaHora, euros, hoyMadrid } from '@/lib/formato';
+import { fecha as fmtFecha, euros, hoyMadrid } from '@/lib/formato';
 import { duracionTxt } from '@/lib/cuentaAtras';
 import { conTope } from '@/lib/conTope';
 import { FORMAS, decimal, num, primerDia, resolverFicha, sumarHabiles, type CardEdit, type ClienteOpcion, type DatosSitios, type EdicionSitio, type Punto, type ReglasPrecio, type SitioOpcion, useEdicionesSitios } from './nuevoEnvio/comun';
@@ -471,14 +471,10 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
               <div className="conf-pago-tit">⚠ {conPago.size === listas.length
                 ? (listas.length === 1 ? 'Este envío se paga por adelantado' : 'Estos envíos se pagan por adelantado')
                 : conPago.size === 1 ? '1 de estos envíos se paga por adelantado' : `${conPago.size} de estos envíos se pagan por adelantado`}</div>
-              {/* Primero la pregunta y después el detalle, corto (usuario, 2026-11-24). */}
-              <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo{conPago.size === 1 ? '' : 's'} ahora?</strong> Si no vas a tramitar el pago dentro del plazo,
-                no {conPago.size === 1 ? 'lo' : 'los'} confirmes todavía: <strong>créalo{conPago.size === 1 ? '' : 's'} más tarde</strong>, cuando vayas a pagar.</p>
-              <p className="conf-pago-detalle">{conPago.size === 1 ? 'Queda' : 'Quedan'} <strong>pendiente{conPago.size === 1 ? '' : 's'} de pago</strong>, cada uno con su
-                <strong> proforma</strong>; no reservamos el transporte hasta recibir el pago.
-                {plazoPago && <> <strong>Plazo: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes (hasta el <strong>{fechaHora(plazoPago.limite)}</strong>).
-                  Sin pago con tarjeta ni aviso de transferencia en ese plazo, <strong>se {conPago.size === 1 ? 'anula solo' : 'anulan solos'}</strong> y
-                  tendrás que {conPago.size === 1 ? 'crearlo' : 'crearlos'} de nuevo, al precio de ese momento.</>}</p>
+              {/* Solo la pregunta, con el plazo dentro (usuario, 2026-11-24: lo demás sobraba). */}
+              <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo{conPago.size === 1 ? '' : 's'} ahora?</strong> Si no vas a tramitar el pago dentro del
+                plazo{plazoPago ? <> de <strong>{duracionTxt(plazoPago.minutos)}</strong></> : null}, no {conPago.size === 1 ? 'lo' : 'los'} confirmes todavía:
+                <strong> créalo{conPago.size === 1 ? '' : 's'} más tarde</strong>, cuando vayas a pagar.</p>
             </div>
           )}
           <p className="varios-conf-nota">Cada envío sigue sus condiciones como si lo crearas uno a uno: costes de cancelación una vez asignado el transportista y, si tu cuenta paga por adelantado, su plazo de pago.</p>

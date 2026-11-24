@@ -1861,7 +1861,6 @@ body.theme-dark .sidebar { background: #060116; }
 .conf-pago strong { color: #9a3f00; }
 .conf-pago-tit { font-weight: 800; color: #9a3f00; font-size: var(--fs-l, 1rem); }
 .varios-conf-pago { display: block; margin-top: 0.15rem; font-size: var(--fs-s, 0.74rem); font-weight: 700; color: #9a3f00; }
-.conf-pago-detalle { padding-top: 0.45rem; border-top: 1px dashed rgba(255,122,0,0.45); margin-top: 0.5rem !important; }
 /* Ventanas «contáctanos» del cliente (cambiar / cancelar un envío con transportista): un solo
    tamaño de letra, aviso, tres canales como tarjetas y pasos numerados (usuario, 2026-11-18). */
 .urg { display: grid; gap: 0.85rem; font-size: var(--fs-m); line-height: 1.5; color: var(--gray-700); }
@@ -5153,7 +5152,7 @@ input::-webkit-contacts-auto-fill-button { visibility: hidden; display: none !im
     width: min(290px, 78vw); background: var(--navy); color: #fff; font-size: var(--fs-s);
     font-weight: 600; line-height: 1.45; padding: 0.55rem 0.7rem; border-radius: 10px;
     box-shadow: 0 8px 22px rgba(10,15,44,0.25); opacity: 0; visibility: hidden; z-index: 40;
-    transition: opacity 0.15s; pointer-events: none; }
+    transition: opacity 0.15s; pointer-events: none; white-space: pre-line; }
 .tip-i.tip-abierto .tip-i-btn { color: var(--purple); }
 .tip-i.tip-abierto .tip-i-pop, .tip-i:focus-within .tip-i-pop { opacity: 1; visibility: visible; }
 @media (hover: hover) { .tip-i:hover .tip-i-pop { opacity: 1; visibility: visible; } }
@@ -5392,11 +5391,13 @@ table.data .pago-plazo .cuenta-atras .ca-t { font-weight: 800; }
     margin: 0 0 0.7rem; padding: 0.8rem 0.9rem; border-radius: 12px; background: #fff8f1; border: 1px solid #fbd5b0;
     color: var(--navy); font-size: var(--fs-m); line-height: 1.5;
 }
-.exito-pago .ep-cab { margin-bottom: 0.45rem; }
+.exito-pago .ep-cab { margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.35rem; }
 .exito-pago .ep-txt { margin: 0; }
 .exito-pago .cuenta-atras-grande { margin: 0.6rem 0 0.45rem; }
 .exito-pago .ep-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 0.55rem; }
-.exito-pago .ep-botones > * { flex: 1 1 130px; min-width: 0; display: flex; }
+.exito-pago .ep-botones { flex-wrap: nowrap; }
+.exito-pago .ep-botones > * { flex: 1 1 0; min-width: 0; display: flex; }
+.exito-pago .ep-botones button { padding-left: 0.4rem; padding-right: 0.4rem; white-space: normal; line-height: 1.2; }
 .exito-pago .ep-botones button { width: 100%; min-height: 48px; justify-content: center; }
 .exito-pago .ep-nota { margin: 0.35rem 0 0; font-size: var(--fs-s); color: var(--gray-600); line-height: 1.45; }
 .exito-pago .ep-nota strong { color: var(--navy); }
@@ -5406,9 +5407,7 @@ table.data .pago-plazo .cuenta-atras .ca-t { font-weight: 800; }
 .exito-ok svg { width: 34px; height: 34px; }
 .exito-ok.corto { width: 40px; height: 40px; margin: 0 auto 0.4rem; }
 .exito-ok.corto svg { width: 22px; height: 22px; }
-@media (max-width: 480px) { .exito-tit.corto { font-size: 1.15rem; } }
-.exito-pago .ep-ayudas { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; }
-.exito-pago .ep-ayudas > span { display: inline-flex; align-items: center; gap: 0.25rem; }
+@media (max-width: 480px) { .exito-tit.corto { font-size: 1.15rem; } .exito-ok.corto { display: none; } }
 .exito-despues { margin: 0 0 0.8rem; border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.75rem; }
 .exito-despues > summary { cursor: pointer; font-weight: 700; color: var(--purple); font-size: var(--fs-m); }
 .exito-acciones { display: flex; flex-direction: column; gap: 0.55rem; }

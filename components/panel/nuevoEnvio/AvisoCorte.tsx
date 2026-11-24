@@ -8,7 +8,7 @@
 // Toda ventana puede empezar HOY MISMO antes de su corte; pasado, el siguiente
 // día hábil, nunca dos (usuario, 2026-11-09).
 import { useEffect, useMemo, useState } from 'react';
-import { habil, iso, primerDia, siguienteCorte, sumarHabiles, type CortesCarga } from '@/lib/fechasCarga';
+import { iso, primerDia, siguienteCorte, sumarHabiles, type CortesCarga } from '@/lib/fechasCarga';
 import { ahoraMadrid } from '@/lib/atencion';
 import { fecha as fmtFecha } from '@/lib/formato';
 
@@ -38,7 +38,6 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
   const etiqueta = `${sig.hora}:00`;
   const resta = Math.max(0, Math.floor((sig.instante.getTime() - ahora.getTime()) / 1000));
   const corteHoy = sig.dia === iso(m);
-  const pasadoHoy = !corteHoy && habil(m, fest) && m.getHours() * 3600 + m.getMinutes() * 60 + m.getSeconds() >= sig.hora * 3600;
   const first = primerDia(urgencia, grupaje, fest, cortes);
   const firstHoy = first === iso(m);
   const hasta = ventana > 1 ? sumarHabiles(first, ventana - 1, fest) : first;
@@ -56,9 +55,11 @@ export default function AvisoCorte({ urgencia, festivos, cortes, ventana, grupaj
 
   const dd = Math.floor(resta / 86_400), h = Math.floor((resta % 86_400) / 3600), mi = Math.floor((resta % 3600) / 60), sg = resta % 60;
   const quedan = `${dd > 0 ? `${dd} ${dd === 1 ? 'día' : 'días'} ` : ''}${dd > 0 || h > 0 ? `${h} h ` : ''}${mi} min ${sg < 10 ? `0${sg}` : sg} s`;
+  // Ya no se dice «El corte de hoy (…) ya ha pasado» (usuario, 2026-11-24: no aporta): solo
+  // hasta cuándo se puede pedir y cuál es el primer día de carga.
   return (
     <div className="ptar-cutoff-note" role="status">
-      <IcoReloj />{pasadoHoy ? <>El corte de hoy ({etiqueta}) ya ha pasado. </> : null}<strong>Pide antes {corteHoy ? <>de las {etiqueta}</> : <>del {fmtFecha(sig.dia)} a las {etiqueta}</>}</strong> (quedan <em>{quedan}</em>) y el primer día de carga posible es {firstHoy ? <><strong>hoy mismo</strong> ({fmtFecha(first)})</> : <>el <strong>{fmtFecha(first)}</strong></>}{rango}.{guia}
+      <IcoReloj /><strong>Pide antes {corteHoy ? <>de las {etiqueta}</> : <>del {fmtFecha(sig.dia)} a las {etiqueta}</>}</strong> (quedan <em>{quedan}</em>). El primer día de carga posible es {firstHoy ? <><strong>hoy mismo</strong> ({fmtFecha(first)})</> : <>el <strong>{fmtFecha(first)}</strong></>}{rango}.{guia}
     </div>
   );
 }

@@ -582,10 +582,10 @@ test.describe('novedades', () => {
       await crearEnvioDeCliente(page, async () => {
         const aviso = page.locator('#conf-pago');
         await expect(aviso).toContainText('Este envío se paga por adelantado');
-        await expect(aviso.locator('#conf-pago-plazo')).toContainText(/Plazo: .*\d/);
-        await expect(aviso).toContainText('se anula solo');
-        // La pregunta va antes que el detalle (usuario, 2026-11-24).
-        expect(await aviso.evaluate((el) => (el.textContent ?? '').indexOf('¿Vas a pagarlo ahora?') < (el.textContent ?? '').indexOf('pendiente de pago'))).toBe(true);
+        // Solo la pregunta, con el plazo dentro (usuario, 2026-11-24).
+        await expect(aviso).toContainText(/dentro del\s+plazo de .*\d/);
+        await expect(aviso.locator('#conf-pago-plazo')).toContainText(/\d/);
+        await expect(aviso).not.toContainText('proforma');
         // La frase del uso abusivo ya no ocupa la caja verde: sale en su globo de ayuda al pulsar la ⓘ.
         const globo = page.locator('#tip-uso-abusivo [role=tooltip]');
         await expect(globo).toBeHidden();
