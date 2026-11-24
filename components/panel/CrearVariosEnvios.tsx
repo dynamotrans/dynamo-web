@@ -471,15 +471,14 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
               <div className="conf-pago-tit">⚠ {conPago.size === listas.length
                 ? (listas.length === 1 ? 'Este envío se paga por adelantado' : 'Estos envíos se pagan por adelantado')
                 : conPago.size === 1 ? '1 de estos envíos se paga por adelantado' : `${conPago.size} de estos envíos se pagan por adelantado`}</div>
-              <p>Al confirmar {conPago.size === 1 ? 'queda' : 'quedan'} <strong>pendiente{conPago.size === 1 ? '' : 's'} de pago</strong>, cada uno con su
-                <strong> proforma</strong>. No reservamos el transporte hasta <strong>recibir el pago</strong>.</p>
-              {plazoPago && (
-                <p><strong>Plazo para pagar: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes (si confirmas ahora, hasta el
-                  <strong> {fechaHora(plazoPago.limite)}</strong>). Si en ese plazo no nos llega el pago con <strong>tarjeta</strong> ni nos avisas de la
-                  <strong> transferencia</strong> desde el envío, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crearlo de nuevo, con el precio de ese momento.</p>
-              )}
+              {/* Primero la pregunta y después el detalle, corto (usuario, 2026-11-24). */}
               <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo{conPago.size === 1 ? '' : 's'} ahora?</strong> Si no vas a tramitar el pago dentro del plazo,
                 no {conPago.size === 1 ? 'lo' : 'los'} confirmes todavía: <strong>créalo{conPago.size === 1 ? '' : 's'} más tarde</strong>, cuando vayas a pagar.</p>
+              <p className="conf-pago-detalle">{conPago.size === 1 ? 'Queda' : 'Quedan'} <strong>pendiente{conPago.size === 1 ? '' : 's'} de pago</strong>, cada uno con su
+                <strong> proforma</strong>; no reservamos el transporte hasta recibir el pago.
+                {plazoPago && <> <strong>Plazo: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes (hasta el <strong>{fechaHora(plazoPago.limite)}</strong>).
+                  Sin pago con tarjeta ni aviso de transferencia en ese plazo, <strong>se {conPago.size === 1 ? 'anula solo' : 'anulan solos'}</strong> y
+                  tendrás que {conPago.size === 1 ? 'crearlo' : 'crearlos'} de nuevo, al precio de ese momento.</>}</p>
             </div>
           )}
           <p className="varios-conf-nota">Cada envío sigue sus condiciones como si lo crearas uno a uno: costes de cancelación una vez asignado el transportista y, si tu cuenta paga por adelantado, su plazo de pago.</p>

@@ -1861,7 +1861,7 @@ body.theme-dark .sidebar { background: #060116; }
 .conf-pago strong { color: #9a3f00; }
 .conf-pago-tit { font-weight: 800; color: #9a3f00; font-size: var(--fs-l, 1rem); }
 .varios-conf-pago { display: block; margin-top: 0.15rem; font-size: var(--fs-s, 0.74rem); font-weight: 700; color: #9a3f00; }
-.conf-pago-pregunta { padding-top: 0.45rem; border-top: 1px dashed rgba(255,122,0,0.45); margin-top: 0.5rem !important; }
+.conf-pago-detalle { padding-top: 0.45rem; border-top: 1px dashed rgba(255,122,0,0.45); margin-top: 0.5rem !important; }
 /* Ventanas «contáctanos» del cliente (cambiar / cancelar un envío con transportista): un solo
    tamaño de letra, aviso, tres canales como tarjetas y pasos numerados (usuario, 2026-11-18). */
 .urg { display: grid; gap: 0.85rem; font-size: var(--fs-m); line-height: 1.5; color: var(--gray-700); }

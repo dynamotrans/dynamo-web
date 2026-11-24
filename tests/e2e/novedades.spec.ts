@@ -582,8 +582,16 @@ test.describe('novedades', () => {
       await crearEnvioDeCliente(page, async () => {
         const aviso = page.locator('#conf-pago');
         await expect(aviso).toContainText('Este envío se paga por adelantado');
-        await expect(aviso.locator('#conf-pago-plazo')).toContainText(/Plazo para pagar: .*\d/);
-        await expect(aviso).toContainText('se anulan solos');
+        await expect(aviso.locator('#conf-pago-plazo')).toContainText(/Plazo: .*\d/);
+        await expect(aviso).toContainText('se anula solo');
+        // La pregunta va antes que el detalle (usuario, 2026-11-24).
+        expect(await aviso.evaluate((el) => (el.textContent ?? '').indexOf('¿Vas a pagarlo ahora?') < (el.textContent ?? '').indexOf('pendiente de pago'))).toBe(true);
+        // La frase del uso abusivo ya no ocupa la caja verde: sale en su globo de ayuda al pulsar la ⓘ.
+        const globo = page.locator('#tip-uso-abusivo [role=tooltip]');
+        await expect(globo).toBeHidden();
+        await page.locator('#tip-uso-abusivo .tip-i-btn').click();
+        await expect(globo).toBeVisible();
+        await expect(globo).toContainText('uso abusivo');
         await expect(aviso).toContainText('¿Vas a pagarlo ahora?');
         await expect(aviso).toContainText('crea el envío más tarde');
         await expect(aviso).not.toContainText('€');   // sin cifras de crédito

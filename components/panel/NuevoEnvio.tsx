@@ -1667,9 +1667,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         )}
         {!manual && <div className="pt-aviso ok" style={{ marginTop: esHoy ? '0.6rem' : 0, marginBottom: 0 }}><div>
           ✅ <strong>Cancelación y cambios gratis.</strong> Mientras el envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el <strong>coste completo</strong> del servicio.{' '}
-          {/* La frase del uso abusivo va DENTRO de la caja verde y SEGUIDA, en el mismo párrafo
-              (usuario, 2026-11-18); en su sitio queda la caja del tráiler. */}
-          La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
+          {/* La frase del uso abusivo pasa a un globo de ayuda dentro de la caja (usuario,
+              2026-11-24: la caja, más corta). */}
+          <Tip id="tip-uso-abusivo" aria="Uso abusivo de cancelaciones y cambios"
+            texto="La cancelación o modificación reiterada de envíos, con o sin transportista asignado, puede conllevar la suspensión temporal o definitiva de la cuenta si se detecta un uso abusivo." />
         </div></div>}
         {/* Envío que nacerá PENDIENTE DE PAGO (cuenta sin crédito, primeros envíos o crédito que
             no alcanza para este): se dice ANTES de crearlo, con el plazo, y se pregunta si lo va
@@ -1678,16 +1679,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         {avisaPago && (
           <div className="modal-warn-box conf-pago" id="conf-pago" role="alert" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
             <div className="conf-pago-tit">⚠ Este envío se paga por adelantado</div>
-            <p>Al confirmar queda <strong>pendiente de pago</strong> y te mandamos la <strong>proforma</strong>. No reservamos
-              el transporte hasta <strong>recibir el pago</strong>; la fecha de carga cuenta desde ese momento.</p>
-            {plazoPago && (
-              <p id="conf-pago-plazo"><strong>Plazo para pagar: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes
-                (si confirmas ahora, hasta el <strong>{fechaHora(plazoPago.limite)}</strong>). Si en ese plazo no nos llega el pago con
-                <strong> tarjeta</strong> ni nos avisas de la <strong>transferencia</strong> desde el envío, el envío y su proforma
-                <strong> se anulan solos</strong> y tendrás que crear un envío nuevo, con el precio de ese momento.</p>
-            )}
+            {/* Primero la pregunta y después el detalle, corto (usuario, 2026-11-24). */}
             <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo ahora?</strong> Si no vas a tramitar el pago dentro del plazo,
               no lo confirmes todavía: <strong>crea el envío más tarde</strong>, cuando vayas a pagarlo.</p>
+            <p className="conf-pago-detalle">Queda <strong>pendiente de pago</strong> y te mandamos la <strong>proforma</strong>; no reservamos
+              el transporte hasta recibir el pago.
+              {plazoPago && <span id="conf-pago-plazo"> <strong>Plazo: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes
+                (hasta el <strong>{fechaHora(plazoPago.limite)}</strong>). Sin pago con tarjeta ni aviso de transferencia en ese plazo,
+                <strong> se anula solo</strong> y tendrás que crear un envío nuevo, al precio de ese momento.</span>}</p>
           </div>
         )}
         {/* Los avisos del tráiler (accesos y medios de carga) y de los días hábiles ya no van
