@@ -145,6 +145,19 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
     if (!g.ok) return g.error;
     const r = await datosEditablesDeSitios([sitio.id]).catch(() => ({}));
     setDatosSit((d) => ({ ...d, ...r }));
+    // Si en la ficha de ese sitio se había tocado el teléfono (aunque fuera para dejarlo vacío),
+    // eso tapaba el recién guardado y el aviso no se quitaba (usuario, 2026-11-24): manda el guardado.
+    setEdicSit((prev) => {
+      let out = prev;
+      for (const f of filas) for (const p of f.puntos) {
+        if (p.sitio?.id !== sitio.id || prev[p.k]?.telefono === undefined) continue;
+        if (out === prev) out = { ...prev };
+        const { telefono: _fuera, ...resto } = out[p.k];
+        void _fuera;
+        out[p.k] = resto;
+      }
+      return out;
+    });
     return null;
   }
   const ponInfo = (k: number, i: Info) => setInfos((x) => (JSON.stringify(x[k]) === JSON.stringify(i) ? x : { ...x, [k]: i }));

@@ -965,6 +965,13 @@ test.describe('novedades', () => {
       await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
       await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
       await expect(fila1.locator('.varios-res.error')).toContainText('Falta el teléfono de contacto de 2 · Entrega: «Nave Madrid»');
+      // Aunque antes se haya tocado (y dejado vacío) el teléfono en la ficha del sitio, al
+      // guardar desde la fila el aviso se quita (usuario, 2026-11-24).
+      await page.locator('#varios-crear').click();
+      const enFicha = fila1.locator('.ptar-sitio-card.falta input[type=tel]');
+      await enFicha.fill('6');
+      await expect(fila1.locator('.varios-tel')).toHaveCount(0);
+      await fila1.locator('.ptar-sitio-card', { hasText: 'Nave Madrid' }).locator('input[type=tel]').first().fill('');
       await fila1.locator('.varios-tel input').fill('600123123');
       await fila1.locator('.varios-tel button').click();
       await expect(fila1.locator('.varios-tel')).toHaveCount(0);
