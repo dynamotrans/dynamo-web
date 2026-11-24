@@ -29,20 +29,33 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
   // tardaba 5 s esperándolas) y se añaden al llegar.
   const situando = useRef(false);
   // Las rutas POR LA CARRETERA también llegan después de pintar: primero las de los envíos en
-  // marcha. Se vuelven a pedir cuando cambian los envíos o mientras falte alguna por calcular.
+  // marcha. Se vuelven a pedir cuando cambian los envíos y, mientras falte alguna por
+  // calcular, CADA 20 SEGUNDOS con el mapa abierto (usuario, 2026-11-24; antes solo con el
+  // refresco de 2 minutos): el gasto total es el mismo, solo llega antes. Si tres tandas
+  // seguidas no avanzan (p. ej. Google ha llegado a su tope del día), se vuelve al paso de 2 minutos.
   const [trazados, setTrazados] = useState<Record<string, Record<string, PuntoLinea[]>>>({});
-  const rutas = useRef({ clave: '', faltan: false, pidiendo: false });
+  const rutas = useRef({ clave: '', faltan: false, pidiendo: false, antes: -1, sinAvance: 0, lista: [] as EnvioMapa[], reloj: null as ReturnType<typeof setTimeout> | null, vivo: true });
   const pedirRutas = useCallback(async (lista: EnvioMapa[]) => {
+    const r = rutas.current;
+    r.lista = lista;
     const ids = [...lista].sort((a, b) => Number(enMarcha(b)) - Number(enMarcha(a))).map((e) => e.id);
     const clave = ids.join(',');
-    const r = rutas.current;
     if (!ids.length || r.pidiendo || (clave === r.clave && !r.faltan)) return;
     r.pidiendo = true;
     try {
       const t = await trazadosDeEnvios(ids);
-      if (t.ok) { r.clave = clave; r.faltan = t.faltan > 0; setTrazados(repartirTrazados(t)); }
+      if (t.ok) {
+        r.sinAvance = clave === r.clave && t.faltan >= r.antes && r.antes >= 0 ? r.sinAvance + 1 : 0;
+        r.clave = clave; r.faltan = t.faltan > 0; r.antes = t.faltan;
+        setTrazados(repartirTrazados(t));
+      }
     } catch { /* se reintenta en la próxima actualización */ } finally { r.pidiendo = false; }
+    if (r.reloj) { clearTimeout(r.reloj); r.reloj = null; }
+    if (r.vivo && r.faltan && r.sinAvance < 3) r.reloj = setTimeout(() => { r.reloj = null; if (r.vivo) void pedirRutasRef.current(r.lista); }, 20_000);
   }, []);
+  const pedirRutasRef = useRef(pedirRutas);
+  useEffect(() => { pedirRutasRef.current = pedirRutas; }, [pedirRutas]);
+  useEffect(() => { const r = rutas.current; r.vivo = true; return () => { r.vivo = false; if (r.reloj) clearTimeout(r.reloj); }; }, []);
   const cargar = useCallback(async () => {
     const r = await mapaEnviosEnCurso().catch(() => ({ ok: false as const, error: 'No se ha podido cargar el mapa.' }));
     if (!r.ok) { setError(r.error); return; }
