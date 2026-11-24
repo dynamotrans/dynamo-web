@@ -2357,6 +2357,7 @@ export type Database = {
           holded_venta_lineas: number | null
           holded_compra_lineas: number | null
           pack_id: string | null
+          stripe_enlace_caduca_en: string | null
         }
         Insert: {
           id?: string
@@ -2483,6 +2484,7 @@ export type Database = {
           holded_venta_lineas?: number | null
           holded_compra_lineas?: number | null
           pack_id?: string | null
+          stripe_enlace_caduca_en?: string | null
         }
         Update: {
           id?: string
@@ -2609,6 +2611,7 @@ export type Database = {
           holded_venta_lineas?: number | null
           holded_compra_lineas?: number | null
           pack_id?: string | null
+          stripe_enlace_caduca_en?: string | null
         }
         Relationships: [
           {
@@ -4821,6 +4824,7 @@ export type Database = {
       pack_recoger: { Args: { p_pack: string | null }; Returns: undefined }
       pack_ruta: { Args: { p_envio: string | null }; Returns: Json }
       packs_de_grupaje: { Args: Record<PropertyKey, never>; Returns: Json }
+      pago_enlace_stripe: { Args: { p_envio: string | null; p_caduca: string | null }; Returns: undefined }
       pago_envio_importes: { Args: { p_envio: string | null }; Returns: { base: number; iva: number; total: number }[] }
       pago_envio_pendiente: { Args: { p_envio: string | null }; Returns: number }
       pago_envio_stripe: { Args: { p_envio: string | null; p_pago: string | null; p_centimos: number | null }; Returns: Json }

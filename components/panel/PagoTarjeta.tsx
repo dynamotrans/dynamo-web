@@ -37,7 +37,7 @@ function cargarStripe(): Promise<(clave: string) => StripeJs> {
 }
 
 const AVISOS: Record<string, string> = {
-  caducado: 'El plazo para pagar este envío ha terminado.',
+  caducado: 'El plazo para pagar este envío ha terminado. Si aún lo necesitas, crea un envío nuevo.',
   ya: 'Este envío ya no está pendiente de pago. Recarga la página para verlo al día.',
   sesion: 'Tu sesión ha caducado. Vuelve a entrar y repite el pago.',
   no_disponible: 'El pago con tarjeta no está disponible ahora mismo.',
@@ -54,12 +54,13 @@ export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; t
     if (!abierta) return;
     let vivo = true;
     let pagina: PaginaPago | null = null;
+    let reloj: ReturnType<typeof setTimeout> | null = null;
     // El respaldo: la página de pago de Stripe, como hasta ahora.
     const aSuPagina = () => { if (vivo) formulario.current?.submit(); };
     (async () => {
       try {
         const r = await fetch('/api/stripe/pago', { method: 'POST', body: new URLSearchParams({ envio: envioId, modo: 'incrustado' }) });
-        const j = await r.json() as { ok: boolean; codigo?: string; secreto?: string; clave?: string };
+        const j = await r.json() as { ok: boolean; codigo?: string; secreto?: string; clave?: string; quedan?: number | null };
         if (!vivo) return;
         if (!j.ok || !j.secreto || !j.clave) {
           if (j.codigo && AVISOS[j.codigo]) { setAviso(AVISOS[j.codigo]); setEstado('aviso'); return; }
@@ -75,9 +76,18 @@ export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; t
         for (let i = 0; i < 40 && vivo && !caja.current; i++) await new Promise((ok) => setTimeout(ok, 50));
         if (!vivo || !caja.current) { p.destroy(); if (vivo) aSuPagina(); return; }
         pagina = p; p.mount(caja.current); setEstado('lista');
+        // Al acabar el plazo para pagar (más su margen) la ventana se cierra sola (usuario,
+        // 2026-11-24): pasado ese momento ya no se admite el pago de este envío.
+        if (typeof j.quedan === 'number') {
+          reloj = setTimeout(() => {
+            try { pagina?.destroy(); } catch { /* ya no está */ }
+            pagina = null;
+            if (vivo) { setAviso(AVISOS.caducado); setEstado('aviso'); }
+          }, Math.min(j.quedan, 2_000_000_000));
+        }
       } catch { aSuPagina(); }
     })();
-    return () => { vivo = false; try { pagina?.destroy(); } catch { /* ya no está */ } };
+    return () => { vivo = false; if (reloj) clearTimeout(reloj); try { pagina?.destroy(); } catch { /* ya no está */ } };
   }, [abierta, envioId]);
 
   return (

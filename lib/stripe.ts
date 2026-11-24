@@ -1,12 +1,16 @@
 import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { caducidadEnlace } from './stripeCaducidad';
 
 // Stripe sin librería: crear el pago (en su página o en una ventana nuestra) y comprobar la
 // firma del aviso. Claves SOLO en Vercel: STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET (nunca en el
 // chat ni con NEXT_PUBLIC_). Sin ellas, el pago con tarjeta no aparece.
 export const stripeListo = () => !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-type DatosPago = { envioId: string; referencia: string; centimos: number; email: string | null; vuelta: string; descripcion: string; expiraEn?: Date | null };
+// `expiraEn`: el final del plazo para pagar; `graciaMin`: el margen de después; `ahora`: el
+// instante con el que se calcula todo (el mismo con el que se apuntó la caducidad del enlace).
+type DatosPago = { envioId: string; referencia: string; centimos: number; email: string | null; vuelta: string; descripcion: string;
+  expiraEn?: Date | null; graciaMin?: number; ahora?: number };
 type RespuestaSesion = { url?: string; client_secret?: string; error?: { message?: string; param?: string } } | null;
 
 // Lo común de una sesión de pago (la página de Stripe o la ventana dentro de la plataforma).
@@ -25,12 +29,9 @@ function camposSesion(p: DatosPago): { f: URLSearchParams; tanda: number } {
     'payment_intent_data[description]': `Dynamo · envío ${p.referencia}`,
   });
   if (p.email) f.set('customer_email', p.email);
-  // El pago caduca con el plazo para pagar (Stripe admite entre 30 min y 24 h).
-  const tanda = Math.floor(Date.now() / 600000) * 600000;
-  if (p.expiraEn) {
-    const t = Math.min(Math.max(p.expiraEn.getTime(), tanda + 41 * 60000), tanda + 23.5 * 3600000);
-    f.set('expires_at', String(Math.floor(t / 1000)));
-  }
+  // El enlace caduca con el plazo para pagar más su margen (Stripe admite entre 30 min y 24 h).
+  const { tanda, caduca } = caducidadEnlace(p.expiraEn, p.ahora ?? Date.now(), p.graciaMin ?? 0);
+  if (caduca) f.set('expires_at', String(caduca / 1000));
   return { f, tanda };
 }
 async function pedirSesion(f: URLSearchParams, clave: string): Promise<{ ok: boolean; j: RespuestaSesion }> {

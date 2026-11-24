@@ -15472,3 +15472,43 @@ do $$ declare t timestamptz := '2026-11-24 10:00:00+01'; begin
   if pago_limite(t) <> t + interval '60 minutes' then raise exception 'FALLO 342 · el límite de pago no cae 60 minutos después: %', pago_limite(t); end if;
   raise notice 'OK 342 · plazo para pagar: 60 minutos desde que el envío queda pendiente de pago';
 end $$;
+
+-- 343 · Anulación por falta de pago: margen de 5 minutos y espera al enlace de pago abierto
+-- (usuario, 2026-11-24): nadie paga un envío ya anulado.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; e uuid; antes jsonb; mal boolean := false; h numeric := parametro_num('pago_previo_horas', 24); begin
+  select valor into antes from parametros where clave = 'pago_previo_activo';
+  update parametros set valor = 'true'::jsonb where clave = 'pago_previo_activo';
+  if parametro_num('pago_previo_gracia_minutos', -1) <> 5 then raise exception 'FALLO 343 · el margen tras el plazo para pagar no es de 5 minutos'; end if;
+  if has_function_privilege('authenticated', 'pago_enlace_stripe(uuid, timestamptz)', 'execute')
+     or has_function_privilege('anon', 'pago_enlace_stripe(uuid, timestamptz)', 'execute') then
+    raise exception 'FALLO 343 · un usuario puede apuntar la caducidad de un enlace de pago (solo el servidor)'; end if;
+  insert into clientes (razon_social, cif) values ('Paga Justo SL', 'B34300343') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista) values (c, 13.30, 20, 1000, 800) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  if (select estado_pago_previo from envios where id = e) <> 'pendiente' then raise exception 'FALLO 343 · el envío de prueba no nace pendiente de pago'; end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  -- Plazo vencido hace 3 minutos: dentro del margen, no se anula.
+  update envios set pago_pendiente_en = now() - make_interval(mins => round(h * 60)::int + 3) where id = e;
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = e) <> 'programado' then raise exception 'FALLO 343 · se anula dentro del margen de 5 minutos'; end if;
+  -- Vencido hace 7 minutos, pero con un enlace de pago abierto 20 minutos más: espera.
+  update envios set pago_pendiente_en = now() - make_interval(mins => round(h * 60)::int + 7) where id = e;
+  perform pago_enlace_stripe(e, now() + interval '20 minutes');
+  perform pago_enlace_stripe(e, now() + interval '5 minutes');   -- un enlace más corto no acorta lo apuntado
+  if (select stripe_enlace_caduca_en from envios where id = e) < now() + interval '19 minutes' then raise exception 'FALLO 343 · un enlace más corto acorta la espera del envío'; end if;
+  begin perform pago_enlace_stripe(e, now() + interval '3 days'); mal := true; exception when others then null; end;
+  if mal then raise exception 'FALLO 343 · se admite una caducidad de enlace de varios días'; end if;
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = e) <> 'programado' then raise exception 'FALLO 343 · se anula un envío con un enlace de pago todavía abierto'; end if;
+  -- El enlace caducó hace 2 minutos: ahora sí se anula.
+  update envios set stripe_enlace_caduca_en = now() - interval '2 minutes' where id = e;
+  perform caducar_pagos_pendientes();
+  if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 343 · con el enlace de pago ya caducado el envío no se anula'; end if;
+  perform set_config('request.jwt.claim.role', '', true);
+  update parametros set valor = antes where clave = 'pago_previo_activo';
+  raise notice 'OK 343 · anulación por falta de pago: margen de 5 minutos y espera al enlace de pago abierto';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
