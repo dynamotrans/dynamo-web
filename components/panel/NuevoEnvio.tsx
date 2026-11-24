@@ -8,13 +8,14 @@ import { avisarNavegando, avisarNavegandoA } from './CargandoNavegacion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { plazoPagoPrevisto, crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { plazoPagoPrevisto, pagoPrevioPrevisto, crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import MedidasCamion, { altoAncho } from './nuevoEnvio/MedidasCamion';
 import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje, fechaHora } from '@/lib/formato';
 import CuentaAtras from './CuentaAtras';
 import { duracionTxt } from '@/lib/cuentaAtras';
+import { conTope } from '@/lib/conTope';
 import Cargando from '@/components/Cargando';
 import { NEGOCIACION } from '@/lib/envios';
 import { HORARIO_POR_DEFECTO, VERANO_GENERICO, tramosDe, enTemporada, mmddTxt } from '@/lib/horarios';
@@ -172,6 +173,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
   // Con pago por adelantado: hasta cuándo se podría pagar si se confirma ahora (se pide al
   // abrir la ventana de confirmar; si no llega, la ventana sale igual sin esa línea).
   const [plazoPago, setPlazoPago] = useState<{ limite: string; minutos: number } | null>(null);
+  // ¿Este envío nacerá pendiente de pago? Lo sabe la cuenta sin crédito (pagoPrevio) y, para
+  // las demás, lo dice la base de datos al abrir la ventana (primeros envíos, o crédito que no
+  // alcanza para este): así se avisa ANTES de crear, no después (usuario, 2026-11-24).
+  const [pagoPrevisto, setPagoPrevisto] = useState(false);
+  const avisaPago = esCliente && !manual && (pagoPrevio || pagoPrevisto);
   const [verProforma, setVerProforma] = useState(false);   // proforma orientativa del cálculo (sin crear el envío)
   // Email del cliente para el botón «Enviar por email a:» de la proforma (usuario,
   // 2026-11-13). Se pide YA al elegir el cliente — pedirlo al abrir la ventana hacía
@@ -1521,8 +1527,18 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         if (editar) { guardarEdicion(); return; }
                         if (!cliente) { setAviso('Para crear el envío hace falta el cliente: elígelo o dalo de alta en el paso 1. Sin cliente, esta pantalla solo calcula el precio.'); setPaso(1); return; }
                         for (const n of [1, 2, 3]) { const e = errorPaso(n); if (e) { setAviso(e); setPaso(n); return; } }
-                        setAviso(null); setAceptaLegal(true); setVerCondiciones(false); setRevisarLegal(true);
-                        if (esCliente && pagoPrevio && !manual) { setPlazoPago(null); plazoPagoPrevisto(fecha || null).then(setPlazoPago).catch(() => setPlazoPago(null)); }
+                        setAviso(null); setAceptaLegal(true); setVerCondiciones(false);
+                        if (esCliente && !manual) {
+                          // Se pregunta ANTES de abrir la ventana (con tope de 3 s): el aviso de pago
+                          // tiene que estar ya puesto cuando el cliente vaya a pulsar «Confirmar».
+                          setPlazoPago(null); setPagoPrevisto(false);
+                          const [plazo, previsto] = await Promise.all([
+                            conTope(plazoPagoPrevisto(fecha || null), null),
+                            !pagoPrevio && tarifa ? conTope(pagoPrevioPrevisto([tarifa.neto]), [] as boolean[]) : Promise.resolve([] as boolean[]),
+                          ]);
+                          setPlazoPago(plazo); setPagoPrevisto(previsto[0] === true);
+                        }
+                        setRevisarLegal(true);
                       }}
                       data-pista-accion disabled={enviando}>{enviando ? (editar ? 'Guardando cambios…' : 'Creando envío…') : editar ? 'Guardar cambios' : 'Crear envío'}</button>
                     {hayProforma && (
@@ -1655,20 +1671,23 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               (usuario, 2026-11-18); en su sitio queda la caja del tráiler. */}
           La <strong>cancelación o modificación reiterada</strong> de envíos, <strong>con o sin transportista asignado</strong>, puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso abusivo.
         </div></div>}
-        {/* SOLO cuentas con pago por adelantado (usuario, 2026-11-14): si no aplica, no
-            se dice nada. */}
-        {esCliente && pagoPrevio && !manual && (
-          <div className="modal-warn-box" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
-            <strong>Pago por adelantado.</strong> Tu cuenta opera con pago previo: al confirmar, el envío queda
-            <strong> pendiente de pago</strong> y te mandamos la <strong>proforma</strong>. El camión se asigna al
-            <strong> recibir el pago</strong> y la fecha de carga se calcula desde ese momento.
+        {/* Envío que nacerá PENDIENTE DE PAGO (cuenta sin crédito, primeros envíos o crédito que
+            no alcanza para este): se dice ANTES de crearlo, con el plazo, y se pregunta si lo va
+            a pagar — si no, que lo cree más tarde (usuario, 2026-11-24: «por evitar crear envíos
+            sin ser luego pagados»). Si no aplica, no se dice nada. Sin cifras ni motivos de crédito. */}
+        {avisaPago && (
+          <div className="modal-warn-box conf-pago" id="conf-pago" role="alert" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
+            <div className="conf-pago-tit">⚠ Este envío se paga por adelantado</div>
+            <p>Al confirmar queda <strong>pendiente de pago</strong> y te mandamos la <strong>proforma</strong>. No reservamos
+              el transporte hasta <strong>recibir el pago</strong>; la fecha de carga cuenta desde ese momento.</p>
             {plazoPago && (
-              <div id="conf-pago-plazo" style={{ marginTop: '0.4rem' }}>
-                <strong>Tienes {duracionTxt(plazoPago.minutos)} para pagar</strong> desde que confirmes (si confirmas ahora, hasta el <strong>{fechaHora(plazoPago.limite)}</strong>).
-                {' '}Con <strong>tarjeta</strong> queda pagado al momento. Por <strong>transferencia inmediata</strong>, hazla dentro de ese plazo y pulsa «Ya he hecho la transferencia» en el envío: el plazo se para mientras la validamos.
-                {' '}Si se pasa el plazo sin pago ni aviso, el envío y su proforma <strong>se anulan solos</strong> y hay que crear un envío nuevo.
-              </div>
+              <p id="conf-pago-plazo"><strong>Plazo para pagar: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes
+                (si confirmas ahora, hasta el <strong>{fechaHora(plazoPago.limite)}</strong>). Si en ese plazo no nos llega el pago con
+                <strong> tarjeta</strong> ni nos avisas de la <strong>transferencia</strong> desde el envío, el envío y su proforma
+                <strong> se anulan solos</strong> y tendrás que crear un envío nuevo, con el precio de ese momento.</p>
             )}
+            <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo ahora?</strong> Si no vas a tramitar el pago dentro del plazo,
+              no lo confirmes todavía: <strong>crea el envío más tarde</strong>, cuando vayas a pagarlo.</p>
           </div>
         )}
         {/* Los avisos del tráiler (accesos y medios de carga) y de los días hábiles ya no van

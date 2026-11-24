@@ -287,6 +287,20 @@ export async function plazoPagoPrevisto(carga: string | null): Promise<{ limite:
   return { limite: data, minutos: Math.round((Date.parse(data) - ahora) / 60000) };
 }
 
+// ¿Nacerían PENDIENTES DE PAGO estos envíos si se crean ahora? (usuario, 2026-11-24: «si sabemos
+// de antemano que no tendrá crédito para ese envío… que espere y cree el envío más tarde, por
+// evitar crear envíos sin ser luego pagados»). Lo dice la base de datos con la misma cuenta que
+// hará al crearlos; devuelve solo sí/no por envío, sin importes ni motivos de crédito.
+export async function pagoPrevioPrevisto(importes: number[]): Promise<boolean[]> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#pagoPrevioPrevisto", [importes]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.rol !== 'cliente') return [];
+  const limpios = importes.slice(0, 50).map((n) => (Number.isFinite(n) && n > 0 ? n : 0));
+  if (!limpios.length) return [];
+  const { data } = await s.supabase.rpc('pago_previo_previsto', { p_importes: limpios });
+  return Array.isArray(data) ? data.map((x) => x === true) : [];
+}
+
 // Envío con un operador PROPIO del cliente (manual, Dynamo no interviene): lo crea el
 // cliente, o un gestor de Dynamo con «Ver como» ese cliente (la vista decide p_cliente).
 export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'> & { operador_id: string; precio_acordado_operador: number | null }, paradas: ParadaNueva[]):

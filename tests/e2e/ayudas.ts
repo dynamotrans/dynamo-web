@@ -87,7 +87,7 @@ export async function envioProgramadoDelTransportista(campos = 'id') {
 // El cliente (ya dentro) crea un envío Sevilla → Madrid con el primer día posible. Ya no hay
 // solicitudes de precio: el tarifador pone el precio y el envío nace programado, tras marcar
 // las condiciones en la ventana de confirmación.
-export async function crearEnvioDeCliente(page: Page) {
+export async function crearEnvioDeCliente(page: Page, enConfirmar?: () => Promise<void>) {
   await page.goto('/panel/nuevo-envio');
   const sitio = page.locator('.ptar-route-row input[type=text]');
   await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
@@ -101,6 +101,7 @@ export async function crearEnvioDeCliente(page: Page) {
   await expect(page.locator('.ptar-sug-card .alm-price-base')).toBeVisible();
   await page.getByRole('button', { name: 'Crear envío' }).click();
   await page.locator('.dash-modal-card input[type=checkbox]').check();   // condiciones + cancelación
+  if (enConfirmar) await enConfirmar();   // lo que haya que mirar en la ventana de confirmar
   await page.getByRole('button', { name: 'Confirmar envío' }).click();
   await expect(page.getByText(/Envío #?\S+ creado/)).toBeVisible();
 }

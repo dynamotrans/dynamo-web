@@ -15394,3 +15394,70 @@ do $$ declare r jsonb; hoy date := (now() at time zone 'Europe/Madrid')::date; m
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 341 · Previsión de pago por adelantado ANTES de crear (usuario, 2026-11-24): sí/no por envío,
+-- con la misma cuenta que al crearlo, sin cifras; cada cliente solo pregunta por sí mismo.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid; uc uuid; a uuid; r boolean[]; antes jsonb; n numeric;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date;
+begin
+  select valor into antes from parametros where clave = 'pago_previo_activo';
+  update parametros set valor = 'true'::jsonb where clave = 'pago_previo_activo';
+  n := parametro_num('pago_previo_primeros_envios', 1);
+  insert into clientes (razon_social, cif) values ('Cliente Previsión 341 SL', 'B34100341') returning id into cli;
+  insert into auth.users (email) values ('prevision341@cliente.prueba') returning id into uc;
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = cli where id = uc;
+  update clientes set riesgo_cesce_euros = 5000, riesgo_manual_euros = 1000, exento_pago_previo_primer_envio = true where id = cli;
+  if has_function_privilege('anon', 'pago_previo_previsto(numeric[], uuid)', 'execute') then raise exception 'FALLO 341 · un visitante sin sesión puede preguntar la previsión de pago'; end if;
+
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  -- 1.000 € de crédito: 600 (726 con IVA) cabe; 400 (484) ya no; 200 (242) sí, porque el pendiente no gasta.
+  r := pago_previo_previsto(array[600, 400, 200]::numeric[]);
+  if r is distinct from array[false, true, false] then raise exception 'FALLO 341 · con crédito, la previsión de 600/400/200 sale %', r; end if;
+  if pago_previo_previsto('{}'::numeric[]) is distinct from '{}'::boolean[] then raise exception 'FALLO 341 · sin envíos no devuelve una lista vacía'; end if;
+  -- Pedir por OTRO cliente no sirve: el cliente siempre pregunta por sí mismo.
+  if pago_previo_previsto(array[600, 400]::numeric[], current_setting('prueba.cliente')::uuid) is distinct from array[false, true] then
+    raise exception 'FALLO 341 · un cliente puede preguntar la previsión de pago de otro cliente'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+
+  -- Cuadra con lo que pasa de verdad al crear: con 600 € ya a crédito, 400 no cabe y 200 sí.
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 600, lun) returning id into a;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (a, 1, 'carga', '41001', 'Sevilla', 'ES'), (a, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado = 'programado' where id = a;
+  if (select estado_pago_previo from envios where id = a) <> 'no_requerido' then raise exception 'FALLO 341 · el envío de 600 € no ha ido a crédito'; end if;
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  if pago_previo_previsto(array[400]::numeric[]) is distinct from array[true] or pago_previo_previsto(array[200]::numeric[]) is distinct from array[false] then
+    raise exception 'FALLO 341 · con 600 € ya usados, la previsión de 400 y de 200 no cuadra con el crédito que queda'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+
+  -- Regla del crédito apagada: con crédito concedido nunca se prevé pago por pasarse.
+  update parametros set valor = 'false'::jsonb where clave = 'credito_limite_exige_pago';
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  if pago_previo_previsto(array[5000]::numeric[]) is distinct from array[false] then raise exception 'FALLO 341 · con la regla del crédito apagada sigue previendo pago'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update parametros set valor = 'true'::jsonb where clave = 'credito_limite_exige_pago';
+
+  -- Primeros envíos (sin exención): mientras no haya envíos hechos, todos se pagan antes.
+  update envios set estado = 'cancelado' where id = a;
+  update clientes set exento_pago_previo_primer_envio = false where id = cli;
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  if n >= 1 and pago_previo_previsto(array[100, 100]::numeric[]) is distinct from array[true, true] then
+    raise exception 'FALLO 341 · en los primeros envíos del cliente no se prevé pago por adelantado'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+
+  -- Sin crédito: todos.
+  update clientes set riesgo_manual_euros = 0, exento_pago_previo_primer_envio = true where id = cli;
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  if pago_previo_previsto(array[100, 50]::numeric[]) is distinct from array[true, true] then raise exception 'FALLO 341 · sin crédito no se prevé pago por adelantado'; end if;
+  -- Pago por adelantado apagado: ninguno.
+  perform set_config('request.jwt.claim.sub', '', false);
+  update parametros set valor = 'false'::jsonb where clave = 'pago_previo_activo';
+  perform set_config('request.jwt.claim.sub', uc::text, false);
+  if pago_previo_previsto(array[100]::numeric[]) is distinct from array[false] then raise exception 'FALLO 341 · con el pago por adelantado apagado se prevé pago'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update parametros set valor = antes where clave = 'pago_previo_activo';
+  raise notice 'OK 341 · previsión de pago por adelantado antes de crear: crédito que no alcanza, primeros envíos, sin crédito y apagado';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

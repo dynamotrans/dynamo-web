@@ -12,10 +12,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMenuFuera } from './BotonNuevoEnvio';
-import { crearEnvio, crearEnvioCliente, sitiosDelCliente, kmRuta, factorTarifa, registrarConsultaPrecio, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearEnvioCliente, plazoPagoPrevisto, pagoPrevioPrevisto, sitiosDelCliente, kmRuta, factorTarifa, registrarConsultaPrecio, datosEditablesDeSitios, guardarEdicionesSitios, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { tramosDe } from '@/lib/horarios';
 import { calcularTarifa, aplicarDescuentoTarifa } from '@/lib/tarifador';
-import { fecha as fmtFecha, euros, hoyMadrid } from '@/lib/formato';
+import { fecha as fmtFecha, fechaHora, euros, hoyMadrid } from '@/lib/formato';
+import { duracionTxt } from '@/lib/cuentaAtras';
+import { conTope } from '@/lib/conTope';
 import { FORMAS, decimal, num, primerDia, resolverFicha, sumarHabiles, type CardEdit, type ClienteOpcion, type DatosSitios, type EdicionSitio, type Punto, type ReglasPrecio, type SitioOpcion, useEdicionesSitios } from './nuevoEnvio/comun';
 import { nombreParada } from '@/lib/edicionesSitios';
 import { telPuesto } from '@/lib/paises';
@@ -85,6 +87,10 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   // Sin la casilla, el botón no se bloquea en silencio: avisa de qué falta (como en Nuevo envío).
   const [faltaAcepta, setFaltaAcepta] = useState(false);
   const [verCond, setVerCond] = useState(false);
+  // Qué envíos de la lista nacerán pendientes de pago y con qué plazo: se pregunta al abrir la
+  // ventana de confirmar, para avisar ANTES de crearlos (usuario, 2026-11-24).
+  const [conPago, setConPago] = useState<Set<number>>(new Set());
+  const [plazoPago, setPlazoPago] = useState<{ limite: string; minutos: number } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
 
   // El factor del cliente va dentro del precio (como en Nuevo envío); sin él no se da precio.
@@ -206,7 +212,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
     finally { setTrabajando(null); }
   }
 
-  function abrirConfirmar() {
+  async function abrirConfirmar() {
     setAviso(null);
     if (!cliente) { setAviso('Elige primero el cliente.'); return; }
     const malas = pendientes.filter((f) => infos[f.k]?.error && !ESPERA.includes(infos[f.k].error!));   // las que solo esperan (precio, datos) no son un error
@@ -224,7 +230,18 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       return;
     }
     if (listas.length !== pendientes.length) { setAviso('Aún se están cargando datos o calculando precios: espera un momento y vuelve a pulsar.'); return; }
-    setAcepta(true); setConfirmar(true);
+    setAcepta(true); setConPago(new Set()); setPlazoPago(null);
+    if (esCliente) {
+      // Se pregunta ANTES de abrir la ventana (con tope de 3 s): el aviso de pago tiene que
+      // estar ya puesto cuando el cliente vaya a pulsar «Confirmar».
+      const orden = listas.map((f) => f.k);
+      const [previsto, plazo] = await Promise.all([
+        conTope(pagoPrevioPrevisto(listas.map((f) => infos[f.k]?.neto ?? 0)), [] as boolean[]),
+        conTope(plazoPagoPrevisto(null), null),
+      ]);
+      setConPago(new Set(orden.filter((_, i) => previsto[i] === true))); setPlazoPago(plazo);
+    }
+    setConfirmar(true);
   }
 
   async function crearTodos() {
@@ -430,7 +447,8 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
                 <li key={f.k}>
                   <span className="varios-conf-n">{filas.indexOf(f) + 1}</span>
                   <span className="varios-conf-ruta"><strong>{pob('carga') || '—'} → {pob('descarga') || '—'}</strong>
-                    <span className="meta">{f.urgencia === 'dia' ? fmtFecha(f.fecha) : `${corta(f.fecha)} a ${corta(infos[f.k]?.hasta || f.fecha)}`}{f.ref ? ` · ref. ${f.ref}` : ''}</span></span>
+                    <span className="meta">{f.urgencia === 'dia' ? fmtFecha(f.fecha) : `${corta(f.fecha)} a ${corta(infos[f.k]?.hasta || f.fecha)}`}{f.ref ? ` · ref. ${f.ref}` : ''}</span>
+                    {conPago.has(f.k) && <span className="varios-conf-pago">Se paga por adelantado</span>}</span>
                   <span className="varios-conf-precio">{euros(infos[f.k]?.neto ?? 0)}</span>
                 </li>
               );
@@ -441,6 +459,24 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
             <div><span>IVA ({iva} %)</span><span>{euros(total * iva / 100)}</span></div>
             <div className="total"><span>Total</span><span>{euros(total * (1 + iva / 100))}</span></div>
           </div>
+          {/* Los que nacerán pendientes de pago: se dice antes de crearlos y se pregunta si se van
+              a pagar (usuario, 2026-11-24). Sin cifras ni motivos de crédito. */}
+          {esCliente && conPago.size > 0 && (
+            <div className="modal-warn-box conf-pago" id="varios-conf-pago" role="alert" style={{ margin: '0.7rem 0 0' }}>
+              <div className="conf-pago-tit">⚠ {conPago.size === listas.length
+                ? (listas.length === 1 ? 'Este envío se paga por adelantado' : 'Estos envíos se pagan por adelantado')
+                : conPago.size === 1 ? '1 de estos envíos se paga por adelantado' : `${conPago.size} de estos envíos se pagan por adelantado`}</div>
+              <p>Al confirmar {conPago.size === 1 ? 'queda' : 'quedan'} <strong>pendiente{conPago.size === 1 ? '' : 's'} de pago</strong>, cada uno con su
+                <strong> proforma</strong>. No reservamos el transporte hasta <strong>recibir el pago</strong>.</p>
+              {plazoPago && (
+                <p><strong>Plazo para pagar: {duracionTxt(plazoPago.minutos)}</strong> desde que confirmes (si confirmas ahora, hasta el
+                  <strong> {fechaHora(plazoPago.limite)}</strong>). Si en ese plazo no nos llega el pago con <strong>tarjeta</strong> ni nos avisas de la
+                  <strong> transferencia</strong> desde el envío, el envío y su proforma <strong>se anulan solos</strong> y tendrás que crearlo de nuevo, con el precio de ese momento.</p>
+              )}
+              <p className="conf-pago-pregunta"><strong>¿Vas a pagarlo{conPago.size === 1 ? '' : 's'} ahora?</strong> Si no vas a tramitar el pago dentro del plazo,
+                no {conPago.size === 1 ? 'lo' : 'los'} confirmes todavía: <strong>créalo{conPago.size === 1 ? '' : 's'} más tarde</strong>, cuando vayas a pagar.</p>
+            </div>
+          )}
           <p className="varios-conf-nota">Cada envío sigue sus condiciones como si lo crearas uno a uno: costes de cancelación una vez asignado el transportista y, si tu cuenta paga por adelantado, su plazo de pago.</p>
           <button type="button" className="varios-conf-enlace" onClick={() => setVerCond((v) => !v)}>{verCond ? 'Ocultar' : 'Ver'} condiciones generales de transporte</button>
           {verCond && <div className="ptar-terms-scroll" style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.6rem 0.8rem' }}><CondicionesGenerales /></div>}

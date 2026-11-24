@@ -568,12 +568,26 @@ test.describe('novedades', () => {
   test('envío pendiente de pago: caja con botones al crearlo y email con cómo pagar y la proforma adjunta', async ({ page }) => {
     const sv = bd();
     const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
-    const { data: c } = await sv.from('clientes').select('riesgo_manual_euros').eq('id', u!.cliente_id).single();
-    // Con 1 € de crédito cualquier envío se queda pendiente de pago (no le cabe).
-    await sv.from('clientes').update({ riesgo_manual_euros: 1 }).eq('id', u!.cliente_id);
+    const { data: c } = await sv.from('clientes').select('riesgo_manual_euros, exento_pago_previo_primer_envio').eq('id', u!.cliente_id).single();
     try {
       await entrar(page, 'cliente');
-      await crearEnvioDeCliente(page);
+      // Con crédito de sobra (y sin la regla del primer envío) la ventana de confirmar NO habla
+      // del pago: el aviso solo sale cuando el envío va a nacer pendiente de pago.
+      await sv.from('clientes').update({ riesgo_manual_euros: 100000, exento_pago_previo_primer_envio: true }).eq('id', u!.cliente_id);
+      await crearEnvioDeCliente(page, async () => { await expect(page.locator('#conf-pago')).toHaveCount(0); });
+      await expect(page.locator('.exito-pago')).toHaveCount(0);
+      // Con 1 € de crédito cualquier envío se queda pendiente de pago (no le cabe): se avisa ANTES
+      // de crearlo, en naranja, con el plazo y la pregunta de si lo va a pagar (usuario, 2026-11-24).
+      await sv.from('clientes').update({ riesgo_manual_euros: 1 }).eq('id', u!.cliente_id);
+      await crearEnvioDeCliente(page, async () => {
+        const aviso = page.locator('#conf-pago');
+        await expect(aviso).toContainText('Este envío se paga por adelantado');
+        await expect(aviso.locator('#conf-pago-plazo')).toContainText(/Plazo para pagar: .*\d/);
+        await expect(aviso).toContainText('se anulan solos');
+        await expect(aviso).toContainText('¿Vas a pagarlo ahora?');
+        await expect(aviso).toContainText('crea el envío más tarde');
+        await expect(aviso).not.toContainText('€');   // sin cifras de crédito
+      });
       const caja = page.locator('.exito-pago');
       await expect(caja).toContainText('Pendiente de pago');
       await expect(caja.getByRole('button', { name: 'Pagar por transferencia' })).toBeVisible();
@@ -592,7 +606,7 @@ test.describe('novedades', () => {
       expect(adj[0].ContentType).toBe('application/pdf');
       expect(Buffer.from(adj[0].Content, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
     } finally {
-      await sv.from('clientes').update({ riesgo_manual_euros: c!.riesgo_manual_euros }).eq('id', u!.cliente_id);
+      await sv.from('clientes').update({ riesgo_manual_euros: c!.riesgo_manual_euros, exento_pago_previo_primer_envio: c!.exento_pago_previo_primer_envio }).eq('id', u!.cliente_id);
     }
   });
 
@@ -1006,6 +1020,11 @@ test.describe('novedades', () => {
       await expect(fila1.locator('.varios-res.error')).toHaveCount(0);
       await expect(fila1.locator('.varios-importe')).toContainText('€', { timeout: 15000 });
       await page.locator('#varios-crear').click();
+      // La cuenta de pruebas no tiene crédito: la ventana avisa en naranja, ANTES de crear, de que el
+      // envío se paga por adelantado y pregunta si se va a pagar (usuario, 2026-11-24).
+      await expect(page.locator('#varios-conf-pago')).toContainText('Este envío se paga por adelantado');
+      await expect(page.locator('#varios-conf-pago')).toContainText('¿Vas a pagarlo ahora?');
+      await expect(page.locator('#varios-conf-lista .varios-conf-pago')).toHaveCount(1);
       await page.locator('#varios-confirmar').click();
       // Se guarda en la ficha del sitio al crear.
       await expect.poll(async () => (await bd().from('contactos').select('telefono').eq('id', c!.id).single()).data?.telefono ?? '', { timeout: 20000 }).toContain('600123124');

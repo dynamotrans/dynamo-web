@@ -4827,6 +4827,7 @@ export type Database = {
       pago_limite: { Args: { p_desde: string | null; p_carga?: string | null }; Returns: string }
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_motivo_credito: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
+      pago_previo_previsto: { Args: { p_importes: number[] | null; p_cliente?: string | null }; Returns: boolean[] }
       pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number; pago_avisado_en: string }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
       paradas_json: { Args: { p_envio: string | null }; Returns: Json }
