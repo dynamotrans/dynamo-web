@@ -1,16 +1,21 @@
 import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-// Stripe sin librería: dos llamadas (crear la página de pago y comprobar la firma del
-// aviso). Claves SOLO en Vercel: STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET (nunca en el
+// Stripe sin librería: crear el pago (en su página o en una ventana nuestra) y comprobar la
+// firma del aviso. Claves SOLO en Vercel: STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET (nunca en el
 // chat ni con NEXT_PUBLIC_). Sin ellas, el pago con tarjeta no aparece.
 export const stripeListo = () => !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-/** Crea una sesión de Stripe Checkout y devuelve su URL. */
-export async function crearPagoStripe(p: { envioId: string; referencia: string; centimos: number; email: string | null; vuelta: string; descripcion: string; expiraEn?: Date | null }): Promise<string> {
+type DatosPago = { envioId: string; referencia: string; centimos: number; email: string | null; vuelta: string; descripcion: string; expiraEn?: Date | null };
+type RespuestaSesion = { url?: string; client_secret?: string; error?: { message?: string; param?: string } } | null;
+
+// Lo común de una sesión de pago (la página de Stripe o la ventana dentro de la plataforma).
+// `tanda`: el tramo de 10 minutos de la clave de idempotencia; los topes de caducidad se
+// calculan desde su inicio para que dos clics seguidos manden exactamente lo mismo (si no,
+// Stripe rechaza el segundo).
+function camposSesion(p: DatosPago): { f: URLSearchParams; tanda: number } {
   const f = new URLSearchParams({
     mode: 'payment', locale: 'es', client_reference_id: p.envioId,
-    success_url: `${p.vuelta}&pago=ok`, cancel_url: `${p.vuelta}&pago=cancelado`,
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': 'eur',
     'line_items[0][price_data][unit_amount]': String(p.centimos),
@@ -20,23 +25,57 @@ export async function crearPagoStripe(p: { envioId: string; referencia: string; 
     'payment_intent_data[description]': `Dynamo · envío ${p.referencia}`,
   });
   if (p.email) f.set('customer_email', p.email);
-  // La página de pago caduca con el plazo para pagar (Stripe admite entre 30 min y 24 h).
-  // Los topes se calculan desde el inicio de la tanda de 10 min de la clave de idempotencia:
-  // dos clics seguidos mandan exactamente lo mismo (si no, Stripe rechaza el segundo).
+  // El pago caduca con el plazo para pagar (Stripe admite entre 30 min y 24 h).
   const tanda = Math.floor(Date.now() / 600000) * 600000;
   if (p.expiraEn) {
     const t = Math.min(Math.max(p.expiraEn.getTime(), tanda + 41 * 60000), tanda + 23.5 * 3600000);
     f.set('expires_at', String(Math.floor(t / 1000)));
   }
+  return { f, tanda };
+}
+async function pedirSesion(f: URLSearchParams, clave: string): Promise<{ ok: boolean; j: RespuestaSesion }> {
   const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST', body: f,
     headers: { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, 'content-type': 'application/x-www-form-urlencoded',
       // Mismo envío e importe en 10 minutos → la misma sesión (dos clics no crean dos pagos).
-      'idempotency-key': `envio-${p.envioId}-${p.centimos}-${tanda / 600000}` },
+      'idempotency-key': clave },
   });
-  const j = await r.json();
-  if (!r.ok || !j.url) throw new Error(j?.error?.message ?? 'Stripe no ha devuelto la página de pago.');
-  return j.url as string;
+  return { ok: r.ok, j: await r.json().catch(() => null) as RespuestaSesion };
+}
+
+/** Crea una sesión de Stripe Checkout (su página de pago) y devuelve su URL. */
+export async function crearPagoStripe(p: DatosPago): Promise<string> {
+  const { f, tanda } = camposSesion(p);
+  f.set('success_url', `${p.vuelta}&pago=ok`); f.set('cancel_url', `${p.vuelta}&pago=cancelado`);
+  const { ok, j } = await pedirSesion(f, `envio-${p.envioId}-${p.centimos}-${tanda / 600000}`);
+  if (!ok || !j?.url) throw new Error(j?.error?.message ?? 'Stripe no ha devuelto la página de pago.');
+  return j.url;
+}
+
+// PAGO EN VENTANA, sin salir de la plataforma (usuario, 2026-11-23/24): la misma sesión de
+// pago, pero para pintarla dentro de una ventana nuestra. Devuelve el «secreto de cliente»
+// con el que el navegador la monta. Stripe cambió el nombre de este modo en marzo de 2026
+// («embedded» → «embedded_page»): se pide con el nuevo y, si la cuenta va con una versión
+// anterior y no lo conoce, con el de antes.
+export const clavePublicaStripe = (): string | null => {
+  const e = process.env as Record<string, string | undefined>;   // leída al atender, no al compilar
+  const k = (e['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'] ?? e['STRIPE_PUBLISHABLE_KEY'] ?? '').trim();
+  return /^pk_(test|live)_[A-Za-z0-9]+$/.test(k) ? k : null;
+};
+export async function crearPagoEnVentana(p: DatosPago): Promise<string> {
+  let ultimo: RespuestaSesion = null;
+  for (const modo of ['embedded_page', 'embedded']) {
+    const { f, tanda } = camposSesion(p);
+    f.set('ui_mode', modo);
+    // Tarjeta, Apple Pay y Google Pay terminan en la propia ventana; los medios que obligan a
+    // salir (redirección al banco) vuelven a la ficha del envío.
+    f.set('redirect_on_completion', 'if_required'); f.set('return_url', `${p.vuelta}&pago=ok`);
+    const { ok, j } = await pedirSesion(f, `envio-ventana-${modo}-${p.envioId}-${p.centimos}-${tanda / 600000}`);
+    if (ok && j?.client_secret) return j.client_secret;
+    ultimo = j;
+    if (j?.error?.param !== 'ui_mode') break;   // otro fallo: no es cosa del nombre del modo
+  }
+  throw new Error(ultimo?.error?.message ?? 'Stripe no ha devuelto la ventana de pago.');
 }
 
 /** Comprueba la firma del aviso de Stripe (cabecera Stripe-Signature) y devuelve el evento. */

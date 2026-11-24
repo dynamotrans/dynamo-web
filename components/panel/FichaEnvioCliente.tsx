@@ -14,11 +14,12 @@ import { avisarNavegando } from './CargandoNavegacion';
 import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
 import Modal from './Modal';
+import PagoTarjeta from './PagoTarjeta';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, porcentaje, tipoCargaTxt, alturaMaxTxt } from '@/lib/formato';
-import { estadoVisual, fechaEntrega, type CambioPendiente, type EnvioFila, type Parada } from '@/lib/envios';
+import { esPendientePago, estadoVisual, fechaEntrega, type CambioPendiente, type EnvioFila, type Parada } from '@/lib/envios';
 import type { Funcion } from '@/lib/supabase/tipos';
 import { paisDe, telBonito } from '@/lib/paises';
 import { avisarPagoTransferencia, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio, guardarPrecioEnvioManual, enviarOrdenEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
@@ -330,7 +331,11 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
             <div className="pen-sum-row"><span className="k">Transporte</span><span className="v">
               {e.estado === 'entregado' ? 'Entregado' : reservado
                 ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
-                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Asignando transportista</span>}
+                // Sin transportista: lo mismo que el estado de la lista (usuario, 2026-11-24):
+                // «Programado» mientras falta, «Asignando transportista» cuando ya toca.
+                : e.asignando || asignandose
+                  ? <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Asignando transportista</span>
+                  : <span className="asig-line asig-espera" style={{ marginTop: 0 }}><span className="asig-dot" />{esPendientePago(e) ? 'Se asigna al pagar' : 'Programado'}</span>}
             </span></div>
             <div className="pen-sum-row"><span className="k">Matrícula</span><span className="v">
               {e.matricula_camion ? <span className="dtc-mat">{e.matricula_camion}</span> : reservado && e.estado !== 'entregado' ? <Reservado que="matrículas pendientes de anotar" /> : <Pend />}
@@ -553,7 +558,7 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
           {/* Con la transferencia ya avisada no se ofrece la tarjeta (usuario, 2026-11-23): pagaría dos veces. */}
           {e.tarjeta && !p.pago_avisado_en
-            ? <form action="/api/stripe/pago" method="post"><input type="hidden" name="envio" value={e.id} /><button type="submit" className="btn-primary" id="pago-tarjeta">Pagar {total} con tarjeta</button></form>
+            ? <PagoTarjeta envioId={e.id} id="pago-tarjeta" texto={`Pagar ${total} con tarjeta`} />
             : null}
           <a className="btn-secondary" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Ver proforma (transferencia)</a>
           {!p.pago_avisado_en && !preguntaAviso && <button type="button" id="pago-avisar" className="btn-primary" onClick={() => { setResAviso(null); setPreguntaAviso(true); }}>Ya he hecho la transferencia</button>}

@@ -38,6 +38,6 @@ export function etiquetaEtapa(estado: string | null | undefined, parada?: number
   if (estado === 'en_ruta') return { label: parada && parada >= 2 ? `En ruta a ${ordinal(parada)} parada` : 'En ruta', color: 'enruta' };
   return ESTADOS_ENVIO[estado as EstadoEnvio] ?? { label: estado ?? '', color: 'prog' };
 }
-/** Programado sin camión: «Asignando transportista» a menos de 36 h (lo dice la base de datos); con camión, «Confirmado». */
+/** Programado sin camión: «Asignando transportista» a menos de 12 h (parámetro; lo dice la base de datos); con camión, «Confirmado». */
 export const ESTADO_ASIGNANDO = { label: 'Asignando transportista', color: 'asignando' };
 export const ESTADO_CONFIRMADO = { label: 'Confirmado', color: 'confirmado' };

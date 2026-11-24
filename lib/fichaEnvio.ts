@@ -51,6 +51,7 @@ export type Ficha = {
   difusion: DifusionFicha | null;   // última oferta escalonada del envío (activa o terminada)
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
   enVistaCliente?: boolean;
+  asignando?: boolean;   // sin transportista y ya a menos de las horas del parámetro: se ve «Asignando transportista»
   entrega?: { desde: string | null; hasta: string | null } | null;   // entrega estimada (entregas_estimadas)   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Con transportista y sin las matrículas que pide el documento de control (camión y, en un
   // tráiler, semirremolque): la ficha lo avisa (no bloquea nada).

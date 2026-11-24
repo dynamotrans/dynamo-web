@@ -302,7 +302,11 @@ export default function FichaEnvio({ ficha, cerrarHref, pendiente = null, esMast
             <div className="pen-sum-row"><span className="k">Transporte</span><span className="v">
               {e.estado === 'entregado' ? 'Entregado' : ficha.transportista
                 ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado</span>
-                : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Sin transportista todavía</span>}
+                // Sin transportista: lo mismo que el estado de la lista (usuario, 2026-11-24):
+                // «Programado» mientras falta, «Asignando transportista» cuando ya toca.
+                : ficha.asignando
+                  ? <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Asignando transportista</span>
+                  : <span className="asig-line asig-espera" style={{ marginTop: 0 }}><span className="asig-dot" />{ficha.pago?.estado === 'pendiente' ? 'Se asigna al pagar' : 'Programado'}</span>}
             </span></div>
             {ficha.transportista && <>
               <div className="pen-sum-row"><span className="k">Transportista</span><span className="v">{ficha.transportista.nombre} · {ficha.transportista.cif}</span></div>

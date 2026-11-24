@@ -24,6 +24,7 @@ import { paisDe as nombrePais } from '@/lib/paises';
 import { nombreTipo } from './TipoSitio';
 import { Base, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles, useEdicionesSitios } from './nuevoEnvio/comun';
 import { nombreParada } from '@/lib/edicionesSitios';
+import PagoTarjeta from './PagoTarjeta';
 import { telPuesto } from '@/lib/paises';
 import { diaCierrePrecio } from '@/lib/fechasCarga';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
@@ -1079,10 +1080,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
               )}
               <div className="ep-botones">
                 {tarjeta && creado.id && (
-                  <form action="/api/stripe/pago" method="post">
-                    <input type="hidden" name="envio" value={creado.id} />
-                    <button type="submit" className="btn-primary">Pagar con tarjeta</button>
-                  </form>
+                  <PagoTarjeta envioId={creado.id} texto="Pagar con tarjeta" />
                 )}
                 <button type="button" className={tarjeta && creado.id ? 'btn-secondary' : 'btn-primary'} onClick={() => ir(destinoCreado!)}>Pagar por transferencia</button>
               </div>

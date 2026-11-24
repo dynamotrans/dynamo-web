@@ -47,7 +47,7 @@ export type EnvioFila = {
   estado_cambio_cliente?: string | null;   // el cliente ha pedido un cambio (pendiente / aplicado / …)
   requiere_revision_precio?: boolean | null;         // la ruta ha cambiado y el precio no se ha revisado
   // Seguimiento (seguimiento_envios): parada en la que está o a la que va, su tipo, y si
-  // un programado sin camión ya se ve como «Asignando transportista» (a menos de 36 h).
+  // un programado sin camión ya se ve como «Asignando transportista» (a menos de 12 h; parámetro).
   parada_actual?: number | null; tipo_parada?: string | null; asignando?: boolean | null;
   fecha_carga_prevista?: string | null; automatico?: boolean | null;
 };

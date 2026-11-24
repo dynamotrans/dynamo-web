@@ -411,5 +411,5 @@ export const AYUDA: Record<string, Ayuda> = {
     ejemplo: (v) => `Con ${v}: un tramo sin datos se calcula como ${v} km.` },
   seguimiento_horas_asignando: { titulo: 'Horas antes de cargar para «Asignando transportista»',
     explica: 'Un envío sin transportista se ve como «Programado» hasta que faltan estas horas para la primera posibilidad de cargar (primer día de la ventana, a la hora en que abre la 1.ª parada); entonces pasa a verse «Asignando transportista».',
-    ejemplo: (v) => `Con ${v} h: carga el jueves a las 8:00 → desde el ${Number(v) === 36 ? 'martes a las 20:00' : `${v} h antes`} sale «Asignando transportista».` },
+    ejemplo: (v) => `Con ${v} h: carga el jueves a las 8:00 → desde ${Number(v) === 12 ? 'el miércoles a las 20:00' : Number(v) === 36 ? 'el martes a las 20:00' : `${v} h antes`} sale «Asignando transportista».` },
 };

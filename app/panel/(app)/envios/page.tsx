@@ -187,7 +187,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     }
   }
   // Seguimiento: en qué parada está cada uno y si un programado sin camión ya está «Asignando
-  // transportista» (a menos de 36 h de poder cargar). Lo calcula la base de datos.
+  // transportista» (a menos de 12 h de poder cargar; parámetro). Lo calcula la base de datos.
   if (filas.length) {
     const { data: seg } = await supabase.rpc('seguimiento_envios', { p_ids: filas.map((f) => f.id) });
     const m = new Map((seg ?? []).map((x) => [x.envio_id, x]));
@@ -235,7 +235,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const r = await cargarFicha(supabase, sp.ver);
     // La entrega estimada (fijada o la ventana desde la recogida), como en la lista.
     const { data: ent } = r.ficha ? await supabase.rpc('entregas_estimadas', { p_ids: [r.ficha.envio.id] }).maybeSingle() : { data: null };
-    ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente', entrega: ent ? { desde: ent.desde, hasta: ent.hasta } : null } : null; errorFicha = r.error;
+    // ¿Ya se ve «Asignando transportista»? Lo mismo que en la lista (lo dice la base de datos).
+    const { data: sg } = r.ficha ? await supabase.rpc('seguimiento_envios', { p_ids: [r.ficha.envio.id] }).maybeSingle() : { data: null };
+    ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente', entrega: ent ? { desde: ent.desde, hasta: ent.hasta } : null, asignando: sg?.asignando === true } : null; errorFicha = r.error;
     // Red de seguridad del archivo de copias del DeCA: si la versión de ahora no está
     // guardada (p. ej. una firma hecha sin clave de servicio), se guarda al abrir la ficha.
     if (r.ficha && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
@@ -275,6 +277,11 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       const { data: corte } = fc ? await supabase.rpc('corte_cancelacion', { p_fecha_carga: fc }) : { data: null };
       // ¿Hay un transportista asignándose ahora mismo? Mientras dura, ni modificar ni cancelar.
       const { data: asig } = await supabase.rpc('mi_envio_asignandose', { p_envio: base.id });
+      // Abierta por enlace directo no trae el seguimiento de la lista: se pide aquí.
+      if (base.asignando === undefined) {
+        const { data: sg } = await supabase.rpc('seguimiento_envios', { p_ids: [base.id] }).maybeSingle();
+        base = { ...base, asignando: sg?.asignando === true };
+      }
       // Pago con tarjeta: solo si Stripe está conectado (claves en Vercel).
       fichaCli = { ...base, asignandose: asig === true, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, cambio: cb ?? null, revision: rv ?? null, corte: (corte as string | null) ?? null,
         tarjeta: stripeListo(), pagoVuelta: sp.pago ?? null };

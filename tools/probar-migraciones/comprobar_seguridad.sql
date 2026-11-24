@@ -15364,3 +15364,12 @@ begin
   raise notice 'OK 338 · rutas guardadas: la ida vale para la vuelta (km y trazado), y manda el sentido exacto si está';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 339 · «Asignando transportista» se ve a 12 h de poder cargar (usuario, 2026-11-24; antes 36).
+do $$
+begin
+  if (parametro('seguimiento_horas_asignando') #>> '{}')::numeric <> 12 then
+    raise exception 'FALLO 339 · «Asignando transportista» debe salir a 12 h y está a % h', parametro('seguimiento_horas_asignando') #>> '{}';
+  end if;
+  raise notice 'OK 339 · «Asignando transportista» se ve a 12 h de la primera posibilidad de cargar';
+end $$;
