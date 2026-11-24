@@ -1415,14 +1415,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   {/* La tarjeta del camión/mercancía y el aviso del tráiler, ENCIMA del
                       desglose del importe (usuario, 2026-11-11): lo que se cotiza, a la vista. */}
                   <BloquePrecio tarifa={tarifa} ivaPct={ivaPct}
-                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
+                    cargando={rutaCompleta && !kmInfo} pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null}
                     encima={tarjetaMercancia} onElegir={elegirAlternativa} />
                   {/* Fuera la caja de «precio en firme en 25 minutos» (usuario, 2026-11-12):
                       el precio del tarifador ya es el definitivo, igual que en admin. */}
                   {navBotones}
                 </>) : <>
                 <BloquePrecio tarifa={tarifa} ivaPct={ivaPct}
-                  cargando={rutaCompleta && !kmInfo} paraCliente={false} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'}
+                  cargando={rutaCompleta && !kmInfo} pasada={fechaPasada} fechaFija={urgencia === 'dia' ? fecha || null : null}
                   encima={tarjetaMercancia} onElegir={elegirAlternativa} />
                 {navBotones}
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
@@ -1496,7 +1496,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 : esCliente
                 ? <>
                   <BloquePrecio tarifa={tarifa} ivaPct={ivaPct}
-                    cargando={rutaCompleta && !kmInfo} paraCliente pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} corta={urgencia === 'corta'} soloImportes onElegir={elegirAlternativa} />
+                    cargando={rutaCompleta && !kmInfo} pasada={false} fechaFija={urgencia === 'dia' ? fecha || null : null} onElegir={elegirAlternativa} />
                   {editarCliente && precioAntesCli != null && tarifa && (
                     <div className="ptar-confirm-price" style={{ marginTop: '0.6rem' }}>
                       <div className="alm-price-row alm-price-sub"><span className="k">Precio antes → ahora (sin IVA)</span>

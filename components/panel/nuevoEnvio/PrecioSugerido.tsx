@@ -5,8 +5,7 @@
 //      estimada» y el «Camión completo · km» se quitaron el 2026-11-18).
 //   2. Caja blanca con el desglose SIEMPRE visible: importe de envío + suplementos →
 //      Base imponible (grande, morado, con efecto contador) → IVA → Total.
-//   3. Alternativas más baratas: cabecera contextual («Has seleccionado FECHA FIJA URGENTE…
-//      ¿No te corre prisa?») y tarjetas con icono, precio grande, «Elegir ›» y «Ahorras X €»;
+//   3. Alternativas más baratas: cabecera («¿No te corre prisa? Puedes cambiar a:») y tarjetas con icono, precio grande, «Elegir ›» y «Ahorras X €»;
 //      la recomendada con borde verde y pill RECOMENDADA.
 // Y, solo para Dynamo, la tabla «Precios internos»: Tarifador hoy · Último (mismo) ·
 // Último (todos) · Aplicado (media auto) + Margen peor/mejor caso.
@@ -51,16 +50,13 @@ const IcoVentCal = () => (
   </svg>
 );
 
-export function BloquePrecio({ tarifa, cargando, paraCliente, ivaPct, pasada, fechaFija, corta = false, encima = null, soloImportes = false, onElegir }: {
+export function BloquePrecio({ tarifa, cargando, ivaPct, pasada, fechaFija, encima = null, onElegir }: {
   tarifa: Tarifa | null;
   cargando: boolean;
-  paraCliente: boolean;                 // true: lo ve el cliente (su precio, con entrega estimada y alternativas)
   ivaPct: number;
   pasada: boolean;                      // fecha ya pasada (registro a posteriori del Admin Master)
   fechaFija: string | null;             // la fecha elegida cuando es fecha fija (para la cabecera)
-  corta?: boolean;                      // la ventana corta de grupaje (1 a 2 días) está elegida
   encima?: React.ReactNode;             // lo que se cotiza (tarjeta del camión/mercancía), justo encima del desglose
-  soloImportes?: boolean;               // paso 4 Revisión: sin la nota de «Precio calculado con tu tarifa…»
   onElegir: (urgencia: 'dia' | 'estandar' | 'corta', fecha: string) => void;
 }) {
   const neto = usePrecioAnimado(tarifa?.neto ?? null);
@@ -73,7 +69,6 @@ export function BloquePrecio({ tarifa, cargando, paraCliente, ivaPct, pasada, fe
     );
   }
   if (!tarifa || neto == null) return null;
-  const urgente = tarifa.alternativas.length === 2;   // fija el primer día disponible
   return (
     <div className="ptar-field ptar-field-full ptar-sug-card">
       {/* Sin cabecera («Precio del envío · con tu tarifa»), sin «Fecha entrega estimada» y sin
@@ -98,9 +93,8 @@ export function BloquePrecio({ tarifa, cargando, paraCliente, ivaPct, pasada, fe
       {tarifa.alternativas.length > 0 && (
         <div className="ptar-eta-fija">
           <div className="eta-fija-head">
-            {corta
-              ? <>Has seleccionado la <strong>ventana corta de 1 a 2 días</strong>, con su suplemento.<br /><strong>¿No te corre prisa?</strong> Puedes cambiar a:</>
-              : <>Has seleccionado <strong>FECHA FIJA{urgente ? ' URGENTE' : ''}{fechaFija ? ` (${fmtFecha(fechaFija)})` : ''}</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br /><strong>¿No te corre prisa?</strong> Puedes cambiar a:</>}
+            {/* Solo la pregunta (usuario, 2026-11-24): lo de «Has seleccionado FECHA FIJA…» no aportaba. */}
+            <strong>¿No te corre prisa?</strong> Puedes cambiar a:
           </div>
           <div className="eta-opts">
             {tarifa.alternativas.map((a, i) => (
@@ -120,10 +114,6 @@ export function BloquePrecio({ tarifa, cargando, paraCliente, ivaPct, pasada, fe
           </div>
         </div>
       )}
-
-      {paraCliente && !soloImportes && <p className="ptar-admin-precio-note" style={{ marginTop: '0.5rem' }}>
-        Precio calculado con <strong>tu tarifa</strong> y la información de la ruta y la mercancía: es el que se aplica al crear el envío.
-      </p>}
     </div>
   );
 }
