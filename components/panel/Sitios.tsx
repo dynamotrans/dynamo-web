@@ -14,6 +14,7 @@ import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_SITIO } from './TipoSitio';
+import { buscarDirecciones, CON_GOOGLE, nuevaSesionGoogle, type Direccion } from './direcciones';
 import { guardarSitio, borrarSitio, marcarPrincipal, buscarClientes, buscarAgendaSitios, buscarSitiosGoogle, detalleSitioGoogle, leerSitio, sitioParecido, type SitioDatos, type ClienteOpcion, type SitioGoogle } from '@/app/panel/(app)/sitios/acciones';
 
 import { euros, fechaHora, numero } from '@/lib/formato';
@@ -60,27 +61,10 @@ function datosDeFicha(fila: SitioFila | null, veranoDefecto: FechasVerano, almac
   return o as SitioDatos;
 }
 
-// Direcciones de OpenStreetMap (Nominatim) para el nivel «Dirección» del buscador: gratis
-// y sin clave, como en la web pública. Si falla, el buscador sigue con agenda + Google.
-export type DirOSM = { etiqueta: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string };
-export async function buscarDireccionesOSM(q: string): Promise<DirOSM[]> {
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=3&accept-language=es&q=${encodeURIComponent(q)}`);
-    if (!r.ok) return [];
-    const j = (await r.json()) as { display_name?: string; address?: Record<string, string> }[];
-    return j.map((it) => {
-      const a = it.address ?? {};
-      const loc = a.city || a.town || a.village || a.municipality || '';
-      return {
-        etiqueta: (it.display_name ?? '').split(',').slice(0, 3).join(',').trim(),
-        direccion: [a.road ?? a.pedestrian ?? '', a.house_number ?? ''].filter(Boolean).join(', '),
-        codigo_postal: a.postcode ?? '', poblacion: loc,
-        provincia: a.province || (a.state && a.state !== loc ? a.state : '') || '',
-        pais: (a.country_code ?? 'es').toUpperCase(),
-      };
-    }).filter((x) => x.direccion || x.poblacion);
-  } catch { return []; }
-}
+// El nivel «Dirección» del buscador (./direcciones): con Google, las direcciones salen ya en
+// la lista de Google; sin claves (pruebas y local) queda la reserva libre.
+export type DirOSM = Direccion;
+export const buscarDireccionesOSM = (q: string) => buscarDirecciones(q, '');
 
 const IcoEstrella = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>);
 const IcoPin = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>);
@@ -235,7 +219,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const bqViva = useRef('');
   // Google factura juntas las sugerencias y la ficha del sitio elegido si van con la misma
   // «sesión»: un identificador por búsqueda, que se renueva al elegir.
-  const nuevaSesion = () => (globalThis.crypto?.randomUUID?.() ?? `s${Date.now()}${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, '');
+  const nuevaSesion = nuevaSesionGoogle;
   const sesionGoogle = useRef('');
   const [cargandoGoogle, setCargandoGoogle] = useState(false);
   const elegidoTxt = useRef('');   // lo último ELEGIDO: ese texto no relanza la búsqueda
@@ -248,7 +232,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       const [ag, go, dir] = await Promise.all([
         buscarAgendaSitios(q, d.cliente_id || null).catch(() => []),
         buscarSitiosGoogle(q, (sesionGoogle.current ||= nuevaSesion())).catch(() => []),
-        buscarDireccionesOSM(q).catch(() => []),
+        // Con Google, las direcciones ya vienen en su lista: nada de OpenStreetMap.
+        CON_GOOGLE ? Promise.resolve([] as DirOSM[]) : buscarDireccionesOSM(q).catch(() => []),
       ]);
       if (bqViva.current === q) { setSug({ ag, go, dir }); setSugAbierto(true); }
     }, 350);
@@ -264,7 +249,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       const sesion = sesionGoogle.current || nuevaSesion();
       sesionGoogle.current = '';   // la siguiente búsqueda es otra sesión
       setCargandoGoogle(true);
-      const r = await detalleSitioGoogle(sugerida.place_id, sesion).catch(() => ({ ok: false as const, error: 'No se ha podido hablar con Google. Rellena la ficha a mano.' }));
+      const r = await detalleSitioGoogle(sugerida.place_id, sesion, !!sugerida.es_direccion).catch(() => ({ ok: false as const, error: 'No se ha podido hablar con Google. Rellena la ficha a mano.' }));
       setCargandoGoogle(false);
       if (!r.ok) {
         // Sin datos de Google: se queda con el nombre y se rellena el resto a mano.
@@ -276,8 +261,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       g = r.sitio;
     }
     const conHorario = !!g.horario?.length;
+    // Una DIRECCIÓN (calle, población) no es el nombre de la empresa: ese se escribe a mano.
+    const soloDir = !!(g.es_direccion ?? sugerida.es_direccion);
+    const titulo = soloDir ? (g.etiqueta || sugerida.empresa) : g.empresa;
     setD((x) => conProvinciaDelCp({
-      ...x, nombre_empresa: g.empresa, direccion: g.direccion, codigo_postal: g.codigo_postal,
+      ...x, nombre_empresa: soloDir ? x.nombre_empresa : g.empresa, direccion: g.direccion || (soloDir ? sugerida.empresa : ''), codigo_postal: g.codigo_postal,
       poblacion: g.poblacion, provincia: g.provincia, pais_codigo_iso: g.pais_codigo_iso || 'ES',
       url_google_maps: g.url_google_maps,
       // El horario de Google es una propuesta sin verificar (usuario, 2026-11-23).
@@ -286,10 +274,10 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         ? x.contactos.map((c, i) => (i === 0 ? { ...c, telefono: g.telefono } : c))
         : x.contactos,
     }, g.pais_codigo_iso || 'ES'));
-    elegidoTxt.current = g.empresa;
+    elegidoTxt.current = titulo;
     setCamposLibres(true);
-    setBq(g.empresa);
-    sitioParecido(d.cliente_id || null, g.empresa, g.codigo_postal).then(setAvisoParecido).catch(() => {});
+    setBq(titulo);
+    if (!soloDir) sitioParecido(d.cliente_id || null, g.empresa, g.codigo_postal).then(setAvisoParecido).catch(() => {});
   }
   // El comparador de duplicados al guardar: el registro guardado entero + lo que ibas a
   // crear, campo a campo, con flecha para copiar y «Tu registro» editable.
@@ -529,7 +517,8 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
                 ))}
                 {sug.go.map((g, i) => (
                   <li key={`g${i}`} data-sug-google onMouseDown={(e) => { e.preventDefault(); void elegirGoogle(g); }}>
-                    <span className="sug-chip sug-chip-google">Google</span><strong>{g.empresa}</strong><span className="sug-dir">{g.etiqueta}</span>
+                    {g.es_direccion ? <span className="sug-chip sug-chip-addr">Dirección</span> : <span className="sug-chip sug-chip-google">Google</span>}
+                    <strong>{g.empresa}</strong><span className="sug-dir">{g.etiqueta}</span>
                   </li>
                 ))}
                 {sug.dir.map((x, i) => (

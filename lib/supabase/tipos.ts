@@ -1220,6 +1220,7 @@ export type Database = {
           creado_por: string | null
           modificado_en: string | null
           modificado_por: string | null
+          linea: string | null
         }
         Insert: {
           id?: string
@@ -1234,6 +1235,7 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          linea?: string | null
         }
         Update: {
           id?: string
@@ -1248,6 +1250,7 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          linea?: string | null
         }
         Relationships: [
         ]
@@ -1266,6 +1269,7 @@ export type Database = {
           creado_por: string | null
           modificado_en: string | null
           modificado_por: string | null
+          linea: string | null
         }
         Insert: {
           id?: string
@@ -1280,6 +1284,7 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          linea?: string | null
         }
         Update: {
           id?: string
@@ -1294,6 +1299,7 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+          linea?: string | null
         }
         Relationships: [
           {

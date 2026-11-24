@@ -637,8 +637,9 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         });
         if (Date.now() - p.timestamp > 40 * 60 * 1000) return null;   // nunca una posición vieja
         const g: NonNullable<DatosFirma['gps']> = { lat: p.coords.latitude, lon: p.coords.longitude, precision_m: Math.round(p.coords.accuracy) };
-        try {
-          // La dirección aproximada de esas coordenadas (geocodificado inverso de OSM).
+        // Con Google, la dirección aproximada la pone el servidor al guardar la firma; sin sus
+        // claves (pruebas y local), la reserva libre desde aquí.
+        if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) try {
           const rg = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=es&lat=${g.lat}&lon=${g.lon}`);
           const j = (await rg.json()) as { display_name?: string };
           if (j?.display_name) g.direccion = String(j.display_name).slice(0, 300);

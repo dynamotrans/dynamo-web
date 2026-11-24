@@ -2,16 +2,63 @@ import 'server-only';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { claveParada } from '@/lib/mapaEnvio';
 
-// Centro de un código postal con OpenStreetMap (Nominatim), SOLO desde el servidor y solo la
-// primera vez: el resultado se guarda en geo_codigos_postales y no se vuelve a pedir. Normas de
-// Nominatim: máximo 1 petición por segundo y una aplicación identificada. Nunca lanza.
+// Centro de un código postal, SOLO desde el servidor y solo la primera vez: el resultado se
+// guarda en geo_codigos_postales y no se vuelve a pedir. Nunca lanza.
+//   · Con la clave de Google (GOOGLE_MAPS_API_KEY): Geocoding API, y nada de OpenStreetMap
+//     (usuario, 2026-11-24: «todo entorno Google»). Tiene tope diario en Google Cloud.
+//   · Sin clave (pruebas automáticas y local): la reserva libre, OpenStreetMap (Nominatim),
+//     con sus normas: máximo 1 petición por segundo y una aplicación identificada.
 const ESPERA_MS = 1100;
 let ultima = 0;
+
+export const geocodingGoogle = () => !!process.env.GOOGLE_MAPS_API_KEY;
+/** De dónde sale una coordenada, para apuntarlo junto a ella. */
+export const fuenteCoordenadas = (porCp: boolean) => (geocodingGoogle() ? (porCp ? 'google' : 'google_poblacion') : (porCp ? 'nominatim' : 'nominatim_poblacion'));
+
+type RespuestaGoogle = { status?: string; error_message?: string;
+  results?: { formatted_address?: string; geometry?: { location?: { lat?: number; lng?: number } } }[] };
+// Una consulta a Geocoding. Si Google dice que no quedan consultas hoy, Dynamo se entera
+// (campana y email, una vez al día) y la respuesta es «no encontrado».
+async function consultaGoogle(parametros: Record<string, string>): Promise<RespuestaGoogle | null> {
+  const clave = process.env.GOOGLE_MAPS_API_KEY;
+  if (!clave) return null;
+  try {
+    const u = new URLSearchParams({ ...parametros, language: 'es', key: clave });
+    const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${u}`, { signal: AbortSignal.timeout(6000), cache: 'no-store' });
+    const j = await r.json().catch(() => null) as RespuestaGoogle | null;
+    const st = j?.status ?? String(r.status);
+    if (st === 'OK' || st === 'ZERO_RESULTS') return j;
+    console.error(`[google] direcciones: ${st} ${(j?.error_message ?? '').slice(0, 200)}`);
+    if (st === 'OVER_QUERY_LIMIT' || st === 'OVER_DAILY_LIMIT' || r.status === 429) {
+      await supabaseServicio()?.rpc('aviso_limite_api', { p_api: 'direcciones' }).then(() => null, () => null);
+    }
+    return null;
+  } catch { console.error('[google] direcciones: sin conexión'); return null; }
+}
+const punto = (j: RespuestaGoogle | null) => {
+  const l = j?.results?.[0]?.geometry?.location;
+  return l && Number.isFinite(l.lat) && Number.isFinite(l.lng) ? { lat: l.lat!, lon: l.lng! } : null;
+};
+
+/** La dirección aproximada de unas coordenadas (para la firma del CMR con ubicación). Con
+ *  Google; sin clave devuelve null y quien llama usa su reserva. */
+export async function direccionDeCoordenadas(lat: number, lon: number): Promise<string | null> {
+  if (!geocodingGoogle() || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const j = await consultaGoogle({ latlng: `${lat},${lon}` });
+  const d = j?.results?.[0]?.formatted_address;
+  return d ? String(d).slice(0, 300) : null;
+}
 
 export async function centroCodigoPostal(pais: string, cp: string, poblacion?: string | null): Promise<{ lat: number; lon: number } | null> {
   const c = (cp ?? '').replace(/\s/g, '');
   const p = (pais || 'ES').slice(0, 2).toLowerCase();
   if (c.length < 3) return null;
+  if (geocodingGoogle()) {
+    const comp = `postal_code:${c}|country:${p.toUpperCase()}`;
+    // Con la población primero (afina en países donde un código cubre varias); si no casa, solo el código.
+    return (poblacion ? punto(await consultaGoogle({ address: poblacion, components: comp })) : null)
+      ?? punto(await consultaGoogle({ components: comp }));
+  }
   const espera = ultima + ESPERA_MS - Date.now();
   if (espera > 0) await new Promise((r) => setTimeout(r, espera));
   ultima = Date.now();
@@ -42,6 +89,7 @@ export async function centroCodigoPostal(pais: string, cp: string, poblacion?: s
 // cuyo código no encuentra OpenStreetMap. No se guarda (la caché es por código postal).
 async function buscarTexto(pais: string, q: string): Promise<{ lat: number; lon: number } | null> {
   if (q.trim().length < 3) return null;
+  if (geocodingGoogle()) return punto(await consultaGoogle({ address: q, components: `country:${(pais || 'ES').slice(0, 2).toUpperCase()}` }));
   const espera = ultima + ESPERA_MS - Date.now();
   if (espera > 0) await new Promise((r) => setTimeout(r, espera));
   ultima = Date.now();
@@ -99,7 +147,7 @@ export async function situarConCache(paradas: ParadaBuscar[], max = 4): Promise<
     if (!c) { if (srv) await srv.from('geo_no_encontrados').upsert({ clave: k, buscado_en: new Date().toISOString() }); continue; }
     hallados.set(k, { lat: c.lat, lon: c.lon });
     // Por su código postal (aunque saliera por la población: es el mismo sitio aproximado).
-    if (p.codigo_postal && srv) await srv.rpc('guardar_geo_cp', { p_pais: p.pais ?? 'ES', p_cp: p.codigo_postal, p_lat: c.lat, p_lon: c.lon, p_fuente: c.porCp ? 'nominatim' : 'nominatim_poblacion' });
+    if (p.codigo_postal && srv) await srv.rpc('guardar_geo_cp', { p_pais: p.pais ?? 'ES', p_cp: p.codigo_postal, p_lat: c.lat, p_lon: c.lon, p_fuente: fuenteCoordenadas(c.porCp) });
   }
   return hallados;
 }

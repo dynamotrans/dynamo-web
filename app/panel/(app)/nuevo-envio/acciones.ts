@@ -9,6 +9,7 @@ import { pdfProformaCalculo, lineasProforma } from '@/lib/servidor/proformaCalcu
 import { enviarEmailOperativo } from '@/lib/servidor/emailOperativo';
 import { completarEmailEnvioCreado } from '@/lib/servidor/emailEnvioCreado';
 import { supabaseServicio } from '@/lib/supabase/servicio';
+import { googleRutasListo, rutaGoogle, direccionEnLinea, type PuntoRuta } from '@/lib/servidor/googleRutas';
 import { CONTACTO } from '@/lib/atencion';
 import { euros, porcentaje } from '@/lib/formato';
 import { vistaCruda } from '@/lib/vista';
@@ -431,33 +432,78 @@ export async function clientesActivos(): Promise<{ id: string; nombre: string; c
   });
 }
 
+// LOS KILÓMETROS DE LA RUTA, tramo a tramo. Por orden: (1) lo ya guardado (entre esos dos
+// sitios o entre esos dos códigos postales); (2) con Google (usuario, 2026-11-24), la ruta real
+// por carretera, que se guarda para no volver a pedirla —y con su línea, para el mapa—;
+// (3) si no hay Google o no contesta, la línea recta con un 25 % más; (4) 300 km «estimado».
+// Lo guardado lo lee y lo escribe el servidor (los clientes no ven esas tablas).
 export async function kmRuta(puntos: PuntoKm[]): Promise<{ km: number; estimado: boolean }> {
   comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#kmRuta", [puntos]);
   const s = await sesion();
   if (!s?.perfil || puntos.length < 2) return { km: 0, estimado: true };
   const sb = s.supabase;
+  const srv = supabaseServicio();
+  const cache = srv ?? sb;
   const ids = puntos.map((p) => p.sitio_id).filter(Boolean) as string[];
-  const coords = new Map<string, { lat: number | null; lon: number | null }>();
+  // Los sitios, con los permisos de quien pregunta: de uno que no ve no se calcula nada.
+  type SitioKm = { lat: number | null; lon: number | null; direccion: string | null; codigo_postal: string | null; poblacion: string | null; pais_codigo_iso: string | null };
+  const sitios = new Map<string, SitioKm>();
   if (ids.length) {
-    const { data } = await sb.from('sitios').select('id, lat, lon').in('id', ids);
-    (data ?? []).forEach((x) => coords.set(x.id, { lat: x.lat, lon: x.lon }));
+    const { data } = await sb.from('sitios').select('id, lat, lon, direccion, codigo_postal, poblacion, pais_codigo_iso').in('id', ids);
+    (data ?? []).forEach((x) => sitios.set(x.id, x));
   }
+  const conGoogle = googleRutasListo();
+  let avisado = false;
+  const escala = (p: PuntoKm): PuntoRuta | null => {
+    const st = p.sitio_id ? sitios.get(p.sitio_id) : null;
+    if (p.sitio_id && !st) return null;
+    if (st) return st.direccion || st.codigo_postal
+      ? { direccion: direccionEnLinea({ direccion: st.direccion, codigo_postal: st.codigo_postal, poblacion: st.poblacion, pais: st.pais_codigo_iso }), lat: st.lat, lon: st.lon }
+      : { lat: st.lat, lon: st.lon };
+    if (p.cp) return { direccion: direccionEnLinea({ codigo_postal: p.cp, pais: p.pais }) };
+    return p.lat != null && p.lon != null ? { lat: p.lat, lon: p.lon } : null;
+  };
   let km = 0, estimado = false;
   for (let i = 1; i < puntos.length; i++) {
     const a = puntos[i - 1], b = puntos[i];
+    const dosSitios = !!(a.sitio_id && b.sitio_id && sitios.has(a.sitio_id) && sitios.has(b.sitio_id));
+    const dosCp = !!(a.cp && b.cp && a.pais && b.pais);
     let tramo: number | null = null;
-    if (a.sitio_id && b.sitio_id) {
-      const r = await sb.rpc('km_sitios', { p_origen: a.sitio_id, p_destino: b.sitio_id, p_max_edad: '100 years' });
+    if (dosSitios && a.sitio_id === b.sitio_id) tramo = 0;
+    if (tramo == null && dosSitios) {
+      const r = await cache.rpc('km_sitios', { p_origen: a.sitio_id!, p_destino: b.sitio_id!, p_max_edad: '100 years' });
       tramo = r.data ?? null;
     }
-    if (tramo == null && a.cp && b.cp && a.pais && b.pais) {
-      const r = await sb.rpc('km_cp', { p_pais_codigo_iso_origen: a.pais, p_codigo_postal_origen: a.cp,
-        p_pais_codigo_iso_destino: b.pais, p_codigo_postal_destino: b.cp, p_max_edad: '100 years' });
+    if (tramo == null && dosCp) {
+      const r = await cache.rpc('km_cp', { p_pais_codigo_iso_origen: a.pais!, p_codigo_postal_origen: a.cp!,
+        p_pais_codigo_iso_destino: b.pais!, p_codigo_postal_destino: b.cp!, p_max_edad: '100 years' });
       tramo = r.data ?? null;
+    }
+    if (tramo == null && conGoogle) {
+      const o = escala(a), d = escala(b);
+      const g = o && d ? await rutaGoogle(o, d) : null;
+      if (g?.ok) {
+        tramo = g.km;
+        // Se guarda (solo el servidor): entre los dos sitios si lo son, y si no por código postal.
+        if (srv) {
+          if (dosSitios) {
+            const r = await srv.rpc('guardar_km_sitios', { p_origen: a.sitio_id!, p_destino: b.sitio_id!, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' });
+            if (r.data && g.linea) await srv.from('distancias_sitios').update({ linea: g.linea }).eq('id', r.data);
+          } else if (dosCp) {
+            const r = await srv.rpc('guardar_km_cp', { p_pais_codigo_iso_origen: a.pais!, p_codigo_postal_origen: a.cp!,
+              p_pais_codigo_iso_destino: b.pais!, p_codigo_postal_destino: b.cp!, p_km: g.km, p_minutos: g.minutos, p_proveedor: 'google_routes' });
+            if (r.data && g.linea) await srv.from('distancias_cp').update({ linea: g.linea }).eq('id', r.data);
+          }
+        }
+      } else if (g && !g.ok && g.limite && !avisado) {
+        // Sin consultas por hoy: Dynamo se entera y el cálculo sigue con la línea recta.
+        avisado = true;
+        await sb.rpc('aviso_limite_api', { p_api: 'kilometros' }).then(() => null, () => null);
+      }
     }
     if (tramo == null) {
-      const ca = a.sitio_id ? coords.get(a.sitio_id) : { lat: a.lat, lon: a.lon };
-      const cb = b.sitio_id ? coords.get(b.sitio_id) : { lat: b.lat, lon: b.lon };
+      const ca = a.sitio_id ? sitios.get(a.sitio_id) : { lat: a.lat, lon: a.lon };
+      const cb = b.sitio_id ? sitios.get(b.sitio_id) : { lat: b.lat, lon: b.lon };
       if (ca?.lat != null && ca.lon != null && cb?.lat != null && cb.lon != null) {
         const rad = (x: number) => (x * Math.PI) / 180;
         const h = Math.sin(rad(cb.lat - ca.lat) / 2) ** 2 + Math.cos(rad(ca.lat)) * Math.cos(rad(cb.lat)) * Math.sin(rad(cb.lon - ca.lon) / 2) ** 2;

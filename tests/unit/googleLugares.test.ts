@@ -47,12 +47,14 @@ test('ficha de Google: dirección, CP, localidad, provincia, país, teléfono, e
     nationalPhoneNumber: '916 73 00 00', internationalPhoneNumber: '+34 916 73 00 00',
     googleMapsUri: 'https://maps.google.com/?cid=123',
     regularOpeningHours: { periods: [p(1, 9, 0, 21, 30)] },
+    types: ['supermarket', 'point_of_interest', 'establishment'], location: { latitude: 40.4237, longitude: -3.5613 },
   });
   assert.deepEqual(f, {
     empresa: 'Mercadona', direccion: 'Avenida de la Constitución, 85', codigo_postal: '28821', poblacion: 'Coslada', provincia: 'Madrid',
     pais_codigo_iso: 'ES', telefono: '+34916730000', url_google_maps: 'https://maps.google.com/?cid=123',
     etiqueta: 'Av. de la Constitución, 85, 28821 Coslada, Madrid, España',
     horario: [{ dias: [1], tramos: [{ abre: '09:00', cierra: '21:30' }] }],
+    es_direccion: false, lat: 40.4237, lon: -3.5613,
   });
 });
 
@@ -60,4 +62,20 @@ test('ficha de Google: sin datos no inventa nada', () => {
   const f = fichaDeLugar({ displayName: { text: 'Nave sin ficha' } });
   assert.equal(f.empresa, 'Nave sin ficha'); assert.equal(f.telefono, ''); assert.equal(f.horario, null);
   assert.equal(f.pais_codigo_iso, 'ES'); assert.equal(f.codigo_postal, '');
+});
+
+test('ficha de Google: una calle o una población es una dirección, no una empresa', () => {
+  const f = fichaDeLugar({
+    displayName: { text: 'Calle Río Viejo, 48' }, formattedAddress: 'C. Río Viejo, 48, 41703 Dos Hermanas, Sevilla, España',
+    addressComponents: [
+      { longText: '48', types: ['street_number'] }, { longText: 'Calle Río Viejo', types: ['route'] },
+      { longText: 'Dos Hermanas', types: ['locality'] }, { longText: 'Sevilla', types: ['administrative_area_level_2'] },
+      { longText: 'España', shortText: 'ES', types: ['country'] }, { longText: '41703', types: ['postal_code'] } ],
+    types: ['street_address'], location: { latitude: 37.28, longitude: -5.92 },
+  });
+  assert.equal(f.es_direccion, true);
+  assert.equal(f.direccion, 'Calle Río Viejo, 48'); assert.equal(f.codigo_postal, '41703'); assert.equal(f.poblacion, 'Dos Hermanas');
+  assert.equal(f.telefono, ''); assert.equal(f.horario, null); assert.equal(f.lat, 37.28);
+  // Sin tipos no se sabe: se trata como empresa.
+  assert.equal(fichaDeLugar({ displayName: { text: 'X' } }).es_direccion, false);
 });

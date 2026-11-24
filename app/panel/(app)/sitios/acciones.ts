@@ -170,6 +170,8 @@ export type SitioGoogle = {
   empresa: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string;
   pais_codigo_iso: string; telefono: string; url_google_maps: string; etiqueta: string;
   place_id?: string; horario?: GrupoHorario[] | null;
+  es_direccion?: boolean;   // una calle o una población, no una empresa
+  lat?: number | null; lon?: number | null;
 };
 const ENLACE_MAPS = /^https:\/\/(maps\.google\.com|www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)[/?]/i;
 const SIN_DATOS = { direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', telefono: '', url_google_maps: '' };
@@ -200,7 +202,7 @@ export async function buscarSitiosGoogle(q: string, sesion: string): Promise<Sit
       if (r.limite) await s.supabase.rpc('aviso_limite_api', { p_api: 'sitios' }).then(() => null, () => null);
       return [];
     }
-    return r.lista.map((x) => ({ ...SIN_DATOS, empresa: x.titulo, etiqueta: x.detalle, place_id: x.place_id }));
+    return r.lista.map((x) => ({ ...SIN_DATOS, empresa: x.titulo, etiqueta: x.detalle, place_id: x.place_id, es_direccion: x.es_direccion }));
   }
   {
     // SIN clave: como en el mockup, «casi cualquier empresa aparece en Google» — si la
@@ -241,12 +243,12 @@ export async function buscarSitiosGoogle(q: string, sesion: string): Promise<Sit
 
 /** Los datos completos del sitio elegido en la lista de Google: dirección, teléfono, enlace
  *  de Maps y horario (si Google lo da). Es la consulta de pago: una por sitio elegido. */
-export async function detalleSitioGoogle(placeId: string, sesion: string): Promise<{ ok: true; sitio: SitioGoogle } | { ok: false; error: string }> {
-  comprobarEntrada("app/panel/(app)/sitios/acciones#detalleSitioGoogle", [placeId, sesion]);
+export async function detalleSitioGoogle(placeId: string, sesion: string, esDireccion = false): Promise<{ ok: true; sitio: SitioGoogle } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#detalleSitioGoogle", [placeId, sesion, esDireccion]);
   const s = await puede();
   if (!s) return { ok: false, error: 'No tienes permiso.' };
   if (!LUGAR_GOOGLE.test(placeId ?? '') || !SESION_GOOGLE.test(sesion ?? '')) return { ok: false, error: 'Ese resultado ya no vale: vuelve a buscar.' };
-  const r = await fichaLugar(placeId, sesion);
+  const r = await fichaLugar(placeId, sesion, !!esDireccion);
   if (!r.ok) {
     if (r.limite) await s.supabase.rpc('aviso_limite_api', { p_api: 'sitios' }).then(() => null, () => null);
     return { ok: false, error: r.limite
@@ -254,6 +256,39 @@ export async function detalleSitioGoogle(placeId: string, sesion: string): Promi
       : 'Google no ha devuelto los datos de ese sitio. Rellena la ficha a mano.' };
   }
   return { ok: true, sitio: { ...r.ficha, place_id: placeId } };
+}
+
+// DIRECCIONES con Google (usuario, 2026-11-24: «todo entorno Google», nada de OpenStreetMap):
+// para situar una parada sin empresa (Nuevo envío sin cliente) y el nivel «Dirección» de los
+// buscadores. `activo: false` = no hay clave en este entorno: quien llama usa su reserva.
+export type DireccionGoogle = { place_id: string; etiqueta: string; titulo: string };
+export async function buscarDireccionesGoogle(q: string, sesion: string): Promise<{ activo: boolean; lista: DireccionGoogle[] }> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#buscarDireccionesGoogle", [q, sesion]);
+  const s = await puede();
+  if (!s || !googleLugaresListo()) return { activo: false, lista: [] };
+  q = (q ?? '').trim().slice(0, 120);
+  if (q.length < 3 || !SESION_GOOGLE.test(sesion ?? '')) return { activo: true, lista: [] };
+  const r = await autocompletarLugares(q, sesion, true);
+  if (!r.ok) {
+    if (r.limite) await s.supabase.rpc('aviso_limite_api', { p_api: 'direcciones' }).then(() => null, () => null);
+    return { activo: true, lista: [] };
+  }
+  return { activo: true, lista: r.lista.map((x) => ({ place_id: x.place_id, titulo: x.titulo, etiqueta: [x.titulo, x.detalle].filter(Boolean).join(', ') })) };
+}
+
+export type DireccionDatos = { etiqueta: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string; lat: number | null; lon: number | null };
+export async function detalleDireccionGoogle(placeId: string, sesion: string): Promise<DireccionDatos | null> {
+  comprobarEntrada("app/panel/(app)/sitios/acciones#detalleDireccionGoogle", [placeId, sesion]);
+  const s = await puede();
+  if (!s || !LUGAR_GOOGLE.test(placeId ?? '') || !SESION_GOOGLE.test(sesion ?? '')) return null;
+  const r = await fichaLugar(placeId, sesion, true);
+  if (!r.ok) {
+    if (r.limite) await s.supabase.rpc('aviso_limite_api', { p_api: 'direcciones' }).then(() => null, () => null);
+    return null;
+  }
+  const f = r.ficha;
+  return { etiqueta: f.etiqueta, direccion: f.direccion, codigo_postal: f.codigo_postal, poblacion: f.poblacion, provincia: f.provincia,
+    pais: f.pais_codigo_iso, lat: f.lat, lon: f.lon };
 }
 
 // La agenda del cliente para el buscador de la ficha (los 4 que mejor casan).

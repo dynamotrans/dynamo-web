@@ -15208,3 +15208,25 @@ begin
   raise notice 'OK 334 · Google Maps: horario sin verificar (por defecto no), aviso de límite diario a Dynamo una vez por día y API, y enlace de Maps al crear el sitio';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 335 · RUTAS DE GOOGLE (usuario, 2026-11-24): la distancia guardada entre dos sitios o dos códigos
+--       postales admite la línea de la ruta, y los clientes siguen sin leer esas tablas (las lee
+--       y las escribe el servidor).
+do $$
+declare n int; ok boolean;
+begin
+  select count(*) into n from information_schema.columns
+   where table_schema = 'public' and table_name in ('distancias_sitios', 'distancias_cp') and column_name = 'linea';
+  if n <> 2 then raise exception 'FALLO 335 · falta la columna de la línea de la ruta'; end if;
+  perform guardar_km_cp('ES', '41001', 'ES', '28821', 531.23, 316, 'google_routes');
+  update distancias_cp set linea = 'abc' where codigo_postal_origen = '41001' and codigo_postal_destino = '28821' and pais_codigo_iso_origen = 'ES';
+  if km_cp('ES', '41001', 'ES', '28821') <> 531.23 then raise exception 'FALLO 335 · no se lee la distancia guardada'; end if;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  select count(*) into n from distancias_cp;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if n <> 0 then raise exception 'FALLO 335 · un cliente lee las distancias guardadas (%)', n; end if;
+  raise notice 'OK 335 · rutas de Google: la distancia guardada admite su línea y los clientes no leen esas tablas';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

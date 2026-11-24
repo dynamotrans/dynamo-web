@@ -9,6 +9,7 @@ import { validaDoc } from '@/lib/documentoIdentidad';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { ficherosNoValidos } from '@/lib/servidor/contenidoArchivo';
+import { direccionDeCoordenadas } from '@/lib/servidor/geocodificar';
 
 export type DatosFirma = { parada_id: string | null; rol: 'remitente' | 'transportista' | 'destinatario'; nombre: string; documento: string; pais: string; email: string; png: string;
   reservas?: string;     // daños o faltantes: van ANTES de la firma y entran en su huella
@@ -111,6 +112,9 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   // sea un par finito dentro de rango.
   const g = d.gps && Number.isFinite(d.gps.lat) && Number.isFinite(d.gps.lon)
     && Math.abs(d.gps.lat) <= 90 && Math.abs(d.gps.lon) <= 180 ? d.gps : null;
+  // La dirección aproximada de esas coordenadas la pone el servidor con Google (si la
+  // plataforma tiene su clave); sin ella vale la que traiga el navegador.
+  if (g && !g.direccion) g.direccion = (await direccionDeCoordenadas(g.lat, g.lon)) ?? undefined;
   const { data, error } = await srv.rpc('firmar_cmr_publico', {
     p_token: token, p_parada: d.parada_id, p_rol: d.rol, p_nombre: d.nombre, p_documento: v.norm, p_pais: d.pais,
     p_validado: !v.soft, p_email: d.email, p_ruta: ruta, p_ip: ip, p_navegador: h.get('user-agent'), p_sha256: sha, p_extra: !!d.extra,
