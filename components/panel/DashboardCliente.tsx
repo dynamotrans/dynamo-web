@@ -11,7 +11,7 @@ import { FLOTA_HTML } from '@/lib/dashboardContenido';
 import { CONTACTO } from '@/lib/atencion';
 import { ESTADOS_ENVIO } from '@/lib/estados';
 import { CajaBuscadorGlobal } from './BuscadorGlobal';
-import { MenuNuevoEnvio, useMenuFuera } from './BotonNuevoEnvio';
+import BannerNuevoEnvio from './BannerNuevoEnvio';
 
 // «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
 // 2026-11-03). Para volver a enseñarlos basta con poner esto a true.
@@ -58,7 +58,6 @@ function Logo({ l }: { l: [string, string, string] }) {
 
 export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }: { envios: MiniEnvio[]; activos: number; dynamo: boolean; sinEnvios: boolean }) {
   const [ventanaAbierta, setVentana] = useState<null | 'recomendar' | 'google' | number>(null);
-  const menu = useMenuFuera();
   const [texto, setTexto] = useState(RECOMIENDA_MSG);
   const [copiado, setCopiado] = useState(false);
   const filas = [0, 1, 2].map((r) => LOGOS.filter((_, i) => i % 3 === r));
@@ -89,16 +88,8 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
       <div className="dash-top-row dash-top-2">
         <div className="dash-left-col">
           <div className="dash-cta-stack">
-            {/* La flechita de arriba a la derecha despliega «Crear varios envíos» (usuario, 2026-11-21). */}
-            <div className="dash-cta-wrap" ref={menu.ref}>
-              <Link className="dash-cta dash-cta-purple" href="/panel/nuevo-envio">
-                <div className="dash-cta-icon"><Svg size={28}><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></div>
-                <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicitar un transporte / Ver coste de envío</p></div>
-              </Link>
-              <button type="button" className={`dash-cta-flecha${dynamo ? '' : ' sin-varios-movil'}`} id="btn-nuevo-mas" aria-haspopup="menu" aria-expanded={menu.abierto}
-                aria-label="Más formas de crear envíos" onClick={() => menu.setAbierto((v) => !v)}>▾</button>
-              {menu.abierto && <MenuNuevoEnvio onCerrar={() => menu.setAbierto(false)} />}
-            </div>
+            {/* «Nuevo envío» en grande, con su dibujo y «Crear varios envíos» al lado (usuario, 2026-11-24). */}
+            <BannerNuevoEnvio variosEnMovil={dynamo} />
             {/* «Otras gestiones» en cuadrícula (usuario, 2026-11-10), siempre a la vista:
                 Reportar incidencia · Crear sitio · Administración, los tres en una fila. */}
             <div className="dash-cta-grid">
