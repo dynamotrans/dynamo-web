@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Modal from './Modal';
+import Tip from '@/components/Tip';
 import { mapaDelEnvio, trazadosDeEnvios } from '@/app/panel/(app)/envios/acciones-mapa';
 import { repartirTrazados, type PuntoLinea } from '@/lib/lineaRuta';
 import { estadoMapa, horaParada, posicionCamion, type MapaEnvio } from '@/lib/mapaEnvio';
@@ -98,7 +99,11 @@ export function VentanaMapa({ envioId, referencia, onCerrar }: { envioId: string
       sub={mapa ? <span data-mapa-estado="" style={{ color: pc ? TONO[pc.tono] : undefined, fontWeight: 700 }}>{estadoMapa(mapa)}</span> : error ?? 'Cargando el mapa…'}>
       {mapa && <>
         <Lienzo mapa={mapa} />
-        <Leyenda />
+        {/* La explicación de la posición estimada va en un globo de ayuda junto a «Camión» en
+            la leyenda (usuario, 2026-11-24: «nada de texto ahí estorbando»). */}
+        <Leyenda nota={`Posición estimada, no GPS: sale del horario previsto de cada parada, la velocidad media y las pausas obligatorias del conductor, corregida con las firmas del CMR (hora exacta y, si se dio permiso, su ubicación). ${porCarretera
+          ? 'La ruta sigue la carretera (ruta de un turismo: un camión puede tener que desviarse).'
+          : 'La ruta se dibuja en línea recta entre paradas.'} Se actualiza sola cada minuto.`} />
         <ol className="mapa-paradas" style={{ margin: '0.6rem 0 0', paddingLeft: '1.2rem', fontSize: '0.85rem' }}>
           {mapa.paradas.map((p) => {
             // La hora real (firma del CMR, marcada en el seguimiento) o la prevista.
@@ -113,23 +118,17 @@ export function VentanaMapa({ envioId, referencia, onCerrar }: { envioId: string
             );
           })}
         </ol>
-        <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>
-          Posición <strong>estimada</strong>, no GPS: sale del horario previsto de cada parada, la velocidad media y las pausas obligatorias del
-          conductor, corregida con las firmas del CMR (hora exacta y, si se dio permiso, su ubicación). {porCarretera
-            ? 'La ruta sigue la carretera (ruta de un turismo: un camión puede tener que desviarse).'
-            : 'La ruta se dibuja en línea recta entre paradas.'} Se actualiza sola cada minuto.
-        </p>
       </>}
     </Modal>
   );
 }
 
-function Leyenda() {
+function Leyenda({ nota }: { nota: string }) {
   const punto = (c: string, t: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginRight: 14 }}><span style={{ width: 12, height: 12, borderRadius: 6, background: c, display: 'inline-block' }} />{t}</span>;
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: '0.78rem', color: 'var(--gray-700)', marginTop: '0.5rem' }} aria-label="Leyenda del mapa">
       {punto(COLOR.carga, 'Recogida')}{punto(COLOR.descarga, 'Entrega')}
-      <span style={{ marginRight: 14, display: 'inline-flex', alignItems: 'center', gap: 5 }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />Camión (posición estimada)</span>
+      <span style={{ marginRight: 14, display: 'inline-flex', alignItems: 'center', gap: 5 }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />Camión (posición estimada)<Tip id="tip-mapa-posicion" aria="Cómo se calcula la posición del camión" texto={nota} /></span>
       <span style={{ marginRight: 14 }}><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho</span>
       <span style={{ marginRight: 14 }}><span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer</span>
       <span>Pulsa una parada o la ruta para ver sus etiquetas (si no caben todas, toca una parada o acerca el mapa).</span>

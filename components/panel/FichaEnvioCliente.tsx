@@ -244,7 +244,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
             ? <>Vas a cancelar tu transporte con <strong>tu transportista directo</strong>. Recuerda avisarle tú: Dynamo no interviene en este envío.</>
             : e.estado === 'borrador'
             ? <>Es una solicitud sin confirmar: se cancela <strong>sin ningún coste</strong>.</>
-            : <>Tu envío <strong>aún no tiene transportista asignado</strong>: cancelarlo ahora <strong>no tiene ningún coste</strong>.</>}
+            : <>Tu envío <strong>aún no tiene transportista asignado</strong>: cancelarlo ahora <strong>es gratis</strong>.</>}
         </div>
         <label htmlFor="cc-motivo" style={{ display: 'block', marginTop: '0.8rem' }}>Motivo <Req si={false} /></label>
         <textarea id="cc-motivo" rows={3} maxLength={500} style={{ display: 'block', width: '100%', minHeight: 84, marginTop: 4 }} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder={manual ? "Para tu propio control (opcional)" : "Cuéntanos por qué (nos ayuda a mejorar)"} />
