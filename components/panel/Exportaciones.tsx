@@ -26,8 +26,10 @@ const DESCARGA = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline
 const CHECK = '<polyline points="20 6 9 17 4 12"/>';
 const Ico = ({ d }: { d: string }) => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }} dangerouslySetInnerHTML={{ __html: d }} />;
 
-export default function Exportaciones({ datos, columnas, hecho, tope, error, control, inicio }: {
-  datos: Record<Fichero, FilaExport[]>; columnas: Record<Fichero, string[]>; hecho: Record<Fichero, string[]>; tope: number; error: string | null;
+export default function Exportaciones({ datos, columnas, hecho, totales, pendientesTotales, error, control, inicio }: {
+  datos: Record<Fichero, FilaExport[]>; columnas: Record<Fichero, string[]>; hecho: Record<Fichero, string[]>; error: string | null;
+  totales?: Partial<Record<Fichero, number>>;             // filas que tiene de verdad cada fichero (en pantalla caben `tope`)
+  pendientesTotales?: Partial<Record<Fichero, number>>;   // pedidos de Holded aún sin pasar, contados en la base de datos
   control: { filas: FilaControl[]; cuadre: FilaCuadre[]; error: string | null; desde?: string | null }; inicio?: 'cuadre';
 }) {
   const refrescar = useRefrescar();
@@ -51,7 +53,10 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
   const F = FICHEROS[fichero];
   const hechos = useMemo(() => new Set(hecho[fichero]), [hecho, fichero]);
   const filas = datos[fichero];
-  const pendientes = (k: Fichero) => { const h = new Set(hecho[k]); return new Set(datos[k].map((f) => String(f[FICHEROS[k].ref])).filter((r) => !h.has(r))).size; };
+  const pendientesEnPantalla = (k: Fichero) => { const h = new Set(hecho[k]); return new Set(datos[k].map((f) => String(f[FICHEROS[k].ref])).filter((r) => !h.has(r))).size; };
+  // La tarjeta dice los pendientes DE VERDAD (contados en la base de datos), no solo los que caben en pantalla.
+  const pendientes = (k: Fichero) => Math.max(pendientesTotales?.[k] ?? 0, pendientesEnPantalla(k));
+  const totalFichero = Math.max(totales?.[fichero] ?? 0, filas.length);
 
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q));
@@ -100,7 +105,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
         {(Object.keys(FICHEROS) as Fichero[]).map((k) => (
           <button key={k} type="button" className={`stat-card stat-card-link${k === fichero && !verControl ? ' export-activa' : ''}`} onClick={() => elegir(k)} aria-pressed={k === fichero && !verControl}>
             <span className="stat-card-label">{FICHEROS[k].titulo}</span>
-            <span className="stat-card-value" style={pendientes(k) > 0 ? { color: '#d97706' } : undefined}>{pendientes(k)}</span>
+            <span className="stat-card-value" style={pendientes(k) > 0 ? { color: '#d97706' } : undefined}>{numero(pendientes(k), 0)}</span>
             <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', fontWeight: 600 }}>{FICHEROS[k].sub} · pendientes</span>
           </button>
         ))}
@@ -114,7 +119,15 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error, con
       {verControl ? <ControlFacturacion filas={control.filas} cuadre={control.cuadre} error={control.error} desde={control.desde ?? null} /> : <>
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se han podido leer algunos ficheros: {error}</div></div>}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
-      {filas.length >= tope && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se muestran las primeras {numero(tope, 0)} filas de este fichero.</div></div>}
+      {/* Si el fichero no cabe entero en pantalla, se dice cuántas filas hay y qué se ve (usuario,
+          2026-11-24: salían 1.000 sin explicación, con casi 15.000 envíos entregados). */}
+      {totalFichero > filas.length && (
+        <div className="pt-aviso info" id="export-tope" style={{ marginBottom: '0.8rem' }}><div>
+          Este fichero tiene <strong>{numero(totalFichero, 0)} filas</strong> y aquí se ven las <strong>{numero(filas.length, 0)}</strong> primeras
+          {fichero === 'bolsa' ? ' (las más recientes)' : ': primero lo pendiente de pasar a Holded, de lo más reciente a lo más antiguo'}.
+          {fichero !== 'bolsa' && <> Descárgalas, impórtalas y márcalas como pasadas: al hacerlo salen las siguientes.</>}
+        </div></div>
+      )}
 
       <div className="tabs">
         {PESTANAS.map(([k, t]) => <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta(k)})</button>)}

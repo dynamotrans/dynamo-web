@@ -685,6 +685,14 @@ test.describe('novedades', () => {
       return !!fila && !!(el.compareDocumentPosition(fila) & Node.DOCUMENT_POSITION_FOLLOWING);
     });
     expect(antes).toBe(true);
+    // En la ficha de Dynamo, lo mismo en corto: ni «Pendiente de pago», ni plazo, ni botones de cobro
+    // (usuario, 2026-11-24: «¿no debería decir cancelado y punto?»).
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/envios?ver=${e.id}`);
+    await expect(page.locator('#pago-anulado')).toContainText('Anulado sin pago');
+    await expect(page.locator('#pago-plazo')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Ha llegado la transferencia' })).toHaveCount(0);
+    await expect(page.locator('.dash-modal-card')).not.toContainText('Pendiente de pago');
   });
 
   // DEVOLVER EL IMPORTE de un pago con tarjeta (usuario, 2026-11-23): el botón solo lo ve el Admin

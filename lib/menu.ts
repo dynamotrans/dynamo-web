@@ -72,16 +72,16 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'dashboard-admin', titulo: 'Dashboard admin', icono: 'dashboard' },
       { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
       { slug: 'mapa', titulo: 'Mapa de envíos', icono: 'mapa' },
-      { grupo: 'otras', titulo: 'Operativa', icono: 'capas', enlaces: [
-        { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
-        // Grupajes que se pueden juntar en un viaje (usuario, 2026-11-23).
-        ...(PACKS_GRUPAJE ? [{ slug: 'packs', titulo: 'Packs de grupaje', icono: 'capas' } as Enlace] : []),
-        { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
-        { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
-        // Apagado hasta la v4 (lib/modulos.ts).
-        ...(ALMACENAMIENTOS ? [{ slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' } as Enlace] : []),
-        { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
-      ] },
+      // Sin el desplegable «Operativa» (usuario, 2026-11-24): sus enlaces van a la vista,
+      // directos en el menú, en este orden.
+      { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
+      // Grupajes que se pueden juntar en un viaje (usuario, 2026-11-23).
+      ...(PACKS_GRUPAJE ? [{ slug: 'packs', titulo: 'Packs de grupaje', icono: 'capas' } as Enlace] : []),
+      { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
+      { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
+      // Apagado hasta la v4 (lib/modulos.ts).
+      ...(ALMACENAMIENTOS ? [{ slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' } as Enlace] : []),
+      { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
     ] },
     // Sin submenú desplegable (usuario, 2026-11-11: «quita submenú, directo lo de
     // abajo»): los enlaces cuelgan directos del separador, en este orden.

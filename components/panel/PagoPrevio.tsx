@@ -40,6 +40,19 @@ export default function PagoPrevio({ envio, pago, libre, hacer, onDevolver }: {
   const total = <strong>{euros(pago.total)}</strong>;
   const desglose = <span style={{ color: 'var(--gray-500)' }}> ({euros(pago.base)} + IVA {porcentaje(pago.iva)})</span>;
 
+  // CANCELADO sin haberse pagado: solo se dice eso (usuario, 2026-11-24: «¿no debería decir
+  // cancelado y punto?»). Antes seguía saliendo la caja de «Pendiente de pago» con el plazo
+  // vencido y los botones de cobro, como si aún se pudiera cobrar.
+  if (envio.estado === 'cancelado' && pago.estado === 'pendiente') {
+    return (
+      <div id="pago-anulado" role="status" style={{ background: '#fef9c3', color: '#111827', border: '1px solid #fde047', borderRadius: 8, padding: '0.5rem 0.7rem', marginBottom: '0.8rem' }}>
+        <strong>Anulado sin pago.</strong> No se llegó a pagar ({total}){pago.limite ? <>; el plazo terminaba el <strong>{fechaHora(pago.limite)}</strong></> : null}. El envío y su proforma están anulados.
+        {envio.stripe_cobro_sin_aplicar && (
+          <div style={{ marginTop: '0.35rem', color: '#b42318', fontWeight: 700 }}>Ojo: hay un cobro con tarjeta que no se aplicó (pago {envio.stripe_cobro_sin_aplicar}). Revísalo en Stripe.</div>
+        )}
+      </div>
+    );
+  }
   if (pago.estado === 'pendiente') {
     return (
       <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
