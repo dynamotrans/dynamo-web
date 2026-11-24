@@ -188,8 +188,8 @@ function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: bool
   return (
     <div style={CAJA_MAPA}>
       <style>{ESTILO_MAPA}</style>
-      <div ref={div} data-mapa-general="" data-motor={listo ?? undefined} role="region" aria-label="Mapa de los envíos en curso"
-        style={{ width: '100%', height: 'min(72vh, 720px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
+      <div ref={div} data-mapa-general="" data-motor={listo ?? undefined} role="region" aria-label="Mapa de los envíos en curso" className="mapa-general-lienzo"
+        style={{ width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
       <BotonEncuadrar onClick={encuadrar} que="todos los envíos" arriba={listo === 'google'} />
     </div>
   );

@@ -5609,3 +5609,9 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .pack-nota { font-size: 0.78rem; color: var(--gray-600, #555); margin: 0.4rem 0 0; }
 .pack-deshacer { margin-top: 0.6rem; color: #dc2626; }
 .packs-lista { display: grid; gap: 0.8rem; max-width: 880px; }
+
+/* MAPA GENERAL: su alto. En el móvil, el mismo que el mapa de un envío (usuario, 2026-11-24:
+   «me gusta esa proporción; si ocupa la pantalla entera no puedo mover la página, porque el
+   dedo mueve el mapa»): siempre queda página libre por encima o por debajo para desplazarse. */
+.mapa-general-lienzo { height: min(72vh, 720px); }
+@media (max-width: 760px) { .mapa-general-lienzo { height: min(60vh, 460px); } }
