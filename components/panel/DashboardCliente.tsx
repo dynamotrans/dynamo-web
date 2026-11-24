@@ -95,7 +95,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
                 <div className="dash-cta-icon"><Svg size={28}><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></Svg></div>
                 <div className="dash-cta-text"><h4>Nuevo envío</h4><p>Solicitar un transporte / Ver coste de envío</p></div>
               </Link>
-              <button type="button" className="dash-cta-flecha" id="btn-nuevo-mas" aria-haspopup="menu" aria-expanded={menu.abierto}
+              <button type="button" className={`dash-cta-flecha${dynamo ? '' : ' sin-varios-movil'}`} id="btn-nuevo-mas" aria-haspopup="menu" aria-expanded={menu.abierto}
                 aria-label="Más formas de crear envíos" onClick={() => menu.setAbierto((v) => !v)}>▾</button>
               {menu.abierto && <MenuNuevoEnvio onCerrar={() => menu.setAbierto(false)} />}
             </div>

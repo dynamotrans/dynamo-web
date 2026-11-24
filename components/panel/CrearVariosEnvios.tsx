@@ -287,11 +287,20 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
     );
   }
   return (
-    <section className="section active" id="sec-varios">
+    <section className={`section active${esCliente ? ' varios-de-cliente' : ''}`} id="sec-varios">
       <div className="sec-header" style={{ flexWrap: 'wrap', gap: '0.6rem' }}>
         <h2>Crear varios envíos</h2>
         <Link className="btn-ghost" href="/panel/nuevo-envio">Crear uno solo</Link>
       </div>
+      {/* En el MÓVIL, los clientes no tienen esta pantalla (usuario, 2026-11-24: la tabla ancha
+          se usa mal en el teléfono): se les dice y se les manda a «Nuevo envío». El equipo de
+          Dynamo sí la tiene también en el móvil. Lo decide la hoja de estilos por el ancho. */}
+      {esCliente && (
+        <div className="pt-aviso info varios-movil" id="varios-movil"><div>
+          <strong>Crear varios envíos a la vez está disponible desde el ordenador.</strong> En el móvil, crea los envíos de uno en uno.
+          <div style={{ marginTop: '0.7rem' }}><Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link></div>
+        </div></div>
+      )}
       <p style={{ margin: '-0.4rem 0 1rem', fontSize: 'var(--fs-l)', color: 'var(--gray-500)', maxWidth: 860, lineHeight: 1.5 }}>
         Un envío por fila, <strong>hasta {MAX_FILAS} de una vez</strong>. Cada fila calcula su precio al momento; quita con <strong>✕</strong> las que no quieras y, al terminar, pulsa <strong>«Crear envíos»</strong> o saca la <strong>proforma de precios</strong>.
       </p>
@@ -310,6 +319,14 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
               setFilas((l) => l.filter((f) => f.res?.ok).concat(l.filter((f) => !f.res?.ok).map(() => nuevaFila(c, suyos))));
             }} />
         </div>
+      )}
+
+      {/* Sin cliente la tabla está bloqueada: que se vea por qué (usuario, 2026-11-24: «no
+          funcionaban los botones… era que no había puesto el cliente»). */}
+      {bloqueado && !esCliente && (
+        <div className="pt-aviso info" id="varios-elige-cliente" style={{ margin: '0 0 0.8rem' }}><div>
+          <strong>Elige primero el cliente.</strong> Hasta entonces la tabla y sus botones están bloqueados.
+        </div></div>
       )}
 
       {creadas.length > 0 && (

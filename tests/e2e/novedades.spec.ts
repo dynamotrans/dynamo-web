@@ -2,7 +2,7 @@
 // (usuario, 2026-11-17: «amplía las pruebas automáticas y, si ves fallos, me lo dices»).
 // Van después de los flujos clave (orden alfabético de ficheros, un solo trabajador) y
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { tarifaDeEnvio, type DatosPrecioEnvio } from '../../lib/tarifador';
 import { primerDia, sumarHabiles } from '../../lib/fechasCarga';
@@ -934,6 +934,16 @@ test.describe('novedades', () => {
     }
   });
 
+  // En el MÓVIL, «Crear varios envíos» no está para los clientes (usuario, 2026-11-24): la
+  // pantalla lo dice y manda a «Nuevo envío»; la tabla no se ve. Devuelve si es ese caso.
+  const variosSoloEnOrdenador = async (page: Page) => {
+    if (test.info().project.name !== 'movil') return false;
+    await expect(page.locator('#varios-movil')).toBeVisible();
+    await expect(page.locator('#varios-movil')).toContainText('disponible desde el ordenador');
+    await expect(page.locator('#varios-tabla')).toBeHidden();
+    await expect(page.locator('#varios-crear')).toBeHidden();
+    return true;
+  };
   // Crear varios envíos: un sitio sin teléfono de contacto no deja crear; se completa en la fila.
   test('crear varios envíos: sitio sin teléfono marca la fila y se completa allí mismo', async ({ page }) => {
     // Reintenta: justo tras reiniciar la base de datos, la primera consulta puede llegar vacía.
@@ -946,6 +956,7 @@ test.describe('novedades', () => {
     try {
       await entrar(page, 'cliente');
       await page.goto('/panel/nuevo-envio/varios');
+      if (await variosSoloEnOrdenador(page)) return;
       const fila1 = page.locator('.varios-fila').nth(0);
       const sitio = fila1.locator('.ptar-route-row input[type=text]');
       await sitio.nth(0).fill('Sevilla'); await page.locator('.ptar-sug li').first().click();
@@ -973,6 +984,7 @@ test.describe('novedades', () => {
     try {
       await entrar(page, 'cliente');
       await page.goto('/panel/nuevo-envio/varios');
+      if (await variosSoloEnOrdenador(page)) return;
       const filas = page.locator('.varios-fila');
       const fila1 = filas.nth(0);
       const sitio = fila1.locator('.ptar-route-row input[type=text]');
@@ -1006,6 +1018,21 @@ test.describe('novedades', () => {
   test('crear varios envíos: tabla con precio por fila, proforma y creación de golpe', async ({ page }) => {
     await entrar(page, 'cliente');
     await page.goto('/panel/envios');
+    if (test.info().project.name === 'movil') {
+      // En el móvil el cliente no tiene la flechita; y si llega a la pantalla, se le dice.
+      await expect(page.getByRole('link', { name: /Nuevo envío/ }).first()).toBeVisible();
+      await expect(page.locator('#btn-nuevo-mas')).toBeHidden();
+      await page.goto('/panel/nuevo-envio/varios');
+      expect(await variosSoloEnOrdenador(page)).toBe(true);
+      // El equipo de Dynamo sí la tiene en el móvil.
+      await page.context().clearCookies();
+      await entrar(page, 'dynamo');
+      await page.goto('/panel/nuevo-envio/varios');
+      await expect(page.locator('#varios-movil')).toHaveCount(0);
+      await expect(page.locator('#varios-tabla')).toBeVisible();
+      await expect(page.locator('#varios-elige-cliente')).toContainText('Elige primero el cliente');
+      return;
+    }
     await page.locator('#btn-nuevo-mas').click();
     await page.locator('#menu-varios-envios').click();
     await expect(page).toHaveURL(/\/panel\/nuevo-envio\/varios/);

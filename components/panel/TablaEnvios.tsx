@@ -101,7 +101,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         <h2>{rol === 'transportista' ? 'Mis envíos' : 'Envíos'}</h2>
         <div className="sec-header-actions">
           <SelectorVistaEnvios vista={vistaCal ? 'calendario' : 'lista'} q={q} op={op} por={por} f={f} />
-          {rol !== 'transportista' && !vistaTransportista && <BotonNuevoEnvio />}
+          {rol !== 'transportista' && !vistaTransportista && <BotonNuevoEnvio sinVariosEnMovil={rol === 'cliente'} />}
         </div>
       </div>
 
