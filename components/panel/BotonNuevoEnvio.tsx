@@ -26,7 +26,7 @@ export function useMenuFuera() {
   return { abierto, setAbierto, ref };
 }
 
-export default function BotonNuevoEnvio({ texto = '+ Nuevo envío' }: { texto?: string }) {
+export default function BotonNuevoEnvio({ texto = '+ Crear envío' }: { texto?: string }) {
   const m = useMenuFuera();
   return (
     <div className="btn-nuevo-grupo" ref={m.ref}>
