@@ -4323,11 +4323,12 @@ input::-webkit-date-and-time-value { text-align: left; }
 }
 /* MÓVIL, paso 3: nada que reordenar — en el DOM la columna del precio ya va
    precio → botones → «Precios internos» (la botonera vive dentro de la columna). */
-@media (max-width: 768px) {
-    #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-card[data-ptar-mode] .form-2col-side > /* ---- Bloque de precio del tarifador (calcado del mockup) ---- */
-.ptar-sug-card {
-    background: #f6f5ff; border: 1px solid #ded9f7; border-radius: 12px; padding: 0.9rem 1rem;
-}
+/* ---- Bloque de precio del tarifador ----
+   SIN recuadro alrededor (usuario, 2026-11-24): la tarjeta de la mercancía, el desglose y
+   las alternativas van sueltos y a todo el ancho, igual en el paso 3 que en el 4. Antes el
+   recuadro lila solo salía en el paso 3 del móvil, porque todo este bloque se había quedado
+   por error dentro de una regla «solo móvil» (y «Precios internos» y el aviso de fecha
+   pasada no tenían estilo en escritorio). */
 .ptar-sug-head { font-size: 0.78rem; font-weight: 800; color: var(--purple); }
 .ptar-sug-head span { color: var(--gray-500); font-weight: 600; }
 .ptar-sug-sub { font-size: 0.8rem; color: var(--gray-600); margin-top: 0.1rem; }
@@ -4386,10 +4387,6 @@ input::-webkit-date-and-time-value { text-align: left; }
 .pint-apl-lbl div { font-size: 0.72rem; font-weight: 600; color: var(--gray-500); }
 .pint-nota { font-size: 0.74rem; color: var(--gray-500); font-weight: 600; margin-top: 0.25rem; }
 .pint-margen { margin-top: 0.4rem; font-size: 0.82rem; color: var(--gray-700); font-weight: 600; }
-
-
-.ptar-admin-precio { order: 3; }
-}
 /* Sin hueco muerto: los contenedores de aviso vacíos (corte de fecha,
    avisos de fecha) no ocupan fila de la rejilla cuando su contenido está
    oculto. Así no queda un gran espacio entre la fecha y la caja de precio. */
