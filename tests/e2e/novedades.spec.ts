@@ -1094,6 +1094,42 @@ test.describe('novedades', () => {
     }
   });
 
+  // EL MISMO SITIO EN LA RECOGIDA Y EN LA ENTREGA, sin teléfono (usuario, 2026-11-24: «debería
+  // salir por separado, cada línea pidiendo rellenar»): una línea por parada; como el teléfono
+  // es del sitio, lo escrito en una sale en la otra y al guardar se quitan las dos.
+  test('crear varios envíos: sin teléfono, una línea por parada aunque el sitio sea el mismo', async ({ page }) => {
+    let c: { id: string; telefono: string | null } | null = null;
+    await expect.poll(async () => {
+      ({ data: c } = await bd().from('contactos').select('id, telefono, sitios!inner(nombre_empresa)').eq('sitios.nombre_empresa', 'Nave Madrid').eq('es_principal', true).limit(1).maybeSingle());
+      return !!c;
+    }, { timeout: 20000 }).toBe(true);
+    await bd().from('contactos').update({ telefono: null }).eq('id', c!.id);
+    try {
+      await entrar(page, 'cliente');
+      await page.goto('/panel/nuevo-envio/varios');
+      const filas = page.locator('.varios-fila');
+      const fila1 = filas.nth(0);
+      const sitio = fila1.locator('.ptar-route-row input[type=text]');
+      await sitio.nth(0).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+      await sitio.nth(1).fill('Madrid'); await page.locator('.ptar-sug li').first().click();
+      await filas.nth(1).locator('.varios-quitar').click();
+      await expect(fila1.locator('.varios-res.error')).toContainText('Falta el teléfono de contacto de 1 · Recogida: «Nave Madrid» y de 2 · Entrega: «Nave Madrid»');
+      const lineas = fila1.locator('.varios-tel');
+      await expect(lineas).toHaveCount(2);
+      await expect(lineas.nth(0)).toContainText('1 · Recogida: Nave Madrid');
+      await expect(lineas.nth(1)).toContainText('2 · Entrega: Nave Madrid');
+      await expect(lineas.nth(1)).toContainText('Es el mismo sitio que 1 · Recogida');
+      // Lo escrito en una sale en la otra, y al guardar se quitan las dos.
+      await lineas.nth(1).locator('input').fill('600123126');
+      await expect(lineas.nth(0).locator('input')).toHaveValue('600123126');
+      await lineas.nth(0).locator('button').click();
+      await expect(lineas).toHaveCount(0);
+      await expect.poll(async () => (await bd().from('contactos').select('telefono').eq('id', c!.id).single()).data?.telefono ?? '').toContain('600123126');
+    } finally {
+      await bd().from('contactos').update({ telefono: c!.telefono }).eq('id', c!.id);
+    }
+  });
+
   test('crear varios envíos: al equipo de Dynamo se le pide primero el cliente', async ({ page }) => {
     await entrar(page, 'dynamo');
     await page.goto('/panel/nuevo-envio/varios');

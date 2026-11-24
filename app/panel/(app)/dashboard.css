@@ -5556,6 +5556,7 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .varios-tel { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: var(--fs-m); color: var(--navy); }
 .varios-tel input { width: 200px; }
 .varios-tel-err { color: #b91c1c; font-weight: 600; }
+.varios-tel-nota { flex-basis: 100%; color: var(--gray-600); font-size: var(--fs-m); }
 
 /* Transportista propio: tipos de camión (usuario, 2026-11-22). La leyenda como las etiquetas
    de la ficha; las casillas en fila (en el móvil se apilan solas). */

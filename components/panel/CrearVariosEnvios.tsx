@@ -147,16 +147,21 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   const [faltasSit, setFaltasSit] = useState<Set<number>>(new Set());      // paradas con datos obligatorios por rellenar
   // Sin teléfono de contacto (con lo escrito en su ficha encima): no se crea.
   const faltaTel = (p: Punto) => !!p.sitio && !p.sitio.es_almacen_dynamo && !!datosSit[p.sitio.id] && !telPuesto(resolverFicha(p, datosSit, edicSit[p.k]).telefono);
-  // Los sitios de una fila sin teléfono, cada uno con las paradas EXACTAS en las que falta.
+  // Las paradas de una fila a cuyo sitio le falta el teléfono: UNA LÍNEA POR PARADA (usuario,
+  // 2026-11-24: «debería salir por separado, cada línea pidiendo rellenar»). Si el mismo sitio
+  // está en dos paradas, la segunda dice de cuál es repetición: el teléfono es del sitio, así
+  // que el mismo vale para las dos.
   const sinTelefono = (puntos: Punto[]): SinTel[] => {
-    const m = new Map<string, SinTel>();
+    const primera = new Map<string, string>();
+    const out: SinTel[] = [];
     puntos.forEach((p, i) => {
       if (!faltaTel(p)) return;
-      const e = m.get(p.sitio!.id) ?? { sitio: p.sitio!, donde: '' };
-      e.donde = [e.donde, nombreParada(i, p.tipo)].filter(Boolean).join(' y ');
-      m.set(p.sitio!.id, e);
+      const donde = nombreParada(i, p.tipo);
+      const igualQue = primera.get(p.sitio!.id) ?? null;
+      if (!igualQue) primera.set(p.sitio!.id, donde);
+      out.push({ k: p.k, sitio: p.sitio!, donde, igualQue });
     });
-    return [...m.values()];
+    return out;
   };
   async function ponerTelefono(sitio: SitioOpcion, tel: string): Promise<string | null> {
     if (tel.replace(/\D/g, '').length < 6) return 'Escribe un teléfono válido.';
@@ -493,7 +498,8 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
 
 // Avisos de «todavía no»: la fila no tiene un error, solo espera (no se pinta en rojo).
 const ESPERA = ['Calculando el precio…', 'Cargando los datos de los sitios…'];
-type SinTel = { sitio: SitioOpcion; donde: string };   // donde: «1 · Recogida y 2 · Entrega»
+// Una parada sin teléfono. donde: «2 · Entrega»; igualQue: la parada anterior de la misma fila con ese mismo sitio.
+type SinTel = { k: number; sitio: SitioOpcion; donde: string; igualQue: string | null };
 function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCliente, marcar, sinTel, sinLeer, onTelefono, fichas, onCambio, onInfo, onQuitar, onDuplicar, onSitioCreado }: {
   f: Fila; n: number; cliente: ClienteOpcion | null; sitios: SitioOpcion[]; fest: Set<string>; festivos: string[]; reglas: ReglasPrecio | null;
   factor: number | undefined; esCliente: boolean; marcar: boolean;
@@ -558,6 +564,9 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
     void registrarConsultaPrecio().catch(() => {});
   }, [esCliente, tarifa, claveRuta, hecha]);
 
+  // Lo que se va escribiendo en las líneas rápidas de teléfono, POR SITIO: si el sitio está en
+  // dos paradas, lo escrito en una línea sale también en la otra (es el mismo dato).
+  const [telsRapidos, setTelsRapidos] = useState<Record<string, string>>({});
   const precioDynamo = f.precioTocado ? f.precio : (tarifa ? decimal(tarifa.neto) : '');
   const neto = esCliente ? (tarifa?.neto ?? null) : (precioDynamo.trim() ? num(precioDynamo) : null);
   const mlTxt = f.ml === '13.3' ? '13,30 metros · tráiler completo' : `${f.ml.replace('.', ',')} ${f.ml === '1' ? 'metro' : 'metros'} · grupaje`;
@@ -572,7 +581,7 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
     : !rutaCompleta ? (sinSitio.length ? `Falta elegir el sitio de ${sinSitio.join(' y ')}.` : 'Falta la recogida o la entrega.')
     : noLeido ? `No se han podido cargar los datos de «${noLeido.nombre_empresa}». Recarga la página.`
     : leyendoSitios ? ESPERA[1]
-    : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `${x.donde}: «${x.sitio.nombre_empresa}»`).join('; ')}.`
+    : sinTel.length ? `Falta el teléfono de contacto de ${sinTel.map((x) => `${x.donde}: «${x.sitio.nombre_empresa}»`).join(' y de ')}.`
     : !f.fecha ? 'Elige la fecha de recogida.'
     : f.fecha < dias[0] ? `El primer día posible es el ${fmtFecha(dias[0])}.`
     : !esCliente && !(neto && neto > 0) && tarifa ? 'Pon el precio del cliente.'
@@ -681,7 +690,8 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
       )}
       {f.res && !f.res.ok && <div className="varios-res error">No se ha creado: {f.res.error}</div>}
       {!f.res && mostrarError && error && <div className="varios-res error">{error}</div>}
-      {!hecha && sinTel.map((x) => <TelefonoSitio key={x.sitio.id} sitio={x.sitio} donde={x.donde} onGuardar={onTelefono} />)}
+      {!hecha && sinTel.map((x) => <TelefonoSitio key={x.k} sitio={x.sitio} donde={x.donde} igualQue={x.igualQue}
+        tel={telsRapidos[x.sitio.id] ?? ''} onTel={(v) => setTelsRapidos((t) => ({ ...t, [x.sitio.id]: v }))} onGuardar={onTelefono} />)}
       {!hecha && conSitio.length > 0 && (
         <button type="button" className="varios-sitios-btn" aria-expanded={fichas.abiertas} onClick={fichas.alternar}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
@@ -698,18 +708,20 @@ function FilaEnvio({ f, n, cliente, sitios, fest, festivos, reglas, factor, esCl
   );
 }
 
-// Completar en la misma fila el teléfono que le falta a un sitio (se guarda en su ficha).
-function TelefonoSitio({ sitio, donde, onGuardar }: { sitio: SitioOpcion; donde: string; onGuardar: (s: SitioOpcion, tel: string) => Promise<string | null> }) {
-  const [tel, setTel] = useState('');
+// Completar en la misma fila el teléfono que le falta al sitio de una parada (se guarda en la
+// ficha del sitio). Una línea por parada; lo escrito lo lleva la fila, por sitio.
+function TelefonoSitio({ sitio, donde, igualQue, tel, onTel, onGuardar }: { sitio: SitioOpcion; donde: string; igualQue: string | null;
+  tel: string; onTel: (v: string) => void; onGuardar: (s: SitioOpcion, tel: string) => Promise<string | null> }) {
   const [err, setErr] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   return (
     <div className="varios-tel">
       <span>Teléfono de contacto de <strong>{donde}: {sitio.nombre_empresa}</strong></span>
       <input type="tel" inputMode="tel" value={tel} placeholder="Ej. 600 000 000" aria-label={`Teléfono de ${donde}: ${sitio.nombre_empresa}`}
-        onChange={(e) => { setTel(e.target.value); setErr(null); }} />
+        onChange={(e) => { onTel(e.target.value); setErr(null); }} />
       <button type="button" className="btn-secondary" disabled={guardando || !tel.trim()}
         onClick={async () => { setGuardando(true); setErr(await onGuardar(sitio, tel)); setGuardando(false); }}>{guardando ? 'Guardando…' : 'Guardar en el sitio'}</button>
+      {igualQue && <span className="varios-tel-nota">Es el mismo sitio que {igualQue}: el mismo teléfono vale para las dos paradas.</span>}
       {err && <span className="varios-tel-err">{err}</span>}
     </div>
   );
