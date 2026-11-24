@@ -5404,9 +5404,11 @@ table.data .pago-plazo .cuenta-atras .ca-t { font-weight: 800; }
 .exito-pago .ep-cab { margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.35rem; }
 .exito-pago .ep-txt { margin: 0; }
 .exito-pago .cuenta-atras-grande { margin: 0.6rem 0 0.45rem; }
-.exito-pago .ep-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 0.55rem; }
-.exito-pago .ep-botones { flex-wrap: nowrap; }
-.exito-pago .ep-botones > * { flex: 1 1 0; min-width: 0; display: flex; }
+/* Los dos botones de pago, SIEMPRE en la misma fila y al 50 % cada uno (usuario, 2026-11-24).
+   En rejilla y no en flex: el de tarjeta va dentro de un formulario «invisible»
+   (display: contents) y en flex se quedaba con casi todo el ancho, aplastando al otro.
+   Con un solo botón (sin pago con tarjeta), ocupa toda la fila. */
+.exito-pago .ep-botones { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.5rem; margin: 0.75rem 0 0.55rem; }
 .exito-pago .ep-botones button { padding-left: 0.4rem; padding-right: 0.4rem; white-space: normal; line-height: 1.2; }
 .exito-pago .ep-botones button { width: 100%; min-height: 48px; justify-content: center; }
 .exito-pago .ep-nota { margin: 0.35rem 0 0; font-size: var(--fs-s); color: var(--gray-600); line-height: 1.45; }
