@@ -59,21 +59,37 @@ function Kpi({ label, valor, sub, a, b, invertir }: { label: string; valor: stri
 }
 
 // ---- Gráfico de barras (una serie) con tooltip, en SVG ------------------------------------
-function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: { k: string; v: number; extra?: string }[]; color: string; formato: (v: number) => string; titulo: string; alto?: number }) {
+export function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: { k: string; v: number; extra?: string }[]; color: string; formato: (v: number) => string; titulo: string; alto?: number }) {
   const [sel, setSel] = useState<number | null>(null);
   const max = Math.max(1, ...datos.map((d) => d.v));
-  const ancho = 720, izq = 8, abajo = 22, arriba = 8;
+  // A TAMAÑO REAL, como la evolución (usuario, 2026-11-24: «salen enormes los títulos de ese
+  // gráfico»): antes era un dibujo de 720 de ancho estirado al de la pantalla, y en una
+  // pantalla ancha la letra y las barras se hacían el doble de grandes. Ahora se dibuja con
+  // los píxeles del contenedor: la letra mide lo mismo que el resto de la pantalla.
+  const lienzo = useRef<HTMLDivElement>(null);
+  const [ancho, setAncho] = useState(720);
+  useLayoutEffect(() => {
+    const el = lienzo.current; if (!el) return;
+    const medir = () => setAncho(Math.max(240, Math.floor(el.clientWidth)));
+    medir();
+    const ro = new ResizeObserver(medir); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const letra = ancho < 520 ? 11 : 13;
+  const izq = 8, abajo = letra + 13, arriba = 8;
   const w = (ancho - izq * 2) / Math.max(datos.length, 1);
-  const barra = Math.max(2, Math.min(w - 2, 40));
+  const barra = Math.max(2, Math.min(w - 2, 56));
   const y = (v: number) => arriba + (alto - arriba - abajo) * (1 - v / max);
-  const cada = Math.ceil(datos.length / 12);
   // Etiquetas recortadas al hueco de su barra (usuario, 2026-11-09: los nombres de sector
   // enteros se montaban unos sobre otros). El nombre completo vive en el tooltip y en la tabla.
-  const maxChars = Math.max(4, Math.floor(w / 6.5));
+  // Si aun así no caben (muchas barras), sale una de cada tantas.
+  const maxChars = Math.max(4, Math.floor((w - 6) / (letra * 0.56)));
+  const cada = Math.max(1, Math.ceil((letra * 3) / w));
   const etiqueta = (t: string) => t.length > maxChars ? t.slice(0, maxChars - 1).trimEnd() + '…' : t;
   return (
     <div className="cm-chart" style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ width: '100%', height: 'auto', display: 'block' }} onMouseLeave={() => setSel(null)}>
+      <div className="cm-chart-scroll"><div className="cm-chart-lienzo" ref={lienzo}>
+      <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={titulo} style={{ display: 'block' }} onMouseLeave={() => setSel(null)}>
         {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1={izq} x2={ancho - izq} y1={y(max * f)} y2={y(max * f)} stroke="var(--gray-200)" strokeWidth="1" />)}
         {datos.map((d, i) => {
           const x = izq + i * w + (w - barra) / 2;
@@ -83,12 +99,13 @@ function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: { k: str
               <rect x={izq + i * w} y={arriba} width={w} height={alto - arriba - abajo} fill="transparent" />
               <rect x={x} y={y(d.v)} width={barra} height={h} rx={Math.min(4, barra / 2)} fill={color} opacity={sel == null || sel === i ? 1 : 0.45} />
               {d.v > 0 && h < 4 && <rect x={x} y={y(0) - 2} width={barra} height={2} fill={color} />}
-              {i % cada === 0 && <text x={izq + i * w + w / 2} y={alto - 6} textAnchor="middle" fontSize="11" fill="var(--gray-500)">{etiqueta(d.k)}</text>}
+              {i % cada === 0 && <text x={izq + i * w + w / 2} y={alto - 7} textAnchor="middle" fontSize={letra} fill="var(--gray-600, #4b5563)">{etiqueta(d.k)}</text>}
             </g>
           );
         })}
         <line x1={izq} x2={ancho - izq} y1={y(0)} y2={y(0)} stroke="var(--gray-300)" strokeWidth="1" />
       </svg>
+      </div></div>
       {sel != null && datos[sel] && (
         <div className="cm-tip" style={{ left: `${Math.min(88, Math.max(12, (izq + sel * w + w / 2) / ancho * 100))}%` }}>
           <strong>{datos[sel].k}</strong> · {formato(datos[sel].v)}{datos[sel].extra ? ` · ${datos[sel].extra}` : ''}
