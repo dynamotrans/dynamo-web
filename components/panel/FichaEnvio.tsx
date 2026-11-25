@@ -43,45 +43,13 @@ import { CompartirOrden } from './ficha/CompartirOrden';
 import { Deca } from './ficha/Deca';
 import { PackGrupaje } from './ficha/PackGrupaje';
 import { PACKS_GRUPAJE } from '@/lib/modulos';
+import MasAcciones from './MasAcciones';
 
 // ---- «⋯ Más»: las acciones secundarias en un desplegable (de 3 filas de botones a 1) --
 // Rótulo de los bloques DENTRO de la sección unificada «Envío» (usuario, 2026-11-10:
 // solicitud, ruta, mercancía y precio en un solo desplegable, ordenado y sin duplicar).
 function SubTit({ children, primero }: { children: React.ReactNode; primero?: boolean }) {
   return <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--navy)', margin: primero ? '0 0 0.4rem' : '1rem 0 0.4rem' }}>{children}</div>;
-}
-
-function MasAcciones({ children }: { children: React.ReactNode }) {
-  const [abierto, setAbierto] = useState(false);
-  useEffect(() => {
-    if (!abierto) return;
-    const esc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setAbierto(false); };
-    document.addEventListener('keydown', esc);
-    return () => document.removeEventListener('keydown', esc);
-  }, [abierto]);
-  // EMERGENTE a lo ancho (usuario, 2026-11-10): velo + panel centrado (hoja inferior en
-  // móvil). En PORTAL sobre <body>: dentro del modal de la ficha (que lleva transform por
-  // su animación) el position:fixed se calcula contra el modal y el panel caía fuera de
-  // la pantalla — solo se veía el velo. El velo cierra, así que no hace falta detectar
-  // clics «fuera».
-  return (
-    <div className="ficha-mas">
-      <button type="button" className="btn-secondary" aria-haspopup="menu" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>⋯ Más</button>
-      {abierto && createPortal(<>
-        <div className="ficha-mas-backdrop" onClick={() => setAbierto(false)} />
-        <div className="ficha-mas-menu" role="menu">
-          <div className="fm-asa" aria-hidden="true" />
-          <div className="fm-cab">
-            <span>Más acciones</span>
-            <button type="button" className="fm-x" aria-label="Cerrar" onClick={() => setAbierto(false)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="M6 6l12 12" /></svg>
-            </button>
-          </div>
-          <div className="fm-lista" onClick={() => setAbierto(false)}>{children}</div>
-        </div>
-      </>, document.body)}
-    </div>
-  );
 }
 
 export default function FichaEnvio({ ficha, cerrarHref, pendiente = null, esMaster = false }: { ficha: Ficha; cerrarHref: string; pendiente?: CambioPendiente | null; esMaster?: boolean }) {

@@ -59,14 +59,20 @@ export function BotonMapa({ envioId, referencia, compacto, className }: { envioI
       {/* A la ventana se la saca al final de la página y no deja pasar los clics ni las teclas:
           dentro de una fila de la lista abrirían la ficha, y Escape cerraría también la ficha
           que haya debajo. Escape cierra SOLO el mapa (por eso se le da el foco al abrirse). */}
-      {abierto && createPortal(
-        <div ref={(el) => { if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true }); }} tabIndex={-1} style={{ outline: 'none' }}
-          onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
-          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setAbierto(false); }}>
-          <VentanaMapa envioId={envioId} referencia={referencia} onCerrar={() => setAbierto(false)} />
-        </div>, document.body)}
+      {abierto && <MapaFlotante envioId={envioId} referencia={referencia} onCerrar={() => setAbierto(false)} />}
     </>
   );
+}
+
+// La ventana del mapa colgada del final de la página, para abrirla desde donde sea (el botón
+// de arriba, o una opción de un menú que se cierra al pulsarla).
+export function MapaFlotante({ envioId, referencia, onCerrar }: { envioId: string; referencia?: string | null; onCerrar: () => void }) {
+  return createPortal(
+    <div ref={(el) => { if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true }); }} tabIndex={-1} style={{ outline: 'none' }}
+      onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') onCerrar(); }}>
+      <VentanaMapa envioId={envioId} referencia={referencia} onCerrar={onCerrar} />
+    </div>, document.body);
 }
 
 export function VentanaMapa({ envioId, referencia, onCerrar }: { envioId: string; referencia?: string | null; onCerrar: () => void }) {

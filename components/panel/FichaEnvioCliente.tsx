@@ -5,7 +5,8 @@
 // aplicada). Si es una solicitud, aquí acepta o rechaza el precio. Puede cancelar mientras
 // el camión no va hacia la carga, reportar una incidencia y repetir el envío.
 import ContadorCambio from '@/components/panel/ContadorCambio';
-import { BotonMapa } from './MapaEnvio';
+import { IcoMapa, MapaFlotante } from './MapaEnvio';
+import MasAcciones from './MasAcciones';
 import CuentaAtras from './CuentaAtras';
 import { SIN_CONEXION } from '@/lib/mensajeError';
 import { useState } from 'react';
@@ -96,6 +97,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
   const router = useRouter();
   const refrescar = useRefrescar();
   const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar' | 'llamarCancelar' | 'enviarOrden'>('ficha');
+  const [mapa, setMapa] = useState(false);   // el mapa se abre desde «Acciones», que se cierra al pulsar
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
@@ -263,30 +265,42 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
   }
 
   const FASES_M: [string, string][] = FASES_ENVIO.map((k) => [k, ESTADOS_ENVIO[k].label]);
-  const acciones = (
-    <>
-      {/* UN botón (usuario, 2026-11-17): abre la ventana con el PDF y el envío por email. */}
-      {manual && e.estado !== 'cancelado' && <button className="btn-secondary" onClick={() => { setAviso(null); setVista('enviarOrden'); }} disabled={!!trabajando}><I d={ICO.doc} />Orden de carga (PDF)</button>}
-      {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
-      {e.estado !== 'cancelado' && <BotonMapa envioId={e.id} referencia={e.referencia_gx} />}
-      {modo === 'form' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
-      {/* Con SU transportista lo modifica libremente: es suyo (usuario, 2026-11-16). */}
-      {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
-      {modo === 'llamar' && <button className="btn-secondary" onClick={() => setVista('llamar')} disabled={!!trabajando}><I d={ICO.editar} />Modificar envío</button>}
-      {modo === 'pendiente' && <button className="btn-secondary" disabled title="Ya has pedido un cambio: espera a que te contestemos"><I d={ICO.editar} />Modificar envío</button>}
-      {modo === 'asignando' && <button className="btn-secondary" disabled title="Un transportista se está asignando en este momento"><I d={ICO.editar} />Modificar envío</button>}
-      {cancelable && <button className="btn-secondary" onClick={() => setVista(cancelarLlamando ? 'llamarCancelar' : 'cancelar')} disabled={asignandose}
-        title={asignandose ? 'Un transportista se está asignando en este momento' : undefined}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
-      {/* Con SU transportista no hay incidencias: Dynamo no interviene en ese envío (usuario, 2026-11-17). */}
-      {!manual && <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
-      {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
-    </>
-  );
+  // BARRA DE ACCIONES (usuario, 2026-11-25): a la izquierda el documento del envío («CMR
+  // digital»; con su propio transportista, la orden de carga) y a la derecha «Acciones», que
+  // despliega el resto: mapa, modificar, cancelar, incidencia y repetir. De seis botones
+  // apilados en el móvil a una sola fila.
+  const botonDoc = manual && e.estado !== 'cancelado'
+    // UN botón (usuario, 2026-11-17): abre la ventana con el PDF y el envío por email.
+    ? <button className="btn-secondary" onClick={() => { setAviso(null); setVista('enviarOrden'); }} disabled={!!trabajando}><I d={ICO.doc} />Orden de carga (PDF)</button>
+    : !manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado)
+      ? <button className="btn-secondary" id="ficha-cmr" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>
+      : null;
+  const hayAcciones = e.estado !== 'cancelado' || !manual;
+  const acciones = (botonDoc || hayAcciones) ? (
+    <div className={`dash-modal-actions ficha-cli-acciones${pagoPrimero ? ' tras-pago' : ''}`} id="ficha-acciones">
+      {botonDoc}
+      {hayAcciones && <MasAcciones id="ficha-acciones-btn" titulo="Acciones del envío" etiqueta={<>Acciones <span aria-hidden="true" style={{ fontSize: '0.8em' }}>▾</span></>}>
+        {e.estado !== 'cancelado' && <button className="fm-item" data-boton-mapa="" onClick={() => setMapa(true)}><IcoMapa />Mapa</button>}
+        {modo === 'form' && <a className="fm-item" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
+        {/* Con SU transportista lo modifica libremente: es suyo (usuario, 2026-11-16). */}
+        {manual && e.estado !== 'cancelado' && <a className="fm-item" href={`/panel/nuevo-envio?editar=${e.id}`}><I d={ICO.editar} />Modificar envío</a>}
+        {modo === 'llamar' && <button className="fm-item" onClick={() => setVista('llamar')} disabled={!!trabajando}><I d={ICO.editar} />Modificar envío</button>}
+        {modo === 'pendiente' && <button className="fm-item" disabled title="Ya has pedido un cambio: espera a que te contestemos"><I d={ICO.editar} />Modificar envío<span className="fm-nota">ya has pedido un cambio</span></button>}
+        {modo === 'asignando' && <button className="fm-item" disabled title="Un transportista se está asignando en este momento"><I d={ICO.editar} />Modificar envío<span className="fm-nota">se está asignando transportista</span></button>}
+        {cancelable && <button className="fm-item rojo" onClick={() => setVista(cancelarLlamando ? 'llamarCancelar' : 'cancelar')} disabled={asignandose}
+          title={asignandose ? 'Un transportista se está asignando en este momento' : undefined}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
+        {/* Con SU transportista no hay incidencias: Dynamo no interviene en ese envío (usuario, 2026-11-17). */}
+        {!manual && <a className="fm-item" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
+        {!manual && <a className="fm-item" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
+      </MasAcciones>}
+    </div>
+  ) : null;
 
   return (
     <Modal abierto envivo ancho={760} onCerrar={cerrar} titulo={`Detalle de envío #${e.referencia_gx}`}
-      sub={<span className={`badge badge-${ev.color}`}>{ev.label}</span>} icono={<I d={ICO.ojo} />} acciones={acciones}
+      sub={<span className={`badge badge-${ev.color}`}>{ev.label}</span>} icono={<I d={ICO.ojo} />}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
+      {mapa && <MapaFlotante envioId={e.id} referencia={e.referencia_gx} onCerrar={() => setMapa(false)} />}
       {trabajando && <Cargando texto={trabajando} />}
       {/* Contador de 30 s: el aviso del último cambio aún no ha salido y se puede anular. */}
       <ContadorCambio barra envio={e.id} referencia={e.referencia_gx} pendiente={pendiente} />
@@ -294,6 +308,9 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
           Fecha de carga…»): mientras falta el pago es lo único que el cliente tiene que hacer.
           Ya pagado, su caja se queda donde estaba, debajo del resumen. */}
       {pagoPrimero && <PagoCliente e={e} />}
+      {/* Los botones van DESPUÉS de la caja de pago (usuario, 2026-11-25: «pon delante de los
+          botones lo de Pendiente de pago»): mientras falta el pago, es lo primero que se ve. */}
+      {acciones}
       {/* CABECERA EN CAJA, la misma que la ficha de Dynamo (usuario, 2026-11-12: «mismo
           formato, diseño y botones que admin»): fecha, ruta con todas las paradas,
           mercancía y precio, cada cosa en su fila. */}

@@ -1451,6 +1451,14 @@ body.theme-dark .sidebar { background: #060116; }
     background: var(--navy); color: white; border-color: var(--navy);
 }
 .dash-modal-actions .btn-primary:hover { background: #1a0d4e; border-color: #1a0d4e; }
+/* Ficha del cliente (usuario, 2026-11-25): «CMR digital» a la izquierda y «Acciones» a la
+   derecha, en una fila y a medias; el resto de acciones se despliega desde «Acciones». */
+.dash-modal-actions.ficha-cli-acciones { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.dash-modal-actions.ficha-cli-acciones.tras-pago { margin-top: 0.9rem; }
+.ficha-cli-acciones .ficha-mas { display: flex; }
+.ficha-cli-acciones > .btn-secondary, .ficha-cli-acciones .ficha-mas > .btn-secondary { width: 100%; justify-content: center; min-height: 44px; }
+.ficha-mas-menu .fm-item:disabled { opacity: 0.55; cursor: not-allowed; }
+.ficha-mas-menu .fm-item .fm-nota { margin-left: auto; padding-left: 0.6rem; font-size: var(--fs-s); font-weight: 500; color: var(--gray-500); white-space: normal; text-align: right; }
 .dash-modal-actions .btn-secondary {
     background: var(--gray-100); color: var(--navy); border-color: var(--gray-200);
 }

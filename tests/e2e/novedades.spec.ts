@@ -107,6 +107,25 @@ test.describe('novedades', () => {
     await expect(globoPlazo).toContainText('tendrás que crear un envío nuevo');
     // Y el cómo pagar, en un desplegable cerrado.
     await expect(page.locator('#pago-como')).not.toHaveAttribute('open', '');
+    // Los botones van DESPUÉS de la caja de pago y en una sola fila: «CMR digital» a la izquierda
+    // y «Acciones» a la derecha, que despliega el resto (usuario, 2026-11-25).
+    expect(await page.evaluate(() => {
+      const pago = document.querySelector('#pago-como'), barra = document.querySelector('#ficha-acciones'), resumen = document.querySelector('.pen-envio-sum');
+      const F = Node.DOCUMENT_POSITION_FOLLOWING;
+      return !!pago && !!barra && !!resumen && !!(pago.compareDocumentPosition(barra) & F) && !!(barra.compareDocumentPosition(resumen) & F);
+    })).toBe(true);
+    const cmr = await page.locator('#ficha-cmr').boundingBox(), acc = await page.locator('#ficha-acciones-btn').boundingBox();
+    expect(cmr && acc && Math.abs(cmr.y - acc.y) < 4 && cmr.x < acc.x && Math.abs(cmr.width - acc.width) < 4).toBe(true);
+    await expect(page.locator('#ficha-acciones').getByRole('button')).toHaveCount(2);
+    await page.locator('#ficha-acciones-btn').click();
+    const menu = page.locator('.ficha-mas-menu');
+    await expect(menu).toContainText('Acciones del envío');
+    await expect(menu.locator('.fm-item')).toHaveText([/Mapa/, /Modificar envío/, /Cancelar envío/, /Reportar incidencia/, /Repetir envío/]);
+    // El mapa se abre desde ahí y el desplegable se cierra.
+    await menu.locator('.fm-item', { hasText: 'Mapa' }).click();
+    await expect(menu).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: `Mapa del envío #${e.referencia_gx}` })).toBeVisible();
+    await page.keyboard.press('Escape');
     await page.goto('/panel/administracion');
     const proforma = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
     await expect(proforma.locator('.pago-plazo .cuenta-atras')).toBeVisible();
