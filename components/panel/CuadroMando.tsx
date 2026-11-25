@@ -138,10 +138,11 @@ function ejeRedondo(max: number): { tope: number; paso: number } {
   const paso = Math.max(1, [1, 2, 5, 10].map((m) => m * p).find((x) => x >= bruto) ?? 10 * p);
   return { tope: Math.max(paso, Math.ceil(Math.max(1, max) / paso) * paso), paso };
 }
-// Columnas APILADAS por día o por mes del periodo del cuadro (usuario, 2026-11-25: «hazlo con
-// el mismo filtro temporal que el cuadro de mando… barras», como la Evolución). Cada columna
-// es lo realizado ese mes, partido en las cuatro casillas; lo digital va abajo, pegado a la
-// base, para que se vea crecer. Entre tramos, un hilo blanco los separa (no un borde).
+// Cuatro columnas por día o por mes del periodo del cuadro (usuario, 2026-11-25: «hazlo con
+// el mismo filtro temporal que el cuadro de mando… barras», como la Evolución), UNA AL LADO DE
+// OTRA y estrechas, cada casilla con su color («las 4 una al lado de otra, más estrechas, los 4
+// colores; no una encima de otra»). Cada casilla va siempre en el mismo sitio del grupo, tenga
+// envíos o no, para que el color y la posición digan lo mismo en todos los meses.
 function EvolucionDigital({ datos, granularidad }: { datos: DigitalSerie['serie']; granularidad: 'dia' | 'mes' }) {
   const [sel, setSel] = useState<number | null>(null);
   const [fijo, setFijo] = useState(false);
@@ -169,11 +170,13 @@ function EvolucionDigital({ datos, granularidad }: { datos: DigitalSerie['serie'
   const letra = estrecho ? 11 : 13;
   const alto = 240, izq = estrecho ? 40 : 52, der = 8, arriba = 12, abajo = 26;
   const H = alto - arriba - abajo, base = arriba + H;
-  const { tope, paso } = ejeRedondo(Math.max(0, ...filas.map((f) => f.total)));
+  const { tope, paso } = ejeRedondo(Math.max(0, ...filas.flatMap((f) => f.v)));
   const ticks = Array.from({ length: Math.round(tope / paso) + 1 }, (_, i) => i * paso);
   const w = (ancho - izq - der) / Math.max(filas.length, 1);
-  const barra = Math.max(2, Math.min(w - 2, 24));
-  const hilo = barra >= 6 ? 2 : 0;   // separación entre tramos, solo si la columna tiene cuerpo
+  // El grupo de cuatro ocupa como mucho el hueco de su día o mes menos un margen; cada columna, 10 px como mucho.
+  const hueco = w >= 14 ? (w >= 30 ? 2 : 1) : 0;   // separación entre columnas del grupo, solo si hay sitio
+  const barra = Math.max(1.5, Math.min((w - Math.min(10, w * 0.3) - hueco * (DIGITAL.length - 1)) / DIGITAL.length, 10));
+  const grupo = barra * DIGITAL.length + hueco * (DIGITAL.length - 1);
   const y = (v: number) => arriba + H * (1 - v / tope);
   const xc = (i: number) => izq + i * w + w / 2;
   const cada = Math.max(1, Math.ceil(filas.length / Math.max(3, Math.floor((ancho - izq - der) / 64))));
@@ -196,19 +199,14 @@ function EvolucionDigital({ datos, granularidad }: { datos: DigitalSerie['serie'
           </g>
         ))}
         {filas.map((f, i) => {
-          const x = xc(i) - barra / 2;
-          let acum = 0;
-          const ultimo = f.v.reduce((u, v, j) => (v > 0 ? j : u), -1);   // el tramo de más arriba: lleva el extremo redondeado
+          const x0 = xc(i) - grupo / 2;
           return (
             <g key={`${f.k}-${i}`} data-cubo={i} opacity={sel == null || sel === i ? 1 : 0.45}>
               {f.v.map((v, j) => {
                 if (v <= 0) return null;
-                const y0 = y(acum), y1 = y(acum + v); acum += v;
-                const corte = j > 0 && y0 - y1 > hilo + 1 ? hilo : 0;   // el hilo blanco sale del tramo de arriba
-                const h = Math.max(1, y0 - y1 - corte), r = j === ultimo ? Math.min(4, h, barra / 2) : 0;
-                return r > 0
-                  ? <path key={j} data-tramo={DIGITAL[j].clave} fill={DIGITAL[j].color} d={`M${x},${y1 + h}V${y1 + r}Q${x},${y1} ${x + r},${y1}H${x + barra - r}Q${x + barra},${y1} ${x + barra},${y1 + r}V${y1 + h}Z`} />
-                  : <rect key={j} data-tramo={DIGITAL[j].clave} x={x} y={y1} width={barra} height={h} fill={DIGITAL[j].color} />;
+                const x = x0 + j * (barra + hueco), y1 = Math.min(y(v), base - 1), h = base - y1, r = Math.min(3, h, barra / 2);
+                return <path key={j} data-tramo={DIGITAL[j].clave} fill={DIGITAL[j].color}
+                  d={`M${x},${base}V${y1 + r}Q${x},${y1} ${x + r},${y1}H${x + barra - r}Q${x + barra},${y1} ${x + barra},${y1 + r}V${base}Z`} />;
               })}
               {i % cada === 0 && <text x={xc(i)} y={alto - 8} textAnchor="middle" fontSize={letra} fill="var(--gray-500)">{f.k}</text>}
             </g>

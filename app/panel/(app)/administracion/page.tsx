@@ -96,7 +96,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
   const tab = (await searchParams).tab;
   return (
     <Administracion proformas={proformas} albaranes={albaranes} dynamo={dynamo} gestor={esGestor(perfil.rol)}
-      pestanaInicial={tab === 'albaranes' || tab === 'facturas' ? tab : 'proformas'}
+      pestanaInicial={tab === 'proformas' || tab === 'facturas' ? tab : 'albaranes'}   // por defecto, Albaranes (usuario, 2026-11-25)
       error={alm.error?.message ?? docs.error?.message ?? null} />
   );
 }

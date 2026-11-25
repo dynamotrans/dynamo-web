@@ -27,10 +27,6 @@ import CampoTelefono from '@/components/CampoTelefono';
 import SelectorPais from '@/components/SelectorPais';
 import CampoProvincia from '@/components/CampoProvincia';
 
-const CAMIONES: { k: 'trailer_tauliner' | 'rigido_plataforma'; t: string }[] = [
-  { k: 'trailer_tauliner', t: 'Tráiler' },
-  { k: 'rigido_plataforma', t: 'Rígido con plataforma · 8 m' },
-];
 
 export type OperadorFila = OperadorDatos & {
   id: string; cliente: string | null; creado_en: string; modificado_en: string | null; envios: number;
@@ -291,16 +287,8 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
           <label htmlFor="op-provincia">Provincia <Req si={false} /></label>
           <CampoProvincia id="op-provincia" pais={d.pais_codigo_iso} valor={d.provincia} onCambio={(v) => set('provincia', v)} />
         </div>
-        <fieldset style={{ gridColumn: '1/-1', border: 0, margin: 0, padding: 0 }}>
-          <legend style={{ padding: 0, marginBottom: '0.3rem' }}>Tipos de camión <Req si={false} /></legend>
-          <div className="op-camiones" id="op-camiones">
-            {CAMIONES.map((c) => (
-              <label key={c.k}><input type="checkbox" checked={d.tipos_camion.includes(c.k)}
-                onChange={(e) => set('tipos_camion', e.target.checked ? [...d.tipos_camion, c.k] : d.tipos_camion.filter((x) => x !== c.k))} /> {c.t}</label>
-            ))}
-            <label><input type="checkbox" checked={d.otros_camiones} onChange={(e) => set('otros_camiones', e.target.checked)} /> Otros</label>
-          </div>
-        </fieldset>
+        {/* «Tipos de camión» fuera de la ficha (usuario, 2026-11-25: «no aporta; ya sabremos, cuando elija o no
+            trampilla, si es tráiler o rígido»). Los datos guardados se conservan tal cual, por si a futuro hacen falta. */}
       </div>
       <div style={{ marginTop: '0.7rem' }}>
         <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de carga <Req si={false} /></label>

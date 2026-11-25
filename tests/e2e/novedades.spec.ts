@@ -127,7 +127,11 @@ test.describe('novedades', () => {
     await expect(menu).toHaveCount(0);
     await expect(page.getByRole('heading', { name: `Mapa del envío #${e.referencia_gx}` })).toBeVisible();
     await page.keyboard.press('Escape');
+    // Administración abre en Albaranes (usuario, 2026-11-25); las proformas, en su pestaña.
     await page.goto('/panel/administracion');
+    await expect(page.locator('#sec-facturas .tabs .tab.active')).toContainText('Albaranes');
+    await page.goto('/panel/administracion?tab=proformas');
+    await expect(page.locator('#sec-facturas .tabs .tab.active')).toContainText('Proformas');
     const proforma = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
     await expect(proforma.locator('.pago-plazo .cuenta-atras')).toBeVisible();
     // Avisa de su transferencia (con una pregunta antes): el temporizador desaparece y queda «validando».
@@ -141,7 +145,7 @@ test.describe('novedades', () => {
     await expect(page.locator('#pago-plazo')).toHaveCount(0);
     await expect(page.locator('#pago-avisar')).toHaveCount(0);
     await expect.poll(async () => (await sv.from('envios').select('pago_avisado_en').eq('id', e.id).single()).data?.pago_avisado_en ?? null).not.toBeNull();
-    await page.goto('/panel/administracion');
+    await page.goto('/panel/administracion?tab=proformas');
     await expect(proforma).toContainText('Validando tu transferencia');
     // Dynamo: lo ve en la lista y en la ficha, con el plazo parado.
     await entrar(page, 'dynamo');
@@ -151,7 +155,7 @@ test.describe('novedades', () => {
     await expect(page.locator('#pago-avisado')).toContainText('El cliente avisó de su transferencia');
     await expect(page.getByRole('button', { name: 'Ha llegado la transferencia' })).toBeVisible();
     // En Proformas, «por validar»; no le consta el cobro: «Pago no recibido» anula el envío.
-    await page.goto('/panel/administracion');
+    await page.goto('/panel/administracion?tab=proformas');
     const fila = page.locator('#sec-facturas table.data tbody tr', { hasText: e.referencia_gx });
     await expect(fila).toContainText('Transferencia avisada · validar');
     await fila.locator('.pago-no-recibido').click();
@@ -967,12 +971,12 @@ test.describe('novedades', () => {
     await page.fill('#sitio-direccion', 'C/ Prueba, 1');
     await page.fill('#sitio-codigo_postal', '41016');
     await page.fill('#sitio-poblacion', 'Sevilla');
-    // La provincia sale sola del código postal (usuario, 2026-11-22), en un desplegable.
-    await expect(page.locator('#sitio-provincia')).toHaveValue('Sevilla');
+    // La provincia sale sola del código postal (usuario, 2026-11-22), en el desplegable con buscador.
+    await expect(page.locator('#sitio-provincia')).toHaveAttribute('data-valor', 'Sevilla');
     await page.fill('#sitio-codigo_postal', '11201');
-    await expect(page.locator('#sitio-provincia')).toHaveValue('Cádiz');
+    await expect(page.locator('#sitio-provincia')).toHaveAttribute('data-valor', 'Cádiz');
     await page.fill('#sitio-codigo_postal', '41016');
-    await expect(page.locator('#sitio-provincia')).toHaveValue('Sevilla');
+    await expect(page.locator('#sitio-provincia')).toHaveAttribute('data-valor', 'Sevilla');
     await page.fill('#ct-0-tel', '600111222');
     await page.getByRole('button', { name: 'Crear sitio' }).click();
     await expect(page.locator('#sitio-buscar')).toHaveCount(0);
@@ -983,28 +987,38 @@ test.describe('novedades', () => {
     await expect(page.locator('.ptar-sug')).toContainText(nombre);
   });
 
-  // Transportista propio (usuario, 2026-11-22): provincia (desplegable en España), país y
-  // tipos de camión, con el tráiler marcado por defecto.
-  test('transportista propio: provincia, país y tipos de camión (tráiler por defecto)', async ({ page }) => {
+  // Transportista propio (usuario, 2026-11-22): provincia y país. La provincia se elige en el
+  // desplegable con buscador de la plataforma, el mismo que el de país (usuario, 2026-11-25:
+  // «así no», al ver el del navegador). «Tipos de camión» ya no está en la ficha («no aporta»):
+  // lo guardado se queda como estaba y un transportista nuevo nace con el tráiler, como antes.
+  test('transportista propio: provincia con buscador, país y sin tipos de camión en la ficha', async ({ page }) => {
     const nombre = `Camiones Prueba ${Date.now()}`;
     await entrar(page, 'cliente');
     await page.goto('/panel/operadores');
     await page.getByRole('button', { name: '+ Nuevo transportista' }).click();
     await page.locator('#op-razon_social').fill(nombre);
-    const cam = page.locator('#op-camiones');
-    await expect(cam.getByLabel('Tráiler')).toBeChecked();
-    await expect(cam.getByLabel('Rígido con plataforma · 8 m')).not.toBeChecked();
-    await expect(cam.getByLabel('Otros')).not.toBeChecked();
-    await page.locator('#op-provincia').selectOption('Sevilla');
-    await cam.getByLabel('Rígido con plataforma · 8 m').check();
-    await cam.getByLabel('Otros').check();
+    await expect(page.locator('#op-camiones')).toHaveCount(0);
+    await expect(page.getByText('Tipos de camión')).toHaveCount(0);
+    // La provincia: botón como el de país; al abrirlo, buscador (sin acentos) y la lista.
+    const prov = page.locator('#op-provincia');
+    await expect(prov).toHaveJSProperty('tagName', 'BUTTON');
+    await expect(prov).toContainText('Elige la provincia…');
+    await prov.click();
+    await expect(page.getByRole('option', { name: 'Zaragoza', exact: true })).toBeVisible();
+    await page.getByLabel('Buscar provincia').fill('cadi');
+    await expect(page.getByRole('option')).toHaveText(['Cádiz']);
+    await page.getByLabel('Buscar provincia').fill('sev');
+    await page.keyboard.press('Enter');
+    await expect(prov).toHaveAttribute('data-valor', 'Sevilla');
+    await expect(prov).toContainText('Sevilla');
     await page.getByRole('button', { name: 'Crear transportista' }).click();
     await expect.poll(async () => (await bd().from('operadores').select('provincia, pais_codigo_iso, tipos_camion, otros_camiones').eq('razon_social', nombre).maybeSingle()).data, { timeout: 15000 })
-      .toEqual({ provincia: 'Sevilla', pais_codigo_iso: 'ES', tipos_camion: ['trailer_tauliner', 'rigido_plataforma'], otros_camiones: true });
+      .toEqual({ provincia: 'Sevilla', pais_codigo_iso: 'ES', tipos_camion: ['trailer_tauliner'], otros_camiones: false });
   });
 
-  // Provincia fuera de España (usuario, 2026-11-22): texto libre con sugerencias que salen de
-  // las fichas vivas de ese país; en España, el desplegable de 52.
+  // Provincia fuera de España (usuario, 2026-11-22): se puede escribir la que sea y se sugieren
+  // las de las fichas vivas de ese país; en España, las 52. Siempre en el desplegable con
+  // buscador de la plataforma, no en la lista de sugerencias del navegador (2026-11-25).
   test('provincia fuera de España: se sugieren las que usan las fichas de ese país', async ({ page }) => {
     const prov = `Distrito E2E ${Date.now()}`;
     // Un sitio de Portugal del cliente de prueba (el mismo dueño que «Nave Madrid»).
@@ -1015,12 +1029,24 @@ test.describe('novedades', () => {
       await entrar(page, 'cliente');
       await page.goto('/panel/operadores');
       await page.getByRole('button', { name: '+ Nuevo transportista' }).click();
-      await expect(page.locator('#op-provincia')).toHaveJSProperty('tagName', 'SELECT');
+      await expect(page.locator('#op-provincia')).toContainText('Elige la provincia…');
       await page.locator('#op-pais').click();
       await page.getByLabel('Buscar país').fill('Portugal');
       await page.getByRole('option', { name: /Portugal/ }).first().click();
-      await expect(page.locator('#op-provincia')).toHaveJSProperty('tagName', 'INPUT');
-      await expect(page.locator('#op-provincia-sugerencias option[value="' + prov + '"]')).toHaveCount(1, { timeout: 10000 });
+      await expect(page.locator('#op-provincia')).toContainText('Provincia o región');
+      await expect(page.locator('datalist')).toHaveCount(0);
+      // Al abrirlo salen las que ya usan las fichas de Portugal…
+      await page.locator('#op-provincia').click();
+      await expect(page.getByRole('option', { name: prov, exact: true })).toBeVisible({ timeout: 10000 });
+      // …y se puede escribir una que no esté.
+      await page.getByLabel('Buscar provincia').fill('Algarve E2E');
+      await page.getByRole('option', { name: 'Usar «Algarve E2E»' }).click();
+      await expect(page.locator('#op-provincia')).toHaveAttribute('data-valor', 'Algarve E2E');
+      // Y elegir una de las sugeridas.
+      await page.locator('#op-provincia').click();
+      await page.getByLabel('Buscar provincia').fill('distrito e2e');
+      await page.getByRole('option', { name: prov, exact: true }).click();
+      await expect(page.locator('#op-provincia')).toHaveAttribute('data-valor', prov);
     } finally {
       await bd().from('sitios').delete().eq('id', s!.id);
     }
@@ -1047,12 +1073,16 @@ test.describe('novedades', () => {
       // 1) El CP rellena la localidad y la provincia.
       await page.fill('#sitio-codigo_postal', s!.codigo_postal);
       await expect(page.locator('#sitio-poblacion')).toHaveValue(loc, { timeout: 10000 });
-      await expect(page.locator('#sitio-provincia')).toHaveValue(`Distrito E2E ${t}`);
+      await expect(page.locator('#sitio-provincia')).toHaveAttribute('data-valor', `Distrito E2E ${t}`);
       // 2) Al revés: sin CP, elegir la localidad rellena el CP (solo tiene uno).
       await page.fill('#sitio-codigo_postal', '');
       await page.fill('#sitio-poblacion', 'Vila E2E');
-      await expect(page.locator(`#sitio-poblacion-sugerencias option[value="${loc}"]`)).toHaveCount(1, { timeout: 10000 });
-      await page.fill('#sitio-poblacion', loc);
+      // Las sugerencias salen en la ventana de la plataforma, no en la del navegador; se elige con un toque.
+      await expect(page.locator('datalist')).toHaveCount(0);
+      const sugerida = page.locator('.campo-sug-pop').getByRole('option', { name: new RegExp(loc) });
+      await expect(sugerida).toBeVisible({ timeout: 10000 });
+      await sugerida.click();
+      await expect(page.locator('#sitio-poblacion')).toHaveValue(loc);
       await expect(page.locator('#sitio-codigo_postal')).toHaveValue(s!.codigo_postal);
     } finally {
       await bd().from('sitios').delete().eq('id', s!.id);
@@ -1735,7 +1765,7 @@ test.describe('novedades', () => {
     await expect(page.getByLabel('Desde')).toBeVisible();
     await expect(page.getByLabel('Hasta')).toBeVisible();
     // Las listas que filtran en el navegador: el mismo desplegable y sus dos calendarios.
-    for (const [ruta, etiqueta] of [['/panel/incidencias', 'Filtrar por fecha de registro'], ['/panel/penalizaciones', 'Filtrar por fecha de la penalización'], ['/panel/administracion', 'Filtrar por fecha de la proforma']] as const) {
+    for (const [ruta, etiqueta] of [['/panel/incidencias', 'Filtrar por fecha de registro'], ['/panel/penalizaciones', 'Filtrar por fecha de la penalización'], ['/panel/administracion?tab=proformas', 'Filtrar por fecha de la proforma']] as const) {
       await page.goto(ruta);
       await abrirFiltros();
       const sel = page.getByLabel(etiqueta);

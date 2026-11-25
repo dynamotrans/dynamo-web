@@ -21,6 +21,7 @@ import type { OfertaPublica, ReservaPublica, ParadaPublica } from './tipos';
 import Req from '@/components/Req';
 import AvisoDireccionesOcultas from '@/components/AvisoDireccionesOcultas';
 import { ACCESIBILIDAD_TITULO, ACCESIBILIDAD_TEXTO } from '@/lib/condicionesTransportista';
+import CampoSugerido from '@/components/CampoSugerido';
 import { avisaFaltas } from '@/lib/faltas';
 
 type Parada = ParadaPublica;
@@ -469,14 +470,11 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
           </select>
         </>}
         <div className="row2">
-          <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="f-tractora" list="fl-camiones" value={veh.camion} placeholder="Ej. 1234ABC" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} /></div>
-          <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="f-remolque" list="fl-remolques" value={veh.remolque} placeholder="Ej. R5678DEF" autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
-          <datalist id="fl-camiones">{(flo?.camiones ?? []).map((m) => <option key={m} value={m} />)}</datalist>
-          <datalist id="fl-remolques">{(flo?.remolques ?? []).map((m) => <option key={m} value={m} />)}</datalist>
-          <datalist id="fl-choferes">{(flo?.conductores ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+          <div><label htmlFor="f-tractora">Matrícula camión / tractora <Req si={false} /></label><CampoSugerido id="f-tractora" valor={veh.camion} sugerencias={flo?.camiones ?? []} onCambio={(v) => setVeh({ ...veh, camion: v })} placeholder="Ej. 1234ABC" autoCapitalize="characters" /></div>
+          <div><label htmlFor="f-remolque">Matrícula remolque <Req si={false} /></label><CampoSugerido id="f-remolque" valor={veh.remolque} sugerencias={flo?.remolques ?? []} onCambio={(v) => setVeh({ ...veh, remolque: v })} placeholder="Ej. R5678DEF" autoCapitalize="characters" /></div>
         </div>
         <label htmlFor="f-chofer">Nombre y apellidos del conductor <Req si={false} /></label>
-        <input type="text" id="f-chofer" list="fl-choferes" value={veh.conductor} placeholder="Nombre y apellidos" onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
+        <CampoSugerido id="f-chofer" valor={veh.conductor} sugerencias={flo?.conductores ?? []} onCambio={(v) => setVeh({ ...veh, conductor: v })} placeholder="Nombre y apellidos" />
         <label htmlFor="f-tfno">Teléfono del conductor <Req si={false} /></label>
         <CampoTelefono id="f-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
         <p className="id-hint">Con estos datos, cargador y destinatario <strong>coordinan la recogida y la entrega</strong> con el conductor.</p>
@@ -614,11 +612,8 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
             ? <span style={{ color: 'var(--red)' }}>· faltan datos</span>
             : <span style={{ color: '#047857' }}>· guardado</span>}</div>
           <div className="row2">
-            <div><label htmlFor="ok-tractora">Matrícula camión / tractora <Req si={false} /></label><input type="text" id="ok-tractora" list="okfl-camiones" value={veh.camion} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, camion: e.target.value })} onBlur={alSalirCamion} /></div>
-            <div><label htmlFor="ok-remolque">Matrícula remolque <Req si={false} /></label><input type="text" id="ok-remolque" list="okfl-remolques" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
-            <datalist id="okfl-camiones">{(flo?.camiones ?? []).map((m) => <option key={m} value={m} />)}</datalist>
-            <datalist id="okfl-remolques">{(flo?.remolques ?? []).map((m) => <option key={m} value={m} />)}</datalist>
-            <datalist id="okfl-choferes">{(flo?.conductores ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+            <div><label htmlFor="ok-tractora">Matrícula camión / tractora <Req si={false} /></label><CampoSugerido id="ok-tractora" valor={veh.camion} sugerencias={flo?.camiones ?? []} onCambio={(v) => setVeh({ ...veh, camion: v })} autoCapitalize="characters" onBlur={alSalirCamion} /></div>
+            <div><label htmlFor="ok-remolque">Matrícula remolque <Req si={false} /></label><CampoSugerido id="ok-remolque" valor={veh.remolque} sugerencias={flo?.remolques ?? []} onCambio={(v) => setVeh({ ...veh, remolque: v })} autoCapitalize="characters" /></div>
           </div>
           {dias.length > 1 && <>
             <label htmlFor="ok-dia">Día en que cargas <Req /></label>
@@ -627,7 +622,7 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
               {dias.map((d) => { const w = new Date(`${d}T12:00:00`).getDay(); return <option key={d} value={d} disabled={w === 0 || w === 6}>{fecha(d)}{w === 0 || w === 6 ? ' (no se circula)' : ''}</option>; })}
             </select>
           </>}
-          <label htmlFor="ok-chofer">Conductor <Req si={false} /></label><input type="text" id="ok-chofer" list="okfl-choferes" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} onBlur={alSalirConductor} />
+          <label htmlFor="ok-chofer">Conductor <Req si={false} /></label><CampoSugerido id="ok-chofer" valor={veh.conductor} sugerencias={flo?.conductores ?? []} onCambio={(v) => setVeh({ ...veh, conductor: v })} onBlur={alSalirConductor} />
           <label htmlFor="ok-tfno">Teléfono del conductor <Req si={false} /></label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button className="btn" disabled={sinCambios} style={sinCambios ? { background: '#047857', opacity: 1 } : undefined} onClick={async () => {
             if (dias.length > 1 && !dia) { setGuardado({ ok: false, txt: 'Elige el día en que cargas.' }); avisaFaltas(['ok-dia']); return; }

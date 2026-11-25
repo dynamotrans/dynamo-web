@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
+import CampoSugerido from '@/components/CampoSugerido';
 
 // Código postal ↔ localidad ↔ provincia (usuario, 2026-11-22). Sale de las fichas que ya
 // existen (direcciones_en_uso: las propias + las que han escrito dos empresas o Dynamo).
@@ -72,12 +73,8 @@ export function CampoCodigoPostal({ id, pais, lugar, onCambio, placeholder, disa
     });
     return () => { vivo = false; };
   }, [cp, pob, codigo]);
-  return <>
-    <input id={id} type="text" value={lugar.codigo_postal} placeholder={placeholder} disabled={disabled} style={style} className={className}
-      list={`${id}-sugerencias`} autoComplete="off" inputMode={codigo === 'ES' ? 'numeric' : undefined}
-      onChange={(e) => onCambio({ codigo_postal: e.target.value })} />
-    <datalist id={`${id}-sugerencias`}>{cps.map((c) => <option key={c} value={c} />)}</datalist>
-  </>;
+  return <CampoSugerido id={id} valor={lugar.codigo_postal} placeholder={placeholder} disabled={disabled} style={style} className={className}
+    inputMode={codigo === 'ES' ? 'numeric' : undefined} sugerencias={cps} onCambio={(v) => onCambio({ codigo_postal: v })} />;
 }
 
 export function CampoPoblacion({ id, pais, lugar, onCambio, placeholder, disabled, style, className }: Comun) {
@@ -106,11 +103,6 @@ export function CampoPoblacion({ id, pais, lugar, onCambio, placeholder, disable
     }
     onCambio(c);
   }
-  return <>
-    <input id={id} type="text" value={lugar.poblacion} placeholder={placeholder} disabled={disabled} style={style} className={className}
-      list={`${id}-sugerencias`} autoComplete="off" onChange={(e) => cambiar(e.target.value)} />
-    <datalist id={`${id}-sugerencias`}>
-      {locs.map((f) => <option key={comparable(f.poblacion)} value={f.poblacion} label={[f.provincia, f.codigo_postal].filter(Boolean).join(' · ')} />)}
-    </datalist>
-  </>;
+  return <CampoSugerido id={id} valor={lugar.poblacion} placeholder={placeholder} disabled={disabled} style={style} className={className}
+    sugerencias={locs.map((f) => ({ valor: f.poblacion, detalle: [f.provincia, f.codigo_postal].filter(Boolean).join(' · ') }))} onCambio={cambiar} />;
 }

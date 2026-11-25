@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react';
 import { PROVINCIAS_LISTA } from '@/lib/provinciasEs';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
+import SelectorBuscable from '@/components/SelectorBuscable';
 
-// Provincia (usuario, 2026-11-22): en España, desplegable con las 52 provincias, para que nadie
-// escriba la misma de tres maneras; fuera de España, texto libre. Un valor antiguo que no esté
-// en la lista se conserva como una opción más, para no perderlo al guardar. Fuera de España,
-// al escribir se sugieren las provincias que ya usan las fichas de ese país (salen de las fichas
-// vivas: si una deja de usarse en todas, ya no se sugiere).
+// Provincia (usuario, 2026-11-22): en España, las 52 provincias, para que nadie escriba la misma
+// de tres maneras; fuera de España, texto libre con las provincias que ya usan las fichas de ese
+// país como sugerencias (salen de las fichas vivas: si una deja de usarse en todas, ya no sale).
+// Un valor antiguo que no esté en la lista se conserva como una opción más, para no perderlo.
+//
+// Siempre con el desplegable con buscador de la plataforma, el mismo que el de país (usuario,
+// 2026-11-25: «así no», al ver el desplegable del navegador y su lista de sugerencias).
 export default function CampoProvincia({ id, pais, valor, onCambio, placeholder = 'Provincia o región', style, className, disabled, ariaInvalid }: {
   id: string; pais: string | null | undefined; valor: string; onCambio: (v: string) => void;
   placeholder?: string; style?: React.CSSProperties; className?: string; disabled?: boolean; ariaInvalid?: boolean;
@@ -26,20 +29,9 @@ export default function CampoProvincia({ id, pais, valor, onCambio, placeholder 
     });
     return () => { vivo = false; };
   }, [codigo]);
-  if (codigo !== 'ES') {
-    return <>
-      <input id={id} type="text" value={valor} placeholder={placeholder} disabled={disabled} style={style} className={className}
-        list={`${id}-sugerencias`} autoComplete="off" aria-invalid={ariaInvalid || undefined} onChange={(e) => onCambio(e.target.value)} />
-      <datalist id={`${id}-sugerencias`}>{sugeridas.map((p) => <option key={p} value={p} />)}</datalist>
-    </>;
-  }
-  const antiguo = valor && !PROVINCIAS_LISTA.includes(valor) ? valor : null;
+  const espana = codigo === 'ES';
   return (
-    <select id={id} className={`ptar-select${className ? ` ${className}` : ''}`} value={valor} disabled={disabled} style={style}
-      aria-invalid={ariaInvalid || undefined} onChange={(e) => onCambio(e.target.value)}>
-      <option value="">Elige la provincia…</option>
-      {antiguo && <option value={antiguo}>{antiguo}</option>}
-      {PROVINCIAS_LISTA.map((p) => <option key={p} value={p}>{p}</option>)}
-    </select>
+    <SelectorBuscable id={id} nombre="provincia" valor={valor} onCambio={onCambio} opciones={espana ? PROVINCIAS_LISTA : sugeridas}
+      libre={!espana} vacio={espana ? 'Elige la provincia…' : placeholder} disabled={disabled} ariaInvalid={ariaInvalid} className={className} style={style} />
   );
 }

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { guardarDatosCmr, leerDatosCmr, type DatosCmr as Datos } from '@/app/panel/(app)/envios/acciones-cmr';
 import { IcoAviso } from '@/components/Iconos';
 // Etiquetas según el criterio único (usuario, 2026-11-09).
+import CampoSugerido from '@/components/CampoSugerido';
 import Req from '@/components/Req';
 
 const txt = (n: number | null) => (n == null ? '' : String(n).replace('.', ','));
@@ -45,8 +46,7 @@ export default function DatosCmr({ envioId, puedeEditar, bloquearSiFirmado = fal
         <div><label htmlFor={`cmr-v-${envioId}`}>Volumen en m³ (casilla 12) <Req si={false} /></label>
           <input id={`cmr-v-${envioId}`} inputMode="decimal" value={f.v} onChange={(ev) => setF({ ...f, v: ev.target.value })} placeholder="Ej. 86" /></div>
         <div style={{ gridColumn: '1/-1' }}><label htmlFor={`cmr-e-${envioId}`}>Embalaje (casilla 8) <Req si={false} /></label>
-          <input id={`cmr-e-${envioId}`} list={`cmr-emb-${envioId}`} maxLength={60} value={f.e} onChange={(ev) => setF({ ...f, e: ev.target.value })} placeholder="Ej. palet europeo" />
-          <datalist id={`cmr-emb-${envioId}`}>{EMBALAJES.map((x) => <option key={x} value={x} />)}</datalist></div>
+          <CampoSugerido id={`cmr-e-${envioId}`} maxLength={60} valor={f.e} sugerencias={EMBALAJES} onCambio={(v) => setF({ ...f, e: v })} placeholder="Ej. palet europeo" /></div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
         <button type="button" className="btn-primary" disabled={guardando} onClick={async () => {

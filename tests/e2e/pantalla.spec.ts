@@ -77,7 +77,8 @@ test.describe('pantalla sin hueco al final', () => {
 
 // Panel de control de Dynamo (usuario, 2026-11-25): los programados van dentro de «Hoy/mañana
 // sin camión», en pequeño; y los cuatro indicadores de envíos digitales llevan cada uno su
-// color, el mismo que su tramo en el gráfico de debajo (columnas apiladas por mes o por día).
+// color, el mismo que su columna en el gráfico de debajo (cuatro columnas, una al lado de otra,
+// por mes o por día; no apiladas).
 test.describe('panel de control: indicadores', () => {
   test('programados dentro de «sin camión» y envíos digitales con su gráfico por meses', async ({ page }) => {
     await entrar(page, 'dynamo');
@@ -92,8 +93,8 @@ test.describe('panel de control: indicadores', () => {
     await expect(page.locator('#cm-digital')).toContainText(/Envíos full digital.*Envíos digital cliente.*Envíos digital transportista.*Envíos full humano/s);
     const colores = await tarjetas.evaluateAll((l) => l.map((x) => x.getAttribute('data-color')));
     expect(new Set(colores).size).toBe(4);
-    // El gráfico, debajo de las tarjetas y antes de la facturación: columnas apiladas por día o
-    // por mes del periodo del cuadro, con los cuatro colores de las tarjetas.
+    // El gráfico, debajo de las tarjetas y antes de la facturación: por día o por mes del periodo
+    // del cuadro, cuatro columnas estrechas una al lado de otra, con los colores de las tarjetas.
     const grafico = page.locator('#cm-digital-grafico');
     await expect(grafico).toBeVisible();
     await expect(grafico.locator('h4')).toContainText(/por (mes|día)/);
@@ -105,6 +106,17 @@ test.describe('panel de control: indicadores', () => {
       const tramos = await grafico.locator('[data-tramo]').evaluateAll((l) => l.map((t) => t.getAttribute('fill')));
       expect(tramos.length).toBeGreaterThan(0);
       for (const c of tramos) expect(colores).toContain(c);
+      // Una al lado de otra, no una encima de otra: todas nacen en la base y, dentro de un mismo
+      // mes, ninguna pisa a otra de lado.
+      const cajas = await grafico.locator('[data-cubo]').evaluateAll((gs) => gs.map((g) =>
+        [...g.querySelectorAll('[data-tramo]')].map((t) => { const b = (t as SVGGraphicsElement).getBBox(); return { x: b.x, w: b.width, pie: b.y + b.height }; })));
+      const pies = cajas.flat().map((c) => Math.round(c.pie));
+      expect(new Set(pies).size).toBe(1);
+      for (const mes of cajas) {
+        const orden = [...mes].sort((a, b) => a.x - b.x);
+        for (let k = 1; k < orden.length; k++) expect(orden[k].x).toBeGreaterThanOrEqual(orden[k - 1].x + orden[k - 1].w - 0.01);
+        for (const c of mes) expect(c.w).toBeLessThanOrEqual(10.01);
+      }
       // Al pulsar un mes (o día) con envíos, sus cifras.
       const cubo = await grafico.locator('[data-cubo]:has([data-tramo])').first().getAttribute('data-cubo');
       await grafico.locator(`[data-zona="${cubo}"]`).click();
