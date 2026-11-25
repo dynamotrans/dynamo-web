@@ -6,7 +6,7 @@ import { sesionCaducada } from '@/lib/supabase/duracionSesion';
 import { CABECERA_CSP, INFORME_CSP, cspPlataforma, nuevoNonce } from '@/lib/csp';
 
 // Refresca la sesión de Supabase en cada petición de la plataforma y protege /panel:
-// sin sesión, a la página de entrada. Y en TODA la plataforma (/panel, /carga, /cmr, /deca, /matriculas, /cargas-de-vuelta) pone
+// sin sesión, a la página de entrada. Y en TODA la plataforma (/panel, /carga, /cmr, /deca, /matriculas, /cargas-de-vuelta, /pago) pone
 // la política de seguridad de contenido con una llave de un solo uso (lib/csp.ts).
 export async function middleware(request: NextRequest) {
   const nonce = nuevoNonce();
@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
     r.headers.set('Reporting-Endpoints', `csp="${INFORME_CSP}"`);
     return r;
   };
-  // Páginas públicas del transportista: solo la política, sin sesión.
+  // Páginas públicas (transportista, pago): solo la política, sin sesión.
   if (!request.nextUrl.pathname.startsWith('/panel')) return conCsp(seguir());
 
   let respuesta = seguir();
@@ -79,4 +79,4 @@ export async function middleware(request: NextRequest) {
   return conCsp(respuesta);
 }
 
-export const config = { matcher: ['/panel', '/panel/:path*', '/carga', '/carga/:path*', '/cmr/:path*', '/deca/:path*', '/baja/:path*', '/matriculas/:path*', '/cargas-de-vuelta/:path*'] };
+export const config = { matcher: ['/panel', '/panel/:path*', '/carga', '/carga/:path*', '/cmr/:path*', '/deca/:path*', '/baja/:path*', '/matriculas/:path*', '/cargas-de-vuelta/:path*', '/pago/:path*'] };

@@ -152,3 +152,8 @@ Fecha: 2026-11-24 · Rama `pruebas` · **No se ha cambiado ningún texto legal**
 - Si el enlace público del CMR le llega al cliente (enseñaría el transportista).
 - Los números de artículo de la orden del DeCA, la Resolución de 5-jun-2026 y el IPREM vigente.
 - Los textos de los emails que viven en la base de datos: solo se han mirado los de pago y el diseño común.
+
+## Añadido el 2026-11-25 · Página pública de pago
+
+- La página `/pago/<llave>` (el botón «Pagar el envío» del email) se abre sin entrar en la plataforma, para que el cliente pueda reenviar el email a quien paga. Enseña la referencia, el nombre del cliente, el importe, la fecha de carga, la mercancía y las paradas (código postal, población, provincia, país y hora prevista; sin calle, sin empresa y sin contactos). **A validar con el asesor**: mencionarla en la política de privacidad (quién puede verla: quien tenga el enlace), y que pagar desde ahí no supone aceptar nada nuevo (las condiciones las aceptó quien creó el envío) ni cambia a nombre de quién va la factura.
+

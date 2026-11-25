@@ -2359,6 +2359,7 @@ export type Database = {
           pack_id: string | null
           stripe_enlace_caduca_en: string | null
           stripe_sesiones: string[]
+          pago_token: string
         }
         Insert: {
           id?: string
@@ -2487,6 +2488,7 @@ export type Database = {
           pack_id?: string | null
           stripe_enlace_caduca_en?: string | null
           stripe_sesiones?: string[]
+          pago_token?: string
         }
         Update: {
           id?: string
@@ -2615,6 +2617,7 @@ export type Database = {
           pack_id?: string | null
           stripe_enlace_caduca_en?: string | null
           stripe_sesiones?: string[]
+          pago_token?: string
         }
         Relationships: [
           {
@@ -4854,6 +4857,7 @@ export type Database = {
       es_solo_lectura: { Args: Record<PropertyKey, never>; Returns: boolean }
       escapar_html: { Args: { t: string | null }; Returns: string }
       etapas_envio: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean; hecha: boolean; actual: boolean; marcada: boolean; firma: boolean }[] }
+      etapas_envio_interno: { Args: { p_envio: string | null }; Returns: { paso: number; estado: Database["public"]["Enums"]["estado_envio"]; parada: number; tipo_parada: string; poblacion: string; hora: string; km: number; km_estimado: boolean; hecha: boolean; actual: boolean; marcada: boolean; firma: boolean }[] }
       euros_texto: { Args: { p: number | null }; Returns: string }
       exportar_datos_usuario: { Args: { p_usuario?: string | null }; Returns: Json }
       factor_automatico: { Args: { p_cliente: string | null }; Returns: number }
@@ -4887,6 +4891,7 @@ export type Database = {
       fn_encolar_email_envio_modificado: { Args: { p_envio: string | null; p_cambios: string | null }; Returns: undefined }
       fn_encolar_email_transportista_modificado: { Args: { p_envio: string | null; p_transportista: string | null; p_cambios: string | null }; Returns: undefined }
       fn_modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }
+      fn_pago_avisar: { Args: { p_envio: string | null; p_por_enlace: boolean | null }; Returns: Json }
       fn_unir_emails: { Args: { p_listas: string[] | null }; Returns: string }
       fuera_de_cobertura: { Args: { p_pais: string | null }; Returns: string }
       funciones_api: { Args: Record<PropertyKey, never>; Returns: { grupo: string; funcion: string; argumentos: string; devuelve: string; sin_sesion: boolean; descripcion: string }[] }
@@ -4988,6 +4993,8 @@ export type Database = {
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_motivo_credito: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_previsto: { Args: { p_importes: number[] | null; p_cliente?: string | null }; Returns: boolean[] }
+      pago_publico: { Args: { p_token: string | null }; Returns: Json }
+      pago_publico_avisar: { Args: { p_token: string | null }; Returns: Json }
       pago_sesion_stripe: { Args: { p_envio: string | null; p_sesion: string | null }; Returns: undefined }
       pago_sesiones_por_cerrar: { Args: { p_envio: string | null }; Returns: string[] }
       pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number; pago_avisado_en: string }[] }

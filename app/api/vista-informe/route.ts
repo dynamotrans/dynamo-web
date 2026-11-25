@@ -20,7 +20,7 @@ function medidas(o: unknown): Record<string, number> | null {
 }
 // Las direcciones con llave (/carga/<llave>, /cmr/<llave>…) o con identificadores no se guardan enteras.
 const rutaLimpia = (u: unknown) => String(u ?? '').split(/[?#]/)[0]
-  .replace(/\/(carga|cmr|deca|baja|matriculas|cargas-de-vuelta)\/[^/]+/g, '/$1/…')
+  .replace(/\/(carga|cmr|deca|baja|matriculas|cargas-de-vuelta|pago)\/[^/]+/g, '/$1/…')
   .replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '…').slice(0, 120) || '/';
 
 export async function POST(req: Request) {

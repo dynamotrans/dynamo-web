@@ -15874,3 +15874,80 @@ do $$ declare c uuid; ids uuid[] := '{}'; e uuid; i int; r jsonb; t jsonb; d dat
   raise notice 'OK 351 · cuadro de mando: envíos digitales por día o por mes, sin huecos, y cuadra con las cuatro casillas';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 352 · ENLACE DE PAGO PÚBLICO (usuario, 2026-11-25). Con la llave del envío, sin sesión, se ve
+-- lo mínimo de un envío pendiente de pago (sin calles, empresas ni contactos) y se puede avisar
+-- de la transferencia; sin la llave buena, nada. Las etapas siguen pidiendo permiso.
+do $$ declare c uuid; e uuid; tok uuid; r jsonb; n int;
+  u_adm uuid := current_setting('prueba.u_admin')::uuid; u_cli uuid := current_setting('prueba.u_cli_b')::uuid; begin
+  if not has_function_privilege('anon', 'pago_publico(uuid)', 'execute') or not has_function_privilege('anon', 'pago_publico_avisar(uuid)', 'execute') then
+    raise exception 'FALLO 352 · la página pública de pago no puede leer o avisar'; end if;
+  if has_function_privilege('anon', 'etapas_envio_interno(uuid)', 'execute') or has_function_privilege('authenticated', 'etapas_envio_interno(uuid)', 'execute')
+     or has_function_privilege('anon', 'fn_pago_avisar(uuid, boolean)', 'execute') or has_function_privilege('authenticated', 'fn_pago_avisar(uuid, boolean)', 'execute') then
+    raise exception 'FALLO 352 · las funciones internas del pago se pueden llamar por la API'; end if;
+  insert into clientes (razon_social, cif) values ('Paga Enlace SL', 'B35200352') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id, pago_token into e, tok;
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  update envios set estado = 'programado', estado_pago_previo = 'pendiente', pago_pendiente_en = now(), pago_a_cuenta = 0, pago_avisado_en = null where id = e;
+  delete from envio_paradas where envio_id = e;
+  insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso) values
+    (e, 1, 'carga', 'Empresa Oculta SL', 'Calle Secreta 7', '41001', 'Sevilla', 'Sevilla', 'ES'),
+    (e, 2, 'descarga', 'Destino Oculto SA', 'Avenida Reservada 9', '12550', 'Almassora', 'Castellón', 'ES');
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  if tok is null or (select count(*) from envios where pago_token = tok) <> 1 then raise exception 'FALLO 352 · el envío no tiene su llave de pago'; end if;
+  -- Sin sesión, con la llave: lo mínimo.
+  perform set_config('request.jwt.claim.sub', '', false);
+  set local role anon;
+  r := pago_publico(tok);
+  reset role;
+  if r ->> 'resultado' <> 'pendiente' or (r ->> 'total')::numeric <> 1210 or (r ->> 'pendiente')::numeric <> 1210 or r ->> 'pago_limite' is null
+     or jsonb_array_length(r -> 'paradas') <> 2 or r -> 'paradas' -> 0 ->> 'tipo' <> 'carga' or r -> 'paradas' -> 1 ->> 'poblacion' <> 'Almassora' then
+    raise exception 'FALLO 352 · la página de pago no trae lo que debe: %', r; end if;
+  if r::text ~* 'oculta|oculto|secreta|reservada|importe_transportista|800' then raise exception 'FALLO 352 · la página de pago enseña calles, empresas o el coste: %', r; end if;
+  -- Una llave inventada no enseña nada.
+  set local role anon;
+  r := pago_publico(gen_random_uuid());
+  reset role;
+  if r <> '{"resultado": "enlace_no_valido"}'::jsonb then raise exception 'FALLO 352 · una llave inventada enseña algo: %', r; end if;
+  -- «Ya he hecho la transferencia» desde el enlace: para el plazo y avisa a Dynamo; dos veces no repite.
+  set local role anon;
+  r := pago_publico_avisar(tok);
+  reset role;
+  if r ->> 'resultado' <> 'ok' or (select pago_avisado_en from envios where id = e) is null then raise exception 'FALLO 352 · el aviso de transferencia desde el enlace no queda apuntado: %', r; end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'dynamo' and tipo = 'pago_avisado' and texto like '%desde el enlace de pago%') then
+    raise exception 'FALLO 352 · Dynamo no recibe el aviso de la transferencia hecha desde el enlace'; end if;
+  set local role anon;
+  r := pago_publico_avisar(tok);
+  reset role;
+  if r ->> 'resultado' <> 'ya_avisado' then raise exception 'FALLO 352 · avisar dos veces no dice que ya estaba: %', r; end if;
+  r := pago_publico(tok);
+  if r ->> 'avisado_en' is null or r ->> 'pago_limite' is not null then raise exception 'FALLO 352 · con la transferencia avisada el plazo no sale parado: %', r; end if;
+  if (pago_publico_avisar(gen_random_uuid()) ->> 'resultado') <> 'enlace_no_valido' then raise exception 'FALLO 352 · se puede avisar con una llave inventada'; end if;
+  -- El cliente sigue avisando por su botón (con permiso) y un desconocido no.
+  alter table envios disable trigger user; update envios set pago_avisado_en = null where id = e; alter table envios enable trigger user;
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  begin perform avisar_pago_transferencia(e); raise exception 'FALLO 352 · otro cliente avisa de la transferencia de un envío ajeno';
+  exception when insufficient_privilege then null; end;
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  if (avisar_pago_transferencia(e) ->> 'resultado') <> 'ok' then raise exception 'FALLO 352 · Dynamo ya no puede avisar de la transferencia en nombre del cliente'; end if;
+  -- Las etapas: Dynamo las ve (por la de siempre); sin sesión, no.
+  select count(*) into n from etapas_envio(e);
+  if n = 0 then raise exception 'FALLO 352 · etapas_envio ya no devuelve las etapas a Dynamo'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  select count(*) into n from etapas_envio(e);
+  if n <> 0 then raise exception 'FALLO 352 · etapas_envio devuelve etapas sin permiso'; end if;
+  -- Pagado o anulado: la página solo lo dice.
+  alter table envios disable trigger user;
+  update envios set estado_pago_previo = 'pagado' where id = e;
+  if pago_publico(tok) - 'referencia' <> '{"resultado": "pagado"}'::jsonb then raise exception 'FALLO 352 · un envío pagado enseña más que «pagado»'; end if;
+  update envios set estado = 'cancelado' where id = e;
+  if pago_publico(tok) - 'referencia' <> '{"resultado": "anulado"}'::jsonb then raise exception 'FALLO 352 · un envío anulado enseña más que «anulado»'; end if;
+  alter table envios enable trigger user;
+  -- El botón del email de «Envío creado» lleva a la página de pago.
+  if position('''/pago/'' || e.pago_token' in pg_get_functiondef('public.fn_email_envio_creado()'::regprocedure)) = 0 then
+    raise exception 'FALLO 352 · el botón «Pagar el envío» del email no lleva a la página de pago'; end if;
+  alter table avisos disable trigger user; delete from avisos where envio_id = e; alter table avisos enable trigger user;
+  raise notice 'OK 352 · enlace de pago público: lo mínimo con la llave, aviso de transferencia sin sesión, nada con una llave inventada y las etapas siguen pidiendo permiso';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

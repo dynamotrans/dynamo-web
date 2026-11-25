@@ -43,7 +43,12 @@ const AVISOS: Record<string, string> = {
   no_disponible: 'El pago con tarjeta no está disponible ahora mismo.',
 };
 
-export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; texto: string; id?: string }) {
+// Con `token` (la llave del enlace público de pago, /pago/<llave>) el pago se prepara por esa
+// puerta, sin sesión, y al terminar se vuelve a la página pública en vez de a la ficha.
+export default function PagoTarjeta({ envioId, texto, id, token }: { envioId: string; texto: string; id?: string; token?: string }) {
+  const puerta = token ? '/api/pago/tarjeta' : '/api/stripe/pago';
+  const campo: [string, string] = token ? ['token', token] : ['envio', envioId];
+  const alTerminar = token ? `/pago/${encodeURIComponent(token)}?pago=ok` : `/panel/envios?ver=${encodeURIComponent(envioId)}&pago=ok`;
   const [abierta, setAbierta] = useState(false);
   const [estado, setEstado] = useState<'cargando' | 'lista' | 'aviso'>('cargando');
   const [aviso, setAviso] = useState<string | null>(null);
@@ -59,8 +64,9 @@ export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; t
     const aSuPagina = () => { if (vivo) formulario.current?.submit(); };
     (async () => {
       try {
-        const r = await fetch('/api/stripe/pago', { method: 'POST', body: new URLSearchParams({ envio: envioId, modo: 'incrustado' }) });
-        const j = await r.json() as { ok: boolean; codigo?: string; secreto?: string; clave?: string; quedan?: number | null };
+        const r = await fetch(puerta, { method: 'POST', body: new URLSearchParams({ [campo[0]]: campo[1], modo: 'incrustado' }) });
+        const j = await r.json() as { ok: boolean; codigo?: string; secreto?: string; clave?: string; quedan?: number | null; envio?: string };
+        const envioCierre = j.envio ?? envioId;   // por la puerta pública el envío lo dice el servidor
         if (!vivo) return;
         if (!j.ok || !j.secreto || !j.clave) {
           if (j.codigo && AVISOS[j.codigo]) { setAviso(AVISOS[j.codigo]); setEstado('aviso'); return; }
@@ -71,7 +77,7 @@ export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; t
         if (!crear) { aSuPagina(); return; }
         const secreto = j.secreto;
         const p = await crear.call(stripe, { fetchClientSecret: async () => secreto,
-          onComplete: () => { window.location.assign(`/panel/envios?ver=${encodeURIComponent(envioId)}&pago=ok`); } });
+          onComplete: () => { window.location.assign(alTerminar); } });
         // La ventana puede tardar un instante en pintarse: se espera a tener dónde montar.
         for (let i = 0; i < 40 && vivo && !caja.current; i++) await new Promise((ok) => setTimeout(ok, 50));
         if (!vivo || !caja.current) { p.destroy(); if (vivo) aSuPagina(); return; }
@@ -87,7 +93,7 @@ export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; t
             // (Un par de segundos después: que el reloj del servidor también haya pasado la hora.)
             setTimeout(() => {
               fetch('/api/stripe/caducar', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ envio: envioId }) }).catch(() => { /* lo hará la tarea automática */ });
+                body: JSON.stringify({ envio: envioCierre }) }).catch(() => { /* lo hará la tarea automática */ });
             }, 3000);
             if (vivo) { setAviso(AVISOS.caducado); setEstado('aviso'); }
           }, Math.min(j.quedan, 2_000_000_000));
@@ -95,14 +101,14 @@ export default function PagoTarjeta({ envioId, texto, id }: { envioId: string; t
       } catch { aSuPagina(); }
     })();
     return () => { vivo = false; if (reloj) clearTimeout(reloj); try { pagina?.destroy(); } catch { /* ya no está */ } };
-  }, [abierta, envioId]);
+  }, [abierta, envioId, puerta, campo[0], campo[1], alTerminar]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
       {/* El formulario de siempre: lo usa el respaldo (y quien no tenga JavaScript). */}
-      <form ref={formulario} action="/api/stripe/pago" method="post" style={{ display: 'contents' }}
+      <form ref={formulario} action={puerta} method="post" style={{ display: 'contents' }}
         onSubmit={(e) => { e.preventDefault(); setAviso(null); setEstado('cargando'); setAbierta(true); }}>
-        <input type="hidden" name="envio" value={envioId} />
+        <input type="hidden" name={campo[0]} value={campo[1]} />
         <button type="submit" className="btn-primary" id={id}>{texto}</button>
       </form>
       {/* Colgada del cuerpo de la página: el botón vive dentro de la ficha del envío, que es otra

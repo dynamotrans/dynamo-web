@@ -19,6 +19,7 @@ export const ESQUEMAS = {
   "app/cmr/[token]/acciones#pedirCodigoFirma": z.tuple([z.string().max(1000), z.object({ parada_id: z.string().uuid().or(z.literal('')).nullable(), rol: z.enum(["remitente", "transportista", "destinatario"]), email: z.string().max(1000) })]),
   "app/cmr/[token]/acciones#registrarCmrPapel": z.tuple([z.string().max(1000), z.array(z.string().max(1000)).max(10000), z.enum(["papel", "doc"]).optional()]),
   "app/matriculas/[token]/acciones#guardarMatriculas": z.tuple([z.string().max(1000), z.string().max(1000), z.object({ camion: z.string().max(1000), remolque: z.string().max(1000), conductor: z.string().max(1000), telefono: z.string().max(1000), dia: z.string().max(1000).nullable().optional() })]),
+  "app/pago/[token]/acciones#avisarTransferenciaPublica": z.tuple([z.string().max(1000)]),
   "app/panel/(app)/administracion/acciones#facturasEmitidas": z.tuple([]),
   "app/panel/(app)/almacenamientos/acciones#cambiarEstadoAlmacenamiento": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["pendiente_confirmar", "confirmado", "en_almacen", "finalizado", "cancelado"])]),
   "app/panel/(app)/almacenamientos/acciones#cancelarMiAlmacenamiento": z.tuple([z.string().uuid().or(z.literal(''))]),

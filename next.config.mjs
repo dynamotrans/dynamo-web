@@ -37,7 +37,7 @@ const nextConfig = {
   // en modo SOLO AVISAR, y aislar la ventana de otras webs (Cross-Origin-Opener-Policy).
   async headers() {
     return [
-      { source: '/((?!panel|carga|cmr|deca|api|_next).*)', headers: [
+      { source: '/((?!panel|carga|cmr|deca|pago|api|_next).*)', headers: [
         { key: 'Content-Security-Policy-Report-Only', value: CSP_PUBLICA },
         { key: 'Reporting-Endpoints', value: 'csp="/api/csp-informe"' },
       ] },

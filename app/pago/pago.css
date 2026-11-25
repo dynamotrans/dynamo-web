@@ -1,0 +1,19 @@
+/* Página pública de pago (/pago/<llave>): una tarjeta centrada, con las piezas de la ficha. */
+body { display: block; }
+.pago-pub { min-height: 100svh; display: flex; align-items: flex-start; justify-content: center; padding: 1.2rem 0.9rem 2.5rem; box-sizing: border-box; background: var(--gray-100); }
+.pago-pub-caja { width: 100%; max-width: 560px; background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 28px rgba(10,2,48,0.07); }
+.pago-pub-cab { background: linear-gradient(120deg, var(--purple), #4f2fe0); padding: 1rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
+.pago-pub-cab img { height: 26px; width: auto; display: block; }
+.pago-pub-cab span { color: #fff; font-size: var(--fs-s); font-weight: 700; letter-spacing: 0.08em; opacity: 0.9; }
+.pago-pub-cuerpo { padding: 1.1rem 1.2rem 1.3rem; }
+.pago-pub-cuerpo h1 { font-size: 1.25rem; font-weight: 900; color: var(--navy); margin: 0 0 0.15rem; }
+.pago-pub-sub { color: var(--gray-500); font-size: var(--fs-m); margin: 0 0 0.9rem; }
+.pago-pub-datos { margin-top: 1rem; border-top: 1px solid var(--gray-200); padding-top: 0.8rem; }
+.pago-pub-datos .pen-sum-row { align-items: flex-start; }
+.pago-pub-transf { margin-top: 0.7rem; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; font-size: var(--fs-m); display: grid; gap: 0.25rem; }
+.pago-pub-transf strong { color: var(--navy); overflow-wrap: anywhere; }
+.pago-pub-pie { margin-top: 1rem; font-size: var(--fs-s); color: var(--gray-500); line-height: 1.45; }
+.pago-pub-estado { text-align: center; padding: 1.2rem 0.4rem 0.6rem; }
+.pago-pub-estado .ico { width: 54px; height: 54px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.7rem; }
+.pago-pub-estado h1 { margin-bottom: 0.4rem; }
+.pago-pub-estado p { color: var(--gray-600); font-size: var(--fs-m); margin: 0; line-height: 1.5; }
