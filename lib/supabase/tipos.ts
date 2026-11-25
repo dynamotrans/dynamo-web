@@ -4322,6 +4322,9 @@ export type Database = {
           suspendida_en: string | null
           suspension_motivo: string | null
           emails_copia_avisos: string[]
+          avisos_whatsapp: boolean
+          avisos_whatsapp_en: string | null
+          avisos_whatsapp_preguntado_en: string | null
         }
         Insert: {
           id: string
@@ -4348,6 +4351,9 @@ export type Database = {
           suspendida_en?: string | null
           suspension_motivo?: string | null
           emails_copia_avisos?: string[]
+          avisos_whatsapp?: boolean
+          avisos_whatsapp_en?: string | null
+          avisos_whatsapp_preguntado_en?: string | null
         }
         Update: {
           id?: string
@@ -4374,6 +4380,9 @@ export type Database = {
           suspendida_en?: string | null
           suspension_motivo?: string | null
           emails_copia_avisos?: string[]
+          avisos_whatsapp?: boolean
+          avisos_whatsapp_en?: string | null
+          avisos_whatsapp_preguntado_en?: string | null
         }
         Relationships: [
           {
@@ -4488,6 +4497,184 @@ export type Database = {
             columns: ["transportista_id"]
             isOneToOne: false
             referencedRelation: "transportistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_conversaciones: {
+        Row: {
+          id: string
+          telefono: string
+          nombre_perfil: string | null
+          quien: string
+          usuario_id: string | null
+          conductor_id: string | null
+          contacto_id: string | null
+          empresa_cliente_id: string | null
+          empresa_transportista_id: string | null
+          ultima_entrada_en: string | null
+          ultimo_mensaje_en: string | null
+          ultimo_texto: string | null
+          sin_leer: number
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          telefono: string
+          nombre_perfil?: string | null
+          quien?: string
+          usuario_id?: string | null
+          conductor_id?: string | null
+          contacto_id?: string | null
+          empresa_cliente_id?: string | null
+          empresa_transportista_id?: string | null
+          ultima_entrada_en?: string | null
+          ultimo_mensaje_en?: string | null
+          ultimo_texto?: string | null
+          sin_leer?: number
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          telefono?: string
+          nombre_perfil?: string | null
+          quien?: string
+          usuario_id?: string | null
+          conductor_id?: string | null
+          contacto_id?: string | null
+          empresa_cliente_id?: string | null
+          empresa_transportista_id?: string | null
+          ultima_entrada_en?: string | null
+          ultimo_mensaje_en?: string | null
+          ultimo_texto?: string | null
+          sin_leer?: number
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversaciones_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversaciones_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversaciones_empresa_cliente_id_fkey"
+            columns: ["empresa_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversaciones_empresa_transportista_id_fkey"
+            columns: ["empresa_transportista_id"]
+            isOneToOne: false
+            referencedRelation: "transportistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversaciones_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_mensajes: {
+        Row: {
+          id: string
+          conversacion_id: string
+          wa_id: string | null
+          sentido: string
+          tipo: string
+          texto: string | null
+          meta_archivo_id: string | null
+          archivo_ruta: string | null
+          archivo_tipo: string | null
+          archivo_nombre: string | null
+          archivo_bytes: number | null
+          archivo_borrado_en: string | null
+          envio_id: string | null
+          estado: string
+          error: string | null
+          origen: string | null
+          enviado_por: string | null
+          leido_en: string | null
+          enviado_en: string | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          conversacion_id: string
+          wa_id?: string | null
+          sentido: string
+          tipo: string
+          texto?: string | null
+          meta_archivo_id?: string | null
+          archivo_ruta?: string | null
+          archivo_tipo?: string | null
+          archivo_nombre?: string | null
+          archivo_bytes?: number | null
+          archivo_borrado_en?: string | null
+          envio_id?: string | null
+          estado: string
+          error?: string | null
+          origen?: string | null
+          enviado_por?: string | null
+          leido_en?: string | null
+          enviado_en?: string | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          conversacion_id?: string
+          wa_id?: string | null
+          sentido?: string
+          tipo?: string
+          texto?: string | null
+          meta_archivo_id?: string | null
+          archivo_ruta?: string | null
+          archivo_tipo?: string | null
+          archivo_nombre?: string | null
+          archivo_bytes?: number | null
+          archivo_borrado_en?: string | null
+          envio_id?: string | null
+          estado?: string
+          error?: string | null
+          origen?: string | null
+          enviado_por?: string | null
+          leido_en?: string | null
+          enviado_en?: string | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensajes_conversacion_id_fkey"
+            columns: ["conversacion_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensajes_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensajes_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
             referencedColumns: ["id"]
           },
         ]
@@ -5032,6 +5219,8 @@ export type Database = {
       matriculas_enlace_datos: { Args: { p_token: string | null; p_clave: string | null }; Returns: Json }
       metricas_usuarios: { Args: Record<PropertyKey, never>; Returns: { id: string; consultas: number; min_dia: number; min_semana: number; ultimo_latido: string }[] }
       mi_autosuspension: { Args: { p_cliente?: string | null }; Returns: Json }
+      mi_avisos_whatsapp: { Args: { p_activo: boolean | null }; Returns: Json }
+      mi_avisos_whatsapp_no_preguntar: { Args: Record<PropertyKey, never>; Returns: undefined }
       mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean; precio_a_mano: boolean }[] }
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }
@@ -5185,6 +5374,7 @@ export type Database = {
       tarifa_tipos_ruta: { Args: { p_envio: string | null; p_paradas: Json | null }; Returns: string[] }
       tarifa_web_apuntar: { Args: { p_ip_huella: string | null }; Returns: Json }
       tel_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
+      tel_whatsapp: { Args: { p: string | null }; Returns: string }
       telefono_conductor_visible: { Args: { p_estado: Database["public"]["Enums"]["estado_envio"] | null; p_carga: string | null; p_entregado_en: string | null; p_entrega: string | null }; Returns: boolean }
       texto_a_fecha: { Args: { p: string | null }; Returns: string }
       texto_aviso_parada: { Args: { p_recogida: boolean | null; p_cliente: string | null; p_sitio: string | null; p_direccion: string | null; p_codpostal: string | null; p_poblacion_sitio: string | null; p_fecha: string | null; p_mat_camion: string | null; p_mat_remolque: string | null; p_conductor: string | null }; Returns: string }
@@ -5215,6 +5405,18 @@ export type Database = {
       verificacion_albaran_rechazar: { Args: { p_id: string | null; p_motivo?: string | null }; Returns: Json }
       verificacion_albaran_tipo: { Args: { p_id: string | null; p_tipo: string | null }; Returns: Json }
       verificacion_albaranes_lista: { Args: Record<PropertyKey, never>; Returns: Json }
+      whatsapp_archivo_guardado: { Args: { p_mensaje: string | null; p_ruta: string | null; p_tipo: string | null; p_bytes: number | null }; Returns: undefined }
+      whatsapp_archivos_borrados: { Args: { p_mensajes: string[] | null }; Returns: number }
+      whatsapp_archivos_caducados: { Args: { p_limite?: number | null }; Returns: { mensaje_id: string; archivo_ruta: string }[] }
+      whatsapp_archivos_por_bajar: { Args: { p_limite?: number | null }; Returns: { mensaje_id: string; meta_archivo_id: string; archivo_tipo: string; archivo_nombre: string; conversacion_id: string }[] }
+      whatsapp_limpiar: { Args: Record<PropertyKey, never>; Returns: number }
+      whatsapp_marcar_enviado: { Args: { p_mensaje: string | null; p_wa_id: string | null; p_error?: string | null }; Returns: undefined }
+      whatsapp_marcar_leida: { Args: { p_conversacion: string | null }; Returns: undefined }
+      whatsapp_preparar_respuesta: { Args: { p_conversacion: string | null; p_texto: string | null }; Returns: Json }
+      whatsapp_quien: { Args: { p_tel: string | null }; Returns: { quien: string; usuario_id: string; conductor_id: string; contacto_id: string; cliente_id: string; transportista_id: string }[] }
+      whatsapp_registrar_entrada: { Args: { p: Json | null }; Returns: Json }
+      whatsapp_registrar_estado: { Args: { p_wa_id: string | null; p_estado: string | null; p_error?: string | null; p_cuando?: number | null }; Returns: boolean }
+      whatsapp_resumen: { Args: Record<PropertyKey, never>; Returns: Json }
     }
     Enums: {
       estado_almacenamiento: "pendiente_confirmar" | "confirmado" | "en_almacen" | "finalizado" | "cancelado"

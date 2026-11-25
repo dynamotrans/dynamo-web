@@ -359,3 +359,26 @@ export async function quitarMiDoblePaso(clave: string): Promise<{ ok: true } | {
   await s.supabase.auth.refreshSession().catch(() => {});   // la sesión deja de llevar el segundo paso
   return { ok: true };
 }
+
+// AVISOS POR WHATSAPP (usuario, 2026-11-25): cada usuario da o quita su permiso. Hace falta un
+// móvil en sus datos; la base de datos apunta la fecha como prueba (mi_avisos_whatsapp).
+export async function cambiarAvisosWhatsApp(activo: boolean): Promise<{ ok: true; telefono: string | null } | { ok: false; error: string; sinMovil?: boolean }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#cambiarAvisosWhatsApp", [activo]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const { data, error } = await s.supabase.rpc('mi_avisos_whatsapp', { p_activo: activo });
+  if (error) return { ok: false, error: mensajeError(error.message) };
+  const r = data as { resultado: string; telefono?: string | null };
+  if (r.resultado === 'sin_movil') return { ok: false, sinMovil: true, error: 'Pon antes tu móvil en «Editar datos» (con el prefijo del país).' };
+  return { ok: true, telefono: r.telefono ?? null };
+}
+
+// «Ahora no» a la pregunta única de los avisos por WhatsApp: no se vuelve a preguntar.
+export async function noPreguntarAvisosWhatsApp(): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/mi-cuenta/acciones#noPreguntarAvisosWhatsApp", []);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const { error } = await s.supabase.rpc('mi_avisos_whatsapp_no_preguntar');
+  if (error) return { ok: false, error: mensajeError(error.message) };
+  return { ok: true };
+}

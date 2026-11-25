@@ -22,9 +22,14 @@ export type ResumenBrevo = {
   /** Los que van a subir en la próxima subida, para revisarlos antes (500 como mucho). */
   porSubir?: { email: string; nombre: string | null; cargo: string | null; empresa: string | null; poblacion: string | null; provincia: string | null; motivo: 'nuevo' | 'cambiado' | 'reintento' }[];
 };
+export type ResumenWhatsApp = {
+  activo: boolean; movil_dynamo: string; conversaciones: number; mensajes: number; sin_leer: number; archivos: number;
+  archivos_bytes: number; texto_bytes: number; con_permiso: number; ultimo: string | null; conectado?: boolean;
+};
+const megas = (b: number) => (b >= 1024 * 1024 * 1024 ? `${(b / 1024 ** 3).toFixed(1).replace('.', ',')} GB` : `${Math.max(0, b / 1024 ** 2).toFixed(1).replace('.', ',')} MB`);
 const MOTIVO_BREVO = { nuevo: 'Nuevo', cambiado: 'Datos cambiados', reintento: 'Reintento' } as const;
 
-export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descuadres = [], brevo = null }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null; descuadres?: Descuadre[]; brevo?: ResumenBrevo | null }) {
+export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descuadres = [], brevo = null, whatsapp = null }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null; descuadres?: Descuadre[]; brevo?: ResumenBrevo | null; whatsapp?: ResumenWhatsApp | null }) {
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
   const [preguntar, setPreguntar] = useState(false);
@@ -79,6 +84,7 @@ export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descua
       </p>
       {esAdmin && <ArchivosSueltos />}
       {brevo && <BrevoSitios r={brevo} esAdmin={esAdmin} />}
+      {whatsapp && <WhatsAppResumen r={whatsapp} />}
       <DescuadresPantalla lista={descuadres} />
       {trabajando && <Cargando texto={activo ? 'Abriendo la plataforma' : 'Cerrando la plataforma'} />}
     </section>
@@ -140,6 +146,34 @@ function medidasTxt(m: unknown) {
   const o = m as Record<string, unknown>;
   return ['y', 'alto', 'doc', 'contenido', 'vvAlto', 'vvArriba', 'vvPagina'].filter((k) => typeof o[k] === 'number').map((k) => `${k} ${o[k]}`).join(' · ') || '—';
 }
+// WhatsApp (usuario, 2026-11-25): si está conectado y encendido, y cuánto ocupa (el texto se
+// guarda 2 años; fotos, audios y PDF, 6 meses).
+function WhatsAppResumen({ r }: { r: ResumenWhatsApp }) {
+  const listo = !!r.conectado && r.activo;
+  return (
+    <div id="whatsapp-resumen" style={{ maxWidth: 720, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '1.1rem 1.2rem', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <strong style={{ color: 'var(--navy)' }}>WhatsApp</strong>
+        <span id="whatsapp-estado" className={`badge badge-${listo ? 'green' : 'orange'}`}>{!r.conectado ? 'Sin conectar' : r.activo ? 'Encendido' : 'Apagado'}</span>
+      </div>
+      <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-600)', margin: '0.35rem 0 0.7rem' }}>
+        Las conversaciones se guardan enteras en la plataforma (Meta no guarda el historial): el texto, 2 años; las fotos, audios y PDF, 6 meses. Se borran solos.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', fontSize: 'var(--fs-m)' }}>
+        <div><div className="meta">Conversaciones</div><strong id="whatsapp-conversaciones">{r.conversaciones}</strong></div>
+        <div><div className="meta">Mensajes</div><strong>{r.mensajes}</strong></div>
+        <div><div className="meta">Sin leer</div><strong>{r.sin_leer}</strong></div>
+        <div><div className="meta">Texto</div><strong>{megas(r.texto_bytes)}</strong></div>
+        <div><div className="meta">Archivos</div><strong id="whatsapp-archivos">{r.archivos} · {megas(r.archivos_bytes)}</strong></div>
+        <div><div className="meta">Usuarios con permiso</div><strong>{r.con_permiso}</strong></div>
+      </div>
+      {r.ultimo && <div className="meta" style={{ marginTop: '0.5rem' }}>Último mensaje: {fechaHora(r.ultimo)}</div>}
+      {!r.conectado && <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>Faltan las claves de Meta en Vercel (<span className="notranslate" translate="no">WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN</span>).</div></div>}
+      {r.conectado && !r.activo && <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>Apagado: se enciende en <strong>Parámetros → «WhatsApp»</strong>.</div></div>}
+    </div>
+  );
+}
+
 function BrevoSitios({ r, esAdmin }: { r: ResumenBrevo; esAdmin: boolean }) {
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);

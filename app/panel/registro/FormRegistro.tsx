@@ -90,6 +90,12 @@ export default function FormRegistro() {
         cuenta</strong> con tu email y darte de alta él directamente, autorizándote. Es <strong>instantáneo, sin esperas</strong>.
       </div>
 
+      {/* Avisos por WhatsApp (usuario, 2026-11-25): permiso expreso, desmarcado; Meta lo exige. */}
+      <label className="reg-terms" id="reg-whatsapp">
+        <input type="checkbox" name="avisos_whatsapp" />
+        <span>Quiero recibir también por <strong>WhatsApp</strong>, en este teléfono, los avisos de mis envíos (además del email). Lo puedo quitar cuando quiera en Mi cuenta.</span>
+      </label>
+
       <label className="reg-terms" style={estado.campo === 'acepto' ? { color: '#dc2626' } : undefined}>
         <input type="checkbox" name="acepto" />
         <span>He leído y acepto el <a href="/#aviso-legal" target="_blank" rel="noopener">Aviso legal</a> y la{' '}

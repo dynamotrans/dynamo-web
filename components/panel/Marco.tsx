@@ -29,7 +29,7 @@ const IDIOMAS_PANEL: [string, React.ReactNode, string][] = [
   ['nl', '🇳🇱', 'Nederlands'], ['pl', '🇵🇱', 'Polski'], ['ro', '🇷🇴', 'Română'], ['uk', '🇺🇦', 'Українська'], ['zh-CN', '🇨🇳', '中文'],
 ];
 
-export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias' | 'albaranes', number>>;
+export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias' | 'albaranes' | 'whatsapp', number>>;
 export type Cobertura = 'disponible' | 'superado' | 'nulo' | 'nulo_cesce' | 'sinclasif' | null;
 // Atención al cliente de CESCE (teléfono gratuito; usuario, 2026-11-25).
 const CESCE_TEL = { texto: '+34 900 115 000', href: 'tel:+34900115000' };
@@ -46,6 +46,7 @@ function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: 
     case 'altas': return x(c.altas, 'Altas pendientes de revisar');
     case 'sugerencias': return x(c.sugerencias, 'Sugerencias por revisar');
     case 'verificacion-albaranes': return x(c.albaranes, 'Albaranes por verificar');
+    case 'whatsapp': return x(c.whatsapp, 'Conversaciones de WhatsApp sin leer');
     default: return [];
   }
 }

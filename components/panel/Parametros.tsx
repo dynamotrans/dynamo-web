@@ -67,6 +67,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Resumen mensual a los sitios', claves: ['resumen_sitios_activo', 'resumen_sitios_dia'] },
     { titulo: 'Tiempo para deshacer', claves: ['emails_espera_segundos'] },
     { titulo: 'Brevo: sitios de la plataforma', claves: ['brevo_sitios_activo', 'brevo_sitios_lista'] },
+    { titulo: 'WhatsApp', claves: ['whatsapp_activo', 'whatsapp_movil_dynamo', 'whatsapp_meses_texto', 'whatsapp_meses_archivos'] },
     { titulo: 'Firma del CMR digital', claves: ['cmr_dias_firma_tras_entrega'] },
     { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_horas_extra_grupaje', 'seguimiento_velocidad_kmh', 'seguimiento_horas_asignando'] },
   ] },

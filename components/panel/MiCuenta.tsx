@@ -12,6 +12,7 @@ import type { ContactoDatos } from '@/lib/contactos';
 import Cargando from '@/components/Cargando';
 import { IDIOMAS_AVISOS } from '@/lib/idiomas';
 import MiDoblePaso from './MiDoblePaso';
+import { TarjetaAvisosWhatsApp } from './AvisosWhatsApp';
 import { cambiarMiClave, cambiarMiEmail, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, darmeDeBaja, anadirCompanero, guardarContactosDeMiEmpresa, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 
@@ -42,12 +43,13 @@ export type EmpresaEditable = {
   contactos: ContactoDatos[]; puedeGuardar: boolean;
 };
 
-export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null, editable = null, doblePaso = null }: {
+export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null, editable = null, doblePaso = null, avisosWhatsApp = null }: {
   datos: MisDatos; email: string; rol: string; ultimaConexion: string | null;
   empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null; cliente_id?: string | null } | null;
   transporte?: TransporteDatos | null;
   editable?: EmpresaEditable | null;
   doblePaso?: { activo: boolean; obligatorio: boolean } | null;   // solo usuarios de Dynamo
+  avisosWhatsApp?: { activo: boolean } | null;                    // solo clientes y transportistas
 }) {
   const refrescar = useRefrescar();
   const [editar, setEditar] = useState(false);
@@ -96,6 +98,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             </div>
           )}
         </div>
+        {avisosWhatsApp && <TarjetaAvisosWhatsApp activo={avisosWhatsApp.activo} telefono={datos.telefono || null} onEditarDatos={() => setEditar(true)} />}
         {(rol === 'cliente' || rol === 'transportista') && (
           <div className="account-card">
             <h3 className="account-card-title">Tu equipo</h3>

@@ -66,6 +66,8 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
       data: {
         tipo_usuario: 'cliente', nombre: d.nombre, dni: d.dni.replace(/[\s.\-]/g, ''), dni_pais: d.dni_pais, telefono: tel,
         condiciones_aceptadas_en: new Date().toISOString(),
+        // Permiso para los avisos por WhatsApp (usuario, 2026-11-25): casilla del formulario, desmarcada por defecto.
+        avisos_whatsapp: f.get('avisos_whatsapp') === 'on',
       },
     },
   });

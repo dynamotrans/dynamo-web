@@ -71,6 +71,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'dashboard-admin', titulo: 'Dashboard admin', icono: 'dashboard' },
       { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
       { slug: 'mapa', titulo: 'Mapa de envíos', icono: 'mapa' },
+      // Conversaciones de WhatsApp (usuario, 2026-11-25): la bandeja del equipo.
+      { slug: 'whatsapp', titulo: 'WhatsApp', icono: 'soporte' },
       // Sin el desplegable «Operativa» (usuario, 2026-11-24): sus enlaces van a la vista,
       // directos en el menú, en este orden.
       { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },

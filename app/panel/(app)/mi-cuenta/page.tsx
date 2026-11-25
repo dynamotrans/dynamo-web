@@ -13,7 +13,7 @@ export default async function PaginaMiCuenta() {
   const s = await sesion();
   if (!s?.perfil) return null;
   const { supabase, perfil, user } = s;
-  const { data: yo } = await supabase.from('usuarios').select('nombre, email, telefono, documento, cargo, idioma, rol, estado').eq('id', perfil.id).maybeSingle();
+  const { data: yo } = await supabase.from('usuarios').select('nombre, email, telefono, documento, cargo, idioma, rol, estado, avisos_whatsapp').eq('id', perfil.id).maybeSingle();
   let empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null; cliente_id?: string | null } | null = null;
   let transporte: TransporteDatos | null = null;
   let editable: EmpresaEditable | null = null;
@@ -54,5 +54,5 @@ export default async function PaginaMiCuenta() {
   }
   return <MiCuenta datos={{ nombre: yo?.nombre ?? '', telefono: yo?.telefono ?? '', documento: yo?.documento ?? '', cargo: yo?.cargo ?? '', idioma: yo?.idioma ?? 'es' }}
     email={yo?.email ?? user.email ?? ''} rol={perfil.rol} ultimaConexion={user.last_sign_in_at ?? null} empresa={empresa} transporte={transporte} editable={editable}
-    doblePaso={doblePaso} />;
+    doblePaso={doblePaso} avisosWhatsApp={perfil.rol === 'cliente' || perfil.rol === 'transportista' ? { activo: !!yo?.avisos_whatsapp } : null} />;
 }

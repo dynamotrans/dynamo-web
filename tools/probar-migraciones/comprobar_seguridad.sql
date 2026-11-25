@@ -3993,6 +3993,8 @@ do $$ declare faltan text; begin
                            'envio_cambios',                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
                            'cambios_deshacer',             -- ídem para incidencias y penalizaciones: solo la escriben sus disparadores, que ya tienen el bloqueo
                            'brevo_subidas',                -- registro de lo subido a Brevo: lo escribe solo el servidor (tarea diaria), también en mantenimiento
+                           'whatsapp_conversaciones',      -- WhatsApp: lo escribe el servidor al llegar cada mensaje; en mantenimiento también hay que guardarlos (Meta no los guarda)
+                           'whatsapp_mensajes',            -- ídem
                            'transportista_cancelaciones',  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
                            'usuarios_dispositivos',        -- seguridad del acceso: se escribe al entrar, también en mantenimiento (el equipo tiene que poder entrar)
                            'transportista_notas')          -- nota automática: solo la escribe la tarea de la noche, que ya se para en mantenimiento
@@ -16321,4 +16323,118 @@ do $$ declare e uuid; cli uuid := current_setting('prueba.cliente')::uuid; adm u
   if (select count(*) from emails_enviados where envio_id = e and tipo = 'pago_avisado_dynamo') <> 1 then raise exception 'FALLO 360 · el email de validar cobro se repite'; end if;
   raise notice 'OK 360 · transferencia avisada: Dynamo recibe al momento su email de «validar cobro» con envío, importe con IVA, concepto y cliente';
 end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 361 · WHATSAPP, PARTE 1 (usuario, 2026-11-25): conversaciones guardadas enteras, quién escribe
+-- por su teléfono, solo el equipo las ve, contestar solo dentro de las 24 h de Meta, permiso de
+-- cada usuario para los avisos y limpieza (texto 24 meses, archivos 6).
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r jsonb; v_conv uuid; v_msg uuid; v_cli uuid := current_setting('prueba.u_cli')::uuid; v_tel text; n int; begin
+  -- Formato WhatsApp.
+  if tel_whatsapp('600 11 12 22') <> '+34600111222' or tel_whatsapp('+34 600-111-222') <> '+34600111222'
+     or tel_whatsapp('0033612345678') <> '+33612345678' or tel_whatsapp('') is not null then
+    raise exception 'FALLO 361 · el teléfono no se pasa bien al formato de WhatsApp'; end if;
+  -- Nadie de fuera llama a lo del servidor ni lee las tablas.
+  if has_function_privilege('authenticated', 'whatsapp_registrar_entrada(jsonb)', 'execute') or has_function_privilege('anon', 'whatsapp_preparar_respuesta(uuid, text)', 'execute')
+     or has_function_privilege('authenticated', 'whatsapp_marcar_enviado(uuid, text, text)', 'execute') or has_function_privilege('authenticated', 'whatsapp_archivos_caducados(integer)', 'execute') then
+    raise exception 'FALLO 361 · las funciones de WhatsApp del servidor se pueden llamar desde fuera'; end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.whatsapp_mensajes'::regclass) then raise exception 'FALLO 361 · whatsapp_mensajes sin RLS'; end if;
+  if (select public from storage.buckets where id = 'whatsapp') then raise exception 'FALLO 361 · el almacén de WhatsApp es público'; end if;
+  -- Llega un mensaje de un usuario cliente: se le reconoce por su móvil, escriba su ficha como lo escriba.
+  perform set_config('prueba.wa_tel_antes', coalesce((select telefono from usuarios where id = v_cli), ''), false);
+  update usuarios set telefono = '600361361' where id = v_cli;
+  select count(*) into n from avisos where tipo = 'whatsapp';
+  r := whatsapp_registrar_entrada(jsonb_build_object('telefono', '34600361361', 'nombre', 'Cliente 361', 'wa_id', 'wamid.361a', 'tipo', 'texto', 'texto', '¿Mi camión ya ha salido?', 'cuando', extract(epoch from now())::bigint));
+  if r ->> 'resultado' <> 'ok' or r ->> 'quien' <> 'cliente' then raise exception 'FALLO 361 · no se reconoce al cliente por su móvil: %', r; end if;
+  v_conv := (r ->> 'conversacion_id')::uuid;
+  if (select usuario_id from whatsapp_conversaciones where id = v_conv) <> v_cli or (select empresa_cliente_id from whatsapp_conversaciones where id = v_conv) is null then
+    raise exception 'FALLO 361 · la conversación no queda unida al usuario y a su empresa'; end if;
+  -- Meta repite el aviso: no se guarda dos veces.
+  if whatsapp_registrar_entrada(jsonb_build_object('telefono', '34600361361', 'wa_id', 'wamid.361a', 'tipo', 'texto', 'texto', 'otra vez')) ->> 'resultado' <> 'repetido' then
+    raise exception 'FALLO 361 · el mismo mensaje de Meta se guarda dos veces'; end if;
+  perform whatsapp_registrar_entrada(jsonb_build_object('telefono', '+34600361361', 'wa_id', 'wamid.361b', 'tipo', 'imagen', 'meta_archivo_id', 'm361', 'archivo_tipo', 'image/jpeg'));
+  if (select sin_leer from whatsapp_conversaciones where id = v_conv) <> 2 or (select ultimo_texto from whatsapp_conversaciones where id = v_conv) not like '%Foto%' then
+    raise exception 'FALLO 361 · la conversación no cuenta los sin leer o no enseña la foto como último mensaje'; end if;
+  if (select count(*) from avisos where tipo = 'whatsapp') <> n + 1 then raise exception 'FALLO 361 · la campana avisa de cada mensaje (debe ser solo el primero sin leer)'; end if;
+  if not exists (select 1 from whatsapp_archivos_por_bajar(50) x where x.meta_archivo_id = 'm361') then raise exception 'FALLO 361 · la foto no sale como archivo por bajar de Meta'; end if;
+  -- Un número que no es de nadie: desconocido.
+  if whatsapp_registrar_entrada(jsonb_build_object('telefono', '34699000361', 'wa_id', 'wamid.361c', 'tipo', 'texto', 'texto', 'Hola')) ->> 'quien' <> 'desconocido' then
+    raise exception 'FALLO 361 · un número sin ficha no sale como desconocido'; end if;
+  perform set_config('prueba.wa_conv', v_conv::text, false);
+end $$;
+-- Un cliente no ve nada ni contesta.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  if exists (select 1 from whatsapp_conversaciones) or exists (select 1 from whatsapp_mensajes) then raise exception 'FALLO 361 · un cliente ve las conversaciones de WhatsApp'; end if;
+  begin perform whatsapp_preparar_respuesta(current_setting('prueba.wa_conv')::uuid, 'hola'); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 361 · un cliente contesta en la bandeja de WhatsApp'; end if;
+end $$;
+-- El equipo: contesta dentro de las 24 h; fuera, no (regla de Meta).
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r jsonb; v_conv uuid := current_setting('prueba.wa_conv')::uuid; begin
+  if not exists (select 1 from whatsapp_conversaciones where id = v_conv) then raise exception 'FALLO 361 · el equipo no ve la conversación'; end if;
+  r := whatsapp_preparar_respuesta(v_conv, 'Sí, ha salido a las 8:10.');
+  if r ->> 'resultado' <> 'ok' or r ->> 'telefono' <> '+34600361361' then raise exception 'FALLO 361 · el equipo no puede contestar dentro de las 24 h: %', r; end if;
+  if (select sin_leer from whatsapp_conversaciones where id = v_conv) <> 0 then raise exception 'FALLO 361 · contestar no marca la conversación como leída'; end if;
+  perform set_config('prueba.wa_msg', r ->> 'mensaje_id', false);
+  if whatsapp_preparar_respuesta(v_conv, '   ') ->> 'resultado' <> 'vacio' then raise exception 'FALLO 361 · se manda una respuesta vacía'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare v_conv uuid := current_setting('prueba.wa_conv')::uuid; v_msg uuid := current_setting('prueba.wa_msg')::uuid; r jsonb; begin
+  -- Meta acepta el mensaje y avisa: entregado y leído, solo hacia delante; un fallo se apunta.
+  perform whatsapp_marcar_enviado(v_msg, 'wamid.361out', null);
+  if (select estado from whatsapp_mensajes where id = v_msg) <> 'enviado' then raise exception 'FALLO 361 · el mensaje aceptado por Meta no queda enviado'; end if;
+  perform whatsapp_registrar_estado('wamid.361out', 'leido', null, null);
+  if whatsapp_registrar_estado('wamid.361out', 'entregado', null, null) then raise exception 'FALLO 361 · el estado de un mensaje va hacia atrás (leído → entregado)'; end if;
+  if (select estado from whatsapp_mensajes where id = v_msg) <> 'leido' then raise exception 'FALLO 361 · no se apunta que la persona lo leyó'; end if;
+  -- Pasadas 24 h desde su último mensaje: ya no se contesta con texto libre.
+  update whatsapp_conversaciones set ultima_entrada_en = now() - interval '25 hours' where id = v_conv;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  r := whatsapp_preparar_respuesta(v_conv, 'Te escribo tarde');
+  reset role;
+  if r ->> 'resultado' <> 'fuera_de_plazo' then raise exception 'FALLO 361 · se deja contestar con texto libre pasadas las 24 h: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- Limpieza: el texto de más de 24 meses se borra; el archivo de más de 6 meses sale para borrar.
+  update whatsapp_mensajes set creado_en = now() - interval '25 months' where wa_id = 'wamid.361a';
+  update whatsapp_mensajes set archivo_ruta = 'c/361/foto.jpg', archivo_bytes = 1000, creado_en = now() - interval '7 months' where wa_id = 'wamid.361b';
+  perform whatsapp_limpiar();
+  if exists (select 1 from whatsapp_mensajes where wa_id = 'wamid.361a') then raise exception 'FALLO 361 · el texto de más de 24 meses no se borra'; end if;
+  if not exists (select 1 from whatsapp_mensajes where wa_id = 'wamid.361b') then raise exception 'FALLO 361 · se borra un mensaje con archivo aún guardado'; end if;
+  if not exists (select 1 from whatsapp_archivos_caducados(500) x where x.archivo_ruta = 'c/361/foto.jpg') then raise exception 'FALLO 361 · la foto de más de 6 meses no sale para borrar'; end if;
+  perform whatsapp_archivos_borrados(array[(select id from whatsapp_mensajes where wa_id = 'wamid.361b')]);
+  if (select archivo_ruta from whatsapp_mensajes where wa_id = 'wamid.361b') is not null then raise exception 'FALLO 361 · no se apunta que el archivo ya se borró'; end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if not exists (select 1 from cron.job where jobname = 'dynamo-whatsapp-limpiar') then raise exception 'FALLO 361 · falta la tarea diaria de limpieza de WhatsApp'; end if;
+  end if;
+end $$;
+-- Permiso del usuario para los avisos: hace falta un móvil; queda la fecha como prueba.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := mi_avisos_whatsapp(true);
+  if r ->> 'resultado' <> 'ok' or r ->> 'telefono' <> '+34600361361' then raise exception 'FALLO 361 · el usuario no puede dar su permiso para los avisos por WhatsApp: %', r; end if;
+end $$;
+reset role;
+do $$ declare v_cli uuid := current_setting('prueba.u_cli')::uuid; r jsonb; begin
+  if not (select avisos_whatsapp and avisos_whatsapp_en is not null and avisos_whatsapp_preguntado_en is not null from usuarios where id = v_cli) then
+    raise exception 'FALLO 361 · el permiso no queda apuntado con su fecha'; end if;
+  update usuarios set telefono = null, avisos_whatsapp = false where id = v_cli;
+  perform set_config('request.jwt.claim.sub', v_cli::text, false);
+  set local role authenticated;
+  r := mi_avisos_whatsapp(true);
+  reset role;
+  if r ->> 'resultado' <> 'sin_movil' then raise exception 'FALLO 361 · se da el permiso de WhatsApp sin móvil: %', r; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  delete from whatsapp_conversaciones where telefono in ('+34600361361', '+34699000361');
+  delete from avisos where tipo = 'whatsapp';
+  update usuarios set avisos_whatsapp_en = null, avisos_whatsapp_preguntado_en = null, telefono = nullif(current_setting('prueba.wa_tel_antes'), '') where id = v_cli;
+  raise notice 'OK 361 · WhatsApp: se guarda todo, se reconoce a quien escribe, solo el equipo lo ve y contesta dentro de las 24 h, permiso con móvil y fecha, y limpieza 24/6 meses';
+end $$;
+reset role;
 select set_config('request.jwt.claim.sub', '', false);

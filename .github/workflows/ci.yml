@@ -154,6 +154,9 @@ jobs:
           SITE_URL: http://localhost:3000
           # Clave SOLO de pruebas para la entrada de albaranes (la de verdad está en Vercel).
           ENTRADA_DOCUMENTOS_TOKEN: prueba-e2e-entrada-de-albaranes-no-es-secreta
+          # Claves SOLO de pruebas de WhatsApp (la puerta de Meta): las de verdad están en Vercel.
+          WHATSAPP_APP_SECRET: prueba-e2e-whatsapp-no-es-secreta
+          WHATSAPP_VERIFY_TOKEN: prueba-e2e-verificacion-whatsapp
         run: |
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           npm run build
@@ -231,6 +234,8 @@ jobs:
           E2E_URL: http://localhost:3000
           E2E_PROYECTO: ${{ matrix.proyecto }}
           ENTRADA_DOCUMENTOS_TOKEN: prueba-e2e-entrada-de-albaranes-no-es-secreta
+          WHATSAPP_APP_SECRET: prueba-e2e-whatsapp-no-es-secreta
+          WHATSAPP_VERIFY_TOKEN: prueba-e2e-verificacion-whatsapp
       # Solo al lanzarlo a mano con la casilla «fotos»: las fotos de referencia recién
       # sacadas se guardan en la rama (cada navegador las suyas, en su carpeta).
       - name: Guardar las fotos de referencia

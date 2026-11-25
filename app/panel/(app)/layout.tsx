@@ -15,6 +15,7 @@ import ChatIA from '@/components/panel/ChatIA';
 const IA_ACTIVA = false;
 import EnVivo from '@/components/panel/EnVivo';
 import BandaSuspension from '@/components/panel/BandaSuspension';
+import { PreguntaAvisosWhatsApp } from '@/components/panel/AvisosWhatsApp';
 import CargandoNavegacion from '@/components/panel/CargandoNavegacion';
 import { Suspense } from 'react';
 import './dashboard.css';
@@ -111,6 +112,10 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       {/* Suspensión en solo lectura (usuario, 2026-11-14): banda fija mientras dure; se quita
           sola al reactivar la cuenta (BandaSuspension). */}
       {soloMirar(perfil) && <BandaSuspension telefono={CONTACTO.telefono} email={CONTACTO.email} />}
+      {/* Pregunta única (usuario, 2026-11-25): a los clientes y transportistas que aún no han dicho
+          si quieren los avisos también por WhatsApp. Desaparece al contestar. */}
+      {perfil && (perfil.rol === 'cliente' || perfil.rol === 'transportista') && perfil.estado === 'activa' && !perfil.avisos_whatsapp && !perfil.avisos_whatsapp_preguntado_en
+        && <PreguntaAvisosWhatsApp telefono={perfil.telefono ?? null} />}
       {children}
     </Marco>
     </RefrescoProvider>

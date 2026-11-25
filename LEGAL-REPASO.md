@@ -164,3 +164,11 @@ Fecha: 2026-11-24 · Rama `pruebas` · **No se ha cambiado ningún texto legal**
 - **Riesgo, avisado al usuario dos veces y decidido por él**: esos emails los da el cliente (o el propio sitio) para gestionar una recogida o una entrega, no para recibir publicidad. Escribirles con fines comerciales sin permiso choca con el artículo 21 de la LSSI y con la finalidad para la que se recogió el dato (RGPD, art. 5.1.b); además, la política de Brevo prohíbe listas de contactos que no han dado su consentimiento y puede suspender la cuenta. Dynamo dice que llama antes de escribir.
 - **Qué habría que tener antes de producción**: (1) decir en la política de privacidad que los datos de contacto de los sitios pueden usarse para ofrecerles los servicios de Dynamo, y con qué base; (2) que cada email comercial lleve la baja (Brevo la pone) y respetar las bajas; (3) Brevo como encargado del tratamiento en el registro de actividades; (4) valorar subir solo los emails generales de empresa y no los de personas con nombre y apellidos.
 - La plataforma solo sube los contactos: no envía nada. A quién y cuándo se escribe se decide en Brevo.
+
+
+## Añadido el 2026-11-25 · WhatsApp
+
+- La plataforma guarda **todas las conversaciones de WhatsApp** del número de Dynamo (texto 2 años; fotos, PDF y audios 6 meses, salvo los unidos a un envío con incidencia), con quién escribe según su teléfono. Las lee el equipo de Dynamo. Meta (WhatsApp Business) es encargado del tratamiento.
+- **Avisos por WhatsApp solo con permiso**: casilla sin marcar en el alta, tarjeta en Mi cuenta para darlo o quitarlo, y pregunta única a los usuarios actuales; se guarda cuándo se dio. **Excepción decidida por el usuario**: las ofertas de cargas a transportistas irán por email y WhatsApp siempre (parte 2). **A validar con el asesor**: base legal de esas ofertas (interés legítimo o consentimiento), que cada mensaje lleve cómo darse de baja, y mencionarlo todo en la política de privacidad (qué se guarda, cuánto tiempo, quién lo ve, Meta como encargado y transferencia internacional).
+- Cuando conteste Claude (parte 3): decirlo en la política (respuestas automáticas con IA, Anthropic como encargado) y que siempre se pueda pedir hablar con una persona.
+
