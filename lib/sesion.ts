@@ -13,6 +13,7 @@ export type Perfil = {
   suspension_motivo?: string | null; suspendida_en?: string | null;   // para la pantalla de cuenta suspendida
   cliente_id?: string | null; transportista_id?: string | null;        // canales de la plataforma en vivo
   telefono?: string | null; avisos_whatsapp?: boolean; avisos_whatsapp_preguntado_en?: string | null;   // pregunta única de los avisos por WhatsApp
+  telefono_verificado_en?: string | null;   // móvil verificado (por WhatsApp o por Dynamo, 2026-11-25)
 };
 
 // Sesión del usuario para el panel: una sola lectura por petición (cache), la usan el
@@ -24,7 +25,7 @@ export const sesion = cache(async () => {
   if (!user) redirect('/panel/entrar');
 
   const { data: perfil } = await supabase
-    .from('usuarios').select('id, email, nombre, rol, estado, suspension_motivo, suspendida_en, cliente_id, transportista_id, telefono, avisos_whatsapp, avisos_whatsapp_preguntado_en').eq('id', user.id).maybeSingle();
+    .from('usuarios').select('id, email, nombre, rol, estado, suspension_motivo, suspendida_en, cliente_id, transportista_id, telefono, avisos_whatsapp, avisos_whatsapp_preguntado_en, telefono_verificado_en').eq('id', user.id).maybeSingle();
 
   // Suspensión TOTAL (usuario, 2026-11-14): ni dentro — se cierra la sesión en el acto
   // (el «siguiente clic» de quien la tuviera abierta) y la entrada enseña el porqué.

@@ -8,6 +8,7 @@ import { esPaisValido, PREFIJOS, normalizaTel } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
 import { turnstileOk } from '@/lib/servidor/turnstile';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { esMovil } from '@/lib/whatsapp';
 
 // ALTA DE CLIENTE desde el portal. No hay contraseña en este paso: Supabase manda al email
 // un enlace y un código de 6 cifras; con cualquiera de los dos se entra y se crea la
@@ -39,7 +40,8 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
   const doc = validaIdFiscalPais(d.dni, d.dni_pais);
   if (!doc || !doc.ok) return mal('dni', `El documento no es válido${doc?.tipo ? ` (${doc.tipo}: ${doc.msg})` : ''}. Revísalo.`);
   const tel = normalizaTel(d.prefijo + d.telefono);
-  if (!/^\+[0-9]{8,15}$/.test(tel)) return mal('telefono', 'Escribe un teléfono de contacto (móvil, a ser posible).');
+  // Móvil obligatorio (usuario, 2026-11-25): con él se verifica la identidad por WhatsApp.
+  if (!esMovil(tel)) return mal('telefono', 'Escribe tu móvil (con WhatsApp): en España, 9 cifras que empiezan por 6 o 7; si es de otro país, con su prefijo.');
   if (f.get('acepto') !== 'on') return mal('acepto', 'Para crear la cuenta tienes que aceptar el Aviso legal y la Política de privacidad.');
   // Captcha (Cloudflare Turnstile, tarea 76): protege la cuota de emails frente a bots.
   if (!(await turnstileOk(f))) return mal(undefined, 'No hemos podido comprobar que no eres un robot. Recarga la página y vuelve a intentarlo.');

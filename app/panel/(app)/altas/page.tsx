@@ -59,12 +59,19 @@ export default async function PaginaAltas() {
       };
     });
   const festivos = ((fes.data ?? []) as { fecha: string; region?: string | null }[]).filter((f) => !f.region).map((f) => f.fecha);
+  // Móvil verificado por WhatsApp o validado por Dynamo (usuario, 2026-11-25): para aprobar con seguridad.
+  const idsAltas = (altas.data ?? []).map((a) => a.id);
+  const { data: movs } = idsAltas.length
+    ? await supabase.from('usuarios').select('id, telefono_verificado_en, telefono_verificado_como').in('id', idsAltas)
+    : { data: [] as { id: string; telefono_verificado_en: string | null; telefono_verificado_como: string | null }[] };
+  const mMov = new Map((movs ?? []).map((u) => [u.id, u]));
   const filas: AltaFila[] = (altas.data ?? []).map((a) => {
     const m = (a.datos ?? {}) as Record<string, unknown>;
     const t = (k: string) => (typeof m[k] === 'string' ? m[k] : '') as string;
     return {
       id: a.id, email: a.email, nombre: a.nombre ?? t('nombre'), telefono: a.telefono ?? t('telefono'), documento: a.documento ?? t('dni'), documento_pais: t('dni_pais'),
       solicitada_en: a.solicitada_en, confirmado_email: a.confirmado_email,
+      movil: mMov.get(a.id)?.telefono_verificado_en ? (mMov.get(a.id)?.telefono_verificado_como === 'dynamo' ? 'dynamo' : 'verificado') : 'pendiente',
       empresa: t('empresa') || t('razon_social'), cif: t('cif'), direccion: t('direccion'), codigo_postal: t('codigo_postal'),
       poblacion: t('poblacion'), provincia: t('provincia'), pais: t('pais') || 'ES',
       empresa_telefono: t('empresa_telefono'), empresa_email: t('empresa_email'),

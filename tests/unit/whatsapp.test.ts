@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { botonesReenvio, cuerpoArchivo, cuerpoBotones, cuerpoPlantilla, cuerpoReaccion, cuerpoTexto, dentroDe24h, extensionDe, leerAviso, telWhatsApp, textoPlantilla, tipoArchivoMeta } from '../../lib/whatsapp';
+import { botonesReenvio, cuerpoCodigo, esMovil, cuerpoArchivo, cuerpoBotones, cuerpoPlantilla, cuerpoReaccion, cuerpoTexto, dentroDe24h, extensionDe, leerAviso, telWhatsApp, textoPlantilla, tipoArchivoMeta } from '../../lib/whatsapp';
 import { firmaValida } from '../../lib/whatsappFirma';
 
 const SECRETO = 'secreto-de-prueba';
@@ -114,4 +114,21 @@ test('cuerpos que se mandan a Meta: botones, plantilla, archivo, reacción y tex
   assert.deepEqual(cuerpoReaccion('+34611', 'w1', '✅').reaction, { message_id: 'w1', emoji: '✅' });
   assert.deepEqual(cuerpoTexto('+34611', 'ok', 'w9').context, { message_id: 'w9' });
   assert.equal('context' in cuerpoTexto('+34611', 'ok'), false);
+});
+
+test('móvil verificado: solo móviles y plantilla de «Autenticación» con el código en el cuerpo y en el botón', () => {
+  assert.equal(esMovil('600 111 222'), true);
+  assert.equal(esMovil('+34 711 222 333'), true);
+  assert.equal(esMovil('955 225 945'), false);
+  assert.equal(esMovil('+34955225945'), false);
+  assert.equal(esMovil('+351 912 345 678'), true);
+  assert.equal(esMovil('12345'), false);
+  assert.equal(esMovil(''), false);
+  const c = cuerpoCodigo('+34600111222', 'codigo_dynamo', '123456');
+  assert.equal(c.to, '34600111222');
+  assert.equal(c.template.name, 'codigo_dynamo');
+  assert.deepEqual(c.template.components, [
+    { type: 'body', parameters: [{ type: 'text', text: '123456' }] },
+    { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: '123456' }] },
+  ]);
 });

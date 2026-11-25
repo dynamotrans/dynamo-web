@@ -16,6 +16,8 @@ const IA_ACTIVA = false;
 import EnVivo from '@/components/panel/EnVivo';
 import BandaSuspension from '@/components/panel/BandaSuspension';
 import { PreguntaAvisosWhatsApp } from '@/components/panel/AvisosWhatsApp';
+import VerificarMovil from '@/components/panel/VerificarMovil';
+import { whatsappConectado } from '@/lib/servidor/whatsapp';
 import CargandoNavegacion from '@/components/panel/CargandoNavegacion';
 import { Suspense } from 'react';
 import './dashboard.css';
@@ -57,6 +59,12 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_autosuspension', { p_cliente: null }) : Promise.resolve({ data: null }),
   ]);
   const logoDoc = logoP ? (((await logoP).data as string | null) ?? null) : null;
+  // MÓVIL VERIFICADO (usuario, 2026-11-25): a clientes y transportistas sin el móvil verificado
+  // (por WhatsApp o por Dynamo), en vez de la página, la pantalla del código por WhatsApp. Solo si
+  // WhatsApp está conectado; lo demás (parámetro, interruptor, plantilla) lo mira la base de datos.
+  const pideMovil = !!perfil && !dynamo && (perfil.estado === 'activa' || perfil.estado === 'pendiente_verificacion')
+    && !perfil.telefono_verificado_en && whatsappConectado()
+    && (await supabase.rpc('movil_pendiente_verificar', { p_usuario: user.id })).data === true;
   // PRE-AVISO al 80 % del cupo del día (usuario, 2026-11-11): que la suspensión
   // automática (reglas 3 y 6) nunca pille por sorpresa a un cliente legítimo. Los
   // números no son secreto para él: su página «Uso de Dynamo» ya se los enseña.
@@ -114,9 +122,9 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       {soloMirar(perfil) && <BandaSuspension telefono={CONTACTO.telefono} email={CONTACTO.email} />}
       {/* Pregunta única (usuario, 2026-11-25): a los clientes y transportistas que aún no han dicho
           si quieren los avisos también por WhatsApp. Desaparece al contestar. */}
-      {perfil && (perfil.rol === 'cliente' || perfil.rol === 'transportista') && perfil.estado === 'activa' && !perfil.avisos_whatsapp && !perfil.avisos_whatsapp_preguntado_en
+      {!pideMovil && perfil && (perfil.rol === 'cliente' || perfil.rol === 'transportista') && perfil.estado === 'activa' && !perfil.avisos_whatsapp && !perfil.avisos_whatsapp_preguntado_en
         && <PreguntaAvisosWhatsApp telefono={perfil.telefono ?? null} />}
-      {children}
+      {pideMovil ? <VerificarMovil telefono={perfil!.telefono ?? null} /> : children}
     </Marco>
     </RefrescoProvider>
   );

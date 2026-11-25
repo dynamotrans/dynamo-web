@@ -3269,6 +3269,47 @@ export type Database = {
         Relationships: [
         ]
       }
+      movil_codigos: {
+        Row: {
+          id: string
+          usuario_id: string
+          telefono: string
+          codigo_hash: string
+          intentos: number
+          caduca_en: string
+          usado_en: string | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          usuario_id: string
+          telefono: string
+          codigo_hash: string
+          intentos?: number
+          caduca_en: string
+          usado_en?: string | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          usuario_id?: string
+          telefono?: string
+          codigo_hash?: string
+          intentos?: number
+          caduca_en?: string
+          usado_en?: string | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movil_codigos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notas_internas: {
         Row: {
           id: string
@@ -4325,6 +4366,8 @@ export type Database = {
           avisos_whatsapp: boolean
           avisos_whatsapp_en: string | null
           avisos_whatsapp_preguntado_en: string | null
+          telefono_verificado_en: string | null
+          telefono_verificado_como: string | null
         }
         Insert: {
           id: string
@@ -4354,6 +4397,8 @@ export type Database = {
           avisos_whatsapp?: boolean
           avisos_whatsapp_en?: string | null
           avisos_whatsapp_preguntado_en?: string | null
+          telefono_verificado_en?: string | null
+          telefono_verificado_como?: string | null
         }
         Update: {
           id?: string
@@ -4383,6 +4428,8 @@ export type Database = {
           avisos_whatsapp?: boolean
           avisos_whatsapp_en?: string | null
           avisos_whatsapp_preguntado_en?: string | null
+          telefono_verificado_en?: string | null
+          telefono_verificado_como?: string | null
         }
         Relationships: [
           {
@@ -5269,6 +5316,12 @@ export type Database = {
       modificaciones_deca: { Args: { p_envio: string | null }; Returns: Json }
       modificar_envio_cliente: { Args: { p_envio: string | null; p_datos: Json | null; p_paradas?: Json | null }; Returns: Json }
       modificar_mi_envio_manual: { Args: { p_envio: string | null; p_datos: Json | null; p_paradas?: Json | null }; Returns: undefined }
+      movil_codigo_no_enviado: { Args: { p_usuario: string | null }; Returns: undefined }
+      movil_comprobar_codigo: { Args: { p_codigo: string | null; p_avisos?: boolean | null }; Returns: Json }
+      movil_pendiente_verificar: { Args: { p_usuario: string | null }; Returns: boolean }
+      movil_preparar_codigo: { Args: { p_usuario: string | null; p_telefono: string | null }; Returns: Json }
+      movil_validar_por_dynamo: { Args: { p_usuario: string | null }; Returns: Json }
+      movil_valido: { Args: { p: string | null }; Returns: boolean }
       negociacion_bloqueada: { Args: { p_envio: string | null; p_transportista?: string | null }; Returns: string }
       negociacion_publica: { Args: { p_token: string | null }; Returns: boolean }
       no_he_sido_yo: { Args: { p_token: string | null }; Returns: Json }

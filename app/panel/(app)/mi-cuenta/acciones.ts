@@ -1,6 +1,7 @@
 'use server';
 
 import { normalizaTel } from '@/lib/paises';
+import { esMovil } from '@/lib/whatsapp';
 
 import { mensajeError } from '@/lib/mensajeError';
 import { claveValida } from '@/lib/clave';
@@ -28,6 +29,9 @@ export async function guardarMisDatos(d: MisDatos): Promise<{ ok: true } | { ok:
   if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!d.nombre.trim()) return { ok: false, error: 'Pon tu nombre y apellidos.' };
   const tel = normalizaTel(d.telefono);
+  // Móvil (WhatsApp), un solo campo (usuario, 2026-11-25): si se pone, tiene que ser un móvil.
+  // Cambiarlo quita la verificación (base de datos) y se vuelve a pedir el código por WhatsApp.
+  if (tel && !esMovil(tel)) return { ok: false, error: 'Tiene que ser un móvil (con WhatsApp): en España, 9 cifras que empiezan por 6 o 7; si es de otro país, con su prefijo.' };
   const { error } = await s.supabase.from('usuarios').update({
     nombre: d.nombre.trim(), telefono: tel || null, documento: d.documento.trim().toUpperCase() || null,
     cargo: d.cargo.trim() || null, idioma: d.idioma || 'es',

@@ -43,13 +43,14 @@ export type EmpresaEditable = {
   contactos: ContactoDatos[]; puedeGuardar: boolean;
 };
 
-export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null, editable = null, doblePaso = null, avisosWhatsApp = null }: {
+export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, transporte = null, editable = null, doblePaso = null, avisosWhatsApp = null, movilVerificado = false }: {
   datos: MisDatos; email: string; rol: string; ultimaConexion: string | null;
   empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null; cliente_id?: string | null } | null;
   transporte?: TransporteDatos | null;
   editable?: EmpresaEditable | null;
   doblePaso?: { activo: boolean; obligatorio: boolean } | null;   // solo usuarios de Dynamo
   avisosWhatsApp?: { activo: boolean } | null;                    // solo clientes y transportistas
+  movilVerificado?: boolean;                                       // móvil verificado por WhatsApp (2026-11-25)
 }) {
   const refrescar = useRefrescar();
   const [editar, setEditar] = useState(false);
@@ -74,7 +75,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           <h3 className="account-card-title">Datos personales</h3>
           {fila('Nombre y apellidos', datos.nombre)}
           {fila('Email', email)}
-          {fila('Teléfono', datos.telefono ? telBonito(datos.telefono) : '')}
+          {fila('Móvil (WhatsApp)', datos.telefono ? <>{telBonito(datos.telefono)}{movilVerificado && <span className="badge badge-green" id="mc-movil-verificado" style={{ marginLeft: '0.4rem' }}>✓ Verificado</span>}</> : '')}
           {fila('DNI / NIE', datos.documento)}
           {fila('Cargo', datos.cargo)}
           {fila('Idioma de los avisos', IDIOMAS.find(([k]) => k === datos.idioma)?.[1] ?? datos.idioma)}
@@ -206,7 +207,7 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
           <label htmlFor="mc-nombre">Nombre y apellidos <Req /></label>
           <input id="mc-nombre" type="text" value={d.nombre} placeholder="Nombre y apellidos" onChange={(e) => set('nombre', e.target.value)} />
         </div>
-        <div><label htmlFor="mc-telefono">Teléfono <Req si={false} /></label><CampoTelefono id="mc-telefono" valor={d.telefono} onCambio={(v) => set('telefono', v)} /></div>
+        <div><label htmlFor="mc-telefono">Móvil (WhatsApp) <Req si={false} /></label><CampoTelefono id="mc-telefono" valor={d.telefono} onCambio={(v) => set('telefono', v)} /></div>
         {campo('documento', 'DNI / NIE', '12345678Z')}
         {campo('cargo', 'Cargo', 'Ej. Responsable de tráfico')}
         <div>

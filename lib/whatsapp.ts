@@ -200,3 +200,24 @@ export const cuerpoTexto = (telefono: string, texto: string, cita?: string | nul
   messaging_product: 'whatsapp', recipient_type: 'individual', to: telefono.replace(/^\+/, ''), type: 'text',
   text: { body: texto.slice(0, 4096), preview_url: false }, ...(cita ? { context: { message_id: cita } } : {}),
 });
+
+/** Plantilla de Meta de tipo «Autenticación» con el código (cuerpo y botón «Copiar código»). */
+export function cuerpoCodigo(telefono: string, plantilla: string, codigo: string, idioma = 'es') {
+  return {
+    messaging_product: 'whatsapp', recipient_type: 'individual', to: telefono.replace(/^\+/, ''), type: 'template',
+    template: {
+      name: plantilla, language: { code: idioma },
+      components: [
+        { type: 'body', parameters: [{ type: 'text', text: codigo }] },
+        { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: codigo }] },
+      ],
+    },
+  };
+}
+
+/** Un móvil válido para WhatsApp (igual que movil_valido() de la base de datos). */
+export function esMovil(t: string | null | undefined): boolean {
+  const x = telWhatsApp(t);
+  if (!x) return false;
+  return x.startsWith('+34') ? /^\+34[67]\d{8}$/.test(x) : /^\+[1-9]\d{7,14}$/.test(x);
+}

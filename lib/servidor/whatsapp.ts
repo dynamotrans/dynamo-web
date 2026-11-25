@@ -1,6 +1,6 @@
 import 'server-only';
 import { supabaseServicio } from '@/lib/supabase/servicio';
-import { botonesReenvio, cuerpoArchivo, cuerpoBotones, cuerpoPlantilla, cuerpoReaccion, cuerpoTexto, extensionDe, tipoArchivoMeta, type Cabecera } from '@/lib/whatsapp';
+import { botonesReenvio, cuerpoCodigo, cuerpoArchivo, cuerpoBotones, cuerpoPlantilla, cuerpoReaccion, cuerpoTexto, extensionDe, tipoArchivoMeta, type Cabecera } from '@/lib/whatsapp';
 
 // TODO lo que la plataforma habla con Meta (WhatsApp Cloud API) pasa por aquí (usuario,
 // 2026-11-25). Claves, todas en Vercel (Sensitive), nunca en el repositorio ni en el chat:
@@ -214,4 +214,9 @@ export async function trasEntrada(mensajeId: string): Promise<void> {
     }
     default:
   }
+}
+
+/** Manda el código de 6 cifras para verificar el móvil, con la plantilla de «Autenticación». */
+export async function mandarCodigo(telefono: string, plantilla: string, codigo: string): Promise<Res<{ wa_id: string }>> {
+  return mandar(cuerpoCodigo(telefono, plantilla, codigo));
 }

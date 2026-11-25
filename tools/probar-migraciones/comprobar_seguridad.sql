@@ -3995,6 +3995,7 @@ do $$ declare faltan text; begin
                            'brevo_subidas',                -- registro de lo subido a Brevo: lo escribe solo el servidor (tarea diaria), también en mantenimiento
                            'whatsapp_conversaciones',      -- WhatsApp: lo escribe el servidor al llegar cada mensaje; en mantenimiento también hay que guardarlos (Meta no los guarda)
                            'whatsapp_mensajes',            -- ídem
+                           'movil_codigos',                -- códigos para verificar el móvil: los escribe solo el servidor al entrar (también en mantenimiento)
                            'transportista_cancelaciones',  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
                            'usuarios_dispositivos',        -- seguridad del acceso: se escribe al entrar, también en mantenimiento (el equipo tiene que poder entrar)
                            'transportista_notas')          -- nota automática: solo la escribe la tarea de la noche, que ya se para en mantenimiento
@@ -16545,6 +16546,119 @@ do $$ declare p jsonb := current_setting('prueba.wa362')::jsonb; k text; begin
   delete from avisos where tipo = 'whatsapp';
   for k in select jsonb_object_keys(p) loop update parametros set valor = p -> k where clave = k; end loop;
   raise notice 'OK 362 · WhatsApp: reenvío al móvil de Dynamo según el modo, responder citando le llega a quien escribió (en sus 24 h), «Tomo yo» y «Que conteste Claude»';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 363 · MÓVIL VERIFICADO POR WHATSAPP (usuario, 2026-11-25): móvil obligatorio y demostrado con un
+-- código de 6 cifras por WhatsApp; un móvil, una cuenta; límites contra abusos; cambiar el móvil
+-- obliga a verificarlo otra vez; sin «no tengo WhatsApp»: Dynamo lo puede marcar «comprobado por llamada».
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r jsonb; v_cli uuid := current_setting('prueba.u_cli')::uuid; v_tra uuid := current_setting('prueba.u_transp')::uuid; v_cod text; v_n int; begin
+  if has_function_privilege('authenticated', 'movil_preparar_codigo(uuid, text)', 'execute') or has_function_privilege('anon', 'movil_comprobar_codigo(text, boolean)', 'execute')
+     or has_function_privilege('authenticated', 'movil_codigo_no_enviado(uuid)', 'execute') then
+    raise exception 'FALLO 363 · las funciones del código del móvil se pueden llamar desde fuera'; end if;
+  if exists (select 1 from pg_policies where tablename = 'movil_codigos') or not (select relrowsecurity from pg_class where oid = 'public.movil_codigos'::regclass) then
+    raise exception 'FALLO 363 · los códigos del móvil se pueden leer'; end if;
+  if not movil_valido('600 111 222') or not movil_valido('+34 711 222 333') or movil_valido('955225945') or movil_valido('+34 955 225 945') or not movil_valido('+351 912 345 678') or movil_valido('12345') then
+    raise exception 'FALLO 363 · no se distingue bien un móvil de un fijo'; end if;
+  perform set_config('prueba.mv_antes', (select jsonb_build_object('t', telefono, 'v', telefono_verificado_en, 'c', telefono_verificado_como)::text from usuarios where id = v_cli), false);
+  perform set_config('prueba.mv_tra', coalesce((select telefono from usuarios where id = v_tra), ''), false);
+  perform set_config('prueba.mv_param', (select jsonb_object_agg(clave, valor)::text from parametros where clave in ('whatsapp_activo', 'whatsapp_plantilla_codigo', 'movil_verificar_whatsapp')), false);
+  -- Sin plantilla o con WhatsApp apagado, no se pide.
+  update parametros set valor = 'true' where clave in ('whatsapp_activo', 'movil_verificar_whatsapp');
+  update parametros set valor = '""' where clave = 'whatsapp_plantilla_codigo';
+  update usuarios set telefono_verificado_en = null where id = v_cli;
+  if movil_pendiente_verificar(v_cli) then raise exception 'FALLO 363 · se pide verificar el móvil sin plantilla de Meta'; end if;
+  update parametros set valor = '"codigo_dynamo"' where clave = 'whatsapp_plantilla_codigo';
+  if not movil_pendiente_verificar(v_cli) then raise exception 'FALLO 363 · no se pide verificar el móvil a un cliente sin verificar'; end if;
+  if movil_pendiente_verificar(current_setting('prueba.u_admin')::uuid) then raise exception 'FALLO 363 · se pide verificar el móvil al equipo de Dynamo'; end if;
+  -- Un fijo no vale; un móvil, sí, con límite de uno por minuto.
+  if movil_preparar_codigo(v_cli, '955225945') ->> 'resultado' <> 'no_movil' then raise exception 'FALLO 363 · se manda el código a un fijo'; end if;
+  r := movil_preparar_codigo(v_cli, '600 363 363');
+  if r ->> 'resultado' <> 'ok' or r ->> 'codigo' !~ '^[0-9]{6}$' or r ->> 'telefono' <> '+34600363363' then raise exception 'FALLO 363 · no se prepara el código: %', r; end if;
+  if exists (select 1 from movil_codigos where usuario_id = v_cli and codigo_hash like '%' || (r ->> 'codigo') || '%' and char_length(codigo_hash) <> 64) then raise exception 'FALLO 363 · se guarda el código sin huella'; end if;
+  if movil_preparar_codigo(v_cli, '600363363') ->> 'resultado' <> 'espera' then raise exception 'FALLO 363 · se pueden pedir códigos seguidos'; end if;
+  perform set_config('prueba.mv_codigo', r ->> 'codigo', false);
+  -- Otro usuario ya tiene ese móvil verificado: no vale para este.
+  update usuarios set telefono = '+34600363999', telefono_verificado_en = now() where id = v_tra;
+  update movil_codigos set creado_en = now() - interval '2 minutes' where usuario_id = v_cli;
+  if movil_preparar_codigo(v_cli, '+34600363999') ->> 'resultado' <> 'ocupado' then raise exception 'FALLO 363 · se deja verificar un móvil que ya es de otra cuenta'; end if;
+  -- Límite por hora.
+  select count(*) into v_n from movil_codigos where usuario_id = v_cli;
+  insert into movil_codigos (usuario_id, telefono, codigo_hash, caduca_en, creado_en)
+  select v_cli, '+34600363363', repeat('0', 64), now(), now() - interval '30 minutes' from generate_series(1, 5);
+  if movil_preparar_codigo(v_cli, '600363363') ->> 'resultado' <> 'demasiados' then raise exception 'FALLO 363 · no hay límite de códigos por hora'; end if;
+  delete from movil_codigos where usuario_id = v_cli and codigo_hash = repeat('0', 64);
+  update movil_codigos set creado_en = now() where usuario_id = v_cli;
+end $$;
+-- El usuario escribe el código: mal (cuenta intentos), luego bien (queda verificado, con avisos).
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r jsonb; v_ok text := current_setting('prueba.mv_codigo'); v_mal text; begin
+  if exists (select 1 from movil_codigos) then raise exception 'FALLO 363 · un cliente lee los códigos del móvil'; end if;
+  v_mal := lpad(((v_ok::int + 1) % 1000000)::text, 6, '0');
+  r := movil_comprobar_codigo(v_mal, true);
+  if r ->> 'resultado' <> 'mal' or (r ->> 'quedan')::int <> 4 then raise exception 'FALLO 363 · un código mal no se rechaza bien: %', r; end if;
+  if movil_comprobar_codigo('12', true) ->> 'resultado' <> 'formato' then raise exception 'FALLO 363 · se admite un código que no tiene 6 cifras'; end if;
+  r := movil_comprobar_codigo(v_ok, true);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 363 · el código bueno no verifica el móvil: %', r; end if;
+  if movil_comprobar_codigo(v_ok, true) ->> 'resultado' <> 'sin_codigo' then raise exception 'FALLO 363 · el mismo código vale dos veces'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare v_cli uuid := current_setting('prueba.u_cli')::uuid; r jsonb; v_aviso int; begin
+  if not (select telefono = '+34600363363' and telefono_verificado_en is not null and telefono_verificado_como = 'whatsapp' and avisos_whatsapp and avisos_whatsapp_preguntado_en is not null from usuarios where id = v_cli) then
+    raise exception 'FALLO 363 · tras el código, el móvil no queda verificado con los avisos puestos'; end if;
+  if movil_pendiente_verificar(v_cli) then raise exception 'FALLO 363 · con el móvil verificado se le sigue pidiendo'; end if;
+  -- Cambiar el móvil obliga a verificarlo otra vez.
+  update usuarios set telefono = '+34600363364' where id = v_cli;
+  if (select telefono_verificado_en from usuarios where id = v_cli) is not null then raise exception 'FALLO 363 · cambiar el móvil no quita la verificación'; end if;
+  -- Caducado y 5 intentos.
+  update movil_codigos set creado_en = now() - interval '2 minutes' where usuario_id = v_cli;
+  r := movil_preparar_codigo(v_cli, '600363364');
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 363 · no se prepara el código del móvil nuevo: %', r; end if;
+  update movil_codigos set caduca_en = now() - interval '1 minute' where usuario_id = v_cli and usado_en is null;
+  perform set_config('request.jwt.claim.sub', v_cli::text, false);
+  set local role authenticated;
+  if movil_comprobar_codigo(r ->> 'codigo', null) ->> 'resultado' <> 'caducado' then raise exception 'FALLO 363 · un código caducado vale'; end if;
+  reset role;
+  update movil_codigos set caduca_en = now() + interval '5 minutes', intentos = 5 where usuario_id = v_cli and usado_en is null;
+  set local role authenticated;
+  if movil_comprobar_codigo(r ->> 'codigo', null) ->> 'resultado' <> 'intentos' then raise exception 'FALLO 363 · se puede probar más de 5 veces'; end if;
+  reset role;
+  if exists (select 1 from pg_proc where proname = 'movil_sin_whatsapp') then raise exception 'FALLO 363 · sigue existiendo «no tengo WhatsApp»'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+-- «Validado por Dynamo»: el equipo sí (móvil válido); un cliente, no.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare v_cli uuid := current_setting('prueba.u_cli')::uuid; begin
+  if movil_validar_por_dynamo(v_cli) ->> 'resultado' <> 'ok' then raise exception 'FALLO 363 · el equipo no puede validar el móvil'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform movil_validar_por_dynamo(current_setting('prueba.u_cli')::uuid); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 363 · un cliente valida su propio móvil'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if not (select telefono_verificado_como = 'dynamo' and telefono_verificado_en is not null from usuarios where id = current_setting('prueba.u_cli')::uuid) then
+    raise exception 'FALLO 363 · «validado por Dynamo» no queda apuntado'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare a jsonb := current_setting('prueba.mv_antes')::jsonb; p jsonb := current_setting('prueba.mv_param')::jsonb; k text; begin
+  update usuarios set telefono = nullif(current_setting('prueba.mv_tra'), ''), telefono_verificado_en = null where id = current_setting('prueba.u_transp')::uuid;
+  update usuarios set telefono = a ->> 't', telefono_verificado_en = (a ->> 'v')::timestamptz, telefono_verificado_como = a ->> 'c',
+         avisos_whatsapp = false, avisos_whatsapp_en = null, avisos_whatsapp_preguntado_en = null where id = current_setting('prueba.u_cli')::uuid;
+  delete from movil_codigos;
+  for k in select jsonb_object_keys(p) loop update parametros set valor = p -> k where clave = k; end loop;
+  raise notice 'OK 363 · móvil verificado por WhatsApp: solo móviles, un móvil por cuenta, código con huella, caduca y 5 intentos, límites, cambiar obliga a verificar, y sin «no tengo WhatsApp» (Dynamo lo valida: altas suyas o comprobado por teléfono)';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

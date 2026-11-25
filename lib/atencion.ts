@@ -12,7 +12,7 @@ const INTENSIVA: Record<number, Tramo[]> = { 1: [[8.5, 15.5]], 2: [[8.5, 15.5]],
 export const ONLINE_ABRE = 8, ONLINE_CIERRA = 18;
 
 export const CONTACTO = {
-  email: 'info@dynamotrans.com', whatsapp: '+34 628 995 709', waHref: 'https://wa.me/34628995709',
+  email: 'info@dynamotrans.com', whatsapp: '+34 614 52 59 35', waHref: 'https://wa.me/34614525935',
   telefono: '+34 955 225 945', telHref: 'tel:+34955225945',
 };
 

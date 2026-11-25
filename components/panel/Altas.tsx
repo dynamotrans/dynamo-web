@@ -23,6 +23,7 @@ import { telBonito } from '@/lib/paises';
 
 export type AltaFila = {
   id: string; email: string; nombre: string; telefono: string; documento: string; documento_pais: string; solicitada_en: string; confirmado_email: boolean;
+  movil?: 'verificado' | 'dynamo' | 'pendiente';   // móvil verificado por WhatsApp o validado por Dynamo (2026-11-25)
   empresa: string; cif: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais: string;
   empresa_telefono: string; empresa_email: string;
   camino: '' | 'existente' | 'nueva';   // lo que salió al buscar su CIF en su pantalla de alta
@@ -109,7 +110,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
       {error && <div className="pt-aviso error">No se han podido cargar las altas: {error}</div>}
       <div className="table-wrap" tabIndex={0}>
         <table className="data">
-          <thead><tr><th>Tipo · usuario</th><th>Empresa · CIF</th><th>Nombre · bolsa</th><th>Teléfono</th><th>Estado</th><th>Solicitada</th><th style={{ minWidth: 150 }}>Tiempo</th></tr></thead>
+          <thead><tr><th>Tipo · usuario</th><th>Empresa · CIF</th><th>Nombre · bolsa</th><th>Móvil (WhatsApp)</th><th>Estado</th><th>Solicitada</th><th style={{ minWidth: 150 }}>Tiempo</th></tr></thead>
           <tbody>
             {lista.length === 0 ? (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{todos.length ? 'Sin altas que coincidan' : 'No hay altas pendientes de verificar.'}</td></tr>
@@ -118,7 +119,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
                 <td><Chip /><div><strong>{i.a.email}</strong></div></td>
                 <td>{i.a.empresa || '—'}<div className="meta">{i.a.cif || 'Sin CIF'}</div></td>
                 <td>{i.a.nombre || '—'}{i.a.documento ? <div className="meta">{i.a.documento}</div> : <div className="meta" style={{ color: '#b45309' }}>Sin DNI</div>}</td>
-                <td style={{ whiteSpace: 'nowrap' }}>{i.a.telefono ? telBonito(i.a.telefono) : '—'}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{i.a.telefono ? telBonito(i.a.telefono) : '—'}<MovilEstado m={i.a.movil} /></td>
                 <td>{i.a.confirmado_email ? <span className="badge badge-green">Email confirmado</span> : <span className="badge badge-orange">Email sin confirmar</span>}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>{horaTxt(i.a.solicitada_en)}</td>
                 <td><Reloj desde={i.a.solicitada_en} fest={fest} ahora={ahora} /></td>
@@ -270,10 +271,10 @@ function FichaAlta({ a, clientes, paraCliente, onCerrar, onHecho }: { a: AltaFil
       <p style={{ fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)', marginBottom: '0.7rem' }}>Datos tal cual los envió en el <strong>formulario de registro</strong> (las altas del portal son siempre de <strong>clientes</strong>).</p>
       <div className="pen-envio-sum">
         {fila('Email (usuario)', <><strong>{a.email}</strong>{a.confirmado_email ? '' : ' · aún no ha confirmado el email'}</>)}
+        {fila('Móvil (WhatsApp)', <>{a.telefono ? telBonito(a.telefono) : '—'}<MovilEstado m={a.movil} largo /></>)}
         {fila('Tipo de cuenta', <Chip />)}
         {fila('Nombre y apellidos', a.nombre)}
         {fila('DNI / NIE', a.documento ? `${a.documento}${a.documento_pais ? ` (${a.documento_pais})` : ''}` : '')}
-        {fila('Teléfono', a.telefono ? telBonito(a.telefono) : '')}
         {fila('Empresa / Razón social', a.empresa)}
         {fila('CIF', a.cif)}
         {fila('Dirección fiscal', [a.direccion, a.codigo_postal, a.poblacion, a.provincia].filter(Boolean).join(', '))}
@@ -318,4 +319,11 @@ function FichaAlta({ a, clientes, paraCliente, onCerrar, onHecho }: { a: AltaFil
       )}
     </Modal>
   );
+}
+
+// Móvil verificado (usuario, 2026-11-25): por WhatsApp o validado por Dynamo; si no, aún no lo ha hecho.
+function MovilEstado({ m, largo = false }: { m?: AltaFila['movil']; largo?: boolean }) {
+  if (m === 'verificado') return <div><span className="badge badge-green movil-estado">✓ Móvil verificado por WhatsApp</span></div>;
+  if (m === 'dynamo') return <div><span className="badge badge-green movil-estado">✓ Validado por Dynamo</span></div>;
+  return <div><span className="badge badge-orange movil-estado">Móvil sin verificar{largo ? ': aún no ha puesto el código de WhatsApp' : ''}</span></div>;
 }

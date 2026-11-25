@@ -5768,3 +5768,17 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 /* Parámetros con valores fijos (p. ej. qué se reenvía por WhatsApp). */
 .param-opciones { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .param-opciones button { min-height: 40px; padding: 0.4rem 0.9rem; }
+
+/* Verificar el móvil por WhatsApp (usuario, 2026-11-25). */
+.vm-caja { max-width: 520px; margin: 1.5rem auto; background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.6rem 1.4rem; display: grid; gap: 0.9rem; }
+.vm-icono { width: 54px; height: 54px; border-radius: 50%; background: #25d366; color: #fff; display: grid; place-items: center; }
+.vm-caja h2 { margin: 0; font-size: 1.35rem; color: var(--navy); }
+.vm-por-que { margin: 0; color: var(--gray-700, #374151); line-height: 1.5; }
+.vm-paso { display: grid; gap: 0.6rem; }
+.vm-paso label { font-weight: 600; color: var(--navy); }
+.vm-codigo { font-size: 1.6rem; letter-spacing: 0.5em; text-align: center; padding: 0.6rem; max-width: 240px; font-variant-numeric: tabular-nums; }
+.vm-avisos { display: flex; gap: 0.5rem; align-items: flex-start; font-weight: 400 !important; color: var(--gray-700, #374151) !important; }
+.vm-avisos input { margin-top: 0.25rem; }
+.vm-otros { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.vm-sin-wa { border-top: 1px solid var(--gray-200); padding-top: 0.8rem; }
+.linklike { background: none; border: 0; padding: 0; color: var(--purple, #3300cc); text-decoration: underline; cursor: pointer; font: inherit; }

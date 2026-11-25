@@ -14,6 +14,7 @@ import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
 import Buscador, { type Opcion } from './Buscador';
 import { buscarClientes } from '@/app/panel/(app)/sitios/acciones';
+import { validarMovilDynamo } from '@/app/panel/(app)/movil/acciones';
 import { buscarTransportistas } from '@/app/panel/(app)/envios/acciones';
 import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, anonimizarUsuario, doblePasoDe, quitarDoblePaso, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
 import type { Rol } from '@/lib/sesion';
@@ -34,6 +35,7 @@ export type UsuarioFila = UsuarioDatos & {
   envios: number; cancelados: number; cancelados_ult10: number;
   consultas: number; min_dia: number; min_semana: number;
   suspension_motivo: string | null; suspendida_en: string | null;
+  telefono_verificado_en?: string | null; telefono_verificado_como?: string | null;   // móvil verificado (2026-11-25)
 };
 // Minutos → «2 h 56 min» / «45 min».
 const minTxt = (n: number) => { if (!n) return '—'; const h = Math.floor(n / 60), m = n % 60; return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`; };
@@ -188,7 +190,7 @@ export default function Usuarios({ filas, yo, error, conteos, lista, abrir = nul
       <div className="table-wrap" tabIndex={0}>
         <table className="data">
           <thead><tr>
-            <th>Email · usuario</th><th>Tipo</th><th>Estado</th><th>Nombre y apellidos</th><th>DNI</th><th>Teléfono</th>
+            <th>Email · usuario</th><th>Tipo</th><th>Estado</th><th>Nombre y apellidos</th><th>DNI</th><th>Móvil</th>
             <th>Última conexión</th><th>Conexión diaria</th><th>Consultas de precio</th><th>Envíos creados</th><th>Cancelaciones</th><th>Cancel. / envíos</th><th>Cancelados en últ. 10</th>
           </tr></thead>
           <tbody>
@@ -210,7 +212,7 @@ export default function Usuarios({ filas, yo, error, conteos, lista, abrir = nul
                   </td>
                   <td>{u.nombre || '—'}{u.cargo && <div className="meta">{u.cargo}</div>}</td>
                   <td>{u.documento || '—'}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{telBonito(u.telefono) || '—'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{telBonito(u.telefono) || '—'}{u.telefono_verificado_en ? <span title={u.telefono_verificado_como === 'dynamo' ? 'Validado por Dynamo' : 'Verificado por WhatsApp'} style={{ color: '#16a34a', fontWeight: 800 }}> ✓</span> : null}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{u.ultima_conexion ? fechaHora(u.ultima_conexion) : 'Sin conexiones'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{minTxt(u.min_dia)}</td>
                   <td className="amount">{u.rol === 'cliente' ? u.consultas : '—'}</td>
@@ -276,7 +278,7 @@ function SelectorEmpresa({ rol, cliente_id, transportista_id, onCambio, onNombre
 function Telefono({ id, valor, onCambio }: { id: string; valor: { pref: string; num: string }; onCambio: (v: { pref: string; num: string }) => void }) {
   return (
     <div>
-      <label htmlFor={id}>Teléfono <Req si={false} /></label>
+      <label htmlFor={id}>Móvil (WhatsApp) <Req si={false} /></label>
       <div className="tel-group">
         <SelectorPais modo="prefijo" valor={valor.pref} onCambio={(v) => onCambio({ ...valor, pref: v })} />
         <input id={id} type="tel" inputMode="tel" value={valor.num} placeholder="Ej. 600 000 000" onChange={(e) => onCambio({ ...valor, num: e.target.value })} />
@@ -444,7 +446,10 @@ function FichaUsuario({ u, yo, onCerrar, onCambiarRol, onCambiarEmail, onAnonimi
           <label htmlFor="usr-dni">DNI / NIE <Req si={false} /></label>
           <input id="usr-dni" type="text" value={d.documento} placeholder="Ej. 12345678Z" onChange={(e) => set('documento', e.target.value)} />
         </div>
-        <Telefono id="usr-tel" valor={tel} onCambio={setTel} />
+        <div>
+          <Telefono id="usr-tel" valor={tel} onCambio={setTel} />
+          {(u.rol === 'cliente' || u.rol === 'transportista') && <MovilVerificado u={u} puede={yo.rol !== 'admin_lectura'} onHecho={() => onHecho('Móvil validado por Dynamo.')} />}
+        </div>
         <div>
           <label htmlFor="usr-cargo">Cargo <Req si={false} /></label>
           <input id="usr-cargo" type="text" value={d.cargo} placeholder="Ej. jefe de tráfico, administración…" onChange={(e) => set('cargo', e.target.value)} />
@@ -754,5 +759,32 @@ function Anonimizar({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () => 
         <CampoMiClave id="anon-clave" valor={clave} onCambio={(v) => { setClave(v); setError(null); }} />
       </div>
     </Modal>
+  );
+}
+
+// Móvil verificado (usuario, 2026-11-25): por WhatsApp (código) o validado por Dynamo (altas suyas
+// o comprobado por teléfono a quien no puede recibir WhatsApp).
+function MovilVerificado({ u, puede, onHecho }: { u: UsuarioFila; puede: boolean; onHecho: () => void }) {
+  const [trabajando, setTrabajando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (u.telefono_verificado_en) {
+    return <div className="meta" id="usr-movil-estado" style={{ marginTop: '0.3rem' }}>
+      <span className="badge badge-green">✓ {u.telefono_verificado_como === 'dynamo' ? 'Validado por Dynamo' : 'Verificado por WhatsApp'}</span> · {fechaHora(u.telefono_verificado_en)}
+    </div>;
+  }
+  return (
+    <div style={{ marginTop: '0.3rem', display: 'grid', gap: '0.3rem' }}>
+      <div className="meta" id="usr-movil-estado"><span className="badge badge-gray">Móvil sin verificar</span> · al entrar se le pide el código por WhatsApp</div>
+      {puede && u.telefono && (
+        <button type="button" className="btn-ghost" id="usr-validar-movil" disabled={trabajando} style={{ justifySelf: 'start' }} onClick={async () => {
+          setError(null); setTrabajando(true);
+          const r = await validarMovilDynamo(u.id).catch(() => ({ ok: false as const, error: 'No se ha podido validar.' }));
+          setTrabajando(false);
+          if (!r.ok) { setError(r.error); return; }
+          onHecho();
+        }}>Validar móvil (lo conozco / comprobado por teléfono)</button>
+      )}
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+    </div>
   );
 }

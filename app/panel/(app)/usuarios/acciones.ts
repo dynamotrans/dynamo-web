@@ -10,6 +10,7 @@ import { esDynamo } from '@/lib/roles';
 import { origen } from '@/lib/origen';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { esMovil } from '@/lib/whatsapp';
 
 export type UsuarioDatos = {
   nombre: string; documento: string; telefono: string; cargo: string; idioma: string;
@@ -137,6 +138,12 @@ export async function invitarUsuario(d: Invitacion): Promise<Res> {
     telefono: tel.replace('+', '').length >= 6 ? tel : null, cargo: vacio(d.cargo),
   }).eq('id', data.user.id);
   if (e2) return { ok: false, error: `La invitación ha salido, pero no se ha podido guardar el rol: ${traducir(e2.message)}. Corrígelo en su ficha.` };
+  // Alta hecha por Dynamo (usuario, 2026-11-25: «los conozco»): su móvil queda «validado por
+  // Dynamo» y entra solo con el código del email, sin el de WhatsApp.
+  if ((d.rol === 'cliente' || d.rol === 'transportista') && esMovil(tel)) {
+    const { error: e3 } = await s.supabase.rpc('movil_validar_por_dynamo', { p_usuario: data.user.id });
+    if (e3) console.error('[Usuarios] validar móvil del alta', e3.message);
+  }
   return { ok: true };
 }
 
