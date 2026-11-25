@@ -16288,3 +16288,37 @@ do $$ declare j jsonb; f jsonb; s1 uuid;
   raise notice 'OK 359 · sitios → Brevo: lista para revisar antes de subir, solo para Dynamo, con el motivo de cada uno';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 360 · TRANSFERENCIA AVISADA: DYNAMO RECIBE SU PROPIO EMAIL, AL MOMENTO (usuario, 2026-11-25:
+-- «ese aviso debería llegar a admin para saber rápido en el banco si nos pagó»). Con el importe
+-- con IVA, el concepto y el cliente en el asunto y dentro; el del cliente sigue saliendo.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; cli uuid := current_setting('prueba.cliente')::uuid; adm uuid := current_setting('prueba.u_admin')::uuid; lun date;
+  r record; v_gx text; v_dyn text := parametro('dynamo_email') #>> '{}'; v_total text; begin
+  lun := (now() at time zone 'Europe/Madrid')::date + (8 - extract(isodow from (now() at time zone 'Europe/Madrid')::date)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, creado_por)
+    values (cli, 13.30, 20, 900, 700, lun, lun + 1, adm) returning id, referencia_gx into e, v_gx;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28821', 'Coslada', 'ES');
+  update envios set estado_pago_previo = 'pendiente', pago_motivo = 'Pedido por Dynamo', pago_pendiente_en = now(), estado_revision_precio = 'no_requiere' where id = e;
+  update envios set estado = 'programado' where id = e;
+  select euros_texto(i.total) into v_total from pago_envio_importes(e) i;
+  if has_function_privilege('authenticated', 'fn_email_pago_avisado_dynamo(uuid, boolean)', 'execute') then raise exception 'FALLO 360 · cualquiera puede mandar el email de validar cobro'; end if;
+  if (fn_pago_avisar(e, true)) ->> 'resultado' <> 'ok' then raise exception 'FALLO 360 · no se apunta el aviso de la transferencia'; end if;
+  select * into r from emails_enviados where envio_id = e and tipo = 'pago_avisado_dynamo';
+  if r.id is null then raise exception 'FALLO 360 · Dynamo no recibe su email de «validar cobro»'; end if;
+  if r.destinatario <> v_dyn then raise exception 'FALLO 360 · el email de validar cobro no va al buzón de Dynamo: %', r.destinatario; end if;
+  if r.asunto not like 'Validar cobro · #' || v_gx || ' · ' || v_total || ' · %' then raise exception 'FALLO 360 · el asunto no dice envío, importe y cliente: %', r.asunto; end if;
+  if position('PRO-' || v_gx in r.cuerpo_html) = 0 or position(v_total || ' (IVA incluido)' in r.cuerpo_html) = 0
+     or position('/panel/envios?ver=' || e in r.cuerpo_html) = 0 or position('desde el enlace de pago' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 360 · al email de validar cobro le falta el concepto, el importe, el botón o de dónde vino: %', r.cuerpo_html; end if;
+  if r.enviar_desde > now() + interval '2 seconds' then raise exception 'FALLO 360 · el email de validar cobro espera en vez de salir al momento (%)', r.enviar_desde - now(); end if;
+  -- El del cliente sigue saliendo (con su minuto de espera, como todos).
+  if not exists (select 1 from emails_enviados where envio_id = e and tipo = 'pago_avisado') then raise exception 'FALLO 360 · el cliente se queda sin su email de «la estamos validando»'; end if;
+  -- Avisar dos veces no manda dos.
+  perform fn_pago_avisar(e, false);
+  if (select count(*) from emails_enviados where envio_id = e and tipo = 'pago_avisado_dynamo') <> 1 then raise exception 'FALLO 360 · el email de validar cobro se repite'; end if;
+  raise notice 'OK 360 · transferencia avisada: Dynamo recibe al momento su email de «validar cobro» con envío, importe con IVA, concepto y cliente';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

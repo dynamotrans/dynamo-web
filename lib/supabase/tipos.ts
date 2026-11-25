@@ -4978,6 +4978,7 @@ export type Database = {
       fn_email_envio_cliente: { Args: { p_envio: string | null; p_clave: string | null; p_tipo: string | null; p_titulo: string | null; p_cuerpo: string | null }; Returns: undefined }
       fn_email_envio_transportista: { Args: { p_envio: string | null; p_transportista: string | null; p_clave: string | null; p_tipo: string | null; p_titulo: string | null; p_cuerpo: string | null; p_cierre?: string | null }; Returns: undefined }
       fn_email_incidencia: { Args: { p_inc: string | null; p_tipo: string | null; p_clave: string | null; p_titulo: string | null; p_cuerpo: string | null }; Returns: undefined }
+      fn_email_pago_avisado_dynamo: { Args: { p_envio: string | null; p_por_enlace?: boolean | null }; Returns: undefined }
       fn_email_penalizacion: { Args: { p_pen: Database["public"]["Tables"]["penalizaciones"]["Row"] | null; p_evento: string | null }; Returns: undefined }
       fn_encolar_email_envio_modificado: { Args: { p_envio: string | null; p_cambios: string | null }; Returns: undefined }
       fn_encolar_email_transportista_modificado: { Args: { p_envio: string | null; p_transportista: string | null; p_cambios: string | null }; Returns: undefined }
