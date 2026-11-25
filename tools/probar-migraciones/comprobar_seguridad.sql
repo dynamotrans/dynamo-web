@@ -10397,8 +10397,9 @@ reset role;
 do $$ declare v_src text; begin
   select prosrc into v_src from pg_proc where oid = 'public.enviar_emails_pendientes()'::regprocedure;
   if v_src not like '%for update skip locked%' then raise exception 'FALLO 247 · dos pasadas a la vez podrían mandar el mismo email (falta skip locked)'; end if;
-  -- Desde 2026-11-20 los emails esperan su plazo (enviar_desde) y los del servidor web los manda él; la cola solo a los 2 minutos.
-  if v_src not like '%x.enviar_desde <= now()%' or v_src not like '%x.via = ''bd'' or x.enviar_desde < now() - interval ''2 minutes''%' then
+  -- Desde 2026-11-20 los emails esperan su plazo (enviar_desde) y los del servidor web los manda él; la cola solo los recoge
+  -- si siguen sin salir (a los 2 minutos; desde 2026-11-25, con el plazo a 60 s, a los 15 segundos).
+  if v_src not like '%x.enviar_desde <= now()%' or v_src not like '%x.via = ''bd'' or x.enviar_desde < now() - interval ''15 seconds''%' then
     raise exception 'FALLO 247 · la cola podría adelantarse al plazo de los emails o al servidor web'; end if;
   if v_src not like '%24 hours%' then raise exception 'FALLO 247 · se ha perdido la caducidad de 24 horas'; end if;
   if has_function_privilege('authenticated', 'public.enviar_emails_pendientes()', 'execute') then raise exception 'FALLO 247 · cualquiera con sesión puede lanzar la cola de emails'; end if;
@@ -16035,5 +16036,38 @@ do $$ declare c uuid; e uuid; tok uuid; r jsonb; begin
   r := pago_publico(tok);
   if r ->> 'motivo' <> 'transferencia' then raise exception 'FALLO 354 · la página de pago no dice que no consta la transferencia: %', r; end if;
   raise notice 'OK 354 · página de pago con el plazo pasado: dice el motivo, el plazo y lo mínimo del envío, sin nada con lo que pagar';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 355 · DESHACER A 60 SEGUNDOS Y AVISOS DE SEGURIDAD AL MOMENTO (usuario, 2026-11-25). El plazo
+-- único es 60 s: lo que dura el contador de un cambio y lo que espera un email normal. Los de
+-- seguridad (acceso desde un dispositivo nuevo, «No he sido yo», código de firma) no esperan.
+do $$ declare c uuid; e uuid; x uuid; t timestamptz; v record;
+  u_adm uuid := current_setting('prueba.u_admin')::uuid; begin
+  if (select valor::text from parametros where clave = 'emails_espera_segundos') <> '60' then
+    raise exception 'FALLO 355 · el plazo para deshacer no es de 60 segundos: %', (select valor from parametros where clave = 'emails_espera_segundos'); end if;
+  if has_function_privilege('authenticated', 'email_sin_espera(text)', 'execute') or has_function_privilege('anon', 'email_sin_espera(text)', 'execute') then
+    raise exception 'FALLO 355 · email_sin_espera se puede llamar por la API'; end if;
+  -- Un email normal espera ~60 s; los de seguridad salen ya.
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html) values ('p355:normal', 'cuenta_activada', 'a@ejemplo.com', 'x', 'x') returning enviar_desde into t;
+  if t < now() + interval '59 seconds' or t > now() + interval '61 seconds' then raise exception 'FALLO 355 · un email normal no espera 60 s: %', t - now(); end if;
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html) values ('p355:acceso', 'acceso_nuevo', 'a@ejemplo.com', 'x', 'x') returning enviar_desde into t;
+  if t > now() then raise exception 'FALLO 355 · el aviso de acceso desde un dispositivo nuevo espera: %', t - now(); end if;
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html) values ('p355:noyo', 'acceso_no_he_sido_yo', 'a@ejemplo.com', 'x', 'x') returning enviar_desde into t;
+  if t > now() then raise exception 'FALLO 355 · el aviso de «No he sido yo» espera: %', t - now(); end if;
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html, estado) values ('p355:codigo', 'codigo_firma', 'a@ejemplo.com', 'x', 'x', 'enviado') returning enviar_desde into t;
+  if t > now() then raise exception 'FALLO 355 · el código de firma queda apuntado con espera: %', t - now(); end if;
+  delete from emails_enviados where clave like 'p355:%';
+  -- El contador de un cambio hecho por una persona dura 60 s.
+  insert into clientes (razon_social, cif) values ('Sesenta Segundos SL', 'B35500355') returning id into c;
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id into e;
+  select * into v from envio_cambios where envio_id = e and estado = 'abierto';
+  if v.id is null or v.vence_en < now() + interval '59 seconds' or v.vence_en > now() + interval '61 seconds' then
+    raise exception 'FALLO 355 · el contador de un envío recién creado no dura 60 s: %', v.vence_en - now(); end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  delete from envio_cambios where envio_id = e;
+  raise notice 'OK 355 · deshacer a 60 s (contador y emails) y los avisos de seguridad salen al momento';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

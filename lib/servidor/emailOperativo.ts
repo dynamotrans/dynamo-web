@@ -16,7 +16,7 @@ export type AdjuntoEmail = { nombre: string; base64: string; tipo: string };
 // Devuelve cómo fue, para los envíos MANUALES que lo enseñan en pantalla (el diálogo de
 // la orden); los avisos automáticos ignoran el resultado, como siempre.
 // estado «enviado» = aceptado para salir: desde el 2026-11-20 TODOS los emails esperan su
-// plazo (Parámetros → emails_espera_segundos, 30 s) por si el cambio que los provoca se
+// plazo (Parámetros → emails_espera_segundos, 60 s desde el 2026-11-25) por si el cambio que los provoca se
 // anula; `saleEn` dice cuándo sale.
 export type ResultadoEmail = { estado: 'enviado' | 'error'; error?: string; saleEn?: string };
 
@@ -81,8 +81,9 @@ export async function enviarEmailOperativo(d: {
       await sb.from('emails_enviados').update({ estado: 'error', error: 'Falta POSTMARK_SERVER_TOKEN en el servidor.' }).eq('id', fila.id);
       return { estado: 'error', error: 'Falta configurar el envío de email (claves de Postmark en Vercel): el email queda registrado pero SIN enviar.' };
     }
-    // Sale al terminar su plazo: lo manda este mismo servidor después de responder (after).
-    // Si no llega a hacerlo, la cola de la base de datos lo recoge a los 2 minutos.
+    // Sale al terminar su plazo: lo manda este mismo servidor después de responder (after) si
+    // el plazo cabe en lo que aguanta (~50 s). Con el plazo a 60 s no cabe: lo manda la cola de
+    // la base de datos, que lo recoge a los 15 segundos de cumplirse.
     try {
       const { after } = await import('next/server');
       after(() => mandarCuandoToque(fila.id));

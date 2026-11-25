@@ -7,10 +7,10 @@ import Modal from '@/components/panel/Modal';
 import { anularCambioEnvio } from '@/app/panel/(app)/envios/acciones';
 import type { CambioPendiente } from '@/lib/envios';
 
-// ---- Contador de 30 s para anular un cambio (usuario, 2026-11-20) -------------------------
+// ---- Contador para anular un cambio (usuario, 2026-11-20; 60 s desde el 2026-11-25) --------
 // «TODOS DEBEN ESPERAR… PONER SPINNER SEGUNDOS EN DETALLE Y EN LISTADO… PODER DESHACER ESE
 // CAMBIO PULSANDO SPINNER Y SALE VENTANA DE ¿DESEA ANULAR EL CAMBIO REALIZADO?».
-// Todos los emails esperan 30 s antes de salir. Mientras corren, la lista y la ficha enseñan
+// Todos los emails esperan su plazo (Parámetros, 60 s) antes de salir. Mientras corren, la lista y la ficha enseñan
 // un anillo que se vacía; al pulsarlo se puede anular: el envío vuelve a como estaba y no se
 // avisa a nadie. Lo ven Dynamo y quien hizo el cambio (la base de datos ya filtra).
 
@@ -32,7 +32,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
   const router = useRouter();
   // Sin segundos en el servidor: el reloj del navegador decide (evita el baile al hidratar).
   const [seg, setSeg] = useState<number | null>(null);
-  const [total, setTotal] = useState(30);
+  const [total, setTotal] = useState(60);
   const [preguntar, setPreguntar] = useState(false);
   const [trabajando, setTrabajando] = useState(false);
   const [resultado, setResultado] = useState<{ ok: boolean; txt: string } | null>(null);

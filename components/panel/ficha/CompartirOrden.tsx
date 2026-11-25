@@ -168,7 +168,7 @@ export function CompartirOrden({ ficha, onVolver }: { ficha: Ficha; onVolver: ()
   async function mandarDesdePlataforma(aQuien: 'transportista' | 'cliente') {
     setAvisoMail(null); setMandando(true);
     const r = await emailOrdenPlataforma(e.id, aQuien, aQuien === 'transportista' ? msg : msgCli).catch(() => ({ ok: false as const, error: 'No se ha podido enviar.' }));
-    setAvisoMail(r.ok ? { ok: true, txt: `Sale en 30 segundos hacia ${r.para}, con la orden en PDF adjunta. Hasta entonces la puedes anular con el contador de la ficha.` } : { ok: false, txt: r.error });
+    setAvisoMail(r.ok ? { ok: true, txt: `Sale en un minuto hacia ${r.para}, con la orden en PDF adjunta. Hasta entonces la puedes anular con el contador de la ficha.` } : { ok: false, txt: r.error });
     setMandando(false);
     setRecarga((n) => n + 1);
     if (r.ok) refrescar();

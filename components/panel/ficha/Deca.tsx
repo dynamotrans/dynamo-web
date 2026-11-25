@@ -35,7 +35,7 @@ export function Deca({ ficha, onVolver }: { ficha: Ficha; onVolver: () => void }
   async function enviar() {
     setAviso(null); setMandando(true);
     const r = await emailDecaPlataforma(e.id).catch(() => ({ ok: false as const, error: 'No se ha podido enviar.' }));
-    setAviso(r.ok ? { ok: true, txt: `El DeCA sale en 30 segundos hacia ${r.para}, con el PDF adjunto. Hasta entonces lo puedes anular con el contador de la ficha.` } : { ok: false, txt: r.error });
+    setAviso(r.ok ? { ok: true, txt: `El DeCA sale en un minuto hacia ${r.para}, con el PDF adjunto. Hasta entonces lo puedes anular con el contador de la ficha.` } : { ok: false, txt: r.error });
     setMandando(false);
     setRecarga((n) => n + 1);
     if (r.ok) refrescar();

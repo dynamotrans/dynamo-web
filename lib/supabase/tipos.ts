@@ -4792,6 +4792,7 @@ export type Database = {
       email_con_diseno: { Args: { p_html: string | null; p_remitente?: string | null }; Returns: string }
       email_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
       email_es_de_transportista: { Args: { p_email: string | null }; Returns: boolean }
+      email_sin_espera: { Args: { p_tipo: string | null }; Returns: boolean }
       emails_cliente_envio: { Args: { p_envio: string | null }; Returns: string }
       emails_contabilidad_envio: { Args: { p_envio: string | null }; Returns: string }
       emails_contactos_cliente: { Args: { p_cliente: string | null; p_funcion: Database["public"]["Enums"]["funcion_contacto"] | null }; Returns: string }
