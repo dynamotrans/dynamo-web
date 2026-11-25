@@ -30,6 +30,17 @@ export default function VerificarMovil({ telefono: inicial }: { telefono: string
     return () => clearTimeout(t);
   }, [espera]);
 
+  // Pegar o escribir las 6 cifras verifica solo (en una web WhatsApp no puede meter el código
+  // directamente: en WhatsApp se pulsa «Copiar código» y aquí «Pegar código»).
+  function poner(v: string) {
+    const c = v.replace(/\D/g, '').slice(0, 6);
+    setCodigo(c); setError(null);
+    if (c.length === 6 && !trabajando) comprobar(c);
+  }
+  async function pegar() {
+    try { poner(await navigator.clipboard.readText()); }
+    catch { setError('No se ha podido pegar: mantén pulsada la casilla del código y elige «Pegar».'); }
+  }
   async function pedir() {
     setError(null);
     if (!esMovil(tel)) { setError('Tiene que ser un móvil: en España, 9 cifras que empiezan por 6 o 7; si es de otro país, con su prefijo.'); return; }
@@ -39,11 +50,11 @@ export default function VerificarMovil({ telefono: inicial }: { telefono: string
     if (!r.ok) { setError(r.error); return; }
     setEnviadoA(r.telefono ?? tel); setCodigo(''); setEspera(60);
   }
-  async function comprobar() {
+  async function comprobar(c = codigo) {
     setError(null);
-    if (codigo.replace(/\D/g, '').length !== 6) { setError('Escribe las 6 cifras del código.'); return; }
+    if (c.replace(/\D/g, '').length !== 6) { setError('Escribe las 6 cifras del código.'); return; }
     setTrabajando(true);
-    const r = await comprobarCodigoMovil(codigo, true).catch(() => ({ ok: false as const, error: 'No se ha podido comprobar. Inténtalo de nuevo.' }));
+    const r = await comprobarCodigoMovil(c, true).catch(() => ({ ok: false as const, error: 'No se ha podido comprobar. Inténtalo de nuevo.' }));
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     router.refresh();
@@ -69,16 +80,17 @@ export default function VerificarMovil({ telefono: inicial }: { telefono: string
           </div>
         ) : (
           <div className="vm-paso">
-            <p className="meta" id="vm-enviado">Te lo hemos mandado al <strong className="notranslate" translate="no">{telBonito(enviadoA)}</strong>. Dura 10 minutos.</p>
+            <p className="meta" id="vm-enviado">Te lo hemos mandado al <strong className="notranslate" translate="no">{telBonito(enviadoA)}</strong>. Dura 10 minutos. En WhatsApp pulsa <strong>«Copiar código»</strong> y aquí <strong>«Pegar código»</strong>.</p>
             <label htmlFor="vm-codigo">Código de 6 cifras</label>
             <input id="vm-codigo" className="vm-codigo" value={codigo} inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-              onChange={(e) => { setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(null); }}
+              onChange={(e) => poner(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') comprobar(); }} placeholder="······" />
+            <button type="button" id="vm-pegar" className="btn-ghost" disabled={trabajando} onClick={pegar}>Pegar código</button>
             <p className="meta vm-avisos" id="vm-avisos">
               Al verificar tu móvil, recibirás <strong>también por WhatsApp</strong> los avisos de tus envíos (te siguen llegando por email igual).
               Puedes quitarlo cuando quieras en <strong>Mi cuenta</strong>.
             </p>
-            <button type="button" id="vm-comprobar" className="btn-primary" disabled={trabajando || codigo.length !== 6} onClick={comprobar}>Verificar</button>
+            <button type="button" id="vm-comprobar" className="btn-primary" disabled={trabajando || codigo.length !== 6} onClick={() => comprobar()}>Verificar</button>
             <div className="vm-otros">
               <button type="button" className="btn-ghost" disabled={trabajando || espera > 0} onClick={pedir}>{espera > 0 ? `Reenviar en ${espera} s` : 'Reenviar el código'}</button>
               <button type="button" className="btn-ghost" disabled={trabajando} onClick={() => { setEnviadoA(null); setCodigo(''); setError(null); }}>Cambiar el móvil</button>

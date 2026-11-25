@@ -88,9 +88,8 @@ Fecha: 2026-11-24 · Rama `pruebas` · **No se ha cambiado ningún texto legal**
 - **Propuesta:** actualizar la política de cookies y decidir si la traducción arranca sola o solo al pulsar.
 - ☐ SÍ ☐ NO ☐ HABLARLO
 
-### 13. Verificación de identidad con Stripe Identity (aún sin construir)
-- **[Abogado]** Antes de encenderla: consentimiento expreso y aparte, alternativa sin foto, evaluación de impacto, papel de Stripe y envío de datos a EE. UU., plazo de borrado de foto y selfie, añadirlo a la política, y guardar solo el resultado.
-- ☐ SÍ ☐ NO ☐ HABLARLO
+### 13. ~~Verificación de identidad con Stripe Identity~~ — DESCARTADO
+- **DESCARTADO (usuario, 2026-11-25: «quítalo, porque verificamos con teléfono móvil, código WhatsApp»)**: la identidad se comprueba con el móvil verificado por código de WhatsApp (un móvil = un titular real), ya hecho. No hay datos biométricos que tratar.
 
 ---
 

@@ -5776,6 +5776,7 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .vm-por-que { margin: 0; color: var(--gray-700, #374151); line-height: 1.5; }
 .vm-paso { display: grid; gap: 0.6rem; }
 .vm-paso label { font-weight: 600; color: var(--navy); }
+.vm-paso #vm-pegar { justify-self: start; }
 .vm-codigo { font-size: 1.6rem; letter-spacing: 0.5em; text-align: center; padding: 0.6rem; max-width: 240px; font-variant-numeric: tabular-nums; }
 .vm-avisos { display: flex; gap: 0.5rem; align-items: flex-start; font-weight: 400 !important; color: var(--gray-700, #374151) !important; }
 .vm-avisos input { margin-top: 0.25rem; }
