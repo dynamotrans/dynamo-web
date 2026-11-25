@@ -15598,3 +15598,58 @@ do $$ declare c uuid; e uuid; antes jsonb; mal boolean := false; f text; h numer
   update parametros set valor = antes where clave = 'pago_previo_activo';
   raise notice 'OK 345 · corte del enlace de pago: se apuntan los enlaces, se cierran pasado el plazo y el envío se anula al momento';
 end $$;
+
+-- 346 · LO QUE DEBE CADA CLIENTE, LEÍDO DE LA FACTURACIÓN (usuario, 2026-11-25): la foto de
+-- facturas pendientes de cobro la guarda solo el servidor, se casa por CIF (con o sin «ES»),
+-- se sustituye ENTERA en cada lectura y una lectura fallida no la toca.
+do $$ declare c1 uuid; c2 uuid; r jsonb; mal boolean := false; f text; d record; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
+  foreach f in array array['deuda_guardar_foto(jsonb, uuid, text[])', 'deuda_lectura_fallida(text)'] loop
+    if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then
+      raise exception 'FALLO 346 · un usuario puede llamar a % (solo el servidor)', f; end if;
+  end loop;
+  if has_function_privilege('anon', 'deuda_clientes(uuid[])', 'execute') or has_function_privilege('anon', 'deuda_estado()', 'execute') then
+    raise exception 'FALLO 346 · alguien sin entrar puede ver lo que deben los clientes'; end if;
+  foreach f in array array['facturas_pendientes', 'holded_contactos', 'facturas_pendientes_estado'] loop
+    if has_table_privilege('authenticated', f, 'insert') or has_table_privilege('authenticated', f, 'delete') or has_table_privilege('anon', f, 'select') then
+      raise exception 'FALLO 346 · permisos de más en la tabla %', f; end if;
+  end loop;
+  if cif_base('es-b.12345678') <> 'B12345678' or cif_base('B12345678') <> 'B12345678' or cif_base('PT123456789') <> 'PT123456789' then
+    raise exception 'FALLO 346 · cif_base no deja el CIF listo para comparar'; end if;
+  insert into clientes (razon_social, cif) values ('Debe Mucho SL', 'B34600346') returning id into c1;
+  insert into clientes (razon_social, cif) values ('Debe Poco SL', 'ESB34600347') returning id into c2;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  -- Foto completa: dos de c1 (una vencida), una de c2 (CIF sin «ES» en la facturación), una de
+  -- un contacto que no es cliente, una sin CIF y una que ya no debe nada (no se guarda).
+  r := deuda_guardar_foto(jsonb_build_array(
+    jsonb_build_object('id', 'h346a', 'numero', 'F1', 'contacto_id', 'k1', 'contacto_nombre', 'Debe Mucho', 'cif', 'ES-B34600346', 'emision', hoy - 40, 'vence', hoy - 10, 'total', 1210, 'pendiente', 1210),
+    jsonb_build_object('id', 'h346b', 'numero', 'F2', 'contacto_id', 'k1', 'contacto_nombre', 'Debe Mucho', 'cif', 'ES-B34600346', 'emision', hoy - 5, 'vence', hoy + 25, 'total', 605, 'pendiente', 300.5),
+    jsonb_build_object('id', 'h346c', 'numero', 'F3', 'contacto_id', 'k2', 'contacto_nombre', 'Debe Poco', 'cif', 'b34600347', 'emision', hoy - 5, 'vence', hoy, 'total', 121, 'pendiente', 121),
+    jsonb_build_object('id', 'h346d', 'numero', 'F4', 'contacto_id', 'k3', 'contacto_nombre', 'No es cliente', 'cif', 'B99999346', 'emision', hoy - 5, 'vence', hoy - 1, 'total', 50, 'pendiente', 50),
+    jsonb_build_object('id', 'h346e', 'numero', 'F5', 'contacto_id', 'k4', 'contacto_nombre', 'Sin CIF', 'cif', null, 'emision', hoy - 5, 'vence', null, 'total', 10, 'pendiente', 10),
+    jsonb_build_object('id', 'h346f', 'numero', 'F6', 'contacto_id', 'k1', 'contacto_nombre', 'Debe Mucho', 'cif', 'B34600346', 'emision', hoy - 5, 'vence', hoy, 'total', 99, 'pendiente', 0)));
+  if (r ->> 'facturas')::int <> 5 or (r ->> 'sin_cliente')::int <> 1 or (r ->> 'sin_cif')::int <> 1 or (r ->> 'pendiente')::numeric <> 1691.50 then
+    raise exception 'FALLO 346 · la foto no cuenta bien: %', r; end if;
+  select * into d from deuda_clientes(array[c1, c2]) where cliente_id = c1;
+  if d.pendiente <> 1510.50 or d.vencido <> 1210 or d.facturas <> 2 or d.vence_primera <> hoy - 10 then raise exception 'FALLO 346 · la deuda del primer cliente no cuadra: %', d; end if;
+  select * into d from deuda_clientes(array[c1, c2]) where cliente_id = c2;
+  if d.pendiente <> 121 or d.vencido <> 0 then raise exception 'FALLO 346 · no casa un CIF con «ES» con el mismo sin «ES», o da por vencido lo que vence hoy: %', d; end if;
+  -- Una lectura fallida no toca la foto.
+  perform deuda_lectura_fallida('La facturación no contesta');
+  r := deuda_estado();
+  if (r ->> 'pendiente')::numeric <> 1691.50 or r ->> 'error' is null or r ->> 'ultima_ok_en' is null then raise exception 'FALLO 346 · una lectura fallida cambia la foto o no queda apuntada: %', r; end if;
+  -- Refrescar SOLO un cliente: c1 ya solo debe una; lo de los demás sigue igual.
+  r := deuda_guardar_foto(jsonb_build_array(
+    jsonb_build_object('id', 'h346b', 'numero', 'F2', 'contacto_id', 'k1', 'cif', 'B34600346', 'emision', hoy - 5, 'vence', hoy + 25, 'total', 605, 'pendiente', 100)), c1, array['k1']);
+  if (select count(*) from facturas_pendientes where cliente_id = c1) <> 1 or (select pendiente from facturas_pendientes where ref_externa = 'h346b') <> 100
+     or not exists (select 1 from facturas_pendientes where ref_externa = 'h346c') then raise exception 'FALLO 346 · refrescar un cliente toca la deuda de los demás o no sustituye la suya'; end if;
+  -- Foto completa nueva: lo que ya no viene (cobrado o anulado) desaparece; el error se limpia.
+  r := deuda_guardar_foto(jsonb_build_array(
+    jsonb_build_object('id', 'h346c', 'numero', 'F3', 'contacto_id', 'k2', 'cif', 'b34600347', 'emision', hoy - 5, 'vence', hoy, 'total', 121, 'pendiente', 121)));
+  if (select count(*) from facturas_pendientes) <> 1 or (deuda_estado() ->> 'error') is not null then raise exception 'FALLO 346 · la foto nueva no sustituye entera a la anterior'; end if;
+  if exists (select 1 from deuda_clientes(array[c1])) then raise exception 'FALLO 346 · sigue debiendo un cliente que ya no tiene nada pendiente'; end if;
+  begin perform deuda_guardar_foto('{"no": "lista"}'::jsonb); mal := true; exception when others then null; end;
+  if mal then raise exception 'FALLO 346 · se acepta una foto que no es una lista'; end if;
+  perform deuda_guardar_foto('[]'::jsonb);
+  perform set_config('request.jwt.claim.role', '', true);
+  raise notice 'OK 346 · deuda real de clientes: la foto se casa por CIF, se sustituye entera y una lectura fallida no la toca';
+end $$;

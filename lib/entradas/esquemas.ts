@@ -164,6 +164,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/recursos/acciones#quitarRecurso": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/recursos/acciones#registrarRecurso": z.tuple([z.object({ ruta: z.string().max(1000), nombre: z.string().max(1000), mime: z.string().max(1000), tamano: z.number().or(z.nan()), sha256: z.string().max(1000), titulo: z.string().max(1000), descripcion: z.string().max(5000) })]),
   "app/panel/(app)/recursos/acciones#rutaRecurso": z.tuple([z.string().max(1000)]),
+  "app/panel/(app)/riesgos/acciones#actualizarDeuda": z.tuple([]),
   "app/panel/(app)/sitios/acciones#borrarSitio": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/sitios/acciones#buscarAgendaSitios": z.tuple([z.string().max(1000), z.string().uuid().or(z.literal('')).nullable()]),
   "app/panel/(app)/sitios/acciones#buscarClientes": z.tuple([z.string().max(1000), z.string().max(1000).nullable().optional()]),

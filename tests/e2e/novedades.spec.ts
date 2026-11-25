@@ -1598,6 +1598,45 @@ test.describe('novedades', () => {
     await expect(n).toContainText('Envíos con incidencia: 1 de 12');
   });
 
+  test('CESCE - Riesgos: lo que debe cada cliente según sus facturas pendientes de cobro (foto de la facturación)', async ({ page }) => {
+    const sv = bd();
+    const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const hoy = new Date();
+    const dia = (n: number) => new Date(hoy.getTime() + n * 86400000).toISOString().slice(0, 10);
+    // La foto la guarda el servidor (aquí, a mano con la clave de servicio): dos facturas del
+    // cliente de pruebas, una vencida, y una de un contacto que no es cliente de la plataforma.
+    await sv.from('facturas_pendientes').delete().neq('ref_externa', '');
+    await sv.from('facturas_pendientes').insert([
+      { ref_externa: 'e2e-deuda-1', cliente_id: u!.cliente_id, numero: 'F-E2E-1', fecha_emision: dia(-40), fecha_vencimiento: dia(-10), total: 1210, pendiente: 1210 },
+      { ref_externa: 'e2e-deuda-2', cliente_id: u!.cliente_id, numero: 'F-E2E-2', fecha_emision: dia(-5), fecha_vencimiento: dia(25), total: 605, pendiente: 300.5 },
+      { ref_externa: 'e2e-deuda-3', cliente_id: null, contacto_nombre: 'No es cliente', cif: 'B99999999', numero: 'F-E2E-3', fecha_emision: dia(-5), fecha_vencimiento: dia(5), total: 50, pendiente: 50 },
+    ]);
+    await sv.from('facturas_pendientes_estado').update({ ultima_en: hoy.toISOString(), ultima_ok_en: hoy.toISOString(), error: null, facturas: 3, sin_cliente: 1, sin_cif: 0 }).eq('id', true);
+    try {
+      await entrar(page, 'dynamo');
+      await page.goto('/panel/riesgos');
+      const caja = page.locator('#deuda-facturacion');
+      await expect(caja.locator('#deuda-total')).toContainText('1.560,50');
+      await expect(caja).toContainText('en 3 facturas');
+      await expect(caja).toContainText(/vencido:\s*1\.210,00/);
+      await expect(caja.locator('#deuda-cuando')).toContainText(/Leído (ahora|hace)/);
+      await expect(caja.locator('#deuda-otros')).toContainText('50,00');
+      const celda = page.locator(`[data-deuda="${u!.cliente_id}"]`);
+      await expect(celda).toContainText('1.510,50');
+      await expect(celda).toContainText('2 facturas');
+      await expect(celda).toContainText('vencido 1.210,00');
+      // El cliente no puede leer la foto (ni la suya): los importes de crédito no son para él.
+      const c = await como('cliente');
+      const { data: suyas } = await c.from('facturas_pendientes').select('ref_externa');
+      expect(suyas ?? []).toHaveLength(0);
+      const { error } = await c.rpc('deuda_clientes', { p_clientes: [u!.cliente_id] });
+      expect(error).not.toBeNull();
+    } finally {
+      await sv.from('facturas_pendientes').delete().like('ref_externa', 'e2e-deuda-%');
+      await sv.from('facturas_pendientes_estado').update({ ultima_en: null, ultima_ok_en: null, error: null, facturas: 0, sin_cliente: 0, sin_cif: 0 }).eq('id', true);
+    }
+  });
+
   test('Administración → Facturas: Dynamo ve ingresos y gastos con filtros de tipo y periodo (solo lectura); el cliente, solo las suyas', async ({ page }) => {
     await entrar(page, 'dynamo');
     await page.goto('/panel/administracion');

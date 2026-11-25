@@ -5,10 +5,11 @@
 // últimos días sin cobrar, IVA incluido; lo pagado por adelantado no cuenta) y disponible.
 // Por páginas desde la base de datos: buscador y filtro por la URL; los totales de arriba
 // los calcula el servidor sobre todos los clientes.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { euros, fecha, numero } from '@/lib/formato';
+import { euros, fecha, haceTxt, numero } from '@/lib/formato';
+import { actualizarDeuda } from '@/app/panel/(app)/riesgos/acciones';
 import { guardarCreditoCliente } from '@/app/panel/(app)/clientes/acciones';
 import Paginador from './Paginador';
 import { BuscadorUrl } from './BuscadorUrl';
@@ -19,6 +20,10 @@ export type RiesgoFila = {
   limite: number | null; manda: 'manual' | 'cesce' | 'ninguno'; envios: number; base: number; asumido: number;
   disponible: number | null; ultimo: string | null;
 };
+// Lo que debe un cliente según la facturación (facturas emitidas con algo pendiente de cobro).
+export type DeudaCliente = { pendiente: number; vencido: number; facturas: number; vencePrimera: string | null };
+export type EstadoDeuda = { conectado: boolean; ultimaOk: string | null; ultima: string | null; error: string | null; facturas: number; sinCif: number;
+  pendiente: number; vencido: number; pendienteOtros: number; facturasOtros: number };
 export type Totales = { limite: number; asumido: number; pasados: number };
 export type ListaRiesgos = { q: string; filtro: string; pagina: number; porPagina: number; total: number };
 const uso = (f: RiesgoFila) => (f.limite && f.limite > 0 ? f.asumido / f.limite : f.asumido > 0 ? Infinity : 0);
@@ -74,10 +79,58 @@ function CreditoRapido({ fila, onCerrar }: { fila: RiesgoFila; onCerrar: () => v
   );
 }
 
-export default function Riesgos({ filas, dias, error, totales, lista }: {
+// LO QUE DEBEN, LEÍDO DE LA FACTURACIÓN (usuario, 2026-11-25). La cifra es la última foto
+// guardada; aquí se dice de cuándo es y se vuelve a leer sola si tiene más de 10 minutos (o
+// con el botón). Si la lectura falla, se avisa y sigue valiendo la foto anterior.
+const FOTO_VALE_MS = 10 * 60_000;
+function DeudaFacturacion({ e }: { e: EstadoDeuda }) {
+  const router = useRouter();
+  const [leyendo, setLeyendo] = useState(false);
+  const [fallo, setFallo] = useState<string | null>(null);
+  const hecho = useRef(false);
+  async function leer() {
+    setLeyendo(true); setFallo(null);
+    try { const r = await actualizarDeuda(); if (!r.ok) setFallo(r.error); }
+    catch { setFallo('No se ha podido leer la facturación. Prueba otra vez en un momento.'); }
+    setLeyendo(false); router.refresh();
+  }
+  // Al entrar: si la foto es vieja (o no hay), se lee sola una vez. Con contactos aún sin
+  // casar por CIF (primera lectura), se intenta también, mirando la hora del último intento.
+  useEffect(() => {
+    if (hecho.current || !e.conectado) return;
+    const ultimo = e.ultima ? Date.parse(e.ultima) : 0;
+    if (Date.now() - ultimo > (e.sinCif > 0 ? 90_000 : FOTO_VALE_MS)) { hecho.current = true; void leer(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [e.conectado, e.ultima, e.sinCif]);
+  if (!e.conectado && !e.ultimaOk) return null;
+  const error = fallo ?? e.error;
+  return (
+    <div className="table-wrap" id="deuda-facturacion" style={{ padding: '0.7rem 1rem', marginBottom: '0.9rem' }}>
+      <div style={{ display: 'flex', gap: '0.4rem 1.2rem', flexWrap: 'wrap', alignItems: 'baseline' }}>
+        <span><span className="meta">Facturas pendientes de cobro: </span><strong id="deuda-total" style={{ color: 'var(--navy)' }}>{euros(e.pendiente)}</strong>
+          <span className="meta"> en {numero(e.facturas, 0)} {e.facturas === 1 ? 'factura' : 'facturas'}</span></span>
+        <span><span className="meta">De eso, vencido: </span><strong style={{ color: e.vencido > 0 ? '#dc2626' : 'var(--navy)' }}>{euros(e.vencido)}</strong></span>
+        <span className="meta" id="deuda-cuando">{leyendo ? 'Leyendo de la facturación…' : e.ultimaOk ? `Leído ${haceTxt(e.ultimaOk)}` : 'Aún sin leer'}
+          {e.conectado && !leyendo && <>{' · '}<button type="button" className="enlace-paso" id="deuda-actualizar" onClick={leer}>Actualizar</button></>}</span>
+      </div>
+      {e.facturasOtros > 0 && <div className="meta" id="deuda-otros" style={{ marginTop: '0.25rem' }}>
+        Incluye {euros(e.pendienteOtros)} de {numero(e.facturasOtros, 0)} {e.facturasOtros === 1 ? 'factura' : 'facturas'} de contactos que no casan por CIF con ningún cliente de la plataforma
+        {e.sinCif > 0 ? ` (${numero(e.sinCif, 0)} aún con el CIF por consultar: se completa solo en las próximas lecturas)` : ''}.
+      </div>}
+      {error && <div className="pt-aviso error" id="deuda-error" role="alert" style={{ margin: '0.5rem 0 0' }}><div>
+        <strong>La última lectura de la facturación ha fallado.</strong> {error} {e.ultimaOk ? 'Se sigue enseñando la última lectura buena.' : ''}
+      </div></div>}
+    </div>
+  );
+}
+
+export default function Riesgos({ filas, dias, error, totales, lista, deuda = {}, estadoDeuda }: {
   filas: RiesgoFila[]; dias: number; error: string | null; totales: Totales; lista: ListaRiesgos;
+  deuda?: Record<string, DeudaCliente>; estadoDeuda?: EstadoDeuda;
 }) {
   const [edita, setEdita] = useState<RiesgoFila | null>(null);
+  // La columna de lo que deben solo sale cuando hay de dónde leerlo (o ya hay una foto guardada).
+  const conDeuda = !!estadoDeuda && (estadoDeuda.conectado || !!estadoDeuda.ultimaOk);
   const url = (p: number) => {
     const u = new URLSearchParams();
     if (lista.q) u.set('q', lista.q); if (lista.filtro) u.set('f', lista.filtro);
@@ -91,13 +144,14 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Crédito de cada cliente frente a lo que tiene pendiente. <strong>Límite</strong>: el manual de Dynamo si está puesto (0 = sin crédito); si está vacío, el de CESCE.
-        {' '}<strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido. <strong>Pulsa una fila</strong> para cambiar su crédito aquí mismo; pulsa el <strong>nombre</strong> para abrir la ficha completa del cliente.
+        {' '}<strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido.{conDeuda ? <> <strong>Pendiente de cobro</strong>: lo que debe de verdad según sus facturas (de momento, solo informativo).</> : null} <strong>Pulsa una fila</strong> para cambiar su crédito aquí mismo; pulsa el <strong>nombre</strong> para abrir la ficha completa del cliente.
       </p>
       <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem', marginBottom: '0.9rem' }}>
         <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Crédito concedido (límites)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.limite)}</div></div>
         <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Riesgo asumido ({dias} días)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.asumido)}</div></div>
         <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Clientes por encima de su límite</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: totales.pasados ? '#dc2626' : '#0f6b3a' }}>{totales.pasados}</div></div>
       </div>
+      {estadoDeuda && <DeudaFacturacion e={estadoDeuda} />}
       <BuscadorUrl accion="/panel/riesgos" valor={lista.q} placeholder="Buscar cliente o CIF…" campos={<>
         <select name="f" defaultValue={lista.filtro} onChange={(ev) => ev.currentTarget.form?.requestSubmit()} aria-label="Filtrar">
           <option value="">Todos los clientes</option>
@@ -114,13 +168,14 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
         <table className="data">
           <thead><tr>
             <th>Cliente</th><th className="amount">CESCE</th><th className="amount">Manual (Álvaro)</th><th className="amount">Límite</th>
-            <th className="amount">Envíos {dias} d</th><th className="amount">Asumido (IVA incl.)</th><th className="amount">Disponible</th><th style={{ minWidth: 130 }}>Uso</th><th>Último envío</th>
+            <th className="amount">Envíos {dias} d</th><th className="amount">Asumido (IVA incl.)</th>{conDeuda && <th className="amount" id="th-deuda">Pendiente de cobro</th>}<th className="amount">Disponible</th><th style={{ minWidth: 130 }}>Uso</th><th>Último envío</th>
           </tr></thead>
           <tbody>
             {filas.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Sin clientes que coincidan</td></tr>
+              <tr><td colSpan={conDeuda ? 10 : 9} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Sin clientes que coincidan</td></tr>
             ) : filas.map((x) => {
               const u = uso(x), pct = Number.isFinite(u) ? Math.round(u * 100) : null;
+              const d = deuda[x.id];
               const color = !Number.isFinite(u) || u > 1 ? '#dc2626' : u >= 0.8 ? '#d97706' : '#16a34a';
               return (
                 <tr key={x.id} onClick={() => setEdita(x)} style={{ cursor: 'pointer' }} title="Cambiar el crédito de este cliente">
@@ -130,6 +185,11 @@ export default function Riesgos({ filas, dias, error, totales, lista }: {
                   <td className="amount"><strong>{x.limite != null ? euros(x.limite) : 'Sin crédito'}</strong><div className="meta">{x.manda === 'manual' ? 'manda el manual' : x.manda === 'cesce' ? 'manda CESCE' : 'previo pago'}</div></td>
                   <td className="amount">{x.envios || '—'}</td>
                   <td className="amount">{x.asumido ? euros(x.asumido) : '—'}{x.asumido ? <div className="meta">{euros(x.base)} sin IVA</div> : null}</td>
+                  {conDeuda && <td className="amount" data-deuda={x.id}>{d ? <>
+                    <strong>{euros(d.pendiente)}</strong>
+                    <div className="meta">{d.facturas} {d.facturas === 1 ? 'factura' : 'facturas'}</div>
+                    {d.vencido > 0 && <div className="meta" style={{ color: '#dc2626', fontWeight: 700 }}>vencido {euros(d.vencido)}</div>}
+                  </> : '—'}</td>}
                   <td className="amount" style={{ fontWeight: 800, color: x.disponible != null && x.disponible < 0 ? '#dc2626' : 'var(--navy)' }}>{x.disponible != null ? euros(x.disponible) : '—'}</td>
                   <td>
                     {x.limite && x.limite > 0 ? <>

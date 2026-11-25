@@ -36,3 +36,33 @@ export function facturasDeHolded(cuerpo: unknown, hoy: string): { facturas: Fact
   const items = Array.isArray(c.items) ? c.items as FacturaHolded[] : [];
   return { facturas: items.map((f) => facturaDeHolded(f ?? {}, hoy)).filter((f): f is FacturaFila => !!f), hayMas: c.has_more === true };
 }
+
+// ---- Facturas con algo pendiente de cobro (la «foto» de lo que debe cada cliente) ---------
+// Una fila de «List invoices» con status=outstanding, lista para guardarla en la foto.
+// El CIF no viene en la factura: lo pone después el servidor, mirando el contacto.
+export type FacturaPendiente = { id: string; numero: string | null; contacto_id: string | null; contacto_nombre: string | null;
+  cif: string | null; emision: string | null; vence: string | null; total: number; pendiente: number };
+
+export function pendienteDeHolded(f: FacturaHolded & { contact_id?: unknown }): FacturaPendiente | null {
+  const id = texto(f.id);
+  const pendiente = c2(num(f.payments_pending));
+  if (!id || !(pendiente > 0)) return null;                 // sin identificador o sin nada que cobrar: no es deuda
+  const st = typeof f.status === 'string' ? f.status : '';
+  if (st === 'cancelled' || st === 'failed' || st === 'completed') return null;   // por si se cuela alguna que no debe nada
+  return { id, numero: texto(f.document_number), contacto_id: texto(f.contact_id), contacto_nombre: texto(f.contact_name), cif: null,
+    emision: dia(f.date), vence: dia(f.due_date), total: c2(num(f.total)), pendiente };
+}
+
+/** Lee una página de la lista: las facturas con deuda, si hay más páginas y por dónde seguir. */
+export function pendientesDeHolded(cuerpo: unknown): { facturas: FacturaPendiente[]; hayMas: boolean; cursor: string | null } {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown; cursor?: unknown };
+  const items = Array.isArray(c.items) ? c.items as FacturaHolded[] : [];
+  const cursor = typeof c.cursor === 'string' && c.cursor ? c.cursor : null;
+  return { facturas: items.map((f) => pendienteDeHolded(f ?? {})).filter((f): f is FacturaPendiente => !!f), hayMas: c.has_more === true && !!cursor, cursor };
+}
+
+/** El CIF de un contacto de la facturación: su `code` y, si no lo tiene, su número de IVA. */
+export function cifDeContacto(contacto: unknown): { cif: string | null; nombre: string | null } {
+  const c = (contacto && typeof contacto === 'object' ? contacto : {}) as { code?: unknown; vat_number?: unknown; name?: unknown };
+  return { cif: texto(c.code) ?? texto(c.vat_number), nombre: texto(c.name) };
+}

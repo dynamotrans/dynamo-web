@@ -2728,6 +2728,87 @@ export type Database = {
           },
         ]
       }
+      facturas_pendientes: {
+        Row: {
+          ref_externa: string
+          cliente_id: string | null
+          contacto_id: string | null
+          contacto_nombre: string | null
+          cif: string | null
+          numero: string | null
+          fecha_emision: string | null
+          fecha_vencimiento: string | null
+          total: number
+          pendiente: number
+          leido_en: string
+        }
+        Insert: {
+          ref_externa: string
+          cliente_id?: string | null
+          contacto_id?: string | null
+          contacto_nombre?: string | null
+          cif?: string | null
+          numero?: string | null
+          fecha_emision?: string | null
+          fecha_vencimiento?: string | null
+          total: number
+          pendiente: number
+          leido_en?: string
+        }
+        Update: {
+          ref_externa?: string
+          cliente_id?: string | null
+          contacto_id?: string | null
+          contacto_nombre?: string | null
+          cif?: string | null
+          numero?: string | null
+          fecha_emision?: string | null
+          fecha_vencimiento?: string | null
+          total?: number
+          pendiente?: number
+          leido_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_pendientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facturas_pendientes_estado: {
+        Row: {
+          id: boolean
+          ultima_en: string | null
+          ultima_ok_en: string | null
+          error: string | null
+          facturas: number
+          sin_cliente: number
+          sin_cif: number
+        }
+        Insert: {
+          id?: boolean
+          ultima_en?: string | null
+          ultima_ok_en?: string | null
+          error?: string | null
+          facturas?: number
+          sin_cliente?: number
+          sin_cif?: number
+        }
+        Update: {
+          id?: boolean
+          ultima_en?: string | null
+          ultima_ok_en?: string | null
+          error?: string | null
+          facturas?: number
+          sin_cliente?: number
+          sin_cif?: number
+        }
+        Relationships: [
+        ]
+      }
       festivos: {
         Row: {
           id: string
@@ -2910,6 +2991,28 @@ export type Database = {
         Update: {
           clave?: string
           buscado_en?: string
+        }
+        Relationships: [
+        ]
+      }
+      holded_contactos: {
+        Row: {
+          contacto_id: string
+          cif: string | null
+          nombre: string | null
+          visto_en: string
+        }
+        Insert: {
+          contacto_id: string
+          cif?: string | null
+          nombre?: string | null
+          visto_en?: string
+        }
+        Update: {
+          contacto_id?: string
+          cif?: string | null
+          nombre?: string | null
+          visto_en?: string
         }
         Relationships: [
         ]
@@ -4560,6 +4663,7 @@ export type Database = {
       carga_aceptada_publica_completa: { Args: { p_reserva: string | null }; Returns: Json }
       carga_por_codigo: { Args: { p_codigo: string | null; p_ip?: string | null }; Returns: Json }
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
+      cif_base: { Args: { p: string | null }; Returns: string }
       cif_es_de_transportista: { Args: { p_cif: string | null }; Returns: boolean }
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       cliente_texto_busqueda: { Args: { k: Database["public"]["Tables"]["clientes"]["Row"] | null }; Returns: string }
@@ -4620,6 +4724,10 @@ export type Database = {
       deca_ruta_texto: { Args: { p: Json | null }; Returns: string }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }
       deshacer_pack: { Args: { p_pack: string | null }; Returns: Json }
+      deuda_clientes: { Args: { p_clientes: string[] | null }; Returns: { cliente_id: string; pendiente: number; vencido: number; facturas: number; vence_primera: string }[] }
+      deuda_estado: { Args: Record<PropertyKey, never>; Returns: Json }
+      deuda_guardar_foto: { Args: { p_facturas: Json | null; p_cliente?: string | null; p_contactos?: string[] | null }; Returns: Json }
+      deuda_lectura_fallida: { Args: { p_error: string | null }; Returns: undefined }
       devolucion_pago_abrir: { Args: { p_envio: string | null; p_importe: number | null; p_cobrado: number | null; p_motivo?: string | null }; Returns: Json }
       devolucion_pago_cerrar: { Args: { p_id: string | null; p_ok: boolean | null; p_ref?: string | null; p_error?: string | null }; Returns: Json }
       dias_habiles_antes: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
