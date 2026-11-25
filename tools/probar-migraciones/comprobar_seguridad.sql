@@ -15951,3 +15951,47 @@ do $$ declare c uuid; e uuid; tok uuid; r jsonb; n int;
   raise notice 'OK 352 · enlace de pago público: lo mínimo con la llave, aviso de transferencia sin sesión, nada con una llave inventada y las etapas siguen pidiendo permiso';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 353 · PREVISIÓN DE ENTREGA DE UN GRUPAJE (usuario, 2026-11-25): «siempre más 3 horas en
+-- grupajes». El mismo envío, con la misma ruta, llega a su primera entrega 3 horas más tarde si
+-- es grupaje que si es camión completo; se suma UNA vez (la segunda entrega solo lo arrastra), la
+-- carga no se mueve, y con el parámetro a 0 queda como un completo.
+do $$ declare c uuid; e uuid; n int; d interval;
+  a timestamptz[]; g timestamptz[]; z timestamptz[]; begin
+  if (select valor from parametros where clave = 'seguimiento_horas_extra_grupaje') <> '3' then
+    raise exception 'FALLO 353 · falta el parámetro de las horas de más del grupaje, o no vale 3'; end if;
+  insert into clientes (razon_social, cif) values ('Grupaje Tarde SL', 'B35300353') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id into e;
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  update envios set estado = 'programado' where id = e;
+  delete from envio_paradas where envio_id = e;
+  insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso) values
+    (e, 1, 'carga', 'Sale SL', 'Calle Uno 1', '41001', 'Sevilla', 'Sevilla', 'ES'),
+    (e, 2, 'descarga', 'Llega SA', 'Calle Dos 2', '12550', 'Almassora', 'Castellón', 'ES'),
+    (e, 3, 'descarga', 'Llega Dos SA', 'Calle Tres 3', '46001', 'Valencia', 'Valencia', 'ES');
+  if (select tipo_carga from envios where id = e) <> 'completa' then raise exception 'FALLO 353 · 13,30 m no sale como carga completa'; end if;
+  select array_agg(x.hora order by x.paso) into a from seguimiento_calcular(e) x where x.paso >= 1;
+  update envios set metros_lineales = 3 where id = e;
+  if (select tipo_carga from envios where id = e) <> 'grupaje' then raise exception 'FALLO 353 · 3 m no sale como grupaje'; end if;
+  select array_agg(x.hora order by x.paso) into g from seguimiento_calcular(e) x where x.paso >= 1;
+  n := array_length(a, 1);
+  if n <> 7 or array_length(g, 1) <> 7 then raise exception 'FALLO 353 · el envío de prueba no tiene sus 7 etapas: % / %', a, g; end if;
+  -- La recogida no cambia (pasos 1 a 3: hacia la carga, cargando, en ruta).
+  if a[1] <> g[1] or a[2] <> g[2] or a[3] <> g[3] then raise exception 'FALLO 353 · el grupaje mueve la hora de la recogida: % / %', a, g; end if;
+  -- Llegada a la primera entrega (paso 4): 3 horas más. Sin horario de sitio no hay espera que lo tape.
+  d := g[4] - a[4];
+  if d <> interval '3 hours' then raise exception 'FALLO 353 · el grupaje no llega 3 h más tarde a su primera entrega: % (completo %, grupaje %)', d, a[4], g[4]; end if;
+  -- Una sola vez: lo que tarda en descargar es lo mismo y la segunda entrega no vuelve a sumar.
+  if g[5] - g[4] <> a[5] - a[4] then raise exception 'FALLO 353 · el grupaje cambia el tiempo de descarga'; end if;
+  if g[7] <= a[7] or g[7] - a[7] >= interval '6 hours' then
+    raise exception 'FALLO 353 · la segunda entrega del grupaje no arrastra la demora una sola vez: completo %, grupaje %', a[7], g[7]; end if;
+  -- Con el parámetro a 0, el grupaje se calcula como un completo.
+  update parametros set valor = '0' where clave = 'seguimiento_horas_extra_grupaje';
+  select array_agg(x.hora order by x.paso) into z from seguimiento_calcular(e) x where x.paso >= 1;
+  update parametros set valor = '3' where clave = 'seguimiento_horas_extra_grupaje';
+  if z <> a then raise exception 'FALLO 353 · con 0 horas el grupaje no queda como un completo: % / %', a, z; end if;
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  raise notice 'OK 353 · previsión del grupaje: 3 h más en su primera entrega, una sola vez, la recogida igual y editable en Parámetros';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
