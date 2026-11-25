@@ -27,6 +27,14 @@ export async function guardarParametro(clave: string, valor: unknown): Promise<{
   if (clave.startsWith('verano_sitios_') && (typeof valor !== 'string' || !/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(valor))) {
     return { ok: false, error: 'Pon la fecha como mes-día con dos cifras: por ejemplo 05-25 (25 de mayo).' };
   }
+  // WhatsApp: qué se reenvía al móvil de Dynamo (valores fijos) y su móvil (formato válido).
+  if (clave === 'whatsapp_reenvio_modo' && !['todo', 'importante', 'nada'].includes(String(valor))) {
+    return { ok: false, error: 'Elige «Todo», «Solo lo importante» o «Nada».' };
+  }
+  if (clave === 'whatsapp_movil_dynamo' && String(valor ?? '').trim()) {
+    const d = String(valor).replace(/\D/g, '');
+    if (d.length < 9 || d.length > 15) return { ok: false, error: 'Escribe el móvil con su prefijo de país: por ejemplo +34 600 111 222.' };
+  }
   const { error, count } = await s.supabase.from('parametros').update({ valor: valor as Json }, { count: 'exact' }).eq('clave', clave);
   if (error) return { ok: false, error: /permission|row-level/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message };
   if (!count) return { ok: false, error: 'No existe ese parámetro.' };

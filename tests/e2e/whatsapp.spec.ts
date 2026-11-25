@@ -90,4 +90,33 @@ test.describe('WhatsApp', () => {
         avisos_whatsapp_preguntado_en: u!.avisos_whatsapp_preguntado_en }).eq('id', u!.id);
     }
   });
+
+  test('«Tomo yo» y «Que conteste Claude» en la bandeja, y qué se reenvía al móvil en Parámetros', async ({ page }) => {
+    const sv = bd();
+    const tel = '+34699' + String(Date.now()).slice(-6);
+    const { data: c } = await sv.from('whatsapp_conversaciones').insert({ telefono: tel, nombre_perfil: 'Posible cliente E2E', quien: 'desconocido',
+      ultima_entrada_en: new Date().toISOString(), ultimo_mensaje_en: new Date().toISOString(), ultimo_texto: '¿Hacéis portes a Oporto?' }).select('id').single();
+    const { data: modo } = await sv.from('parametros').select('valor').eq('clave', 'whatsapp_reenvio_modo').single();
+    try {
+      await entrar(page, 'dynamo');
+      await page.goto(`/panel/whatsapp?ver=${c!.id}`);
+      await expect(page.locator('#wa-lleva-estado')).toHaveText('La lleva Claude');
+      await page.locator('#wa-tomo').click();
+      await expect(page.locator('#wa-lleva-estado')).toContainText('La lleva el equipo');
+      await expect.poll(async () => (await sv.from('whatsapp_conversaciones').select('tomada_desde').eq('id', c!.id).single()).data?.tomada_desde).toBe('panel');
+      await page.locator('#wa-devolver').click();
+      await expect(page.locator('#wa-lleva-estado')).toHaveText('La lleva Claude');
+
+      // Parámetros: qué se reenvía, con botones (no se escribe a mano).
+      await page.goto('/panel/parametros');
+      const grupo = page.getByRole('radiogroup', { name: /qué se reenvía/i });
+      await expect(grupo.locator('[data-valor="todo"]')).toHaveAttribute('aria-checked', 'true');
+      await grupo.locator('[data-valor="importante"]').click();
+      await expect(grupo.locator('[data-valor="importante"]')).toHaveAttribute('aria-checked', 'true');
+      await expect.poll(async () => (await sv.from('parametros').select('valor').eq('clave', 'whatsapp_reenvio_modo').single()).data?.valor).toBe('importante');
+    } finally {
+      await sv.from('whatsapp_conversaciones').delete().eq('id', c!.id);
+      await sv.from('parametros').update({ valor: modo!.valor }).eq('clave', 'whatsapp_reenvio_modo');
+    }
+  });
 });

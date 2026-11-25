@@ -13,18 +13,22 @@ import Cargando from '@/components/Cargando';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { fechaHora, textoBusqueda } from '@/lib/formato';
 import { dentroDe24h } from '@/lib/whatsapp';
-import { marcarWhatsAppLeida, responderWhatsApp } from '@/app/panel/(app)/whatsapp/acciones';
+import { marcarWhatsAppLeida, responderWhatsApp, tomarWhatsApp } from '@/app/panel/(app)/whatsapp/acciones';
 
 export type ConversacionFila = {
   id: string; telefono: string; perfil: string | null; persona: string | null; empresa: string | null; empresaHref: string | null;
   quien: 'cliente' | 'transportista' | 'dynamo' | 'conductor' | 'contacto' | 'desconocido';
   ultimaEntrada: string | null; ultimo: string | null; ultimoTexto: string | null; sinLeer: number;
+  /** Hasta cuándo la lleva una persona («Tomo yo»); pasado, vuelve a Claude. */
+  tomadaHasta: string | null; tomadaDesde: 'panel' | 'movil' | null;
 };
 export type MensajeFila = {
   id: string; sentido: 'entrada' | 'salida'; tipo: string; texto: string | null;
   archivo: string | null; archivoTipo: string | null; archivoNombre: string | null; archivoEstado: 'guardado' | 'borrado' | 'bajando' | 'ninguno';
   estado: 'recibido' | 'pendiente' | 'enviado' | 'entregado' | 'leido' | 'fallido'; error: string | null;
   origen: 'persona' | 'aviso' | 'ia' | null; autor: string | null; cuando: string;
+  /** Un reenvío al móvil de Dynamo; o una respuesta escrita desde ese móvil. */
+  reenvio: boolean; desdeMovil: boolean;
 };
 
 const QUIEN: Record<ConversacionFila['quien'], [string, string]> = {
@@ -77,6 +81,16 @@ export default function WhatsApp({ conversaciones, ver, mensajes, hayMas, conect
     : !puedeContestar ? 'Tu usuario es de solo lectura.'
     : !plazo ? 'Han pasado más de 24 h desde su último mensaje: Meta solo deja escribirle con una plantilla aprobada (llegan con los avisos por WhatsApp).'
     : null;
+
+  const tomada = !!actual?.tomadaHasta && new Date(actual.tomadaHasta).getTime() > Date.now();
+  async function tomar(si: boolean) {
+    if (!ver) return;
+    setFallo(null); setTrabajando(true);
+    const r = await tomarWhatsApp(ver, si).catch(() => ({ ok: false as const, error: 'No se ha podido cambiar. Inténtalo de nuevo.' }));
+    setTrabajando(false);
+    if (!r.ok) setFallo(r.error);
+    refrescar();
+  }
 
   async function enviar() {
     if (!ver || !texto.trim() || motivoNo) return;
@@ -151,6 +165,18 @@ export default function WhatsApp({ conversaciones, ver, mensajes, hayMas, conect
                     {actual.empresaHref && <> · <Link href={actual.empresaHref}>Ver ficha</Link></>}
                   </div>
                 </div>
+                {actual.quien !== 'dynamo' && (
+                  <div className="wa-quien-lleva" id="wa-lleva">
+                    {tomada ? (
+                      <span className="badge badge-yellow" id="wa-lleva-estado">
+                        La lleva el equipo{actual.tomadaDesde === 'movil' ? ' (móvil)' : ''} · hasta {fechaHora(actual.tomadaHasta!)}
+                      </span>
+                    ) : <span className="badge badge-gray" id="wa-lleva-estado">La lleva Claude</span>}
+                    {puedeContestar && (tomada
+                      ? <button type="button" className="btn-ghost" id="wa-devolver" disabled={trabajando} onClick={() => tomar(false)}>Que conteste Claude</button>
+                      : <button type="button" className="btn-secondary" id="wa-tomo" disabled={trabajando} onClick={() => tomar(true)}>Tomo yo</button>)}
+                  </div>
+                )}
               </div>
               <div className="wa-mensajes" id="wa-mensajes">
                 {hayMas && <div className="meta" style={{ textAlign: 'center' }}>Se ven los 200 mensajes más recientes.</div>}
@@ -159,7 +185,7 @@ export default function WhatsApp({ conversaciones, ver, mensajes, hayMas, conect
                     <Archivo m={m} />
                     {m.texto && <div className="wa-msg-txt">{m.texto}</div>}
                     <div className="wa-msg-pie">
-                      {m.sentido === 'salida' && <span>{m.origen === 'aviso' ? 'Aviso automático' : m.origen === 'ia' ? 'Respuesta automática' : m.autor ?? 'Equipo'} · </span>}
+                      {m.sentido === 'salida' && <span>{m.reenvio ? 'Reenvío' : m.origen === 'aviso' ? 'Aviso automático' : m.origen === 'ia' ? 'Respuesta automática' : m.desdeMovil ? 'Equipo, desde el móvil' : m.autor ?? 'Equipo'} · </span>}
                       <span>{fechaHora(m.cuando)}</span>
                       {m.sentido === 'salida' && <span className={`wa-est ${m.estado}`}> · {ESTADO[m.estado]}</span>}
                     </div>

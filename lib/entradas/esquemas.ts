@@ -202,6 +202,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/verificacion-albaranes/acciones#tipoAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/whatsapp/acciones#marcarWhatsAppLeida": z.tuple([z.string().max(1000)]),
   "app/panel/(app)/whatsapp/acciones#responderWhatsApp": z.tuple([z.string().max(1000), z.string().max(5000)]),
+  "app/panel/(app)/whatsapp/acciones#tomarWhatsApp": z.tuple([z.string().max(1000), z.boolean()]),
   "app/panel/acciones#entrar": z.tuple([z.object({ error: z.string().max(1000).nullable(), email: z.string().max(1000).optional() }), z.instanceof(FormData)]),
   "app/panel/avisos#marcarAvisosVistos": z.tuple([]),
   "app/panel/avisos#misAvisos": z.tuple([]),

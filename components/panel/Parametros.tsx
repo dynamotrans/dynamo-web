@@ -67,7 +67,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Resumen mensual a los sitios', claves: ['resumen_sitios_activo', 'resumen_sitios_dia'] },
     { titulo: 'Tiempo para deshacer', claves: ['emails_espera_segundos'] },
     { titulo: 'Brevo: sitios de la plataforma', claves: ['brevo_sitios_activo', 'brevo_sitios_lista'] },
-    { titulo: 'WhatsApp', claves: ['whatsapp_activo', 'whatsapp_movil_dynamo', 'whatsapp_meses_texto', 'whatsapp_meses_archivos'] },
+    { titulo: 'WhatsApp', claves: ['whatsapp_activo', 'whatsapp_movil_dynamo', 'whatsapp_reenvio_modo', 'whatsapp_palabras_persona', 'whatsapp_reenviar_desconocidos', 'whatsapp_tomo_yo_horas', 'whatsapp_plantilla_reenvio', 'whatsapp_meses_texto', 'whatsapp_meses_archivos'] },
     { titulo: 'Firma del CMR digital', claves: ['cmr_dias_firma_tras_entrega'] },
     { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_horas_extra_grupaje', 'seguimiento_velocidad_kmh', 'seguimiento_horas_asignando'] },
   ] },
@@ -456,6 +456,11 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
   );
 }
 
+// Parámetros con valores fijos: botones en vez de escribir el valor.
+const OPCIONES: Record<string, [string, string][]> = {
+  whatsapp_reenvio_modo: [['todo', 'Todo'], ['importante', 'Solo lo importante'], ['nada', 'Nada']],
+};
+
 function Control({ p, esAdmin, etiqueta }: { p: ParametroFila; esAdmin: boolean; etiqueta?: string }) {
   const refrescar = useRefrescar();
   const tipo = typeof p.valor === 'boolean' ? 'si_no' : typeof p.valor === 'number' ? 'numero' : 'texto';
@@ -483,9 +488,18 @@ function Control({ p, esAdmin, etiqueta }: { p: ParametroFila; esAdmin: boolean;
     } else guardar(v);
   }
 
+  const opciones = OPCIONES[p.clave];
   return (
     <>
-      {tipo === 'si_no' ? (
+      {opciones ? (
+        <div className="param-opciones" role="radiogroup" aria-label={etiqueta ?? p.descripcion}>
+          {opciones.map(([valor, nombre]) => (
+            <button key={valor} type="button" role="radio" aria-checked={p.valor === valor} data-valor={valor}
+              className={p.valor === valor ? 'btn-primary' : 'btn-ghost'} disabled={!puede || estado === 'guardando'}
+              onClick={() => { if (p.valor !== valor) guardar(valor); }}>{nombre}</button>
+          ))}
+        </div>
+      ) : tipo === 'si_no' ? (
         <label className="ptar-tramp-box" style={{ display: 'inline-flex' }}>
           <input type="checkbox" className="ptar-switch-input" checked={p.valor === true} disabled={!puede || estado === 'guardando'}
             onChange={(e) => guardar(e.target.checked)} aria-label={etiqueta ?? p.descripcion} />
@@ -495,7 +509,7 @@ function Control({ p, esAdmin, etiqueta }: { p: ParametroFila; esAdmin: boolean;
       ) : (
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
           <input type="text" inputMode={tipo === 'numero' ? 'decimal' : 'text'} value={v} disabled={!puede} onChange={(e) => { setV(e.target.value); setEstado(null); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && cambiado) guardarTexto(); }} className="param-input" style={{ maxWidth: 200 }} aria-label={etiqueta ?? p.descripcion} />
+            onKeyDown={(e) => { if (e.key === 'Enter' && cambiado) guardarTexto(); }} className="param-input" style={{ maxWidth: texto(p.valor).length > 40 ? 560 : 200 }} aria-label={etiqueta ?? p.descripcion} />
           {puede && cambiado && <button className="btn-primary" style={{ padding: '0.4rem 0.8rem' }} onClick={guardarTexto} disabled={estado === 'guardando'}>Guardar</button>}
         </div>
       )}

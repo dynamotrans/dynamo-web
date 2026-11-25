@@ -46,3 +46,14 @@ export async function marcarWhatsAppLeida(conversacion: string): Promise<Res> {
   if (error) return { ok: false, error: mensajeError(error.message) };
   return { ok: true };
 }
+
+/** «Tomo yo» (la lleva una persona y Claude no contesta) o «Que conteste Claude». */
+export async function tomarWhatsApp(conversacion: string, tomar: boolean): Promise<Res> {
+  comprobarEntrada("app/panel/(app)/whatsapp/acciones#tomarWhatsApp", [conversacion, tomar]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const { error } = await s.supabase.rpc('whatsapp_tomar', { p_conversacion: conversacion, p_tomar: tomar });
+  if (error) return { ok: false, error: /42501|equipo/i.test(`${error.code} ${error.message}`) ? 'Solo el equipo de Dynamo (y no los usuarios de solo lectura).' : mensajeError(error.message) };
+  revalidatePath('/panel/whatsapp');
+  return { ok: true };
+}

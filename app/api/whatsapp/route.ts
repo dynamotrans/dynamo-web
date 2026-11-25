@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import { leerAviso } from '@/lib/whatsapp';
 import { firmaValida } from '@/lib/whatsappFirma';
 import { supabaseServicio } from '@/lib/supabase/servicio';
-import { borrarArchivosCaducados, guardarArchivosPendientes } from '@/lib/servidor/whatsapp';
+import { borrarArchivosCaducados, guardarArchivosPendientes, trasEntrada } from '@/lib/servidor/whatsapp';
 
 // /api/whatsapp: la puerta por la que Meta entrega los mensajes de WhatsApp y los avisos de
 // entregado/leído (usuario, 2026-11-25). En Meta → tu app → WhatsApp → Configuración: esta URL,
@@ -11,6 +11,7 @@ import { borrarArchivosCaducados, guardarArchivosPendientes } from '@/lib/servid
 //  · POST: solo se fía de avisos FIRMADOS con la clave secreta de la app (WHATSAPP_APP_SECRET).
 //    Se guarda todo en la base de datos y se contesta 200 enseguida (si no, Meta reintenta);
 //    los archivos se bajan después (after), y de paso se borran los que han caducado.
+//    También después: el reenvío al móvil de Dynamo y pasar sus respuestas (whatsapp_tras_entrada).
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -35,10 +36,15 @@ export async function POST(req: Request) {
   const sb = supabaseServicio();
   if (!sb) return new Response('sin conexión', { status: 500 });
   let fallos = 0;
+  const nuevos: string[] = [];
   for (const e of entradas) {
-    const { error } = await sb.rpc('whatsapp_registrar_entrada', { p: e });
-    if (error) { fallos += 1; console.error('[WhatsApp] guardar mensaje', e.wa_id, error.message); }
+    const { data, error } = await sb.rpc('whatsapp_registrar_entrada', { p: e });
+    if (error) { fallos += 1; console.error('[WhatsApp] guardar mensaje', e.wa_id, error.message); continue; }
+    const id = (data as { mensaje_id?: string } | null)?.mensaje_id;
+    if (id) nuevos.push(id);
   }
+  // Reenviar al móvil de Dynamo o pasar su respuesta, en orden y después de contestar a Meta.
+  if (nuevos.length) after(async () => { for (const id of nuevos) await trasEntrada(id); });
   for (const s of estados) {
     const { error } = await sb.rpc('whatsapp_registrar_estado', { p_wa_id: s.wa_id, p_estado: s.estado, p_error: s.error ?? undefined, p_cuando: s.cuando ?? undefined });
     if (error) console.error('[WhatsApp] estado', s.wa_id, error.message);

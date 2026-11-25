@@ -5735,6 +5735,9 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .wa-chat { display: flex; flex-direction: column; min-height: 420px; max-height: calc(100vh - 210px); }
 .wa-chat-cab { display: flex; gap: 0.7rem; align-items: center; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--gray-200); }
 .wa-volver { display: none; }
+.wa-chat-cab { flex-wrap: wrap; }
+.wa-quien-lleva { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; max-width: 100%; }
+.wa-quien-lleva .badge { white-space: normal; text-align: left; }
 .wa-mensajes { flex: 1; overflow-y: auto; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.45rem; background: var(--gray-50, #f7f8fb); overscroll-behavior: contain; }
 .wa-msg { max-width: min(78%, 560px); padding: 0.5rem 0.7rem; border-radius: 12px; background: #fff; border: 1px solid var(--gray-200); align-self: flex-start; overflow-wrap: anywhere; }
 .wa-msg.salida { align-self: flex-end; background: rgba(51,0,204,0.07); border-color: rgba(51,0,204,0.18); }
@@ -5755,8 +5758,13 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
   .wa-bandeja.con-chat .wa-lista { display: none; }
   .wa-bandeja:not(.con-chat) .wa-chat { display: none; }
   .wa-chat-cab { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .wa-quien-lleva { margin-left: 0; justify-content: flex-start; }
   .wa-volver { display: inline-flex; flex: none; min-height: 40px; padding: 0.35rem 0.8rem; }
   .wa-chat { max-height: none; min-height: 60vh; }
   .wa-msg { max-width: 88%; }
   .wa-responder { grid-template-columns: 1fr; }
 }
+
+/* Parámetros con valores fijos (p. ej. qué se reenvía por WhatsApp). */
+.param-opciones { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.param-opciones button { min-height: 40px; padding: 0.4rem 0.9rem; }

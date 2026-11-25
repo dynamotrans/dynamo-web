@@ -4517,6 +4517,8 @@ export type Database = {
           ultimo_texto: string | null
           sin_leer: number
           creado_en: string
+          tomada_en: string | null
+          tomada_desde: string | null
         }
         Insert: {
           id?: string
@@ -4533,6 +4535,8 @@ export type Database = {
           ultimo_texto?: string | null
           sin_leer?: number
           creado_en?: string
+          tomada_en?: string | null
+          tomada_desde?: string | null
         }
         Update: {
           id?: string
@@ -4549,6 +4553,8 @@ export type Database = {
           ultimo_texto?: string | null
           sin_leer?: number
           creado_en?: string
+          tomada_en?: string | null
+          tomada_desde?: string | null
         }
         Relationships: [
           {
@@ -4610,6 +4616,10 @@ export type Database = {
           leido_en: string | null
           enviado_en: string | null
           creado_en: string
+          cita_wa_id: string | null
+          boton_id: string | null
+          reenvio_de: string | null
+          desde_movil: boolean
         }
         Insert: {
           id?: string
@@ -4632,6 +4642,10 @@ export type Database = {
           leido_en?: string | null
           enviado_en?: string | null
           creado_en?: string
+          cita_wa_id?: string | null
+          boton_id?: string | null
+          reenvio_de?: string | null
+          desde_movil?: boolean
         }
         Update: {
           id?: string
@@ -4654,6 +4668,10 @@ export type Database = {
           leido_en?: string | null
           enviado_en?: string | null
           creado_en?: string
+          cita_wa_id?: string | null
+          boton_id?: string | null
+          reenvio_de?: string | null
+          desde_movil?: boolean
         }
         Relationships: [
           {
@@ -4675,6 +4693,13 @@ export type Database = {
             columns: ["envio_id"]
             isOneToOne: false
             referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensajes_reenvio_de_fkey"
+            columns: ["reenvio_de"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensajes"
             referencedColumns: ["id"]
           },
         ]
@@ -5412,11 +5437,16 @@ export type Database = {
       whatsapp_limpiar: { Args: Record<PropertyKey, never>; Returns: number }
       whatsapp_marcar_enviado: { Args: { p_mensaje: string | null; p_wa_id: string | null; p_error?: string | null }; Returns: undefined }
       whatsapp_marcar_leida: { Args: { p_conversacion: string | null }; Returns: undefined }
+      whatsapp_movil_dynamo: { Args: Record<PropertyKey, never>; Returns: string }
+      whatsapp_nombre: { Args: { p_conv: string | null }; Returns: string }
       whatsapp_preparar_respuesta: { Args: { p_conversacion: string | null; p_texto: string | null }; Returns: Json }
       whatsapp_quien: { Args: { p_tel: string | null }; Returns: { quien: string; usuario_id: string; conductor_id: string; contacto_id: string; cliente_id: string; transportista_id: string }[] }
       whatsapp_registrar_entrada: { Args: { p: Json | null }; Returns: Json }
       whatsapp_registrar_estado: { Args: { p_wa_id: string | null; p_estado: string | null; p_error?: string | null; p_cuando?: number | null }; Returns: boolean }
       whatsapp_resumen: { Args: Record<PropertyKey, never>; Returns: Json }
+      whatsapp_salida_movil: { Args: { p_texto: string | null; p_reenvio?: string | null }; Returns: Json }
+      whatsapp_tomar: { Args: { p_conversacion: string | null; p_tomar: boolean | null }; Returns: undefined }
+      whatsapp_tras_entrada: { Args: { p_mensaje: string | null }; Returns: Json }
     }
     Enums: {
       estado_almacenamiento: "pendiente_confirmar" | "confirmado" | "en_almacen" | "finalizado" | "cancelado"

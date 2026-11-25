@@ -19,12 +19,14 @@ export default async function PaginaWhatsApp({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const ver = sp.ver && /^[0-9a-f-]{36}$/i.test(sp.ver) ? sp.ver : null;
 
-  const [{ data: convs, error }, { data: activo }] = await Promise.all([
+  const [{ data: convs, error }, { data: activo }, { data: horas }] = await Promise.all([
     supabase.from('whatsapp_conversaciones')
-      .select('id, telefono, nombre_perfil, quien, usuario_id, conductor_id, contacto_id, empresa_cliente_id, empresa_transportista_id, ultima_entrada_en, ultimo_mensaje_en, ultimo_texto, sin_leer')
+      .select('id, telefono, nombre_perfil, quien, usuario_id, conductor_id, contacto_id, empresa_cliente_id, empresa_transportista_id, ultima_entrada_en, ultimo_mensaje_en, ultimo_texto, sin_leer, tomada_en, tomada_desde')
       .order('ultimo_mensaje_en', { ascending: false, nullsFirst: false }).limit(1000),
     supabase.from('parametros').select('valor').eq('clave', 'whatsapp_activo').maybeSingle(),
+    supabase.from('parametros').select('valor').eq('clave', 'whatsapp_tomo_yo_horas').maybeSingle(),
   ]);
+  const horasTomada = Math.max(1, Number(horas?.valor) || 24);
   const filas = convs ?? [];
   const ids = (k: 'usuario_id' | 'conductor_id' | 'contacto_id' | 'empresa_cliente_id' | 'empresa_transportista_id') =>
     [...new Set(filas.map((f) => f[k]).filter(Boolean))] as string[];
@@ -52,6 +54,8 @@ export default async function PaginaWhatsApp({ searchParams }: { searchParams: P
       empresa: cli ? cli.nombre_visible || cli.razon_social : tra ? tra.nombre_visible || tra.razon_social : null,
       empresaHref: f.empresa_cliente_id ? `/panel/clientes?ver=${f.empresa_cliente_id}` : f.empresa_transportista_id ? `/panel/transportistas?ver=${f.empresa_transportista_id}` : null,
       ultimaEntrada: f.ultima_entrada_en, ultimo: f.ultimo_mensaje_en, ultimoTexto: f.ultimo_texto, sinLeer: f.sin_leer,
+      tomadaHasta: f.tomada_en ? new Date(new Date(f.tomada_en).getTime() + horasTomada * 3600e3).toISOString() : null,
+      tomadaDesde: (f.tomada_desde as ConversacionFila['tomadaDesde']) ?? null,
     };
   });
 
@@ -59,7 +63,7 @@ export default async function PaginaWhatsApp({ searchParams }: { searchParams: P
   let hayMas = false;
   if (ver) {
     const { data } = await supabase.from('whatsapp_mensajes')
-      .select('id, sentido, tipo, texto, archivo_ruta, archivo_tipo, archivo_nombre, archivo_borrado_en, meta_archivo_id, estado, error, origen, enviado_por, enviado_en, creado_en')
+      .select('id, sentido, tipo, texto, archivo_ruta, archivo_tipo, archivo_nombre, archivo_borrado_en, meta_archivo_id, estado, error, origen, enviado_por, enviado_en, creado_en, reenvio_de, desde_movil')
       .eq('conversacion_id', ver).order('creado_en', { ascending: false }).limit(201);
     const m = (data ?? []);
     hayMas = m.length > 200;
@@ -78,6 +82,7 @@ export default async function PaginaWhatsApp({ searchParams }: { searchParams: P
       archivoEstado: x.archivo_ruta ? 'guardado' : x.archivo_borrado_en ? 'borrado' : x.meta_archivo_id ? 'bajando' : 'ninguno',
       estado: x.estado as MensajeFila['estado'], error: x.error, origen: x.origen as MensajeFila['origen'],
       autor: x.enviado_por ? mAu.get(x.enviado_por) ?? null : null, cuando: x.enviado_en ?? x.creado_en,
+      reenvio: x.sentido === 'salida' && x.origen === 'aviso' && !!x.reenvio_de, desdeMovil: !!x.desde_movil,
     }));
   }
 

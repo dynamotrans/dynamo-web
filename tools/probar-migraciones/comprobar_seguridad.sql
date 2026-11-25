@@ -16438,3 +16438,113 @@ do $$ declare v_cli uuid := current_setting('prueba.u_cli')::uuid; r jsonb; begi
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 362 · WHATSAPP: REENVÍO AL MÓVIL DE DYNAMO, «TOMO YO» Y CONTESTAR CITANDO (usuario, 2026-11-25):
+-- lo que escribe la gente se reenvía al móvil de Dynamo (según el modo); desde ese móvil, responder
+-- citando le contesta a quien escribió (dentro de sus 24 h), los botones toman o devuelven la
+-- conversación, y el móvil de Dynamo no cuenta como «sin leer».
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r jsonb; v_cli uuid; v_mov uuid; v_relay uuid; n int; v_aviso int;
+  e jsonb := jsonb_build_object('cuando', extract(epoch from now())::bigint);
+begin
+  if has_function_privilege('authenticated', 'whatsapp_tras_entrada(uuid)', 'execute') or has_function_privilege('anon', 'whatsapp_tomar(uuid, boolean)', 'execute') then
+    raise exception 'FALLO 362 · las funciones del reenvío se pueden llamar desde fuera'; end if;
+  perform set_config('prueba.wa362', (select jsonb_object_agg(clave, valor)::text from parametros where clave in ('whatsapp_activo', 'whatsapp_movil_dynamo', 'whatsapp_reenvio_modo', 'whatsapp_reenviar_desconocidos')), false);
+  update parametros set valor = '"611 362 362"' where clave = 'whatsapp_movil_dynamo';
+  update parametros set valor = '"todo"' where clave = 'whatsapp_reenvio_modo';
+  -- Apagado: no se reenvía nada.
+  update parametros set valor = 'false' where clave = 'whatsapp_activo';
+  r := whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34699362000', 'wa_id', 'wamid.362a', 'tipo', 'texto', 'texto', 'Hola, ¿precio a Lisboa?'));
+  if whatsapp_tras_entrada((r ->> 'mensaje_id')::uuid) ->> 'accion' <> 'nada' then raise exception 'FALLO 362 · con WhatsApp apagado se reenvía'; end if;
+  update parametros set valor = 'true' where clave = 'whatsapp_activo';
+  -- Encendido: se reenvía al móvil de Dynamo, unido al original, con los datos de quién escribe.
+  r := whatsapp_tras_entrada((r ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'reenviar' or r ->> 'telefono' <> '+34611362362' or (r ->> 'ventana')::boolean or r ->> 'texto' not like '%Lisboa%' or r ->> 'texto' not like '%desconocido%' then
+    raise exception 'FALLO 362 · el mensaje no se reenvía bien al móvil de Dynamo: %', r; end if;
+  v_cli := (r ->> 'conversacion')::uuid; v_relay := (r ->> 'mensaje_id')::uuid;
+  if (select reenvio_de from whatsapp_mensajes where id = v_relay) is distinct from (select id from whatsapp_mensajes where wa_id = 'wamid.362a') then
+    raise exception 'FALLO 362 · el reenvío no queda unido al mensaje original'; end if;
+  perform whatsapp_marcar_enviado(v_relay, 'wamid.362relay', null);
+  v_mov := (select conversacion_id from whatsapp_mensajes where id = v_relay);
+  -- El móvil de Dynamo contesta citando el reenvío: va a quien escribió y la conversación pasa a ser suya.
+  select count(*) into v_aviso from avisos where tipo = 'whatsapp';
+  r := whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362b', 'tipo', 'texto', 'texto', 'Hola, sí: 650 € a Lisboa.', 'cita_wa_id', 'wamid.362relay'));
+  if (select sin_leer from whatsapp_conversaciones where id = v_mov) <> 0 or (select count(*) from avisos where tipo = 'whatsapp') <> v_aviso then
+    raise exception 'FALLO 362 · lo que escribe el móvil de Dynamo cuenta como sin leer o avisa en la campana'; end if;
+  r := whatsapp_tras_entrada((r ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'responder' or r ->> 'telefono' <> '+34699362000' or r ->> 'texto' <> 'Hola, sí: 650 € a Lisboa.' or r #>> '{confirmar,wa_id}' <> 'wamid.362b' then
+    raise exception 'FALLO 362 · la respuesta citando no va a quien escribió: %', r; end if;
+  if not exists (select 1 from whatsapp_mensajes where id = (r ->> 'mensaje_id')::uuid and conversacion_id = v_cli and sentido = 'salida' and desde_movil and estado = 'pendiente' and origen = 'persona')
+     or (select tomada_desde from whatsapp_conversaciones where id = v_cli) is distinct from 'movil' then
+    raise exception 'FALLO 362 · la respuesta desde el móvil no queda en la conversación o no la toma'; end if;
+  -- Sin citar, justo después: a la última reenviada.
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362c', 'tipo', 'texto', 'texto', 'Te lo mando por email.')) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'responder' or r ->> 'telefono' <> '+34699362000' then raise exception 'FALLO 362 · sin citar no va a la última conversación reenviada: %', r; end if;
+  -- Botones: «Que conteste Claude» la devuelve; «Tomo yo» la toma.
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362d', 'tipo', 'boton', 'texto', 'Que conteste Claude', 'boton_id', 'claude:' || v_cli)) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'avisar' or (select tomada_en from whatsapp_conversaciones where id = v_cli) is not null then raise exception 'FALLO 362 · «Que conteste Claude» no la devuelve: %', r; end if;
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362e', 'tipo', 'boton', 'texto', 'Tomo yo', 'boton_id', 'tomo:' || v_cli)) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'reaccion' or r ->> 'wa_id' <> 'wamid.362e' or (select tomada_en from whatsapp_conversaciones where id = v_cli) is null then raise exception 'FALLO 362 · «Tomo yo» no la toma: %', r; end if;
+  -- «Claude» escrito citando el reenvío también la devuelve.
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362f', 'tipo', 'texto', 'texto', 'Claude', 'cita_wa_id', 'wamid.362relay')) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'avisar' or (select tomada_en from whatsapp_conversaciones where id = v_cli) is not null then raise exception 'FALLO 362 · «Claude» citando no la devuelve: %', r; end if;
+  -- Citar algo que no es un reenvío: se pregunta a quién va.
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362g', 'tipo', 'texto', 'texto', 'ok', 'cita_wa_id', 'wamid.no-existe')) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'avisar' or r ->> 'texto' not like 'No sé a qué conversación%' then raise exception 'FALLO 362 · citar algo que no es un reenvío no pregunta a quién va: %', r; end if;
+  -- Pasadas 24 h desde su último mensaje: no se le manda (Meta pide plantilla) y se avisa al móvil.
+  update whatsapp_conversaciones set ultima_entrada_en = now() - interval '25 hours' where id = v_cli;
+  select count(*) into n from whatsapp_mensajes where conversacion_id = v_cli;
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362h', 'tipo', 'texto', 'texto', '¿Sigues ahí?', 'cita_wa_id', 'wamid.362relay')) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'avisar' or r ->> 'texto' not like '%más de 24 h%' or (select count(*) from whatsapp_mensajes where conversacion_id = v_cli) <> n then
+    raise exception 'FALLO 362 · pasadas 24 h se intenta escribir con texto libre: %', r; end if;
+  -- El móvil de Dynamo ya ha escrito: los reenvíos van sin plantilla (ventana abierta).
+  if not (whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34699362000', 'wa_id', 'wamid.362i', 'tipo', 'texto', 'texto', 'Gracias')) ->> 'mensaje_id')::uuid) ->> 'ventana')::boolean then
+    raise exception 'FALLO 362 · con el móvil de Dynamo escribiendo hoy, el reenvío pide plantilla'; end if;
+  -- Sin citar y pasados 15 minutos del último reenvío: se pregunta.
+  update whatsapp_mensajes set creado_en = now() - interval '20 minutes' where conversacion_id = v_mov and reenvio_de is not null;
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34611362362', 'wa_id', 'wamid.362j', 'tipo', 'texto', 'texto', 'Buenos días')) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'avisar' then raise exception 'FALLO 362 · sin citar y pasado un rato, la respuesta se manda a alguien: %', r; end if;
+  -- Modo «importante»: solo si piden una persona, es urgente o la lleva una persona; las reacciones nunca.
+  update parametros set valor = '"importante"' where clave = 'whatsapp_reenvio_modo';
+  update parametros set valor = 'false' where clave = 'whatsapp_reenviar_desconocidos';
+  if whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34699362000', 'wa_id', 'wamid.362k', 'tipo', 'texto', 'texto', 'Vale')) ->> 'mensaje_id')::uuid) ->> 'accion' <> 'nada' then
+    raise exception 'FALLO 362 · en el modo importante se reenvía un «Vale»'; end if;
+  if whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34699362000', 'wa_id', 'wamid.362l', 'tipo', 'texto', 'texto', '¿Me podéis LLAMAR? Es urgente')) ->> 'mensaje_id')::uuid) ->> 'accion' <> 'reenviar' then
+    raise exception 'FALLO 362 · en el modo importante no se reenvía «llamar, urgente»'; end if;
+  update whatsapp_conversaciones set tomada_en = now(), tomada_desde = 'panel' where id = v_cli;
+  r := whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34699362000', 'wa_id', 'wamid.362m', 'tipo', 'texto', 'texto', 'Vale')) ->> 'mensaje_id')::uuid);
+  if r ->> 'accion' <> 'reenviar' or not (r ->> 'tomada')::boolean then raise exception 'FALLO 362 · en el modo importante no se reenvía lo de una conversación que lleva una persona: %', r; end if;
+  if whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34699362000', 'wa_id', 'wamid.362n', 'tipo', 'reaccion', 'texto', '👍')) ->> 'mensaje_id')::uuid) ->> 'accion' <> 'nada' then
+    raise exception 'FALLO 362 · se reenvían las reacciones'; end if;
+  update parametros set valor = '"nada"' where clave = 'whatsapp_reenvio_modo';
+  if whatsapp_tras_entrada((whatsapp_registrar_entrada(e || jsonb_build_object('telefono', '34699362000', 'wa_id', 'wamid.362o', 'tipo', 'texto', 'texto', 'Urgente')) ->> 'mensaje_id')::uuid) ->> 'accion' <> 'nada' then
+    raise exception 'FALLO 362 · en el modo «nada» se reenvía'; end if;
+  perform set_config('prueba.wa362_conv', v_cli::text, false);
+end $$;
+-- «Tomo yo» desde el panel: el equipo sí; un cliente, no.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare v uuid := current_setting('prueba.wa362_conv')::uuid; begin
+  perform whatsapp_tomar(v, false);
+  if (select tomada_en from whatsapp_conversaciones where id = v) is not null then raise exception 'FALLO 362 · «Que conteste Claude» del panel no la devuelve'; end if;
+  perform whatsapp_tomar(v, true);
+  if (select tomada_desde from whatsapp_conversaciones where id = v) is distinct from 'panel' then raise exception 'FALLO 362 · «Tomo yo» del panel no la toma'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform whatsapp_tomar(current_setting('prueba.wa362_conv')::uuid, true); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 362 · un cliente toma una conversación de WhatsApp'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare p jsonb := current_setting('prueba.wa362')::jsonb; k text; begin
+  delete from whatsapp_conversaciones where telefono in ('+34699362000', '+34611362362');
+  delete from avisos where tipo = 'whatsapp';
+  for k in select jsonb_object_keys(p) loop update parametros set valor = p -> k where clave = k; end loop;
+  raise notice 'OK 362 · WhatsApp: reenvío al móvil de Dynamo según el modo, responder citando le llega a quien escribió (en sus 24 h), «Tomo yo» y «Que conteste Claude»';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
