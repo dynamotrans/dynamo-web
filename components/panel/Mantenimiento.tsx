@@ -8,6 +8,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
 
+import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { contarArchivosSueltos, borrarArchivosSueltos, subirSitiosABrevoAhora } from '@/app/panel/(app)/mantenimiento/acciones';
 
 const LLAVE = 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z';
@@ -18,7 +19,10 @@ export type Descuadre = { id: string; causa: string; ruta: string; navegador: st
 export type ResumenBrevo = {
   activo: boolean; lista: string; lista_id: number; candidatos: number; pendientes: number; subidos: number; errores: number;
   ultima: string | null; ultimos_errores: { email: string; error: string | null; cuando: string; intentos: number }[]; conClave?: boolean;
+  /** Los que van a subir en la próxima subida, para revisarlos antes (500 como mucho). */
+  porSubir?: { email: string; nombre: string | null; cargo: string | null; empresa: string | null; poblacion: string | null; provincia: string | null; motivo: 'nuevo' | 'cambiado' | 'reintento' }[];
 };
+const MOTIVO_BREVO = { nuevo: 'Nuevo', cambiado: 'Datos cambiados', reintento: 'Reintento' } as const;
 
 export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descuadres = [], brevo = null }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null; descuadres?: Descuadre[]; brevo?: ResumenBrevo | null }) {
   const refrescar = useRefrescar();
@@ -147,15 +151,17 @@ function BrevoSitios({ r, esAdmin }: { r: ResumenBrevo; esAdmin: boolean }) {
     setRes(x.ok ? { ok: true, txt: x.aviso } : { ok: false, txt: x.error });
     refrescar();
   }
-  const listo = r.activo && !!r.conClave;
+  const conClave = !!r.conClave;
+  const porSubir = r.porSubir ?? [];
+  const pg = usePaginas(porSubir, '', 25);
   return (
     <div id="brevo-sitios" style={{ maxWidth: 720, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '1.1rem 1.2rem', marginTop: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
         <strong style={{ color: 'var(--navy)' }}>Emails de los sitios a Brevo</strong>
-        <span id="brevo-sitios-estado" className={`badge badge-${listo ? 'green' : 'orange'}`}>{listo ? 'Encendido' : r.activo ? 'Falta la clave' : 'Apagado'}</span>
+        <span id="brevo-sitios-estado" className={`badge badge-${!conClave ? 'orange' : r.activo ? 'green' : 'blue'}`}>{!conClave ? 'Falta la clave' : r.activo ? 'Suben solos cada mañana' : 'A mano: revisas y subes tú'}</span>
       </div>
       <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-600)', margin: '0.35rem 0 0.7rem' }}>
-        Cada mañana la plataforma sube a tu cuenta de Brevo, a la lista <strong className="notranslate" translate="no">{r.lista || '04-SITIOS-DYNAMO'}</strong>, los emails de los sitios de recogida y entrega
+        La plataforma sube a tu cuenta de Brevo, a la lista <strong className="notranslate" translate="no">{r.lista || '04-SITIOS-DYNAMO'}</strong>, los emails de los sitios de recogida y entrega
         (personas de contacto y emails de avisos). No envía ningún email: a quién y cuándo se escribe lo decides tú en Brevo.
         No suben los almacenes de Dynamo, los sitios borrados ni las direcciones de prueba.
       </p>
@@ -166,8 +172,36 @@ function BrevoSitios({ r, esAdmin }: { r: ResumenBrevo; esAdmin: boolean }) {
         <div><div className="meta">Con fallo</div><strong style={{ color: r.errores ? 'var(--red)' : undefined }}>{r.errores}</strong></div>
       </div>
       {r.ultima && <div className="meta" style={{ marginTop: '0.5rem' }}>Última subida: {fechaHora(r.ultima)}</div>}
-      {!r.activo && <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>Está apagado. Se enciende en <strong>Parámetros → «Brevo: sitios de la plataforma»</strong>.</div></div>}
-      {r.activo && !r.conClave && <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>Falta la clave de Brevo en Vercel (<span className="notranslate" translate="no">BREVO_API_KEY</span>): sin ella no se puede subir nada.</div></div>}
+      <div className="pt-aviso info" id="brevo-sitios-modo" style={{ marginTop: '0.7rem' }}><div>
+        {r.activo
+          ? <>Los nuevos <strong>suben solos cada mañana</strong>. Para revisarlos tú antes de que suban, apágalo en <strong>Parámetros → «Brevo: sitios de la plataforma»</strong>.</>
+          : <>No sube nada solo: <strong>revisas la lista de abajo y pulsas «Subir ahora»</strong>. Si prefieres que suban solos cada mañana, enciéndelo en <strong>Parámetros → «Brevo: sitios de la plataforma»</strong>.</>}
+      </div></div>
+      {!conClave && <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>Falta la clave de Brevo en Vercel (<span className="notranslate" translate="no">BREVO_API_KEY</span>): sin ella no se puede subir nada.</div></div>}
+
+      <div id="brevo-por-subir" style={{ marginTop: '0.9rem' }}>
+        <strong style={{ fontSize: 'var(--fs-m)', color: 'var(--navy)' }}>Los que van a subir ({porSubir.length}{r.pendientes > porSubir.length ? ` de ${r.pendientes}` : ''})</strong>
+        {porSubir.length === 0
+          ? <div className="meta" style={{ marginTop: '0.3rem' }}>No hay ninguno por subir.</div>
+          : <>
+            {/* En filas apiladas y no en tabla: caben enteras en el móvil y en esta caja, sin desplazar de lado. */}
+            <div id="brevo-por-subir-lista" style={{ marginTop: '0.4rem', border: '1px solid var(--gray-200)', borderRadius: 10 }}>
+              {pg.visibles.map((f, k) => (
+                <div key={f.email} className="brevo-fila" style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.5rem 0.7rem', borderTop: k ? '1px solid var(--gray-200)' : undefined }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="notranslate" translate="no" style={{ fontWeight: 600, color: 'var(--navy)', overflowWrap: 'anywhere' }}>{f.email}</div>
+                    <div className="meta" style={{ overflowWrap: 'anywhere' }}>
+                      {[f.nombre, f.cargo, f.empresa, [f.poblacion, f.provincia && f.provincia !== f.poblacion ? f.provincia : null].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Sin más datos'}
+                    </div>
+                  </div>
+                  <span className={`badge badge-${f.motivo === 'nuevo' ? 'green' : f.motivo === 'cambiado' ? 'blue' : 'orange'}`} style={{ flex: 'none' }}>{MOTIVO_BREVO[f.motivo] ?? f.motivo}</span>
+                </div>
+              ))}
+            </div>
+            <PaginadorLocal p={pg} nombre="emails" nombreUno="email" soloSiHace />
+          </>}
+      </div>
+
       {r.ultimos_errores.length > 0 && (
         <div style={{ marginTop: '0.7rem', display: 'grid', gap: '0.3rem' }}>
           <strong style={{ fontSize: 'var(--fs-m)' }}>Últimos fallos</strong>
@@ -180,7 +214,7 @@ function BrevoSitios({ r, esAdmin }: { r: ResumenBrevo; esAdmin: boolean }) {
       )}
       {esAdmin && (
         <div style={{ marginTop: '0.8rem' }}>
-          <button type="button" id="brevo-subir" className="btn-secondary" onClick={subir} disabled={trabajando || !listo}>Subir ahora los pendientes</button>
+          <button type="button" id="brevo-subir" className="btn-secondary" onClick={subir} disabled={trabajando || !conClave || porSubir.length === 0}>Subir ahora a Brevo{porSubir.length ? ` (${porSubir.length})` : ''}</button>
         </div>
       )}
       {res && <div className={res.ok ? 'modal-ok-box' : 'wiz-warn show'} role="status" style={{ marginTop: '0.6rem' }}>{res.ok ? res.txt : `⚠ ${res.txt}`}</div>}

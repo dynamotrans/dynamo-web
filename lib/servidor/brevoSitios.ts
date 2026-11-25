@@ -7,7 +7,9 @@ import { atributosBrevo, type SitioParaBrevo } from '@/lib/brevoSitios';
 // se suban a Brevo… otra lista: 04-SITIOS-DYNAMO, por diferenciar». Sube a su lista de Brevo
 // los emails de sitios que la base de datos dice que tocan (nuevos, cambiados o reintentos) y
 // apunta el resultado. No envía ningún email: eso lo decide él en Brevo.
-// Lo llaman la tarea diaria de la base de datos (/api/brevo/sitios) y el botón de Mantenimiento.
+// Lo llaman la tarea diaria de la base de datos (/api/brevo/sitios), que solo sube si el
+// interruptor está encendido, y el botón de Mantenimiento (`aunqueApagado`), que es la subida
+// a mano después de revisar la lista («OK, reviso», 2026-11-25).
 
 export type ResultadoBrevoSitios =
   | { estado: 'apagado' | 'sin_clave' | 'sin_servicio' }

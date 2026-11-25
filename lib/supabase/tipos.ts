@@ -4775,6 +4775,7 @@ export type Database = {
       brevo_sitios_marcar: { Args: { p_filas: Json | null }; Returns: number }
       brevo_sitios_pendientes: { Args: { p_limite?: number | null }; Returns: { email: string; nombre: string; cargo: string; empresa: string; cif: string; telefono: string; direccion: string; codigo_postal: string; localidad: string; provincia: string; pais: string; google_maps: string; sitio_id: string; huella: string }[] }
       brevo_sitios_resumen: { Args: Record<PropertyKey, never>; Returns: Json }
+      brevo_sitios_revisar: { Args: Record<PropertyKey, never>; Returns: Json }
       buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string; nima_por_defecto: boolean }[] }
       buscar_empresa_de_mi_alta: { Args: { p_cif: string | null }; Returns: string }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }

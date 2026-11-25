@@ -16254,3 +16254,37 @@ do $$ declare v_cli uuid; v_man numeric; v_ces numeric; v_plazo int; r record; b
   raise notice 'OK 358 · email de línea de crédito concedida: a vencimiento, sin nombrar los días de pago';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 359 · SITIOS → BREVO: LA LISTA PARA REVISAR ANTES DE SUBIR (usuario, 2026-11-25: «OK, reviso,
+-- pásamela»). El equipo de Dynamo ve, uno a uno, los que van a subir y por qué; nadie más.
+do $$ declare j jsonb; f jsonb; s1 uuid;
+  u_adm uuid := current_setting('prueba.u_admin')::uuid; u_cli uuid := current_setting('prueba.u_cli_b')::uuid; begin
+  if has_function_privilege('anon', 'brevo_sitios_revisar()', 'execute') then raise exception 'FALLO 359 · la lista para revisar se puede pedir sin sesión'; end if;
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  begin perform brevo_sitios_revisar(); raise exception 'FALLO 359 · un cliente ve la lista de emails que suben a Brevo';
+  exception when insufficient_privilege then null; end;
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  j := brevo_sitios_revisar();
+  select x into f from jsonb_array_elements(j) x where x ->> 'email' = 'marta@aceros357.com';
+  if f is null or f ->> 'motivo' <> 'nuevo' or f ->> 'nombre' <> 'Marta Ruiz' or f ->> 'empresa' <> 'Aceros 357' or f ->> 'poblacion' <> 'Sevilla' then
+    raise exception 'FALLO 359 · la lista para revisar no trae la persona nueva con sus datos: %', f; end if;
+  if exists (select 1 from jsonb_array_elements(j) x where x ->> 'email' ~ 'invalid|borrado@') then raise exception 'FALLO 359 · la lista para revisar enseña direcciones que no suben'; end if;
+  if exists (select 1 from jsonb_array_elements(j) x where x ? 'telefono' or x ? 'cif' or x ? 'huella') then raise exception 'FALLO 359 · la lista para revisar trae más datos de los que se enseñan'; end if;
+  -- Ya subida y con datos cambiados: «cambiado». Con fallo de ayer: «reintento». Subida y al día: no sale.
+  select sitio_id into s1 from brevo_sitios_candidatos() x where x.email = 'marta@aceros357.com';
+  perform set_config('request.jwt.claim.sub', '', false);
+  perform brevo_sitios_marcar(jsonb_build_array(jsonb_build_object('email', 'marta@aceros357.com', 'sitio_id', s1, 'huella', 'otra', 'estado', 'subido')));
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  if (select x ->> 'motivo' from jsonb_array_elements(brevo_sitios_revisar()) x where x ->> 'email' = 'marta@aceros357.com') is distinct from 'cambiado' then
+    raise exception 'FALLO 359 · un email ya subido con datos nuevos no sale como «cambiado»'; end if;
+  update brevo_subidas set estado = 'error', intentos = 1, subido_en = now() - interval '1 day' where email = 'marta@aceros357.com';
+  if (select x ->> 'motivo' from jsonb_array_elements(brevo_sitios_revisar()) x where x ->> 'email' = 'marta@aceros357.com') is distinct from 'reintento' then
+    raise exception 'FALLO 359 · un email que falló ayer no sale como «reintento»'; end if;
+  update brevo_subidas set estado = 'subido', huella = (select huella from brevo_sitios_candidatos() x where x.email = 'marta@aceros357.com') where email = 'marta@aceros357.com';
+  if exists (select 1 from jsonb_array_elements(brevo_sitios_revisar()) x where x ->> 'email' = 'marta@aceros357.com') then
+    raise exception 'FALLO 359 · un email ya subido y sin cambios sigue en la lista para revisar'; end if;
+  delete from brevo_subidas where email like '%aceros357%';
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 359 · sitios → Brevo: lista para revisar antes de subir, solo para Dynamo, con el motivo de cada uno';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

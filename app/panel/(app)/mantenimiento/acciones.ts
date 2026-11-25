@@ -49,9 +49,11 @@ export async function subirSitiosABrevoAhora(): Promise<Res<{ aviso: string }>> 
   comprobarEntrada("app/panel/(app)/mantenimiento/acciones#subirSitiosABrevoAhora", []);
   if (!(await adminMaster())) return { ok: false, error: 'Solo el administrador puede hacer esto.' };
   const { subirSitiosABrevo } = await import('@/lib/servidor/brevoSitios');
-  const r = await subirSitiosABrevo();
+  // El botón es la subida A MANO (tras revisar la lista): no depende del interruptor, que solo
+  // decide si además suben solos cada mañana (usuario, 2026-11-25: «OK, reviso»).
+  const r = await subirSitiosABrevo({ aunqueApagado: true });
   switch (r.estado) {
-    case 'apagado': return { ok: false, error: 'La subida a Brevo está apagada. Enciéndela en Parámetros → «Brevo: sitios de la plataforma».' };
+    case 'apagado': return { ok: false, error: 'No se ha podido subir. Inténtalo de nuevo.' };
     case 'sin_clave': return { ok: false, error: 'Falta la clave de Brevo en Vercel (BREVO_API_KEY).' };
     case 'sin_servicio': return { ok: false, error: SIN_CLAVE };
     case 'error': return { ok: false, error: r.error };
