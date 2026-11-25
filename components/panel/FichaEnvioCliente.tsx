@@ -601,15 +601,14 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
           {conTarjeta
             ? <PagoTarjeta envioId={e.id} id="pago-tarjeta" texto="Pagar con tarjeta" />
             : null}
-          <a className="btn-secondary" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Ver proforma</a>
+          {/* «Por transferencia inmediata (Ver proforma)» (usuario, 2026-11-25): el botón dice para qué es la proforma. */}
+          <a className="btn-secondary" id="pago-proforma" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Por transferencia inmediata (Ver proforma)</a>
           {conAvisar && <button type="button" id="pago-avisar" className={conTarjeta ? 'btn-secondary' : 'btn-primary'} onClick={() => { setResAviso(null); setPreguntaAviso(true); }}>Ya he hecho la transferencia</button>}
         </div>
         {preguntaAviso && !p.pago_avisado_en && (
           <div id="pago-avisar-confirmar" style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
-            <strong>¿Ya has hecho la transferencia de {total}?</strong>
+            <strong>¿Ya has hecho la transferencia inmediata de {total}?</strong>
             <div style={{ marginTop: '0.25rem' }}>Pulsa «Sí» solo si ya está hecha, con el concepto <strong>PRO-{e.referencia_gx}</strong>. Paramos el plazo y lo comprobamos en el banco; si no nos consta, el envío se anula.</div>
-            {/* Una transferencia puede no llegar hasta el día siguiente, y las fechas cuentan desde que se valida el pago (usuario, 2026-11-25). */}
-            <div id="pago-avisar-fechas" style={{ marginTop: '0.35rem' }}>Una transferencia puede tardar <strong>hasta el día siguiente</strong> en llegarnos. Las fechas de recogida cuentan <strong>desde que validamos el pago</strong>: si llega más tarde, se recalculan y pueden cambiar respecto a las indicadas.</div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn-primary" disabled={avisando} onClick={avisar}>Sí, ya la he hecho: validadla</button>
               <button type="button" className="btn-ghost" disabled={avisando} onClick={() => setPreguntaAviso(false)}>Todavía no</button>
@@ -622,15 +621,7 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
         {avisando && <Cargando texto="Enviando tu aviso" />}
         {p.pago_avisado_en
           ? <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>Estamos comprobando tu transferencia en el banco. Si al final prefieres pagar de otra forma, llámanos antes para no pagar dos veces.</div>
-          : (
-            <details className="pago-cli-como" id="pago-como">
-              <summary>¿Cómo pagar?</summary>
-              <p>{e.tarjeta
-                ? <><strong>Con tarjeta</strong>: el envío pasa a programación al momento.</>
-                : <>El pago con tarjeta estará disponible muy pronto.</>}</p>
-              <p><strong>Por transferencia inmediata</strong> (llega en segundos y tu banco no te cobra más que por una normal): usa los datos de la proforma, pon <strong>PRO-{e.referencia_gx}</strong> como concepto y pulsa <strong>«Ya he hecho la transferencia»</strong>. El plazo se para mientras la validamos.</p>
-            </details>
-          )}
+          : null}
         </>}
       </div>
     );

@@ -3992,6 +3992,7 @@ do $$ declare faltan text; begin
                            'emails_enviados',              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
                            'envio_cambios',                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
                            'cambios_deshacer',             -- ídem para incidencias y penalizaciones: solo la escriben sus disparadores, que ya tienen el bloqueo
+                           'brevo_subidas',                -- registro de lo subido a Brevo: lo escribe solo el servidor (tarea diaria), también en mantenimiento
                            'transportista_cancelaciones',  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
                            'usuarios_dispositivos',        -- seguridad del acceso: se escribe al entrar, también en mantenimiento (el equipo tiene que poder entrar)
                            'transportista_notas')          -- nota automática: solo la escribe la tarea de la noche, que ya se para en mantenimiento
@@ -16153,5 +16154,103 @@ do $$ declare c uuid; e uuid; i uuid; i2 uuid; p uuid; j jsonb; n int; v record;
   perform set_config('request.jwt.claim.sub', '', false);
   delete from envio_cambios where envio_id = e;
   raise notice 'OK 356 · deshacer en incidencias y penalizaciones: cambio de 60 s con persona detrás, vuelve atrás sin emails ni avisos, solo quien lo hizo o Dynamo y nunca con el plazo pasado';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 357 · SITIOS → BREVO (usuario, 2026-11-25: «que esos mails de sitios, de todos los sitios, se
+-- suban a Brevo… lista 04-SITIOS-DYNAMO»). La base de datos dice qué emails de sitios tocan
+-- (contactos del sitio y emails de avisos, uno por email), deja fuera almacenes de Dynamo,
+-- borrados y direcciones de prueba, no repite lo ya subido, vuelve a subir lo que cambia y
+-- reintenta los fallos tres veces. Solo el servidor; nace apagado.
+do $$ declare c uuid; s1 uuid; s2 uuid; s3 uuid; n int; v record; j jsonb;
+  u_adm uuid := current_setting('prueba.u_admin')::uuid; u_cli uuid := current_setting('prueba.u_cli_b')::uuid; begin
+  if (select valor::text from parametros where clave = 'brevo_sitios_activo') <> 'false' then raise exception 'FALLO 357 · la subida a Brevo no nace apagada'; end if;
+  if (select valor #>> '{}' from parametros where clave = 'brevo_sitios_lista') <> '04-SITIOS-DYNAMO' then raise exception 'FALLO 357 · la lista de Brevo no es 04-SITIOS-DYNAMO'; end if;
+  if has_function_privilege('authenticated', 'brevo_sitios_pendientes(integer)', 'execute') or has_function_privilege('authenticated', 'brevo_sitios_candidatos()', 'execute')
+     or has_function_privilege('authenticated', 'brevo_sitios_marcar(jsonb)', 'execute') or has_function_privilege('anon', 'brevo_sitios_resumen()', 'execute')
+     or has_function_privilege('authenticated', 'brevo_sitios_avisar()', 'execute') then
+    raise exception 'FALLO 357 · las funciones de Brevo se pueden llamar sin ser el servidor'; end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.brevo_subidas'::regclass) then raise exception 'FALLO 357 · brevo_subidas sin RLS'; end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if not exists (select 1 from cron.job where jobname = 'dynamo-brevo-sitios') then raise exception 'FALLO 357 · falta la tarea diaria de Brevo'; end if;
+  end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into clientes (razon_social, cif) values ('Sitios a Brevo SL', 'B35700357') returning id into c;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, emails_avisos)
+    values (c, 'Aceros 357', 'Calle Uno 1', '41001', 'Sevilla', 'Sevilla', 'ES', array['Avisos357@Aceros357.com', 'prueba@aceros357.invalid']) returning id into s1;
+  insert into contactos (sitio_id, nombre, cargo, telefono, email) values (s1, 'Marta Ruiz', 'Jefa de almacén', '+34954000357', 'marta@aceros357.com');
+  -- El mismo email como persona y como aviso: una sola fila, la de la persona.
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, emails_avisos)
+    values (c, 'Naves 357', 'Calle Dos 2', '28001', 'Madrid', 'Madrid', 'ES', array['marta@aceros357.com']) returning id into s2;
+  -- Un sitio borrado no sube.
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, emails_avisos, borrado, borrado_en)
+    values (c, 'Borrado 357', 'Calle Tres 3', '46001', 'Valencia', 'Valencia', 'ES', array['borrado@aceros357.com'], true, now()) returning id into s3;
+
+  select count(*) into n from brevo_sitios_candidatos() x where x.email like '%aceros357%';
+  if n <> 2 then raise exception 'FALLO 357 · esperaba 2 emails de sitios (la persona y el de avisos) y hay %: %', n,
+    (select string_agg(x.email, ', ') from brevo_sitios_candidatos() x where x.email like '%aceros357%'); end if;
+  select * into v from brevo_sitios_candidatos() x where x.email = 'marta@aceros357.com';
+  if v.nombre <> 'Marta Ruiz' or v.empresa <> 'Aceros 357' or v.cargo <> 'Jefa de almacén' or v.provincia <> 'Sevilla' or v.sitio_id <> s1 then
+    raise exception 'FALLO 357 · la persona de contacto no sube con sus datos y los de su sitio: %', to_jsonb(v); end if;
+  if not exists (select 1 from brevo_sitios_candidatos() x where x.email = 'avisos357@aceros357.com' and x.nombre is null and x.empresa = 'Aceros 357') then
+    raise exception 'FALLO 357 · el email de avisos no sube en minúsculas con los datos del sitio'; end if;
+  if exists (select 1 from brevo_sitios_candidatos() x where x.email ~ 'invalid|borrado@' or x.email like '%@' || split_part(lower(parametro('dynamo_email') #>> '{}'), '@', 2)) then
+    raise exception 'FALLO 357 · sube una dirección de prueba, de un sitio borrado o del dominio de Dynamo'; end if;
+
+  -- Un usuario cualquiera no puede apuntar resultados; el servidor sí.
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  set local role authenticated;
+  begin perform brevo_sitios_marcar('[]'::jsonb); raise exception 'FALLO 357 · un usuario apunta subidas a Brevo';
+  exception when insufficient_privilege then null; end;
+  begin perform brevo_sitios_resumen(); raise exception 'FALLO 357 · un cliente ve el resumen de Brevo';
+  exception when insufficient_privilege then null; end;
+  if (select count(*) from brevo_subidas) <> 0 then raise exception 'FALLO 357 · un cliente ve la tabla de subidas'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+
+  -- Subida: lo subido no vuelve a salir; lo que cambia de datos, sí.
+  select jsonb_agg(jsonb_build_object('email', x.email, 'sitio_id', x.sitio_id, 'huella', x.huella, 'estado', 'subido')) into j
+    from brevo_sitios_pendientes(500) x where x.email like '%aceros357%';
+  if brevo_sitios_marcar(j) <> 2 then raise exception 'FALLO 357 · no se apuntan las dos subidas'; end if;
+  if exists (select 1 from brevo_sitios_pendientes(500) x where x.email like '%aceros357%') then raise exception 'FALLO 357 · un email ya subido vuelve a salir'; end if;
+  update contactos set cargo = 'Directora de logística' where email = 'marta@aceros357.com';
+  if not exists (select 1 from brevo_sitios_pendientes(500) x where x.email = 'marta@aceros357.com') then raise exception 'FALLO 357 · al cambiar sus datos no vuelve a subir'; end if;
+  -- Fallo: se reintenta al día siguiente, tres veces como mucho.
+  perform brevo_sitios_marcar(jsonb_build_array(jsonb_build_object('email', 'marta@aceros357.com', 'sitio_id', s1, 'huella', 'x', 'estado', 'error', 'error', 'Brevo 400')));
+  if exists (select 1 from brevo_sitios_pendientes(500) x where x.email = 'marta@aceros357.com') then raise exception 'FALLO 357 · un fallo se reintenta al momento'; end if;
+  update brevo_subidas set subido_en = now() - interval '1 day' where email = 'marta@aceros357.com';
+  if not exists (select 1 from brevo_sitios_pendientes(500) x where x.email = 'marta@aceros357.com') then raise exception 'FALLO 357 · un fallo no se reintenta al día siguiente'; end if;
+  update brevo_subidas set intentos = 3 where email = 'marta@aceros357.com';
+  if exists (select 1 from brevo_sitios_pendientes(500) x where x.email = 'marta@aceros357.com') then raise exception 'FALLO 357 · un fallo se reintenta más de tres veces'; end if;
+
+  -- El resumen, para Dynamo.
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  j := brevo_sitios_resumen();
+  if (j ->> 'activo')::boolean or j ->> 'lista' <> '04-SITIOS-DYNAMO' or (j ->> 'subidos')::int < 1 or (j ->> 'errores')::int < 1
+     or jsonb_array_length(j -> 'ultimos_errores') < 1 then raise exception 'FALLO 357 · el resumen de Brevo no cuadra: %', j; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- Apagado, la tarea diaria no llama a nadie.
+  if brevo_sitios_avisar() then raise exception 'FALLO 357 · apagado, la tarea diaria avisa al servidor'; end if;
+  delete from brevo_subidas where email like '%aceros357%';
+  raise notice 'OK 357 · sitios → Brevo: uno por email con sus datos, fuera pruebas, borrados y Dynamo, sin repetir, resube lo que cambia, reintenta 3 veces, solo el servidor y nace apagado';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 358 · EMAIL «LÍNEA DE CRÉDITO CONCEDIDA»: NO NOMBRA LOS DÍAS DE PAGO (usuario, 2026-11-25:
+-- «quita eso de 120 días»). Se sigue diciendo «a vencimiento» y, si es de CESCE, que la respalda.
+do $$ declare v_cli uuid; v_man numeric; v_ces numeric; v_plazo int; r record; begin
+  select cliente_id into v_cli from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  select riesgo_manual_euros, riesgo_cesce_euros, plazo_pago_dias into v_man, v_ces, v_plazo from clientes where id = v_cli;
+  update clientes set riesgo_manual_euros = null, riesgo_cesce_euros = 0, plazo_pago_dias = 120 where id = v_cli;
+  update clientes set riesgo_cesce_euros = 5000 where id = v_cli;
+  select * into r from emails_enviados where clave like 'credito_cambio:' || v_cli || ':%' order by clave desc limit 1;
+  if r.id is null or r.asunto <> 'Línea de crédito concedida · Dynamo' then raise exception 'FALLO 358 · no sale el email de línea concedida: %', r.asunto; end if;
+  if position('respaldada por CESCE' in r.cuerpo_html) = 0
+     or position('se pagan <strong>a vencimiento</strong>, sin pago por adelantado' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 358 · el email de línea concedida no dice lo acordado: %', r.cuerpo_html; end if;
+  if position('120' in r.cuerpo_html) > 0 or r.cuerpo_html ~ '\(a \d+ días\)' then
+    raise exception 'FALLO 358 · el email de línea concedida sigue nombrando los días de pago: %', r.cuerpo_html; end if;
+  update clientes set riesgo_manual_euros = v_man, riesgo_cesce_euros = v_ces, plazo_pago_dias = v_plazo where id = v_cli;
+  raise notice 'OK 358 · email de línea de crédito concedida: a vencimiento, sin nombrar los días de pago';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

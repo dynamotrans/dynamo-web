@@ -41,3 +41,21 @@ export async function borrarArchivosSueltos(): Promise<Res<{ borrados: number }>
   }
   return { ok: true, borrados };
 }
+
+// Sitios → Brevo (usuario, 2026-11-25): «Subir ahora» desde Mantenimiento, para no esperar a
+// la tarea de la mañana y para probarlo. Hace lo mismo que la tarea; solo el Admin Master. Si
+// la subida está apagada en Parámetros, no sube nada y lo dice.
+export async function subirSitiosABrevoAhora(): Promise<Res<{ aviso: string }>> {
+  comprobarEntrada("app/panel/(app)/mantenimiento/acciones#subirSitiosABrevoAhora", []);
+  if (!(await adminMaster())) return { ok: false, error: 'Solo el administrador puede hacer esto.' };
+  const { subirSitiosABrevo } = await import('@/lib/servidor/brevoSitios');
+  const r = await subirSitiosABrevo();
+  switch (r.estado) {
+    case 'apagado': return { ok: false, error: 'La subida a Brevo está apagada. Enciéndela en Parámetros → «Brevo: sitios de la plataforma».' };
+    case 'sin_clave': return { ok: false, error: 'Falta la clave de Brevo en Vercel (BREVO_API_KEY).' };
+    case 'sin_servicio': return { ok: false, error: SIN_CLAVE };
+    case 'error': return { ok: false, error: r.error };
+    default:
+      return { ok: true, aviso: `${r.listaCreada ? `Lista «${r.lista}» creada en Brevo. ` : ''}Subidos a «${r.lista}»: ${r.subidos}.${r.errores ? ` Con fallo: ${r.errores} (se reintentan mañana).` : ''}${r.quedan ? ' Quedan más: vuelve a pulsar.' : ''}${r.subidos + r.errores === 0 ? ' No había ninguno nuevo.' : ''}` };
+  }
+}

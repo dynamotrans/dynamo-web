@@ -3,7 +3,10 @@ import { telBonito } from '@/lib/paises';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Lienzo, COLOR, A4, eur, fechaCorta } from './lienzo';
+import { rgb } from 'pdf-lib';
 import type { DatosDynamo } from './datos';
+
+const VERDE_SUAVE = rgb(0.91, 0.97, 0.93), VERDE_OSCURO = rgb(0.06, 0.42, 0.23);
 
 // FACTURA PROFORMA de un almacenamiento con pago por adelantado (buildProforma de
 // dashboard.html): cabecera morada, emisor y cliente, concepto, base + IVA + total, datos
@@ -128,6 +131,14 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   l.texto(mL + 10, y + 12, 'SEGURIDAD', 8, { bold: true, color: COLOR.ambar });
   segL.forEach((t, i) => l.texto(mL + 10, y + 24 + i * 10.5, t, 7.8, { color: navy }));
   y += 30 + segL.length * 10.5;
+  // EL CONCEPTO, EN GRANDE (usuario, 2026-11-25): «después de la caja naranja pon caja verde y
+  // texto grande y claro que diga que ponga en concepto el n.º de proforma». Sin ese concepto
+  // el pago no se puede casar con el envío.
+  l.rect(mL, y, mR - mL, 66, VERDE_SUAVE, COLOR.verde);
+  l.texto(mL + 12, y + 17, 'EN EL CONCEPTO DE LA TRANSFERENCIA ESCRIBE EL N.º DE PROFORMA:', 9.5, { bold: true, color: VERDE_OSCURO });
+  l.texto(mL + 12, y + 43, pno, 22, { bold: true, color: navy });
+  l.texto(mL + 12, y + 56, 'Solo eso, tal cual. Así localizamos tu pago al momento y el envío pasa a programación.', 7.8, { color: navy });
+  y += 78;
   }
 
   // Condiciones

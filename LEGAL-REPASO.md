@@ -157,3 +157,10 @@ Fecha: 2026-11-24 · Rama `pruebas` · **No se ha cambiado ningún texto legal**
 
 - La página `/pago/<llave>` (el botón «Pagar el envío» del email) se abre sin entrar en la plataforma, para que el cliente pueda reenviar el email a quien paga. Enseña la referencia, el nombre del cliente, el importe, la fecha de carga, la mercancía y las paradas (código postal, población, provincia, país y hora prevista; sin calle, sin empresa y sin contactos). **A validar con el asesor**: mencionarla en la política de privacidad (quién puede verla: quien tenga el enlace), y que pagar desde ahí no supone aceptar nada nuevo (las condiciones las aceptó quien creó el envío) ni cambia a nombre de quién va la factura.
 
+
+## Añadido el 2026-11-25 · Emails de los sitios a Brevo
+
+- La plataforma puede subir cada día a la cuenta de Brevo de Dynamo (lista «04-SITIOS-DYNAMO») los emails de los sitios de recogida y entrega: los de sus personas de contacto (con nombre, cargo y teléfono) y los de avisos, con los datos del sitio (empresa, CIF, dirección). Nace apagado; lo enciende Dynamo en Parámetros.
+- **Riesgo, avisado al usuario dos veces y decidido por él**: esos emails los da el cliente (o el propio sitio) para gestionar una recogida o una entrega, no para recibir publicidad. Escribirles con fines comerciales sin permiso choca con el artículo 21 de la LSSI y con la finalidad para la que se recogió el dato (RGPD, art. 5.1.b); además, la política de Brevo prohíbe listas de contactos que no han dado su consentimiento y puede suspender la cuenta. Dynamo dice que llama antes de escribir.
+- **Qué habría que tener antes de producción**: (1) decir en la política de privacidad que los datos de contacto de los sitios pueden usarse para ofrecerles los servicios de Dynamo, y con qué base; (2) que cada email comercial lleve la baja (Brevo la pone) y respetar las bajas; (3) Brevo como encargado del tratamiento en el registro de actividades; (4) valorar subir solo los emails generales de empresa y no los de personas con nombre y apellidos.
+- La plataforma solo sube los contactos: no envía nada. A quién y cuándo se escribe se decide en Brevo.

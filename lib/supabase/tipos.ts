@@ -300,6 +300,44 @@ export type Database = {
           },
         ]
       }
+      brevo_subidas: {
+        Row: {
+          email: string
+          sitio_id: string | null
+          huella: string
+          estado: string
+          error: string | null
+          intentos: number
+          subido_en: string
+        }
+        Insert: {
+          email: string
+          sitio_id?: string | null
+          huella: string
+          estado: string
+          error?: string | null
+          intentos?: number
+          subido_en?: string
+        }
+        Update: {
+          email?: string
+          sitio_id?: string | null
+          huella?: string
+          estado?: string
+          error?: string | null
+          intentos?: number
+          subido_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brevo_subidas_sitio_id_fkey"
+            columns: ["sitio_id"]
+            isOneToOne: false
+            referencedRelation: "sitios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cambios_deshacer: {
         Row: {
           id: string
@@ -4732,6 +4770,11 @@ export type Database = {
       baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
       borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
       borrar_transportista: { Args: { p_id: string | null }; Returns: Json }
+      brevo_sitios_avisar: { Args: Record<PropertyKey, never>; Returns: boolean }
+      brevo_sitios_candidatos: { Args: Record<PropertyKey, never>; Returns: { email: string; nombre: string; cargo: string; empresa: string; cif: string; telefono: string; direccion: string; codigo_postal: string; localidad: string; provincia: string; pais: string; google_maps: string; sitio_id: string; huella: string }[] }
+      brevo_sitios_marcar: { Args: { p_filas: Json | null }; Returns: number }
+      brevo_sitios_pendientes: { Args: { p_limite?: number | null }; Returns: { email: string; nombre: string; cargo: string; empresa: string; cif: string; telefono: string; direccion: string; codigo_postal: string; localidad: string; provincia: string; pais: string; google_maps: string; sitio_id: string; huella: string }[] }
+      brevo_sitios_resumen: { Args: Record<PropertyKey, never>; Returns: Json }
       buscar_clientes: { Args: { p_q: string | null; p_limite?: number | null; p_incluir?: string | null }; Returns: { id: string; nombre: string; cif: string; principal_id: string; iva_pct: number; estado: string; nima_por_defecto: boolean }[] }
       buscar_empresa_de_mi_alta: { Args: { p_cif: string | null }; Returns: string }
       buscar_envios: { Args: { p_q: string | null; p_limite?: number | null }; Returns: string[] }

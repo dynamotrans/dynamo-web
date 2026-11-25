@@ -153,9 +153,8 @@ export default function PagoPublico({ token, datos, conTarjeta, vuelta }: { toke
         )}
         {pregunta && !avisado && (
           <div id="pago-avisar-confirmar" style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
-            <strong>¿Ya está hecha la transferencia de {total}?</strong>
+            <strong>¿Ya está hecha la transferencia inmediata de {total}?</strong>
             <div style={{ marginTop: '0.25rem' }}>Pulsa «Sí» solo si ya está hecha, con el concepto <strong>PRO-{datos.referencia}</strong>. Paramos el plazo y lo comprobamos en el banco; si no nos consta, el envío se anula.</div>
-            <div id="pago-avisar-fechas" style={{ marginTop: '0.35rem' }}>Una transferencia puede tardar <strong>hasta el día siguiente</strong> en llegarnos. Las fechas de recogida cuentan <strong>desde que validamos el pago</strong>: si llega más tarde, se recalculan y pueden cambiar respecto a las indicadas.</div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn-primary" disabled={avisando} onClick={avisar}>Sí, ya está hecha: validadla</button>
               <button type="button" className="btn-ghost" disabled={avisando} onClick={() => setPregunta(false)}>Todavía no</button>

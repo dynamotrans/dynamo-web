@@ -5416,9 +5416,6 @@ table.data .pago-plazo .cuenta-atras .ca-t { font-weight: 800; }
 .pago-cli-botones > a, .pago-cli-botones button { width: 100%; min-height: 46px; justify-content: center; text-align: center;
     padding-left: 0.4rem; padding-right: 0.4rem; white-space: normal; line-height: 1.2; }
 .pago-cli-botones.impar > :last-child { grid-column: 1 / -1; }
-.pago-cli-como { margin-top: 0.55rem; font-size: var(--fs-s); color: var(--gray-600); }
-.pago-cli-como > summary { cursor: pointer; font-weight: 700; color: var(--purple); font-size: var(--fs-m); }
-.pago-cli-como p { margin: 0.35rem 0 0; line-height: 1.45; }
 /* Los dos botones de pago, SIEMPRE en la misma fila y al 50 % cada uno (usuario, 2026-11-24).
    En rejilla y no en flex: el de tarjeta va dentro de un formulario «invisible»
    (display: contents) y en flex se quedaba con casi todo el ancho, aplastando al otro.

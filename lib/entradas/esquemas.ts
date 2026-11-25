@@ -111,6 +111,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/incidencias/acciones#guardarIncidencia": z.tuple([z.string().uuid().or(z.literal('')).nullable(), z.object({ envio_id: z.string().uuid().or(z.literal('')).nullable(), cliente_id: z.string().uuid().or(z.literal('')).nullable(), tipo_id: z.string().uuid().or(z.literal('')), estado: z.enum(["cancelado", "abierto", "en_curso", "resuelto"]), prioridad: z.enum(["baja", "media", "alta", "critica"]), titulo: z.string().max(1000), detalle: z.string().max(5000), resolucion: z.string().max(1000) })]),
   "app/panel/(app)/mantenimiento/acciones#borrarArchivosSueltos": z.tuple([]),
   "app/panel/(app)/mantenimiento/acciones#contarArchivosSueltos": z.tuple([]),
+  "app/panel/(app)/mantenimiento/acciones#subirSitiosABrevoAhora": z.tuple([]),
   "app/panel/(app)/mi-cuenta/acciones#anadirCompanero": z.tuple([z.object({ email: z.string().max(1000), nombre: z.string().max(1000) })]),
   "app/panel/(app)/mi-cuenta/acciones#buscarEmpresaDeMiAlta": z.tuple([z.string().max(1000), z.string().max(1000)]),
   "app/panel/(app)/mi-cuenta/acciones#cambiarMiClave": z.tuple([z.string().max(1000), z.string().max(1000)]),

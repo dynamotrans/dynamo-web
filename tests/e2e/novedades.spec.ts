@@ -105,12 +105,13 @@ test.describe('novedades', () => {
     await expect(globoPlazo).toBeHidden();
     await page.locator('#tip-pago-plazo .tip-i-btn').click();
     await expect(globoPlazo).toContainText('tendrás que crear un envío nuevo');
-    // Y el cómo pagar, en un desplegable cerrado.
-    await expect(page.locator('#pago-como')).not.toHaveAttribute('open', '');
+    // El «¿Cómo pagar?» ya no está en la ventana (usuario, 2026-11-25): el botón de la proforma dice para qué es.
+    await expect(page.locator('#pago-como')).toHaveCount(0);
+    await expect(page.locator('#pago-proforma')).toHaveText('Por transferencia inmediata (Ver proforma)');
     // Los botones van DESPUÉS de la caja de pago y en una sola fila: «CMR digital» a la izquierda
     // y «Acciones» a la derecha, que despliega el resto (usuario, 2026-11-25).
     expect(await page.evaluate(() => {
-      const pago = document.querySelector('#pago-como'), barra = document.querySelector('#ficha-acciones'), resumen = document.querySelector('.pen-envio-sum');
+      const pago = document.querySelector('#pago-proforma'), barra = document.querySelector('#ficha-acciones'), resumen = document.querySelector('.pen-envio-sum');
       const F = Node.DOCUMENT_POSITION_FOLLOWING;
       return !!pago && !!barra && !!resumen && !!(pago.compareDocumentPosition(barra) & F) && !!(barra.compareDocumentPosition(resumen) & F);
     })).toBe(true);
@@ -132,8 +133,9 @@ test.describe('novedades', () => {
     // Avisa de su transferencia (con una pregunta antes): el temporizador desaparece y queda «validando».
     await page.goto(`/panel/envios?ver=${e.id}`);
     await page.locator('#pago-avisar').click();
-    // Antes de decir que sí: la transferencia puede llegar al día siguiente y las fechas cuentan desde que se valida.
-    await expect(page.locator('#pago-avisar-fechas')).toContainText(/hasta el día siguiente.*desde que validamos el pago.*se recalculan/s);
+    // Antes de decir que sí: la pregunta habla de transferencia inmediata y pide el concepto (usuario, 2026-11-25).
+    await expect(page.locator('#pago-avisar-confirmar')).toContainText(/¿Ya has hecho la transferencia inmediata de .*€\?.*con el concepto PRO-GX.*si no nos consta, el envío se anula/s);
+    await expect(page.locator('#pago-avisar-fechas')).toHaveCount(0);
     await page.getByRole('button', { name: /Sí, ya la he hecho/ }).click();
     await expect(page.locator('#pago-avisado')).toContainText('La estamos validando');
     await expect(page.locator('#pago-plazo')).toHaveCount(0);

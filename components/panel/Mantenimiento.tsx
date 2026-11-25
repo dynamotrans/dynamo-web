@@ -8,13 +8,19 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
 
-import { contarArchivosSueltos, borrarArchivosSueltos } from '@/app/panel/(app)/mantenimiento/acciones';
+import { contarArchivosSueltos, borrarArchivosSueltos, subirSitiosABrevoAhora } from '@/app/panel/(app)/mantenimiento/acciones';
 
 const LLAVE = 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z';
 
 export type Descuadre = { id: string; causa: string; ruta: string; navegador: string; corregido: boolean; datos: unknown; creado_en: string };
 
-export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descuadres = [] }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null; descuadres?: Descuadre[] }) {
+// Sitios → Brevo (usuario, 2026-11-25): cómo va la subida diaria de los emails de los sitios.
+export type ResumenBrevo = {
+  activo: boolean; lista: string; lista_id: number; candidatos: number; pendientes: number; subidos: number; errores: number;
+  ultima: string | null; ultimos_errores: { email: string; error: string | null; cuando: string; intentos: number }[]; conClave?: boolean;
+};
+
+export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descuadres = [], brevo = null }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null; descuadres?: Descuadre[]; brevo?: ResumenBrevo | null }) {
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
   const [preguntar, setPreguntar] = useState(false);
@@ -68,6 +74,7 @@ export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descua
         Lo que ya está en marcha no se para: los envíos siguen su curso y las reservas abiertas caducan solas. Al desactivarlo, todo vuelve a funcionar al instante.
       </p>
       {esAdmin && <ArchivosSueltos />}
+      {brevo && <BrevoSitios r={brevo} esAdmin={esAdmin} />}
       <DescuadresPantalla lista={descuadres} />
       {trabajando && <Cargando texto={activo ? 'Abriendo la plataforma' : 'Cerrando la plataforma'} />}
     </section>
@@ -129,6 +136,59 @@ function medidasTxt(m: unknown) {
   const o = m as Record<string, unknown>;
   return ['y', 'alto', 'doc', 'contenido', 'vvAlto', 'vvArriba', 'vvPagina'].filter((k) => typeof o[k] === 'number').map((k) => `${k} ${o[k]}`).join(' · ') || '—';
 }
+function BrevoSitios({ r, esAdmin }: { r: ResumenBrevo; esAdmin: boolean }) {
+  const refrescar = useRefrescar();
+  const [trabajando, setTrabajando] = useState(false);
+  const [res, setRes] = useState<{ ok: boolean; txt: string } | null>(null);
+  async function subir() {
+    setRes(null); setTrabajando(true);
+    const x = await subirSitiosABrevoAhora().catch(() => ({ ok: false as const, error: 'No se ha podido subir. Inténtalo de nuevo.' }));
+    setTrabajando(false);
+    setRes(x.ok ? { ok: true, txt: x.aviso } : { ok: false, txt: x.error });
+    refrescar();
+  }
+  const listo = r.activo && !!r.conClave;
+  return (
+    <div id="brevo-sitios" style={{ maxWidth: 720, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '1.1rem 1.2rem', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <strong style={{ color: 'var(--navy)' }}>Emails de los sitios a Brevo</strong>
+        <span id="brevo-sitios-estado" className={`badge badge-${listo ? 'green' : 'orange'}`}>{listo ? 'Encendido' : r.activo ? 'Falta la clave' : 'Apagado'}</span>
+      </div>
+      <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-600)', margin: '0.35rem 0 0.7rem' }}>
+        Cada mañana la plataforma sube a tu cuenta de Brevo, a la lista <strong className="notranslate" translate="no">{r.lista || '04-SITIOS-DYNAMO'}</strong>, los emails de los sitios de recogida y entrega
+        (personas de contacto y emails de avisos). No envía ningún email: a quién y cuándo se escribe lo decides tú en Brevo.
+        No suben los almacenes de Dynamo, los sitios borrados ni las direcciones de prueba.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', fontSize: 'var(--fs-m)' }}>
+        <div><div className="meta">Emails de sitios</div><strong id="brevo-candidatos">{r.candidatos}</strong></div>
+        <div><div className="meta">Subidos a Brevo</div><strong id="brevo-subidos">{r.subidos}</strong></div>
+        <div><div className="meta">Por subir</div><strong id="brevo-pendientes">{r.pendientes}</strong></div>
+        <div><div className="meta">Con fallo</div><strong style={{ color: r.errores ? 'var(--red)' : undefined }}>{r.errores}</strong></div>
+      </div>
+      {r.ultima && <div className="meta" style={{ marginTop: '0.5rem' }}>Última subida: {fechaHora(r.ultima)}</div>}
+      {!r.activo && <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>Está apagado. Se enciende en <strong>Parámetros → «Brevo: sitios de la plataforma»</strong>.</div></div>}
+      {r.activo && !r.conClave && <div className="pt-aviso info" style={{ marginTop: '0.7rem' }}><div>Falta la clave de Brevo en Vercel (<span className="notranslate" translate="no">BREVO_API_KEY</span>): sin ella no se puede subir nada.</div></div>}
+      {r.ultimos_errores.length > 0 && (
+        <div style={{ marginTop: '0.7rem', display: 'grid', gap: '0.3rem' }}>
+          <strong style={{ fontSize: 'var(--fs-m)' }}>Últimos fallos</strong>
+          {r.ultimos_errores.map((e) => (
+            <div key={e.email} className="meta" style={{ overflowWrap: 'anywhere' }}>
+              <span className="notranslate" translate="no">{e.email}</span> · {e.error ?? 'Sin detalle'} · {fechaHora(e.cuando)} · intento {e.intentos} de 3
+            </div>
+          ))}
+        </div>
+      )}
+      {esAdmin && (
+        <div style={{ marginTop: '0.8rem' }}>
+          <button type="button" id="brevo-subir" className="btn-secondary" onClick={subir} disabled={trabajando || !listo}>Subir ahora los pendientes</button>
+        </div>
+      )}
+      {res && <div className={res.ok ? 'modal-ok-box' : 'wiz-warn show'} role="status" style={{ marginTop: '0.6rem' }}>{res.ok ? res.txt : `⚠ ${res.txt}`}</div>}
+      {trabajando && <Cargando texto="Subiendo a Brevo" />}
+    </div>
+  );
+}
+
 function DescuadresPantalla({ lista }: { lista: Descuadre[] }) {
   return (
     <div id="descuadres-pantalla" style={{ maxWidth: 720, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '1.1rem 1.2rem', marginTop: '1rem' }}>

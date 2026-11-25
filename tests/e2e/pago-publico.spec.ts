@@ -33,9 +33,9 @@ test.describe('enlace de pago público', () => {
       // Nada de la plataforma: ni menú, ni enlaces al panel, ni nombres de los sitios.
       await expect(p.locator('.sidebar')).toHaveCount(0);
       expect(await p.locator('a[href^="/panel"]').count()).toBe(0);
-      // «Ya he hecho la transferencia»: pregunta antes, con el aviso de las fechas, y para el plazo.
+      // «Ya he hecho la transferencia»: pregunta antes (transferencia inmediata, con su concepto) y para el plazo.
       await p.locator('#pago-avisar').click();
-      await expect(p.locator('#pago-avisar-fechas')).toContainText(/hasta el día siguiente.*desde que validamos el pago/s);
+      await expect(p.locator('#pago-avisar-confirmar')).toContainText(/¿Ya está hecha la transferencia inmediata de .*€\?.*con el concepto PRO-GX/s);
       await p.getByRole('button', { name: /Sí, ya está hecha/ }).click();
       await expect(p.locator('#pago-avisado')).toContainText('La estamos validando');
       await expect(p.locator('#pago-plazo')).toHaveCount(0);

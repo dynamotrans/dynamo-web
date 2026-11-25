@@ -66,6 +66,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Avisos de recogida y entrega a los sitios', claves: ['aviso_parada_ventana_inicio', 'aviso_parada_ventana_fin', 'aviso_parada_hora_mismo_dia'] },
     { titulo: 'Resumen mensual a los sitios', claves: ['resumen_sitios_activo', 'resumen_sitios_dia'] },
     { titulo: 'Tiempo para deshacer', claves: ['emails_espera_segundos'] },
+    { titulo: 'Brevo: sitios de la plataforma', claves: ['brevo_sitios_activo', 'brevo_sitios_lista'] },
     { titulo: 'Firma del CMR digital', claves: ['cmr_dias_firma_tras_entrega'] },
     { titulo: 'Seguimiento automático del envío', claves: ['seguimiento_activo', 'seguimiento_hora_inicio_jornada', 'seguimiento_hora_primera_parada', 'seguimiento_hora_primera_parada_verano', 'seguimiento_minutos_hasta_carga', 'seguimiento_minutos_por_parada', 'seguimiento_horas_extra_grupaje', 'seguimiento_velocidad_kmh', 'seguimiento_horas_asignando'] },
   ] },
@@ -105,7 +106,8 @@ const CONOCIDAS = new Set([...SECCIONES.flatMap((s) => s.subs.flatMap((u) => u.c
 // Y los km por defecto entre dos paradas (usuario, 2026-11-19: «quítalo»): el seguimiento
 // los sigue usando por dentro (300 km) cuando no conoce la distancia de un tramo, así que el
 // valor se queda en la base de datos; lo que se quita es el campo de la pantalla.
-const OCULTOS = (clave: string) => clave.startsWith('pin_') || clave.startsWith('holded_') || clave === 'seguimiento_km_por_defecto';
+const OCULTOS = (clave: string) => clave.startsWith('pin_') || clave.startsWith('holded_') || clave === 'seguimiento_km_por_defecto'
+  || clave === 'brevo_sitios_lista_id';   // lo apunta el servidor al localizar la lista en Brevo
 const texto = (v: unknown): string => (v === null ? '' : typeof v === 'string' ? v : Array.isArray(v) ? v.map((x) => (x !== null && typeof x === 'object' ? JSON.stringify(x) : texto(x))).join(' · ') : JSON.stringify(v));
 // Quita tildes y mayúsculas para buscar («cesce» encuentra «CESCE», «dias» encuentra «días»).
 const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
