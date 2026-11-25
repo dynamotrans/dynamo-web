@@ -5,8 +5,18 @@ import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Incidencias, { type IncidenciaFila } from '@/components/panel/Incidencias';
 import { cargarEnviosLigeros, misEnviosLigerosPorId, type EnvioLigero } from '@/lib/enviosLigeros';
 import { CONTACTO } from '@/lib/atencion';
+import type { CambioPendiente } from '@/lib/envios';
 
 export const dynamic = 'force-dynamic';
+
+// Cambios que todavía se pueden deshacer (usuario, 2026-11-25): los que corren ahora, con el
+// código de su incidencia para nombrarla en el contador.
+type FilaPendiente = { fila_id: string; vence_en: string; tipo: string; autor: string | null; puede_anular: boolean; emails: number };
+function pendientesDe(datos: unknown, filas: IncidenciaFila[]): { id: string; codigo: string; pendiente: CambioPendiente }[] {
+  const porId = new Map(filas.map((f) => [f.id, f.codigo]));
+  return ((datos ?? []) as FilaPendiente[]).filter((x) => porId.has(x.fila_id))
+    .map((x) => ({ id: x.fila_id, codigo: porId.get(x.fila_id)!, pendiente: { vence_en: x.vence_en, tipo: x.tipo, autor: x.autor, puede_anular: x.puede_anular, emails: x.emails } }));
+}
 
 // Incidencias (Dynamo; y desde la etapa B, el cliente las suyas): diseño de #sec-incidencias de dashboard.html.
 // `?nueva=<envío>` abre «Reportar incidencia» con ese envío ya elegido (desde su ficha).
@@ -22,11 +32,12 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Para cualquier incidencia, llámanos al {CONTACTO.telefono} o escríbenos por WhatsApp al {CONTACTO.whatsapp}.</div></div></section>;
     }
     const esT = perfil.rol === 'transportista';
-    const [inc, tipos, rec] = await Promise.all([
+    const [inc, tipos, rec, pend] = await Promise.all([
       leerTodo(supabase.from('incidencias').select('id, codigo, envio_id, cliente_id, tipo_id, titulo, detalle, estado, prioridad, resolucion, resuelto_en, creado_en, modificado_en, tipos_incidencia(nombre)')
         .order('creado_en', { ascending: false }), 2000),
       supabase.from('tipos_incidencia').select('id, clave, nombre, activo').order('orden'),
       supabase.rpc('envios_pagina', { p_pestana: 'todas', p_pagina: 1, p_por_pagina: 40 }),
+      supabase.rpc('cambios_deshacer_pendientes', { p_tabla: 'incidencias' }),
     ]);
     // Los 40 envíos más recientes (para elegir sin escribir) y los de sus incidencias; el resto
     // se busca en la base de datos al escribir (antes se mandaban hasta 3.000 al navegador).
@@ -41,12 +52,12 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
         envio: e ? { referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente, fecha_carga_desde: e.fecha_carga_desde, fecha_carga_hasta: e.fecha_carga_hasta,
           origen: e.origen, destino: e.destino, metros_lineales: e.metros_lineales, toneladas: e.toneladas } : null };
     });
-    return <Incidencias key={sp.q ?? ''} qInicial={(sp.q ?? '').slice(0, 120)} esCliente esTransportista={esT} filas={filas} tipos={tipos.data ?? []} clientes={[]} envios={envios}
+    return <Incidencias key={sp.q ?? ''} qInicial={(sp.q ?? '').slice(0, 120)} esCliente esTransportista={esT} filas={filas} pendientes={pendientesDe(pend.data, filas)} tipos={tipos.data ?? []} clientes={[]} envios={envios}
       nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null}
       tipoInicial={sp.tipo === 'siniestro' ? (tipos.data ?? []).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
   }
   const vista = await vistaDe(supabase, perfil.rol);
-  const [inc, tipos, clientes, envios] = await Promise.all([
+  const [inc, tipos, clientes, envios, pend] = await Promise.all([
     leerTodo(filtrarVista(supabase.from('incidencias').select('id, codigo, envio_id, cliente_id, tipo_id, titulo, detalle, estado, prioridad, resolucion, resuelto_en, creado_en, modificado_en, ' +
       'tipos_incidencia(nombre), clientes(nombre_visible), envios(referencia_gx, referencia_cliente, fecha_carga_desde, fecha_carga_hasta, ' +
       'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas)'), vista).order('creado_en', { ascending: false }), 5000),
@@ -55,6 +66,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
     vista.tipo === 'transportista' ? Promise.resolve({ data: [] as { id: string; nombre_visible: string }[], error: null })
       : leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible'), vista, { cliente: 'id', transportista: null }).order('nombre_visible'), 10000),
     cargarEnviosLigeros(supabase, 40, vista.tipo === 'cliente' ? { cliente: vista.id } : vista.tipo === 'transportista' ? { transportista: vista.id } : undefined),
+    supabase.rpc('cambios_deshacer_pendientes', { p_tabla: 'incidencias' }),
   ]);
   const filas: IncidenciaFila[] = (inc.data ?? []).map((x) => ({
     id: x.id, codigo: x.codigo, envio_id: x.envio_id, cliente_id: x.cliente_id, tipo_id: x.tipo_id, tipo: x.tipos_incidencia?.nombre ?? '—',
@@ -68,7 +80,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       metros_lineales: x.envios.metros_lineales, toneladas: x.envios.toneladas,
     } : null,
   }));
-  return <Incidencias key={sp.q ?? ''} qInicial={(sp.q ?? '').slice(0, 120)} filas={filas} tipos={tipos.data ?? []} clientes={clientes.data ?? []} envios={envios} vistaTransportista={vista.tipo === 'transportista'}
+  return <Incidencias key={sp.q ?? ''} qInicial={(sp.q ?? '').slice(0, 120)} filas={filas} pendientes={pendientesDe(pend.data, filas)} tipos={tipos.data ?? []} clientes={clientes.data ?? []} envios={envios} vistaTransportista={vista.tipo === 'transportista'}
     nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null}
       tipoInicial={sp.tipo === 'siniestro' ? (tipos.data ?? []).find((t) => t.clave === 'siniestro')?.id ?? null : null} />;
 }

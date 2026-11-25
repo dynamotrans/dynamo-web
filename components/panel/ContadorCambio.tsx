@@ -26,8 +26,28 @@ function segundosHasta(iso: string): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 1000));
 }
 
-export default function ContadorCambio({ envio, referencia, pendiente, barra = false }: {
-  envio: string; referencia?: string; pendiente: CambioPendiente | null | undefined; barra?: boolean;
+// Los contadores de una LISTA (incidencias, penalizaciones): los cambios que se han visto correr
+// en esta pantalla siguen montados cuando dejan de correr (`vivo` pasa a null). Así, al anular,
+// la ventana con el resultado no desaparece cuando la página se refresca y el cambio ya no viene.
+export function useContadores<T extends { id: string; pendiente: CambioPendiente }>(pendientes: T[]): (T & { vivo: CambioPendiente | null })[] {
+  const [vistos, setVistos] = useState<T[]>(pendientes);
+  useEffect(() => {
+    setVistos((v) => {
+      const m = new Map(v.map((x) => [x.id, x]));
+      for (const p of pendientes) m.set(p.id, p);
+      return [...m.values()];
+    });
+  }, [pendientes]);
+  return vistos.map((x) => ({ ...x, vivo: pendientes.find((p) => p.id === x.id)?.pendiente ?? null }));
+}
+
+// Fuera de los envíos (incidencias y penalizaciones, usuario 2026-11-25) el mismo contador
+// recibe su propio «deshacer» (`anular`), sus textos y el nombre de lo que se cambia (`de`).
+type ResAnular = { ok: true; aviso?: string } | { ok: false; error: string };
+
+export default function ContadorCambio({ envio, referencia, pendiente, barra = false, anular: anularPropio, textos, de }: {
+  envio?: string; referencia?: string; pendiente: CambioPendiente | null | undefined; barra?: boolean;
+  anular?: () => Promise<ResAnular>; textos?: { que: string; efecto: string }; de?: string;
 }) {
   const router = useRouter();
   // Sin segundos en el servidor: el reloj del navegador decide (evita el baile al hidratar).
@@ -59,7 +79,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
   if (!resultado && (!pendiente || seg === null || (seg <= 0 && !preguntar))) return null;
   if (!p) return null;
   const s = seg ?? 0;
-  const txt = TEXTOS[p.tipo] ?? TEXTOS.email;
+  const txt = textos ?? TEXTOS[p.tipo] ?? TEXTOS.email;
   // Sin emails esperando (p. ej. un envío con transportista propio): lo que corre es el cambio.
   const queSale = p.emails > 1 ? `Los ${p.emails} avisos` : p.emails === 1 ? 'El aviso' : 'El cambio';
   const verbo = p.emails > 0 ? (p.emails > 1 ? 'salen' : 'sale') : 'se confirma';
@@ -68,7 +88,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
 
   async function anular() {
     setTrabajando(true);
-    const x = await anularCambioEnvio(envio).catch(() => ({ ok: false as const, error: 'No se ha podido anular. Inténtalo de nuevo.' }));
+    const x: ResAnular = await (anularPropio ? anularPropio() : anularCambioEnvio(envio ?? '')).catch(() => ({ ok: false as const, error: 'No se ha podido anular. Inténtalo de nuevo.' }));
     setTrabajando(false);
     setResultado(x.ok ? { ok: true, txt: x.aviso ?? 'Cambio anulado.' } : { ok: false, txt: x.error });
     router.refresh();
@@ -87,7 +107,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
   const ventana = (preguntar || resultado) && typeof document !== 'undefined' && createPortal(
     // Lo que se pulse aquí no debe llegar a la fila de la lista (abriría la ficha).
     <div onClick={(ev) => ev.stopPropagation()} onMouseDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => ev.stopPropagation()}>
-      <Modal abierto titulo="¿Deseas anular el cambio realizado?" sub={`${txt.que}${referencia ? ` · #${referencia}` : ''}`}
+      <Modal abierto titulo="¿Deseas anular el cambio realizado?" sub={`${txt.que}${de ? ` · ${de}` : referencia ? ` · #${referencia}` : ''}`}
         onCerrar={() => { setPreguntar(false); setResultado(null); }}
         pie={resultado
           ? <button className="btn-primary" onClick={() => { setPreguntar(false); setResultado(null); }}>Entendido</button>
@@ -119,7 +139,7 @@ export default function ContadorCambio({ envio, referencia, pendiente, barra = f
         <button type="button" className="cc-barra" onClick={abrir} disabled={!p.puede_anular} aria-label={etiqueta} data-tipo={p.tipo}>
           {anillo}
           <span className="cc-barra-txt">
-            <strong>{txt.que}: {queSale.toLowerCase()} {verbo} en <span suppressHydrationWarning>{s} s</span></strong>
+            <strong>{txt.que}{de ? <> <span className="notranslate" translate="no">{de}</span></> : null}: {queSale.toLowerCase()} {verbo} en <span suppressHydrationWarning>{s} s</span></strong>
             {p.puede_anular && <span>¿Te has equivocado? Pulsa aquí para anularlo.</span>}
           </span>
         </button>

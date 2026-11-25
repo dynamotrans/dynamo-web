@@ -14,7 +14,9 @@ import BuscaEnvio from './BuscaEnvio';
 import BarraFiltros from './BarraFiltros';
 import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
-import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
+import { guardarPenalizacion, cambiarEstadoPenalizacion, deshacerCambioPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
+import ContadorCambio, { useContadores } from './ContadorCambio';
+import type { CambioPendiente } from '@/lib/envios';
 import { euros, numero, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
@@ -47,7 +49,9 @@ const Margen = ({ c, t }: { c: number | null; t: number | null }) => {
 };
 const IcoAlerta = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>;
 
-export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error, qInicial = '' }: {
+export default function Penalizaciones({ filas, pendientes = [], tipos, envios, nuevaPara, error, qInicial = '' }: {
+  // Cambios de estado que todavía se pueden deshacer (60 s): el contador de arriba.
+  pendientes?: { id: string; codigo: string; pendiente: CambioPendiente }[];
   filas: PenalizacionFila[]; tipos: Tipo[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
   qInicial?: string;   // ?q=…: llega buscada (desde el buscador global), en la pestaña «Todas»
 }) {
@@ -78,6 +82,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
       'P. cliente (sin IVA)': p.importe_cliente, 'P. transportista (sin IVA)': p.importe_transportista,
       'Margen (sin IVA)': p.importe_cliente == null && p.importe_transportista == null ? null : (p.importe_cliente ?? 0) - (p.importe_transportista ?? 0),
       Fecha: fechaHora(p.creado_en) })));
+  const contadores = useContadores(pendientes);
   const cerrar = () => { setFicha(null); if (nuevaPara) router.replace('/panel/penalizaciones'); };
 
   return (
@@ -86,6 +91,12 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
         <h2>Penalizaciones</h2>
         <button className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Crear penalización</button>
       </div>
+      {/* Contador para deshacer (usuario, 2026-11-25): confirmar o anular una penalización se
+          puede deshacer mientras corre el plazo; hasta entonces no se avisa a nadie. */}
+      {contadores.map((x) => (
+        <ContadorCambio key={x.id} barra pendiente={x.vivo} de={x.codigo} anular={() => deshacerCambioPenalizacion(x.id)}
+          textos={{ que: 'Cambio en la penalización', efecto: 'La penalización volverá al estado de antes (sin confirmar, confirmada o anulada) y no se avisará a nadie.' }} />
+      ))}
       <div className="tabs">
         {PESTANAS.map(([k, t]) => (
           <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta[k] ?? 0})</button>

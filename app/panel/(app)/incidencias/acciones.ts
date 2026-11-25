@@ -66,3 +66,22 @@ export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): 
   if (error) return { ok: false, error: traducir(error.message) };
   return { ok: true, id: data.id };
 }
+
+// Deshacer el último cambio de una incidencia mientras corre su plazo (usuario, 2026-11-25:
+// «incluye incidencias, penalizaciones — 60 segundos»): recién abierta queda retirada; un
+// cambio de estado vuelve al de antes; y sus emails y avisos no salen.
+export async function deshacerCambioIncidencia(id: string): Promise<{ ok: true; aviso: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/incidencias/acciones#deshacerCambioIncidencia", [id]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const { data, error } = await s.supabase.rpc('deshacer_cambio', { p_tabla: 'incidencias', p_fila: id });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data ?? {}) as { resultado?: string; tipo?: string };
+  switch (r.resultado) {
+    case 'deshecho':
+      return { ok: true, aviso: r.tipo === 'creada' ? 'Incidencia retirada: no se ha avisado a nadie.' : 'Cambio deshecho: la incidencia vuelve a como estaba y no se ha avisado a nadie.' };
+    case 'ya_salio': return { ok: false, error: 'Ya es tarde: el aviso acaba de salir. Si hace falta, cambia la incidencia de nuevo.' };
+    case 'nada': return { ok: false, error: 'No queda nada por deshacer en esta incidencia.' };
+    default: return { ok: false, error: 'No se ha podido deshacer el cambio. Cambia la incidencia a mano si hace falta.' };
+  }
+}

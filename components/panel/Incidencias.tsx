@@ -17,7 +17,9 @@ import BarraFiltros from './BarraFiltros';
 import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
 import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
-import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
+import { guardarIncidencia, deshacerCambioIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
+import ContadorCambio, { useContadores } from './ContadorCambio';
+import type { CambioPendiente } from '@/lib/envios';
 import { fecha, ventana, fechaHora, medidasTxt, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { enRango } from '@/lib/filtroFechas';
@@ -48,7 +50,9 @@ const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null, vistaTransportista = false, qInicial = '' }: {
+export default function Incidencias({ filas, pendientes = [], tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null, vistaTransportista = false, qInicial = '' }: {
+  // Cambios que todavía se pueden deshacer (60 s): el contador de arriba.
+  pendientes?: { id: string; codigo: string; pendiente: CambioPendiente }[];
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
   tipoInicial?: string | null;   // ?tipo=siniestro: el formulario nuevo ya con ese tipo
   qInicial?: string;   // ?q=…: llega buscada (desde el buscador global), en la pestaña «Todas»
@@ -79,6 +83,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
       'F. carga': x.envio ? fecha(x.envio.fecha_carga_desde) : '', Origen: x.envio?.origen ?? '', Destino: x.envio?.destino ?? '',
       'm · Tn': x.envio && (x.envio.metros_lineales != null || x.envio.toneladas != null) ? medidasTxt(x.envio.metros_lineales, x.envio.toneladas) : '',
       Estado: ESTADOS.find(([k]) => k === x.estado)?.[1] ?? x.estado, Prioridad: PRIORIDADES.find(([k]) => k === x.prioridad)?.[1] ?? '' })));
+  const contadores = useContadores(pendientes);
   const cerrar = () => { setFicha(null); if (nuevaPara != null) router.replace('/panel/incidencias'); };
 
   return (
@@ -87,6 +92,14 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
         <h2>Incidencias</h2>
         <div className="sec-header-actions"><button className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Reportar incidencia</button></div>
       </div>
+      {/* Contador para deshacer (usuario, 2026-11-25): abrir una incidencia o cambiarle el estado
+          se puede deshacer mientras corre el plazo; hasta entonces no se avisa a nadie. */}
+      {contadores.map((x) => (
+        <ContadorCambio key={x.id} barra pendiente={x.vivo} de={x.codigo} anular={() => deshacerCambioIncidencia(x.id)}
+          textos={x.pendiente.tipo === 'creada'
+            ? { que: 'Incidencia recién abierta', efecto: 'La incidencia quedará retirada y no se avisará a nadie.' }
+            : { que: 'Cambio de estado de la incidencia', efecto: 'La incidencia volverá al estado de antes (y a su resolución de antes) y no saldrá ningún aviso.' }} />
+      ))}
       <div className="tabs">
         <button className={`tab${pestana === 'abiertas' ? ' active' : ''}`} onClick={() => setPestana('abiertas')}>Abiertas ({cuenta.abiertas})</button>
         <button className={`tab${pestana === 'resueltas' ? ' active' : ''}`} onClick={() => setPestana('resueltas')}>Resueltas ({cuenta.resueltas})</button>

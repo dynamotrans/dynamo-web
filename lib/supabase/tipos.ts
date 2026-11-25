@@ -300,6 +300,49 @@ export type Database = {
           },
         ]
       }
+      cambios_deshacer: {
+        Row: {
+          id: string
+          tabla: string
+          fila_id: string
+          usuario_id: string | null
+          tipo: string
+          antes: Json | null
+          creado_en: string
+          vence_en: string
+          estado: string
+          anulado_en: string | null
+          anulado_por: string | null
+        }
+        Insert: {
+          id?: string
+          tabla: string
+          fila_id: string
+          usuario_id?: string | null
+          tipo: string
+          antes?: Json | null
+          creado_en?: string
+          vence_en: string
+          estado?: string
+          anulado_en?: string | null
+          anulado_por?: string | null
+        }
+        Update: {
+          id?: string
+          tabla?: string
+          fila_id?: string
+          usuario_id?: string | null
+          tipo?: string
+          antes?: Json | null
+          creado_en?: string
+          vence_en?: string
+          estado?: string
+          anulado_en?: string | null
+          anulado_por?: string | null
+        }
+        Relationships: [
+        ]
+      }
       clientes: {
         Row: {
           id: string
@@ -4698,6 +4741,8 @@ export type Database = {
       caducar_pagos_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       caducar_reservas: { Args: { p_envio: string | null }; Returns: undefined }
       cambiar_ruta_envio: { Args: { p_envio: string | null; p_paradas: Json | null }; Returns: undefined }
+      cambio_deshacer_abrir: { Args: { p_tabla: string | null; p_fila: string | null; p_tipo: string | null; p_antes: Json | null }; Returns: string }
+      cambios_deshacer_pendientes: { Args: { p_tabla: string | null }; Returns: { fila_id: string; vence_en: string; tipo: string; autor: string; puede_anular: boolean; emails: number }[] }
       cambios_en_espera: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { envio_id: string; vence_en: string; tipo: string; estado_antes: string; pago_antes: string; manual_antes: boolean; asignado_antes: boolean }[] }
       cancelacion_cuenta: { Args: { p_transportista: string | null; p_cuando: string | null; p_fecha_carga: string | null }; Returns: boolean }
       cancelaciones_transportistas: { Args: { p_ids: string[] | null }; Returns: { transportista_id: string; cancelaciones: number; cargas: number; cancelaciones_ultimas: number; ultimas: number; ultima: string }[] }
@@ -4768,6 +4813,7 @@ export type Database = {
       deca_fechas_texto: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: string }
       deca_mercancia_texto: { Args: { p_descripcion: string | null; p_toneladas: number | null; p_metros: number | null }; Returns: string }
       deca_ruta_texto: { Args: { p: Json | null }; Returns: string }
+      deshacer_cambio: { Args: { p_tabla: string | null; p_fila: string | null }; Returns: Json }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }
       deshacer_pack: { Args: { p_pack: string | null }; Returns: Json }
       deuda_clientes: { Args: { p_clientes: string[] | null }; Returns: { cliente_id: string; pendiente: number; vencido: number; facturas: number; vence_primera: string }[] }

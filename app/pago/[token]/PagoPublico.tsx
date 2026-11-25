@@ -5,6 +5,7 @@
 // ventana de Stripe, «Ya he hecho la transferencia»), sin nada más de la plataforma.
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { euros, fechaHora, metros, pesoTn, ventana } from '@/lib/formato';
 import { paisDe } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
@@ -27,7 +28,7 @@ const Marco = ({ children }: { children: React.ReactNode }) => (
 /** Las dos salidas de una pantalla final (usuario, 2026-11-25): la web de Dynamo y entrar en la cuenta. */
 const Salidas = () => (
   <div className="pago-pub-ir" id="pago-pub-ir">
-    <a className="ir-cuenta" href="/panel/entrar">Entrar en mi cuenta</a>
+    <Link className="ir-cuenta" href="/panel/entrar" prefetch={false}>Entrar en mi cuenta</Link>
     <a className="ir-web" href="/">Ir a <span className="notranslate" translate="no">dynamotrans.com</span></a>
   </div>
 );

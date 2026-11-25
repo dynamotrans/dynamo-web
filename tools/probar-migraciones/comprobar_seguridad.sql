@@ -3991,6 +3991,7 @@ do $$ declare faltan text; begin
                            'datos_de_prueba_peticiones',   -- encargos de datos de prueba: solo consola, no es negocio
                            'emails_enviados',              -- registro/cola de emails: escriben pg_cron y el servidor, también en mantenimiento
                            'envio_cambios',                -- cambios recientes: solo los escriben los disparadores de envios y envio_paradas, que ya tienen el bloqueo
+                           'cambios_deshacer',             -- ídem para incidencias y penalizaciones: solo la escriben sus disparadores, que ya tienen el bloqueo
                            'transportista_cancelaciones',  -- solo la escribe registrar_cancelacion_transportista, que va con quitar/asignar (bloqueados por envios)
                            'usuarios_dispositivos',        -- seguridad del acceso: se escribe al entrar, también en mantenimiento (el equipo tiene que poder entrar)
                            'transportista_notas')          -- nota automática: solo la escribe la tarea de la noche, que ya se para en mantenimiento
@@ -16069,5 +16070,88 @@ do $$ declare c uuid; e uuid; x uuid; t timestamptz; v record;
   perform set_config('request.jwt.claim.sub', '', false);
   delete from envio_cambios where envio_id = e;
   raise notice 'OK 355 · deshacer a 60 s (contador y emails) y los avisos de seguridad salen al momento';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 356 · DESHACER EN INCIDENCIAS Y PENALIZACIONES (usuario, 2026-11-25: «E INCLUYE: incidencias,
+-- penalizaciones — 60 segundos»). Abrir una incidencia o cambiarle el estado, y cambiar el estado
+-- de una penalización, abren un cambio de 60 s cuando lo hace una persona; al deshacerlo, la fila
+-- vuelve atrás y sus emails y avisos no salen. Solo quien lo hizo o Dynamo; pasado el plazo, no.
+do $$ declare c uuid; e uuid; i uuid; i2 uuid; p uuid; j jsonb; n int; v record;
+  u_adm uuid := current_setting('prueba.u_admin')::uuid; u_cli uuid := current_setting('prueba.u_cli_b')::uuid; begin
+  if has_function_privilege('anon', 'deshacer_cambio(text, uuid)', 'execute') or has_function_privilege('anon', 'cambios_deshacer_pendientes(text)', 'execute')
+     or has_function_privilege('authenticated', 'cambio_deshacer_abrir(text, uuid, text, jsonb)', 'execute')
+     or not has_function_privilege('authenticated', 'deshacer_cambio(text, uuid)', 'execute') then
+    raise exception 'FALLO 356 · los permisos de deshacer no son los debidos'; end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.cambios_deshacer'::regclass) then raise exception 'FALLO 356 · cambios_deshacer sin RLS'; end if;
+  if position('cambios_deshacer' in pg_get_functiondef('public.enviar_emails_pendientes()'::regprocedure)) = 0 then
+    raise exception 'FALLO 356 · la cola de emails no limpia los cambios de incidencias y penalizaciones'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into clientes (razon_social, cif) values ('Deshacer Incidencias SL', 'B35600356') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id into e;
+  -- Sin persona detrás (un proceso automático): no abre cambio.
+  insert into incidencias (envio_id, tipo_id, titulo, detalle) values (e, (select id from tipos_incidencia limit 1), 'Automática 356', 'Sin persona') returning id into i;
+  if exists (select 1 from cambios_deshacer where fila_id = i) then raise exception 'FALLO 356 · un proceso automático abre un cambio'; end if;
+
+  -- (a) Dynamo abre una incidencia: cambio «creada» de 60 s.
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  insert into incidencias (envio_id, tipo_id, titulo, detalle) values (e, (select id from tipos_incidencia limit 1), 'Palet roto 356', 'Detalle') returning id into i;
+  select * into v from cambios_deshacer where tabla = 'incidencias' and fila_id = i and estado = 'abierto';
+  if v.id is null or v.tipo <> 'creada' or v.usuario_id <> u_adm or v.vence_en < now() + interval '59 seconds' or v.vence_en > now() + interval '61 seconds' then
+    raise exception 'FALLO 356 · abrir una incidencia no deja su cambio de 60 s: %', to_jsonb(v); end if;
+  insert into emails_enviados (clave, tipo, destinatario, asunto, cuerpo_html) values ('p356_abierta:' || i, 'incidencia_abierta', 'a@ejemplo.com', 'x', 'x');
+  select count(*) into n from cambios_deshacer_pendientes('incidencias') x where x.fila_id = i and x.emails >= 1 and x.puede_anular;
+  if n <> 1 then raise exception 'FALLO 356 · el contador de la incidencia recién abierta no sale'; end if;
+  -- Otro usuario ni lo ve ni lo deshace.
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  if exists (select 1 from cambios_deshacer_pendientes('incidencias') x where x.fila_id = i) then raise exception 'FALLO 356 · otro usuario ve el contador de un cambio ajeno'; end if;
+  begin perform deshacer_cambio('incidencias', i); raise exception 'FALLO 356 · otro usuario deshace un cambio ajeno';
+  exception when insufficient_privilege then null; end;
+  -- Dynamo lo deshace: queda retirada y no sale nada.
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  j := deshacer_cambio('incidencias', i);
+  if j ->> 'resultado' <> 'deshecho' or j ->> 'tipo' <> 'creada' or (select estado from incidencias where id = i) <> 'cancelado' then
+    raise exception 'FALLO 356 · deshacer una incidencia recién abierta no la deja retirada: % / %', j, (select estado from incidencias where id = i); end if;
+  if exists (select 1 from emails_enviados where position(i::text in clave) > 0 and estado = 'pendiente') then raise exception 'FALLO 356 · queda un email por salir de la incidencia deshecha'; end if;
+  if exists (select 1 from avisos a where a.envio_id = e and a.enlace = '/panel/incidencias' and position('Palet roto 356' in coalesce(a.texto, '')) > 0) then
+    raise exception 'FALLO 356 · queda un aviso de la incidencia deshecha'; end if;
+  if (select estado from cambios_deshacer where id = v.id) <> 'anulado' or exists (select 1 from cambios_deshacer where fila_id = i and estado = 'abierto') then
+    raise exception 'FALLO 356 · el cambio no queda anulado, o deshacer abre otro'; end if;
+  if deshacer_cambio('incidencias', i) ->> 'resultado' <> 'nada' then raise exception 'FALLO 356 · se puede deshacer dos veces'; end if;
+
+  -- (b) Resolver una incidencia y deshacerlo: vuelve a abierta, sin resolución.
+  insert into incidencias (envio_id, tipo_id, titulo, detalle) values (e, (select id from tipos_incidencia limit 1), 'Retraso 356', 'Detalle') returning id into i2;
+  update cambios_deshacer set estado = 'cerrado' where fila_id = i2 and estado = 'abierto';
+  update incidencias set estado = 'resuelto', resolucion = 'Arreglado' where id = i2;
+  select * into v from cambios_deshacer where fila_id = i2 and estado = 'abierto';
+  if v.tipo <> 'estado' or v.antes ->> 'estado' <> 'abierto' then raise exception 'FALLO 356 · resolver una incidencia no guarda el estado de antes: %', to_jsonb(v); end if;
+  j := deshacer_cambio('incidencias', i2);
+  select estado::text as estado, resolucion, resuelto_en into v from incidencias where id = i2;
+  if j ->> 'resultado' <> 'deshecho' or v.estado <> 'abierto' or v.resolucion is not null or v.resuelto_en is not null then
+    raise exception 'FALLO 356 · deshacer la resolución no deja la incidencia como estaba: % / %', j, to_jsonb(v); end if;
+  -- Pasado el plazo ya no se deshace.
+  update incidencias set estado = 'resuelto', resolucion = 'Arreglado' where id = i2;
+  update cambios_deshacer set vence_en = now() - interval '1 minute' where fila_id = i2 and estado = 'abierto';
+  if deshacer_cambio('incidencias', i2) ->> 'resultado' <> 'ya_salio' or (select estado from incidencias where id = i2) <> 'resuelto' then
+    raise exception 'FALLO 356 · se deshace un cambio con el plazo pasado'; end if;
+
+  -- (c) Penalización: guardarla no abre cambio; confirmarla sí, y deshacerlo la deja sin confirmar.
+  insert into penalizaciones (envio_id, tipo_id, importe_cliente) values (e, (select id from tipos_penalizacion limit 1), 50) returning id into p;
+  if exists (select 1 from cambios_deshacer where fila_id = p) then raise exception 'FALLO 356 · guardar una penalización sin confirmar abre un cambio'; end if;
+  update penalizaciones set estado = 'confirmada' where id = p;
+  select * into v from cambios_deshacer where tabla = 'penalizaciones' and fila_id = p and estado = 'abierto';
+  if v.id is null or v.antes ->> 'estado' <> 'pendiente_confirmar' then raise exception 'FALLO 356 · confirmar una penalización no abre su cambio: %', to_jsonb(v); end if;
+  if not exists (select 1 from cambios_deshacer_pendientes('penalizaciones') x where x.fila_id = p) then raise exception 'FALLO 356 · el contador de la penalización confirmada no sale'; end if;
+  j := deshacer_cambio('penalizaciones', p);
+  if j ->> 'resultado' <> 'deshecho' or (select estado from penalizaciones where id = p) <> 'pendiente_confirmar' then
+    raise exception 'FALLO 356 · deshacer la confirmación no deja la penalización sin confirmar: %', j; end if;
+  if exists (select 1 from emails_enviados where position(p::text in clave) > 0 and estado = 'pendiente') then raise exception 'FALLO 356 · queda un email por salir de la penalización deshecha'; end if;
+  if exists (select 1 from avisos a where a.envio_id = e and a.enlace = '/panel/penalizaciones') then raise exception 'FALLO 356 · queda un aviso de la penalización deshecha'; end if;
+  -- Una tabla que no es de aquí: nada.
+  if deshacer_cambio('envios', e) ->> 'resultado' <> 'nada' then raise exception 'FALLO 356 · deshacer_cambio acepta otras tablas'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  delete from envio_cambios where envio_id = e;
+  raise notice 'OK 356 · deshacer en incidencias y penalizaciones: cambio de 60 s con persona detrás, vuelve atrás sin emails ni avisos, solo quien lo hizo o Dynamo y nunca con el plazo pasado';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

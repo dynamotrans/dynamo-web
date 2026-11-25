@@ -5,6 +5,7 @@ import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Penalizaciones, { type PenalizacionFila } from '@/components/panel/Penalizaciones';
 import { cargarEnviosLigeros } from '@/lib/enviosLigeros';
 import MisPenalizaciones, { type MiPenalizacion } from '@/components/panel/MisPenalizaciones';
+import type { CambioPendiente } from '@/lib/envios';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     return <MisPenalizaciones q={q} esTransportista filas={filas as MiPenalizacion[]} error={error?.message ?? null} />;
   }
   const vista = await vistaDe(supabase, perfil.rol);
-  const [pen, tipos, envios] = await Promise.all([
+  const [pen, tipos, envios, pend] = await Promise.all([
     leerTodo(filtrarVista(supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
       'editada_a_mano, creado_en, modificado_en, cobrada_importe, cobrada_pago_ref, cobrada_en, tipos_penalizacion(nombre), ' +
       (vista.tipo === 'admin' ? 'envios' : 'envios!inner') + '(referencia_gx, referencia_cliente, cliente_id, transportista_id, clientes(nombre_visible), transportistas(nombre_visible))'),
@@ -38,6 +39,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
       .order('creado_en', { ascending: false }), 5000),
     supabase.from('tipos_penalizacion').select('id, nombre, activo').order('orden'),
     cargarEnviosLigeros(supabase, 40, vista.tipo === 'cliente' ? { cliente: vista.id } : vista.tipo === 'transportista' ? { transportista: vista.id } : undefined),
+    supabase.rpc('cambios_deshacer_pendientes', { p_tabla: 'penalizaciones' }),
   ]);
   const filas: PenalizacionFila[] = (pen.data ?? []).map((p) => ({
     id: p.id, codigo: p.codigo, envio_id: p.envio_id, tipo_id: p.tipo_id, tipo: p.tipos_penalizacion?.nombre ?? '—',
@@ -48,5 +50,10 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     envio: p.envios?.referencia_gx ?? '—', referencia_cliente: p.envios?.referencia_cliente ?? null,
     cliente: p.envios?.clientes?.nombre_visible ?? null, transportista: p.envios?.transportistas?.nombre_visible ?? null,
   }));
-  return <Penalizaciones key={q} qInicial={q} filas={filas} tipos={tipos.data ?? []} envios={envios} nuevaPara={sp.nueva ?? null} error={pen.error?.message ?? null} />;
+  // Cambios de estado que todavía se pueden deshacer (usuario, 2026-11-25): el contador de arriba.
+  const codigos = new Map(filas.map((f) => [f.id, f.codigo]));
+  const pendientes = ((pend.data ?? []) as unknown as { fila_id: string; vence_en: string; tipo: string; autor: string | null; puede_anular: boolean; emails: number }[])
+    .filter((x) => codigos.has(x.fila_id))
+    .map((x) => ({ id: x.fila_id, codigo: codigos.get(x.fila_id)!, pendiente: { vence_en: x.vence_en, tipo: x.tipo, autor: x.autor, puede_anular: x.puede_anular, emails: x.emails } as CambioPendiente }));
+  return <Penalizaciones key={q} qInicial={q} filas={filas} pendientes={pendientes} tipos={tipos.data ?? []} envios={envios} nuevaPara={sp.nueva ?? null} error={pen.error?.message ?? null} />;
 }

@@ -42,3 +42,20 @@ export async function cambiarEstadoPenalizacion(id: string, estado: 'pendiente_c
   if (error) return { ok: false, error: traducir(error.message) };
   return { ok: true, id };
 }
+
+// Deshacer el último cambio de estado de una penalización (confirmarla, anularla, reabrirla)
+// mientras corre su plazo (usuario, 2026-11-25): vuelve al estado de antes y no se avisa a nadie.
+export async function deshacerCambioPenalizacion(id: string): Promise<{ ok: true; aviso: string } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/penalizaciones/acciones#deshacerCambioPenalizacion", [id]);
+  const sb = await dynamo();
+  if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona penalizaciones.' };
+  const { data, error } = await sb.rpc('deshacer_cambio', { p_tabla: 'penalizaciones', p_fila: id });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data ?? {}) as { resultado?: string };
+  switch (r.resultado) {
+    case 'deshecho': return { ok: true, aviso: 'Cambio deshecho: la penalización vuelve a como estaba y no se ha avisado a nadie.' };
+    case 'ya_salio': return { ok: false, error: 'Ya es tarde: el aviso acaba de salir. Si hace falta, cambia la penalización de nuevo.' };
+    case 'nada': return { ok: false, error: 'No queda nada por deshacer en esta penalización.' };
+    default: return { ok: false, error: 'No se ha podido deshacer el cambio. Cambia la penalización a mano si hace falta.' };
+  }
+}
