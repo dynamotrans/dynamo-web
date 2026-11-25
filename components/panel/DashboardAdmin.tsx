@@ -29,6 +29,7 @@ export type Bloque = {
   titulo: string;     // título de la ventana
   sub: string;        // explicación bajo el título de la ventana
   total: number; todo: string; filas: Fila[];
+  pie?: string;       // línea pequeña bajo la cifra, en vez de «al día» / «ver pendientes»
 };
 
 // «hace 25 min», «hace 3 h», «hace 2 días»: cuánto lleva esperando.
@@ -41,21 +42,12 @@ function espera(iso: string | null): string {
   return `hace ${Math.round(min / 1440)} días`;
 }
 
-function Cifra({ href, label, valor, aviso }: { href: string; label: string; valor: number; aviso?: boolean }) {
-  return (
-    <Link href={href} className="stat-card stat-card-link" style={{ textDecoration: 'none' }}>
-      <span className="stat-card-label">{label}</span>
-      <span className="stat-card-value" style={aviso && valor > 0 ? { color: '#d97706' } : undefined}>{valor}</span>
-    </Link>
-  );
-}
-
 const Svg = ({ children }: { children: React.ReactNode }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
 );
 
-export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoPago, errorPP, cuadro, susp24 = 0, suspTotal = 0 }: {
-  enCurso: number; bloques: Bloque[]; errorBloques: string | null;
+export default function DashboardAdmin({ bloques, errorBloques, prontoPago, errorPP, cuadro, susp24 = 0, suspTotal = 0 }: {
+  bloques: Bloque[]; errorBloques: string | null;
   prontoPago: ProntoPago | null; errorPP: string | null; cuadro?: React.ReactNode; susp24?: number; suspTotal?: number;
 }) {
   return (
@@ -86,9 +78,6 @@ export default function DashboardAdmin({ enCurso, bloques, errorBloques, prontoP
           <span className="stat-card-value" style={susp24 > 0 ? { color: 'var(--red)' } : undefined}>{susp24}</span>
           <span className="stat-card-trend" style={{ color: 'var(--gray-500)' }}>{suspTotal} suspendidas en total</span>
         </Link>
-        {/* «Envíos programados» (usuario, 2026-11-14): la cifra junta los programados y
-            los que ya van en ruta — todo lo vivo, como la pestaña a la que enlaza. */}
-        <Cifra href="/panel/envios?f=programada" label="Envíos programados" valor={enCurso} />
         <LineaProntoPago pp={prontoPago} error={errorPP} />
       </div>
       {cuadro}
@@ -105,7 +94,7 @@ function BloqueCard({ b }: { b: Bloque }) {
     <button type="button" className="stat-card stat-card-link" style={{ font: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%' }} onClick={() => setAbierto(true)}>
       <span className="stat-card-label">{b.corto}</span>
       <span className="stat-card-value" style={{ color }}>{b.total}</span>
-      <span className="stat-card-trend" style={{ color: 'var(--gray-500)' }}>{b.total === 0 ? 'al día' : 'ver pendientes'}</span>
+      <span className="stat-card-trend" style={{ color: 'var(--gray-500)' }}>{b.pie ?? (b.total === 0 ? 'al día' : 'ver pendientes')}</span>
     </button>
     {abierto && (
       <Modal abierto titulo={b.titulo} sub={b.sub} onCerrar={() => setAbierto(false)}

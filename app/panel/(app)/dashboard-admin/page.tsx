@@ -96,7 +96,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     // Orden de las cajas fijado por el usuario (2026-11-14): Contraofertas · Altas ·
     // Hoy/mañana sin camión · Esperando el pago · Incidencias · Penalizaciones. La de
     // Almacenamientos se quitó (módulo v3, oculto a clientes).
-    { id: 'contraofertas-transportistas', nivel: 'aviso', corto: 'Contraofertas', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
+    { id: 'contraofertas-transportistas', nivel: 'aviso', corto: 'Contraofertas transp.', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
       sub: 'Transportistas que proponen otro precio: se aceptan o rechazan en la ficha del envío.',
       filas: (cofTra.data ?? []).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
         s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
@@ -104,6 +104,8 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
       sub: 'Usuarios nuevos esperando la revisión del equipo.',
       filas: (altas.data ?? []).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
     { id: 'sin-camion', nivel: 'urgente', corto: 'Hoy/mañana sin camión', titulo: 'Cargan hoy o mañana y no tienen camión', total: sinCamion.count ?? 0, todo: '/panel/envios?f=sin-asignar',
+      // Los programados (todo lo vivo) van aquí mismo, en pequeño (usuario, 2026-11-25), no en una caja aparte.
+      pie: `${enCurso} programados total`,
       sub: 'Envíos que cargan hoy o mañana y aún no tienen transportista asignado.',
       filas: (sinCamion.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
         urgente: (e.fecha_carga_desde ?? '') <= hoy })) },
@@ -131,7 +133,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     // Cuánto se hace solo en la plataforma: quién crea el envío y cómo llega el transportista.
     supabase.rpc('cuadro_mando_digital', { p_desde: per.desde, p_hasta: per.hasta }),
   ]);
-  return <DashboardAdmin enCurso={enCurso} susp24={susp24} suspTotal={suspTotal} bloques={bloques} errorBloques={errores[0] ?? null}
+  return <DashboardAdmin susp24={susp24} suspTotal={suspTotal} bloques={bloques} errorBloques={errores[0] ?? null}
     prontoPago={(pp.data as ProntoPago) ?? null} errorPP={pp.error?.message ?? null}
     cuadro={<CuadroMando datos={(cm.data as unknown as Cuadro | null) ?? null} periodo={per.p} error={cm.error?.message ?? null} sectores={(sec.data ?? []) as Sector[]}
       digital={(dig.data as unknown as Digital | null) ?? null} />} />;

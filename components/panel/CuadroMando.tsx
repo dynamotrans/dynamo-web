@@ -50,10 +50,10 @@ function Var({ a, b, invertir }: { a: number; b: number | undefined; invertir?: 
     {v > 0 ? '+' : ''}{v.toFixed(1).replace('.', ',')} %</span>;
 }
 
-function Kpi({ label, valor, sub, a, b, invertir }: { label: string; valor: string; sub?: string; a?: number; b?: number; invertir?: boolean }) {
+function Kpi({ label, valor, sub, a, b, invertir, color }: { label: string; valor: string; sub?: string; a?: number; b?: number; invertir?: boolean; color?: string }) {
   return (
-    <div className="stat-card" style={{ cursor: 'default' }}>
-      <span className="stat-card-label">{label}</span>
+    <div className="stat-card" data-color={color} style={{ cursor: 'default', ...(color ? { borderLeft: `5px solid ${color}` } : null) }}>
+      <span className="stat-card-label">{color && <i aria-hidden="true" style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: color, marginRight: 6, verticalAlign: '-1px' }} />}{label}</span>
       <span className="stat-card-value" style={{ fontSize: '1.35rem' }}>{valor}</span>
       <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         {a != null && <Var a={a} b={b} invertir={invertir} />}{sub}
@@ -115,6 +115,84 @@ export function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: {
           <strong>{datos[sel].k}</strong> · {formato(datos[sel].v)}{datos[sel].extra ? ` · ${datos[sel].extra}` : ''}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---- Envíos digitales: cuatro columnas, cada una con su color (usuario, 2026-11-25) --------
+// «Mete esos 4 indicadores en un gráfico de columnas… cada una un color y en la tarjeta, una
+// esquina del mismo color que su barra.» Los cuatro colores son de una paleta de categorías
+// comprobada (se distinguen también con daltonismo); el texto nunca va en el color del dato:
+// la cifra va en tinta normal encima de su columna y el color lo lleva la marca de al lado.
+export const DIGITAL: { clave: 'digital_total' | 'digital_cliente' | 'digital_transportista' | 'dynamo'; nombre: string; lineas: [string, string]; color: string; que: string }[] = [
+  { clave: 'digital_total', nombre: 'Envíos full digital', lineas: ['Full', 'digital'], color: '#2a78d6', que: 'los crea el cliente y el transportista acepta por su enlace' },
+  { clave: 'digital_cliente', nombre: 'Envíos digital cliente', lineas: ['Digital', 'cliente'], color: '#eb6834', que: 'los crea el cliente; el transportista lo asigna Dynamo' },
+  { clave: 'digital_transportista', nombre: 'Envíos digital transportista', lineas: ['Digital', 'transportista'], color: '#1baf7a', que: 'los crea Dynamo; el transportista acepta por su enlace' },
+  { clave: 'dynamo', nombre: 'Envíos full humano', lineas: ['Full', 'humano'], color: '#eda100', que: 'los crea y los asigna Dynamo' },
+];
+function ColumnasDigital({ digital }: { digital: Digital }) {
+  const [sel, setSel] = useState<number | null>(null);
+  const lienzo = useRef<HTMLDivElement>(null);
+  const [ancho, setAncho] = useState(520);
+  useLayoutEffect(() => {
+    const el = lienzo.current; if (!el) return;
+    const medir = () => setAncho(Math.max(240, Math.floor(el.clientWidth)));
+    medir();
+    const ro = new ResizeObserver(medir); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const total = n(digital.realizados);
+  const datos = DIGITAL.map((d) => ({ ...d, v: n(digital[d.clave]) }));
+  const max = Math.max(1, ...datos.map((d) => d.v));
+  const letra = ancho < 520 ? 11 : 13;
+  const alto = 210, izq = 8, arriba = letra + 14, abajo = letra * 2 + 18;
+  const w = (ancho - izq * 2) / datos.length;
+  const barra = Math.min(24, w - 8);   // columna fina: el aire de su hueco también dice
+  const base = alto - abajo;
+  const y = (v: number) => arriba + (base - arriba) * (1 - v / max);
+  // Extremo del dato redondeado; la base, recta.
+  const columna = (x: number, yy: number) => {
+    const h = base - yy, r = Math.min(4, h, barra / 2);
+    return `M${x},${base}V${yy + r}Q${x},${yy} ${x + r},${yy}H${x + barra - r}Q${x + barra},${yy} ${x + barra},${yy + r}V${base}Z`;
+  };
+  if (!total) return <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>Sin envíos realizados en este periodo.</p>;
+  const s = sel != null ? datos[sel] : null;
+  return (
+    <div className="cm-chart" style={{ position: 'relative', maxWidth: 620 }}>
+      <div className="cm-chart-lienzo" ref={lienzo}>
+        {/* Un grupo (no una imagen): dentro lleva las cuatro columnas, que se pueden pulsar y recorrer con el teclado. */}
+        <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="group" style={{ display: 'block' }} onMouseLeave={() => setSel(null)}
+          aria-label={`Envíos realizados según cuánto se hicieron solos en la plataforma: ${datos.map((d) => `${d.nombre} ${d.v}`).join(', ')}.`}>
+          {[0.5, 1].map((f) => <line key={f} x1={izq} x2={ancho - izq} y1={y(max * f)} y2={y(max * f)} stroke="var(--gray-200)" strokeWidth="1" />)}
+          {datos.map((d, i) => {
+            const cx = izq + i * w + w / 2, x = cx - barra / 2;
+            return (
+              <g key={d.clave} data-columna={d.clave} tabIndex={0} role="button" aria-label={`${d.nombre}: ${d.v} envíos, ${pct(d.v, total)}`} style={{ cursor: 'pointer', outline: 'none' }}
+                onMouseEnter={() => setSel(i)} onFocus={() => setSel(i)} onBlur={() => setSel(null)} onClick={() => setSel(i)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(i); } }}>
+                <rect x={izq + i * w} y={0} width={w} height={alto} fill="transparent" />
+                {d.v > 0
+                  ? <path d={columna(x, Math.min(y(d.v), base - 2))} fill={d.color} opacity={sel == null || sel === i ? 1 : 0.45} />
+                  : <rect x={x} y={base - 2} width={barra} height={2} fill={d.color} opacity={0.6} />}
+                <text x={cx} y={Math.min(y(d.v), base - 2) - 7} textAnchor="middle" fontSize={letra + 1} fontWeight={800} fill="var(--navy)">{d.v}</text>
+                <text x={cx} y={base + letra + 6} textAnchor="middle" fontSize={letra} fill="var(--gray-600, #4b5563)">
+                  <tspan x={cx}>{d.lineas[0]}</tspan><tspan x={cx} dy={letra + 3}>{d.lineas[1]}</tspan>
+                </text>
+              </g>
+            );
+          })}
+          <line x1={izq} x2={ancho - izq} y1={base} y2={base} stroke="var(--gray-300)" strokeWidth="1" />
+        </svg>
+      </div>
+      {/* El detalle de la columna señalada va DEBAJO, en su sitio fijo: flotando encima tapaba
+          las columnas de al lado. Con el hueco reservado, la tarjeta no salta al señalar. */}
+      <div id="cm-digital-tip" aria-live="polite" style={{ minHeight: '3.5rem', marginTop: '0.45rem', fontSize: 'var(--fs-s)', color: 'var(--gray-700)', display: 'grid', gap: 2, alignContent: 'start', lineHeight: 1.35 }}>
+        {s ? (<>
+          <strong style={{ color: 'var(--navy)' }}><i aria-hidden="true" style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: s.color, marginRight: 6, verticalAlign: '-1px' }} />{s.nombre}</strong>
+          <span>{s.v} {s.v === 1 ? 'envío' : 'envíos'} · {pct(s.v, total)} de los realizados</span>
+          <span>{s.que.charAt(0).toUpperCase() + s.que.slice(1)}.</span>
+        </>) : <span style={{ color: 'var(--gray-500)' }}>Pulsa una columna para ver su detalle.</span>}
+      </div>
     </div>
   );
 }
@@ -307,14 +385,18 @@ export default function CuadroMando({ datos, periodo, error, sectores = [], digi
         <>
           {!n(t.solicitados) && <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div>Sin envíos en este periodo. Prueba otro periodo arriba.</div></div>}
           {/* CUÁNTO SE HACE SOLO EN LA PLATAFORMA (usuario, 2026-11-25), antes de la facturación. */}
-          {digital && (
+          {digital && (<>
             <div className="stats-row" id="cm-digital" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: '0.7rem' }}>
-              <Kpi label="Envíos 100 % digital" valor={String(n(digital.digital_total))} sub={`${pct(n(digital.digital_total), n(digital.realizados))} · los crea el cliente y el transportista acepta por su enlace`} />
-              <Kpi label="Envíos digital cliente" valor={String(n(digital.digital_cliente))} sub={`${pct(n(digital.digital_cliente), n(digital.realizados))} · los crea el cliente; el transportista lo asigna Dynamo`} />
-              <Kpi label="Envíos digital transportista" valor={String(n(digital.digital_transportista))} sub={`${pct(n(digital.digital_transportista), n(digital.realizados))} · los crea Dynamo; el transportista acepta por su enlace`} />
-              <Kpi label="Envíos 100 % Dynamo" valor={String(n(digital.dynamo))} sub={`${pct(n(digital.dynamo), n(digital.realizados))} · los crea y los asigna Dynamo`} />
+              {DIGITAL.map((d) => (
+                <Kpi key={d.clave} color={d.color} label={d.nombre} valor={String(n(digital[d.clave]))} sub={`${pct(n(digital[d.clave]), n(digital.realizados))} · ${d.que}`} />
+              ))}
             </div>
-          )}
+            {/* Los mismos cuatro, en columnas: cada una con el color de su tarjeta (usuario, 2026-11-25). */}
+            <div className="mini-list-card" id="cm-digital-grafico" style={{ marginBottom: '0.9rem' }}>
+              <div className="mini-list-head"><h4>Envíos según cuánto se hacen solos en la plataforma</h4><span className="meta">{n(digital.realizados)} envíos realizados en el periodo</span></div>
+              <ColumnasDigital digital={digital} />
+            </div>
+          </>)}
           <div className="stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
             <Kpi label="Facturación (sin IVA)" valor={euros(totFact)} a={totFact} b={c && n(c.facturacion)} sub={`${n(t.realizados)} envíos realizados`} />
             <Kpi label="Margen" valor={euros(n(t.margen))} a={n(t.margen)} b={c && n(c.margen)} sub={`${pct(n(t.margen), totFact)} sobre facturación`} />

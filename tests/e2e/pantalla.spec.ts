@@ -74,3 +74,38 @@ test.describe('pantalla sin hueco al final', () => {
     }
   });
 });
+
+// Panel de control de Dynamo (usuario, 2026-11-25): los programados van dentro de «Hoy/mañana
+// sin camión», en pequeño; y los cuatro indicadores de envíos digitales llevan cada uno su
+// color, el mismo que su columna en el gráfico de debajo.
+test.describe('panel de control: indicadores', () => {
+  test('programados dentro de «sin camión» y envíos digitales con su gráfico de columnas', async ({ page }) => {
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/dashboard-admin?p=todo');
+    const arriba = page.locator('.stats-compactas').first();
+    await expect(arriba).toContainText('Contraofertas transp.');
+    await expect(arriba.locator('.stat-card', { hasText: 'Hoy/mañana sin camión' })).toContainText(/\d+ programados total/);
+    await expect(arriba).not.toContainText('Envíos programados');
+    // Las cuatro tarjetas, en su orden y cada una con su color.
+    const tarjetas = page.locator('#cm-digital .stat-card');
+    await expect(tarjetas).toHaveCount(4);
+    await expect(page.locator('#cm-digital')).toContainText(/Envíos full digital.*Envíos digital cliente.*Envíos digital transportista.*Envíos full humano/s);
+    const colores = await tarjetas.evaluateAll((l) => l.map((x) => x.getAttribute('data-color')));
+    expect(new Set(colores).size).toBe(4);
+    // El gráfico, debajo de las tarjetas y antes de la facturación.
+    const grafico = page.locator('#cm-digital-grafico');
+    await expect(grafico).toBeVisible();
+    const columnas = grafico.locator('[data-columna]');
+    if (await columnas.count()) {
+      await expect(columnas).toHaveCount(4);
+      // Cada columna, del color de su tarjeta (o su marca a 0).
+      const delGrafico = await columnas.evaluateAll((l) => l.map((g) => g.querySelector('path, rect[fill]:not([fill="transparent"])')?.getAttribute('fill')));
+      expect(delGrafico).toEqual(colores);
+      await columnas.nth(3).click();
+      await expect(page.locator('#cm-digital-tip')).toContainText('Envíos full humano');
+      await expect(page.locator('#cm-digital-tip')).toContainText(/de los realizados/);
+    } else {
+      await expect(grafico).toContainText('Sin envíos realizados en este periodo.');
+    }
+  });
+});
