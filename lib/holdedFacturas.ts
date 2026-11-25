@@ -7,7 +7,7 @@ import type { FacturaFila } from '@/components/panel/FacturasDynamo';
 export type FacturaHolded = {
   id?: unknown; document_number?: unknown; contact_name?: unknown; description?: unknown;
   date?: unknown; due_date?: unknown; subtotal?: unknown; discount?: unknown; total?: unknown; tax?: unknown;
-  status?: unknown; payments_pending?: unknown;
+  status?: unknown; payments_pending?: unknown; lines?: unknown;
 };
 
 const num = (v: unknown): number => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -15,11 +15,42 @@ const texto = (v: unknown): string | null => (typeof v === 'string' && v.trim() 
 const dia = (v: unknown): string | null => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
 const c2 = (n: number) => Math.round(n * 100) / 100;
 
+// LA BASE (sin IVA). Con datos reales (2026-11-25) el `subtotal` de la lista llegaba a 0 y la
+// pantalla sumaba «Ingresos (base): 0,00 €». Por eso se saca de donde se pueda, por este orden:
+//  1. subtotal − descuento, si el subtotal viene;
+//  2. la suma de las líneas (precio × unidades, menos su descuento en %);
+//  3. total − IVA (lo que queda si no hay retención).
+function baseDeLineas(lines: unknown): number | null {
+  if (!Array.isArray(lines) || !lines.length) return null;
+  let suma = 0, alguna = false;
+  for (const l of lines as { price?: unknown; units?: unknown; discount?: unknown }[]) {
+    if (!l || typeof l !== 'object') continue;
+    const precio = Number(l.price), unidades = l.units == null || l.units === '' ? 1 : Number(l.units);
+    if (!Number.isFinite(precio) || !Number.isFinite(unidades)) continue;
+    const dto = Math.min(100, Math.max(0, num(l.discount)));
+    suma += precio * unidades * (1 - dto / 100); alguna = true;
+  }
+  return alguna ? c2(suma) : null;
+}
+export function baseDeHolded(f: FacturaHolded): number {
+  const sub = num(f.subtotal);
+  if (sub !== 0) return c2(sub - num(f.discount));
+  const lineas = baseDeLineas(f.lines);
+  if (lineas != null && lineas !== 0) return lineas;
+  return c2(num(f.total) - num(f.tax));
+}
+
+/** El envío al que corresponde la factura, si su concepto lo dice («GX66921 - Transporte…»). */
+export function gxDeTexto(...textos: unknown[]): string | null {
+  for (const t of textos) { const m = typeof t === 'string' ? /\bGX\d{3,12}\b/i.exec(t) : null; if (m) return m[0].toUpperCase(); }
+  return null;
+}
+
 /** `hoy` en AAAA-MM-DD: una factura sin cobrar del todo cuyo vencimiento ya pasó está «vencida». */
 export function facturaDeHolded(f: FacturaHolded, hoy: string): FacturaFila | null {
   const id = texto(f.id), fecha = dia(f.date);
   if (!id || !fecha) return null;
-  const base = c2(num(f.subtotal) - num(f.discount)), iva = c2(num(f.tax)), total = c2(num(f.total));
+  const base = baseDeHolded(f), iva = c2(num(f.tax)), total = c2(num(f.total));
   // Lo retenido (IRPF) no viene aparte: es lo que falta entre base + IVA y el total.
   const dif = c2(base + iva - total);
   const vence = dia(f.due_date);
@@ -27,7 +58,7 @@ export function facturaDeHolded(f: FacturaHolded, hoy: string): FacturaFila | nu
   const estado: FacturaFila['estado'] = st === 'completed' ? 'pagada'
     : st === 'pending' || st === 'partial' ? (vence && vence < hoy ? 'vencida' : 'pendiente') : null;
   return { id, tipo: 'emitida', fecha, numero: texto(f.document_number), concepto: texto(f.description), empresa: texto(f.contact_name),
-    cif: null, base, iva, retencion: dif > 0.005 ? dif : 0, total, estado, vence };
+    cif: null, base, iva, retencion: dif > 0.005 ? dif : 0, total, estado, vence, gx: gxDeTexto(f.description) };
 }
 
 /** Lee la respuesta entera (`items`, `has_more`). Lo que no tenga forma de factura se salta. */
@@ -65,4 +96,17 @@ export function pendientesDeHolded(cuerpo: unknown): { facturas: FacturaPendient
 export function cifDeContacto(contacto: unknown): { cif: string | null; nombre: string | null } {
   const c = (contacto && typeof contacto === 'object' ? contacto : {}) as { code?: unknown; vat_number?: unknown; name?: unknown };
   return { cif: texto(c.code) ?? texto(c.vat_number), nombre: texto(c.name) };
+}
+
+// Solo para afinar la lectura con datos reales: QUÉ campos trae una factura y cómo vienen sus
+// importes (sin nombres, conceptos ni contactos). Va al registro del servidor, no a la pantalla.
+export function formaDeHolded(cuerpo: unknown): Record<string, unknown> {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown };
+  const f = (Array.isArray(c.items) ? c.items[0] : null) as Record<string, unknown> | null;
+  if (!f || typeof f !== 'object') return { claves_respuesta: Object.keys(c as object), items: Array.isArray(c.items) ? c.items.length : typeof c.items };
+  const linea = Array.isArray(f.lines) && f.lines[0] && typeof f.lines[0] === 'object' ? f.lines[0] as Record<string, unknown> : null;
+  const de = (o: Record<string, unknown>, ks: string[]) => Object.fromEntries(ks.map((k) => [k, o[k] === undefined ? '(no viene)' : o[k]]));
+  return { claves: Object.keys(f), importes: de(f, ['subtotal', 'discount', 'tax', 'total', 'payments_total', 'payments_pending', 'currency', 'status', 'date', 'due_date']),
+    lineas: Array.isArray(f.lines) ? f.lines.length : typeof f.lines, claves_linea: linea ? Object.keys(linea) : null,
+    linea: linea ? de(linea, ['price', 'units', 'discount', 'tax', 'retention', 'account']) : null };
 }

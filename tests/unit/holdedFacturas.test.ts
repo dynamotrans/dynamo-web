@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cifDeContacto, facturaDeHolded, facturasDeHolded, pendienteDeHolded, pendientesDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, facturaDeHolded, facturasDeHolded, formaDeHolded, gxDeTexto, pendienteDeHolded, pendientesDeHolded } from '../../lib/holdedFacturas';
 
 const HOY = '2026-11-24';
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -64,4 +64,29 @@ test('deuda: el CIF del contacto es su código y, si falta, su número de IVA', 
   assert.deepEqual(cifDeContacto({ code: ' B12345678 ', vat_number: 'ESB12345678', name: 'Acme' }), { cif: 'B12345678', nombre: 'Acme' });
   assert.deepEqual(cifDeContacto({ code: '', vat_number: 'ESB12345678' }), { cif: 'ESB12345678', nombre: null });
   assert.deepEqual(cifDeContacto(null), { cif: null, nombre: null });
+});
+
+test('factura de la facturación: si el subtotal no viene (o viene a 0), la base sale de las líneas o del total menos el IVA', () => {
+  assert.equal(baseDeHolded({ subtotal: '100.00', discount: '10.00', total: '108.90', tax: '18.90' }), 90);
+  const lineas = [{ price: '50.00', units: '2', discount: '0' }, { price: '100', units: 1, discount: 10 }];
+  assert.equal(baseDeHolded({ subtotal: '0', total: '229.90', tax: '39.90', lines: lineas }), 190);
+  assert.equal(baseDeHolded({ total: '121.00', tax: '21.00', lines: [] }), 100);
+  assert.equal(baseDeHolded({ total: '121.00', tax: '21.00' }), 100);
+  assert.equal(baseDeHolded({}), 0);
+  assert.equal(facturaDeHolded({ ...base, subtotal: '0', lines: [{ price: 100, units: 1 }] }, HOY)!.base, 100);
+});
+
+test('factura de la facturación: el envío (GX) se saca del concepto', () => {
+  assert.equal(gxDeTexto('GX66921 - Transporte de mercancías - 16-noviembre-2026'), 'GX66921');
+  assert.equal(gxDeTexto(null, 'Porte gx102345585 Sevilla'), 'GX102345585');
+  assert.equal(gxDeTexto('Transporte sin referencia', 'BOXGX1'), null);
+  assert.equal(facturaDeHolded({ ...base, description: 'GX66781 - Transporte de mercancías' }, HOY)!.gx, 'GX66781');
+});
+
+test('forma de la respuesta: dice qué campos vienen y sus importes, sin nombres ni conceptos', () => {
+  const f = formaDeHolded({ items: [{ ...base, lines: [{ price: '100', units: '1', name: 'Secreto' }] }] });
+  const txt = JSON.stringify(f);
+  assert.ok(txt.includes('"subtotal":"100.00"') && txt.includes('claves_linea'));
+  assert.ok(!txt.includes('Acme') && !txt.includes('Porte GX1') && !txt.includes('Secreto'));
+  assert.deepEqual(formaDeHolded({ data: [] }), { claves_respuesta: ['data'], items: 'undefined' });
 });

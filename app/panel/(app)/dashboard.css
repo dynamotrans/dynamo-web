@@ -1442,6 +1442,8 @@ body.theme-dark .sidebar { background: #060116; }
     background: var(--navy); color: white; border-color: var(--navy);
 }
 .dash-modal-actions .btn-primary:hover { background: #1a0d4e; border-color: #1a0d4e; }
+/* Administración → Facturas: el concepto de la factura, en dos líneas como mucho. */
+.fac-concepto { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--fs-s); color: var(--gray-600, #4b5563); }
 /* Ficha del cliente (usuario, 2026-11-25): «CMR digital» a la izquierda y «Acciones» a la
    derecha, en una fila y a medias; el resto de acciones se despliega desde «Acciones». */
 .dash-modal-actions.ficha-cli-acciones { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }

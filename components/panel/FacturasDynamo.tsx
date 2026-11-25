@@ -26,6 +26,7 @@ export type FacturaFila = {
   estado: 'pagada' | 'pendiente' | 'vencida' | null;
   vence: string | null;       // aaaa-mm-dd
   pdf_url?: string | null;
+  gx?: string | null;         // el envío al que corresponde, si el concepto lo dice (GX…)
 };
 
 type Tipo = 'todas' | 'emitida' | 'recibida';
@@ -56,7 +57,7 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
     const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     return facturas
       .filter((f) => (tipo === 'todas' || f.tipo === tipo) && enRango(f.fecha, ff.rango)
-        && w.every((x) => norm([f.numero, f.concepto, f.empresa, f.cif, euros(f.total)].filter(Boolean).join(' ')).includes(x)))
+        && w.every((x) => norm([f.numero, f.gx, f.concepto, f.empresa, f.cif, euros(f.total)].filter(Boolean).join(' ')).includes(x)))
       .sort((a, b) => (a.fecha === b.fecha ? 0 : a.fecha < b.fecha ? 1 : -1));
   }, [facturas, tipo, ff.rango, q]);
   const pg = usePaginas(lista, `${tipo}|${ff.clave}|${q}`, 25);
@@ -106,7 +107,12 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
               <tr key={f.id} data-tipo={f.tipo} onClick={f.pdf_url ? () => { const w = window.open(f.pdf_url!, '_blank'); if (!w) location.href = f.pdf_url!; } : undefined} style={f.pdf_url ? { cursor: 'pointer' } : undefined}>
                 <td style={{ whiteSpace: 'nowrap' }}>{fecha(f.fecha)}</td>
                 <td><TagTipo tipo={f.tipo} /></td>
-                <td style={{ minWidth: 200 }}>{f.concepto ?? '—'}{f.numero && <span className="meta" style={{ display: 'block' }}>Factura {f.numero}</span>}</td>
+                {/* El concepto puede ser larguísimo (toda la ruta y la mercancía): dos líneas y el
+                    resto, al pasar el ratón o en el PDF (usuario, 2026-11-25: «habrá que ajustar cosas»). */}
+                <td style={{ minWidth: 220, maxWidth: 380 }}>
+                  {f.numero && <strong style={{ display: 'block', color: 'var(--navy)' }}>{f.numero}{f.gx ? <span className="meta" style={{ fontWeight: 600 }}> · {f.gx}</span> : null}</strong>}
+                  <span className="fac-concepto" title={f.concepto ?? undefined}>{f.concepto ?? '—'}</span>
+                </td>
                 <td>{f.empresa ?? '—'}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>{f.cif ?? '—'}</td>
                 <td className="amount" style={{ whiteSpace: 'nowrap' }}>{euros(f.base)}</td>

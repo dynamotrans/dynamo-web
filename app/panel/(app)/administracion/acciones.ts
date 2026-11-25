@@ -3,7 +3,7 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
-import { facturasDeHolded } from '@/lib/holdedFacturas';
+import { facturasDeHolded, formaDeHolded } from '@/lib/holdedFacturas';
 import type { FacturaFila } from '@/components/panel/FacturasDynamo';
 
 // Administración → Facturas (vista de Dynamo): las facturas EMITIDAS, leídas del programa de
@@ -21,6 +21,8 @@ export async function facturasEmitidas(): Promise<FacturasEmitidas> {
   if (!holdedListo()) return { ok: false, conectado: false, error: 'La facturación no está conectada en este entorno.' };
   const r = await leerHolded('/invoices', { limit: 200, sort: '-date', approval_status: 'approved' });
   if (!r.ok) return { ok: false, conectado: true, error: r.error };
+  // Afinando con datos reales: se apunta QUÉ campos llegan y cómo vienen los importes de una factura.
+  console.log('[Holded] forma de la factura', JSON.stringify(formaDeHolded(r.datos)));
   const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
   const { facturas, hayMas } = facturasDeHolded(r.datos, hoy);
   // Cada fila abre su PDF por nuestra propia ruta (que también es solo para Dynamo).
