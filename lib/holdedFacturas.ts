@@ -7,7 +7,7 @@ import type { FacturaFila } from '@/components/panel/FacturasDynamo';
 export type FacturaHolded = {
   id?: unknown; document_number?: unknown; contact_name?: unknown; description?: unknown;
   date?: unknown; due_date?: unknown; subtotal?: unknown; discount?: unknown; total?: unknown; tax?: unknown;
-  status?: unknown; payments_pending?: unknown; lines?: unknown;
+  status?: unknown; payments_pending?: unknown; lines?: unknown; contact_id?: unknown;
 };
 
 const num = (v: unknown): number => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -40,6 +40,18 @@ export function baseDeHolded(f: FacturaHolded): number {
   return c2(num(f.total) - num(f.tax));
 }
 
+/** La cuenta contable de la factura: la de sus líneas (si llevan varias, las distintas, hasta tres). */
+export function cuentaDeLineas(lines: unknown): string | null {
+  if (!Array.isArray(lines)) return null;
+  const vistas: string[] = [];
+  for (const l of lines as { account?: unknown }[]) {
+    const a = l && typeof l === 'object' ? l.account : null;
+    const t = typeof a === 'number' ? String(a) : typeof a === 'string' ? a.trim() : '';
+    if (t && t.length <= 40 && !vistas.includes(t)) vistas.push(t);
+  }
+  return vistas.length ? vistas.slice(0, 3).join(' · ') + (vistas.length > 3 ? ' …' : '') : null;
+}
+
 /** El envío al que corresponde la factura, si su concepto lo dice («GX66921 - Transporte…»). */
 export function gxDeTexto(...textos: unknown[]): string | null {
   for (const t of textos) { const m = typeof t === 'string' ? /\bGX\d{3,12}\b/i.exec(t) : null; if (m) return m[0].toUpperCase(); }
@@ -58,7 +70,8 @@ export function facturaDeHolded(f: FacturaHolded, hoy: string): FacturaFila | nu
   const estado: FacturaFila['estado'] = st === 'completed' ? 'pagada'
     : st === 'pending' || st === 'partial' ? (vence && vence < hoy ? 'vencida' : 'pendiente') : null;
   return { id, tipo: 'emitida', fecha, numero: texto(f.document_number), concepto: texto(f.description), empresa: texto(f.contact_name),
-    cif: null, base, iva, retencion: dif > 0.005 ? dif : 0, total, estado, vence, gx: gxDeTexto(f.description) };
+    cif: null, base, iva, retencion: dif > 0.005 ? dif : 0, total, estado, vence, gx: gxDeTexto(f.description),
+    contacto_id: texto(f.contact_id)?.toLowerCase() ?? null, cuenta: cuentaDeLineas(f.lines), pagada_el: null };
 }
 
 /** Lee la respuesta entera (`items`, `has_more`). Lo que no tenga forma de factura se salta. */
@@ -109,4 +122,38 @@ export function formaDeHolded(cuerpo: unknown): Record<string, unknown> {
   return { claves: Object.keys(f), importes: de(f, ['subtotal', 'discount', 'tax', 'total', 'payments_total', 'payments_pending', 'currency', 'status', 'date', 'due_date']),
     lineas: Array.isArray(f.lines) ? f.lines.length : typeof f.lines, claves_linea: linea ? Object.keys(linea) : null,
     linea: linea ? de(linea, ['price', 'units', 'discount', 'tax', 'retention', 'account']) : null };
+}
+
+// ---- Cobros: cuándo se pagó cada factura («List payments and collections») ---------------
+// De cada cobro interesa a qué documento corresponde y su fecha. Con varios cobros para una
+// misma factura (pagos a plazos), la fecha que vale es la del ÚLTIMO: cuando quedó pagada.
+export function cobrosDeHolded(cuerpo: unknown): { cobros: { documento: string; fecha: string }[]; hayMas: boolean; cursor: string | null } {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown; cursor?: unknown };
+  const items = Array.isArray(c.items) ? c.items as { document_id?: unknown; document_type?: unknown; date?: unknown }[] : [];
+  const cursor = typeof c.cursor === 'string' && c.cursor ? c.cursor : null;
+  const cobros: { documento: string; fecha: string }[] = [];
+  for (const p of items) {
+    const documento = p && typeof p === 'object' ? texto(p.document_id) : null, fecha = p && typeof p === 'object' ? dia(p.date) : null;
+    if (documento && fecha && (p.document_type == null || p.document_type === 'invoice')) cobros.push({ documento, fecha });
+  }
+  return { cobros, hayMas: c.has_more === true && !!cursor, cursor };
+}
+export function ultimoCobro(cobros: { documento: string; fecha: string }[]): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const c of cobros) { const a = m.get(c.documento); if (!a || c.fecha > a) m.set(c.documento, c.fecha); }
+  return m;
+}
+/** Días naturales entre dos fechas AAAA-MM-DD (b − a). */
+export function diasEntre(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
+
+// Igual que formaDeHolded, para un cobro: qué campos trae (sin nombres ni descripciones).
+export function formaDeCobro(cuerpo: unknown): Record<string, unknown> {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown };
+  const p = (Array.isArray(c.items) ? c.items[0] : null) as Record<string, unknown> | null;
+  if (!p || typeof p !== 'object') return { claves_respuesta: Object.keys(c as object), items: Array.isArray(c.items) ? c.items.length : typeof c.items };
+  return { claves: Object.keys(p), cuantos: (c.items as unknown[]).length, hay_mas: c.has_more ?? null,
+    datos: Object.fromEntries(['amount', 'date', 'status', 'document_type', 'reconciliation_status'].map((k) => [k, p[k] === undefined ? '(no viene)' : p[k]])),
+    con_documento: typeof p.document_id === 'string' && !!p.document_id };
 }

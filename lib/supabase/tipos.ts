@@ -4707,6 +4707,7 @@ export type Database = {
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
       cuadre_facturacion: { Args: { p_meses?: number | null }; Returns: { mes: string; envios: number; con_transportista: number; venta_en_holded: number; compra_en_holded: number; penalizaciones: number; venta: number; compra: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
+      cuadro_mando_digital: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: Json }
       cuadro_mando_sectores: { Args: { p_desde: string | null; p_hasta: string | null }; Returns: { sector: string; clientes: number; realizados: number; facturacion: number; margen: number }[] }
       cuenta_mis_envios_sin_asignar: { Args: Record<PropertyKey, never>; Returns: number }
       dar_baja_mi_flota: { Args: { p_tipo: string | null; p_id: string | null }; Returns: undefined }

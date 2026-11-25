@@ -15684,3 +15684,46 @@ do $$ declare v_cli uuid; v_man numeric; v_ces numeric; r record; begin
   raise notice 'OK 347 · crédito: el «sin crédito» de CESCE se distingue del de Dynamo, en el estado y en el email';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 348 · CUADRO DE MANDO: ENVÍOS DIGITALES (usuario, 2026-11-25). Cada envío realizado cae en
+-- una de cuatro casillas según quién lo creó (cliente o Dynamo) y cómo llegó el transportista
+-- (lo aceptó por su enlace o lo asignó Dynamo); las cuatro suman los realizados.
+do $$ declare c uuid; ids uuid[] := '{}'; e uuid; i int; r jsonb; d date := date '2035-03-10';
+  u_cli uuid := current_setting('prueba.u_cli_b')::uuid; u_adm uuid := current_setting('prueba.u_admin')::uuid; t uuid := current_setting('prueba.transp')::uuid; begin
+  if has_function_privilege('anon', 'cuadro_mando_digital(date, date)', 'execute') then raise exception 'FALLO 348 · alguien sin entrar ve el cuadro de mando'; end if;
+  insert into clientes (razon_social, cif) values ('Digital SL', 'B34800348') returning id into c;
+  for i in 1..6 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista) values (c, 13.30, 20, 1000, 800) returning id into e;
+    ids := ids || e;
+  end loop;
+  alter table envios disable trigger user; alter table envio_ofertas disable trigger user;
+  update envios set estado = 'entregado', fecha_efectiva = d, transportista_id = t where id = any(ids);
+  update envios set creado_por = u_cli where id in (ids[1], ids[2]);     -- los crea el cliente
+  update envios set creado_por = u_adm where id in (ids[3], ids[4]);     -- los crea Dynamo
+  update envios set creado_por = null where id = ids[5];                 -- carga antigua: cuenta como Dynamo
+  update envios set creado_por = u_cli, estado = 'cancelado' where id = ids[6];   -- no realizado: no cuenta
+  -- El transportista aceptó por su enlace en el 1 y en el 3; en el 4 la oferta aceptada es de un
+  -- transportista que ya no lo lleva (después lo cambió Dynamo a mano): no cuenta como aceptado por enlace.
+  insert into envio_ofertas (envio_id, transportista_id, canal, precio_ofertado, estado, caduca_en) values
+    (ids[1], t, 'enlace', 800, 'aceptada', now() + interval '1 day'),
+    (ids[3], null, 'enlace', 800, 'aceptada', now() + interval '1 day'),
+    (ids[2], t, 'enlace', 800, 'cerrada', now() + interval '1 day'),
+    (ids[4], t, 'enlace', 800, 'aceptada', now() + interval '1 day');
+  update envios set transportista_id = null where id = ids[4];   -- ya no lo lleva quien aceptó aquella oferta
+  alter table envios enable trigger user; alter table envio_ofertas enable trigger user;
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  r := cuadro_mando_digital(d - 1, d + 1);
+  if (r ->> 'realizados')::int <> 5 or (r ->> 'digital_total')::int <> 1 or (r ->> 'digital_cliente')::int <> 1
+     or (r ->> 'digital_transportista')::int <> 1 or (r ->> 'dynamo')::int <> 2 then
+    raise exception 'FALLO 348 · el reparto de envíos digitales no cuadra: %', r; end if;
+  -- Un cliente no ve nada del cuadro.
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  if (cuadro_mando_digital(d - 1, d + 1) ->> 'realizados')::int <> 0 then raise exception 'FALLO 348 · un cliente ve el reparto del cuadro de mando'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  alter table envios disable trigger user; alter table envio_ofertas disable trigger user;
+  delete from envio_ofertas where envio_id = any(ids);
+  update envios set estado = 'cancelado', transportista_id = null, fecha_efectiva = null where id = any(ids);
+  alter table envios enable trigger user; alter table envio_ofertas enable trigger user;
+  raise notice 'OK 348 · cuadro de mando: envíos 100 %% digital, digital cliente, digital transportista y 100 %% Dynamo';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

@@ -1698,7 +1698,7 @@ test.describe('novedades', () => {
     await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
     await expect(page.locator('#facturas-sin-conectar')).toContainText('menos las de gastos financieros');
     await expect(page.locator('#facturas-dynamo')).toContainText('Solo lectura');
-    await expect(page.locator('#facturas-lista thead')).toContainText(/Fecha.*Tipo.*Concepto.*Empresa.*CIF.*Base.*IVA.*Retención.*Total.*Pago/);
+    await expect(page.locator('#facturas-lista thead')).toContainText(/Fecha.*Tipo.*Nº factura.*CIF · Empresa.*Base.*IVA.*Retención.*Total.*Pago.*Cuenta contable/);
     await expect(page.locator('#fac-tipo option')).toHaveText(['Todas (ingresos y gastos)', 'Ingresos · emitidas', 'Gastos · recibidas']);
     await page.locator('#fac-periodo').selectOption('trim');
     await page.locator('#fac-periodo').selectOption('entre');

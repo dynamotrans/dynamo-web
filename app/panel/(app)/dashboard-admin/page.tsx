@@ -1,7 +1,7 @@
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import DashboardAdmin, { type Bloque, type ProntoPago } from '@/components/panel/DashboardAdmin';
-import CuadroMando, { type Cuadro, type Periodo, type Sector } from '@/components/panel/CuadroMando';
+import CuadroMando, { type Cuadro, type Digital, type Periodo, type Sector } from '@/components/panel/CuadroMando';
 import { euros, ventana } from '@/lib/formato';
 
 export const dynamic = 'force-dynamic';
@@ -125,11 +125,14 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
         s: [p.importe_cliente != null && `Cliente ${euros(p.importe_cliente)}`, p.importe_transportista != null && `Transportista ${euros(p.importe_transportista)}`].filter(Boolean).join(' · '), desde: p.creado_en })) },
   ];
   const errores = [sinCamion, cofTra, sinPagar, inc, pen, altas, sug].map((r) => r.error?.message).filter(Boolean);
-  const [cm, sec] = await Promise.all([
+  const [cm, sec, dig] = await Promise.all([
     supabase.rpc('cuadro_mando', { p_desde: per.desde, p_hasta: per.hasta, p_comp_desde: per.cDesde, p_comp_hasta: per.cHasta }),
     supabase.rpc('cuadro_mando_sectores', { p_desde: per.desde, p_hasta: per.hasta }),
+    // Cuánto se hace solo en la plataforma: quién crea el envío y cómo llega el transportista.
+    supabase.rpc('cuadro_mando_digital', { p_desde: per.desde, p_hasta: per.hasta }),
   ]);
   return <DashboardAdmin enCurso={enCurso} susp24={susp24} suspTotal={suspTotal} bloques={bloques} errorBloques={errores[0] ?? null}
     prontoPago={(pp.data as ProntoPago) ?? null} errorPP={pp.error?.message ?? null}
-    cuadro={<CuadroMando datos={(cm.data as unknown as Cuadro | null) ?? null} periodo={per.p} error={cm.error?.message ?? null} sectores={(sec.data ?? []) as Sector[]} />} />;
+    cuadro={<CuadroMando datos={(cm.data as unknown as Cuadro | null) ?? null} periodo={per.p} error={cm.error?.message ?? null} sectores={(sec.data ?? []) as Sector[]}
+      digital={(dig.data as unknown as Digital | null) ?? null} />} />;
 }

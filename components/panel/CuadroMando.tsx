@@ -25,6 +25,10 @@ export type Cuadro = {
   clientes: { id: string; nombre: string | null; cif: string; realizados: number; solicitados: number; facturacion: number; margen: number; riesgo: number | null; disponible: number | null; plazo_pago_dias: number | null }[];
   transportistas: { id: string; nombre: string | null; cif: string; realizados: number; coste: number; margen: number; km: number }[];
 };
+// Cuánto se hace solo en la plataforma (usuario, 2026-11-25). Las cuatro casillas suman los
+// envíos realizados: quién creó el envío (cliente o Dynamo) × cómo llegó el transportista
+// (lo aceptó por su enlace o lo asignó Dynamo).
+export type Digital = { realizados: number; digital_total: number; digital_cliente: number; digital_transportista: number; dynamo: number };
 export type Sector = { sector: string; clientes: number; realizados: number; facturacion: number; margen: number };
 export type Periodo = '5a' | '12m' | 'mes' | 'mes-ant' | 'anio' | 'anio-ant' | 'todo' | 'otro';
 
@@ -265,7 +269,7 @@ function Tabla({ cab, filas, nota }: { cab: string[]; filas: (string | number | 
   );
 }
 
-export default function CuadroMando({ datos, periodo, error, sectores = [] }: { datos: Cuadro | null; periodo: Periodo; error: string | null; sectores?: Sector[] }) {
+export default function CuadroMando({ datos, periodo, error, sectores = [], digital = null }: { datos: Cuadro | null; periodo: Periodo; error: string | null; sectores?: Sector[]; digital?: Digital | null }) {
   const router = useRouter(); const ruta = usePathname();
   const [desde, setDesde] = useState(datos?.desde ?? ''); const [hasta, setHasta] = useState(datos?.hasta ?? '');
   const [todosClientes, setTodosClientes] = useState(false);
@@ -302,6 +306,15 @@ export default function CuadroMando({ datos, periodo, error, sectores = [] }: { 
       {t && (
         <>
           {!n(t.solicitados) && <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div>Sin envíos en este periodo. Prueba otro periodo arriba.</div></div>}
+          {/* CUÁNTO SE HACE SOLO EN LA PLATAFORMA (usuario, 2026-11-25), antes de la facturación. */}
+          {digital && (
+            <div className="stats-row" id="cm-digital" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: '0.7rem' }}>
+              <Kpi label="Envíos 100 % digital" valor={String(n(digital.digital_total))} sub={`${pct(n(digital.digital_total), n(digital.realizados))} · los crea el cliente y el transportista acepta por su enlace`} />
+              <Kpi label="Envíos digital cliente" valor={String(n(digital.digital_cliente))} sub={`${pct(n(digital.digital_cliente), n(digital.realizados))} · los crea el cliente; el transportista lo asigna Dynamo`} />
+              <Kpi label="Envíos digital transportista" valor={String(n(digital.digital_transportista))} sub={`${pct(n(digital.digital_transportista), n(digital.realizados))} · los crea Dynamo; el transportista acepta por su enlace`} />
+              <Kpi label="Envíos 100 % Dynamo" valor={String(n(digital.dynamo))} sub={`${pct(n(digital.dynamo), n(digital.realizados))} · los crea y los asigna Dynamo`} />
+            </div>
+          )}
           <div className="stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
             <Kpi label="Facturación (sin IVA)" valor={euros(totFact)} a={totFact} b={c && n(c.facturacion)} sub={`${n(t.realizados)} envíos realizados`} />
             <Kpi label="Margen" valor={euros(n(t.margen))} a={n(t.margen)} b={c && n(c.margen)} sub={`${pct(n(t.margen), totFact)} sobre facturación`} />

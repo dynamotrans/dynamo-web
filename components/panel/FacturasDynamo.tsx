@@ -27,6 +27,9 @@ export type FacturaFila = {
   vence: string | null;       // aaaa-mm-dd
   pdf_url?: string | null;
   gx?: string | null;         // el envío al que corresponde, si el concepto lo dice (GX…)
+  contacto_id?: string | null;   // el contacto en la facturación (para buscar su CIF)
+  cuenta?: string | null;        // cuenta contable de sus líneas
+  pagada_el?: string | null;     // aaaa-mm-dd del último cobro, si está pagada y se sabe
 };
 
 type Tipo = 'todas' | 'emitida' | 'recibida';
@@ -39,11 +42,25 @@ function TagTipo({ tipo }: { tipo: FacturaFila['tipo'] }) {
     ? <span className="badge fac-ingreso" style={{ background: '#dbeafe', color: '#1e3a8a' }}>Ingreso</span>
     : <span className="badge fac-gasto" style={{ background: '#fee2e2', color: '#b91c1c' }}>Gasto</span>;
 }
-function TagEstado({ f }: { f: FacturaFila }) {
-  if (f.estado === 'pagada') return <span className="badge badge-green">Pagada</span>;
+// PAGO (usuario, 2026-11-25): pendiente → cuándo vence; pagada → cuándo se cobró y cuántos días
+// tardó desde la factura (y si fue después del vencimiento, cuántos de retraso). Sirve para ver
+// los plazos reales de pago de cada cliente.
+const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+const nDias = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
+function TagEstado({ f, hoy }: { f: FacturaFila; hoy: string }) {
+  if (f.estado === 'pagada') {
+    const tarde = f.pagada_el && f.vence && f.pagada_el > f.vence ? dias(f.vence, f.pagada_el) : 0;
+    return <>
+      <span className="badge badge-green">Pagada</span>
+      {f.pagada_el
+        ? <span className="meta" style={{ display: 'block', marginTop: 2 }}>el {fecha(f.pagada_el)} · a los {nDias(Math.max(0, dias(f.fecha, f.pagada_el)))}</span>
+        : f.vence && <span className="meta" style={{ display: 'block', marginTop: 2 }}>vencía {fecha(f.vence)}</span>}
+      {tarde > 0 && <span className="meta" style={{ display: 'block', color: '#b42318', fontWeight: 700 }}>{nDias(tarde)} tarde</span>}
+    </>;
+  }
   if (f.estado === 'vencida' || f.estado === 'pendiente') return <>
     <span className={`badge ${f.estado === 'vencida' ? 'badge-red' : 'badge-orange'}`}>{f.estado === 'vencida' ? 'Vencida' : 'Pendiente'}</span>
-    {f.vence && <span className="meta" style={{ display: 'block', marginTop: 2 }}>vence {fecha(f.vence)}</span>}
+    {f.vence && <span className="meta" style={{ display: 'block', marginTop: 2 }}>{f.estado === 'vencida' ? `venció ${fecha(f.vence)} · hace ${nDias(Math.max(0, dias(f.vence, hoy)))}` : `vence ${fecha(f.vence)}`}</span>}
   </>;
   return <span className="meta">—</span>;
 }
@@ -52,12 +69,13 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
   const [tipo, setTipo] = useState<Tipo>('todas');
   const ff = useFiltroFechas();
   const [q, setQ] = useState('');
+  const hoy = useMemo(() => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' }), []);
 
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     return facturas
       .filter((f) => (tipo === 'todas' || f.tipo === tipo) && enRango(f.fecha, ff.rango)
-        && w.every((x) => norm([f.numero, f.gx, f.concepto, f.empresa, f.cif, euros(f.total)].filter(Boolean).join(' ')).includes(x)))
+        && w.every((x) => norm([f.numero, f.gx, f.concepto, f.empresa, f.cif, f.cuenta, euros(f.total)].filter(Boolean).join(' ')).includes(x)))
       .sort((a, b) => (a.fecha === b.fecha ? 0 : a.fecha < b.fecha ? 1 : -1));
   }, [facturas, tipo, ff.rango, q]);
   const pg = usePaginas(lista, `${tipo}|${ff.clave}|${q}`, 25);
@@ -95,8 +113,8 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
       <div className="table-wrap" tabIndex={0}>
         <table className="data" id="facturas-lista">
           <thead><tr>
-            <th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Empresa</th><th>CIF</th>
-            <th className="amount">Base</th><th className="amount">IVA</th><th className="amount">Retención</th><th className="amount">Total</th><th>Pago</th>
+            <th>Fecha</th><th>Tipo</th><th>Nº factura</th><th>CIF · Empresa</th>
+            <th className="amount">Base</th><th className="amount">IVA</th><th className="amount">Retención</th><th className="amount">Total</th><th>Pago</th><th>Cuenta contable</th>
           </tr></thead>
           <tbody>
             {lista.length === 0 ? (
@@ -107,19 +125,19 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
               <tr key={f.id} data-tipo={f.tipo} onClick={f.pdf_url ? () => { const w = window.open(f.pdf_url!, '_blank'); if (!w) location.href = f.pdf_url!; } : undefined} style={f.pdf_url ? { cursor: 'pointer' } : undefined}>
                 <td style={{ whiteSpace: 'nowrap' }}>{fecha(f.fecha)}</td>
                 <td><TagTipo tipo={f.tipo} /></td>
-                {/* El concepto puede ser larguísimo (toda la ruta y la mercancía): dos líneas y el
-                    resto, al pasar el ratón o en el PDF (usuario, 2026-11-25: «habrá que ajustar cosas»). */}
-                <td style={{ minWidth: 220, maxWidth: 380 }}>
-                  {f.numero && <strong style={{ display: 'block', color: 'var(--navy)' }}>{f.numero}{f.gx ? <span className="meta" style={{ fontWeight: 600 }}> · {f.gx}</span> : null}</strong>}
-                  <span className="fac-concepto" title={f.concepto ?? undefined}>{f.concepto ?? '—'}</span>
+                {/* Nº de factura y, debajo, el envío (GX); el concepto entero, al pasar el ratón o en el PDF
+                    (usuario, 2026-11-25: fuera la columna «Concepto»). */}
+                <td style={{ whiteSpace: 'nowrap' }} title={f.concepto ?? undefined}>
+                  <strong style={{ color: 'var(--navy)' }}>{f.numero ?? '—'}</strong>
+                  {f.gx && <span className="meta" style={{ display: 'block' }}>{f.gx}</span>}
                 </td>
-                <td>{f.empresa ?? '—'}</td>
-                <td style={{ whiteSpace: 'nowrap' }}>{f.cif ?? '—'}</td>
+                <td style={{ minWidth: 150 }}>{f.empresa ?? '—'}<span className="meta" style={{ display: 'block' }}>{f.cif ?? 'CIF sin consultar'}</span></td>
                 <td className="amount" style={{ whiteSpace: 'nowrap' }}>{euros(f.base)}</td>
                 <td className="amount" style={{ whiteSpace: 'nowrap' }}>{euros(f.iva)}</td>
                 <td className="amount" style={{ whiteSpace: 'nowrap' }}>{f.retencion ? `−${euros(f.retencion)}` : '—'}</td>
                 <td className="amount" style={{ whiteSpace: 'nowrap' }}><strong>{euros(f.total)}</strong></td>
-                <td style={{ whiteSpace: 'nowrap' }}><TagEstado f={f} /></td>
+                <td style={{ whiteSpace: 'nowrap' }}><TagEstado f={f} hoy={hoy} /></td>
+                <td style={{ whiteSpace: 'nowrap' }}>{f.cuenta ?? '—'}</td>
               </tr>
             ))}
           </tbody>

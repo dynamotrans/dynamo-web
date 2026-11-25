@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, facturaDeHolded, facturasDeHolded, formaDeHolded, gxDeTexto, pendienteDeHolded, pendientesDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, cuentaDeLineas, diasEntre, facturaDeHolded, facturasDeHolded, formaDeCobro, formaDeHolded, gxDeTexto, pendienteDeHolded, pendientesDeHolded, ultimoCobro } from '../../lib/holdedFacturas';
 
 const HOY = '2026-11-24';
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -89,4 +89,30 @@ test('forma de la respuesta: dice qué campos vienen y sus importes, sin nombres
   assert.ok(txt.includes('"subtotal":"100.00"') && txt.includes('claves_linea'));
   assert.ok(!txt.includes('Acme') && !txt.includes('Porte GX1') && !txt.includes('Secreto'));
   assert.deepEqual(formaDeHolded({ data: [] }), { claves_respuesta: ['data'], items: 'undefined' });
+});
+
+test('cobros: de cada factura vale la fecha de su ÚLTIMO cobro; lo que no es de una factura no cuenta', () => {
+  const p = cobrosDeHolded({ items: [
+    { document_id: 'f1', document_type: 'invoice', date: '2026-11-03T10:00:00+00:00', amount: '50.00' },
+    { document_id: 'f1', document_type: 'invoice', date: '2026-11-20', amount: '71.00' },
+    { document_id: 'f2', document_type: 'invoice', date: '2026-10-01' },
+    { document_id: 'c9', document_type: 'purchase', date: '2026-11-21' },
+    { document_id: null, document_type: 'invoice', date: '2026-11-21' }, null,
+  ], has_more: true, cursor: 'x' });
+  assert.equal(p.cobros.length, 3);
+  assert.deepEqual([p.hayMas, p.cursor], [true, 'x']);
+  const m = ultimoCobro(p.cobros);
+  assert.deepEqual([m.get('f1'), m.get('f2'), m.get('c9')], ['2026-11-20', '2026-10-01', undefined]);
+  assert.equal(diasEntre('2026-11-01', '2026-11-20'), 19);
+  assert.equal(diasEntre('2026-10-25', '2026-10-26'), 1);     // el cambio de hora no descuenta un día
+});
+
+test('cuenta contable: la de las líneas, sin repetir; la forma del cobro no enseña nombres', () => {
+  assert.equal(cuentaDeLineas([{ account: '70500000' }, { account: 70500000 }, { account: ' 70000001 ' }, { account: null }]), '70500000 · 70000001');
+  assert.equal(cuentaDeLineas([{ price: 1 }]), null);
+  assert.equal(cuentaDeLineas('x'), null);
+  const f = facturaDeHolded({ ...base, contact_id: 'ABCDEFABCDEFABCDEFABCDEF', lines: [{ account: '70500000', price: 100, units: 1 }] }, HOY)!;
+  assert.deepEqual([f.cuenta, f.contacto_id, f.pagada_el], ['70500000', 'abcdefabcdefabcdefabcdef', null]);
+  const txt = JSON.stringify(formaDeCobro({ items: [{ id: 'p', contact_name: 'Acme SL', description: 'Cobro secreto', amount: '10.00', date: '2026-11-01', document_id: 'f1', document_type: 'invoice' }] }));
+  assert.ok(txt.includes('"amount":"10.00"') && txt.includes('"con_documento":true') && !txt.includes('Acme') && !txt.includes('secreto'));
 });
