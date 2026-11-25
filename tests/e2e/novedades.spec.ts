@@ -132,6 +132,8 @@ test.describe('novedades', () => {
     // Avisa de su transferencia (con una pregunta antes): el temporizador desaparece y queda «validando».
     await page.goto(`/panel/envios?ver=${e.id}`);
     await page.locator('#pago-avisar').click();
+    // Antes de decir que sí: la transferencia puede llegar al día siguiente y las fechas cuentan desde que se valida.
+    await expect(page.locator('#pago-avisar-fechas')).toContainText(/hasta el día siguiente.*desde que validamos el pago.*se recalculan/s);
     await page.getByRole('button', { name: /Sí, ya la he hecho/ }).click();
     await expect(page.locator('#pago-avisado')).toContainText('La estamos validando');
     await expect(page.locator('#pago-plazo')).toHaveCount(0);

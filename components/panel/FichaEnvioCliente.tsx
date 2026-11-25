@@ -608,6 +608,8 @@ function PagoCliente({ e }: { e: EnvioCliente }) {
           <div id="pago-avisar-confirmar" style={{ marginTop: '0.6rem', background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.7rem 0.8rem' }}>
             <strong>¿Ya has hecho la transferencia de {total}?</strong>
             <div style={{ marginTop: '0.25rem' }}>Pulsa «Sí» solo si ya está hecha, con el concepto <strong>PRO-{e.referencia_gx}</strong>. Paramos el plazo y lo comprobamos en el banco; si no nos consta, el envío se anula.</div>
+            {/* Una transferencia puede no llegar hasta el día siguiente, y las fechas cuentan desde que se valida el pago (usuario, 2026-11-25). */}
+            <div id="pago-avisar-fechas" style={{ marginTop: '0.35rem' }}>Una transferencia puede tardar <strong>hasta el día siguiente</strong> en llegarnos. Las fechas de recogida cuentan <strong>desde que validamos el pago</strong>: si llega más tarde, se recalculan y pueden cambiar respecto a las indicadas.</div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn-primary" disabled={avisando} onClick={avisar}>Sí, ya la he hecho: validadla</button>
               <button type="button" className="btn-ghost" disabled={avisando} onClick={() => setPreguntaAviso(false)}>Todavía no</button>
