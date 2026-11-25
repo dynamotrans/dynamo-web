@@ -1617,6 +1617,42 @@ test.describe('novedades', () => {
     await expect(n).toContainText('Envíos con incidencia: 1 de 12');
   });
 
+  test('crédito del cliente: sin crédito por CESCE o en trámite manda a CESCE con su teléfono; si el 0 es de Dynamo, a Dynamo', async ({ page }) => {
+    const sv = bd();
+    const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const { data: c } = await sv.from('clientes').select('riesgo_manual_euros, riesgo_cesce_euros').eq('id', u!.cliente_id).single();
+    const menu = page.locator('.cesce-menu');
+    const abrir = async () => { await page.goto('/panel/envios'); await page.getByRole('button', { name: 'Cobertura de crédito CESCE' }).click(); await expect(menu).toHaveClass(/open/); };
+    try {
+      await entrar(page, 'cliente');
+      // CESCE no le da crédito (y Dynamo no ha puesto nada a mano): se dice que es por CESCE y se da su teléfono.
+      await sv.from('clientes').update({ riesgo_manual_euros: null, riesgo_cesce_euros: 0 }).eq('id', u!.cliente_id);
+      await abrir();
+      await expect(menu).toContainText('Crédito no disponible');
+      await expect(menu).toContainText('no tiene crédito disponible por CESCE');
+      await expect(menu).toContainText('Contacta con CESCE y lo revisan');
+      await expect(menu.locator('a[href="tel:+34900115000"]')).toContainText('+34 900 115 000');
+      await expect(menu).not.toContainText('955 225 945');
+      // Aún sin clasificar: en trámite, y las dudas, a CESCE. Ya no hay botón de «Reclamar clasificación».
+      await sv.from('clientes').update({ riesgo_manual_euros: null, riesgo_cesce_euros: null }).eq('id', u!.cliente_id);
+      await abrir();
+      await expect(menu).toContainText('Sin clasificar');
+      await expect(menu).toContainText('aún en trámite por CESCE');
+      await expect(menu).toContainText('Para dudas o consultas con CESCE, llama');
+      await expect(menu.locator('a[href="tel:+34900115000"]')).toBeVisible();
+      await expect(menu).not.toContainText('Reclamar clasificación');
+      // El 0 lo ha puesto Dynamo a mano (CESCE sí le da): no se le manda a CESCE.
+      await sv.from('clientes').update({ riesgo_manual_euros: 0, riesgo_cesce_euros: 5000 }).eq('id', u!.cliente_id);
+      await abrir();
+      await expect(menu).toContainText('Crédito no disponible');
+      await expect(menu).not.toContainText('por CESCE:');
+      await expect(menu).toContainText('Contáctanos y lo revisamos');
+      await expect(menu.locator('a[href="tel:+34900115000"]')).toHaveCount(0);
+    } finally {
+      await sv.from('clientes').update({ riesgo_manual_euros: c!.riesgo_manual_euros, riesgo_cesce_euros: c!.riesgo_cesce_euros }).eq('id', u!.cliente_id);
+    }
+  });
+
   test('CESCE - Riesgos: lo que debe cada cliente según sus facturas pendientes de cobro (foto de la facturación)', async ({ page }) => {
     const sv = bd();
     const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();

@@ -2719,7 +2719,7 @@ do $$ declare c jsonb; begin
   c := contadores_panel();
   if (c ->> 'incidencias')::int > (select count(*) from incidencias) then raise exception 'FALLO 86 · el cliente cuenta incidencias que no ve'; end if;
   if c ? 'altas' then raise exception 'FALLO 86 · el cliente ve el contador de altas de Dynamo'; end if;
-  if mi_cobertura_credito() not in ('disponible', 'superado', 'nulo', 'sinclasif') then raise exception 'FALLO 86 · cobertura de crédito sin estado: %', mi_cobertura_credito(); end if;
+  if mi_cobertura_credito() not in ('disponible', 'superado', 'nulo', 'nulo_cesce', 'sinclasif') then raise exception 'FALLO 86 · cobertura de crédito sin estado: %', mi_cobertura_credito(); end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_al85'), false);
@@ -15653,3 +15653,34 @@ do $$ declare c1 uuid; c2 uuid; r jsonb; mal boolean := false; f text; d record;
   perform set_config('request.jwt.claim.role', '', true);
   raise notice 'OK 346 · deuda real de clientes: la foto se casa por CIF, se sustituye entera y una lectura fallida no la toca';
 end $$;
+
+-- 347 · CRÉDITO: CUANDO EL «SIN CRÉDITO» ES DE CESCE SE DICE Y SE DA SU TELÉFONO (usuario,
+-- 2026-11-25); cuando el 0 lo pone Dynamo a mano, NO se manda al cliente a CESCE.
+do $$ declare v_cli uuid; v_man numeric; v_ces numeric; r record; begin
+  select cliente_id into v_cli from usuarios where id = current_setting('prueba.u_cli_b')::uuid;
+  select riesgo_manual_euros, riesgo_cesce_euros into v_man, v_ces from clientes where id = v_cli;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+  -- El 0 es de CESCE (sin crédito manual): estado propio.
+  update clientes set riesgo_manual_euros = null, riesgo_cesce_euros = 5000 where id = v_cli;
+  update clientes set riesgo_cesce_euros = 0 where id = v_cli;
+  if mi_cobertura_credito() <> 'nulo_cesce' then raise exception 'FALLO 347 · con el crédito de CESCE a 0 y sin manual no sale «nulo_cesce»: %', mi_cobertura_credito(); end if;
+  select * into r from emails_enviados where clave like 'credito_cambio:' || v_cli || ':%' order by clave desc limit 1;
+  if r.id is null or r.asunto <> 'Línea de crédito retirada · Dynamo' or position('por cambios en su clasificación' in r.cuerpo_html) = 0
+     or position('+34 900 115 000' in r.cuerpo_html) = 0 or position('escríbenos' in r.cuerpo_html) > 0 then
+    raise exception 'FALLO 347 · el email de línea retirada por CESCE no lo dice o no da el teléfono de CESCE: %', r.cuerpo_html; end if;
+  -- El 0 lo pone Dynamo a mano (CESCE sí le da): ni estado de CESCE ni teléfono de CESCE.
+  update clientes set riesgo_cesce_euros = 5000 where id = v_cli;
+  update clientes set riesgo_manual_euros = 0 where id = v_cli;
+  if mi_cobertura_credito() <> 'nulo' then raise exception 'FALLO 347 · con el crédito manual a 0 no sale «nulo»: %', mi_cobertura_credito(); end if;
+  select * into r from emails_enviados where clave like 'credito_cambio:' || v_cli || ':%' order by clave desc limit 1;
+  if r.id is null or r.asunto <> 'Línea de crédito retirada · Dynamo' or position('900 115 000' in r.cuerpo_html) > 0 or position('clasificación' in r.cuerpo_html) > 0
+     or position('escríbenos' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 347 · al quitar Dynamo el crédito a mano, el email manda al cliente a CESCE: %', r.cuerpo_html; end if;
+  -- Sin nada informado: sin clasificar, como siempre.
+  update clientes set riesgo_manual_euros = null, riesgo_cesce_euros = null where id = v_cli;
+  if mi_cobertura_credito() <> 'sinclasif' then raise exception 'FALLO 347 · sin riesgo informado no sale «sinclasif»'; end if;
+  update clientes set riesgo_manual_euros = v_man, riesgo_cesce_euros = v_ces where id = v_cli;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 347 · crédito: el «sin crédito» de CESCE se distingue del de Dynamo, en el estado y en el email';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

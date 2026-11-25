@@ -30,7 +30,9 @@ const IDIOMAS_PANEL: [string, React.ReactNode, string][] = [
 ];
 
 export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias' | 'albaranes', number>>;
-export type Cobertura = 'disponible' | 'superado' | 'nulo' | 'sinclasif' | null;
+export type Cobertura = 'disponible' | 'superado' | 'nulo' | 'nulo_cesce' | 'sinclasif' | null;
+// Atención al cliente de CESCE (teléfono gratuito; usuario, 2026-11-25).
+const CESCE_TEL = { texto: '+34 900 115 000', href: 'tel:+34900115000' };
 
 // Números del menú lateral por pantalla: [naranja, rojo] y qué significa cada uno.
 function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: boolean }[] {
@@ -56,10 +58,14 @@ const COBERTURA: Record<Exclude<Cobertura, null>, { chip: string; badge: string;
   superado: { chip: 'cesce-status-naranja', badge: 'cesce-b-naranja', label: 'Crédito disponible superado', clasif: 'Clasificado', clasifCls: 'ok', notaCls: 'naranja',
     nota: <>Has <strong>superado tu crédito disponible</strong>. Se irá liberando a medida que se paguen tus facturas; mientras tanto, los envíos que no quepan se pagan <strong>por adelantado</strong>.</> },
   sinclasif: { chip: 'cesce-status-warn', badge: 'cesce-b-warn', label: 'Sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none', notaCls: 'warn',
-    nota: <>Tu empresa está <strong>sin clasificar</strong> por CESCE (el trámite aún no se ha realizado), así que los envíos se cobran <strong>por adelantado</strong>. Puedes solicitar que CESCE clasifique tu empresa para trabajar a crédito.</> },
-  // «Sin crédito disponible» (usuario, 2026-11-16): el crédito que manda es 0, venga de
-  // CESCE o del crédito manual de Dynamo (que ahora manda siempre: 0 es 0). El texto no dice
-  // de quién es el 0 ni manda a nadie a CESCE: el contacto es el nuestro y lo revisamos.
+    nota: <>Tu empresa está <strong>aún en trámite</strong> por CESCE, así que los envíos se cobran <strong>por adelantado</strong>.</> },
+  // «Sin crédito disponible»: el crédito que manda es 0. Dos casos (usuario, 2026-11-25):
+  //  · nulo_cesce: el 0 es de CESCE (no hay crédito manual de Dynamo) → se dice que es por
+  //    CESCE y se da SU teléfono, que es quien puede revisarlo.
+  //  · nulo: el 0 lo ha puesto Dynamo a mano (también al bloquear por pagos tardíos) → mandar
+  //    al cliente a CESCE sería falso: el contacto es el nuestro y lo revisamos.
+  nulo_cesce: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Crédito no disponible', clasif: 'Sin crédito', clasifCls: 'none', notaCls: 'none',
+    nota: <>Esta cuenta <strong>no tiene crédito disponible por CESCE</strong>: los envíos se pagan <strong>por anticipado</strong>.</> },
   nulo: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Crédito no disponible', clasif: 'Sin crédito', clasifCls: 'none', notaCls: 'none',
     nota: <>Esta cuenta <strong>no tiene crédito disponible</strong>: los envíos se pagan <strong>por anticipado</strong>. Si crees que debería tenerlo, contáctanos y lo revisamos.</> },
 };
@@ -405,12 +411,14 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
                   <div className={`cesce-menu-badge ${COBERTURA[cobertura].badge}`}><span className="dot" />{COBERTURA[cobertura].label}</div>
                   <div className="cesce-rows"><div className="cesce-row"><span className="k">Clasificación</span><span className={`v ${COBERTURA[cobertura].clasifCls}`}>{COBERTURA[cobertura].clasif}</span></div></div>
                   <div className={`cesce-note ${COBERTURA[cobertura].notaCls}`}>{COBERTURA[cobertura].nota}</div>
-                  {cobertura === 'sinclasif' && (
-                    <a className="cesce-reclamar" style={{ textDecoration: 'none' }}
-                       href={`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`Solicitud de clasificación CESCE · ${empresa}`)}&body=${encodeURIComponent(`Hola, queremos que CESCE clasifique a ${empresa} para poder trabajar a crédito.\r\n\r\nGracias.`)}`}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M9 15l2 2 4-4" /></svg>
-                      Reclamar clasificación
-                    </a>
+                  {/* Sin clasificar (en trámite) o sin crédito por CESCE: quien lo aclara es CESCE. */}
+                  {(cobertura === 'sinclasif' || cobertura === 'nulo_cesce') && (
+                    <div className="cesce-contact" id="cesce-contacto-cesce">
+                      <div className="cesce-contact-t">{cobertura === 'nulo_cesce'
+                        ? '¿No estás conforme con tu crédito? Contacta con CESCE y lo revisan'
+                        : 'Para dudas o consultas con CESCE, llama'}</div>
+                      <a href={CESCE_TEL.href}><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>{CESCE_TEL.texto} <span style={{ fontWeight: 500, color: 'var(--gray-500)' }}>(teléfono gratuito de CESCE)</span></a>
+                    </div>
                   )}
                   {cobertura === 'nulo' && (
                     <div className="cesce-contact">

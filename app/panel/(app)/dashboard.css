@@ -419,15 +419,6 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); font-family:
 }
 .cesce-contact a:hover { background: var(--gray-100); }
 .cesce-contact a svg { width: 16px; height: 16px; color: var(--purple); flex: none; }
-/* Botón "Reclamar clasificación" (solo estado rojo sin clasificar). */
-.cesce-reclamar {
-    display: flex; align-items: center; justify-content: center; gap: 0.45rem;
-    width: 100%; margin-top: 0.7rem; padding: 0.6rem 0.7rem;
-    background: var(--purple); color: #fff; border: none; border-radius: 10px;
-    font: inherit; font-size: var(--fs-m); font-weight: 800; cursor: pointer;
-}
-.cesce-reclamar:hover { filter: brightness(1.08); }
-.cesce-reclamar svg { width: 16px; height: 16px; flex: none; }
 .cesce-reclamar .cesce-cif { font-weight: 600; opacity: 0.9; }
 /* Menú de la campana (notificaciones): incidencias + facturas vencidas. */
 .topbar-bell-wrap { position: relative; }

@@ -88,7 +88,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       error={lug.error?.message ?? null} base={base}
       operadores={(ops.data ?? []).map((o) => ({ id: o.id, nombre: o.razon_social, cif: o.cif, contacto: o.persona_contacto }))}
       autosusp={(susp.data ?? null) as MiAutosusp | null} reglas={(reg.data ?? null) as ReglasPrecio | null}
-      pagoPrevio={['nulo', 'sinclasif'].includes((cob.data ?? 'disponible') as string)} tarjeta={stripeListo()} emailPropio={s.user.email ?? null} />;
+      pagoPrevio={['nulo', 'nulo_cesce', 'sinclasif'].includes((cob.data ?? 'disponible') as string)} tarjeta={stripeListo()} emailPropio={s.user.email ?? null} />;
   }
 
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).

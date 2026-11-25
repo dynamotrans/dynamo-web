@@ -48,8 +48,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     activa ? supabase.rpc('contadores_panel', { p_cliente: vCli, p_transportista: vTra }) : Promise.resolve({ data: null }),
     activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_cobertura_credito')
       : activa && vCli
-        ? supabase.from('clientes').select('riesgo_efectivo_euros').eq('id', vCli).maybeSingle()
-            .then((r) => ({ data: !r.data ? null : r.data.riesgo_efectivo_euros == null ? 'sinclasif' : r.data.riesgo_efectivo_euros === 0 ? 'nulo' : 'disponible' }))
+        ? supabase.from('clientes').select('riesgo_efectivo_euros, riesgo_manual_euros').eq('id', vCli).maybeSingle()
+            .then((r) => ({ data: !r.data ? null : r.data.riesgo_efectivo_euros == null ? 'sinclasif' : r.data.riesgo_efectivo_euros <= 0 ? (r.data.riesgo_manual_euros == null ? 'nulo_cesce' : 'nulo') : 'disponible' }))
         : Promise.resolve({ data: null }),
     supabase.rpc('festivos_entre', { p_desde: hoyMadrid(), p_hasta: hoyMadrid(15) }),
     // Para el pre-aviso del 80 % del cupo del día (solo clientes).
