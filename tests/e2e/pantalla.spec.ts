@@ -77,11 +77,11 @@ test.describe('pantalla sin hueco al final', () => {
 
 // Panel de control de Dynamo (usuario, 2026-11-25): los programados van dentro de «Hoy/mañana
 // sin camión», en pequeño; y los cuatro indicadores de envíos digitales llevan cada uno su
-// color, el mismo que su columna en el gráfico de debajo.
+// color, el mismo que su tramo en el gráfico de debajo (columnas apiladas por mes o por día).
 test.describe('panel de control: indicadores', () => {
-  test('programados dentro de «sin camión» y envíos digitales con su gráfico de columnas', async ({ page }) => {
+  test('programados dentro de «sin camión» y envíos digitales con su gráfico por meses', async ({ page }) => {
     await entrar(page, 'dynamo');
-    await page.goto('/panel/dashboard-admin?p=todo');
+    await page.goto('/panel/dashboard-admin?cm=todo');
     const arriba = page.locator('.stats-compactas').first();
     await expect(arriba).toContainText('Contraofertas transp.');
     await expect(arriba.locator('.stat-card', { hasText: 'Hoy/mañana sin camión' })).toContainText(/\d+ programados total/);
@@ -92,18 +92,24 @@ test.describe('panel de control: indicadores', () => {
     await expect(page.locator('#cm-digital')).toContainText(/Envíos full digital.*Envíos digital cliente.*Envíos digital transportista.*Envíos full humano/s);
     const colores = await tarjetas.evaluateAll((l) => l.map((x) => x.getAttribute('data-color')));
     expect(new Set(colores).size).toBe(4);
-    // El gráfico, debajo de las tarjetas y antes de la facturación.
+    // El gráfico, debajo de las tarjetas y antes de la facturación: columnas apiladas por día o
+    // por mes del periodo del cuadro, con los cuatro colores de las tarjetas.
     const grafico = page.locator('#cm-digital-grafico');
     await expect(grafico).toBeVisible();
-    const columnas = grafico.locator('[data-columna]');
-    if (await columnas.count()) {
-      await expect(columnas).toHaveCount(4);
-      // Cada columna, del color de su tarjeta (o su marca a 0).
-      const delGrafico = await columnas.evaluateAll((l) => l.map((g) => g.querySelector('path, rect[fill]:not([fill="transparent"])')?.getAttribute('fill')));
-      expect(delGrafico).toEqual(colores);
-      await columnas.nth(3).click();
-      await expect(page.locator('#cm-digital-tip')).toContainText('Envíos full humano');
-      await expect(page.locator('#cm-digital-tip')).toContainText(/de los realizados/);
+    await expect(grafico.locator('h4')).toContainText(/por (mes|día)/);
+    const zonas = grafico.locator('[data-zona]');
+    if (await zonas.count()) {
+      await expect(grafico.locator('.cm-leyenda span')).toHaveCount(4);
+      await expect(grafico.locator('.cm-leyenda')).toContainText(/Envíos full digital.*Envíos digital cliente.*Envíos digital transportista.*Envíos full humano/s);
+      // Cada tramo, de uno de los cuatro colores de las tarjetas.
+      const tramos = await grafico.locator('[data-tramo]').evaluateAll((l) => l.map((t) => t.getAttribute('fill')));
+      expect(tramos.length).toBeGreaterThan(0);
+      for (const c of tramos) expect(colores).toContain(c);
+      // Al pulsar un mes (o día) con envíos, sus cifras.
+      const cubo = await grafico.locator('[data-cubo]:has([data-tramo])').first().getAttribute('data-cubo');
+      await grafico.locator(`[data-zona="${cubo}"]`).click();
+      await expect(page.locator('#cm-digital-tip')).toContainText(/envíos? realizados?/);
+      await expect(page.locator('#cm-digital-tip')).toContainText(/Full digital.*Digital cliente.*Digital transportista.*Full humano/s);
     } else {
       await expect(grafico).toContainText('Sin envíos realizados en este periodo.');
     }

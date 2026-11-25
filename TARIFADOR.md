@@ -89,6 +89,39 @@ de la dirección de Sevilla.
   empresa). Es decir: base × (% combustible × factor gasóleo + % resto × índice IPC / 100).
 - Va **antes** de aplicar el gasóleo y de todo lo demás: es una corrección de la base.
 
+## 4 bis-2. IDEA · Gasóleo: «sube como un cohete y baja como una pluma» (usuario, 2026-11-25)
+
+*«Si el precio del gasoil está subiendo, la tarifa se actualiza sobre la marcha. Pero si va
+bajando, tarda en aplicar las correcciones, por ejemplo 5 o 6 días… que los precios diarios no
+suban y bajen de golpe… para subir subimos al momento, para bajar tardamos.»*
+
+**ES SOLO UNA IDEA (usuario, 2026-11-25: «no sé aún detalles, anótalo como idea de tarifador, ya lo vemos»). Nada decidido ni programado. Una forma posible de hacerlo:**
+
+- El tarifador NO usa el precio del día, sino un **precio de referencia** que se calcula solo:
+  **el más alto de los últimos N días** (N = 6 por defecto, en Parámetros).
+  - Sube el gasóleo → el de hoy pasa a ser el más alto → la referencia sube **el mismo día**.
+  - Baja el gasóleo → la referencia aguanta hasta que el día caro sale de la ventana (N días) y
+    entonces baja al siguiente más alto: escalón pequeño, nunca de golpe.
+  - Un bajón de un solo día no mueve nada. Una regla, un número, fácil de explicar.
+- **Banda muerta**: si la referencia cambia menos de un mínimo (p. ej. 0,5 %), la tarifa no se
+  toca, para que no baile céntimos cada día.
+- **Freno a datos raros**: si el dato del día se aparta mucho del anterior (p. ej. más de un 5 %)
+  o vienen muy pocas gasolineras, no se aplica solo: aviso a Dynamo.
+- Solo afecta a la **parte de combustible** del precio (~30 %, apartado 4 bis).
+- Solo a **precios nuevos**: un presupuesto o un envío ya confirmado no cambia.
+
+**Hace falta guardar el precio de cada día** (sin historial no hay ventana ni se puede explicar
+por qué un precio fue el que fue): tabla con fecha, precio medio nacional del gasóleo A, número
+de gasolineras y hora del dato; una tarea diaria lo lee de la fuente pública del Ministerio
+(la misma que hoy usa el usuario en su hoja de cálculo; sin clave y sin coste). Arranque: cargar
+el historial que ya tiene en la hoja. Y un registro de cada cambio de la referencia (día, de
+cuánto a cuánto y por qué).
+
+**Por decidir con el usuario**: N (5 o 6 días); la banda muerta; si la misma regla vale para lo
+que se PAGA al transportista o solo para lo que se cobra al cliente; y, en el repaso legal,
+que esta regla es para precios nuevos (la revisión del precio por combustible de un transporte
+ya contratado va por la ley, no por esto).
+
 ## 4 ter. ⚠️ MUY IMPORTANTE · El destino se mide hasta el POLO INDUSTRIAL más cercano, no hasta la capital (usuario, 2026-11-23)
 
 - Ejemplo: Sevilla → un pueblo que linda con Cádiz pero está **muy cerca de un polo

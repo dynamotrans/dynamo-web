@@ -15827,3 +15827,50 @@ do $$ declare c uuid; e uuid; p uuid; n int; tp uuid := (select id from tipos_pe
   raise notice 'OK 350 · una penalización a 0 € no existe: no se crea con los dos importes a 0 y a quien le toca 0 no le aparece';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 351 · CUADRO DE MANDO: ENVÍOS DIGITALES MES A MES (usuario, 2026-11-25). La serie suma lo
+-- mismo que las cuatro casillas, va por día hasta 62 días y por mes si es más, y sin huecos.
+do $$ declare c uuid; ids uuid[] := '{}'; e uuid; i int; r jsonb; t jsonb; d date := date '2036-05-10';
+  u_cli uuid := current_setting('prueba.u_cli_b')::uuid; u_adm uuid := current_setting('prueba.u_admin')::uuid; tr uuid := current_setting('prueba.transp')::uuid; begin
+  if has_function_privilege('anon', 'cuadro_mando_digital_serie(date, date)', 'execute') then raise exception 'FALLO 351 · alguien sin entrar ve la serie del cuadro de mando'; end if;
+  insert into clientes (razon_social, cif) values ('Serie Digital SL', 'B35100351') returning id into c;
+  for i in 1..4 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista) values (c, 13.30, 20, 1000, 800) returning id into e;
+    ids := ids || e;
+  end loop;
+  alter table envios disable trigger user; alter table envio_ofertas disable trigger user;
+  update envios set estado = 'entregado', transportista_id = tr, creado_por = null where id = any(ids);
+  update envios set fecha_efectiva = d where id in (ids[1], ids[2]);              -- mayo
+  update envios set fecha_efectiva = d + 40 where id in (ids[3], ids[4]);         -- junio
+  update envios set creado_por = u_cli where id in (ids[1], ids[3]);              -- los crea el cliente
+  insert into envio_ofertas (envio_id, transportista_id, canal, precio_ofertado, estado, caduca_en) values
+    (ids[1], tr, 'enlace', 800, 'aceptada', now() + interval '1 day'),            -- mayo: full digital
+    (ids[4], tr, 'enlace', 800, 'aceptada', now() + interval '1 day');            -- junio: digital transportista
+  alter table envios enable trigger user; alter table envio_ofertas enable trigger user;
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  -- Periodo largo: por mes, tres meses seguidos (mayo, junio y julio, este a cero).
+  r := cuadro_mando_digital_serie(date '2036-05-01', date '2036-07-31');
+  t := cuadro_mando_digital(date '2036-05-01', date '2036-07-31');
+  if r ->> 'granularidad' <> 'mes' or jsonb_array_length(r -> 'serie') <> 3 then raise exception 'FALLO 351 · la serie larga no va por mes o tiene huecos: %', r; end if;
+  if (r -> 'serie' -> 0 ->> 'digital_total')::int <> 1 or (r -> 'serie' -> 0 ->> 'dynamo')::int <> 1
+     or (r -> 'serie' -> 1 ->> 'digital_cliente')::int <> 1 or (r -> 'serie' -> 1 ->> 'digital_transportista')::int <> 1
+     or (select sum((x ->> 'digital_total')::int + (x ->> 'digital_cliente')::int + (x ->> 'digital_transportista')::int + (x ->> 'dynamo')::int) from jsonb_array_elements(r -> 'serie') x) <> (t ->> 'realizados')::int
+     or (r -> 'serie' -> 2 ->> 'dynamo')::int <> 0 then
+    raise exception 'FALLO 351 · la serie por mes no cuadra con las cuatro casillas: % / %', r, t; end if;
+  -- Periodo corto: por día, uno por cada día.
+  r := cuadro_mando_digital_serie(d - 2, d + 2);
+  if r ->> 'granularidad' <> 'dia' or jsonb_array_length(r -> 'serie') <> 5 or (r -> 'serie' -> 2 ->> 'digital_total')::int <> 1 then
+    raise exception 'FALLO 351 · la serie corta no va por día: %', r; end if;
+  -- Un cliente no ve nada.
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  r := cuadro_mando_digital_serie(date '2036-05-01', date '2036-07-31');
+  if exists (select 1 from jsonb_array_elements(r -> 'serie') x where (x ->> 'digital_total')::int + (x ->> 'digital_cliente')::int + (x ->> 'digital_transportista')::int + (x ->> 'dynamo')::int <> 0) then
+    raise exception 'FALLO 351 · un cliente ve la serie del cuadro de mando'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  alter table envios disable trigger user; alter table envio_ofertas disable trigger user;
+  delete from envio_ofertas where envio_id = any(ids);
+  update envios set estado = 'cancelado', transportista_id = null, fecha_efectiva = null where id = any(ids);
+  alter table envios enable trigger user; alter table envio_ofertas enable trigger user;
+  raise notice 'OK 351 · cuadro de mando: envíos digitales por día o por mes, sin huecos, y cuadra con las cuatro casillas';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

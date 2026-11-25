@@ -29,6 +29,8 @@ export type Cuadro = {
 // envíos realizados: quién creó el envío (cliente o Dynamo) × cómo llegó el transportista
 // (lo aceptó por su enlace o lo asignó Dynamo).
 export type Digital = { realizados: number; digital_total: number; digital_cliente: number; digital_transportista: number; dynamo: number };
+// Lo mismo, troceado en el tiempo (por día o por mes) como la evolución del cuadro.
+export type DigitalSerie = { granularidad: 'dia' | 'mes'; serie: { k: string; digital_total: number; digital_cliente: number; digital_transportista: number; dynamo: number }[] };
 export type Sector = { sector: string; clientes: number; realizados: number; facturacion: number; margen: number };
 export type Periodo = '5a' | '12m' | 'mes' | 'mes-ant' | 'anio' | 'anio-ant' | 'todo' | 'otro';
 
@@ -119,7 +121,7 @@ export function Barras({ datos, color, formato, titulo, alto = 180 }: { datos: {
   );
 }
 
-// ---- Envíos digitales: cuatro columnas, cada una con su color (usuario, 2026-11-25) --------
+// ---- Envíos digitales: cuatro casillas, cada una con su color (usuario, 2026-11-25) --------
 // «Mete esos 4 indicadores en un gráfico de columnas… cada una un color y en la tarjeta, una
 // esquina del mismo color que su barra.» Los cuatro colores son de una paleta de categorías
 // comprobada (se distinguen también con daltonismo); el texto nunca va en el color del dato:
@@ -130,10 +132,28 @@ export const DIGITAL: { clave: 'digital_total' | 'digital_cliente' | 'digital_tr
   { clave: 'digital_transportista', nombre: 'Envíos digital transportista', lineas: ['Digital', 'transportista'], color: '#1baf7a', que: 'los crea Dynamo; el transportista acepta por su enlace' },
   { clave: 'dynamo', nombre: 'Envíos full humano', lineas: ['Full', 'humano'], color: '#eda100', que: 'los crea y los asigna Dynamo' },
 ];
-function ColumnasDigital({ digital }: { digital: Digital }) {
+// Tope «redondo» de un eje de cantidades y su paso (37 → 40 de 10 en 10; 412 → 500 de 100 en 100).
+function ejeRedondo(max: number): { tope: number; paso: number } {
+  const bruto = Math.max(1, max) / 4, p = 10 ** Math.floor(Math.log10(bruto));
+  const paso = Math.max(1, [1, 2, 5, 10].map((m) => m * p).find((x) => x >= bruto) ?? 10 * p);
+  return { tope: Math.max(paso, Math.ceil(Math.max(1, max) / paso) * paso), paso };
+}
+// Columnas APILADAS por día o por mes del periodo del cuadro (usuario, 2026-11-25: «hazlo con
+// el mismo filtro temporal que el cuadro de mando… barras», como la Evolución). Cada columna
+// es lo realizado ese mes, partido en las cuatro casillas; lo digital va abajo, pegado a la
+// base, para que se vea crecer. Entre tramos, un hilo blanco los separa (no un borde).
+function EvolucionDigital({ datos, granularidad }: { datos: DigitalSerie['serie']; granularidad: 'dia' | 'mes' }) {
   const [sel, setSel] = useState<number | null>(null);
+  const [fijo, setFijo] = useState(false);
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (temporizador.current) clearTimeout(temporizador.current); }, []);
+  const pulsar = (i: number) => {
+    if (temporizador.current) clearTimeout(temporizador.current);
+    setSel(i); setFijo(true);
+    temporizador.current = setTimeout(() => { setFijo(false); setSel(null); }, 4500);
+  };
   const lienzo = useRef<HTMLDivElement>(null);
-  const [ancho, setAncho] = useState(520);
+  const [ancho, setAncho] = useState(720);
   useLayoutEffect(() => {
     const el = lienzo.current; if (!el) return;
     const medir = () => setAncho(Math.max(240, Math.floor(el.clientWidth)));
@@ -141,58 +161,74 @@ function ColumnasDigital({ digital }: { digital: Digital }) {
     const ro = new ResizeObserver(medir); ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const total = n(digital.realizados);
-  const datos = DIGITAL.map((d) => ({ ...d, v: n(digital[d.clave]) }));
-  const max = Math.max(1, ...datos.map((d) => d.v));
-  const letra = ancho < 520 ? 11 : 13;
-  const alto = 210, izq = 8, arriba = letra + 14, abajo = letra * 2 + 18;
-  const w = (ancho - izq * 2) / datos.length;
-  const barra = Math.min(24, w - 8);   // columna fina: el aire de su hueco también dice
-  const base = alto - abajo;
-  const y = (v: number) => arriba + (base - arriba) * (1 - v / max);
-  // Extremo del dato redondeado; la base, recta.
-  const columna = (x: number, yy: number) => {
-    const h = base - yy, r = Math.min(4, h, barra / 2);
-    return `M${x},${base}V${yy + r}Q${x},${yy} ${x + r},${yy}H${x + barra - r}Q${x + barra},${yy} ${x + barra},${yy + r}V${base}Z`;
-  };
-  if (!total) return <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>Sin envíos realizados en este periodo.</p>;
-  const s = sel != null ? datos[sel] : null;
+  const filas = datos.map((d) => {
+    const v = DIGITAL.map((c) => n(d[c.clave]));
+    return { k: granularidad === 'dia' ? etiquetaDia(d.k) : etiquetaMes(d.k), v, total: v.reduce((a, x) => a + x, 0) };
+  });
+  const estrecho = ancho < 520;
+  const letra = estrecho ? 11 : 13;
+  const alto = 240, izq = estrecho ? 40 : 52, der = 8, arriba = 12, abajo = 26;
+  const H = alto - arriba - abajo, base = arriba + H;
+  const { tope, paso } = ejeRedondo(Math.max(0, ...filas.map((f) => f.total)));
+  const ticks = Array.from({ length: Math.round(tope / paso) + 1 }, (_, i) => i * paso);
+  const w = (ancho - izq - der) / Math.max(filas.length, 1);
+  const barra = Math.max(2, Math.min(w - 2, 24));
+  const hilo = barra >= 6 ? 2 : 0;   // separación entre tramos, solo si la columna tiene cuerpo
+  const y = (v: number) => arriba + H * (1 - v / tope);
+  const xc = (i: number) => izq + i * w + w / 2;
+  const cada = Math.max(1, Math.ceil(filas.length / Math.max(3, Math.floor((ancho - izq - der) / 64))));
+  const miles = (v: number) => v.toLocaleString('es-ES');
+  const d = sel != null ? filas[sel] : null;
+  const derecha = sel != null && xc(sel) > ancho / 2;
+  if (!filas.some((f) => f.total > 0)) return <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>Sin envíos realizados en este periodo.</p>;
   return (
-    <div className="cm-chart" style={{ position: 'relative', maxWidth: 620 }}>
-      <div className="cm-chart-lienzo" ref={lienzo}>
-        {/* Un grupo (no una imagen): dentro lleva las cuatro columnas, que se pueden pulsar y recorrer con el teclado. */}
-        <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="group" style={{ display: 'block' }} onMouseLeave={() => setSel(null)}
-          aria-label={`Envíos realizados según cuánto se hicieron solos en la plataforma: ${datos.map((d) => `${d.nombre} ${d.v}`).join(', ')}.`}>
-          {[0.5, 1].map((f) => <line key={f} x1={izq} x2={ancho - izq} y1={y(max * f)} y2={y(max * f)} stroke="var(--gray-200)" strokeWidth="1" />)}
-          {datos.map((d, i) => {
-            const cx = izq + i * w + w / 2, x = cx - barra / 2;
-            return (
-              <g key={d.clave} data-columna={d.clave} tabIndex={0} role="button" aria-label={`${d.nombre}: ${d.v} envíos, ${pct(d.v, total)}`} style={{ cursor: 'pointer', outline: 'none' }}
-                onMouseEnter={() => setSel(i)} onFocus={() => setSel(i)} onBlur={() => setSel(null)} onClick={() => setSel(i)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(i); } }}>
-                <rect x={izq + i * w} y={0} width={w} height={alto} fill="transparent" />
-                {d.v > 0
-                  ? <path d={columna(x, Math.min(y(d.v), base - 2))} fill={d.color} opacity={sel == null || sel === i ? 1 : 0.45} />
-                  : <rect x={x} y={base - 2} width={barra} height={2} fill={d.color} opacity={0.6} />}
-                <text x={cx} y={Math.min(y(d.v), base - 2) - 7} textAnchor="middle" fontSize={letra + 1} fontWeight={800} fill="var(--navy)">{d.v}</text>
-                <text x={cx} y={base + letra + 6} textAnchor="middle" fontSize={letra} fill="var(--gray-600, #4b5563)">
-                  <tspan x={cx}>{d.lineas[0]}</tspan><tspan x={cx} dy={letra + 3}>{d.lineas[1]}</tspan>
-                </text>
-              </g>
-            );
-          })}
-          <line x1={izq} x2={ancho - izq} y1={base} y2={base} stroke="var(--gray-300)" strokeWidth="1" />
-        </svg>
+    <div className="cm-chart" style={{ position: 'relative' }}>
+      <div className="cm-leyenda" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: 'var(--fs-s)', color: 'var(--gray-700)', margin: '0 0 0.4rem' }}>
+        {DIGITAL.map((c) => <span key={c.clave}><i style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: c.color, verticalAlign: '-1px', marginRight: 5 }} />{c.nombre}</span>)}
       </div>
-      {/* El detalle de la columna señalada va DEBAJO, en su sitio fijo: flotando encima tapaba
-          las columnas de al lado. Con el hueco reservado, la tarjeta no salta al señalar. */}
-      <div id="cm-digital-tip" aria-live="polite" style={{ minHeight: '3.5rem', marginTop: '0.45rem', fontSize: 'var(--fs-s)', color: 'var(--gray-700)', display: 'grid', gap: 2, alignContent: 'start', lineHeight: 1.35 }}>
-        {s ? (<>
-          <strong style={{ color: 'var(--navy)' }}><i aria-hidden="true" style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: s.color, marginRight: 6, verticalAlign: '-1px' }} />{s.nombre}</strong>
-          <span>{s.v} {s.v === 1 ? 'envío' : 'envíos'} · {pct(s.v, total)} de los realizados</span>
-          <span>{s.que.charAt(0).toUpperCase() + s.que.slice(1)}.</span>
-        </>) : <span style={{ color: 'var(--gray-500)' }}>Pulsa una columna para ver su detalle.</span>}
-      </div>
+      <div className="cm-chart-scroll"><div className="cm-chart-lienzo" ref={lienzo}>
+      <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} role="img" style={{ display: 'block' }} onMouseLeave={() => { if (!fijo) setSel(null); }}
+        aria-label={`Envíos realizados ${granularidad === 'dia' ? 'por día' : 'por mes'}, repartidos en full digital, digital cliente, digital transportista y full humano.`}>
+        {ticks.map((t) => (
+          <g key={t}>
+            <line x1={izq} x2={ancho - der} y1={y(t)} y2={y(t)} stroke="var(--gray-200)" strokeWidth="1" />
+            <text x={izq - 8} y={y(t) + 4} textAnchor="end" fontSize={letra} fill="var(--gray-500)">{miles(t)}</text>
+          </g>
+        ))}
+        {filas.map((f, i) => {
+          const x = xc(i) - barra / 2;
+          let acum = 0;
+          const ultimo = f.v.reduce((u, v, j) => (v > 0 ? j : u), -1);   // el tramo de más arriba: lleva el extremo redondeado
+          return (
+            <g key={`${f.k}-${i}`} data-cubo={i} opacity={sel == null || sel === i ? 1 : 0.45}>
+              {f.v.map((v, j) => {
+                if (v <= 0) return null;
+                const y0 = y(acum), y1 = y(acum + v); acum += v;
+                const corte = j > 0 && y0 - y1 > hilo + 1 ? hilo : 0;   // el hilo blanco sale del tramo de arriba
+                const h = Math.max(1, y0 - y1 - corte), r = j === ultimo ? Math.min(4, h, barra / 2) : 0;
+                return r > 0
+                  ? <path key={j} data-tramo={DIGITAL[j].clave} fill={DIGITAL[j].color} d={`M${x},${y1 + h}V${y1 + r}Q${x},${y1} ${x + r},${y1}H${x + barra - r}Q${x + barra},${y1} ${x + barra},${y1 + r}V${y1 + h}Z`} />
+                  : <rect key={j} data-tramo={DIGITAL[j].clave} x={x} y={y1} width={barra} height={h} fill={DIGITAL[j].color} />;
+              })}
+              {i % cada === 0 && <text x={xc(i)} y={alto - 8} textAnchor="middle" fontSize={letra} fill="var(--gray-500)">{f.k}</text>}
+            </g>
+          );
+        })}
+        <line x1={izq} x2={ancho - der} y1={base} y2={base} stroke="var(--gray-300)" strokeWidth="1" />
+        {sel != null && <line x1={xc(sel)} x2={xc(sel)} y1={arriba} y2={base} stroke="var(--navy)" strokeWidth="1" opacity="0.35" />}
+        {/* Zonas de captura: una por día o mes, a todo lo alto (ratón y toque). */}
+        {filas.map((f, i) => (
+          <rect key={`z${i}`} data-zona={i} x={izq + i * w} y={arriba} width={w} height={H} fill="transparent" style={{ cursor: 'pointer' }}
+            onMouseEnter={() => { if (!fijo) setSel(i); }} onClick={() => pulsar(i)} />
+        ))}
+      </svg>
+      </div></div>
+      {d && (
+        <div className="cm-tip cm-tip-3" id="cm-digital-tip" style={derecha ? { right: `${(100 - xc(sel!) / ancho * 100 + 1.5).toFixed(1)}%` } : { left: `${(xc(sel!) / ancho * 100 + 1.5).toFixed(1)}%` }}>
+          <strong>{d.k} · {miles(d.total)} {d.total === 1 ? 'envío realizado' : 'envíos realizados'}</strong>
+          {DIGITAL.map((c, j) => <span key={c.clave}><i style={{ background: c.color }} />{c.nombre.replace('Envíos ', '').replace(/^./, (l) => l.toUpperCase())} {miles(d.v[j])}{d.total ? ` (${pct(d.v[j], d.total)})` : ''}</span>)}
+        </div>
+      )}
     </div>
   );
 }
@@ -347,7 +383,7 @@ function Tabla({ cab, filas, nota }: { cab: string[]; filas: (string | number | 
   );
 }
 
-export default function CuadroMando({ datos, periodo, error, sectores = [], digital = null }: { datos: Cuadro | null; periodo: Periodo; error: string | null; sectores?: Sector[]; digital?: Digital | null }) {
+export default function CuadroMando({ datos, periodo, error, sectores = [], digital = null, digitalSerie = null }: { datos: Cuadro | null; periodo: Periodo; error: string | null; sectores?: Sector[]; digital?: Digital | null; digitalSerie?: DigitalSerie | null }) {
   const router = useRouter(); const ruta = usePathname();
   const [desde, setDesde] = useState(datos?.desde ?? ''); const [hasta, setHasta] = useState(datos?.hasta ?? '');
   const [todosClientes, setTodosClientes] = useState(false);
@@ -391,10 +427,12 @@ export default function CuadroMando({ datos, periodo, error, sectores = [], digi
                 <Kpi key={d.clave} color={d.color} label={d.nombre} valor={String(n(digital[d.clave]))} sub={`${pct(n(digital[d.clave]), n(digital.realizados))} · ${d.que}`} />
               ))}
             </div>
-            {/* Los mismos cuatro, en columnas: cada una con el color de su tarjeta (usuario, 2026-11-25). */}
+            {/* Los mismos cuatro, mes a mes (o día a día) en el periodo del cuadro: columnas apiladas con el color de cada tarjeta (usuario, 2026-11-25). */}
             <div className="mini-list-card" id="cm-digital-grafico" style={{ marginBottom: '0.9rem' }}>
-              <div className="mini-list-head"><h4>Envíos según cuánto se hacen solos en la plataforma</h4><span className="meta">{n(digital.realizados)} envíos realizados en el periodo</span></div>
-              <ColumnasDigital digital={digital} />
+              <div className="mini-list-head"><h4>Envíos según cuánto se hacen solos en la plataforma · {(digitalSerie?.granularidad ?? datos!.granularidad) === 'dia' ? 'por día' : 'por mes'}</h4><span className="meta">pulsa un {(digitalSerie?.granularidad ?? datos!.granularidad) === 'dia' ? 'día' : 'mes'} para ver sus cifras</span></div>
+              {digitalSerie
+                ? <EvolucionDigital datos={digitalSerie.serie} granularidad={digitalSerie.granularidad} />
+                : <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.3rem 0 0' }}>No se ha podido cargar el reparto por fechas.</p>}
             </div>
           </>)}
           <div className="stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
