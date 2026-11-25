@@ -24,7 +24,7 @@ const Marco = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-function Estado({ color, titulo, children, id }: { color: string; titulo: string; children: React.ReactNode; id: string }) {
+function Estado({ color, titulo, children, id, debajo }: { color: string; titulo: string; children: React.ReactNode; id: string; debajo?: React.ReactNode }) {
   return (
     <Marco>
       <div className="pago-pub-estado" id={id}>
@@ -34,7 +34,31 @@ function Estado({ color, titulo, children, id }: { color: string; titulo: string
         <h1>{titulo}</h1>
         <p>{children}</p>
       </div>
+      {debajo}
     </Marco>
+  );
+}
+
+/** Mercancía en una línea: metros · toneladas · qué es. */
+const mercancia = (d: PagoPublicoDatos) => [d.metros_lineales != null && metros(d.metros_lineales), d.toneladas != null && pesoTn(d.toneladas),
+  d.descripcion_mercancia || (d.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ');
+
+/** Lo mínimo del envío: fecha de carga, paradas (qué son y dónde), mercancía e importe. */
+function DatosEnvio({ datos, id = 'pago-pub-datos' }: { datos: PagoPublicoDatos; id?: string }) {
+  return (
+    <div className="pago-pub-datos" id={id}>
+      <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{ventana(datos.fecha_carga_desde, datos.fecha_carga_hasta) || '—'}</span></div>
+      {(datos.paradas ?? []).map((p) => (
+        <div key={p.num} className="pen-sum-row" data-parada={p.num}>
+          <span className="k"><EtiquetaParada num={p.num} tipo={p.tipo} /></span>
+          <span className="v">{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe((p.pais ?? 'ES').toUpperCase())].filter(Boolean).join(', ') || '—'}
+            {p.prevista && <div className="meta fecha-parada" style={{ marginTop: '0.1rem' }}>Prevista: <strong style={{ color: 'var(--navy)' }}>{fechaHora(p.prevista)}</strong></div>}</span>
+        </div>
+      ))}
+      <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v">{mercancia(datos) || '—'}</span></div>
+      <div className="pen-sum-row"><span className="k">Precio (sin IVA)</span><span className="v">{euros(Number(datos.base ?? 0))}</span></div>
+      <div className="pen-sum-row"><span className="k">Total con IVA ({String(Number(datos.iva_pct ?? 21)).replace('.', ',')} %)</span><span className="v">{euros(Number(datos.total ?? 0))}</span></div>
+    </div>
   );
 }
 
@@ -54,6 +78,24 @@ export default function PagoPublico({ token, datos, conTarjeta, vuelta }: { toke
   const ref = datos.referencia ? <span className="notranslate" translate="no">#{datos.referencia}</span> : null;
   const contacto = <>Si tienes dudas, escríbenos a <a href={`mailto:${CONTACTO.email}`}>{CONTACTO.email}</a> o llama al <a href={`tel:${CONTACTO.telefono.replace(/\s/g, '')}`}>{CONTACTO.telefono}</a>.</>;
   if (datos.resultado === 'pagado') return <Estado id="pago-pub-pagado" color="#0f6b3a" titulo="Envío pagado">El pago del envío {ref} ya está recibido. Gracias. No hay que hacer nada más.</Estado>;
+  // Anulado por no pagar: debajo del aviso, lo mínimo del envío para que quien abre el enlace sepa de cuál se trata.
+  const contexto = datos.resultado === 'anulado' && datos.motivo ? (
+    <div id="pago-pub-contexto">
+      <div className="pago-pub-que">Envío anulado{datos.cliente ? <> · <span className="notranslate" translate="no">{datos.cliente}</span></> : null}</div>
+      <DatosEnvio datos={datos} id="pago-pub-datos-anulado" />
+    </div>
+  ) : null;
+  if (datos.resultado === 'anulado' && datos.motivo === 'plazo') return (
+    <Estado id="pago-pub-vencido" color="#b42318" titulo="El plazo para pagar ha terminado" debajo={contexto}>
+      {datos.pago_limite ? <>El envío {ref} había que pagarlo antes del <strong>{fechaHora(datos.pago_limite)}</strong>. </> : <>El envío {ref} había que pagarlo en un plazo. </>}
+      No nos llegó el pago a tiempo y el envío se anuló solo: <strong>ya no se puede pagar desde este enlace</strong>. Si todavía hace falta, hay que crear un envío nuevo en la plataforma, con el precio de ese momento. ¿Pagaste y te sale esto? {contacto}
+    </Estado>
+  );
+  if (datos.resultado === 'anulado' && datos.motivo === 'transferencia') return (
+    <Estado id="pago-pub-sin-transferencia" color="#b42318" titulo="No nos consta la transferencia" debajo={contexto}>
+      Nos avisaste de la transferencia del envío {ref}, pero no la hemos encontrado en el banco y el envío se anuló: <strong>ya no se puede pagar desde este enlace</strong>. Si la hiciste, mándanos el justificante. {contacto}
+    </Estado>
+  );
   if (datos.resultado === 'anulado') return <Estado id="pago-pub-anulado" color="#b42318" titulo="Este envío está anulado">El envío {ref} ya no está pendiente de pago: se anuló. Si todavía hace falta, hay que crearlo de nuevo en la plataforma. {contacto}</Estado>;
   if (datos.resultado === 'no_disponible') return <Estado id="pago-pub-no" color="#b45309" titulo="Ahora no se puede pagar desde aquí">El envío {ref} no está pendiente de pago en este momento. {contacto}</Estado>;
   if (datos.resultado === 'mantenimiento') return <Estado id="pago-pub-mant" color="#b45309" titulo="Plataforma en mantenimiento">Vuelve a abrir este enlace dentro de un rato. {contacto}</Estado>;
@@ -66,8 +108,6 @@ export default function PagoPublico({ token, datos, conTarjeta, vuelta }: { toke
   const conAvisar = !avisado && !pregunta;
   const nBotones = (tarjeta ? 1 : 0) + (conAvisar ? 1 : 0);
   const t = datos.transferencia ?? null;
-  const merc = [datos.metros_lineales != null && metros(datos.metros_lineales), datos.toneladas != null && pesoTn(datos.toneladas),
-    datos.descripcion_mercancia || (datos.paletizado === false ? 'No paletizada' : 'Paletizada')].filter(Boolean).join(' · ');
   async function avisar() {
     setAvisando(true); setRes(null);
     const r = await avisarTransferenciaPublica(token).catch(() => ({ ok: false as const, error: 'Sin conexión. Prueba otra vez en un momento.' }));
@@ -124,19 +164,7 @@ export default function PagoPublico({ token, datos, conTarjeta, vuelta }: { toke
         )}
       </div>
 
-      <div className="pago-pub-datos" id="pago-pub-datos">
-        <div className="pen-sum-row"><span className="k">Fecha de carga</span><span className="v" style={{ color: 'var(--orange)', fontWeight: 800 }}>{ventana(datos.fecha_carga_desde, datos.fecha_carga_hasta) || '—'}</span></div>
-        {(datos.paradas ?? []).map((p) => (
-          <div key={p.num} className="pen-sum-row" data-parada={p.num}>
-            <span className="k"><EtiquetaParada num={p.num} tipo={p.tipo} /></span>
-            <span className="v">{[[p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe((p.pais ?? 'ES').toUpperCase())].filter(Boolean).join(', ') || '—'}
-              {p.prevista && <div className="meta fecha-parada" style={{ marginTop: '0.1rem' }}>Prevista: <strong style={{ color: 'var(--navy)' }}>{fechaHora(p.prevista)}</strong></div>}</span>
-          </div>
-        ))}
-        <div className="pen-sum-row"><span className="k">Mercancía</span><span className="v">{merc || '—'}</span></div>
-        <div className="pen-sum-row"><span className="k">Precio (sin IVA)</span><span className="v">{euros(Number(datos.base ?? 0))}</span></div>
-        <div className="pen-sum-row"><span className="k">Total con IVA ({String(Number(datos.iva_pct ?? 21)).replace('.', ',')} %)</span><span className="v">{euros(Number(datos.total ?? 0))}</span></div>
-      </div>
+      <DatosEnvio datos={datos} />
       <p className="pago-pub-pie">Pago seguro: la tarjeta se introduce en la ventana de Stripe; Dynamo no ve ni guarda sus datos. Este enlace solo sirve para pagar este envío. {contacto}</p>
     </Marco>
   );

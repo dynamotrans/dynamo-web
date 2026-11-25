@@ -51,6 +51,27 @@ test.describe('enlace de pago público', () => {
       await p.goto(`/pago/${token}`);
       await expect(p.locator('#pago-pub-pagado')).toContainText('Envío pagado');
       await expect(p.locator('#pago-pub-datos')).toHaveCount(0);
+      // Plazo pasado sin pagar: el envío se anula solo y la página lo DICE (no manda a entrar ni
+      // se queda en un «anulado» a secas), con el plazo que había.
+      const hace3h = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
+      // En dos pasos: al volver a «pendiente» la base de datos pone el reloj a cero; después se atrasa.
+      const { error: e1 } = await sv.from('envios').update({ estado_pago_previo: 'pendiente', pagado_en: null, pago_avisado_en: null }).eq('id', e.id);
+      expect(e1).toBeNull();
+      const { error: e2 } = await sv.from('envios').update({ pago_pendiente_en: hace3h }).eq('id', e.id);
+      expect(e2).toBeNull();
+      const { error: e3 } = await sv.rpc('caducar_pagos_pendientes');
+      expect(e3).toBeNull();
+      await p.goto(`/pago/${token}`);
+      await expect(p).toHaveURL(new RegExp(`/pago/${token}`));
+      await expect(p.locator('#pago-pub-vencido')).toContainText('El plazo para pagar ha terminado');
+      await expect(p.locator('#pago-pub-vencido')).toContainText(/había que pagarlo antes del .*\d{2}\/\d{2}\/\d{2} · \d{2}:\d{2}/);
+      // Con lo mínimo del envío para situarse (ruta, mercancía, importe), y nada con lo que pagar.
+      const ctx = p.locator('#pago-pub-contexto');
+      await expect(ctx.locator('[data-parada]')).toHaveCount(2);
+      await expect(ctx).toContainText(/Recogida[\s\S]*Entrega/);
+      await expect(ctx).toContainText('Precio (sin IVA)');
+      await expect(ctx).not.toContainText('Prevista');
+      await expect(p.locator('#pago-tarjeta, #pago-avisar, #pago-pub-datos, #pago-pub-transferencia, #pago-plazo')).toHaveCount(0);
     } finally {
       await otro.close();
     }

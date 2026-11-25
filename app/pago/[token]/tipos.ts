@@ -5,6 +5,8 @@ export type PagoPublicoDatos = {
   referencia?: string; cliente?: string | null;
   base?: number; iva_pct?: number; total?: number; a_cuenta?: number; pendiente?: number;
   pago_limite?: string | null; avisado_en?: string | null;
+  /** Solo en un anulado por no pagar: se acabó el plazo, o no nos consta la transferencia avisada. */
+  motivo?: 'plazo' | 'transferencia';
   fecha_carga_desde?: string | null; fecha_carga_hasta?: string | null;
   metros_lineales?: number | null; toneladas?: number | null; descripcion_mercancia?: string | null; paletizado?: boolean | null;
   paradas?: ParadaPago[];

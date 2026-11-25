@@ -17,3 +17,6 @@ body { display: block; }
 .pago-pub-estado .ico { width: 54px; height: 54px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.7rem; }
 .pago-pub-estado h1 { margin-bottom: 0.4rem; }
 .pago-pub-estado p { color: var(--gray-600); font-size: var(--fs-m); margin: 0; line-height: 1.5; }
+.pago-pub-que { margin-top: 1rem; font-size: var(--fs-s); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gray-500); }
+#pago-pub-contexto .pago-pub-datos { margin-top: 0.45rem; }
+.pago-pub a[href^="tel:"] { white-space: nowrap; }

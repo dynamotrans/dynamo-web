@@ -15995,3 +15995,45 @@ do $$ declare c uuid; e uuid; n int; d interval;
   raise notice 'OK 353 · previsión del grupaje: 3 h más en su primera entrega, una sola vez, la recogida igual y editable en Parámetros';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 354 · PÁGINA DE PAGO CON EL PLAZO PASADO (usuario, 2026-11-25): «debe salir eso de que pasó el
+-- plazo… y algo de más info mínima para darle contexto». Un envío anulado por no pagar a tiempo
+-- dice el motivo, el plazo que había y lo mínimo del envío; si Dynamo no encontró la
+-- transferencia, lo dice; anulado por otra cosa, solo «anulado».
+do $$ declare c uuid; e uuid; tok uuid; r jsonb; begin
+  insert into clientes (razon_social, cif) values ('Plazo Pasado SL', 'B35400354') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id, pago_token into e, tok;
+  alter table envios disable trigger user; alter table envio_paradas disable trigger user;
+  update envios set estado = 'cancelado', estado_pago_previo = 'pendiente', pago_pendiente_en = now() - interval '3 hours', pago_a_cuenta = 0, pago_avisado_en = null where id = e;
+  delete from envio_paradas where envio_id = e;
+  insert into envio_paradas (envio_id, orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso) values
+    (e, 1, 'carga', 'Empresa Oculta SL', 'Calle Secreta 7', '41001', 'Sevilla', 'Sevilla', 'ES'),
+    (e, 2, 'descarga', 'Destino Oculto SA', 'Avenida Reservada 9', '12550', 'Almassora', 'Castellón', 'ES');
+  alter table envios enable trigger user; alter table envio_paradas enable trigger user;
+  -- Anulado sin más (p. ej. lo canceló el cliente): solo «anulado».
+  if pago_publico(tok) - 'referencia' <> '{"resultado": "anulado"}'::jsonb then raise exception 'FALLO 354 · un anulado normal enseña más que «anulado»: %', pago_publico(tok); end if;
+  -- Anulado por no pagar a tiempo: motivo «plazo» y el plazo que había (ya pasado).
+  perform registrar_hito(e, 'incidencia', null, null, jsonb_build_object('motivo_cancelacion', 'Anulado sin pago: no se recibió el pago a tiempo', 'por', 'sistema'), 'servidor');
+  set local role anon;
+  r := pago_publico(tok);
+  reset role;
+  if r ->> 'resultado' <> 'anulado' or r ->> 'motivo' <> 'plazo' or (r ->> 'pago_limite')::timestamptz >= now() then
+    raise exception 'FALLO 354 · la página de pago no dice que el plazo pasó: %', r; end if;
+  -- Con lo mínimo para situarse (cliente, importe y paradas sin calle ni empresa), sin la cuenta ni horas previstas.
+  if r ->> 'cliente' is null or (r ->> 'total')::numeric <> 1210 or jsonb_array_length(r -> 'paradas') < 2 or r ? 'transferencia'
+     or r -> 'paradas' -> 0 ->> 'prevista' is not null or r -> 'paradas' -> 1 ->> 'poblacion' <> 'Almassora'
+     or r::text ~* 'oculta|oculto|secreta|reservada|importe_transportista|: 800' then
+    raise exception 'FALLO 354 · un envío con el plazo pasado no trae lo mínimo, o enseña de más: %', r; end if;
+  -- Dynamo no encontró la transferencia avisada: motivo «transferencia».
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id, pago_token into e, tok;
+  alter table envios disable trigger user;
+  update envios set estado = 'cancelado', estado_pago_previo = 'pendiente', pago_pendiente_en = now() - interval '3 hours' where id = e;
+  alter table envios enable trigger user;
+  perform registrar_hito(e, 'incidencia', null, null, jsonb_build_object('motivo_cancelacion', 'Anulado sin pago: no nos consta la transferencia (no aparece en el banco)', 'por', 'dynamo'), 'app');
+  r := pago_publico(tok);
+  if r ->> 'motivo' <> 'transferencia' then raise exception 'FALLO 354 · la página de pago no dice que no consta la transferencia: %', r; end if;
+  raise notice 'OK 354 · página de pago con el plazo pasado: dice el motivo, el plazo y lo mínimo del envío, sin nada con lo que pagar';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
