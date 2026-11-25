@@ -107,29 +107,7 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
     return () => { vivo = false; if (u) URL.revokeObjectURL(u); };
   }, [logoDoc]);
   const logoVisto = logo ?? logoBlob;
-  // iPhone: al cerrar el teclado, el navegador a veces no recoloca la página y queda una zona
-  // vacía debajo del contenido con los botones fijos a media pantalla (usuario, 2026-11-22).
-  // Cuando el teclado se cierra (la zona visible vuelve a su alto) se fuerza a recolocar.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    let alto = vv.height, t: ReturnType<typeof setTimeout> | null = null;
-    const campo = () => { const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
-    const recolocar = () => {
-      if (t) clearTimeout(t);
-      t = setTimeout(() => {
-        if (campo() || Math.abs(vv.scale - 1) > 0.01) return;   // teclado abierto o zoom de pellizco: no se toca
-        const y = window.scrollY, maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-        window.scrollTo(window.scrollX, Math.min(y, maxY) + 1);
-        window.scrollTo(window.scrollX, Math.min(y, maxY));
-      }, 120);
-    };
-    const alCambiar = () => { if (vv.height > alto + 80) recolocar(); alto = vv.height; };
-    const alSalir = (e: FocusEvent) => { if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) recolocar(); };
-    vv.addEventListener('resize', alCambiar);
-    document.addEventListener('focusout', alSalir);
-    return () => { vv.removeEventListener('resize', alCambiar); document.removeEventListener('focusout', alSalir); if (t) clearTimeout(t); };
-  }, []);
+  // (El «hueco vacío al final» del iPhone lo vigila components/GuardaVista.tsx, en toda la plataforma.)
   // Menú del perfil que se está viendo (el equipo de Dynamo elige vista arriba).
   const menuVisto = useMemo(() => menuDe(rol, vista.tipo), [rol, vista.tipo]);
   // El perfil QUE SE VE manda en la campana y el CESCE: con «Ver como» un cliente, lo

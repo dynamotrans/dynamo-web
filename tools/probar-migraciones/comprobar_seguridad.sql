@@ -13681,18 +13681,19 @@ begin
     raise exception 'FALLO 304 · al pasar a Holded no se guardan las líneas'; end if;
   if exists (select 1 from control_facturacion() c where c.envio_id = e) then
     raise exception 'FALLO 304 · con todo pasado sale en el control: %', (select array_agg(c.tipo) from control_facturacion() c where c.envio_id = e); end if;
+  -- (Desde el 25-nov una penalización con los DOS importes a 0 no existe: aquí va con 0 € al cliente.)
   insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado)
-    values (e, (select id from tipos_penalizacion where clave = 'otro'), 'Repercusión anulada', 0, 0, 'confirmada');
+    values (e, (select id from tipos_penalizacion where clave = 'otro'), 'Otra espera, sin repercutir', 0, 25, 'confirmada');
   if not exists (select 1 from control_facturacion() c where c.envio_id = e and c.tipo = 'cambio_tras_holded' and c.detalle like '%tenía 2 líneas y ahora 3%') then
-    raise exception 'FALLO 304 · una penalización nueva a 0 € después de pasarlo no sale en el control'; end if;
+    raise exception 'FALLO 304 · una penalización nueva después de pasarlo no sale en el control'; end if;
 end $$;
--- El cliente ve la paralización, a 0 €.
+-- El cliente NO ve la paralización que no se le cobra (usuario, 2026-11-25: a quien le toca 0 no se le genera).
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare e uuid := split_part(current_setting('prueba.e304'), ',', 1)::uuid; begin
-  if not exists (select 1 from mis_penalizaciones() m where m.envio_id = e and m.importe_cliente = 0) then
-    raise exception 'FALLO 304 · el cliente no ve la penalización que se le cobra a 0 €'; end if;
-  raise notice 'OK 304 · pedidos de venta y de compra a la par: el envío los saca a la vez al tener transportista; cada penalización sale en los dos aunque sea a 0 € (vacío = 0) y el cliente la ve a 0 €; una línea nueva después de pasarlo a Holded se nota';
+  if exists (select 1 from mis_penalizaciones() m where m.envio_id = e) then
+    raise exception 'FALLO 304 · el cliente ve una penalización que no se le cobra (0 €)'; end if;
+  raise notice 'OK 304 · pedidos de venta y de compra a la par: el envío los saca a la vez al tener transportista; cada penalización sale en los dos aunque un lado sea a 0 € (vacío = 0), y el cliente no ve la que no se le cobra; una línea nueva después de pasarlo a Holded se nota';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -15725,5 +15726,104 @@ do $$ declare c uuid; ids uuid[] := '{}'; e uuid; i int; r jsonb; d date := date
   update envios set estado = 'cancelado', transportista_id = null, fecha_efectiva = null where id = any(ids);
   alter table envios enable trigger user; alter table envio_ofertas enable trigger user;
   raise notice 'OK 348 · cuadro de mando: envíos 100 %% digital, digital cliente, digital transportista y 100 %% Dynamo';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 349 · DESCUADRES DE PANTALLA EN EL MÓVIL (usuario, 2026-11-25). El navegador apunta cada vez
+-- que recoloca la pantalla; lo ve solo Dynamo; nadie escribe a mano; tope de 20 al día.
+do $$ declare n int; i int;
+  u_cli uuid := current_setting('prueba.u_cli_b')::uuid; u_adm uuid := current_setting('prueba.u_admin')::uuid; begin
+  if has_function_privilege('anon', 'pantalla_descuadre_anotar(text, text, text, boolean, jsonb)', 'execute') then
+    raise exception 'FALLO 349 · alguien sin entrar puede apuntar descuadres'; end if;
+  if has_table_privilege('authenticated', 'pantalla_descuadres', 'insert') or has_table_privilege('authenticated', 'pantalla_descuadres', 'delete')
+     or has_table_privilege('anon', 'pantalla_descuadres', 'select') then
+    raise exception 'FALLO 349 · permisos de más en pantalla_descuadres'; end if;
+  -- Sin sesión no apunta nada.
+  perform set_config('request.jwt.claim.sub', '', false);
+  perform pantalla_descuadre_anotar('pasado_del_final', '/panel/dashboard', 'iPhone/iPad (iOS 26.1) · Chrome', true, '{}'::jsonb);
+  select count(*) into n from pantalla_descuadres; if n <> 0 then raise exception 'FALLO 349 · se apuntó un descuadre sin sesión'; end if;
+  -- Un cliente apunta el suyo; una causa inventada no entra; unos datos enormes se guardan vacíos.
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  perform pantalla_descuadre_anotar('pasado_del_final', '/panel/dashboard', 'iPhone/iPad (iOS 26.1) · Chrome', true, '{"motivo":"scroll","antes":{"y":900,"doc":1200}}'::jsonb);
+  perform pantalla_descuadre_anotar('lo_que_sea', '/panel/dashboard', 'x', true, '{}'::jsonb);
+  perform pantalla_descuadre_anotar('zona_desplazada', repeat('r', 500), repeat('n', 500), null, jsonb_build_object('x', repeat('a', 3000)));
+  select count(*) into n from pantalla_descuadres where usuario_id = u_cli;
+  if n <> 2 then raise exception 'FALLO 349 · se esperaban 2 apuntes del cliente y hay %', n; end if;
+  if not exists (select 1 from pantalla_descuadres where causa = 'zona_desplazada' and length(ruta) = 120 and length(navegador) = 80 and datos = '{}'::jsonb and not corregido) then
+    raise exception 'FALLO 349 · no se recortan la ruta, el navegador o los datos'; end if;
+  -- Tope de 20 al día por usuario.
+  for i in 1..30 loop perform pantalla_descuadre_anotar('scroll_de_mas', '/panel/envios', 'Android 15 · Chrome', false, '{}'::jsonb); end loop;
+  select count(*) into n from pantalla_descuadres where usuario_id = u_cli;
+  if n <> 20 then raise exception 'FALLO 349 · el tope diario no es 20 (hay %)', n; end if;
+  -- El cliente no ve la lista (ni la suya); Dynamo sí.
+  set local role authenticated;
+  select count(*) into n from pantalla_descuadres;
+  reset role;
+  if n <> 0 then raise exception 'FALLO 349 · un cliente ve los descuadres de pantalla'; end if;
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  set local role authenticated;
+  select count(*) into n from pantalla_descuadres;
+  reset role;
+  if n <> 20 then raise exception 'FALLO 349 · Dynamo no ve los descuadres de pantalla (%)', n; end if;
+  -- Los de más de 90 días se borran al apuntar el siguiente.
+  alter table pantalla_descuadres disable trigger user;
+  update pantalla_descuadres set creado_en = now() - interval '100 days';
+  alter table pantalla_descuadres enable trigger user;
+  perform pantalla_descuadre_anotar('pagina_larga', '/panel/riesgos', 'Ordenador · Chrome', false, '{}'::jsonb);
+  select count(*) into n from pantalla_descuadres;
+  if n <> 1 then raise exception 'FALLO 349 · no se borran los apuntes antiguos (quedan %)', n; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  alter table pantalla_descuadres disable trigger user; delete from pantalla_descuadres; alter table pantalla_descuadres enable trigger user;
+  raise notice 'OK 349 · descuadres de pantalla: los apunta el navegador, tope diario, solo los ve Dynamo y se borran a los 90 días';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- 350 · UNA PENALIZACIÓN A 0 € NO EXISTE (usuario, 2026-11-25). Con los dos importes a 0 no se
+-- crea; a quien le toca 0 no le aparece (ni en su lista ni en su contador).
+do $$ declare c uuid; e uuid; p uuid; n int; tp uuid := (select id from tipos_penalizacion where clave = 'paralizacion');
+  u_cli uuid := current_setting('prueba.u_cli_b')::uuid; u_adm uuid := current_setting('prueba.u_admin')::uuid; t uuid := current_setting('prueba.transp')::uuid;
+  u_tra uuid; cli_b uuid; begin
+  select cliente_id into cli_b from usuarios where id = u_cli;
+  select id into u_tra from usuarios where transportista_id = t and estado = 'activa' limit 1;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista) values (cli_b, 13.30, 20, 1000, 800) returning id into e;
+  alter table envios disable trigger user;
+  update envios set estado = 'entregado', transportista_id = t where id = e;
+  alter table envios enable trigger user;
+  -- Los dos a 0, o vacíos: no se crea.
+  begin
+    insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista) values (e, tp, 'A cero', 0, 0);
+    raise exception 'FALLO 350 · se crea una penalización con los dos importes a 0';
+  exception when check_violation then null; end;
+  begin
+    insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente) values (e, tp, 'A cero', 0);
+    raise exception 'FALLO 350 · se crea una penalización a 0 € con el otro importe vacío';
+  exception when check_violation then null; end;
+  -- La automática sin importes no se genera (y no da error).
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, generada_auto) values (e, tp, 'Automática a cero', 0, null, true);
+  select count(*) into n from penalizaciones where envio_id = e;
+  if n <> 0 then raise exception 'FALLO 350 · se genera una penalización automática a 0 €'; end if;
+  -- Solo al transportista: el cliente no la ve ni la cuenta; el transportista sí.
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_transportista) values (e, tp, 'Espera en carga', 40) returning id into p;
+  -- Solo al cliente: al revés.
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista) values (e, tp, 'Espera en descarga', 60, 0);
+  perform set_config('request.jwt.claim.sub', u_adm::text, false);
+  if (contadores_panel(cli_b, null) ->> 'penalizaciones')::int <> (select count(*) from penalizaciones x join envios y on y.id = x.envio_id where y.cliente_id = cli_b and x.importe_cliente > 0 and x.estado = 'pendiente_confirmar') then
+    raise exception 'FALLO 350 · el contador del cliente cuenta penalizaciones que no se le cobran'; end if;
+  if (contadores_panel(null, t) ->> 'penalizaciones')::int <> (select count(*) from penalizaciones x join envios y on y.id = x.envio_id where y.transportista_id = t and x.importe_transportista > 0 and x.estado = 'pendiente_confirmar') then
+    raise exception 'FALLO 350 · el contador del transportista cuenta penalizaciones que no se le pagan'; end if;
+  perform set_config('request.jwt.claim.sub', u_cli::text, false);
+  select count(*) into n from mis_penalizaciones() m where m.envio_id = e;
+  if n <> 1 or exists (select 1 from mis_penalizaciones() m where m.envio_id = e and m.importe_cliente <> 60) then
+    raise exception 'FALLO 350 · el cliente no ve solo la penalización que se le cobra (ve %)', n; end if;
+  if u_tra is not null then
+    perform set_config('request.jwt.claim.sub', u_tra::text, false);
+    select count(*) into n from mis_penalizaciones_transportista() m where m.envio_id = e;
+    if n <> 1 or exists (select 1 from mis_penalizaciones_transportista() m where m.envio_id = e and m.importe_transportista <> 40) then
+      raise exception 'FALLO 350 · el transportista no ve solo la penalización que se le paga (ve %)', n; end if;
+  end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  alter table penalizaciones disable trigger user; delete from penalizaciones where envio_id = e; alter table penalizaciones enable trigger user;
+  alter table envios disable trigger user; update envios set estado = 'cancelado', transportista_id = null where id = e; alter table envios enable trigger user;
+  raise notice 'OK 350 · una penalización a 0 € no existe: no se crea con los dos importes a 0 y a quien le toca 0 no le aparece';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

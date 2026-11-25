@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './plataforma.css';
+import GuardaVista from '@/components/GuardaVista';
 
 export const metadata: Metadata = {
   title: 'Dynamo · Plataforma',
@@ -26,7 +27,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>{children}<GuardaVista /></body>
     </html>
   );
 }

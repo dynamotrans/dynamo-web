@@ -122,8 +122,8 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error,
                     {p.generada_auto && <div className="meta" style={{ color: 'var(--purple)', fontWeight: 700 }}>Generada automáticamente{p.editada_a_mano ? ' · renegociada' : ''}</div>}
                     {p.cobrada_importe != null && <div className="meta" data-pen-cobrada style={{ color: '#166534', fontWeight: 700 }}>Ya cobrada con tarjeta: {euros(p.cobrada_importe)} con IVA</div>}</td>
                   <td>{p.transportista ?? '—'}<div className="meta">{p.cliente ?? ''}</div></td>
-                  <td className="amount"><strong>{p.importe_cliente != null ? euros(p.importe_cliente) : '—'}</strong></td>
-                  <td className="amount"><strong>{p.importe_transportista != null ? euros(p.importe_transportista) : '—'}</strong></td>
+                  <td className="amount"><strong>{p.importe_cliente ? euros(p.importe_cliente) : '—'}</strong></td>
+                  <td className="amount"><strong>{p.importe_transportista ? euros(p.importe_transportista) : '—'}</strong></td>
                   <td className="amount"><Margen c={p.importe_cliente} t={p.importe_transportista} /></td>
                   <td>{fechaHora(p.creado_en)}</td>
                 </tr>
@@ -173,7 +173,8 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
     if (Number.isNaN(c) || Number.isNaN(t)) { setError('Algún importe no es un número.'); return; }
     if (!envio) { setError('Elige el envío al que corresponde la penalización.'); avisaFaltas(['pen-envio']); return; }
     if (!tipo) { setError('Elige el tipo de penalización.'); avisaFaltas(['pen-tipo']); return; }
-    if (c == null && t == null) { setError('Pon al menos un importe (al cliente o al transportista).'); avisaFaltas(['pen-ic', 'pen-it']); return; }
+    // Una penalización a 0 € no existe (usuario, 2026-11-25): al menos uno de los dos, mayor que 0.
+    if (!((c ?? 0) > 0) && !((t ?? 0) > 0)) { setError('Pon un importe mayor que 0, al cliente o al transportista: una penalización a 0 € no existe.'); avisaFaltas(['pen-ic', 'pen-it']); return; }
     setTrabajando(fila ? 'Guardando penalización' : 'Creando penalización');
     const r = await guardarPenalizacion(fila?.id ?? idCreada, { envio_id: envio, tipo_id: tipo, descripcion: desc, importe_cliente: c, importe_transportista: t });
     if (!r.ok) { setTrabajando(null); setError(r.error); return; }
@@ -262,7 +263,7 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
         </div>
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.5rem 0 0', lineHeight: 1.45 }}>
-        Una <strong>paralización</strong> la pide el transportista y Dynamo la repercute al cliente: rellena los dos importes. El cliente solo ve el suyo. El que dejes vacío se guarda a <strong>0 €</strong> y sale igual en su pedido (venta o compra) a 0 €: así consta que se aplicó, y el cliente la ve aunque no se le cobre.
+        Una <strong>paralización</strong> la pide el transportista y Dynamo la repercute al cliente: rellena los dos importes. El cliente solo ve el suyo. Al que le dejes <strong>0 €</strong> (o vacío) no se le genera: ni la ve ni se le avisa. Con los dos a 0 la penalización no existe y no se puede crear.
         {fila?.generada_auto ? ' Si cambias los importes de una automática, queda marcada como renegociada y ya no se retira sola al deshacer la cancelación.' : ''}
       </p>
       {fila?.cobrada_importe != null && (

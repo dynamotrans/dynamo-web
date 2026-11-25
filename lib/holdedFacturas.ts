@@ -124,6 +124,19 @@ export function formaDeHolded(cuerpo: unknown): Record<string, unknown> {
     linea: linea ? de(linea, ['price', 'units', 'discount', 'tax', 'retention', 'account']) : null };
 }
 
+// Solo para afinar (pregunta del usuario, 2026-11-25: «¿se puede saber si un pedido está
+// facturado y en qué factura va?»). La documentación dice que cada documento trae DE QUÉ
+// documento salió (`from`) y los pedidos, QUÉ documentos salieron de ellos (`to`), pero no
+// aclara si una factura hecha con varios pedidos los trae todos. De un documento real se
+// apunta solo eso: su estado y el TIPO de los documentos enlazados (sin números ni nombres).
+export function formaDeEnlaces(doc: unknown): Record<string, unknown> {
+  const d = (doc && typeof doc === 'object' ? doc : {}) as Record<string, unknown>;
+  const tipo = (o: unknown) => (o && typeof o === 'object' ? String((o as { doc_type?: unknown }).doc_type ?? '(sin tipo)') : typeof o);
+  const enlace = (v: unknown) => (v === undefined ? '(no viene)' : v === null ? null : Array.isArray(v) ? v.slice(0, 30).map(tipo) : tipo(v));
+  return { estado: d.status ?? '(no viene)', de: enlace(d.from), a: enlace(d.to), lineas: Array.isArray(d.lines) ? d.lines.length : null,
+    claves_enlace: Object.keys(d).filter((k) => /^(from|to)$|order|invoice|document|related|source|linked/i.test(k) && k !== 'document_number') };
+}
+
 // ---- Cobros: cuándo se pagó cada factura («List payments and collections») ---------------
 // De cada cobro interesa a qué documento corresponde y su fecha. Con varios cobros para una
 // misma factura (pagos a plazos), la fecha que vale es la del ÚLTIMO: cuando quedó pagada.

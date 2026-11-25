@@ -11,7 +11,7 @@ export type PenalizacionDatos = {
 type Res = { ok: true; id: string } | { ok: false; error: string };
 
 function traducir(msg: string): string {
-  if (/ck_penalizacion_algun_importe/i.test(msg)) return 'Pon al menos un importe (al cliente o al transportista).';
+  if (/ck_penalizacion_algun_importe/i.test(msg)) return 'Pon un importe mayor que 0, al cliente o al transportista.';
   if (/importe_.*check|violates check/i.test(msg)) return 'Los importes no pueden ser negativos.';
   if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
   return mensajeError(msg);   // los de las reglas de la base de datos ya vienen en castellano
@@ -24,7 +24,7 @@ export async function guardarPenalizacion(id: string | null, d: PenalizacionDato
   if (!sb) return { ok: false, error: 'Solo el equipo de Dynamo gestiona penalizaciones.' };
   if (!d.envio_id) return { ok: false, error: 'Elige el envío al que corresponde la penalización.' };
   if (!d.tipo_id) return { ok: false, error: 'Elige el tipo de penalización.' };
-  if (d.importe_cliente == null && d.importe_transportista == null) return { ok: false, error: 'Pon al menos un importe (al cliente o al transportista).' };
+  if (!((d.importe_cliente ?? 0) > 0) && !((d.importe_transportista ?? 0) > 0)) return { ok: false, error: 'Pon un importe mayor que 0, al cliente o al transportista: una penalización a 0 € no existe.' };
   const fila = { envio_id: d.envio_id, tipo_id: d.tipo_id, descripcion: d.descripcion.trim() || null,
     importe_cliente: d.importe_cliente, importe_transportista: d.importe_transportista };
   const q = id ? sb.from('penalizaciones').update(fila).eq('id', id).select('id').single()

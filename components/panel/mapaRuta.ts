@@ -27,7 +27,7 @@ export function marcadorCamion(color: string, grande = false): { html: string; a
 }
 
 /** Estilo de las etiquetas de parada (varias líneas, estrechas). */
-export const ESTILO_MAPA = `.leaflet-tooltip.tt-parada,.gm-dynamo-etq.tt-parada{white-space:normal;width:max-content;max-width:190px;line-height:1.25;font-size:12px;padding:5px 8px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}`;
+export const ESTILO_MAPA = `.leaflet-tooltip.tt-parada,.gm-dynamo-etq.tt-parada{white-space:normal;width:max-content;max-width:190px;line-height:1.25;font-size:12px;padding:5px 8px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}/* Tamaño del mapa, uno para todos (usuario, 2026-11-25: «todos los mapas en móvil, el formato más achatado, cuadrado»): en el móvil el mapa es CUADRADO (tan alto como ancho), sea el general o el de un envío; así siempre queda página libre para desplazarse. */.mapa-lienzo{height:min(60vh,460px)}.mapa-lienzo.mapa-general-lienzo{height:min(72vh,720px)}@media (max-width:760px){.mapa-lienzo,.mapa-lienzo.mapa-general-lienzo{height:auto;aspect-ratio:1/1;max-height:60vh}}`;
 
 export type Ruta = {
   id: string;

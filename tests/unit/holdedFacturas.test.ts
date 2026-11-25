@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, cuentaDeLineas, diasEntre, facturaDeHolded, facturasDeHolded, formaDeCobro, formaDeHolded, gxDeTexto, pendienteDeHolded, pendientesDeHolded, ultimoCobro } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, cuentaDeLineas, diasEntre, facturaDeHolded, facturasDeHolded, formaDeCobro, formaDeEnlaces, formaDeHolded, gxDeTexto, pendienteDeHolded, pendientesDeHolded, ultimoCobro } from '../../lib/holdedFacturas';
 
 const HOY = '2026-11-24';
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -115,4 +115,14 @@ test('cuenta contable: la de las líneas, sin repetir; la forma del cobro no ens
   assert.deepEqual([f.cuenta, f.contacto_id, f.pagada_el], ['70500000', 'abcdefabcdefabcdefabcdef', null]);
   const txt = JSON.stringify(formaDeCobro({ items: [{ id: 'p', contact_name: 'Acme SL', description: 'Cobro secreto', amount: '10.00', date: '2026-11-01', document_id: 'f1', document_type: 'invoice' }] }));
   assert.ok(txt.includes('"amount":"10.00"') && txt.includes('"con_documento":true') && !txt.includes('Acme') && !txt.includes('secreto'));
+});
+
+test('enlaces entre documentos: solo el estado y el tipo de lo enlazado, sin números ni nombres', () => {
+  const pedido = { id: 'a'.repeat(24), document_number: 'PV-1', contact_name: 'Cliente SL', status: 'completed', lines: [{}, {}],
+    from: { id: 'b'.repeat(24), doc_type: 'estimate' }, to: [{ id: 'c'.repeat(24), doc_type: 'invoice' }, { id: 'd'.repeat(24), doc_type: 'waybill' }] };
+  const r = formaDeEnlaces(pedido);
+  assert.deepEqual(r, { estado: 'completed', de: 'estimate', a: ['invoice', 'waybill'], lineas: 2, claves_enlace: ['from', 'to'] });
+  assert.ok(!JSON.stringify(r).includes('Cliente SL') && !JSON.stringify(r).includes('PV-1'));
+  assert.deepEqual(formaDeEnlaces({ status: 'pending', from: null }), { estado: 'pending', de: null, a: '(no viene)', lineas: null, claves_enlace: ['from'] });
+  assert.deepEqual(formaDeEnlaces(null), { estado: '(no viene)', de: '(no viene)', a: '(no viene)', lineas: null, claves_enlace: [] });
 });

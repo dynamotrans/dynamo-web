@@ -200,8 +200,8 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
   return (
     <div style={CAJA_MAPA}>
       <style>{ESTILO_MAPA}</style>
-      <div ref={div} data-mapa-envio="" data-motor={listo ?? undefined} role="region" aria-label="Mapa de la ruta del envío"
-        style={{ width: '100%', height: 'min(60vh, 460px)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
+      <div ref={div} data-mapa-envio="" data-motor={listo ?? undefined} role="region" aria-label="Mapa de la ruta del envío" className="mapa-lienzo"
+        style={{ width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--gray-200)', background: '#eef2f7' }} />
       <BotonEncuadrar onClick={encuadrar} que="la ruta" arriba={listo === 'google'} />
     </div>
   );

@@ -1847,6 +1847,9 @@ test.describe('novedades', () => {
     await expect(etiquetas.first()).toContainText(/Recogida 1/);
     await expect(etiquetas.first()).toContainText(/Prevista|Cargado|Llegó/);
     const caja = (await page.locator('[data-mapa-envio]').boundingBox())!;
+    // En el móvil el mapa es cuadrado (usuario, 2026-11-25); en el ordenador, apaisado.
+    if ((page.viewportSize()?.width ?? 1280) <= 760) expect(Math.abs(caja.width - caja.height)).toBeLessThanOrEqual(2);
+    else expect(caja.height).toBeLessThanOrEqual(462);
     await page.locator('[data-mapa-envio]').click({ position: { x: caja.width - 25, y: 25 } });
     await expect(etiquetas).toHaveCount(0);
     // La lista de paradas también dice la hora.
@@ -1906,6 +1909,8 @@ test.describe('novedades', () => {
       await page.goto('/panel/mapa');
       await expect(page.getByRole('heading', { name: 'Mapa de envíos' })).toBeVisible();
       await expect(page.locator('[data-mapa-general].leaflet-container')).toBeVisible();
+      const cajaGeneral = (await page.locator('[data-mapa-general]').boundingBox())!;
+      if ((page.viewportSize()?.width ?? 1280) <= 760) expect(Math.abs(cajaGeneral.width - cajaGeneral.height)).toBeLessThanOrEqual(2);
       // Al menos un envío programado o en marcha, pintado (punto o camión).
       await expect.poll(async () => page.locator('[data-mapa-general] .leaflet-interactive, [data-mapa-general] .leaflet-marker-icon').count(), { timeout: 15_000 }).toBeGreaterThan(0);
       await page.getByRole('tab', { name: /^Programados/ }).click();

@@ -12,7 +12,9 @@ import { contarArchivosSueltos, borrarArchivosSueltos } from '@/app/panel/(app)/
 
 const LLAVE = 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z';
 
-export default function Mantenimiento({ activo, esAdmin, cambiado, quien }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null }) {
+export type Descuadre = { id: string; causa: string; ruta: string; navegador: string; corregido: boolean; datos: unknown; creado_en: string };
+
+export default function Mantenimiento({ activo, esAdmin, cambiado, quien, descuadres = [] }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null; descuadres?: Descuadre[] }) {
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
   const [preguntar, setPreguntar] = useState(false);
@@ -66,6 +68,7 @@ export default function Mantenimiento({ activo, esAdmin, cambiado, quien }: { ac
         Lo que ya está en marcha no se para: los envíos siguen su curso y las reservas abiertas caducan solas. Al desactivarlo, todo vuelve a funcionar al instante.
       </p>
       {esAdmin && <ArchivosSueltos />}
+      <DescuadresPantalla lista={descuadres} />
       {trabajando && <Cargando texto={activo ? 'Abriendo la plataforma' : 'Cerrando la plataforma'} />}
     </section>
   );
@@ -108,6 +111,53 @@ function ArchivosSueltos() {
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
+    </div>
+  );
+}
+
+// «Hueco vacío al final» en el móvil: cada vez que el navegador lo detecta y lo recoloca solo,
+// queda apuntado aquí (lib/vistaPantalla.ts). Sirve para saber si sigue pasando y si se arregla.
+const CAUSA: Record<string, string> = {
+  pasado_del_final: 'La pantalla miraba más allá del final de la página',
+  zona_desplazada: 'La zona visible estaba desplazada',
+  scroll_de_mas: 'La página estaba bajada de más',
+  pagina_larga: 'La página mide más que su contenido',
+};
+const MOTIVO: Record<string, string> = { scroll: 'al desplazarse', toque: 'al soltar el dedo', teclado: 'al cerrar el teclado', zona: 'al cambiar la zona visible', volver: 'al volver a la pestaña', pantalla: 'al entrar en la pantalla' };
+function medidasTxt(m: unknown) {
+  if (!m || typeof m !== 'object') return '—';
+  const o = m as Record<string, unknown>;
+  return ['y', 'alto', 'doc', 'contenido', 'vvAlto', 'vvArriba', 'vvPagina'].filter((k) => typeof o[k] === 'number').map((k) => `${k} ${o[k]}`).join(' · ') || '—';
+}
+function DescuadresPantalla({ lista }: { lista: Descuadre[] }) {
+  return (
+    <div id="descuadres-pantalla" style={{ maxWidth: 720, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '1.1rem 1.2rem', marginTop: '1rem' }}>
+      <strong style={{ color: 'var(--navy)' }}>Descuadres de pantalla en el móvil</strong>
+      <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-600)', margin: '0.35rem 0 0.7rem' }}>
+        En el iPhone la pantalla a veces se queda mirando más abajo de donde acaba la página (zona vacía debajo del contenido). Es un fallo del navegador del teléfono:
+        la plataforma lo detecta, lo recoloca sola y lo apunta aquí. Si vuelve a pasar y no se arregla solo, esta lista dice cuándo y por qué.
+      </p>
+      {lista.length === 0
+        ? <span id="descuadres-vacio" style={{ fontSize: 'var(--fs-m)', color: '#0f6b3a', fontWeight: 700 }}>No se ha apuntado ninguno en los últimos 90 días.</span>
+        : (
+          <div style={{ display: 'grid', gap: '0.55rem' }}>
+            {lista.map((d) => {
+              const o = (d.datos && typeof d.datos === 'object' ? d.datos : {}) as { motivo?: string; antes?: unknown; despues?: unknown };
+              const soloAviso = d.causa === 'pagina_larga';
+              return (
+                <div key={d.id} className="descuadre-fila" style={{ borderTop: '1px solid var(--gray-200)', paddingTop: '0.5rem', fontSize: 'var(--fs-m)' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'baseline' }}>
+                    <strong style={{ color: 'var(--navy)' }}>{fechaHora(d.creado_en)}</strong>
+                    <span style={{ color: 'var(--gray-600)' }}>{d.navegador}</span>
+                    {!soloAviso && <span style={{ fontWeight: 700, color: d.corregido ? '#0f6b3a' : 'var(--red)' }}>{d.corregido ? 'Recolocada sola' : 'No se recolocó'}</span>}
+                  </div>
+                  <div style={{ color: 'var(--gray-700)' }}>{CAUSA[d.causa] ?? d.causa}{o.motivo && MOTIVO[o.motivo] ? `, ${MOTIVO[o.motivo]}` : ''} · <span style={{ overflowWrap: 'anywhere' }}>{d.ruta}</span></div>
+                  <div style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-s)', overflowWrap: 'anywhere' }}>Antes: {medidasTxt(o.antes)}{o.despues ? ` — Después: ${medidasTxt(o.despues)}` : ''}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
     </div>
   );
 }

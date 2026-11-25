@@ -75,7 +75,7 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
     const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
     return facturas
       .filter((f) => (tipo === 'todas' || f.tipo === tipo) && enRango(f.fecha, ff.rango)
-        && w.every((x) => norm([f.numero, f.gx, f.concepto, f.empresa, f.cif, f.cuenta, euros(f.total)].filter(Boolean).join(' ')).includes(x)))
+        && w.every((x) => norm([f.numero, f.empresa, f.cif, f.cuenta, euros(f.total)].filter(Boolean).join(' ')).includes(x)))
       .sort((a, b) => (a.fecha === b.fecha ? 0 : a.fecha < b.fecha ? 1 : -1));
   }, [facturas, tipo, ff.rango, q]);
   const pg = usePaginas(lista, `${tipo}|${ff.clave}|${q}`, 25);
@@ -86,7 +86,7 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
   return (
     <div id="facturas-dynamo">
       <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nº de factura, concepto, empresa, CIF, importe…" />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nº de factura, empresa, CIF, importe…" />
         <select className="filter-estado" id="fac-tipo" style={{ minWidth: 230 }} value={tipo} onChange={(e) => setTipo(e.target.value as Tipo)} aria-label="Tipo de factura">
           <option value="todas">Todas (ingresos y gastos)</option>
           <option value="emitida">Ingresos · emitidas</option>
@@ -125,11 +125,10 @@ export default function FacturasDynamo({ facturas, conectado }: { facturas: Fact
               <tr key={f.id} data-tipo={f.tipo} onClick={f.pdf_url ? () => { const w = window.open(f.pdf_url!, '_blank'); if (!w) location.href = f.pdf_url!; } : undefined} style={f.pdf_url ? { cursor: 'pointer' } : undefined}>
                 <td style={{ whiteSpace: 'nowrap' }}>{fecha(f.fecha)}</td>
                 <td><TagTipo tipo={f.tipo} /></td>
-                {/* Nº de factura y, debajo, el envío (GX); el concepto entero, al pasar el ratón o en el PDF
-                    (usuario, 2026-11-25: fuera la columna «Concepto»). */}
-                <td style={{ whiteSpace: 'nowrap' }} title={f.concepto ?? undefined}>
+                {/* Solo el nº de factura: ni concepto ni GX (usuario, 2026-11-25: una factura lleva
+                    varios envíos y el concepto solo enseña el primero, así que confunde). */}
+                <td style={{ whiteSpace: 'nowrap' }}>
                   <strong style={{ color: 'var(--navy)' }}>{f.numero ?? '—'}</strong>
-                  {f.gx && <span className="meta" style={{ display: 'block' }}>{f.gx}</span>}
                 </td>
                 <td style={{ minWidth: 150 }}>{f.empresa ?? '—'}<span className="meta" style={{ display: 'block' }}>{f.cif ?? 'CIF sin consultar'}</span></td>
                 <td className="amount" style={{ whiteSpace: 'nowrap' }}>{euros(f.base)}</td>

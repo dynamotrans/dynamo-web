@@ -162,7 +162,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
                     {f.url_google_maps && <div className="meta"><a href={f.url_google_maps} target="_blank" rel="noopener" data-sitio-mapa="" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--purple)', fontWeight: 700, whiteSpace: 'nowrap' }}>Ver en Google Maps</a></div>}
                   </td>
                   <td>{f.horarios || '—'}
-                    {f.horario_sin_verificar && <div className="meta"><span className="badge badge-orange" title="El horario se tomó de Google y nadie lo ha comprobado con el sitio">Horario sin verificar</span></div>}
+                    {f.horario_sin_verificar && <div className="meta"><span className="badge badge-orange" title="Nadie ha comprobado este horario con el sitio">Horario sin verificar</span></div>}
                     {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
                   </td>
                   <td>{(() => { const k = principal(f.contactos); return <>{telBonito(k?.telefono ?? '') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
@@ -638,8 +638,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         {/* El horario vino de Google y nadie lo ha comprobado con el sitio (usuario, 2026-11-23). */}
         {d.horario_sin_verificar && (
           <div className="modal-warn-box" id="horario-sin-verificar" style={{ margin: 0 }}>
-            <strong>Horario sin verificar: compruébalo con el sitio.</strong> Lo hemos tomado de Google, que da el horario de atención
-            al público; el de <strong>carga y descarga</strong> puede ser otro. Cámbialo aquí si hace falta. <strong>Verificar que es el
+            <strong>Horario sin verificar: compruébalo con el sitio.</strong> Cámbialo aquí si hace falta. <strong>Verificar que es el
             real es tu responsabilidad</strong>: si un camión llega dentro del horario indicado y el sitio está cerrado, las posibles
             penalizaciones corren a cargo del cliente.
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem', fontWeight: 700 }}>

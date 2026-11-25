@@ -4948,9 +4948,10 @@ th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
 @media (max-width: 768px) {
     .sidebar {
         position: fixed; left: -266px; top: 0;
-        transition: left 0.25s; box-shadow: 8px 0 32px rgba(0,0,0,0.2);
+        transition: left 0.25s;
     }
-    .sidebar.open { left: 0; }
+    /* La sombra solo con el menú abierto: cerrado, asomaba por el borde izquierdo. */
+    .sidebar.open { left: 0; box-shadow: 8px 0 32px rgba(0,0,0,0.2); }
     .sidebar-toggle { display: inline-flex !important; }
     .topbar { padding: 0.6rem 0.7rem; }
     .topbar-brand { padding: 0.3rem 0.55rem 0.3rem 0.45rem; gap: 0.4rem; }
@@ -5652,11 +5653,9 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .pack-deshacer { margin-top: 0.6rem; color: #dc2626; }
 .packs-lista { display: grid; gap: 0.8rem; max-width: 880px; }
 
-/* MAPA GENERAL: su alto. En el móvil, el mismo que el mapa de un envío (usuario, 2026-11-24:
-   «me gusta esa proporción; si ocupa la pantalla entera no puedo mover la página, porque el
-   dedo mueve el mapa»): siempre queda página libre por encima o por debajo para desplazarse. */
-.mapa-general-lienzo { height: min(72vh, 720px); }
-@media (max-width: 760px) { .mapa-general-lienzo { height: min(60vh, 460px); } }
+/* MAPAS: su alto va con el propio mapa (ESTILO_MAPA en components/panel/mapaRuta.ts), uno
+   para todos. En el móvil son CUADRADOS (usuario, 2026-11-25); en el ordenador, el general más
+   alto que el de un envío. */
 
 
 /* «NUEVO ENVÍO» EN GRANDE (usuario, 2026-11-24; «más fino, simple, lineal»): franja morada con

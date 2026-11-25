@@ -3337,6 +3337,47 @@ export type Database = {
           },
         ]
       }
+      pantalla_descuadres: {
+        Row: {
+          id: string
+          usuario_id: string | null
+          causa: string
+          ruta: string
+          navegador: string
+          corregido: boolean
+          datos: Json
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          usuario_id?: string | null
+          causa: string
+          ruta: string
+          navegador: string
+          corregido?: boolean
+          datos?: Json
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          usuario_id?: string | null
+          causa?: string
+          ruta?: string
+          navegador?: string
+          corregido?: boolean
+          datos?: Json
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pantalla_descuadres_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parametros: {
         Row: {
           id: string
@@ -4950,6 +4991,7 @@ export type Database = {
       pago_sesiones_por_cerrar: { Args: { p_envio: string | null }; Returns: string[] }
       pagos_envio: { Args: { p_envio?: string | null }; Returns: { envio_id: string; referencia_gx: string; referencia_cliente: string; estado: string; estado_pago_previo: string; pago_motivo: string; pago_metodo: string; pagado_en: string; base: number; iva: number; total: number; pago_limite: string; precio_provisional: boolean; a_cuenta: number; pendiente: number; pago_avisado_en: string }[] }
       pais_nombre: { Args: { p: string | null }; Returns: string }
+      pantalla_descuadre_anotar: { Args: { p_causa: string | null; p_ruta: string | null; p_navegador: string | null; p_corregido: boolean | null; p_datos: Json | null }; Returns: undefined }
       paradas_json: { Args: { p_envio: string | null }; Returns: Json }
       paradas_ocultas: { Args: { p_paradas: Json | null }; Returns: Json }
       paradas_viaje_json: { Args: { p_envio: string | null }; Returns: Json }
