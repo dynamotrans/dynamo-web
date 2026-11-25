@@ -50,6 +50,9 @@ test.describe('enlace de pago público', () => {
       await sv.from('envios').update({ estado_pago_previo: 'pagado', pagado_en: new Date().toISOString() }).eq('id', e.id);
       await p.goto(`/pago/${token}`);
       await expect(p.locator('#pago-pub-pagado')).toContainText('Envío pagado');
+      // Con las dos salidas: entrar en la cuenta e ir a la web.
+      await expect(p.locator('#pago-pub-ir a[href="/panel/entrar"]')).toHaveText('Entrar en mi cuenta');
+      await expect(p.locator('#pago-pub-ir a[href="/"]')).toContainText('dynamotrans.com');
       await expect(p.locator('#pago-pub-datos')).toHaveCount(0);
       // Plazo pasado sin pagar: el envío se anula solo y la página lo DICE (no manda a entrar ni
       // se queda en un «anulado» a secas), con el plazo que había.
@@ -64,6 +67,7 @@ test.describe('enlace de pago público', () => {
       await p.goto(`/pago/${token}`);
       await expect(p).toHaveURL(new RegExp(`/pago/${token}`));
       await expect(p.locator('#pago-pub-vencido')).toContainText('El plazo para pagar ha terminado');
+      await expect(p.locator('#pago-pub-ir a')).toHaveCount(2);
       await expect(p.locator('#pago-pub-vencido')).toContainText(/había que pagarlo antes del .*\d{2}\/\d{2}\/\d{2} · \d{2}:\d{2}/);
       // Con lo mínimo del envío para situarse (ruta, mercancía, importe), y nada con lo que pagar.
       const ctx = p.locator('#pago-pub-contexto');

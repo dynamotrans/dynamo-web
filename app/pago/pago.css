@@ -20,3 +20,11 @@ body { display: block; }
 .pago-pub-que { margin-top: 1rem; font-size: var(--fs-s); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gray-500); }
 #pago-pub-contexto .pago-pub-datos { margin-top: 0.45rem; }
 .pago-pub a[href^="tel:"] { white-space: nowrap; }
+/* Pantallas finales (pagado, plazo terminado, anulado): entrar en la cuenta o ir a la web. */
+.pago-pub-ir { display: flex; flex-wrap: wrap; gap: 0.55rem; justify-content: center; margin-top: 1.1rem; }
+.pago-pub-ir a { flex: 1 1 200px; max-width: 260px; min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem;
+  padding: 0.55rem 1rem; border-radius: 10px; font-size: var(--fs-m); font-weight: 700; text-decoration: none; border: 1px solid var(--purple); }
+.pago-pub-ir .ir-cuenta { background: var(--purple); color: #fff; }
+.pago-pub-ir .ir-cuenta:hover { background: #2600a3; border-color: #2600a3; }
+.pago-pub-ir .ir-web { background: #fff; color: var(--purple); }
+.pago-pub-ir .ir-web:hover { background: rgba(51,0,204,0.06); }

@@ -24,7 +24,15 @@ const Marco = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-function Estado({ color, titulo, children, id, debajo }: { color: string; titulo: string; children: React.ReactNode; id: string; debajo?: React.ReactNode }) {
+/** Las dos salidas de una pantalla final (usuario, 2026-11-25): la web de Dynamo y entrar en la cuenta. */
+const Salidas = () => (
+  <div className="pago-pub-ir" id="pago-pub-ir">
+    <a className="ir-cuenta" href="/panel/entrar">Entrar en mi cuenta</a>
+    <a className="ir-web" href="/">Ir a <span className="notranslate" translate="no">dynamotrans.com</span></a>
+  </div>
+);
+
+function Estado({ color, titulo, children, id, debajo, salidas = true }: { color: string; titulo: string; children: React.ReactNode; id: string; debajo?: React.ReactNode; salidas?: boolean }) {
   return (
     <Marco>
       <div className="pago-pub-estado" id={id}>
@@ -33,6 +41,7 @@ function Estado({ color, titulo, children, id, debajo }: { color: string; titulo
         </span>
         <h1>{titulo}</h1>
         <p>{children}</p>
+        {salidas && <Salidas />}
       </div>
       {debajo}
     </Marco>
@@ -98,7 +107,7 @@ export default function PagoPublico({ token, datos, conTarjeta, vuelta }: { toke
   );
   if (datos.resultado === 'anulado') return <Estado id="pago-pub-anulado" color="#b42318" titulo="Este envío está anulado">El envío {ref} ya no está pendiente de pago: se anuló. Si todavía hace falta, hay que crearlo de nuevo en la plataforma. {contacto}</Estado>;
   if (datos.resultado === 'no_disponible') return <Estado id="pago-pub-no" color="#b45309" titulo="Ahora no se puede pagar desde aquí">El envío {ref} no está pendiente de pago en este momento. {contacto}</Estado>;
-  if (datos.resultado === 'mantenimiento') return <Estado id="pago-pub-mant" color="#b45309" titulo="Plataforma en mantenimiento">Vuelve a abrir este enlace dentro de un rato. {contacto}</Estado>;
+  if (datos.resultado === 'mantenimiento') return <Estado id="pago-pub-mant" color="#b45309" titulo="Plataforma en mantenimiento" salidas={false}>Vuelve a abrir este enlace dentro de un rato. {contacto}</Estado>;
   if (datos.resultado !== 'pendiente') return <Estado id="pago-pub-mal" color="#b42318" titulo="Enlace de pago no válido">Comprueba que el enlace está entero (cópialo otra vez del email). {contacto}</Estado>;
 
   const aCuenta = Number(datos.a_cuenta ?? 0), resto = aCuenta > 0;
