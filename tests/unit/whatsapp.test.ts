@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { botonesReenvio, cuerpoCodigo, esMovil, cuerpoArchivo, cuerpoBotones, cuerpoPlantilla, cuerpoReaccion, cuerpoTexto, dentroDe24h, extensionDe, leerAviso, telWhatsApp, textoPlantilla, tipoArchivoMeta } from '../../lib/whatsapp';
+import { botonesReenvio, cuerpoCodigo, esMovil, noEsMovil, cuerpoArchivo, cuerpoBotones, cuerpoPlantilla, cuerpoReaccion, cuerpoTexto, dentroDe24h, extensionDe, leerAviso, telWhatsApp, textoPlantilla, tipoArchivoMeta } from '../../lib/whatsapp';
 import { firmaValida } from '../../lib/whatsappFirma';
 
 const SECRETO = 'secreto-de-prueba';
@@ -124,6 +124,9 @@ test('móvil verificado: solo móviles y plantilla de «Autenticación» con el 
   assert.equal(esMovil('+351 912 345 678'), true);
   assert.equal(esMovil('12345'), false);
   assert.equal(esMovil(''), false);
+  // Para los formularios: solo avisa si hay un teléfono escrito y no es un móvil (vacío = nada que avisar).
+  assert.deepEqual([noEsMovil(''), noEsMovil(null), noEsMovil('+34'), noEsMovil('+34955225945'), noEsMovil('955 225 945'), noEsMovil('+34600111222'), noEsMovil('+351912345678')],
+    [false, false, true, true, true, false, false]);
   const c = cuerpoCodigo('+34600111222', 'codigo_dynamo', '123456');
   assert.equal(c.to, '34600111222');
   assert.equal(c.template.name, 'codigo_dynamo');

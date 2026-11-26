@@ -1,7 +1,7 @@
 'use server';
 
 import { normalizaTel } from '@/lib/paises';
-import { esMovil } from '@/lib/whatsapp';
+import { AVISO_MOVIL, esMovil, noEsMovil } from '@/lib/whatsapp';
 
 import { mensajeError } from '@/lib/mensajeError';
 import { claveValida } from '@/lib/clave';
@@ -250,6 +250,7 @@ export async function guardarMiConductor(c: MiConductor): Promise<Res> {
   }
   const tel = normalizaTel(c.telefono);
   if (tel && !/^\+?[0-9]{6,15}$/.test(tel)) return { ok: false, error: 'El teléfono no es válido: solo números, con el prefijo del país.' };
+  if (noEsMovil(tel)) return { ok: false, error: `El teléfono del conductor ${AVISO_MOVIL}` };
   const { error } = await s.supabase.rpc('guardar_mi_conductor', {
     p_id: c.id, p_nombre: c.nombre.trim(), p_documento: doc, p_documento_pais: pais, p_telefono: tel,
   });

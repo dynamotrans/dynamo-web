@@ -2,6 +2,7 @@
 
 import { supabasePublico } from '@/lib/supabase/publico';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { noEsMovil } from '@/lib/whatsapp';
 
 // Página «Proporcionar matrículas» (usuario, 2026-11-19): el transportista pone matrículas,
 // conductor y teléfono desde el botón del email de la orden (cuando faltan las matrículas). La llave es la
@@ -15,6 +16,7 @@ export async function guardarMatriculas(token: string, clave: string, d: { camio
   if (!sb || !/^[0-9a-f-]{36}$/i.test(token) || !/^[0-9a-f-]{36}$/i.test(clave)) return { resultado: 'error' };
   const { data: mant } = await sb.rpc('mantenimiento_activo');
   if (mant) return { resultado: 'mantenimiento' };
+  if (noEsMovil(d.telefono)) return { resultado: 'telefono_no_movil' };
   const { data, error } = await sb.rpc('guardar_matriculas_enlace', {
     p_token: token, p_clave: clave, p_matricula_camion: d.camion, p_matricula_remolque: d.remolque,
     p_conductor_nombre: d.conductor, p_telefono: d.telefono, p_fecha_carga_prevista: d.dia || undefined,

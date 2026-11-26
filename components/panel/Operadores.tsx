@@ -274,7 +274,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         {/* CIF opcional y sin Web ni Notas (usuario, 2026-11-09): es una agenda informal.
             Los valores antiguos de web/anotaciones se conservan al guardar (siguen en d). */}
         {campo('cif', 'CIF / NIF', false, 'B12345678')}
-        <div><label htmlFor="op-telefono">Teléfono <Req si={false} /></label><CampoTelefono id="op-telefono" valor={String(d.telefono ?? '')} onCambio={(v) => set('telefono', v as never)} /></div>
+        <div><label htmlFor="op-telefono">Móvil (WhatsApp) <Req si={false} /></label><CampoTelefono id="op-telefono" valor={String(d.telefono ?? '')} onCambio={(v) => set('telefono', v as never)} /></div>
         {campo('email', 'Email', false, 'trafico@empresa.com', false, 'email')}
         {campo('persona_contacto', 'Persona de contacto', false, 'Nombre y apellidos')}
         {/* Provincia, país y camiones (usuario, 2026-11-22). En España la provincia es un

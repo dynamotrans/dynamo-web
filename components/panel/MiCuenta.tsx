@@ -475,7 +475,7 @@ function EditarConductor({ inicial, onCerrar, onHecho }: { inicial: MiConductor;
           </select></div>
         <div><label htmlFor="mcd-doc">DNI / NIE / documento <Req si={false} /></label>
           <input id="mcd-doc" type="text" value={c.documento} maxLength={30} placeholder="Ej. 12345678Z" onChange={(e) => setC({ ...c, documento: e.target.value.toUpperCase() })} /></div>
-        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-tel">Teléfono móvil <Req si={false} /></label><CampoTelefono id="mcd-tel" valor={c.telefono} onCambio={(v) => setC({ ...c, telefono: v })} /></div>
+        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-tel">Móvil (WhatsApp) <Req si={false} /></label><CampoTelefono id="mcd-tel" valor={c.telefono} onCambio={(v) => setC({ ...c, telefono: v })} /></div>
       </div>
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
       {g.trabajando && <Cargando texto={g.trabajando} />}

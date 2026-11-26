@@ -8,6 +8,7 @@ import { validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { cookieSegura } from '@/lib/cookieSegura';
+import { AVISO_MOVIL, noEsMovil } from '@/lib/whatsapp';
 
 // La reserva va en una cookie de esta página: su id es la llave para aceptar y para ver
 // los datos completos después. Solo la tiene quien reservó.
@@ -41,6 +42,7 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
   if (await enMantenimiento(sb)) return { resultado: 'error', error: `La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al ${CONTACTO.telefono}.` };
+  if (noEsMovil(a.telefono)) return { resultado: 'error', error: `El teléfono del conductor ${AVISO_MOVIL}` };
   const { data, error } = await sb.rpc('aceptar_oferta_publica', {
     p_reserva: reserva, p_cif: a.cif, p_precio: a.precio, p_pronto_pago: a.pronto_pago,
     p_matricula_camion: a.camion, p_matricula_remolque: a.remolque, p_conductor_nombre: a.conductor, p_telefono: a.telefono,
@@ -91,6 +93,7 @@ export async function completar(token: string, d: { camion: string; remolque: st
   if (!sb) return { resultado: 'error' };
   // Sin la cookie de la reserva no se puede guardar: que la pantalla lo diga claro.
   if (!reserva) return { resultado: 'sin_reserva' };
+  if (noEsMovil(d.telefono)) return { resultado: 'telefono_no_movil' };
   const { data, error } = await sb.rpc('completar_carga_publica', {
     p_reserva: reserva, p_matricula_camion: d.camion, p_matricula_remolque: d.remolque, p_conductor_nombre: d.conductor, p_telefono: d.telefono,
     p_fecha_carga_prevista: d.dia || null,
@@ -185,6 +188,7 @@ export async function darseDeAlta(token: string, a: AltaTransportista): Promise<
   // y de cualquier otro país, el nº fiscal tal cual (lo revisa Dynamo al activar el alta).
   if (!v || !v.ok) return { resultado: 'datos_no_validos', campo: 'cif',
     error: `${v?.tipo ? `${v.tipo}: ${v.msg}` : v?.msg || 'El CIF / NIF no es válido'}. Valen el CIF de empresa y el NIF/NIE de autónomo; de otro país, el nº de IVA con su prefijo (PT…, FR…) o tu nº fiscal.` };
+  if (noEsMovil(a.telefono)) return { resultado: 'datos_no_validos', campo: 'telefono', error: `El teléfono ${AVISO_MOVIL}` };
   const { data, error } = await sb.rpc('alta_transportista_publica', {
     p_reserva: reserva, p_bolsa: a.bolsa || null, p_codigo_bolsa: a.codigo_bolsa, p_pais: a.pais, p_cif: a.cif, p_telefono: a.telefono,
     p_precio: a.precio, p_pronto_pago: a.pronto_pago, p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,

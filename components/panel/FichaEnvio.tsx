@@ -653,7 +653,7 @@ function CamionManual({ e, onCerrar, onHecho }: { e: Ficha['envio']; onCerrar: (
           <input id="cm-mr" value={d.matricula_remolque} placeholder="Ej. R 1234 XYZ" onChange={(ev) => set('matricula_remolque', ev.target.value.toUpperCase())} /></div>
         <div><label htmlFor="cm-cn">Conductor</label>
           <input id="cm-cn" value={d.conductor_nombre} placeholder="Nombre y apellidos" onChange={(ev) => set('conductor_nombre', ev.target.value)} /></div>
-        <div><label htmlFor="cm-ct">Teléfono del conductor</label>
+        <div><label htmlFor="cm-ct">Móvil del conductor (WhatsApp)</label>
           <input id="cm-ct" value={d.conductor_telefono} placeholder="+34 600 000 000" onChange={(ev) => set('conductor_telefono', ev.target.value)} /></div>
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>

@@ -1523,8 +1523,13 @@ test.describe('novedades', () => {
       await page.locator('#mt-camion').fill('2903 BCD');
       await page.locator('#mt-remolque').fill('R2903BCD');
       await page.locator('#mt-chofer').fill('Conductor Matrículas');
-      await page.locator('#mt-tfno').fill('600290390');
+      // Móvil con WhatsApp en toda la plataforma (usuario, 2026-11-26): con un fijo no se guarda.
+      await expect(page.locator('label[for=mt-tfno]')).toContainText('Móvil del conductor (WhatsApp)');
+      await page.locator('#mt-tfno').fill('955225945');
       if (await page.locator('#mt-dia').count()) await page.locator('#mt-dia').selectOption({ index: 1 });
+      await page.locator('#mt-guardar').click();
+      await expect(page.locator('#mt-resultado')).toContainText('tiene que ser un móvil (con WhatsApp)');
+      await page.locator('#mt-tfno').fill('600290390');
       await page.locator('#mt-guardar').click();
       await expect(page.locator('#mt-resultado')).toContainText('orden de carga COMPLETA');
       await expect(page.locator('#aviso-deca-matriculas')).toHaveCount(0);

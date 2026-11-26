@@ -9,6 +9,7 @@ import AvisoDireccionesOcultas from '@/components/AvisoDireccionesOcultas';
 import { CONTACTO } from '@/lib/atencion';
 import { telBonito } from '@/lib/paises';
 import { avisaFaltas } from '@/lib/faltas';
+import { AVISO_MOVIL } from '@/lib/whatsapp';
 
 export type DatosMatriculas = {
   resultado: 'ok' | 'no_valido' | 'cancelado' | 'error' | 'mantenimiento';
@@ -67,6 +68,7 @@ export default function FormMatriculas({ token, clave, d }: { token: string; cla
           : x.resultado === 'falta_fecha_prevista' ? 'Elige el día en que cargas.'
           : x.resultado === 'fecha_fuera_de_ventana' ? 'Ese día no está dentro de los días de recogida.'
           : x.resultado === 'matricula_larga' ? 'Esa matrícula es demasiado larga: revísala.'
+          : x.resultado === 'telefono_no_movil' ? `El teléfono del conductor ${AVISO_MOVIL}`
           : x.resultado === 'ya_no_se_puede' ? 'Este envío ya no admite cambios desde aquí: llámanos.'
           : x.resultado === 'no_valido' ? 'Este enlace ya no es válido: usa el del último email.'
           : x.resultado === 'mantenimiento' ? 'Plataforma en mantenimiento: vuelve a intentarlo en un rato.'
@@ -117,7 +119,7 @@ export default function FormMatriculas({ token, clave, d }: { token: string; cla
           </>}
           <label htmlFor="mt-chofer">Conductor <Req /></label>
           <input type="text" id="mt-chofer" value={veh.conductor} placeholder="Nombre y apellidos" maxLength={120} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
-          <label htmlFor="mt-tfno">Teléfono del conductor <Req /></label>
+          <label htmlFor="mt-tfno">Móvil del conductor (WhatsApp) <Req /></label>
           <CampoTelefono id="mt-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button id="mt-guardar" className="btn" disabled={guardando} onClick={guardar} style={{ marginTop: '0.8rem' }}>
             {guardando ? 'Guardando…' : completas ? 'Actualizar matrículas y conductor' : 'Guardar matrículas y recibir la orden completa'}

@@ -12,6 +12,7 @@ import type { SB } from '@/lib/supabase/cliente';
 import { soloGestor } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import type { NotaTransportista } from '@/lib/notaTransportista';
+import { AVISO_MOVIL, noEsMovil } from '@/lib/whatsapp';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -50,6 +51,7 @@ export async function asignarTransportista(envio: string, a: Asignacion): Promis
       avisoSusp = textoCancelacion(rc);
     }
   }
+  if (noEsMovil(a.conductor_telefono)) return { ok: false, error: `El teléfono del conductor ${AVISO_MOVIL}` };
   // Las reglas (suspendido, NIMA, matrícula en mayúsculas, teléfono) las pone la base de datos.
   const { data, error } = await s.supabase.rpc('asignar_transportista', {
     p_envio: envio, p_transportista: a.transportista_id, p_importe_transportista: a.importe_transportista,
@@ -187,6 +189,7 @@ export async function ponerCamionManual(envio: string, d: { matricula_camion: st
   comprobarEntrada("app/panel/(app)/envios/acciones#ponerCamionManual", [envio, d]);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu cuenta no está activa.' };
+  if (noEsMovil(d.conductor_telefono)) return { ok: false, error: `El teléfono del conductor ${AVISO_MOVIL}` };
   const { data, error } = await s.supabase.rpc('poner_camion_mi_envio_manual', {
     p_envio: envio, p_matricula_camion: d.matricula_camion, p_matricula_remolque: d.matricula_remolque,
     p_conductor_nombre: d.conductor_nombre, p_conductor_telefono: d.conductor_telefono,

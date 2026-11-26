@@ -23,6 +23,7 @@ import AvisoDireccionesOcultas from '@/components/AvisoDireccionesOcultas';
 import { ACCESIBILIDAD_TITULO, ACCESIBILIDAD_TEXTO } from '@/lib/condicionesTransportista';
 import CampoSugerido from '@/components/CampoSugerido';
 import { avisaFaltas } from '@/lib/faltas';
+import { AVISO_MOVIL } from '@/lib/whatsapp';
 
 type Parada = ParadaPublica;
 
@@ -475,7 +476,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
         </div>
         <label htmlFor="f-chofer">Nombre y apellidos del conductor <Req si={false} /></label>
         <CampoSugerido id="f-chofer" valor={veh.conductor} sugerencias={flo?.conductores ?? []} onCambio={(v) => setVeh({ ...veh, conductor: v })} placeholder="Nombre y apellidos" />
-        <label htmlFor="f-tfno">Teléfono del conductor <Req si={false} /></label>
+        <label htmlFor="f-tfno">Móvil del conductor (WhatsApp) <Req si={false} /></label>
         <CampoTelefono id="f-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
         <p className="id-hint">Con estos datos, cargador y destinatario <strong>coordinan la recogida y la entrega</strong> con el conductor.</p>
       </div>
@@ -623,7 +624,7 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
             </select>
           </>}
           <label htmlFor="ok-chofer">Conductor <Req si={false} /></label><CampoSugerido id="ok-chofer" valor={veh.conductor} sugerencias={flo?.conductores ?? []} onCambio={(v) => setVeh({ ...veh, conductor: v })} onBlur={alSalirConductor} />
-          <label htmlFor="ok-tfno">Teléfono del conductor <Req si={false} /></label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
+          <label htmlFor="ok-tfno">Móvil del conductor (WhatsApp) <Req si={false} /></label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button className="btn" disabled={sinCambios} style={sinCambios ? { background: '#047857', opacity: 1 } : undefined} onClick={async () => {
             if (dias.length > 1 && !dia) { setGuardado({ ok: false, txt: 'Elige el día en que cargas.' }); avisaFaltas(['ok-dia']); return; }
             const x = await completar(token, { ...veh, dia });
@@ -640,6 +641,7 @@ function Aceptada({ token, c }: { token: string; c: ReservaPublica }) {
             setGuardado(x.resultado === 'guardado' ? { ok: true, txt: 'Vehículo y conductor guardados.' }
               : { ok: false, txt: x.resultado === 'falta_fecha_prevista' ? 'Elige el día en que cargas.'
               : x.resultado === 'fecha_fuera_de_ventana' ? 'Ese día no está dentro de los días de recogida.'
+              : x.resultado === 'telefono_no_movil' ? `El teléfono del conductor ${AVISO_MOVIL}`
               : x.resultado === 'sin_reserva' ? 'Este navegador ya no guarda tu acceso a esta carga: abre otra vez el enlace que te enviaron y vuelve a intentarlo.'
               : x.resultado === 'no_aceptada' || x.resultado === 'ya_no_se_puede' ? 'Este envío ha cambiado o ya no está contigo: recarga la página para ver cómo está, o llámanos.'
               : 'No se ha podido guardar; contáctanos.' });
@@ -734,7 +736,7 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
           ? `${idf.tipo}: correcto.`
           : 'Empresa o autónomo, da igual: CIF, NIF o NIE en España; de otro país, tu nº de IVA con el prefijo (PT…, FR…) o tu nº fiscal tal cual.'}
       </p>
-      <label htmlFor="al-tel">Teléfono <Req /></label>
+      <label htmlFor="al-tel">Móvil (WhatsApp) <Req /></label>
       <CampoTelefono id="al-tel" valor={d.telefono} onCambio={(v) => set('telefono', v)} />
 
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}

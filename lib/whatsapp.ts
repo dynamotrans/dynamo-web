@@ -215,6 +215,13 @@ export function cuerpoCodigo(telefono: string, plantilla: string, codigo: string
   };
 }
 
+// MÓVIL CON WHATSAPP EN TODA LA PLATAFORMA (usuario, 2026-11-26: «que siempre sea todo móvil con
+// WhatsApp, para poder coordinar entregas y recogidas; el fijo está desapareciendo»). El texto
+// único que se enseña cuando alguien escribe un teléfono que no es un móvil.
+export const AVISO_MOVIL = 'tiene que ser un móvil (con WhatsApp): en España, 9 cifras que empiezan por 6 o 7; si es de otro país, con su prefijo.';
+/** ¿Está escrito un teléfono que NO es un móvil? (vacío = no hay nada que avisar). */
+export const noEsMovil = (t: string | null | undefined): boolean => !!(t ?? '').replace(/\D/g, '') && !esMovil(t);
+
 /** Un móvil válido para WhatsApp (igual que movil_valido() de la base de datos). */
 export function esMovil(t: string | null | undefined): boolean {
   const x = telWhatsApp(t);

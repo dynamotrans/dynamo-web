@@ -314,7 +314,7 @@ export function Asignar({ ficha, onVolver, hacer, trabajando, fallo }: SubProps)
           </div>
         </div>
         <div>
-          <label htmlFor="as-tel">Teléfono del conductor <Req si={false} /></label>
+          <label htmlFor="as-tel">Móvil del conductor (WhatsApp) <Req si={false} /></label>
           {/* La lista se abre al entrar en el NÚMERO, no en el selector de prefijo. */}
           <div ref={telCaja} data-envivo-ignorar="" onKeyDownCapture={cerrarCon}
             onFocusCapture={(ev) => { if ((ev.target as HTMLElement).tagName === 'INPUT') setAbre('tel'); }}>

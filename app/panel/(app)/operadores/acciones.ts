@@ -8,6 +8,7 @@ import { vistaCruda } from '@/lib/vista';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { gestorOCliente } from '@/lib/guardia';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { AVISO_MOVIL, noEsMovil } from '@/lib/whatsapp';
 
 export type OperadorDatos = {
   cliente_id: string | null; razon_social: string; cif: string; telefono: string; email: string;
@@ -43,6 +44,7 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
     else return { ok: false, error: 'Elige de qué cliente es este transportista.' };
   }
   const tel = normalizaTel(d.telefono);
+  if (noEsMovil(tel)) return { ok: false, error: `El teléfono ${AVISO_MOVIL}` };
   const fila: Record<string, unknown> = {
     razon_social: d.razon_social.trim(), cif: vacio(d.cif)?.toUpperCase() ?? null, telefono: tel || null, email: vacio(d.email)?.toLowerCase() ?? null,
     persona_contacto: vacio(d.persona_contacto), web: vacio(d.web), anotaciones: vacio(d.anotaciones),
