@@ -2828,6 +2828,8 @@ export type Database = {
           repaso_desde: string | null
           repaso_inicio_en: string | null
           cuentas_en: string | null
+          abonos_en: string | null
+          copia_desde: string | null
         }
         Insert: {
           id?: boolean
@@ -2844,6 +2846,8 @@ export type Database = {
           repaso_desde?: string | null
           repaso_inicio_en?: string | null
           cuentas_en?: string | null
+          abonos_en?: string | null
+          copia_desde?: string | null
         }
         Update: {
           id?: boolean
@@ -2860,6 +2864,8 @@ export type Database = {
           repaso_desde?: string | null
           repaso_inicio_en?: string | null
           cuentas_en?: string | null
+          abonos_en?: string | null
+          copia_desde?: string | null
         }
         Relationships: [
         ]
@@ -2885,6 +2891,9 @@ export type Database = {
           estado_desde: string
           leido_en: string
           creado_en: string
+          tipo: string
+          rectifica: string | null
+          ficha_en: string | null
         }
         Insert: {
           ref_externa: string
@@ -2906,6 +2915,9 @@ export type Database = {
           estado_desde?: string
           leido_en?: string
           creado_en?: string
+          tipo?: string
+          rectifica?: string | null
+          ficha_en?: string | null
         }
         Update: {
           ref_externa?: string
@@ -2927,6 +2939,9 @@ export type Database = {
           estado_desde?: string
           leido_en?: string
           creado_en?: string
+          tipo?: string
+          rectifica?: string | null
+          ficha_en?: string | null
         }
         Relationships: [
           {
@@ -5302,6 +5317,7 @@ export type Database = {
       exportar_datos_usuario: { Args: { p_usuario?: string | null }; Returns: Json }
       factor_automatico: { Args: { p_cliente: string | null }; Returns: number }
       factor_tarifa_envio: { Args: { p_cliente: string | null; p_envio?: string | null }; Returns: number }
+      factura_para_abrir: { Args: { p_ref: string | null }; Returns: Json }
       factura_visible: { Args: { p_ref: string | null }; Returns: string }
       facturas_anular: { Args: { p_ids: string[] | null }; Returns: number }
       facturas_apuntar_cobros: { Args: { p_cobros: Json | null }; Returns: number }

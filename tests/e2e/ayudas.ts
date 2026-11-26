@@ -99,6 +99,8 @@ export async function crearEnvioDeCliente(page: Page, enConfirmar?: () => Promis
   // El tarifador ya ha calculado: la caja de importes (en Revisión va en modo solo
   // importes, sin la línea «Camión completo · km» de antes — usuario, 2026-11-14).
   await expect(page.locator('.ptar-sug-card .alm-price-base')).toBeVisible();
+  // Debajo de la última parada, el recordatorio de comprobar los horarios (usuario, 2026-11-26).
+  await expect(page.locator('#ne-verifica-horarios')).toContainText('Verifica los horarios de los sitios con ellos');
   await page.getByRole('button', { name: 'Crear envío' }).click();
   await page.locator('.dash-modal-card input[type=checkbox]').check();   // condiciones + cancelación
   if (enConfirmar) await enConfirmar();   // lo que haya que mirar en la ventana de confirmar

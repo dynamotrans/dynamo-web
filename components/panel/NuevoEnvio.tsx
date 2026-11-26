@@ -982,9 +982,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       )}
       {enVerano && (veranoSitios.some((x) => !x.con) || !veranoSitios.length) && (
         <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoSol /><div>
-          <strong>Revisa horarios de verano</strong>{veranoSitios.some((x) => !x.con) ? <> de {veranoSitios.filter((x) => !x.con).map((x) => x.nombre).join(', ')}</> : ' de los almacenes'}:
-          entre el {mmddTxt(veranoGen.desde)} y el {mmddTxt(veranoGen.hasta)} muchos cambian de horario (la mayoría hacen <strong>7:00–15:00</strong>).
-          {veranoSitios.some((x) => !x.con) && <> Puedes ponerle su horario de verano en Sitios.</>}
+          {/* Genérico, sin nombrar un sitio concreto (usuario, 2026-11-26). */}
+          <strong>Revisa horarios de verano:</strong> entre el {mmddTxt(veranoGen.desde)} y el {mmddTxt(veranoGen.hasta)} muchos cambian de horario (la mayoría hacen <strong>7:00–15:00</strong>).
+          {' '}Cámbialo haciendo clic en cada sitio.
         </div></div>
       )}
       {recogidasCerradas.map((r) => (
@@ -1498,6 +1498,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                   Datos de los lugares <span style={{ color: 'var(--gray-500)', fontWeight: 600, fontSize: 'var(--fs-m)' }}>· revisa y completa lo que falte</span>
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
+                {/* Debajo de la última parada (usuario, 2026-11-26): recordar que los horarios se comprueban con cada sitio. */}
+                <div className="modal-warn-box" id="ne-verifica-horarios" style={{ margin: '0.8rem 0 0' }}>
+                  <strong>Verifica los horarios de los sitios con ellos.</strong> Cámbialos haciendo clic en cada sitio si es necesario. <strong>Verificar que
+                  son los reales es tu responsabilidad</strong>: las posibles penalizaciones corren a cargo del cliente.
+                </div>
                 {/* El aviso del tráiler ya no sale aquí (usuario, 2026-11-24: «ya lo pusimos en el paso 2»). */}
                 {/* El cajetín de fecha + P. transportista + margen salió de aquí (usuario,
                     2026-11-09): el resumen de precios y margen va al modal de Confirmar

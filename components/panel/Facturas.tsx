@@ -4,6 +4,8 @@
 // la copia que la plataforma mantiene al día sola: Dynamo las ve todas (con empresa, CIF y
 // cuenta contable) y cada cliente, las suyas. La base de datos manda una página cada vez
 // (25 filas), con el total y las sumas de lo filtrado: va igual con 700 que con 20.000.
+// Los ABONOS (facturas rectificativas) salen en la misma lista, en negativo y con su etiqueta:
+// restan en las sumas, y uno «por compensar» resta de lo que queda por cobrar.
 // Es SOLO LECTURA: las facturas se crean, se modifican y se cobran en el programa de
 // facturación. Las recibidas no se enseñan aquí. Al cliente nunca se le nombra ese programa.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -42,6 +44,14 @@ const nDias = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
 // días tardó desde la factura (y si fue después del vencimiento, cuántos de retraso; esto
 // último solo lo ve Dynamo). Manda el IMPORTE pendiente: con algo por cobrar, se dice cuánto.
 function Pago({ f, hoy, dynamo }: { f: FacturaFila; hoy: string; dynamo: boolean }) {
+  // UN ABONO (factura rectificativa, en negativo) no se cobra ni vence: o está por compensar
+  // (aún resta de lo que debe el cliente) o ya se ha devuelto o compensado.
+  if (f.tipo === 'abono') {
+    if (f.estado === 'anulada') return <span className="badge badge-gray">Anulada</span>;
+    if (f.estado === 'pagada') return <><span className="badge badge-green">Compensado</span>{f.pagada_el && <span className="fac-pagada-el" style={{ marginLeft: '0.4rem', fontWeight: 600 }}>{fecha(f.pagada_el)}</span>}</>;
+    return <><span className="badge badge-orange">Por compensar</span>
+      {f.parcial && <span className="meta" style={{ display: 'block', marginTop: 2, fontWeight: 700 }}>quedan {euros(Math.abs(f.pendiente))}</span>}</>;
+  }
   if (f.estado === 'pagada') {
     const tarde = dynamo && f.pagada_el && f.vence && f.pagada_el > f.vence ? dias(f.vence, f.pagada_el) : 0;
     return <>
@@ -140,6 +150,7 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
           <option value="por_cobrar">{dynamo ? 'Por cobrar (pendientes y vencidas)' : 'Pendientes de pago'}</option>
           {dynamo ? <option value="vencida_60">Vencidas 60 días</option> : <option value="vencida">Vencidas</option>}
           <option value="pagada">Pagadas</option>
+          <option value="abono">Abonos</option>
           {dynamo && <option value="anulada">Anuladas</option>}
         </select>
         <FiltroFechas id="fac-periodo" valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={(valor, desde, hasta) => setFf({ valor, desde, hasta })} etiqueta="Filtrar por fecha de la factura" />
@@ -153,7 +164,9 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
       {dynamo && copia && (copia.conectado || copia.enCopia > 0) && (
         <p className="meta" id="facturas-nota" style={{ margin: '0 0 0.6rem', display: 'flex', gap: '0.3rem 1.5rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}><span>
           {alDia.leyendo ? (copia.cargada ? 'Leyendo de la facturación… (si es un repaso largo, puede tardar unos minutos)' : `Primera carga: trayendo las facturas de los últimos 12 meses… (${numero(copia.enCopia, 0)} hasta ahora)`)
-            : <>Copia de las facturas emitidas{copia.desde ? ` desde el ${fecha(copia.desde)}` : ''}: {numero(copia.enCopia, 0)} {copia.enCopia === 1 ? 'factura' : 'facturas'}
+            : <>Copia de las facturas emitidas{copia.desde ? ` desde el ${fecha(copia.desde)}` : ''}: {numero(copia.enCopia - copia.anteriores, 0)} {copia.enCopia - copia.anteriores === 1 ? 'factura' : 'facturas'}
+                {/* Las más antiguas están solo porque debían algo: se dicen aparte, para que la fecha no engañe. */}
+                {copia.anteriores > 0 && <span id="facturas-anteriores">, y {numero(copia.anteriores, 0)} {copia.anteriores === 1 ? 'anterior que aún debía algo' : 'anteriores que aún debían algo'}</span>}
                 {copia.ultimaOk ? ` · al día ${haceTxt(copia.ultimaOk)}` : ' · aún sin leer'}. Se actualiza sola.</>}
           {copia.conectado && !alDia.leyendo && <>{' '}<button type="button" className="enlace-paso" id="facturas-actualizar" onClick={() => actualizar()}>Actualizar ahora</button>
             {copia.cargada && <>{' · '}<button type="button" className="enlace-paso" id="facturas-repasar" aria-expanded={repaso.abierto} onClick={() => setRepaso((x) => ({ ...x, abierto: !x.abierto }))}>Repasar desde una fecha…</button></>}</>}
@@ -215,10 +228,12 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
             ) : filas.map((f) => {
               const pdf = /^[0-9a-f]{24}$/.test(f.id) ? `/api/facturas/${f.id}/pdf` : null;
               return (
-                <tr key={f.id} data-estado={f.estado} title={pdf ? 'Abrir la factura en PDF' : undefined}
+                <tr key={f.id} data-estado={f.estado} data-tipo={f.tipo} title={pdf ? (f.tipo === 'abono' ? 'Abrir el abono en PDF' : 'Abrir la factura en PDF') : undefined}
                   onClick={pdf ? () => { const w = window.open(pdf, '_blank'); if (!w) location.href = pdf; } : undefined} style={pdf ? { cursor: 'pointer' } : undefined}>
                   <td style={{ whiteSpace: 'nowrap' }}>{fecha(f.fecha)}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}><strong style={{ color: 'var(--navy)' }}>{f.numero ?? '—'}</strong></td>
+                  <td style={{ whiteSpace: 'nowrap' }}><strong style={{ color: 'var(--navy)' }}>{f.numero ?? '—'}</strong>
+                    {f.tipo === 'abono' && <span className="badge badge-gray fac-abono" style={{ marginLeft: '0.4rem' }}>Abono</span>}
+                    {f.tipo === 'abono' && f.rectifica && <span className="meta fac-rectifica" style={{ display: 'block' }}>de la factura {f.rectifica}</span>}</td>
                   {dynamo && <td style={{ minWidth: 150 }}>{f.empresa ?? '—'}
                     <span className="meta" style={{ display: 'block' }}>{f.cif ?? 'CIF sin consultar'}{f.cif && !f.es_cliente ? ' · no es cliente de la plataforma' : ''}</span></td>}
                   <td className="amount" style={{ whiteSpace: 'nowrap' }}>{euros(f.base)}</td>

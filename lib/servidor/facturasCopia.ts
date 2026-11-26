@@ -22,6 +22,9 @@ import { diaMas, mesesAtras, finDeMes } from '@/lib/facturasCopiaFechas';
 //   3. REPASO DE CADA NOCHE: otra vez los últimos 6 meses, por si se corrigió algo en una ya
 //      cobrada. Lo que ya no aparezca se comprueba una a una (borrada o devuelta a borrador →
 //      anulada). Para lo más antiguo, «Repasar desde una fecha» (a mano, desde la pantalla).
+// LOS ABONOS (facturas rectificativas) van en la misma copia, en negativo (usuario, 2026-11-26):
+// se leen con la primera carga y con cada repaso; y los pendientes y los recientes, una vez por
+// hora (hay pocos) o al pulsar «Actualizar ahora». Si su lectura falla, la de facturas sigue.
 // Nunca se borra nada de la copia. SOLO LECTURA de la facturación: aquí solo se escribe en
 // nuestra base de datos. Topes de la facturación: 120 consultas por minuto y 30.000 al mes.
 const PLAZO_MS = 42_000;          // lo que trabaja cada llamada (el servidor corta a los 60 s)
@@ -32,6 +35,10 @@ const ESPERA_FORZADA_MS = 15_000; // entre dos «Actualizar ahora»
 const PAGINAS_MAX = 120;          // 120 × 200 = 24.000 facturas por llamada, de sobra
 const RELEER_MAX = 30;            // facturas que se releen una a una en cada pasada
 const CONTACTOS_POR_VEZ = 40;     // consultas de CIF por pasada (el resto, en la siguiente)
+const ABONOS_CADA_MS = 3_600_000; // los abonos pendientes y recientes: una vez por hora
+const FICHAS_ABONO = 10;          // fichas de abono que se leen por pasada (para saber qué factura corrigen)
+type Doc = { id: string; tipo: 'factura' | 'abono' };
+type Fila = FacturaCopia & { ficha?: boolean };
 
 export type CopiaFacturas =
   | { ok: true; hecho: 'nada' | 'carga' | 'repaso' | 'al_dia'; cargando: boolean; enCurso: boolean; avisos: string[] }
@@ -93,7 +100,7 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
   };
   await apuntar({ ultima_en: ahora });
   const fallo = async (error: string): Promise<CopiaFacturas> => { await apuntar({ error: error.slice(0, 500) }); return { ok: false, conectado: true, error }; };
-  const guardar = async (filas: FacturaCopia[]): Promise<string | null> => {
+  const guardar = async (filas: Fila[]): Promise<string | null> => {
     for (let i = 0; i < filas.length; i += 1000) {
       const { error } = await sv.rpc('facturas_guardar', { p_facturas: filas.slice(i, i + 1000) });
       if (error) return `No se han podido guardar las facturas leídas: ${error.message}`;
@@ -120,6 +127,7 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
   }
 
   let hecho: 'carga' | 'repaso' | 'al_dia' = 'al_dia';
+  let abonosLeidos = false;        // en esta llamada se han podido leer abonos de la facturación
   if (b.tipo && b.desde) {
     hecho = b.tipo === 'inicial' ? 'carga' : 'repaso';
     // Las facturas del periodo, de la más nueva a la más antigua.
@@ -134,6 +142,12 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
         for (const f of p.facturas) if (f.emision < visto) visto = f.emision;
         if (!p.hayMas || !p.cursor) { completo = true; break; }
         cursor = p.cursor;
+      }
+      // Y los abonos del mismo periodo (pocos: caben de una vez). Si fallan, no paran lo demás.
+      if (completo) {
+        const a = await abonosDe({ approval_status: 'approved', start_date: b.desde, sort: '-date' });
+        if (a.ok) { const g = await guardar(a.filas); if (g) avisos.push(g); else abonosLeidos = true; }
+        else { avisos.push(a.error); console.error('[Holded] abonos', a.error); }
       }
       b.hasta = completo ? null : visto;     // si no ha dado tiempo, la siguiente llamada sigue desde ese día
       await apuntar({ barrido_hasta: b.hasta });
@@ -154,7 +168,9 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
         // Terminado: a partir de aquí, lo de cada rato. Se apunta qué cubrió, para comprobar lo que falte.
         const acabado = new Date().toISOString();
         await apuntar({ barrido_tipo: null, barrido_desde: null, barrido_hasta: null, barrido_cobros: null, barrido_inicio_en: null,
-          repaso_en: acabado, repaso_desde: b.desde, repaso_inicio_en: b.inicio, carga_completa_en: e.carga_completa_en ?? acabado });
+          repaso_en: acabado, repaso_desde: b.desde, repaso_inicio_en: b.inicio, carga_completa_en: e.carga_completa_en ?? acabado,
+          // Desde qué día están TODAS: el comienzo de la primera carga, o un repaso a mano más antiguo.
+          ...(b.tipo === 'inicial' || !e.copia_desde || b.desde < e.copia_desde ? { copia_desde: b.desde } : {}) });
         repasoDesde = b.desde; repasoInicio = b.inicio; cargada = true;
         b = { tipo: null, desde: null, hasta: null, cobros: null, inicio: null };
       } else {
@@ -184,23 +200,39 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
   const g = await guardar(pendientes);
   if (g) return fallo(g);
 
+  // 1b. Los abonos con saldo (sin devolver ni compensar): una vez por hora, o al pedirlo a mano.
+  const tocaAbonos = !!opts.forzar || !e.abonos_en || Date.now() - Date.parse(e.abonos_en) > ABONOS_CADA_MS;
+  let abonosVienen: Set<string> | null = null;      // null = en esta pasada no se han leído
+  if (tocaAbonos) {
+    const a = await abonosDe({ status: 'outstanding', approval_status: 'approved' });
+    if (a.ok) { const err = await guardar(a.filas); if (err) avisos.push(err); else { abonosVienen = new Set(a.filas.map((f) => f.id)); abonosLeidos = true; } }
+    else { avisos.push(a.error); console.error('[Holded] abonos', a.error); }
+  }
+
   // 2. Las que aquí debían algo y ya no vienen: cobradas o anuladas. Se relee cada una.
+  //    (Un abono con saldo que ya no viene: devuelto, compensado o anulado. Solo se mira en
+  //    las pasadas en que se han leído los abonos.)
   const vienen = new Set(pendientes.map((f) => f.id));
-  const yaNo: string[] = [];
+  const yaNo: Doc[] = [];
   for (let desde = 0; desde < 40_000; desde += 1000) {
-    const { data, error } = await sv.from('facturas_emitidas').select('ref_externa').gt('pendiente', 0).neq('estado', 'anulada')
+    const { data, error } = await sv.from('facturas_emitidas').select('ref_externa, tipo').neq('pendiente', 0).neq('estado', 'anulada')
       .order('ref_externa').range(desde, desde + 999);
     if (error) return fallo(`No se ha podido leer la copia: ${error.message}`);
-    for (const f of data ?? []) if (!vienen.has(f.ref_externa)) yaNo.push(f.ref_externa);
+    for (const f of data ?? []) {
+      if (f.tipo === 'abono') { if (abonosVienen && !abonosVienen.has(f.ref_externa)) yaNo.push({ id: f.ref_externa, tipo: 'abono' }); }
+      else if (!vienen.has(f.ref_externa)) yaNo.push({ id: f.ref_externa, tipo: 'factura' });
+    }
     if ((data ?? []).length < 1000) break;
   }
-  const releer = async (ids: string[]) => {
-    const filas: FacturaCopia[] = [], fuera: string[] = [];
-    const validos = ids.filter((id) => /^[0-9a-f]{24}$/i.test(id));
+  // Releer la FICHA de cada documento (factura o abono). Se apunta que se ha leído (`ficha`),
+  // para no pedir la misma una y otra vez.
+  const releer = async (docs: Doc[]) => {
+    const filas: Fila[] = [], fuera: string[] = [];
+    const validos = docs.filter((d) => /^[0-9a-f]{24}$/i.test(d.id));
     for (let i = 0; i < validos.length; i += 4) {
-      await Promise.all(validos.slice(i, i + 4).map(async (id) => {
-        const r = await leerHolded(`/invoices/${id}`);
-        if (r.ok) { const f = copiaDeHolded(r.datos as FacturaHolded); if (f) filas.push(f); }
+      await Promise.all(validos.slice(i, i + 4).map(async ({ id, tipo }) => {
+        const r = await leerHolded(`${tipo === 'abono' ? '/credit-notes' : '/invoices'}/${id}`);
+        if (r.ok) { const f = copiaDeHolded(r.datos as FacturaHolded, tipo); if (f) filas.push({ ...f, ficha: true }); }
         else if (r.estado === 404) fuera.push(id);          // ya no existe en la facturación
         // cualquier otro fallo: se queda como estaba y se reintenta en la pasada siguiente
       }));
@@ -213,10 +245,11 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
   if (yaNo.length > RELEER_MAX) avisos.push(`Quedan ${yaNo.length - RELEER_MAX} facturas por comprobar: se hará en las próximas pasadas.`);
 
   // 3. Las del último repaso que no aparecieron en él (borradas o devueltas a borrador).
+  //    Los abonos, solo si en esta llamada se han podido leer (si no, se preguntaría en balde).
   if (queda(8000) && repasoDesde && repasoInicio) {
-    const { data } = await sv.from('facturas_emitidas').select('ref_externa').gte('fecha_emision', repasoDesde).lt('leido_en', repasoInicio)
-      .neq('estado', 'anulada').limit(RELEER_MAX);
-    if (data?.length) await releer(data.map((f) => f.ref_externa));
+    const { data } = await sv.from('facturas_emitidas').select('ref_externa, tipo').gte('fecha_emision', repasoDesde).lt('leido_en', repasoInicio)
+      .neq('estado', 'anulada').in('tipo', abonosLeidos ? ['factura', 'abono'] : ['factura']).limit(RELEER_MAX);
+    if (data?.length) await releer(data.map((f) => ({ id: f.ref_externa, tipo: f.tipo === 'abono' ? 'abono' as const : 'factura' as const })));
   }
 
   // 4. Las últimas emitidas: las nuevas (también las que nacen ya cobradas) y lo recién corregido.
@@ -224,6 +257,13 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     const r = await leerHolded('/invoices', { approval_status: 'approved', start_date: diaMas(hoy, -45), sort: '-date', limit: 200 });
     if (r.ok) { const err = await guardar(copiasDeHolded(r.datos).facturas); if (err) avisos.push(err); }
     else avisos.push(r.error);
+  }
+  // 4b. Y los últimos abonos (también los que nacen ya compensados), cuando toca leerlos.
+  if (tocaAbonos && queda(6000)) {
+    const a = await abonosDe({ approval_status: 'approved', start_date: diaMas(hoy, -45), sort: '-date' });
+    if (a.ok) { const err = await guardar(a.filas); if (err) avisos.push(err); else abonosLeidos = true; }
+    else avisos.push(a.error);
+    await apuntar({ abonos_en: new Date().toISOString() });
   }
 
   // 5. Los cobros de los últimos días: el día en que se pagó cada una.
@@ -233,10 +273,21 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     else if (r.cobros.length) { const { error } = await sv.rpc('facturas_apuntar_cobros', { p_cobros: r.cobros }); if (error) avisos.push(error.message); }
   }
   // Pagadas hace poco de las que aún no se sabe el día del cobro: su ficha lo trae.
+  // Cada una se pregunta UNA vez desde que cambió de estado, y como mucho otra vez al día
+  // (si su ficha no trae el cobro, pedirla en cada pasada no lo iba a arreglar).
   if (queda(6000)) {
-    const { data } = await sv.from('facturas_emitidas').select('ref_externa').eq('estado', 'pagada').is('pagada_el', null)
-      .gte('estado_desde', new Date(Date.now() - 3 * 86_400_000).toISOString()).limit(15);
-    if (data?.length) await releer(data.map((f) => f.ref_externa));
+    const { data } = await sv.from('facturas_emitidas').select('ref_externa, tipo, estado_desde, ficha_en').eq('estado', 'pagada').is('pagada_el', null)
+      .gte('estado_desde', new Date(Date.now() - 3 * 86_400_000).toISOString()).order('ficha_en', { ascending: true, nullsFirst: true }).limit(60);
+    const ayer = Date.now() - 86_400_000;
+    const toca = (data ?? []).filter((f) => (f.tipo !== 'abono' || abonosLeidos)
+      && (!f.ficha_en || Date.parse(f.ficha_en) < Date.parse(f.estado_desde) || Date.parse(f.ficha_en) < ayer)).slice(0, 15);
+    if (toca.length) await releer(toca.map((f) => ({ id: f.ref_externa, tipo: f.tipo === 'abono' ? 'abono' as const : 'factura' as const })));
+  }
+  // Los abonos de los que aún no se ha leído la ficha: es la que dice qué factura corrigen.
+  if (abonosLeidos && queda(6000)) {
+    const { data } = await sv.from('facturas_emitidas').select('ref_externa').eq('tipo', 'abono').is('ficha_en', null).neq('estado', 'anulada')
+      .order('fecha_emision', { ascending: false }).limit(FICHAS_ABONO);
+    if (data?.length) await releer(data.map((f) => ({ id: f.ref_externa, tipo: 'abono' as const })));
   }
 
   // 6. De qué cliente es cada una: el CIF de su contacto. Primero las que deben algo.
@@ -265,6 +316,22 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
   await apuntar({ ultima_ok_en: new Date().toISOString(), error: null });
   if (avisos.length) console.error('[Holded] copia de facturas, avisos', avisos.join(' · ').slice(0, 800));
   return { ok: true, hecho, cargando: false, enCurso: !!b.tipo, avisos };
+}
+
+// Abonos (facturas rectificativas) de la facturación con esos filtros, todas las páginas:
+// hay pocos. Ya como filas de la copia (tipo abono, importes en negativo).
+async function abonosDe(filtros: Record<string, string>): Promise<{ ok: true; filas: FacturaCopia[] } | { ok: false; error: string }> {
+  const filas: FacturaCopia[] = [];
+  let cursor: string | undefined;
+  for (let i = 0; i < 50; i++) {
+    const r = await leerHolded('/credit-notes', { ...filtros, limit: 200, cursor });
+    if (!r.ok) return { ok: false, error: `Abonos: ${r.error}` };
+    const p = copiasDeHolded(r.datos, 'abono');
+    filas.push(...p.facturas);
+    if (!p.hayMas || !p.cursor) break;
+    cursor = p.cursor;
+  }
+  return { ok: true, filas };
 }
 
 // Los cobros de facturas entre dos días (los dos incluidos): de cada cobro, a qué factura

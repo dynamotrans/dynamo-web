@@ -77,33 +77,48 @@ export function cuentaDeLineas(lines: unknown): string | null {
 // cobrado, nada si está pagada.
 export type FacturaCopia = { id: string; numero: string | null; contacto_id: string | null; contacto_nombre: string | null;
   emision: string; vence: string | null; base: number; iva: number; retencion: number; total: number; pendiente: number;
-  estado: 'pendiente' | 'parcial' | 'pagada' | 'anulada' | 'otro'; pagada_el: string | null; cuenta: string | null };
+  estado: 'pendiente' | 'parcial' | 'pagada' | 'anulada' | 'otro'; pagada_el: string | null; cuenta: string | null;
+  tipo: 'factura' | 'abono'; rectifica: string | null };
 
-export function copiaDeHolded(f: FacturaHolded & { draft?: unknown; payments_detail?: unknown }): FacturaCopia | null {
+// LOS ABONOS (facturas rectificativas; en la facturación, «credit notes») tienen la misma forma
+// que una factura. En la copia van con `tipo` = abono y TODOS sus importes EN NEGATIVO, vengan
+// como vengan (no se sabe si la facturación los manda en positivo o ya en negativo): así un
+// abono con saldo pendiente resta de lo que debe el cliente. `rectifica`: la factura que
+// corrige, si su ficha lo dice (`from`, solo en «Get a credit note»).
+export function copiaDeHolded(f: FacturaHolded & { draft?: unknown; payments_detail?: unknown; from?: unknown }, tipo: 'factura' | 'abono' = 'factura'): FacturaCopia | null {
   const id = texto(f.id), emision = dia(f.date);
   if (!id || !emision) return null;
   const st = typeof f.status === 'string' ? f.status : '';
   const estado: FacturaCopia['estado'] = f.draft === true || st === 'cancelled' ? 'anulada'
     : st === 'pending' ? 'pendiente' : st === 'partial' ? 'parcial' : st === 'completed' ? 'pagada' : 'otro';
-  const base = baseDeHolded(f), iva = c2(num(f.tax)), total = c2(num(f.total));
-  const dif = c2(base + iva - total);
+  const neg = (n: number) => (tipo === 'abono' && n !== 0 ? -Math.abs(n) : n);
+  const base = neg(baseDeHolded(f)), iva = neg(c2(num(f.tax))), total = neg(c2(num(f.total)));
+  const dif = c2(Math.abs(base + iva) - Math.abs(total));
   const viene = f.payments_pending !== undefined && f.payments_pending !== null && f.payments_pending !== '';
-  const pendiente = estado === 'anulada' ? 0 : viene ? c2(num(f.payments_pending)) : estado === 'pendiente' ? total : 0;
+  const pendiente = estado === 'anulada' ? 0 : viene ? neg(c2(num(f.payments_pending))) : estado === 'pendiente' ? total : 0;
   // El día en que quedó pagada: el de su último cobro, si la respuesta trae los cobros.
   let pagada_el: string | null = null;
   if (estado === 'pagada' && Array.isArray(f.payments_detail)) {
     for (const p of f.payments_detail as { date?: unknown }[]) { const d = p && typeof p === 'object' ? dia(p.date) : null; if (d && (!pagada_el || d > pagada_el)) pagada_el = d; }
   }
+  // La factura que corrige un abono: el documento del que salió, si es una factura.
+  let rectifica: string | null = null;
+  if (tipo === 'abono' && f.from && typeof f.from === 'object') {
+    const o = f.from as { id?: unknown; doc_type?: unknown };
+    const rid = texto(o.id)?.toLowerCase() ?? null;
+    if (rid && /^[0-9a-f]{24}$/.test(rid) && (o.doc_type == null || /invoice/i.test(String(o.doc_type)))) rectifica = rid;
+  }
   return { id, numero: texto(f.document_number), contacto_id: texto(f.contact_id)?.toLowerCase() ?? null, contacto_nombre: texto(f.contact_name),
-    emision, vence: dia(f.due_date), base, iva, retencion: dif > 0.005 ? dif : 0, total, pendiente, estado, pagada_el, cuenta: cuentaDeLineas(f.lines) };
+    emision, vence: dia(f.due_date), base, iva, retencion: dif > 0.005 ? dif : 0, total, pendiente, estado, pagada_el, cuenta: cuentaDeLineas(f.lines),
+    tipo, rectifica };
 }
 
-/** Una página de «List invoices» pasada a filas de la copia: las filas, si hay más y por dónde seguir. */
-export function copiasDeHolded(cuerpo: unknown): { facturas: FacturaCopia[]; hayMas: boolean; cursor: string | null; leidas: number } {
+/** Una página de «List invoices» (o de «List credit notes», con tipo abono) pasada a filas de la copia: las filas, si hay más y por dónde seguir. */
+export function copiasDeHolded(cuerpo: unknown, tipo: 'factura' | 'abono' = 'factura'): { facturas: FacturaCopia[]; hayMas: boolean; cursor: string | null; leidas: number } {
   const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown; cursor?: unknown };
   const items = Array.isArray(c.items) ? c.items as FacturaHolded[] : [];
   const cursor = typeof c.cursor === 'string' && c.cursor ? c.cursor : null;
-  return { facturas: items.map((f) => copiaDeHolded(f ?? {})).filter((f): f is FacturaCopia => !!f), hayMas: c.has_more === true && !!cursor, cursor, leidas: items.length };
+  return { facturas: items.map((f) => copiaDeHolded(f ?? {}, tipo)).filter((f): f is FacturaCopia => !!f), hayMas: c.has_more === true && !!cursor, cursor, leidas: items.length };
 }
 
 // ---- El plan de cuentas («List chart of accounts») ----------------------------------------
@@ -138,19 +153,6 @@ export function usoDeHolded(cuerpo: unknown): { periodo: string; usadas: number;
 export function cifDeContacto(contacto: unknown): { cif: string | null; nombre: string | null } {
   const c = (contacto && typeof contacto === 'object' ? contacto : {}) as { code?: unknown; vat_number?: unknown; name?: unknown };
   return { cif: texto(c.code) ?? texto(c.vat_number), nombre: texto(c.name) };
-}
-
-// Solo para afinar (pregunta del usuario, 2026-11-25: «¿se puede saber si un pedido está
-// facturado y en qué factura va?»). La documentación dice que cada documento trae DE QUÉ
-// documento salió (`from`) y los pedidos, QUÉ documentos salieron de ellos (`to`), pero no
-// aclara si una factura hecha con varios pedidos los trae todos. De un documento real se
-// apunta solo eso: su estado y el TIPO de los documentos enlazados (sin números ni nombres).
-export function formaDeEnlaces(doc: unknown): Record<string, unknown> {
-  const d = (doc && typeof doc === 'object' ? doc : {}) as Record<string, unknown>;
-  const tipo = (o: unknown) => (o && typeof o === 'object' ? String((o as { doc_type?: unknown }).doc_type ?? '(sin tipo)') : typeof o);
-  const enlace = (v: unknown) => (v === undefined ? '(no viene)' : v === null ? null : Array.isArray(v) ? v.slice(0, 30).map(tipo) : tipo(v));
-  return { estado: d.status ?? '(no viene)', de: enlace(d.from), a: enlace(d.to), lineas: Array.isArray(d.lines) ? d.lines.length : null,
-    claves_enlace: Object.keys(d).filter((k) => /^(from|to)$|order|invoice|document|related|source|linked/i.test(k) && k !== 'document_number') };
 }
 
 // ---- Cobros: cuándo se pagó cada factura («List payments and collections») ---------------

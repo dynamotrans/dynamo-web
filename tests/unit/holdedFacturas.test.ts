@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, formaDeEnlaces, idsDeCuentas, importeDe, usoDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, idsDeCuentas, importeDe, usoDeHolded } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -9,7 +9,7 @@ const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', conta
 test('copia de facturas: los importes en texto pasan a números y el contacto, a minúsculas', () => {
   assert.deepEqual(copiaDeHolded({ ...base, lines: [{ account: '70500000', price: 100, units: 1 }] }), {
     id: base.id, numero: 'F260123', contacto_id: 'abcdefabcdefabcdefabcdef', contacto_nombre: 'Acme SL', emision: '2026-11-01', vence: '2026-12-01',
-    base: 100, iva: 21, retencion: 0, total: 121, pendiente: 121, estado: 'pendiente', pagada_el: null, cuenta: '70500000' });
+    base: 100, iva: 21, retencion: 0, total: 121, pendiente: 121, estado: 'pendiente', pagada_el: null, cuenta: '70500000', tipo: 'factura', rectifica: null });
 });
 
 // Fallo real (2026-11-26): la facturación manda los importes CON COMA («240,00») y todas las
@@ -111,14 +111,38 @@ test('cuenta contable: la de las líneas, sin repetir', () => {
   assert.equal(cuentaDeLineas('x'), null);
 });
 
-test('enlaces entre documentos: solo el estado y el tipo de lo enlazado, sin números ni nombres', () => {
-  const pedido = { id: 'a'.repeat(24), document_number: 'PV-1', contact_name: 'Cliente SL', status: 'completed', lines: [{}, {}],
-    from: { id: 'b'.repeat(24), doc_type: 'estimate' }, to: [{ id: 'c'.repeat(24), doc_type: 'invoice' }, { id: 'd'.repeat(24), doc_type: 'waybill' }] };
-  const r = formaDeEnlaces(pedido);
-  assert.deepEqual(r, { estado: 'completed', de: 'estimate', a: ['invoice', 'waybill'], lineas: 2, claves_enlace: ['from', 'to'] });
-  assert.ok(!JSON.stringify(r).includes('Cliente SL') && !JSON.stringify(r).includes('PV-1'));
-  assert.deepEqual(formaDeEnlaces({ status: 'pending', from: null }), { estado: 'pending', de: null, a: '(no viene)', lineas: null, claves_enlace: ['from'] });
-  assert.deepEqual(formaDeEnlaces(null), { estado: '(no viene)', de: '(no viene)', a: '(no viene)', lineas: null, claves_enlace: [] });
+test('abonos: misma forma que una factura, pero en negativo, vengan como vengan', () => {
+  // Tal como llegan las facturas de verdad: importes de texto con coma decimal.
+  const abono = { id: 'a'.repeat(24), document_number: 'R26-0003', contact_id: 'B'.repeat(24), contact_name: 'Cliente SL', date: '2026-11-20', due_date: '2026-11-20',
+    subtotal: '100,00', discount: '0,00', tax: '21,00', total: '121,00', status: 'pending', payments_total: '0,00', payments_pending: '121,00',
+    lines: [{ price: '100,00', units: '1,00', account: '6011715a12dc4a4bb044de36' }] };
+  const c = copiaDeHolded(abono, 'abono');
+  assert.deepEqual([c?.tipo, c?.base, c?.iva, c?.total, c?.pendiente, c?.retencion, c?.estado], ['abono', -100, -21, -121, -121, 0, 'pendiente']);
+  // Si la facturación ya los manda en negativo, no se les da la vuelta.
+  const yaNeg = copiaDeHolded({ ...abono, subtotal: '-100,00', tax: '-21,00', total: '-121,00', payments_pending: '-121,00' }, 'abono');
+  assert.deepEqual([yaNeg?.base, yaNeg?.iva, yaNeg?.total, yaNeg?.pendiente], [-100, -21, -121, -121]);
+  // Devuelto o compensado del todo: no queda saldo. Devuelto en parte: queda el resto, en negativo.
+  assert.deepEqual([copiaDeHolded({ ...abono, status: 'completed', payments_pending: '0,00' }, 'abono')?.pendiente, copiaDeHolded({ ...abono, status: 'completed', payments_pending: '0,00' }, 'abono')?.estado], [0, 'pagada']);
+  assert.equal(copiaDeHolded({ ...abono, status: 'partial', payments_pending: '21,00' }, 'abono')?.pendiente, -21);
+  assert.equal(copiaDeHolded({ ...abono, draft: true }, 'abono')?.pendiente, 0);
+  // Con retención: base + IVA − total, en positivo.
+  assert.equal(copiaDeHolded({ ...abono, total: '106,00', payments_pending: '106,00' }, 'abono')?.retencion, 15);
+  // La misma lectura como factura queda en positivo y sin «rectifica».
+  const f = copiaDeHolded({ ...abono, from: { id: 'c'.repeat(24), doc_type: 'invoice' } });
+  assert.deepEqual([f?.tipo, f?.total, f?.pendiente, f?.rectifica], ['factura', 121, 121, null]);
+});
+
+test('abonos: la factura que corrigen, solo si la ficha lo dice y es una factura', () => {
+  const abono = { id: 'a'.repeat(24), date: '2026-11-20', total: '121,00', status: 'pending' };
+  assert.equal(copiaDeHolded({ ...abono, from: { id: 'C'.repeat(24), doc_type: 'invoice' } }, 'abono')?.rectifica, 'c'.repeat(24));
+  assert.equal(copiaDeHolded({ ...abono, from: { id: 'c'.repeat(24) } }, 'abono')?.rectifica, 'c'.repeat(24));
+  assert.equal(copiaDeHolded({ ...abono, from: { id: 'c'.repeat(24), doc_type: 'salesorder' } }, 'abono')?.rectifica, null);
+  assert.equal(copiaDeHolded({ ...abono, from: { id: 'no-vale', doc_type: 'invoice' } }, 'abono')?.rectifica, null);
+  assert.equal(copiaDeHolded({ ...abono, from: null }, 'abono')?.rectifica, null);
+  assert.equal(copiaDeHolded(abono, 'abono')?.rectifica, null);
+  const p = copiasDeHolded({ items: [abono, { ...abono, id: 'd'.repeat(24) }], has_more: false }, 'abono');
+  assert.deepEqual(p.facturas.map((x) => [x.tipo, x.total]), [['abono', -121], ['abono', -121]]);
+  assert.deepEqual(copiasDeHolded({ items: [abono] }).facturas.map((x) => x.tipo), ['factura']);
 });
 
 test('fechas de la copia: 12 meses atrás, fin de mes y sumar días, sin sustos con febrero ni con el cambio de hora', () => {

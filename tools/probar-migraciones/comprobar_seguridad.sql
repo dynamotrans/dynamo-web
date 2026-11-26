@@ -16826,3 +16826,108 @@ do $$ begin
   delete from holded_cuentas where cuenta_id like '000000000000000000000c0%';
   raise notice 'OK 365 · facturas: nombre de la cuenta contable, «vencidas 60 días» por fecha de emisión y contador de consultas (propio y oficial)';
 end $$;
+
+-- 366 · ABONOS (FACTURAS RECTIFICATIVAS) EN LA COPIA DE FACTURAS (usuario, 2026-11-26).
+-- Van en negativo, restan de lo que debe el cliente, no vencen, y cada cliente ve solo los suyos.
+do $$ declare c1 uuid; cu uuid; r jsonb; r0 jsonb; d record; n int; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
+  if has_function_privilege('anon', 'factura_para_abrir(text)', 'execute') then raise exception 'FALLO 366 · alguien sin entrar puede preguntar por una factura'; end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  r0 := deuda_estado();
+  insert into clientes (razon_social, cif) values ('Abonos SL', 'B36600366') returning id into c1;
+  select cliente_id into cu from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  -- Una factura, un abono que llega EN POSITIVO (leído de su ficha) y otro que llega ya en negativo.
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h366a', 'numero', 'F366-1', 'contacto_nombre', 'Abonos', 'emision', hoy - 10, 'vence', hoy + 50, 'base', 1000, 'iva', 210, 'total', 1210, 'pendiente', 1210, 'estado', 'pendiente'),
+    jsonb_build_object('id', 'h366b', 'numero', 'R366-1', 'contacto_nombre', 'Abonos', 'tipo', 'abono', 'rectifica', 'H366A', 'ficha', true, 'emision', hoy - 5, 'vence', hoy - 5, 'base', 200, 'iva', 42, 'total', 242, 'pendiente', 242, 'estado', 'pendiente'),
+    jsonb_build_object('id', 'h366c', 'numero', 'R366-2', 'contacto_nombre', 'Abonos', 'tipo', 'abono', 'emision', hoy - 5, 'base', -50, 'iva', -10.5, 'total', -60.5, 'pendiente', 0, 'estado', 'pagada', 'pagada_el', hoy - 1)));
+  if n <> 3 then raise exception 'FALLO 366 · no se guardan la factura y sus dos abonos: %', n; end if;
+  select * into d from facturas_emitidas where ref_externa = 'h366b';
+  if d.tipo <> 'abono' or d.base <> -200 or d.iva <> -42 or d.total <> -242 or d.pendiente <> -242 or d.rectifica <> 'h366a' or d.ficha_en is null then
+    raise exception 'FALLO 366 · un abono que llega en positivo no se guarda en negativo, con su factura y con la ficha apuntada: %', row_to_json(d); end if;
+  select * into d from facturas_emitidas where ref_externa = 'h366c';
+  if d.tipo <> 'abono' or d.total <> -60.5 or d.base <> -50 or d.pendiente <> 0 or d.pagada_el <> hoy - 1 or d.ficha_en is not null or d.rectifica is not null then
+    raise exception 'FALLO 366 · a un abono que ya llega en negativo se le da la vuelta (o se le inventa la ficha): %', row_to_json(d); end if;
+  select * into d from facturas_emitidas where ref_externa = 'h366a';
+  if d.tipo <> 'factura' or d.total <> 1210 or d.pendiente <> 1210 or d.rectifica is not null or d.ficha_en is not null then raise exception 'FALLO 366 · una factura normal ya no se guarda igual: %', row_to_json(d); end if;
+  -- Volver a leerlo de la LISTA (sin la factura que corrige y sin ficha) no borra lo que se sabía.
+  perform facturas_guardar(jsonb_build_array(jsonb_build_object('id', 'h366b', 'numero', 'R366-1', 'tipo', 'abono', 'emision', hoy - 5, 'vence', hoy - 5, 'base', 200, 'iva', 42, 'total', 242, 'pendiente', 242, 'estado', 'pendiente')));
+  select * into d from facturas_emitidas where ref_externa = 'h366b';
+  if d.rectifica is distinct from 'h366a' or d.ficha_en is null or d.contacto_nombre is distinct from 'Abonos' then raise exception 'FALLO 366 · releer un abono de la lista le quita la factura que corrige o su ficha: %', row_to_json(d); end if;
+
+  -- LA DEUDA: la factura menos el abono aún sin compensar.
+  update facturas_emitidas set cliente_id = c1 where ref_externa like 'h366%';
+  select * into d from deuda_clientes(array[c1]);
+  if d.pendiente <> 968 or d.vencido <> 0 or d.facturas <> 1 or d.vence_primera <> hoy + 50 then raise exception 'FALLO 366 · el abono pendiente no resta de lo que debe el cliente: %', row_to_json(d); end if;
+  r := deuda_estado();
+  if (r ->> 'pendiente')::numeric - (r0 ->> 'pendiente')::numeric <> 968 or (r ->> 'abonos')::int - coalesce((r0 ->> 'abonos')::int, 0) <> 1
+     or (r ->> 'abonos_importe')::numeric - coalesce((r0 ->> 'abonos_importe')::numeric, 0) <> 242 or (r ->> 'facturas')::int - (r0 ->> 'facturas')::int <> 1 then
+    raise exception 'FALLO 366 · el resumen de la deuda no resta los abonos o los cuenta como facturas: % → %', r0, r; end if;
+  -- Lo vencido no puede ser más que lo que debe en total.
+  update facturas_emitidas set fecha_vencimiento = hoy - 1 where ref_externa = 'h366a';
+  select * into d from deuda_clientes(array[c1]);
+  if d.pendiente <> 968 or d.vencido <> 968 then raise exception 'FALLO 366 · lo vencido sale mayor que lo que debe el cliente: %', row_to_json(d); end if;
+  -- Con más abono que deuda, el cliente no debe nada: no aparece.
+  update facturas_emitidas set pendiente = 100 where ref_externa = 'h366a';
+  if exists (select 1 from deuda_clientes(array[c1])) then raise exception 'FALLO 366 · un cliente con saldo a su favor sale como deudor'; end if;
+  update facturas_emitidas set pendiente = 1210, fecha_vencimiento = hoy + 50 where ref_externa = 'h366a';
+  -- Un abono anulado deja de restar.
+  perform facturas_anular(array['h366b']);
+  select * into d from deuda_clientes(array[c1]);
+  if d.pendiente <> 1210 then raise exception 'FALLO 366 · un abono anulado sigue restando de la deuda: %', row_to_json(d); end if;
+  perform facturas_guardar(jsonb_build_array(jsonb_build_object('id', 'h366b', 'numero', 'R366-1', 'tipo', 'abono', 'emision', hoy - 100, 'vence', hoy - 100, 'base', 200, 'iva', 42, 'total', 242, 'pendiente', 242, 'estado', 'pendiente')));
+  -- «Desde cuándo» está completa la copia: el día guardado, no la fecha de la factura más antigua
+  -- (que puede ser una vieja que sigue ahí solo porque debía algo); esas se cuentan aparte.
+  update facturas_copia_estado set copia_desde = hoy - 50;
+  r := deuda_estado();
+  if (r ->> 'desde')::date <> hoy - 50 or (r ->> 'anteriores')::int <> (select count(*) from facturas_emitidas where fecha_emision < hoy - 50) or (r ->> 'anteriores')::int < 1 then
+    raise exception 'FALLO 366 · el resumen no dice desde qué día está completa la copia ni cuántas hay anteriores: %', r; end if;
+  update facturas_copia_estado set copia_desde = null;
+  r := deuda_estado();
+  if (r ->> 'anteriores')::int <> 0 or (r ->> 'desde')::date <> (select min(fecha_emision) from facturas_emitidas) then raise exception 'FALLO 366 · sin primera carga, el resumen no cae en la fecha más antigua: %', r; end if;
+  perform set_config('request.jwt.claim.role', '', true);
+end $$;
+-- La lista de Dynamo: etiqueta de abono, la factura que corrige, filtro «Abonos» y sumas netas.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare r jsonb; a jsonb; begin
+  r := facturas_lista('366', 'abono');
+  if (r ->> 'total')::int <> 2 then raise exception 'FALLO 366 · el filtro «Abonos» no saca solo los abonos: %', r; end if;
+  r := facturas_lista('r366-1');
+  a := r -> 'filas' -> 0;
+  if a ->> 'tipo' <> 'abono' or a ->> 'rectifica' <> 'F366-1' or a ->> 'estado' <> 'pendiente' or (a ->> 'parcial')::boolean or (a ->> 'total')::numeric <> -242 then
+    raise exception 'FALLO 366 · la lista no enseña el abono como abono, en negativo y con la factura que corrige: %', a; end if;
+  if facturas_lista('f366-1') -> 'filas' -> 0 ->> 'tipo' <> 'factura' or facturas_lista('f366-1') -> 'filas' -> 0 ->> 'rectifica' is not null then raise exception 'FALLO 366 · una factura normal sale marcada como abono'; end if;
+  -- Por cobrar: la factura y el abono pendiente; la suma es neta. El abono ya compensado no entra.
+  r := facturas_lista('366', 'por_cobrar');
+  if (r ->> 'total')::int <> 2 or (r ->> 'por_cobrar')::numeric <> 968 or (r ->> 'vencido')::numeric <> 0 then raise exception 'FALLO 366 · «por cobrar» no resta el abono pendiente: %', r; end if;
+  r := facturas_lista('366');
+  if (r ->> 'total')::int <> 3 or (r ->> 'importe')::numeric <> 907.5 or (r ->> 'base')::numeric <> 750 then raise exception 'FALLO 366 · las sumas de la lista no restan los abonos: %', r; end if;
+  -- Un abono nunca está «vencido», por viejo que sea (este es de hace 100 días).
+  if (facturas_lista('r366', 'vencida') ->> 'total')::int <> 0 or (facturas_lista('r366', 'vencida_60') ->> 'total')::int <> 0 then raise exception 'FALLO 366 · un abono sale como vencido'; end if;
+  if (facturas_lista('r366', 'pagada') ->> 'total')::int <> 1 then raise exception 'FALLO 366 · el abono ya compensado no sale entre los pagados'; end if;
+  -- Devuelto en parte: sigue pendiente, y «parcial».
+  update facturas_emitidas set pendiente = -42, estado = 'parcial' where ref_externa = 'h366b';
+  a := facturas_lista('r366-1') -> 'filas' -> 0;
+  if a ->> 'estado' <> 'pendiente' or not (a ->> 'parcial')::boolean then raise exception 'FALLO 366 · un abono devuelto en parte no sale como pendiente y parcial: %', a; end if;
+  if factura_para_abrir('h366b') <> jsonb_build_object('numero', 'R366-1', 'tipo', 'abono') or factura_para_abrir('h366a') ->> 'tipo' <> 'factura' or factura_para_abrir('no-existe') is not null then
+    raise exception 'FALLO 366 · Dynamo no sabe si lo que abre es una factura o un abono'; end if;
+  -- Para el cliente: el abono es suyo, pero la factura que corrige se le pone a OTRO cliente.
+  update facturas_emitidas set cliente_id = (select cliente_id from usuarios where id = current_setting('prueba.u_cli')::uuid) where ref_externa in ('h366b', 'h366c');
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+do $$ declare r jsonb; begin
+  r := facturas_lista('366', 'abono');
+  if (r ->> 'total')::int <> 2 or r -> 'filas' -> 0 ? 'empresa' then raise exception 'FALLO 366 · el cliente no ve sus abonos (o ve datos internos): %', r; end if;
+  if (select count(*) from jsonb_array_elements(r -> 'filas') x where x ->> 'rectifica' is not null) <> 0 then raise exception 'FALLO 366 · el cliente ve el número de una factura de OTRO cliente en su abono: %', r; end if;
+  if (facturas_lista('f366') ->> 'total')::int <> 0 then raise exception 'FALLO 366 · el cliente ve la factura de otro cliente'; end if;
+  if factura_para_abrir('h366b') ->> 'tipo' <> 'abono' or factura_para_abrir('h366a') is not null then raise exception 'FALLO 366 · el cliente no puede abrir su abono, o puede abrir una factura ajena'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+do $$ begin
+  if factura_para_abrir('h366b') is not null then raise exception 'FALLO 366 · un transportista puede abrir un abono de un cliente'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  delete from facturas_emitidas where ref_externa like 'h366%';
+  delete from clientes where cif = 'B36600366';
+  raise notice 'OK 366 · abonos: en negativo, restan de la deuda, no vencen, filtro propio y cada cliente ve solo los suyos';
+end $$;

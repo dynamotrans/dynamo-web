@@ -1772,9 +1772,11 @@ test.describe('novedades', () => {
     const dia = (n: number) => new Date(hoy.getTime() + n * 86400000).toISOString().slice(0, 10);
     const AJENA = 'e2efac0000000000000000a1'.replace(/[^0-9a-f]/g, '0'), SUYA = 'e2efac0000000000000000b2'.replace(/[^0-9a-f]/g, '0');
     const CUENTA = 'e2e0000000000000000000c1'.replace(/[^0-9a-f]/g, '0'), MES = `${new Date().toISOString().slice(0, 7)}-01`;
+    const ABONO = 'e2eab00000000000000000d3';
     await sv.from('holded_cuentas').upsert({ cuenta_id: CUENTA, numero: '70500000', nombre: 'Prestaciones de servicios' });
     await sv.from('holded_uso').upsert({ mes: MES, consultas: 40, real: 8565, limite: 30000, real_en: new Date().toISOString() });
     await sv.from('facturas_emitidas').delete().like('numero', 'FAC-E2E-%');
+    await sv.from('facturas_emitidas').delete().like('numero', 'ABO-E2E-%');
     const { error: e0 } = await sv.from('facturas_emitidas').insert([
       { ref_externa: 'e2e-fac-1', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-1', fecha_emision: dia(-40), fecha_vencimiento: dia(-10), base: 1000, iva: 210, total: 1210, pendiente: 1210, estado: 'pendiente', cuenta: CUENTA },
       { ref_externa: 'e2e-fac-2', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-2', fecha_emision: dia(-5), fecha_vencimiento: dia(25), base: 500, iva: 105, total: 605, pendiente: 300.5, estado: 'parcial' },
@@ -1783,6 +1785,12 @@ test.describe('novedades', () => {
       { ref_externa: AJENA, cliente_id: null, contacto_nombre: 'Ajena No Cliente SL', cif: 'B99999998', numero: 'FAC-E2E-5', fecha_emision: dia(-2), fecha_vencimiento: dia(28), base: 50, iva: 10.5, total: 60.5, pendiente: 60.5, estado: 'pendiente' },
     ]);
     expect(e0).toBeNull();
+    // Un abono (factura rectificativa) del cliente, aún sin compensar: en negativo. (Aparte: al
+    // insertar varias filas juntas, las columnas que una no trae van a nulo, no a su valor por defecto.)
+    const { error: e1 } = await sv.from('facturas_emitidas').insert([
+      { ref_externa: ABONO, cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'ABO-E2E-1', tipo: 'abono', rectifica: SUYA, fecha_emision: dia(-90), fecha_vencimiento: dia(-90), base: -100, iva: -21, total: -121, pendiente: -121, estado: 'pendiente' },
+    ]);
+    expect(e1).toBeNull();
     try {
       await entrar(page, 'dynamo');
       await page.goto('/panel/administracion');
@@ -1811,10 +1819,27 @@ test.describe('novedades', () => {
       // La fecha del cobro va al lado de la etiqueta «Pagada» (usuario, 2026-11-26).
       await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-3' }).locator('.badge-green + .fac-pagada-el')).toHaveText(/\d{2}\/\d{2}\/\d{2}/);
       await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-5' })).toContainText('no es cliente de la plataforma');
+      // LOS ABONOS (usuario, 2026-11-26): en negativo, con su etiqueta y la factura que corrigen;
+      // no vencen (este es de hace 90 días) y restan de lo que queda por cobrar.
+      await page.fill('#fac-buscar', 'ABO-E2E');
+      const ab = page.locator('#facturas-lista tbody tr', { hasText: 'ABO-E2E-1' });
+      await expect(ab).toHaveAttribute('data-tipo', 'abono');
+      await expect(ab.locator('.fac-abono')).toHaveText('Abono');
+      await expect(ab.locator('.fac-rectifica')).toHaveText('de la factura FAC-E2E-3');
+      await expect(ab).toContainText(/[-−]\s?121,00/);
+      await expect(ab).toContainText('Por compensar');
+      await expect(ab).not.toContainText(/días desde la factura|Vencida|vence/);
+      await expect(f.locator('#facturas-totales')).toContainText(/Por cobrar:\s*[-−]\s?121,00/);
+      await page.selectOption('#fac-estado', 'vencida_60');
+      await expect(page.locator('#facturas-lista tbody')).toContainText('No hay facturas con estos filtros.');
+      await page.selectOption('#fac-estado', 'abono');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(1);
+      await page.fill('#fac-buscar', 'FAC-E2E');
+      await expect(page.locator('#facturas-lista tbody')).toContainText('No hay facturas con estos filtros.');
       await page.selectOption('#fac-estado', 'por_cobrar');
       await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(3);
       // «Vencidas 60 días» (usuario, 2026-11-26): por fecha de emisión + 60, no por su vencimiento.
-      await expect(page.locator('#fac-estado option')).toHaveText(['Todas', 'Por cobrar (pendientes y vencidas)', 'Vencidas 60 días', 'Pagadas', 'Anuladas']);
+      await expect(page.locator('#fac-estado option')).toHaveText(['Todas', 'Por cobrar (pendientes y vencidas)', 'Vencidas 60 días', 'Pagadas', 'Abonos', 'Anuladas']);
       await page.selectOption('#fac-estado', 'vencida_60');
       await expect(page.locator('#facturas-lista tbody')).toContainText('No hay facturas con estos filtros.');
       await sv.from('facturas_emitidas').update({ fecha_emision: dia(-62) }).eq('ref_externa', 'e2e-fac-2');
@@ -1849,9 +1874,16 @@ test.describe('novedades', () => {
       // entorno la facturación no está conectada, así que no hay PDF que servir).
       expect((await page.request.get(`/api/facturas/${AJENA}/pdf`)).status()).toBe(404);
       expect((await page.request.get(`/api/facturas/${SUYA}/pdf`)).status()).toBe(502);
+      // Su abono también lo ve (y puede abrirlo), con la factura que corrige.
+      await page.fill('#fac-buscar', 'ABO-E2E');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(1);
+      await expect(page.locator('#facturas-lista tbody tr .fac-rectifica')).toHaveText('de la factura FAC-E2E-3');
+      await expect(page.locator('#facturas-lista tbody tr')).toContainText('Por compensar');
+      expect((await page.request.get(`/api/facturas/${ABONO}/pdf`)).status()).toBe(502);
       expect((await page.request.get('/api/facturas/ffffffffffffffffffffffff/pdf')).status()).toBe(404);
     } finally {
       await sv.from('facturas_emitidas').delete().like('numero', 'FAC-E2E-%');
+      await sv.from('facturas_emitidas').delete().like('numero', 'ABO-E2E-%');
       await sv.from('holded_cuentas').delete().eq('cuenta_id', CUENTA);
       await sv.from('holded_uso').delete().eq('mes', MES);
     }
