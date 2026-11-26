@@ -42,7 +42,7 @@ const SECCIONES: Seccion[] = [
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
     { titulo: 'Crédito usado', claves: ['credito_deuda_real', 'credito_cuenta_pedidos', 'credito_dias_sin_facturar', 'riesgo_dias_asumido'] },
     { titulo: 'Emails de crédito al cliente', claves: ['credito_emails_activo', 'credito_aviso_pct', 'credito_aviso_dias'] },
-    { titulo: 'Bloqueo del crédito por pagos tardíos', claves: ['pago_tarde_activo', 'pago_tarde_dias_max', 'pago_tarde_facturas_toleradas', 'pago_tarde_ultimas_facturas', 'pago_tarde_desde_vencimiento'] },
+    { titulo: 'Bloqueo del crédito por pagos tardíos', claves: ['pago_tarde_activo', 'pago_tarde_dias_max', 'pago_tarde_facturas_toleradas', 'pago_tarde_ultimas_facturas', 'pago_tarde_dias_gracia', 'pago_tarde_desde_vencimiento'] },
   ] },
   { id: 'transportistas', titulo: 'Transportistas', intro: 'Ofertas de envíos, negociación, bolsa y pago a transportistas.', subs: [
     { titulo: 'Ofertas y reservas', claves: ['oferta_dias_caducidad', 'reserva_minutos'] },

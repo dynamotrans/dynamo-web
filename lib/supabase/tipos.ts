@@ -563,6 +563,7 @@ export type Database = {
           facturas_perdonadas: string[]
           aviso_al_dia_en: string | null
           modificado_en: string
+          gracia_hasta: string | null
         }
         Insert: {
           cliente_id: string
@@ -574,6 +575,7 @@ export type Database = {
           facturas_perdonadas?: string[]
           aviso_al_dia_en?: string | null
           modificado_en?: string
+          gracia_hasta?: string | null
         }
         Update: {
           cliente_id?: string
@@ -585,6 +587,7 @@ export type Database = {
           facturas_perdonadas?: string[]
           aviso_al_dia_en?: string | null
           modificado_en?: string
+          gracia_hasta?: string | null
         }
         Relationships: [
           {
@@ -5438,6 +5441,7 @@ export type Database = {
       fn_aviso_saldo_autorrelleno: { Args: { p_quedan: number | null }; Returns: undefined }
       fn_bolsa_margen_minutos: { Args: { p_dias: number | null }; Returns: number }
       fn_credito_pagos_estado: { Args: { p_cliente: string | null }; Returns: Json }
+      fn_credito_rehabilitar: { Args: { p_cliente: string | null }; Returns: undefined }
       fn_difusion_avisa_bolsa: { Args: { p_envio: string | null }; Returns: undefined }
       fn_difusion_bolsa: { Args: { p_envio: string | null }; Returns: Json }
       fn_difusion_cadencia: { Args: { p_horas: number | null }; Returns: { minutos: number; lote: number } }

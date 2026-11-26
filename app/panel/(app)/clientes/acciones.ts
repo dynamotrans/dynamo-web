@@ -116,6 +116,7 @@ export async function usuariosDeCliente(cliente: string): Promise<UsuarioDeClien
 export type EstadoPagos = {
   dias_max: number; toleradas: number; miradas: number; desde_vencimiento: boolean; tardias: number; vencidas_sin_cobrar: number;
   regla_propia: boolean; bloqueado_en: string | null; bloqueado_motivo: string | null;
+  gracia_hasta?: string | null;   // días de gracia tras devolverle el crédito
 };
 export type PagosCliente = { activo: boolean; estado: EstadoPagos; regla: { dias_max: number | null; facturas_toleradas: number | null } };
 type ResPagos = { ok: true } | { ok: false; error: string };

@@ -11982,9 +11982,14 @@ do $$ declare cli uuid := current_setting('prueba.cli271')::uuid; r jsonb; begin
   end if;
   update facturas_cliente set importe = 200 where cliente_id = cli and numero = 'F-4';   -- cualquier cambio vuelve a revisar
   if (select riesgo_efectivo_euros from clientes where id = cli) <> 8000 then raise exception 'FALLO 271 · tras devolverle el crédito, las mismas facturas lo bloquean otra vez'; end if;
-  -- Otra tardía NUEVA sí lo vuelve a bloquear.
-  insert into facturas_cliente (cliente_id, numero, fecha_emision) values (cli, 'F-5', (now() at time zone 'Europe/Madrid')::date - 75);
-  if (select riesgo_efectivo_euros from clientes where id = cli) <> 0 then raise exception 'FALLO 271 · una factura tardía nueva no vuelve a bloquear el crédito'; end if;
+  -- Pasados los días de gracia (2026-11-26), las perdonadas (las ya pagadas tarde) no cuentan:
+  -- con dos tardías nuevas se le toleran; a la tercera, se vuelve a bloquear.
+  update clientes_pagos set gracia_hasta = now() - interval '1 minute' where cliente_id = cli;
+  insert into facturas_cliente (cliente_id, numero, fecha_emision) values (cli, 'F-5', (now() at time zone 'Europe/Madrid')::date - 75),
+                                                                           (cli, 'F-6', (now() at time zone 'Europe/Madrid')::date - 70);
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 8000 then raise exception 'FALLO 271 · cuentan facturas perdonadas para volver a bloquear'; end if;
+  insert into facturas_cliente (cliente_id, numero, fecha_emision) values (cli, 'F-7', (now() at time zone 'Europe/Madrid')::date - 65);
+  if (select riesgo_efectivo_euros from clientes where id = cli) <> 0 then raise exception 'FALLO 271 · tres facturas tardías nuevas no vuelven a bloquear el crédito: %', credito_pagos_estado(cli); end if;
   raise notice 'OK 271 · pagos tardíos: apagado no bloquea; encendido bloquea a la factura que pasa de las toleradas (también sin cobrar), guarda el crédito y avisa a Dynamo; no lo devuelve solo; manda la regla propia del cliente; solo el Admin lo ve y lo devuelve, y hace falta otra tardía nueva para bloquear de nuevo';
 end $$;
 reset role;
@@ -17480,4 +17485,58 @@ do $$ begin
   delete from facturas_emitidas where ref_externa like 'h375%';
   update facturas_copia_estado set carga_completa_en = nullif(current_setting('prueba.cargada375'), '')::timestamptz where id;
   raise notice 'OK 375 · deuda en la ficha del cliente: lo que debe (menos abonos), lo pasado de 60 días con su lista, lo usado y lo que le queda; solo Dynamo';
+end $$;
+
+-- 376 · BLOQUEO POR PAGOS TARDÍOS: LOS PROGRAMADOS SE QUEDAN Y 7 DÍAS DE GRACIA AL DEVOLVER EL
+-- CRÉDITO (usuario, 2026-11-26).
+do $$ declare c uuid; a uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; tol text; r text; begin
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  if (select valor from parametros where clave = 'pago_tarde_dias_gracia') <> '7'::jsonb then raise exception 'FALLO 376 · los días de gracia no son 7'; end if;
+  insert into clientes (razon_social, cif, riesgo_manual_euros, exento_pago_previo_primer_envio) values ('Gracia 376 SL', 'B37600376', 4000, true) returning id into c;
+  -- Un envío ya programado a crédito.
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c, 6, 5, 500, lun) returning id into a;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select a, o, t, cp, p, 'ES' from (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id = a;
+  update parametros set valor = 'true'::jsonb where clave = 'pago_previo_activo';
+  if (select estado_pago_previo from envios where id = a) not in ('no_requerido', 'exento') then raise exception 'FALLO 376 · el envío de partida no va a crédito'; end if;
+  -- Dos facturas tardías: una pagada tarde y otra sin pagar.
+  insert into facturas_cliente (cliente_id, numero, fecha_emision, fecha_cobro, origen) values
+    (c, 'F376-1', hoy - 120, hoy - 40, 'manual'),   -- pagada a los 80 días
+    (c, 'F376-2', hoy - 90, null, 'manual');        -- sin pagar a los 90
+  tol := (select valor #>> '{}' from parametros where clave = 'pago_tarde_facturas_toleradas');
+  update parametros set valor = '1'::jsonb where clave = 'pago_tarde_facturas_toleradas';
+  update parametros set valor = 'true'::jsonb where clave = 'pago_tarde_activo';
+  r := credito_revisar_pagos(c);
+  if r <> 'bloqueado' or (select riesgo_manual_euros from clientes where id = c) <> 0 then raise exception 'FALLO 376 · no se bloquea: %', r; end if;
+  -- El envío ya programado sigue como estaba.
+  if (select estado_pago_previo from envios where id = a) not in ('no_requerido', 'exento') or (select estado from envios where id = a) <> 'programado' then
+    raise exception 'FALLO 376 · al bloquear, el envío ya programado pasa a pago previo: %', (select estado_pago_previo from envios where id = a); end if;
+  -- Se le escribe a mano el crédito: cuenta como devolvérselo, con gracia.
+  update clientes set riesgo_manual_euros = 3000 where id = c;
+  if (select bloqueado_en from clientes_pagos where cliente_id = c) is not null
+     or (select gracia_hasta from clientes_pagos where cliente_id = c) < now() + interval '6 days 23 hours' then
+    raise exception 'FALLO 376 · escribir el crédito a mano no quita el bloqueo con sus 7 días de gracia'; end if;
+  -- En la gracia no se le revisa (aunque siga con una sin pagar).
+  r := credito_revisar_pagos(c);
+  if r <> 'gracia' or (select riesgo_manual_euros from clientes where id = c) <> 3000 then raise exception 'FALLO 376 · en los días de gracia se le vuelve a bloquear: %', r; end if;
+  -- Solo se perdona la que ya pagó tarde; la que sigue sin pagar no.
+  if (select facturas_perdonadas from clientes_pagos where cliente_id = c) <> array[(select id from facturas_cliente where cliente_id = c and numero = 'F376-1')] then
+    raise exception 'FALLO 376 · se perdonan facturas que siguen sin pagar'; end if;
+  -- Pasada la gracia, la que sigue sin pagar cuenta… y con 1 tolerada, aún cabe.
+  update clientes_pagos set gracia_hasta = now() - interval '1 minute' where cliente_id = c;
+  r := credito_revisar_pagos(c);
+  if r not in ('bien', 'perdonado') or (select riesgo_manual_euros from clientes where id = c) <> 3000 then raise exception 'FALLO 376 · pasada la gracia, con una sola sin pagar (y 1 tolerada) no debía bloquear: %', r; end if;
+  -- Otra factura nueva pagada tarde: ya son dos y se bloquea otra vez.
+  insert into facturas_cliente (cliente_id, numero, fecha_emision, fecha_cobro, origen) values (c, 'F376-3', hoy - 75, hoy - 2, 'manual');
+  if (select riesgo_manual_euros from clientes where id = c) <> 0 then raise exception 'FALLO 376 · pasada la gracia, con dos tardías no perdonadas no se vuelve a bloquear'; end if;
+  update parametros set valor = 'false'::jsonb where clave = 'pago_tarde_activo';
+  update parametros set valor = to_jsonb(tol::int) where clave = 'pago_tarde_facturas_toleradas';
+  update parametros set valor = 'false'::jsonb where clave = 'pago_previo_activo';
+  update envios set estado = 'cancelado' where id = a;
+  delete from clientes_pagos where cliente_id = c;
+  delete from facturas_cliente where cliente_id = c;
+  perform set_config('request.jwt.claim.role', '', true);
+  raise notice 'OK 376 · bloqueo por pagos tardíos: los programados siguen como estaban; escribir el crédito a mano lo devuelve con 7 días de gracia; solo se perdonan las ya pagadas';
 end $$;

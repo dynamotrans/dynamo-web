@@ -59,12 +59,14 @@ export default function PagosCliente({ clienteId, onCreditoDevuelto }: { cliente
                   setAviso({ ok: true, txt: r.credito_manual == null ? 'Crédito devuelto: vuelve a mandar el de CESCE.' : `Crédito devuelto: ${euros(r.credito_manual)}.` });
                   await cargar();
                 }}>Devolverle el crédito</button>
+              <div className="meta" style={{ marginTop: '0.3rem' }}>Sus envíos ya programados siguen como estaban. Al devolverle el crédito (con este botón o escribiéndolo a mano arriba) tiene unos días de gracia sin revisar (Parámetros); después cuentan las facturas que sigan sin pagar y las nuevas pagadas tarde.</div>
             </div>
           </div></div>
         ) : (
           <div className="meta" style={{ marginBottom: '0.6rem' }}>
             A este cliente se le dan <strong>{e.dias_max} días</strong> {desde} para pagar y se le toleran <strong>{e.toleradas}</strong> factura{e.toleradas === 1 ? '' : 's'} tardía{e.toleradas === 1 ? '' : 's'} de las últimas {e.miradas}
             {e.regla_propia ? ' (regla propia)' : ' (regla general)'}. Ahora lleva <strong>{e.tardias}</strong>.
+            {e.gracia_hasta && Date.parse(e.gracia_hasta) > Date.now() && <> <span id="cli-pagos-gracia">En gracia hasta el {fechaHora(e.gracia_hasta)}: hasta entonces no se le revisa.</span></>}
           </div>
         )}
 
