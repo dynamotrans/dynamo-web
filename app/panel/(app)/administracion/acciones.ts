@@ -59,6 +59,7 @@ export async function facturasPagina(f: FiltroFacturas): Promise<PaginaFacturas>
 
 // «Actualizar ahora»: una pasada de la puesta al día de la copia, sin esperar a la automática.
 // Si la primera carga aún no ha terminado, sigue con ella (la pantalla repite hasta que acabe).
+// `cargando`: falta trabajo (la primera carga o un repaso a medias): la pantalla vuelve a llamar.
 export type FacturasAlDia = { ok: true; cargando: boolean } | { ok: false; conectado: boolean; error: string };
 export async function actualizarFacturas(): Promise<FacturasAlDia> {
   comprobarEntrada("app/panel/(app)/administracion/acciones#actualizarFacturas", []);
@@ -67,7 +68,25 @@ export async function actualizarFacturas(): Promise<FacturasAlDia> {
   const r = await ponerAlDiaFacturas({ forzar: true });
   if (!r.ok) return r;
   if (!r.cargando) void enlacesDePedidos();
-  return { ok: true, cargando: r.cargando };
+  return { ok: true, cargando: r.cargando || r.enCurso };
+}
+
+// «Repasar desde una fecha» (usuario, 2026-11-26): volver a leer de la facturación TODAS las
+// facturas emitidas desde ese día, pagadas incluidas. Para cuando se corrige en la facturación
+// el importe o el cliente de una factura antigua ya pagada, que el repaso de cada noche (los
+// últimos 6 meses) no mira. Si no cabe en una llamada, la pantalla sigue con actualizarFacturas.
+export async function repasarFacturas(desde: string): Promise<FacturasAlDia> {
+  comprobarEntrada("app/panel/(app)/administracion/acciones#repasarFacturas", [desde]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, conectado: false, error: 'Solo el equipo de Dynamo.' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(desde) || Number.isNaN(Date.parse(`${desde}T00:00:00Z`)) || desde > hoyMadrid() || desde < '2010-01-01') {
+    return { ok: false, conectado: true, error: 'Elige una fecha válida, de hoy hacia atrás.' };
+  }
+  const r = await ponerAlDiaFacturas({ forzar: true, repasarDesde: desde });
+  if (!r.ok) return r;
+  if (r.hecho === 'nada') return { ok: false, conectado: true, error: 'Se acaba de actualizar hace un momento. Espera unos segundos y vuelve a pulsar.' };
+  if (r.cargando) return { ok: false, conectado: true, error: 'La primera carga aún no ha terminado. Cuando acabe, vuelve a pulsar.' };
+  return { ok: true, cargando: r.enCurso };
 }
 
 // Afinando (quitar cuando se sepa): ¿dice la facturación de qué pedido sale cada factura y qué

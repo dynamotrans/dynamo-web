@@ -22,6 +22,7 @@ export const ESQUEMAS = {
   "app/pago/[token]/acciones#avisarTransferenciaPublica": z.tuple([z.string().max(1000)]),
   "app/panel/(app)/administracion/acciones#actualizarFacturas": z.tuple([]),
   "app/panel/(app)/administracion/acciones#facturasPagina": z.tuple([z.object({ q: z.string().max(1000), estado: z.string().max(1000), fecha: z.string().max(1000), desde: z.string().max(1000), hasta: z.string().max(1000), pagina: z.number().or(z.nan()) })]),
+  "app/panel/(app)/administracion/acciones#repasarFacturas": z.tuple([z.string().max(1000)]),
   "app/panel/(app)/almacenamientos/acciones#cambiarEstadoAlmacenamiento": z.tuple([z.string().uuid().or(z.literal('')), z.enum(["pendiente_confirmar", "confirmado", "en_almacen", "finalizado", "cancelado"])]),
   "app/panel/(app)/almacenamientos/acciones#cancelarMiAlmacenamiento": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/almacenamientos/acciones#guardarAlmacenamiento": z.tuple([z.string().uuid().or(z.literal('')).nullable(), z.object({ cliente_id: z.string().uuid().or(z.literal('')), almacen_id: z.string().uuid().or(z.literal('')), fecha_entrada: z.string().max(1000), fecha_salida: z.string().max(1000), num_trailers: z.number().or(z.nan()), num_repartos: z.number().or(z.nan()), sitio_entrega_id: z.string().uuid().or(z.literal('')).nullable(), descripcion: z.string().max(5000), referencia_cliente: z.string().max(1000), anotaciones: z.string().max(5000) }), z.boolean()]),

@@ -18,12 +18,14 @@ import { diaMas, mesesAtras, finDeMes } from '@/lib/facturasCopiaFechas';
 //      tengan) y se comparan con la copia. La que aquí debía algo y ya no viene, se ha cobrado
 //      o anulado → se relee esa sola. Y al revés: la que aquí estaba pagada y vuelve a venir
 //      (se corrigió un cobro) recupera su importe pendiente. Más las últimas emitidas.
-//   3. REPASO DE CADA NOCHE: otra vez los 12 meses, por si se corrigió algo en una ya cobrada.
-//      Lo que ya no aparezca se comprueba una a una (borrada o devuelta a borrador → anulada).
+//   3. REPASO DE CADA NOCHE: otra vez los últimos 6 meses, por si se corrigió algo en una ya
+//      cobrada. Lo que ya no aparezca se comprueba una a una (borrada o devuelta a borrador →
+//      anulada). Para lo más antiguo, «Repasar desde una fecha» (a mano, desde la pantalla).
 // Nunca se borra nada de la copia. SOLO LECTURA de la facturación: aquí solo se escribe en
 // nuestra base de datos. Topes de la facturación: 120 consultas por minuto y 30.000 al mes.
 const PLAZO_MS = 42_000;          // lo que trabaja cada llamada (el servidor corta a los 60 s)
-const MESES = 12;
+const MESES = 12;                // la primera carga: un año de historia
+const MESES_REPASO = 6;          // el repaso de cada noche (usuario, 2026-11-26: «más de 6 no tiene sentido, ya lo controlo por la facturación»)
 const ESPERA_MS = 100_000;        // entre dos pasadas automáticas
 const ESPERA_FORZADA_MS = 15_000; // entre dos «Actualizar ahora»
 const PAGINAS_MAX = 120;          // 120 × 200 = 24.000 facturas por llamada, de sobra
@@ -31,10 +33,13 @@ const RELEER_MAX = 30;            // facturas que se releen una a una en cada pa
 const CONTACTOS_POR_VEZ = 40;     // consultas de CIF por pasada (el resto, en la siguiente)
 
 export type CopiaFacturas =
-  | { ok: true; hecho: 'nada' | 'carga' | 'repaso' | 'al_dia'; cargando: boolean; avisos: string[] }
+  | { ok: true; hecho: 'nada' | 'carga' | 'repaso' | 'al_dia'; cargando: boolean; enCurso: boolean; avisos: string[] }
   | { ok: false; conectado: boolean; error: string };
 
-export async function ponerAlDiaFacturas(opts: { forzar?: boolean } = {}): Promise<CopiaFacturas> {
+/** `repasarDesde` (AAAA-MM-DD): además de lo de cada rato, vuelve a leer todas las facturas desde
+    ese día (el «Repasar desde una fecha» de la pantalla). Si no cabe en una llamada, `enCurso`
+    sale a sí y la siguiente llamada sigue por donde iba. */
+export async function ponerAlDiaFacturas(opts: { forzar?: boolean; repasarDesde?: string } = {}): Promise<CopiaFacturas> {
   const sv = supabaseServicio();
   if (!holdedListo() || !sv) return { ok: false, conectado: false, error: 'La facturación no está conectada en este entorno.' };
   const fin = Date.now() + PLAZO_MS;
@@ -43,11 +48,11 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean } = {}): Promi
   if (!e) return { ok: false, conectado: true, error: 'Falta el estado de la copia de facturas.' };
   if (!opts.forzar) {
     const { data: p } = await sv.from('parametros').select('valor').eq('clave', 'facturas_copia_activa').maybeSingle();
-    if (p?.valor === false) return { ok: true, hecho: 'nada', cargando: !e.carga_completa_en, avisos: [] };
+    if (p?.valor === false) return { ok: true, hecho: 'nada', cargando: !e.carga_completa_en, enCurso: !!e.barrido_tipo, avisos: [] };
   }
   // Quien llame de más (dos pestañas, la tarea y el botón a la vez) no repite el trabajo.
   if (e.ultima_en && Date.now() - Date.parse(e.ultima_en) < (opts.forzar ? ESPERA_FORZADA_MS : ESPERA_MS)) {
-    return { ok: true, hecho: 'nada', cargando: !e.carga_completa_en, avisos: [] };
+    return { ok: true, hecho: 'nada', cargando: !e.carga_completa_en, enCurso: !!e.barrido_tipo, avisos: [] };
   }
   // CON MUCHAS FACTURAS PENDIENTES, MÁS ESPACIADO (tope de la facturación: 30.000 consultas al
   // mes). Pedir las pendientes cuesta una consulta por cada 200. Con pocas (hasta 800, 4
@@ -58,7 +63,7 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean } = {}): Promi
     const { count } = await sv.from('facturas_emitidas').select('ref_externa', { count: 'exact', head: true }).gt('pendiente', 0).neq('estado', 'anulada');
     const consultas = Math.ceil((count ?? 0) / 200);
     if (consultas > 4 && Date.now() - Date.parse(e.ultima_ok_en) < consultas * 3 * 60_000) {
-      return { ok: true, hecho: 'nada', cargando: false, avisos: [] };
+      return { ok: true, hecho: 'nada', cargando: false, enCurso: false, avisos: [] };
     }
   }
   const ahora = new Date().toISOString();
@@ -86,8 +91,9 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean } = {}): Promi
     const hora = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
     const horas = e.repaso_en ? (Date.now() - Date.parse(e.repaso_en)) / 3_600_000 : Infinity;
     // El repaso, de madrugada (de 1 a 5); si por lo que sea lleva día y medio sin hacerse, cuando toque.
-    if (!cargada || horas > 36 || (horas > 20 && hora >= 1 && hora <= 5)) {
-      const desde = mesesAtras(hoy, MESES);
+    const aMano = cargada && opts.repasarDesde && /^\d{4}-\d{2}-\d{2}$/.test(opts.repasarDesde) && opts.repasarDesde <= hoy ? opts.repasarDesde : null;
+    if (!cargada || aMano || horas > 36 || (horas > 20 && hora >= 1 && hora <= 5)) {
+      const desde = aMano ?? mesesAtras(hoy, cargada ? MESES_REPASO : MESES);
       b = { tipo: cargada ? 'repaso' : 'inicial', desde, hasta: hoy, cobros: desde, inicio: ahora };
       await apuntar({ barrido_tipo: b.tipo, barrido_desde: b.desde, barrido_hasta: b.hasta, barrido_cobros: b.cobros, barrido_inicio_en: b.inicio });
     }
@@ -139,7 +145,7 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean } = {}): Promi
   // La primera carga sigue a medias, o este repaso ha gastado el tiempo: lo demás, en la siguiente.
   if (!cargada || !queda(12_000)) {
     if (cargada || !b.tipo) await apuntar({ error: null });
-    return { ok: true, hecho, cargando: !cargada, avisos };
+    return { ok: true, hecho, cargando: !cargada, enCurso: !!b.tipo, avisos };
   }
 
   // ---- LO DE CADA RATO ----------------------------------------------------------------------
@@ -224,7 +230,7 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean } = {}): Promi
 
   await apuntar({ ultima_ok_en: new Date().toISOString(), error: null });
   if (avisos.length) console.error('[Holded] copia de facturas, avisos', avisos.join(' · ').slice(0, 800));
-  return { ok: true, hecho: hecho === 'al_dia' ? 'al_dia' : hecho, cargando: false, avisos };
+  return { ok: true, hecho, cargando: false, enCurso: !!b.tipo, avisos };
 }
 
 // Los cobros de facturas entre dos días (los dos incluidos): de cada cobro, a qué factura

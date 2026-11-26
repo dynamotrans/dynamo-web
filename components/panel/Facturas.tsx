@@ -10,7 +10,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { euros, fecha, haceTxt, numero } from '@/lib/formato';
 import PaginadorLocal from './PaginadorLocal';
 import FiltroFechas from './FiltroFechas';
-import { facturasPagina, actualizarFacturas, type FacturaFila, type PaginaFacturas, type EstadoCopia } from '@/app/panel/(app)/administracion/acciones';
+import CampoFecha from '@/components/CampoFecha';
+import { facturasPagina, actualizarFacturas, repasarFacturas, type FacturaFila, type PaginaFacturas, type EstadoCopia } from '@/app/panel/(app)/administracion/acciones';
 
 const POR_PAGINA = 25;
 const COPIA_VALE_MS = 10 * 60_000;
@@ -73,12 +74,14 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
   // «Actualizar ahora» (solo Dynamo): una pasada de la puesta al día. Mientras la primera
   // carga no acabe, repite sola (hasta 12 veces) y va pintando lo que entra.
   const copia: EstadoCopia | null = r?.ok ? r.copia : null;
-  const actualizar = useCallback(async () => {
+  // Con `repasarDesde`, la primera llamada además empieza un repaso de todo desde ese día.
+  const actualizar = useCallback(async (repasarDesde?: string) => {
     setAlDia({ leyendo: true, fallo: null });
     let fallo: string | null = null;
     for (let i = 0; i < 12; i++) {
       let res;
-      try { res = await actualizarFacturas(); } catch { fallo = 'No se ha podido leer la facturación. Prueba otra vez en un momento.'; break; }
+      try { res = i === 0 && repasarDesde ? await repasarFacturas(repasarDesde) : await actualizarFacturas(); }
+      catch { fallo = 'No se ha podido leer la facturación. Prueba otra vez en un momento.'; break; }
       if (!res.ok) { fallo = res.error; break; }
       setVuelta((n) => n + 1);
       if (!res.cargando) break;
@@ -89,6 +92,7 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
   }, []);
   // Al entrar: si la copia es vieja, está a medias o no existe, se pone al día sola una vez.
   const hecho = useRef(false);
+  const [repaso, setRepaso] = useState<{ abierto: boolean; desde: string }>({ abierto: false, desde: '' });
   useEffect(() => {
     if (!dynamo || hecho.current || !copia?.conectado) return;
     const ultimo = copia.ultima ? Date.parse(copia.ultima) : 0;
@@ -121,11 +125,25 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
       )}
       {dynamo && copia && (copia.conectado || copia.enCopia > 0) && (
         <p className="meta" id="facturas-nota" style={{ margin: '0 0 0.6rem' }}>
-          {alDia.leyendo ? (copia.cargada ? 'Leyendo de la facturación…' : `Primera carga: trayendo las facturas de los últimos 12 meses… (${numero(copia.enCopia, 0)} hasta ahora)`)
+          {alDia.leyendo ? (copia.cargada ? 'Leyendo de la facturación… (si es un repaso largo, puede tardar unos minutos)' : `Primera carga: trayendo las facturas de los últimos 12 meses… (${numero(copia.enCopia, 0)} hasta ahora)`)
             : <>Copia de las facturas emitidas{copia.desde ? ` desde el ${fecha(copia.desde)}` : ''}: {numero(copia.enCopia, 0)} {copia.enCopia === 1 ? 'factura' : 'facturas'}
                 {copia.ultimaOk ? ` · al día ${haceTxt(copia.ultimaOk)}` : ' · aún sin leer'}. Se actualiza sola.</>}
-          {copia.conectado && !alDia.leyendo && <>{' '}<button type="button" className="enlace-paso" id="facturas-actualizar" onClick={actualizar}>Actualizar ahora</button></>}
+          {copia.conectado && !alDia.leyendo && <>{' '}<button type="button" className="enlace-paso" id="facturas-actualizar" onClick={() => actualizar()}>Actualizar ahora</button>
+            {copia.cargada && <>{' · '}<button type="button" className="enlace-paso" id="facturas-repasar" aria-expanded={repaso.abierto} onClick={() => setRepaso((x) => ({ ...x, abierto: !x.abierto }))}>Repasar desde una fecha…</button></>}</>}
         </p>
+      )}
+      {/* Para lo que el repaso de cada noche (los últimos 6 meses) no mira: una factura antigua ya
+          pagada a la que se le corrige el importe o el cliente en la facturación. */}
+      {dynamo && copia?.conectado && copia.cargada && repaso.abierto && !alDia.leyendo && (
+        <div className="pt-aviso info" id="facturas-repaso" style={{ marginBottom: '0.8rem' }}><div>
+          <strong>Volver a leer de la facturación todas las facturas desde un día.</strong> Cada noche se repasan solas las de los últimos 6 meses, y las que deben algo, cada pocos minutos. Esto es para una corrección en una factura más antigua ya pagada.
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <CampoFecha className="param-input" value={repaso.desde} onChange={(v) => setRepaso((x) => ({ ...x, desde: v }))} aria-label="Repasar desde" max={hoy} permitirBorrar style={{ width: 'auto', minWidth: 170 }} />
+            <button type="button" className="btn-primary" id="facturas-repasar-ir" disabled={!repaso.desde}
+              onClick={() => { const d = repaso.desde; setRepaso({ abierto: false, desde: '' }); void actualizar(d); }}>Repasar desde ese día</button>
+            <button type="button" className="btn-ghost" onClick={() => setRepaso({ abierto: false, desde: '' })}>Cancelar</button>
+          </div>
+        </div></div>
       )}
       {dynamo && (alDia.fallo ?? copia?.error) && (
         <div className="pt-aviso error" id="facturas-error" role="alert" style={{ marginBottom: '0.8rem' }}><div>

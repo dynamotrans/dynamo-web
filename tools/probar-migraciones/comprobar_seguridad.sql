@@ -16741,3 +16741,23 @@ do $$ declare a jsonb := current_setting('prueba.mv_antes')::jsonb; p jsonb := c
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- 364 · COPIA DE FACTURAS: HORARIO DE LA PUESTA AL DÍA (usuario, 2026-11-26): cada 15 minutos todos
+-- los días de 8 a 22 y, de noche, cada 4 horas (a las 00:00 y a las 04:00).
+do $$ declare h int; m int; n int := 0; begin
+  if has_function_privilege('anon', 'facturas_toca_pasada(integer, integer)', 'execute') or has_function_privilege('authenticated', 'facturas_avisar()', 'execute') then
+    raise exception 'FALLO 364 · permisos de más en las funciones del horario de la copia de facturas'; end if;
+  -- De día, siempre; también en fin de semana (la función no mira el día).
+  if not (facturas_toca_pasada(8, 0) and facturas_toca_pasada(13, 45) and facturas_toca_pasada(21, 45)) then raise exception 'FALLO 364 · de 8 a 22 no toca pasada en cada cuarto de hora'; end if;
+  -- De noche, solo el primer cuarto de hora de las 00 y de las 04.
+  if not (facturas_toca_pasada(0, 0) and facturas_toca_pasada(4, 0)) then raise exception 'FALLO 364 · de noche no toca a las 00:00 o a las 04:00'; end if;
+  if facturas_toca_pasada(22, 0) or facturas_toca_pasada(23, 30) or facturas_toca_pasada(0, 15) or facturas_toca_pasada(2, 0) or facturas_toca_pasada(4, 30) or facturas_toca_pasada(7, 45) then
+    raise exception 'FALLO 364 · de noche toca pasada fuera de las 00:00 y las 04:00'; end if;
+  -- En un día entero, llamando cada 15 minutos: 56 de día y 2 de noche.
+  for h in 0..23 loop for m in 0..3 loop if facturas_toca_pasada(h, m * 15) then n := n + 1; end if; end loop; end loop;
+  if n <> 58 then raise exception 'FALLO 364 · las pasadas de un día no son 58: %', n; end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if (select schedule from cron.job where jobname = 'dynamo-facturas-copia') <> '*/15 * * * *' then raise exception 'FALLO 364 · la tarea de la copia de facturas no va cada 15 minutos'; end if;
+  end if;
+  raise notice 'OK 364 · copia de facturas: cada 15 minutos de 8 a 22 todos los días y cada 4 horas de noche (58 pasadas al día)';
+end $$;

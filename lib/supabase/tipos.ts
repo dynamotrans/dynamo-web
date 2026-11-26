@@ -5259,6 +5259,7 @@ export type Database = {
       facturas_casar: { Args: Record<PropertyKey, never>; Returns: number }
       facturas_guardar: { Args: { p_facturas: Json | null }; Returns: number }
       facturas_lista: { Args: { p_q?: string | null; p_estado?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por?: number | null; p_cliente?: string | null }; Returns: Json }
+      facturas_toca_pasada: { Args: { p_hora: number | null; p_minuto: number | null }; Returns: boolean }
       fecha_ddmmyyyy: { Args: { p: string | null }; Returns: string }
       fecha_hora_texto: { Args: { p: string | null }; Returns: string }
       fecha_texto: { Args: { p: string | null }; Returns: string }
