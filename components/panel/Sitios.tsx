@@ -230,6 +230,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   // el aviso en cuanto alguien lo elige a mano. Nunca pisa un tipo ya elegido.
   const [tipoAuto, setTipoAuto] = useState<TipoPropuesto['por'] | null>(null);
   const tipoActual = useRef(d.tipo); tipoActual.current = d.tipo;
+  const tipoAutoRef = useRef(tipoAuto); tipoAutoRef.current = tipoAuto;
+  // Lo que rellenó la última ficha elegida en el buscador (para quitarlo al elegir otra).
+  const puestoPorGoogle = useRef<{ nombre: string; telefono: string } | null>(null);
   const elegidoTxt = useRef('');   // lo último ELEGIDO: ese texto no relanza la búsqueda
   useEffect(() => {
     const q = bq.trim(); bqViva.current = q;
@@ -274,25 +277,48 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
     const titulo = soloDir ? (g.etiqueta || sugerida.empresa) : g.empresa;
     // El tipo propuesto: el que trae la ficha (Google de verdad) o, en las de ejemplo, el mismo
     // cálculo con su nombre y su dirección. Si no sale y hay coordenadas, se mira el suelo.
-    const propuesto = tipoActual.current ? null
+    // ELEGIR OTRO RESULTADO EMPIEZA DE CERO (usuario, 2026-11-25: «si busco otro ahí mismo, no
+    // limpia contactos, teléfonos…; debe limpiar la ficha entera»). Antes solo se pisaban los
+    // campos que Google traía, y se quedaban el teléfono, el horario o el tipo del anterior.
+    //  · Una EMPRESA: ficha limpia (solo se conserva el cliente) y encima, lo de la nueva.
+    //  · Una DIRECCIÓN (calle): no trae empresa ni teléfono, así que se conserva lo que se haya
+    //    escrito A MANO (nombre, contactos, tipo) y se quita lo que puso la elección anterior.
+    const antes = puestoPorGoogle.current;
+    const tipoEraAuto = !!tipoAutoRef.current;
+    const tipoAMano = soloDir && !!tipoActual.current && !tipoEraAuto;
+    const propuesto = tipoAMano ? null
       : g.tipo_sugerido !== undefined ? g.tipo_sugerido
       : tipoPorGoogle({ empresa: g.empresa, direccion: `${g.direccion} · ${g.etiqueta}`, esDireccion: soloDir });
-    if (propuesto) setTipoAuto(propuesto.por);
-    else if (!tipoActual.current && g.lat != null && g.lon != null) {
+    setTipoAuto(propuesto ? propuesto.por : tipoAMano ? tipoAutoRef.current : null);
+    if (!propuesto && !tipoAMano && g.lat != null && g.lon != null) {
       tipoSitioPorSuelo(g.lat, g.lon).then((r) => {
         if (r.tipo && !tipoActual.current) { set('tipo', r.tipo); setTipoAuto('suelo'); }
       }).catch(() => {});
     }
-    setD((x) => conProvinciaDelCp({
-      ...x, ...(propuesto && !x.tipo ? { tipo: propuesto.tipo } : {}), nombre_empresa: soloDir ? x.nombre_empresa : g.empresa, direccion: g.direccion || (soloDir ? sugerida.empresa : ''), codigo_postal: g.codigo_postal,
-      poblacion: g.poblacion, provincia: g.provincia, pais_codigo_iso: g.pais_codigo_iso || 'ES',
-      url_google_maps: g.url_google_maps,
-      // El horario de Google es una propuesta sin verificar (usuario, 2026-11-23).
-      ...(conHorario ? { horario: g.horario!, horario_sin_verificar: true } : {}),
-      contactos: g.telefono && !x.contactos.some((c) => c.telefono.trim())
-        ? x.contactos.map((c, i) => (i === 0 ? { ...c, telefono: g.telefono } : c))
-        : x.contactos,
-    }, g.pais_codigo_iso || 'ES'));
+    const telefono = g.telefono ?? '';
+    setD((x) => {
+      const limpia = datosDeFicha(null, veranoDefecto, false, x.cliente_id);
+      // Lo que se conserva: en una empresa, nada; en una dirección, lo escrito a mano.
+      const base: SitioDatos = soloDir ? {
+        ...x,
+        nombre_empresa: antes && x.nombre_empresa === antes.nombre ? '' : x.nombre_empresa,
+        contactos: antes?.telefono ? x.contactos.map((c) => (c.telefono === antes.telefono ? { ...c, telefono: '' } : c)) : x.contactos,
+        ...(x.horario_sin_verificar ? { horario: limpia.horario, horario_sin_verificar: false } : {}),
+      } : limpia;
+      return conProvinciaDelCp({
+        ...base, tipo: tipoAMano ? base.tipo : (propuesto?.tipo ?? ''),
+        nombre_empresa: soloDir ? base.nombre_empresa : g.empresa, direccion: g.direccion || (soloDir ? sugerida.empresa : ''), codigo_postal: g.codigo_postal,
+        poblacion: g.poblacion, provincia: g.provincia, pais_codigo_iso: g.pais_codigo_iso || 'ES',
+        url_google_maps: g.url_google_maps,
+        // El horario de Google es una propuesta sin verificar (usuario, 2026-11-23).
+        ...(conHorario ? { horario: g.horario!, horario_sin_verificar: true } : {}),
+        contactos: telefono && !base.contactos.some((c) => c.telefono.trim())
+          ? base.contactos.map((c, i) => (i === 0 ? { ...c, telefono } : c))
+          : base.contactos,
+      }, g.pais_codigo_iso || 'ES');
+    });
+    puestoPorGoogle.current = { nombre: soloDir ? (antes?.nombre ?? '') : g.empresa, telefono };
+    setRepetido(null); setError(null); setAvisoParecido(null);
     elegidoTxt.current = titulo;
     setCamposLibres(true);
     setBq(titulo);
@@ -587,7 +613,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             {TIPOS_SITIO.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
           {tipoAuto && d.tipo && <p className="meta" id="tipo-auto" style={{ margin: '0.25rem 0 0' }}>
-            Puesto automáticamente {tipoAuto === 'google' ? 'según Google' : tipoAuto === 'direccion' ? 'por la dirección' : 'por la zona donde está'}. Cámbialo si no es así.
+            Puesto automáticamente {tipoAuto === 'google' ? 'por ser una empresa (lo habitual es cargar en su nave)' : tipoAuto === 'direccion' ? 'por la dirección' : 'por la zona donde está'}. Cámbialo si no es así.
           </p>}
         </div>
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}
@@ -636,20 +662,18 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
             {d.horario_sin_verificar && <span className="badge badge-orange" style={{ marginLeft: '0.45rem' }}>Sin verificar</span>}</span>
         </button>
         {/* El horario vino de Google y nadie lo ha comprobado con el sitio (usuario, 2026-11-23). */}
+        {/* Sin casilla de «Ya lo he comprobado» (usuario, 2026-11-25: «quita eso de marcar»): el aviso se
+            queda mientras el horario sea el de Google; deja de salir cuando alguien lo cambia a mano. */}
         {d.horario_sin_verificar && (
           <div className="modal-warn-box" id="horario-sin-verificar" style={{ margin: 0 }}>
             <strong>Horario sin verificar: compruébalo con el sitio.</strong> Cámbialo aquí si hace falta. <strong>Verificar que es el
             real es tu responsabilidad</strong>: si un camión llega dentro del horario indicado y el sitio está cerrado, las posibles
             penalizaciones corren a cargo del cliente.
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem', fontWeight: 700 }}>
-              <input type="checkbox" id="horario-comprobado" checked={false} onChange={() => set('horario_sin_verificar', false)} />
-              Ya lo he comprobado con el sitio
-            </label>
           </div>
         )}
         {abierto.horario && (
           <div className="ptar-sitio-grid" style={{ marginTop: '-0.1rem' }}>
-            <HorarioSitio horario={d.horario} verano={d.verano!} onHorario={(g) => set('horario', g)} onVerano={(v) => set('verano', v)} tab={tabHorario} onTab={setTabHorario} />
+            <HorarioSitio horario={d.horario} verano={d.verano!} onHorario={(g) => { set('horario', g); if (d.horario_sin_verificar) set('horario_sin_verificar', false); }} onVerano={(v) => set('verano', v)} tab={tabHorario} onTab={setTabHorario} />
           </div>
         )}
       </div>

@@ -3,51 +3,78 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
-import { cobrosDeHolded, facturasDeHolded, formaDeCobro, formaDeEnlaces, formaDeHolded, ultimoCobro } from '@/lib/holdedFacturas';
-import { contactosDeHolded } from '@/lib/servidor/holdedContactos';
-import { supabaseServicio } from '@/lib/supabase/servicio';
-import type { FacturaFila } from '@/components/panel/FacturasDynamo';
+import { formaDeEnlaces } from '@/lib/holdedFacturas';
+import { ponerAlDiaFacturas } from '@/lib/servidor/facturasCopia';
+import { vistaDe } from '@/lib/vista';
+import { rangoFiltroFecha, filtroFechaValido, hoyMadrid } from '@/lib/filtroFechas';
 
-// Administración → Facturas (vista de Dynamo): las facturas EMITIDAS, leídas del programa de
-// facturación en el momento. SOLO LECTURA (regla del usuario, 2026-11-24): aquí no se crea ni
-// se cambia nada allí. Primer paso de la conexión: las 200 últimas ya aprobadas (una consulta).
-// Las recibidas, la copia en nuestra base de datos y la vista del cliente van después.
-export type FacturasEmitidas =
-  | { ok: true; facturas: FacturaFila[]; hayMas: boolean }
-  | { ok: false; conectado: boolean; error: string };
+// Administración → Facturas: las facturas EMITIDAS, leídas de NUESTRA COPIA (tabla
+// facturas_emitidas), que el servidor mantiene al día sola desde el programa de facturación
+// (usuario, 2026-11-25). Dynamo las ve todas; cada cliente, las suyas (lo decide la base de
+// datos en facturas_lista, nunca un dato que venga del navegador). Las recibidas no se
+// enseñan: se gestionan en la facturación. SOLO LECTURA allí.
+export type FacturaFila = {
+  id: string; numero: string | null; fecha: string; vence: string | null;
+  base: number; iva: number; retencion: number; total: number; pendiente: number;
+  estado: 'pendiente' | 'vencida' | 'pagada' | 'anulada' | 'otro'; parcial: boolean; pagada_el: string | null;
+  empresa?: string | null; cif?: string | null; cuenta?: string | null; es_cliente?: boolean;   // solo Dynamo
+};
+export type EstadoCopia = { conectado: boolean; ultimaOk: string | null; ultima: string | null; error: string | null;
+  cargando: boolean; cargada: boolean; enCopia: number; desde: string | null; sinCif: number };
+export type FiltroFacturas = { q: string; estado: string; fecha: string; desde: string; hasta: string; pagina: number };
+export type PaginaFacturas =
+  | { ok: true; total: number; base: number; importe: number; porCobrar: number; vencido: number; filas: FacturaFila[]; copia: EstadoCopia | null }
+  | { ok: false; error: string };
 
-export async function facturasEmitidas(): Promise<FacturasEmitidas> {
-  comprobarEntrada("app/panel/(app)/administracion/acciones#facturasEmitidas", []);
+const ESTADOS = ['todas', 'por_cobrar', 'vencida', 'pagada', 'anulada'];
+const POR_PAGINA = 25;
+
+export async function facturasPagina(f: FiltroFacturas): Promise<PaginaFacturas> {
+  comprobarEntrada("app/panel/(app)/administracion/acciones#facturasPagina", [f]);
+  const s = await sesion();
+  if (!s?.perfil || !['activa', 'suspendida'].includes(s.perfil.estado)) return { ok: false, error: 'Sin permiso.' };
+  const dynamo = esDynamo(s.perfil.rol);
+  if (!dynamo && s.perfil.rol !== 'cliente') return { ok: false, error: 'Sin permiso.' };
+  const rango = f.fecha && filtroFechaValido(f.fecha) ? rangoFiltroFecha(f.fecha, hoyMadrid(), f.desde, f.hasta) : null;
+  // «Ver como» un cliente: Dynamo ve solo las de ese cliente.
+  const vista = dynamo ? await vistaDe(s.supabase, s.perfil.rol) : null;
+  const [r, e] = await Promise.all([
+    s.supabase.rpc('facturas_lista', {
+      p_q: f.q.trim().slice(0, 120) || undefined, p_estado: ESTADOS.includes(f.estado) ? f.estado : 'todas',
+      p_desde: rango?.desde ?? undefined, p_hasta: rango?.hasta ?? undefined,
+      p_pagina: Math.max(1, Math.floor(f.pagina) || 1), p_por: POR_PAGINA,
+      p_cliente: vista?.tipo === 'cliente' ? vista.id : undefined }),
+    dynamo ? s.supabase.rpc('deuda_estado') : Promise.resolve({ data: null }),
+  ]);
+  if (r.error) return { ok: false, error: 'No se han podido leer las facturas. Prueba otra vez en un momento.' };
+  const d = (r.data ?? {}) as { total?: number; base?: number; importe?: number; por_cobrar?: number; vencido?: number; filas?: FacturaFila[] };
+  const e0 = (e.data ?? null) as Record<string, unknown> | null;
+  const n = (v: unknown) => Number(v ?? 0);
+  return { ok: true, total: n(d.total), base: n(d.base), importe: n(d.importe), porCobrar: n(d.por_cobrar), vencido: n(d.vencido),
+    filas: (d.filas ?? []).map((x) => ({ ...x, base: n(x.base), iva: n(x.iva), retencion: n(x.retencion), total: n(x.total), pendiente: n(x.pendiente) })),
+    copia: e0 ? { conectado: holdedListo(), ultimaOk: (e0.ultima_ok_en as string | null) ?? null, ultima: (e0.ultima_en as string | null) ?? null,
+      error: (e0.error as string | null) ?? null, cargando: e0.cargando === true, cargada: !!e0.carga_completa_en,
+      enCopia: n(e0.en_copia), desde: (e0.desde as string | null) ?? null, sinCif: n(e0.sin_cif) } : null };
+}
+
+// «Actualizar ahora»: una pasada de la puesta al día de la copia, sin esperar a la automática.
+// Si la primera carga aún no ha terminado, sigue con ella (la pantalla repite hasta que acabe).
+export type FacturasAlDia = { ok: true; cargando: boolean } | { ok: false; conectado: boolean; error: string };
+export async function actualizarFacturas(): Promise<FacturasAlDia> {
+  comprobarEntrada("app/panel/(app)/administracion/acciones#actualizarFacturas", []);
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, conectado: false, error: 'Solo el equipo de Dynamo.' };
-  if (!holdedListo()) return { ok: false, conectado: false, error: 'La facturación no está conectada en este entorno.' };
-  const r = await leerHolded('/invoices', { limit: 200, sort: '-date', approval_status: 'approved' });
-  if (!r.ok) return { ok: false, conectado: true, error: r.error };
-  // Afinando con datos reales: se apunta QUÉ campos llegan y cómo vienen los importes de una factura.
-  console.log('[Holded] forma de la factura', JSON.stringify(formaDeHolded(r.datos)));
-  const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
-  const { facturas, hayMas } = facturasDeHolded(r.datos, hoy);
-  // Dos cosas que la lista no trae y se piden aparte, a la vez (usuario, 2026-11-25):
-  //  · el CIF de cada empresa (el de su contacto; se pregunta una vez y se recuerda);
-  //  · cuándo se cobró cada factura pagada, para ver cuánto tarda en pagar cada cliente.
-  const sv = supabaseServicio();
-  const pagadas = facturas.filter((f) => f.estado === 'pagada');
-  const [contactos, cobros] = await Promise.all([
-    sv ? contactosDeHolded(sv, facturas.map((f) => f.contacto_id), 40) : Promise.resolve(new Map<string, { cif: string | null; nombre: string | null }>()),
-    pagadas.length ? cobrosDesde(pagadas.reduce((m, f) => (f.fecha < m ? f.fecha : m), hoy)) : Promise.resolve(new Map<string, string>()),
-    enlacesDePedidos(facturas.slice(0, 3).map((f) => f.id)),
-  ]);
-  // Cada fila abre su PDF por nuestra propia ruta (que también es solo para Dynamo).
-  return { ok: true, hayMas, facturas: facturas.map((f) => ({ ...f, pdf_url: `/api/facturas/${f.id}/pdf`,
-    cif: (f.contacto_id && contactos.get(f.contacto_id)?.cif) || null,
-    pagada_el: f.estado === 'pagada' ? cobros.get(f.id) ?? null : null })) };
+  const r = await ponerAlDiaFacturas({ forzar: true });
+  if (!r.ok) return r;
+  if (!r.cargando) void enlacesDePedidos();
+  return { ok: true, cargando: r.cargando };
 }
 
 // Afinando (quitar cuando se sepa): ¿dice la facturación de qué pedido sale cada factura y qué
 // facturas han salido de cada pedido? Se leen unos pocos documentos reales (solo lectura) y se
 // apunta su estado y el tipo de los documentos enlazados. Como mucho una vez cada 10 minutos.
 let ultimoEnlaces = 0;
-async function enlacesDePedidos(facturas: string[]): Promise<void> {
+async function enlacesDePedidos(): Promise<void> {
   if (Date.now() - ultimoEnlaces < 10 * 60_000) return;
   ultimoEnlaces = Date.now();
   try {
@@ -58,7 +85,8 @@ async function enlacesDePedidos(facturas: string[]): Promise<void> {
       return { error: r.ok ? null : r.error, ids: items.map((i) => String(i?.id ?? '')).filter((x) => /^[0-9a-f]{24}$/.test(x)).slice(0, 2),
         estados: items.map((i) => i?.status ?? null), claves: items[0] ? Object.keys(items[0]) : [] };
     };
-    const [venta, compra, recibidas] = await Promise.all([lista('/sales-orders'), lista('/purchase-orders'), lista('/purchases')]);
+    const [venta, compra, recibidas, emitidas] = await Promise.all([lista('/sales-orders'), lista('/purchase-orders'), lista('/purchases'), lista('/invoices')]);
+    const facturas = emitidas.ids;
     const [f, v, c, p] = await Promise.all([
       Promise.all(facturas.filter((x) => /^[0-9a-f]{24}$/.test(x)).map((x) => uno(`/invoices/${x}`))),
       Promise.all(venta.ids.map((x) => uno(`/sales-orders/${x}`))),
@@ -71,21 +99,4 @@ async function enlacesDePedidos(facturas: string[]): Promise<void> {
       facturas_recibidas: { error: recibidas.error, estados: recibidas.estados, detalle: p },
     }));
   } catch (e) { console.error('[Holded] enlaces de pedidos', e instanceof Error ? e.message : 'fallo'); }
-}
-
-// Los cobros de facturas desde una fecha: de cada factura, el día de su último cobro. Si la
-// facturación no contesta, se sigue sin esas fechas (la factura sale «Pagada» a secas).
-async function cobrosDesde(desde: string): Promise<Map<string, string>> {
-  const todos: { documento: string; fecha: string }[] = [];
-  let cursor: string | undefined;
-  for (let i = 0; i < 6; i++) {
-    const r = await leerHolded('/payments', { type: 'collection', document_type: 'invoice', start_date: desde, limit: 200, cursor });
-    if (!r.ok) { console.error('[Holded] cobros', r.error); break; }
-    if (i === 0) console.log('[Holded] forma del cobro', JSON.stringify(formaDeCobro(r.datos)));
-    const p = cobrosDeHolded(r.datos);
-    todos.push(...p.cobros);
-    if (!p.hayMas || !p.cursor) break;
-    cursor = p.cursor;
-  }
-  return ultimoCobro(todos);
 }

@@ -2,7 +2,7 @@
 
 // Administración: el diseño de #sec-facturas / #sec-albaranes de dashboard.html (pestañas
 // arriba, buscador, tabla .data) con una pestaña más, PROFORMAS, que es lo que hoy tiene
-// datos reales en la plataforma. Las facturas viven en Holded (llegarán al conectarlo).
+// datos reales en la plataforma. Las facturas emitidas salen de la copia que se mantiene al día sola.
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -15,7 +15,7 @@ import FormTransferencia, { type DatosTransferencia } from './FormTransferencia'
 import { euros, fecha, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import CuentaAtras from './CuentaAtras';
-import FacturasDynamoVivo from './FacturasDynamoVivo';
+import Facturas from './Facturas';
 import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
 import { enRango, diaMadridDe } from '@/lib/filtroFechas';
 
@@ -104,13 +104,9 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
         <button className={`tab${pestana === 'facturas' ? ' active' : ''}`} onClick={() => setPestana('facturas')}>Facturas</button>
       </div>
 
-      {pestana === 'facturas' ? (dynamo ? (
-        <FacturasDynamoVivo />
-      ) : (
-        <div className="pt-aviso info" style={{ maxWidth: 680 }}><div>
-          <strong>Las facturas llegarán aquí al conectar la plataforma con la facturación.</strong> Mientras tanto, te las seguimos enviando por email como hasta ahora.
-        </div></div>
-      )) : <>
+      {pestana === 'facturas' ? (
+        <Facturas dynamo={dynamo} />
+      ) : <>
         <div className="filters">
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)}
             placeholder={pestana === 'proformas' ? `Buscar por nº de envío${dynamo ? ', cliente' : ''}, referencia, importe…` : 'Buscar por nº de envío, ruta, nombre del archivo…'} />

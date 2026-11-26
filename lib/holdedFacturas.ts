@@ -1,9 +1,8 @@
-// Lo que llega del programa de facturación (Holded, API v2, «List invoices») pasado a la fila
-// que pinta Administración → Facturas. Sin red y sin claves: solo cuentas, para poder probarlo.
+// Lo que llega del programa de facturación (Holded, API v2: «List invoices», «Get an invoice»,
+// «List payments») pasado a las filas de NUESTRA copia de facturas emitidas. Sin red y sin
+// claves: solo cuentas, para poder probarlo.
 // Campos según su documentación (2026-11): importes como texto decimal («121.00»), fechas
 // AAAA-MM-DD, `status`: pending · partial · completed · cancelled · failed.
-import type { FacturaFila } from '@/components/panel/FacturasDynamo';
-
 export type FacturaHolded = {
   id?: unknown; document_number?: unknown; contact_name?: unknown; description?: unknown;
   date?: unknown; due_date?: unknown; subtotal?: unknown; discount?: unknown; total?: unknown; tax?: unknown;
@@ -52,76 +51,47 @@ export function cuentaDeLineas(lines: unknown): string | null {
   return vistas.length ? vistas.slice(0, 3).join(' · ') + (vistas.length > 3 ? ' …' : '') : null;
 }
 
-/** El envío al que corresponde la factura, si su concepto lo dice («GX66921 - Transporte…»). */
-export function gxDeTexto(...textos: unknown[]): string | null {
-  for (const t of textos) { const m = typeof t === 'string' ? /\bGX\d{3,12}\b/i.exec(t) : null; if (m) return m[0].toUpperCase(); }
-  return null;
-}
+// ---- La fila de la COPIA de facturas emitidas (tabla facturas_emitidas) -------------------
+// Sirve igual para una fila de «List invoices» que para «Get an invoice» (que además trae sus
+// cobros en `payments_detail` y si ha vuelto a borrador en `draft`).
+// EL IMPORTE PENDIENTE ES EL QUE DICE LA FACTURACIÓN (`payments_pending`): para la deuda manda
+// el importe, no el estado (usuario, 2026-11-25). Si no viene, se deduce: todo si no hay nada
+// cobrado, nada si está pagada.
+export type FacturaCopia = { id: string; numero: string | null; contacto_id: string | null; contacto_nombre: string | null;
+  emision: string; vence: string | null; base: number; iva: number; retencion: number; total: number; pendiente: number;
+  estado: 'pendiente' | 'parcial' | 'pagada' | 'anulada' | 'otro'; pagada_el: string | null; cuenta: string | null };
 
-/** `hoy` en AAAA-MM-DD: una factura sin cobrar del todo cuyo vencimiento ya pasó está «vencida». */
-export function facturaDeHolded(f: FacturaHolded, hoy: string): FacturaFila | null {
-  const id = texto(f.id), fecha = dia(f.date);
-  if (!id || !fecha) return null;
+export function copiaDeHolded(f: FacturaHolded & { draft?: unknown; payments_detail?: unknown }): FacturaCopia | null {
+  const id = texto(f.id), emision = dia(f.date);
+  if (!id || !emision) return null;
+  const st = typeof f.status === 'string' ? f.status : '';
+  const estado: FacturaCopia['estado'] = f.draft === true || st === 'cancelled' ? 'anulada'
+    : st === 'pending' ? 'pendiente' : st === 'partial' ? 'parcial' : st === 'completed' ? 'pagada' : 'otro';
   const base = baseDeHolded(f), iva = c2(num(f.tax)), total = c2(num(f.total));
-  // Lo retenido (IRPF) no viene aparte: es lo que falta entre base + IVA y el total.
   const dif = c2(base + iva - total);
-  const vence = dia(f.due_date);
-  const st = typeof f.status === 'string' ? f.status : '';
-  const estado: FacturaFila['estado'] = st === 'completed' ? 'pagada'
-    : st === 'pending' || st === 'partial' ? (vence && vence < hoy ? 'vencida' : 'pendiente') : null;
-  return { id, tipo: 'emitida', fecha, numero: texto(f.document_number), concepto: texto(f.description), empresa: texto(f.contact_name),
-    cif: null, base, iva, retencion: dif > 0.005 ? dif : 0, total, estado, vence, gx: gxDeTexto(f.description),
-    contacto_id: texto(f.contact_id)?.toLowerCase() ?? null, cuenta: cuentaDeLineas(f.lines), pagada_el: null };
+  const viene = f.payments_pending !== undefined && f.payments_pending !== null && f.payments_pending !== '';
+  const pendiente = estado === 'anulada' ? 0 : viene ? c2(num(f.payments_pending)) : estado === 'pendiente' ? total : 0;
+  // El día en que quedó pagada: el de su último cobro, si la respuesta trae los cobros.
+  let pagada_el: string | null = null;
+  if (estado === 'pagada' && Array.isArray(f.payments_detail)) {
+    for (const p of f.payments_detail as { date?: unknown }[]) { const d = p && typeof p === 'object' ? dia(p.date) : null; if (d && (!pagada_el || d > pagada_el)) pagada_el = d; }
+  }
+  return { id, numero: texto(f.document_number), contacto_id: texto(f.contact_id)?.toLowerCase() ?? null, contacto_nombre: texto(f.contact_name),
+    emision, vence: dia(f.due_date), base, iva, retencion: dif > 0.005 ? dif : 0, total, pendiente, estado, pagada_el, cuenta: cuentaDeLineas(f.lines) };
 }
 
-/** Lee la respuesta entera (`items`, `has_more`). Lo que no tenga forma de factura se salta. */
-export function facturasDeHolded(cuerpo: unknown, hoy: string): { facturas: FacturaFila[]; hayMas: boolean } {
-  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown };
-  const items = Array.isArray(c.items) ? c.items as FacturaHolded[] : [];
-  return { facturas: items.map((f) => facturaDeHolded(f ?? {}, hoy)).filter((f): f is FacturaFila => !!f), hayMas: c.has_more === true };
-}
-
-// ---- Facturas con algo pendiente de cobro (la «foto» de lo que debe cada cliente) ---------
-// Una fila de «List invoices» con status=outstanding, lista para guardarla en la foto.
-// El CIF no viene en la factura: lo pone después el servidor, mirando el contacto.
-export type FacturaPendiente = { id: string; numero: string | null; contacto_id: string | null; contacto_nombre: string | null;
-  cif: string | null; emision: string | null; vence: string | null; total: number; pendiente: number };
-
-export function pendienteDeHolded(f: FacturaHolded & { contact_id?: unknown }): FacturaPendiente | null {
-  const id = texto(f.id);
-  const pendiente = c2(num(f.payments_pending));
-  if (!id || !(pendiente > 0)) return null;                 // sin identificador o sin nada que cobrar: no es deuda
-  const st = typeof f.status === 'string' ? f.status : '';
-  if (st === 'cancelled' || st === 'failed' || st === 'completed') return null;   // por si se cuela alguna que no debe nada
-  return { id, numero: texto(f.document_number), contacto_id: texto(f.contact_id), contacto_nombre: texto(f.contact_name), cif: null,
-    emision: dia(f.date), vence: dia(f.due_date), total: c2(num(f.total)), pendiente };
-}
-
-/** Lee una página de la lista: las facturas con deuda, si hay más páginas y por dónde seguir. */
-export function pendientesDeHolded(cuerpo: unknown): { facturas: FacturaPendiente[]; hayMas: boolean; cursor: string | null } {
+/** Una página de «List invoices» pasada a filas de la copia: las filas, si hay más y por dónde seguir. */
+export function copiasDeHolded(cuerpo: unknown): { facturas: FacturaCopia[]; hayMas: boolean; cursor: string | null; leidas: number } {
   const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown; cursor?: unknown };
   const items = Array.isArray(c.items) ? c.items as FacturaHolded[] : [];
   const cursor = typeof c.cursor === 'string' && c.cursor ? c.cursor : null;
-  return { facturas: items.map((f) => pendienteDeHolded(f ?? {})).filter((f): f is FacturaPendiente => !!f), hayMas: c.has_more === true && !!cursor, cursor };
+  return { facturas: items.map((f) => copiaDeHolded(f ?? {})).filter((f): f is FacturaCopia => !!f), hayMas: c.has_more === true && !!cursor, cursor, leidas: items.length };
 }
 
 /** El CIF de un contacto de la facturación: su `code` y, si no lo tiene, su número de IVA. */
 export function cifDeContacto(contacto: unknown): { cif: string | null; nombre: string | null } {
   const c = (contacto && typeof contacto === 'object' ? contacto : {}) as { code?: unknown; vat_number?: unknown; name?: unknown };
   return { cif: texto(c.code) ?? texto(c.vat_number), nombre: texto(c.name) };
-}
-
-// Solo para afinar la lectura con datos reales: QUÉ campos trae una factura y cómo vienen sus
-// importes (sin nombres, conceptos ni contactos). Va al registro del servidor, no a la pantalla.
-export function formaDeHolded(cuerpo: unknown): Record<string, unknown> {
-  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown };
-  const f = (Array.isArray(c.items) ? c.items[0] : null) as Record<string, unknown> | null;
-  if (!f || typeof f !== 'object') return { claves_respuesta: Object.keys(c as object), items: Array.isArray(c.items) ? c.items.length : typeof c.items };
-  const linea = Array.isArray(f.lines) && f.lines[0] && typeof f.lines[0] === 'object' ? f.lines[0] as Record<string, unknown> : null;
-  const de = (o: Record<string, unknown>, ks: string[]) => Object.fromEntries(ks.map((k) => [k, o[k] === undefined ? '(no viene)' : o[k]]));
-  return { claves: Object.keys(f), importes: de(f, ['subtotal', 'discount', 'tax', 'total', 'payments_total', 'payments_pending', 'currency', 'status', 'date', 'due_date']),
-    lineas: Array.isArray(f.lines) ? f.lines.length : typeof f.lines, claves_linea: linea ? Object.keys(linea) : null,
-    linea: linea ? de(linea, ['price', 'units', 'discount', 'tax', 'retention', 'account']) : null };
 }
 
 // Solo para afinar (pregunta del usuario, 2026-11-25: «¿se puede saber si un pedido está
@@ -139,7 +109,8 @@ export function formaDeEnlaces(doc: unknown): Record<string, unknown> {
 
 // ---- Cobros: cuándo se pagó cada factura («List payments and collections») ---------------
 // De cada cobro interesa a qué documento corresponde y su fecha. Con varios cobros para una
-// misma factura (pagos a plazos), la fecha que vale es la del ÚLTIMO: cuando quedó pagada.
+// misma factura (pagos a plazos), la fecha que vale es la del ÚLTIMO (lo decide la base de
+// datos al apuntarlos): cuando quedó pagada.
 export function cobrosDeHolded(cuerpo: unknown): { cobros: { documento: string; fecha: string }[]; hayMas: boolean; cursor: string | null } {
   const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown; cursor?: unknown };
   const items = Array.isArray(c.items) ? c.items as { document_id?: unknown; document_type?: unknown; date?: unknown }[] : [];
@@ -150,23 +121,4 @@ export function cobrosDeHolded(cuerpo: unknown): { cobros: { documento: string; 
     if (documento && fecha && (p.document_type == null || p.document_type === 'invoice')) cobros.push({ documento, fecha });
   }
   return { cobros, hayMas: c.has_more === true && !!cursor, cursor };
-}
-export function ultimoCobro(cobros: { documento: string; fecha: string }[]): Map<string, string> {
-  const m = new Map<string, string>();
-  for (const c of cobros) { const a = m.get(c.documento); if (!a || c.fecha > a) m.set(c.documento, c.fecha); }
-  return m;
-}
-/** Días naturales entre dos fechas AAAA-MM-DD (b − a). */
-export function diasEntre(a: string, b: string): number {
-  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
-}
-
-// Igual que formaDeHolded, para un cobro: qué campos trae (sin nombres ni descripciones).
-export function formaDeCobro(cuerpo: unknown): Record<string, unknown> {
-  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown };
-  const p = (Array.isArray(c.items) ? c.items[0] : null) as Record<string, unknown> | null;
-  if (!p || typeof p !== 'object') return { claves_respuesta: Object.keys(c as object), items: Array.isArray(c.items) ? c.items.length : typeof c.items };
-  return { claves: Object.keys(p), cuantos: (c.items as unknown[]).length, hay_mas: c.has_more ?? null,
-    datos: Object.fromEntries(['amount', 'date', 'status', 'document_type', 'reconciliation_status'].map((k) => [k, p[k] === undefined ? '(no viene)' : p[k]])),
-    con_documento: typeof p.document_id === 'string' && !!p.document_id };
 }

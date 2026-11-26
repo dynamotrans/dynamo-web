@@ -30,6 +30,7 @@ export type Bloque = {
   sub: string;        // explicación bajo el título de la ventana
   total: number; todo: string; filas: Fila[];
   pie?: string;       // línea pequeña bajo la cifra, en vez de «al día» / «ver pendientes»
+  enLista?: number;   // cuántas líneas tiene la ventana, si no es la cifra grande (caja «Aviso de pago»)
 };
 
 // «hace 25 min», «hace 3 h», «hace 2 días»: cuánto lleva esperando.
@@ -103,7 +104,7 @@ function BloqueCard({ b }: { b: Bloque }) {
           <Link className="btn-primary" href={b.todo} style={{ textDecoration: 'none' }}>Ver todo →</Link>
         </>}>
         <div className="ph-caja">
-          {b.total === 0
+          {(b.enLista ?? b.total) === 0
             ? <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: 0 }}><strong>Al día.</strong> No hay nada esperando respuesta.</p>
             : (<ul className="ph-lista">
                 {b.filas.map((f, i) => (
@@ -115,8 +116,8 @@ function BloqueCard({ b }: { b: Bloque }) {
                     </Link>
                   </li>
                 ))}
-                {b.total > b.filas.length && (
-                  <li><Link href={b.todo} className="ph-mas">Ver {b.total - b.filas.length} más →</Link></li>
+                {(b.enLista ?? b.total) > b.filas.length && (
+                  <li><Link href={b.todo} className="ph-mas">Ver {(b.enLista ?? b.total) - b.filas.length} más →</Link></li>
                 )}
               </ul>)}
         </div>

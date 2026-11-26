@@ -15606,59 +15606,138 @@ do $$ declare c uuid; e uuid; antes jsonb; mal boolean := false; f text; h numer
   raise notice 'OK 345 · corte del enlace de pago: se apuntan los enlaces, se cierran pasado el plazo y el envío se anula al momento';
 end $$;
 
--- 346 · LO QUE DEBE CADA CLIENTE, LEÍDO DE LA FACTURACIÓN (usuario, 2026-11-25): la foto de
--- facturas pendientes de cobro la guarda solo el servidor, se casa por CIF (con o sin «ES»),
--- se sustituye ENTERA en cada lectura y una lectura fallida no la toca.
-do $$ declare c1 uuid; c2 uuid; r jsonb; mal boolean := false; f text; d record; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
-  foreach f in array array['deuda_guardar_foto(jsonb, uuid, text[])', 'deuda_lectura_fallida(text)'] loop
+-- 346 · COPIA DE FACTURAS EMITIDAS Y LO QUE DEBE CADA CLIENTE (usuario, 2026-11-25): la copia la
+-- escribe solo el servidor, se casa por el CIF del contacto (con o sin «ES»), NUNCA se borra y
+-- para la deuda MANDA EL IMPORTE PENDIENTE, no el estado («importes, más que estado»).
+do $$ declare c1 uuid; c2 uuid; c3 uuid; r jsonb; n int; mal boolean := false; f text; d record; t timestamptz;
+  hoy date := (now() at time zone 'Europe/Madrid')::date;
+  k1 text := '000000000000000000000a01'; k2 text := '000000000000000000000a02'; k3 text := '000000000000000000000a03'; k4 text := '000000000000000000000a04';
+begin
+  foreach f in array array['facturas_guardar(jsonb)', 'facturas_apuntar_cobros(jsonb)', 'facturas_anular(text[])', 'facturas_casar()', 'facturas_avisar()'] loop
     if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then
       raise exception 'FALLO 346 · un usuario puede llamar a % (solo el servidor)', f; end if;
   end loop;
-  if has_function_privilege('anon', 'deuda_clientes(uuid[])', 'execute') or has_function_privilege('anon', 'deuda_estado()', 'execute') then
-    raise exception 'FALLO 346 · alguien sin entrar puede ver lo que deben los clientes'; end if;
-  foreach f in array array['facturas_pendientes', 'holded_contactos', 'facturas_pendientes_estado'] loop
-    if has_table_privilege('authenticated', f, 'insert') or has_table_privilege('authenticated', f, 'delete') or has_table_privilege('anon', f, 'select') then
-      raise exception 'FALLO 346 · permisos de más en la tabla %', f; end if;
+  foreach f in array array['deuda_clientes(uuid[])', 'deuda_estado()', 'facturas_lista(text, text, date, date, integer, integer, uuid)', 'factura_visible(text)'] loop
+    if has_function_privilege('anon', f, 'execute') then raise exception 'FALLO 346 · alguien sin entrar puede llamar a %', f; end if;
   end loop;
+  foreach f in array array['facturas_emitidas', 'holded_contactos', 'facturas_copia_estado'] loop
+    if has_table_privilege('authenticated', f, 'insert') or has_table_privilege('authenticated', f, 'update') or has_table_privilege('authenticated', f, 'delete')
+       or has_table_privilege('anon', f, 'select') then raise exception 'FALLO 346 · permisos de más en la tabla %', f; end if;
+  end loop;
+  if to_regclass('public.facturas_pendientes') is not null or to_regclass('public.facturas_pendientes_estado') is not null then
+    raise exception 'FALLO 346 · sigue existiendo la foto antigua de facturas pendientes'; end if;
   if cif_base('es-b.12345678') <> 'B12345678' or cif_base('B12345678') <> 'B12345678' or cif_base('PT123456789') <> 'PT123456789' then
     raise exception 'FALLO 346 · cif_base no deja el CIF listo para comparar'; end if;
+  if (select valor::text from parametros where clave = 'facturas_copia_activa') <> 'true' then raise exception 'FALLO 346 · la copia de facturas no nace encendida'; end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if not exists (select 1 from cron.job where jobname = 'dynamo-facturas-copia') then raise exception 'FALLO 346 · falta la tarea que pone al día la copia de facturas'; end if;
+  end if;
+
   insert into clientes (razon_social, cif) values ('Debe Mucho SL', 'B34600346') returning id into c1;
   insert into clientes (razon_social, cif) values ('Debe Poco SL', 'ESB34600347') returning id into c2;
+  insert into holded_contactos (contacto_id, cif, nombre) values (k1, 'ES-B34600346', 'Debe Mucho'), (k2, 'b34600347', 'Debe Poco'), (k3, 'B99999346', 'No es cliente');
   perform set_config('request.jwt.claim.role', 'service_role', true);
-  -- Foto completa: dos de c1 (una vencida), una de c2 (CIF sin «ES» en la facturación), una de
-  -- un contacto que no es cliente, una sin CIF y una que ya no debe nada (no se guarda).
-  r := deuda_guardar_foto(jsonb_build_array(
-    jsonb_build_object('id', 'h346a', 'numero', 'F1', 'contacto_id', 'k1', 'contacto_nombre', 'Debe Mucho', 'cif', 'ES-B34600346', 'emision', hoy - 40, 'vence', hoy - 10, 'total', 1210, 'pendiente', 1210),
-    jsonb_build_object('id', 'h346b', 'numero', 'F2', 'contacto_id', 'k1', 'contacto_nombre', 'Debe Mucho', 'cif', 'ES-B34600346', 'emision', hoy - 5, 'vence', hoy + 25, 'total', 605, 'pendiente', 300.5),
-    jsonb_build_object('id', 'h346c', 'numero', 'F3', 'contacto_id', 'k2', 'contacto_nombre', 'Debe Poco', 'cif', 'b34600347', 'emision', hoy - 5, 'vence', hoy, 'total', 121, 'pendiente', 121),
-    jsonb_build_object('id', 'h346d', 'numero', 'F4', 'contacto_id', 'k3', 'contacto_nombre', 'No es cliente', 'cif', 'B99999346', 'emision', hoy - 5, 'vence', hoy - 1, 'total', 50, 'pendiente', 50),
-    jsonb_build_object('id', 'h346e', 'numero', 'F5', 'contacto_id', 'k4', 'contacto_nombre', 'Sin CIF', 'cif', null, 'emision', hoy - 5, 'vence', null, 'total', 10, 'pendiente', 10),
-    jsonb_build_object('id', 'h346f', 'numero', 'F6', 'contacto_id', 'k1', 'contacto_nombre', 'Debe Mucho', 'cif', 'B34600346', 'emision', hoy - 5, 'vence', hoy, 'total', 99, 'pendiente', 0)));
-  if (r ->> 'facturas')::int <> 5 or (r ->> 'sin_cliente')::int <> 1 or (r ->> 'sin_cif')::int <> 1 or (r ->> 'pendiente')::numeric <> 1691.50 then
-    raise exception 'FALLO 346 · la foto no cuenta bien: %', r; end if;
+  -- Seis facturas: dos de c1 con deuda (una vencida, otra cobrada en parte), una de c2 (su CIF va
+  -- sin «ES» en la facturación), una de un contacto que no es cliente, una de un contacto sin
+  -- CIF consultado y una de c1 ya pagada.
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h346a', 'numero', 'F346-1', 'contacto_id', upper(k1), 'contacto_nombre', 'Debe Mucho', 'emision', hoy - 40, 'vence', hoy - 10, 'base', 1000, 'iva', 210, 'retencion', 0, 'total', 1210, 'pendiente', 1210, 'estado', 'pendiente', 'cuenta', '70500000'),
+    jsonb_build_object('id', 'h346b', 'numero', 'F346-2', 'contacto_id', k1, 'contacto_nombre', 'Debe Mucho', 'emision', hoy - 5, 'vence', hoy + 25, 'base', 500, 'iva', 105, 'total', 605, 'pendiente', 300.5, 'estado', 'parcial'),
+    jsonb_build_object('id', 'h346c', 'numero', 'F346-3', 'contacto_id', k2, 'contacto_nombre', 'Debe Poco', 'emision', hoy - 5, 'vence', hoy, 'base', 100, 'iva', 21, 'total', 121, 'pendiente', 121, 'estado', 'pendiente'),
+    jsonb_build_object('id', 'h346d', 'numero', 'F346-4', 'contacto_id', k3, 'contacto_nombre', 'No es cliente', 'emision', hoy - 5, 'vence', hoy - 1, 'total', 50, 'pendiente', 50, 'estado', 'pendiente'),
+    jsonb_build_object('id', 'h346e', 'numero', 'F346-5', 'contacto_id', k4, 'contacto_nombre', 'Sin CIF', 'emision', hoy - 5, 'vence', null, 'total', 10, 'pendiente', 10, 'estado', 'pendiente'),
+    jsonb_build_object('id', 'h346f', 'numero', 'F346-6', 'contacto_id', k1, 'contacto_nombre', 'Debe Mucho', 'emision', hoy - 30, 'vence', hoy - 3, 'total', 99, 'pendiente', 0, 'estado', 'pagada', 'pagada_el', hoy - 2),
+    jsonb_build_object('id', 'h346x', 'numero', 'sin fecha', 'contacto_id', k1, 'total', 5, 'pendiente', 5, 'estado', 'pendiente')));
+  if n <> 6 or (select count(*) from facturas_emitidas where ref_externa like 'h346%') <> 6 then raise exception 'FALLO 346 · no se guardan las seis facturas con fecha (o se cuela la que no la tiene): %', n; end if;
+  if (select cliente_id from facturas_emitidas where ref_externa = 'h346a') is distinct from c1 or (select cliente_id from facturas_emitidas where ref_externa = 'h346c') is distinct from c2
+     or (select cliente_id from facturas_emitidas where ref_externa = 'h346d') is not null then raise exception 'FALLO 346 · las facturas no se casan con su cliente por el CIF del contacto'; end if;
+  r := deuda_estado();
+  if (r ->> 'facturas')::int <> 5 or (r ->> 'sin_cliente')::int <> 1 or (r ->> 'sin_cif')::int <> 1 or (r ->> 'pendiente')::numeric <> 1691.50 or (r ->> 'en_copia')::int < 6 then
+    raise exception 'FALLO 346 · el resumen de la copia no cuenta bien: %', r; end if;
   select * into d from deuda_clientes(array[c1, c2]) where cliente_id = c1;
   if d.pendiente <> 1510.50 or d.vencido <> 1210 or d.facturas <> 2 or d.vence_primera <> hoy - 10 then raise exception 'FALLO 346 · la deuda del primer cliente no cuadra: %', d; end if;
   select * into d from deuda_clientes(array[c1, c2]) where cliente_id = c2;
   if d.pendiente <> 121 or d.vencido <> 0 then raise exception 'FALLO 346 · no casa un CIF con «ES» con el mismo sin «ES», o da por vencido lo que vence hoy: %', d; end if;
-  -- Una lectura fallida no toca la foto.
-  perform deuda_lectura_fallida('La facturación no contesta');
+
+  -- MANDA EL IMPORTE: a la pagada se le corrige el cobro y vuelve con 49,50 € pendientes. Debe
+  -- contar aunque el estado siguiera diciendo «pagada»; y al venir ya como «parcial», igual.
+  update facturas_emitidas set estado_desde = now() - interval '1 day' where ref_externa = 'h346f' returning estado_desde into t;
+  perform facturas_guardar(jsonb_build_array(jsonb_build_object('id', 'h346f', 'numero', 'F346-6', 'contacto_id', k1, 'emision', hoy - 30, 'vence', hoy - 3, 'total', 99, 'pendiente', 49.5, 'estado', 'pagada')));
+  select * into d from deuda_clientes(array[c1]);
+  if d.pendiente <> 1560 or d.facturas <> 3 then raise exception 'FALLO 346 · una factura «pagada» con importe pendiente no cuenta como deuda: %', d; end if;
+  if (select pagada_el from facturas_emitidas where ref_externa = 'h346f') <> hoy - 2 then raise exception 'FALLO 346 · releer una pagada sin el día del cobro lo borra'; end if;
+  perform facturas_guardar(jsonb_build_array(jsonb_build_object('id', 'h346f', 'numero', 'F346-6', 'contacto_id', k1, 'emision', hoy - 30, 'vence', hoy - 3, 'total', 99, 'pendiente', 49.5, 'estado', 'parcial')));
+  if (select pagada_el from facturas_emitidas where ref_externa = 'h346f') is not null or (select estado_desde from facturas_emitidas where ref_externa = 'h346f') = t then
+    raise exception 'FALLO 346 · al dejar de estar pagada conserva el día del cobro o no apunta el cambio de estado'; end if;
+  -- Se cobra entera la más antigua: deja de deber. Una lectura vacía no borra nada.
+  perform facturas_guardar(jsonb_build_array(jsonb_build_object('id', 'h346a', 'numero', 'F346-1', 'contacto_id', k1, 'emision', hoy - 40, 'vence', hoy - 10, 'base', 1000, 'iva', 210, 'total', 1210, 'pendiente', 0, 'estado', 'pagada')));
+  perform facturas_guardar('[]'::jsonb);
+  select * into d from deuda_clientes(array[c1]);
+  if d.pendiente <> 350 or d.vencido <> 49.5 or (select count(*) from facturas_emitidas where ref_externa like 'h346%') <> 6 then raise exception 'FALLO 346 · al cobrarse una factura la deuda no baja, o una lectura vacía borra la copia: %', d; end if;
+  if (select cuenta from facturas_emitidas where ref_externa = 'h346a') <> '70500000' then raise exception 'FALLO 346 · releer una factura sin sus líneas le quita la cuenta contable'; end if;
+  -- El día del cobro leído aparte: solo en las pagadas, y se queda el último.
+  n := facturas_apuntar_cobros(jsonb_build_array(jsonb_build_object('documento', 'h346a', 'fecha', hoy - 3), jsonb_build_object('documento', 'h346a', 'fecha', hoy - 1),
+                                                 jsonb_build_object('documento', 'h346b', 'fecha', hoy - 1), jsonb_build_object('documento', 'no-existe', 'fecha', hoy)));
+  if n <> 1 or (select pagada_el from facturas_emitidas where ref_externa = 'h346a') <> hoy - 1 or (select pagada_el from facturas_emitidas where ref_externa = 'h346b') is not null then
+    raise exception 'FALLO 346 · el día del cobro no se apunta bien (solo pagadas, el último)'; end if;
+  -- Borrada en la facturación: no se borra de la copia, queda anulada y deja de contar.
+  n := facturas_anular(array['h346d', 'no-existe']);
   r := deuda_estado();
-  if (r ->> 'pendiente')::numeric <> 1691.50 or r ->> 'error' is null or r ->> 'ultima_ok_en' is null then raise exception 'FALLO 346 · una lectura fallida cambia la foto o no queda apuntada: %', r; end if;
-  -- Refrescar SOLO un cliente: c1 ya solo debe una; lo de los demás sigue igual.
-  r := deuda_guardar_foto(jsonb_build_array(
-    jsonb_build_object('id', 'h346b', 'numero', 'F2', 'contacto_id', 'k1', 'cif', 'B34600346', 'emision', hoy - 5, 'vence', hoy + 25, 'total', 605, 'pendiente', 100)), c1, array['k1']);
-  if (select count(*) from facturas_pendientes where cliente_id = c1) <> 1 or (select pendiente from facturas_pendientes where ref_externa = 'h346b') <> 100
-     or not exists (select 1 from facturas_pendientes where ref_externa = 'h346c') then raise exception 'FALLO 346 · refrescar un cliente toca la deuda de los demás o no sustituye la suya'; end if;
-  -- Foto completa nueva: lo que ya no viene (cobrado o anulado) desaparece; el error se limpia.
-  r := deuda_guardar_foto(jsonb_build_array(
-    jsonb_build_object('id', 'h346c', 'numero', 'F3', 'contacto_id', 'k2', 'cif', 'b34600347', 'emision', hoy - 5, 'vence', hoy, 'total', 121, 'pendiente', 121)));
-  if (select count(*) from facturas_pendientes) <> 1 or (deuda_estado() ->> 'error') is not null then raise exception 'FALLO 346 · la foto nueva no sustituye entera a la anterior'; end if;
-  if exists (select 1 from deuda_clientes(array[c1])) then raise exception 'FALLO 346 · sigue debiendo un cliente que ya no tiene nada pendiente'; end if;
-  begin perform deuda_guardar_foto('{"no": "lista"}'::jsonb); mal := true; exception when others then null; end;
-  if mal then raise exception 'FALLO 346 · se acepta una foto que no es una lista'; end if;
-  perform deuda_guardar_foto('[]'::jsonb);
+  if n <> 1 or (select estado from facturas_emitidas where ref_externa = 'h346d') <> 'anulada' or (r ->> 'sin_cliente')::int <> 0 or (r ->> 'pendiente')::numeric <> 481 then
+    raise exception 'FALLO 346 · una factura anulada sigue contando o se borra: %', r; end if;
+  -- El contacto sin CIF se consulta después, y resulta ser un cliente que se dio de alta más tarde.
+  insert into clientes (razon_social, cif) values ('Llega Tarde SL', 'B34600348') returning id into c3;
+  insert into holded_contactos (contacto_id, cif, nombre) values (k4, 'ESB34600348', 'Llega Tarde');
+  n := facturas_casar();
+  if n < 1 or (select cliente_id from facturas_emitidas where ref_externa = 'h346e') is distinct from c3 then raise exception 'FALLO 346 · no se vuelve a casar una factura cuando llega el CIF de su contacto'; end if;
+  begin perform facturas_guardar('{"no": "lista"}'::jsonb); mal := true; exception when others then null; end;
+  if mal then raise exception 'FALLO 346 · se aceptan facturas que no son una lista'; end if;
+  -- Apagada, la tarea no llama al servidor.
+  update parametros set valor = 'false' where clave = 'facturas_copia_activa';
+  if facturas_avisar() then raise exception 'FALLO 346 · con la copia apagada se avisa al servidor igualmente'; end if;
+  update parametros set valor = 'true' where clave = 'facturas_copia_activa';
+  -- Para la lista: dos de estas pasan a ser del cliente de las pruebas.
+  update facturas_emitidas set cliente_id = (select cliente_id from usuarios where id = current_setting('prueba.u_cli')::uuid) where ref_externa in ('h346b', 'h346c', 'h346d');
   perform set_config('request.jwt.claim.role', '', true);
-  raise notice 'OK 346 · deuda real de clientes: la foto se casa por CIF, se sustituye entera y una lectura fallida no la toca';
+end $$;
+
+-- La lista: Dynamo las ve todas, con empresa, CIF y cuenta; busca, filtra y suma en la base de datos.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare r jsonb; begin
+  r := facturas_lista('f346');
+  if (r ->> 'total')::int <> 6 or jsonb_array_length(r -> 'filas') <> 6 or r -> 'filas' -> 0 ->> 'empresa' is null or not (r -> 'filas' -> 0 ? 'cuenta') then
+    raise exception 'FALLO 346 · Dynamo no ve todas las facturas con su empresa y su cuenta: %', r; end if;
+  if (r ->> 'por_cobrar')::numeric <> 481 or (r ->> 'vencido')::numeric <> 49.5 or (r ->> 'importe')::numeric <> 2045 then raise exception 'FALLO 346 · las sumas de la lista no cuadran (o cuentan la anulada): %', r; end if;
+  if (facturas_lista('f346', 'por_cobrar') ->> 'total')::int <> 4 or (facturas_lista('f346', 'vencida') ->> 'total')::int <> 1 or (facturas_lista('f346', 'pagada') ->> 'total')::int <> 1
+     or (facturas_lista('f346', 'anulada') ->> 'total')::int <> 1 then raise exception 'FALLO 346 · los filtros por estado de la lista no cuentan bien'; end if;
+  if (facturas_lista('debe mucho 1210') ->> 'total')::int <> 1 or (facturas_lista('b34600347') ->> 'total')::int <> 1 or (facturas_lista('f346 100%') ->> 'total')::int <> 0 then
+    raise exception 'FALLO 346 · el buscador de facturas no encuentra por empresa, importe o CIF (o trata el signo de porcentaje como comodín)'; end if;
+  r := facturas_lista('f346', 'todas', null, null, 2, 4);
+  if jsonb_array_length(r -> 'filas') <> 2 or (r ->> 'total')::int <> 6 then raise exception 'FALLO 346 · la lista no pagina bien: %', r; end if;
+  if (facturas_lista('f346', 'todas', (now() at time zone 'Europe/Madrid')::date - 10) ->> 'total')::int <> 4 then raise exception 'FALLO 346 · el filtro por fecha de la lista no funciona'; end if;
+  if factura_visible('h346a') <> 'F346-1' then raise exception 'FALLO 346 · Dynamo no puede abrir una factura'; end if;
+end $$;
+-- El cliente: solo las SUYAS, sin las anuladas y sin datos internos, pida lo que pida.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+do $$ declare r jsonb; begin
+  r := facturas_lista('f346', 'todas', null, null, 1, 25, (select id from clientes where cif = 'B34600346'));
+  if (r ->> 'total')::int <> 2 or r -> 'filas' -> 0 ? 'empresa' or r -> 'filas' -> 0 ? 'cuenta' or r -> 'filas' -> 0 ? 'cif' then
+    raise exception 'FALLO 346 · el cliente ve facturas que no son suyas, anuladas o datos internos: %', r; end if;
+  if (r ->> 'por_cobrar')::numeric <> 421.50 then raise exception 'FALLO 346 · al cliente no le cuadra lo pendiente de pago: %', r; end if;
+  if (facturas_lista('debe') ->> 'total')::int <> 0 then raise exception 'FALLO 346 · el cliente puede buscar por el nombre de otras empresas'; end if;
+  if factura_visible('h346b') is null or factura_visible('h346a') is not null or factura_visible('h346d') is not null then
+    raise exception 'FALLO 346 · el cliente puede abrir una factura ajena o anulada (o no puede abrir la suya)'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+do $$ declare ok boolean := false; begin
+  begin perform facturas_lista(); exception when insufficient_privilege then ok := true; end;
+  if not ok or factura_visible('h346b') is not null then raise exception 'FALLO 346 · un transportista puede ver facturas de clientes'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  delete from facturas_emitidas where ref_externa like 'h346%';
+  delete from holded_contactos where contacto_id like '000000000000000000000a0%';
+  raise notice 'OK 346 · copia de facturas emitidas: se casa por CIF, no se borra, manda el importe pendiente, y cada cliente ve solo las suyas';
 end $$;
 
 -- 347 · CRÉDITO: CUANDO EL «SIN CRÉDITO» ES DE CESCE SE DICE Y SE DA SU TELÉFONO (usuario,

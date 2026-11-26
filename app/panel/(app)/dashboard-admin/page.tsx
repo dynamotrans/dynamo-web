@@ -62,14 +62,16 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
   const cnt = { count: 'exact' as const };
   // OJO: las solicitudes «esperando precio» y las revisiones de precio NO salen (decisión
   // del usuario 2026-11-08): el precio es del tarifador automático, no depende del equipo.
-  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, susp24, suspTotal, sug] = await Promise.all([
+  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, susp24, suspTotal, sug, avisados] = await Promise.all([
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).in('estado', ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'])),
     supabase.rpc('pronto_pago_estado'),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
       .neq('estado_pago_previo', 'pendiente').lte('fecha_carga_desde', manana).order('fecha_carga_desde').limit(MAX),
     supabase.from('envio_reservas').select('id, envio_id, precio_propuesto, desde, envios(referencia_gx, importe_transportista), transportistas(nombre_visible, tags)', cnt)
       .eq('estado', 'pendiente_revision').order('desde').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_pago_previo', 'pendiente').order('fecha_carga_desde').limit(MAX),
+    // Esperando el pago: primero los que ya han avisado de su transferencia (hay que mirar el banco).
+    supabase.from('envios').select(`${ENV}, pago_avisado_en`, cnt).eq('estado', 'programado').eq('estado_pago_previo', 'pendiente')
+      .order('pago_avisado_en', { ascending: true, nullsFirst: false }).order('fecha_carga_desde').limit(MAX),
     supabase.from('incidencias').select('id, titulo, prioridad, creado_en, envios(referencia_gx), tipos_incidencia(clave, nombre)', cnt)
       .in('estado', ['abierto', 'en_curso']).order('creado_en').limit(50),
     supabase.from('penalizaciones').select('id, importe_cliente, importe_transportista, creado_en, envios(referencia_gx), tipos_penalizacion(nombre)', cnt)
@@ -82,6 +84,8 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     cuenta(supabase.from('usuarios').select('id', { count: 'exact', head: true }).in('estado', ['suspendida', 'suspendida_total'])),
     // Sugerencias y fallos que mandan los usuarios desde Soporte (usuario, 2026-11-21): las activas.
     supabase.from('sugerencias').select('id, numero, texto, autor_email, creado_en', cnt).eq('estado', 'activa').order('creado_en').limit(MAX),
+    // Clientes que han avisado de su transferencia y esperan a que Dynamo la valide.
+    cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).eq('estado', 'programado').eq('estado_pago_previo', 'pendiente').not('pago_avisado_en', 'is', null)),
   ]);
   const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
   const ficha = (id: string) => `/panel/envios?ver=${id}`;
@@ -94,7 +98,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
 
   const bloques: Bloque[] = [
     // Orden de las cajas fijado por el usuario (2026-11-14): Contraofertas · Altas ·
-    // Hoy/mañana sin camión · Esperando el pago · Incidencias · Penalizaciones. La de
+    // Hoy/mañana sin camión · Aviso de pago (antes «Esperando el pago») · Incidencias · Penalizaciones. La de
     // Almacenamientos se quitó (módulo v3, oculto a clientes).
     { id: 'contraofertas-transportistas', nivel: 'aviso', corto: 'Contraofertas transp.', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
       sub: 'Transportistas que proponen otro precio: se aceptan o rechazan en la ficha del envío.',
@@ -109,9 +113,16 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
       sub: 'Envíos que cargan hoy o mañana y aún no tienen transportista asignado.',
       filas: (sinCamion.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
         urgente: (e.fecha_carga_desde ?? '') <= hoy })) },
-    { id: 'sin-pagar', nivel: 'aviso', corto: 'Esperando el pago', titulo: 'Envíos esperando el pago del cliente', total: sinPagar.count ?? 0, todo: '/panel/envios?f=sin-pagar',
-      sub: 'Hasta que el cliente no paga, el envío no avanza (no se asigna camión). Si paga por transferencia, márcalo al recibirla.',
-      filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.modificado_en ?? e.creado_en })) },
+    // AVISO DE PAGO (usuario, 2026-11-25): la cifra grande son los clientes que han avisado de
+    // su transferencia (lo que pide acción: mirar el banco y validarla); debajo, en pequeño,
+    // cuántos envíos esperan el pago en total. Las dos cifras a la vista, como la caja de pronto pago.
+    { id: 'sin-pagar', nivel: avisados > 0 ? 'urgente' : 'aviso', corto: 'Aviso de pago', titulo: 'Envíos esperando el pago del cliente', total: avisados, todo: '/panel/envios?f=sin-pagar',
+      pie: `Esperando el pago · ${sinPagar.count ?? 0}`,
+      enLista: sinPagar.count ?? 0,
+      sub: 'Primero, los clientes que han avisado de su transferencia: mira el banco y márcala como recibida (o «Pago no recibido»). Hasta que el cliente no paga, el envío no avanza (no se asigna camión).',
+      filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
+        s: e.pago_avisado_en ? `Transferencia avisada · validar · Carga ${fechas(e)}` : `Carga ${fechas(e)}`,
+        desde: e.pago_avisado_en ?? e.modificado_en ?? e.creado_en, urgente: !!e.pago_avisado_en })) },
     { id: 'incidencias', nivel: incs.some((i) => i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica') ? 'urgente' : 'aviso',
       corto: 'Incidencias abiertas', titulo: 'Incidencias abiertas', total: inc.count ?? 0, todo: '/panel/incidencias',
       sub: 'Abiertas o en curso; primero los siniestros y las críticas.',

@@ -151,6 +151,16 @@ test.describe('novedades', () => {
     await entrar(page, 'dynamo');
     await page.goto('/panel/envios?f=sin-pagar');
     await expect(page.locator('table.data tbody tr', { hasText: e.referencia_gx })).toContainText('Transferencia avisada · validar');
+    // En el Dashboard, la caja «Aviso de pago» (usuario, 2026-11-25): en grande, los que han
+    // avisado; debajo, cuántos esperan el pago en total. Las dos cifras a la vista.
+    await page.goto('/panel/dashboard-admin');
+    const caja = page.locator('.stat-card', { hasText: 'Aviso de pago' });
+    const avisados = Number(await caja.locator('.stat-card-value').innerText());
+    expect(avisados).toBeGreaterThanOrEqual(1);
+    await expect(caja.locator('.stat-card-trend')).toHaveText(/^Esperando el pago · \d+$/);
+    expect(Number((await caja.locator('.stat-card-trend').innerText()).replace(/\D/g, ''))).toBeGreaterThanOrEqual(avisados);
+    await caja.click();
+    await expect(page.locator('.ph-fila', { hasText: e.referencia_gx })).toContainText('Transferencia avisada · validar');
     await page.goto(`/panel/envios?ver=${e.id}`);
     await expect(page.locator('#pago-avisado')).toContainText('El cliente avisó de su transferencia');
     await expect(page.getByRole('button', { name: 'Ha llegado la transferencia' })).toBeVisible();
@@ -956,6 +966,30 @@ test.describe('novedades', () => {
     await expect(page.locator('#sitio-buscar')).toHaveValue('Zzlaos');
   });
 
+  // Fallo (usuario, 2026-11-25): al elegir OTRO resultado del buscador en la misma ficha se
+  // quedaban el teléfono (y el horario, y el tipo) del anterior. Elegir otro empieza de cero.
+  test('nuevo sitio: elegir otro resultado del buscador limpia la ficha entera (no queda el teléfono del anterior)', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/nuevo-envio');
+    await page.locator('.ptar-route-row input[type=text]').nth(0).fill('Zzprimera');
+    await page.locator('.ptar-sug li', { hasText: 'Crear nuevo sitio' }).click();
+    await page.locator('#sitio-buscar').focus();
+    await page.locator('[data-sug-google]').first().click();
+    await expect(page.locator('#sitio-nombre_empresa')).toHaveValue('Zzprimera, S.L.');
+    const tel = page.locator('.dash-modal-card input[type=tel]').first();
+    const primero = await tel.inputValue();
+    expect(primero.replace(/\D/g, '').length).toBeGreaterThan(5);
+    // Algo escrito a mano en la primera: tampoco debe quedarse en la segunda empresa.
+    await page.locator('.dash-modal-card input[type=email]').first().fill('de-la-primera@e2e.invalid');
+    await page.locator('#sitio-buscar').fill('Zzsegunda otra');
+    await page.locator('[data-sug-google]').first().click();
+    await expect(page.locator('#sitio-nombre_empresa')).toHaveValue('Zzsegunda Otra, S.L.');
+    await expect(tel).not.toHaveValue(primero);
+    expect((await tel.inputValue()).replace(/\D/g, '').length).toBeGreaterThan(5);
+    await expect(page.locator('.dash-modal-card input[type=email]').first()).toHaveValue('');
+    expect(await page.locator('#sitio-direccion').inputValue()).not.toBe('');
+  });
+
   // Fallo (usuario, 2026-11-21): el sitio creado desde la ruta no se quedaba en la parada ni
   // salía en el desplegable hasta recargar. Ahora queda elegido y aparece en la agenda.
   test('nuevo sitio desde la ruta: queda elegido en la parada y sale en el desplegable sin recargar', async ({ page }) => {
@@ -1687,20 +1721,23 @@ test.describe('novedades', () => {
     }
   });
 
-  test('CESCE - Riesgos: lo que debe cada cliente según sus facturas pendientes de cobro (foto de la facturación)', async ({ page }) => {
+  test('CESCE - Riesgos: lo que debe cada cliente según la copia de facturas emitidas (manda el importe pendiente)', async ({ page }) => {
     const sv = bd();
     const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
     const hoy = new Date();
     const dia = (n: number) => new Date(hoy.getTime() + n * 86400000).toISOString().slice(0, 10);
-    // La foto la guarda el servidor (aquí, a mano con la clave de servicio): dos facturas del
-    // cliente de pruebas, una vencida, y una de un contacto que no es cliente de la plataforma.
-    await sv.from('facturas_pendientes').delete().neq('ref_externa', '');
-    await sv.from('facturas_pendientes').insert([
-      { ref_externa: 'e2e-deuda-1', cliente_id: u!.cliente_id, numero: 'F-E2E-1', fecha_emision: dia(-40), fecha_vencimiento: dia(-10), total: 1210, pendiente: 1210 },
-      { ref_externa: 'e2e-deuda-2', cliente_id: u!.cliente_id, numero: 'F-E2E-2', fecha_emision: dia(-5), fecha_vencimiento: dia(25), total: 605, pendiente: 300.5 },
-      { ref_externa: 'e2e-deuda-3', cliente_id: null, contacto_nombre: 'No es cliente', cif: 'B99999999', numero: 'F-E2E-3', fecha_emision: dia(-5), fecha_vencimiento: dia(5), total: 50, pendiente: 50 },
+    // La copia la guarda el servidor (aquí, a mano con la clave de servicio): tres facturas del
+    // cliente de pruebas (una vencida, una cobrada en parte y una pagada que no cuenta) y una
+    // de un contacto que no es cliente de la plataforma.
+    await sv.from('facturas_emitidas').delete().like('ref_externa', 'e2e-deuda-%');
+    const { error: e0 } = await sv.from('facturas_emitidas').insert([
+      { ref_externa: 'e2e-deuda-1', cliente_id: u!.cliente_id, numero: 'F-E2E-1', fecha_emision: dia(-40), fecha_vencimiento: dia(-10), total: 1210, pendiente: 1210, estado: 'pendiente' },
+      { ref_externa: 'e2e-deuda-2', cliente_id: u!.cliente_id, numero: 'F-E2E-2', fecha_emision: dia(-5), fecha_vencimiento: dia(25), total: 605, pendiente: 300.5, estado: 'parcial' },
+      { ref_externa: 'e2e-deuda-3', cliente_id: null, contacto_nombre: 'No es cliente', cif: 'B99999999', numero: 'F-E2E-3', fecha_emision: dia(-5), fecha_vencimiento: dia(5), total: 50, pendiente: 50, estado: 'pendiente' },
+      { ref_externa: 'e2e-deuda-4', cliente_id: u!.cliente_id, numero: 'F-E2E-4', fecha_emision: dia(-60), fecha_vencimiento: dia(-30), total: 999, pendiente: 0, estado: 'pagada', pagada_el: dia(-31) },
     ]);
-    await sv.from('facturas_pendientes_estado').update({ ultima_en: hoy.toISOString(), ultima_ok_en: hoy.toISOString(), error: null, facturas: 3, sin_cliente: 1, sin_cif: 0 }).eq('id', true);
+    expect(e0).toBeNull();
+    await sv.from('facturas_copia_estado').update({ ultima_en: hoy.toISOString(), ultima_ok_en: hoy.toISOString(), error: null, carga_completa_en: hoy.toISOString() }).eq('id', true);
     try {
       await entrar(page, 'dynamo');
       await page.goto('/panel/riesgos');
@@ -1714,35 +1751,86 @@ test.describe('novedades', () => {
       await expect(celda).toContainText('1.510,50');
       await expect(celda).toContainText('2 facturas');
       await expect(celda).toContainText('vencido 1.210,00');
-      // El cliente no puede leer la foto (ni la suya): los importes de crédito no son para él.
+      // El cliente no lee la tabla ni lo que deben los clientes; sus facturas, solo por la lista.
       const c = await como('cliente');
-      const { data: suyas } = await c.from('facturas_pendientes').select('ref_externa');
+      const { data: suyas } = await c.from('facturas_emitidas').select('ref_externa');
       expect(suyas ?? []).toHaveLength(0);
       const { error } = await c.rpc('deuda_clientes', { p_clientes: [u!.cliente_id] });
       expect(error).not.toBeNull();
+      const { data: lista } = await c.rpc('facturas_lista', { p_q: 'F-E2E' });
+      expect((lista as { total: number }).total).toBe(3);
     } finally {
-      await sv.from('facturas_pendientes').delete().like('ref_externa', 'e2e-deuda-%');
-      await sv.from('facturas_pendientes_estado').update({ ultima_en: null, ultima_ok_en: null, error: null, facturas: 0, sin_cliente: 0, sin_cif: 0 }).eq('id', true);
+      await sv.from('facturas_emitidas').delete().like('ref_externa', 'e2e-deuda-%');
+      await sv.from('facturas_copia_estado').update({ ultima_en: null, ultima_ok_en: null, error: null, carga_completa_en: null }).eq('id', true);
     }
   });
 
-  test('Administración → Facturas: Dynamo ve ingresos y gastos con filtros de tipo y periodo (solo lectura); el cliente, solo las suyas', async ({ page }) => {
-    await entrar(page, 'dynamo');
-    await page.goto('/panel/administracion');
-    await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
-    await expect(page.locator('#facturas-sin-conectar')).toContainText('menos las de gastos financieros');
-    await expect(page.locator('#facturas-dynamo')).toContainText('Solo lectura');
-    await expect(page.locator('#facturas-lista thead')).toContainText(/Fecha.*Tipo.*Nº factura.*CIF · Empresa.*Base.*IVA.*Retención.*Total.*Pago.*Cuenta contable/);
-    await expect(page.locator('#fac-tipo option')).toHaveText(['Todas (ingresos y gastos)', 'Ingresos · emitidas', 'Gastos · recibidas']);
-    await page.locator('#fac-periodo').selectOption('trim');
-    await page.locator('#fac-periodo').selectOption('entre');
-    await expect(page.locator('#facturas-dynamo').getByLabel('Desde')).toBeVisible();
-    await expect(page.locator('#facturas-dynamo').getByLabel('Hasta')).toBeVisible();
-    await entrar(page, 'cliente');
-    await page.goto('/panel/administracion');
-    await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
-    await expect(page.locator('#sec-facturas')).toContainText('te las seguimos enviando por email');
-    await expect(page.locator('#facturas-dynamo')).toHaveCount(0);
+  test('Administración → Facturas: Dynamo ve todas las emitidas (solo lectura) y el cliente, solo las suyas, con su estado de pago', async ({ page }) => {
+    const sv = bd();
+    const { data: u } = await sv.from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const hoy = new Date();
+    const dia = (n: number) => new Date(hoy.getTime() + n * 86400000).toISOString().slice(0, 10);
+    const AJENA = 'e2efac0000000000000000a1'.replace(/[^0-9a-f]/g, '0'), SUYA = 'e2efac0000000000000000b2'.replace(/[^0-9a-f]/g, '0');
+    await sv.from('facturas_emitidas').delete().like('numero', 'FAC-E2E-%');
+    const { error: e0 } = await sv.from('facturas_emitidas').insert([
+      { ref_externa: 'e2e-fac-1', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-1', fecha_emision: dia(-40), fecha_vencimiento: dia(-10), base: 1000, iva: 210, total: 1210, pendiente: 1210, estado: 'pendiente', cuenta: '70500000' },
+      { ref_externa: 'e2e-fac-2', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-2', fecha_emision: dia(-5), fecha_vencimiento: dia(25), base: 500, iva: 105, total: 605, pendiente: 300.5, estado: 'parcial' },
+      { ref_externa: SUYA, cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-3', fecha_emision: dia(-60), fecha_vencimiento: dia(-30), base: 100, iva: 21, total: 121, pendiente: 0, estado: 'pagada', pagada_el: dia(-25) },
+      { ref_externa: 'e2e-fac-4', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-4', fecha_emision: dia(-3), fecha_vencimiento: dia(27), base: 10, iva: 2.1, total: 12.1, pendiente: 0, estado: 'anulada' },
+      { ref_externa: AJENA, cliente_id: null, contacto_nombre: 'Ajena No Cliente SL', cif: 'B99999998', numero: 'FAC-E2E-5', fecha_emision: dia(-2), fecha_vencimiento: dia(28), base: 50, iva: 10.5, total: 60.5, pendiente: 60.5, estado: 'pendiente' },
+    ]);
+    expect(e0).toBeNull();
+    try {
+      await entrar(page, 'dynamo');
+      await page.goto('/panel/administracion');
+      await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
+      const f = page.locator('#facturas');
+      await expect(f).toContainText('Solo lectura');
+      await expect(f.locator('#facturas-nota')).toContainText('Copia de las facturas emitidas');
+      await expect(page.locator('#facturas-lista thead')).toContainText(/Fecha.*Nº factura.*CIF · Empresa.*Base.*IVA.*Retención.*Total.*Pago.*Cuenta contable/);
+      // Las recibidas ya no se enseñan (usuario, 2026-11-25): no hay filtro de ingresos y gastos.
+      await expect(page.locator('#fac-tipo')).toHaveCount(0);
+      await page.fill('#fac-buscar', 'FAC-E2E');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(5);
+      await expect(f.locator('#facturas-totales')).toContainText(/Por cobrar:\s*1\.571,00/);
+      await expect(f.locator('#facturas-totales')).toContainText(/vencido:\s*1\.210,00/);
+      const parcial = page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-2' });
+      await expect(parcial).toContainText('Pendiente');
+      await expect(parcial).toContainText('faltan 300,50');
+      await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-1' })).toContainText('Vencida');
+      await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-3' })).toContainText(/Pagada.*a los 35 días.*5 días tarde/s);
+      await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-5' })).toContainText('no es cliente de la plataforma');
+      await page.selectOption('#fac-estado', 'por_cobrar');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(3);
+      await page.selectOption('#fac-estado', 'anulada');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(1);
+      await page.selectOption('#fac-estado', 'todas');
+      await page.fill('#fac-buscar', 'ajena no cliente');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(1);
+      await page.locator('#fac-periodo').selectOption('entre');
+      await expect(f.getByLabel('Desde')).toBeVisible();
+      await expect(f.getByLabel('Hasta')).toBeVisible();
+
+      // El cliente: solo las suyas, sin la anulada, sin datos internos y sin nombrar el programa.
+      await entrar(page, 'cliente');
+      await page.goto('/panel/administracion');
+      await page.locator('#sec-facturas .tabs').getByRole('button', { name: 'Facturas' }).click();
+      await expect(page.locator('#facturas-lista thead')).not.toContainText('Cuenta contable');
+      await expect(page.locator('#facturas-lista thead')).not.toContainText('Empresa');
+      await page.fill('#fac-buscar', 'FAC-E2E');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(3);
+      await expect(page.locator('#facturas-totales')).toContainText(/Pendiente de pago:\s*1\.510,50/);
+      await expect(page.locator('#facturas')).not.toContainText(/Holded|Ajena|días tarde|programa de facturación/);
+      await expect(page.locator('#facturas-nota')).toHaveCount(0);
+      await expect(page.locator('#facturas-actualizar')).toHaveCount(0);
+      // El PDF: el de otra empresa, como si no existiera; el suyo pasa el permiso (en este
+      // entorno la facturación no está conectada, así que no hay PDF que servir).
+      expect((await page.request.get(`/api/facturas/${AJENA}/pdf`)).status()).toBe(404);
+      expect((await page.request.get(`/api/facturas/${SUYA}/pdf`)).status()).toBe(502);
+      expect((await page.request.get('/api/facturas/ffffffffffffffffffffffff/pdf')).status()).toBe(404);
+    } finally {
+      await sv.from('facturas_emitidas').delete().like('numero', 'FAC-E2E-%');
+    }
   });
 
   test('filtro de fecha único: periodos y «Entre dos fechas» con calendarios en envíos, incidencias, penalizaciones y proformas', async ({ page }) => {

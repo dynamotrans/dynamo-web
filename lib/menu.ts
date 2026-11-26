@@ -80,6 +80,9 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       ...(PACKS_GRUPAJE ? [{ slug: 'packs', titulo: 'Packs de grupaje', icono: 'capas' } as Enlace] : []),
       { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
       { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
+      // Albaranes que llegan de los transportistas, antes de que los vea el cliente (2026-11-22).
+      // Aquí, detrás de Penalizaciones (usuario, 2026-11-25): es trabajo del día a día.
+      { slug: 'verificacion-albaranes', titulo: 'Verificación albaranes', icono: 'facturas' },
       // Apagado hasta la v4 (lib/modulos.ts).
       ...(ALMACENAMIENTOS ? [{ slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' } as Enlace] : []),
       { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
@@ -101,8 +104,6 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
       { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
       { slug: 'festivos', titulo: 'Festivos', icono: 'ajustes' },
-      // Albaranes que llegan de los transportistas, antes de que los vea el cliente (2026-11-22).
-      { slug: 'verificacion-albaranes', titulo: 'Verificación albaranes', icono: 'facturas' },
       // Lo que mandan los usuarios desde Soporte (usuario, 2026-11-21).
       { slug: 'sugerencias', titulo: 'Sugerencias', icono: 'sugerencias' },
       { slug: 'proteccion-datos', titulo: 'Protección de datos', icono: 'escudo' },

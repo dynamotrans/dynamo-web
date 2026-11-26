@@ -2812,7 +2812,56 @@ export type Database = {
           },
         ]
       }
-      facturas_pendientes: {
+      facturas_copia_estado: {
+        Row: {
+          id: boolean
+          ultima_en: string | null
+          ultima_ok_en: string | null
+          error: string | null
+          carga_completa_en: string | null
+          barrido_tipo: string | null
+          barrido_desde: string | null
+          barrido_hasta: string | null
+          barrido_cobros: string | null
+          barrido_inicio_en: string | null
+          repaso_en: string | null
+          repaso_desde: string | null
+          repaso_inicio_en: string | null
+        }
+        Insert: {
+          id?: boolean
+          ultima_en?: string | null
+          ultima_ok_en?: string | null
+          error?: string | null
+          carga_completa_en?: string | null
+          barrido_tipo?: string | null
+          barrido_desde?: string | null
+          barrido_hasta?: string | null
+          barrido_cobros?: string | null
+          barrido_inicio_en?: string | null
+          repaso_en?: string | null
+          repaso_desde?: string | null
+          repaso_inicio_en?: string | null
+        }
+        Update: {
+          id?: boolean
+          ultima_en?: string | null
+          ultima_ok_en?: string | null
+          error?: string | null
+          carga_completa_en?: string | null
+          barrido_tipo?: string | null
+          barrido_desde?: string | null
+          barrido_hasta?: string | null
+          barrido_cobros?: string | null
+          barrido_inicio_en?: string | null
+          repaso_en?: string | null
+          repaso_desde?: string | null
+          repaso_inicio_en?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      facturas_emitidas: {
         Row: {
           ref_externa: string
           cliente_id: string | null
@@ -2820,11 +2869,19 @@ export type Database = {
           contacto_nombre: string | null
           cif: string | null
           numero: string | null
-          fecha_emision: string | null
+          fecha_emision: string
           fecha_vencimiento: string | null
+          base: number
+          iva: number
+          retencion: number
           total: number
           pendiente: number
+          estado: string
+          pagada_el: string | null
+          cuenta: string | null
+          estado_desde: string
           leido_en: string
+          creado_en: string
         }
         Insert: {
           ref_externa: string
@@ -2833,11 +2890,19 @@ export type Database = {
           contacto_nombre?: string | null
           cif?: string | null
           numero?: string | null
-          fecha_emision?: string | null
+          fecha_emision: string
           fecha_vencimiento?: string | null
-          total: number
-          pendiente: number
+          base?: number
+          iva?: number
+          retencion?: number
+          total?: number
+          pendiente?: number
+          estado: string
+          pagada_el?: string | null
+          cuenta?: string | null
+          estado_desde?: string
           leido_en?: string
+          creado_en?: string
         }
         Update: {
           ref_externa?: string
@@ -2846,51 +2911,28 @@ export type Database = {
           contacto_nombre?: string | null
           cif?: string | null
           numero?: string | null
-          fecha_emision?: string | null
+          fecha_emision?: string
           fecha_vencimiento?: string | null
+          base?: number
+          iva?: number
+          retencion?: number
           total?: number
           pendiente?: number
+          estado?: string
+          pagada_el?: string | null
+          cuenta?: string | null
+          estado_desde?: string
           leido_en?: string
+          creado_en?: string
         }
         Relationships: [
           {
-            foreignKeyName: "facturas_pendientes_cliente_id_fkey"
+            foreignKeyName: "facturas_emitidas_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      facturas_pendientes_estado: {
-        Row: {
-          id: boolean
-          ultima_en: string | null
-          ultima_ok_en: string | null
-          error: string | null
-          facturas: number
-          sin_cliente: number
-          sin_cif: number
-        }
-        Insert: {
-          id?: boolean
-          ultima_en?: string | null
-          ultima_ok_en?: string | null
-          error?: string | null
-          facturas?: number
-          sin_cliente?: number
-          sin_cif?: number
-        }
-        Update: {
-          id?: boolean
-          ultima_en?: string | null
-          ultima_ok_en?: string | null
-          error?: string | null
-          facturas?: number
-          sin_cliente?: number
-          sin_cif?: number
-        }
-        Relationships: [
         ]
       }
       festivos: {
@@ -5121,8 +5163,6 @@ export type Database = {
       deshacer_pack: { Args: { p_pack: string | null }; Returns: Json }
       deuda_clientes: { Args: { p_clientes: string[] | null }; Returns: { cliente_id: string; pendiente: number; vencido: number; facturas: number; vence_primera: string }[] }
       deuda_estado: { Args: Record<PropertyKey, never>; Returns: Json }
-      deuda_guardar_foto: { Args: { p_facturas: Json | null; p_cliente?: string | null; p_contactos?: string[] | null }; Returns: Json }
-      deuda_lectura_fallida: { Args: { p_error: string | null }; Returns: undefined }
       devolucion_pago_abrir: { Args: { p_envio: string | null; p_importe: number | null; p_cobrado: number | null; p_motivo?: string | null }; Returns: Json }
       devolucion_pago_cerrar: { Args: { p_id: string | null; p_ok: boolean | null; p_ref?: string | null; p_error?: string | null }; Returns: Json }
       dias_habiles_antes: { Args: { p_fecha: string | null; p_n: number | null }; Returns: string }
@@ -5212,6 +5252,13 @@ export type Database = {
       exportar_datos_usuario: { Args: { p_usuario?: string | null }; Returns: Json }
       factor_automatico: { Args: { p_cliente: string | null }; Returns: number }
       factor_tarifa_envio: { Args: { p_cliente: string | null; p_envio?: string | null }; Returns: number }
+      factura_visible: { Args: { p_ref: string | null }; Returns: string }
+      facturas_anular: { Args: { p_ids: string[] | null }; Returns: number }
+      facturas_apuntar_cobros: { Args: { p_cobros: Json | null }; Returns: number }
+      facturas_avisar: { Args: Record<PropertyKey, never>; Returns: boolean }
+      facturas_casar: { Args: Record<PropertyKey, never>; Returns: number }
+      facturas_guardar: { Args: { p_facturas: Json | null }; Returns: number }
+      facturas_lista: { Args: { p_q?: string | null; p_estado?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por?: number | null; p_cliente?: string | null }; Returns: Json }
       fecha_ddmmyyyy: { Args: { p: string | null }; Returns: string }
       fecha_hora_texto: { Args: { p: string | null }; Returns: string }
       fecha_texto: { Args: { p: string | null }; Returns: string }
