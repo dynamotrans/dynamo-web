@@ -4869,6 +4869,66 @@ export type Database = {
           },
         ]
       }
+      verificacion_banco_estado: {
+        Row: {
+          id: boolean
+          cuenta_id: string | null
+          revisado_en: string | null
+          ultimo_error: string | null
+        }
+        Insert: {
+          id?: boolean
+          cuenta_id?: string | null
+          revisado_en?: string | null
+          ultimo_error?: string | null
+        }
+        Update: {
+          id?: boolean
+          cuenta_id?: string | null
+          revisado_en?: string | null
+          ultimo_error?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      verificacion_movimientos: {
+        Row: {
+          movimiento_id: string
+          cliente_id: string | null
+          resultado: string
+          importe: number | null
+          fecha: string | null
+          descripcion: string | null
+          procesado_en: string
+        }
+        Insert: {
+          movimiento_id: string
+          cliente_id?: string | null
+          resultado: string
+          importe?: number | null
+          fecha?: string | null
+          descripcion?: string | null
+          procesado_en?: string
+        }
+        Update: {
+          movimiento_id?: string
+          cliente_id?: string | null
+          resultado?: string
+          importe?: number | null
+          fecha?: string | null
+          descripcion?: string | null
+          procesado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verificacion_movimientos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       verificaciones_empresa: {
         Row: {
           id: string
@@ -5724,6 +5784,7 @@ export type Database = {
       orden_carga_json: { Args: { p_envio: string | null }; Returns: Json }
       orden_oculta_sin_matriculas: { Args: { p_json: Json | null; p_envio: string | null }; Returns: Json }
       orden_sin_economia_cliente: { Args: { p_json: Json | null }; Returns: Json }
+      ordenante_cuadra: { Args: { p_razon: string | null; p_descripcion: string | null }; Returns: boolean }
       otras_cargas_publicas: { Args: { p_token: string | null }; Returns: Json }
       pack_al_paso: { Args: { r: Json | null; c: Json | null }; Returns: boolean }
       pack_motivo_no: { Args: { p_envio: string | null }; Returns: string }
@@ -5879,6 +5940,7 @@ export type Database = {
       verificacion_albaran_rechazar: { Args: { p_id: string | null; p_motivo?: string | null }; Returns: Json }
       verificacion_albaran_tipo: { Args: { p_id: string | null; p_tipo: string | null }; Returns: Json }
       verificacion_albaranes_lista: { Args: Record<PropertyKey, never>; Returns: Json }
+      verificacion_por_movimiento: { Args: { p_movimiento: string | null; p_descripcion: string | null; p_importe: number | null; p_fecha: string | null }; Returns: string }
       verificar_empresa: { Args: { p_cliente: string | null; p_metodo: string | null; p_motivo: string | null }; Returns: string }
       whatsapp_archivo_guardado: { Args: { p_mensaje: string | null; p_ruta: string | null; p_tipo: string | null; p_bytes: number | null }; Returns: undefined }
       whatsapp_archivos_borrados: { Args: { p_mensajes: string[] | null }; Returns: number }

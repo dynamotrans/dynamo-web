@@ -14,7 +14,7 @@ import { AYUDA } from '@/lib/parametrosAyuda';
 
 // Datos que deciden a quién paga el cliente: solo se cambian en Supabase (la base de datos
 // lo impone; migración parametros_blindados). Aquí se ven, sin poder tocarlos.
-const BLINDADOS = ['dynamo_iban', 'dynamo_banco', 'dynamo_bic', 'dynamo_razon_social', 'dynamo_cif'];
+const BLINDADOS = ['dynamo_iban', 'dynamo_banco', 'dynamo_bic', 'dynamo_razon_social', 'dynamo_cif', 'dynamo_verificacion_iban', 'dynamo_verificacion_banco'];
 // La cuenta bancaria se enseña junta, en una sola caja (son tres datos de lo mismo).
 const BANCO = ['dynamo_banco', 'dynamo_iban', 'dynamo_bic'];
 

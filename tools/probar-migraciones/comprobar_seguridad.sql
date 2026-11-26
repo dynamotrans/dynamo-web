@@ -17709,3 +17709,43 @@ do $$ begin
   update usuarios set estado = 'suspendida' where id = current_setting('prueba.u379')::uuid;
   raise notice 'OK 379 · baja de un compañero: solo de su empresa y no de sí mismo, el afectado queda sin acceso al momento con email, Dynamo avisado y decide (baja o rehabilitar) con registro';
 end $$;
+
+-- ---- 380. Verificación automática por el céntimo ------------------------------------------
+-- (usuario, 2026-11-26) Un movimiento de 0,01 € con el código de una empresa sin verificar y
+-- el ordenante parecido a su razón social la verifica solo; si el ordenante no cuadra, queda
+-- por verificar con aviso a Dynamo. Cada movimiento se mira una vez. Solo el servidor.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare a uuid; b uuid; ca text; cb text; r text; ok boolean := false; begin
+  perform set_config('dynamo.verificacion', 'on', true);
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Transportes Garcia Lopez S.L.', 'B38000001', 'no_verificada') returning id, codigo_transferencia into a, ca;
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Maderas del Norte S.A.', 'B38000002', 'no_verificada') returning id, codigo_transferencia into b, cb;
+  perform set_config('dynamo.verificacion', '', true);
+  if not ordenante_cuadra('Transportes García López, S.L.', 'TRANSFERENCIA DE TRANSPORTES GARCIA LOPEZ SL CONCEPTO ' || ca) then raise exception 'FALLO 380 · no reconoce al ordenante'; end if;
+  if ordenante_cuadra('Transportes García López, S.L.', 'TRANSFERENCIA DE OTRA EMPRESA DISTINTA SA') then raise exception 'FALLO 380 · da por bueno a otro ordenante'; end if;
+  -- Con su código (sin guion, como lo dejan algunos bancos) y su nombre: verificada sola.
+  r := verificacion_por_movimiento('mov380a', 'TRANSF DE TRANSPORTES GARCIA LOPEZ SL ' || replace(ca, '-', ''), 0.01, now());
+  if r <> 'verificada' or (select (estado_verificacion, metodo_verificacion) from clientes where id = a) is distinct from ('verificada'::verificacion_empresa, 'transferencia'::metodo_verificacion) then
+    raise exception 'FALLO 380 · el céntimo con código y nombre no verifica: %', r; end if;
+  if verificacion_por_movimiento('mov380a', 'otra vez', 0.01, now()) <> 'repetido' then raise exception 'FALLO 380 · un movimiento se mira dos veces'; end if;
+  -- Ordenante que no cuadra: por verificar, con aviso.
+  r := verificacion_por_movimiento('mov380b', 'TRANSFERENCIA DE PEPE PEREZ ' || cb, 0.01, now());
+  if r <> 'revisar' or (select (estado_verificacion, verificacion_solicitada) from clientes where id = b) is distinct from ('no_verificada'::verificacion_empresa, 'transferencia'::metodo_verificacion) then
+    raise exception 'FALLO 380 · con otro ordenante no queda por verificar: %', r; end if;
+  if not exists (select 1 from avisos where tipo = 'verificacion_empresa' and titulo like 'Revisa la verificación · Maderas%') then raise exception 'FALLO 380 · Dynamo no recibe el aviso'; end if;
+  -- Importe distinto o sin código: no se toca nada.
+  if verificacion_por_movimiento('mov380c', 'MADERAS DEL NORTE ' || cb, 10, now()) <> 'importe' then raise exception 'FALLO 380 · verifica con un importe que no es 0,01 €'; end if;
+  if verificacion_por_movimiento('mov380d', 'TRANSFERENCIA SIN CODIGO', 0.01, now()) <> 'sin_codigo' then raise exception 'FALLO 380 · sin código no dice sin_codigo'; end if;
+  -- Nadie más que el servidor la usa.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  begin perform verificacion_por_movimiento('mov380e', 'x ' || cb, 0.01, now()); exception when insufficient_privilege then ok := true; end;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if not ok then raise exception 'FALLO 380 · un usuario verifica con un movimiento inventado'; end if;
+  -- El IBAN de la cuenta de verificación está blindado como el de las proformas.
+  if (select valor #>> '{}' from parametros where clave = 'dynamo_verificacion_iban') !~ '^ES\d{22}$' then raise exception 'FALLO 380 · falta el IBAN de verificación'; end if;
+  delete from verificacion_movimientos where movimiento_id like 'mov380%';
+  delete from clientes where id in (a, b);
+  raise notice 'OK 380 · céntimo de verificación: con código y ordenante parecido verifica solo; si el ordenante no cuadra, por verificar con aviso; importe distinto o sin código no toca nada; cada movimiento una vez; solo el servidor';
+end $$;

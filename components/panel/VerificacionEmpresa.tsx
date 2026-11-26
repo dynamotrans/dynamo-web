@@ -116,10 +116,11 @@ export function VentanaVerificacion({ onCerrar }: { onCerrar: () => void }) {
           {fila('Importe', '0,01 €')}
           {fila('Concepto', v.codigo, 'verificacion-codigo')}
           {fila('Beneficiario', v.banco.titular || 'Dynamo')}
+          {v.banco.banco && fila('Banco', v.banco.banco)}
           {v.banco.iban ? fila('IBAN', v.banco.iban) : fila('IBAN', <>Pídenoslo al {CONTACTO.telefono}</>)}
           {v.banco.bic && fila('BIC', v.banco.bic)}
           <div className="pt-aviso" style={{ margin: '0.8rem 0', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.45)', color: '#7a5c00' }}><div>
-            Pon <strong>solo el código</strong> en el concepto. El céntimo es <strong>a fondo perdido: no se devuelve</strong>. Comprobamos que el código coincide y que quien envía es {v.razon_social}.
+            Pon <strong>solo el código</strong> en el concepto. El céntimo es <strong>a fondo perdido: no se devuelve</strong>. Comprobamos que el código coincide y que quien envía es {v.razon_social}: si todo cuadra, tu empresa queda verificada sola, normalmente en menos de un día.
           </div></div>
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
             <button type="button" className="btn-primary" id="btn-transferencia-hecha" disabled={trabajando} onClick={() => pedir('transferencia')}>{trabajando ? 'Enviando…' : 'Ya la he hecho'}</button>

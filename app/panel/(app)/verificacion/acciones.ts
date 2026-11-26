@@ -52,7 +52,10 @@ export async function miVerificacion(): Promise<MiVerificacion | null> {
   if (!data) return null;
   const v = data as Omit<MiVerificacion, 'banco'>;
   const d = (dy ?? {}) as Record<string, string>;   // los parámetros dynamo_* sin el prefijo
-  return { ...v, usuario_id: s.perfil.id, banco: { titular: d.razon_social ?? '', iban: d.iban ?? '', banco: d.banco ?? '', bic: d.bic ?? '' } };
+  return { ...v, usuario_id: s.perfil.id, banco: d.verificacion_iban
+    // La cuenta secundaria solo para los céntimos de verificación (usuario, 2026-11-26).
+    ? { titular: d.razon_social ?? '', iban: d.verificacion_iban, banco: d.verificacion_banco ?? '', bic: '' }
+    : { titular: d.razon_social ?? '', iban: d.iban ?? '', banco: d.banco ?? '', bic: d.bic ?? '' } };
 }
 
 export async function pedirVerificacion(metodo: 'transferencia' | 'documento'): Promise<Res> {
