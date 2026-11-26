@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
-import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, pedidosDeHolded, type FacturaCopia, type FacturaHolded, type PedidoVenta } from '@/lib/holdedFacturas';
+import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, pedidosDeHolded, gxDePedido, type FacturaCopia, type FacturaHolded, type PedidoVenta } from '@/lib/holdedFacturas';
 import { apuntarConsultas, refrescarUsoReal, usoDelMes } from '@/lib/servidor/holdedUso';
 import { contactosDeHolded } from '@/lib/servidor/holdedContactos';
 import { hoyMadrid } from '@/lib/filtroFechas';
@@ -40,6 +40,7 @@ const RELEER_MAX = 30;            // facturas que se releen una a una en cada pa
 const CONTACTOS_POR_VEZ = 40;     // consultas de CIF por pasada (el resto, en la siguiente)
 const ABONOS_CADA_MS = 3_600_000; // los abonos pendientes y recientes: una vez por hora
 const FICHAS_ABONO = 10;          // fichas de abono que se leen por pasada (para saber qué factura corrigen)
+const FICHAS_FACTURA = 25;        // fichas de factura que se leen por pasada (para saber de qué pedido de venta salió cada una)
 type Doc = { id: string; tipo: 'factura' | 'abono' };
 type Fila = FacturaCopia & { ficha?: boolean };
 
@@ -227,15 +228,40 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     }
     if ((data ?? []).length < 1000) break;
   }
+  let pedidosVetados = false;     // la clave no deja leer pedidos de venta: en esta pasada no se insiste
+  let pedidosFoto = !!e.pedidos_en;   // la foto de pedidos se ha podido leer alguna vez
+  const pedidosSePueden = () => pedidosFoto && !pedidosVetados;
   // Releer la FICHA de cada documento (factura o abono). Se apunta que se ha leído (`ficha`),
   // para no pedir la misma una y otra vez.
+  // La ficha de una FACTURA dice de qué pedido de venta salió: se lee también ese pedido (una
+  // vez) para apuntar el GX que lleva. Solo si los pedidos de venta se pueden leer (si la foto
+  // de pedidos no se ha podido leer nunca, no se gastan consultas en balde).
   const releer = async (docs: Doc[]) => {
     const filas: Fila[] = [], fuera: string[] = [];
     const validos = docs.filter((d) => /^[0-9a-f]{24}$/i.test(d.id));
+    const conPedido = new Set<string>();
+    const deFactura = validos.filter((d) => d.tipo === 'factura').map((d) => d.id);
+    if (pedidosSePueden() && deFactura.length) {
+      const { data } = await sv.from('facturas_emitidas').select('ref_externa').in('ref_externa', deFactura).not('pedido_gx', 'is', null);
+      for (const f of data ?? []) conPedido.add(f.ref_externa);
+    }
     for (let i = 0; i < validos.length; i += 4) {
       await Promise.all(validos.slice(i, i + 4).map(async ({ id, tipo }) => {
         const r = await leerHolded(`${tipo === 'abono' ? '/credit-notes' : '/invoices'}/${id}`);
-        if (r.ok) { const f = copiaDeHolded(r.datos as FacturaHolded, tipo); if (f) filas.push({ ...f, ficha: true }); }
+        if (r.ok) {
+          const f = copiaDeHolded(r.datos as FacturaHolded, tipo);
+          if (f) {
+            const fila: Fila = { ...f, ficha: true };
+            if (tipo === 'factura' && f.pedido_origen && pedidosSePueden() && !conPedido.has(id)) {
+              const p = await leerHolded(`/sales-orders/${f.pedido_origen}`);
+              if (p.ok) fila.pedido_gx = gxDePedido(p.datos);
+              else if (p.estado === 404) fila.pedido_gx = [];        // ese pedido ya no existe: nada que apuntar
+              else if (p.estado === 401 || p.estado === 403) pedidosVetados = true;
+              // cualquier otro fallo: se reintenta otro día
+            }
+            filas.push(fila);
+          }
+        }
         else if (r.estado === 404) fuera.push(id);          // ya no existe en la facturación
         // cualquier otro fallo: se queda como estaba y se reintenta en la pasada siguiente
       }));
@@ -290,7 +316,7 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     }
     if (bien) {
       const { error } = await sv.rpc('pedidos_venta_guardar', { p_pedidos: leidos });
-      if (error) avisos.push(`No se han podido guardar los pedidos de venta: ${error.message}`); else pedidosLeidos = leidos;
+      if (error) avisos.push(`No se han podido guardar los pedidos de venta: ${error.message}`); else { pedidosLeidos = leidos; pedidosFoto = true; }
     }
   }
 
@@ -316,6 +342,18 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     const { data } = await sv.from('facturas_emitidas').select('ref_externa').eq('tipo', 'abono').is('ficha_en', null).neq('estado', 'anulada')
       .order('fecha_emision', { ascending: false }).limit(FICHAS_ABONO);
     if (data?.length) await releer(data.map((f) => ({ id: f.ref_externa, tipo: 'abono' as const })));
+  }
+
+  // Las facturas recientes de las que aún no se sabe de qué pedido de venta salieron (o cuyo
+  // pedido no se pudo leer: ese se reintenta como mucho una vez al día). Con ese enlace un
+  // viaje no se cuenta dos veces: ni como pedido y factura, ni como envío sin facturar y factura.
+  if (queda(8000)) {
+    const ayer = new Date(Date.now() - 86_400_000).toISOString();
+    const { data } = await sv.from('facturas_emitidas').select('ref_externa').eq('tipo', 'factura').neq('estado', 'anulada')
+      .gte('fecha_emision', diaMas(hoy, -120))
+      .or(pedidosSePueden() ? `ficha_en.is.null,and(pedido_origen.not.is.null,pedido_gx.is.null,ficha_en.lt.${ayer})` : 'ficha_en.is.null')
+      .order('fecha_emision', { ascending: false }).limit(FICHAS_FACTURA);
+    if (data?.length) await releer(data.map((f) => ({ id: f.ref_externa, tipo: 'factura' as const })));
   }
 
   // 6. De qué cliente es cada una: el CIF de su contacto. Primero las que deben algo.

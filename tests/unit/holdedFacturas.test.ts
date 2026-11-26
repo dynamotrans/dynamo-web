@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDeTextos, idsDeCuentas, importeDe, pedidosDeHolded, usoDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDePedido, gxDeTextos, idsDeCuentas, importeDe, pedidosDeHolded, usoDeHolded } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -9,7 +9,7 @@ const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', conta
 test('copia de facturas: los importes en texto pasan a números y el contacto, a minúsculas', () => {
   assert.deepEqual(copiaDeHolded({ ...base, lines: [{ account: '70500000', price: 100, units: 1 }] }), {
     id: base.id, numero: 'F260123', contacto_id: 'abcdefabcdefabcdefabcdef', contacto_nombre: 'Acme SL', emision: '2026-11-01', vence: '2026-12-01',
-    base: 100, iva: 21, retencion: 0, total: 121, pendiente: 121, estado: 'pendiente', pagada_el: null, cuenta: '70500000', tipo: 'factura', rectifica: null,
+    base: 100, iva: 21, retencion: 0, total: 121, pendiente: 121, estado: 'pendiente', pagada_el: null, cuenta: '70500000', tipo: 'factura', rectifica: null, pedido_origen: null,
     concepto: 'Porte GX1', envios_gx: [] });
 });
 
@@ -209,4 +209,23 @@ test('gasto de consultas del mes: lo que dice la facturación (usadas, tope y me
   assert.equal(usoDeHolded({ period: '2026-11' }), null);
   assert.equal(usoDeHolded({ usage: -1 }), null);
   assert.equal(usoDeHolded(null), null);
+});
+
+test('de qué pedido de venta sale una factura: solo de su ficha, solo pedidos de venta y nunca en un abono', () => {
+  const base = { id: 'f'.repeat(24), date: '2026-11-20', total: '121,00', status: 'pending' };
+  const ped = 'AB12'.repeat(6);
+  assert.equal(copiaDeHolded({ ...base, from: { id: ped, doc_type: 'salesorder' } })?.pedido_origen, ped.toLowerCase());
+  assert.equal(copiaDeHolded({ ...base, from: { id: ped, doc_type: 'sales_order' } })?.pedido_origen, ped.toLowerCase());
+  assert.equal(copiaDeHolded({ ...base })?.pedido_origen, null);                                                    // la lista no lo trae
+  assert.equal(copiaDeHolded({ ...base, from: { id: ped, doc_type: 'estimate' } })?.pedido_origen, null);           // sale de un presupuesto
+  assert.equal(copiaDeHolded({ ...base, from: { id: 'no-es-un-id', doc_type: 'salesorder' } })?.pedido_origen, null);
+  assert.equal(copiaDeHolded({ ...base, from: { id: ped, doc_type: 'salesorder' } }, 'abono')?.pedido_origen, null);
+  assert.equal(copiaDeHolded({ ...base })?.pedido_gx, undefined);                                                   // el pedido se lee aparte
+});
+
+test('referencias GX de la ficha de un pedido de venta: número, concepto y líneas', () => {
+  assert.deepEqual(gxDePedido({ document_number: 'GX100200', description: 'Viaje gx-300400', lines: [{ name: 'Porte GX 500600' }, { description: 'GX100200' }, null] }),
+    ['GX100200', 'GX300400', 'GX500600']);
+  assert.deepEqual(gxDePedido({ document_number: 'PV-2026-014', description: 'Transporte' }), []);
+  assert.deepEqual(gxDePedido(null), []);
 });

@@ -2899,6 +2899,8 @@ export type Database = {
           ficha_en: string | null
           concepto: string | null
           envios_gx: string[]
+          pedido_origen: string | null
+          pedido_gx: string[] | null
         }
         Insert: {
           ref_externa: string
@@ -2925,6 +2927,8 @@ export type Database = {
           ficha_en?: string | null
           concepto?: string | null
           envios_gx?: string[]
+          pedido_origen?: string | null
+          pedido_gx?: string[] | null
         }
         Update: {
           ref_externa?: string
@@ -2951,6 +2955,8 @@ export type Database = {
           ficha_en?: string | null
           concepto?: string | null
           envios_gx?: string[]
+          pedido_origen?: string | null
+          pedido_gx?: string[] | null
         }
         Relationships: [
           {

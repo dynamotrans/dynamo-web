@@ -81,7 +81,11 @@ export type FacturaCopia = { id: string; numero: string | null; contacto_id: str
   tipo: 'factura' | 'abono'; rectifica: string | null;
   // El concepto (recortado) y las referencias de envío (GX…) que lleva, en él o en sus líneas:
   // con ellas se sabe qué envíos están ya facturados (para el crédito usado de cada cliente).
-  concepto: string | null; envios_gx: string[] };
+  concepto: string | null; envios_gx: string[];
+  // El pedido de venta del que salió la factura (lo dice su ficha, `from`) y, cuando se ha leído
+  // ese pedido, las referencias de envío que lleva (`null` = aún no se ha leído). Con el enlace,
+  // un pedido que ya tiene factura no se cuenta además como «sin facturar».
+  pedido_origen: string | null; pedido_gx?: string[] | null };
 
 /** Las referencias de envío (GX y de 4 a 12 cifras) que hay en unos textos, sin repetir (hasta 50). */
 export function gxDeTextos(...textos: unknown[]): string[] {
@@ -124,9 +128,16 @@ export function copiaDeHolded(f: FacturaHolded & { draft?: unknown; payments_det
     const rid = texto(o.id)?.toLowerCase() ?? null;
     if (rid && /^[0-9a-f]{24}$/.test(rid) && (o.doc_type == null || /invoice/i.test(String(o.doc_type)))) rectifica = rid;
   }
+  // El pedido de venta del que salió una factura (en la ficha: `from` con doc_type «salesorder»).
+  let pedido_origen: string | null = null;
+  if (tipo === 'factura' && f.from && typeof f.from === 'object') {
+    const o = f.from as { id?: unknown; doc_type?: unknown };
+    const pid = texto(o.id)?.toLowerCase() ?? null;
+    if (pid && /^[0-9a-f]{24}$/.test(pid) && /sales[\s_-]?order/i.test(String(o.doc_type ?? ''))) pedido_origen = pid;
+  }
   return { id, numero: texto(f.document_number), contacto_id: texto(f.contact_id)?.toLowerCase() ?? null, contacto_nombre: texto(f.contact_name),
     emision, vence: dia(f.due_date), base, iva, retencion: dif > 0.005 ? dif : 0, total, pendiente, estado, pagada_el, cuenta: cuentaDeLineas(f.lines),
-    tipo, rectifica, concepto: texto(f.description)?.slice(0, 600) ?? null,
+    tipo, rectifica, pedido_origen, concepto: texto(f.description)?.slice(0, 600) ?? null,
     envios_gx: gxDeTextos(f.description, ...(Array.isArray(f.lines) ? (f.lines as { name?: unknown; description?: unknown }[]).flatMap((l) => (l && typeof l === 'object' ? [l.name, l.description] : [])) : [])) };
 }
 
@@ -162,6 +173,14 @@ export function pedidosDeHolded(cuerpo: unknown): { pedidos: PedidoVenta[]; hayM
       envios_gx: gxDeTextos(o.document_number, o.description, ...lineas) });
   }
   return { pedidos, hayMas: c.has_more === true && !!cursor, cursor, leidos: items.length };
+}
+
+/** Las referencias de envío (GX…) que lleva la FICHA de un pedido de venta: en su número, su concepto o sus líneas. */
+export function gxDePedido(cuerpo: unknown): string[] {
+  if (!cuerpo || typeof cuerpo !== 'object') return [];
+  const o = cuerpo as { document_number?: unknown; description?: unknown; lines?: unknown };
+  const lineas = Array.isArray(o.lines) ? (o.lines as { name?: unknown; description?: unknown }[]).flatMap((l) => (l && typeof l === 'object' ? [l.name, l.description] : [])) : [];
+  return gxDeTextos(o.document_number, o.description, ...lineas);
 }
 
 // ---- El plan de cuentas («List chart of accounts») ----------------------------------------

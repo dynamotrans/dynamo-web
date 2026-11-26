@@ -27,7 +27,10 @@ export type EstadoDeuda = { conectado: boolean; ultimaOk: string | null; ultima:
   // El crédito usado sale de la deuda real (lo que debe + envíos sin facturar), no de la estimación por días.
   creditoReal?: boolean;
   // La foto de pedidos de venta sin facturar que hay en la facturación (para cuadrarla con ella).
-  pedidosEn?: string | null; pedidos?: number; pedidosImporte?: number; pedidosPlataforma?: number };
+  pedidosEn?: string | null; pedidos?: number; pedidosImporte?: number; pedidosPlataforma?: number;
+  // La comprobación: pedidos que la facturación da por pendientes y ya tienen factura (no se suman),
+  // facturas enlazadas con su pedido y facturas recientes aún por enlazar.
+  pedidosFacturados?: number; facturasEnlazadas?: number; facturasPorEnlazar?: number };
 export type Totales = { limite: number; asumido: number; pasados: number };
 export type ListaRiesgos = { q: string; filtro: string; pagina: number; porPagina: number; total: number };
 const uso = (f: RiesgoFila) => (f.limite && f.limite > 0 ? f.asumido / f.limite : f.asumido > 0 ? Infinity : 0);
@@ -126,7 +129,14 @@ function DeudaFacturacion({ e }: { e: EstadoDeuda }) {
       {e.pedidosEn && <div className="meta" id="deuda-pedidos" style={{ marginTop: '0.25rem' }}>
         Pedidos de venta sin facturar en la facturación: <strong style={{ color: 'var(--navy)' }}>{euros(e.pedidosImporte ?? 0)}</strong> en {numero(e.pedidos ?? 0, 0)} {e.pedidos === 1 ? 'pedido' : 'pedidos'}
         {(e.pedidosPlataforma ?? 0) > 0 ? ` (${numero(e.pedidosPlataforma ?? 0, 0)} ${e.pedidosPlataforma === 1 ? 'es' : 'son'} también un envío de la plataforma: ${e.pedidosPlataforma === 1 ? 'cuenta' : 'cuentan'} una sola vez)` : ''}
+        {(e.pedidosFacturados ?? 0) > 0 ? ` · ${numero(e.pedidosFacturados ?? 0, 0)} ya ${e.pedidosFacturados === 1 ? 'tiene' : 'tienen'} factura: no se ${e.pedidosFacturados === 1 ? 'suma' : 'suman'}` : ''}
         {' · '}leído {haceTxt(e.pedidosEn)}. Cuentan como crédito usado de su cliente.
+      </div>}
+      {/* El enlace factura → pedido de venta (usuario, 2026-11-26: «ni puede faltar ni puede
+          duplicar»): con él un viaje no se cuenta a la vez como pedido y como factura. */}
+      {e.pedidosEn && ((e.facturasEnlazadas ?? 0) > 0 || (e.facturasPorEnlazar ?? 0) > 0) && <div className="meta" id="deuda-enlace" style={{ marginTop: '0.25rem' }}>
+        Para no contar un viaje dos veces: <strong style={{ color: 'var(--navy)' }}>{numero(e.facturasEnlazadas ?? 0, 0)}</strong> {e.facturasEnlazadas === 1 ? 'factura enlazada' : 'facturas enlazadas'} con su pedido de venta
+        {(e.facturasPorEnlazar ?? 0) > 0 ? ` · ${numero(e.facturasPorEnlazar ?? 0, 0)} de los últimos 4 meses por enlazar (se completa solo en las próximas lecturas)` : ' · todas las de los últimos 4 meses comprobadas'}.
       </div>}
       {error && <div className="pt-aviso error" id="deuda-error" role="alert" style={{ margin: '0.5rem 0 0' }}><div>
         <strong>La última lectura de la facturación ha fallado.</strong> {error} {e.ultimaOk ? 'Se sigue enseñando la última lectura buena.' : ''}

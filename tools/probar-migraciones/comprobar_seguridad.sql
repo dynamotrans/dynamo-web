@@ -17146,3 +17146,77 @@ do $$ declare cli uuid := current_setting('prueba.c368')::uuid; begin
   update facturas_copia_estado set pedidos_en = null, carga_completa_en = nullif(current_setting('prueba.cargada368'), '')::timestamptz where id;
   raise notice 'OK 368 · pedidos de venta sin facturar: cuentan los de fuera de la plataforma, cada viaje una vez (por GX), foto que se sustituye entera y solo la ve Dynamo';
 end $$;
+
+-- 369 · DE QUÉ PEDIDO DE VENTA SALE CADA FACTURA (usuario, 2026-11-26: «ni puede faltar ni puede
+-- duplicar»): un pedido que ya tiene factura no se suma aunque la facturación lo siga dando por
+-- pendiente, y el envío cuyo pedido está facturado cuenta como facturado aunque la factura no
+-- lleve escrito su GX.
+do $$ declare cli uuid; a uuid; gxa text; u record; r jsonb; n int; f record;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; k text := '000000000000000000000e01';
+begin
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform set_config('prueba.cargada369', coalesce((select carga_completa_en::text from facturas_copia_estado where id), ''), false);
+  update facturas_copia_estado set carga_completa_en = now(), pedidos_en = null where id;
+  insert into clientes (razon_social, cif) values ('Enlace 369 SL', 'B36900369') returning id into cli;
+  update clientes set riesgo_manual_euros = 5000, exento_pago_previo_primer_envio = true where id = cli;
+  insert into holded_contactos (contacto_id, cif, nombre) values (k, 'ESB36900369', 'Enlace 369');
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 500, lun) returning id, referencia_gx into a, gxa;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select a, o, t, cp, p, 'ES' from (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id = a;
+  -- Un pedido de fuera de la plataforma, sin GX, pendiente: cuenta (605 del envío + 363).
+  n := pedidos_venta_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'P369A', 'numero', 'PV-A', 'contacto_id', k, 'fecha', hoy - 3, 'total', 363, 'estado', 'pendiente')));
+  select * into u from credito_usado_de(array[cli]);
+  if u.usado <> 968 or u.pedidos <> 363 or u.n_pedidos <> 1 then raise exception 'FALLO 369 · punto de partida: %', row_to_json(u); end if;
+  -- Se FACTURA, y la facturación sigue dando el pedido por pendiente (sigue en la foto). La ficha
+  -- de la factura dice de qué pedido salió: el pedido deja de sumarse. Ni falta ni se duplica.
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h369a', 'numero', 'F369-1', 'contacto_id', k, 'emision', hoy, 'vence', hoy + 60, 'total', 363, 'pendiente', 363, 'estado', 'pendiente',
+                       'tipo', 'factura', 'ficha', true, 'pedido_origen', 'p369a')));
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 363 or u.pedidos <> 0 or u.n_pedidos <> 0 or u.usado <> 968 then raise exception 'FALLO 369 · un pedido que ya tiene factura se cuenta dos veces (como pedido y como factura): %', row_to_json(u); end if;
+  -- Una lectura de la LISTA (sin ficha) no trae el pedido: no borra el enlace.
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h369a', 'numero', 'F369-1', 'contacto_id', k, 'emision', hoy, 'vence', hoy + 60, 'total', 363, 'pendiente', 363, 'estado', 'pendiente', 'tipo', 'factura', 'concepto', 'Transporte')));
+  select * into f from facturas_emitidas where ref_externa = 'h369a';
+  if f.pedido_origen is distinct from 'p369a' or f.pedido_gx is not null then raise exception 'FALLO 369 · leer la lista de facturas borra de qué pedido salió (o da por leído un pedido que no se ha leído): % / %', f.pedido_origen, f.pedido_gx; end if;
+  -- El envío de la plataforma se factura y la factura NO lleva escrito su GX; lo lleva el pedido
+  -- del que salió. El envío deja de contar como «sin facturar»: ahora es deuda (605), una vez.
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h369b', 'numero', 'F369-2', 'contacto_id', k, 'emision', hoy, 'vence', hoy + 60, 'total', 605, 'pendiente', 605, 'estado', 'pendiente',
+                       'tipo', 'factura', 'ficha', true, 'concepto', 'Transporte de mercancías', 'pedido_origen', 'P369B', 'pedido_gx', jsonb_build_array(lower(gxa), 'no-vale'))));
+  select * into f from facturas_emitidas where ref_externa = 'h369b';
+  if f.pedido_origen <> 'p369b' or f.pedido_gx <> array[gxa] or f.envios_gx <> array[gxa] then raise exception 'FALLO 369 · no se apunta en la factura el GX del pedido del que salió: % / % / %', f.pedido_origen, f.pedido_gx, f.envios_gx; end if;
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 968 or u.sin_facturar <> 0 or u.envios <> 0 or u.usado <> 968 then raise exception 'FALLO 369 · un envío cuyo pedido ya está facturado se cuenta dos veces (sin facturar y como factura): %', row_to_json(u); end if;
+  -- La lista vuelve a leer esa factura (con su concepto, sin GX): el GX del pedido se conserva.
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h369b', 'numero', 'F369-2', 'contacto_id', k, 'emision', hoy, 'vence', hoy + 60, 'total', 605, 'pendiente', 605, 'estado', 'pendiente', 'tipo', 'factura',
+                       'concepto', 'Transporte de mercancías GX55555', 'envios_gx', jsonb_build_array('GX55555'))));
+  select * into f from facturas_emitidas where ref_externa = 'h369b';
+  if not (f.envios_gx @> array[gxa, 'GX55555']) or cardinality(f.envios_gx) <> 2 or f.pedido_gx <> array[gxa] then raise exception 'FALLO 369 · leer la lista borra el GX que venía del pedido: % / %', f.envios_gx, f.pedido_gx; end if;
+  if credito_usado(cli) <> 968 then raise exception 'FALLO 369 · tras releer la lista el envío vuelve a contarse dos veces'; end if;
+  -- El resumen lo enseña: 1 pedido «pendiente» que ya tiene factura, 2 facturas enlazadas y 1
+  -- por terminar de enlazar (la primera: se sabe su pedido pero aún no se ha leído).
+  r := deuda_estado();
+  if (r ->> 'pedidos_facturados')::int <> 1 or (r ->> 'facturas_enlazadas')::int <> 2 or (r ->> 'facturas_por_enlazar')::int < 1 then raise exception 'FALLO 369 · el resumen no enseña el enlace de facturas y pedidos: %', r; end if;
+  -- Un abono no sale de un pedido de venta: no se le apunta.
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h369c', 'numero', 'A369-1', 'contacto_id', k, 'emision', hoy, 'total', 10, 'pendiente', 0, 'estado', 'pagada', 'tipo', 'abono', 'ficha', true, 'pedido_origen', 'p369a', 'pedido_gx', jsonb_build_array(gxa))));
+  select * into f from facturas_emitidas where ref_externa = 'h369c';
+  if f.pedido_origen is not null or f.pedido_gx is not null or cardinality(f.envios_gx) <> 0 then raise exception 'FALLO 369 · a un abono se le apunta un pedido de venta'; end if;
+  -- La factura del pedido de fuera se ANULA: el pedido vuelve a contar (nada se pierde).
+  update facturas_emitidas set estado = 'anulada', pendiente = 0 where ref_externa = 'h369a';
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 605 or u.pedidos <> 363 or u.usado <> 968 then raise exception 'FALLO 369 · al anularse la factura, su pedido de venta sin facturar se pierde: %', row_to_json(u); end if;
+  -- Limpieza.
+  delete from pedidos_venta_pendientes where true;
+  delete from facturas_emitidas where ref_externa like 'h369%';
+  delete from holded_contactos where contacto_id = k;
+  update envios set estado = 'cancelado' where cliente_id = cli and estado <> 'cancelado';
+  update facturas_copia_estado set pedidos_en = null, carga_completa_en = nullif(current_setting('prueba.cargada369'), '')::timestamptz where id;
+  perform set_config('request.jwt.claim.role', '', true);
+  raise notice 'OK 369 · enlace factura → pedido de venta: un pedido con factura no se suma, el envío cuyo pedido está facturado cuenta como facturado, y la lista no borra el enlace';
+end $$;
