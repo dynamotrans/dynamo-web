@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, formaDeEnlaces } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, formaDeEnlaces, importeDe } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -10,6 +10,27 @@ test('copia de facturas: los importes en texto pasan a números y el contacto, a
   assert.deepEqual(copiaDeHolded({ ...base, lines: [{ account: '70500000', price: 100, units: 1 }] }), {
     id: base.id, numero: 'F260123', contacto_id: 'abcdefabcdefabcdefabcdef', contacto_nombre: 'Acme SL', emision: '2026-11-01', vence: '2026-12-01',
     base: 100, iva: 21, retencion: 0, total: 121, pendiente: 121, estado: 'pendiente', pagada_el: null, cuenta: '70500000' });
+});
+
+// Fallo real (2026-11-26): la facturación manda los importes CON COMA («240,00») y todas las
+// facturas salían a 0,00 €. Esta es la factura tal como llega de verdad.
+test('copia de facturas: los importes llegan CON COMA DECIMAL y se leen bien', () => {
+  const real = { ...base, subtotal: '240,00', discount: '0,00', tax: '50,40', total: '290,40', payments_total: '0,00', payments_pending: '290,40',
+    lines: [{ price: '240,00', units: '1,00', discount: '0,00', tax: '0', retention: '0,00', account: '6011715a12dc4a4bb044de36' }] };
+  const f = copiaDeHolded(real)!;
+  assert.deepEqual([f.base, f.iva, f.total, f.pendiente, f.retencion, f.estado], [240, 50.4, 290.4, 290.4, 0, 'pendiente']);
+  // Si el subtotal no viniera, la base sale de la línea (precio × unidades, también con coma).
+  assert.equal(copiaDeHolded({ ...real, subtotal: '0,00' })!.base, 240);
+  assert.equal(baseDeHolded({ subtotal: '0,00', total: '1.210,00', tax: '210,00', lines: [{ price: '500,00', units: '2,00', discount: '0,00' }] }), 1000);
+  // Cobrada en parte, con miles: debe lo que diga el importe pendiente.
+  assert.equal(copiaDeHolded({ ...real, total: '12.100,00', status: 'partial', payments_pending: '6.050,50' })!.pendiente, 6050.5);
+});
+
+test('importes de la facturación: coma o punto decimal, con o sin miles, y lo que no es un número', () => {
+  const casos: [unknown, number | null][] = [['240,00', 240], ['290,40', 290.4], ['1,00', 1], ['0', 0], ['0,00', 0], ['121.00', 121], ['1.210,50', 1210.5],
+    ['1,210.50', 1210.5], ['12.345.678,90', 12345678.9], ['1.234.567', 1234567], ['1,234,567', 1234567], ['-50,25', -50.25], [' 1 210,00 € ', 1210], [121, 121], [12.5, 12.5],
+    ['', null], ['abc', null], [null, null], [undefined, null], [{}, null], ['12a', null], [',', null], [NaN, null]];
+  for (const [entra, sale] of casos) assert.equal(importeDe(entra), sale, `importeDe(${JSON.stringify(entra)})`);
 });
 
 test('copia de facturas: estados (pendiente, parcial, pagada, anulada, otro) y vuelta a borrador', () => {

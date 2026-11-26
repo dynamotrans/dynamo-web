@@ -25,8 +25,9 @@ function Pago({ f, hoy, dynamo }: { f: FacturaFila; hoy: string; dynamo: boolean
   if (f.estado === 'pagada') {
     const tarde = dynamo && f.pagada_el && f.vence && f.pagada_el > f.vence ? dias(f.vence, f.pagada_el) : 0;
     return <>
-      <span className="badge badge-green">Pagada</span>
-      {f.pagada_el && <span className="meta" style={{ display: 'block', marginTop: 2 }}>el {fecha(f.pagada_el)}{dynamo ? ` · a los ${nDias(Math.max(0, dias(f.fecha, f.pagada_el)))}` : ''}</span>}
+      {/* La fecha del cobro, al lado de la etiqueta (usuario, 2026-11-26). */}
+      <span className="badge badge-green">Pagada</span>{f.pagada_el && <span className="fac-pagada-el" style={{ marginLeft: '0.4rem', fontWeight: 600 }}>{fecha(f.pagada_el)}</span>}
+      {f.pagada_el && dynamo && <span className="meta" style={{ display: 'block', marginTop: 2 }}>a los {nDias(Math.max(0, dias(f.fecha, f.pagada_el)))}</span>}
       {tarde > 0 && <span className="meta" style={{ display: 'block', color: '#b42318', fontWeight: 700 }}>{nDias(tarde)} tarde</span>}
     </>;
   }

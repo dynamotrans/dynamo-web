@@ -1799,6 +1799,8 @@ test.describe('novedades', () => {
       await expect(parcial).toContainText('faltan 300,50');
       await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-1' })).toContainText('Vencida');
       await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-3' })).toContainText(/Pagada.*a los 35 días.*5 días tarde/s);
+      // La fecha del cobro va al lado de la etiqueta «Pagada» (usuario, 2026-11-26).
+      await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-3' }).locator('.badge-green + .fac-pagada-el')).toHaveText(/\d{2}\/\d{2}\/\d{2}/);
       await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-5' })).toContainText('no es cliente de la plataforma');
       await page.selectOption('#fac-estado', 'por_cobrar');
       await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(3);

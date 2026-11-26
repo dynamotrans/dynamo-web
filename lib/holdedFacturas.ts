@@ -1,15 +1,33 @@
 // Lo que llega del programa de facturación (Holded, API v2: «List invoices», «Get an invoice»,
 // «List payments») pasado a las filas de NUESTRA copia de facturas emitidas. Sin red y sin
 // claves: solo cuentas, para poder probarlo.
-// Campos según su documentación (2026-11): importes como texto decimal («121.00»), fechas
-// AAAA-MM-DD, `status`: pending · partial · completed · cancelled · failed.
+// Campos según su documentación (2026-11): importes como texto decimal, fechas AAAA-MM-DD,
+// `status`: pending · partial · completed · cancelled · failed.
+// OJO, IMPORTES CON COMA: la documentación los pinta con punto («121.00»), pero la cuenta real
+// de Dynamo los manda CON COMA DECIMAL («240,00», «1,00»; visto el 2026-11-26). Leídos tal cual
+// salían todos a 0. `importeDe` entiende las dos formas y los separadores de miles.
 export type FacturaHolded = {
   id?: unknown; document_number?: unknown; contact_name?: unknown; description?: unknown;
   date?: unknown; due_date?: unknown; subtotal?: unknown; discount?: unknown; total?: unknown; tax?: unknown;
   status?: unknown; payments_pending?: unknown; lines?: unknown; contact_id?: unknown;
 };
 
-const num = (v: unknown): number => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+/** Un importe de la facturación → número, o null si no es un número. Entiende «240,00»,
+    «1.210,50», «1,210.50», «121.00», «1210» y números ya hechos. Con coma Y punto, el decimal
+    es el último; solo comas o solo puntos: uno es el decimal, varios son de miles. */
+export function importeDe(v: unknown): number | null {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v !== 'string') return null;
+  let t = v.replace(/[\s\u00a0€]/g, '');
+  if (!t || !/^[+-]?[\d.,]+$/.test(t) || !/\d/.test(t)) return null;
+  const coma = t.lastIndexOf(','), punto = t.lastIndexOf('.');
+  if (coma >= 0 && punto >= 0) t = coma > punto ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  else if (coma >= 0) t = t.indexOf(',') === coma ? t.replace(',', '.') : t.replace(/,/g, '');
+  else if (punto >= 0 && t.indexOf('.') !== punto) t = t.replace(/\./g, '');
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+const num = (v: unknown): number => importeDe(v) ?? 0;
 const texto = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 const dia = (v: unknown): string | null => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
 const c2 = (n: number) => Math.round(n * 100) / 100;
@@ -24,8 +42,8 @@ function baseDeLineas(lines: unknown): number | null {
   let suma = 0, alguna = false;
   for (const l of lines as { price?: unknown; units?: unknown; discount?: unknown }[]) {
     if (!l || typeof l !== 'object') continue;
-    const precio = Number(l.price), unidades = l.units == null || l.units === '' ? 1 : Number(l.units);
-    if (!Number.isFinite(precio) || !Number.isFinite(unidades)) continue;
+    const precio = importeDe(l.price), unidades = l.units == null || l.units === '' ? 1 : importeDe(l.units);
+    if (precio == null || unidades == null) continue;
     const dto = Math.min(100, Math.max(0, num(l.discount)));
     suma += precio * unidades * (1 - dto / 100); alguna = true;
   }
