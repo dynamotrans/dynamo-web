@@ -14,6 +14,7 @@ import ChatIA from '@/components/panel/ChatIA';
 // El asistente de IA se deja para la v3 (usuario, 2026-11-15).
 const IA_ACTIVA = false;
 import EnVivo from '@/components/panel/EnVivo';
+import { AvisoVerificacion } from '@/components/panel/VerificacionEmpresa';
 import BandaSuspension from '@/components/panel/BandaSuspension';
 import { PreguntaAvisosWhatsApp } from '@/components/panel/AvisosWhatsApp';
 import VerificarMovil from '@/components/panel/VerificarMovil';
@@ -46,18 +47,21 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   // El logo de la empresa del cliente (si lo tiene), para el círculo de arriba. Se lanza ya,
   // en paralelo con lo demás.
   const logoP = activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_logo_empresa') : null;
-  const [mantR, cont, cob, fes, usoR] = await Promise.all([
+  const [mantR, cont, cob, fes, usoR, verR] = await Promise.all([
     supabase.rpc('mantenimiento_activo'),
     activa ? supabase.rpc('contadores_panel', { p_cliente: vCli, p_transportista: vTra }) : Promise.resolve({ data: null }),
     activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_cobertura_credito')
       : activa && vCli
-        ? supabase.from('clientes').select('riesgo_efectivo_euros, riesgo_manual_euros').eq('id', vCli).maybeSingle()
-            .then((r) => ({ data: !r.data ? null : r.data.riesgo_efectivo_euros == null ? 'sinclasif' : r.data.riesgo_efectivo_euros <= 0 ? (r.data.riesgo_manual_euros == null ? 'nulo_cesce' : 'nulo') : 'disponible' }))
+        ? supabase.from('clientes').select('riesgo_efectivo_euros, riesgo_manual_euros, estado_verificacion').eq('id', vCli).maybeSingle()
+            .then((r) => ({ data: !r.data ? null : r.data.estado_verificacion !== 'verificada' ? 'sin_verificar' : r.data.riesgo_efectivo_euros == null ? 'sinclasif' : r.data.riesgo_efectivo_euros <= 0 ? (r.data.riesgo_manual_euros == null ? 'nulo_cesce' : 'nulo') : 'disponible' }))
         : Promise.resolve({ data: null }),
     supabase.rpc('festivos_entre', { p_desde: hoyMadrid(), p_hasta: hoyMadrid(15) }),
     // Para el pre-aviso del 80 % del cupo del día (solo clientes).
     activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_autosuspension', { p_cliente: null }) : Promise.resolve({ data: null }),
+    // Verificación de la empresa (usuario, 2026-11-26): para el aviso verde de arriba.
+    activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_empresa_verificacion') : Promise.resolve({ data: null }),
   ]);
+  const ver = (verR?.data ?? null) as { estado?: string; aviso_credito?: boolean; solicitada?: string | null } | null;
   const logoDoc = logoP ? (((await logoP).data as string | null) ?? null) : null;
   // MÓVIL VERIFICADO (usuario, 2026-11-25): a clientes y transportistas sin el móvil verificado
   // (por WhatsApp o por Dynamo), en vez de la página, la pantalla del código por WhatsApp. Solo si
@@ -115,6 +119,9 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
           <div><strong>⚠ {avisoLimite}</strong> <Link href="/panel/uso" style={{ color: 'inherit', fontWeight: 800 }}>Ver mi uso →</Link></div>
         </div>
       )}
+      {/* Empresa sin verificar (usuario, 2026-11-26): check verde si tiene crédito esperándole
+          (sin importes ni CESCE) o «en revisión» si ya la ha pedido. Si no, nada. */}
+      {!pideMovil && ver?.estado === 'no_verificada' && <AvisoVerificacion avisoCredito={!!ver.aviso_credito} solicitada={ver.solicitada ?? null} />}
       {/* Buscador global (usuario, 2026-11-12): Cmd/Ctrl+K desde cualquier pantalla. */}
       <BuscadorGlobal gestor={dynamo && vista.tipo === 'admin'} />
       {/* Suspensión en solo lectura (usuario, 2026-11-14): banda fija mientras dure; se quita

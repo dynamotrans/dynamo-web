@@ -17565,3 +17565,147 @@ do $$ declare e uuid; r jsonb; begin
   update envios set estado = 'cancelado' where id = e;
   raise notice 'OK 377 · mapa general: cada envío dice si espera el pago previo (pendiente_pago), igual que la tabla de envíos';
 end $$;
+
+-- ---- 378. Verificación de empresa: cortafuegos del crédito, alta sola y las vías ---------
+-- (usuario, 2026-11-26) Empresa sin verificar = crédito 0, tenga lo que tenga en CESCE o de
+-- Dynamo. Las que se dan de alta solas nacen sin verificar; las que crea Dynamo, verificadas.
+-- El cliente pide la verificación (transferencia o documento) y Dynamo la valida, rechaza o
+-- quita, siempre con motivo y en el registro. El cliente nunca ve importes ni CESCE.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into auth.users (email, raw_user_meta_data, email_confirmed_at)
+  values ('alta378@empresa378.es', '{"nombre":"Alta Tres Siete Ocho"}', now());
+do $$ declare u uuid; r text; c uuid; begin
+  -- Las de siempre (y las que crea Dynamo) están verificadas.
+  if exists (select 1 from clientes where estado_verificacion <> 'verificada') then
+    raise exception 'FALLO 378 · hay empresas anteriores sin verificar (debían quedar verificadas de oficio)'; end if;
+  if exists (select 1 from clientes where codigo_transferencia !~ '^VER-[A-Z2-9]{6}$') then raise exception 'FALLO 378 · códigos de transferencia mal formados'; end if;
+  select id into u from usuarios where email = 'alta378@empresa378.es';
+  update auth.users set raw_user_meta_data = raw_user_meta_data || jsonb_build_object('cif', 'B37800001', 'pais', 'ES', 'alta_paso', 'nueva',
+    'empresa', 'Empresa 378 S.L.', 'direccion', 'Calle 378', 'codigo_postal', '41001', 'poblacion', 'Sevilla', 'provincia', 'Sevilla',
+    'empresa_telefono', '+34955000378', 'empresa_email', 'info@empresa378.es') where id = u;
+  -- Sin sesión de ese usuario no se crea nada; con ella, su empresa nace SIN VERIFICAR y su cuenta activa.
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  r := alta_crear_mi_empresa();
+  if r not like 'ok:%' then raise exception 'FALLO 378 · el alta de una empresa nueva no la crea: %', r; end if;
+  reset role;
+  c := substr(r, 4)::uuid;
+  if (select estado_verificacion from clientes where id = c) <> 'no_verificada' then raise exception 'FALLO 378 · la empresa dada de alta sola nace verificada'; end if;
+  if (select (estado, cliente_id) from usuarios where id = u) is distinct from ('activa'::estado_cuenta, c) then raise exception 'FALLO 378 · la cuenta no queda activa con su empresa'; end if;
+  if (select count(*) from contactos where cliente_id = c) <> 2 then raise exception 'FALLO 378 · no se crean sus contactos (persona y empresa)'; end if;
+  if not exists (select 1 from avisos where tipo = 'alta_cuenta' and texto like '%B37800001%SIN VERIFICAR%') then raise exception 'FALLO 378 · Dynamo no recibe el aviso del alta'; end if;
+  -- Una segunda vez: ya no aplica.
+  perform set_config('request.jwt.claim.sub', u::text, false);
+  set local role authenticated;
+  if alta_crear_mi_empresa() <> 'no_aplica' then raise exception 'FALLO 378 · el alta se repite'; end if;
+  reset role;
+  -- CORTAFUEGOS: con crédito de CESCE y de Dynamo, sin verificar sigue en 0 y el pago previo lo dice.
+  update clientes set riesgo_cesce_euros = 20000 where id = c;
+  update clientes set riesgo_manual_euros = 5000 where id = c;
+  if (select (riesgo_efectivo_euros, cesce_resultado) from clientes where id = c) is distinct from (0::numeric(12,2), 'positivo'::resultado_cesce) then
+    raise exception 'FALLO 378 · sin verificar el crédito no es 0 (o CESCE no queda positivo): %', (select riesgo_efectivo_euros from clientes where id = c); end if;
+  update parametros set valor = 'true'::jsonb where clave = 'pago_previo_activo';
+  if pago_previo_motivo(c, null) is distinct from 'Sin crédito: empresa sin verificar' then raise exception 'FALLO 378 · el motivo del pago previo no es «empresa sin verificar»: %', pago_previo_motivo(c, null); end if;
+  update parametros set valor = 'false'::jsonb where clave = 'pago_previo_activo';
+  perform set_config('prueba.c378', c::text, false);
+  perform set_config('prueba.u378', u::text, false);
+end $$;
+-- El cliente ve su verificación (con el aviso del crédito por activar) pero nada de importes ni CESCE.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u378'), false);
+set role authenticated;
+do $$ declare j jsonb := mi_empresa_verificacion(); begin
+  if j ->> 'estado' <> 'no_verificada' or (j ->> 'aviso_credito')::boolean is not true or j ->> 'codigo' !~ '^VER-' then
+    raise exception 'FALLO 378 · el cliente no ve bien su verificación: %', j; end if;
+  if j::text ~ '20000|5000|cesce|riesgo' then raise exception 'FALLO 378 · el cliente ve importes o CESCE: %', j; end if;
+  if mi_cobertura_credito() <> 'sin_verificar' then raise exception 'FALLO 378 · el chip del crédito no dice «sin verificar»'; end if;
+  if solicitar_verificacion_empresa('transferencia') <> 'ok' then raise exception 'FALLO 378 · no puede pedir la verificación por transferencia'; end if;
+  begin perform verificar_empresa(cliente_del_usuario(), 'manual', 'me verifico yo'); raise exception 'FALLO 378 · el cliente se verifica solo';
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from verificaciones_empresa) then raise exception 'FALLO 378 · el cliente lee el registro de verificaciones'; end if;
+end $$;
+reset role;
+-- Dynamo: rechaza (con email), el cliente vuelve a pedir, Dynamo verifica (crédito vuelve) y luego la quita.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare c uuid := current_setting('prueba.c378')::uuid; ok boolean := false; r text; begin
+  if (select verificacion_solicitada from clientes where id = c) <> 'transferencia' then raise exception 'FALLO 378 · Dynamo no ve la verificación pedida'; end if;
+  -- Nadie cambia la verificación por la puerta de atrás (ni Dynamo con un update): solo con sus botones.
+  begin update clientes set estado_verificacion = 'verificada' where id = c; exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 378 · la verificación se cambia con un update directo'; end if;
+  begin perform verificar_empresa(c, 'manual', 'no'); raise exception 'FALLO 378 · se verifica sin motivo';
+  exception when others then if sqlerrm like 'FALLO%' then raise; end if; end;
+  if rechazar_verificacion_empresa(c, 'No llega la transferencia') <> 'ok' then raise exception 'FALLO 378 · no se rechaza'; end if;
+  if (select verificacion_solicitada from clientes where id = c) is not null then raise exception 'FALLO 378 · el rechazo no quita la petición'; end if;
+  if verificar_empresa(c, 'transferencia', 'Llega 0,01 € con su código; ordenante Empresa 378 S.L.') <> 'ok' then raise exception 'FALLO 378 · no se verifica'; end if;
+  if (select (estado_verificacion, metodo_verificacion, verificada_por, riesgo_efectivo_euros) from clientes where id = c)
+     is distinct from ('verificada'::verificacion_empresa, 'transferencia'::metodo_verificacion, current_setting('prueba.u_admin')::uuid, 5000::numeric(12,2)) then
+    raise exception 'FALLO 378 · al verificar no queda quién, cómo y su crédito (el manual de Dynamo)'; end if;
+  r := quitar_verificacion_empresa(c, 'Prueba de quitarla');
+  if r <> 'ok' or (select riesgo_efectivo_euros from clientes where id = c) <> 0 then
+    raise exception 'FALLO 378 · al quitar la verificación el crédito no vuelve a 0: % %', r, (select (estado_verificacion, riesgo_efectivo_euros) from clientes where id = c); end if;
+  if (select string_agg(accion, ',' order by creado_en) from verificaciones_empresa where cliente_id = c) <> 'solicitud,rechazada,verificada,retirada' then
+    raise exception 'FALLO 378 · el registro no lo recoge todo: %', (select string_agg(accion, ',' order by creado_en) from verificaciones_empresa where cliente_id = c); end if;
+end $$;
+reset role;
+do $$ declare c uuid := current_setting('prueba.c378')::uuid; begin
+  if not exists (select 1 from emails_enviados where tipo = 'verificacion_rechazada' and clave like 'verificacion_rechazada:' || c || '%') then
+    raise exception 'FALLO 378 · el rechazo no avisa al cliente por email'; end if;
+  if not exists (select 1 from emails_enviados where tipo = 'credito_cambio' and clave like 'credito_cambio:' || c || '%' and cuerpo_html like '%ya está <strong>verificada%') then
+    raise exception 'FALLO 378 · al verificar con crédito no sale el email del crédito con «verificada»'; end if;
+  if not exists (select 1 from emails_enviados where tipo = 'credito_cambio' and clave like 'credito_cambio:' || c || '%' and cuerpo_html like '%pendiente de verificar%') then
+    raise exception 'FALLO 378 · al quitar la verificación no sale el email de crédito en pausa'; end if;
+  -- Una empresa que crea Dynamo nace verificada.
+  insert into clientes (razon_social, cif) values ('Dynamo crea 378 S.L.', 'B37800002');
+  if (select estado_verificacion from clientes where cif = 'B37800002') <> 'verificada' then raise exception 'FALLO 378 · la empresa que crea Dynamo no nace verificada'; end if;
+  delete from clientes where cif = 'B37800002';
+  raise notice 'OK 378 · verificación de empresa: sin verificar el crédito es 0 (CESCE y Dynamo), el alta sola nace sin verificar y activa, el cliente pide y no se verifica solo ni ve importes, Dynamo rechaza/verifica/quita con motivo, registro y emails';
+end $$;
+
+-- ---- 379. Baja de un compañero: suspendido al momento y Dynamo decide --------------------
+-- (usuario, 2026-11-26) Nadie borra a otro: un usuario PIDE la baja de un compañero de SU
+-- empresa; el afectado queda sin acceso al momento y recibe un email; Dynamo la confirma o
+-- la rehabilita. Ni a sí mismo, ni a otra empresa, ni dos veces.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into auth.users (email, raw_user_meta_data) values ('companero379@cliente.prueba', '{"nombre":"Compañero Tres Siete Nueve"}');
+do $$ declare v uuid; begin
+  select id into v from usuarios where email = 'companero379@cliente.prueba';
+  update usuarios set cliente_id = current_setting('prueba.cliente')::uuid, estado = 'activa' where id = v;
+  perform set_config('prueba.u379', v::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare v uuid := current_setting('prueba.u379')::uuid; r text; begin
+  if not exists (select 1 from mis_companeros() where id = v) then raise exception 'FALLO 379 · el cliente no ve a su compañero en «Tu equipo»'; end if;
+  if solicitar_baja_companero(auth.uid(), 'me doy de baja yo') <> 'eres_tu' then raise exception 'FALLO 379 · se pide la baja a sí mismo'; end if;
+  begin perform solicitar_baja_companero(current_setting('prueba.u_transp')::uuid, 'no es de mi empresa');
+    raise exception 'FALLO 379 · pide la baja de alguien de otra empresa';
+  exception when insufficient_privilege then null; end;
+  r := solicitar_baja_companero(v, 'Ya no trabaja con nosotros');
+  if r <> 'ok' then raise exception 'FALLO 379 · no se pide la baja: %', r; end if;
+  if solicitar_baja_companero(v, 'Otra vez') <> 'ya_pedida' then raise exception 'FALLO 379 · se pide dos veces'; end if;
+  begin perform resolver_baja((select id from solicitudes_baja limit 1), 'baja', 'me lo resuelvo');
+    raise exception 'FALLO 379 · el cliente resuelve la baja';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ declare v uuid := current_setting('prueba.u379')::uuid; begin
+  if (select estado from usuarios where id = v) <> 'suspendida_total' then raise exception 'FALLO 379 · el compañero no queda sin acceso al momento'; end if;
+  if not exists (select 1 from emails_enviados where tipo = 'baja_solicitada' and destinatario = 'companero379@cliente.prueba') then raise exception 'FALLO 379 · el afectado no recibe el email'; end if;
+  if not exists (select 1 from avisos where tipo = 'baja_cuenta' and titulo like 'Baja pedida por un compañero%') then raise exception 'FALLO 379 · Dynamo no recibe el aviso'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare v uuid := current_setting('prueba.u379')::uuid; s uuid; begin
+  select id into s from solicitudes_baja where usuario_id = v and estado = 'pendiente';
+  if resolver_baja(s, 'rehabilitar', 'Llamado: no la reconoce, era un intento de fraude') <> 'ok' then raise exception 'FALLO 379 · Dynamo no la resuelve'; end if;
+  if (select estado from usuarios where id = v) <> 'activa' then raise exception 'FALLO 379 · al rehabilitar no vuelve a activa'; end if;
+  if (select (estado, resuelta_por) from solicitudes_baja where id = s) is distinct from ('rehabilitada'::text, auth.uid()) then raise exception 'FALLO 379 · el registro no guarda quién la resolvió'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  update usuarios set estado = 'suspendida' where id = current_setting('prueba.u379')::uuid;
+  raise notice 'OK 379 · baja de un compañero: solo de su empresa y no de sí mismo, el afectado queda sin acceso al momento con email, Dynamo avisado y decide (baja o rehabilitar) con registro';
+end $$;

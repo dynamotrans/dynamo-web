@@ -430,8 +430,18 @@ export type Database = {
           sector: string | null
           texto_busqueda: string | null
           nima_por_defecto: boolean
-          riesgo_efectivo_euros: number | null
           nombre_visible: string | null
+          estado_verificacion: Database["public"]["Enums"]["verificacion_empresa"]
+          metodo_verificacion: Database["public"]["Enums"]["metodo_verificacion"] | null
+          verificada_por: string | null
+          verificada_en: string | null
+          verificacion_motivo: string | null
+          verificacion_solicitada: Database["public"]["Enums"]["metodo_verificacion"] | null
+          verificacion_solicitada_en: string | null
+          codigo_transferencia: string
+          cesce_resultado: Database["public"]["Enums"]["resultado_cesce"]
+          cesce_consultado_en: string | null
+          riesgo_efectivo_euros: number | null
         }
         Insert: {
           id?: string
@@ -481,8 +491,18 @@ export type Database = {
           sector?: string | null
           texto_busqueda?: string | null
           nima_por_defecto?: boolean
-          riesgo_efectivo_euros?: never
           nombre_visible?: never
+          estado_verificacion?: Database["public"]["Enums"]["verificacion_empresa"]
+          metodo_verificacion?: Database["public"]["Enums"]["metodo_verificacion"] | null
+          verificada_por?: string | null
+          verificada_en?: string | null
+          verificacion_motivo?: string | null
+          verificacion_solicitada?: Database["public"]["Enums"]["metodo_verificacion"] | null
+          verificacion_solicitada_en?: string | null
+          codigo_transferencia?: string
+          cesce_resultado?: Database["public"]["Enums"]["resultado_cesce"]
+          cesce_consultado_en?: string | null
+          riesgo_efectivo_euros?: never
         }
         Update: {
           id?: string
@@ -532,8 +552,18 @@ export type Database = {
           sector?: string | null
           texto_busqueda?: string | null
           nima_por_defecto?: boolean
-          riesgo_efectivo_euros?: never
           nombre_visible?: never
+          estado_verificacion?: Database["public"]["Enums"]["verificacion_empresa"]
+          metodo_verificacion?: Database["public"]["Enums"]["metodo_verificacion"] | null
+          verificada_por?: string | null
+          verificada_en?: string | null
+          verificacion_motivo?: string | null
+          verificacion_solicitada?: Database["public"]["Enums"]["metodo_verificacion"] | null
+          verificacion_solicitada_en?: string | null
+          codigo_transferencia?: string
+          cesce_resultado?: Database["public"]["Enums"]["resultado_cesce"]
+          cesce_consultado_en?: string | null
+          riesgo_efectivo_euros?: never
         }
         Relationships: [
           {
@@ -548,6 +578,13 @@ export type Database = {
             columns: ["sitio_principal_id"]
             isOneToOne: false
             referencedRelation: "sitios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_verificada_por_fkey"
+            columns: ["verificada_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -4167,6 +4204,87 @@ export type Database = {
           },
         ]
       }
+      solicitudes_baja: {
+        Row: {
+          id: string
+          usuario_id: string
+          cliente_id: string | null
+          transportista_id: string | null
+          solicitada_por: string | null
+          motivo: string
+          estado: string
+          estado_anterior: Database["public"]["Enums"]["estado_cuenta"]
+          creada_en: string
+          resuelta_por: string | null
+          resuelta_en: string | null
+          nota: string | null
+        }
+        Insert: {
+          id?: string
+          usuario_id: string
+          cliente_id?: string | null
+          transportista_id?: string | null
+          solicitada_por?: string | null
+          motivo: string
+          estado?: string
+          estado_anterior: Database["public"]["Enums"]["estado_cuenta"]
+          creada_en?: string
+          resuelta_por?: string | null
+          resuelta_en?: string | null
+          nota?: string | null
+        }
+        Update: {
+          id?: string
+          usuario_id?: string
+          cliente_id?: string | null
+          transportista_id?: string | null
+          solicitada_por?: string | null
+          motivo?: string
+          estado?: string
+          estado_anterior?: Database["public"]["Enums"]["estado_cuenta"]
+          creada_en?: string
+          resuelta_por?: string | null
+          resuelta_en?: string | null
+          nota?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_baja_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_baja_resuelta_por_fkey"
+            columns: ["resuelta_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_baja_solicitada_por_fkey"
+            columns: ["solicitada_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_baja_transportista_id_fkey"
+            columns: ["transportista_id"]
+            isOneToOne: false
+            referencedRelation: "transportistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_baja_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: true
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sugerencias: {
         Row: {
           id: string
@@ -4751,6 +4869,51 @@ export type Database = {
           },
         ]
       }
+      verificaciones_empresa: {
+        Row: {
+          id: string
+          cliente_id: string
+          accion: string
+          metodo: Database["public"]["Enums"]["metodo_verificacion"] | null
+          usuario_id: string | null
+          motivo: string | null
+          creado_en: string
+        }
+        Insert: {
+          id?: string
+          cliente_id: string
+          accion: string
+          metodo?: Database["public"]["Enums"]["metodo_verificacion"] | null
+          usuario_id?: string | null
+          motivo?: string | null
+          creado_en?: string
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          accion?: string
+          metodo?: Database["public"]["Enums"]["metodo_verificacion"] | null
+          usuario_id?: string | null
+          motivo?: string | null
+          creado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verificaciones_empresa_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verificaciones_empresa_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_conversaciones: {
         Row: {
           id: string
@@ -5203,6 +5366,8 @@ export type Database = {
       activar_rastro: { Args: { p_tabla: string | null }; Returns: undefined }
       almacenes_dynamo_tarifa: { Args: Record<PropertyKey, never>; Returns: { id: string; nombre: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; disponible: boolean; semana: number; reparto: number }[] }
       alta_bloqueada: { Args: { p_email: string | null }; Returns: boolean }
+      alta_crear_mi_empresa: { Args: Record<PropertyKey, never>; Returns: string }
+      alta_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       alta_transportista_publica: { Args: { p_reserva: string | null; p_bolsa: string | null; p_codigo_bolsa: string | null; p_pais: string | null; p_cif: string | null; p_telefono: string | null; p_precio?: number | null; p_pronto_pago?: boolean | null; p_ip?: string | null }; Returns: Json }
       altas_pendientes: { Args: Record<PropertyKey, never>; Returns: { id: string; email: string; nombre: string; telefono: string; documento: string; solicitada_en: string; confirmado_email: boolean; datos: Json }[] }
       ampliar_plazo_pago: { Args: { p_envio: string | null }; Returns: Json }
@@ -5228,6 +5393,7 @@ export type Database = {
       avisar_control_facturacion: { Args: { p_forzar?: boolean | null }; Returns: number }
       avisar_pago_transferencia: { Args: { p_envio: string | null }; Returns: Json }
       aviso_limite_api: { Args: { p_api: string | null }; Returns: boolean }
+      baja_companero_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
       borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
@@ -5273,6 +5439,7 @@ export type Database = {
       cmr_subida_permitida: { Args: { p_name: string | null }; Returns: boolean }
       cmr_trazo_visible: { Args: { p_name: string | null }; Returns: boolean }
       codigo_postal_comparable: { Args: { p: string | null }; Returns: string }
+      codigo_verificacion_nuevo: { Args: Record<PropertyKey, never>; Returns: string }
       completar_carga_publica: { Args: { p_reserva: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_telefono: string | null; p_fecha_carga_prevista?: string | null }; Returns: Json }
       comprobar_cobertura: { Args: { p_paradas: Json | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null }; Returns: { orden: number; punto: string; efecto: string; mensaje: string }[] }
       comunidad_de: { Args: { p_pais: string | null; p_cp: string | null }; Returns: string }
@@ -5519,12 +5686,14 @@ export type Database = {
       mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number; nima_por_defecto: boolean }[] }
       mi_empresa_sector: { Args: Record<PropertyKey, never>; Returns: string }
       mi_empresa_transportista: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; nima: string; bolsa: string; codigo_bolsa: string }[] }
+      mi_empresa_verificacion: { Args: Record<PropertyKey, never>; Returns: Json }
       mi_enlace_cmr: { Args: { p_envio: string | null }; Returns: string }
       mi_envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       mi_envio_manual_precio: { Args: { p_envio: string | null; p_precio: number | null }; Returns: undefined }
       mi_logo_empresa: { Args: Record<PropertyKey, never>; Returns: string }
       mi_valoracion_envio: { Args: { p_envio: string | null }; Returns: { puede: boolean; nota: number; comentario: string; valorado_en: string; editable: boolean }[] }
       mis_avisos: { Args: { p_cliente?: string | null; p_transportista?: string | null }; Returns: { id: string; tipo: string; nivel: string; titulo: string; texto: string; enlace: string; creado_en: string; nuevo: boolean }[] }
+      mis_companeros: { Args: Record<PropertyKey, never>; Returns: { id: string; nombre: string; email: string; estado: Database["public"]["Enums"]["estado_cuenta"]; soy_yo: boolean; baja_pendiente: boolean }[] }
       mis_envios: { Args: Record<PropertyKey, never>; Returns: { id: string; referencia_gx: string; referencia_cliente: string; estado: Database["public"]["Enums"]["estado_envio"]; estado_asignacion: Database["public"]["Enums"]["estado_asignacion"]; es_manual: boolean; operador_id: string; precio_acordado_operador: number; fecha_carga_desde: string; fecha_carga_hasta: string; fecha_carga_real: string; fecha_entrega_estimada: string; descripcion_mercancia: string; toneladas: number; metros_lineales: number; tipo_carga: Database["public"]["Enums"]["tipo_carga"]; paletizado: boolean; carga_lateral: boolean; carga_techo: boolean; carga_trasera: boolean; requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean; codigo_postal_origen: string; poblacion_origen: string; codigo_postal_destino: string; poblacion_destino: string; num_paradas: number; importe_cliente: number; moneda: string; iva_pct: number; anotaciones_cliente: string; discrecion_comercial: boolean; matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string; creado_en: string; modificado_en: string; confirmado_en: string; asignado_en: string; cargado_en: string; entregado_en: string; cancelado_en: string; paradas: Json; estado_solicitud: string; precio_caduca_en: string; condiciones_aceptadas_en: string }[] }
       mis_envios_por_ids: { Args: { p_ids: string[] | null }; Returns: { id: string; referencia_gx: string; referencia_cliente: string; estado: Database["public"]["Enums"]["estado_envio"]; estado_asignacion: Database["public"]["Enums"]["estado_asignacion"]; es_manual: boolean; operador_id: string; precio_acordado_operador: number; fecha_carga_desde: string; fecha_carga_hasta: string; fecha_carga_real: string; fecha_entrega_estimada: string; descripcion_mercancia: string; toneladas: number; metros_lineales: number; tipo_carga: Database["public"]["Enums"]["tipo_carga"]; paletizado: boolean; carga_lateral: boolean; carga_techo: boolean; carga_trasera: boolean; requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean; codigo_postal_origen: string; poblacion_origen: string; codigo_postal_destino: string; poblacion_destino: string; num_paradas: number; importe_cliente: number; moneda: string; iva_pct: number; anotaciones_cliente: string; discrecion_comercial: boolean; matricula_camion: string; matricula_remolque: string; conductor_nombre: string; conductor_telefono: string; creado_en: string; modificado_en: string; confirmado_en: string; asignado_en: string; cargado_en: string; entregado_en: string; cancelado_en: string; paradas: Json; estado_solicitud: string; precio_caduca_en: string; condiciones_aceptadas_en: string }[] }
       mis_hitos: { Args: { p_envio: string | null }; Returns: { id: number; hito: Database["public"]["Enums"]["tipo_hito"]; cuando: string }[] }
@@ -5620,9 +5789,11 @@ export type Database = {
       quitar_de_pack: { Args: { p_envio: string | null }; Returns: Json }
       quitar_logo: { Args: { p_documento: string | null }; Returns: undefined }
       quitar_transportista: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
+      quitar_verificacion_empresa: { Args: { p_cliente: string | null; p_motivo: string | null }; Returns: string }
       reanclar_seguimiento_firmas: { Args: Record<PropertyKey, never>; Returns: number }
       recalcular_notas_transportistas: { Args: { p_transportista?: string | null }; Returns: number }
       rechazar_pago_transferencia: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
+      rechazar_verificacion_empresa: { Args: { p_cliente: string | null; p_motivo: string | null }; Returns: string }
       referencia_gx_de_nombre: { Args: { p_nombre: string | null }; Returns: string }
       regenerar_pin_parada: { Args: { p_parada: string | null }; Returns: string }
       registrar_acceso: { Args: { p_huella: string | null; p_descripcion?: string | null; p_ubicacion?: string | null }; Returns: Json }
@@ -5639,6 +5810,7 @@ export type Database = {
       renumerar_paradas: { Args: { p_envio: string | null }; Returns: undefined }
       reservar_envio_publico: { Args: { p_token: string | null; p_ip?: string | null; p_navegador?: string | null }; Returns: Json }
       reservas_cmr_publico: { Args: { p_token: string | null }; Returns: { rol: string; parada_id: string; texto: string; creado_en: string }[] }
+      resolver_baja: { Args: { p_solicitud: string | null; p_decision: string | null; p_nota: string | null }; Returns: string }
       resolver_cambio_envio: { Args: { p_envio: string | null; p_acepta: boolean | null; p_nota?: string | null }; Returns: Json }
       resolver_contraoferta: { Args: { p_reserva: string | null; p_acepta: boolean | null }; Returns: Json }
       resolver_contraoferta_cliente: { Args: { p_envio: string | null; p_acepta: boolean | null }; Returns: Json }
@@ -5665,6 +5837,8 @@ export type Database = {
       sitio_texto_busqueda: { Args: { s: Database["public"]["Tables"]["sitios"]["Row"] | null }; Returns: string }
       sitios_pagina: { Args: { p_q?: string | null; p_cliente?: string | null; p_pagina?: number | null; p_por_pagina?: number | null }; Returns: { id: string; total: number }[] }
       sn: { Args: { p: boolean | null }; Returns: string }
+      solicitar_baja_companero: { Args: { p_usuario: string | null; p_motivo: string | null }; Returns: string }
+      solicitar_verificacion_empresa: { Args: { p_metodo: string | null }; Returns: string }
       subir_cmr_papel_publico: { Args: { p_token: string | null; p_fotos: string[] | null }; Returns: Json }
       subir_documentos_extra_publico: { Args: { p_token: string | null; p_fotos: string[] | null }; Returns: Json }
       sugerencias_transportistas_publicas: { Args: { p_reserva: string | null; p_q: string | null }; Returns: { nombre: string; cif: string; poblacion: string }[] }
@@ -5705,6 +5879,7 @@ export type Database = {
       verificacion_albaran_rechazar: { Args: { p_id: string | null; p_motivo?: string | null }; Returns: Json }
       verificacion_albaran_tipo: { Args: { p_id: string | null; p_tipo: string | null }; Returns: Json }
       verificacion_albaranes_lista: { Args: Record<PropertyKey, never>; Returns: Json }
+      verificar_empresa: { Args: { p_cliente: string | null; p_metodo: string | null; p_motivo: string | null }; Returns: string }
       whatsapp_archivo_guardado: { Args: { p_mensaje: string | null; p_ruta: string | null; p_tipo: string | null; p_bytes: number | null }; Returns: undefined }
       whatsapp_archivos_borrados: { Args: { p_mensajes: string[] | null }; Returns: number }
       whatsapp_archivos_caducados: { Args: { p_limite?: number | null }; Returns: { mensaje_id: string; archivo_ruta: string }[] }
@@ -5733,7 +5908,9 @@ export type Database = {
       estado_penalizacion: "pendiente_confirmar" | "confirmada" | "cancelada"
       forma_carga: "paletizada_lateral" | "no_paletizada_lateral" | "no_paletizada_techo"
       funcion_contacto: "trafico" | "contabilidad" | "conductor" | "general"
+      metodo_verificacion: "transferencia" | "documento" | "manual" | "certificado"
       prioridad_incidencia: "baja" | "media" | "alta" | "critica"
+      resultado_cesce: "sin_consultar" | "positivo" | "cero" | "denegado"
       rol_usuario: "admin" | "empleado" | "cliente" | "transportista" | "admin_lectura" | "empleado_lectura"
       tipo_camion: "trailer_tauliner" | "rigido_plataforma"
       tipo_carga: "completa" | "grupaje"
@@ -5741,6 +5918,7 @@ export type Database = {
       tipo_hito: "creado" | "confirmado" | "publicado_bolsa" | "transportista_asignado" | "transportista_quitado" | "matricula_asignada" | "hacia_la_carga" | "cargando" | "descargando" | "cargado" | "descargado" | "etapa_corregida" | "entregado" | "cancelado" | "cancelacion_deshecha" | "ofertado" | "enlace_abierto" | "reservado" | "reserva_caducada" | "reserva_liberada" | "contraoferta_propuesta" | "contraoferta_resuelta" | "orden_carga_enviada" | "cmr_firmado" | "pin_enviado" | "pin_validado" | "pin_validado_manual" | "pin_fuera_de_orden" | "pin_bloqueado" | "incidencia" | "ruta_cambiada" | "fecha_carga_movida" | "fecha_carga_cambiada" | "mercancia_cambiada" | "pago_devuelto"
       tipo_sitio: "almacen_nave" | "obra_zona_amplia" | "obra_zona_urbana" | "finca"
       tipo_vehiculo: "tractora" | "remolque" | "rigido"
+      verificacion_empresa: "no_verificada" | "verificada"
     }
     CompositeTypes: {
       [_ in never]: never

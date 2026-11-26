@@ -1335,7 +1335,7 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - Al pulsar un punto, camión, parada o ruta: esa en morado grueso con carteles; TODO lo demás (líneas, paradas, camiones, puntos) atenuado casi transparente y en gris. Vuelve a los 4 s o al pulsar el mapa.
 - PENDIENTE de decidir: colores de los puntos de programado por estado (propuesta: gris programado, naranja asignando, verde confirmado, rojo pendiente de pago, rojo parpadeante si pasó su día de carga).
 
-### Verificación de EMPRESA y crédito (usuario, 2026-11-26) — EN CURSO (#155)
+### Verificación de EMPRESA y crédito (usuario, 2026-11-26) — HECHO (#155), salvo lo pendiente de abajo
 Decisiones del usuario:
 - La verificación es de la EMPRESA (CIF), una vez, la hace cualquier usuario de la empresa; los que se unen la heredan.
 - CORTAFUEGOS: empresa sin verificar → crédito = 0, da igual CESCE o el crédito de Dynamo. Todo con pago previo (tarjeta o transferencia; con transferencia el envío se queda «Pendiente de pago» hasta que Dynamo pulse «He recibido el pago»). Nunca bloquear pedir envíos por no estar verificada.
@@ -1345,3 +1345,16 @@ Decisiones del usuario:
 - Alta: empresa NUEVA (CIF que no existe) → entra al momento (usuario con email y móvil verificados), empresa creada sin verificar, pide envíos con pago previo. CIF que YA existe sin invitación → espera aprobación de Dynamo en Altas pendientes (como hoy) y se le dice que pida a un compañero que le invite.
 - Clientes ya existentes al entrar esto: verificados DE OFICIO («a mano · cliente anterior»), siguen con su crédito.
 - Bajas: un usuario no borra a otro; puede SOLICITAR la baja de un compañero → el afectado queda suspendido al momento y recibe aviso (email + WhatsApp) para que llame si no la reconoce; Dynamo decide desde admin (baja definitiva o rehabilitar). Auditoría de solicitudes y validaciones.
+
+Hecho (2026-11-26):
+- BD: clientes.estado_verificacion / metodo / verificada_por / verificada_en / verificacion_motivo / verificacion_solicitada / codigo_transferencia (VER-XXXXXX) / cesce_resultado / cesce_consultado_en; registro verificaciones_empresa. riesgo_efectivo_euros = 0 si no está verificada (cortafuegos). Empresas anteriores y las que crea Dynamo: verificadas; las que se dan de alta solas: sin verificar.
+- Alta de empresa nueva sin esperar a Dynamo (alta_crear_mi_empresa). CIF existente: espera a Dynamo o invitación.
+- Cliente: aviso verde (con crédito esperándole), tarjeta en Mi cuenta, ventana con transferencia 0,01 € (código, a fondo perdido) o documento; chip «Empresa sin verificar».
+- Dynamo: recuadro en la ficha del cliente (verificar / rechazar / quitar con motivo y contraseña, registro, documentos subidos, CESCE) y «Empresas por verificar» en Altas pendientes.
+- Bajas: «Tu equipo» lista compañeros y «Pedir su baja» (motivo + contraseña) → sin acceso al momento + email al afectado + aviso a Dynamo; Dynamo confirma o rehabilita en Altas pendientes (solicitudes_baja).
+Pendiente:
+- Certificado digital (PDF firmado con AutoFirma/Adobe y comprobación automática del CIF).
+- CESCE API (#144): lib/servidor/cesce.ts ya se llama al dar de alta la empresa; falta la consulta real.
+- Automatizar la transferencia de 0,01 € leyendo los movimientos del banco.
+- WhatsApp al afectado por una baja pedida: necesita plantilla (con las plantillas, al final).
+- Riesgos: distintivo «Sin verificar» en la lista (hoy sale crédito 0).

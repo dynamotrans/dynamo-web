@@ -5,6 +5,8 @@
 import { useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
+import { TarjetaVerificacion } from './VerificacionEmpresa';
+import EquipoEmpresa from './EquipoEmpresa';
 import Documentos from './Documentos';
 import LogoEditor from './LogoEditor';
 import EditorContactos from './EditorContactos';
@@ -106,6 +108,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             <p className="account-card-desc">¿Un compañero de tu empresa necesita acceso? Añádelo con su email y queda <strong>autorizado al instante</strong>, con tu mismo rol. Le llega un email para crear su contraseña.</p>
             <button className="btn-ghost account-edit" onClick={() => { setCompaneroOk(false); setCompanero(true); }}>+ Añadir un compañero</button>
             {companeroOk && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Invitación enviada: ya puede crear su contraseña desde su email.</p>}
+            {/* Los usuarios de tu empresa y «Pedir su baja» (usuario, 2026-11-26). */}
+            <EquipoEmpresa />
           </div>
         )}
         {empresa && (
@@ -121,6 +125,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para modificar los datos fiscales, llámanos o escríbenos y lo actualizamos.</p>
           </div>
         )}
+        {/* Verificación de la empresa (usuario, 2026-11-26): una vez por empresa; sin ella, pago previo. */}
+        {empresa && rol === 'cliente' && <TarjetaVerificacion />}
         {transporte && (<>
           <div className="account-card">
             <h3 className="account-card-title">Empresa de transporte</h3>

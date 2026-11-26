@@ -55,3 +55,92 @@ test.describe('deuda en la ficha', () => {
     }
   });
 });
+
+// Verificación de empresa (usuario, 2026-11-26): sin verificar, crédito 0 y pago previo. Dynamo
+// la quita; el cliente la pide por transferencia de 0,01 € con su código; Dynamo la ve en Altas
+// y la verifica desde la ficha (con motivo y contraseña).
+test.describe('verificación de empresa', () => {
+  test('Dynamo la quita, el cliente la pide por transferencia y Dynamo la vuelve a verificar', async ({ page }) => {
+    const { bd, CLAVE, EMAIL } = await import('./ayudas');
+    const { data: u } = await bd().from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const cid = u!.cliente_id as string;
+    const { data: c } = await bd().from('clientes').select('cif, estado_verificacion').eq('id', cid).single();
+    expect(c!.estado_verificacion).toBe('verificada');
+
+    await entrar(page, 'dynamo');
+    await page.goto(`/panel/clientes?ver=${cid}`);
+    await expect(page.locator('#cli-verificacion-estado')).toContainText('Verificada');
+    await page.locator('#btn-cli-quitar-verificacion').click();
+    await page.fill('#cli-verificar-motivo', 'Prueba e2e: quitar y volver a verificar');
+    await page.fill('#cli-verificar-clave', CLAVE);
+    await page.locator('#btn-cli-verificar-confirmar').click();
+    await expect(page.locator('#cli-verificacion-estado')).toContainText('Sin verificar');
+
+    try {
+      await entrar(page, 'cliente');
+      await page.goto('/panel/mi-cuenta');
+      const tarjeta = page.locator('#tarjeta-verificacion');
+      await expect(tarjeta).toContainText('Sin verificar');
+      await page.locator('#btn-abrir-verificacion').click();
+      await page.locator('#via-transferencia').click();
+      await expect(page.locator('#verificacion-codigo')).toHaveText(/^VER-[A-Z2-9]{6}$/);
+      await expect(page.locator('.dash-modal-card')).toContainText('no se devuelve');
+      await page.locator('#btn-transferencia-hecha').click();
+      await expect(page.locator('#verificacion-enviada')).toBeVisible();
+
+      await entrar(page, 'dynamo');
+      await page.goto('/panel/altas');
+      await expect(page.locator('#empresas-por-verificar')).toContainText(c!.cif);
+      await page.goto(`/panel/clientes?ver=${cid}`);
+      await page.locator('#btn-cli-verificar').click();
+      await expect(page.locator('#cli-verificar-metodo')).toHaveValue('transferencia');
+      await page.fill('#cli-verificar-motivo', 'Prueba e2e: llega 0,01 € con su código');
+      await page.fill('#cli-verificar-clave', CLAVE);
+      await page.locator('#btn-cli-verificar-confirmar').click();
+      await expect(page.locator('#cli-verificacion-estado')).toContainText('Verificada');
+    } finally {
+      const { data: f } = await bd().from('clientes').select('estado_verificacion').eq('id', cid).single();
+      expect(f!.estado_verificacion, 'la empresa del cliente de pruebas debe acabar verificada').toBe('verificada');
+    }
+  });
+});
+
+// Baja de un compañero (usuario, 2026-11-26): se PIDE desde «Tu equipo» (motivo y contraseña);
+// la cuenta queda sin acceso al momento y Dynamo la rehabilita (o confirma) en Altas pendientes.
+test.describe('baja de un compañero', () => {
+  test('el cliente pide la baja de un compañero y Dynamo la rehabilita', async ({ page }) => {
+    const { bd, CLAVE, EMAIL } = await import('./ayudas');
+    const { data: yo } = await bd().from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const email = `companero-${Date.now()}@e2e.test`;
+    const { data: nuevo, error } = await bd().auth.admin.createUser({ email, password: CLAVE, email_confirm: true, user_metadata: { nombre: 'Compañero E2E' } });
+    expect(error).toBeNull();
+    const id = nuevo.user!.id;
+    await bd().from('usuarios').update({ cliente_id: yo!.cliente_id, estado: 'activa' }).eq('id', id);
+    try {
+      await entrar(page, 'cliente');
+      await page.goto('/panel/mi-cuenta');
+      const fila = page.locator('#equipo-empresa .equipo-fila', { hasText: email });
+      await fila.getByRole('button', { name: 'Pedir su baja' }).click();
+      await page.fill('#equipo-baja-motivo', 'Ya no trabaja con nosotros (prueba e2e)');
+      await page.fill('#equipo-baja-clave', CLAVE);
+      await page.locator('#btn-equipo-baja-confirmar').click();
+      await expect(fila).toContainText('Baja pedida');
+      const { data: u } = await bd().from('usuarios').select('estado').eq('id', id).single();
+      expect(u!.estado).toBe('suspendida_total');
+
+      await entrar(page, 'dynamo');
+      await page.goto('/panel/altas');
+      const caja = page.locator('#bajas-solicitadas');
+      await expect(caja).toContainText(email);
+      await caja.locator('tr', { hasText: email }).getByRole('button', { name: 'Rehabilitar' }).click();
+      await page.fill('#baja-nota', 'Llamado: no la reconoce (prueba e2e)');
+      await page.fill('#baja-clave', CLAVE);
+      await caja.getByRole('button', { name: 'Rehabilitar' }).last().click();
+      await expect(page.getByText('Cuenta rehabilitada')).toBeVisible();
+      const { data: u2 } = await bd().from('usuarios').select('estado').eq('id', id).single();
+      expect(u2!.estado).toBe('activa');
+    } finally {
+      await bd().from('usuarios').update({ estado: 'suspendida' }).eq('id', id);
+    }
+  });
+});

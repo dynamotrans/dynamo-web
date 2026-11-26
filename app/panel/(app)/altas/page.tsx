@@ -1,4 +1,6 @@
-import { hoyMadrid } from '@/lib/formato';
+import Link from 'next/link';
+import BajasSolicitadas, { type BajaFila } from '@/components/panel/BajasSolicitadas';
+import { hoyMadrid, fechaHora } from '@/lib/formato';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo, sinAcceso } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -78,5 +80,46 @@ export default async function PaginaAltas() {
       camino: t('alta_paso') === 'existente' ? 'existente' : t('alta_paso') === 'nueva' ? 'nueva' : '',
     };
   });
-  return <Altas filas={filas} transportistas={transportistas} festivos={festivos} clientes={clientes.data ?? []} paraCliente={paraCliente} error={altas.error?.message ?? reservas.error?.message ?? null} />;
+  // Empresas que han pedido verificarse (usuario, 2026-11-26): la revisión se hace en su ficha.
+  const { data: porVerificar } = await supabase.from('clientes')
+    .select('id, nombre_visible, cif, verificacion_solicitada, verificacion_solicitada_en, codigo_transferencia')
+    .not('verificacion_solicitada', 'is', null).eq('estado_verificacion', 'no_verificada')
+    .order('verificacion_solicitada_en', { ascending: true }).limit(100);
+  // Bajas pedidas por un compañero (usuario, 2026-11-26): la cuenta ya está sin acceso.
+  const { data: bajasR } = await supabase.from('solicitudes_baja')
+    .select('id, motivo, creada_en, usuario:usuarios!solicitudes_baja_usuario_id_fkey(nombre, email, cliente_id, transportista_id), por:usuarios!solicitudes_baja_solicitada_por_fkey(nombre, email), clientes(nombre_visible), transportistas(nombre_visible)')
+    .eq('estado', 'pendiente').order('creada_en').limit(100)
+    .overrideTypes<{ id: string; motivo: string; creada_en: string; usuario: { nombre: string | null; email: string | null } | null;
+      por: { nombre: string | null; email: string | null } | null; clientes: { nombre_visible: string | null } | null; transportistas: { nombre_visible: string | null } | null }[], { merge: false }>();
+  const bajas: BajaFila[] = (bajasR ?? []).map((b) => ({
+    id: b.id, motivo: b.motivo, creada_en: b.creada_en, usuario: b.usuario?.nombre || b.usuario?.email || '', email: b.usuario?.email ?? '',
+    empresa: b.clientes?.nombre_visible || b.transportistas?.nombre_visible || '', por: b.por?.nombre || b.por?.email || '',
+  }));
+  return (
+    <>
+      <BajasSolicitadas filas={bajas} />
+      {(porVerificar ?? []).length > 0 && (
+        <section className="section active" id="empresas-por-verificar" style={{ paddingBottom: 0 }}>
+          <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div>
+            <strong>Empresas por verificar ({(porVerificar ?? []).length}).</strong> Sin verificar trabajan con pago previo. Ábrelas para verificar o rechazar.
+          </div></div>
+          <div className="table-wrap"><table className="data">
+            <thead><tr><th>Empresa</th><th>CIF</th><th>Vía</th><th>Código transferencia</th><th>Pedida</th></tr></thead>
+            <tbody>
+              {(porVerificar ?? []).map((c) => (
+                <tr key={c.id}>
+                  <td><Link href={`/panel/clientes?ver=${c.id}`}>{c.nombre_visible}</Link></td>
+                  <td>{c.cif}</td>
+                  <td>{c.verificacion_solicitada === 'transferencia' ? 'Transferencia de 0,01 €' : 'Documento'}</td>
+                  <td><strong>{c.codigo_transferencia}</strong></td>
+                  <td>{c.verificacion_solicitada_en ? fechaHora(c.verificacion_solicitada_en) : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        </section>
+      )}
+      <Altas filas={filas} transportistas={transportistas} festivos={festivos} clientes={clientes.data ?? []} paraCliente={paraCliente} error={altas.error?.message ?? reservas.error?.message ?? null} />
+    </>
+  );
 }

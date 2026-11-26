@@ -14,13 +14,16 @@ import {
   empresaDeMiAlta, buscarEmpresaDeMiAlta, guardarEmpresaDeMiAlta, type EmpresaAlta as Datos, type PasoAlta,
 } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { buscarEnRegistro } from '@/app/panel/(app)/autorrelleno/acciones';
+import { crearMiEmpresa } from '@/app/panel/(app)/verificacion/acciones';
 
 // ---- La empresa de un alta pendiente, por pasos (usuario, 2026-11-16) --------------------
 // El registro solo pide los datos de la persona. Aquí dice de qué empresa es:
 //   1. Escribe el CIF / NIF y se busca entre los clientes de Dynamo.
-//   2. Si ya es cliente → sigue: no rellena nada, Dynamo le asocia al verificar.
-//      Si no → alta de la empresa: razón social, domicilio fiscal, teléfono y email.
-//   3. Documentación (aparece cuando el paso anterior está hecho).
+//   2. Si ya es cliente → sigue: no rellena nada; le asocia Dynamo (o le invita un compañero).
+//      Si no → alta de la empresa: razón social, domicilio fiscal, teléfono y email, y al
+//      guardar la empresa se crea SIN VERIFICAR y entra al momento con pago previo (usuario,
+//      2026-11-26). La verificación (para trabajar a crédito) la hace luego desde el panel.
+//   3. Documentación: solo si su empresa ya es cliente (su DNI).
 
 const VACIO: Datos = { empresa: '', cif: '', pais: 'ES', direccion: '', codigo_postal: '', poblacion: '', provincia: '', telefono: '', email: '' };
 const ETIQ: React.CSSProperties = { display: 'block', fontSize: 'var(--fs-s)', fontWeight: 700, color: 'var(--gray-700)', margin: '0 0 0.25rem' };
@@ -77,6 +80,11 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
     if (!r.ok) { setMal(r.campo ?? null); setError(r.error); return; }
     if (r.paso === 'existente') { setPaso('existente'); setGuardada(false); return; }
     setGuardada(true); setHecho(true);
+    // Empresa nueva: se crea ya (sin verificar) y entra al panel.
+    setTrabajando(true);
+    const c = await crearMiEmpresa().catch(() => ({ ok: false as const, error: 'No se ha podido crear tu empresa. Vuelve a intentarlo.' }));
+    if (!c.ok) { setTrabajando(false); setError(c.error); return; }
+    window.location.assign('/panel');
   }
   function cambiarCif() { setError(null); setMal(null); setHecho(false); setPaso('buscar'); }
 
@@ -89,10 +97,11 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
     </div>
   );
   const cifVisto = <strong style={{ whiteSpace: 'nowrap' }}>{d.cif}</strong>;
-  const docs = paso === 'existente' || (paso === 'nueva' && guardada);
+  // Empresa nueva: sin documentos aquí (entra al momento; la verificación va aparte, en el panel).
+  const docs = paso === 'existente';
   // ¿El identificador es de una PERSONA (DNI o NIE español) o de una empresa (CIF, IVA…)?
   const persona = /^(\d{8}[A-Z]|[XYZ]\d{7}[A-Z])$/.test(cifLimpio(d.cif).replace(/^ES/, ''));
-  const tipoDoc = paso === 'nueva' && !persona ? 'hoja_cif' : 'dni';
+  const tipoDoc = 'dni';
   // Lo que se reconoce mientras escribe (usuario, 2026-11-16: «que autocalcule qué tipo es»).
   const visto = d.cif.trim().length >= 8 ? validaIdFiscalPais(d.cif, d.pais) : null;
   const queEs = persona ? 'DNI / NIE — autónomo' : 'CIF — empresa';
@@ -143,7 +152,7 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
             {visto && !error && (
               <p style={{ margin: '0.5rem 0 0', fontSize: 'var(--fs-s)', fontWeight: 700, color: visto.ok ? '#0f6b3a' : '#b45309' }}>
                 {visto.ok
-                  ? <>✓ Reconocido: {queEs}. Te pediremos {persona ? 'tu DNI' : 'la hoja del CIF'}.</>
+                  ? <>✓ Reconocido: {queEs}.</>
                   : <>Revisa el número{visto.msg ? `: ${visto.msg}` : ''}.</>}
               </p>
             )}
@@ -152,7 +161,7 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
         {paso === 'existente' && (
           <>
             <div className="pt-aviso ok" style={{ margin: '0.2rem 0 0.7rem' }}><div>
-              <strong>✓ La empresa con CIF / NIF {cifVisto} ya trabaja con Dynamo.</strong> No tienes que rellenar sus datos: al verificar tu alta te asociamos a ella y te avisamos por email.
+              <strong>✓ La empresa con CIF / NIF {cifVisto} ya trabaja con Dynamo.</strong> No tienes que rellenar sus datos. Lo más rápido: pide a un compañero que te invite desde <strong>«Mi cuenta → Tu equipo»</strong>. Si no, revisamos tu alta, te asociamos a ella y te avisamos por email.
             </div></div>
             <button type="button" className="btn-ghost" onClick={cambiarCif}>No es ese CIF · cambiarlo</button>
           </>
@@ -172,7 +181,7 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
       {paso === 'nueva' && (
         <div className="account-card" style={{ marginTop: '1rem' }}>
           <div className="account-card-title">{persona ? '2 · Alta de nuevo AUTÓNOMO' : '2 · Alta de nueva EMPRESA'}</div>
-          <p className="account-card-desc">Con estos datos creamos tu ficha de cliente. Todos son obligatorios.</p>
+          <p className="account-card-desc">Con estos datos creamos tu ficha de cliente. Todos son obligatorios. Al guardarlos <strong>entras al momento</strong>: puedes pedir envíos pagando por adelantado y, cuando quieras, verificar tu empresa para trabajar a crédito.</p>
           {delRegistro && <div className="pt-aviso info" style={{ marginBottom: '0.7rem' }}><div>Hemos rellenado los datos con los del <strong>Registro Mercantil</strong>. Revísalos y cambia lo que haga falta.</div></div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.65rem 0.8rem' }}>
             {campo('empresa', persona ? 'Nombre y apellidos (como en tu DNI)' : 'Razón social', persona ? 'Ej. Marta Ruiz Gómez' : 'Ej. Marbex Industrial S.L.', true)}
@@ -206,27 +215,21 @@ export default function EmpresaAlta({ usuarioId }: { usuarioId: string }) {
           </div>
           <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.8rem' }}>
             <button type="button" className="btn-primary" onClick={guardar} disabled={trabajando}>
-              {trabajando ? 'Guardando…' : guardada ? 'Guardar cambios' : 'Guardar y continuar'}
+              {trabajando ? 'Guardando…' : 'Guardar y entrar'}
             </button>
-            {hecho && <span style={{ color: '#0f6b3a', fontWeight: 700, fontSize: 'var(--fs-m)' }}>✓ Datos guardados. Ahora sube la documentación.</span>}
+            {hecho && !error && <span style={{ color: '#0f6b3a', fontWeight: 700, fontSize: 'var(--fs-m)' }}>✓ Datos guardados. Creando tu empresa…</span>}
           </div>
           {error && <div className="wiz-warn show" role="alert" style={{ marginTop: '0.5rem' }}>⚠ {error}</div>}
         </div>
       )}
 
-      {/* ---- Documentación: cuando la empresa ya está dicha. UN solo documento, sin elegir
-          tipo (usuario, 2026-11-16): alta con CIF de empresa → la hoja del CIF; alta con
-          DNI / NIE (autónomo) → el DNI. Si la empresa ya es cliente, el DNI de la persona. ---- */}
+      {/* ---- Documentación: solo si su empresa ya es cliente (su DNI, para comprobar que es de
+          ella). Una empresa nueva entra al momento y se verifica después desde el panel. ---- */}
       {docs && (
         <div className="account-card" style={{ marginTop: '1rem' }}>
-          <div className="account-card-title">{paso === 'existente' ? '2 · Documentación' : persona ? '3 · Documentación del alta de nuevo AUTÓNOMO' : '3 · Documentación del alta de nueva EMPRESA'}</div>
+          <div className="account-card-title">2 · Documentación</div>
           <p className="account-card-desc">
-            {paso === 'existente'
-              ? <>Sube tu <strong>DNI</strong> (PDF o foto): con él comprobamos que eres de la empresa.</>
-              : persona
-                ? <>Sube tu <strong>DNI / NIE</strong> (PDF o foto), el mismo con el que das de alta la cuenta.</>
-                : <>Sube la <strong>hoja del CIF</strong> de la empresa (PDF o foto).</>}
-            {' '}Sin {paso === 'nueva' && !persona ? 'ella' : 'él'} el alta puede tardar más en verificarse.
+            Sube tu <strong>DNI</strong> (PDF o foto): con él comprobamos que eres de la empresa. Sin él el alta puede tardar más en verificarse.
           </p>
           <Documentos key={tipoDoc} dueno={{ campo: 'usuario_id', id: usuarioId }} tipos={[tipoDoc]} sinQuitar />
         </div>

@@ -28,6 +28,7 @@ import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import PagosCliente from './PagosCliente';
 import DeudaCliente from './DeudaCliente';
+import VerificacionCliente from './VerificacionCliente';
 
 // Contadores de uso del cliente (uso_clientes): consultas de precio y cancelaciones
 // con coste, los mismos criterios que la suspensión automática (usuario, 2026-11-11).
@@ -445,6 +446,8 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.3rem', lineHeight: 1.4 }}>Empleado que captó o dio de alta al cliente, para el control de comisiones. Si se registró por la web queda <strong>Alta online</strong> (sin comisión de empleado).</div>
         </div>
 
+        {/* Verificación de la empresa (usuario, 2026-11-26): sin ella, crédito 0. */}
+        {fila && <VerificacionCliente clienteId={fila.id} editable />}
         {fila && <DeudaCliente clienteId={fila.id} />}
         {fila && <PagosCliente clienteId={fila.id}
           onCreditoDevuelto={(v) => { set('riesgo_manual_euros', v as never); setTextos((t) => ({ ...t, dyn: v == null ? '' : String(v) })); }} />}

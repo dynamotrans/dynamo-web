@@ -30,7 +30,7 @@ const IDIOMAS_PANEL: [string, React.ReactNode, string][] = [
 ];
 
 export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas' | 'sugerencias' | 'albaranes' | 'whatsapp', number>>;
-export type Cobertura = 'disponible' | 'superado' | 'nulo' | 'nulo_cesce' | 'sinclasif' | null;
+export type Cobertura = 'disponible' | 'superado' | 'nulo' | 'nulo_cesce' | 'sinclasif' | 'sin_verificar' | null;
 // Atención al cliente de CESCE (teléfono gratuito; usuario, 2026-11-25).
 const CESCE_TEL = { texto: '+34 900 115 000', href: 'tel:+34900115000' };
 
@@ -67,6 +67,10 @@ const COBERTURA: Record<Exclude<Cobertura, null>, { chip: string; badge: string;
   //    al cliente a CESCE sería falso: el contacto es el nuestro y lo revisamos.
   nulo_cesce: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Crédito no disponible', clasif: 'Sin crédito', clasifCls: 'none', notaCls: 'none',
     nota: <>Esta cuenta <strong>no tiene crédito disponible por CESCE</strong>: los envíos se pagan <strong>por anticipado</strong>.</> },
+  // Empresa sin verificar (usuario, 2026-11-26): pago previo siempre. Nunca se dice nada de
+  // CESCE (ni si tiene crédito esperándole ni si se lo denegaron): eso lo dice el aviso verde.
+  sin_verificar: { chip: 'cesce-status-warn', badge: 'cesce-b-warn', label: 'Empresa sin verificar', clasif: 'Sin verificar', clasifCls: 'none', notaCls: 'warn',
+    nota: <>Tu empresa <strong>aún no está verificada</strong>: los envíos se pagan <strong>por adelantado</strong> (tarjeta o transferencia). Puedes verificarla en <Link href="/panel/mi-cuenta#tarjeta-verificacion" style={{ color: 'inherit', fontWeight: 800 }}>Mi cuenta</Link> para poder trabajar a crédito.</> },
   nulo: { chip: 'cesce-status-none', badge: 'cesce-b-none', label: 'Crédito no disponible', clasif: 'Sin crédito', clasifCls: 'none', notaCls: 'none',
     nota: <>Esta cuenta <strong>no tiene crédito disponible</strong>: los envíos se pagan <strong>por anticipado</strong>. Si crees que debería tenerlo, contáctanos y lo revisamos.</> },
 };

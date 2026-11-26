@@ -27,7 +27,7 @@ export default function AvisoCuenta({ perfil }: { perfil: Perfil | null }) {
   if (perfil?.estado === 'suspendida' || perfil?.estado === 'suspendida_total') return <Suspendida perfil={perfil} />;
   const [titulo, texto, clase] = !perfil
     ? ['Tu usuario no tiene perfil en la plataforma.', 'Avisa a Dynamo para que lo revise.', 'error']
-    : ['Estamos verificando tu alta.', 'En cuanto Dynamo la active podrás ver y crear tus envíos. Te avisamos por email.', ''];
+    : ['Termina tu alta.', 'Dinos de qué empresa eres: si es nueva, entras al momento; si ya trabaja con Dynamo, te invita un compañero o la revisamos nosotros.', ''];
   const pendiente = perfil?.estado === 'pendiente_verificacion';
   return (
     <section className="section active">
