@@ -40,7 +40,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Sectores de los clientes', claves: ['sectores_cliente'] },
   ] },
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
-    { titulo: 'Crédito usado', claves: ['credito_deuda_real', 'credito_dias_sin_facturar', 'riesgo_dias_asumido'] },
+    { titulo: 'Crédito usado', claves: ['credito_deuda_real', 'credito_cuenta_pedidos', 'credito_dias_sin_facturar', 'riesgo_dias_asumido'] },
     { titulo: 'Emails de crédito al cliente', claves: ['credito_emails_activo', 'credito_aviso_pct', 'credito_aviso_dias'] },
     { titulo: 'Bloqueo del crédito por pagos tardíos', claves: ['pago_tarde_activo', 'pago_tarde_dias_max', 'pago_tarde_facturas_toleradas', 'pago_tarde_ultimas_facturas', 'pago_tarde_desde_vencimiento'] },
   ] },

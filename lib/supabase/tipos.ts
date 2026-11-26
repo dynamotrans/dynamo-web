@@ -2830,6 +2830,7 @@ export type Database = {
           cuentas_en: string | null
           abonos_en: string | null
           copia_desde: string | null
+          pedidos_en: string | null
         }
         Insert: {
           id?: boolean
@@ -2848,6 +2849,7 @@ export type Database = {
           cuentas_en?: string | null
           abonos_en?: string | null
           copia_desde?: string | null
+          pedidos_en?: string | null
         }
         Update: {
           id?: boolean
@@ -2866,6 +2868,7 @@ export type Database = {
           cuentas_en?: string | null
           abonos_en?: string | null
           copia_desde?: string | null
+          pedidos_en?: string | null
         }
         Relationships: [
         ]
@@ -3648,6 +3651,56 @@ export type Database = {
           modificado_por?: string | null
         }
         Relationships: [
+        ]
+      }
+      pedidos_venta_pendientes: {
+        Row: {
+          ref_externa: string
+          cliente_id: string | null
+          contacto_id: string | null
+          contacto_nombre: string | null
+          cif: string | null
+          numero: string | null
+          fecha: string
+          total: number
+          estado: string
+          envios_gx: string[]
+          leido_en: string
+        }
+        Insert: {
+          ref_externa: string
+          cliente_id?: string | null
+          contacto_id?: string | null
+          contacto_nombre?: string | null
+          cif?: string | null
+          numero?: string | null
+          fecha: string
+          total?: number
+          estado: string
+          envios_gx?: string[]
+          leido_en?: string
+        }
+        Update: {
+          ref_externa?: string
+          cliente_id?: string | null
+          contacto_id?: string | null
+          contacto_nombre?: string | null
+          cif?: string | null
+          numero?: string | null
+          fecha?: string
+          total?: number
+          estado?: string
+          envios_gx?: string[]
+          leido_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_venta_pendientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       penalizaciones: {
@@ -5211,7 +5264,7 @@ export type Database = {
       credito_revisar_pagos_todos: { Args: Record<PropertyKey, never>; Returns: number }
       credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
       credito_usado: { Args: { p_cliente: string | null; p_sin?: string[] | null }; Returns: number }
-      credito_usado_de: { Args: { p_clientes: string[] | null; p_sin?: string[] | null }; Returns: { cliente_id: string; deuda: number; sin_facturar: number; base: number; envios: number; usado: number; ultimo: string; dias: number }[] }
+      credito_usado_de: { Args: { p_clientes: string[] | null; p_sin?: string[] | null }; Returns: { cliente_id: string; deuda: number; sin_facturar: number; base: number; envios: number; usado: number; ultimo: string; dias: number; pedidos: number; n_pedidos: number }[] }
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
       cuadre_facturacion: { Args: { p_meses?: number | null }; Returns: { mes: string; envios: number; con_transportista: number; venta_en_holded: number; compra_en_holded: number; penalizaciones: number; venta: number; compra: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }
@@ -5495,6 +5548,7 @@ export type Database = {
       parar_difusion: { Args: { p_envio: string | null }; Returns: Json }
       patrones_busqueda: { Args: { p_q: string | null }; Returns: string[] }
       pausar_seguimiento_envio: { Args: { p_envio: string | null; p_pausar: boolean | null }; Returns: Json }
+      pedidos_venta_guardar: { Args: { p_pedidos: Json | null }; Returns: number }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
       pendientes_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; vence_en: string; tipo: string; autor: string; puede_anular: boolean; emails: number }[] }
       pin_aleatorio: { Args: { p_cifras: number | null }; Returns: string }

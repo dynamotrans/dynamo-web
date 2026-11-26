@@ -47,7 +47,8 @@ export default async function PaginaRiesgos({ searchParams }: { searchParams: Pr
   const e0 = (de.data ?? {}) as Record<string, unknown>;
   const estadoDeuda: EstadoDeuda = { conectado: holdedListo(), ultimaOk: (e0.ultima_ok_en as string | null) ?? null, ultima: (e0.ultima_en as string | null) ?? null,
     error: (e0.error as string | null) ?? null, facturas: Number(e0.facturas ?? 0), sinCif: Number(e0.sin_cif ?? 0),
-    pendiente: Number(e0.pendiente ?? 0), vencido: Number(e0.vencido ?? 0), pendienteOtros: Number(e0.pendiente_otros ?? 0), facturasOtros: Number(e0.facturas_otros ?? 0), creditoReal: e0.credito_real === true };
+    pendiente: Number(e0.pendiente ?? 0), vencido: Number(e0.vencido ?? 0), pendienteOtros: Number(e0.pendiente_otros ?? 0), facturasOtros: Number(e0.facturas_otros ?? 0), creditoReal: e0.credito_real === true,
+    pedidosEn: (e0.pedidos_en as string | null) ?? null, pedidos: Number(e0.pedidos ?? 0), pedidosImporte: Number(e0.pedidos_importe ?? 0), pedidosPlataforma: Number(e0.pedidos_plataforma ?? 0) };
   const t0 = (tot.data ?? [])[0] as { limite: number; asumido: number; pasados: number } | undefined;
   const totales = { limite: Number(t0?.limite ?? 0), asumido: Number(t0?.asumido ?? 0), pasados: Number(t0?.pasados ?? 0) };
   return <Riesgos filas={filas} dias={Number(p.data?.valor ?? 60)} error={pg.error?.message ?? null}

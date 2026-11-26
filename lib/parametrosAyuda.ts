@@ -162,8 +162,13 @@ export const AYUDA: Record<string, Ayuda> = {
     ejemplo: (v) => (String(v) === 'true'
       ? 'Encendido: debe 2 facturas (1.000 €) y tiene 1 envío de 605 € sin facturar → 1.605 € usados. Cuando paga las facturas, se le libera ese crédito.'
       : 'Apagado: cuentan sus envíos a crédito de los últimos días, aunque ya los haya pagado.') },
+  credito_cuenta_pedidos: { titulo: 'Crédito usado: contar los pedidos de venta sin facturar',
+    explica: 'Encendido, lo usado de cada cliente suma también sus pedidos de venta que están en la facturación sin facturar y que NO son un envío de la plataforma (viajes hechos fuera de ella). Los que llevan la referencia GX de un envío de la plataforma, o de una factura, no se suman: cada viaje cuenta una sola vez. Apagado, esos pedidos no cuentan.',
+    ejemplo: (v) => (String(v) === 'true'
+      ? 'Encendido: debe 1.000 € en facturas, tiene 1 envío de la plataforma sin facturar (605 €) y 1 pedido de venta de fuera sin facturar (363 €) → 1.968 € usados.'
+      : 'Apagado: con esos mismos datos, 1.605 € usados (el pedido de venta de fuera no cuenta).') },
   credito_dias_sin_facturar: { titulo: 'Crédito usado: días que un envío cuenta como «sin facturar»',
-    explica: 'Un envío a crédito cuenta como «sin facturar» hasta que la plataforma ve su factura (por su referencia GX en el concepto) o lo marcas como facturado. Por si una factura no lleva la referencia, pasados estos días desde la carga el envío se da por facturado: su importe ya estará en lo que debe el cliente, y así no se cuenta dos veces.',
+    explica: 'Un envío a crédito cuenta como «sin facturar» hasta que la plataforma ve su factura (por su referencia GX en el concepto) o lo marcas como facturado. Por si una factura no lleva la referencia, pasados estos días desde la carga el envío se da por facturado: su importe ya estará en lo que debe el cliente, y así no se cuenta dos veces. Es también la antigüedad máxima de los pedidos de venta sin facturar que se cuentan.',
     ejemplo: (v) => `Con ${v} días: un envío cargado hace ${Math.max(1, Math.round(Number(v)) + 1)} días cuya factura no se ha encontrado ya no suma como «sin facturar».` },
   riesgo_dias_asumido: { titulo: 'Días de la estimación de antes (crédito sin deuda real)',
     explica: 'Solo se usa si «Crédito usado: con lo que debe de verdad» está apagado o la copia de facturas aún no se ha cargado: entonces lo usado son los envíos a crédito de estos últimos días (con IVA, sin los pagados por adelantado), haya pagado el cliente o no.',

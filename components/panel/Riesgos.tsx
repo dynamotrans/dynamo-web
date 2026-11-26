@@ -25,7 +25,9 @@ export type DeudaCliente = { pendiente: number; vencido: number; facturas: numbe
 export type EstadoDeuda = { conectado: boolean; ultimaOk: string | null; ultima: string | null; error: string | null; facturas: number; sinCif: number;
   pendiente: number; vencido: number; pendienteOtros: number; facturasOtros: number;
   // El crédito usado sale de la deuda real (lo que debe + envíos sin facturar), no de la estimación por días.
-  creditoReal?: boolean };
+  creditoReal?: boolean;
+  // La foto de pedidos de venta sin facturar que hay en la facturación (para cuadrarla con ella).
+  pedidosEn?: string | null; pedidos?: number; pedidosImporte?: number; pedidosPlataforma?: number };
 export type Totales = { limite: number; asumido: number; pasados: number };
 export type ListaRiesgos = { q: string; filtro: string; pagina: number; porPagina: number; total: number };
 const uso = (f: RiesgoFila) => (f.limite && f.limite > 0 ? f.asumido / f.limite : f.asumido > 0 ? Infinity : 0);
@@ -119,6 +121,13 @@ function DeudaFacturacion({ e }: { e: EstadoDeuda }) {
         Incluye {euros(e.pendienteOtros)} de {numero(e.facturasOtros, 0)} {e.facturasOtros === 1 ? 'factura' : 'facturas'} de contactos que no casan por CIF con ningún cliente de la plataforma
         {e.sinCif > 0 ? ` (${numero(e.sinCif, 0)} aún con el CIF por consultar: se completa solo en las próximas lecturas)` : ''}.
       </div>}
+      {/* Pedidos de venta sin facturar (usuario, 2026-11-26): los viajes que en la facturación aún
+          no tienen factura. Los que son también un envío de la plataforma no se suman dos veces. */}
+      {e.pedidosEn && <div className="meta" id="deuda-pedidos" style={{ marginTop: '0.25rem' }}>
+        Pedidos de venta sin facturar en la facturación: <strong style={{ color: 'var(--navy)' }}>{euros(e.pedidosImporte ?? 0)}</strong> en {numero(e.pedidos ?? 0, 0)} {e.pedidos === 1 ? 'pedido' : 'pedidos'}
+        {(e.pedidosPlataforma ?? 0) > 0 ? ` (${numero(e.pedidosPlataforma ?? 0, 0)} ${e.pedidosPlataforma === 1 ? 'es' : 'son'} también un envío de la plataforma: ${e.pedidosPlataforma === 1 ? 'cuenta' : 'cuentan'} una sola vez)` : ''}
+        {' · '}leído {haceTxt(e.pedidosEn)}. Cuentan como crédito usado de su cliente.
+      </div>}
       {error && <div className="pt-aviso error" id="deuda-error" role="alert" style={{ margin: '0.5rem 0 0' }}><div>
         <strong>La última lectura de la facturación ha fallado.</strong> {error} {e.ultimaOk ? 'Se sigue enseñando la última lectura buena.' : ''}
       </div></div>}
@@ -148,7 +157,7 @@ export default function Riesgos({ filas, dias, error, totales, lista, deuda = {}
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Crédito de cada cliente frente a lo que tiene pendiente. <strong>Límite</strong>: el manual de Dynamo si está puesto (0 = sin crédito); si está vacío, el de CESCE.
         {' '}{real
-          ? <><strong>Usado</strong>: lo que debe de verdad (sus facturas pendientes de cobro, menos abonos) más sus envíos a crédito aún sin facturar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − usado.</>
+          ? <><strong>Usado</strong>: lo que debe de verdad (sus facturas pendientes de cobro, menos abonos) más lo que aún no está facturado (sus envíos a crédito y sus pedidos de venta de la facturación; cada viaje, una sola vez), con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − usado.</>
           : <><strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido.{conDeuda ? <> <strong>Pendiente de cobro</strong>: lo que debe de verdad según sus facturas (de momento, solo informativo).</> : null}</>} <strong>Pulsa una fila</strong> para cambiar su crédito aquí mismo; pulsa el <strong>nombre</strong> para abrir la ficha completa del cliente.
       </p>
       <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem', marginBottom: '0.9rem' }}>

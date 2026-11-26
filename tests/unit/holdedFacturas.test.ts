@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDeTextos, idsDeCuentas, importeDe, usoDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDeTextos, idsDeCuentas, importeDe, pedidosDeHolded, usoDeHolded } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -123,6 +123,24 @@ test('qué envíos lleva cada factura: las referencias GX del concepto y de las 
   assert.deepEqual([f?.concepto, f?.envios_gx], ['GX100888878 - Transporte', ['GX100888878', 'GX100888871']]);
   assert.deepEqual([copiaDeHolded({ id: 'a'.repeat(24), date: '2026-11-20' })?.concepto, copiaDeHolded({ id: 'a'.repeat(24), date: '2026-11-20' })?.envios_gx], [null, []]);
   assert.equal(copiaDeHolded({ id: 'a'.repeat(24), date: '2026-11-20', description: 'x'.repeat(900) })?.concepto?.length, 600);
+});
+
+test('pedidos de venta sin facturar: solo los pendientes o facturados en parte, con sus referencias GX', () => {
+  const o = (n: number, mas: Record<string, unknown>) => ({ id: String(n).padStart(24, '0'), document_number: `PV-${n}`, contact_id: 'A'.repeat(24), contact_name: 'Cliente SL',
+    date: '2026-11-20', total: '363,00', status: 'pending', description: 'Transporte', lines: [{ name: 'Porte' }], ...mas });
+  const r = pedidosDeHolded({ has_more: true, cursor: 'x', items: [
+    o(1, {}),                                                          // pendiente, sin GX: de fuera de la plataforma
+    o(2, { document_number: 'GX100888878' }),                          // su número ES el GX de la plataforma
+    o(3, { status: 'partial', description: 'gx100888871 - Transporte', lines: [{ name: 'Porte', description: 'GX100888864' }] }),
+    o(4, { status: 'completed' }), o(5, { status: 'cancelled' }),      // ya facturado o anulado: no entran
+    o(6, { draft: true }), o(7, { date: null }), null,
+    o(8, { total: '-1.210,50' }),
+  ] });
+  assert.deepEqual(r.pedidos.map((p) => [p.numero, p.estado, p.total, p.envios_gx]), [
+    ['PV-1', 'pendiente', 363, []], ['GX100888878', 'pendiente', 363, ['GX100888878']],
+    ['PV-3', 'parcial', 363, ['GX100888871', 'GX100888864']], ['PV-8', 'pendiente', 1210.5, []]]);
+  assert.deepEqual([r.hayMas, r.cursor, r.leidos, r.pedidos[0].contacto_id, r.pedidos[0].fecha], [true, 'x', 9, 'a'.repeat(24), '2026-11-20']);
+  assert.deepEqual(pedidosDeHolded(null), { pedidos: [], hayMas: false, cursor: null, leidos: 0 });
 });
 
 test('abonos: misma forma que una factura, pero en negativo, vengan como vengan', () => {

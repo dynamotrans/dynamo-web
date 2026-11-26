@@ -17053,3 +17053,96 @@ do $$ declare cli uuid := current_setting('prueba.c367')::uuid; begin
   update parametros set valor = current_setting('prueba.pp367')::jsonb where clave = 'pago_previo_activo';
   raise notice 'OK 367 · crédito usado con la deuda real: lo que debe (facturas menos abonos) más los envíos sin facturar, sin contar dos veces, y con vuelta atrás en Parámetros';
 end $$;
+
+-- 368 · PEDIDOS DE VENTA SIN FACTURAR DE LA FACTURACIÓN (usuario, 2026-11-26): cuentan como
+-- crédito usado los que NO son un envío de la plataforma; cada viaje, una sola vez (cruce por GX).
+do $$ declare cli uuid; a uuid; gxa text; u record; r jsonb; n int; f text; ok boolean := false;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; k text := '000000000000000000000d01';
+begin
+  if has_function_privilege('authenticated', 'pedidos_venta_guardar(jsonb)', 'execute') or has_function_privilege('anon', 'pedidos_venta_guardar(jsonb)', 'execute') then
+    raise exception 'FALLO 368 · un usuario puede guardar la foto de pedidos de venta (solo el servidor)'; end if;
+  if has_table_privilege('authenticated', 'pedidos_venta_pendientes', 'insert') or has_table_privilege('authenticated', 'pedidos_venta_pendientes', 'update')
+     or has_table_privilege('authenticated', 'pedidos_venta_pendientes', 'delete') or has_table_privilege('anon', 'pedidos_venta_pendientes', 'select') then
+    raise exception 'FALLO 368 · permisos de más en la tabla de pedidos de venta'; end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform set_config('prueba.cargada368', coalesce((select carga_completa_en::text from facturas_copia_estado where id), ''), false);
+  update facturas_copia_estado set carga_completa_en = now(), pedidos_en = null where id;
+  insert into clientes (razon_social, cif) values ('Pedidos 368 SL', 'B36800368') returning id into cli;
+  update clientes set riesgo_manual_euros = 5000, exento_pago_previo_primer_envio = true where id = cli;
+  insert into holded_contactos (contacto_id, cif, nombre) values (k, 'ESB36800368', 'Pedidos 368');
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 500, lun) returning id, referencia_gx into a, gxa;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select a, o, t, cp, p, 'ES' from (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id = a;
+  -- Sin la foto leída: solo el envío de la plataforma (605 €).
+  select * into u from credito_usado_de(array[cli]);
+  if u.usado <> 605 or u.pedidos <> 0 or u.n_pedidos <> 0 then raise exception 'FALLO 368 · sin la foto de pedidos leída ya se cuentan pedidos: %', row_to_json(u); end if;
+
+  n := pedidos_venta_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'p368a', 'numero', 'PV-1', 'contacto_id', upper(k), 'contacto_nombre', 'Pedidos 368', 'fecha', hoy - 3, 'total', 363, 'estado', 'pendiente'),                                  -- de fuera: CUENTA
+    jsonb_build_object('id', 'p368b', 'numero', gxa, 'contacto_id', k, 'fecha', hoy - 1, 'total', 605, 'estado', 'pendiente', 'envios_gx', jsonb_build_array(lower(gxa))),                                 -- es el envío de la plataforma: no
+    jsonb_build_object('id', 'p368c', 'numero', 'PV-3', 'contacto_id', k, 'fecha', hoy - 2, 'total', -121, 'estado', 'parcial', 'envios_gx', jsonb_build_array('GX99999', 'no-vale')),                     -- GX antiguo, no está en la plataforma: CUENTA
+    jsonb_build_object('id', 'p368d', 'numero', 'PV-4', 'contacto_id', k, 'fecha', hoy - 200, 'total', 5000, 'estado', 'pendiente'),                                                                        -- demasiado antiguo: no
+    jsonb_build_object('id', 'p368e', 'numero', 'PV-5', 'contacto_id', '000000000000000000000d99', 'contacto_nombre', 'No es cliente', 'fecha', hoy, 'total', 1000, 'estado', 'pendiente'),                 -- de otro contacto: no
+    jsonb_build_object('id', 'p368f', 'numero', 'PV-6', 'contacto_id', k, 'fecha', hoy - 4, 'total', 242, 'estado', 'pendiente', 'envios_gx', jsonb_build_array('GX77777')),                                -- de momento CUENTA (luego se factura)
+    jsonb_build_object('id', 'p368g', 'numero', 'PV-7', 'contacto_id', k, 'total', 9, 'estado', 'pendiente')));                                                                                             -- sin fecha: no se guarda
+  if n <> 6 or (select count(*) from pedidos_venta_pendientes) <> 6 then raise exception 'FALLO 368 · no se guardan los seis pedidos con fecha: %', n; end if;
+  if (select cliente_id from pedidos_venta_pendientes where ref_externa = 'p368a') is distinct from cli or (select cliente_id from pedidos_venta_pendientes where ref_externa = 'p368e') is not null
+     or (select total from pedidos_venta_pendientes where ref_externa = 'p368c') <> 121 or (select envios_gx from pedidos_venta_pendientes where ref_externa = 'p368c') <> array['GX99999']
+     or (select estado from pedidos_venta_pendientes where ref_externa = 'p368c') <> 'parcial' or (select pedidos_en from facturas_copia_estado where id) is null then
+    raise exception 'FALLO 368 · los pedidos no se casan con su cliente por el CIF, o no se guardan bien su importe, sus referencias o cuándo se leyeron'; end if;
+  select * into u from credito_usado_de(array[cli]);
+  if u.pedidos <> 726 or u.n_pedidos <> 3 or u.sin_facturar <> 605 or u.usado <> 1331 then raise exception 'FALLO 368 · no se suman bien los pedidos de venta sin facturar de fuera de la plataforma: %', row_to_json(u); end if;
+  if credito_usado(cli) <> 1331 or (select usado from credito_uso_cliente(cli)) <> 1331 then raise exception 'FALLO 368 · el crédito usado no lleva los pedidos de venta'; end if;
+  -- El pedido PV-6 se FACTURA: la factura lleva su GX. Deja de contar como pedido aunque siga
+  -- en la foto; ahora cuenta como deuda (lo mismo: no se suma dos veces).
+  insert into facturas_emitidas (ref_externa, cliente_id, numero, fecha_emision, fecha_vencimiento, total, pendiente, estado, tipo, envios_gx)
+    values ('h368f', cli, 'F368-1', hoy, hoy + 60, 242, 242, 'pendiente', 'factura', array['GX77777']);
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 242 or u.pedidos <> 484 or u.n_pedidos <> 2 or u.usado <> 1331 then raise exception 'FALLO 368 · un pedido ya facturado se cuenta dos veces (como pedido y como factura): %', row_to_json(u); end if;
+  -- Apagado en Parámetros: los pedidos no cuentan.
+  update parametros set valor = 'false'::jsonb where clave = 'credito_cuenta_pedidos';
+  if credito_usado(cli) <> 847 then raise exception 'FALLO 368 · con los pedidos apagados siguen contando'; end if;
+  update parametros set valor = 'true'::jsonb where clave = 'credito_cuenta_pedidos';
+  r := deuda_estado();
+  if (r ->> 'pedidos')::int <> 6 or (r ->> 'pedidos_importe')::numeric <> 7331 or (r ->> 'pedidos_plataforma')::int <> 1 or r ->> 'pedidos_en' is null then
+    raise exception 'FALLO 368 · el resumen no enseña la foto de pedidos de venta: %', r; end if;
+  -- La foto se SUSTITUYE entera: lo que ya no viene (facturado, anulado o borrado) desaparece.
+  n := pedidos_venta_guardar(jsonb_build_array(jsonb_build_object('id', 'p368a', 'numero', 'PV-1', 'contacto_id', k, 'fecha', hoy - 3, 'total', 363, 'estado', 'pendiente')));
+  select * into u from credito_usado_de(array[cli]);
+  if n <> 1 or (select count(*) from pedidos_venta_pendientes) <> 1 or u.pedidos <> 363 or u.usado <> 1210 then raise exception 'FALLO 368 · la foto nueva no sustituye a la anterior: %', row_to_json(u); end if;
+  n := pedidos_venta_guardar('[]'::jsonb);
+  if n <> 0 or (select count(*) from pedidos_venta_pendientes) <> 0 or credito_usado(cli) <> 847 then raise exception 'FALLO 368 · una foto vacía (ningún pedido pendiente) no vacía la tabla'; end if;
+  begin perform pedidos_venta_guardar('{}'::jsonb); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 368 · se aceptan pedidos que no son una lista'; end if;
+  perform pedidos_venta_guardar(jsonb_build_array(jsonb_build_object('id', 'p368a', 'numero', 'PV-1', 'contacto_id', k, 'fecha', hoy - 3, 'total', 363, 'estado', 'pendiente')));
+  perform set_config('prueba.c368', cli::text, false);
+  perform set_config('request.jwt.claim.role', '', true);
+end $$;
+-- Dynamo ve la foto; el cliente, no.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from pedidos_venta_pendientes) <> 1 then raise exception 'FALLO 368 · el equipo de Dynamo no ve los pedidos de venta sin facturar'; end if;
+end $$;
+reset role;
+do $$ declare x record; begin
+  select * into x from riesgos_pagina('Pedidos 368');
+  if x.asumido <> 1210 then raise exception 'FALLO 368 · CESCE - Riesgos no suma los pedidos de venta: %', row_to_json(x); end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from pedidos_venta_pendientes) <> 0 then raise exception 'FALLO 368 · un cliente ve pedidos de venta de la facturación'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid := current_setting('prueba.c368')::uuid; begin
+  delete from pedidos_venta_pendientes where true;
+  delete from facturas_emitidas where ref_externa like 'h368%';
+  delete from holded_contactos where contacto_id like '000000000000000000000d0%';
+  update envios set estado = 'cancelado' where cliente_id = cli and estado <> 'cancelado';
+  update facturas_copia_estado set pedidos_en = null, carga_completa_en = nullif(current_setting('prueba.cargada368'), '')::timestamptz where id;
+  raise notice 'OK 368 · pedidos de venta sin facturar: cuentan los de fuera de la plataforma, cada viaje una vez (por GX), foto que se sustituye entera y solo la ve Dynamo';
+end $$;

@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
-import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, type FacturaCopia, type FacturaHolded } from '@/lib/holdedFacturas';
+import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, pedidosDeHolded, type FacturaCopia, type FacturaHolded, type PedidoVenta } from '@/lib/holdedFacturas';
 import { apuntarConsultas, refrescarUsoReal, usoDelMes } from '@/lib/servidor/holdedUso';
 import { contactosDeHolded } from '@/lib/servidor/holdedContactos';
 import { hoyMadrid } from '@/lib/filtroFechas';
@@ -25,6 +25,9 @@ import { diaMas, mesesAtras, finDeMes } from '@/lib/facturasCopiaFechas';
 // LOS ABONOS (facturas rectificativas) van en la misma copia, en negativo (usuario, 2026-11-26):
 // se leen con la primera carga y con cada repaso; y los pendientes y los recientes, una vez por
 // hora (hay pocos) o al pulsar «Actualizar ahora». Si su lectura falla, la de facturas sigue.
+// LOS PEDIDOS DE VENTA SIN FACTURAR (usuario, 2026-11-26) se leen también una vez por hora: una
+// FOTO entera que sustituye a la anterior, para que el crédito usado cuente los viajes hechos
+// fuera de la plataforma que aún no tienen factura. Una lectura fallida no toca la foto.
 // Nunca se borra nada de la copia. SOLO LECTURA de la facturación: aquí solo se escribe en
 // nuestra base de datos. Topes de la facturación: 120 consultas por minuto y 30.000 al mes.
 const PLAZO_MS = 42_000;          // lo que trabaja cada llamada (el servidor corta a los 60 s)
@@ -266,6 +269,31 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     await apuntar({ abonos_en: new Date().toISOString() });
   }
 
+  // 4c. La foto de pedidos de venta sin facturar (pendientes y facturados en parte), entera.
+  //     Solo se guarda si se ha podido leer TODA; si no, se queda la anterior.
+  let pedidosLeidos: PedidoVenta[] | null = null;
+  if (tocaAbonos && queda(7000)) {
+    const leidos: PedidoVenta[] = [];
+    let bien = true;
+    for (const estado of ['pending', 'partial']) {
+      let cur: string | undefined;
+      for (let i = 0; bien; i++) {
+        if (i >= 25 || !queda(3000)) { bien = false; break; }
+        const r = await leerHolded('/sales-orders', { status: estado, approval_status: 'approved', sort: '-date', limit: 200, cursor: cur });
+        if (!r.ok) { bien = false; avisos.push(`Pedidos de venta: ${r.error}`); console.error('[Holded] pedidos de venta', r.error); break; }
+        const p = pedidosDeHolded(r.datos);
+        leidos.push(...p.pedidos);
+        if (!p.hayMas || !p.cursor) break;
+        cur = p.cursor;
+      }
+      if (!bien) break;
+    }
+    if (bien) {
+      const { error } = await sv.rpc('pedidos_venta_guardar', { p_pedidos: leidos });
+      if (error) avisos.push(`No se han podido guardar los pedidos de venta: ${error.message}`); else pedidosLeidos = leidos;
+    }
+  }
+
   // 5. Los cobros de los últimos días: el día en que se pagó cada una.
   if (queda(6000)) {
     const r = await cobrosEntre(diaMas(hoy, -10), hoy);
@@ -294,9 +322,15 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
   if (queda(5000)) {
     const { data } = await sv.from('facturas_emitidas').select('contacto_id').is('cif', null).not('contacto_id', 'is', null)
       .order('pendiente', { ascending: false }).order('fecha_emision', { ascending: false }).limit(600);
-    await contactosDeHolded(sv, [...(data ?? []).map((f) => f.contacto_id), ...pendientes.map((f) => f.contacto_id)], CONTACTOS_POR_VEZ);
+    const vistos = await contactosDeHolded(sv, [...(data ?? []).map((f) => f.contacto_id), ...pendientes.map((f) => f.contacto_id), ...(pedidosLeidos ?? []).map((q) => q.contacto_id)], CONTACTOS_POR_VEZ);
     const { error } = await sv.rpc('facturas_casar');
     if (error) avisos.push(error.message);
+    // Los pedidos se casan con su cliente al guardarlos: si en esta pasada se ha sabido el CIF
+    // de alguno de sus contactos, se guarda la foto otra vez (sin volver a leerla).
+    if (pedidosLeidos?.some((q) => q.contacto_id && vistos.has(q.contacto_id))) {
+      const r2 = await sv.rpc('pedidos_venta_guardar', { p_pedidos: pedidosLeidos });
+      if (r2.error) avisos.push(r2.error.message);
+    }
   }
 
   // 7. El plan de cuentas (para enseñar el nombre de la cuenta contable y no su identificador):

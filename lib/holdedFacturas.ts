@@ -138,6 +138,32 @@ export function copiasDeHolded(cuerpo: unknown, tipo: 'factura' | 'abono' = 'fac
   return { facturas: items.map((f) => copiaDeHolded(f ?? {}, tipo)).filter((f): f is FacturaCopia => !!f), hayMas: c.has_more === true && !!cursor, cursor, leidas: items.length };
 }
 
+// ---- Pedidos de venta sin facturar («List sales orders») ----------------------------------
+// Para el crédito usado: los viajes que están en la facturación como pedido de venta aún sin
+// facturar. Misma forma que una factura (número, contacto, fecha, total, concepto, líneas).
+// Las referencias GX se buscan también en el NÚMERO del pedido: los que salen de la plataforma
+// llevan su GX como número. Así un viaje que está en los dos sitios no se cuenta dos veces.
+export type PedidoVenta = { id: string; numero: string | null; contacto_id: string | null; contacto_nombre: string | null;
+  fecha: string; total: number; estado: 'pendiente' | 'parcial'; envios_gx: string[] };
+
+export function pedidosDeHolded(cuerpo: unknown): { pedidos: PedidoVenta[]; hayMas: boolean; cursor: string | null; leidos: number } {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown; cursor?: unknown };
+  const items = Array.isArray(c.items) ? c.items as (FacturaHolded & { draft?: unknown })[] : [];
+  const cursor = typeof c.cursor === 'string' && c.cursor ? c.cursor : null;
+  const pedidos: PedidoVenta[] = [];
+  for (const o of items) {
+    if (!o || typeof o !== 'object' || o.draft === true) continue;
+    const id = texto(o.id), fecha = dia(o.date);
+    // Solo los que aún no están facturados del todo: pendiente o facturado en parte.
+    if (!id || !fecha || (o.status !== 'pending' && o.status !== 'partial')) continue;
+    const lineas = Array.isArray(o.lines) ? (o.lines as { name?: unknown; description?: unknown }[]).flatMap((l) => (l && typeof l === 'object' ? [l.name, l.description] : [])) : [];
+    pedidos.push({ id, numero: texto(o.document_number), contacto_id: texto(o.contact_id)?.toLowerCase() ?? null, contacto_nombre: texto(o.contact_name),
+      fecha, total: Math.abs(c2(num(o.total))), estado: o.status === 'partial' ? 'parcial' : 'pendiente',
+      envios_gx: gxDeTextos(o.document_number, o.description, ...lineas) });
+  }
+  return { pedidos, hayMas: c.has_more === true && !!cursor, cursor, leidos: items.length };
+}
+
 // ---- El plan de cuentas («List chart of accounts») ----------------------------------------
 // La línea de la factura trae el IDENTIFICADOR interno de su cuenta contable, no su número ni
 // su nombre (usuario, 2026-11-26: «¿podemos poner mejor el nombre, y no el código?»).
