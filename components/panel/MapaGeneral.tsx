@@ -8,6 +8,7 @@
 // Se actualiza sola cada 2 minutos. Cuando un transportista comparta su GPS, su posición real
 // sustituirá a la estimada (mapa_envio decide la posición; aquí solo se pinta).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { mapaEnviosEnCurso, situarParadasDelMapa, trazadosDeEnvios, type EnvioMapa } from '@/app/panel/(app)/envios/acciones-mapa';
 import { repartirTrazados, type PuntoLinea } from '@/lib/lineaRuta';
 import { claveParada, posicionCamion } from '@/lib/mapaEnvio';
@@ -20,7 +21,9 @@ import { dibujarRuta, resaltador, ESTILO_MAPA, marcadorCamion, svgCamion, type R
 type Filtro = 'todos' | 'marcha' | 'programados';
 const enMarcha = (e: EnvioMapa) => e.estado !== 'programado';
 
-export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
+// `incrustado`: el mismo mapa dentro del dashboard (usuario, 2026-11-26), en tarjeta, con el
+// texto corto, enlace a la pantalla completa y el alto ajustado al hueco que queda en pantalla.
+export default function MapaGeneral({ dynamo, incrustado = false }: { dynamo: boolean; incrustado?: boolean }) {
   const [envios, setEnvios] = useState<EnvioMapa[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('todos');
@@ -83,39 +86,75 @@ export default function MapaGeneral({ dynamo }: { dynamo: boolean }) {
   const nMarcha = (envios ?? []).filter(enMarcha).length, nProg = (envios ?? []).length - nMarcha;
   const sinSituar = visibles.filter((e) => !e.paradas.some((p) => p.lat != null)).length;
 
+  const pestanas = (
+    <div role="tablist" aria-label="Qué envíos ver" style={{ display: 'flex', gap: '0.35rem', marginLeft: 'auto', flexWrap: 'wrap' }}>
+      {([['todos', `Todos (${(envios ?? []).length})`], ['marcha', `En marcha (${nMarcha})`], ['programados', `Programados (${nProg})`]] as [Filtro, string][]).map(([k, t]) => (
+        <button key={k} type="button" role="tab" aria-selected={filtro === k} onClick={() => setFiltro(k)}
+          style={{ borderRadius: 999, padding: '0.3rem 0.8rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+            border: `1.5px solid ${filtro === k ? 'var(--purple)' : 'var(--gray-300)'}`, background: filtro === k ? 'var(--purple)' : '#fff', color: filtro === k ? '#fff' : 'var(--navy)' }}>{t}</button>
+      ))}
+    </div>
+  );
+  const Caja = incrustado ? 'div' : 'section';
   return (
-    <section className="section active" aria-labelledby="tituloMapa">
+    <Caja className={incrustado ? 'dash-mapa' : 'section active'} id={incrustado ? 'dash-mapa' : undefined} aria-labelledby={incrustado ? 'tituloMapaDash' : 'tituloMapa'}>
+      {incrustado ? (<>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <h4 id="tituloMapaDash" style={{ margin: 0, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>Mapa de envíos</h4>
+          <Link href="/panel/mapa" id="dash-mapa-completo" style={{ fontSize: 'var(--fs-s)', fontWeight: 700, color: 'var(--purple)' }}>Pantalla completa →</Link>
+          {pestanas}
+        </div>
+        <p className="meta" style={{ margin: '0.2rem 0 0.6rem' }}>
+          {dynamo ? 'Todos los envíos' : 'Tus envíos'} programados y en marcha. La posición del camión es <strong>estimada</strong>; se actualiza sola cada 2 minutos.
+        </p>
+      </>) : (<>
       <div className="sec-header" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
         <h2 id="tituloMapa" style={{ margin: 0 }}>Mapa de envíos</h2>
-        <div role="tablist" aria-label="Qué envíos ver" style={{ display: 'flex', gap: '0.35rem', marginLeft: 'auto', flexWrap: 'wrap' }}>
-          {([['todos', `Todos (${(envios ?? []).length})`], ['marcha', `En marcha (${nMarcha})`], ['programados', `Programados (${nProg})`]] as [Filtro, string][]).map(([k, t]) => (
-            <button key={k} type="button" role="tab" aria-selected={filtro === k} onClick={() => setFiltro(k)}
-              style={{ borderRadius: 999, padding: '0.3rem 0.8rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                border: `1.5px solid ${filtro === k ? 'var(--purple)' : 'var(--gray-300)'}`, background: filtro === k ? 'var(--purple)' : '#fff', color: filtro === k ? '#fff' : 'var(--navy)' }}>{t}</button>
-          ))}
-        </div>
+        {pestanas}
       </div>
       <p className="meta" style={{ margin: '0.2rem 0 0.7rem' }}>
         {dynamo ? 'Todos los envíos' : 'Tus envíos'} en programación y en marcha (los entregados y los cancelados no salen). La posición del camión es
         {' '}<strong>estimada</strong> con el horario previsto, las pausas del conductor y las firmas del CMR. Se actualiza sola cada 2 minutos.
         {sinSituar > 0 && ` ${sinSituar} sin coordenadas todavía (se están buscando; salen en cuanto se encuentren).`}
       </p>
+      </>)}
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.6rem' }}><div>{error}</div></div>}
       {envios && envios.length === 0 && <div className="pt-aviso ok" style={{ marginBottom: '0.6rem' }}><div>No hay envíos en programación ni en marcha ahora mismo.</div></div>}
-      <Lienzo envios={visibles} dynamo={dynamo} onAbrir={(id, ref) => setAbierto({ id, ref })} />
+      <Lienzo envios={visibles} dynamo={dynamo} hueco={incrustado} onAbrir={(id, ref) => setAbierto({ id, ref })} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.9rem', fontSize: '0.78rem', color: 'var(--gray-700)', marginTop: '0.5rem' }} aria-label="Leyenda del mapa general">
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: TONO.ambar }}>cargando/descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: '#b45309' /* ámbar oscuro: el de TONO no llega al contraste AA en texto */ }}>cargando/descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
         <span><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: '#9ca3af', verticalAlign: 'middle' }} /> Programado (en su 1.ª recogida)</span>
         <span><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho · <span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer</span>
-        <span>Pulsa una parada o una ruta para ver todas sus paradas con su hora (si no caben todas, toca una parada o acerca el mapa).</span>
+        {!incrustado && <span>Pulsa una parada o una ruta para ver todas sus paradas con su hora (si no caben todas, toca una parada o acerca el mapa).</span>}
       </div>
       {abierto && <VentanaMapa envioId={abierto.id} referencia={abierto.ref} onCerrar={() => setAbierto(null)} />}
-    </section>
+    </Caja>
   );
 }
 
-function Lienzo({ envios, dynamo, onAbrir }: { envios: EnvioMapa[]; dynamo: boolean; onAbrir: (id: string, ref: string) => void }) {
+function Lienzo({ envios, dynamo, hueco = false, onAbrir }: { envios: EnvioMapa[]; dynamo: boolean; hueco?: boolean; onAbrir: (id: string, ref: string) => void }) {
   const div = useRef<HTMLDivElement>(null);
+  // En el dashboard (usuario, 2026-11-26), el mapa se ajusta a lo que se ve de pantalla: al
+  // bajar hasta él, la tarjeta entera (título, mapa y leyenda) cabe bajo la barra de arriba.
+  // Alargado: nunca más alto que el 62 % de su ancho; mínimo 340 px. En el móvil (≤760 px)
+  // manda el CSS: cuadrado, como todos los mapas.
+  useEffect(() => {
+    if (!hueco) return;
+    const el = div.current;
+    if (!el) return;
+    const ajustar = () => {
+      if (window.innerWidth <= 760) { el.style.height = ''; return; }
+      const barra = (document.querySelector('.topbar') as HTMLElement | null)?.offsetHeight ?? 64;
+      const tarjeta = el.closest('.dash-mapa') as HTMLElement | null;
+      // Lo que ocupa la tarjeta además del mapa (título, texto, leyenda y márgenes).
+      const resto = tarjeta ? tarjeta.offsetHeight - el.offsetHeight : 130;
+      const alto = Math.min(window.innerHeight - barra - resto - 24, el.offsetWidth * 0.62);
+      el.style.height = `${Math.round(Math.max(340, alto))}px`;
+    };
+    ajustar();
+    window.addEventListener('resize', ajustar);
+    return () => window.removeEventListener('resize', ajustar);
+  }, [hueco]);
   const motor = useRef<Motor | null>(null);
   const capa = useRef<Grupo | null>(null);
   const dibujadas = useRef<Ruta[]>([]);

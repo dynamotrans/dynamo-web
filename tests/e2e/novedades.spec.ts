@@ -1429,6 +1429,22 @@ test.describe('novedades', () => {
     for (const t of await etiquetas.allTextContents()) expect(['Programado', 'Confirmado', 'Asignando transportista', 'Pendiente de pago']).toContain(t.trim());
   });
 
+  // Mapa de envíos en el dashboard del cliente (usuario, 2026-11-26): debajo de «Recomendar»,
+  // con enlace a la pantalla completa y, en escritorio, alargado (más ancho que alto).
+  test('dashboard del cliente: mapa de envíos debajo de «Recomendar», alargado', async ({ page }) => {
+    await entrar(page, 'cliente');
+    await page.goto('/panel/dashboard');
+    const tarjeta = page.locator('#dash-mapa');
+    if (!(await tarjeta.count())) { test.skip(true, 'cliente sin envíos: el mapa no sale'); return; }
+    await expect(tarjeta.locator('h4')).toHaveText('Mapa de envíos');
+    await expect(page.locator('#dash-mapa-completo')).toHaveAttribute('href', '/panel/mapa');
+    const recomienda = await page.locator('.dash-recomienda').boundingBox();
+    const mapa = await tarjeta.locator('[data-mapa-general]').boundingBox();
+    expect(mapa!.y).toBeGreaterThan(recomienda!.y);
+    expect(mapa!.height).toBeGreaterThanOrEqual(300);
+    if ((page.viewportSize()?.width ?? 0) > 760) expect(mapa!.width).toBeGreaterThan(mapa!.height);
+  });
+
   // Parámetros (usuario, 2026-11-19): el PIN de recogida y entrega queda para la v4 y los
   // campos del fichero de Holded se quitan; en su sección, un aviso de «pendiente de la API».
   test('parámetros: no salen el PIN ni los campos de Holded, y Holded avisa de que falta la API', async ({ page }) => {

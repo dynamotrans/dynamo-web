@@ -2325,6 +2325,8 @@ body.theme-dark .sidebar { background: #060116; }
 .onb-step.onb-done .onb-num { background: var(--green, #22a55a); }
 /* Recomiéndanos (dashboard): tarjeta fina con CTA */
 .dash-recomienda { display: flex; align-items: center; gap: 0.9rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 0.9rem 1.1rem; margin-top: 1rem; }
+/* Mapa de envíos en el dashboard (usuario, 2026-11-26): tarjeta como «Recomendar». */
+.dash-mapa { background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 0.9rem 1.1rem; margin-top: 1rem; }
 .dash-recomienda-icon { width: 42px; height: 42px; border-radius: 11px; background: rgba(51,0,204,0.08); color: var(--purple); display: flex; align-items: center; justify-content: center; flex: none; }
 .dash-recomienda-text { flex: 1; min-width: 0; }
 .dash-recomienda-text h4 { margin: 0; font-size: var(--fs-l); color: var(--navy); }

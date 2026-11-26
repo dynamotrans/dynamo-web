@@ -11,6 +11,7 @@ import { FLOTA_HTML } from '@/lib/dashboardContenido';
 import { CONTACTO } from '@/lib/atencion';
 import { CajaBuscadorGlobal } from './BuscadorGlobal';
 import BannerNuevoEnvio from './BannerNuevoEnvio';
+import MapaGeneral from './MapaGeneral';
 
 // «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
 // 2026-11-03). Para volver a enseñarlos basta con poner esto a true.
@@ -112,6 +113,10 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
           <button type="button" className="btn-secondary" onClick={() => setVentana('google')}>★ Puntúanos en Google</button>
         </div>
       </div>
+
+      {/* Mapa de envíos debajo de «Recomendar / Puntúanos» (usuario, 2026-11-26), con el alto
+          del hueco que queda en pantalla. Una cuenta sin envíos no lo ve (estaría vacío). */}
+      {!sinEnvios && <MapaGeneral dynamo={dynamo} incrustado />}
 
       {/* El carrusel «Nuestros clientes» (logos de empresas) se quitó de la plataforma (usuario,
           2026-11-24: «estorba, distrae»); se queda solo en la web pública. */}
