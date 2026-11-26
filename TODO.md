@@ -1334,3 +1334,14 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - Paradas con los colores de las pastillas de la plataforma: Recogida #c2410c, Entrega #157a3f.
 - Al pulsar un punto, camión, parada o ruta: esa en morado grueso con carteles; TODO lo demás (líneas, paradas, camiones, puntos) atenuado casi transparente y en gris. Vuelve a los 4 s o al pulsar el mapa.
 - PENDIENTE de decidir: colores de los puntos de programado por estado (propuesta: gris programado, naranja asignando, verde confirmado, rojo pendiente de pago, rojo parpadeante si pasó su día de carga).
+
+### Verificación de EMPRESA y crédito (usuario, 2026-11-26) — EN CURSO (#155)
+Decisiones del usuario:
+- La verificación es de la EMPRESA (CIF), una vez, la hace cualquier usuario de la empresa; los que se unen la heredan.
+- CORTAFUEGOS: empresa sin verificar → crédito = 0, da igual CESCE o el crédito de Dynamo. Todo con pago previo (tarjeta o transferencia; con transferencia el envío se queda «Pendiente de pago» hasta que Dynamo pulse «He recibido el pago»). Nunca bloquear pedir envíos por no estar verificada.
+- CESCE se consulta al dar de alta la empresa (aunque no esté verificada) y se guarda resultado (positivo / cero / denegado) e importe; los cambios de CESCE por API se irán actualizando. El importe NUNCA se enseña al cliente. Si CESCE es cero o denegado, no se dice nada al cliente (nunca revelar que fue denegado).
+- Aviso (empresa sin verificar y CESCE positivo): check verde «Tu empresa tiene crédito disponible para trabajar sin pagar por adelantado» + botón «Verifica tu empresa para activarlo». SIN días.
+- Vías de verificación: 1) transferencia de 0,01 € desde la cuenta de la empresa con un código único en el concepto (a fondo perdido, no se devuelve); Dynamo la valida a mano (comprueba código y que el ordenante sea la razón social); automatizar con el banco más adelante. 2) subir un documento (tarjeta CIF o similar) que Dynamo revisa a mano (llamada, dominio del email vs web…). 3) validación manual de Dynamo (llamada, cliente conocido, encuesta) registrando quién, cuándo y motivo. 4) CERTIFICADO DIGITAL: MÁS ADELANTE (PDF firmado con AutoFirma/Adobe y comprobación automática del CIF del certificado).
+- Alta: empresa NUEVA (CIF que no existe) → entra al momento (usuario con email y móvil verificados), empresa creada sin verificar, pide envíos con pago previo. CIF que YA existe sin invitación → espera aprobación de Dynamo en Altas pendientes (como hoy) y se le dice que pida a un compañero que le invite.
+- Clientes ya existentes al entrar esto: verificados DE OFICIO («a mano · cliente anterior»), siguen con su crédito.
+- Bajas: un usuario no borra a otro; puede SOLICITAR la baja de un compañero → el afectado queda suspendido al momento y recibe aviso (email + WhatsApp) para que llame si no la reconoce; Dynamo decide desde admin (baja definitiva o rehabilitar). Auditoría de solicitudes y validaciones.
