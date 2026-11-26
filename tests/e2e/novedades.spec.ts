@@ -976,9 +976,12 @@ test.describe('novedades', () => {
     await page.locator('#sitio-buscar').focus();
     await page.locator('[data-sug-google]').first().click();
     await expect(page.locator('#sitio-nombre_empresa')).toHaveValue('Zzprimera, S.L.');
-    const tel = page.locator('.dash-modal-card input[type=tel]').first();
+    // El teléfono que trae el buscador es un FIJO: va directo al campo «Fijo», no al del móvil
+    // (usuario, 2026-11-26: «que lo ponga fijo directo en fijo»).
+    const tel = page.locator('#ct-0-fijo');
     const primero = await tel.inputValue();
     expect(primero.replace(/\D/g, '').length).toBeGreaterThan(5);
+    await expect(page.locator('#ct-0-tel')).toHaveValue('');
     // Algo escrito a mano en la primera: tampoco debe quedarse en la segunda empresa.
     await page.locator('.dash-modal-card input[type=email]').first().fill('de-la-primera@e2e.invalid');
     await page.locator('#sitio-buscar').fill('Zzsegunda otra');
@@ -1011,9 +1014,20 @@ test.describe('novedades', () => {
     await expect(page.locator('#sitio-provincia')).toHaveAttribute('data-valor', 'Cádiz');
     await page.fill('#sitio-codigo_postal', '41016');
     await expect(page.locator('#sitio-provincia')).toHaveAttribute('data-valor', 'Sevilla');
+    // DOS teléfonos en los sitios (usuario, 2026-11-26): móvil (WhatsApp) y fijo. Un fijo escrito
+    // en el móvil acaba solo en el fijo al guardar; aquí va cada uno en su campo.
+    await expect(page.locator('label[for="ct-0-tel"]')).toContainText('Móvil (WhatsApp)');
+    await expect(page.locator('label[for="ct-0-fijo"]')).toContainText('Fijo');
     await page.fill('#ct-0-tel', '600111222');
+    await page.fill('#ct-0-fijo', '954111222');
     await page.getByRole('button', { name: 'Crear sitio' }).click();
     await expect(page.locator('#sitio-buscar')).toHaveCount(0);
+    await expect.poll(async () => {
+      const { data: st } = await bd().from('sitios').select('id').eq('nombre_empresa', nombre).maybeSingle();
+      if (!st) return '';
+      const { data: ct } = await bd().from('contactos').select('telefono, telefono_fijo').eq('sitio_id', st.id).maybeSingle();
+      return `${ct?.telefono ?? ''} / ${ct?.telefono_fijo ?? ''}`;
+    }, { timeout: 20000 }).toBe('+34600111222 / +34954111222');
     // Queda elegido en la recogida…
     await expect(page.locator('.ptar-route-row input[type=text]').nth(0)).toHaveValue(new RegExp(`^${nombre}`));
     // …y la entrega ya lo encuentra en el desplegable, sin recargar.
@@ -1143,7 +1157,7 @@ test.describe('novedades', () => {
       // Aunque antes se haya tocado (y dejado vacío) el teléfono en la ficha del sitio, al
       // guardar desde la fila el aviso se quita (usuario, 2026-11-24).
       await page.locator('#varios-crear').click();
-      const enFicha = fila1.locator('.ptar-sitio-card.falta input[type=tel]');
+      const enFicha = fila1.locator('.ptar-sitio-card.falta input[type=tel]').first();   // el del móvil (el segundo es el fijo)
       // Un par de cifras no es un teléfono: el aviso sigue. Con un número de verdad, se quita.
       await enFicha.fill('6');
       await expect(fila1.locator('.varios-tel')).toHaveCount(1);
@@ -1188,7 +1202,7 @@ test.describe('novedades', () => {
       const falta = fila1.locator('.ptar-sitio-card.falta');
       await expect(falta).toHaveCount(1);
       await expect(falta).toContainText('Nave Madrid');
-      await falta.locator('input[type=tel]').fill('600123124');
+      await falta.locator('input[type=tel]').first().fill('600123124');
       await expect(fila1.locator('.varios-res.error')).toHaveCount(0);
       await expect(fila1.locator('.varios-importe')).toContainText('€', { timeout: 15000 });
       await page.locator('#varios-crear').click();
@@ -1231,7 +1245,7 @@ test.describe('novedades', () => {
       await expect(fila2.locator('.varios-res.error')).toContainText('Falta el teléfono de contacto de 2 · Entrega: «Nave Madrid»');
       await expect(fila2.locator('.ptar-sitio-card.falta')).toHaveCount(1);
       // Se pone en la ficha de la fila 1 y la fila 2 lo tiene también: sin aviso y con el número.
-      await fila1.locator('.ptar-sitio-card.falta input[type=tel]').fill('600123125');
+      await fila1.locator('.ptar-sitio-card.falta input[type=tel]').first().fill('600123125');
       await expect(fila1.locator('.varios-res.error')).toHaveCount(0);
       await expect(fila2.locator('.varios-res.error')).toHaveCount(0);
       await expect(fila2.locator('.ptar-sitio-card', { hasText: 'Nave Madrid' }).locator('input[type=tel]').first()).toHaveValue('600123125');

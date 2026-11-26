@@ -19,9 +19,8 @@ import { calcularTarifa, aplicarDescuentoTarifa } from '@/lib/tarifador';
 import { fecha as fmtFecha, euros, hoyMadrid } from '@/lib/formato';
 import { duracionTxt } from '@/lib/cuentaAtras';
 import { conTope } from '@/lib/conTope';
-import { FORMAS, decimal, num, primerDia, resolverFicha, sumarHabiles, type CardEdit, type ClienteOpcion, type DatosSitios, type EdicionSitio, type Punto, type ReglasPrecio, type SitioOpcion, useEdicionesSitios } from './nuevoEnvio/comun';
+import { FORMAS, decimal, num, primerDia, resolverFicha, fichaConTelefono, sumarHabiles, type CardEdit, type ClienteOpcion, type DatosSitios, type EdicionSitio, type Punto, type ReglasPrecio, type SitioOpcion, useEdicionesSitios } from './nuevoEnvio/comun';
 import { nombreParada } from '@/lib/edicionesSitios';
-import { telPuesto } from '@/lib/paises';
 import { FichasSitios } from './nuevoEnvio/FichasSitios';
 import { CampoSitio } from './nuevoEnvio/CampoSitio';
 import { CampoCliente } from './nuevoEnvio/CampoCliente';
@@ -147,7 +146,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
   const [conFichas, setConFichas] = useState<Set<number>>(new Set());      // filas con las fichas abiertas
   const [faltasSit, setFaltasSit] = useState<Set<number>>(new Set());      // paradas con datos obligatorios por rellenar
   // Sin teléfono de contacto (con lo escrito en su ficha encima): no se crea.
-  const faltaTel = (p: Punto) => !!p.sitio && !p.sitio.es_almacen_dynamo && !!datosSit[p.sitio.id] && !telPuesto(resolverFicha(p, datosSit, edicSit[p.k]).telefono);
+  const faltaTel = (p: Punto) => !!p.sitio && !p.sitio.es_almacen_dynamo && !!datosSit[p.sitio.id] && !fichaConTelefono(resolverFicha(p, datosSit, edicSit[p.k]));
   // Las paradas de una fila a cuyo sitio le falta el teléfono: UNA LÍNEA POR PARADA (usuario,
   // 2026-11-24: «debería salir por separado, cada línea pidiendo rellenar»). Si el mismo sitio
   // está en dos paradas, la segunda dice de cuál es repetición: el teléfono es del sitio, así
@@ -261,7 +260,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       if (!p.sitio || p.sitio.es_almacen_dynamo || !edicSit[p.k] || !datosSit[p.sitio.id]) continue;
       const x = resolverFicha(p, datosSit, edicSit[p.k]);
       porSitio.set(p.sitio.id, {
-        sitio_id: p.sitio.id, contacto_id: x.contacto_id, contacto_nombre: x.contacto, contacto_telefono: x.telefono, contacto_email: x.contactoEmail,
+        sitio_id: p.sitio.id, contacto_id: x.contacto_id, contacto_nombre: x.contacto, contacto_telefono: x.telefono, contacto_telefono_fijo: x.telefonoFijo, contacto_email: x.contactoEmail,
         anotaciones: x.notas, emails_avisos: x.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
         url_google_maps: x.maps || null, horario_tramos: tramosDe(x.horario),
         verano: edicSit[p.k]?.verano ? { activo: x.verano.activo, desde: x.verano.desde, hasta: x.verano.hasta, tramos: tramosDe(x.verano.horario) } : undefined,

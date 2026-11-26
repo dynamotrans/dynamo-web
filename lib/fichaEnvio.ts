@@ -96,8 +96,9 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean);
   const contactos = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null; email: string | null }>();
   if (sitioIds.length) {
-    const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono, email').in('sitio_id', sitioIds).eq('es_principal', true);
-    (data ?? []).forEach((c) => contactos.set(c.sitio_id as string, c));
+    // El teléfono que se enseña del sitio: el móvil y, si no tiene, el fijo.
+    const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono, telefono_fijo, email').in('sitio_id', sitioIds).eq('es_principal', true);
+    (data ?? []).forEach((c) => contactos.set(c.sitio_id as string, { sitio_id: c.sitio_id, nombre: c.nombre, telefono: c.telefono ?? c.telefono_fijo, email: c.email }));
   }
   const usuarios = [...new Set([e.creado_por, ...(hit.data ?? []).map((h) => h.quien)].filter(Boolean))] as string[];
   const nombres = new Map<string, string>();

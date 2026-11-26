@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
-import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, pedidosDeHolded, gxDePedido, type FacturaCopia, type FacturaHolded, type PedidoVenta } from '@/lib/holdedFacturas';
+import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, pedidosDeHolded, pedidosFacturadosDeHolded, gxDePedido, type FacturaCopia, type FacturaHolded, type PedidoFacturado, type PedidoVenta } from '@/lib/holdedFacturas';
 import { apuntarConsultas, refrescarUsoReal, usoDelMes } from '@/lib/servidor/holdedUso';
 import { contactosDeHolded } from '@/lib/servidor/holdedContactos';
 import { hoyMadrid } from '@/lib/filtroFechas';
@@ -317,6 +317,27 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     if (bien) {
       const { error } = await sv.rpc('pedidos_venta_guardar', { p_pedidos: leidos });
       if (error) avisos.push(`No se han podido guardar los pedidos de venta: ${error.message}`); else { pedidosLeidos = leidos; pedidosFoto = true; }
+    }
+  }
+
+  // 4d. Los pedidos de venta YA FACTURADOS de los últimos 4 meses que llevan algún GX: el envío
+  //     de la plataforma con ese GX está facturado (aunque su factura agrupe varios envíos y no
+  //     lleve el GX). Misma cadencia que la foto de pendientes; solo se guarda si se lee ENTERA.
+  if (tocaAbonos && pedidosSePueden() && queda(7000)) {
+    const hechos: PedidoFacturado[] = [];
+    let bien = true, cur: string | undefined;
+    for (let i = 0; ; i++) {
+      if (i >= 25 || !queda(3000)) { bien = false; break; }
+      const r = await leerHolded('/sales-orders', { status: 'completed', approval_status: 'approved', start_date: diaMas(hoy, -120), sort: '-date', limit: 200, cursor: cur });
+      if (!r.ok) { bien = false; avisos.push(`Pedidos de venta facturados: ${r.error}`); console.error('[Holded] pedidos de venta facturados', r.error); break; }
+      const p = pedidosFacturadosDeHolded(r.datos);
+      hechos.push(...p.pedidos);
+      if (!p.hayMas || !p.cursor) break;
+      cur = p.cursor;
+    }
+    if (bien) {
+      const { error } = await sv.rpc('pedidos_venta_facturados_guardar', { p_pedidos: hechos });
+      if (error) avisos.push(`No se han podido guardar los pedidos de venta facturados: ${error.message}`);
     }
   }
 

@@ -175,6 +175,26 @@ export function pedidosDeHolded(cuerpo: unknown): { pedidos: PedidoVenta[]; hayM
   return { pedidos, hayMas: c.has_more === true && !!cursor, cursor, leidos: items.length };
 }
 
+// LOS PEDIDOS DE VENTA YA FACTURADOS que llevan algún GX (usuario, 2026-11-26: «las facturas no
+// llevan GX porque igual incluyen 7 envíos»). La factura solo dice UNO de los pedidos de los que
+// sale, así que «este envío ya está facturado» se sabe por SU pedido: lleva su GX y su estado
+// es «facturado» (completed). Solo se guardan el identificador, el día y los GX.
+export type PedidoFacturado = { id: string; fecha: string; envios_gx: string[] };
+export function pedidosFacturadosDeHolded(cuerpo: unknown): { pedidos: PedidoFacturado[]; hayMas: boolean; cursor: string | null; leidos: number } {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown; has_more?: unknown; cursor?: unknown };
+  const items = Array.isArray(c.items) ? c.items as (FacturaHolded & { draft?: unknown })[] : [];
+  const cursor = typeof c.cursor === 'string' && c.cursor ? c.cursor : null;
+  const pedidos: PedidoFacturado[] = [];
+  for (const o of items) {
+    if (!o || typeof o !== 'object' || o.draft === true || o.status !== 'completed') continue;
+    const id = texto(o.id), fecha = dia(o.date);
+    if (!id || !fecha) continue;
+    const gx = gxDePedido(o);
+    if (gx.length) pedidos.push({ id, fecha, envios_gx: gx });
+  }
+  return { pedidos, hayMas: c.has_more === true && !!cursor, cursor, leidos: items.length };
+}
+
 /** Las referencias de envío (GX…) que lleva la FICHA de un pedido de venta: en su número, su concepto o sus líneas. */
 export function gxDePedido(cuerpo: unknown): string[] {
   if (!cuerpo || typeof cuerpo !== 'object') return [];

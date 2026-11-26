@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDePedido, gxDeTextos, idsDeCuentas, importeDe, pedidosDeHolded, usoDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDePedido, gxDeTextos, idsDeCuentas, importeDe, pedidosDeHolded, pedidosFacturadosDeHolded, usoDeHolded } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -228,4 +228,20 @@ test('referencias GX de la ficha de un pedido de venta: número, concepto y lín
     ['GX100200', 'GX300400', 'GX500600']);
   assert.deepEqual(gxDePedido({ document_number: 'PV-2026-014', description: 'Transporte' }), []);
   assert.deepEqual(gxDePedido(null), []);
+});
+
+test('pedidos de venta ya facturados: solo los completados que llevan algún GX', () => {
+  const r = pedidosFacturadosDeHolded({ has_more: false, cursor: null, items: [
+    { id: 'a'.repeat(24), document_number: 'GX100200', date: '2026-11-20', status: 'completed' },
+    { id: 'b'.repeat(24), document_number: 'PV-9', description: 'Viajes GX300400 y GX-500600', date: '2026-11-19', status: 'completed' },
+    { id: 'c'.repeat(24), document_number: 'PV-10', date: '2026-11-19', status: 'completed' },                    // sin GX: no sirve para cruzar
+    { id: 'd'.repeat(24), document_number: 'GX700800', date: '2026-11-19', status: 'pending' },                   // sin facturar: va en la otra foto
+    { id: 'e'.repeat(24), document_number: 'GX900100', date: '2026-11-19', status: 'completed', draft: true },     // borrador
+    { id: 'f'.repeat(24), document_number: 'GX900200', status: 'completed' },                                      // sin fecha
+    null ] });
+  assert.deepEqual(r.pedidos, [
+    { id: 'a'.repeat(24), fecha: '2026-11-20', envios_gx: ['GX100200'] },
+    { id: 'b'.repeat(24), fecha: '2026-11-19', envios_gx: ['GX300400', 'GX500600'] } ]);
+  assert.deepEqual([r.hayMas, r.leidos], [false, 7]);
+  assert.deepEqual(pedidosFacturadosDeHolded(undefined), { pedidos: [], hayMas: false, cursor: null, leidos: 0 });
 });

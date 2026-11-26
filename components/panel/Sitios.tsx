@@ -24,7 +24,8 @@ import SelectorPais from '@/components/SelectorPais';
 import CampoProvincia from '@/components/CampoProvincia';
 import { CampoCodigoPostal, CampoPoblacion, lugarDe, type Lugar } from '@/components/CamposLugar';
 import { conProvinciaDelCp } from '@/lib/provinciasEs';
-import { principal, CONTACTO_VACIO } from '@/lib/contactos';
+import { principal, telDe, CONTACTO_VACIO } from '@/lib/contactos';
+import { noEsMovil } from '@/lib/whatsapp';
 import EditorContactos from './EditorContactos';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -165,7 +166,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
                     {f.horario_sin_verificar && <div className="meta"><span className="badge badge-orange" title="Nadie ha comprobado este horario con el sitio">Horario sin verificar</span></div>}
                     {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
                   </td>
-                  <td>{(() => { const k = principal(f.contactos); return <>{telBonito(k?.telefono ?? '') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
+                  <td>{(() => { const k = principal(f.contactos); return <>{telBonito(telDe(k)) || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{notas ? <span style={{ color: '#b45309' }}>⚠ {notas.slice(0, 60)}{notas.length > 60 ? '…' : ''}</span> : '—'}</td>
                 </tr>
               );
@@ -302,7 +303,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       const base: SitioDatos = soloDir ? {
         ...x,
         nombre_empresa: antes && x.nombre_empresa === antes.nombre ? '' : x.nombre_empresa,
-        contactos: antes?.telefono ? x.contactos.map((c) => (c.telefono === antes.telefono ? { ...c, telefono: '' } : c)) : x.contactos,
+        contactos: antes?.telefono ? x.contactos.map((c) => (c.telefono === antes.telefono ? { ...c, telefono: '' } : c.telefono_fijo === antes.telefono ? { ...c, telefono_fijo: '' } : c)) : x.contactos,
         ...(x.horario_sin_verificar ? { horario: limpia.horario, horario_sin_verificar: false } : {}),
       } : limpia;
       return conProvinciaDelCp({
@@ -312,8 +313,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         url_google_maps: g.url_google_maps,
         // El horario de Google es una propuesta sin verificar (usuario, 2026-11-23).
         ...(conHorario ? { horario: g.horario!, horario_sin_verificar: true } : {}),
-        contactos: telefono && !base.contactos.some((c) => c.telefono.trim())
-          ? base.contactos.map((c, i) => (i === 0 ? { ...c, telefono } : c))
+        // El teléfono de Google va a su campo: un fijo, al fijo; un móvil, al móvil (usuario, 2026-11-26).
+        contactos: telefono && !base.contactos.some((c) => telDe(c).trim())
+          ? base.contactos.map((c, i) => (i === 0 ? (noEsMovil(telefono) ? { ...c, telefono_fijo: telefono } : { ...c, telefono }) : c))
           : base.contactos,
       }, g.pais_codigo_iso || 'ES');
     });
@@ -366,7 +368,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         !d.provincia.trim() && 'sitio-provincia'].filter(Boolean) as string[]);
       return;
     }
-    if (!almacen && !d.contactos.some((x) => x.telefono.trim())) {
+    if (!almacen && !d.contactos.some((x) => telDe(x).trim())) {
       setError('El contacto del sitio es obligatorio: pon al menos uno con teléfono (el email es muy útil; el nombre, opcional).'); avisaFaltas(['ct-0-tel']); return;
     }
     const malHorario = validarHorario(d.horario);

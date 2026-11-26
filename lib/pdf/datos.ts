@@ -171,8 +171,8 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean) as string[];
   const contactoSitio = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null }>();
   if (sitioIds.length) {
-    const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono').in('sitio_id', sitioIds).eq('es_principal', true);
-    (data ?? []).forEach((c) => contactoSitio.set(c.sitio_id as string, c));
+    const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono, telefono_fijo').in('sitio_id', sitioIds).eq('es_principal', true);
+    (data ?? []).forEach((c) => contactoSitio.set(c.sitio_id as string, { sitio_id: c.sitio_id, nombre: c.nombre, telefono: c.telefono ?? c.telefono_fijo }));
   }
   const contactos = ctos.data ?? [];
   // Del cliente: el de tráfico principal, y si no, el principal de cualquier función.

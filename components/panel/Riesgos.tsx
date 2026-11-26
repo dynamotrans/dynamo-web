@@ -30,7 +30,9 @@ export type EstadoDeuda = { conectado: boolean; ultimaOk: string | null; ultima:
   pedidosEn?: string | null; pedidos?: number; pedidosImporte?: number; pedidosPlataforma?: number;
   // La comprobación: pedidos que la facturación da por pendientes y ya tienen factura (no se suman),
   // facturas enlazadas con su pedido y facturas recientes aún por enlazar.
-  pedidosFacturados?: number; facturasEnlazadas?: number; facturasPorEnlazar?: number };
+  pedidosFacturados?: number; facturasEnlazadas?: number; facturasPorEnlazar?: number;
+  // Pedidos de venta ya facturados que llevan GX, y envíos de la plataforma que por eso se dan por facturados.
+  pedidosFacturadosGx?: number; enviosFacturados?: number };
 export type Totales = { limite: number; asumido: number; pasados: number };
 export type ListaRiesgos = { q: string; filtro: string; pagina: number; porPagina: number; total: number };
 const uso = (f: RiesgoFila) => (f.limite && f.limite > 0 ? f.asumido / f.limite : f.asumido > 0 ? Infinity : 0);
@@ -134,6 +136,12 @@ function DeudaFacturacion({ e }: { e: EstadoDeuda }) {
       </div>}
       {/* El enlace factura → pedido de venta (usuario, 2026-11-26: «ni puede faltar ni puede
           duplicar»): con él un viaje no se cuenta a la vez como pedido y como factura. */}
+      {/* Envío facturado = su pedido de venta está facturado (las facturas agrupan varios envíos
+          y no llevan el GX): ese envío ya no cuenta como «sin facturar». */}
+      {e.pedidosEn && (e.pedidosFacturadosGx ?? 0) > 0 && <div className="meta" id="deuda-facturados" style={{ marginTop: '0.25rem' }}>
+        Pedidos de venta ya facturados (últimos 4 meses) con referencia de envío: <strong style={{ color: 'var(--navy)' }}>{numero(e.pedidosFacturadosGx ?? 0, 0)}</strong>
+        {' · '}{numero(e.enviosFacturados ?? 0, 0)} {e.enviosFacturados === 1 ? 'envío de la plataforma se da' : 'envíos de la plataforma se dan'} por {e.enviosFacturados === 1 ? 'facturado' : 'facturados'} (no {e.enviosFacturados === 1 ? 'cuenta' : 'cuentan'} como «sin facturar»).
+      </div>}
       {e.pedidosEn && ((e.facturasEnlazadas ?? 0) > 0 || (e.facturasPorEnlazar ?? 0) > 0) && <div className="meta" id="deuda-enlace" style={{ marginTop: '0.25rem' }}>
         Para no contar un viaje dos veces: <strong style={{ color: 'var(--navy)' }}>{numero(e.facturasEnlazadas ?? 0, 0)}</strong> {e.facturasEnlazadas === 1 ? 'factura enlazada' : 'facturas enlazadas'} con su pedido de venta
         {(e.facturasPorEnlazar ?? 0) > 0 ? ` · ${numero(e.facturasPorEnlazar ?? 0, 0)} de los últimos 4 meses por enlazar (se completa solo en las próximas lecturas)` : ' · todas las de los últimos 4 meses comprobadas'}.

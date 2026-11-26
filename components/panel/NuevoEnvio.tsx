@@ -23,10 +23,9 @@ import { CONTACTO } from '@/lib/atencion';
 import { SIGLAS } from '@/lib/siglas';
 import { paisDe as nombrePais } from '@/lib/paises';
 import { nombreTipo } from './TipoSitio';
-import { Base, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, sumarHabiles, useEdicionesSitios } from './nuevoEnvio/comun';
+import { Base, ClienteOpcion, DatosSitios, EdicionSitio, FORMAS, IcoCliente, IcoEscudo, Props, Punto, SitioNuevo, VACIO, corteDe, decimal, iso, num, opcionCercana, primerDia, resolverFicha, fichaConTelefono, sumarHabiles, useEdicionesSitios } from './nuevoEnvio/comun';
 import { nombreParada } from '@/lib/edicionesSitios';
 import PagoTarjeta from './PagoTarjeta';
-import { telPuesto } from '@/lib/paises';
 import { diaCierrePrecio } from '@/lib/fechasCarga';
 export type { ClienteOpcion, SitioOpcion, Base, ReglasPrecio, MiAutosusp } from './nuevoEnvio/comun';
 import { Interruptor } from './nuevoEnvio/Interruptor';
@@ -613,7 +612,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       .map((p) => {
         const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
         return {
-          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
+          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_telefono_fijo: f.telefonoFijo, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
           horario_tramos: tramosDe(f.horario),
@@ -708,7 +707,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       if (p.sitio && !datos[p.sitio.id]) continue;
       const f = resolverFicha(p, datos, edicSitios[p.k]);
       if (f.dynamo) continue;
-      if ((f.nuevo && !f.empresa.trim()) || !telPuesto(f.telefono)) s.add(p.k);
+      if ((f.nuevo && !f.empresa.trim()) || !fichaConTelefono(f)) s.add(p.k);
     }
     return s;
   }
@@ -730,7 +729,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     // El aviso dice QUÉ falta y EN QUÉ parada (usuario, 2026-11-24: «pon más detalle»).
     const lista = puntos.map((p, i) => ({ p, i })).filter(({ p }) => faltas.has(p.k)).map(({ p, i }) => {
       const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
-      const que = [f.nuevo && !f.empresa.trim() ? 'el nombre de la empresa' : '', !telPuesto(f.telefono) ? 'el teléfono de contacto' : ''].filter(Boolean).join(' y ');
+      const que = [f.nuevo && !f.empresa.trim() ? 'el nombre de la empresa' : '', !fichaConTelefono(f) ? 'el teléfono de contacto' : ''].filter(Boolean).join(' y ');
       return `${que} de ${nombreParada(i, p.tipo)}${f.empresa.trim() ? `: «${f.empresa.trim()}»` : ''}`;
     });
     setAviso(lista.length ? `Falta ${lista.join('; ')}. Rellénalo en ${lista.length === 1 ? 'su tarjeta, marcada' : 'las tarjetas marcadas'} en rojo.`
@@ -753,7 +752,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       .map((p) => {
         const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
         return {
-          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
+          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_telefono_fijo: f.telefonoFijo, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
           horario_tramos: tramosDe(f.horario),

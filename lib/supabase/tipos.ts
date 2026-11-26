@@ -932,6 +932,7 @@ export type Database = {
           idioma: string
           recibe_avisos: boolean
           cargo: string | null
+          telefono_fijo: string | null
         }
         Insert: {
           id?: string
@@ -953,6 +954,7 @@ export type Database = {
           idioma?: string
           recibe_avisos?: boolean
           cargo?: string | null
+          telefono_fijo?: string | null
         }
         Update: {
           id?: string
@@ -974,6 +976,7 @@ export type Database = {
           idioma?: string
           recibe_avisos?: boolean
           cargo?: string | null
+          telefono_fijo?: string | null
         }
         Relationships: [
           {
@@ -2831,6 +2834,7 @@ export type Database = {
           abonos_en: string | null
           copia_desde: string | null
           pedidos_en: string | null
+          pedidos_facturados_en: string | null
         }
         Insert: {
           id?: boolean
@@ -2850,6 +2854,7 @@ export type Database = {
           abonos_en?: string | null
           copia_desde?: string | null
           pedidos_en?: string | null
+          pedidos_facturados_en?: string | null
         }
         Update: {
           id?: boolean
@@ -2869,6 +2874,7 @@ export type Database = {
           abonos_en?: string | null
           copia_desde?: string | null
           pedidos_en?: string | null
+          pedidos_facturados_en?: string | null
         }
         Relationships: [
         ]
@@ -3655,6 +3661,28 @@ export type Database = {
           creado_por?: string | null
           modificado_en?: string | null
           modificado_por?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      pedidos_venta_facturados: {
+        Row: {
+          ref_externa: string
+          fecha: string
+          envios_gx: string[]
+          leido_en: string
+        }
+        Insert: {
+          ref_externa: string
+          fecha: string
+          envios_gx: string[]
+          leido_en?: string
+        }
+        Update: {
+          ref_externa?: string
+          fecha?: string
+          envios_gx?: string[]
+          leido_en?: string
         }
         Relationships: [
         ]
@@ -5554,6 +5582,7 @@ export type Database = {
       parar_difusion: { Args: { p_envio: string | null }; Returns: Json }
       patrones_busqueda: { Args: { p_q: string | null }; Returns: string[] }
       pausar_seguimiento_envio: { Args: { p_envio: string | null; p_pausar: boolean | null }; Returns: Json }
+      pedidos_venta_facturados_guardar: { Args: { p_pedidos: Json | null }; Returns: number }
       pedidos_venta_guardar: { Args: { p_pedidos: Json | null }; Returns: number }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
       pendientes_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; vence_en: string; tipo: string; autor: string; puede_anular: boolean; emails: number }[] }

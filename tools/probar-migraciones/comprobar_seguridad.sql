@@ -17220,3 +17220,139 @@ begin
   perform set_config('request.jwt.claim.role', '', true);
   raise notice 'OK 369 · enlace factura → pedido de venta: un pedido con factura no se suma, el envío cuyo pedido está facturado cuenta como facturado, y la lista no borra el enlace';
 end $$;
+
+-- 370 · ENVÍO FACTURADO = SU PEDIDO DE VENTA ESTÁ FACTURADO (usuario, 2026-11-26: «las facturas no
+-- llevan GX porque igual incluyen 7 envíos»): el envío cuyo pedido sale ya facturado en la
+-- facturación no cuenta como «sin facturar», aunque ninguna factura lleve su GX.
+do $$ declare cli uuid; a uuid; b uuid; gxa text; gxb text; u record; r jsonb; n int; ok boolean := false;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; k text := '000000000000000000000f01';
+begin
+  if has_function_privilege('authenticated', 'pedidos_venta_facturados_guardar(jsonb)', 'execute') or has_function_privilege('anon', 'pedidos_venta_facturados_guardar(jsonb)', 'execute') then
+    raise exception 'FALLO 370 · un usuario puede guardar la lista de pedidos facturados (solo el servidor)'; end if;
+  if has_table_privilege('authenticated', 'pedidos_venta_facturados', 'insert') or has_table_privilege('authenticated', 'pedidos_venta_facturados', 'update')
+     or has_table_privilege('authenticated', 'pedidos_venta_facturados', 'delete') or has_table_privilege('anon', 'pedidos_venta_facturados', 'select') then
+    raise exception 'FALLO 370 · permisos de más en la tabla de pedidos facturados'; end if;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform set_config('prueba.cargada370', coalesce((select carga_completa_en::text from facturas_copia_estado where id), ''), false);
+  update facturas_copia_estado set carga_completa_en = now() where id;
+  insert into clientes (razon_social, cif) values ('Facturado 370 SL', 'B37000370') returning id into cli;
+  update clientes set riesgo_manual_euros = 9000, exento_pago_previo_primer_envio = true where id = cli;
+  insert into holded_contactos (contacto_id, cif, nombre) values (k, 'ESB37000370', 'Facturado 370');
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 500, lun) returning id, referencia_gx into a, gxa;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 1000, lun) returning id, referencia_gx into b, gxb;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select e, o, t, cp, p, 'ES' from (values (a), (b)) x(e), (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id in (a, b);
+  -- Dos envíos a crédito sin facturar: 605 + 1210.
+  select * into u from credito_usado_de(array[cli]);
+  if u.sin_facturar <> 1815 or u.envios <> 2 or u.usado <> 1815 then raise exception 'FALLO 370 · punto de partida: %', row_to_json(u); end if;
+  -- Se FACTURAN LOS DOS EN UNA SOLA FACTURA, que no lleva ningún GX. Mientras la plataforma no
+  -- sepa que sus pedidos están facturados, los contaría dos veces (1815 + 1815).
+  n := facturas_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'h370a', 'numero', 'F370-1', 'contacto_id', k, 'emision', hoy, 'vence', hoy + 60, 'total', 1815, 'pendiente', 1815, 'estado', 'pendiente', 'tipo', 'factura', 'concepto', 'Transportes de noviembre')));
+  select * into u from credito_usado_de(array[cli]);
+  if u.usado <> 3630 then raise exception 'FALLO 370 · (control) sin la lista de pedidos facturados se esperaba la cuenta doble: %', row_to_json(u); end if;
+  -- Llega la lista de pedidos YA FACTURADOS: cada pedido lleva el GX de su envío. Los dos envíos
+  -- dejan de contar como «sin facturar»: se debe la factura, una vez.
+  n := pedidos_venta_facturados_guardar(jsonb_build_array(
+    jsonb_build_object('id', 'v370a', 'fecha', hoy - 2, 'envios_gx', jsonb_build_array(lower(gxa))),
+    jsonb_build_object('id', 'v370b', 'fecha', hoy - 2, 'envios_gx', jsonb_build_array(gxb, 'no-vale')),
+    jsonb_build_object('id', 'v370c', 'fecha', hoy - 2, 'envios_gx', jsonb_build_array('no-vale')),          -- sin GX válido: no se guarda
+    jsonb_build_object('id', 'v370d', 'fecha', hoy - 2),                                                     -- sin GX: no se guarda
+    jsonb_build_object('id', 'v370e', 'envios_gx', jsonb_build_array('GX424242'))));                         -- sin fecha: no se guarda
+  if n <> 2 or (select count(*) from pedidos_venta_facturados) <> 2 or (select envios_gx from pedidos_venta_facturados where ref_externa = 'v370b') <> array[gxb]
+     or (select pedidos_facturados_en from facturas_copia_estado where id) is null then
+    raise exception 'FALLO 370 · no se guardan bien los pedidos facturados (solo los que llevan GX y fecha): %', n; end if;
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 1815 or u.sin_facturar <> 0 or u.envios <> 0 or u.usado <> 1815 then raise exception 'FALLO 370 · un envío cuyo pedido de venta ya está facturado se cuenta dos veces: %', row_to_json(u); end if;
+  if credito_usado(cli) <> 1815 or (select usado from credito_uso_cliente(cli)) <> 1815 then raise exception 'FALLO 370 · el crédito usado no descuenta los envíos ya facturados por su pedido'; end if;
+  r := deuda_estado();
+  if (r ->> 'pedidos_facturados_gx')::int <> 2 or (r ->> 'envios_facturados')::int <> 2 or r ->> 'pedidos_facturados_en' is null then raise exception 'FALLO 370 · el resumen no enseña los pedidos facturados: %', r; end if;
+  -- La lista se SUSTITUYE entera: si un pedido deja de estar facturado (se deshizo la factura),
+  -- su envío vuelve a contar como sin facturar. Nada se pierde.
+  n := pedidos_venta_facturados_guardar(jsonb_build_array(jsonb_build_object('id', 'v370a', 'fecha', hoy - 2, 'envios_gx', jsonb_build_array(gxa))));
+  select * into u from credito_usado_de(array[cli]);
+  if n <> 1 or u.sin_facturar <> 1210 or u.envios <> 1 then raise exception 'FALLO 370 · la lista nueva no sustituye a la anterior: %', row_to_json(u); end if;
+  begin perform pedidos_venta_facturados_guardar('{}'::jsonb); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 370 · se aceptan pedidos facturados que no son una lista'; end if;
+  perform set_config('prueba.c370', cli::text, false);
+  perform set_config('request.jwt.claim.role', '', true);
+end $$;
+-- Dynamo ve la lista; el cliente, no.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from pedidos_venta_facturados) <> 1 then raise exception 'FALLO 370 · el equipo de Dynamo no ve los pedidos de venta facturados'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from pedidos_venta_facturados) <> 0 then raise exception 'FALLO 370 · un cliente ve pedidos de venta de la facturación'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid := current_setting('prueba.c370')::uuid; begin
+  delete from pedidos_venta_facturados where true;
+  delete from facturas_emitidas where ref_externa like 'h370%';
+  delete from holded_contactos where contacto_id = '000000000000000000000f01';
+  update envios set estado = 'cancelado' where cliente_id = cli and estado <> 'cancelado';
+  update facturas_copia_estado set pedidos_facturados_en = null, carga_completa_en = nullif(current_setting('prueba.cargada370'), '')::timestamptz where id;
+  raise notice 'OK 370 · envío facturado = su pedido de venta está facturado: no cuenta dos veces aunque la factura agrupe varios envíos y no lleve GX';
+end $$;
+
+-- 371 · SITIOS: DOS TELÉFONOS, MÓVIL (WHATSAPP) Y FIJO (usuario, 2026-11-26): cada número va solo
+-- a su campo en los contactos de un sitio, y donde se enseña «el teléfono del sitio» sale el
+-- móvil y, si no hay, el fijo.
+do $$ declare c uuid; s uuid; a uuid; k record; j jsonb; ok boolean;
+  hoy date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into clientes (razon_social, cif) values ('Telefonos 371 SL', 'B37100371') returning id into c;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
+    values (c, 'Nave 371', 'Calle Uno 1', '41001', 'Sevilla', 'Sevilla', 'ES') returning id into s;
+  -- Un FIJO escrito en el móvil (así lo trae Google): pasa solo al fijo.
+  insert into contactos (sitio_id, nombre, telefono, es_principal) values (s, 'Centralita', '+34954371371', true) returning * into k;
+  if k.telefono is not null or k.telefono_fijo is distinct from '+34954371371' then raise exception 'FALLO 371 · un fijo escrito en el móvil de un sitio no pasa al fijo: % / %', k.telefono, k.telefono_fijo; end if;
+  -- Un MÓVIL escrito en el fijo: pasa solo al móvil.
+  insert into contactos (sitio_id, nombre, telefono_fijo) values (s, 'Muelle', '+34600371371') returning * into k;
+  if k.telefono is distinct from '+34600371371' or k.telefono_fijo is not null then raise exception 'FALLO 371 · un móvil escrito en el fijo de un sitio no pasa al móvil: % / %', k.telefono, k.telefono_fijo; end if;
+  -- Sin prefijo también se reconoce; el de otro país se queda donde se escribió.
+  insert into contactos (sitio_id, nombre, telefono) values (s, 'Sin prefijo', '955371372') returning * into k;
+  if k.telefono is not null or k.telefono_fijo <> '955371372' then raise exception 'FALLO 371 · un fijo sin prefijo no pasa al fijo'; end if;
+  insert into contactos (sitio_id, nombre, telefono) values (s, 'De Francia', '+33123456789') returning * into k;
+  if k.telefono <> '+33123456789' or k.telefono_fijo is not null then raise exception 'FALLO 371 · un teléfono de otro país cambia de campo'; end if;
+  -- Con los dos puestos, cada uno se queda en su sitio; y con el fijo ocupado, lo escrito en el móvil no se mueve.
+  insert into contactos (sitio_id, nombre, telefono, telefono_fijo) values (s, 'Los dos', '+34611371371', '+34955371373') returning * into k;
+  if k.telefono <> '+34611371371' or k.telefono_fijo <> '+34955371373' then raise exception 'FALLO 371 · con móvil y fijo puestos, alguno cambia de campo'; end if;
+  update contactos set telefono = '+34956000371' where id = k.id returning * into k;
+  if k.telefono <> '+34956000371' or k.telefono_fijo <> '+34955371373' then raise exception 'FALLO 371 · con el fijo ocupado se pierde un teléfono'; end if;
+  -- Al cambiar el móvil de «Muelle» por un fijo, pasa al fijo (que estaba libre).
+  update contactos set telefono = '+34954000372' where sitio_id = s and nombre = 'Muelle' returning * into k;
+  if k.telefono is not null or k.telefono_fijo <> '+34954000372' then raise exception 'FALLO 371 · al cambiar el móvil por un fijo no pasa al fijo'; end if;
+  -- Los contactos de CLIENTES no se tocan: su teléfono puede ser un fijo.
+  insert into contactos (cliente_id, nombre, telefono) values (c, 'Administración', '+34954000373') returning * into k;
+  if k.telefono <> '+34954000373' or k.telefono_fijo is not null then raise exception 'FALLO 371 · se mueve el teléfono de un contacto que no es de un sitio'; end if;
+  -- Formato del fijo y «algún canal»: vale con solo el fijo; sin nada, no.
+  ok := false; begin insert into contactos (sitio_id, nombre, telefono_fijo) values (s, 'Mal', '954 37 13 71'); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 371 · se acepta un fijo con espacios'; end if;
+  ok := false; begin insert into contactos (sitio_id, nombre) values (s, 'Sin nada'); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 371 · se acepta un contacto sin móvil, fijo ni email'; end if;
+  -- Se busca el sitio también por su fijo.
+  if position('34954371371' in coalesce((select texto_busqueda from sitios where id = s), '')) = 0 then raise exception 'FALLO 371 · no se encuentra el sitio por su teléfono fijo'; end if;
+  -- Donde se enseña el teléfono del sitio (orden de carga, panel del transportista): el
+  -- principal solo tiene fijo, así que sale el fijo.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c, 6, 5, 500, hoy + 20) returning id into a;
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
+    values (a, 1, 'carga', s, '41001', 'Sevilla', 'ES'), (a, 2, 'descarga', null, '28821', 'Coslada', 'ES');
+  j := paradas_viaje_json_completa(a);
+  if j -> 0 ->> 'contacto_telefono' is distinct from '+34954371371' or j -> 0 ->> 'contacto_nombre' <> 'Centralita' then raise exception 'FALLO 371 · la orden de carga no enseña el fijo cuando el sitio no tiene móvil: %', j -> 0; end if;
+  update contactos set telefono = '+34622371371' where sitio_id = s and nombre = 'Centralita';
+  j := paradas_viaje_json_completa(a);
+  if j -> 0 ->> 'contacto_telefono' <> '+34622371371' then raise exception 'FALLO 371 · con móvil y fijo, la orden de carga no enseña el móvil'; end if;
+  if (select prosrc from pg_proc where proname = 'carga_aceptada_publica_completa') not like '%coalesce(c.telefono, c.telefono_fijo) is not null%' then
+    raise exception 'FALLO 371 · la página del transportista no cuenta el fijo como teléfono del sitio'; end if;
+  update envios set estado = 'cancelado' where id = a;
+  raise notice 'OK 371 · sitios con móvil y fijo: cada número va solo a su campo, vale con uno de los dos, se busca por los dos y se enseña el móvil o, si no hay, el fijo';
+end $$;

@@ -14,7 +14,7 @@ import { telPuesto } from '@/lib/paises';
 import { resumenHorario } from '@/lib/horarios';
 import { HorarioSitio } from '../Sitios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
-import { CardEdit, ContactoExtra, DatosSitios, Punto, direccionCompleta, resolverFicha } from './comun';
+import { CardEdit, ContactoExtra, DatosSitios, Punto, direccionCompleta, fichaConTelefono, resolverFicha } from './comun';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
 import { AVISO_DIAS_HABILES } from '@/lib/fechasCarga';
@@ -99,7 +99,7 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
         const falta = f.nuevo && !f.empresa.trim();   // sitio nuevo sin nombre: datos obligatorios pendientes
         // Marcada por el padre al intentar crear: lo que siga vacío se pinta en rojo.
         const marcada = !!faltas?.has(p.k) && !f.dynamo;
-        const telOk = telPuesto(f.telefono);
+        const telOk = fichaConTelefono(f);
         const faltaCampos = marcada && ((f.nuevo && !f.empresa.trim()) || !telOk);
         const abierta = abiertas.has(p.k);
         // CITA PREVIA por sitio (usuario, 2026-11-09): el activador vive aquí, encima del
@@ -165,7 +165,8 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {fijos(p, f, true)}
                   {/* El nombre va ANTES del teléfono también aquí (usuario, 2026-11-10). */}
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
-                  {f.telefono && <div><label>Teléfono</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
+                  {f.telefono && <div><label>Móvil (WhatsApp)</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
+                  {f.telefonoFijo && <div><label>Fijo</label><input className="sitio-f-lock" value={f.telefonoFijo} readOnly tabIndex={-1} /></div>}
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
                 </>) : (<>
                   {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
@@ -183,8 +184,13 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {/* ORDEN (usuario, 2026-11-18): teléfono (lo obligatorio) · email · nombre y
                       apellidos, que es opcional y va el último. El nombre sigue SIEMPRE a la
                       vista, sin plegar, como en los contactos que se añaden. */}
-                  <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Teléfono <Req /></label>
+                  {/* DOS teléfonos (usuario, 2026-11-26): el móvil, para WhatsApp, y el fijo. Hace
+                      falta al menos uno. En un sitio NUEVO hay un solo campo: al crearlo, el
+                      número va solo a su sitio (un fijo, al fijo; un móvil, al móvil). */}
+                  <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>{f.nuevo ? 'Teléfono (móvil o fijo)' : 'Móvil (WhatsApp)'} <Req si={f.nuevo || !telPuesto(f.telefonoFijo)} /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
+                  {!f.nuevo && <div><label>Fijo <Req si={false} /></label>
+                    <CampoTelefono valor={f.telefonoFijo} placeholder="954 000 000" onCambio={(v) => set(p, { telefonoFijo: v })} /></div>}
                   {/* La explicación del email va en un tooltip ⓘ (usuario, 2026-11-10). */}
                   <div><label>Email <Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></label>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="Ej. nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>
