@@ -1,4 +1,5 @@
 import { telBonito } from '@/lib/paises';
+import { telefonosSitio } from '@/lib/contactos';
 import { ACCESIBILIDAD_TITULO, ACCESIBILIDAD_TEXTO } from '@/lib/condicionesTransportista';
 import QRCode from 'qrcode';
 import { pesoTn, tipoCargaTxt } from '@/lib/formato';
@@ -9,6 +10,12 @@ import { Lienzo, COLOR, A4, eur, num, ventanaTxt, fechaCorta, ahoraMadrid } from
 import { DYNAMO, emisionDeca, urlDeca, type DatosDoc, type ParadaDoc } from './datos';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { ORDEN_TXT, idiomaDePais, rellena, fechaLoc, ventanaLoc, type IdiomaOrden } from './ordenTextos';
+
+// El móvil y el fijo del sitio, cada uno con su nombre en el idioma de la copia (usuario,
+// 2026-11-26: «cada uno servirá para una cosa»). Un dato antiguo sin separar sale sin nombre.
+function telsContacto(c: { telefono?: string | null; movil?: string | null; fijo?: string | null } | null | undefined, t: { movil: string; fijo: string }): string {
+  return telefonosSitio(c).map((x) => (x.que === 'Tfno' ? telBonito(x.tel) : `${x.que === 'Móvil' ? t.movil : t.fijo} ${telBonito(x.tel)}`)).join(' · ');
+}
 
 // ORDEN DE CARGA que Dynamo manda al transportista (el contenido y las condiciones son los
 // de la orden que se manda hoy por email, p. ej. la GX61034 de febrero de 2026).
@@ -535,7 +542,7 @@ export async function ordenDeCarga(dIn: DatosDoc, pago: ParamsPago, op: { copia?
     // son datos de la orden de carga, no del documento de control.
     const deca = copia === 'operativa';
     if (!deca) fs.push({ k: t.horario, v: pa.horarios || t.consultaDynamo, b: true });
-    if (!deca && (pa.contacto?.telefono || pa.contacto?.nombre)) fs.push({ k: t.contacto, v: [pa.contacto?.nombre, pa.contacto?.telefono && telBonito(pa.contacto.telefono)].filter(Boolean).join(': '), b: true });
+    if (!deca && (pa.contacto?.telefono || pa.contacto?.nombre)) fs.push({ k: t.contacto, v: [pa.contacto?.nombre, telsContacto(pa.contacto, t)].filter(Boolean).join(': '), b: true });
     if (pa.referencia) fs.push({ k: t.referencia, v: pa.referencia, b: true });
     if (pa.tipo_sitio) fs.push({ k: t.tipoSitio, v: nombreTipo(pa.tipo_sitio) });
     const avisosP = [pa.requiere_cita && t.citaPrevia, !pa.tiene_medios_carga && t.sinMedios].filter(Boolean) as string[];

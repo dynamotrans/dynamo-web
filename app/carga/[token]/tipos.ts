@@ -8,7 +8,7 @@ export type ParadaPublica = {
   horarios_verano?: string | null; verano_desde?: string | null; verano_hasta?: string | null; requiere_pin?: boolean;
   // Solo en la carga aceptada:
   nombre_empresa?: string | null; direccion?: string | null; referencia?: string | null; anotaciones?: string | null;
-  notas_sitio?: string | null; url_google_maps?: string | null; contacto?: { nombre: string | null; telefono: string | null } | null;
+  notas_sitio?: string | null; url_google_maps?: string | null; contacto?: { nombre: string | null; telefono: string | null; movil?: string | null; fijo?: string | null } | null;
 };
 
 // Datos del envío (los comparten la oferta y la carga ya aceptada).

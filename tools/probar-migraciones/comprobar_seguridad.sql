@@ -17356,3 +17356,30 @@ begin
   update envios set estado = 'cancelado' where id = a;
   raise notice 'OK 371 · sitios con móvil y fijo: cada número va solo a su campo, vale con uno de los dos, se busca por los dos y se enseña el móvil o, si no hay, el fijo';
 end $$;
+
+-- 372 · EL MÓVIL Y EL FIJO DEL SITIO, LOS DOS A LA VISTA (usuario, 2026-11-26: «cada uno servirá
+-- para una cosa»): la orden de carga y la página del transportista llevan los dos por separado.
+do $$ declare c uuid; s uuid; a uuid; j jsonb;
+  hoy date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into clientes (razon_social, cif) values ('Dos Telefonos 372 SL', 'B37200372') returning id into c;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
+    values (c, 'Nave 372', 'Calle Dos 2', '41001', 'Sevilla', 'Sevilla', 'ES') returning id into s;
+  insert into contactos (sitio_id, nombre, telefono, telefono_fijo, es_principal) values (s, 'Muelle 372', '+34600372372', '+34954372372', true);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c, 6, 5, 500, hoy + 20) returning id into a;
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
+    values (a, 1, 'carga', s, '41001', 'Sevilla', 'ES'), (a, 2, 'descarga', null, '28821', 'Coslada', 'ES');
+  j := paradas_viaje_json_completa(a) -> 0;
+  if j ->> 'contacto_movil' is distinct from '+34600372372' or j ->> 'contacto_fijo' is distinct from '+34954372372' or j ->> 'contacto_telefono' <> '+34600372372' then
+    raise exception 'FALLO 372 · la orden de carga no lleva el móvil y el fijo del sitio por separado: %', j; end if;
+  -- Solo con fijo: no hay móvil, y el teléfono «de siempre» es el fijo.
+  update contactos set telefono = null where sitio_id = s;
+  j := paradas_viaje_json_completa(a) -> 0;
+  if j ->> 'contacto_movil' is not null or j ->> 'contacto_fijo' <> '+34954372372' or j ->> 'contacto_telefono' <> '+34954372372' then
+    raise exception 'FALLO 372 · con solo fijo, la orden de carga no lo enseña bien: %', j; end if;
+  if (select prosrc from pg_proc where proname = 'carga_aceptada_publica_completa') not like '%''movil'', c.telefono, ''fijo'', c.telefono_fijo%' then
+    raise exception 'FALLO 372 · la página del transportista no lleva el móvil y el fijo por separado'; end if;
+  update envios set estado = 'cancelado' where id = a;
+  raise notice 'OK 372 · móvil y fijo del sitio a la vista: la orden de carga y la página del transportista llevan los dos por separado';
+end $$;

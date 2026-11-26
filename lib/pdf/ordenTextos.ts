@@ -45,7 +45,7 @@ export type TextosOrden = {
   nEnvio: string; fechaCargaL: string; matriculasAutL: string; referenciaL: string; pendAsignar: string;
   recogida: string; recogidas: string; entrega: string; entregas: string;
   secMercancia: string; secMatr: string; secImporte: string; secCond: string;
-  fecha: string; horario: string; empresa: string; direccion: string; contacto: string; referencia: string;
+  fecha: string; horario: string; empresa: string; direccion: string; contacto: string; movil: string; fijo: string; referencia: string;
   tipoSitio: string; atencion: string; indicaciones: string;
   estimada: string; porConfirmar: string; consultaDynamo: string; faltanEmpresa: string; citaPrevia: string; sinMedios: string;
   mercancia: string; tipoTransporte: string; tipoCarga: string; requisitos: string; importante: string; txtImportante: string;
@@ -81,7 +81,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'Nº DE ENVÍO', fechaCargaL: 'FECHA DE CARGA', matriculasAutL: 'MATRÍCULAS AUTORIZADAS', referenciaL: 'REFERENCIA', pendAsignar: 'PENDIENTE DE ASIGNAR',
     recogida: 'RECOGIDA', recogidas: 'RECOGIDAS', entrega: 'ENTREGA', entregas: 'ENTREGAS',
     secMercancia: 'MERCANCÍA Y VEHÍCULO', secMatr: 'MATRÍCULAS Y CONDUCTOR', secImporte: 'IMPORTE', secCond: 'CONDICIONES DE LA ORDEN DE CARGA',
-    fecha: 'Fecha', horario: 'Horario (hora local)', empresa: 'Empresa', direccion: 'Dirección', contacto: 'Contacto', referencia: 'Referencia',
+    fecha: 'Fecha', horario: 'Horario (hora local)', empresa: 'Empresa', direccion: 'Dirección', contacto: 'Contacto', movil: 'Móvil', fijo: 'Fijo', referencia: 'Referencia',
     tipoSitio: 'Tipo de sitio', atencion: 'Atención', indicaciones: 'Indicaciones',
     estimada: '(estimada)', porConfirmar: 'Por confirmar', consultaDynamo: 'Consultar con Dynamo', faltanEmpresa: 'FALTAN DATOS DE EMPRESA / ALMACÉN',
     citaPrevia: 'Con cita previa', sinMedios: 'Sin medios de carga: el camión debe llevar plataforma elevadora',
@@ -117,7 +117,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'SHIPMENT NO.', fechaCargaL: 'LOADING DATE', matriculasAutL: 'AUTHORISED PLATES', referenciaL: 'REFERENCE', pendAsignar: 'TO BE ASSIGNED',
     recogida: 'PICK-UP', recogidas: 'PICK-UPS', entrega: 'DELIVERY', entregas: 'DELIVERIES',
     secMercancia: 'GOODS AND VEHICLE', secMatr: 'PLATES AND DRIVER', secImporte: 'AMOUNT', secCond: 'LOADING ORDER CONDITIONS',
-    fecha: 'Date', horario: 'Hours (local time)', empresa: 'Company', direccion: 'Address', contacto: 'Contact', referencia: 'Reference',
+    fecha: 'Date', horario: 'Hours (local time)', empresa: 'Company', direccion: 'Address', contacto: 'Contact', movil: 'Mobile', fijo: 'Landline', referencia: 'Reference',
     tipoSitio: 'Type of site', atencion: 'Attention', indicaciones: 'Instructions',
     estimada: '(estimated)', porConfirmar: 'To be confirmed', consultaDynamo: 'Check with Dynamo', faltanEmpresa: 'COMPANY / WAREHOUSE DETAILS MISSING',
     citaPrevia: 'By appointment', sinMedios: 'No loading equipment on site: the truck must carry a tail lift',
@@ -153,7 +153,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'N.º DE ENVIO', fechaCargaL: 'DATA DE CARGA', matriculasAutL: 'MATRÍCULAS AUTORIZADAS', referenciaL: 'REFERÊNCIA', pendAsignar: 'POR ATRIBUIR',
     recogida: 'RECOLHA', recogidas: 'RECOLHAS', entrega: 'ENTREGA', entregas: 'ENTREGAS',
     secMercancia: 'MERCADORIA E VEÍCULO', secMatr: 'MATRÍCULAS E MOTORISTA', secImporte: 'VALOR', secCond: 'CONDIÇÕES DA ORDEM DE CARGA',
-    fecha: 'Data', horario: 'Horário (hora local)', empresa: 'Empresa', direccion: 'Morada', contacto: 'Contacto', referencia: 'Referência',
+    fecha: 'Data', horario: 'Horário (hora local)', empresa: 'Empresa', direccion: 'Morada', contacto: 'Contacto', movil: 'Telemóvel', fijo: 'Fixo', referencia: 'Referência',
     tipoSitio: 'Tipo de local', atencion: 'Atenção', indicaciones: 'Indicações',
     estimada: '(estimada)', porConfirmar: 'Por confirmar', consultaDynamo: 'Confirmar com a Dynamo', faltanEmpresa: 'FALTAM DADOS DA EMPRESA / ARMAZÉM',
     citaPrevia: 'Com marcação prévia', sinMedios: 'Sem meios de carga: o camião deve levar plataforma elevatória',
@@ -189,7 +189,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'N° D’ENVOI', fechaCargaL: 'DATE DE CHARGEMENT', matriculasAutL: 'PLAQUES AUTORISÉES', referenciaL: 'RÉFÉRENCE', pendAsignar: 'À ASSIGNER',
     recogida: 'ENLÈVEMENT', recogidas: 'ENLÈVEMENTS', entrega: 'LIVRAISON', entregas: 'LIVRAISONS',
     secMercancia: 'MARCHANDISE ET VÉHICULE', secMatr: 'PLAQUES ET CONDUCTEUR', secImporte: 'MONTANT', secCond: 'CONDITIONS DE L’ORDRE DE CHARGEMENT',
-    fecha: 'Date', horario: 'Horaires (heure locale)', empresa: 'Entreprise', direccion: 'Adresse', contacto: 'Contact', referencia: 'Référence',
+    fecha: 'Date', horario: 'Horaires (heure locale)', empresa: 'Entreprise', direccion: 'Adresse', contacto: 'Contact', movil: 'Mobile', fijo: 'Fixe', referencia: 'Référence',
     tipoSitio: 'Type de site', atencion: 'Attention', indicaciones: 'Consignes',
     estimada: '(estimée)', porConfirmar: 'À confirmer', consultaDynamo: 'Vérifier avec Dynamo', faltanEmpresa: 'DONNÉES ENTREPRISE / ENTREPÔT MANQUANTES',
     citaPrevia: 'Sur rendez-vous', sinMedios: 'Pas de moyens de chargement : le camion doit avoir un hayon élévateur',
@@ -225,7 +225,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'SENDUNGS-NR.', fechaCargaL: 'LADEDATUM', matriculasAutL: 'ZUGELASSENE KENNZEICHEN', referenciaL: 'REFERENZ', pendAsignar: 'NOCH ZUZUWEISEN',
     recogida: 'ABHOLUNG', recogidas: 'ABHOLUNGEN', entrega: 'LIEFERUNG', entregas: 'LIEFERUNGEN',
     secMercancia: 'WARE UND FAHRZEUG', secMatr: 'KENNZEICHEN UND FAHRER', secImporte: 'BETRAG', secCond: 'BEDINGUNGEN DES LADEAUFTRAGS',
-    fecha: 'Datum', horario: 'Zeiten (Ortszeit)', empresa: 'Firma', direccion: 'Adresse', contacto: 'Kontakt', referencia: 'Referenz',
+    fecha: 'Datum', horario: 'Zeiten (Ortszeit)', empresa: 'Firma', direccion: 'Adresse', contacto: 'Kontakt', movil: 'Mobil', fijo: 'Festnetz', referencia: 'Referenz',
     tipoSitio: 'Art des Standorts', atencion: 'Achtung', indicaciones: 'Hinweise',
     estimada: '(voraussichtlich)', porConfirmar: 'Noch zu bestätigen', consultaDynamo: 'Mit Dynamo klären', faltanEmpresa: 'FIRMEN-/LAGERDATEN FEHLEN',
     citaPrevia: 'Nur mit Termin', sinMedios: 'Keine Lademittel vor Ort: der Lkw braucht eine Ladebordwand',
@@ -261,7 +261,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'N. SPEDIZIONE', fechaCargaL: 'DATA DI CARICO', matriculasAutL: 'TARGHE AUTORIZZATE', referenciaL: 'RIFERIMENTO', pendAsignar: 'DA ASSEGNARE',
     recogida: 'RITIRO', recogidas: 'RITIRI', entrega: 'CONSEGNA', entregas: 'CONSEGNE',
     secMercancia: 'MERCE E VEICOLO', secMatr: 'TARGHE E AUTISTA', secImporte: 'IMPORTO', secCond: 'CONDIZIONI DELL’ORDINE DI CARICO',
-    fecha: 'Data', horario: 'Orari (ora locale)', empresa: 'Azienda', direccion: 'Indirizzo', contacto: 'Contatto', referencia: 'Riferimento',
+    fecha: 'Data', horario: 'Orari (ora locale)', empresa: 'Azienda', direccion: 'Indirizzo', contacto: 'Contatto', movil: 'Cellulare', fijo: 'Fisso', referencia: 'Riferimento',
     tipoSitio: 'Tipo di sito', atencion: 'Attenzione', indicaciones: 'Indicazioni',
     estimada: '(stimata)', porConfirmar: 'Da confermare', consultaDynamo: 'Verificare con Dynamo', faltanEmpresa: 'MANCANO I DATI AZIENDA / MAGAZZINO',
     citaPrevia: 'Su appuntamento', sinMedios: 'Senza mezzi di carico: il camion deve avere la sponda idraulica',
@@ -297,7 +297,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'ZENDINGSNR.', fechaCargaL: 'LAADDATUM', matriculasAutL: 'TOEGELATEN KENTEKENS', referenciaL: 'REFERENTIE', pendAsignar: 'NOG TOE TE WIJZEN',
     recogida: 'OPHALING', recogidas: 'OPHALINGEN', entrega: 'LEVERING', entregas: 'LEVERINGEN',
     secMercancia: 'GOEDEREN EN VOERTUIG', secMatr: 'KENTEKENS EN CHAUFFEUR', secImporte: 'BEDRAG', secCond: 'VOORWAARDEN VAN DE LAADOPDRACHT',
-    fecha: 'Datum', horario: 'Tijden (lokale tijd)', empresa: 'Bedrijf', direccion: 'Adres', contacto: 'Contact', referencia: 'Referentie',
+    fecha: 'Datum', horario: 'Tijden (lokale tijd)', empresa: 'Bedrijf', direccion: 'Adres', contacto: 'Contact', movil: 'Mobiel', fijo: 'Vast', referencia: 'Referentie',
     tipoSitio: 'Type locatie', atencion: 'Let op', indicaciones: 'Aanwijzingen',
     estimada: '(geschat)', porConfirmar: 'Nog te bevestigen', consultaDynamo: 'Met Dynamo afstemmen', faltanEmpresa: 'BEDRIJFS-/MAGAZIJNGEGEVENS ONTBREKEN',
     citaPrevia: 'Op afspraak', sinMedios: 'Geen laadmiddelen aanwezig: de vrachtwagen moet een laadklep hebben',
@@ -333,7 +333,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'NR PRZESYŁKI', fechaCargaL: 'DATA ZAŁADUNKU', matriculasAutL: 'AUTORYZOWANE NR REJESTRACYJNE', referenciaL: 'REFERENCJA', pendAsignar: 'DO PRZYDZIELENIA',
     recogida: 'ZAŁADUNEK', recogidas: 'ZAŁADUNKI', entrega: 'ROZŁADUNEK', entregas: 'ROZŁADUNKI',
     secMercancia: 'TOWAR I POJAZD', secMatr: 'NR REJESTRACYJNE I KIEROWCA', secImporte: 'STAWKA', secCond: 'WARUNKI ZLECENIA TRANSPORTOWEGO',
-    fecha: 'Data', horario: 'Godziny (czas lokalny)', empresa: 'Firma', direccion: 'Adres', contacto: 'Kontakt', referencia: 'Referencja',
+    fecha: 'Data', horario: 'Godziny (czas lokalny)', empresa: 'Firma', direccion: 'Adres', contacto: 'Kontakt', movil: 'Komórka', fijo: 'Stacjonarny', referencia: 'Referencja',
     tipoSitio: 'Rodzaj miejsca', atencion: 'Uwaga', indicaciones: 'Wskazówki',
     estimada: '(szacowana)', porConfirmar: 'Do potwierdzenia', consultaDynamo: 'Skonsultować z Dynamo', faltanEmpresa: 'BRAK DANYCH FIRMY / MAGAZYNU',
     citaPrevia: 'Po wcześniejszym umówieniu', sinMedios: 'Brak środków załadunku: pojazd musi mieć windę załadowczą',
@@ -369,7 +369,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'Č. ZÁSILKY', fechaCargaL: 'DATUM NAKLÁDKY', matriculasAutL: 'POVOLENÉ SPZ', referenciaL: 'REFERENCE', pendAsignar: 'BUDE PŘIDĚLENO',
     recogida: 'NAKLÁDKA', recogidas: 'NAKLÁDKY', entrega: 'VYKLÁDKA', entregas: 'VYKLÁDKY',
     secMercancia: 'ZBOŽÍ A VOZIDLO', secMatr: 'SPZ A ŘIDIČ', secImporte: 'CENA', secCond: 'PODMÍNKY NAKLÁDKOVÉHO PŘÍKAZU',
-    fecha: 'Datum', horario: 'Hodiny (místní čas)', empresa: 'Firma', direccion: 'Adresa', contacto: 'Kontakt', referencia: 'Reference',
+    fecha: 'Datum', horario: 'Hodiny (místní čas)', empresa: 'Firma', direccion: 'Adresa', contacto: 'Kontakt', movil: 'Mobil', fijo: 'Pevná linka', referencia: 'Reference',
     tipoSitio: 'Typ místa', atencion: 'Pozor', indicaciones: 'Pokyny',
     estimada: '(odhad)', porConfirmar: 'Bude potvrzeno', consultaDynamo: 'Ověřit s Dynamo', faltanEmpresa: 'CHYBÍ ÚDAJE FIRMY / SKLADU',
     citaPrevia: 'Po předchozí domluvě', sinMedios: 'Bez nakládací techniky: vozidlo musí mít hydraulické čelo',
@@ -405,7 +405,7 @@ export const ORDEN_TXT: Record<IdiomaOrden, TextosOrden> = {
     nEnvio: 'NR. EXPEDIERE', fechaCargaL: 'DATA ÎNCĂRCĂRII', matriculasAutL: 'NUMERE AUTORIZATE', referenciaL: 'REFERINȚĂ', pendAsignar: 'DE ALOCAT',
     recogida: 'ÎNCĂRCARE', recogidas: 'ÎNCĂRCĂRI', entrega: 'LIVRARE', entregas: 'LIVRĂRI',
     secMercancia: 'MARFĂ ȘI VEHICUL', secMatr: 'NUMERE ȘI ȘOFER', secImporte: 'SUMĂ', secCond: 'CONDIȚIILE COMENZII DE ÎNCĂRCARE',
-    fecha: 'Data', horario: 'Program (ora locală)', empresa: 'Firmă', direccion: 'Adresă', contacto: 'Contact', referencia: 'Referință',
+    fecha: 'Data', horario: 'Program (ora locală)', empresa: 'Firmă', direccion: 'Adresă', contacto: 'Contact', movil: 'Mobil', fijo: 'Fix', referencia: 'Referință',
     tipoSitio: 'Tip de locație', atencion: 'Atenție', indicaciones: 'Indicații',
     estimada: '(estimată)', porConfirmar: 'De confirmat', consultaDynamo: 'Verificați cu Dynamo', faltanEmpresa: 'LIPSESC DATELE FIRMEI / DEPOZITULUI',
     citaPrevia: 'Cu programare', sinMedios: 'Fără mijloace de încărcare: camionul trebuie să aibă lift hidraulic',

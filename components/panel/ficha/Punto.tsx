@@ -3,11 +3,13 @@
 import { nombreTipo } from '../TipoSitio';
 import EtiquetaParada from '../EtiquetaParada';
 import { paisDe, telBonito } from '@/lib/paises';
+import { telefonosSitio } from '@/lib/contactos';
 import type { ParadaFicha } from '@/lib/fichaEnvio';
 
 export function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'ent'; num: number; label: string }) {
   const s = p.sitio;
   const c = s?.contacto;
+  const tels = telefonosSitio(c);
   // Lo propio de ESTE envío en la parada: «MERCANCÍA: …» (el campo «A recoger / A
   // entregar» de Nuevo envío) y el resto como anotaciones. Las líneas que repiten las
   // indicaciones fijas del sitio no se duplican: ya salen en su bloque (los envíos de antes
@@ -26,11 +28,13 @@ export function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'en
         {p.nombre_empresa && <strong>{s?.url_google_maps ? <a href={s.url_google_maps} target="_blank" rel="noopener" style={{ color: 'var(--purple)' }}>{p.nombre_empresa}</a> : p.nombre_empresa}</strong>}
         {p.nombre_empresa && <br />}
         {[p.direccion, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : '', paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ')}
-        {(s?.horarios || c?.telefono) && (
+        {(s?.horarios || tels.length > 0) && (
           <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginTop: 2 }}>
             {s?.horarios && <>Horario: {s.horarios}</>}
-            {s?.horarios && c?.telefono && ' · '}
-            {c?.telefono && <>Tfno: <a href={`tel:${c.telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(c.telefono)}</a>{c.nombre ? ` (${c.nombre})` : ''}</>}
+            {s?.horarios && tels.length > 0 && ' · '}
+            {/* El móvil (WhatsApp) y el fijo del sitio, cada uno con su nombre (usuario, 2026-11-26). */}
+            {tels.map((x, i) => <span key={x.que}>{i > 0 && ' · '}{x.que}: <a href={`tel:${x.tel}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(x.tel)}</a></span>)}
+            {tels.length > 0 && c?.nombre ? ` (${c.nombre})` : ''}
           </div>
         )}
         {(s?.requiere_cita || s?.tiene_medios_carga === false) && (

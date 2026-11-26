@@ -11,7 +11,7 @@ import { IconoTipo } from './TipoSitio';
 import { euros } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { paisDe, telBonito } from '@/lib/paises';
-import { principal, telDe } from '@/lib/contactos';
+import { principal } from '@/lib/contactos';
 
 export type PreciosAlmacen = { precioSemana: number; precioReparto: number };
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -77,7 +77,7 @@ export default function Almacenes({ filas, precios, error, veranoDefecto }: { fi
                   <td>{f.horarios || '—'}</td>
                   <td>{propio(f.almacen?.precio_almacenamiento_semana, precios.precioSemana)}</td>
                   <td>{propio(f.almacen?.precio_reparto, precios.precioReparto)}</td>
-                  <td>{telBonito(telDe(k)) || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}</td>
+                  <td>{[k?.telefono && `Móvil ${telBonito(k.telefono)}`, k?.telefono_fijo && `Fijo ${telBonito(k.telefono_fijo)}`].filter(Boolean).join(' · ') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}</td>
                   <td>{notas ? <span style={{ color: '#b45309' }}>⚠ {notas.slice(0, 60)}{notas.length > 60 ? '…' : ''}</span> : '—'}</td>
                 </tr>
               );

@@ -19,7 +19,7 @@ export type ParadaDoc = {
   provincia: string | null; pais: string | null; referencia: string | null; anotaciones: string | null;
   horarios: string | null; url_google_maps: string | null; notas_sitio: string | null; tipo_sitio: string | null;
   requiere_cita: boolean; tiene_medios_carga: boolean;
-  contacto: { nombre: string | null; telefono: string | null } | null;
+  contacto: { nombre: string | null; telefono: string | null; movil?: string | null; fijo?: string | null } | null;
 };
 // El envío tal como lo usan los PDF: la fila de envios (o el JSON de las funciones de
 // orden, con los mismos nombres) más lo que se le junta.
@@ -169,10 +169,10 @@ export async function cargarDatosDoc(sb: SB, id: string, usuarioId: string): Pro
   ]);
 
   const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean) as string[];
-  const contactoSitio = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null }>();
+  const contactoSitio = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null; movil: string | null; fijo: string | null }>();
   if (sitioIds.length) {
     const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono, telefono_fijo').in('sitio_id', sitioIds).eq('es_principal', true);
-    (data ?? []).forEach((c) => contactoSitio.set(c.sitio_id as string, { sitio_id: c.sitio_id, nombre: c.nombre, telefono: c.telefono ?? c.telefono_fijo }));
+    (data ?? []).forEach((c) => contactoSitio.set(c.sitio_id as string, { sitio_id: c.sitio_id, nombre: c.nombre, telefono: c.telefono ?? c.telefono_fijo, movil: c.telefono, fijo: c.telefono_fijo }));
   }
   const contactos = ctos.data ?? [];
   // Del cliente: el de tráfico principal, y si no, el principal de cualquier función.
@@ -261,7 +261,7 @@ type EmpresaJson = { nombre: string; razon_social: string; cif: string | null; c
   telefono?: string | null; email?: string | null; contacto?: string | null };
 type ParadaJson = Omit<ParadaDoc, 'pais' | 'tipo_sitio' | 'contacto' | 'requiere_cita' | 'tiene_medios_carga'> & {
   pais_codigo_iso: string | null; requiere_cita?: boolean | null; tiene_medios_carga?: boolean | null;
-  contacto_nombre?: string | null; contacto_telefono?: string | null };
+  contacto_nombre?: string | null; contacto_telefono?: string | null; contacto_movil?: string | null; contacto_fijo?: string | null };
 type OrdenJson = { envio: EnvioDoc; porteador?: EmpresaJson; cliente?: EmpresaJson; paradas?: ParadaJson[];
   parametros?: Record<string, unknown>; dynamo?: Record<string, unknown>; pronto_pago?: boolean;
   modificaciones?: { cuando: string; en?: string; hito: string; detalle: string | null; antes?: string | null; motivo?: string | null; primera?: boolean; iniciado?: boolean }[] };
@@ -293,7 +293,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
         horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,
         requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
-        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
+        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null, movil: p.contacto_movil ?? null, fijo: p.contacto_fijo ?? null } : null,
       })),
       pronto_pago: !!j.pronto_pago,
       gestor: null,
@@ -359,7 +359,7 @@ export async function cargarDatosCmrPorToken(sb: SB, token: string):
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
         horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,
         requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
-        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
+        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null, movil: p.contacto_movil ?? null, fijo: p.contacto_fijo ?? null } : null,
       })),
       firmas, reservas: j.reservas ?? [],
       modificaciones: j.modificaciones ?? [],
@@ -387,7 +387,7 @@ export async function cargarDatosDocManual(sb: SB, id: string): Promise<{ datos:
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
         horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,
         requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
-        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
+        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null, movil: p.contacto_movil ?? null, fijo: p.contacto_fijo ?? null } : null,
       })),
       pronto_pago: false, gestor: null,
     },

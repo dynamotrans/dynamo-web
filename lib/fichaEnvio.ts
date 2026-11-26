@@ -14,7 +14,7 @@ export type ParadaFicha = {
   // Del sitio de la agenda (si lo es): tipo, horario, notas, Maps y su persona de contacto.
   sitio: { tipo: string | null; horarios: string | null; anotaciones: string | null; url_google_maps: string | null;
            requiere_cita: boolean; tiene_medios_carga: boolean;
-           contacto: { nombre: string | null; telefono: string | null; email: string | null } | null } | null;
+           contacto: { nombre: string | null; telefono: string | null; movil?: string | null; fijo?: string | null; email: string | null } | null } | null;
 };
 export type HitoFicha = { id: number; hito: string; cuando: string; quien: string | null; origen: string | null;
   datos: { motivo_cancelacion?: string; camion?: string; remolque?: string; por?: string; rol?: string } | null };   // jsonb del hito
@@ -94,11 +94,11 @@ export async function cargarFicha(sb: SB, id: string): Promise<{ ficha: Ficha | 
   const pg = pag.data;
 
   const sitioIds = (par.data ?? []).map((p) => p.sitio_id).filter(Boolean);
-  const contactos = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null; email: string | null }>();
+  const contactos = new Map<string, { sitio_id: string | null; nombre: string | null; telefono: string | null; movil: string | null; fijo: string | null; email: string | null }>();
   if (sitioIds.length) {
     // El teléfono que se enseña del sitio: el móvil y, si no tiene, el fijo.
     const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono, telefono_fijo, email').in('sitio_id', sitioIds).eq('es_principal', true);
-    (data ?? []).forEach((c) => contactos.set(c.sitio_id as string, { sitio_id: c.sitio_id, nombre: c.nombre, telefono: c.telefono ?? c.telefono_fijo, email: c.email }));
+    (data ?? []).forEach((c) => contactos.set(c.sitio_id as string, { sitio_id: c.sitio_id, nombre: c.nombre, telefono: c.telefono ?? c.telefono_fijo, movil: c.telefono, fijo: c.telefono_fijo, email: c.email }));
   }
   const usuarios = [...new Set([e.creado_por, ...(hit.data ?? []).map((h) => h.quien)].filter(Boolean))] as string[];
   const nombres = new Map<string, string>();

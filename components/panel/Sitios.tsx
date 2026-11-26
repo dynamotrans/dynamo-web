@@ -166,7 +166,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
                     {f.horario_sin_verificar && <div className="meta"><span className="badge badge-orange" title="Nadie ha comprobado este horario con el sitio">Horario sin verificar</span></div>}
                     {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
                   </td>
-                  <td>{(() => { const k = principal(f.contactos); return <>{telBonito(telDe(k)) || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
+                  <td>{(() => { const k = principal(f.contactos); return <>{[k?.telefono && `Móvil ${telBonito(k.telefono)}`, k?.telefono_fijo && `Fijo ${telBonito(k.telefono_fijo)}`].filter(Boolean).join(' · ') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{notas ? <span style={{ color: '#b45309' }}>⚠ {notas.slice(0, 60)}{notas.length > 60 ? '…' : ''}</span> : '—'}</td>
                 </tr>
               );

@@ -1,4 +1,5 @@
 import 'server-only';
+import { telefonosSitio } from '@/lib/contactos';
 import type { SB } from '@/lib/supabase/cliente';
 import { cargarDatosDocManual, cargarLogoOperador, cargarLogoCliente, type DatosDoc, type ParadaDoc } from '@/lib/pdf/datos';
 import { ordenDeCarga } from '@/lib/pdf/orden';
@@ -30,7 +31,7 @@ function bloqueParada(p: ParadaDoc, titulo: string): string[] {
     p.nombre_empresa ?? '',
     dir,
     p.horarios ? `Horario: ${p.horarios}` : '',
-    p.contacto ? `Contacto: ${junta([p.contacto.nombre, p.contacto.telefono])}` : '',
+    p.contacto ? `Contacto: ${junta([p.contacto.nombre, ...telefonosSitio(p.contacto).map((x) => `${x.que} ${x.tel}`)])}` : '',
     p.referencia ? `Referencia: ${p.referencia}` : '',
     p.requiere_cita ? 'Requiere cita previa.' : '',
     !p.tiene_medios_carga ? (p.tipo === 'carga' ? 'Sin medios de carga en el sitio.' : 'Sin medios de descarga en el sitio.') : '',

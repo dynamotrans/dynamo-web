@@ -17,6 +17,7 @@ import Cargando from '@/components/Cargando';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros } from '@/lib/formato';
 
 import { paisDe, telBonito } from '@/lib/paises';
+import { telefonosSitio } from '@/lib/contactos';
 import { marcarViaje, enlaceCmrPropio, responderCambioTransportista } from '@/app/panel/(app)/envios/acciones-transportista';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { ESTADOS_ENVIO, FASES_ENVIO, enMarcha, ordinal, type Etapa } from '@/lib/estados';
@@ -49,7 +50,7 @@ type MiViaje = Funcion<'mis_viajes_por_ids'>[number];
 export type ParadaViaje = {
   id?: string; tipo: string; realizado_en?: string | null; nombre_empresa: string | null; url_google_maps?: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null;
-  horarios?: string | null; contacto_telefono?: string | null; contacto_nombre?: string | null; requiere_cita?: boolean | null;
+  horarios?: string | null; contacto_telefono?: string | null; contacto_movil?: string | null; contacto_fijo?: string | null; contacto_nombre?: string | null; requiere_cita?: boolean | null;
   tiene_medios_carga?: boolean | null; referencia?: string | null; notas_sitio?: string | null; anotaciones?: string | null; tipo_sitio?: string | null; oculta?: boolean; sin_matriculas?: boolean;
 };
 export type Viaje = Omit<EnvioFila, 'paradas'> & Partial<Omit<MiViaje, keyof EnvioFila>> & { paradas: ParadaViaje[] };
@@ -231,7 +232,8 @@ export default function FichaViaje({ e, etapas = [], cerrarHref, cambio = null }
                   <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginTop: 2 }}>
                     {p.horarios && <>Horario: {p.horarios}</>}
                     {p.horarios && p.contacto_telefono && ' · '}
-                    {p.contacto_telefono && <>Tfno: <a href={`tel:${p.contacto_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(p.contacto_telefono)}</a>{p.contacto_nombre ? ` (${p.contacto_nombre})` : ''}</>}
+                    {telefonosSitio({ telefono: p.contacto_telefono, movil: p.contacto_movil, fijo: p.contacto_fijo }).map((x, i) => <span key={x.que}>{i > 0 && ' · '}{x.que}: <a href={`tel:${x.tel}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(x.tel)}</a></span>)}
+                    {p.contacto_telefono && p.contacto_nombre ? ` (${p.contacto_nombre})` : ''}
                   </div>
                 )}
                 {(p.requiere_cita || p.tiene_medios_carga === false) && (

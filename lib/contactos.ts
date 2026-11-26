@@ -27,5 +27,15 @@ export function contactosDe(filas: FilaContacto[]): ContactoDatos[] {
 }
 /** El teléfono que se enseña de un contacto: el móvil y, si no tiene, el fijo. */
 export const telDe = (c: { telefono?: string | null; telefono_fijo?: string | null } | null | undefined): string => (c?.telefono || c?.telefono_fijo || '');
+/** Los teléfonos de un sitio, cada uno con su nombre (usuario, 2026-11-26: «cada uno servirá para
+ *  una cosa»): el móvil es el de WhatsApp. Si llega solo «telefono» (dato sin separar), sale como «Tfno». */
+export function telefonosSitio(c: { telefono?: string | null; movil?: string | null; fijo?: string | null } | null | undefined): { que: 'Móvil' | 'Fijo' | 'Tfno'; tel: string }[] {
+  if (!c) return [];
+  const out: { que: 'Móvil' | 'Fijo' | 'Tfno'; tel: string }[] = [];
+  if (c.movil) out.push({ que: 'Móvil', tel: c.movil });
+  if (c.fijo) out.push({ que: 'Fijo', tel: c.fijo });
+  if (!out.length && c.telefono) out.push({ que: 'Tfno', tel: c.telefono });
+  return out;
+}
 // El contacto que se enseña en las tablas: el principal (el primero) de la función pedida.
 export const principal = (l: ContactoDatos[], f?: Funcion) => (f ? l.find((c) => c.funcion === f) : l[0]) ?? null;

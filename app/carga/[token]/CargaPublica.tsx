@@ -14,6 +14,7 @@ import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, alturaM
 
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
+import { telefonosSitio } from '@/lib/contactos';
 import CampoTelefono from '@/components/CampoTelefono';
 import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
 import { CONTACTO } from '@/lib/atencion';
@@ -81,7 +82,8 @@ function Oferta({ o, completa }: { o: OfertaPublica | ReservaPublica; completa?:
               {p.horarios_verano && <div className="of-pt-hor">Verano{p.verano_desde && p.verano_hasta ? ` (del ${ddmm(p.verano_desde)} al ${ddmm(p.verano_hasta)})` : ''}: {p.horarios_verano}</div>}
               {/* El PIN de recogida y entrega queda para la v4 (usuario, 2026-11-19): no se anuncia. */}
               {(p.requiere_cita || !p.tiene_medios_carga) && <div className="of-pt-hor" style={{ color: '#b45309', fontWeight: 700 }}>{[p.requiere_cita && 'Con cita previa', !p.tiene_medios_carga && 'Sin medios de carga (plataforma elevadora)'].filter(Boolean).join(' · ')}</div>}
-              {completa && p.contacto?.telefono && <div className="of-pt-hor">Contacto: <a href={`tel:${p.contacto.telefono}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>{telBonito(p.contacto.telefono)}</a>{p.contacto.nombre ? ` (${p.contacto.nombre})` : ''}</div>}
+              {/* El móvil (WhatsApp) y el fijo del sitio, cada uno con su nombre (usuario, 2026-11-26). */}
+              {completa && p.contacto?.telefono && <div className="of-pt-hor">Contacto: {telefonosSitio(p.contacto).map((x, i) => <span key={x.que}>{i > 0 && ' · '}{x.que === 'Tfno' ? '' : `${x.que} `}<a href={`tel:${x.tel}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>{telBonito(x.tel)}</a></span>)}{p.contacto.nombre ? ` (${p.contacto.nombre})` : ''}</div>}
               {completa && p.referencia && <div className="of-pt-hor">Referencia: <strong style={{ color: 'var(--navy)' }}>{p.referencia}</strong></div>}
               {completa && [p.notas_sitio, p.anotaciones].filter(Boolean).map((n, k) => <div key={k} className="of-pt-hor" style={{ color: '#b45309' }}>⚠ {n}</div>)}
             </div>
