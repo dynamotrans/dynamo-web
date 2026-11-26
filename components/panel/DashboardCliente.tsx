@@ -6,10 +6,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Modal from './Modal';
-import { fecha, ventana, medidasTxt } from '@/lib/formato';
+import { medidasTxt } from '@/lib/formato';
 import { FLOTA_HTML } from '@/lib/dashboardContenido';
 import { CONTACTO } from '@/lib/atencion';
-import { ESTADOS_ENVIO } from '@/lib/estados';
 import { CajaBuscadorGlobal } from './BuscadorGlobal';
 import BannerNuevoEnvio from './BannerNuevoEnvio';
 
@@ -19,11 +18,11 @@ const MOSTRAR_SERVICIOS_Y_FLOTA = false;
 
 export type MiniEnvio = {
   id: string; referencia_gx: string; referencia_cliente: string | null; estado: string;
-  fecha_carga_desde: string | null; fecha_carga_hasta: string | null; origen: string; destino: string;
+  // Estado y fecha calculados como en la lista de Envíos (Confirmado / Asignando transportista…).
+  badge: { label: string; color: string }; fecha_txt: string; origen: string; destino: string;
   metros_lineales: number | null; toneladas: number | null; mercancia: string | null; cliente: string | null;
 };
 
-const ESTADO: Record<string, [string, string]> = Object.fromEntries(Object.entries(ESTADOS_ENVIO).map(([k, v]) => [k, [v.label, v.color]]));
 const RECOMIENDA_MSG = `Hola,\n\nos envío contacto de Dynamo Operador Logístico, S.L.. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n${CONTACTO.telefono}\n${CONTACTO.email}`;
 // Enlace DIRECTO de reseña de la ficha de Google (el que va en las órdenes de carga).
 const GOOGLE_RESENA = 'https://g.page/r/Cdy34Hp-P-IEEBI/review';
@@ -86,16 +85,15 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
           <div className="mini-list-head"><h4>{dynamo ? 'Envíos programados' : 'Mis envíos programados'} ({activos})</h4><span className="mini-list-ver">Ver todos →</span></div>
           <ul className="mini-list">
             {envios.length === 0 ? <li style={{ color: 'var(--gray-500)' }}>No hay envíos programados.</li> : envios.map((e) => {
-              const est = ESTADO[e.estado] ?? ESTADO.programado;
               return (
                 <li key={e.id}>
                   <div className="mini-list-left">
-                    <span className="mini-list-date">{e.fecha_carga_hasta && e.fecha_carga_hasta !== e.fecha_carga_desde ? ventana(e.fecha_carga_desde, e.fecha_carga_hasta) : fecha(e.fecha_carga_desde)} <span className="ml-ref">#{e.referencia_gx}</span>{dynamo && e.cliente ? ` · ${e.cliente}` : ''}</span>
+                    <span className="mini-list-date">{e.fecha_txt} <span className="ml-ref">#{e.referencia_gx}</span>{dynamo && e.cliente ? ` · ${e.cliente}` : ''}</span>
                     <span className="mini-list-route"><span className="ml-dot orig" />{e.origen || '—'}</span>
                     <span className="mini-list-route"><span className="ml-dot dest" />{e.destino || '—'}</span>
                   </div>
                   <div className="mini-list-right">
-                    <span className={`badge badge-${est[1]}`}>{est[0]}</span>
+                    <span className={`badge badge-${e.badge.color}`}>{e.badge.label}</span>
                     {(e.metros_lineales != null || e.toneladas != null) && <span className="mini-list-meta">{medidasTxt(e.metros_lineales, e.toneladas)}</span>}
                     {e.mercancia && <span className="mini-list-meta">{e.mercancia}</span>}
                   </div>

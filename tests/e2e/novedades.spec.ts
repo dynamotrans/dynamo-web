@@ -1423,8 +1423,10 @@ test.describe('novedades', () => {
     await page.goto('/panel/dashboard');
     const caja = page.locator('.mini-list-card');
     await expect(caja.locator('h4')).toContainText('Mis envíos programados');
+    // El estado se pinta como en la lista de Envíos (usuario, 2026-11-26): un programado puede
+    // verse «Confirmado» (con camión), «Asignando transportista» o «Pendiente de pago».
     const etiquetas = caja.locator('.mini-list .badge');
-    for (const t of await etiquetas.allTextContents()) expect(t.trim()).toBe('Programado');
+    for (const t of await etiquetas.allTextContents()) expect(['Programado', 'Confirmado', 'Asignando transportista', 'Pendiente de pago']).toContain(t.trim());
   });
 
   // Parámetros (usuario, 2026-11-19): el PIN de recogida y entrega queda para la v4 y los
