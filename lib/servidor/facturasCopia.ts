@@ -1,7 +1,8 @@
 import 'server-only';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
-import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, type FacturaCopia, type FacturaHolded } from '@/lib/holdedFacturas';
+import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, type FacturaCopia, type FacturaHolded } from '@/lib/holdedFacturas';
+import { apuntarConsultas, refrescarUsoReal, usoDelMes } from '@/lib/servidor/holdedUso';
 import { contactosDeHolded } from '@/lib/servidor/holdedContactos';
 import { hoyMadrid } from '@/lib/filtroFechas';
 import { diaMas, mesesAtras, finDeMes } from '@/lib/facturasCopiaFechas';
@@ -40,6 +41,20 @@ export type CopiaFacturas =
     ese día (el «Repasar desde una fecha» de la pantalla). Si no cabe en una llamada, `enCurso`
     sale a sí y la siguiente llamada sigue por donde iba. */
 export async function ponerAlDiaFacturas(opts: { forzar?: boolean; repasarDesde?: string } = {}): Promise<CopiaFacturas> {
+  try {
+    const r = await ponerAlDia(opts);
+    // El gasto oficial de consultas del mes, si toca preguntarlo (cuesta una consulta).
+    if (r.ok && r.hecho !== 'nada') await refrescarUsoReal(!!opts.forzar);
+    return r;
+  } finally {
+    await apuntarConsultas();      // las consultas hechas en esta llamada, pase lo que pase
+  }
+}
+
+const TOPE_AUTOMATICO = 0.9;      // con el 90 % del cupo del mes gastado, las pasadas automáticas se paran
+const CUENTAS_CADA_MS = 24 * 3_600_000;
+
+async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Promise<CopiaFacturas> {
   const sv = supabaseServicio();
   if (!holdedListo() || !sv) return { ok: false, conectado: false, error: 'La facturación no está conectada en este entorno.' };
   const fin = Date.now() + PLAZO_MS;
@@ -49,6 +64,11 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean; repasarDesde?
   if (!opts.forzar) {
     const { data: p } = await sv.from('parametros').select('valor').eq('clave', 'facturas_copia_activa').maybeSingle();
     if (p?.valor === false) return { ok: true, hecho: 'nada', cargando: !e.carga_completa_en, enCurso: !!e.barrido_tipo, avisos: [] };
+    // CASI SIN CUPO (usuario, 2026-11-26): con el 90 % de las consultas del mes gastadas, la
+    // plataforma deja de actualizar sola hasta el mes siguiente, para no quedarse a cero. Sigue
+    // «Actualizar ahora». La pantalla lo avisa (components/panel/Facturas.tsx).
+    const uso = await usoDelMes();
+    if (uso && uso.usadas >= uso.limite * TOPE_AUTOMATICO) return { ok: true, hecho: 'nada', cargando: !e.carga_completa_en, enCurso: !!e.barrido_tipo, avisos: [] };
   }
   // Quien llame de más (dos pestañas, la tarea y el botón a la vez) no repite el trabajo.
   if (e.ultima_en && Date.now() - Date.parse(e.ultima_en) < (opts.forzar ? ESPERA_FORZADA_MS : ESPERA_MS)) {
@@ -226,6 +246,20 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean; repasarDesde?
     await contactosDeHolded(sv, [...(data ?? []).map((f) => f.contacto_id), ...pendientes.map((f) => f.contacto_id)], CONTACTOS_POR_VEZ);
     const { error } = await sv.rpc('facturas_casar');
     if (error) avisos.push(error.message);
+  }
+
+  // 7. El plan de cuentas (para enseñar el nombre de la cuenta contable y no su identificador):
+  //    una vez al día. Si la clave no deja leerlo, se queda sin nombre y se reintenta mañana.
+  if (queda(4000) && (!e.cuentas_en || Date.now() - Date.parse(e.cuentas_en) > CUENTAS_CADA_MS)) {
+    const r = await leerHolded('/accounting-accounts', { include_empty: 'true', archived: 'true' });
+    if (r.ok) {
+      const cuentas = cuentasDeHolded(r.datos).map((c) => ({ ...c, visto_en: new Date().toISOString() }));
+      for (let i = 0; i < cuentas.length; i += 500) {
+        const { error } = await sv.from('holded_cuentas').upsert(cuentas.slice(i, i + 500), { onConflict: 'cuenta_id' });
+        if (error) { avisos.push(error.message); break; }
+      }
+    } else console.error('[Holded] plan de cuentas', r.error);
+    await apuntar({ cuentas_en: new Date().toISOString() });
   }
 
   await apuntar({ ultima_ok_en: new Date().toISOString(), error: null });

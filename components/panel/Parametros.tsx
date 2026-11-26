@@ -78,7 +78,7 @@ const SECCIONES: Seccion[] = [
   // Control de facturación (usuario, 2026-11-20): que ningún envío entregado se quede sin cobrar.
   { id: 'control-facturacion', titulo: 'Control de facturación', intro: 'Que ningún envío ni penalización se quede sin su pedido de venta y de compra.', subs: [
     { titulo: 'Control de facturación', claves: ['control_facturacion_email', 'control_facturacion_dias_holded', 'control_facturacion_desde'] },
-    { titulo: 'Copia de las facturas emitidas', claves: ['facturas_copia_activa'] },
+    { titulo: 'Copia de las facturas emitidas', claves: ['facturas_copia_activa', 'facturacion_consultas_mes'] },
   ] },
   { id: 'facturacion', titulo: 'Facturación (Holded)', intro: 'Conexión con Holded para pedidos y facturas.', subs: [], especial: 'holded' },
   { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [

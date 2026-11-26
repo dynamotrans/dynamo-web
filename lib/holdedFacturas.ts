@@ -106,6 +106,34 @@ export function copiasDeHolded(cuerpo: unknown): { facturas: FacturaCopia[]; hay
   return { facturas: items.map((f) => copiaDeHolded(f ?? {})).filter((f): f is FacturaCopia => !!f), hayMas: c.has_more === true && !!cursor, cursor, leidas: items.length };
 }
 
+// ---- El plan de cuentas («List chart of accounts») ----------------------------------------
+// La línea de la factura trae el IDENTIFICADOR interno de su cuenta contable, no su número ni
+// su nombre (usuario, 2026-11-26: «¿podemos poner mejor el nombre, y no el código?»).
+export function cuentasDeHolded(cuerpo: unknown): { cuenta_id: string; numero: string | null; nombre: string | null }[] {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown };
+  const items = Array.isArray(c.items) ? c.items as { id?: unknown; number?: unknown; name?: unknown }[] : [];
+  const salida: { cuenta_id: string; numero: string | null; nombre: string | null }[] = [];
+  for (const a of items) {
+    const id = a && typeof a === 'object' ? texto(a.id)?.toLowerCase() : null;
+    if (!id || !/^[0-9a-f]{24}$/.test(id) || salida.some((x) => x.cuenta_id === id)) continue;
+    const numero = typeof a.number === 'number' && Number.isFinite(a.number) ? String(a.number) : texto(a.number);
+    salida.push({ cuenta_id: id, numero: numero?.slice(0, 20) ?? null, nombre: texto(a.name)?.slice(0, 200) ?? null });
+  }
+  return salida;
+}
+/** Los identificadores de cuenta que hay en el texto guardado de una factura («id · id»). */
+export function idsDeCuentas(cuenta: string | null | undefined): string[] {
+  return (cuenta ?? '').split(' · ').map((x) => x.replace(' …', '').trim()).filter((x) => /^[0-9a-f]{24}$/.test(x));
+}
+
+// ---- El gasto de consultas del mes («Get API usage by type») ------------------------------
+export function usoDeHolded(cuerpo: unknown): { periodo: string; usadas: number; limite: number | null } | null {
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { period?: unknown; usage?: unknown; limit?: unknown };
+  const usadas = importeDe(c.usage), limite = importeDe(c.limit);
+  if (usadas == null || usadas < 0) return null;
+  return { periodo: typeof c.period === 'string' && /^\d{4}-\d{2}$/.test(c.period) ? c.period : '', usadas: Math.round(usadas), limite: limite != null && limite > 0 ? Math.round(limite) : null };
+}
+
 /** El CIF de un contacto de la facturación: su `code` y, si no lo tiene, su número de IVA. */
 export function cifDeContacto(contacto: unknown): { cif: string | null; nombre: string | null } {
   const c = (contacto && typeof contacto === 'object' ? contacto : {}) as { code?: unknown; vat_number?: unknown; name?: unknown };

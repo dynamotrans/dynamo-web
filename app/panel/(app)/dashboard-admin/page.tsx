@@ -97,22 +97,13 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     || (PRIO[a.prioridad] ?? 9) - (PRIO[b.prioridad] ?? 9) || a.creado_en.localeCompare(b.creado_en)).slice(0, MAX);
 
   const bloques: Bloque[] = [
-    // Orden de las cajas fijado por el usuario (2026-11-14): Contraofertas · Altas ·
-    // Hoy/mañana sin camión · Aviso de pago (antes «Esperando el pago») · Incidencias · Penalizaciones. La de
-    // Almacenamientos se quitó (módulo v3, oculto a clientes).
+    // Orden de las cajas fijado por el usuario (2026-11-26): Contraofertas · Aviso de pago ·
+    // Altas · Hoy/mañana sin camión · Incidencias · Penalizaciones · Sugerencias (y después,
+    // Suspendidos y Pronto pago). La de Almacenamientos se quitó (módulo v3, oculto a clientes).
     { id: 'contraofertas-transportistas', nivel: 'aviso', corto: 'Contraofertas transp.', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
       sub: 'Transportistas que proponen otro precio: se aceptan o rechazan en la ficha del envío.',
       filas: (cofTra.data ?? []).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
         s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
-    { id: 'altas', nivel: 'aviso', corto: 'Altas pendientes', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
-      sub: 'Usuarios nuevos esperando la revisión del equipo.',
-      filas: (altas.data ?? []).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
-    { id: 'sin-camion', nivel: 'urgente', corto: 'Hoy/mañana sin camión', titulo: 'Cargan hoy o mañana y no tienen camión', total: sinCamion.count ?? 0, todo: '/panel/envios?f=sin-asignar',
-      // Los programados (todo lo vivo) van aquí mismo, en pequeño (usuario, 2026-11-25), no en una caja aparte.
-      pie: `${enCurso} programados total`,
-      sub: 'Envíos que cargan hoy o mañana y aún no tienen transportista asignado.',
-      filas: (sinCamion.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
-        urgente: (e.fecha_carga_desde ?? '') <= hoy })) },
     // AVISO DE PAGO (usuario, 2026-11-25): la cifra grande son los clientes que han avisado de
     // su transferencia (lo que pide acción: mirar el banco y validarla); debajo, en pequeño,
     // cuántos envíos esperan el pago en total. Las dos cifras a la vista, como la caja de pronto pago.
@@ -123,19 +114,28 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
       filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
         s: e.pago_avisado_en ? `Transferencia avisada · validar · Carga ${fechas(e)}` : `Carga ${fechas(e)}`,
         desde: e.pago_avisado_en ?? e.modificado_en ?? e.creado_en, urgente: !!e.pago_avisado_en })) },
+    { id: 'altas', nivel: 'aviso', corto: 'Altas pendientes', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
+      sub: 'Usuarios nuevos esperando la revisión del equipo.',
+      filas: (altas.data ?? []).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
+    { id: 'sin-camion', nivel: 'urgente', corto: 'Hoy/mañana sin camión', titulo: 'Cargan hoy o mañana y no tienen camión', total: sinCamion.count ?? 0, todo: '/panel/envios?f=sin-asignar',
+      // Los programados (todo lo vivo) van aquí mismo, en pequeño (usuario, 2026-11-25), no en una caja aparte.
+      pie: `${enCurso} programados total`,
+      sub: 'Envíos que cargan hoy o mañana y aún no tienen transportista asignado.',
+      filas: (sinCamion.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: null,
+        urgente: (e.fecha_carga_desde ?? '') <= hoy })) },
     { id: 'incidencias', nivel: incs.some((i) => i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica') ? 'urgente' : 'aviso',
       corto: 'Incidencias abiertas', titulo: 'Incidencias abiertas', total: inc.count ?? 0, todo: '/panel/incidencias',
       sub: 'Abiertas o en curso; primero los siniestros y las críticas.',
       filas: incs.map((i) => ({ href: '/panel/incidencias', t: `${i.tipos_incidencia?.clave === 'siniestro' ? 'SINIESTRO · ' : ''}${i.titulo}`,
         s: [i.envios?.referencia_gx && `#${i.envios.referencia_gx}`, i.tipos_incidencia?.nombre, `prioridad ${i.prioridad}`].filter(Boolean).join(' · '), desde: i.creado_en,
         urgente: i.tipos_incidencia?.clave === 'siniestro' || i.prioridad === 'critica' })) },
-    { id: 'sugerencias', nivel: 'info', corto: 'Sugerencias', titulo: 'Sugerencias y fallos por revisar', total: sug.count ?? 0, todo: '/panel/sugerencias',
-      sub: 'Mejoras y fallos técnicos que mandan los usuarios desde Soporte.',
-      filas: (sug.data ?? []).map((x) => ({ href: `/panel/sugerencias?ver=${x.id}`, t: `SUG-${x.numero} · ${x.texto.slice(0, 80)}`, s: x.autor_email ?? '', desde: x.creado_en })) },
     { id: 'penalizaciones', nivel: 'info', corto: 'Penalizaciones', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',
       sub: 'Penalizaciones registradas pendientes de confirmar.',
       filas: (pen.data ?? []).map((p) => ({ href: '/panel/penalizaciones', t: `${p.tipos_penalizacion?.nombre ?? 'Penalización'}${p.envios?.referencia_gx ? ` · #${p.envios.referencia_gx}` : ''}`,
         s: [p.importe_cliente != null && `Cliente ${euros(p.importe_cliente)}`, p.importe_transportista != null && `Transportista ${euros(p.importe_transportista)}`].filter(Boolean).join(' · '), desde: p.creado_en })) },
+    { id: 'sugerencias', nivel: 'info', corto: 'Sugerencias', titulo: 'Sugerencias y fallos por revisar', total: sug.count ?? 0, todo: '/panel/sugerencias',
+      sub: 'Mejoras y fallos técnicos que mandan los usuarios desde Soporte.',
+      filas: (sug.data ?? []).map((x) => ({ href: `/panel/sugerencias?ver=${x.id}`, t: `SUG-${x.numero} · ${x.texto.slice(0, 80)}`, s: x.autor_email ?? '', desde: x.creado_en })) },
   ];
   const errores = [sinCamion, cofTra, sinPagar, inc, pen, altas, sug].map((r) => r.error?.message).filter(Boolean);
   const [cm, sec, dig, digSerie] = await Promise.all([

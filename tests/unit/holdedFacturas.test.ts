@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, formaDeEnlaces, importeDe } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, formaDeEnlaces, idsDeCuentas, importeDe, usoDeHolded } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -132,4 +132,25 @@ test('fechas de la copia: 12 meses atrás, fin de mes y sumar días, sin sustos 
   assert.equal(diaMas('2026-12-31', 1), '2027-01-01');
   assert.equal(diaMas('2026-10-25', 1), '2026-10-26');           // el cambio de hora no se come un día
   assert.equal(diaMas('2026-11-25', -45), '2026-10-11');
+});
+
+test('plan de cuentas: de cada cuenta, su identificador, número y nombre; lo raro se salta', () => {
+  const r = cuentasDeHolded({ items: [
+    { id: '6011715A12DC4A4BB044DE36', number: 70500000, name: ' Prestaciones de servicios ', balance: '1500,00' },
+    { id: '6011715a12dc4a4bb044de36', number: 1, name: 'Repetida' }, { id: 'corta', number: 2, name: 'Mal id' },
+    { id: 'a'.repeat(24), number: '43000000', name: null }, null ] });
+  assert.deepEqual(r, [{ cuenta_id: '6011715a12dc4a4bb044de36', numero: '70500000', nombre: 'Prestaciones de servicios' },
+    { cuenta_id: 'a'.repeat(24), numero: '43000000', nombre: null }]);
+  assert.deepEqual(cuentasDeHolded(null), []);
+  assert.deepEqual(idsDeCuentas(`6011715a12dc4a4bb044de36 · ${'b'.repeat(24)} …`), ['6011715a12dc4a4bb044de36', 'b'.repeat(24)]);
+  assert.deepEqual(idsDeCuentas('70500000'), []);
+  assert.deepEqual(idsDeCuentas(null), []);
+});
+
+test('gasto de consultas del mes: lo que dice la facturación (usadas, tope y mes)', () => {
+  assert.deepEqual(usoDeHolded({ type: 'automation_token', period: '2026-11', usage: 8565, limit: 30000, count: 1 }), { periodo: '2026-11', usadas: 8565, limite: 30000 });
+  assert.deepEqual(usoDeHolded({ period: 'noviembre', usage: '120', limit: 0 }), { periodo: '', usadas: 120, limite: null });
+  assert.equal(usoDeHolded({ period: '2026-11' }), null);
+  assert.equal(usoDeHolded({ usage: -1 }), null);
+  assert.equal(usoDeHolded(null), null);
 });

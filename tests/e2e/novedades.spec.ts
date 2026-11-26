@@ -1771,9 +1771,12 @@ test.describe('novedades', () => {
     const hoy = new Date();
     const dia = (n: number) => new Date(hoy.getTime() + n * 86400000).toISOString().slice(0, 10);
     const AJENA = 'e2efac0000000000000000a1'.replace(/[^0-9a-f]/g, '0'), SUYA = 'e2efac0000000000000000b2'.replace(/[^0-9a-f]/g, '0');
+    const CUENTA = 'e2e0000000000000000000c1'.replace(/[^0-9a-f]/g, '0'), MES = `${new Date().toISOString().slice(0, 7)}-01`;
+    await sv.from('holded_cuentas').upsert({ cuenta_id: CUENTA, numero: '70500000', nombre: 'Prestaciones de servicios' });
+    await sv.from('holded_uso').upsert({ mes: MES, consultas: 40, real: 8565, limite: 30000, real_en: new Date().toISOString() });
     await sv.from('facturas_emitidas').delete().like('numero', 'FAC-E2E-%');
     const { error: e0 } = await sv.from('facturas_emitidas').insert([
-      { ref_externa: 'e2e-fac-1', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-1', fecha_emision: dia(-40), fecha_vencimiento: dia(-10), base: 1000, iva: 210, total: 1210, pendiente: 1210, estado: 'pendiente', cuenta: '70500000' },
+      { ref_externa: 'e2e-fac-1', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-1', fecha_emision: dia(-40), fecha_vencimiento: dia(-10), base: 1000, iva: 210, total: 1210, pendiente: 1210, estado: 'pendiente', cuenta: CUENTA },
       { ref_externa: 'e2e-fac-2', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-2', fecha_emision: dia(-5), fecha_vencimiento: dia(25), base: 500, iva: 105, total: 605, pendiente: 300.5, estado: 'parcial' },
       { ref_externa: SUYA, cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-3', fecha_emision: dia(-60), fecha_vencimiento: dia(-30), base: 100, iva: 21, total: 121, pendiente: 0, estado: 'pagada', pagada_el: dia(-25) },
       { ref_externa: 'e2e-fac-4', cliente_id: u!.cliente_id, contacto_nombre: 'Cliente de pruebas', cif: 'B11111111', numero: 'FAC-E2E-4', fecha_emision: dia(-3), fecha_vencimiento: dia(27), base: 10, iva: 2.1, total: 12.1, pendiente: 0, estado: 'anulada' },
@@ -1792,6 +1795,12 @@ test.describe('novedades', () => {
       await expect(page.locator('#fac-tipo')).toHaveCount(0);
       await page.fill('#fac-buscar', 'FAC-E2E');
       await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(5);
+      // La cuenta contable sale con su nombre y su número, no con su identificador interno.
+      await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-1' }).locator('.fac-cuenta')).toHaveText(/Prestaciones de servicios\s*70500000/);
+      // El contador de consultas a la facturación de este mes, con su barra y su renovación.
+      await expect(page.locator('#facturas-uso')).toContainText(/Consultas:\s*8\.565\s*\/\s*30\.000/);
+      await expect(page.locator('#facturas-uso')).toContainText(/29 %.*se renueva el/);
+      await expect(page.locator('#facturas-uso [role=progressbar]')).toBeVisible();
       await expect(f.locator('#facturas-totales')).toContainText(/Por cobrar:\s*1\.571,00/);
       await expect(f.locator('#facturas-totales')).toContainText(/vencido:\s*1\.210,00/);
       const parcial = page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-2' });
@@ -1804,6 +1813,17 @@ test.describe('novedades', () => {
       await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-5' })).toContainText('no es cliente de la plataforma');
       await page.selectOption('#fac-estado', 'por_cobrar');
       await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(3);
+      // «Vencidas 60 días» (usuario, 2026-11-26): por fecha de emisión + 60, no por su vencimiento.
+      await expect(page.locator('#fac-estado option')).toHaveText(['Todas', 'Por cobrar (pendientes y vencidas)', 'Vencidas 60 días', 'Pagadas', 'Anuladas']);
+      await page.selectOption('#fac-estado', 'vencida_60');
+      await expect(page.locator('#facturas-lista tbody')).toContainText('No hay facturas con estos filtros.');
+      await sv.from('facturas_emitidas').update({ fecha_emision: dia(-62) }).eq('ref_externa', 'e2e-fac-2');
+      await page.selectOption('#fac-estado', 'todas');
+      await page.selectOption('#fac-estado', 'vencida_60');
+      await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(1);
+      await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-2' }).locator('.fac-dias')).toHaveText(/^6[23] días desde la factura$/);
+      await sv.from('facturas_emitidas').update({ fecha_emision: dia(-5) }).eq('ref_externa', 'e2e-fac-2');
+      await page.selectOption('#fac-estado', 'por_cobrar');
       await page.selectOption('#fac-estado', 'anulada');
       await expect(page.locator('#facturas-lista tbody tr')).toHaveCount(1);
       await page.selectOption('#fac-estado', 'todas');
@@ -1832,6 +1852,8 @@ test.describe('novedades', () => {
       expect((await page.request.get('/api/facturas/ffffffffffffffffffffffff/pdf')).status()).toBe(404);
     } finally {
       await sv.from('facturas_emitidas').delete().like('numero', 'FAC-E2E-%');
+      await sv.from('holded_cuentas').delete().eq('cuenta_id', CUENTA);
+      await sv.from('holded_uso').delete().eq('mes', MES);
     }
   });
 

@@ -2827,6 +2827,7 @@ export type Database = {
           repaso_en: string | null
           repaso_desde: string | null
           repaso_inicio_en: string | null
+          cuentas_en: string | null
         }
         Insert: {
           id?: boolean
@@ -2842,6 +2843,7 @@ export type Database = {
           repaso_en?: string | null
           repaso_desde?: string | null
           repaso_inicio_en?: string | null
+          cuentas_en?: string | null
         }
         Update: {
           id?: boolean
@@ -2857,6 +2859,7 @@ export type Database = {
           repaso_en?: string | null
           repaso_desde?: string | null
           repaso_inicio_en?: string | null
+          cuentas_en?: string | null
         }
         Relationships: [
         ]
@@ -3139,6 +3142,53 @@ export type Database = {
           cif?: string | null
           nombre?: string | null
           visto_en?: string
+        }
+        Relationships: [
+        ]
+      }
+      holded_cuentas: {
+        Row: {
+          cuenta_id: string
+          numero: string | null
+          nombre: string | null
+          visto_en: string
+        }
+        Insert: {
+          cuenta_id: string
+          numero?: string | null
+          nombre?: string | null
+          visto_en?: string
+        }
+        Update: {
+          cuenta_id?: string
+          numero?: string | null
+          nombre?: string | null
+          visto_en?: string
+        }
+        Relationships: [
+        ]
+      }
+      holded_uso: {
+        Row: {
+          mes: string
+          consultas: number
+          real: number | null
+          limite: number | null
+          real_en: string | null
+        }
+        Insert: {
+          mes: string
+          consultas?: number
+          real?: number | null
+          limite?: number | null
+          real_en?: string | null
+        }
+        Update: {
+          mes?: string
+          consultas?: number
+          real?: number | null
+          limite?: number | null
+          real_en?: string | null
         }
         Relationships: [
         ]
@@ -5311,7 +5361,11 @@ export type Database = {
       historial_campos_internos: { Args: { p_tabla: string | null }; Returns: string[] }
       historial_registro: { Args: { p_tabla: string | null; p_id: string | null }; Returns: { cuando: string; accion: string; campos: string[]; cambios: Json; quien_nombre: string; quien_email: string; quien_tipo: string }[] }
       hito_visible_fuera: { Args: { p: Database["public"]["Enums"]["tipo_hito"] | null }; Returns: boolean }
+      holded_contar: { Args: { p_n: number | null }; Returns: undefined }
+      holded_mes_actual: { Args: Record<PropertyKey, never>; Returns: string }
       holded_operacion: { Args: { p_pais: string | null }; Returns: string }
+      holded_uso_mes: { Args: Record<PropertyKey, never>; Returns: Json }
+      holded_uso_real: { Args: { p_periodo: string | null; p_real: number | null; p_limite: number | null }; Returns: undefined }
       horario_del_dia: { Args: { p_sitio: string | null; p_fecha: string | null }; Returns: { abre: string; cierra: string; temporada: string }[] }
       horario_sitio_texto: { Args: { p_sitio: string | null; p_fecha: string | null }; Returns: string }
       horario_texto: { Args: { p_sitio: string | null; p_temporada?: string | null }; Returns: string }

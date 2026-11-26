@@ -5,6 +5,7 @@ import { comprobarEntrada } from '@/lib/entradas/comprobar';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
 import { formaDeEnlaces } from '@/lib/holdedFacturas';
 import { ponerAlDiaFacturas } from '@/lib/servidor/facturasCopia';
+import { apuntarConsultas } from '@/lib/servidor/holdedUso';
 import { vistaDe } from '@/lib/vista';
 import { rangoFiltroFecha, filtroFechaValido, hoyMadrid } from '@/lib/filtroFechas';
 
@@ -20,13 +21,15 @@ export type FacturaFila = {
   empresa?: string | null; cif?: string | null; cuenta?: string | null; es_cliente?: boolean;   // solo Dynamo
 };
 export type EstadoCopia = { conectado: boolean; ultimaOk: string | null; ultima: string | null; error: string | null;
-  cargando: boolean; cargada: boolean; enCopia: number; desde: string | null; sinCif: number };
+  cargando: boolean; cargada: boolean; enCopia: number; desde: string | null; sinCif: number;
+  // Consultas a la facturación gastadas este mes: `oficial` = la cifra la da la propia facturación.
+  uso: { usadas: number; limite: number; oficial: boolean; renueva: string } | null };
 export type FiltroFacturas = { q: string; estado: string; fecha: string; desde: string; hasta: string; pagina: number };
 export type PaginaFacturas =
   | { ok: true; total: number; base: number; importe: number; porCobrar: number; vencido: number; filas: FacturaFila[]; copia: EstadoCopia | null }
   | { ok: false; error: string };
 
-const ESTADOS = ['todas', 'por_cobrar', 'vencida', 'pagada', 'anulada'];
+const ESTADOS = ['todas', 'por_cobrar', 'vencida', 'vencida_60', 'pagada', 'anulada'];
 const POR_PAGINA = 25;
 
 export async function facturasPagina(f: FiltroFacturas): Promise<PaginaFacturas> {
@@ -38,23 +41,26 @@ export async function facturasPagina(f: FiltroFacturas): Promise<PaginaFacturas>
   const rango = f.fecha && filtroFechaValido(f.fecha) ? rangoFiltroFecha(f.fecha, hoyMadrid(), f.desde, f.hasta) : null;
   // «Ver como» un cliente: Dynamo ve solo las de ese cliente.
   const vista = dynamo ? await vistaDe(s.supabase, s.perfil.rol) : null;
-  const [r, e] = await Promise.all([
+  const [r, e, u] = await Promise.all([
     s.supabase.rpc('facturas_lista', {
       p_q: f.q.trim().slice(0, 120) || undefined, p_estado: ESTADOS.includes(f.estado) ? f.estado : 'todas',
       p_desde: rango?.desde ?? undefined, p_hasta: rango?.hasta ?? undefined,
       p_pagina: Math.max(1, Math.floor(f.pagina) || 1), p_por: POR_PAGINA,
       p_cliente: vista?.tipo === 'cliente' ? vista.id : undefined }),
     dynamo ? s.supabase.rpc('deuda_estado') : Promise.resolve({ data: null }),
+    dynamo ? s.supabase.rpc('holded_uso_mes') : Promise.resolve({ data: null }),
   ]);
   if (r.error) return { ok: false, error: 'No se han podido leer las facturas. Prueba otra vez en un momento.' };
   const d = (r.data ?? {}) as { total?: number; base?: number; importe?: number; por_cobrar?: number; vencido?: number; filas?: FacturaFila[] };
   const e0 = (e.data ?? null) as Record<string, unknown> | null;
+  const u0 = (u.data ?? null) as { usadas?: number; limite?: number; oficial?: boolean; renueva?: string } | null;
   const n = (v: unknown) => Number(v ?? 0);
   return { ok: true, total: n(d.total), base: n(d.base), importe: n(d.importe), porCobrar: n(d.por_cobrar), vencido: n(d.vencido),
     filas: (d.filas ?? []).map((x) => ({ ...x, base: n(x.base), iva: n(x.iva), retencion: n(x.retencion), total: n(x.total), pendiente: n(x.pendiente) })),
     copia: e0 ? { conectado: holdedListo(), ultimaOk: (e0.ultima_ok_en as string | null) ?? null, ultima: (e0.ultima_en as string | null) ?? null,
       error: (e0.error as string | null) ?? null, cargando: e0.cargando === true, cargada: !!e0.carga_completa_en,
-      enCopia: n(e0.en_copia), desde: (e0.desde as string | null) ?? null, sinCif: n(e0.sin_cif) } : null };
+      enCopia: n(e0.en_copia), desde: (e0.desde as string | null) ?? null, sinCif: n(e0.sin_cif),
+      uso: u0 ? { usadas: n(u0.usadas), limite: Math.max(1, n(u0.limite)), oficial: u0.oficial === true, renueva: String(u0.renueva ?? '') } : null } : null };
 }
 
 // «Actualizar ahora»: una pasada de la puesta al día de la copia, sin esperar a la automática.
@@ -118,4 +124,5 @@ async function enlacesDePedidos(): Promise<void> {
       facturas_recibidas: { error: recibidas.error, estados: recibidas.estados, detalle: p },
     }));
   } catch (e) { console.error('[Holded] enlaces de pedidos', e instanceof Error ? e.message : 'fallo'); }
+  finally { await apuntarConsultas(); }
 }

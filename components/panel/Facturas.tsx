@@ -14,7 +14,27 @@ import CampoFecha from '@/components/CampoFecha';
 import { facturasPagina, actualizarFacturas, repasarFacturas, type FacturaFila, type PaginaFacturas, type EstadoCopia } from '@/app/panel/(app)/administracion/acciones';
 
 const POR_PAGINA = 25;
-const COPIA_VALE_MS = 10 * 60_000;
+const COPIA_VALE_MS = 15 * 60_000;
+const PLAZO_REAL = 60;   // días desde la emisión: el plazo real de pago de los clientes
+
+// CONSULTAS A LA FACTURACIÓN GASTADAS ESTE MES (usuario, 2026-11-26: «8565/30.000 con barra de
+// progreso y fecha de renovación»). Normal hasta el 70 %, naranja hasta el 90 % y rojo después:
+// con el 90 % la copia deja de actualizarse sola hasta el mes siguiente.
+function UsoConsultas({ uso }: { uso: NonNullable<EstadoCopia['uso']> }) {
+  const pct = Math.min(100, Math.round((uso.usadas / uso.limite) * 100));
+  const color = pct >= 90 ? '#dc2626' : pct >= 70 ? '#d97706' : 'var(--purple)';
+  return (
+    <span id="facturas-uso" className="meta" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
+      title={uso.oficial ? 'Consultas a la facturación de toda tu cuenta este mes, según la propia facturación.' : 'Consultas a la facturación que ha hecho la plataforma este mes (contadas por ella: la facturación no deja leer su cifra con esta clave).'}>
+      <span>Consultas: <strong style={{ color: pct >= 70 ? color : 'var(--navy)' }}>{numero(uso.usadas, 0)}</strong> / {numero(uso.limite, 0)}</span>
+      <span role="progressbar" aria-label="Consultas a la facturación gastadas este mes" aria-valuemin={0} aria-valuemax={uso.limite} aria-valuenow={Math.min(uso.usadas, uso.limite)}
+        style={{ display: 'inline-block', width: 110, height: 7, borderRadius: 4, background: 'var(--gray-200)', overflow: 'hidden' }}>
+        <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: color }} />
+      </span>
+      <span>{pct} %{uso.oficial ? '' : ' (solo la plataforma)'}{uso.renueva ? ` · se renueva el ${fecha(uso.renueva)}` : ''}</span>
+    </span>
+  );
+}
 const dias = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 const nDias = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
 
@@ -31,11 +51,17 @@ function Pago({ f, hoy, dynamo }: { f: FacturaFila; hoy: string; dynamo: boolean
       {tarde > 0 && <span className="meta" style={{ display: 'block', color: '#b42318', fontWeight: 700 }}>{nDias(tarde)} tarde</span>}
     </>;
   }
-  if (f.estado === 'vencida' || f.estado === 'pendiente') return <>
+  if (f.estado === 'vencida' || f.estado === 'pendiente') {
+    // Días desde la emisión (solo Dynamo): el plazo real de pago son 60 días desde la factura,
+    // ponga lo que ponga su vencimiento. Pasados, se marca en rojo (filtro «Vencidas 60 días»).
+    const desde = Math.max(0, dias(f.fecha, hoy));
+    return <>
     <span className={`badge ${f.estado === 'vencida' ? 'badge-red' : 'badge-orange'}`}>{f.estado === 'vencida' ? 'Vencida' : 'Pendiente'}</span>
     {f.parcial && <span className="meta" style={{ display: 'block', marginTop: 2, fontWeight: 700 }}>faltan {euros(f.pendiente)}</span>}
+    {dynamo && f.pendiente > 0 && <span className="meta fac-dias" style={{ display: 'block', marginTop: 2, ...(desde > PLAZO_REAL ? { color: '#b42318', fontWeight: 700 } : {}) }}>{nDias(desde)} desde la factura</span>}
     {f.vence && <span className="meta" style={{ display: 'block', marginTop: 2 }}>{f.estado === 'vencida' ? `venció ${fecha(f.vence)} · hace ${nDias(Math.max(0, dias(f.vence, hoy)))}` : `vence ${fecha(f.vence)}`}</span>}
-  </>;
+    </>;
+  }
   if (f.estado === 'anulada') return <span className="badge badge-gray">Anulada</span>;
   return <span className="meta">—</span>;
 }
@@ -112,7 +138,7 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
         <select className="filter-estado" id="fac-estado" style={{ minWidth: 200 }} value={estado} onChange={(e) => setEstado(e.target.value)} aria-label="Filtrar por estado del pago">
           <option value="todas">Todas</option>
           <option value="por_cobrar">{dynamo ? 'Por cobrar (pendientes y vencidas)' : 'Pendientes de pago'}</option>
-          <option value="vencida">Vencidas</option>
+          {dynamo ? <option value="vencida_60">Vencidas 60 días</option> : <option value="vencida">Vencidas</option>}
           <option value="pagada">Pagadas</option>
           {dynamo && <option value="anulada">Anuladas</option>}
         </select>
@@ -125,13 +151,19 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
         </div></div>
       )}
       {dynamo && copia && (copia.conectado || copia.enCopia > 0) && (
-        <p className="meta" id="facturas-nota" style={{ margin: '0 0 0.6rem' }}>
+        <p className="meta" id="facturas-nota" style={{ margin: '0 0 0.6rem', display: 'flex', gap: '0.3rem 1.5rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}><span>
           {alDia.leyendo ? (copia.cargada ? 'Leyendo de la facturación… (si es un repaso largo, puede tardar unos minutos)' : `Primera carga: trayendo las facturas de los últimos 12 meses… (${numero(copia.enCopia, 0)} hasta ahora)`)
             : <>Copia de las facturas emitidas{copia.desde ? ` desde el ${fecha(copia.desde)}` : ''}: {numero(copia.enCopia, 0)} {copia.enCopia === 1 ? 'factura' : 'facturas'}
                 {copia.ultimaOk ? ` · al día ${haceTxt(copia.ultimaOk)}` : ' · aún sin leer'}. Se actualiza sola.</>}
           {copia.conectado && !alDia.leyendo && <>{' '}<button type="button" className="enlace-paso" id="facturas-actualizar" onClick={() => actualizar()}>Actualizar ahora</button>
             {copia.cargada && <>{' · '}<button type="button" className="enlace-paso" id="facturas-repasar" aria-expanded={repaso.abierto} onClick={() => setRepaso((x) => ({ ...x, abierto: !x.abierto }))}>Repasar desde una fecha…</button></>}</>}
+          </span>{copia.uso && (copia.conectado || copia.uso.usadas > 0) && <UsoConsultas uso={copia.uso} />}
         </p>
+      )}
+      {dynamo && copia?.conectado && copia.uso && copia.uso.usadas >= copia.uso.limite * 0.9 && (
+        <div className="pt-aviso error" id="facturas-sin-cupo" role="alert" style={{ marginBottom: '0.8rem' }}><div>
+          <strong>Casi no quedan consultas a la facturación este mes.</strong> Para no quedarse a cero, la copia ha dejado de actualizarse sola{copia.uso.renueva ? ` hasta el ${fecha(copia.uso.renueva)}` : ''}. «Actualizar ahora» sigue funcionando.
+        </div></div>
       )}
       {/* Para lo que el repaso de cada noche (los últimos 6 meses) no mira: una factura antigua ya
           pagada a la que se le corrige el importe o el cliente en la facturación. */}
@@ -194,7 +226,9 @@ export default function Facturas({ dynamo }: { dynamo: boolean }) {
                   <td className="amount" style={{ whiteSpace: 'nowrap' }}>{f.retencion ? `−${euros(f.retencion)}` : '—'}</td>
                   <td className="amount" style={{ whiteSpace: 'nowrap' }}><strong>{euros(f.total)}</strong></td>
                   <td style={{ whiteSpace: 'nowrap' }}><Pago f={f} hoy={hoy} dynamo={dynamo} /></td>
-                  {dynamo && <td style={{ whiteSpace: 'nowrap' }}>{f.cuenta ?? '—'}</td>}
+                  {/* El NOMBRE de la cuenta (usuario, 2026-11-26), con su número debajo. */}
+                  {dynamo && <td className="fac-cuenta" style={{ minWidth: 130 }}>{f.cuenta ? f.cuenta.split(' / ').map((c, i) => { const [a, ...b] = c.split(' · '); const nombre = b.join(' · ');
+                    return <span key={i} style={{ display: 'block' }}>{nombre || a}{nombre && <span className="meta" style={{ display: 'block' }}>{a}</span>}</span>; }) : '—'}</td>}
                 </tr>
               );
             })}

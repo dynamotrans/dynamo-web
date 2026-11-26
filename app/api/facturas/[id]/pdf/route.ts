@@ -1,5 +1,6 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import { leerHoldedPdf } from '@/lib/servidor/holded';
+import { apuntarConsultas } from '@/lib/servidor/holdedUso';
 
 // GET /api/facturas/{id}/pdf: el PDF de una factura emitida, leído del programa de facturación
 // en el momento (SOLO LECTURA). El equipo de Dynamo, cualquiera; el cliente, solo las SUYAS:
@@ -20,6 +21,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { data: numero } = await s.supabase.rpc('factura_visible', { p_ref: id.toLowerCase() });
   if (!numero && !dynamo) return texto('No se encuentra la factura.', 404);
   const r = await leerHoldedPdf(`/invoices/${id.toLowerCase()}/pdf`);
+  await apuntarConsultas();
   if (!r.ok) return texto(dynamo ? r.error : 'No se ha podido abrir la factura. Prueba otra vez en un momento.', r.estado === 404 ? 404 : 502);
   const nombre = String(numero ?? id).replace(/[^\w.-]+/g, '-').slice(0, 60) || 'factura';
   return new Response(r.pdf, { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="factura-${nombre}.pdf"`,

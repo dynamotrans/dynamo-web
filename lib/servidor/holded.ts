@@ -16,6 +16,13 @@ const clave = (): string | null => {
 };
 export const holdedListo = () => !!clave();
 
+// CUÁNTAS CONSULTAS SE HACEN (usuario, 2026-11-26): la facturación tiene un tope al mes. Cada
+// petición que sale se cuenta aquí, y quien la ha pedido lo apunta después en la base de datos
+// (lib/servidor/holdedUso.ts). Solo es un contador en memoria: esta puerta sigue sin escribir nada.
+let hechas = 0;
+/** Las consultas hechas desde la última vez que se preguntó (y pone el contador a cero). */
+export function consultasPorApuntar(): number { const n = hechas; hechas = 0; return n; }
+
 export type FalloHolded = { ok: false; estado: number; error: string };
 const AVISOS: Record<number, string> = {
   401: 'La clave de la facturación no vale o ha caducado.',
@@ -29,6 +36,7 @@ async function pedir(ruta: string, params: Record<string, string | number | unde
   if (!/^\/[a-z0-9/_-]+$/i.test(ruta)) return { ok: false, estado: 0, error: 'Consulta no válida.' };
   const url = new URL(BASE + ruta);
   for (const [n, v] of Object.entries(params)) if (v !== undefined && v !== '') url.searchParams.set(n, String(v));
+  hechas++;
   try {
     const r = await fetch(url, { method: 'GET', cache: 'no-store', signal: AbortSignal.timeout(15_000),
       headers: { authorization: `Bearer ${k}`, accept: acepta } });

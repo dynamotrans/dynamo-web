@@ -16761,3 +16761,68 @@ do $$ declare h int; m int; n int := 0; begin
   end if;
   raise notice 'OK 364 · copia de facturas: cada 15 minutos de 8 a 22 todos los días y cada 4 horas de noche (58 pasadas al día)';
 end $$;
+
+-- 365 · FACTURAS: NOMBRE DE LA CUENTA, «VENCIDAS 60 DÍAS» Y CONTADOR DE CONSULTAS (usuario, 2026-11-26).
+do $$ declare c1 uuid; r jsonb; f text; hoy date := (now() at time zone 'Europe/Madrid')::date; k text := '000000000000000000000c01'; mal boolean := false; begin
+  foreach f in array array['holded_contar(integer)', 'holded_uso_real(text, integer, integer)'] loop
+    if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then raise exception 'FALLO 365 · un usuario puede llamar a % (solo el servidor)', f; end if;
+  end loop;
+  if has_function_privilege('anon', 'holded_uso_mes()', 'execute') then raise exception 'FALLO 365 · alguien sin entrar puede ver el gasto de consultas'; end if;
+  foreach f in array array['holded_cuentas', 'holded_uso'] loop
+    if has_table_privilege('authenticated', f, 'insert') or has_table_privilege('authenticated', f, 'update') or has_table_privilege('authenticated', f, 'delete')
+       or has_table_privilege('anon', f, 'select') then raise exception 'FALLO 365 · permisos de más en la tabla %', f; end if;
+  end loop;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  -- El contador: suma en el mes en curso; la cifra oficial manda cuando la hay.
+  delete from holded_uso where mes = holded_mes_actual();
+  perform holded_contar(5); perform holded_contar(7); perform holded_contar(0); perform holded_contar(-3);
+  r := holded_uso_mes();
+  if (r ->> 'consultas')::int <> 12 or (r ->> 'usadas')::int <> 12 or (r ->> 'oficial')::boolean or (r ->> 'limite')::int <> 30000
+     or (r ->> 'renueva')::date <> (holded_mes_actual() + interval '1 month')::date then raise exception 'FALLO 365 · el contador propio no suma bien o no da el tope y la renovación: %', r; end if;
+  perform holded_uso_real(to_char(holded_mes_actual(), 'YYYY-MM'), 8565, 25000);
+  r := holded_uso_mes();
+  if (r ->> 'usadas')::int <> 8565 or not (r ->> 'oficial')::boolean or (r ->> 'limite')::int <> 25000 or (r ->> 'consultas')::int <> 12 then raise exception 'FALLO 365 · la cifra oficial de la facturación no manda: %', r; end if;
+  -- Un intento fallido (sin cifras) no borra lo que se sabía, pero queda apuntado.
+  perform holded_uso_real('', -1, -1);
+  r := holded_uso_mes();
+  if (r ->> 'usadas')::int <> 8565 or r ->> 'real_en' is null then raise exception 'FALLO 365 · un intento fallido de leer el gasto borra la cifra: %', r; end if;
+  delete from holded_uso where mes = holded_mes_actual();
+
+  -- La lista: nombre de la cuenta (no su identificador) y «vencidas 60 días» por fecha de emisión.
+  insert into clientes (razon_social, cif) values ('Sesenta SL', 'B36500365') returning id into c1;
+  insert into holded_cuentas (cuenta_id, numero, nombre) values (k, '70500000', 'Prestaciones de servicios');
+  insert into facturas_emitidas (ref_externa, cliente_id, numero, contacto_nombre, fecha_emision, fecha_vencimiento, total, pendiente, estado, cuenta) values
+    ('h365a', c1, 'F365-1', 'Sesenta', hoy - 61, hoy + 59, 100, 100, 'pendiente', k),                                   -- 61 días y vence dentro de 2 meses: SÍ
+    ('h365b', c1, 'F365-2', 'Sesenta', hoy - 60, hoy - 30, 100, 100, 'pendiente', k || ' · 000000000000000000000c02'),   -- 60 días justos (aunque ya venció): NO
+    ('h365c', c1, 'F365-3', 'Sesenta', hoy - 200, hoy - 80, 100, 40, 'parcial', '70000001'),                             -- cobrada en parte: SÍ
+    ('h365d', c1, 'F365-4', 'Sesenta', hoy - 200, hoy - 80, 100, 0, 'pagada', null),                                     -- pagada: NO
+    ('h365e', c1, 'F365-5', 'Sesenta', hoy - 200, hoy - 80, 100, 0, 'anulada', null);                                    -- anulada: NO
+  perform set_config('request.jwt.claim.role', '', true);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare r jsonb; mal boolean := false; begin
+  r := facturas_lista('f365', 'vencida_60');
+  if (r ->> 'total')::int <> 2 or (r ->> 'por_cobrar')::numeric <> 140 then raise exception 'FALLO 365 · «vencidas 60 días» no sale por fecha de emisión + 60 (del día 61 en adelante): %', r; end if;
+  if (facturas_lista('f365', 'vencida') ->> 'total')::int <> 2 then raise exception 'FALLO 365 · el filtro por vencimiento de la factura ha cambiado'; end if;
+  r := facturas_lista('f365-1');
+  if r -> 'filas' -> 0 ->> 'cuenta' <> '70500000 · Prestaciones de servicios' then raise exception 'FALLO 365 · la lista no enseña el número y el nombre de la cuenta: %', r -> 'filas' -> 0; end if;
+  -- Una cuenta que aún no se conoce no enseña su identificador; un número ya legible se queda.
+  if facturas_lista('f365-2') -> 'filas' -> 0 ->> 'cuenta' <> '70500000 · Prestaciones de servicios' or facturas_lista('f365-3') -> 'filas' -> 0 ->> 'cuenta' <> '70000001'
+     or facturas_lista('f365-4') -> 'filas' -> 0 ->> 'cuenta' is not null then raise exception 'FALLO 365 · la cuenta contable no se enseña bien cuando falta su nombre o no hay cuenta'; end if;
+  begin perform facturas_lista(null, 'inventado'); mal := true; exception when others then null; end;
+  if mal then raise exception 'FALLO 365 · la lista acepta un filtro de estado inventado'; end if;
+  if (holded_uso_mes() ->> 'limite')::int <> 30000 then raise exception 'FALLO 365 · Dynamo no puede ver el gasto de consultas'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform holded_uso_mes(); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 365 · un cliente puede ver el gasto de consultas a la facturación'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  delete from facturas_emitidas where ref_externa like 'h365%';
+  delete from holded_cuentas where cuenta_id like '000000000000000000000c0%';
+  raise notice 'OK 365 · facturas: nombre de la cuenta contable, «vencidas 60 días» por fecha de emisión y contador de consultas (propio y oficial)';
+end $$;
