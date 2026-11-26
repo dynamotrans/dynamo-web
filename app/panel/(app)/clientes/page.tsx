@@ -62,6 +62,8 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
     filas = ((cli.data ?? []) as unknown as Omit<ClienteFila, 'contactos' | 'envios_que_cuentan' | 'uso' | 'consumo'>[]).map((c) => ({ ...c, anotaciones: notas.get(c.id)?.anotaciones ?? '', contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0, uso: usoDe.get(c.id) ?? null, consumo: consumoDe.get(c.id) ?? null }))
       .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
   }
+  // ¿El consumo de crédito sale de la deuda real (lo que debe + envíos sin facturar) o de la estimación por días?
+  const { data: creditoReal } = filas.length ? await supabase.rpc('credito_con_deuda_real') : { data: false };
   return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={error} abrir={ver} sectores={Array.isArray(sectores) ? sectores : []}
-    lista={{ q, estado, orden, pagina, porPagina, total }} />;
+    lista={{ q, estado, orden, pagina, porPagina, total }} creditoReal={creditoReal === true} />;
 }

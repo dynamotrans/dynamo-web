@@ -16931,3 +16931,125 @@ do $$ begin
   delete from clientes where cif = 'B36600366';
   raise notice 'OK 366 · abonos: en negativo, restan de la deuda, no vencen, filtro propio y cada cliente ve solo los suyos';
 end $$;
+
+-- 367 · EL CRÉDITO USADO, CON LA DEUDA REAL (usuario, 2026-11-25/26): lo que debe de verdad
+-- (facturas menos abonos) + sus envíos a crédito aún sin facturar. Un solo cálculo para todo.
+do $$ declare cli uuid; a uuid; b uuid; c uuid; gxa text; u record; x record; f text;
+  hoy date := (now() at time zone 'Europe/Madrid')::date; lun date; cargada timestamptz;
+begin
+  foreach f in array array['credito_usado_de(uuid[], uuid[])', 'credito_usado(uuid, uuid[])'] loop
+    if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then raise exception 'FALLO 367 · un usuario puede llamar a % (es cuenta interna)', f; end if;
+  end loop;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  select carga_completa_en into cargada from facturas_copia_estado where id;
+  update facturas_copia_estado set carga_completa_en = null where id;
+  -- El pago por adelantado, encendido para la prueba (se deja como estaba al final).
+  perform set_config('prueba.pp367', (select valor::text from parametros where clave = 'pago_previo_activo'), false);
+  update parametros set valor = 'true'::jsonb where clave = 'pago_previo_activo';
+  insert into clientes (razon_social, cif) values ('Deuda Real 367 SL', 'B36700367') returning id into cli;
+  update clientes set riesgo_manual_euros = 2000, exento_pago_previo_primer_envio = true where id = cli;
+  lun := hoy + (8 - extract(isodow from hoy)::int) + 7;
+  -- a: 500 € (605 con IVA) y b: 300 € (363): caben en 2.000 € y van a crédito.
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 500, lun) returning id into a;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 300, lun) returning id into b;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (cli, 6, 5, 200, lun) returning id into c;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select e, o, t, cp, p, 'ES' from unnest(array[a, b, c]) e, (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id in (a, b);
+  if (select count(*) from envios where id in (a, b) and estado_pago_previo = 'no_requerido') <> 2 then raise exception 'FALLO 367 · los dos envíos que caben no van a crédito'; end if;
+  -- Debe una factura de 1.000 €, tiene otra pagada y un abono de 100 € sin compensar.
+  insert into facturas_emitidas (ref_externa, cliente_id, numero, fecha_emision, fecha_vencimiento, total, pendiente, estado, tipo) values
+    ('h367a', cli, 'F367-1', hoy - 100, hoy - 40, 1000, 1000, 'pendiente', 'factura'),
+    ('h367b', cli, 'F367-2', hoy - 20, hoy + 40, 500, 0, 'pagada', 'factura'),
+    ('h367c', cli, 'R367-1', hoy - 5, hoy - 5, -100, -100, 'pendiente', 'abono');
+
+  -- SIN la copia cargada: la estimación de antes (los envíos a crédito de los últimos días). La deuda no cuenta.
+  select * into u from credito_usado_de(array[cli]);
+  if credito_con_deuda_real() or u.usado <> 968 or u.deuda <> 0 or u.sin_facturar <> 968 or u.envios <> 2 or u.base <> 800 then
+    raise exception 'FALLO 367 · sin la copia de facturas cargada no vale la estimación de antes: %', row_to_json(u); end if;
+
+  -- CON la copia cargada: lo que debe (1.000 − 100) + sus envíos sin facturar (968).
+  update facturas_copia_estado set carga_completa_en = now() where id;
+  select * into u from credito_usado_de(array[cli]);
+  if not credito_con_deuda_real() or u.deuda <> 900 or u.sin_facturar <> 968 or u.usado <> 1868 or u.envios <> 2 then
+    raise exception 'FALLO 367 · el crédito usado no es la deuda real más los envíos sin facturar: %', row_to_json(u); end if;
+  if credito_usado(cli) <> 1868 or credito_usado(cli, array[a]) <> 1263 or credito_usado(cli, array[a, null]::uuid[]) <> 1263 or credito_usado(cli, array[null]::uuid[]) <> 1868 then
+    raise exception 'FALLO 367 · dejar fuera un envío del cálculo no funciona'; end if;
+  if (select usado from credito_uso_cliente(cli)) <> 1868 or (select pct from credito_uso_cliente(cli)) <> 93.4 then raise exception 'FALLO 367 · el uso del crédito del cliente no sale de la deuda real'; end if;
+  -- Un envío de 200 € (242): con la estimación cabría (968 + 242); con lo que debe de verdad, no (1.868 + 242 > 2.000).
+  if credito_alcanza(cli, c) then raise exception 'FALLO 367 · cabe un envío que, con lo que el cliente debe de verdad, supera su crédito'; end if;
+  update envios set estado = 'programado' where id = c;
+  select estado_pago_previo, pago_motivo into x from envios where id = c;
+  if x.estado_pago_previo <> 'pendiente' or x.pago_motivo not like 'Crédito insuficiente%' or x.pago_motivo ~ '[0-9]' then
+    raise exception 'FALLO 367 · el envío que no cabe por la deuda real no pasa a pago por adelantado (o el motivo enseña importes): %', x; end if;
+
+  -- Se FACTURA el envío a: la factura lleva su referencia. Deja de contar como «sin facturar»
+  -- y su importe pasa a la deuda: el total no cambia (no se cuenta dos veces).
+  select referencia_gx into gxa from envios where id = a;
+  perform facturas_guardar(jsonb_build_array(jsonb_build_object('id', 'h367d', 'numero', 'F367-3', 'emision', hoy, 'vence', hoy + 60, 'base', 500, 'iva', 105, 'total', 605,
+    'pendiente', 605, 'estado', 'pendiente', 'concepto', '  ' || gxa || ' - Transporte  ', 'envios_gx', jsonb_build_array(lower(gxa), 'no-vale', 'GX12', gxa))));
+  update facturas_emitidas set cliente_id = cli where ref_externa = 'h367d';
+  select * into x from facturas_emitidas where ref_externa = 'h367d';
+  if x.envios_gx <> array[upper(gxa)] or x.concepto <> gxa || ' - Transporte' then raise exception 'FALLO 367 · no se guardan bien el concepto y las referencias de envío de la factura: % · %', x.concepto, x.envios_gx; end if;
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 1505 or u.sin_facturar <> 363 or u.usado <> 1868 or u.envios <> 1 then raise exception 'FALLO 367 · un envío ya facturado se cuenta dos veces (o no se da por facturado): %', row_to_json(u); end if;
+  -- Volver a leer la factura sin concepto ni referencias no borra las que tenía.
+  perform facturas_guardar(jsonb_build_array(jsonb_build_object('id', 'h367d', 'numero', 'F367-3', 'emision', hoy, 'vence', hoy + 60, 'base', 500, 'iva', 105, 'total', 605, 'pendiente', 605, 'estado', 'pendiente')));
+  if (select envios_gx from facturas_emitidas where ref_externa = 'h367d') <> array[upper(gxa)] or (select cliente_id from facturas_emitidas where ref_externa = 'h367d') is distinct from cli then
+    raise exception 'FALLO 367 · releer una factura sin su concepto le quita las referencias de envío (o el cliente)'; end if;
+  -- La marca «facturado» de Exportaciones NO da el envío por facturado (usuario, 2026-11-26:
+  -- puede estar marcado y seguir en la facturación como pedido de venta sin facturar): solo vale la factura.
+  update envios set facturado_venta = true, holded_pedido_venta = referencia_gx where id = b;
+  select * into u from credito_usado_de(array[cli]);
+  if u.usado <> 1868 or u.sin_facturar <> 363 then raise exception 'FALLO 367 · un envío marcado a mano como facturado (sin factura) deja de contar: %', row_to_json(u); end if;
+  update envios set facturado_venta = false, holded_pedido_venta = null where id = b;
+  -- Un envío PAGADO POR ADELANTADO: ni él ni su factura gastan crédito, aunque la factura siga
+  -- «pendiente» en la facturación porque aún no se le ha apuntado el cobro.
+  update envios set estado_pago_previo = 'pagado' where id = a;
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 900 or u.sin_facturar <> 363 or u.usado <> 1263 then raise exception 'FALLO 367 · la factura de un envío pagado por adelantado cuenta como deuda: %', row_to_json(u); end if;
+  update envios set estado_pago_previo = 'no_requerido' where id = a;
+  if credito_usado(cli) <> 1868 then raise exception 'FALLO 367 · al dejar de estar pagado por adelantado no vuelve a contar'; end if;
+  -- Una factura ANULADA no da el envío por facturado (ni cuenta como deuda).
+  perform facturas_anular(array['h367d']);
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 900 or u.sin_facturar <> 968 then raise exception 'FALLO 367 · una factura anulada sigue dando su envío por facturado: %', row_to_json(u); end if;
+  -- Le cobran la factura vieja: ahora el envío de 200 € sí cabe.
+  update facturas_emitidas set pendiente = 0, estado = 'pagada' where ref_externa = 'h367a';
+  if not credito_alcanza(cli, c) then raise exception 'FALLO 367 · al cobrarse la factura no se libera el crédito'; end if;
+  -- Con más abono que deuda, lo que debe es 0 (nunca negativo: un saldo a favor no da más crédito).
+  update facturas_emitidas set pendiente = -5000 where ref_externa = 'h367c';
+  select * into u from credito_usado_de(array[cli]);
+  if u.deuda <> 0 or u.usado <> 968 then raise exception 'FALLO 367 · un saldo a favor del cliente resta de sus envíos sin facturar: %', row_to_json(u); end if;
+  -- Los días que un envío sin factura encontrada cuenta como «sin facturar»: parámetro.
+  update parametros set valor = '45'::jsonb where clave = 'credito_dias_sin_facturar';
+  if (select dias from credito_usado_de(array[cli])) <> 45 then raise exception 'FALLO 367 · no se usa el parámetro de días sin facturar'; end if;
+  update parametros set valor = '60'::jsonb where clave = 'credito_dias_sin_facturar';
+  -- APAGADO en Parámetros: vuelve la estimación de antes.
+  update facturas_emitidas set pendiente = 1000, estado = 'pendiente' where ref_externa = 'h367a';
+  update facturas_emitidas set pendiente = -100 where ref_externa = 'h367c';
+  update parametros set valor = 'false'::jsonb where clave = 'credito_deuda_real';
+  if credito_con_deuda_real() or credito_usado(cli) <> 968 then raise exception 'FALLO 367 · con la deuda real apagada no vuelve la estimación de antes'; end if;
+  update parametros set valor = 'true'::jsonb where clave = 'credito_deuda_real';
+  if credito_usado(cli) <> 1868 then raise exception 'FALLO 367 · al encender otra vez la deuda real no se usa'; end if;
+  perform set_config('prueba.c367', cli::text, false);
+  perform set_config('prueba.cargada367', coalesce(cargada::text, ''), false);
+  perform set_config('request.jwt.claim.role', '', true);
+end $$;
+-- Las pantallas de Dynamo enseñan ese mismo número.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+do $$ declare cli uuid := current_setting('prueba.c367')::uuid; x record; begin
+  select * into x from consumo_clientes(array[cli]);
+  if x.consumo <> 1868 or x.disponible <> 132 or x.envios <> 2 then raise exception 'FALLO 367 · la lista de clientes no enseña el crédito usado de verdad: %', row_to_json(x); end if;
+  select * into x from riesgos_pagina('Deuda Real 367');
+  if x.asumido <> 1868 or x.disponible <> 132 or x.asumido_base <> 800 or x.envios <> 2 then raise exception 'FALLO 367 · CESCE - Riesgos no enseña el crédito usado de verdad: %', row_to_json(x); end if;
+  if not (deuda_estado() ->> 'credito_real')::boolean then raise exception 'FALLO 367 · el resumen de la deuda no dice que el crédito va con la deuda real'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid := current_setting('prueba.c367')::uuid; begin
+  delete from facturas_emitidas where ref_externa like 'h367%';
+  update envios set estado = 'cancelado' where cliente_id = cli and estado <> 'cancelado';
+  update facturas_copia_estado set carga_completa_en = nullif(current_setting('prueba.cargada367'), '')::timestamptz where id;
+  update parametros set valor = current_setting('prueba.pp367')::jsonb where clave = 'pago_previo_activo';
+  raise notice 'OK 367 · crédito usado con la deuda real: lo que debe (facturas menos abonos) más los envíos sin facturar, sin contar dos veces, y con vuelta atrás en Parámetros';
+end $$;

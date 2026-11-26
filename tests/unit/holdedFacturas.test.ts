@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, idsDeCuentas, importeDe, usoDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDeTextos, idsDeCuentas, importeDe, usoDeHolded } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -9,7 +9,8 @@ const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', conta
 test('copia de facturas: los importes en texto pasan a números y el contacto, a minúsculas', () => {
   assert.deepEqual(copiaDeHolded({ ...base, lines: [{ account: '70500000', price: 100, units: 1 }] }), {
     id: base.id, numero: 'F260123', contacto_id: 'abcdefabcdefabcdefabcdef', contacto_nombre: 'Acme SL', emision: '2026-11-01', vence: '2026-12-01',
-    base: 100, iva: 21, retencion: 0, total: 121, pendiente: 121, estado: 'pendiente', pagada_el: null, cuenta: '70500000', tipo: 'factura', rectifica: null });
+    base: 100, iva: 21, retencion: 0, total: 121, pendiente: 121, estado: 'pendiente', pagada_el: null, cuenta: '70500000', tipo: 'factura', rectifica: null,
+    concepto: 'Porte GX1', envios_gx: [] });
 });
 
 // Fallo real (2026-11-26): la facturación manda los importes CON COMA («240,00») y todas las
@@ -109,6 +110,19 @@ test('cuenta contable: la de las líneas, sin repetir', () => {
   assert.equal(cuentaDeLineas([{ account: '70500000' }, { account: 70500000 }, { account: ' 70000001 ' }, { account: null }]), '70500000 · 70000001');
   assert.equal(cuentaDeLineas([{ price: 1 }]), null);
   assert.equal(cuentaDeLineas('x'), null);
+});
+
+test('qué envíos lleva cada factura: las referencias GX del concepto y de las líneas', () => {
+  // Tal como llega el concepto de verdad: «GX66921 - Transporte de mercancías - …».
+  assert.deepEqual(gxDeTextos('GX66921 - Transporte de mercancías - 16-noviembre-2026 - Tautliner'), ['GX66921']);
+  assert.deepEqual(gxDeTextos('Envíos gx100888878 y GX-100888871; GX 100888864. Ref. cliente: PED-GX12', null, 7, 'GX100888878'), ['GX100888878', 'GX100888871', 'GX100888864']);
+  // No vale un GX pegado a otra palabra, ni con pocas cifras, ni un número más largo cortado.
+  assert.deepEqual(gxDeTextos('XGX12345 · GX123 · BOGX99999 · GX1234567890123'), []);
+  const f = copiaDeHolded({ id: 'a'.repeat(24), date: '2026-11-20', total: '121,00', status: 'pending', description: '  GX100888878 - Transporte  ',
+    lines: [{ name: 'Porte GX100888871', description: 'y también GX100888878' }, { name: 'Suplido' }] });
+  assert.deepEqual([f?.concepto, f?.envios_gx], ['GX100888878 - Transporte', ['GX100888878', 'GX100888871']]);
+  assert.deepEqual([copiaDeHolded({ id: 'a'.repeat(24), date: '2026-11-20' })?.concepto, copiaDeHolded({ id: 'a'.repeat(24), date: '2026-11-20' })?.envios_gx], [null, []]);
+  assert.equal(copiaDeHolded({ id: 'a'.repeat(24), date: '2026-11-20', description: 'x'.repeat(900) })?.concepto?.length, 600);
 });
 
 test('abonos: misma forma que una factura, pero en negativo, vengan como vengan', () => {

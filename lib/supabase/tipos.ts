@@ -2894,6 +2894,8 @@ export type Database = {
           tipo: string
           rectifica: string | null
           ficha_en: string | null
+          concepto: string | null
+          envios_gx: string[]
         }
         Insert: {
           ref_externa: string
@@ -2918,6 +2920,8 @@ export type Database = {
           tipo?: string
           rectifica?: string | null
           ficha_en?: string | null
+          concepto?: string | null
+          envios_gx?: string[]
         }
         Update: {
           ref_externa?: string
@@ -2942,6 +2946,8 @@ export type Database = {
           tipo?: string
           rectifica?: string | null
           ficha_en?: string | null
+          concepto?: string | null
+          envios_gx?: string[]
         }
         Relationships: [
           {
@@ -5195,6 +5201,7 @@ export type Database = {
       crear_envio_manual: { Args: { p_datos: Json | null; p_paradas: Json | null; p_cliente?: string | null }; Returns: { id: string; referencia_gx: string }[] }
       crear_pack: { Args: { p_envios: string[] | null; p_pack?: string | null }; Returns: Json }
       credito_alcanza: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: boolean }
+      credito_con_deuda_real: { Args: Record<PropertyKey, never>; Returns: boolean }
       credito_desbloquear: { Args: { p_cliente: string | null }; Returns: Json }
       credito_liberar_pendientes: { Args: { p_cliente: string | null }; Returns: number }
       credito_pagos_estado: { Args: { p_cliente: string | null }; Returns: Json }
@@ -5203,6 +5210,8 @@ export type Database = {
       credito_revisar_pagos: { Args: { p_cliente: string | null }; Returns: string }
       credito_revisar_pagos_todos: { Args: Record<PropertyKey, never>; Returns: number }
       credito_revisar_uso: { Args: { p_cliente: string | null }; Returns: undefined }
+      credito_usado: { Args: { p_cliente: string | null; p_sin?: string[] | null }; Returns: number }
+      credito_usado_de: { Args: { p_clientes: string[] | null; p_sin?: string[] | null }; Returns: { cliente_id: string; deuda: number; sin_facturar: number; base: number; envios: number; usado: number; ultimo: string; dias: number }[] }
       credito_uso_cliente: { Args: { p_cliente: string | null }; Returns: { limite: number; usado: number; pct: number }[] }
       cuadre_facturacion: { Args: { p_meses?: number | null }; Returns: { mes: string; envios: number; con_transportista: number; venta_en_holded: number; compra_en_holded: number; penalizaciones: number; venta: number; compra: number }[] }
       cuadro_mando: { Args: { p_desde: string | null; p_hasta: string | null; p_comp_desde?: string | null; p_comp_hasta?: string | null }; Returns: Json }

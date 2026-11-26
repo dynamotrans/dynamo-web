@@ -1499,7 +1499,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 </h4>
                 <FichasSitios puntos={puntos} datos={datosSitios} edic={edicSitios} setEdic={setEdicSitios} fechaCargaTxt={fechaTxt} faltas={faltasSitios} cargaHoy={cargaHoy} mercanciaDefecto={mercResumen} fechasParada={fechasParada} />
                 {/* Debajo de la última parada (usuario, 2026-11-26): recordar que los horarios se comprueban con cada sitio. */}
-                <div className="modal-warn-box" id="ne-verifica-horarios" style={{ margin: '0.8rem 0 0' }}>
+                <div className="modal-warn-box" id="ne-verifica-horarios" style={{ margin: 0 }}>
                   <strong>Verifica los horarios de los sitios con ellos.</strong> Cámbialos haciendo clic en cada sitio si es necesario. <strong>Verificar que
                   son los reales es tu responsabilidad</strong>: las posibles penalizaciones corren a cargo del cliente.
                 </div>
@@ -1510,7 +1510,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                 {refCli && <div className="sum2-box" style={{ marginTop: '0.6rem' }}><div className="sum2-grid">
                   <div className="sum2-cell"><div className="sum2-k">Notas / nº de pedido</div><div className="sum2-v">{refCli}</div></div>
                 </div></div>}
-                {avisosPaso4}
+                {/* Mismo tamaño de letra que la caja de «Verifica los horarios» de encima (usuario, 2026-11-26). */}
+                <div className="avisos-conf">{avisosPaso4}</div>
               </div>
             </div>
             <div className="form-2col-side">

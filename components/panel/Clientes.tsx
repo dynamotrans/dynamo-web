@@ -34,8 +34,9 @@ export type UsoCliente = {
   consultas_hoy: number; consultas_semana: number; consultas_mes: number;
   envios: number; canceladas: number; recientes: number; usuarios_suspendidos: number;
 };
-// Consumo de crédito (consumo_clientes): envíos de los últimos días sin pago por adelantado,
-// con IVA; el mismo cálculo de CESCE - Riesgos (usuario, 2026-11-17).
+// Consumo de crédito (consumo_clientes), el mismo cálculo de CESCE - Riesgos (usuario, 2026-11-17).
+// Con la deuda real (2026-11-26): lo que debe de verdad + sus envíos a crédito sin facturar; sin
+// ella, la estimación de antes: envíos de los últimos días sin pago por adelantado, con IVA.
 export type ConsumoCliente = { envios: number; consumo: number; limite: number | null; disponible: number | null; dias: number };
 export type ClienteFila = ClienteDatos & {
   id: string; codigo: string; nombre_visible: string;
@@ -78,7 +79,7 @@ type Empleado = { id: string; nombre: string };
 // Lo que la página ha pedido a la base de datos (filtros de la URL y total de la búsqueda).
 export type ListaClientes = { q: string; estado: string; orden: string; pagina: number; porPagina: number; total: number };
 
-export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [], lista }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[]; lista: ListaClientes }) {
+export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [], lista, creditoReal = false }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[]; lista: ListaClientes; creditoReal?: boolean }) {
   const refrescar = useRefrescar();
   const url = (p: number) => {
     const u = new URLSearchParams();
@@ -171,7 +172,9 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
                     const pasado = queda != null && queda < 0;
                     return <>
                       <span style={{ fontWeight: 700, color: pasado ? '#b42318' : undefined }}>{euros(gasto)}</span>
-                      <div className="meta">{k.envios} envío{k.envios === 1 ? '' : 's'} · últimos {k.dias} días</div>
+                      <div className="meta">{creditoReal
+                        ? <>lo que debe + {k.envios} envío{k.envios === 1 ? '' : 's'} sin facturar</>
+                        : <>{k.envios} envío{k.envios === 1 ? '' : 's'} · últimos {k.dias} días</>}</div>
                       {queda != null && Number(k.limite) > 0 && (
                         <div className="meta">{pasado ? <span style={{ color: '#b42318', fontWeight: 700 }}>Superado en {euros(-queda)}</span> : <>Quedan {euros(queda)}</>}</div>
                       )}

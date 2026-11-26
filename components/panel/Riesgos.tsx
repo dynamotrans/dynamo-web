@@ -23,7 +23,9 @@ export type RiesgoFila = {
 // Lo que debe un cliente según la facturación (facturas emitidas con algo pendiente de cobro).
 export type DeudaCliente = { pendiente: number; vencido: number; facturas: number; vencePrimera: string | null };
 export type EstadoDeuda = { conectado: boolean; ultimaOk: string | null; ultima: string | null; error: string | null; facturas: number; sinCif: number;
-  pendiente: number; vencido: number; pendienteOtros: number; facturasOtros: number };
+  pendiente: number; vencido: number; pendienteOtros: number; facturasOtros: number;
+  // El crédito usado sale de la deuda real (lo que debe + envíos sin facturar), no de la estimación por días.
+  creditoReal?: boolean };
 export type Totales = { limite: number; asumido: number; pasados: number };
 export type ListaRiesgos = { q: string; filtro: string; pagina: number; porPagina: number; total: number };
 const uso = (f: RiesgoFila) => (f.limite && f.limite > 0 ? f.asumido / f.limite : f.asumido > 0 ? Infinity : 0);
@@ -131,6 +133,7 @@ export default function Riesgos({ filas, dias, error, totales, lista, deuda = {}
   const [edita, setEdita] = useState<RiesgoFila | null>(null);
   // La columna de lo que deben solo sale cuando hay de dónde leerlo (o ya hay una foto guardada).
   const conDeuda = !!estadoDeuda && (estadoDeuda.conectado || !!estadoDeuda.ultimaOk);
+  const real = !!estadoDeuda?.creditoReal;
   const url = (p: number) => {
     const u = new URLSearchParams();
     if (lista.q) u.set('q', lista.q); if (lista.filtro) u.set('f', lista.filtro);
@@ -144,11 +147,13 @@ export default function Riesgos({ filas, dias, error, totales, lista, deuda = {}
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Crédito de cada cliente frente a lo que tiene pendiente. <strong>Límite</strong>: el manual de Dynamo si está puesto (0 = sin crédito); si está vacío, el de CESCE.
-        {' '}<strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido.{conDeuda ? <> <strong>Pendiente de cobro</strong>: lo que debe de verdad según sus facturas (de momento, solo informativo).</> : null} <strong>Pulsa una fila</strong> para cambiar su crédito aquí mismo; pulsa el <strong>nombre</strong> para abrir la ficha completa del cliente.
+        {' '}{real
+          ? <><strong>Usado</strong>: lo que debe de verdad (sus facturas pendientes de cobro, menos abonos) más sus envíos a crédito aún sin facturar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − usado.</>
+          : <><strong>Asumido</strong>: envíos de los últimos {dias} días sin cobrar, con IVA (lo pagado por adelantado no cuenta). <strong>Disponible</strong> = límite − asumido.{conDeuda ? <> <strong>Pendiente de cobro</strong>: lo que debe de verdad según sus facturas (de momento, solo informativo).</> : null}</>} <strong>Pulsa una fila</strong> para cambiar su crédito aquí mismo; pulsa el <strong>nombre</strong> para abrir la ficha completa del cliente.
       </p>
       <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem', marginBottom: '0.9rem' }}>
         <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Crédito concedido (límites)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.limite)}</div></div>
-        <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Riesgo asumido ({dias} días)</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.asumido)}</div></div>
+        <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta" id="riesgo-usado-titulo">{real ? 'Crédito usado (deuda + sin facturar)' : `Riesgo asumido (${dias} días)`}</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: 'var(--navy)' }}>{euros(totales.asumido)}</div></div>
         <div className="table-wrap" tabIndex={0} style={{ padding: '0.8rem 1rem' }}><div className="meta">Clientes por encima de su límite</div><div style={{ fontWeight: 800, fontSize: 'var(--fs-l)', color: totales.pasados ? '#dc2626' : '#0f6b3a' }}>{totales.pasados}</div></div>
       </div>
       {estadoDeuda && <DeudaFacturacion e={estadoDeuda} />}
@@ -168,7 +173,7 @@ export default function Riesgos({ filas, dias, error, totales, lista, deuda = {}
         <table className="data">
           <thead><tr>
             <th>Cliente</th><th className="amount">CESCE</th><th className="amount">Manual (Álvaro)</th><th className="amount">Límite</th>
-            <th className="amount">Envíos {dias} d</th><th className="amount">Asumido (IVA incl.)</th>{conDeuda && <th className="amount" id="th-deuda">Pendiente de cobro</th>}<th className="amount">Disponible</th><th style={{ minWidth: 130 }}>Uso</th><th>Último envío</th>
+            <th className="amount">{real ? 'Envíos sin facturar' : `Envíos ${dias} d`}</th><th className="amount" id="th-usado">{real ? 'Usado (IVA incl.)' : 'Asumido (IVA incl.)'}</th>{conDeuda && <th className="amount" id="th-deuda">Pendiente de cobro</th>}<th className="amount">Disponible</th><th style={{ minWidth: 130 }}>Uso</th><th>Último envío</th>
           </tr></thead>
           <tbody>
             {filas.length === 0 ? (
@@ -184,7 +189,10 @@ export default function Riesgos({ filas, dias, error, totales, lista, deuda = {}
                   <td className="amount" style={x.manda === 'manual' ? { fontWeight: 800 } : { color: 'var(--gray-500)' }}>{x.manual != null ? euros(x.manual) : '—'}</td>
                   <td className="amount"><strong>{x.limite != null ? euros(x.limite) : 'Sin crédito'}</strong><div className="meta">{x.manda === 'manual' ? 'manda el manual' : x.manda === 'cesce' ? 'manda CESCE' : 'previo pago'}</div></td>
                   <td className="amount">{x.envios || '—'}</td>
-                  <td className="amount">{x.asumido ? euros(x.asumido) : '—'}{x.asumido ? <div className="meta">{euros(x.base)} sin IVA</div> : null}</td>
+                  <td className="amount" data-usado={x.id}>{x.asumido ? euros(x.asumido) : '—'}{x.asumido ? (real
+                    // Con la deuda real: de qué sale lo usado (lo que debe + lo que aún no está facturado).
+                    ? <div className="meta">{euros(Math.max(0, x.asumido - Math.max(0, d?.pendiente ?? 0)))} sin facturar{d && d.pendiente > 0 ? <> + {euros(d.pendiente)} que debe</> : null}</div>
+                    : <div className="meta">{euros(x.base)} sin IVA</div>) : null}</td>
                   {conDeuda && <td className="amount" data-deuda={x.id}>{d ? <>
                     <strong>{euros(d.pendiente)}</strong>
                     <div className="meta">{d.facturas} {d.facturas === 1 ? 'factura' : 'facturas'}</div>

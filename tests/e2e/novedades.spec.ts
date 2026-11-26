@@ -1756,12 +1756,23 @@ test.describe('novedades', () => {
       await expect(celda).toContainText('1.510,50');
       await expect(celda).toContainText('2 facturas');
       await expect(celda).toContainText('vencido 1.210,00');
+      // EL CRÉDITO USADO SALE DE LA DEUDA REAL (usuario, 2026-11-26): lo que debe de verdad más
+      // sus envíos a crédito aún sin facturar; ya no la estimación de «envíos de los últimos 60 días».
+      await expect(page.locator('#th-usado')).toHaveText('Usado (IVA incl.)');
+      await expect(page.locator('#riesgo-usado-titulo')).toContainText('Crédito usado');
+      await expect(page.locator('#sec-riesgos')).toContainText('lo que debe de verdad');
+      await expect(page.locator(`[data-usado="${u!.cliente_id}"]`)).toContainText(/sin facturar \+ 1\.510,50\s*€ que debe/);
+      const { data: uso } = await sv.rpc('credito_usado_de', { p_clientes: [u!.cliente_id] });
+      const fila = (uso as { deuda: number; sin_facturar: number; usado: number }[])[0];
+      expect(Number(fila.deuda)).toBe(1510.5);
+      expect(Number(fila.usado)).toBeCloseTo(1510.5 + Number(fila.sin_facturar), 2);
       // El cliente no lee la tabla ni lo que deben los clientes; sus facturas, solo por la lista.
       const c = await como('cliente');
       const { data: suyas } = await c.from('facturas_emitidas').select('ref_externa');
       expect(suyas ?? []).toHaveLength(0);
       const { error } = await c.rpc('deuda_clientes', { p_clientes: [u!.cliente_id] });
       expect(error).not.toBeNull();
+      expect((await c.rpc('credito_usado_de', { p_clientes: [u!.cliente_id] })).error).not.toBeNull();
       const { data: lista } = await c.rpc('facturas_lista', { p_q: 'F-E2E' });
       expect((lista as { total: number }).total).toBe(3);
     } finally {

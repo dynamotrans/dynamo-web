@@ -78,7 +78,23 @@ export function cuentaDeLineas(lines: unknown): string | null {
 export type FacturaCopia = { id: string; numero: string | null; contacto_id: string | null; contacto_nombre: string | null;
   emision: string; vence: string | null; base: number; iva: number; retencion: number; total: number; pendiente: number;
   estado: 'pendiente' | 'parcial' | 'pagada' | 'anulada' | 'otro'; pagada_el: string | null; cuenta: string | null;
-  tipo: 'factura' | 'abono'; rectifica: string | null };
+  tipo: 'factura' | 'abono'; rectifica: string | null;
+  // El concepto (recortado) y las referencias de envío (GX…) que lleva, en él o en sus líneas:
+  // con ellas se sabe qué envíos están ya facturados (para el crédito usado de cada cliente).
+  concepto: string | null; envios_gx: string[] };
+
+/** Las referencias de envío (GX y de 4 a 12 cifras) que hay en unos textos, sin repetir (hasta 50). */
+export function gxDeTextos(...textos: unknown[]): string[] {
+  const vistas: string[] = [];
+  for (const t of textos) {
+    if (typeof t !== 'string') continue;
+    for (const m of t.matchAll(/(?<![A-Za-z0-9])GX[\s-]?(\d{4,12})(?!\d)/gi)) {
+      const g = `GX${m[1]}`;
+      if (!vistas.includes(g) && vistas.length < 50) vistas.push(g);
+    }
+  }
+  return vistas;
+}
 
 // LOS ABONOS (facturas rectificativas; en la facturación, «credit notes») tienen la misma forma
 // que una factura. En la copia van con `tipo` = abono y TODOS sus importes EN NEGATIVO, vengan
@@ -110,7 +126,8 @@ export function copiaDeHolded(f: FacturaHolded & { draft?: unknown; payments_det
   }
   return { id, numero: texto(f.document_number), contacto_id: texto(f.contact_id)?.toLowerCase() ?? null, contacto_nombre: texto(f.contact_name),
     emision, vence: dia(f.due_date), base, iva, retencion: dif > 0.005 ? dif : 0, total, pendiente, estado, pagada_el, cuenta: cuentaDeLineas(f.lines),
-    tipo, rectifica };
+    tipo, rectifica, concepto: texto(f.description)?.slice(0, 600) ?? null,
+    envios_gx: gxDeTextos(f.description, ...(Array.isArray(f.lines) ? (f.lines as { name?: unknown; description?: unknown }[]).flatMap((l) => (l && typeof l === 'object' ? [l.name, l.description] : [])) : [])) };
 }
 
 /** Una página de «List invoices» (o de «List credit notes», con tipo abono) pasada a filas de la copia: las filas, si hay más y por dónde seguir. */

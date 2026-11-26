@@ -1855,6 +1855,17 @@ body.theme-dark .sidebar { background: #060116; }
     color: var(--navy); margin-bottom: 1rem; line-height: 1.5;
 }
 .modal-warn-box strong { color: var(--orange); }
+/* Nuevo envío → confirmar: los avisos de debajo de las paradas (horarios de verano, recogidas
+   cerradas…) con la misma letra que la caja naranja de «Verifica los horarios» (usuario, 2026-11-26). */
+.avisos-conf { display: grid; gap: 0.55rem; }
+.avisos-conf:empty { display: none; }
+.avisos-conf .pt-aviso { font-size: var(--fs-m); line-height: 1.5; padding: 0.7rem 0.85rem; margin: 0 !important; }
+/* MISMA separación entre todos los bloques de esa pantalla (usuario, 2026-11-26: «iguala espacios
+   entre sitios, cajas, cajas de precios… hay separaciones distintas»): 0,55rem, la de entre sitios.
+   El contenedor ya separa sus bloques; sobraba el margen propio del último sitio. */
+.sum2 > .ptar-sitios-list > .ptar-sitio-card:last-child { margin-bottom: 0; }
+/* …y encima de los botones (en escritorio quedaba más del doble que entre las cajas de precio). */
+.ptar-confirm-card .form-2col-side > .ptar-actions { margin-top: 0.55rem; }
 /* Confirmar envío: el envío nacerá pendiente de pago (usuario, 2026-11-24). MISMA hechura que
    la caja verde de «Cancelación y cambios gratis» que tiene encima (usuario, 2026-11-24:
    «mismos tamaños, diseño acorde, armonía»): mismo tamaño de letra, borde fino, relleno y

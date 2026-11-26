@@ -107,7 +107,7 @@ export const AYUDA: Record<string, Ayuda> = {
       ? `Con ${Number(v).toLocaleString('es-ES')} €: CESCE da ${Number(v).toLocaleString('es-ES')} € → su primer envío va a crédito. CESCE da 8.000 € → su primer envío se paga antes.`
       : 'Con 0: los primeros envíos se pagan siempre por adelantado (salvo «empresa conocida»).' },
   credito_limite_exige_pago: { titulo: 'Sin crédito suficiente: pago por adelantado',
-    explica: 'Si está encendido, cuando un envío no cabe en el crédito que le queda al cliente (lo ya usado más ese envío, con IVA, supera su línea), ESE envío se paga por adelantado; los que sí caben siguen a crédito. «Lo usado» son sus envíos de los últimos días sin pago por adelantado (los días de «CESCE - Riesgos»), no sus facturas reales pendientes. Apagado: con crédito concedido nunca se pide pago por pasarse.',
+    explica: 'Si está encendido, cuando un envío no cabe en el crédito que le queda al cliente (lo ya usado más ese envío, con IVA, supera su línea), ESE envío se paga por adelantado; los que sí caben siguen a crédito. «Lo usado» es lo que debe de verdad (sus facturas pendientes de cobro) más sus envíos a crédito aún sin facturar. Apagado: con crédito concedido nunca se pide pago por pasarse.',
     ejemplo: (v) => (String(v) === 'true'
       ? 'Encendido: le quedan 200 € de crédito y pide un envío de 400 € → ese envío queda «Pendiente de pago».'
       : 'Apagado: le quedan 200 € de crédito y pide un envío de 400 € → va a crédito igualmente.') },
@@ -157,8 +157,16 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Al acabar el plazo para pagar ya no se puede EMPEZAR un pago. El envío se anula estos minutos después, por si el cliente está pagando en ese momento; la ventana de pago de la plataforma se cierra sola entonces. Si hay un enlace de pago con tarjeta todavía abierto (los enlaces viven al menos media hora, es norma de la pasarela), el envío espera a que caduque: así nadie paga un envío ya anulado.',
     ejemplo: (v) => `Con ${v} min y 1 h de plazo: confirma a las 10:00 → hasta las 11:00 puede pagar; a las 11:${String(Math.min(59, Math.max(0, Math.round(Number(v))))).padStart(2, '0')} se anula si no tiene un pago abierto.` },
   // ---- CESCE - Riesgos -------------------------------------------------------------
-  riesgo_dias_asumido: { titulo: 'Días que cuentan como riesgo asumido',
-    explica: 'En CESCE - Riesgos y en la columna Consumo de la lista de clientes, los envíos de estos últimos días (con IVA, sin los pagados por adelantado) cuentan como dinero pendiente de cobro. Es también lo que se mira para saber si un envío cabe en el crédito. Conviene que se parezca al plazo al que te pagan. Cuando lleguen las facturas reales, se usarán esas.',
+  credito_deuda_real: { titulo: 'Crédito usado: con lo que debe de verdad',
+    explica: 'Encendido, lo usado del crédito de cada cliente es lo que debe de verdad (sus facturas pendientes de cobro, menos sus abonos sin compensar) más sus envíos a crédito que aún no están facturados. Es lo que se mira para saber si un envío cabe en su crédito, y lo que enseñan CESCE - Riesgos y la lista de clientes. Apagado, vuelve la estimación de antes: sus envíos a crédito de los últimos días, haya pagado o no.',
+    ejemplo: (v) => (String(v) === 'true'
+      ? 'Encendido: debe 2 facturas (1.000 €) y tiene 1 envío de 605 € sin facturar → 1.605 € usados. Cuando paga las facturas, se le libera ese crédito.'
+      : 'Apagado: cuentan sus envíos a crédito de los últimos días, aunque ya los haya pagado.') },
+  credito_dias_sin_facturar: { titulo: 'Crédito usado: días que un envío cuenta como «sin facturar»',
+    explica: 'Un envío a crédito cuenta como «sin facturar» hasta que la plataforma ve su factura (por su referencia GX en el concepto) o lo marcas como facturado. Por si una factura no lleva la referencia, pasados estos días desde la carga el envío se da por facturado: su importe ya estará en lo que debe el cliente, y así no se cuenta dos veces.',
+    ejemplo: (v) => `Con ${v} días: un envío cargado hace ${Math.max(1, Math.round(Number(v)) + 1)} días cuya factura no se ha encontrado ya no suma como «sin facturar».` },
+  riesgo_dias_asumido: { titulo: 'Días de la estimación de antes (crédito sin deuda real)',
+    explica: 'Solo se usa si «Crédito usado: con lo que debe de verdad» está apagado o la copia de facturas aún no se ha cargado: entonces lo usado son los envíos a crédito de estos últimos días (con IVA, sin los pagados por adelantado), haya pagado el cliente o no.',
     ejemplo: (v) => `Con ${v} días: un cliente con 3 envíos de 1.210 € en los últimos ${v} días tiene 3.630 € de riesgo asumido.` },
   credito_emails_activo: { titulo: 'Emails de crédito: interruptor',
     explica: 'Encendido, el cliente recibe un email cuando cambia su línea de crédito (concedida, ampliada, reducida o retirada, sea de CESCE o la que pones tú a mano) y cuando se acerca o llega a su límite. Nunca llevan importes. Apagado, no se manda ninguno.',
