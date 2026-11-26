@@ -4,8 +4,8 @@
 // Solo lo ve el Admin Master: para cualquier otro la acción no devuelve nada y este
 // apartado no se pinta. Aquí se pone la regla propia del cliente (vacía = manda la general
 // de Parámetros), se ve si está bloqueado y por qué y se le devuelve el crédito. Las facturas
-// NO se apuntan aquí (usuario, 2026-11-17: «no aporta»): llegarán solas con la conexión de
-// la contabilidad.
+// NO se apuntan aquí (usuario, 2026-11-17: «no aporta»): llegan solas de la copia de la
+// facturación (facturas_cliente_desde_copia, 2026-11-26).
 import { useCallback, useEffect, useState } from 'react';
 import { pagosDeCliente, guardarReglaPagos, devolverCredito, type PagosCliente as Datos } from '@/app/panel/(app)/clientes/acciones';
 import { euros, fechaHora } from '@/lib/formato';
@@ -80,7 +80,7 @@ export default function PagosCliente({ clienteId, onCreditoDevuelto }: { cliente
           <button type="button" className="btn-ghost" disabled={trabajando}
             onClick={() => hacer(() => guardarReglaPagos(clienteId, entero(dias), entero(tol)), 'Regla de pagos guardada.')}>Guardar regla</button>
         </div>
-        <div className="meta" style={{ marginTop: '0.3rem' }}>Vacío, manda la regla general. Ejemplo para un buen cliente: 100 días y 5 toleradas → se le bloquea a la sexta factura pagada a más de 100 días.</div>
+        <div className="meta" style={{ marginTop: '0.3rem' }}>Vacío, manda la regla general. Ejemplo: 30 días y 1 tolerada para quien paga al contado o a 30 → se le bloquea a la segunda factura pagada a más de 30 días.</div>
 
         {aviso && <div className={`pt-aviso ${aviso.ok ? 'ok' : 'error'}`} role="status" style={{ marginTop: '0.6rem' }}><div>{aviso.txt}</div></div>}
       </div>

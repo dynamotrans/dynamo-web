@@ -26,14 +26,16 @@ function UsoConsultas({ uso }: { uso: NonNullable<EstadoCopia['uso']> }) {
   const pct = Math.min(100, Math.round((uso.usadas / uso.limite) * 100));
   const color = pct >= 90 ? '#dc2626' : pct >= 70 ? '#d97706' : 'var(--purple)';
   return (
-    <span id="facturas-uso" className="meta" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
+    <span id="facturas-uso" className="meta uso-consultas"
       title={uso.oficial ? 'Consultas a la facturación de toda tu cuenta este mes, según la propia facturación.' : 'Consultas a la facturación que ha hecho la plataforma este mes (contadas por ella: la facturación no deja leer su cifra con esta clave).'}>
       <span>Consultas: <strong style={{ color: pct >= 70 ? color : 'var(--navy)' }}>{numero(uso.usadas, 0)}</strong> / {numero(uso.limite, 0)}</span>
-      <span role="progressbar" aria-label="Consultas a la facturación gastadas este mes" aria-valuemin={0} aria-valuemax={uso.limite} aria-valuenow={Math.min(uso.usadas, uso.limite)}
-        style={{ display: 'inline-block', width: 110, height: 7, borderRadius: 4, background: 'var(--gray-200)', overflow: 'hidden' }}>
+      {/* La barra no encoge ni se monta sobre el texto, y en una pantalla estrecha cada trozo
+          baja de línea entero (usuario, 2026-11-26: «en móvil se ve mal»). */}
+      <span role="progressbar" className="uso-c-barra" aria-label="Consultas a la facturación gastadas este mes" aria-valuemin={0} aria-valuemax={uso.limite} aria-valuenow={Math.min(uso.usadas, uso.limite)}>
         <span style={{ display: 'block', width: `${pct}%`, height: '100%', background: color }} />
       </span>
-      <span>{pct} %{uso.oficial ? '' : ' (solo la plataforma)'}{uso.renueva ? ` · se renueva el ${fecha(uso.renueva)}` : ''}</span>
+      <span>{pct} %{uso.oficial ? '' : ' (solo la plataforma)'}</span>
+      {uso.renueva && <span>Se renueva el {fecha(uso.renueva)}</span>}
     </span>
   );
 }

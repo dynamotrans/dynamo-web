@@ -10,6 +10,7 @@ import { pdfProformaCalculo, lineasProforma } from '@/lib/servidor/proformaCalcu
 import { enviarEmailOperativo } from '@/lib/servidor/emailOperativo';
 import { completarEmailEnvioCreado } from '@/lib/servidor/emailEnvioCreado';
 import { supabaseServicio } from '@/lib/supabase/servicio';
+import { refrescarAntesDeEnvio } from '@/lib/servidor/facturasCopia';
 import { googleRutasListo, rutaGoogle, direccionEnLinea, type PuntoRuta } from '@/lib/servidor/googleRutas';
 import { CONTACTO } from '@/lib/atencion';
 import { euros, porcentaje } from '@/lib/formato';
@@ -110,6 +111,8 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
 
   const { negociacion_pct, ...resto } = envio;
   if (negociacion_pct != null && ![0, 5, 10, 30].includes(negociacion_pct)) return { ok: false, error: 'La negociación del precio no es válida.' };
+  // Su deuda, al día antes de decidir si va a crédito o con pago previo.
+  await refrescarAntesDeEnvio(envio.cliente_id);
   const { data, error } = await s.supabase.rpc('crear_envio', { p_datos: resto, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id: string; referencia_gx: string } | undefined;
@@ -252,6 +255,8 @@ export async function crearEnvioCliente(envio: Omit<EnvioNuevo, 'cliente_id' | '
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
   if (!envio.importe_cliente || !(envio.importe_cliente > 0)) return { ok: false, error: 'El precio aún se está calculando: espera un momento y vuelve a pulsar.' };
+  // Su deuda, al día antes de decidir si va a crédito o con pago previo.
+  await refrescarAntesDeEnvio(s.perfil.cliente_id);
   const { data, error } = await s.supabase.rpc('crear_envio_cliente', { p_datos: envio, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;

@@ -1837,7 +1837,7 @@ test.describe('novedades', () => {
       await expect(page.locator('#facturas-lista tbody tr', { hasText: 'FAC-E2E-1' }).locator('.fac-cuenta')).toHaveText(/Prestaciones de servicios\s*70500000/);
       // El contador de consultas a la facturación de este mes, con su barra y su renovación.
       await expect(page.locator('#facturas-uso')).toContainText(/Consultas:\s*8\.565\s*\/\s*30\.000/);
-      await expect(page.locator('#facturas-uso')).toContainText(/29 %.*se renueva el/);
+      await expect(page.locator('#facturas-uso')).toContainText(/29 %.*Se renueva el/);
       await expect(page.locator('#facturas-uso [role=progressbar]')).toBeVisible();
       await expect(f.locator('#facturas-totales')).toContainText(/Por cobrar:\s*1\.571,00/);
       await expect(f.locator('#facturas-totales')).toContainText(/vencido:\s*1\.210,00/);

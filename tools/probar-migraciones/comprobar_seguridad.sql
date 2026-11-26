@@ -13647,7 +13647,8 @@ do $$ declare ids uuid[] := string_to_array(current_setting('prueba.e303'), ',')
   delete from transportistas where id = current_setting('prueba.t303')::uuid;
 end $$;
 
--- ---- 304. Pedidos de venta y de compra a la par, también las líneas a 0 € ----------------
+-- ---- 304. Pedidos de venta y de compra a la par; una penalización solo en el pedido del lado que tiene importe
+-- (usuario, 2026-11-26: «la penalización a 0 € en la facturación no sale») ------------------------------------
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 do $$ declare t uuid; e uuid; s uuid; p uuid; n int; ref text; cli uuid := current_setting('prueba.cliente')::uuid;
@@ -13673,25 +13674,29 @@ begin
   update penalizaciones set estado = 'confirmada' where id = p;
   if (select importe_cliente from penalizaciones where id = p) is distinct from 0 then
     raise exception 'FALLO 304 · el importe vacío al cliente no se guarda como 0'; end if;
-  if (select count(*) from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref) <> 2
+  -- El porte va a los dos pedidos; la paralización, solo al de compra (al cliente no se le cobra).
+  if (select count(*) from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref) <> 1
      or (select count(*) from v_holded_pedido_compra where "Num Pedido (referencia_gx_carga)" = ref) <> 2
-     or not exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref and "Concepto" = 'paralizacion' and "Precio unidad" = 0)
+     or exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref and "Concepto" = 'paralizacion')
+     or not exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref and "Concepto" = 'porte' and "Precio unidad" = 600)
      or not exists (select 1 from v_holded_pedido_compra where "Num Pedido (referencia_gx_carga)" = ref and "Concepto" = 'paralizacion' and "Precio unidad" = 40) then
-    raise exception 'FALLO 304 · el porte y la paralización no salen en los dos pedidos (con su 0 €)'; end if;
+    raise exception 'FALLO 304 · la paralización que no se cobra al cliente sale en su pedido de venta (a 0 €), o falta en el de compra'; end if;
   if exists (select 1 from v_lineas_pedido where envio_id = s) then
     raise exception 'FALLO 304 · un envío sin transportista saca un pedido sin el otro'; end if;
 
-  -- Pasados los dos; luego otra penalización a 0 € en los dos lados: se nota.
+  -- Pasados los dos, cada uno con SUS líneas (venta 1, compra 2); luego otra penalización solo
+  -- para el transportista: cambia el pedido de compra, no el de venta.
   n := marcar_exportados('venta', array[ref], true) + marcar_exportados('compra', array[ref], true);
-  if n <> 2 or (select holded_venta_lineas from envios where id = e) <> 2 or (select holded_compra_lineas from envios where id = e) <> 2 then
-    raise exception 'FALLO 304 · al pasar a Holded no se guardan las líneas'; end if;
+  if n <> 2 or (select holded_venta_lineas from envios where id = e) <> 1 or (select holded_compra_lineas from envios where id = e) <> 2 then
+    raise exception 'FALLO 304 · al pasarlo no se guardan las líneas de cada pedido: venta %, compra %', (select holded_venta_lineas from envios where id = e), (select holded_compra_lineas from envios where id = e); end if;
   if exists (select 1 from control_facturacion() c where c.envio_id = e) then
     raise exception 'FALLO 304 · con todo pasado sale en el control: %', (select array_agg(c.tipo) from control_facturacion() c where c.envio_id = e); end if;
   -- (Desde el 25-nov una penalización con los DOS importes a 0 no existe: aquí va con 0 € al cliente.)
   insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado)
     values (e, (select id from tipos_penalizacion where clave = 'otro'), 'Otra espera, sin repercutir', 0, 25, 'confirmada');
-  if not exists (select 1 from control_facturacion() c where c.envio_id = e and c.tipo = 'cambio_tras_holded' and c.detalle like '%tenía 2 líneas y ahora 3%') then
-    raise exception 'FALLO 304 · una penalización nueva después de pasarlo no sale en el control'; end if;
+  if not exists (select 1 from control_facturacion() c where c.envio_id = e and c.tipo = 'cambio_tras_holded' and c.detalle like '%pedido de compra tenía 2 líneas y ahora 3%')
+     or exists (select 1 from control_facturacion() c where c.envio_id = e and c.detalle like '%pedido de venta tenía%') then
+    raise exception 'FALLO 304 · una penalización nueva solo para el transportista no se nota en el pedido de compra (o se nota en el de venta): %', (select array_agg(c.detalle) from control_facturacion() c where c.envio_id = e); end if;
 end $$;
 -- El cliente NO ve la paralización que no se le cobra (usuario, 2026-11-25: a quien le toca 0 no se le genera).
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
@@ -13699,7 +13704,7 @@ set role authenticated;
 do $$ declare e uuid := split_part(current_setting('prueba.e304'), ',', 1)::uuid; begin
   if exists (select 1 from mis_penalizaciones() m where m.envio_id = e) then
     raise exception 'FALLO 304 · el cliente ve una penalización que no se le cobra (0 €)'; end if;
-  raise notice 'OK 304 · pedidos de venta y de compra a la par: el envío los saca a la vez al tener transportista; cada penalización sale en los dos aunque un lado sea a 0 € (vacío = 0), y el cliente no ve la que no se le cobra; una línea nueva después de pasarlo a Holded se nota';
+  raise notice 'OK 304 · pedidos de venta y de compra a la par: el envío los saca a la vez al tener transportista; una penalización solo va al pedido del lado que tiene importe (a 0 € no sale), el cliente no ve la que no se le cobra, y una línea nueva después de pasarlo se nota en su pedido';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
@@ -17382,4 +17387,97 @@ begin
     raise exception 'FALLO 372 · la página del transportista no lleva el móvil y el fijo por separado'; end if;
   update envios set estado = 'cancelado' where id = a;
   raise notice 'OK 372 · móvil y fijo del sitio a la vista: la orden de carga y la página del transportista llevan los dos por separado';
+end $$;
+
+-- 373 · TIPOS DE INCIDENCIA: SOLO CINCO, EN SU ORDEN (usuario, 2026-11-26). Los demás no se
+-- ofrecen pero no se borran (las incidencias que ya los tienen los conservan).
+do $$ declare l text; begin
+  select string_agg(nombre, ' | ' order by orden) into l from tipos_incidencia where activo;
+  if l is distinct from 'Incidencia con algún conductor | Rotura de mercancía | Incidencia en el transporte | Albarán incorrecto / Solicitud de albarán | Otros' then
+    raise exception 'FALLO 373 · los tipos de incidencia que se ofrecen no son los cinco acordados, en su orden: %', l; end if;
+  if (select clave from tipos_incidencia where nombre = 'Rotura de mercancía') <> 'siniestro' then raise exception 'FALLO 373 · «Rotura de mercancía» no es el tipo de siniestro'; end if;
+  if (select count(*) from tipos_incidencia where not activo and clave in ('cambio_fecha_hora_carga', 'facturacion_consulta', 'pago_consulta', 'cancelacion_transporte')) <> 4 then
+    raise exception 'FALLO 373 · los tipos retirados se han borrado (tienen que quedar, desactivados)'; end if;
+  if exists (select 1 from tipos_incidencia a join tipos_incidencia b on b.orden = a.orden and b.id <> a.id) then raise exception 'FALLO 373 · hay dos tipos de incidencia con el mismo orden'; end if;
+  raise notice 'OK 373 · tipos de incidencia: solo los cinco acordados y en su orden; los retirados quedan desactivados';
+end $$;
+
+-- 374 · PAGOS TARDÍOS CON LAS FACTURAS DE LA COPIA, A 60 DÍAS DE LA EMISIÓN (usuario, 2026-11-26).
+do $$ declare c uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; n int; e jsonb; antes text;
+begin
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  if has_function_privilege('authenticated', 'facturas_cliente_desde_copia()', 'execute') then raise exception 'FALLO 374 · un usuario puede pasar las facturas de la copia'; end if;
+  if (select valor from parametros where clave = 'pago_tarde_dias_max') <> '60'::jsonb then raise exception 'FALLO 374 · el plazo de pagos tardíos no es 60 días'; end if;
+  insert into clientes (razon_social, cif, riesgo_manual_euros) values ('Paga Tarde 374 SL', 'B37400374', 3000) returning id into c;
+  -- Una apuntada a mano con el mismo número que una de la copia: pasa a ser de la copia.
+  insert into facturas_cliente (cliente_id, numero, fecha_emision, importe) values (c, 'F374-1', hoy - 100, 1);
+  insert into facturas_emitidas (ref_externa, cliente_id, numero, fecha_emision, fecha_vencimiento, total, pendiente, estado, pagada_el, tipo) values
+    ('h374a', c, 'F374-1', hoy - 100, hoy + 20, 121, 0, 'pagada', hoy - 30, 'factura'),   -- cobrada a los 70 días: TARDÍA
+    ('h374b', c, 'F374-2', hoy - 90, hoy + 30, 242, 242, 'pendiente', null, 'factura'),    -- sin cobrar a los 90 días: TARDÍA (aunque vence a 120)
+    ('h374c', c, 'F374-3', hoy - 50, hoy + 70, 363, 0, 'pagada', hoy - 20, 'factura'),     -- cobrada a los 30 días: bien
+    ('h374d', c, 'F374-4', hoy - 40, hoy + 80, 100, 0, 'pagada', null, 'factura'),         -- pagada sin día: no cuenta
+    ('h374e', c, 'F374-5', hoy - 200, hoy - 80, 50, 50, 'anulada', null, 'factura'),       -- anulada: no entra
+    ('h374f', c, 'A374-1', hoy - 10, hoy - 10, -20, 0, 'pagada', hoy - 5, 'abono');         -- abono: no entra
+  n := facturas_cliente_desde_copia();
+  if (select count(*) from facturas_cliente where cliente_id = c) <> 4 or (select count(*) from facturas_cliente where cliente_id = c and origen = 'holded') <> 4
+     or (select ref_externa from facturas_cliente where cliente_id = c and numero = 'F374-1') <> 'h374a'
+     or (select fecha_cobro from facturas_cliente where ref_externa = 'h374a') <> hoy - 30
+     or (select fecha_cobro from facturas_cliente where ref_externa = 'h374b') is not null
+     or not (select no_cuenta from facturas_cliente where ref_externa = 'h374d') then
+    raise exception 'FALLO 374 · las facturas de la copia no pasan bien a los pagos del cliente: %', (select jsonb_agg(to_jsonb(f) - 'id' - 'creado_en') from facturas_cliente f where cliente_id = c); end if;
+  e := fn_credito_pagos_estado(c);
+  if (e ->> 'tardias')::int <> 2 or (e ->> 'dias_max')::int <> 60 or (e ->> 'vencidas_sin_cobrar')::int <> 1 then raise exception 'FALLO 374 · a 60 días de la emisión no salen las 2 tardías: %', e; end if;
+  -- Apagada la regla, no quita el crédito.
+  if (select riesgo_manual_euros from clientes where id = c) <> 3000 then raise exception 'FALLO 374 · con la regla apagada se quita el crédito'; end if;
+  -- Encendida y tolerando 1: a la segunda tardía, crédito a cero.
+  antes := (select valor #>> '{}' from parametros where clave = 'pago_tarde_facturas_toleradas');
+  update parametros set valor = 'true'::jsonb where clave = 'pago_tarde_activo';
+  update parametros set valor = '1'::jsonb where clave = 'pago_tarde_facturas_toleradas';
+  n := facturas_cliente_desde_copia();
+  if (select riesgo_manual_euros from clientes where id = c) <> 0 or (select bloqueado_en from clientes_pagos where cliente_id = c) is null then
+    raise exception 'FALLO 374 · con la regla encendida no se quita el crédito a quien paga tarde'; end if;
+  update parametros set valor = 'false'::jsonb where clave = 'pago_tarde_activo';
+  update parametros set valor = to_jsonb(antes::int) where clave = 'pago_tarde_facturas_toleradas';
+  -- La factura se anula en la facturación: sale de sus pagos.
+  update facturas_emitidas set estado = 'anulada', pendiente = 0 where ref_externa = 'h374b';
+  n := facturas_cliente_desde_copia();
+  if exists (select 1 from facturas_cliente where ref_externa = 'h374b') then raise exception 'FALLO 374 · una factura anulada sigue en los pagos del cliente'; end if;
+  delete from clientes_pagos where cliente_id = c;
+  delete from facturas_cliente where cliente_id = c;
+  delete from facturas_emitidas where ref_externa like 'h374%';
+  perform set_config('request.jwt.claim.role', '', true);
+  raise notice 'OK 374 · pagos tardíos con las facturas de la copia: a 60 días de la emisión, la pagada sin día no cuenta, las anuladas y los abonos fuera, y solo quita el crédito con la regla encendida';
+end $$;
+
+-- 375 · LA DEUDA DEL CLIENTE EN SU FICHA (usuario, 2026-11-26): lo que debe, lo pasado de 60
+-- días (con la lista para reclamar), lo sin facturar y el crédito que le queda; solo Dynamo.
+do $$ declare c uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; r jsonb; begin
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform set_config('prueba.cargada375', coalesce((select carga_completa_en::text from facturas_copia_estado where id), ''), false);
+  update facturas_copia_estado set carga_completa_en = now() where id;
+  insert into clientes (razon_social, cif, riesgo_manual_euros) values ('Ficha Deuda 375 SL', 'B37500375', 5000) returning id into c;
+  insert into facturas_emitidas (ref_externa, cliente_id, numero, fecha_emision, fecha_vencimiento, total, pendiente, estado, tipo) values
+    ('h375a', c, 'F375-1', hoy - 80, hoy + 40, 1210, 1210, 'pendiente', 'factura'),   -- pasada de 60 días (aunque vence a 120)
+    ('h375b', c, 'F375-2', hoy - 20, hoy + 100, 605, 300, 'parcial', 'factura'),      -- dentro de plazo
+    ('h375c', c, 'A375-1', hoy - 5, hoy - 5, -110, -110, 'pendiente', 'abono');        -- abono por compensar
+  r := deuda_cliente_ficha(c);
+  if (r ->> 'debe')::numeric <> 1400 or (r ->> 'pasado')::numeric <> 1210 or (r ->> 'facturas_pasadas')::int <> 1 or (r ->> 'dias_mas_antigua')::int <> 80
+     or (r ->> 'abonos')::numeric <> 110 or (r ->> 'dias_plazo')::int <> 60 or jsonb_array_length(r -> 'lista_pasadas') <> 1 or r -> 'lista_pasadas' -> 0 ->> 'numero' <> 'F375-1'
+     or (r ->> 'limite')::numeric <> 5000 or (r ->> 'usado')::numeric <> 1400 or (r ->> 'disponible')::numeric <> 3600 then
+    raise exception 'FALLO 375 · la deuda de la ficha del cliente no sale bien: %', r; end if;
+  perform set_config('prueba.c375', c::text, false);
+  perform set_config('request.jwt.claim.role', '', true);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare ok boolean := false; begin
+  begin perform deuda_cliente_ficha(current_setting('prueba.c375')::uuid); exception when insufficient_privilege then ok := true; end;
+  if not ok then raise exception 'FALLO 375 · un cliente puede ver la deuda de la ficha de otro'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  delete from facturas_emitidas where ref_externa like 'h375%';
+  update facturas_copia_estado set carga_completa_en = nullif(current_setting('prueba.cargada375'), '')::timestamptz where id;
+  raise notice 'OK 375 · deuda en la ficha del cliente: lo que debe (menos abonos), lo pasado de 60 días con su lista, lo usado y lo que le queda; solo Dynamo';
 end $$;

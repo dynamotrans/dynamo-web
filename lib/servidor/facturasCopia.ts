@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
-import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, pedidosDeHolded, pedidosFacturadosDeHolded, gxDePedido, type FacturaCopia, type FacturaHolded, type PedidoFacturado, type PedidoVenta } from '@/lib/holdedFacturas';
+import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, formaDe, pedidosDeHolded, pedidosFacturadosDeHolded, gxDePedido, type FacturaCopia, type FacturaHolded, type PedidoFacturado, type PedidoVenta } from '@/lib/holdedFacturas';
 import { apuntarConsultas, refrescarUsoReal, usoDelMes } from '@/lib/servidor/holdedUso';
 import { contactosDeHolded } from '@/lib/servidor/holdedContactos';
 import { hoyMadrid } from '@/lib/filtroFechas';
@@ -60,6 +60,24 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean; repasarDesde?
   } finally {
     await apuntarConsultas();      // las consultas hechas en esta llamada, pase lo que pase
   }
+}
+
+// LA DEUDA DE ESE CLIENTE, AL DÍA JUSTO ANTES DE CREAR UN ENVÍO (usuario, 2026-11-26): si
+// el cliente tiene crédito, se pone al día la copia (lo que lleve más de un par de minutos sin
+// leerse) antes de decidir si el envío cabe en su crédito o va con pago previo. Así, si pagó
+// esta mañana, ya cuenta. Con un tope de tiempo: si la facturación tarda, se sigue con lo que
+// hay (la pasada sigue sola en la siguiente). Sin crédito no hace falta: va con pago previo.
+export async function refrescarAntesDeEnvio(clienteId: string | null | undefined, maxMs = 6000): Promise<void> {
+  const sv = supabaseServicio();
+  if (!clienteId || !holdedListo() || !sv) return;
+  const { data: c } = await sv.from('clientes').select('riesgo_efectivo_euros').eq('id', clienteId).maybeSingle();
+  if (!c || !(Number(c.riesgo_efectivo_euros) > 0)) return;
+  let reloj: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    ponerAlDiaFacturas().catch(() => null),
+    new Promise<void>((r) => { reloj = setTimeout(r, maxMs); }),
+  ]);
+  if (reloj) clearTimeout(reloj);
 }
 
 const TOPE_AUTOMATICO = 0.9;      // con el 90 % del cupo del mes gastado, las pasadas automáticas se paran
@@ -394,10 +412,15 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
 
   // 7. El plan de cuentas (para enseñar el nombre de la cuenta contable y no su identificador):
   //    una vez al día. Si la clave no deja leerlo, se queda sin nombre y se reintenta mañana.
-  if (queda(4000) && (!e.cuentas_en || Date.now() - Date.parse(e.cuentas_en) > CUENTAS_CADA_MS)) {
+  //    Si se leyó pero no se guardó ninguna (la respuesta no traía lo esperado), se reintenta
+  //    cada hora y se apunta la FORMA de la respuesta (nombres de campos, ningún dato).
+  let sinCuentas = false;
+  if (tocaAbonos && e.cuentas_en) { const { count } = await sv.from('holded_cuentas').select('cuenta_id', { count: 'exact', head: true }); sinCuentas = !count; }
+  if (queda(4000) && (!e.cuentas_en || sinCuentas || Date.now() - Date.parse(e.cuentas_en) > CUENTAS_CADA_MS)) {
     const r = await leerHolded('/accounting-accounts', { include_empty: 'true', archived: 'true' });
     if (r.ok) {
       const cuentas = cuentasDeHolded(r.datos).map((c) => ({ ...c, visto_en: new Date().toISOString() }));
+      if (!cuentas.length) console.error('[Holded] plan de cuentas sin cuentas; forma de la respuesta:', formaDe(r.datos).slice(0, 600));
       for (let i = 0; i < cuentas.length; i += 500) {
         const { error } = await sv.from('holded_cuentas').upsert(cuentas.slice(i, i + 500), { onConflict: 'cuenta_id' });
         if (error) { avisos.push(error.message); break; }
@@ -405,6 +428,9 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     } else console.error('[Holded] plan de cuentas', r.error);
     await apuntar({ cuentas_en: new Date().toISOString() });
   }
+
+  // 8. Las facturas de cada cliente, para la regla de pagos tardíos (a 60 días de la emisión).
+  if (queda(3000)) { const { error } = await sv.rpc('facturas_cliente_desde_copia'); if (error) avisos.push(`Pagos tardíos: ${error.message}`); }
 
   await apuntar({ ultima_ok_en: new Date().toISOString(), error: null });
   if (avisos.length) console.error('[Holded] copia de facturas, avisos', avisos.join(' · ').slice(0, 800));

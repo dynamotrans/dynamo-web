@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, gxDePedido, gxDeTextos, idsDeCuentas, importeDe, pedidosDeHolded, pedidosFacturadosDeHolded, usoDeHolded } from '../../lib/holdedFacturas';
+import { baseDeHolded, cifDeContacto, cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentaDeLineas, cuentasDeHolded, formaDe, gxDePedido, gxDeTextos, idsDeCuentas, importeDe, pedidosDeHolded, pedidosFacturadosDeHolded, usoDeHolded } from '../../lib/holdedFacturas';
 import { diaMas, finDeMes, mesesAtras } from '../../lib/facturasCopiaFechas';
 
 const base = { id: '507f1f77bcf86cd799439011', document_number: 'F260123', contact_id: 'ABCDEFABCDEFABCDEFABCDEF', contact_name: 'Acme SL', description: 'Porte GX1',
@@ -244,4 +244,19 @@ test('pedidos de venta ya facturados: solo los completados que llevan algún GX'
     { id: 'b'.repeat(24), fecha: '2026-11-19', envios_gx: ['GX300400', 'GX500600'] } ]);
   assert.deepEqual([r.hayMas, r.leidos], [false, 7]);
   assert.deepEqual(pedidosFacturadosDeHolded(undefined), { pedidos: [], hayMas: false, cursor: null, leidos: 0 });
+});
+
+test('plan de cuentas: la lista puede venir tal cual o dentro de «data», con «_id» y «num»', () => {
+  const id = 'a'.repeat(24), id2 = 'b'.repeat(24);
+  assert.deepEqual(cuentasDeHolded([{ id, num: 70500000, name: 'Prestaciones de servicios' }]), [{ cuenta_id: id, numero: '70500000', nombre: 'Prestaciones de servicios' }]);
+  assert.deepEqual(cuentasDeHolded({ data: [{ _id: id2.toUpperCase(), code: '43000000', description: 'Clientes' }, { _id: 'no-vale' }, null] }), [{ cuenta_id: id2, numero: '43000000', nombre: 'Clientes' }]);
+  assert.deepEqual(cuentasDeHolded({ items: [{ id, number: 70500000, name: 'Servicios' }] }), [{ cuenta_id: id, numero: '70500000', nombre: 'Servicios' }]);
+  assert.deepEqual(cuentasDeHolded({ otra: 1 }), []);
+});
+
+test('forma de una respuesta: solo nombres de campos y tipos, ningún valor', () => {
+  assert.equal(formaDe({ items: [{ id: 'secreto', nombre: 'Empresa SL' }], has_more: false }), '{items: lista(1) de {id, nombre}; has_more: boolean}');
+  assert.equal(formaDe([{ a: 1, b: 'x' }, { a: 2 }]), 'lista(2) de {a, b}');
+  assert.equal(formaDe(null), 'nulo');
+  assert.ok(!formaDe({ items: [{ id: 'secreto', nombre: 'Empresa SL' }] }).includes('secreto'));
 });

@@ -5322,6 +5322,7 @@ export type Database = {
       deshacer_cambio: { Args: { p_tabla: string | null; p_fila: string | null }; Returns: Json }
       deshacer_cancelacion: { Args: { p_envio: string | null }; Returns: string }
       deshacer_pack: { Args: { p_pack: string | null }; Returns: Json }
+      deuda_cliente_ficha: { Args: { p_cliente: string | null }; Returns: Json }
       deuda_clientes: { Args: { p_clientes: string[] | null }; Returns: { cliente_id: string; pendiente: number; vencido: number; facturas: number; vence_primera: string }[] }
       deuda_estado: { Args: Record<PropertyKey, never>; Returns: Json }
       devolucion_pago_abrir: { Args: { p_envio: string | null; p_importe: number | null; p_cobrado: number | null; p_motivo?: string | null }; Returns: Json }
@@ -5419,6 +5420,7 @@ export type Database = {
       facturas_apuntar_cobros: { Args: { p_cobros: Json | null }; Returns: number }
       facturas_avisar: { Args: Record<PropertyKey, never>; Returns: boolean }
       facturas_casar: { Args: Record<PropertyKey, never>; Returns: number }
+      facturas_cliente_desde_copia: { Args: Record<PropertyKey, never>; Returns: number }
       facturas_guardar: { Args: { p_facturas: Json | null }; Returns: number }
       facturas_lista: { Args: { p_q?: string | null; p_estado?: string | null; p_desde?: string | null; p_hasta?: string | null; p_pagina?: number | null; p_por?: number | null; p_cliente?: string | null }; Returns: Json }
       facturas_toca_pasada: { Args: { p_hora: number | null; p_minuto: number | null }; Returns: boolean }

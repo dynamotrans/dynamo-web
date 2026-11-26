@@ -5800,3 +5800,16 @@ table.data td.route-full .rf-stops .rf-line > .ptar-route-tag { margin-top: 0; }
 .vm-caja .wiz-warn { width: 100%; text-align: left; }
 @media (max-width: 480px) { .vm-caja { margin: 1rem 0.6rem; padding: 1.4rem 1.1rem 1.1rem; } }
 .linklike { background: none; border: 0; padding: 0; color: var(--purple, #3300cc); text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* Contador de consultas a la facturación (Administración → Facturas): texto · barra · % ·
+   renovación. Cada trozo va entero; si no cabe, baja de línea (en móvil la barra se montaba
+   sobre el número). */
+.uso-consultas { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; min-width: 0; max-width: 100%; }
+.uso-consultas > span { flex: 0 0 auto; white-space: nowrap; }
+.uso-consultas > .uso-c-barra { flex: 0 0 110px; width: 110px; height: 7px; border-radius: 4px; background: var(--gray-200); overflow: hidden; display: block; }
+
+/* La deuda del cliente en su ficha: cuatro cifras en rejilla (dos por fila en el móvil). */
+.deuda-ficha { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+.deuda-ficha > div { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.6rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; background: var(--gray-50); min-width: 0; }
+.deuda-ficha strong { font-size: 1.15rem; color: var(--navy); }
+@media (max-width: 760px) { .deuda-ficha { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -168,3 +168,19 @@ export async function devolverCredito(cliente: string): Promise<{ ok: true; cred
   return { ok: true, credito_manual: r.credito_manual == null ? null : Number(r.credito_manual) };
 }
 
+
+// ---- LA DEUDA DEL CLIENTE EN SU FICHA (usuario, 2026-11-26) -----------------------------
+// Solo el equipo de Dynamo (la base de datos tampoco deja a nadie más).
+export type DeudaFicha = {
+  debe: number; facturas: number; pasado: number; facturas_pasadas: number; dias_mas_antigua: number | null; abonos: number;
+  lista_pasadas: { numero: string | null; emision: string; pendiente: number; dias: number }[];
+  dias_plazo: number; sin_facturar: number; envios_sin_facturar: number; pedidos: number; n_pedidos: number;
+  usado: number; limite: number | null; disponible: number | null; credito_real: boolean; al_dia_en: string | null;
+};
+export async function deudaDeCliente(cliente: string): Promise<DeudaFicha | null> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#deudaDeCliente", [cliente]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol) || !/^[0-9a-f-]{36}$/i.test(cliente)) return null;
+  const { data, error } = await s.supabase.rpc('deuda_cliente_ficha', { p_cliente: cliente });
+  return error || !data ? null : (data as unknown as DeudaFicha);
+}

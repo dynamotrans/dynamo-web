@@ -77,7 +77,7 @@ export default function ControlFacturacion({ filas, cuadre, error, desde = null 
       </p>}
       <p style={{ margin: '0 0 1rem', fontSize: 'var(--fs-l)', color: 'var(--gray-500)', maxWidth: 820, lineHeight: 1.5 }}>
         Cada envío saca <strong>a la vez</strong> su pedido de venta (al cliente) y su pedido de compra (al transportista), con el <strong>mismo número</strong> (la referencia GX).
-        Cada penalización o paralización confirmada va en los dos, <strong>aunque sea a 0 €</strong>. Aquí se comprueba que no falte ninguno en Holded y que no haya cambiado nada después de pasarlo.
+        Cada penalización o paralización confirmada va al pedido del lado que la paga: al de venta si se cobra al cliente y al de compra si se paga al transportista (<strong>a 0 € no va</strong>). Aquí se comprueba que no falte ninguno en Holded y que no haya cambiado nada después de pasarlo.
         Solo envíos de Dynamo: los del transportista propio del cliente no llevan pedidos.
       </p>
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se ha podido leer el control: {error}</div></div>}

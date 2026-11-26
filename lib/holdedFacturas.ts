@@ -207,16 +207,33 @@ export function gxDePedido(cuerpo: unknown): string[] {
 // La línea de la factura trae el IDENTIFICADOR interno de su cuenta contable, no su número ni
 // su nombre (usuario, 2026-11-26: «¿podemos poner mejor el nombre, y no el código?»).
 export function cuentasDeHolded(cuerpo: unknown): { cuenta_id: string; numero: string | null; nombre: string | null }[] {
-  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as { items?: unknown };
-  const items = Array.isArray(c.items) ? c.items as { id?: unknown; number?: unknown; name?: unknown }[] : [];
+  // La lista puede venir tal cual o dentro de «items» / «data» / «accounts», y cada cuenta con
+  // su identificador en «id» o «_id», el número en «number» / «num» / «code» y el nombre en
+  // «name» (con datos reales, 2026-11-26, la forma documentada no traía ninguna cuenta).
+  const c = (cuerpo && typeof cuerpo === 'object' ? cuerpo : {}) as Record<string, unknown>;
+  const lista = Array.isArray(cuerpo) ? cuerpo : [c.items, c.data, c.accounts, c.results].find(Array.isArray) ?? [];
   const salida: { cuenta_id: string; numero: string | null; nombre: string | null }[] = [];
-  for (const a of items) {
-    const id = a && typeof a === 'object' ? texto(a.id)?.toLowerCase() : null;
+  for (const a of lista as Record<string, unknown>[]) {
+    if (!a || typeof a !== 'object') continue;
+    const id = (texto(a.id) ?? texto(a._id) ?? texto(a.account_id))?.toLowerCase();
     if (!id || !/^[0-9a-f]{24}$/.test(id) || salida.some((x) => x.cuenta_id === id)) continue;
-    const numero = typeof a.number === 'number' && Number.isFinite(a.number) ? String(a.number) : texto(a.number);
-    salida.push({ cuenta_id: id, numero: numero?.slice(0, 20) ?? null, nombre: texto(a.name)?.slice(0, 200) ?? null });
+    const n = a.number ?? a.num ?? a.account_number ?? a.code;
+    const numero = typeof n === 'number' && Number.isFinite(n) ? String(n) : texto(n);
+    salida.push({ cuenta_id: id, numero: numero?.slice(0, 20) ?? null, nombre: (texto(a.name) ?? texto(a.description))?.slice(0, 200) ?? null });
   }
   return salida;
+}
+/** La FORMA de una respuesta (solo nombres de campos y tipos, ningún valor): para saber por qué una lectura no trae lo esperado sin apuntar datos. */
+export function formaDe(cuerpo: unknown): string {
+  const tipo = (v: unknown) => (Array.isArray(v) ? `lista(${v.length})` : v === null ? 'nulo' : typeof v);
+  if (Array.isArray(cuerpo)) return `lista(${cuerpo.length})` + (cuerpo[0] && typeof cuerpo[0] === 'object' ? ` de {${Object.keys(cuerpo[0] as object).slice(0, 20).join(', ')}}` : '');
+  if (!cuerpo || typeof cuerpo !== 'object') return tipo(cuerpo);
+  const o = cuerpo as Record<string, unknown>;
+  return '{' + Object.keys(o).slice(0, 20).map((k) => {
+    const v = o[k];
+    const dentro = Array.isArray(v) && v[0] && typeof v[0] === 'object' ? ` de {${Object.keys(v[0] as object).slice(0, 20).join(', ')}}` : '';
+    return `${k}: ${tipo(v)}${dentro}`;
+  }).join('; ') + '}';
 }
 /** Los identificadores de cuenta que hay en el texto guardado de una factura («id · id»). */
 export function idsDeCuentas(cuenta: string | null | undefined): string[] {
