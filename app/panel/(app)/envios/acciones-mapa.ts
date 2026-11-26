@@ -31,7 +31,7 @@ export async function mapaDelEnvio(envio: string): Promise<{ ok: true; mapa: Map
 // MAPA GENERAL (usuario, 2026-11-22): todos los envíos en programación o en marcha que ve quien
 // pregunta (Dynamo, todos; el cliente, los suyos). Sale AL MOMENTO (usuario, 2026-11-22: tardaba
 // 5 s): las paradas sin coordenadas no se buscan aquí, sino después con situarParadasDelMapa.
-export type EnvioMapa = MapaEnvio & { id: string; cliente: string | null; fecha_carga: string | null };
+export type EnvioMapa = MapaEnvio & { id: string; cliente: string | null; fecha_carga: string | null; pendiente_pago?: boolean | null };
 export async function mapaEnviosEnCurso(): Promise<{ ok: true; envios: EnvioMapa[] } | { ok: false; error: string }> {
   comprobarEntrada("app/panel/(app)/envios/acciones-mapa#mapaEnviosEnCurso", []);
   const s = await sesion();

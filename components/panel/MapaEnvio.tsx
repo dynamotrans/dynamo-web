@@ -16,7 +16,8 @@ import { estadoMapa, horaParada, posicionCamion, type MapaEnvio } from '@/lib/ma
 import { dibujarRuta, resaltador, ESTILO_MAPA, marcadorCamion, svgCamion, type Ruta } from './mapaRuta';
 import { crearMotor, type Grupo, type LL, type Motor } from './mapa/motor';
 
-export const COLOR = { carga: '#e07b00', descarga: '#3300cc', hecho: '#16a34a', ruta: '#3300cc', pendiente: '#9ca3af' };
+export const COLOR = { carga: '#c2410c', descarga: '#157a3f',   // los de las pastillas Recogida / Entrega
+  hecho: '#16a34a', ruta: '#3300cc', pendiente: '#9ca3af' };
 export const TONO: Record<string, string> = { gris: '#6b7280', azul: '#2563eb', ambar: '#d97706', verde: '#16a34a', rojo: '#dc2626' };
 
 // El mapa en su propia capa (isolation): los paneles del mapa llevan z-index altos y, sin

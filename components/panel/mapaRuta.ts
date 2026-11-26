@@ -4,7 +4,7 @@
 //   · tramos hechos en línea continua y los que faltan en discontinua (en el tramo en curso, la
 //     parte hecha llega hasta el camión); cada tramo va POR LA CARRETERA cuando se tiene su
 //     trazado de Google (mapa.trazados) y en línea recta mientras no;
-//   · cada parada, un círculo con su número (naranja recogida, morado entrega), también ya hecha;
+//   · cada parada, un círculo con su número (recogida y entrega con los colores de sus pastillas), también ya hecha;
 //   · al pulsar una parada o la línea, la ruta se RESALTA (más gruesa, por encima de las demás) y
 //     salen las etiquetas de TODAS sus paradas, en varias líneas, con su hora real o prevista,
 //     durante 4 segundos; pulsando fuera del envío se apaga al momento (eso lo lleva quien la
@@ -13,7 +13,10 @@ import { etiquetaParada, etiquetaParadaCorta, horaParada, posicionCamion, puntos
 import { partirLinea } from '@/lib/lineaRuta';
 import type { Direccion, EstiloLinea, Etiqueta, Linea, LL, Marca, Motor } from './mapa/motor';
 
-const MORADO = '#3300cc', GRIS = '#9ca3af', NARANJA = '#e07b00';
+const MORADO = '#3300cc', GRIS = '#9ca3af';
+// Colores de las paradas = los de las pastillas «Recogida» / «Entrega» de toda la plataforma
+// (.ptar-route-tag.rec / .ent; usuario, 2026-11-26).
+const RECOGIDA = '#c2410c', ENTREGA = '#157a3f';
 
 // EL CAMIÓN DEL MAPA (usuario, 2026-11-22: «nada de emoticono; un tráiler fino con el logo
 // de Dynamo en el remolque»): dibujo propio de perfil, remolque blanco con «dynamo» y la cabeza
@@ -35,6 +38,8 @@ export type Ruta = {
   activar: (excepto?: number) => void;
   desactivar: () => void;
   atenuar: (si: boolean) => void;
+  /** Otras marcas del mismo envío (su camión, su punto de programado) que se atenúan con él. */
+  sumar: (m: Marca) => void;
   quitar: () => void;
 };
 
@@ -75,11 +80,12 @@ export function dibujarRuta(motor: Motor, mapa: MapaEnvio & { id?: string }, o: 
   if (pts.length > 1) propia.toque(entera, pulsar);
   const t = o.grande ? 28 : 20;
   const marcas: Marca[] = [];
+  const extras: Marca[] = [];
   for (const p of pts) {
-    // Siempre su NÚMERO y su color (naranja recogida, morado entrega), también ya hecha
+    // Siempre su NÚMERO y su color (recogida y entrega con los colores de sus pastillas), también ya hecha
     // (usuario, 2026-11-22: con un ✓ no se sabe si era la 1 o la 2; dónde va el camión ya
     // dice por dónde ha pasado). La hora real sale en su etiqueta.
-    const color = p.tipo === 'carga' ? NARANJA : MORADO;
+    const color = p.tipo === 'carga' ? RECOGIDA : ENTREGA;
     marcas.push(propia.marca(ll(p), { clase: 'parada-mapa', ancho: t, alto: t, titulo: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`,
       html: `<div style="width:${t}px;height:${t}px;border-radius:${t / 2}px;background:${color};color:#fff;font:800 ${o.grande ? 13 : 11}px/${t}px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${p.orden}</div>`,
       alPulsar: () => { solo = p.orden; o.alPulsar(); } }));
@@ -164,9 +170,16 @@ export function dibujarRuta(motor: Motor, mapa: MapaEnvio & { id?: string }, o: 
       for (const x of tramos) x.linea.estilo(x.base);
       if (o.oculta) propia.ocultar();
     },
+    // Atenuado (usuario, 2026-11-26: «atenuar todo lo demás para que no estorbe»): líneas,
+    // paradas, camión y punto del envío, casi transparentes y sin poder taparle a la pulsada.
     atenuar(si) {
-      for (const x of tramos) x.linea.estilo(si ? { ...x.base, opacidad: 0.25 } : x.base);
+      for (const x of tramos) x.linea.estilo(si ? { ...x.base, opacidad: 0.12, color: x.base.color === MORADO ? GRIS : x.base.color } : x.base);
+      for (const mk of [...marcas, ...extras]) {
+        const el = mk.el();
+        if (el) { el.style.opacity = si ? '0.18' : ''; el.style.filter = si ? 'grayscale(1)' : ''; }
+      }
     },
+    sumar(mk) { extras.push(mk); },
     quitar() { quitarEtiquetas(); propia.vaciar(); rotulos.vaciar(); },
   };
   return ruta;

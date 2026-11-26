@@ -1326,3 +1326,11 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - [x] ~~Días de la ventana elegidos en calendario~~: descartado (usuario, 2026-11-21).
 - [ ] **ANTES DE PRODUCCIÓN · Plantar árboles para compensar el CO₂ (usuario, 2026-11-21)**: el cliente paga con **tarjeta, siempre por adelantado** (sea cual sea su riesgo o su crédito: esto no va a crédito ni a proforma) la plantación de los árboles que compensan su envío (`lib/co2.ts` ya calcula cuántos). Dos formas: (1) **casilla en Nuevo envío** «Plantar N árboles · X €» que se cobra al confirmar; (2) **por lotes**: una pantalla con sus envíos para ir marcando los que quiera, ve la suma de árboles y euros, y botón «Confirmar y plantar» → pago con tarjeta al momento. Falta: elegir la organización que planta (y su precio por árbol, en Parámetros), su certificado para el cliente, y Stripe con claves (ya está preparado).
 - [x] **Límites de consultas de precio subidos** (2026-11-21): 30 al día, 100 a la semana y 300 al mes, porque «Crear varios envíos» enseña hasta 20 precios de golpe. Se cambian en Parámetros.
+
+### Mapas: qué se ve de cada envío (usuario, 2026-11-26)
+- Programado / Asignando / Confirmado: punto gris junto a su 1.ª recogida + ruta y paradas SIEMPRE a la vista.
+- Pendiente de pago: solo el punto gris; ruta y paradas al pulsarlo (mapa_envios_en_curso → pendiente_pago).
+- En marcha: camión con borde de color (azul en camino/en ruta, naranja cargando, rojo retraso, gris parado) + ruta y paradas.
+- Paradas con los colores de las pastillas de la plataforma: Recogida #c2410c, Entrega #157a3f.
+- Al pulsar un punto, camión, parada o ruta: esa en morado grueso con carteles; TODO lo demás (líneas, paradas, camiones, puntos) atenuado casi transparente y en gris. Vuelve a los 4 s o al pulsar el mapa.
+- PENDIENTE de decidir: colores de los puntos de programado por estado (propuesta: gris programado, naranja asignando, verde confirmado, rojo pendiente de pago, rojo parpadeante si pasó su día de carga).

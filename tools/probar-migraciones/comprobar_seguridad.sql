@@ -17540,3 +17540,28 @@ do $$ declare c uuid; a uuid; hoy date := (now() at time zone 'Europe/Madrid')::
   perform set_config('request.jwt.claim.role', '', true);
   raise notice 'OK 376 · bloqueo por pagos tardíos: los programados siguen como estaban; escribir el crédito a mano lo devuelve con 7 días de gracia; solo se perdonan las ya pagadas';
 end $$;
+
+-- ---- 377. Mapa general: cada envío dice si espera el pago previo ----------------------
+-- Los programados enseñan ruta y paradas salvo los pendientes de pago (usuario, 2026-11-26):
+-- la pantalla lo sabe por «pendiente_pago», que debe coincidir con la tabla de envíos.
+reset role;
+do $$ declare e uuid; r jsonb; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, (now() at time zone 'Europe/Madrid')::date + 3) returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado', estado_pago_previo = 'pendiente' where id = e;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  r := mapa_envios_en_curso();
+  if exists (select 1 from jsonb_array_elements(r) x where not (x ? 'pendiente_pago')) then raise exception 'FALLO 377 · hay envíos del mapa sin «pendiente_pago»'; end if;
+  if exists (select 1 from jsonb_array_elements(r) x join envios v on v.id = (x ->> 'id')::uuid
+              where (x ->> 'pendiente_pago')::boolean <> (v.estado = 'programado' and v.estado_pago_previo = 'pendiente')) then
+    raise exception 'FALLO 377 · «pendiente_pago» del mapa no coincide con el envío'; end if;
+  if not (select (x ->> 'pendiente_pago')::boolean from jsonb_array_elements(r) x where x ->> 'id' = e::text) then
+    raise exception 'FALLO 377 · un programado pendiente de pago no sale como tal en el mapa'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'cancelado' where id = e;
+  raise notice 'OK 377 · mapa general: cada envío dice si espera el pago previo (pendiente_pago), igual que la tabla de envíos';
+end $$;
