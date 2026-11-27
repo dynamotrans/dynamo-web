@@ -1359,10 +1359,11 @@ Pendiente:
 - WhatsApp al afectado por una baja pedida: necesita plantilla (con las plantillas, al final).
 - Riesgos: distintivo «Sin verificar» en la lista (hoy sale crédito 0).
 
-### Verificación automática por el céntimo (usuario, 2026-11-26) — HECHO (falta que el usuario conecte la cuenta en Holded)
+### Verificación automática por el céntimo (usuario, 2026-11-26) — HECHO (cuenta conectada en Holded; falta la prueba de punta a punta del usuario)
 - Cuenta SECUNDARIA de Dynamo (sin otro uso) solo para recibir los 0,01 €. El usuario la conecta en Holded (Tesorería) y pasa el IBAN y el banco.
 - La plataforma lee (solo lectura, cada hora) los movimientos de ESA cuenta en Holded: 0,01 € + código VER-XXXXXX en el concepto + ordenante ≈ razón social → verifica sola (método transferencia, motivo con el movimiento). Nombre que no cuadra → «Empresas por verificar» con el movimiento, decide Dynamo. No concilia nada; el resto lo concilia el usuario a mano.
 - IBAN de verificación: dato aparte del IBAN de proformas/pagos (lo ve el cliente en la ventana de verificación).
 - Cuenta: Banco Santander, parámetros dynamo_verificacion_iban / dynamo_verificacion_banco (blindados: solo Supabase). La ventana del cliente enseña esa cuenta.
 - lib/servidor/verificacionBanco.ts: una vez por hora (dentro de la pasada de la facturación cada 10 min) lee GET /treasury/accounts (busca la cuenta por IBAN) y GET /treasury/accounts/{id}/bank-movements?status=pending; solo si hay alguna empresa sin verificar. verificacion_por_movimiento decide (BD 380). Estado y fallos en verificacion_banco_estado; movimientos mirados en verificacion_movimientos.
+- Más rápido tras «Ya la he hecho» (usuario, 2026-11-26): si un cliente sin verificar avisó de su transferencia hace menos de 6 h, se mira en cada pasada (cada 10 min laborables 7-21 h; el resto, cada hora) en vez de una vez por hora. El retraso del banco → Holded no depende de la plataforma (Holded sincroniza solo cada 24 h con «Sincronización automática» activada en la cuenta; el botón ↻ de Holded lo adelanta). Por eso al cliente se le dice «normalmente en 1 o 2 días laborables».
 - Necesita que la clave de Holded tenga permiso de lectura de bancos (scope accounting:banks.read). Si no, sale en los logs «[Holded] cuenta de verificación … 403».

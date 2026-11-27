@@ -2,7 +2,8 @@ import 'server-only';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 
-// VERIFICACIÓN AUTOMÁTICA POR EL CÉNTIMO (usuario, 2026-11-26). Una vez por hora se leen (SOLO
+// VERIFICACIÓN AUTOMÁTICA POR EL CÉNTIMO (usuario, 2026-11-26). Una vez por hora (cada 10 minutos
+// si alguien acaba de avisar de su transferencia) se leen (SOLO
 // LECTURA) los movimientos pendientes de conciliar de la cuenta secundaria de verificación en la
 // facturación (Banco Santander, parámetro dynamo_verificacion_iban). Los de 0,01 € o con un código
 // VER-XXXXXX se pasan a la base de datos (verificacion_por_movimiento), que decide: verificar la
@@ -10,6 +11,10 @@ import { supabaseServicio } from '@/lib/supabase/servicio';
 // API: GET /treasury/accounts (busca la cuenta por su IBAN) y
 //      GET /treasury/accounts/{id}/bank-movements?status=pending&start_date=…&limit=200&cursor=…
 const CADA_MS = 55 * 60_000;
+// Si un cliente ha pulsado «Ya la he hecho» hace menos de 6 horas, cada vez que pasa la tarea
+// (cada 10 minutos) en vez de una vez por hora (usuario, 2026-11-26).
+const RAPIDO_MS = 9 * 60_000;
+const RAPIDO_DURANTE_MS = 6 * 3_600_000;
 const PAGINAS = 5;
 const CODIGO = /VER[\s\-_.]?[A-HJ-NP-Z2-9]{6}/i;
 const sinEspacios = (v: unknown) => String(v ?? '').replace(/\s+/g, '').toUpperCase();
@@ -26,7 +31,14 @@ export async function revisarCentimos(forzar = false): Promise<void> {
   if (!sv || !holdedListo()) return;
   const { data: est } = await sv.from('verificacion_banco_estado').select('*').eq('id', true).maybeSingle();
   if (!est) return;
-  if (!forzar && est.revisado_en && Date.now() - Date.parse(est.revisado_en) < CADA_MS) return;
+  const hace = est.revisado_en ? Date.now() - Date.parse(est.revisado_en) : Infinity;
+  if (!forzar && hace < RAPIDO_MS) return;
+  if (!forzar && hace < CADA_MS) {
+    const { count: esperando } = await sv.from('clientes').select('id', { count: 'exact', head: true })
+      .eq('estado_verificacion', 'no_verificada').eq('verificacion_solicitada', 'transferencia')
+      .gte('verificacion_solicitada_en', new Date(Date.now() - RAPIDO_DURANTE_MS).toISOString());
+    if (!esperando) return;
+  }
   const guardar = (c: { cuenta_id?: string | null; ultimo_error: string | null }) =>
     sv.from('verificacion_banco_estado').update({ ...c, revisado_en: new Date().toISOString() }).eq('id', true);
   // Sin ninguna empresa por verificar no se gasta ninguna consulta.
