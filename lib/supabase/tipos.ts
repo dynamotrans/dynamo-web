@@ -5824,6 +5824,7 @@ export type Database = {
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
       pendientes_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; vence_en: string; tipo: string; autor: string; puede_anular: boolean; emails: number }[] }
       pin_aleatorio: { Args: { p_cifras: number | null }; Returns: string }
+      plataforma_cabeceras: { Args: Record<PropertyKey, never>; Returns: Json }
       poner_camion_mi_envio_manual: { Args: { p_envio: string | null; p_matricula_camion: string | null; p_matricula_remolque: string | null; p_conductor_nombre: string | null; p_conductor_telefono: string | null }; Returns: Json }
       poner_datos_cmr: { Args: { p_envio: string | null; p_bultos: number | null; p_embalaje: string | null; p_volumen: number | null }; Returns: undefined }
       poner_horario_por_defecto: { Args: { p_sitio: string | null }; Returns: undefined }

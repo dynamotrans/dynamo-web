@@ -17789,3 +17789,18 @@ do $$ declare c uuid := current_setting('prueba.c381')::uuid; begin
     raise exception 'FALLO 381 · ha desaparecido la empresa con datos'; end if;
   raise notice 'OK 381 · borrar cliente: solo el Admin Master; la empresa vacía se va con sus contactos y notas; con usuarios, envíos o facturas no se borra y dice qué tiene';
 end $$;
+
+-- ---- 382. Llamadas a la plataforma con el código de paso de Vercel ------------------------
+-- (2026-11-27) En la web de pruebas las tareas automáticas rebotaban (401 de Vercel). Las tres
+-- llamadas usan plataforma_cabeceras(), que añade el código de paso si está en el Vault.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare f text; begin
+  if plataforma_cabeceras() ->> 'Content-Type' <> 'application/json' then raise exception 'FALLO 382 · faltan las cabeceras'; end if;
+  foreach f in array array['public.facturas_avisar()', 'public.brevo_sitios_avisar()', 'public.caducar_pagos_pendientes()'] loop
+    if position('plataforma_cabeceras()' in pg_get_functiondef(f::regprocedure)) = 0 then raise exception 'FALLO 382 · % no usa las cabeceras comunes', f; end if;
+  end loop;
+  if has_function_privilege('authenticated', 'public.plataforma_cabeceras()', 'execute') or has_function_privilege('anon', 'public.plataforma_cabeceras()', 'execute') then
+    raise exception 'FALLO 382 · un usuario puede leer el código de paso'; end if;
+  raise notice 'OK 382 · las llamadas automáticas a la plataforma llevan el código de paso de Vercel si está en el Vault (y nadie más lo lee)';
+end $$;
