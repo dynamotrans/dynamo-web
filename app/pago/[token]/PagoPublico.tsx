@@ -3,6 +3,7 @@
 // La página pública de pago: lo mínimo de un envío pendiente de pago y cómo pagarlo. Mismas
 // piezas que la caja de pago de la ficha del cliente (cuenta atrás, «Pagar con tarjeta» en la
 // ventana de Stripe, «Ya he hecho la transferencia»), sin nada más de la plataforma.
+import BotonCopiar from '@/components/BotonCopiar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -167,8 +168,8 @@ export default function PagoPublico({ token, datos, conTarjeta, vuelta }: { toke
           <div className="pago-pub-transf" id="pago-pub-transferencia">
             <span>Por <strong>transferencia</strong>, a esta cuenta y con este concepto:</span>
             {t.beneficiario && <span>Beneficiario: <strong className="notranslate" translate="no">{t.beneficiario}</strong></span>}
-            <span>IBAN: <strong className="notranslate" translate="no">{t.iban}</strong>{t.banco ? ` · ${t.banco}` : ''}{t.bic ? ` · BIC ${t.bic}` : ''}</span>
-            <span>Concepto: <strong className="notranslate" translate="no">{t.concepto}</strong> · Importe: <strong>{total}</strong></span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>IBAN: <strong className="notranslate" translate="no">{t.iban}</strong>{t.banco ? ` · ${t.banco}` : ''}{t.bic ? ` · BIC ${t.bic}` : ''} <BotonCopiar texto={t.iban.replace(/\s+/g, '')} que="IBAN" id="pago-copiar-iban" /></span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>Concepto: <strong className="notranslate" translate="no">{t.concepto}</strong> <BotonCopiar texto={t.concepto} que="concepto" id="pago-copiar-concepto" /> · Importe: <strong>{total}</strong></span>
           </div>
         )}
       </div>

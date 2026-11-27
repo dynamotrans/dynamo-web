@@ -1,5 +1,6 @@
 'use client';
 
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { crearClienteRapido, clientesActivos } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { buscarClientes } from '@/app/panel/(app)/sitios/acciones';
@@ -15,6 +16,9 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
 }) {
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita; 2026-11-27).
+  const caja = useRef<HTMLDivElement>(null);
+  useCerrarFuera(abierto, () => setAbierto(false), caja);
   const [alta, setAlta] = useState(false);
   const [rs, setRs] = useState(''); const [cif, setCif] = useState(''); const [pais, setPais] = useState('ES');
   const [error, setError] = useState<string | null>(null); const [guardando, setGuardando] = useState(false);
@@ -64,12 +68,12 @@ export function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
 
   return (
     <>
-      <div className={`ptar-input-wrap${valor ? ' ptar-picked' : ''}`}>
+      <div className={`ptar-input-wrap${valor ? ' ptar-picked' : ''}`} ref={caja}>
         <IcoCliente />
         <input type="text" placeholder="Cliente · busca por nombre o CIF" autoComplete="off" readOnly={!!valor}
           value={valor ? `${valor.nombre} · ${valor.cif}` : q}
           onChange={(e) => { setQ(e.target.value); setAbierto(true); }}
-          onFocus={() => !valor && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)}
+          onFocus={() => !valor && setAbierto(true)}
           onClick={() => {
             // Pulsar ENCIMA del cliente elegido = la ✕, y además abre el desplegable para
             // elegir otro, igual que los sitios de la ruta (usuario, 2026-11-18).

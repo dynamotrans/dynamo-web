@@ -185,3 +185,10 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); opacity: 1; 
 .cc-barra-txt span { color: var(--gray-600, #4b5563); }
 .cc-ventana-cuenta { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; font-size: var(--fs-m, 0.9rem); }
 @media (prefers-reduced-motion: reduce) { .cc-anillo .cc-resto { transition: none; } }
+
+/* Botón de copiar un dato (IBAN, concepto…; usuario, 2026-11-27). */
+.btn-copiar { display: inline-flex; align-items: center; gap: 0.3rem; flex: 0 0 auto; min-height: 32px; padding: 0.25rem 0.55rem;
+  border: 1px solid var(--gray-300, #d1d5db); border-radius: 8px; background: #fff; color: var(--purple, #3300cc);
+  font: 700 0.82rem/1 system-ui, sans-serif; cursor: pointer; }
+.btn-copiar:hover { border-color: var(--purple, #3300cc); background: rgba(51, 0, 204, 0.04); }
+.btn-copiar.hecho { border-color: #157a3f; color: #157a3f; background: rgba(21, 122, 63, 0.06); }

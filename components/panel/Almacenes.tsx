@@ -24,7 +24,7 @@ export default function Almacenes({ filas, precios, error, veranoDefecto }: { fi
   const lista = useMemo(() => {
     const w = norm(q.trim());
     return filas.filter((f) => !w || norm([f.nombre_empresa, f.direccion, f.codigo_postal, f.poblacion, f.provincia,
-      f.horarios, f.anotaciones, ...f.contactos.flatMap((k) => [k.nombre, k.telefono, k.telefono_fijo, k.email])].filter(Boolean).join(' ')).includes(w))
+      f.horarios, f.anotaciones, ...f.contactos.flatMap((k) => [k.nombre, k.telefono, k.email])].filter(Boolean).join(' ')).includes(w))
       .sort((a, b) => (a.provincia || a.poblacion).localeCompare(b.provincia || b.poblacion, 'es') || a.nombre_empresa.localeCompare(b.nombre_empresa, 'es'));
   }, [filas, q]);
   const pg = usePaginas(lista, q);
@@ -77,7 +77,7 @@ export default function Almacenes({ filas, precios, error, veranoDefecto }: { fi
                   <td>{f.horarios || '—'}</td>
                   <td>{propio(f.almacen?.precio_almacenamiento_semana, precios.precioSemana)}</td>
                   <td>{propio(f.almacen?.precio_reparto, precios.precioReparto)}</td>
-                  <td>{[k?.telefono && `Móvil ${telBonito(k.telefono)}`, k?.telefono_fijo && `Fijo ${telBonito(k.telefono_fijo)}`].filter(Boolean).join(' · ') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}</td>
+                  <td>{(k?.telefono && telBonito(k.telefono)) || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}</td>
                   <td>{notas ? <span style={{ color: '#b45309' }}>⚠ {notas.slice(0, 60)}{notas.length > 60 ? '…' : ''}</span> : '—'}</td>
                 </tr>
               );

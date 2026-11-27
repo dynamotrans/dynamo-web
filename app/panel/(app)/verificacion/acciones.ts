@@ -58,16 +58,14 @@ export async function miVerificacion(): Promise<MiVerificacion | null> {
     : { titular: d.razon_social ?? '', iban: d.iban ?? '', banco: d.banco ?? '', bic: d.bic ?? '' } };
 }
 
-export async function pedirVerificacion(metodo: 'transferencia' | 'documento'): Promise<Res> {
+// El cliente solo se verifica con la transferencia de 0,01 € (usuario, 2026-11-27).
+export async function pedirVerificacion(metodo: 'transferencia'): Promise<Res> {
   comprobarEntrada("app/panel/(app)/verificacion/acciones#pedirVerificacion", [metodo]);
   const s = await sesion();
   if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
-  if (metodo === 'documento') {
-    const { count } = await s.supabase.from('documentos').select('id', { count: 'exact', head: true }).eq('tipo', 'hoja_cif').eq('usuario_id', s.perfil.id).eq('borrado', false);
-    if (!count) return { ok: false, error: 'Sube primero el documento (la tarjeta del CIF o similar).' };
-  }
   const { data, error } = await s.supabase.rpc('solicitar_verificacion_empresa', { p_metodo: metodo });
   if (error) return { ok: false, error: limpia(error.message) };
+  if (data === 'ya_pedida') return { ok: false, error: 'Ya nos has avisado de la transferencia: la estamos comprobando. Si necesitas algo, llámanos.' };
   return data === 'ya_verificada' ? { ok: false, error: 'Tu empresa ya está verificada.' } : { ok: true };
 }
 

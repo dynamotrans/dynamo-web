@@ -5,6 +5,7 @@
 // «así tampoco»). Se escribe lo que se quiera; las sugerencias que casan con lo escrito salen
 // debajo y se eligen con el ratón, el dedo o las flechas y Enter.
 
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './selector-pais.css';
@@ -39,6 +40,8 @@ export default function CampoSugerido({ id, valor, onCambio, sugerencias, ariaIn
     return casan.slice(0, 30);
   }, [sugerencias, valor]);
   const abierto = foco && !cerrado && filas.length > 0;
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita).
+  useCerrarFuera(abierto, () => { setFoco(false); setAct(-1); }, campo, pop);
 
   function colocar() {
     const c = campo.current; if (!c) return;
@@ -68,7 +71,7 @@ export default function CampoSugerido({ id, valor, onCambio, sugerencias, ariaIn
       aria-activedescendant={abierto && act >= 0 ? `${listaId}-${act}` : undefined} aria-invalid={ariaInvalid || undefined}
       onChange={(e) => { setCerrado(false); setAct(-1); onCambio(e.target.value); }}
       onFocus={(e) => { setFoco(true); setCerrado(false); onFocus?.(e); }}
-      onBlur={(e) => { setFoco(false); setAct(-1); onBlur?.(e); }}
+      onBlur={(e) => { onBlur?.(e); }}
       onKeyDown={(e) => {
         if (abierto) {
           if (e.key === 'ArrowDown') { e.preventDefault(); setAct((a) => Math.min(filas.length - 1, a + 1)); }

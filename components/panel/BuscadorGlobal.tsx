@@ -1,5 +1,6 @@
 'use client';
 
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { avisarNavegandoA } from './CargandoNavegacion';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -108,13 +109,16 @@ export function CajaBuscadorGlobal({ gestor = false }: { gestor?: boolean }) {
   const elegir = (it: Item) => { setQ(''); setFoco(false); avisarNavegandoA(it.href); router.push(it.href); };
   // Abierto desde el FOCO: al pulsar la caja ya se despliega la muestra (usuario, 2026-11-13).
   const abierto = foco;
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita).
+  const wrap = useRef<HTMLDivElement>(null);
+  useCerrarFuera(foco, () => setFoco(false), wrap);
   return (
-    <div className="bgq-wrap">
+    <div className="bgq-wrap" ref={wrap}>
       <div className={`bgq-caja${abierto ? ' abierta' : ''}`}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
         <input type="text" value={q} onChange={(e) => { setQ(e.target.value); setSel(0); }}
-          onFocus={() => setFoco(true)} onBlur={() => setTimeout(() => setFoco(false), 120)}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setQ(''); (e.target as HTMLInputElement).blur(); } else teclasLista(e, items, sel, setSel, elegir); }}
+          onFocus={() => setFoco(true)}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setQ(''); setFoco(false); (e.target as HTMLInputElement).blur(); } else teclasLista(e, items, sel, setSel, elegir); }}
           placeholder={(gestor ? AYUDA.gestor : AYUDA.resto).corto} aria-label="Buscar en toda la plataforma" maxLength={120} />
         {cargando && <span className="bgq-rueda" aria-hidden="true" />}
       </div>

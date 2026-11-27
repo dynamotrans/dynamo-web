@@ -8,7 +8,7 @@
 //   2. Una parada que estrena sitio hereda lo ya tocado de ese sitio en otra parada.
 //   3. Si en una parada se cambia de sitio, lo tocado del sitio anterior no se arrastra al nuevo.
 
-export const CAMPOS_DE_SITIO = ['horario', 'verano', 'contacto', 'telefono', 'telefonoFijo', 'contactoEmail', 'notas', 'emails', 'maps', 'empresa', 'extra'] as const;
+export const CAMPOS_DE_SITIO = ['horario', 'verano', 'contacto', 'telefono', 'contactoEmail', 'notas', 'emails', 'maps', 'empresa', 'extra'] as const;
 // De la parada, pero ligado al sitio (la cita es CON ese sitio): se pierde al cambiar de sitio.
 const CAMPOS_DE_CITA = ['cita', 'citaHora', 'citaDetalle'] as const;
 

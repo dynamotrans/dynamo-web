@@ -6,7 +6,6 @@
 import { useState } from 'react';
 import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/lib/contactos';
 import { partirTel } from '@/lib/paises';
-import CampoTelefono from '@/components/CampoTelefono';
 import SelectorPais from '@/components/SelectorPais';
 import Req from '@/components/Req';
 import Tip from '@/components/Tip';
@@ -80,20 +79,14 @@ function Persona({ c, i, total, conFuncion, conCargo, conAvisos, obligatorios, r
             apellidos, el nombre siempre a la vista, sin plegar. */}
         {!obligatorios && nombreCampo}
         <div>
-          {/* En los SITIOS hay dos teléfonos (usuario, 2026-11-26): el móvil, para WhatsApp, y el
-              fijo. Hace falta al menos uno; cada número acaba en su campo al guardar. */}
-          <label htmlFor={`${id}-tel`}>{obligatorios ? 'Móvil (WhatsApp)' : 'Teléfono'} <Req si={obligatorios && !(c.telefono_fijo ?? '').trim()} /></label>
+          {/* En los SITIOS, UN solo teléfono (usuario, 2026-11-27): el móvil, para WhatsApp. Quien
+              quiera dar un fijo añade otro contacto («Teléfono fijo de oficina»). */}
+          <label htmlFor={`${id}-tel`}>{obligatorios ? 'Móvil (WhatsApp)' : 'Teléfono'} <Req si={obligatorios} /></label>
           <div className="tel-group">
             <SelectorPais modo="prefijo" valor={pref} onCambio={(v) => { setPref(v); ponTel(v, num); }} />
             <input id={`${id}-tel`} type="tel" inputMode="tel" value={num} placeholder="Ej. 600 000 000" onChange={(e) => ponTel(pref, e.target.value)} />
           </div>
         </div>
-        {obligatorios && (
-          <div>
-            <label htmlFor={`${id}-fijo`}>Fijo <Req si={false} /></label>
-            <CampoTelefono id={`${id}-fijo`} valor={c.telefono_fijo ?? ''} placeholder="Ej. 954 000 000" onCambio={(v) => onCambio({ ...c, telefono_fijo: v })} />
-          </div>
-        )}
         <div>
           {/* La explicación va en un tooltip ⓘ, no en texto visible (usuario, 2026-11-10). */}
           <label htmlFor={`${id}-email`}>Email {obligatorios

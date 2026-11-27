@@ -58,7 +58,8 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean; repasarDesde?
     // El gasto oficial de consultas del mes, si toca preguntarlo (cuesta una consulta).
     if (r.ok && r.hecho !== 'nada') await refrescarUsoReal(!!opts.forzar);
     // Los céntimos de verificación de empresa (como mucho una vez por hora; solo lectura).
-    await revisarCentimos().catch((e) => console.error('[Holded] céntimos de verificación', e instanceof Error ? e.message : 'fallo'));
+    // «Actualizar ahora» (forzar) también mira la cuenta del céntimo al momento.
+    await revisarCentimos(!!opts.forzar).catch((e) => console.error('[Holded] céntimos de verificación', e instanceof Error ? e.message : 'fallo'));
     return r;
   } finally {
     await apuntarConsultas();      // las consultas hechas en esta llamada, pase lo que pase

@@ -1,12 +1,13 @@
 'use client';
 
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { ALMACENAMIENTOS } from '@/lib/modulos';
 import { fechaHora } from '@/lib/formato';
 
 // Parámetros de la plataforma: cada regla que tiene un número (descuento de bienvenida,
 // pronto pago, tarifas de almacén, PIN, reservas…) se cambia aquí, sin tocar el código.
 // Los ve todo Dynamo; solo un ADMIN los cambia. Cada cambio queda en la auditoría.
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { guardarParametro, lanzarAutosuspension } from '@/app/panel/(app)/parametros/acciones';
 
@@ -119,6 +120,9 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
   // Índice desplegable «Ir a…» (usuario, 2026-11-15).
   const [salto, setSalto] = useState('');
   const [saltoAbierto, setSaltoAbierto] = useState(false);
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita; 2026-11-27).
+  const saltoRef = useRef<HTMLDivElement>(null);
+  useCerrarFuera(saltoAbierto, () => setSaltoAbierto(false), saltoRef);
   const secciones = useMemo(() => {
     const porClave = new Map(filas.map((p) => [p.clave, p]));
     const b = norm(q.trim());
@@ -175,10 +179,10 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
         {q && <span className="meta">{total ? `${total} encontrado${total === 1 ? '' : 's'}` : 'Nada con esa palabra'}</span>}
         {/* Índice en DESPLEGABLE con búsqueda (usuario, 2026-11-15: los chips de todas las
             secciones y apartados ocupaban media pantalla): se escribe y se salta. */}
-        <div style={{ position: 'relative', maxWidth: 360, width: '100%' }}>
+        <div style={{ position: 'relative', maxWidth: 360, width: '100%' }} ref={saltoRef}>
           <input type="text" className="param-input" placeholder="Ir a…" value={salto}
             onChange={(e) => { setSalto(e.target.value); setSaltoAbierto(true); }}
-            onFocus={() => setSaltoAbierto(true)} onBlur={() => setTimeout(() => setSaltoAbierto(false), 150)}
+            onFocus={() => setSaltoAbierto(true)}
             aria-label="Ir a una sección o apartado" style={{ width: '100%' }} />
           {saltoAbierto && (
             <ul className="ptar-sug" role="listbox">

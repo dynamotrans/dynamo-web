@@ -17313,9 +17313,10 @@ do $$ declare cli uuid := current_setting('prueba.c370')::uuid; begin
   raise notice 'OK 370 · envío facturado = su pedido de venta está facturado: no cuenta dos veces aunque la factura agrupe varios envíos y no lleve GX';
 end $$;
 
--- 371 · SITIOS: DOS TELÉFONOS, MÓVIL (WHATSAPP) Y FIJO (usuario, 2026-11-26): cada número va solo
--- a su campo en los contactos de un sitio, y donde se enseña «el teléfono del sitio» sale el
--- móvil y, si no hay, el fijo.
+-- 371 · SITIOS: UN SOLO TELÉFONO POR CONTACTO (usuario, 2026-11-27: «no vamos a tener dos campos
+-- de teléfono»; deshace el móvil/fijo del 2026-11-26). Lo escrito en el teléfono se queda donde
+-- se escribió (un fijo también), un contacto de sitio no puede llevar fijo aparte, y quien quiera
+-- un fijo añade otro contacto. Donde se enseña «el teléfono del sitio» sale ese teléfono.
 do $$ declare c uuid; s uuid; a uuid; k record; j jsonb; ok boolean;
   hoy date := (now() at time zone 'Europe/Madrid')::date;
 begin
@@ -17323,76 +17324,50 @@ begin
   insert into clientes (razon_social, cif) values ('Telefonos 371 SL', 'B37100371') returning id into c;
   insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
     values (c, 'Nave 371', 'Calle Uno 1', '41001', 'Sevilla', 'Sevilla', 'ES') returning id into s;
-  -- Un FIJO escrito en el móvil (así lo trae Google): pasa solo al fijo.
+  -- Un FIJO escrito en el teléfono (así lo trae Google): se queda en el teléfono, no se mueve.
   insert into contactos (sitio_id, nombre, telefono, es_principal) values (s, 'Centralita', '+34954371371', true) returning * into k;
-  if k.telefono is not null or k.telefono_fijo is distinct from '+34954371371' then raise exception 'FALLO 371 · un fijo escrito en el móvil de un sitio no pasa al fijo: % / %', k.telefono, k.telefono_fijo; end if;
-  -- Un MÓVIL escrito en el fijo: pasa solo al móvil.
-  insert into contactos (sitio_id, nombre, telefono_fijo) values (s, 'Muelle', '+34600371371') returning * into k;
-  if k.telefono is distinct from '+34600371371' or k.telefono_fijo is not null then raise exception 'FALLO 371 · un móvil escrito en el fijo de un sitio no pasa al móvil: % / %', k.telefono, k.telefono_fijo; end if;
-  -- Sin prefijo también se reconoce; el de otro país se queda donde se escribió.
-  insert into contactos (sitio_id, nombre, telefono) values (s, 'Sin prefijo', '955371372') returning * into k;
-  if k.telefono is not null or k.telefono_fijo <> '955371372' then raise exception 'FALLO 371 · un fijo sin prefijo no pasa al fijo'; end if;
-  insert into contactos (sitio_id, nombre, telefono) values (s, 'De Francia', '+33123456789') returning * into k;
-  if k.telefono <> '+33123456789' or k.telefono_fijo is not null then raise exception 'FALLO 371 · un teléfono de otro país cambia de campo'; end if;
-  -- Con los dos puestos, cada uno se queda en su sitio; y con el fijo ocupado, lo escrito en el móvil no se mueve.
-  insert into contactos (sitio_id, nombre, telefono, telefono_fijo) values (s, 'Los dos', '+34611371371', '+34955371373') returning * into k;
-  if k.telefono <> '+34611371371' or k.telefono_fijo <> '+34955371373' then raise exception 'FALLO 371 · con móvil y fijo puestos, alguno cambia de campo'; end if;
-  update contactos set telefono = '+34956000371' where id = k.id returning * into k;
-  if k.telefono <> '+34956000371' or k.telefono_fijo <> '+34955371373' then raise exception 'FALLO 371 · con el fijo ocupado se pierde un teléfono'; end if;
-  -- Al cambiar el móvil de «Muelle» por un fijo, pasa al fijo (que estaba libre).
-  update contactos set telefono = '+34954000372' where sitio_id = s and nombre = 'Muelle' returning * into k;
-  if k.telefono is not null or k.telefono_fijo <> '+34954000372' then raise exception 'FALLO 371 · al cambiar el móvil por un fijo no pasa al fijo'; end if;
-  -- Los contactos de CLIENTES no se tocan: su teléfono puede ser un fijo.
+  if k.telefono is distinct from '+34954371371' or k.telefono_fijo is not null then raise exception 'FALLO 371 · un fijo escrito en el teléfono de un sitio cambia de campo: % / %', k.telefono, k.telefono_fijo; end if;
+  insert into contactos (sitio_id, nombre, telefono) values (s, 'Muelle', '+34600371371') returning * into k;
+  if k.telefono is distinct from '+34600371371' or k.telefono_fijo is not null then raise exception 'FALLO 371 · el móvil de un sitio no se guarda tal cual'; end if;
+  -- Un contacto de sitio NO puede llevar un fijo aparte (ni solo, ni junto al móvil).
+  ok := false; begin insert into contactos (sitio_id, nombre, telefono_fijo) values (s, 'Solo fijo', '+34955371372'); exception when check_violation then ok := true; end;
+  if not ok then raise exception 'FALLO 371 · un contacto de sitio acepta un fijo aparte'; end if;
+  ok := false; begin update contactos set telefono_fijo = '+34955371373' where id = k.id; exception when check_violation then ok := true; end;
+  if not ok then raise exception 'FALLO 371 · a un contacto de sitio se le puede poner un fijo además del móvil'; end if;
+  -- El fijo, como otro contacto del sitio: «Teléfono fijo de oficina».
+  insert into contactos (sitio_id, nombre, telefono) values (s, 'Teléfono fijo de oficina', '+34955371374') returning * into k;
+  if k.telefono <> '+34955371374' then raise exception 'FALLO 371 · no se guarda un fijo como contacto aparte'; end if;
+  -- Ya no hay disparador que reparta los números.
+  if exists (select 1 from pg_trigger where tgname = 'tg_a_telefonos_sitio') then raise exception 'FALLO 371 · sigue el disparador que movía el fijo'; end if;
+  -- Los contactos de CLIENTES no se tocan.
   insert into contactos (cliente_id, nombre, telefono) values (c, 'Administración', '+34954000373') returning * into k;
-  if k.telefono <> '+34954000373' or k.telefono_fijo is not null then raise exception 'FALLO 371 · se mueve el teléfono de un contacto que no es de un sitio'; end if;
-  -- Formato del fijo y «algún canal»: vale con solo el fijo; sin nada, no.
-  ok := false; begin insert into contactos (sitio_id, nombre, telefono_fijo) values (s, 'Mal', '954 37 13 71'); exception when others then ok := true; end;
-  if not ok then raise exception 'FALLO 371 · se acepta un fijo con espacios'; end if;
+  if k.telefono <> '+34954000373' then raise exception 'FALLO 371 · se toca el teléfono de un contacto que no es de un sitio'; end if;
+  -- Formato y «algún canal».
+  ok := false; begin insert into contactos (sitio_id, nombre, telefono) values (s, 'Mal', '954 37 13 71'); exception when others then ok := true; end;
+  if not ok then raise exception 'FALLO 371 · se acepta un teléfono con espacios'; end if;
   ok := false; begin insert into contactos (sitio_id, nombre) values (s, 'Sin nada'); exception when others then ok := true; end;
-  if not ok then raise exception 'FALLO 371 · se acepta un contacto sin móvil, fijo ni email'; end if;
-  -- Se busca el sitio también por su fijo.
-  if position('34954371371' in coalesce((select texto_busqueda from sitios where id = s), '')) = 0 then raise exception 'FALLO 371 · no se encuentra el sitio por su teléfono fijo'; end if;
-  -- Donde se enseña el teléfono del sitio (orden de carga, panel del transportista): el
-  -- principal solo tiene fijo, así que sale el fijo.
+  if not ok then raise exception 'FALLO 371 · se acepta un contacto sin teléfono ni email'; end if;
+  -- Se busca el sitio por el teléfono.
+  if position('34954371371' in coalesce((select texto_busqueda from sitios where id = s), '')) = 0 then raise exception 'FALLO 371 · no se encuentra el sitio por su teléfono'; end if;
+  -- La orden de carga enseña el teléfono del principal (aunque sea un fijo).
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c, 6, 5, 500, hoy + 20) returning id into a;
   insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
     values (a, 1, 'carga', s, '41001', 'Sevilla', 'ES'), (a, 2, 'descarga', null, '28821', 'Coslada', 'ES');
-  j := paradas_viaje_json_completa(a);
-  if j -> 0 ->> 'contacto_telefono' is distinct from '+34954371371' or j -> 0 ->> 'contacto_nombre' <> 'Centralita' then raise exception 'FALLO 371 · la orden de carga no enseña el fijo cuando el sitio no tiene móvil: %', j -> 0; end if;
-  update contactos set telefono = '+34622371371' where sitio_id = s and nombre = 'Centralita';
-  j := paradas_viaje_json_completa(a);
-  if j -> 0 ->> 'contacto_telefono' <> '+34622371371' then raise exception 'FALLO 371 · con móvil y fijo, la orden de carga no enseña el móvil'; end if;
-  if (select prosrc from pg_proc where proname = 'carga_aceptada_publica_completa') not like '%coalesce(c.telefono, c.telefono_fijo) is not null%' then
-    raise exception 'FALLO 371 · la página del transportista no cuenta el fijo como teléfono del sitio'; end if;
+  j := paradas_viaje_json_completa(a) -> 0;
+  if j ->> 'contacto_telefono' is distinct from '+34954371371' or j ->> 'contacto_nombre' <> 'Centralita' or j ->> 'contacto_fijo' is not null then
+    raise exception 'FALLO 371 · la orden de carga no enseña el teléfono del sitio: %', j; end if;
   update envios set estado = 'cancelado' where id = a;
-  raise notice 'OK 371 · sitios con móvil y fijo: cada número va solo a su campo, vale con uno de los dos, se busca por los dos y se enseña el móvil o, si no hay, el fijo';
+  raise notice 'OK 371 · sitios con un solo teléfono: se guarda donde se escribió, no se admite un fijo aparte (va en otro contacto) y la orden de carga lo enseña';
 end $$;
 
--- 372 · EL MÓVIL Y EL FIJO DEL SITIO, LOS DOS A LA VISTA (usuario, 2026-11-26: «cada uno servirá
--- para una cosa»): la orden de carga y la página del transportista llevan los dos por separado.
-do $$ declare c uuid; s uuid; a uuid; j jsonb;
-  hoy date := (now() at time zone 'Europe/Madrid')::date;
-begin
-  perform set_config('request.jwt.claim.sub', '', false);
-  insert into clientes (razon_social, cif) values ('Dos Telefonos 372 SL', 'B37200372') returning id into c;
-  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)
-    values (c, 'Nave 372', 'Calle Dos 2', '41001', 'Sevilla', 'Sevilla', 'ES') returning id into s;
-  insert into contactos (sitio_id, nombre, telefono, telefono_fijo, es_principal) values (s, 'Muelle 372', '+34600372372', '+34954372372', true);
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c, 6, 5, 500, hoy + 20) returning id into a;
-  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion, pais_codigo_iso)
-    values (a, 1, 'carga', s, '41001', 'Sevilla', 'ES'), (a, 2, 'descarga', null, '28821', 'Coslada', 'ES');
-  j := paradas_viaje_json_completa(a) -> 0;
-  if j ->> 'contacto_movil' is distinct from '+34600372372' or j ->> 'contacto_fijo' is distinct from '+34954372372' or j ->> 'contacto_telefono' <> '+34600372372' then
-    raise exception 'FALLO 372 · la orden de carga no lleva el móvil y el fijo del sitio por separado: %', j; end if;
-  -- Solo con fijo: no hay móvil, y el teléfono «de siempre» es el fijo.
-  update contactos set telefono = null where sitio_id = s;
-  j := paradas_viaje_json_completa(a) -> 0;
-  if j ->> 'contacto_movil' is not null or j ->> 'contacto_fijo' <> '+34954372372' or j ->> 'contacto_telefono' <> '+34954372372' then
-    raise exception 'FALLO 372 · con solo fijo, la orden de carga no lo enseña bien: %', j; end if;
-  if (select prosrc from pg_proc where proname = 'carga_aceptada_publica_completa') not like '%''movil'', c.telefono, ''fijo'', c.telefono_fijo%' then
-    raise exception 'FALLO 372 · la página del transportista no lleva el móvil y el fijo por separado'; end if;
-  update envios set estado = 'cancelado' where id = a;
-  raise notice 'OK 372 · móvil y fijo del sitio a la vista: la orden de carga y la página del transportista llevan los dos por separado';
+-- 372 · LOS FIJOS QUE YA HABÍA NO SE PIERDEN (usuario, 2026-11-27): al pasar a un solo teléfono,
+-- ningún contacto de sitio se queda con un fijo aparte, y la regla está en la base de datos.
+do $$ begin
+  if exists (select 1 from contactos where sitio_id is not null and telefono_fijo is not null) then
+    raise exception 'FALLO 372 · quedan contactos de sitio con un fijo aparte'; end if;
+  if not exists (select 1 from pg_constraint where conname = 'ck_contactos_sitio_un_telefono') then
+    raise exception 'FALLO 372 · falta la regla de un solo teléfono en los contactos de sitio'; end if;
+  raise notice 'OK 372 · un solo teléfono en los sitios: ningún contacto de sitio guarda un fijo aparte';
 end $$;
 
 -- 373 · TIPOS DE INCIDENCIA: SOLO CINCO, EN SU ORDEN (usuario, 2026-11-26). Los demás no se
@@ -17621,6 +17596,12 @@ do $$ declare j jsonb := mi_empresa_verificacion(); begin
   if j::text ~ '20000|5000|cesce|riesgo' then raise exception 'FALLO 378 · el cliente ve importes o CESCE: %', j; end if;
   if mi_cobertura_credito() <> 'sin_verificar' then raise exception 'FALLO 378 · el chip del crédito no dice «sin verificar»'; end if;
   if solicitar_verificacion_empresa('transferencia') <> 'ok' then raise exception 'FALLO 378 · no puede pedir la verificación por transferencia'; end if;
+  -- Solo céntimo y una sola petición a la vez (usuario, 2026-11-27): ya avisada, no se repite; y
+  -- el documento ya no es una vía del cliente.
+  if solicitar_verificacion_empresa('transferencia') <> 'ya_pedida' then raise exception 'FALLO 378 · con la transferencia ya avisada se puede pedir otra vez'; end if;
+  begin perform solicitar_verificacion_empresa('documento'); raise exception 'FALLO 378 · el cliente aún puede pedir verificar por documento';
+  exception when others then if sqlerrm like 'FALLO%' then raise; end if; end;
+  if (mi_empresa_verificacion() ->> 'solicitada') <> 'transferencia' then raise exception 'FALLO 378 · una segunda petición pisa a la primera'; end if;
   begin perform verificar_empresa(cliente_del_usuario(), 'manual', 'me verifico yo'); raise exception 'FALLO 378 · el cliente se verifica solo';
   exception when insufficient_privilege then null; end;
   if exists (select 1 from verificaciones_empresa) then raise exception 'FALLO 378 · el cliente lee el registro de verificaciones'; end if;
@@ -17849,4 +17830,30 @@ do $$ declare c uuid; l text; k text; begin
   if position('conta384' in l) > 0 or position('logis384' in k) > 0 then raise exception 'FALLO 384 · un contacto recibe lo del otro rol'; end if;
   delete from clientes where id = c;
   raise notice 'OK 384 · contacto «Logística y Contabilidad»: recibe lo de los dos roles; los de un solo rol, solo lo suyo';
+end $$;
+
+-- ---- 385. La cuenta del céntimo también de noche -------------------------------------------
+-- (usuario, 2026-11-27) De noche, la tarea pide solo la revisión del céntimo si alguien espera su
+-- verificación por transferencia; si no, nada.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare d text := pg_get_functiondef('public.facturas_avisar()'::regprocedure); begin
+  if position('{"solo":"centimos"}' in d) = 0 or position('verificacion_solicitada = ''transferencia''' in d) = 0 then
+    raise exception 'FALLO 385 · de noche no se pide la revisión del céntimo a quien espera'; end if;
+  if position('plataforma_cabeceras()' in d) = 0 then raise exception 'FALLO 385 · se pierden las cabeceras con el código de paso'; end if;
+  raise notice 'OK 385 · de noche la tarea pide solo la revisión del céntimo si alguien espera su verificación';
+end $$;
+
+-- 386 · EL ORDENANTE CON ABREVIATURAS (usuario, 2026-11-27): «TRANSP.», «HNOS», «LOG»… cuentan
+-- como la palabra entera, y las palabras que pone el banco (transferencia, concepto…) no cuentan.
+do $$ begin
+  if not ordenante_cuadra('Transportes García López, S.L.', 'Transferencia inmediata de TRANSP. GARCIA LOPEZ SL, concepto VER-ABCD23') then raise exception 'FALLO 386 · no entiende «TRANSP.»'; end if;
+  if not ordenante_cuadra('Hermanos Ruiz Logística, S.L.', 'TRANSFERENCIA DE HNOS RUIZ LOG SL CONCEPTO VER ABCD23') then raise exception 'FALLO 386 · no entiende «HNOS» ni «LOG»'; end if;
+  if not ordenante_cuadra('Ttes. Martín e Hijos, S.L.', 'Transferencia de TRANSPORTES MARTIN E HIJOS SL') then raise exception 'FALLO 386 · no entiende la razón social abreviada'; end if;
+  if not ordenante_cuadra('Transportes 2000, S.L.', 'TRANSFERENCIA DE TRANSPORTES 2000 SL') then raise exception 'FALLO 386 · se pierden las cifras de la razón social'; end if;
+  if not ordenante_cuadra('ALVARO BLANCO MORILLO', 'Transferencia inmediata de alvaro blanco morillo, concepto ver-acdcd2') then raise exception 'FALLO 386 · no reconoce el movimiento real del Santander'; end if;
+  -- Las palabras del banco no hacen cuadrar a otra empresa («Trans…» contra «Transferencia»).
+  if ordenante_cuadra('Trans Inmediata Concepto, S.L.', 'Transferencia inmediata de OTRA EMPRESA SL, concepto VER-ABCD23') then raise exception 'FALLO 386 · cuadra con las palabras que pone el banco'; end if;
+  if ordenante_cuadra('Transportes García López, S.L.', 'TRANSFERENCIA DE TRANSPORTES PEREZ SANZ SL') then raise exception 'FALLO 386 · cuadra con solo una de tres palabras'; end if;
+  raise notice 'OK 386 · el ordenante del céntimo entiende abreviaturas (transp., hnos, log, ttes) y no cuenta las palabras del banco';
 end $$;

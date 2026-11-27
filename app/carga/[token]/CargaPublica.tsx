@@ -4,6 +4,7 @@
 // reserva de 3 minutos con su contador, identificación, vehículo, pronto pago, contraoferta
 // dentro de la banda, y la carga aceptada con todos sus datos. También: ya no disponible,
 // en trámite, tiempo agotado y enlace no válido.
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -308,6 +309,9 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   const [sugs, setSugs] = useState<SugerenciaT[] | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [acAbierto, setAcAbierto] = useState(false);
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita; 2026-11-27).
+  const acRef = useRef<HTMLDivElement>(null);
+  useCerrarFuera(acAbierto, () => setAcAbierto(false), acRef);
   const [elegido, setElegido] = useState<SugerenciaT | null>(null);
   // Flota de otras veces (usuario, 2026-11-09): al identificarse se autorrellena lo
   // último usado (si los campos están vacíos) y cada campo ofrece la lista de
@@ -431,10 +435,10 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
             </div>
           ) : (<>
             <label htmlFor="f-cif">Tu CIF / NIF, código de bolsa o el nombre de tu empresa <Req /></label>
-            <div className="idrow">
+            <div className="idrow" ref={acRef}>
               <input type="text" id="f-cif" value={cif} placeholder="Ej. B12345678 o tu empresa" autoCapitalize="characters" autoComplete="off"
                 onChange={(e) => { setCif(e.target.value); setAcAbierto(true); }}
-                onFocus={() => setAcAbierto(true)} onBlur={() => setTimeout(() => setAcAbierto(false), 150)} />
+                onFocus={() => setAcAbierto(true)} />
               <ul className={`ac-list${acAbierto && cif.trim().replace(/[^0-9A-Za-z]/g, '').length >= 4 && (buscando || sugs !== null) ? ' show' : ''}`} id="ac-buscar">
                 {(sugs ?? []).map((s) => (
                   <li key={s.cif} onMouseDown={(ev) => { ev.preventDefault(); setElegido(s); setCif(s.cif); setAcAbierto(false); cargaFlota(s.cif); }}>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from '../Modal';
 import { IconoTipo, TIPOS_SITIO } from '../TipoSitio';
@@ -23,6 +24,9 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
 }) {
   const [q, setQ] = useState('');
   const [abierto, setAbierto] = useState(false);
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita; 2026-11-27).
+  const caja = useRef<HTMLDivElement>(null);
+  useCerrarFuera(abierto, () => setAbierto(false), caja);
   const [crear, setCrear] = useState(false);
   const [pideTipo, setPideTipo] = useState(false);
   const [dirs, setDirs] = useState<Direccion[]>([]);
@@ -51,7 +55,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
   return (
     <>
       <div className="ptar-route-row">
-        <div className={`ptar-input-wrap${elegido ? ' ptar-picked' : ''}`}>
+        <div className={`ptar-input-wrap${elegido ? ' ptar-picked' : ''}`} ref={caja}>
           {/* Pastilla con el nº y el tipo (naranja recogida · verde entrega). Al pulsarla,
               la parada ALTERNA entre recogida y entrega (si no es la única de su grupo). */}
           {onAlternar
@@ -64,7 +68,7 @@ export function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, 
             disabled={deshabilitado} readOnly={!!elegido}
             value={elegido ? textoSitio(elegido) + (punto.parada_id || !punto.nuevo ? '' : ' (nuevo)') : q}
             onChange={(e) => { setQ(e.target.value); setAbierto(true); }}
-            onFocus={() => !elegido && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)}
+            onFocus={() => !elegido && setAbierto(true)}
             onClick={() => {
               // Pulsar ENCIMA del sitio elegido = la ✕ y además abre el desplegable para
               // elegir otro (usuario, 2026-11-10).

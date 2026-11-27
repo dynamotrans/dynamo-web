@@ -4,6 +4,7 @@
 // dashboard.html: tabla Empresa · Dirección · Horario · Contacto · Notas, estrella del
 // sitio principal y ficha en la ventana del panel con la rejilla .ptar-sitio-grid.
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Paginador from './Paginador';
 import EstadoVacio from './EstadoVacio';
@@ -25,7 +26,6 @@ import CampoProvincia from '@/components/CampoProvincia';
 import { CampoCodigoPostal, CampoPoblacion, lugarDe, type Lugar } from '@/components/CamposLugar';
 import { conProvinciaDelCp } from '@/lib/provinciasEs';
 import { principal, telDe, CONTACTO_VACIO } from '@/lib/contactos';
-import { noEsMovil } from '@/lib/whatsapp';
 import EditorContactos from './EditorContactos';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
@@ -166,7 +166,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto, 
                     {f.horario_sin_verificar && <div className="meta"><span className="badge badge-orange" title="Nadie ha comprobado este horario con el sitio">Horario sin verificar</span></div>}
                     {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
                   </td>
-                  <td>{(() => { const k = principal(f.contactos); return <>{[k?.telefono && `Móvil ${telBonito(k.telefono)}`, k?.telefono_fijo && `Fijo ${telBonito(k.telefono_fijo)}`].filter(Boolean).join(' · ') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
+                  <td>{(() => { const k = principal(f.contactos); return <>{(k?.telefono && telBonito(k.telefono)) || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{notas ? <span style={{ color: '#b45309' }}>⚠ {notas.slice(0, 60)}{notas.length > 60 ? '…' : ''}</span> : '—'}</td>
                 </tr>
               );
@@ -219,6 +219,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
   const [bq, setBq] = useState(fila ? '' : buscarInicial);
   const [sug, setSug] = useState<{ ag: { id: string; nombre: string; direccion: string }[]; go: SitioGoogle[]; dir: DirOSM[] }>({ ag: [], go: [], dir: [] });
   const [sugAbierto, setSugAbierto] = useState(false);
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita; 2026-11-27).
+  const buscarRef = useRef<HTMLDivElement>(null);
+  useCerrarFuera(sugAbierto, () => setSugAbierto(false), buscarRef);
   const [avisoParecido, setAvisoParecido] = useState<{ id: string; nombre: string } | null>(null);
   const bqViva = useRef('');
   // Google factura juntas las sugerencias y la ficha del sitio elegido si van con la misma
@@ -303,7 +306,7 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
       const base: SitioDatos = soloDir ? {
         ...x,
         nombre_empresa: antes && x.nombre_empresa === antes.nombre ? '' : x.nombre_empresa,
-        contactos: antes?.telefono ? x.contactos.map((c) => (c.telefono === antes.telefono ? { ...c, telefono: '' } : c.telefono_fijo === antes.telefono ? { ...c, telefono_fijo: '' } : c)) : x.contactos,
+        contactos: antes?.telefono ? x.contactos.map((c) => (c.telefono === antes.telefono ? { ...c, telefono: '' } : c)) : x.contactos,
         ...(x.horario_sin_verificar ? { horario: limpia.horario, horario_sin_verificar: false } : {}),
       } : limpia;
       return conProvinciaDelCp({
@@ -313,9 +316,9 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
         url_google_maps: g.url_google_maps,
         // El horario de Google es una propuesta sin verificar (usuario, 2026-11-23).
         ...(conHorario ? { horario: g.horario!, horario_sin_verificar: true } : {}),
-        // El teléfono de Google va a su campo: un fijo, al fijo; un móvil, al móvil (usuario, 2026-11-26).
+        // El teléfono de Google va al único teléfono del contacto (usuario, 2026-11-27).
         contactos: telefono && !base.contactos.some((c) => telDe(c).trim())
-          ? base.contactos.map((c, i) => (i === 0 ? (noEsMovil(telefono) ? { ...c, telefono_fijo: telefono } : { ...c, telefono }) : c))
+          ? base.contactos.map((c, i) => (i === 0 ? { ...c, telefono } : c))
           : base.contactos,
       }, g.pais_codigo_iso || 'ES');
     });
@@ -546,11 +549,11 @@ export function FichaSitio({ fila, clientes, dynamo, clienteFijo = false, almace
           {/* Dentro de la rejilla estándar para que el campo tenga el mismo tamaño y
               estilo que el resto de la ficha (antes salía con el del navegador). */}
           <div className="ptar-sitio-grid" style={{ position: 'relative', gridTemplateColumns: '1fr' }}>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }} ref={buscarRef}>
             <label htmlFor="sitio-buscar" style={{ color: 'var(--green)', fontWeight: 700 }}>Empieza aquí: busca el nombre del sitio nuevo para autorrellenar.</label>
             <input id="sitio-buscar" autoComplete="off" placeholder="Escribe empresa o dirección…" value={bq}
               onChange={(e) => { setBq(e.target.value); setAvisoParecido(null); }}
-              onFocus={() => setSugAbierto(true)} onBlur={() => setTimeout(() => setSugAbierto(false), 150)} />
+              onFocus={() => setSugAbierto(true)} />
             {cargandoGoogle && <small role="status" style={{ color: 'var(--gray-500)' }}>Trayendo los datos del sitio desde Google…</small>}
             {sugAbierto && bq.trim().length >= 2 && (
               <ul className="ptar-sug ptar-sug-flujo">

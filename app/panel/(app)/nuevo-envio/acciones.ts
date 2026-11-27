@@ -1,7 +1,6 @@
 'use server';
 
 import { normalizaTel } from '@/lib/paises';
-import { AVISO_MOVIL, noEsMovil } from '@/lib/whatsapp';
 
 import { mensajeError } from '@/lib/mensajeError';
 import { randomUUID } from 'node:crypto';
@@ -607,7 +606,7 @@ export async function datosEditablesDeSitios(ids: string[]): Promise<Record<stri
   if (!s?.perfil || !limpios.length) return {};
   const [sit, con, hor] = await Promise.all([
     s.supabase.from('sitios').select('id, es_almacen_dynamo, tipo, anotaciones, url_google_maps, emails_avisos, verano_activo, verano_desde, verano_hasta').in('id', limpios),
-    s.supabase.from('contactos').select('sitio_id, id, nombre, telefono, telefono_fijo, email, es_principal, creado_en').in('sitio_id', limpios),
+    s.supabase.from('contactos').select('sitio_id, id, nombre, telefono, email, es_principal, creado_en').in('sitio_id', limpios),
     s.supabase.from('sitio_horarios').select('sitio_id, temporada, dia_semana, abre, cierra').in('sitio_id', limpios),
   ]);
   const out: Record<string, SitioEditable> = {};
@@ -623,15 +622,15 @@ export async function datosEditablesDeSitios(ids: string[]): Promise<Record<stri
   Object.values(out).forEach((x) => { if (!x.verano.horario.length) x.verano.horario = HORARIO_VERANO_POR_DEFECTO; });
   porSitio.forEach((filas, sid) => { if (out[sid]) out[sid].horario = gruposDe(filas); });
   // Contacto principal de cada sitio (el marcado principal; si no, el más antiguo).
-  const cont = new Map<string, { id: string; nombre: string; telefono: string; telefono_fijo: string; email: string; es_principal: boolean; creado_en: string }[]>();
-  (con.data ?? []).forEach((c) => { const l = cont.get(c.sitio_id!) ?? []; l.push({ id: c.id, nombre: c.nombre ?? '', telefono: c.telefono ?? '', telefono_fijo: c.telefono_fijo ?? '', email: c.email ?? '', es_principal: !!c.es_principal, creado_en: String(c.creado_en) }); cont.set(c.sitio_id!, l); });
+  const cont = new Map<string, { id: string; nombre: string; telefono: string; email: string; es_principal: boolean; creado_en: string }[]>();
+  (con.data ?? []).forEach((c) => { const l = cont.get(c.sitio_id!) ?? []; l.push({ id: c.id, nombre: c.nombre ?? '', telefono: c.telefono ?? '', email: c.email ?? '', es_principal: !!c.es_principal, creado_en: String(c.creado_en) }); cont.set(c.sitio_id!, l); });
   cont.forEach((l, sid) => {
     if (!out[sid]) return;
     const orden = [...l].sort((a, b) => Number(b.es_principal) - Number(a.es_principal) || a.creado_en.localeCompare(b.creado_en));
     const p = orden[0];
-    if (p) out[sid].contacto = { id: p.id, nombre: p.nombre, telefono: p.telefono, telefono_fijo: p.telefono_fijo, email: p.email };
+    if (p) out[sid].contacto = { id: p.id, nombre: p.nombre, telefono: p.telefono, email: p.email };
     // Todos los contactos con teléfono (principal primero): la tarjeta del paso 4 los lista.
-    out[sid].contactos = orden.filter((c) => c.telefono || c.telefono_fijo).slice(0, 5).map((c) => ({ id: c.id, nombre: c.nombre, telefono: c.telefono || c.telefono_fijo }));
+    out[sid].contactos = orden.filter((c) => c.telefono).slice(0, 5).map((c) => ({ id: c.id, nombre: c.nombre, telefono: c.telefono }));
   });
   return out;
 }
@@ -682,15 +681,10 @@ export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{
     const tel = normalizaTel(c.contacto_telefono);
     const nombre = (c.contacto_nombre ?? '').trim();
     const email = (c.contacto_email ?? '').trim().toLowerCase();
-    // El fijo (usuario, 2026-11-26): si no viene, el que tenga guardado no se toca.
-    const conFijo = c.contacto_telefono_fijo !== undefined && c.contacto_telefono_fijo !== null;
-    const fijo = conFijo ? normalizaTel(c.contacto_telefono_fijo) : '';
-    if (tel || fijo || nombre || email) {
+    if (tel || nombre || email) {
       if (tel && tel.replace('+', '').length < 6) return { ok: false, error: 'El teléfono de contacto del sitio no es válido.' };
-      if (fijo && fijo.replace('+', '').length < 6) return { ok: false, error: 'El teléfono fijo de contacto del sitio no es válido.' };
-      if (tel && fijo && noEsMovil(tel)) return { ok: false, error: `El móvil de contacto del sitio ${AVISO_MOVIL}` };
       if (email && !EMAIL.test(email)) return { ok: false, error: 'El email de contacto del sitio no es válido.' };
-      const fc = { nombre: nombre || null, telefono: tel || null, email: email || null, ...(conFijo ? { telefono_fijo: fijo || null } : {}) };
+      const fc = { nombre: nombre || null, telefono: tel || null, email: email || null };
       const r = c.contacto_id && /^[0-9a-f-]{36}$/i.test(c.contacto_id)
         ? await s.supabase.from('contactos').update(fc).eq('id', c.contacto_id)
         : await s.supabase.from('contactos').insert({ sitio_id: c.sitio_id, ...fc, funcion: 'general', es_principal: true });

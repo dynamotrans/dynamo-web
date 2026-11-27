@@ -10,7 +10,6 @@ import { useEffect, useState } from 'react';
 import AvisoCierreSitio from './AvisoCierreSitio';
 import { Interruptor } from './Interruptor';
 import CampoTelefono from '@/components/CampoTelefono';
-import { telPuesto } from '@/lib/paises';
 import { resumenHorario } from '@/lib/horarios';
 import { HorarioSitio } from '../Sitios';
 import { nombreTipo, IconoTipo } from '../TipoSitio';
@@ -166,7 +165,6 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {/* El nombre va ANTES del teléfono también aquí (usuario, 2026-11-10). */}
                   {f.contacto && <div><label>Contacto</label><input className="sitio-f-lock" value={f.contacto} readOnly tabIndex={-1} /></div>}
                   {f.telefono && <div><label>Móvil (WhatsApp)</label><input className="sitio-f-lock" value={f.telefono} readOnly tabIndex={-1} /></div>}
-                  {f.telefonoFijo && <div><label>Fijo</label><input className="sitio-f-lock" value={f.telefonoFijo} readOnly tabIndex={-1} /></div>}
                   {f.contactoEmail && <div><label>Email de contacto</label><input className="sitio-f-lock" value={f.contactoEmail} readOnly tabIndex={-1} /></div>}
                 </>) : (<>
                   {/* Mismos campos, orden y etiquetas que la ficha de Sitios (usuario,
@@ -184,13 +182,10 @@ export function FichasSitios({ puntos, datos, edic, setEdic, fechaCargaTxt, falt
                   {/* ORDEN (usuario, 2026-11-18): teléfono (lo obligatorio) · email · nombre y
                       apellidos, que es opcional y va el último. El nombre sigue SIEMPRE a la
                       vista, sin plegar, como en los contactos que se añaden. */}
-                  {/* DOS teléfonos (usuario, 2026-11-26): el móvil, para WhatsApp, y el fijo. Hace
-                      falta al menos uno. En un sitio NUEVO hay un solo campo: al crearlo, el
-                      número va solo a su sitio (un fijo, al fijo; un móvil, al móvil). */}
-                  <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>{f.nuevo ? 'Teléfono (móvil o fijo)' : 'Móvil (WhatsApp)'} <Req si={f.nuevo || !telPuesto(f.telefonoFijo)} /></label>
+                  {/* UN solo teléfono (usuario, 2026-11-27): el móvil, para WhatsApp. Un fijo, si
+                      hace falta, va en otro contacto del sitio. */}
+                  <div className={marcada && !telOk ? 'sitio-f-falta' : undefined}><label>Móvil (WhatsApp) <Req /></label>
                     <CampoTelefono valor={f.telefono} onCambio={(v) => set(p, { telefono: v })} /></div>
-                  {!f.nuevo && <div><label>Fijo <Req si={false} /></label>
-                    <CampoTelefono valor={f.telefonoFijo} placeholder="954 000 000" onCambio={(v) => set(p, { telefonoFijo: v })} /></div>}
                   {/* La explicación del email va en un tooltip ⓘ (usuario, 2026-11-10). */}
                   <div><label>Email <Req util /> <Tip texto="Con email avisamos al sitio de cada recogida y entrega: operativa más ágil y mejor imagen ante proveedores y clientes." aria="Por qué el email es muy útil" /></label>
                     <input type="text" inputMode="email" value={f.contactoEmail} placeholder="Ej. nombre@empresa.com" onChange={(e) => set(p, { contactoEmail: e.target.value })} /></div>

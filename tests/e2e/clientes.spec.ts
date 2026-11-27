@@ -84,15 +84,28 @@ test.describe('verificación de empresa', () => {
       const tarjeta = page.locator('#tarjeta-verificacion');
       await expect(tarjeta).toContainText('Sin verificar');
       await page.locator('#btn-abrir-verificacion').click();
-      await expect(page.locator('.dash-modal-card')).toContainText('¿Tienes dudas?');
-      await page.locator('#via-transferencia').click();
+      await expect(page.locator('.dash-modal-card')).toContainText('¿Tienes dudas');
+      // Solo céntimo (usuario, 2026-11-27): sin elegir vía y sin «Subir un documento».
+      await expect(page.locator('#via-documento, #via-transferencia')).toHaveCount(0);
       await expect(page.locator('#verificacion-codigo')).toHaveText(/^VER-[A-Z2-9]{6}$/);
+      // Cada dato con su botón de copiar, y uno para todos (usuario, 2026-11-27).
+      await expect(page.locator('#copiar-verificacion-codigo')).toBeVisible();
+      await expect(page.locator('#copiar-verificacion-beneficiario')).toBeVisible();
+      await page.locator('#copiar-verificacion-todo').click();
+      await expect(page.locator('#copiar-verificacion-todo')).toContainText(/Copiado|Cópialo a mano/);
       // «Solo el código» y «no se devuelve» van en el globo junto al 0,01 € (usuario, 2026-11-27).
       await page.locator('#tip-centimo .tip-i-btn').click();
       await expect(page.locator('#tip-centimo .tip-i-pop')).toBeVisible();
       await expect(page.locator('#tip-centimo .tip-i-pop')).toContainText('no se devuelve');
       await page.locator('#btn-transferencia-hecha').click();
       await expect(page.locator('#verificacion-enviada')).toBeVisible();
+      // Una sola petición a la vez (usuario, 2026-11-27): ya avisada, no se vuelve a pedir.
+      await page.reload();
+      await expect(tarjeta).toContainText('En revisión');
+      await page.locator('#btn-abrir-verificacion').click();
+      await expect(page.locator('#verificacion-ya-pedida')).toContainText('transferencia');
+      await expect(page.locator('#btn-transferencia-hecha')).toHaveCount(0);
+      await expect(page.locator('#verificacion-codigo')).toHaveText(/^VER-[A-Z2-9]{6}$/);
 
       await entrar(page, 'dynamo');
       await page.goto('/panel/altas');

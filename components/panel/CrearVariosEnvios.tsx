@@ -260,7 +260,7 @@ export default function CrearVariosEnvios({ clientes: clientesIni, sitios: sitio
       if (!p.sitio || p.sitio.es_almacen_dynamo || !edicSit[p.k] || !datosSit[p.sitio.id]) continue;
       const x = resolverFicha(p, datosSit, edicSit[p.k]);
       porSitio.set(p.sitio.id, {
-        sitio_id: p.sitio.id, contacto_id: x.contacto_id, contacto_nombre: x.contacto, contacto_telefono: x.telefono, contacto_telefono_fijo: x.telefonoFijo, contacto_email: x.contactoEmail,
+        sitio_id: p.sitio.id, contacto_id: x.contacto_id, contacto_nombre: x.contacto, contacto_telefono: x.telefono, contacto_email: x.contactoEmail,
         anotaciones: x.notas, emails_avisos: x.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
         url_google_maps: x.maps || null, horario_tramos: tramosDe(x.horario),
         verano: edicSit[p.k]?.verano ? { activo: x.verano.activo, desde: x.verano.desde, hasta: x.verano.hasta, tramos: tramosDe(x.verano.horario) } : undefined,

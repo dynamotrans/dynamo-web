@@ -23,6 +23,9 @@ test('teléfonos de un sitio: móvil y fijo por separado; un dato sin separar sa
   assert.deepEqual(telefonosSitio({ telefono: '+34600111222', movil: '+34600111222', fijo: '+34954111222' }),
     [{ que: 'Móvil', tel: '+34600111222' }, { que: 'Fijo', tel: '+34954111222' }]);
   assert.deepEqual(telefonosSitio({ telefono: '+34954111222', movil: null, fijo: '+34954111222' }), [{ que: 'Fijo', tel: '+34954111222' }]);
+  // Un sitio lleva un solo teléfono (2026-11-27): si en el del móvil hay un fijo, no se llama «Móvil».
+  assert.deepEqual(telefonosSitio({ telefono: '+34954111222', movil: '+34954111222', fijo: null }), [{ que: 'Tfno', tel: '+34954111222' }]);
+  assert.deepEqual(telefonosSitio({ telefono: '+34600111222', movil: '+34600111222', fijo: null }), [{ que: 'Móvil', tel: '+34600111222' }]);
   assert.deepEqual(telefonosSitio({ telefono: '+34600111222' }), [{ que: 'Tfno', tel: '+34600111222' }]);
   assert.deepEqual(telefonosSitio(null), []);
   assert.equal(telDe({ telefono: '', telefono_fijo: '+34954111222' }), '+34954111222');

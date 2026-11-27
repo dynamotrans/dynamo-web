@@ -14,7 +14,7 @@ export async function cargarSitios(sb: SB, almacenes: boolean, soloIds?: string[
     : await leerTodo(sb.from('sitios').select(cols).eq('borrado', false).eq('es_almacen_dynamo', almacenes).order('nombre_empresa'), 10000);
   const ids = (sitios ?? []).map((l) => l.id as string);
   // Contactos y horarios de esos sitios (pocos: los de la página o los almacenes).
-  const con0 = sb.from('contactos').select('id, sitio_id, nombre, cargo, funcion, telefono, telefono_fijo, email, recibe_avisos, es_principal, creado_en');
+  const con0 = sb.from('contactos').select('id, sitio_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en');
   const hor0 = sb.from('sitio_horarios').select('sitio_id, temporada, dia_semana, abre, cierra');
   const [con, hor] = !ids.length ? [{ data: [] }, { data: [] }]
     : await Promise.all([leerTodo(con0.in('sitio_id', ids), 50000), leerTodo(hor0.in('sitio_id', ids), 100000)]);

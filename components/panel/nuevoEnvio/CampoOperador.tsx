@@ -5,6 +5,7 @@
 // de transportistas del cliente (nombre + CIF · contacto) y «+ Añade tu operador…», que
 // lleva a la pantalla de Transportistas. Elegir bloquea el campo; la ✕ o pulsar el chip
 // lo vuelven a abrir. `valor` vacío = Dynamo.
+import { useCerrarFuera } from '@/lib/useCerrarFuera';
 import { avisarNavegandoA } from '../CargandoNavegacion';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,9 @@ export default function CampoOperador({ operadores, valor, onCambio }: {
 }) {
   const router = useRouter();
   const [eligiendo, setEligiendo] = useState(false);
+  // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita; 2026-11-27).
+  const caja = useRef<HTMLDivElement>(null);
+  useCerrarFuera(eligiendo, () => setEligiendo(false), caja);
   const [q, setQ] = useState('');
   const inp = useRef<HTMLInputElement>(null);
   const actual = valor ? operadores.find((o) => o.id === valor) ?? null : null;
@@ -45,12 +49,11 @@ export default function CampoOperador({ operadores, valor, onCambio }: {
     );
   }
   return (
-    <div id="opCombo" className="ptar-input-wrap alm-rep-wrap">
+    <div id="opCombo" className="ptar-input-wrap alm-rep-wrap" ref={caja}>
       <IcoCamion />
       <input ref={inp} type="text" value={q} placeholder="Operador de transporte · busca en tu catálogo" autoComplete="off" inputMode="search"
         aria-label="Buscar operador de transporte" onChange={(ev) => setQ(ev.target.value)}
-        onKeyDown={(ev) => { if (ev.key === 'Escape') setEligiendo(false); }}
-        onBlur={() => setTimeout(() => setEligiendo(false), 150)} />
+        onKeyDown={(ev) => { if (ev.key === 'Escape') setEligiendo(false); }} />
       <ul className="ptar-sug alm-combo-list">
         {dynamoSale && (
           <li className="alm-combo-item" onMouseDown={(ev) => { ev.preventDefault(); elegir(''); }}>

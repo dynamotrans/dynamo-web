@@ -612,7 +612,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       .map((p) => {
         const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
         return {
-          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_telefono_fijo: f.telefonoFijo, contacto_email: f.contactoEmail,
+          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
           horario_tramos: tramosDe(f.horario),
@@ -752,7 +752,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       .map((p) => {
         const f = resolverFicha(p, datosSitios, edicSitios[p.k]);
         return {
-          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_telefono_fijo: f.telefonoFijo, contacto_email: f.contactoEmail,
+          sitio_id: p.sitio!.id, contacto_id: f.contacto_id, contacto_nombre: f.contacto, contacto_telefono: f.telefono, contacto_email: f.contactoEmail,
           anotaciones: f.notas, emails_avisos: f.emails.split(/[,;\s]+/).map((e) => e.trim()).filter(Boolean),
           url_google_maps: f.maps || null,
           horario_tramos: tramosDe(f.horario),

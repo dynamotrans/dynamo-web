@@ -1,5 +1,4 @@
 import { normalizaTel } from '@/lib/paises';
-import { AVISO_MOVIL, noEsMovil } from '@/lib/whatsapp';
 import type { SB } from '@/lib/supabase/cliente';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import type { ContactoDatos } from './contactos';
@@ -11,18 +10,15 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export function validarContactos(lista: ContactoDatos[]): string | null {
   for (const [i, c] of lista.entries()) {
     const quien = c.nombre.trim() || `el contacto ${i + 1}`;
-    const tel = normalizaTel(c.telefono), fijo = normalizaTel(c.telefono_fijo);
-    if (!tel && !fijo && !c.email.trim()) return `Pon un teléfono o un email para ${quien}.`;
+    const tel = normalizaTel(c.telefono);
+    if (!tel && !c.email.trim()) return `Pon un teléfono o un email para ${quien}.`;
     if (tel && tel.replace('+', '').length < 6) return `El teléfono de ${quien} no es válido.`;
-    if (fijo && fijo.replace('+', '').length < 6) return `El teléfono fijo de ${quien} no es válido.`;
-    // Con los dos puestos, el del móvil tiene que ser un móvil (si solo hay uno, va solo a su campo).
-    if (tel && fijo && noEsMovil(tel)) return `El móvil de ${quien} ${AVISO_MOVIL}`;
     if (c.email.trim() && !EMAIL.test(c.email.trim())) return `El email de ${quien} no es válido.`;
   }
   return null;
 }
 // Quita las filas vacías del todo (las que se añadieron y no se rellenaron).
-export const sinVacios = (l: ContactoDatos[]) => l.filter((c) => c.nombre.trim() || c.telefono.trim() || (c.telefono_fijo ?? '').trim() || c.email.trim() || c.cargo.trim());
+export const sinVacios = (l: ContactoDatos[]) => l.filter((c) => c.nombre.trim() || c.telefono.trim() || c.email.trim() || c.cargo.trim());
 
 // Deja en la base de datos exactamente la lista de la ficha: borra los que se quitaron,
 // actualiza los que siguen y añade los nuevos. El PRIMERO de cada función es el
@@ -42,9 +38,7 @@ export async function guardarContactos(sb: SB, dueno: Dueno, lista: ContactoDato
     const es_principal = !vistos.has(c.funcion); vistos.add(c.funcion);
     const tel = normalizaTel(c.telefono);
     const fila: Record<string, unknown> = { ...dueno, nombre: c.nombre.trim() || null, cargo: c.cargo.trim() || null, funcion: c.funcion,
-      telefono: tel || null, email: c.email.trim().toLowerCase() || null, recibe_avisos: c.recibe_avisos, es_principal,
-      // El fijo solo lo llevan los contactos de sitios (los demás formularios no lo mandan).
-      ...(c.telefono_fijo !== undefined ? { telefono_fijo: normalizaTel(c.telefono_fijo) || null } : {}) };
+      telefono: tel || null, email: c.email.trim().toLowerCase() || null, recibe_avisos: c.recibe_avisos, es_principal };
     const r = c.id ? await sb.from('contactos').update(fila as TablaUpdate<'contactos'>).eq('id', c.id) : await sb.from('contactos').insert(fila as TablaInsert<'contactos'>);
     if (r.error) return r.error.message;
   }

@@ -76,6 +76,14 @@ export async function revisarCentimos(forzar = false): Promise<void> {
       return;
     }
     const l = listaDe<Movimiento>(r.datos);
+    // Rastro SIN datos personales (ni ordenante ni concepto): cuántos movimientos llegan, con qué
+    // campos y cuántos son de 0,01 € o llevan un código. Para ajustar la lectura a lo que devuelve
+    // de verdad la facturación (2026-11-27: el primer céntimo de prueba no se detectaba).
+    const pequeños = l.items.filter((m) => Math.abs(Number(String(m.amount ?? '').replace(',', '.')) - 0.01) < 0.001).length;
+    const conCodigo = l.items.filter((m) => CODIGO.test([m.description, m.note].filter(Boolean).join(' '))).length;
+    console.info('[Holded] céntimos: página', i + 1, '· desde', desde, '· respuesta', Array.isArray(r.datos) ? 'lista' : Object.keys((r.datos ?? {}) as object).join(','),
+      '· movimientos', l.items.length, '· campos', l.items[0] ? Object.keys(l.items[0]).join(',') : '-', '· de 0,01 €', pequeños, '· con código', conCodigo,
+      '· importes de ejemplo', l.items.slice(0, 5).map((m) => typeof m.amount + ':' + String(m.amount)).join(' '));
     for (const m of l.items) {
       const desc = [m.description, m.note].filter(Boolean).join(' · ');
       const importe = Number(String(m.amount ?? '').replace(',', '.'));
