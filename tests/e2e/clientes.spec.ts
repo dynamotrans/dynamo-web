@@ -79,9 +79,12 @@ test.describe('verificación de empresa', () => {
     try {
       await entrar(page, 'cliente');
       await page.goto('/panel/mi-cuenta');
+      // Arriba, el aviso: verde si tiene crédito esperándole, azul si no (usuario, 2026-11-27).
+      await expect(page.locator('#aviso-verificacion-credito, #aviso-verificacion-sin-credito')).toBeVisible();
       const tarjeta = page.locator('#tarjeta-verificacion');
       await expect(tarjeta).toContainText('Sin verificar');
       await page.locator('#btn-abrir-verificacion').click();
+      await expect(page.locator('.dash-modal-card')).toContainText('¿Tienes dudas?');
       await page.locator('#via-transferencia').click();
       await expect(page.locator('#verificacion-codigo')).toHaveText(/^VER-[A-Z2-9]{6}$/);
       // «Solo el código» y «no se devuelve» van en el globo junto al 0,01 € (usuario, 2026-11-27).

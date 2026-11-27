@@ -97,28 +97,41 @@ export default async function PaginaAltas() {
   }));
   return (
     <>
+      {/* Resumen arriba (usuario, 2026-11-27): lo que espera al equipo, separado en empresas y
+          usuarios (y bajas si las hay), cada bloque con su título debajo. */}
+      <section className="section active" style={{ paddingBottom: 0 }}>
+        <div className="sec-header"><h2>Altas pendientes ({(porVerificar ?? []).length + filas.length})</h2></div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0 0 0.4rem' }} id="altas-resumen">
+          <a href="#empresas-por-verificar" className="badge badge-orange">Empresas por verificar · {(porVerificar ?? []).length}</a>
+          <a href="#usuarios-pendientes" className="badge badge-blue">Usuarios por dar de alta · {filas.length}</a>
+          {bajas.length > 0 && <a href="#bajas-solicitadas" className="badge badge-red">Bajas pedidas · {bajas.length}</a>}
+        </div>
+      </section>
       <BajasSolicitadas filas={bajas} />
-      {(porVerificar ?? []).length > 0 && (
-        <section className="section active" id="empresas-por-verificar" style={{ paddingBottom: 0 }}>
-          <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div>
-            <strong>Empresas por verificar ({(porVerificar ?? []).length}).</strong> Sin verificar trabajan con pago previo. Ábrelas para verificar o rechazar.
-          </div></div>
-          <div className="table-wrap"><table className="data">
-            <thead><tr><th>Empresa</th><th>CIF</th><th>Vía</th><th>Código transferencia</th><th>Pedida</th></tr></thead>
-            <tbody>
-              {(porVerificar ?? []).map((c) => (
-                <tr key={c.id}>
-                  <td><Link href={`/panel/clientes?ver=${c.id}`}>{c.nombre_visible}</Link></td>
-                  <td>{c.cif}</td>
-                  <td>{c.verificacion_solicitada === 'transferencia' ? 'Transferencia de 0,01 €' : 'Documento'}</td>
-                  <td><strong>{c.codigo_transferencia}</strong></td>
-                  <td>{c.verificacion_solicitada_en ? fechaHora(c.verificacion_solicitada_en) : ''}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        </section>
-      )}
+      <section className="section active" id="empresas-por-verificar" style={{ paddingBottom: 0 }}>
+        <div className="sec-header"><h2>Empresas por verificar ({(porVerificar ?? []).length})</h2></div>
+        {(porVerificar ?? []).length === 0 ? (
+          <p style={{ color: 'var(--gray-500)', margin: '0 0 0.6rem' }}>Ninguna empresa esperando. Aquí salen las que han pedido verificarse (transferencia de 0,01 € o documento).</p>
+        ) : (
+          <>
+            <p style={{ color: 'var(--gray-600)', margin: '0 0 0.6rem', fontSize: 'var(--fs-s)' }}>Sin verificar trabajan con pago previo. Ábrelas para verificar o rechazar.</p>
+            <div className="table-wrap"><table className="data">
+              <thead><tr><th>Empresa</th><th>CIF</th><th>Vía</th><th>Código transferencia</th><th>Pedida</th></tr></thead>
+              <tbody>
+                {(porVerificar ?? []).map((c) => (
+                  <tr key={c.id}>
+                    <td><Link href={`/panel/clientes?ver=${c.id}`}>{c.nombre_visible}</Link></td>
+                    <td>{c.cif}</td>
+                    <td>{c.verificacion_solicitada === 'transferencia' ? 'Transferencia de 0,01 €' : 'Documento'}</td>
+                    <td><strong>{c.codigo_transferencia}</strong></td>
+                    <td>{c.verificacion_solicitada_en ? fechaHora(c.verificacion_solicitada_en) : ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          </>
+        )}
+      </section>
       <Altas filas={filas} transportistas={transportistas} festivos={festivos} clientes={clientes.data ?? []} paraCliente={paraCliente} error={altas.error?.message ?? reservas.error?.message ?? null} />
     </>
   );

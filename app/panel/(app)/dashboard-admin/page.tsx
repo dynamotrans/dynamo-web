@@ -62,7 +62,7 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
   const cnt = { count: 'exact' as const };
   // OJO: las solicitudes «esperando precio» y las revisiones de precio NO salen (decisión
   // del usuario 2026-11-08): el precio es del tarifador automático, no depende del equipo.
-  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, susp24, suspTotal, sug, avisados] = await Promise.all([
+  const [enCurso, pp, sinCamion, cofTra, sinPagar, inc, pen, altas, susp24, suspTotal, sug, avisados, empVer] = await Promise.all([
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).in('estado', ['programado', 'hacia_la_carga', 'cargando', 'en_ruta'])),
     supabase.rpc('pronto_pago_estado'),
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
@@ -86,6 +86,9 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
     supabase.from('sugerencias').select('id, numero, texto, autor_email, creado_en', cnt).eq('estado', 'activa').order('creado_en').limit(MAX),
     // Clientes que han avisado de su transferencia y esperan a que Dynamo la valide.
     cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).eq('estado', 'programado').eq('estado_pago_previo', 'pendiente').not('pago_avisado_en', 'is', null)),
+    // Empresas que han pedido verificarse y esperan a Dynamo (usuario, 2026-11-27): van con las altas.
+    supabase.from('clientes').select('id, nombre_visible, verificacion_solicitada, verificacion_solicitada_en', cnt)
+      .eq('estado_verificacion', 'no_verificada').not('verificacion_solicitada', 'is', null).order('verificacion_solicitada_en').limit(MAX),
   ]);
   const cli = (e: { clientes?: { nombre_visible: string | null } | null }) => e?.clientes?.nombre_visible ?? 'Cliente';
   const ficha = (id: string) => `/panel/envios?ver=${id}`;
@@ -114,9 +117,15 @@ export default async function PaginaDashboardAdmin({ searchParams }: { searchPar
       filas: (sinPagar.data ?? []).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
         s: e.pago_avisado_en ? `Transferencia avisada · validar · Carga ${fechas(e)}` : `Carga ${fechas(e)}`,
         desde: e.pago_avisado_en ?? e.modificado_en ?? e.creado_en, urgente: !!e.pago_avisado_en })) },
-    { id: 'altas', nivel: 'aviso', corto: 'Altas pendientes', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
-      sub: 'Usuarios nuevos esperando la revisión del equipo.',
-      filas: (altas.data ?? []).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
+    // Altas pendientes = usuarios + empresas por verificar (usuario, 2026-11-27), con el reparto en pequeño.
+    { id: 'altas', nivel: 'aviso', corto: 'Altas pendientes', titulo: 'Altas pendientes', total: (altas.count ?? 0) + (empVer.count ?? 0), todo: '/panel/altas',
+      pie: `Usuarios ${altas.count ?? 0} · Empresas ${empVer.count ?? 0}`,
+      sub: 'Usuarios nuevos y empresas que han pedido verificarse, esperando la revisión del equipo.',
+      filas: [
+        ...(empVer.data ?? []).map((c) => ({ href: `/panel/clientes?ver=${c.id}`, t: `Empresa · ${c.nombre_visible ?? ''}`,
+          s: c.verificacion_solicitada === 'transferencia' ? 'Verificación por transferencia de 0,01 €' : 'Verificación por documento', desde: c.verificacion_solicitada_en })),
+        ...(altas.data ?? []).map((u) => ({ href: '/panel/altas', t: `Usuario · ${u.nombre || u.email}`, s: u.email, desde: u.creado_en })),
+      ] },
     { id: 'sin-camion', nivel: 'urgente', corto: 'Hoy/mañana sin camión', titulo: 'Cargan hoy o mañana y no tienen camión', total: sinCamion.count ?? 0, todo: '/panel/envios?f=sin-asignar',
       // Los programados (todo lo vivo) van aquí mismo, en pequeño (usuario, 2026-11-25), no en una caja aparte.
       pie: `${enCurso} programados total`,

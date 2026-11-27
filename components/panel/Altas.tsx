@@ -91,7 +91,7 @@ export default function Altas({ filas, transportistas = [], festivos = [], clien
 
   return (
     <section className="section active" id="sec-altas">
-      <div className="sec-header"><h2>Altas pendientes ({lista.length})</h2></div>
+      <div className="sec-header" id="usuarios-pendientes"><h2>Usuarios por dar de alta ({lista.length})</h2></div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.6rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
         Solicitudes de alta esperando a Dynamo: <span className="alta-chip alta-cliente">clientes</span> que se registran en el portal y <span className="alta-chip alta-transportista">transportistas</span> que se dan de alta desde el enlace de un envío. Pulsa una fila para revisarla. La más antigua, arriba.

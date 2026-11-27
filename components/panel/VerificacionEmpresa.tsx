@@ -26,13 +26,21 @@ export function AvisoVerificacion({ avisoCredito, solicitada }: { avisoCredito: 
       </div></div>
     );
   }
-  if (!avisoCredito) return null;
+  // Con crédito esperándole: verde, «verifica para activarlo». Sin crédito (CESCE dio 0 o aún no
+  // hay): azul, sin prometer crédito ni decir que se denegó (usuario, 2026-11-27).
   return (
     <>
-      <div className="pt-aviso ok" id="aviso-verificacion-credito" style={{ marginBottom: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 260px' }}><strong>✓ Tu empresa tiene crédito disponible para trabajar sin pagar por adelantado.</strong></div>
-        <button type="button" className="btn-primary" id="btn-verificar-empresa" onClick={() => setAbierta(true)}>Verifica tu empresa para activarlo</button>
-      </div>
+      {avisoCredito ? (
+        <div className="pt-aviso ok" id="aviso-verificacion-credito" style={{ marginBottom: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 260px' }}><strong>✓ Tu empresa tiene crédito disponible para trabajar sin pagar por adelantado.</strong></div>
+          <button type="button" className="btn-primary" id="btn-verificar-empresa" onClick={() => setAbierta(true)}>Verifica tu empresa para activarlo</button>
+        </div>
+      ) : (
+        <div className="pt-aviso info" id="aviso-verificacion-sin-credito" style={{ marginBottom: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 260px' }}><strong>Tu empresa aún está sin verificar.</strong> De momento tus envíos se pagan por adelantado (tarjeta o transferencia). Verifícala una sola vez para que podamos estudiar trabajar contigo a crédito y pagar a 30 días.</div>
+          <button type="button" className="btn-primary" id="btn-verificar-empresa" onClick={() => setAbierta(true)}>Verificar mi empresa</button>
+        </div>
+      )}
       {abierta && <VentanaVerificacion onCerrar={() => setAbierta(false)} />}
     </>
   );
@@ -107,12 +115,12 @@ export function VentanaVerificacion({ onCerrar }: { onCerrar: () => void }) {
               <span className="via-opcion-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 18v-6" /><path d="m9 15 3-3 3 3" /></svg></span>
               <span className="via-opcion-txt">
                 <span className="via-opcion-tit">Subir un documento</span>
-                <span className="via-opcion-sub">La tarjeta del CIF o un documento oficial de la empresa. Lo revisa nuestro equipo y puede que te llamemos.</span>
+                <span className="via-opcion-sub">La tarjeta del CIF o un documento oficial de la empresa. Lo revisa nuestro equipo y te llamamos.</span>
               </span>
               <span className="via-opcion-flecha" aria-hidden="true">›</span>
             </button>
           </div>
-          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginBottom: 0 }}>¿Prefieres hacerlo por teléfono? Llámanos al {CONTACTO.telefono}.</p>
+          <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginBottom: 0 }}>¿Tienes dudas? Llámanos al {CONTACTO.telefono}.</p>
         </>
       ) : via === 'transferencia' ? (
         <>

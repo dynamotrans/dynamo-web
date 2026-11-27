@@ -17804,3 +17804,32 @@ do $$ declare f text; begin
     raise exception 'FALLO 382 · un usuario puede leer el código de paso'; end if;
   raise notice 'OK 382 · las llamadas automáticas a la plataforma llevan el código de paso de Vercel si está en el Vault (y nadie más lo lee)';
 end $$;
+
+-- ---- 383. Altas pendientes cuenta también las empresas por verificar -----------------------
+-- (usuario, 2026-11-27) El número del menú de Dynamo suma usuarios por dar de alta y empresas que
+-- han pedido verificarse.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin perform set_config('prueba.altas383', (contadores_panel() ->> 'altas'), false); end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; begin
+  perform set_config('dynamo.verificacion', 'on', true);
+  insert into clientes (razon_social, cif, estado_verificacion, verificacion_solicitada, verificacion_solicitada_en)
+  values ('Prueba Altas 383 S.L.', 'B38300001', 'no_verificada', 'documento', now()) returning id into c;
+  perform set_config('dynamo.verificacion', '', true);
+  perform set_config('prueba.c383', c::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (contadores_panel() ->> 'altas')::int <> current_setting('prueba.altas383')::int + 1 then
+    raise exception 'FALLO 383 · la empresa que pide verificarse no cuenta en Altas pendientes'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  delete from clientes where id = current_setting('prueba.c383')::uuid;
+  raise notice 'OK 383 · Altas pendientes cuenta usuarios por dar de alta y empresas que han pedido verificarse';
+end $$;
