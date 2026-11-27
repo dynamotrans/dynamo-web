@@ -46,6 +46,7 @@ export type Ruta = {
 export function dibujarRuta(motor: Motor, mapa: MapaEnvio & { id?: string }, o: {
   grande?: boolean;          // paradas más grandes (el mapa de un solo envío)
   oculta?: boolean;          // no se ve hasta activarla (los programados del mapa general)
+  ventana?: string;          // ventanita del envío en la parada 1 (y al pulsar la línea): los programados del mapa general
   alPulsar: () => void;      // al pulsar la línea o una parada
 }): Ruta {
   const pts = mapa.paradas.filter((p) => p.lat != null && p.lon != null);
@@ -56,7 +57,14 @@ export function dibujarRuta(motor: Motor, mapa: MapaEnvio & { id?: string }, o: 
   const rotulos = motor.grupo(true);
   const tramos: { linea: Linea; base: EstiloLinea }[] = [];
   let solo: number | null = null;   // la parada pulsada: su etiqueta sale siempre
-  const pulsar = () => { solo = null; o.alPulsar(); };
+  // Con ventanita (programados del mapa general, usuario 2026-11-27): pulsar la línea es como
+  // pulsar la parada 1, que abre la ventanita del envío además de resaltar la ruta.
+  const marcas: Marca[] = [];
+  const pulsar = () => {
+    const p1 = o.ventana ? marcas[0]?.el() : null;
+    if (p1) { p1.click(); return; }
+    solo = null; o.alPulsar();
+  };
   const tramo = (puntos: LL[], hecho: boolean) => {
     if (puntos.length < 2) return;
     const base: EstiloLinea = hecho
@@ -79,15 +87,15 @@ export function dibujarRuta(motor: Motor, mapa: MapaEnvio & { id?: string }, o: 
   // Una línea invisible y ANCHA encima, para que sea fácil acertar con el dedo.
   if (pts.length > 1) propia.toque(entera, pulsar);
   const t = o.grande ? 28 : 20;
-  const marcas: Marca[] = [];
   const extras: Marca[] = [];
-  for (const p of pts) {
+  for (const [i, p] of pts.entries()) {
     // Siempre su NÚMERO y su color (recogida y entrega con los colores de sus pastillas), también ya hecha
     // (usuario, 2026-11-22: con un ✓ no se sabe si era la 1 o la 2; dónde va el camión ya
     // dice por dónde ha pasado). La hora real sale en su etiqueta.
     const color = p.tipo === 'carga' ? RECOGIDA : ENTREGA;
     marcas.push(propia.marca(ll(p), { clase: 'parada-mapa', ancho: t, alto: t, titulo: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} ${p.orden}`,
       html: `<div style="width:${t}px;height:${t}px;border-radius:${t / 2}px;background:${color};color:#fff;font:800 ${o.grande ? 13 : 11}px/${t}px system-ui;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${p.orden}</div>`,
+      ventana: i === 0 ? o.ventana : undefined,
       alPulsar: () => { solo = p.orden; o.alPulsar(); } }));
   }
 

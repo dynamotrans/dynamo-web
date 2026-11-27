@@ -35,7 +35,7 @@ export function puntosTramo(m: MapaEnvio, a: ParadaMapa, b: ParadaMapa): PuntoLi
   return trazadoEntre([+a.lat!, +a.lon!], [+b.lat!, +b.lon!], m.trazados?.[`${a.orden}-${b.orden}`]);
 }
 
-export type PuntoCamion = { lat: number; lon: number; titulo: string; detalle: string; tono: 'gris' | 'azul' | 'ambar' | 'verde' | 'rojo' } | null;
+export type PuntoCamion = { lat: number; lon: number; titulo: string; detalle: string; tono: 'gris' | 'azul' | 'naranja' | 'verde' | 'rojo' } | null;
 
 const lugar = (p: ParadaMapa | undefined) => p?.poblacion || p?.empresa || (p ? `parada ${p.orden}` : '');
 const conCoord = (p: ParadaMapa | undefined): p is ParadaMapa & { lat: number; lon: number } =>
@@ -68,7 +68,9 @@ export function posicionCamion(m: MapaEnvio): PuntoCamion {
     if (!conCoord(u)) return null;
     const carga = u.tipo === 'carga';
     const sal = horaEtapa(m, 'en_ruta', (c.hasta ?? 0) + 1);
-    return { lat: +u.lat, lon: +u.lon, titulo: carga ? 'Cargando' : 'Descargando', detalle: `En ${lugar(u)}${sal ? ` · salida prevista ${fechaHora(sal)}` : ''}`, tono: 'ambar' };
+    return { lat: +u.lat, lon: +u.lon, titulo: carga ? 'Cargando' : 'Descargando', detalle: `En ${lugar(u)}${sal ? ` · salida prevista ${fechaHora(sal)}` : ''}`,
+      // Como sus paradas: cargando en naranja (recogida), descargando en verde (entrega) (usuario, 2026-11-27).
+      tono: carga ? 'naranja' : 'verde' };
   }
   // En ruta: en la fracción del tramo entre las dos paradas, sobre la carretera si se tiene su
   // trazado (y si no, en la recta).

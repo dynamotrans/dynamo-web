@@ -2151,7 +2151,8 @@ test.describe('novedades', () => {
       // que la ruta sale resaltada (fallaba así en Firefox y en el iPhone, 2026-11-24).
       const etiquetas = page.locator('[data-mapa-general] .leaflet-tooltip.tt-parada');
       await expect(async () => {
-        await page.locator('[data-mapa-general] .punto-programado').last().click({ force: true });
+        // Programado: su parada 1 (el punto gris solo queda en los pendientes de pago; 2026-11-27).
+        await page.locator('[data-mapa-general] .parada-mapa, [data-mapa-general] .punto-programado').last().click({ force: true });
         await expect.poll(async () => etiquetas.count(), { timeout: 1_500 }).toBeGreaterThan(0);
       }).toPass({ timeout: 20_000 });
       await expect(etiquetas.first()).toContainText(/Prevista|Cargado|Llegó|Entrega|Recogida/);

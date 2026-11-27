@@ -18,7 +18,8 @@ import { crearMotor, type Grupo, type LL, type Motor } from './mapa/motor';
 
 export const COLOR = { carga: '#c2410c', descarga: '#157a3f',   // los de las pastillas Recogida / Entrega
   hecho: '#16a34a', ruta: '#3300cc', pendiente: '#9ca3af' };
-export const TONO: Record<string, string> = { gris: '#6b7280', azul: '#2563eb', ambar: '#d97706', verde: '#16a34a', rojo: '#dc2626' };
+// Naranja y verde, los mismos de las paradas de recogida y de entrega (usuario, 2026-11-27: «todo homogéneo»).
+export const TONO: Record<string, string> = { gris: '#6b7280', azul: '#2563eb', naranja: '#c2410c', verde: '#157a3f', rojo: '#dc2626' };
 
 // El mapa en su propia capa (isolation): los paneles del mapa llevan z-index altos y, sin
 // esto, quedaban POR ENCIMA del menú desplegable de la cabecera (usuario, 2026-11-22).
@@ -188,7 +189,7 @@ function Lienzo({ mapa }: { mapa: MapaEnvio }) {
     if (pc) {
       const mc = marcadorCamion(TONO[pc.tono], true);
       g.marca([pc.lat, pc.lon], { clase: 'camion-mapa', ancho: mc.ancho, alto: mc.alto, html: mc.html, titulo: pc.titulo, encima: true,
-        ventana: `<strong>${pc.titulo}</strong><br>${pc.detalle}<br><em>Posición estimada</em>` });
+        ventana: `<strong style="color:${TONO[pc.tono]}">${pc.titulo}</strong><br>${pc.detalle}<br><em>Posición estimada</em>` });
     }
     // Encuadre: la primera vez, todas las paradas y el camión; después se respeta lo que
     // haya movido quien mira.

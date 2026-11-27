@@ -24,7 +24,7 @@ import SelectorPais from '@/components/SelectorPais';
 import CampoProvincia from '@/components/CampoProvincia';
 import { CampoCodigoPostal, CampoPoblacion, lugarDe, type Lugar } from '@/components/CamposLugar';
 import { conProvinciaDelCp } from '@/lib/provinciasEs';
-import { principal, CONTACTO_VACIO } from '@/lib/contactos';
+import { ROLES_CONTACTO_CLIENTE, principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import PagosCliente from './PagosCliente';
 import DeudaCliente from './DeudaCliente';
@@ -394,7 +394,7 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
 
         {titulo('Personas de contacto')}
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
-          roles={[['trafico', 'Logística'], ['contabilidad', 'Contabilidad']]} funcionNueva="trafico"
+          roles={ROLES_CONTACTO_CLIENTE} funcionNueva="general"
           ayuda={<>La primera es la <strong>principal</strong> (la que sale en la tabla). Con <strong>«Recibe los avisos»</strong> puesto: <strong>Logística</strong> recibe los emails de los envíos (creado, confirmado, cambios, CMR firmado) y <strong>Contabilidad</strong> los de pagos (línea de crédito, envíos pendientes de pago y el CMR firmado; las facturas, cuando las haya). No da acceso a la plataforma.</>} />
 
         {fila && <>

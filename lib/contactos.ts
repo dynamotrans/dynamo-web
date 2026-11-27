@@ -11,6 +11,9 @@ export type ContactoDatos = {
 export const FUNCIONES: [Funcion, string][] = [
   ['general', 'General'], ['trafico', 'Tráfico'], ['contabilidad', 'Contabilidad'], ['conductor', 'Conductor'],
 ];
+// Roles de un contacto de CLIENTE (usuario, 2026-11-27): una persona puede hacer las dos cosas
+// (empresa pequeña): «general» = Logística y Contabilidad, recibe lo de los dos. Es el de por defecto.
+export const ROLES_CONTACTO_CLIENTE: [Funcion, string][] = [['general', 'Logística y Contabilidad'], ['trafico', 'Logística'], ['contabilidad', 'Contabilidad']];
 export const CONTACTO_VACIO = (funcion: Funcion = 'general', recibe_avisos = true): ContactoDatos =>
   ({ nombre: '', cargo: '', funcion, telefono: '', email: '', recibe_avisos });
 

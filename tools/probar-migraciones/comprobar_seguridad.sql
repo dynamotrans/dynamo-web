@@ -12087,9 +12087,10 @@ do $$ declare e uuid := current_setting('prueba.e269')::uuid; cli uuid; l text; 
     (cli, 'Contabilidad con avisos', 'contabilidad', 'conta273@contacto.prueba', true),
     (cli, 'Contabilidad sin avisos', 'contabilidad', 'contano273@contacto.prueba', false),
     (cli, 'General con avisos', 'general', 'gen273@contacto.prueba', true);
-  -- Emails de los ENVÍOS: los de antes más Logística con avisos; nadie más.
+  -- Emails de los ENVÍOS: los de antes más Logística con avisos y el de las dos cosas («general» =
+  -- Logística y Contabilidad, usuario 2026-11-27); nadie más.
   l := emails_cliente_envio(e);
-  if position('log273@contacto.prueba' in l) = 0 or l ~ '(logno273|conta273|contano273|gen273)' then
+  if position('log273@contacto.prueba' in l) = 0 or position('gen273@contacto.prueba' in l) = 0 or l ~ '(logno273|conta273|contano273)' then
     raise exception 'FALLO 273 · los emails del envío no van a Logística con avisos (o van a quien no toca): %', l;
   end if;
   if exists (select 1 from unnest(string_to_array(antes, ',')) x where position(lower(btrim(x)) in l) = 0) then
@@ -12098,9 +12099,9 @@ do $$ declare e uuid := current_setting('prueba.e269')::uuid; cli uuid; l text; 
   if (select count(*) from unnest(string_to_array(l, ',')) x) <> (select count(distinct x) from unnest(string_to_array(l, ',')) x) then
     raise exception 'FALLO 273 · hay direcciones repetidas en los emails del envío: %', l;
   end if;
-  -- Emails de PAGOS Y CRÉDITO: Contabilidad con avisos; Logística no.
+  -- Emails de PAGOS Y CRÉDITO: Contabilidad con avisos y el de las dos cosas; Logística no.
   d := emails_del_cliente(cli);
-  if position('conta273@contacto.prueba' in coalesce(d, '')) = 0 or d ~ '(contano273|log273|logno273|gen273)' then
+  if position('conta273@contacto.prueba' in coalesce(d, '')) = 0 or position('gen273@contacto.prueba' in coalesce(d, '')) = 0 or d ~ '(contano273|log273|logno273)' then
     raise exception 'FALLO 273 · los emails de crédito no van a Contabilidad con avisos (o van a quien no toca): %', d;
   end if;
   -- «Envío creado» PENDIENTE DE PAGO: va además a Contabilidad. (Se prueba y se deshace.)
@@ -12114,7 +12115,7 @@ do $$ declare e uuid := current_setting('prueba.e269')::uuid; cli uuid; l text; 
   exception when others then
     if sqlerrm <> 'deshacer273' then raise; end if;
   end;
-  if pend is null or position('conta273@contacto.prueba' in pend) = 0 or position('log273@contacto.prueba' in pend) = 0 or pend ~ '(contano273|logno273|gen273)' then
+  if pend is null or position('conta273@contacto.prueba' in pend) = 0 or position('log273@contacto.prueba' in pend) = 0 or pend ~ '(contano273|logno273)' then
     raise exception 'FALLO 273 · el «envío creado» pendiente de pago no va a Logística y a Contabilidad: %', pend;
   end if;
   -- Sin pago pendiente, el «envío creado» no va a Contabilidad.
@@ -12126,7 +12127,7 @@ do $$ declare e uuid := current_setting('prueba.e269')::uuid; cli uuid; l text; 
   delete from emails_enviados where clave like 'prueba273%';
   delete from contactos where cliente_id = cli and email ilike '%273@contacto.prueba';
   if emails_cliente_envio(e) is distinct from fn_unir_emails(antes) then raise exception 'FALLO 273 · al quitar los contactos no vuelve la lista de antes'; end if;
-  raise notice 'OK 273 · «Recibe los avisos» de los contactos del cliente: Logística recibe los emails de los envíos, Contabilidad los de crédito y el «envío creado» pendiente de pago; sin el interruptor, o con otro rol, nada; sin direcciones repetidas';
+  raise notice 'OK 273 · «Recibe los avisos» de los contactos del cliente: Logística recibe los emails de los envíos, Contabilidad los de crédito y el «envío creado» pendiente de pago, «Logística y Contabilidad» las dos cosas; sin el interruptor, nada; sin direcciones repetidas';
 end $$;
 -- Nadie de fuera lee esas listas.
 set role anon;
@@ -17832,4 +17833,20 @@ select set_config('request.jwt.claim.sub', '', false);
 do $$ begin
   delete from clientes where id = current_setting('prueba.c383')::uuid;
   raise notice 'OK 383 · Altas pendientes cuenta usuarios por dar de alta y empresas que han pedido verificarse';
+end $$;
+
+-- ---- 384. Contacto de cliente «Logística y Contabilidad» -------------------------------------
+-- (usuario, 2026-11-27) Un contacto con el rol de las dos cosas (general) recibe los emails de
+-- Logística y los de Contabilidad; los de un solo rol, solo los suyos.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; l text; k text; begin
+  insert into clientes (razon_social, cif) values ('Prueba Contactos 384 S.L.', 'B38400001') returning id into c;
+  insert into contactos (cliente_id, email, funcion, recibe_avisos) values
+    (c, 'ambos384@prueba.prueba', 'general', true), (c, 'logis384@prueba.prueba', 'trafico', true), (c, 'conta384@prueba.prueba', 'contabilidad', true);
+  l := emails_contactos_cliente(c, 'trafico'); k := emails_contactos_cliente(c, 'contabilidad');
+  if position('ambos384' in l) = 0 or position('ambos384' in k) = 0 then raise exception 'FALLO 384 · el contacto de las dos cosas no recibe las dos: % / %', l, k; end if;
+  if position('conta384' in l) > 0 or position('logis384' in k) > 0 then raise exception 'FALLO 384 · un contacto recibe lo del otro rol'; end if;
+  delete from clientes where id = c;
+  raise notice 'OK 384 · contacto «Logística y Contabilidad»: recibe lo de los dos roles; los de un solo rol, solo lo suyo';
 end $$;

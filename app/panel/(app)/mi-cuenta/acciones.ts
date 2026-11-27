@@ -339,8 +339,9 @@ export async function guardarContactosDeMiEmpresa(lista: ContactoDatos[]): Promi
   if (p.rol !== 'cliente' || !p.cliente_id) return { ok: false, error: 'Solo los usuarios de un cliente cambian los contactos de su empresa.' };
   if (p.estado !== 'activa') return { ok: false, error: 'Tu cuenta está en solo lectura: no puedes cambiar los contactos de tu empresa.' };
   if (!Array.isArray(lista) || lista.length > 20) return { ok: false, error: 'Como mucho 20 personas de contacto.' };
-  // Solo los dos roles de un cliente; cualquier otro valor entra como Logística.
-  const limpia = sinVacios(lista).map((c) => ({ ...c, funcion: c.funcion === 'contabilidad' ? 'contabilidad' as const : 'trafico' as const }));
+  // Solo los roles de un cliente: Logística, Contabilidad o las dos («general», usuario 2026-11-27);
+  // cualquier otro valor entra como las dos.
+  const limpia = sinVacios(lista).map((c) => ({ ...c, funcion: c.funcion === 'contabilidad' || c.funcion === 'trafico' ? c.funcion : 'general' as const }));
   const mal = validarContactos(limpia);
   if (mal) return { ok: false, error: mal };
   const e = await guardarContactos(s.supabase, { cliente_id: p.cliente_id }, limpia);

@@ -122,8 +122,9 @@ export default function MapaGeneral({ dynamo, incrustado = false }: { dynamo: bo
       {envios && envios.length === 0 && <div className="pt-aviso ok" style={{ marginBottom: '0.6rem' }}><div>No hay envíos en programación ni en marcha ahora mismo.</div></div>}
       <Lienzo envios={visibles} dynamo={dynamo} hueco={incrustado} onAbrir={(id, ref) => setAbierto({ id, ref })} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.9rem', fontSize: '0.78rem', color: 'var(--gray-700)', marginTop: '0.5rem' }} aria-label="Leyenda del mapa general">
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: '#b45309' /* ámbar oscuro: el de TONO no llega al contraste AA en texto */ }}>cargando/descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
-        <span><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: '#9ca3af', verticalAlign: 'middle' }} /> Programado (junto a su 1.ª recogida)</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}><span dangerouslySetInnerHTML={{ __html: svgCamion(34) }} style={{ display: 'inline-flex' }} />En marcha (borde: <span style={{ color: TONO.azul }}>en ruta</span> · <span style={{ color: TONO.naranja }}>cargando</span> · <span style={{ color: TONO.verde }}>descargando</span> · <span style={{ color: TONO.gris }}>parado</span> · <span style={{ color: TONO.rojo }}>con retraso</span>)</span>
+        <span>Programado: su ruta y paradas; pulsa la <strong>parada 1</strong> o la línea para ver el envío</span>
+        <span><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: '#9ca3af', verticalAlign: 'middle' }} /> Pendiente de pago (en su 1.ª recogida)</span>
         <span><span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: COLOR.carga, verticalAlign: 'middle' }} /> Recogida · <span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 6, background: COLOR.descarga, verticalAlign: 'middle' }} /> Entrega</span>
         <span><span style={{ borderTop: `3px solid ${COLOR.ruta}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Hecho · <span style={{ borderTop: `3px dashed ${COLOR.pendiente}`, width: 18, display: 'inline-block', verticalAlign: 'middle' }} /> Por hacer</span>
         {!incrustado && <span>Pulsa una parada o una ruta para ver todas sus paradas con su hora (si no caben todas, toca una parada o acerca el mapa).</span>}
@@ -211,20 +212,22 @@ function Lienzo({ envios, dynamo, hueco = false, onAbrir }: { envios: EnvioMapa[
       // resalta (y se atenúan las demás) con las etiquetas de todas sus paradas, 4 segundos.
       // Ruta y paradas a la vista en todos (usuario, 2026-11-26) menos en los pendientes de
       // pago, que solo enseñan su punto hasta pulsarlo.
-      const r = dibujarRuta(m, e, { oculta: !!e.pendiente_pago, alPulsar: () => res.current.resaltar(r) });
+      // Programado con su ruta a la vista: la ventanita del envío va en su parada 1 (y al pulsar la
+      // línea); sin punto gris aparte, que salía duplicado junto a la parada 1 (usuario, 2026-11-27).
+      const programado = !enMarcha(e);
+      const ventana = `${cabecera}<br>Programado${e.fecha_carga ? ` · carga ${fecha(e.fecha_carga)}` : ''}${botones}`;
+      const r = dibujarRuta(m, e, { oculta: !!e.pendiente_pago, ventana: programado && !e.pendiente_pago ? ventana : undefined,
+        alPulsar: () => res.current.resaltar(r) });
       rutas.push(r);
-      if (!enMarcha(e)) {
-        // Programado: un punto gris en su 1.ª recogida; al pulsarlo, su ficha breve y su ruta.
+      if (programado) {
         const p = pts[0];
-        // Con sus paradas a la vista, el punto va pegado arriba a la derecha de la parada 1 (como
-        // una insignia) para no tapar su número; sin ellas (pendiente de pago), en su sitio.
-        const bolita = 'width:16px;height:16px;border-radius:8px;background:#9ca3af;border:2px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.35)';
-        r.sumar(g.marca([+p.lat!, +p.lon!], { clase: 'punto-programado', ancho: e.pendiente_pago ? 16 : 40, alto: e.pendiente_pago ? 16 : 40, titulo: `#${e.referencia}`,
-          html: e.pendiente_pago ? `<div style="${bolita}"></div>`
-            : `<div style="position:relative;width:40px;height:40px;pointer-events:none"><div style="position:absolute;left:23px;top:1px;pointer-events:auto;cursor:pointer;${bolita}"></div></div>`,
-          ventana: `${cabecera}<br>Programado${e.fecha_carga ? ` · carga ${fecha(e.fecha_carga)}` : ''}${botones}`,
-          alPulsar: () => res.current.resaltar(r, p.orden) }));
-        puntos.push([+p.lat!, +p.lon!]);
+        // Pendiente de pago: no enseña la ruta hasta pulsarlo, así que lleva un punto gris en su 1.ª recogida.
+        if (e.pendiente_pago) {
+          const bolita = 'width:16px;height:16px;border-radius:8px;background:#9ca3af;border:2px solid #fff;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.35)';
+          r.sumar(g.marca([+p.lat!, +p.lon!], { clase: 'punto-programado', ancho: 16, alto: 16, titulo: `#${e.referencia}`,
+            html: `<div style="${bolita}"></div>`, ventana, alPulsar: () => res.current.resaltar(r, p.orden) }));
+          puntos.push([+p.lat!, +p.lon!]);
+        } else for (const q of pts) puntos.push([+q.lat!, +q.lon!]);
         continue;
       }
       const pc = posicionCamion(e);

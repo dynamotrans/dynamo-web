@@ -34,7 +34,7 @@ test('mapa: sin salir no se pinta el camión; en parada y entregado, en la parad
   assert.equal(posicionCamion(base({ ...ruta, modo: 'sin_salir', desde: null, hasta: 1 })), null);
   assert.match(estadoMapa(base({ ...ruta, modo: 'sin_salir', desde: null, hasta: 1 })), /Aún no ha salido/);
   const c = posicionCamion(base({ ...ruta, modo: 'en_parada', desde: null, hasta: 1 }))!;
-  assert.equal(c.titulo, 'Cargando'); assert.equal(c.lat, 37);
+  assert.equal(c.titulo, 'Cargando'); assert.equal(c.lat, 37); assert.equal(c.tono, 'naranja');   // como la parada de recogida
   assert.equal(posicionCamion(base({ ...ruta, modo: 'entregado', desde: null, hasta: 2 }))!.lon, -3);
 });
 test('mapa: sin coordenadas no se inventa una posición', () => {

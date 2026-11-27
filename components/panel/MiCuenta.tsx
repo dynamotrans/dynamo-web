@@ -11,6 +11,7 @@ import Documentos from './Documentos';
 import LogoEditor from './LogoEditor';
 import EditorContactos from './EditorContactos';
 import type { ContactoDatos } from '@/lib/contactos';
+import { ROLES_CONTACTO_CLIENTE } from '@/lib/contactos';
 import Cargando from '@/components/Cargando';
 import { IDIOMAS_AVISOS } from '@/lib/idiomas';
 import MiDoblePaso from './MiDoblePaso';
@@ -284,7 +285,7 @@ function EditarEmpresa({ empresa, editable, onCerrar }: {
         </div>
         {titulo('Personas de contacto')}
         <EditorContactos valor={contactos} onCambio={setContactos} max={20}
-          roles={[['trafico', 'Logística'], ['contabilidad', 'Contabilidad']]} funcionNueva="trafico"
+          roles={ROLES_CONTACTO_CLIENTE} funcionNueva="general"
           ayuda={<>La primera es la <strong>principal</strong>. Con <strong>«Recibe los avisos»</strong> puesto: <strong>Logística</strong> recibe los emails de los envíos y <strong>Contabilidad</strong> los de pagos y el CMR firmado. No da acceso a la plataforma: para eso, añade un compañero desde «Mi cuenta».</>} />
       </div>
       {!editable.puedeGuardar && <div className="wiz-warn show" role="status">Tu cuenta está en solo lectura: puedes ver los datos, pero no cambiarlos.</div>}
