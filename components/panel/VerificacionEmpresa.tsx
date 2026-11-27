@@ -4,11 +4,12 @@
 // · Aviso de arriba: solo si la empresa está sin verificar y tiene crédito esperándole
 //   (check verde, sin importes ni nada de CESCE), o si ya ha pedido la verificación.
 // · Tarjeta en Mi cuenta: el estado y el botón para verificar.
-// · Ventana: dos vías (transferencia de 0,01 € con su código, o documento); el certificado
-//   digital, más adelante. Las revisa Dynamo.
+// · Ventana: dos vías (transferencia de 0,01 € con su código, o documento). El certificado
+//   digital no se ofrece (usuario, 2026-11-27: «la gente pasa de certificado»).
 import { useCallback, useEffect, useState } from 'react';
 import Modal from './Modal';
 import Documentos from './Documentos';
+import Tip from '@/components/Tip';
 import { fecha } from '@/lib/formato';
 import { CONTACTO } from '@/lib/atencion';
 import { useRefrescar } from '@/lib/useRefrescar';
@@ -77,9 +78,8 @@ export function VentanaVerificacion({ onCerrar }: { onCerrar: () => void }) {
     setHecho(true); refrescar();
   }
 
-  const caja: React.CSSProperties = { border: '1.5px solid var(--gray-200)', borderRadius: 12, padding: '0.8rem 0.95rem', textAlign: 'left', background: '#fff', cursor: 'pointer', width: '100%' };
   const fila = (k: string, val: React.ReactNode, id?: string) => (
-    <div style={{ display: 'flex', gap: '0.6rem', padding: '0.3rem 0', borderBottom: '1px dashed var(--gray-200)' }}>
+    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', padding: '0.3rem 0', borderBottom: '1px dashed var(--gray-200)' }}>
       <span style={{ flex: '0 0 7.5rem', color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>{k}</span>
       <strong id={id} style={{ wordBreak: 'break-all' }}>{val}</strong>
     </div>
@@ -94,33 +94,37 @@ export function VentanaVerificacion({ onCerrar }: { onCerrar: () => void }) {
       ) : !via ? (
         <>
           <p style={{ marginTop: 0 }}>Se hace <strong>una sola vez</strong> y vale para todos los usuarios de tu empresa. Elige cómo:</p>
-          <div style={{ display: 'grid', gap: '0.6rem' }}>
-            <button type="button" style={caja} id="via-transferencia" onClick={() => setVia('transferencia')}>
-              <strong>Transferencia de 0,01 €</strong><br />
-              <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-600)' }}>Desde la cuenta bancaria de la empresa, con un código en el concepto. La más rápida.</span>
+          <div style={{ display: 'grid', gap: '0.65rem' }}>
+            <button type="button" className="via-opcion via-recomendada" id="via-transferencia" onClick={() => setVia('transferencia')}>
+              <span className="via-opcion-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10h18" /><path d="M5 10V20M9 10V20M15 10V20M19 10V20" /><path d="M2 21h20" /><path d="M12 3 2 8h20z" /></svg></span>
+              <span className="via-opcion-txt">
+                <span className="via-opcion-tit">Transferencia de 0,01 € <span className="badge badge-green">La más rápida</span></span>
+                <span className="via-opcion-sub">Desde la cuenta bancaria de la empresa, con un código en el concepto.</span>
+              </span>
+              <span className="via-opcion-flecha" aria-hidden="true">›</span>
             </button>
-            <button type="button" style={caja} id="via-documento" onClick={() => setVia('documento')}>
-              <strong>Subir un documento</strong><br />
-              <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-600)' }}>La tarjeta del CIF o un documento oficial de la empresa. Lo revisa nuestro equipo y puede que te llamemos.</span>
+            <button type="button" className="via-opcion" id="via-documento" onClick={() => setVia('documento')}>
+              <span className="via-opcion-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M12 18v-6" /><path d="m9 15 3-3 3 3" /></svg></span>
+              <span className="via-opcion-txt">
+                <span className="via-opcion-tit">Subir un documento</span>
+                <span className="via-opcion-sub">La tarjeta del CIF o un documento oficial de la empresa. Lo revisa nuestro equipo y puede que te llamemos.</span>
+              </span>
+              <span className="via-opcion-flecha" aria-hidden="true">›</span>
             </button>
-            <div style={{ ...caja, cursor: 'default', opacity: 0.6 }}>
-              <strong>Certificado digital de la empresa</strong> <span className="badge badge-gray">Próximamente</span><br />
-              <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-600)' }}>Con el certificado de representante de la empresa, al momento.</span>
-            </div>
           </div>
           <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginBottom: 0 }}>¿Prefieres hacerlo por teléfono? Llámanos al {CONTACTO.telefono}.</p>
         </>
       ) : via === 'transferencia' ? (
         <>
           <p style={{ marginTop: 0 }}>Haz una transferencia de <strong>0,01 €</strong> desde una <strong>cuenta bancaria a nombre de la empresa</strong> ({v.razon_social}) con estos datos:</p>
-          {fila('Importe', '0,01 €')}
+          {fila('Importe', <>0,01 € <Tip id="tip-centimo" aria="Cómo hacer la transferencia" texto="Pon solo el código en el concepto. El céntimo es a fondo perdido: no se devuelve." /></>)}
           {fila('Concepto', v.codigo, 'verificacion-codigo')}
           {fila('Beneficiario', v.banco.titular || 'Dynamo')}
           {v.banco.banco && fila('Banco', v.banco.banco)}
           {v.banco.iban ? fila('IBAN', v.banco.iban) : fila('IBAN', <>Pídenoslo al {CONTACTO.telefono}</>)}
           {v.banco.bic && fila('BIC', v.banco.bic)}
           <div className="pt-aviso" style={{ margin: '0.8rem 0', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.45)', color: '#7a5c00' }}><div>
-            Pon <strong>solo el código</strong> en el concepto. El céntimo es <strong>a fondo perdido: no se devuelve</strong>. Comprobamos que el código coincide y que quien envía es {v.razon_social}: si todo cuadra, tu empresa queda verificada sola, normalmente en 2 a 3 horas.
+            Comprobamos que el código coincide y que quien envía es {v.razon_social}: si todo cuadra, tu empresa queda verificada sola, normalmente en 2 a 3 horas.
           </div></div>
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
             <button type="button" className="btn-primary" id="btn-transferencia-hecha" disabled={trabajando} onClick={() => pedir('transferencia')}>{trabajando ? 'Enviando…' : 'Ya la he hecho'}</button>

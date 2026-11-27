@@ -65,5 +65,5 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   // ¿El consumo de crédito sale de la deuda real (lo que debe + envíos sin facturar) o de la estimación por días?
   const { data: creditoReal } = filas.length ? await supabase.rpc('credito_con_deuda_real') : { data: false };
   return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={error} abrir={ver} sectores={Array.isArray(sectores) ? sectores : []}
-    lista={{ q, estado, orden, pagina, porPagina, total }} creditoReal={creditoReal === true} />;
+    lista={{ q, estado, orden, pagina, porPagina, total }} creditoReal={creditoReal === true} admin={perfil.rol === 'admin'} />;
 }

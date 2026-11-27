@@ -17749,3 +17749,43 @@ do $$ declare a uuid; b uuid; ca text; cb text; r text; ok boolean := false; beg
   delete from clientes where id in (a, b);
   raise notice 'OK 380 · céntimo de verificación: con código y ordenante parecido verifica solo; si el ordenante no cuadra, por verificar con aviso; importe distinto o sin código no toca nada; cada movimiento una vez; solo el servidor';
 end $$;
+
+-- ---- 381. Borrar un cliente sin nada colgado -----------------------------------------------
+-- (usuario, 2026-11-27) Solo el Admin Master. Una empresa vacía (creada por error o de prueba) se
+-- borra con sus contactos y notas; una con usuarios, envíos, facturas… no se toca.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; begin
+  insert into clientes (razon_social, cif) values ('Prueba Borrar 381 S.L.', 'B38100001') returning id into c;
+  insert into contactos (cliente_id, email) values (c, 'borrar381@prueba.prueba');
+  insert into notas_internas (tabla, registro_id, texto) values ('clientes', c, 'nota 381');
+  perform set_config('prueba.c381', c::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  begin
+    r := borrar_cliente(current_setting('prueba.c381')::uuid);
+    raise exception 'FALLO 381 · un cliente borra empresas';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare c uuid := current_setting('prueba.c381')::uuid; r jsonb; begin
+  r := borrar_cliente((select cliente_id from usuarios where id = current_setting('prueba.u_cli')::uuid));
+  if r ->> 'resultado' <> 'con_datos' or coalesce((r #>> '{detalle,usuarios}')::int, 0) < 1 then
+    raise exception 'FALLO 381 · se borra una empresa con usuarios: %', r; end if;
+  r := borrar_cliente(c);
+  if r ->> 'resultado' <> 'ok' then raise exception 'FALLO 381 · no borra una empresa vacía: %', r; end if;
+  if borrar_cliente(c) ->> 'resultado' <> 'no_existe' then raise exception 'FALLO 381 · la borrada sigue existiendo'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid := current_setting('prueba.c381')::uuid; begin
+  if exists (select 1 from contactos where cliente_id = c) or exists (select 1 from notas_internas where tabla = 'clientes' and registro_id = c) then
+    raise exception 'FALLO 381 · quedan contactos o notas de la empresa borrada'; end if;
+  if exists (select 1 from clientes where id = (select cliente_id from usuarios where id = current_setting('prueba.u_cli')::uuid)) is not true then
+    raise exception 'FALLO 381 · ha desaparecido la empresa con datos'; end if;
+  raise notice 'OK 381 · borrar cliente: solo el Admin Master; la empresa vacía se va con sus contactos y notas; con usuarios, envíos o facturas no se borra y dice qué tiene';
+end $$;

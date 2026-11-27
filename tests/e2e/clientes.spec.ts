@@ -84,7 +84,10 @@ test.describe('verificación de empresa', () => {
       await page.locator('#btn-abrir-verificacion').click();
       await page.locator('#via-transferencia').click();
       await expect(page.locator('#verificacion-codigo')).toHaveText(/^VER-[A-Z2-9]{6}$/);
-      await expect(page.locator('.dash-modal-card')).toContainText('no se devuelve');
+      // «Solo el código» y «no se devuelve» van en el globo junto al 0,01 € (usuario, 2026-11-27).
+      await page.locator('#tip-centimo .tip-i-btn').click();
+      await expect(page.locator('#tip-centimo .tip-i-pop')).toBeVisible();
+      await expect(page.locator('#tip-centimo .tip-i-pop')).toContainText('no se devuelve');
       await page.locator('#btn-transferencia-hecha').click();
       await expect(page.locator('#verificacion-enviada')).toBeVisible();
 
@@ -141,6 +144,46 @@ test.describe('baja de un compañero', () => {
       expect(u2!.estado).toBe('activa');
     } finally {
       await bd().from('usuarios').update({ estado: 'suspendida' }).eq('id', id);
+    }
+  });
+});
+
+// Borrar un cliente (usuario, 2026-11-27): solo el Admin Master, con contraseña y CONFIRMAR, y solo
+// si la empresa no tiene nada colgado. Con usuarios dice qué tiene y no borra.
+test.describe('borrar cliente', () => {
+  test('con usuarios no se borra; una empresa vacía sí', async ({ page }) => {
+    const { bd, CLAVE, EMAIL } = await import('./ayudas');
+    const { data: u } = await bd().from('usuarios').select('cliente_id').eq('email', EMAIL.cliente).single();
+    const cid = u!.cliente_id as string;
+    const cif = 'B' + String(Date.now()).slice(-8);
+    const { data: nuevo, error } = await bd().from('clientes').insert({ razon_social: 'Borrar e2e S.L.', cif }).select('id').single();
+    expect(error).toBeNull();
+    const vacia = nuevo!.id as string;
+    try {
+      await entrar(page, 'dynamo');
+      // La del cliente de pruebas tiene usuarios y envíos: no se borra y lo dice.
+      await page.goto(`/panel/clientes?ver=${cid}`);
+      await page.locator('#cli-borrar').click();
+      await expect(page.locator('#cli-borrar-si')).toBeDisabled();
+      await page.fill('#cli-borrar-clave', CLAVE);
+      await page.fill('#cli-borrar-txt', 'CONFIRMAR');
+      await page.locator('#cli-borrar-si').click();
+      await expect(page.locator('#cli-borrar-error')).toContainText('No se puede borrar');
+      await expect(page.locator('#cli-borrar-error')).toContainText('usuario');
+      const { count } = await bd().from('clientes').select('id', { count: 'exact', head: true }).eq('id', cid);
+      expect(count).toBe(1);
+
+      // La vacía: se borra y desaparece.
+      await page.goto(`/panel/clientes?ver=${vacia}`);
+      await expect(page.locator('.dash-modal-card')).toContainText('Borrar e2e S.L.');
+      await page.locator('#cli-borrar').click();
+      await page.fill('#cli-borrar-clave', CLAVE);
+      await page.fill('#cli-borrar-txt', 'CONFIRMAR');
+      await page.locator('#cli-borrar-si').click();
+      await expect(page.locator('.dash-modal-card')).toHaveCount(0);
+      await expect.poll(async () => (await bd().from('clientes').select('id', { count: 'exact', head: true }).eq('id', vacia)).count).toBe(0);
+    } finally {
+      await bd().from('clientes').delete().eq('id', vacia);
     }
   });
 });

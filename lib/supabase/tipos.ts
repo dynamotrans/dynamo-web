@@ -5457,6 +5457,7 @@ export type Database = {
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
       borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
+      borrar_cliente: { Args: { p_id: string | null }; Returns: Json }
       borrar_transportista: { Args: { p_id: string | null }; Returns: Json }
       brevo_sitios_avisar: { Args: Record<PropertyKey, never>; Returns: boolean }
       brevo_sitios_candidatos: { Args: Record<PropertyKey, never>; Returns: { email: string; nombre: string; cargo: string; empresa: string; cif: string; telefono: string; direccion: string; codigo_postal: string; localidad: string; provincia: string; pais: string; google_maps: string; sitio_id: string; huella: string }[] }

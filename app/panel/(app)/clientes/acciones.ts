@@ -7,6 +7,8 @@ import type { ContactoDatos } from '@/lib/contactos';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
+import { soloAdminMaster } from '@/lib/guardia';
+import { comprobarMiClave } from '@/lib/servidor/miClave';
 
 export type ClienteDatos = {
   sector?: string | null;   // de la lista de Parámetros (sectores_cliente); vacío = Sin definir
@@ -184,4 +186,31 @@ export async function deudaDeCliente(cliente: string): Promise<DeudaFicha | null
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol) || !/^[0-9a-f-]{36}$/i.test(cliente)) return null;
   const { data, error } = await s.supabase.rpc('deuda_cliente_ficha', { p_cliente: cliente });
   return error || !data ? null : (data as unknown as DeudaFicha);
+}
+
+// ---- Borrar un cliente sin nada colgado (usuario, 2026-11-27) --------------------------------
+// Solo el Admin Master, con su contraseña y CONFIRMAR. Una empresa con usuarios, envíos, sitios,
+// facturas… no se borra (la ley obliga a guardarlo): para esas, Suspendido / bajas / Anonimizar.
+const QUE_TIENE: Record<string, [string, string]> = {
+  usuarios: ['usuario', 'usuarios'], envios: ['envío', 'envíos'], sitios: ['sitio', 'sitios'],
+  transportistas: ['transportista propio', 'transportistas propios'], incidencias: ['incidencia', 'incidencias'],
+  almacenamientos: ['almacenamiento', 'almacenamientos'], documentos: ['documento', 'documentos'],
+  facturas: ['factura', 'facturas'], pedidos: ['pedido de venta sin facturar', 'pedidos de venta sin facturar'],
+};
+export async function borrarCliente(id: string, clave: string, confirmacion: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/clientes/acciones#borrarCliente", [id, clave, confirmacion]);
+  const s = await soloAdminMaster();
+  if (!s) return { ok: false, error: 'Solo el Admin Master borra clientes.' };
+  if (confirmacion.trim() !== 'CONFIRMAR') return { ok: false, error: 'Escribe la palabra CONFIRMAR, en mayúsculas, para borrar el cliente.' };
+  const eClave = await comprobarMiClave(s.supabase, clave);
+  if (eClave) return { ok: false, error: eClave };
+  const { data, error } = await s.supabase.rpc('borrar_cliente', { p_id: id });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = data as { resultado: string; detalle?: Record<string, number> };
+  if (r.resultado === 'ok' || r.resultado === 'no_existe') return { ok: true };
+  if (r.resultado === 'con_datos') {
+    const lista = Object.entries(r.detalle ?? {}).map(([k, n]) => `${n} ${(QUE_TIENE[k] ?? [k, k])[n === 1 ? 0 : 1]}`).join(', ');
+    return { ok: false, error: `No se puede borrar: tiene ${lista}. Una empresa con historia se guarda por ley; si no debe trabajar, ponla en Suspendido.` };
+  }
+  return { ok: false, error: 'No se ha podido borrar el cliente.' };
 }

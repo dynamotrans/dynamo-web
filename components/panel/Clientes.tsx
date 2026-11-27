@@ -16,7 +16,7 @@ import LogoEditor from './LogoEditor';
 import Req from '@/components/Req';
 import { avisaFaltas } from '@/lib/faltas';
 import Cargando from '@/components/Cargando';
-import { guardarCliente, usuariosDeCliente, type ClienteDatos, type UsuarioDeCliente } from '@/app/panel/(app)/clientes/acciones';
+import { borrarCliente, guardarCliente, usuariosDeCliente, type ClienteDatos, type UsuarioDeCliente } from '@/app/panel/(app)/clientes/acciones';
 import { euros, fechaHora, numero } from '@/lib/formato';
 
 import { paisDe, telBonito } from '@/lib/paises';
@@ -81,7 +81,7 @@ type Empleado = { id: string; nombre: string };
 // Lo que la página ha pedido a la base de datos (filtros de la URL y total de la búsqueda).
 export type ListaClientes = { q: string; estado: string; orden: string; pagina: number; porPagina: number; total: number };
 
-export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [], lista, creditoReal = false }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[]; lista: ListaClientes; creditoReal?: boolean }) {
+export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null, sectores = [], lista, creditoReal = false, admin = false }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null; sectores?: string[]; lista: ListaClientes; creditoReal?: boolean; admin?: boolean }) {
   const refrescar = useRefrescar();
   const url = (p: number) => {
     const u = new URLSearchParams();
@@ -204,7 +204,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
       <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={url} nombre="clientes" nombreUno="cliente" />
 
       {ficha && (
-        <FichaCliente fila={ficha.fila} bienvenida={bienvenida} empleados={empleados} sectores={sectores} onCerrar={() => setFicha(null)}
+        <FichaCliente fila={ficha.fila} bienvenida={bienvenida} empleados={empleados} sectores={sectores} admin={admin} onCerrar={() => setFicha(null)}
           onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
@@ -214,7 +214,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
 // Exportada (usuario, 2026-11-16): «Verificar alta» abre este MISMO formulario de Nuevo
 // cliente, ya relleno con los datos del registro (`inicial`), y recibe el cliente creado.
 export type ClienteCreado = { id: string; nombre_visible: string; cif: string };
-export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuardado, inicial }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; sectores: string[]; onCerrar: () => void;
+export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, onGuardado, inicial, admin = false }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; sectores: string[]; onCerrar: () => void; admin?: boolean;
   onGuardado: (creado?: ClienteCreado) => void; inicial?: Partial<ClienteDatos> }) {
   const [d, setD] = useState<ClienteDatos>(() => {
     if (!fila) return { ...NUEVO, factor_tarifa_pct: bienvenida.pct, ...inicial };
@@ -230,6 +230,21 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
   });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Borrar de verdad (usuario, 2026-11-27): solo el Admin Master y solo si la empresa no tiene
+  // nada colgado (lo comprueba la base de datos). Contraseña + CONFIRMAR.
+  const [pideBorrar, setPideBorrar] = useState(false);
+  const [borrarClave, setBorrarClave] = useState('');
+  const [borrarTxt, setBorrarTxt] = useState('');
+  const [borrando, setBorrando] = useState(false);
+  const [borrarError, setBorrarError] = useState<string | null>(null);
+  async function borrar() {
+    if (!fila || borrarTxt.trim() !== 'CONFIRMAR' || !borrarClave) return;
+    setBorrando(true); setBorrarError(null);
+    const r = await borrarCliente(fila.id, borrarClave, borrarTxt).catch(() => ({ ok: false as const, error: 'No se ha podido conectar. Vuelve a intentarlo.' }));
+    setBorrando(false);
+    if (!r.ok) { setBorrarError(r.error); return; }
+    onGuardado();
+  }
   // Quién entra hoy en la plataforma por este cliente (solo al editar uno que ya existe).
   const [usuarios, setUsuarios] = useState<UsuarioDeCliente[] | null>(null);
   const clienteId = fila?.id ?? null;
@@ -301,9 +316,31 @@ export function FichaCliente({ fila, bienvenida, empleados, sectores, onCerrar, 
       icono={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>}
       onCerrar={onCerrar}
       pie={<>
-        <button className="btn-ghost" onClick={onCerrar} disabled={guardando}>Cancelar</button>
-        <button className="btn-primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : fila ? 'Guardar cambios' : 'Crear cliente'}</button>
+        <button className="btn-ghost" onClick={onCerrar} disabled={guardando || borrando}>Cancelar</button>
+        {fila && admin && <button className="btn-ghost" id="cli-borrar" style={{ color: '#dc2626' }} disabled={guardando || borrando}
+          onClick={() => { setPideBorrar(true); setBorrarTxt(''); setBorrarClave(''); setBorrarError(null); setTimeout(() => document.getElementById('cli-borrar-confirm')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0); }}>Borrar</button>}
+        <button className="btn-primary" onClick={guardar} disabled={guardando || borrando}>{guardando ? 'Guardando…' : fila ? 'Guardar cambios' : 'Crear cliente'}</button>
       </>}>
+      {pideBorrar && fila && (
+        <div id="cli-borrar-confirm" style={{ margin: '0 0 0.9rem', padding: '0.8rem 0.9rem', border: '1.5px solid #f5b5b5', borderRadius: 10, background: '#fdecec', color: '#b42318', fontSize: 'var(--fs-m)', lineHeight: 1.5 }}>
+          <strong>¿Borrar este cliente para siempre?</strong> Solo se puede si la empresa <strong>no tiene nada</strong>: ni usuarios, ni envíos, ni sitios, ni facturas, ni documentos (sirve para las creadas por error o de prueba). Si tiene algo, no se borra y te decimos qué; para esas, ponla en <strong>Suspendido</strong>.
+          <div style={{ marginTop: '0.6rem', display: 'grid', gap: '0.5rem' }}>
+            <div>
+              <label htmlFor="cli-borrar-clave" style={{ color: '#b42318', fontWeight: 800 }}>Tu contraseña</label>
+              <input id="cli-borrar-clave" type="password" value={borrarClave} onChange={(e) => setBorrarClave(e.target.value)} autoComplete="current-password" style={{ display: 'block', width: '100%', marginTop: 4 }} />
+            </div>
+            <div>
+              <label htmlFor="cli-borrar-txt" style={{ color: '#b42318', fontWeight: 800 }}>Escribe <strong>CONFIRMAR</strong> para activar el botón</label>
+              <input id="cli-borrar-txt" value={borrarTxt} onChange={(e) => setBorrarTxt(e.target.value)} placeholder="CONFIRMAR" autoComplete="off" style={{ display: 'block', width: '100%', marginTop: 4 }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+            <button className="btn-primary" id="cli-borrar-si" style={{ background: '#dc2626', borderColor: '#dc2626' }} disabled={borrando || !borrarClave || borrarTxt.trim() !== 'CONFIRMAR'} onClick={borrar}>{borrando ? 'Borrando…' : 'Borrar definitivamente'}</button>
+            <button className="btn-ghost" onClick={() => setPideBorrar(false)} disabled={borrando}>No, volver</button>
+          </div>
+          {borrarError && <div role="alert" id="cli-borrar-error" style={{ marginTop: '0.6rem', fontWeight: 700 }}>⚠ {borrarError}</div>}
+        </div>
+      )}
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
           Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
