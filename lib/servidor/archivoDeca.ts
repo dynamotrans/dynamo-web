@@ -1,6 +1,6 @@
 import 'server-only';
+import { origen } from '@/lib/origen';
 import { createHash, randomUUID } from 'node:crypto';
-import { headers } from 'next/headers';
 import { after } from 'next/server';
 import type { SB } from '@/lib/supabase/cliente';
 import { supabasePublico } from '@/lib/supabase/publico';
@@ -36,12 +36,10 @@ type Peticion = {
   origen?: string;         // dirección de la web que va en el QR (por defecto, la de la petición)
 };
 
+// La dirección sale de la variable fija (origen()), no de la cabecera de la petición: así nadie
+// puede colar otra web en los enlaces de los emails (auditoría de seguridad, 2026-11-28).
 async function origenActual(): Promise<string> {
-  try {
-    const h = await headers();
-    const host = h.get('x-forwarded-host') ?? h.get('host');
-    return host ? `https://${host}` : 'https://www.dynamotrans.com';
-  } catch { return 'https://www.dynamotrans.com'; }
+  try { return await origen(); } catch { return 'https://www.dynamotrans.com'; }
 }
 
 // Guarda la copia si esa versión del documento aún no está archivada. Devuelve qué pasó

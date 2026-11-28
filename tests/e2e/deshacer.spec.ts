@@ -55,4 +55,41 @@ test.describe('deshacer en incidencias y penalizaciones', () => {
     const { data: mails } = await sv.from('emails_enviados').select('estado').like('clave', `%${pen!.id}%`);
     expect((mails ?? []).filter((m) => m.estado === 'pendiente')).toEqual([]);
   });
+
+  test('varios cambios a la vez: una sola barra que se despliega y «Anular todos»', async ({ page }) => {
+    // Usuario, 2026-11-28: «si confirmo 400 penalizaciones, ¿salen 400 filas con el contador?».
+    const sv = bd();
+    const e = await ultimoEnvio();
+    const { data: tipo } = await sv.from('tipos_penalizacion').select('id').limit(1).single();
+    const sello = Date.now();
+    const { data: pens, error } = await sv.from('penalizaciones').insert([
+      { envio_id: e.id, tipo_id: tipo!.id, importe_cliente: 31, descripcion: `Grupo A ${sello}` },
+      { envio_id: e.id, tipo_id: tipo!.id, importe_cliente: 32, descripcion: `Grupo B ${sello}` },
+    ]).select('id, codigo');
+    expect(error).toBeNull();
+    await entrar(page, 'dynamo');
+    for (const p of pens!) {
+      await page.goto(`/panel/penalizaciones?q=${encodeURIComponent(p.codigo)}`);
+      await page.locator('tr', { hasText: p.codigo }).first().click();
+      await page.getByRole('button', { name: 'Confirmar penalización', exact: true }).click();
+      await expect.poll(async () => (await sv.from('penalizaciones').select('estado').eq('id', p.id).single()).data?.estado).toBe('confirmada');
+    }
+    await page.goto('/panel/penalizaciones');
+    const cab = page.locator('#sec-penalizaciones .cc-grupo-cab');
+    await expect(cab).toContainText(/\d+ cambios en penalizaciones/);
+    // Plegada: las barras de cada uno no se ven hasta desplegar.
+    await expect(page.locator('#cc-grupo-lista')).toBeHidden();
+    await cab.click();
+    await expect(page.locator('#cc-grupo-lista')).toBeVisible();
+    await expect(page.locator('#cc-grupo-lista')).toContainText(pens![0].codigo);
+    await page.getByRole('button', { name: /^Anular todos/ }).click();
+    await page.getByRole('button', { name: /^Sí, anular los/ }).click();
+    await expect(page.getByText(/cambios? anulados?/)).toBeVisible();
+    for (const p of pens!) {
+      await expect.poll(async () => (await sv.from('penalizaciones').select('estado').eq('id', p.id).single()).data?.estado).toBe('pendiente_confirmar');
+    }
+    // Sin email ninguno de penalizaciones (usuario, 2026-11-28: solo en el panel).
+    const { data: mails } = await sv.from('emails_enviados').select('id').or(pens!.map((p) => `clave.like.%${p.id}%`).join(','));
+    expect(mails ?? []).toEqual([]);
+  });
 });

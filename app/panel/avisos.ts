@@ -28,3 +28,12 @@ export async function marcarAvisosVistos(): Promise<void> {
   if (!s?.perfil || s.perfil.estado !== 'activa') return;
   await s.supabase.rpc('marcar_avisos_vistos');
 }
+
+// El cliente o el transportista ha abierto Penalizaciones: el número naranja del menú (las
+// confirmadas nuevas) se apaga (usuario, 2026-11-28).
+export async function marcarPenalizacionesVistas(): Promise<void> {
+  comprobarEntrada("app/panel/avisos#marcarPenalizacionesVistas", []);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || esDynamo(s.perfil.rol)) return;
+  await s.supabase.rpc('marcar_penalizaciones_vistas');
+}

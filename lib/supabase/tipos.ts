@@ -246,14 +246,17 @@ export type Database = {
         Row: {
           usuario_id: string
           visto_en: string
+          penalizaciones_vistas_en: string | null
         }
         Insert: {
           usuario_id: string
           visto_en?: string
+          penalizaciones_vistas_en?: string | null
         }
         Update: {
           usuario_id?: string
           visto_en?: string
+          penalizaciones_vistas_en?: string | null
         }
         Relationships: [
           {
@@ -3878,6 +3881,7 @@ export type Database = {
           cobrada_importe: number | null
           cobrada_pago_ref: string | null
           cobrada_en: string | null
+          confirmada_en: string | null
         }
         Insert: {
           id?: string
@@ -3897,6 +3901,7 @@ export type Database = {
           cobrada_importe?: number | null
           cobrada_pago_ref?: string | null
           cobrada_en?: string | null
+          confirmada_en?: string | null
         }
         Update: {
           id?: string
@@ -3916,6 +3921,7 @@ export type Database = {
           cobrada_importe?: number | null
           cobrada_pago_ref?: string | null
           cobrada_en?: string | null
+          confirmada_en?: string | null
         }
         Relationships: [
           {
@@ -5818,6 +5824,7 @@ export type Database = {
       marcar_mi_envio_manual: { Args: { p_envio: string | null; p_estado: string | null; p_precio?: number | null }; Returns: undefined }
       marcar_mi_viaje: { Args: { p_envio: string | null; p_estado: string | null }; Returns: undefined }
       marcar_pago_envio: { Args: { p_envio: string | null; p_accion: string | null; p_motivo?: string | null }; Returns: Json }
+      marcar_penalizaciones_vistas: { Args: Record<PropertyKey, never>; Returns: undefined }
       marcar_pin_enviado: { Args: { p_parada: string | null; p_destino: string | null }; Returns: undefined }
       marcar_sitio_principal: { Args: { p_cliente: string | null; p_sitio: string | null }; Returns: undefined }
       matriculas_enlace_datos: { Args: { p_token: string | null; p_clave: string | null }; Returns: Json }
@@ -5908,6 +5915,7 @@ export type Database = {
       pedidos_venta_facturados_guardar: { Args: { p_pedidos: Json | null }; Returns: number }
       pedidos_venta_guardar: { Args: { p_pedidos: Json | null }; Returns: number }
       pedir_cambio_envio: { Args: { p_envio: string | null; p_desde?: string | null; p_hasta?: string | null; p_detalle?: string | null }; Returns: Json }
+      penalizaciones_nuevas: { Args: Record<PropertyKey, never>; Returns: number }
       pendientes_envios: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; vence_en: string; tipo: string; autor: string; puede_anular: boolean; emails: number }[] }
       pin_aleatorio: { Args: { p_cifras: number | null }; Returns: string }
       plataforma_cabeceras: { Args: Record<PropertyKey, never>; Returns: Json }

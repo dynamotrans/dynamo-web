@@ -3,6 +3,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { supabasePublico } from '@/lib/supabase/publico';
+import { supabaseServicio } from '@/lib/supabase/servicio';
 import { turnstileOk } from '@/lib/servidor/turnstile';
 import { CONTACTO } from '@/lib/atencion';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
@@ -27,8 +28,14 @@ export async function buscarPorCodigo(_prev: EstadoCodigo, f: FormData): Promise
   if (!sb) return { error: ERROR_CONEXION, codigo };
   const { data: mant } = await sb.rpc('mantenimiento_activo');
   if (mant) return { error: `La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al ${CONTACTO.telefono}.`, codigo };
-  const ip = ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
-  const { data, error } = await sb.rpc('carga_por_codigo', { p_codigo: codigo, p_ip: ip });
+  // La IP real la pone Vercel (x-real-ip / x-forwarded-for, que no se pueden falsear desde fuera).
+  // La consulta del código va SOLO desde aquí, con la clave del servidor (auditoría, 2026-11-28):
+  // así nadie se salta el captcha ni el tope de fallos llamando directamente a la base de datos.
+  const h = await headers();
+  const ip = (h.get('x-real-ip') ?? h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
+  const sv = supabaseServicio();
+  if (!sv) return { error: ERROR_CONEXION, codigo };
+  const { data, error } = await sv.rpc('carga_por_codigo', { p_codigo: codigo, p_ip: ip });
   if (error) return { error: ERROR_CONEXION, codigo };
   const r = data as { resultado?: string; token?: string } | null;
   if (r?.resultado === 'ok' && r.token && /^[0-9a-f-]{36}$/i.test(r.token)) redirect(`/carga/${r.token}`);

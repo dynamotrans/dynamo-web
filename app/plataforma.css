@@ -181,6 +181,15 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); opacity: 1; 
 .cc-barra:disabled { cursor: default; }
 .cc-barra .cc-anillo { width: 38px; height: 38px; }
 .cc-barra .cc-num { font-size: 0.85rem; }
+/* Varios cambios a la vez: una barra resumen que despliega la lista (usuario, 2026-11-28). */
+.cc-grupo-cab { position: relative; }
+.cc-grupo-n { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 38px; padding: 0 0.4rem; border-radius: 999px; background: var(--purple, #3300cc); color: #fff; font-weight: 800; font-size: 0.95rem; }
+.cc-grupo-flecha { flex: none; margin-left: auto; color: var(--purple, #3300cc); transition: transform 0.18s ease; }
+.cc-grupo[data-abierto="1"] .cc-grupo-flecha { transform: rotate(180deg); }
+.cc-grupo-lista { margin: -0.4rem 0 0.8rem; padding: 0.6rem; border: 1px solid #ddd6fe; border-radius: 12px; background: #fff; max-height: 420px; overflow-y: auto; }
+.cc-grupo-lista .cc-barra { margin-bottom: 0.45rem; }
+.cc-grupo-todos { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0 0 0.6rem; }
+.cc-grupo-todos span { flex: 1 1 260px; font-size: var(--fs-s, 0.85rem); color: var(--gray-500, #64748b); }
 .cc-barra-txt { display: flex; flex-direction: column; gap: 0.1rem; font-size: var(--fs-m, 0.9rem); line-height: 1.35; }
 .cc-barra-txt span { color: var(--gray-600, #4b5563); }
 .cc-ventana-cuenta { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; font-size: var(--fs-m, 0.9rem); }

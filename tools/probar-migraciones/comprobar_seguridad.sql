@@ -787,9 +787,10 @@ set role authenticated;
 do $$ declare n int; begin
   select count(*) into n from penalizaciones;
   if n <> 0 then raise exception 'FALLO 33 · el cliente lee la tabla de penalizaciones entera'; end if;
+  -- La suya está aún «pendiente de confirmar»: el cliente no la ve hasta que se confirme (usuario, 2026-11-28).
   select count(*) into n from mis_penalizaciones();
-  if n <> 1 then raise exception 'FALLO 33 · el cliente no ve su penalizacion (%)', n; end if;
-  raise notice 'OK 33 · el cliente ve sus penalizaciones sin el importe del transportista';
+  if n <> 0 then raise exception 'FALLO 33 · el cliente ve una penalizacion sin confirmar (%)', n; end if;
+  raise notice 'OK 33 · el cliente no lee la tabla de penalizaciones ni ve las que estan en revision';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
@@ -11795,7 +11796,7 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 -- La casilla pública.
-set role anon;
+set role service_role;   -- desde el 2026-11-28 solo el servidor llama a carga_por_codigo (prueba 392)
 do $$ declare r jsonb; c text := current_setting('prueba.c269'); begin
   -- Da igual con espacios o guiones.
   r := carga_por_codigo(' ' || substr(c, 1, 3) || ' - ' || substr(c, 4) || ' ', '10.26.9.1');
@@ -11823,7 +11824,7 @@ do $$ begin
     raise exception 'FALLO 269 · al asignar transportista cambia o se pierde el código de aceptación';
   end if;
 end $$;
-set role anon;
+set role service_role;   -- desde el 2026-11-28 solo el servidor llama a carga_por_codigo (prueba 392)
 do $$ declare r jsonb; r2 jsonb; begin
   r := carga_por_codigo(current_setting('prueba.c269'), '10.26.9.1');
   r2 := carga_por_codigo('999998', '10.26.9.1');
@@ -11846,13 +11847,11 @@ do $$ declare c text; begin
     raise exception 'FALLO 269 · los códigos que dejan de usarse (envío cancelado, transportista que se cae) no quedan apuntados';
   end if;
 end $$;
-set role anon;
+set role service_role;   -- desde el 2026-11-28 solo el servidor llama a carga_por_codigo (prueba 392)
 do $$ declare r jsonb; i int; begin
   if carga_por_codigo(current_setting('prueba.c269'), '10.26.9.4') ->> 'resultado' <> 'no_disponible' then
     raise exception 'FALLO 269 · el código antiguo vuelve a abrir la carga al quedar libre, o no se reconoce como retirado';
   end if;
-  -- La lista de códigos retirados no la lee nadie de fuera.
-  if exists (select 1 from codigos_carga_retirados) then raise exception 'FALLO 269 · cualquiera lee los códigos retirados'; end if;
   r := carga_por_codigo(current_setting('prueba.c269n'), '10.26.9.4');
   if r ->> 'resultado' <> 'ok' or r ->> 'token' <> current_setting('prueba.tk269') then
     raise exception 'FALLO 269 · el código nuevo no abre la carga que ha quedado libre: %', r;
@@ -11870,6 +11869,15 @@ do $$ declare r jsonb; i int; begin
     raise exception 'FALLO 269 · el tope de una conexión bloquea a las demás';
   end if;
   raise notice 'OK 269 · código de aceptación de 6 cifras: al azar y único, no se cambia a mano, el cliente no lo ve, la casilla lleva a la carga y no acepta el número de envío, dice si el código está mal escrito o si la carga ya no está disponible (también de una cancelada y del código antiguo), tiene tope de fallos, se renueva si el envío se queda sin transportista y se borra al cancelarse';
+end $$;
+reset role;
+-- La lista de códigos retirados no la lee nadie de fuera.
+set role anon;
+do $$ begin
+  begin
+    if exists (select 1 from codigos_carga_retirados) then raise exception 'FALLO 269 · cualquiera lee los códigos retirados'; end if;
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 reset role;
 
@@ -14182,41 +14190,39 @@ begin
   if r.id is null or r.destinatario <> 'trafico318@t.prueba' then
     raise exception 'FALLO 318 · la incidencia del transportista no le llega a él: %', r.destinatario; end if;
 
-  -- PENALIZACIÓN guardada (pendiente): no se avisa NUNCA, ni email ni campana.
+  -- PENALIZACIONES (usuario, 2026-11-28): NUNCA por email; solo la campana, al confirmarla y al
+  -- anularla o borrarla si estaba confirmada. Guardada (pendiente): nada.
   insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista)
     values (e, tp, 'Espera 318', 120, 80) returning id into p;
-  if exists (select 1 from emails_enviados where clave like 'penalizacion%:' || p || ':%')
-     or exists (select 1 from avisos where envio_id = e and tipo = 'penalizacion') then
+  if exists (select 1 from avisos where envio_id = e and tipo = 'penalizacion') then
     raise exception 'FALLO 318 · al guardar una penalización pendiente se avisa'; end if;
-  -- Confirmada: otro aviso a cada uno, una vez.
+  -- Anular una que nunca se confirmó: tampoco (el cliente no la llegó a ver).
+  update penalizaciones set estado = 'cancelada' where id = p;
+  if exists (select 1 from avisos where envio_id = e and tipo = 'penalizacion') then
+    raise exception 'FALLO 318 · anular una penalización sin confirmar avisa'; end if;
+  update penalizaciones set estado = 'pendiente_confirmar' where id = p;
+  -- Confirmada: campana a cada uno, con su cifra.
   update penalizaciones set estado = 'confirmada' where id = p;
+  if (select confirmada_en from penalizaciones where id = p) is null then raise exception 'FALLO 318 · confirmada sin confirmada_en'; end if;
   if not exists (select 1 from avisos where para = 'transportista' and transportista_id = t and titulo like 'Importe a tu favor confirmado%' and texto like '%80,00%' and texto not like '%120,00%') then
     raise exception 'FALLO 318 · la campana del transportista no dice su importe a favor'; end if;
-  select * into r from emails_enviados where clave = 'penalizacion:' || p || ':cliente';
-  if r.id is null or position('120,00' in r.cuerpo_html) = 0 or position('Espera 318' in r.cuerpo_html) = 0 then
-    raise exception 'FALLO 318 · el email de la penalización confirmada al cliente no lleva el importe o el motivo: %', r; end if;
-  select * into r from emails_enviados where clave = 'penalizacion:' || p || ':transportista';
-  if r.id is null or r.destinatario <> 'trafico318@t.prueba' or position('confirmado un importe a tu favor' in r.cuerpo_html) = 0
-     or position('80,00' in r.cuerpo_html) = 0 or position('120,00' in r.cuerpo_html) > 0 or r.asunto ilike '%penalizaci%' then
-    raise exception 'FALLO 318 · el email de confirmación al transportista no va bien: %', r; end if;
-  update penalizaciones set estado = 'pendiente_confirmar' where id = p;
-  update penalizaciones set estado = 'confirmada' where id = p;
-  select count(*) into n from emails_enviados where clave like 'penalizacion:' || p || ':%';
-  if n <> 2 then raise exception 'FALLO 318 · la penalización confirmada se comunica más de una vez (%)', n; end if;
-  -- Anulada: a los dos.
+  if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and titulo like 'Penalización confirmada%' and texto like '%120,00%') then
+    raise exception 'FALLO 318 · la campana del cliente no avisa de la penalización confirmada'; end if;
+  -- Anulada estando confirmada: campana a los dos.
   update penalizaciones set estado = 'cancelada' where id = p;
-  select count(*) into n from emails_enviados where tipo = 'penalizacion_anulada' and clave like 'penalizacion_anulada:' || p || ':%';
-  if n <> 2 then raise exception 'FALLO 318 · al anular la penalización no se avisa a los dos (%)', n; end if;
-  -- Nace confirmada y se borra: aviso al crearla (sin «en revisión»), campana, y aviso al borrarla.
+  if (select confirmada_en from penalizaciones where id = p) is not null then raise exception 'FALLO 318 · anulada con confirmada_en'; end if;
+  select count(*) into n from avisos where envio_id = e and tipo = 'penalizacion' and titulo ilike '%anulad%';
+  if n <> 2 then raise exception 'FALLO 318 · al anular la penalización confirmada no se avisa a los dos en la campana (%)', n; end if;
+  -- Nace confirmada y se borra: campana al crearla y al borrarla.
   insert into penalizaciones (envio_id, tipo_id, importe_cliente, estado) values (e, tp, 50, 'confirmada') returning id into p2;
-  if not exists (select 1 from emails_enviados where clave = 'penalizacion:' || p2 || ':cliente')
-     or exists (select 1 from emails_enviados where clave like 'penalizacion_revision:' || p2 || ':%') then
-    raise exception 'FALLO 318 · la penalización que nace confirmada no se comunica bien'; end if;
   if not exists (select 1 from avisos where para = 'cliente' and cliente_id = cli and tipo = 'penalizacion' and texto like '%50,00%') then
     raise exception 'FALLO 318 · la penalización que nace confirmada no sale en la campana'; end if;
   delete from penalizaciones where id = p2;
-  if not exists (select 1 from emails_enviados where tipo = 'penalizacion_anulada' and clave like 'penalizacion_anulada:' || p2 || ':cliente:%') then
-    raise exception 'FALLO 318 · al borrar una penalización confirmada no se avisa'; end if;
+  if (select count(*) from avisos where para = 'cliente' and cliente_id = cli and tipo = 'penalizacion' and titulo ilike '%anulad%' and texto like '%50,00%') <> 1 then
+    raise exception 'FALLO 318 · al borrar una penalización confirmada no se avisa en la campana'; end if;
+  -- Y ni un solo email de penalizaciones.
+  if exists (select 1 from emails_enviados where tipo in ('penalizacion', 'penalizacion_anulada', 'penalizacion_revision') and (position(p::text in clave) > 0 or position(p2::text in clave) > 0)) then
+    raise exception 'FALLO 318 · sale un email de penalización'; end if;
 end $$;
 -- La abre el propio cliente: «la hemos recibido».
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
@@ -14233,7 +14239,7 @@ do $$ declare i uuid := current_setting('prueba.inc318')::uuid; e uuid := curren
   -- Limpieza.
   delete from penalizaciones where envio_id = e;
   delete from emails_enviados where envio_id = e;
-  raise notice 'OK 318 · incidencias (abierta, resuelta, retirada) y penalizaciones (al confirmarla, anularla o borrarla; guardarla no avisa) avisan a quien le afectan: el cliente con su importe + IVA; el transportista, importe a su favor con su cifra (nunca la del cliente)';
+  raise notice 'OK 318 · incidencias (abierta, resuelta, retirada) avisan a quien le afectan; penalizaciones nunca por email, solo campana al confirmarla y al anularla o borrarla si estaba confirmada (guardarla o anular una sin confirmar no avisa); el transportista ve su cifra, nunca la del cliente';
 end $$;
 
 -- ---- 319. Un CIF de transportista nunca puede darse de alta como cliente (usuario, 2026-11-22) ----
@@ -15903,10 +15909,13 @@ do $$ declare c uuid; e uuid; p uuid; n int; tp uuid := (select id from tipos_pe
   insert into penalizaciones (envio_id, tipo_id, descripcion, importe_transportista) values (e, tp, 'Espera en carga', 40) returning id into p;
   -- Solo al cliente: al revés.
   insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista) values (e, tp, 'Espera en descarga', 60, 0);
+  -- Solo ven (y cuentan) las confirmadas (usuario, 2026-11-28): se confirman las dos.
+  perform set_config('request.jwt.claim.sub', '', false);
+  update penalizaciones set estado = 'confirmada' where envio_id = e;
   perform set_config('request.jwt.claim.sub', u_adm::text, false);
-  if (contadores_panel(cli_b, null) ->> 'penalizaciones')::int <> (select count(*) from penalizaciones x join envios y on y.id = x.envio_id where y.cliente_id = cli_b and x.importe_cliente > 0 and x.estado = 'pendiente_confirmar') then
+  if (contadores_panel(cli_b, null) ->> 'penalizaciones')::int <> (select count(*) from penalizaciones x join envios y on y.id = x.envio_id where y.cliente_id = cli_b and x.importe_cliente > 0 and x.estado = 'confirmada' and x.confirmada_en > now() - interval '7 days') then
     raise exception 'FALLO 350 · el contador del cliente cuenta penalizaciones que no se le cobran'; end if;
-  if (contadores_panel(null, t) ->> 'penalizaciones')::int <> (select count(*) from penalizaciones x join envios y on y.id = x.envio_id where y.transportista_id = t and x.importe_transportista > 0 and x.estado = 'pendiente_confirmar') then
+  if (contadores_panel(null, t) ->> 'penalizaciones')::int <> (select count(*) from penalizaciones x join envios y on y.id = x.envio_id where y.transportista_id = t and x.importe_transportista > 0 and x.estado = 'confirmada' and x.confirmada_en > now() - interval '7 days') then
     raise exception 'FALLO 350 · el contador del transportista cuenta penalizaciones que no se le pagan'; end if;
   perform set_config('request.jwt.claim.sub', u_cli::text, false);
   select count(*) into n from mis_penalizaciones() m where m.envio_id = e;
@@ -17983,4 +17992,76 @@ do $$ declare hoy date := (now() at time zone 'Europe/Madrid')::date; v jsonb; b
   if (select count(*) from pg_proc where proname in ('mis_envios', 'mis_envios_por_ids') and prosrc like '%then e.conductor_nombre end%' and prosrc like '%telefono_conductor_visible%') <> 2 then
     raise exception 'FALLO 389 · el nombre del conductor no sigue la misma regla que el teléfono'; end if;
   raise notice 'OK 389 · contacto del conductor: nombre y teléfono con una sola regla (0 h = se ocultan al marcar la descarga)';
+end $$;
+
+-- 390 · PENALIZACIONES: EL CLIENTE SOLO VE LAS CONFIRMADAS Y LAS NUEVAS SALEN EN EL MENÚ
+-- (usuario, 2026-11-28). La «en revisión» no la ve; la confirmada sí, cuenta como nueva en el
+-- número del menú y deja de contar al abrir Penalizaciones.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid; e uuid; tp uuid := (select id from tipos_penalizacion order by orden limit 1); p1 uuid; p2 uuid; begin
+  select cliente_id into cli from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  select id into e from envios where cliente_id = cli order by creado_en limit 1;
+  if e is null then raise exception 'FALLO 390 · preparación: el cliente de prueba no tiene envíos'; end if;
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente) values (e, tp, 'Revisión 390', 77) returning id into p1;
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, estado) values (e, tp, 'Confirmada 390', 88, 'confirmada') returning id into p2;
+  perform set_config('prueba.p390a', p1::text, false);
+  perform set_config('prueba.p390b', p2::text, false);
+  delete from avisos_vistos where usuario_id = current_setting('prueba.u_cli')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  if exists (select 1 from mis_penalizaciones() where id = current_setting('prueba.p390a')::uuid) then raise exception 'FALLO 390 · el cliente ve una penalización en revisión'; end if;
+  if not exists (select 1 from mis_penalizaciones() where id = current_setting('prueba.p390b')::uuid) then raise exception 'FALLO 390 · el cliente no ve su penalización confirmada'; end if;
+  n := penalizaciones_nuevas();
+  if n < 1 then raise exception 'FALLO 390 · la confirmada no cuenta como nueva (%)', n; end if;
+  if (contadores_panel() ->> 'penalizaciones')::int <> n then raise exception 'FALLO 390 · el número del menú no son las nuevas: %', contadores_panel(); end if;
+  perform marcar_penalizaciones_vistas();
+  if penalizaciones_nuevas() <> 0 or (contadores_panel() ->> 'penalizaciones')::int <> 0 then raise exception 'FALLO 390 · tras abrir Penalizaciones siguen saliendo como nuevas'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  -- Una que se confirma después vuelve a encender el número.
+  update penalizaciones set estado = 'confirmada' where id = current_setting('prueba.p390a')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if penalizaciones_nuevas() <> 1 then raise exception 'FALLO 390 · la recién confirmada no cuenta como nueva (%)', penalizaciones_nuevas(); end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  update penalizaciones set estado = 'cancelada' where id in (current_setting('prueba.p390a')::uuid, current_setting('prueba.p390b')::uuid);
+  raise notice 'OK 390 · penalizaciones: el cliente solo ve las confirmadas; las nuevas salen en el número del menú y se apagan al abrir la pantalla';
+end $$;
+
+-- 391 · EMAILS DE CRÉDITO CON «ENTRAR EN LA PLATAFORMA» ANTES DE LA FIRMA (usuario, 2026-11-28).
+do $$ declare cli uuid; r record; v jsonb; begin
+  select cliente_id into cli from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  select valor into v from parametros where clave = 'credito_emails_activo';
+  update parametros set valor = 'true'::jsonb where clave = 'credito_emails_activo';
+  perform fn_email_credito(cli, 'prueba391', 'credito_aviso', 'Prueba 391', '<p>Tu empresa ya tiene línea de crédito.</p>');
+  select * into r from emails_enviados where clave = 'prueba391';
+  if r.id is null then raise exception 'FALLO 391 · preparación: el email de crédito no se ha encolado'; end if;
+  if position('/panel/entrar' in r.cuerpo_html) = 0 or position('Entrar en la plataforma' in r.cuerpo_html) = 0 then
+    raise exception 'FALLO 391 · el email de crédito no lleva el botón a la plataforma'; end if;
+  if position('Entrar en la plataforma' in r.cuerpo_html) > position('<p>— ' in r.cuerpo_html) then
+    raise exception 'FALLO 391 · el botón va después de la firma'; end if;
+  delete from emails_enviados where clave = 'prueba391';
+  if v is not null then update parametros set valor = v where clave = 'credito_emails_activo'; end if;
+  raise notice 'OK 391 · emails de crédito: botón «Entrar en la plataforma» (pantalla de entrar) antes de la firma';
+end $$;
+
+-- 392 · SEGURIDAD: EL CÓDIGO DE LA CARGA SOLO DESDE EL SERVIDOR (auditoría, 2026-11-28). Quien
+-- llamaba directamente con la clave pública ponía él la IP y se saltaba el tope y el captcha.
+do $$ begin
+  if has_function_privilege('anon', 'carga_por_codigo(text, inet)', 'execute')
+     or has_function_privilege('authenticated', 'carga_por_codigo(text, inet)', 'execute') then
+    raise exception 'FALLO 392 · carga_por_codigo se puede llamar sin pasar por el servidor'; end if;
+  if not has_function_privilege('service_role', 'carga_por_codigo(text, inet)', 'execute') then
+    raise exception 'FALLO 392 · el servidor no puede llamar a carga_por_codigo'; end if;
+  raise notice 'OK 392 · el código de 6 cifras de las cargas solo se consulta desde el servidor (con captcha e IP real)';
 end $$;

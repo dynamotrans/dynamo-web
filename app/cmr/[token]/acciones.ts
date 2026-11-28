@@ -67,7 +67,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   const rCmr = await reintentando(() => sb.rpc('cmr_publico', { p_token: token }), (x) => x.error?.message ?? null);
   if (rCmr.error) {
     // Fallo de transporte (p. ej. pool de conexiones agotado): NO es un enlace caducado.
-    console.error('[cmr/firmar] fallo al leer la hoja', { token, rol: d.rol, mensaje: rCmr.error.message });
+    console.error('[cmr/firmar] fallo al leer la hoja', { token: token.slice(0, 8) + '…', rol: d.rol, mensaje: rCmr.error.message });
     return { ok: false, error: 'Ahora mismo no se puede cargar la hoja. Espera unos segundos y vuelve a intentarlo.' };
   }
   const datos = rCmr.data as { resultado?: string; firmas?: unknown; [campo: string]: unknown } | null;
@@ -102,7 +102,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   // choca con su propio fichero (la ruta es un UUID recién generado): eso ES haber subido.
   if (e1 && /duplicate|already exists/i.test(e1.message ?? '')) e1 = null;
   if (e1) {
-    console.error('[cmr/firmar] fallo al subir el trazo', { token, rol: d.rol, mensaje: e1.message });
+    console.error('[cmr/firmar] fallo al subir el trazo', { token: token.slice(0, 8) + '…', rol: d.rol, mensaje: e1.message });
     return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   }
 
@@ -139,7 +139,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
     } catch { /* mejor un huérfano que romper el aviso de error */ }
   }
   if (error) {
-    console.error('[cmr/firmar] fallo en firmar_cmr_publico', { token, rol: d.rol, parada: d.parada_id, codigo: error.code, mensaje: error.message, detalle: error.details, pista: error.hint });
+    console.error('[cmr/firmar] fallo en firmar_cmr_publico', { token: token.slice(0, 8) + '…', rol: d.rol, parada: d.parada_id, codigo: error.code, mensaje: error.message, detalle: error.details, pista: error.hint });
     return { ok: false, error: 'No se ha podido guardar la firma. Vuelve a intentarlo.' };
   }
   if (r === 'firmada') {
@@ -195,7 +195,7 @@ export async function pedirCodigoFirma(token: string, c: CasillaCodigo): Promise
     email_no_valido: 'Pon antes un email válido.', enlace_no_valido: 'Este enlace ya no es válido.', cancelado: 'Este envío está cancelado.',
     firma_cerrada: 'El plazo para firmar este CMR ya se ha cerrado (3 días después de la entrega): solo se puede ver y descargar.',
   };
-  if (error) console.error('[cmr/codigo] fallo al apuntar el código', { token, codigo: error.code, mensaje: error.message });
+  if (error) console.error('[cmr/codigo] fallo al apuntar el código', { token: token.slice(0, 8) + '…', codigo: error.code, mensaje: error.message });
   return { ok: false, error: msg[j?.resultado ?? ''] ?? 'No se ha podido mandar el código. Puedes firmar sin él.' };
 }
 
@@ -233,7 +233,7 @@ export async function registrarCmrPapel(token: string, rutas: string[], clase: '
     (x) => x.error?.message ?? null,
   );
   if (error) {
-    console.error('[cmr/papel] fallo al registrar las páginas', { token, clase, codigo: error.code, mensaje: error.message });
+    console.error('[cmr/papel] fallo al registrar las páginas', { token: token.slice(0, 8) + '…', clase, codigo: error.code, mensaje: error.message });
     return { ok: false, error: 'No se han podido guardar las páginas. Vuelve a intentarlo.' };
   }
   const j = (data ?? {}) as { resultado?: string; paginas?: number; total?: number };

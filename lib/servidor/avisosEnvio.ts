@@ -1,5 +1,5 @@
 import 'server-only';
-import { headers } from 'next/headers';
+import { origen } from '@/lib/origen';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/tipos';
 import { enviarEmailOperativo, escaparHtml as esc, type AdjuntoEmail } from './emailOperativo';
@@ -22,12 +22,10 @@ import type { CmrPublico } from '@/app/cmr/[token]/tipos';
 
 type SB = SupabaseClient<Database>;
 
+// La dirección sale de la variable fija (origen()), no de la cabecera de la petición: así nadie
+// puede colar otra web en los enlaces de los emails (auditoría de seguridad, 2026-11-28).
 async function origenActual(): Promise<string> {
-  try {
-    const h = await headers();
-    const host = h.get('x-forwarded-host') ?? h.get('host');
-    return host ? `https://${host}` : 'https://www.dynamotrans.com';
-  } catch { return 'https://www.dynamotrans.com'; }
+  try { return await origen(); } catch { return 'https://www.dynamotrans.com'; }
 }
 
 // La firma («Equipo de operaciones · Dynamo», con botones de llamar y escribir) la pone el

@@ -1,0 +1,8 @@
+-- SEGURIDAD (auditoría interna, 2026-11-28): el código de 6 cifras de las cargas ya no se puede
+-- consultar directamente con la clave pública. Antes cualquiera podía llamar a carga_por_codigo
+-- poniendo él mismo la IP (p_ip) y así saltarse el tope de fallos por hora y el captcha, y probar
+-- los 900.000 códigos. Ahora solo la llama el servidor web (con la IP real de quien escribe y
+-- después del captcha).
+revoke execute on function public.carga_por_codigo(text, inet) from public, anon, authenticated;
+grant execute on function public.carga_por_codigo(text, inet) to service_role;
+comment on function public.carga_por_codigo(text, inet) is '[Ofertas y transportistas] La casilla «Aceptar carga» de la web: cambia el código de aceptación de 6 cifras que el transportista ha visto en la oferta por el enlace de esa carga, si sigue libre (programada, de Dynamo, sin transportista, pagada si era de pago previo y con la carga sin pasar). Si no, dice la razón: codigo_incorrecto cuando ese código no es ni ha sido de ninguna carga (está mal escrito) y no_disponible cuando es de una carga que ya no se puede aceptar (la tiene otro transportista, se ha cancelado o entregado, o el código se cambió). Los dos cuentan como fallo: al llegar al tope de fallos por hora de esa conexión (parámetro carga_codigo_max_fallos_hora) responde tope. Devuelve jsonb {resultado: ok | codigo_incorrecto | no_disponible | tope, token, intentos_restantes}. Quién: SOLO el servidor web (desde el 2026-11-28; antes también anon), tras el captcha y con la IP real. Argumentos: p_codigo: el código tecleado (se quedan solo las cifras: da igual espacios o guiones) · p_ip: IP de quien llama, la que pone el servidor web.';

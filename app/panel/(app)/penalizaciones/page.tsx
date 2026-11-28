@@ -34,7 +34,7 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
   const [pen, tipos, envios, pend] = await Promise.all([
     leerTodo(filtrarVista(supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
       'editada_a_mano, creado_en, modificado_en, cobrada_importe, cobrada_pago_ref, cobrada_en, tipos_penalizacion(nombre), ' +
-      (vista.tipo === 'admin' ? 'envios' : 'envios!inner') + '(referencia_gx, referencia_cliente, cliente_id, transportista_id, clientes(nombre_visible), transportistas(nombre_visible))'),
+      (vista.tipo === 'admin' ? 'envios' : 'envios!inner') + '(referencia_gx, referencia_cliente, cliente_id, transportista_id, clientes(nombre_visible, cif), transportistas(nombre_visible, cif))'),
       vista, { cliente: 'envios.cliente_id', transportista: 'envios.transportista_id' })
       .order('creado_en', { ascending: false }), 5000),
     supabase.from('tipos_penalizacion').select('id, nombre, activo').order('orden'),
@@ -49,6 +49,8 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     cobrada_importe: p.cobrada_importe != null ? Number(p.cobrada_importe) : null, cobrada_pago_ref: p.cobrada_pago_ref, cobrada_en: p.cobrada_en,
     envio: p.envios?.referencia_gx ?? '—', referencia_cliente: p.envios?.referencia_cliente ?? null,
     cliente: p.envios?.clientes?.nombre_visible ?? null, transportista: p.envios?.transportistas?.nombre_visible ?? null,
+    // El CIF solo para buscar (usuario, 2026-11-28: «penalización no filtra CIF»).
+    cif_cliente: p.envios?.clientes?.cif ?? null, cif_transportista: p.envios?.transportistas?.cif ?? null,
   }));
   // Cambios de estado que todavía se pueden deshacer (usuario, 2026-11-25): el contador de arriba.
   const codigos = new Map(filas.map((f) => [f.id, f.codigo]));

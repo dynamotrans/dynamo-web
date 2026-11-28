@@ -223,6 +223,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/whatsapp/acciones#tomarWhatsApp": z.tuple([z.string().max(1000), z.boolean()]),
   "app/panel/acciones#entrar": z.tuple([z.object({ error: z.string().max(1000).nullable(), email: z.string().max(1000).optional() }), z.instanceof(FormData)]),
   "app/panel/avisos#marcarAvisosVistos": z.tuple([]),
+  "app/panel/avisos#marcarPenalizacionesVistas": z.tuple([]),
   "app/panel/avisos#misAvisos": z.tuple([]),
   "app/panel/historial#historialDe": z.tuple([z.enum(["envios", "incidencias", "almacenamientos", "sitios", "operadores"]), z.string().uuid().or(z.literal(''))]),
   "app/panel/no-he-sido-yo/[token]/acciones#noHeSidoYo": z.tuple([z.object({ hecho: z.boolean(), error: z.string().max(1000).nullable(), aviso: z.string().max(1000).optional() }), z.instanceof(FormData)]),

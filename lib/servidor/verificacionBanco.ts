@@ -40,6 +40,14 @@ export async function revisarCentimos(forzar = false): Promise<void> {
       .gte('verificacion_solicitada_en', new Date(Date.now() - RAPIDO_DURANTE_MS).toISOString());
     if (!esperando) return;
   }
+  // Reserva de la pasada de una vez (auditoría, 2026-11-28): con llamadas simultáneas solo pasa
+  // la primera; las demás no gastan consultas de la facturación.
+  if (!forzar) {
+    let q = sv.from('verificacion_banco_estado').update({ revisado_en: new Date().toISOString() }).eq('id', true);
+    q = est.revisado_en ? q.eq('revisado_en', est.revisado_en) : q.is('revisado_en', null);
+    const { data: reservada } = await q.select('id');
+    if (!reservada?.length) return;
+  }
   const guardar = (c: { cuenta_id?: string | null; ultimo_error: string | null }) =>
     sv.from('verificacion_banco_estado').update({ ...c, revisado_en: new Date().toISOString() }).eq('id', true);
   // Sin ninguna empresa por verificar no se gasta ninguna consulta.

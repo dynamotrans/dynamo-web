@@ -2,6 +2,9 @@
 // Penalizaciones del CLIENTE (etapa B): solo lectura y solo su importe (mis_penalizaciones();
 // el del transportista nunca). Diseño de la tabla de #sec-penalizaciones del mockup.
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { marcarPenalizacionesVistas } from '@/app/panel/avisos';
 import { euros, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
 import { CONTACTO } from '@/lib/atencion';
@@ -11,9 +14,9 @@ import { enRango, diaMadridDe } from '@/lib/filtroFechas';
 export type MiPenalizacion = { id: string; codigo: string; envio_id: string; referencia_gx: string; tipo: string;
   descripcion: string | null; importe_cliente: number | null; estado: string; creado_en: string };
 
-const ESTADO: Record<string, [string, string]> = { pendiente_confirmar: ['En revisión', 'prog'], confirmada: ['Confirmada', 'red'] };
-// Para el transportista el importe es A SU FAVOR (usuario, 2026-11-22): «Confirmada» en verde.
-const ESTADO_T: Record<string, [string, string]> = { pendiente_confirmar: ['En revisión', 'prog'], confirmada: ['Confirmada', 'green'] };
+// Solo ven las confirmadas (usuario, 2026-11-28), y en VERDE también el cliente: «ponlo verde… no
+// rojo, que jode más». Para el transportista el importe es a su favor.
+const ESTADO: Record<string, [string, string]> = { confirmada: ['Confirmada', 'green'] };
 
 // esTransportista: las del transportista, con SU importe (mis_penalizaciones_transportista()).
 export default function MisPenalizaciones({ filas: todas, error, esTransportista = false, q = '' }: { filas: MiPenalizacion[]; error: string | null; esTransportista?: boolean; q?: string }) {
@@ -25,6 +28,10 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
   const filas = todas.filter((p) => enRango(diaMadridDe(p.creado_en), ff.rango)
     && (!ws.length || (() => { const b = norm([p.codigo, p.referencia_gx, p.tipo, p.descripcion].filter(Boolean).join(' ')); return ws.every((w) => b.includes(w)); })()));
   const pg = usePaginas(filas, `${q}|${ff.clave}`);
+  // Al abrir la pantalla, las confirmadas dejan de contar como nuevas en el menú (el número naranja).
+  const router = useRouter();
+  const n = todas.length;
+  useEffect(() => { marcarPenalizacionesVistas().then(() => router.refresh()).catch(() => {}); }, [n, router]);
   return (
     <section className="section active" id="sec-penalizaciones">
       <div className="sec-header"><h2>Penalizaciones</h2></div>
@@ -46,7 +53,7 @@ export default function MisPenalizaciones({ filas: todas, error, esTransportista
             {filas.length === 0 ? (
               <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>{ws.length ? 'Ninguna penalización casa con la búsqueda.' : todas.length ? 'No hay penalizaciones en estas fechas.' : 'No tienes ninguna penalización.'}</td></tr>
             ) : pg.visibles.map((p) => {
-              const est = (esTransportista ? ESTADO_T : ESTADO)[p.estado] ?? [p.estado, 'prog'];
+              const est = ESTADO[p.estado] ?? [p.estado, 'prog'];
               return (
                 <tr key={p.id}>
                   <td className="ref"><strong>{p.codigo}</strong>{p.descripcion && <div className="meta">{p.descripcion}</div>}</td>

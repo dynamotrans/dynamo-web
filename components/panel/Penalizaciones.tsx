@@ -16,6 +16,7 @@ import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion, deshacerCambioPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
 import ContadorCambio, { useContadores } from './ContadorCambio';
+import GrupoContadores from './GrupoContadores';
 import type { CambioPendiente } from '@/lib/envios';
 import { euros, numero, fechaHora, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
@@ -34,6 +35,7 @@ export type PenalizacionFila = {
   // Ya cobrada: se retuvo de un pago con tarjeta al devolver solo una parte (con IVA).
   cobrada_importe: number | null; cobrada_pago_ref: string | null; cobrada_en: string | null;
   envio: string; referencia_cliente: string | null; cliente: string | null; transportista: string | null;
+  cif_cliente?: string | null; cif_transportista?: string | null;
 };
 type Tipo = { id: string; nombre: string; activo: boolean };
 
@@ -72,7 +74,7 @@ export default function Penalizaciones({ filas, pendientes = [], tipos, envios, 
   const lista = useMemo(() => {
     const w = norm(textoBusqueda(q));
     return filas.filter((p) => (pestana === 'todas' || p.estado === pestana) && (!tipo || p.tipo_id === tipo) && enRango(diaMadridDe(p.creado_en), ff.rango)
-      && (!w || norm([p.codigo, p.envio, p.referencia_cliente, p.tipo, p.transportista, p.cliente, p.descripcion].filter(Boolean).join(' ')).includes(w)));
+      && (!w || norm([p.codigo, p.envio, p.referencia_cliente, p.tipo, p.transportista, p.cliente, p.descripcion, p.cif_cliente, p.cif_transportista, p.cif_cliente?.replace(/^ES/i, ''), p.cif_transportista?.replace(/^ES/i, '')].filter(Boolean).join(' ')).includes(w)));
   }, [filas, pestana, q, tipo, ff.rango]);
   const pg = usePaginas(lista, `${pestana}|${q}|${tipo}|${ff.clave}`);
   // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
@@ -93,17 +95,18 @@ export default function Penalizaciones({ filas, pendientes = [], tipos, envios, 
       </div>
       {/* Contador para deshacer (usuario, 2026-11-25): confirmar o anular una penalización se
           puede deshacer mientras corre el plazo; hasta entonces no se avisa a nadie. */}
-      {contadores.map((x) => (
-        <ContadorCambio key={x.id} barra pendiente={x.vivo} de={x.codigo} anular={() => deshacerCambioPenalizacion(x.id)}
+      {/* Con varios a la vez, agrupados en una barra que se despliega (usuario, 2026-11-28). */}
+      <GrupoContadores items={contadores} nombre="penalizaciones" anular={(x) => deshacerCambioPenalizacion(x.id)} pinta={(x) => (
+        <ContadorCambio barra pendiente={x.vivo} de={x.codigo} anular={() => deshacerCambioPenalizacion(x.id)}
           textos={{ que: 'Cambio en la penalización', efecto: 'La penalización volverá al estado de antes (sin confirmar, confirmada o anulada) y no se avisará a nadie.' }} />
-      ))}
+      )} />
       <div className="tabs">
         {PESTANAS.map(([k, t]) => (
           <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta[k] ?? 0})</button>
         ))}
       </div>
       <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), tipo, ff.valor].filter(Boolean).length} onExportar={exportar}
-        placeholder="Buscar por código, envío, tipo, transportista, cliente…">
+        placeholder="Buscar por código, envío, tipo, transportista, cliente, CIF…">
         <select className="filter-estado" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Filtrar por tipo">
           <option value="">Tipo</option>
           {tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}

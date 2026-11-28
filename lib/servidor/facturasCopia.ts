@@ -127,7 +127,17 @@ async function ponerAlDia(opts: { forzar?: boolean; repasarDesde?: string }): Pr
     const { error } = await sv.from('facturas_copia_estado').update(cambios).eq('id', true);
     if (error) console.error('[Holded] estado de la copia', error.message);
   };
-  await apuntar({ ultima_en: ahora });
+  // Se RESERVA la pasada de una vez en la base de datos (auditoría de seguridad, 2026-11-28): la
+  // dirección de la tarea va sin contraseña, y con «mirar y luego apuntar» muchas llamadas a la
+  // vez pasaban todas y gastaban el cupo mensual de la facturación. Ahora solo pasa la primera:
+  // la que consigue cambiar ultima_en mientras sigue siendo la que leímos.
+  {
+    let q = sv.from('facturas_copia_estado').update({ ultima_en: ahora }).eq('id', true);
+    q = e.ultima_en ? q.eq('ultima_en', e.ultima_en) : q.is('ultima_en', null);
+    const { data: reservada, error: errReserva } = await q.select('id');
+    if (errReserva) return { ok: false, conectado: true, error: errReserva.message };
+    if (!reservada?.length) return { ok: true, hecho: 'nada', cargando: !e.carga_completa_en, enCurso: !!e.barrido_tipo, avisos: [] };
+  }
   const fallo = async (error: string): Promise<CopiaFacturas> => { await apuntar({ error: error.slice(0, 500) }); return { ok: false, conectado: true, error }; };
   const guardar = async (filas: Fila[]): Promise<string | null> => {
     for (let i = 0; i < filas.length; i += 1000) {

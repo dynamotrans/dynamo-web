@@ -19,6 +19,7 @@ import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, deshacerCambioIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
 import ContadorCambio, { useContadores } from './ContadorCambio';
+import GrupoContadores from './GrupoContadores';
 import type { CambioPendiente } from '@/lib/envios';
 import { fecha, ventana, fechaHora, medidasTxt, textoBusqueda } from '@/lib/formato';
 import PaginadorLocal, { usePaginas } from './PaginadorLocal';
@@ -94,12 +95,13 @@ export default function Incidencias({ filas, pendientes = [], tipos, clientes, e
       </div>
       {/* Contador para deshacer (usuario, 2026-11-25): abrir una incidencia o cambiarle el estado
           se puede deshacer mientras corre el plazo; hasta entonces no se avisa a nadie. */}
-      {contadores.map((x) => (
-        <ContadorCambio key={x.id} barra pendiente={x.vivo} de={x.codigo} anular={() => deshacerCambioIncidencia(x.id)}
+      {/* Con varios a la vez, agrupados en una barra que se despliega (usuario, 2026-11-28). */}
+      <GrupoContadores items={contadores} nombre="incidencias" anular={(x) => deshacerCambioIncidencia(x.id)} pinta={(x) => (
+        <ContadorCambio barra pendiente={x.vivo} de={x.codigo} anular={() => deshacerCambioIncidencia(x.id)}
           textos={x.pendiente.tipo === 'creada'
             ? { que: 'Incidencia recién abierta', efecto: 'La incidencia quedará retirada y no se avisará a nadie.' }
             : { que: 'Cambio de estado de la incidencia', efecto: 'La incidencia volverá al estado de antes (y a su resolución de antes) y no saldrá ningún aviso.' }} />
-      ))}
+      )} />
       <div className="tabs">
         <button className={`tab${pestana === 'abiertas' ? ' active' : ''}`} onClick={() => setPestana('abiertas')}>Abiertas ({cuenta.abiertas})</button>
         <button className={`tab${pestana === 'resueltas' ? ' active' : ''}`} onClick={() => setPestana('resueltas')}>Resueltas ({cuenta.resueltas})</button>

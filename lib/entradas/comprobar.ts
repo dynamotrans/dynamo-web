@@ -11,7 +11,7 @@ export class EntradaNoValida extends Error {
 export function comprobarEntrada(accion: keyof typeof ESQUEMAS, args: unknown[]): void {
   // Los argumentos opcionales que no se pasan llegan como undefined al final: se igualan al tamaño.
   const esquema = ESQUEMAS[accion];
-  const n = esquema.items.length;
+  const n = esquema.def.items.length;
   const valores = [...args, ...Array(Math.max(0, n - args.length)).fill(undefined)].slice(0, n);
   const r = esquema.safeParse(valores);
   if (!r.success) {

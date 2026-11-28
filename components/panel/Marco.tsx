@@ -35,12 +35,13 @@ export type Cobertura = 'disponible' | 'superado' | 'nulo' | 'nulo_cesce' | 'sin
 const CESCE_TEL = { texto: '+34 900 115 000', href: 'tel:+34900115000' };
 
 // Números del menú lateral por pantalla: [naranja, rojo] y qué significa cada uno.
-function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: boolean }[] {
+function numerosDe(slug: string, c: Contadores, visto: 'admin' | 'cliente' | 'transportista' = 'admin'): { n: number; t: string; rojo?: boolean }[] {
   const x = (n: number | undefined, t: string, rojo = false) => (n ? [{ n, t, rojo }] : []);
   switch (slug) {
     case 'envios': return [...x(c.envios_sin_asignar, 'Envíos sin transportista asignado'), ...x(c.envios_sin_pagar, 'Envíos pendientes de pago', true)];
     case 'incidencias': return x(c.incidencias, 'Incidencias abiertas');
-    case 'penalizaciones': return x(c.penalizaciones, 'Penalizaciones pendientes de confirmar');
+    // Cliente y transportista: las confirmadas NUEVAS (usuario, 2026-11-28); Dynamo: las pendientes.
+    case 'penalizaciones': return x(c.penalizaciones, visto === 'admin' ? 'Penalizaciones pendientes de confirmar' : visto === 'cliente' ? 'Penalizaciones nuevas' : 'Importes a tu favor nuevos');
     case 'almacenamientos': return x(c.alm_sin_confirmar, 'Pendiente confirmar almacén');
     case 'administracion': return x(c.alm_sin_pagar, 'Proformas sin pagar', true);
     case 'altas': return x(c.altas, 'Altas pendientes de revisar');
@@ -194,12 +195,12 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
           aria-current={activo(e.slug) ? 'page' : undefined}>
       <Ico k={e.icono} />
       <span className="sl-txt">{e.titulo}</span>
-      {insignias(numerosDe(e.slug, contadores))}
+      {insignias(numerosDe(e.slug, contadores, visto))}
     </Link>
   );
   // Un grupo cerrado enseña la suma de los números de sus pantallas (al abrirlo, cada uno el suyo).
   const sumaGrupo = (g: Grupo) => {
-    const todos = g.enlaces.flatMap((e) => numerosDe(e.slug, contadores));
+    const todos = g.enlaces.flatMap((e) => numerosDe(e.slug, contadores, visto));
     const nar = todos.filter((b) => !b.rojo).reduce((a, b) => a + b.n, 0);
     const roj = todos.filter((b) => b.rojo).reduce((a, b) => a + b.n, 0);
     // Un solo número (cabe junto al nombre); rojo si dentro hay algún pago pendiente.
@@ -240,7 +241,11 @@ export default function Marco({ rol, nombre, email, empresa, empresaCif = null, 
   const ICO_PERSONA = '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>';
   const avisos = [
     { href: '/panel/incidencias', t: 'Incidencias abiertas', s: 'Pendientes de resolver', cero: 'Sin incidencias abiertas', n: contadores.incidencias ?? 0, color: 'inc', ico: ICO_AVISO },
-    { href: '/panel/penalizaciones', t: 'Penalizaciones abiertas', s: 'Pendientes de confirmar', cero: 'Ninguna pendiente', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO },
+    visto === 'admin'
+      ? { href: '/panel/penalizaciones', t: 'Penalizaciones abiertas', s: 'Pendientes de confirmar', cero: 'Ninguna pendiente', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO }
+      : visto === 'cliente'
+        ? { href: '/panel/penalizaciones', t: 'Penalizaciones nuevas', s: 'Confirmadas desde tu última visita', cero: 'Ninguna nueva', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO }
+        : { href: '/panel/penalizaciones', t: 'Importes a tu favor nuevos', s: 'Confirmados desde tu última visita', cero: 'Ninguno nuevo', n: contadores.penalizaciones ?? 0, color: 'fac', ico: ICO_CIRCULO },
     ...(visto !== 'transportista' ? [{ href: '/panel/envios?f=sin-pagar', t: 'Envíos pendientes de pago', s: 'Se asignan a un camión al pagar', cero: 'Ninguno pendiente de pago', n: contadores.envios_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(visto !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Envíos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(visto === 'admin' ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Usuarios y empresas por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),

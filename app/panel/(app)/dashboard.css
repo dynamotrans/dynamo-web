@@ -379,7 +379,7 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); font-family:
     transform: translateY(-6px) scale(0.96); transform-origin: top right;
     transition: opacity 0.18s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.cesce-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+.cesce-menu.open { opacity: 1; pointer-events: auto; transform: none; }
 .cesce-menu-head { display: flex; align-items: center; gap: 0.55rem; }
 .cesce-menu-logo { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: #fff; border: 1px solid var(--gray-200); }
 .cesce-menu-head-t { font-size: var(--fs-l); font-weight: 800; color: var(--navy); line-height: 1.1; }
@@ -432,7 +432,7 @@ input::placeholder, textarea::placeholder { color: var(--gray-400); font-family:
     transform: translateY(-6px) scale(0.96); transform-origin: top right;
     transition: opacity 0.18s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.bell-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+.bell-menu.open { opacity: 1; pointer-events: auto; transform: none; }
 .bell-menu-title { font-size: var(--fs-s); font-weight: 800; color: var(--gray-500); padding: 0.4rem 0.5rem 0.3rem; text-transform: none; }
 .bell-item {
     display: flex; align-items: center; gap: 0.7rem; width: 100%;
@@ -698,7 +698,7 @@ a.bell-nov:hover { background: var(--gray-100); }
 }
 .topbar-contact-menu.open {
     opacity: 1; pointer-events: auto;
-    transform: translateY(0) scale(1);
+    transform: none;
 }
 .topbar-contact-head {
     display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
@@ -924,7 +924,7 @@ a.bell-nov:hover { background: var(--gray-100); }
     transition: opacity 0.18s, transform 0.2s;
 }
 .user-menu.open {
-    opacity: 1; pointer-events: auto; transform: translateY(0) scale(1);
+    opacity: 1; pointer-events: auto; transform: none;
 }
 .user-menu-head {
     display: flex; align-items: center; gap: 0.7rem;
@@ -1183,9 +1183,10 @@ body.theme-dark .sidebar { background: #060116; }
     max-width: 420px; width: 100%;
     padding: 2.2rem 1.6rem 1.4rem; text-align: center;
     box-shadow: 0 30px 80px rgba(10,2,48,0.4);
-    animation: phoneCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+    /* Solo aparece (sin escala ni movimiento que se queden): Safari, 2026-11-28. */
+    animation: phoneCardIn 0.25s ease backwards;
 }
-@keyframes phoneCardIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes phoneCardIn { from { opacity: 0; } to { opacity: 1; } }
 .phone-modal-close {
     position: absolute; top: 0.8rem; right: 0.8rem;
     width: 32px; height: 32px; border-radius: 50%;
@@ -1253,12 +1254,15 @@ body.theme-dark .sidebar { background: #060116; }
        la animación solo desplaza y, al acabar, se suelta («backwards»). El transform fijo
        de identidad mantiene lo que ya había: los elementos «fixed» de dentro (velo de
        cargando, hojas) siguen colocándose respecto a la ventana, no a la pantalla. */
-    transform: translate(0, 0);
-    animation: dashModalSlideUp 0.25s cubic-bezier(0.16,1,0.3,1) backwards;
-    /* clip (no hidden): recorta lo que asome de más sin crear otro contenedor de scroll
-       que iOS pudiera arrastrar en horizontal. */
-    min-width: 0; overflow-x: clip;
+    /* SAFARI, DE RAÍZ (usuario, 2026-11-28: «los autocompletados se ven borrosos… siempre pasa
+       con Safari»): TODAS las ventanas van «planas», como ya iba la del mapa. Sin transform
+       fijo, sin movimiento al entrar (solo aparece) y sin recorte: Safari pintaba a media
+       resolución, y no repintaba, las listas con scroll de dentro de una ventana que era una
+       capa transformada. Lo que asome de más lo recorta el fondo (.dash-modal, overflow-x hidden). */
+    animation: dashModalAparece 0.2s ease backwards;
+    min-width: 0;
 }
+@keyframes dashModalAparece { from { opacity: 0; } to { opacity: 1; } }
 /* VENTANAS CON MAPA, EN SAFARI (usuario, 2026-11-23: «en Safari mapas se va fatal»): el mapa
    salía entero a baja resolución (teselas, botones y letras dentadas). Es el mismo fallo de
    Safari que ya dio guerra con los desplegables: lo que recorta o desplaza su contenido,
@@ -1267,7 +1271,6 @@ body.theme-dark .sidebar { background: #060116; }
    una página normal. Lo pide el componente con <Modal plano>. */
 .dash-modal.plano.open { animation: none; }
 .dash-modal-card.plano { transform: none; animation: none; overflow-x: visible; }
-@keyframes dashModalSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translate(0, 0); } }
 .dash-modal-close {
     position: absolute; top: 0.85rem; right: 0.9rem;
     width: 34px; height: 34px; border-radius: 50%;
@@ -1294,10 +1297,12 @@ body.theme-dark .sidebar { background: #060116; }
 .dash-loading {
     position: fixed; inset: 0; z-index: 1600;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,0.78); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    background: rgba(255,255,255,0.78);
     opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
 }
-.dash-loading.show { opacity: 1; pointer-events: auto; }
+/* El desenfoque solo mientras se ve: invisible y encima de todo, en Safari dejaba toda la
+   pantalla como una capa desenfocable (2026-11-28). */
+.dash-loading.show { opacity: 1; pointer-events: auto; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .dash-loading-card { text-align: center; }
 .dash-loading-spinner {
     width: 46px; height: 46px; margin: 0 auto 0.8rem;
@@ -3458,11 +3463,11 @@ table.data td.actions { text-align: right; white-space: nowrap; }
     display: block;
     z-index: 1000;
     top: auto; left: auto; right: auto;
-    animation: rowMenuPopIn 0.14s ease both;
+    animation: rowMenuPopIn 0.14s ease backwards;
 }
 @keyframes rowMenuPopIn {
-    0% { opacity: 0; transform: translateY(-4px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 .row-menu-item {
     display: flex; align-items: center; gap: 0.55rem;

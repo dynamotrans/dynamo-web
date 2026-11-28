@@ -78,6 +78,14 @@ export async function revisarProformas(forzar = false): Promise<void> {
   const { count: pendientes } = await sv.from('envios').select('id', { count: 'exact', head: true })
     .eq('estado_pago_previo', 'pendiente').eq('estado', 'programado');
   if (!forzar && ahora - antes < (pendientes ? CON_PENDIENTES_MS : SIN_PENDIENTES_MS)) return;
+  // Reserva de la pasada de una vez (auditoría, 2026-11-28): con llamadas simultáneas solo pasa
+  // la primera; las demás no gastan consultas de la facturación.
+  if (!forzar) {
+    let q = sv.from('banco_cuentas_estado').update({ revisado_en: new Date(ahora).toISOString() }).eq('cuenta', 'principal');
+    q = est.revisado_en ? q.eq('revisado_en', est.revisado_en) : q.is('revisado_en', null);
+    const { data: reservada } = await q.select('cuenta');
+    if (!reservada?.length) return;
+  }
   const { data: p } = await sv.from('parametros').select('valor').eq('clave', 'dynamo_iban').maybeSingle();
   const iban = sinEspacios(p?.valor);
   if (!iban) return;
