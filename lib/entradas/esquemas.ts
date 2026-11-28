@@ -210,7 +210,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/usuarios/acciones#invitarUsuario": z.tuple([z.object({ email: z.string().max(1000), nombre: z.string().max(1000), rol: z.enum(["transportista", "admin", "cliente", "empleado", "admin_lectura", "empleado_lectura"]), cliente_id: z.string().uuid().or(z.literal('')), transportista_id: z.string().uuid().or(z.literal('')), telefono: z.string().max(1000), cargo: z.string().max(1000), confirmacion: z.string().max(1000).optional(), clave: z.string().max(1000).optional() })]),
   "app/panel/(app)/usuarios/acciones#quitarDoblePaso": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/usuarios/acciones#reenviarInvitacion": z.tuple([z.string().uuid().or(z.literal(''))]),
-  "app/panel/(app)/verificacion-albaranes/acciones#aceptarAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
+  "app/panel/(app)/verificacion-albaranes/acciones#aceptarAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000), z.array(z.number().or(z.nan())).max(10000).optional()]),
   "app/panel/(app)/verificacion-albaranes/acciones#reasignarAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/verificacion-albaranes/acciones#rechazarAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(5000)]),
   "app/panel/(app)/verificacion-albaranes/acciones#tipoAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),

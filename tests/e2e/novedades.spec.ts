@@ -2,6 +2,7 @@
 // (usuario, 2026-11-17: «amplía las pruebas automáticas y, si ves fallos, me lo dices»).
 // Van después de los flujos clave (orden alfabético de ficheros, un solo trabajador) y
 // usan los mismos datos de prueba. Cada prueba prepara lo suyo.
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { tarifaDeEnvio, type DatosPrecioEnvio } from '../../lib/tarifador';
@@ -2140,6 +2141,47 @@ test.describe('novedades', () => {
       const { count } = await bd().from('documentos').select('*', { count: 'exact', head: true }).eq('envio_id', e.id).eq('visible_cliente', true).eq('tipo', 'albaran');
       return (count ?? 0) - (antes ?? 0);
     }).toBe(1);
+  });
+  test('verificación de albaranes: se quita una hoja que se coló y el cliente recibe el PDF sin ella', async ({ page, request }) => {
+    const clave = process.env.ENTRADA_DOCUMENTOS_TOKEN!;
+    const { e } = await envioProgramadoDelTransportista('id, referencia_gx');
+    // Tres hojas: albarán, «factura con precios» (la que sobra) y otra de albarán.
+    const original = await PDFDocument.create();
+    const fuente = await original.embedFont(StandardFonts.Helvetica);
+    for (const t of ['ALBARAN 1', `FACTURA ${Date.now()}`, 'ALBARAN 2']) original.addPage([300, 200]).drawText(t, { x: 20, y: 100, size: 14, font: fuente });
+    const pdf = Buffer.from(await original.save());
+    const base = process.env.E2E_URL ?? 'http://localhost:3484';
+    const ini = await (await request.post(`${base}/api/documentos-entrada`, { headers: { Authorization: `Bearer ${clave}` },
+      data: { accion: 'iniciar', nombre: `${e.referencia_gx}_ALB_20261030_hojas.pdf`, origen: 'drive', origen_id: `e2e-hojas-${Date.now()}` } })).json();
+    expect(ini.resultado).toBe('ok');
+    expect((await request.put(ini.subir_a, { headers: { 'content-type': 'application/pdf' }, data: pdf })).ok()).toBeTruthy();
+    expect((await (await request.post(`${base}/api/documentos-entrada`, { headers: { Authorization: `Bearer ${clave}` }, data: { accion: 'confirmar', id: ini.id } })).json()).resultado).toBe('ok');
+
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/verificacion-albaranes');
+    await page.getByRole('tab', { name: e.referencia_gx! }).first().click();
+    await expect(page.locator('[data-verif-paginas] canvas')).toHaveCount(3, { timeout: 20_000 });
+    // Se marca la hoja 2, se arrepiente y la vuelve a marcar.
+    await page.getByRole('button', { name: 'Quitar la hoja 2' }).click();
+    await expect(page.locator('[data-verif-hoja="2"][data-quitada]')).toBeVisible();
+    await expect(page.locator('[data-verif-quitadas]')).toContainText('El cliente recibirá el PDF con 2 hojas');
+    await page.getByRole('button', { name: 'Volver a poner la hoja 2' }).click();
+    await expect(page.locator('[data-verif-hoja][data-quitada]')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Quitar la hoja 2' }).click();
+    await page.getByRole('button', { name: /Aceptar sin esa hoja/ }).click();
+    await expect(page.getByText(/Aceptado sin la hoja quitada/)).toBeVisible();
+
+    // En el envío queda el PDF de 2 hojas; la bandeja apunta qué hoja se quitó.
+    const { data: ent } = await bd().from('documentos_entrada').select('estado, datos, documento_id').eq('id', ini.id).single();
+    expect(ent!.estado).toBe('aceptado');
+    expect((ent!.datos as { hojas_quitadas?: number[] }).hojas_quitadas).toEqual([2]);
+    const { data: doc } = await bd().from('documentos').select('storage_ruta, envio_id, visible_cliente').eq('id', ent!.documento_id!).single();
+    expect(doc!.envio_id).toBe(e.id);
+    expect(doc!.visible_cliente).toBe(true);
+    const { data: blob } = await bd().storage.from('documentos').download(doc!.storage_ruta);
+    expect((await PDFDocument.load(new Uint8Array(await blob!.arrayBuffer()))).getPageCount()).toBe(2);
+    // El de 3 hojas ya no está en el almacén.
+    expect((await bd().storage.from('documentos').download(`entrada/${ini.id}.pdf`)).data).toBeNull();
   });
   test('mapa general: el cliente y Dynamo ven sus envíos en curso, con filtro y encuadre', async ({ page }) => {
     await envioProgramadoDelTransportista('id');

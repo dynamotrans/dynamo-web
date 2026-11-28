@@ -6118,6 +6118,7 @@ export type Database = {
       ver_revision_precio_envio: { Args: { p_envio: string | null }; Returns: { precio_calculado_en: string; estado_revision_precio: string; fecha_revision_precio: string; importe_revision_anterior: number; importe_revision_nuevo: number; revision_precio_en: string; margen_pct: number }[] }
       verano_sitios_fechas: { Args: Record<PropertyKey, never>; Returns: Json }
       verificacion_albaran_aceptar: { Args: { p_id: string | null; p_tipo?: string | null }; Returns: Json }
+      verificacion_albaran_quitar_hojas: { Args: { p_id: string | null; p_ruta: string | null; p_sha256: string | null; p_tamano: number | null; p_hojas: number[] | null }; Returns: Json }
       verificacion_albaran_reasignar: { Args: { p_id: string | null; p_referencia: string | null }; Returns: Json }
       verificacion_albaran_rechazar: { Args: { p_id: string | null; p_motivo?: string | null }; Returns: Json }
       verificacion_albaran_tipo: { Args: { p_id: string | null; p_tipo: string | null }; Returns: Json }

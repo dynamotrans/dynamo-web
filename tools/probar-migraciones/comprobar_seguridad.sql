@@ -18278,5 +18278,51 @@ do $$ declare e uuid := current_setting('prueba.sc1')::uuid; hoy date := (now() 
   raise notice 'OK 396 · sin camión: el último día de carga termina al cerrar el primer sitio de carga (no al día siguiente), y sin respuesta se cancela al cerrar el sitio el último día (no a medianoche); la tarea pasa cada 15 minutos';
 end $$;
 
+-- 397 · VERIFICACIÓN: QUITAR HOJAS ANTES DE ACEPTAR (usuario, 2026-11-28). Dynamo puede apuntar
+-- la bandeja al PDF nuevo sin las hojas quitadas (solo una ruta junto a la vieja, del mismo id);
+-- el cliente no puede, y queda apuntado qué hojas se quitaron.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare id1 uuid; r jsonb; ref text; d documentos_entrada; begin
+  select referencia_gx into ref from envios where id = current_setting('prueba.e324')::uuid;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  id1 := (entrada_documento_iniciar(ref || '_ALB_397.pdf', 'drive', 'drive-397') ->> 'id')::uuid;
+  perform entrada_documento_confirmar(id1, repeat('d', 64), 3000, 'application/pdf');
+  perform set_config('request.jwt.claim.role', '', true);
+  -- El cliente no puede tocarlo.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  begin
+    set local role authenticated;
+    perform verificacion_albaran_quitar_hojas(id1, 'entrada/' || id1 || '-h1.pdf', repeat('e', 64), 2000, array[2]);
+    raise exception 'FALLO 397 · el cliente puede quitar hojas de un albarán';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  if verificacion_albaran_quitar_hojas(id1, 'entrada/otro-archivo.pdf', repeat('e', 64), 2000, array[2]) ->> 'resultado' <> 'datos_no_validos' then
+    raise exception 'FALLO 397 · deja apuntar la bandeja a otro archivo'; end if;
+  if verificacion_albaran_quitar_hojas(id1, 'entrada/' || id1 || '-h1.pdf', repeat('e', 64), 2000, array[]::int[]) ->> 'resultado' <> 'datos_no_validos' then
+    raise exception 'FALLO 397 · acepta quitar cero hojas'; end if;
+  r := verificacion_albaran_quitar_hojas(id1, 'entrada/' || id1 || '-h1.pdf', repeat('e', 64), 2000, array[4, 2]);
+  if r ->> 'resultado' <> 'ok' or r ->> 'ruta_anterior' <> 'entrada/' || id1 || '.pdf' then raise exception 'FALLO 397 · no quita las hojas: %', r; end if;
+  reset role;
+  select * into d from documentos_entrada where id = id1;
+  if d.storage_ruta <> 'entrada/' || id1 || '-h1.pdf' or d.sha256 <> repeat('e', 64) or d.tamano_bytes <> 2000 or d.estado <> 'pendiente'
+     or d.datos -> 'hojas_quitadas' <> '[2, 4]'::jsonb then
+    raise exception 'FALLO 397 · la bandeja no apunta al PDF nuevo: % % % %', d.storage_ruta, d.sha256, d.tamano_bytes, d.datos; end if;
+  if d.datos ->> 'sha256_original' <> repeat('d', 64) then raise exception 'FALLO 397 · no guarda la huella del PDF tal como llegó'; end if;
+  -- Si el PDF original vuelve a llegar (otro archivo de Drive, mismo contenido), no se repite.
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  r := entrada_documento_confirmar((entrada_documento_iniciar(ref || '_ALB_397_otra_vez.pdf', 'drive', 'drive-397-b') ->> 'id')::uuid, repeat('d', 64), 3000, 'application/pdf');
+  perform set_config('request.jwt.claim.role', '', true);
+  if r ->> 'resultado' <> 'duplicado' then raise exception 'FALLO 397 · el PDF original vuelve a salir tras quitarle hojas: %', r; end if;
+  if has_function_privilege('anon', 'public.verificacion_albaran_quitar_hojas(uuid, text, text, bigint, int[])', 'execute') then
+    raise exception 'FALLO 397 · se puede llamar sin sesión'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update documentos_entrada set estado = 'rechazado' where id = id1;
+  raise notice 'OK 397 · verificación de albaranes: Dynamo quita hojas de un PDF antes de aceptarlo (la bandeja apunta al PDF nuevo y guarda qué hojas, y el original no vuelve a entrar); el cliente no puede';
+end $$;
+
 -- Fin: fuera la ayuda de pruebas del código de carga.
 drop function if exists public.prueba_codigo_carga(uuid, text);
