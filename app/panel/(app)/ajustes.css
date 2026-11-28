@@ -152,13 +152,35 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
 /* El índice de chips pasó a desplegable con búsqueda (usuario, 2026-11-15: ocupaba
    media pantalla); el margen de las anclas baja acorde y cubre TAMBIÉN los apartados
    (.prm-sub), que antes quedaban con el título escondido bajo la barra pegajosa. */
-#sec-parametros .prm-seccion { margin-bottom: 1.4rem; scroll-margin-top: 10rem; }
+#sec-parametros .prm-seccion { scroll-margin-top: 10rem; }
 @media (max-width: 768px) {
   #sec-parametros .prm-indice { position: static; }
   #sec-parametros .prm-seccion { scroll-margin-top: 5rem; }
 }
-#sec-parametros .prm-sub { margin: 0 0 0.8rem 0; padding-left: 0.7rem; border-left: 3px solid rgba(51,0,204,0.18); scroll-margin-top: 10rem; }
-#sec-parametros .prm-sub-titulo { font-size: var(--fs-m); font-weight: 800; color: var(--navy); margin-bottom: 0.35rem; }
+/* SECCIONES Y APARTADOS PLEGABLES (usuario, 2026-11-28: «lista interminable… que vengan todas
+   plegadas»): cada sección es una tarjeta; plegada enseña sus apartados como botones. */
+#sec-parametros .prm-seccion { background: #fff; border: 1.5px solid var(--gray-200); border-radius: 14px; margin-bottom: 0.7rem; overflow: hidden; }
+#sec-parametros .prm-seccion.abierta { border-color: rgba(51,0,204,0.35); box-shadow: 0 2px 10px rgba(16,24,40,0.06); }
+#sec-parametros .prm-sec-cab { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 0.8rem; width: 100%; padding: 0.85rem 1rem; cursor: pointer; }
+#sec-parametros .prm-sec-cab:hover:not(:disabled) { background: var(--gray-50, #f7f8fa); }
+#sec-parametros .prm-sec-cab:focus-visible, #sec-parametros .prm-sub-cab:focus-visible, #sec-parametros .prm-apartado:focus-visible { outline: 2px solid var(--purple); outline-offset: -2px; }
+#sec-parametros .prm-sec-cab:disabled, #sec-parametros .prm-sub-cab:disabled { cursor: default; }
+#sec-parametros .prm-sec-txt { display: flex; flex-direction: column; gap: 0.1rem; flex: 1 1 auto; min-width: 0; }
+#sec-parametros .prm-sec-tit { font-size: var(--fs-l); font-weight: 800; color: var(--navy); }
+#sec-parametros .prm-cuenta { flex: 0 0 auto; font-size: var(--fs-s); font-weight: 700; color: var(--purple); background: rgba(51,0,204,0.08); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+#sec-parametros .prm-flecha { flex: 0 0 auto; font-size: 1.4rem; line-height: 1; color: var(--gray-500); transition: transform 0.15s ease; }
+#sec-parametros .abierta > .prm-sec-cab .prm-flecha, #sec-parametros .abierta > .prm-sub-cab .prm-flecha { transform: rotate(90deg); }
+#sec-parametros .prm-sec-cab:disabled .prm-flecha, #sec-parametros .prm-sub-cab:disabled .prm-flecha { visibility: hidden; }
+#sec-parametros .prm-sec-apartados { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0 1rem 0.85rem; }
+#sec-parametros .prm-apartado { border: 1px solid var(--gray-200); background: var(--gray-50, #f7f8fa); color: var(--gray-700); border-radius: 999px; padding: 0.25rem 0.7rem; font-size: var(--fs-s); cursor: pointer; }
+#sec-parametros .prm-apartado:hover { border-color: var(--purple); color: var(--purple); }
+#sec-parametros .prm-sec-cuerpo { padding: 0 1rem 0.9rem; }
+#sec-parametros .prm-sub { margin: 0 0 0.5rem 0; border: 1px solid var(--gray-200); border-radius: 10px; scroll-margin-top: 10rem; }
+#sec-parametros .prm-sub.abierta { border-left: 3px solid var(--purple); }
+#sec-parametros .prm-sub-cab { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 0.7rem; width: 100%; padding: 0.6rem 0.8rem; cursor: pointer; }
+#sec-parametros .prm-sub-cab:hover:not(:disabled) { background: var(--gray-50, #f7f8fa); }
+#sec-parametros .prm-sub-cab + div { padding: 0 0.8rem 0.6rem; }
+#sec-parametros .prm-sub-titulo { flex: 1 1 auto; font-size: var(--fs-m); font-weight: 800; color: var(--navy); }
 @media (max-width: 768px) { #sec-parametros .prm-sub { scroll-margin-top: 5rem; } }
 
 /* «Uso de Dynamo» (usuario, 2026-11-11): barras de uso al estilo del panel de Claude —

@@ -123,6 +123,18 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
   // Se cierra al pulsar fuera, no al perder el foco (en el iPhone, el ✓ del teclado lo quita; 2026-11-27).
   const saltoRef = useRef<HTMLDivElement>(null);
   useCerrarFuera(saltoAbierto, () => setSaltoAbierto(false), saltoRef);
+  // SECCIONES PLEGADAS (usuario, 2026-11-28: «es una lista interminable… que vengan todas
+  // plegadas y que cuando se vaya abriendo cada una se vaya viendo lo que hay»). Cada sección es
+  // una tarjeta plegada que enseña sus apartados; al abrirla salen sus apartados, también plegados
+  // (si solo tiene uno, abierto). Al buscar se abre todo lo que coincide.
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
+  const alternar = (id: string) => setAbiertas((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const abrir = (...ids: string[]) => setAbiertas((x) => new Set([...x, ...ids]));
+  // Abre una sección (y un apartado) y baja hasta él cuando ya se ve.
+  const irA = (secId: string, subId?: string) => {
+    abrir(`prm-${secId}`, ...(subId ? [`prm-${subId}`] : []));
+    setTimeout(() => document.getElementById(subId ? `prm-${subId}` : `prm-${secId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
   const secciones = useMemo(() => {
     const porClave = new Map(filas.map((p) => [p.clave, p]));
     const b = norm(q.trim());
@@ -158,8 +170,11 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
     }).filter((s) => s.ver);
   }, [filas, q]);
   const total = secciones.reduce((n, s) => n + s.subsV.reduce((m, u) => m + u.filas.length, 0) + s.filasEsp.length, 0);
-  const destinos = secciones.flatMap((s) => [{ id: `prm-${s.id}`, titulo: s.titulo, sub: '' },
-    ...s.subsV.map((u) => ({ id: `prm-${u.id}`, titulo: u.titulo, sub: s.titulo }))]);
+  const destinos = secciones.flatMap((s) => [{ id: `prm-${s.id}`, sec: s.id, subId: undefined as string | undefined, titulo: s.titulo, sub: '' },
+    ...s.subsV.map((u) => ({ id: `prm-${u.id}`, sec: s.id, subId: u.id as string | undefined, titulo: u.titulo, sub: s.titulo }))]);
+  const buscando = !!q.trim();
+  const todasIds = secciones.flatMap((s) => [`prm-${s.id}`, ...s.subsV.map((u) => `prm-${u.id}`)]);
+  const todoAbierto = todasIds.length > 0 && todasIds.every((id) => abiertas.has(id));
   const destinosV = destinos.filter((d) => !salto.trim() || norm(`${d.titulo} ${d.sub}`).includes(norm(salto.trim()))).slice(0, 12);
 
   return (
@@ -188,7 +203,7 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
             <ul className="ptar-sug" role="listbox">
               {destinosV.map((d) => (
                 <li key={d.id} role="option" aria-selected={false} onMouseDown={(ev) => { ev.preventDefault(); setSaltoAbierto(false); setSalto('');
-                  document.getElementById(d.id)?.scrollIntoView({ behavior: 'smooth' }); }}>
+                  irA(d.sec, d.subId); }}>
                   {d.sub ? <><strong>{d.titulo}</strong><span className="sug-dir">{d.sub}</span></> : <strong>{d.titulo}</strong>}
                 </li>
               ))}
@@ -196,30 +211,65 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
             </ul>
           )}
         </div>
+        {!buscando && (
+          <button type="button" className="btn-ghost" id="prm-todo" style={{ minHeight: 36 }}
+            onClick={() => setAbiertas(todoAbierto ? new Set() : new Set(todasIds))}>{todoAbierto ? 'Plegar todo' : 'Abrir todo'}</button>
+        )}
       </div>
 
-      {secciones.map((s) => (
-        <div key={s.id} id={`prm-${s.id}`} className="prm-seccion">
-          <div className="ptar-section-head" style={{ marginBottom: '0.15rem' }}>{s.titulo}</div>
-          <div className="meta" style={{ marginBottom: '0.6rem' }}>{s.intro}</div>
-          {s.especial === 'holded'
-            ? (
-              <div id="prm-holded-pendiente" className="pt-aviso" role="note" style={{ background: '#fff7e6', border: '1.5px solid #f0c060', color: '#5a3d00', maxWidth: 820 }}><div>
-                <strong>Pendiente de conectar con Holded por API.</strong> Todavía no hay nada que configurar aquí: cuando la conexión esté en marcha, en esta sección pondremos los parámetros que hagan falta (los decidimos entonces).
-                Mientras tanto, los pedidos se siguen pasando a Holded con el fichero de <strong>Exportaciones</strong>.
-              </div></div>
-            )
-            : s.especial === 'autosusp'
-            ? <ReglasAutosuspension filas={s.filasEsp} candidatos={candidatos} esAdmin={esAdmin} />
-            : s.subsV.map((u) => (
-              <div key={u.titulo} id={`prm-${u.id}`} className="prm-sub">
-                <div className="prm-sub-titulo">{u.titulo}</div>
-                {u.banco && <CuentaBancaria filas={filas} />}
-                {u.filas.length > 0 && <TablaParametros filas={u.filas} esAdmin={esAdmin} />}
+      {secciones.map((s) => {
+        const sid = `prm-${s.id}`;
+        const abierta = buscando || abiertas.has(sid);
+        const n = s.subsV.reduce((m, u) => m + u.filas.length + (u.banco ? 1 : 0), 0) + s.filasEsp.length;
+        return (
+          <div key={s.id} id={sid} className={`prm-seccion${abierta ? ' abierta' : ''}`}>
+            <button type="button" className="prm-sec-cab" aria-expanded={abierta} aria-controls={`${sid}-cuerpo`} onClick={() => alternar(sid)} disabled={buscando}>
+              <span className="prm-sec-txt">
+                <span className="prm-sec-tit">{s.titulo}</span>
+                <span className="meta">{s.intro}</span>
+              </span>
+              {n > 0 && <span className="prm-cuenta">{n} {n === 1 ? 'ajuste' : 'ajustes'}</span>}
+              <span className="prm-flecha" aria-hidden="true">›</span>
+            </button>
+            {/* Plegada: sus apartados a la vista, para saber qué hay dentro e ir directo. */}
+            {!abierta && s.subsV.length > 0 && (
+              <div className="prm-sec-apartados">
+                {s.subsV.map((u) => <button key={u.id} type="button" className="prm-apartado" onClick={() => irA(s.id, u.id)}>{u.titulo}</button>)}
               </div>
-            ))}
-        </div>
-      ))}
+            )}
+            <div id={`${sid}-cuerpo`} className="prm-sec-cuerpo" hidden={!abierta}>
+              {s.especial === 'holded'
+                ? (
+                  <div id="prm-holded-pendiente" className="pt-aviso" role="note" style={{ background: '#fff7e6', border: '1.5px solid #f0c060', color: '#5a3d00', maxWidth: 820 }}><div>
+                    <strong>Pendiente de conectar con Holded por API.</strong> Todavía no hay nada que configurar aquí: cuando la conexión esté en marcha, en esta sección pondremos los parámetros que hagan falta (los decidimos entonces).
+                    Mientras tanto, los pedidos se siguen pasando a Holded con el fichero de <strong>Exportaciones</strong>.
+                  </div></div>
+                )
+                : s.especial === 'autosusp'
+                ? <ReglasAutosuspension filas={s.filasEsp} candidatos={candidatos} esAdmin={esAdmin} />
+                : s.subsV.map((u) => {
+                  const uid = `prm-${u.id}`;
+                  const subAbierta = buscando || s.subsV.length === 1 || abiertas.has(uid);
+                  const nu = u.filas.length + (u.banco ? 1 : 0);
+                  return (
+                    <div key={u.titulo} id={uid} className={`prm-sub${subAbierta ? ' abierta' : ''}`}>
+                      <button type="button" className="prm-sub-cab" aria-expanded={subAbierta} aria-controls={`${uid}-cuerpo`}
+                        onClick={() => alternar(uid)} disabled={buscando || s.subsV.length === 1}>
+                        <span className="prm-sub-titulo">{u.titulo}</span>
+                        <span className="prm-cuenta">{nu} {nu === 1 ? 'ajuste' : 'ajustes'}</span>
+                        <span className="prm-flecha" aria-hidden="true">›</span>
+                      </button>
+                      <div id={`${uid}-cuerpo`} hidden={!subAbierta}>
+                        {u.banco && <CuentaBancaria filas={filas} />}
+                        {u.filas.length > 0 && <TablaParametros filas={u.filas} esAdmin={esAdmin} />}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        );
+      })}
     </section>
   );
 }

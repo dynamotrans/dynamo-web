@@ -1449,6 +1449,20 @@ test.describe('novedades', () => {
   test('parámetros: no salen el PIN ni los campos de Holded, y Holded avisa de que falta la API', async ({ page }) => {
     await entrar(page, 'dynamo');
     await page.goto('/panel/parametros');
+    // Secciones plegadas (usuario, 2026-11-28): se ven sus títulos y apartados, no los campos.
+    await expect(page.locator('.prm-seccion').first()).toBeVisible();
+    await expect(page.locator('.prm-sec-cuerpo:visible')).toHaveCount(0);
+    // Al abrir un apartado se abre su sección y se ve; «Abrir todo» y «Plegar todo» lo hacen con todas.
+    await page.locator('.prm-apartado', { hasText: 'Control de facturación' }).first().click();
+    await expect(page.locator('#prm-control-facturacion .prm-sec-cuerpo')).toBeVisible();
+    await page.locator('#prm-todo').click();
+    await expect(page.locator('#prm-todo')).toHaveText('Plegar todo');
+    await page.locator('#prm-todo').click();
+    await expect(page.locator('.prm-sec-cuerpo:visible')).toHaveCount(0);
+    // Al buscar, se abre solo lo que coincide.
+    await page.getByLabel('Buscar parámetro').fill('negociación');
+    await expect(page.locator('#prm-transportistas .prm-sec-cuerpo')).toBeVisible();
+    await page.getByLabel('Buscar parámetro').fill('');
     await expect(page.locator('#prm-holded-pendiente')).toContainText('Pendiente de conectar con Holded por API');
     const cuerpo = page.locator('#sec-parametros, main').first();
     await expect(cuerpo).not.toContainText('PIN de recogida y entrega');

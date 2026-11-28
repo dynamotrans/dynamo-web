@@ -109,6 +109,8 @@ test.describe('WhatsApp', () => {
 
       // Parámetros: qué se reenvía, con botones (no se escribe a mano).
       await page.goto('/panel/parametros');
+      // Las secciones vienen plegadas (2026-11-28): se abre WhatsApp desde su apartado.
+      await page.locator('.prm-apartado', { hasText: /^WhatsApp$/ }).click();
       const grupo = page.getByRole('radiogroup', { name: /qué se reenvía/i });
       await expect(grupo.locator('[data-valor="todo"]')).toHaveAttribute('aria-checked', 'true');
       await grupo.locator('[data-valor="importante"]').click();
