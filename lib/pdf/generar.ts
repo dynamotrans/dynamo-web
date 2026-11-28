@@ -4,6 +4,7 @@ import { PDFDocument } from 'pdf-lib';
 import { ordenDeCarga, ordenCompuesta } from './orden';
 import type { DatosDoc } from './datos';
 import { cmr } from './cmr';
+import { sellarSiHayCertificado } from './sello';
 
 // DeCA y CMR son DOS PDF (usuario, 2026-11-15: «llevarán caminos diferentes»):
 //   · el DeCA es la copia del conductor de la orden —sin datos económicos y sin firmas—,
@@ -39,6 +40,8 @@ export async function pdfDeEnvioDynamo(sb: SB, id: string, documento: 'orden-de-
       .order('creado_en', { ascending: false }).limit(1).maybeSingle();
     bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string; parada_id: string | null; creado_en: string }[],
       deca: enl ? { url: `${origen ?? 'https://www.dynamotrans.com'}/cmr/${enl.token}`, creado_en: enl.creado_en } : null }, { sinDeca: true });
+    // Sello electrónico de Dynamo (apagado hasta poner el certificado). Los manuales no: no son de Dynamo.
+    if (!datos.manual) bytes = await sellarSiHayCertificado(bytes, `CMR ${datos.envio.referencia_gx ?? ''} emitido por DYNAMO`);
   }
   else {
     const { data: ps } = await sb.from('parametros').select('clave, valor')
@@ -94,8 +97,9 @@ export async function pdfCmrPorToken(sb: SB, token: string, origen: string):
   Promise<{ bytes: Uint8Array; nombre: string } | { error: string }> {
   const r = await cargarDatosCmrPorToken(sb, token);
   if (!r.datos) return { error: r.error ?? 'Este enlace no es válido: ha caducado o se ha retirado.' };
-  const bytes = await cmr({ ...r.datos,
+  const sinSello = await cmr({ ...r.datos,
     deca: r.decaCreado ? { url: `${origen}/cmr/${token}`, creado_en: r.decaCreado } : null }, { sinDeca: true });
+  const bytes = r.datos.manual ? sinSello : await sellarSiHayCertificado(sinSello, `CMR ${r.datos.envio.referencia_gx ?? ''} emitido por DYNAMO`);
   const ref = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
   return { bytes, nombre: `CMR-${ref}.pdf` };
 }
