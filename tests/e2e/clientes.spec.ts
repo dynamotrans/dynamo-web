@@ -89,11 +89,13 @@ test.describe('verificación de empresa', () => {
       await expect(page.locator('#via-documento, #via-transferencia')).toHaveCount(0);
       // El concepto es el CIF de la empresa (usuario, 2026-11-27).
       await expect(page.locator('#verificacion-concepto')).toContainText(c!.cif.replace(/[^A-Za-z0-9]/g, '').toUpperCase().replace(/^ES(?=[A-Z0-9]{9}$)/, ''));
-      // Cada dato con su botón de copiar, y uno para todos (usuario, 2026-11-27).
+      // Cada dato con su botón de copiar (usuario, 2026-11-27).
       await expect(page.locator('#copiar-verificacion-concepto')).toBeVisible();
       await expect(page.locator('#copiar-verificacion-beneficiario')).toBeVisible();
-      await page.locator('#copiar-verificacion-todo').click();
-      await expect(page.locator('#copiar-verificacion-todo')).toContainText(/Copiado|Cópialo a mano/);
+      await page.locator('#copiar-verificacion-concepto').click();
+      await expect(page.locator('#copiar-verificacion-concepto')).toContainText(/Copiado|Cópialo a mano/);
+      // Sin «Copiar todos los datos» (usuario, 2026-11-28).
+      await expect(page.locator('#copiar-verificacion-todo')).toHaveCount(0);
       // «Solo el código» y «no se devuelve» van en el globo junto al 0,01 € (usuario, 2026-11-27).
       await page.locator('#tip-centimo .tip-i-btn').click();
       await expect(page.locator('#tip-centimo .tip-i-pop')).toBeVisible();

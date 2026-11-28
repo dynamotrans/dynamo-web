@@ -100,19 +100,14 @@ export function VentanaVerificacion({ onCerrar }: { onCerrar: () => void }) {
 
   // Los datos de la transferencia (para hacerla, o para verlos otra vez si ya está pedida). El
   // concepto es el CIF de la empresa (usuario, 2026-11-27: «más fácil de recordar que un código raro»).
+  // Sin la fila del banco (usuario, 2026-11-28: «no aporta nada»): con el IBAN basta. Y sin
+  // «Copiar todos los datos» (usuario, 2026-11-28): cada dato lleva su botón de copiar.
   const datosTransferencia = (v: MiVerificacion) => { const cif = cifConcepto(v.cif); return (<>
     {fila('Importe', <>0,01 € <Tip id="tip-centimo" aria="Cómo hacer la transferencia" texto="Pon solo el CIF de tu empresa en el concepto. El céntimo es a fondo perdido: no se devuelve." /></>)}
-    {fila('Concepto', <>{cif} <span style={{ fontWeight: 400, color: 'var(--gray-500)' }}>(tu CIF)</span></>, 'verificacion-concepto', cif)}
+    {fila('Concepto', <>{cif} <span style={{ fontWeight: 400, color: 'var(--gray-500)' }}>(tu CIF/NIF de cliente)</span></>, 'verificacion-concepto', cif)}
     {fila('Beneficiario', v.banco.titular || 'Dynamo', 'verificacion-beneficiario', v.banco.titular || 'Dynamo')}
-    {v.banco.banco && fila('Banco', v.banco.banco, 'verificacion-banco', v.banco.banco)}
     {v.banco.iban ? fila('IBAN', v.banco.iban, 'verificacion-iban', v.banco.iban.replace(/\s+/g, '')) : fila('IBAN', <>Pídenoslo al {CONTACTO.telefono}</>)}
     {v.banco.bic && fila('BIC', v.banco.bic, 'verificacion-bic', v.banco.bic)}
-    <div style={{ marginTop: '0.55rem' }}>
-      <BotonCopiar id="copiar-verificacion-todo" conTexto que="todos los datos" texto={[
-        'Importe: 0,01 €', `Concepto: ${cif}`, `Beneficiario: ${v.banco.titular || 'Dynamo'}`,
-        v.banco.banco ? `Banco: ${v.banco.banco}` : '', v.banco.iban ? `IBAN: ${v.banco.iban.replace(/\s+/g, '')}` : '', v.banco.bic ? `BIC: ${v.banco.bic}` : '',
-      ].filter(Boolean).join('\n')} />
-    </div>
   </>); };
 
   return (
