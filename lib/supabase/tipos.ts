@@ -5917,7 +5917,7 @@ export type Database = {
       mi_autosuspension: { Args: { p_cliente?: string | null }; Returns: Json }
       mi_avisos_whatsapp: { Args: { p_activo: boolean | null }; Returns: Json }
       mi_avisos_whatsapp_no_preguntar: { Args: Record<PropertyKey, never>; Returns: undefined }
-      mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean; precio_a_mano: boolean; sin_camion_desde: string; sin_camion_cancela: string }[] }
+      mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean; precio_a_mano: boolean; sin_camion_desde: string; sin_camion_cancela: string; sin_camion_cancela_hora: string }[] }
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }
       mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number; nima_por_defecto: boolean }[] }

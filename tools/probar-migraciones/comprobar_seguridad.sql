@@ -18270,7 +18270,12 @@ do $$ declare e uuid := current_setting('prueba.sc1')::uuid; hoy date := (now() 
     if (select schedule from cron.job where jobname = 'dynamo-sin-camion') is distinct from '*/15 * * * *' then
       raise exception 'FALLO 396 · la tarea de los envíos sin camión no pasa cada 15 minutos'; end if;
   end if;
-  raise notice 'OK 396 · sin camión: el último día de carga termina al cerrar el primer sitio de carga (no al día siguiente); la tarea pasa cada 15 minutos';
+  -- …y el cliente que no contesta se cancela al cerrar el sitio de carga del último día, no a medianoche.
+  if position('elsif envio_carga_cerrada(r.id, sumar_dias_habiles(' in pg_get_functiondef('public.revisar_envios_sin_camion()'::regprocedure)) = 0 then
+    raise exception 'FALLO 396 · sin respuesta se cancela a medianoche y no al cerrar el sitio de carga'; end if;
+  if position('fecha_texto(v_limite) || '' a las '' || to_char(fn_difusion_hora_limite(r.id, v_limite)' in pg_get_functiondef('public.revisar_envios_sin_camion()'::regprocedure)) = 0 then
+    raise exception 'FALLO 396 · el aviso de sin camión no dice a qué hora se cancela'; end if;
+  raise notice 'OK 396 · sin camión: el último día de carga termina al cerrar el primer sitio de carga (no al día siguiente), y sin respuesta se cancela al cerrar el sitio el último día (no a medianoche); la tarea pasa cada 15 minutos';
 end $$;
 
 -- Fin: fuera la ayuda de pruebas del código de carga.

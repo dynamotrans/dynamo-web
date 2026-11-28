@@ -418,7 +418,7 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
       {!manual && e.estado === 'programado' && e.cambio?.sin_camion_desde && (
         <div className="pt-aviso error" id="sin-camion" style={{ marginBottom: '0.8rem' }}><div>
           <strong>Sin camión · elige nueva fecha.</strong> No hemos encontrado camión para tu carga. Elige otra fecha de carga y seguimos buscando,
-          o cancélalo <strong>sin ningún coste</strong>.{e.cambio.sin_camion_cancela ? <> Si no eliges otra antes del <strong>{fecha(e.cambio.sin_camion_cancela)}</strong>, lo cancelaremos nosotros, también sin coste.</> : null}
+          o cancélalo <strong>sin ningún coste</strong>.{e.cambio.sin_camion_cancela ? <> Si no eliges otra antes del <strong>{fecha(e.cambio.sin_camion_cancela)}{e.cambio.sin_camion_cancela_hora ? ` a las ${e.cambio.sin_camion_cancela_hora}` : ''}</strong>, lo cancelaremos nosotros, también sin coste.</> : null}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
             <a className="btn-primary" href={`/panel/nuevo-envio?editar=${e.id}`}>Elegir otra fecha</a>
             {cancelable && <button type="button" className="btn-secondary" onClick={() => setVista('cancelar')} disabled={!!trabajando}>Cancelar sin coste</button>}
