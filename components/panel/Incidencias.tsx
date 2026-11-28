@@ -4,7 +4,7 @@
 // dashboard.html (pestañas Abiertas · Resueltas · Todas; columnas F. registro ·
 // Descripción · Nº envío · Ref. cliente · F. carga · Ruta · m · Tn · Estado; ventana
 // «Reportar incidencia» con el envío relacionado y su resumen).
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Historial from './Historial';
@@ -14,16 +14,15 @@ import Cargando from '@/components/Cargando';
 import EstadoVacio from './EstadoVacio';
 import BuscaEnvio from './BuscaEnvio';
 import BarraFiltros from './BarraFiltros';
-import FiltroFechas, { useFiltroFechas } from './FiltroFechas';
+import FiltroFechas from './FiltroFechas';
 import Documentos, { subirDocumentoDirecto, tamano, ACEPTA, MAX_BYTES } from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
-import { guardarIncidencia, deshacerCambioIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
+import { guardarIncidencia, deshacerCambioIncidencia, filasParaExportar, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
 import ContadorCambio, { useContadores } from './ContadorCambio';
 import GrupoContadores from './GrupoContadores';
 import type { CambioPendiente } from '@/lib/envios';
-import { fecha, ventana, fechaHora, medidasTxt, textoBusqueda } from '@/lib/formato';
-import PaginadorLocal, { usePaginas } from './PaginadorLocal';
-import { enRango } from '@/lib/filtroFechas';
+import { fecha, ventana, fechaHora, medidasTxt, numero } from '@/lib/formato';
+import Paginador from './Paginador';
 import { descargarCsv } from '@/lib/exportaciones';
 import { CONTACTO } from '@/lib/atencion';
 // Etiquetas y faltas según el criterio único (usuario, 2026-11-09).
@@ -46,44 +45,65 @@ const PRIORIDADES: [IncidenciaDatos['prioridad'], string, string][] = [
   ['baja', 'Baja', 'gray'], ['media', 'Media', 'prog'], ['alta', 'Alta', 'orange'], ['critica', 'Crítica', 'red'],
 ];
 const abierta = (e: string) => e === 'abierto' || e === 'en_curso';
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function Incidencias({ filas, pendientes = [], tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null, vistaTransportista = false, qInicial = '' }: {
+// La lista ya filtrada y contada por la base de datos (usuario, 2026-11-28: por páginas):
+// pestaña, buscador y fecha van por la URL, como en Envíos.
+export type ListaIncidencias = { pe: 'abiertas' | 'resueltas' | 'todas'; q: string; fr: string; fd: string; fh: string;
+  pagina: number; porPagina: number; total: number; abiertas: number; resueltas: number };
+
+export default function Incidencias({ filas, lista, pendientes = [], tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null, vistaTransportista = false }: {
+  lista: ListaIncidencias;
   // Cambios que todavía se pueden deshacer (60 s): el contador de arriba.
   pendientes?: { id: string; codigo: string; pendiente: CambioPendiente }[];
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
   tipoInicial?: string | null;   // ?tipo=siniestro: el formulario nuevo ya con ese tipo
-  qInicial?: string;   // ?q=…: llega buscada (desde el buscador global), en la pestaña «Todas»
   esCliente?: boolean;   // el CLIENTE (o el transportista) ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
   vistaTransportista?: boolean;   // Dynamo «viendo como» un transportista: la incidencia sin envío es de ese transportista (sin selector de cliente)
   esTransportista?: boolean;   // el envío es obligatorio y solo ve las que abre él
 }) {
   const router = useRouter();
   const refrescar = useRefrescar();
-  const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>(qInicial ? 'todas' : 'abiertas');
-  const [q, setQ] = useState(qInicial);
-  const ff = useFiltroFechas();
   const [ficha, setFicha] = useState<{ fila: IncidenciaFila | null; envio?: string | null } | null>(nuevaPara != null ? { fila: null, envio: nuevaPara || null } : null);
+  const [cargando, empezar] = useTransition();
+  const [errorExportar, setErrorExportar] = useState<string | null>(null);
 
-  const cuenta = useMemo(() => ({ abiertas: filas.filter((x) => abierta(x.estado)).length, resueltas: filas.filter((x) => !abierta(x.estado)).length, todas: filas.length }), [filas]);
-  const lista = useMemo(() => {
-    const w = norm(textoBusqueda(q)).split(/\s+/).filter(Boolean);
-    return filas.filter((x) => (pestana === 'todas' || (pestana === 'abiertas') === abierta(x.estado))
-      && enRango(diaMadrid(x.creado_en), ff.rango)
-      && (!w.length || (() => { const b = norm([x.codigo, x.tipo, x.titulo, x.detalle, x.cliente, x.envio?.referencia_gx, x.envio?.referencia_cliente,
-        x.envio?.origen, x.envio?.destino, ESTADOS.find(([k]) => k === x.estado)?.[1], fecha(diaMadrid(x.creado_en))].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()));
-  }, [filas, pestana, q, ff.rango]);
-  const pg = usePaginas(lista, `${pestana}|${q}|${ff.clave}`);
-  // El CSV con lo que se ve (filtros puestos), columnas calcadas de la tabla.
-  const exportar = () => descargarCsv('Incidencias', ['F. registro', 'Hora', 'Código', 'Tipo', 'Resumen', 'Detalle', 'Nº envío', 'Ref. cliente', ...(esCliente ? [] : ['Cliente']), 'F. carga', 'Origen', 'Destino', 'm · Tn', 'Estado', 'Prioridad'],
-    lista.map((x) => ({ 'F. registro': fecha(diaMadrid(x.creado_en)), Hora: horaMadrid(x.creado_en), 'Código': x.codigo, Tipo: x.tipo, Resumen: x.titulo, Detalle: x.detalle,
+  // La URL con los filtros (y la página): cambiar de pestaña, fecha o búsqueda vuelve a la primera.
+  const url = (c: Partial<ListaIncidencias>) => {
+    const v = { ...lista, ...c };
+    const u = new URLSearchParams();
+    if (v.pe !== (v.q ? 'todas' : 'abiertas')) u.set('pe', v.pe);
+    if (v.q) u.set('q', v.q); if (v.fr) u.set('fr', v.fr); if (v.fd) u.set('fd', v.fd); if (v.fh) u.set('fh', v.fh);
+    if (v.pagina > 1) u.set('p', String(v.pagina)); if (v.porPagina !== 20) u.set('n', String(v.porPagina));
+    const t = u.toString(); return `/panel/incidencias${t ? `?${t}` : ''}`;
+  };
+  const ir = (c: Partial<ListaIncidencias>) => empezar(() => router.replace(url({ pagina: 1, ...c }), { scroll: false }));
+  // El buscador escribe aquí y va a la URL al dejar de teclear (sin perder lo escrito).
+  const [q, setQ] = useState(lista.q);
+  const enviado = useRef(lista.q);
+  useEffect(() => { if (lista.q !== enviado.current) { enviado.current = lista.q; setQ(lista.q); } }, [lista.q]);
+  useEffect(() => {
+    if (q.trim() === enviado.current) return;
+    const t = setTimeout(() => { enviado.current = q.trim(); ir({ q: q.trim(), pe: q.trim() ? 'todas' : lista.pe === 'todas' ? 'abiertas' : lista.pe }); }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  // El CSV con TODO lo filtrado (no solo esta página), columnas calcadas de la tabla.
+  const exportar = async () => {
+    setErrorExportar(null);
+    const r = await filasParaExportar({ pe: lista.pe, q: lista.q, fr: lista.fr, fd: lista.fd, fh: lista.fh }).catch(() => ({ ok: false as const, error: 'No se ha podido exportar. Vuelve a intentarlo.' }));
+    if (!r.ok) { setErrorExportar(r.error); return; }
+    descargarCsv('Incidencias', ['F. registro', 'Hora', 'Código', 'Tipo', 'Resumen', 'Detalle', 'Nº envío', 'Ref. cliente', ...(esCliente ? [] : ['Cliente']), 'F. carga', 'Origen', 'Destino', 'm · Tn', 'Estado', 'Prioridad'],
+    r.filas.map((x) => ({ 'F. registro': fecha(diaMadrid(x.creado_en)), Hora: horaMadrid(x.creado_en), 'Código': x.codigo, Tipo: x.tipo, Resumen: x.titulo, Detalle: x.detalle,
       'Nº envío': x.envio ? `#${x.envio.referencia_gx}` : '', 'Ref. cliente': x.envio?.referencia_cliente ?? '', ...(esCliente ? {} : { Cliente: x.cliente ?? '' }),
       'F. carga': x.envio ? fecha(x.envio.fecha_carga_desde) : '', Origen: x.envio?.origen ?? '', Destino: x.envio?.destino ?? '',
       'm · Tn': x.envio && (x.envio.metros_lineales != null || x.envio.toneladas != null) ? medidasTxt(x.envio.metros_lineales, x.envio.toneladas) : '',
       Estado: ESTADOS.find(([k]) => k === x.estado)?.[1] ?? x.estado, Prioridad: PRIORIDADES.find(([k]) => k === x.prioridad)?.[1] ?? '' })));
+  };
+  const sinNada = lista.abiertas + lista.resueltas === 0 && !lista.q && !lista.fr;
   const contadores = useContadores(pendientes);
   const cerrar = () => { setFicha(null); if (nuevaPara != null) router.replace('/panel/incidencias'); };
 
@@ -103,29 +123,31 @@ export default function Incidencias({ filas, pendientes = [], tipos, clientes, e
             : { que: 'Cambio de estado de la incidencia', efecto: 'La incidencia volverá al estado de antes (y a su resolución de antes) y no saldrá ningún aviso.' }} />
       )} />
       <div className="tabs">
-        <button className={`tab${pestana === 'abiertas' ? ' active' : ''}`} onClick={() => setPestana('abiertas')}>Abiertas ({cuenta.abiertas})</button>
-        <button className={`tab${pestana === 'resueltas' ? ' active' : ''}`} onClick={() => setPestana('resueltas')}>Resueltas ({cuenta.resueltas})</button>
-        <button className={`tab${pestana === 'todas' ? ' active' : ''}`} onClick={() => setPestana('todas')}>Todas</button>
+        <button className={`tab${lista.pe === 'abiertas' ? ' active' : ''}`} onClick={() => ir({ pe: 'abiertas' })}>Abiertas ({numero(lista.abiertas, 0)})</button>
+        <button className={`tab${lista.pe === 'resueltas' ? ' active' : ''}`} onClick={() => ir({ pe: 'resueltas' })}>Resueltas ({numero(lista.resueltas, 0)})</button>
+        <button className={`tab${lista.pe === 'todas' ? ' active' : ''}`} onClick={() => ir({ pe: 'todas' })}>Todas</button>
       </div>
-      <BarraFiltros q={q} onQ={setQ} activos={[q.trim(), ff.valor].filter(Boolean).length} onExportar={exportar}
+      <BarraFiltros q={q} onQ={setQ} activos={[lista.q, lista.fr].filter(Boolean).length} onExportar={exportar}
         placeholder={esCliente ? 'Buscar por descripción, nº de envío, ruta…' : 'Buscar por descripción, nº de envío, cliente, ruta…'}>
-        <FiltroFechas valor={ff.valor} desde={ff.desde} hasta={ff.hasta} onCambio={ff.onCambio} etiqueta="Filtrar por fecha de registro" />
+        <FiltroFechas valor={lista.fr} desde={lista.fd} hasta={lista.fh} etiqueta="Filtrar por fecha de registro"
+          onCambio={(fr, fd, fh) => ir({ fr, fd: fr === 'entre' ? fd : '', fh: fr === 'entre' ? fh : '' })} />
       </BarraFiltros>
       {error && <div className="pt-aviso error">No se han podido cargar las incidencias: {error}</div>}
-      <div className="table-wrap" tabIndex={0}>
+      {errorExportar && <div className="pt-aviso error" role="alert">{errorExportar}</div>}
+      <div className="table-wrap" tabIndex={0} aria-busy={cargando} style={{ opacity: cargando ? 0.6 : 1, transition: 'opacity .15s' }}>
         <table className="data">
           <thead><tr>
             <th>F. registro</th><th>Descripción</th><th>Nº envío</th><th>Ref. cliente</th><th>F. carga · Días de recogida</th><th>Ruta</th><th>m · Tn</th><th>Estado</th>
           </tr></thead>
           <tbody>
-            {lista.length === 0 ? (
+            {filas.length === 0 ? (
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length ? 'Sin incidencias en este filtro'
+                {!sinNada ? 'Sin incidencias en este filtro'
                   : <EstadoVacio titulo="Sin incidencias — buena señal"
                       texto="Si algo va mal en un envío (daño, falta de mercancía, falta de documentación…), repórtalo aquí o desde la ficha del propio envío y se sigue hasta resolverlo."
                       accion={<button type="button" className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Reportar incidencia</button>} />}
               </td></tr>
-            ) : pg.visibles.map((x) => {
+            ) : filas.map((x) => {
               const est = ESTADOS.find(([k]) => k === x.estado) ?? ESTADOS[0];
               const pri = PRIORIDADES.find(([k]) => k === x.prioridad);
               const e = x.envio;
@@ -145,7 +167,7 @@ export default function Incidencias({ filas, pendientes = [], tipos, clientes, e
           </tbody>
         </table>
       </div>
-      <PaginadorLocal p={pg} nombre="incidencias" nombreUno="incidencia" />
+      <Paginador total={lista.total} pagina={lista.pagina} porPagina={lista.porPagina} url={(p) => url({ pagina: p })} nombre="incidencias" nombreUno="incidencia" />
       {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} vistaTransportista={vistaTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipoInicial={ficha.fila ? null : tipoInicial} tipos={tipos} clientes={clientes} envios={envios}
         onCerrar={cerrar} onHecho={() => { cerrar(); refrescar(); }} />}
     </section>

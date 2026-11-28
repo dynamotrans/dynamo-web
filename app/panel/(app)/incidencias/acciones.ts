@@ -1,7 +1,8 @@
 'use server';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esGestor } from '@/lib/sesion';
+import { sesion, esGestor, esDynamo } from '@/lib/sesion';
+import type { IncidenciaFila } from '@/components/panel/Incidencias';
 import type { TablaInsert, TablaUpdate } from '@/lib/supabase/tipos';
 import { comprobarEntrada } from '@/lib/entradas/comprobar';
 
@@ -84,4 +85,18 @@ export async function deshacerCambioIncidencia(id: string): Promise<{ ok: true; 
     case 'nada': return { ok: false, error: 'No queda nada por deshacer en esta incidencia.' };
     default: return { ok: false, error: 'No se ha podido deshacer el cambio. Cambia la incidencia a mano si hace falta.' };
   }
+}
+
+// EXPORTAR con todo lo filtrado (usuario, 2026-11-28: la lista va por páginas, el CSV no): las
+// mismas incidencias que se ven con esos filtros, hasta 5.000, con los permisos de quien pide.
+export async function filasParaExportar(f: { pe: string; q: string; fr: string; fd: string; fh: string }): Promise<{ ok: true; filas: IncidenciaFila[] } | { ok: false; error: string }> {
+  comprobarEntrada("app/panel/(app)/incidencias/acciones#filasParaExportar", [f]);
+  const s = await sesion();
+  if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  const { vistaDe } = await import('@/lib/vista');
+  const { cargarIncidencias, filtrosDe } = await import('./lista');
+  const modo = esDynamo(s.perfil.rol) ? { tipo: 'dynamo' as const, vista: await vistaDe(s.supabase, s.perfil.rol) }
+    : { tipo: 'propias' as const, transportista: s.perfil.rol === 'transportista' };
+  const r = await cargarIncidencias(s.supabase, modo, filtrosDe(f), 1, 5000);
+  return r.error ? { ok: false, error: mensajeError(r.error) } : { ok: true, filas: r.filas };
 }

@@ -2217,6 +2217,27 @@ test.describe('novedades', () => {
     await expect(page.getByRole('button', { name: /Aceptar/ })).toBeEnabled();
     await expect.poll(async () => (await bd().from('documentos_entrada').select('envio_id').eq('id', ini.id).single()).data?.envio_id).toBe(e.id);
   });
+  test('incidencias por páginas: el buscador y las pestañas van por la URL y la base de datos filtra', async ({ page }) => {
+    const sb = bd();
+    const { data: tipo } = await sb.from('tipos_incidencia').select('id').order('orden').limit(1).single();
+    const { data: cli } = await sb.from('clientes').select('id').limit(1).single();
+    const marca = `Pale${Date.now().toString(36)}`;
+    const { data: inc, error } = await sb.from('incidencias').insert({ cliente_id: cli!.id, tipo_id: tipo!.id, titulo: `Palé roto ${marca}`, detalle: 'Prueba de la lista por páginas' }).select('codigo').single();
+    expect(error).toBeNull();
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/incidencias');
+    await page.getByRole('searchbox', { name: 'Buscar' }).fill(marca.toLowerCase());
+    await expect(page).toHaveURL(new RegExp(`q=${marca.toLowerCase()}`));
+    await expect(page.locator('#sec-incidencias tbody tr')).toHaveCount(1);
+    await expect(page.locator('#sec-incidencias tbody')).toContainText(inc!.codigo);
+    // En «Resueltas» no está (está abierta); en «Abiertas», sí.
+    await page.getByRole('button', { name: /^Resueltas/ }).click();
+    await expect(page).toHaveURL(/pe=resueltas/);
+    await expect(page.locator('#sec-incidencias tbody')).toContainText('Sin incidencias en este filtro');
+    await page.getByRole('button', { name: /^Abiertas/ }).click();
+    await expect(page.locator('#sec-incidencias tbody')).toContainText(inc!.codigo);
+    await expect(page.locator('.pagination')).toContainText('Mostrando 1–1 de 1 incidencia');
+  });
   test('mapa general: el cliente y Dynamo ven sus envíos en curso, con filtro y encuadre', async ({ page }) => {
     await envioProgramadoDelTransportista('id');
     for (const quien of ['cliente', 'dynamo'] as const) {

@@ -116,6 +116,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/festivos/acciones#crearFestivo": z.tuple([z.object({ fecha: z.string().max(1000), nombre: z.string().max(1000), ambito: z.enum(["nacional", "comunidad", "local"]), comunidad: z.string().max(1000).nullable().optional(), poblacion: z.string().max(1000).nullable().optional(), pais: z.string().max(1000).nullable().optional(), cada_anio: z.boolean() })]),
   "app/panel/(app)/ia/acciones#preguntarIA": z.tuple([z.array(z.object({ de: z.string().max(1000), texto: z.string().max(5000) })).max(10000), z.string().max(1000)]),
   "app/panel/(app)/incidencias/acciones#deshacerCambioIncidencia": z.tuple([z.string().uuid().or(z.literal(''))]),
+  "app/panel/(app)/incidencias/acciones#filasParaExportar": z.tuple([z.object({ pe: z.string().max(1000), q: z.string().max(1000), fr: z.string().max(1000), fd: z.string().max(1000), fh: z.string().max(1000) })]),
   "app/panel/(app)/incidencias/acciones#guardarIncidencia": z.tuple([z.string().uuid().or(z.literal('')).nullable(), z.object({ envio_id: z.string().uuid().or(z.literal('')).nullable(), cliente_id: z.string().uuid().or(z.literal('')).nullable(), tipo_id: z.string().uuid().or(z.literal('')), estado: z.enum(["cancelado", "abierto", "en_curso", "resuelto"]), prioridad: z.enum(["baja", "media", "alta", "critica"]), titulo: z.string().max(1000), detalle: z.string().max(5000), resolucion: z.string().max(1000) })]),
   "app/panel/(app)/mantenimiento/acciones#borrarArchivosSueltos": z.tuple([]),
   "app/panel/(app)/mantenimiento/acciones#contarArchivosSueltos": z.tuple([]),

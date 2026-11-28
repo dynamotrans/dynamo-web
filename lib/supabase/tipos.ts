@@ -5920,6 +5920,7 @@ export type Database = {
       horario_sitio_texto: { Args: { p_sitio: string | null; p_fecha: string | null }; Returns: string }
       horario_texto: { Args: { p_sitio: string | null; p_temporada?: string | null }; Returns: string }
       ia_consulta_sql: { Args: { p_sql: string | null }; Returns: Json }
+      incidencias_pagina: { Args: { p_pestana: string | null; p_q: string | null; p_desde: string | null; p_hasta: string | null; p_cliente: string | null; p_transportista: string | null; p_pagina: number | null; p_por_pagina: number | null }; Returns: Json }
       iniciar_difusion: { Args: { p_envio: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null; p_hora_carga?: string | null; p_forzar?: boolean | null }; Returns: Json }
       invitacion_registrar: { Args: { p_email: string | null }; Returns: Json }
       invitacion_vigente: { Args: { p_email: string | null }; Returns: boolean }

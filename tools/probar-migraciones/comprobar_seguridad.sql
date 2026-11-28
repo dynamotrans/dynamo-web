@@ -18397,5 +18397,45 @@ do $$ declare r jsonb; n int; v jsonb; begin
   raise notice 'OK 399 · invitaciones: se apuntan antes de mandarlas, con tope diario por persona; el alta con el registro cerrado ya no se fía de «añadido por»';
 end $$;
 
+-- 400 · INCIDENCIAS POR PÁGINAS (usuario, 2026-11-28). La base de datos filtra (pestaña, buscador
+-- sin acentos, fecha) y cuenta con los permisos de quien llama: el cliente no cuenta las de otros.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare i1 uuid; i2 uuid; r jsonb; begin
+  insert into incidencias (cliente_id, tipo_id, titulo, detalle)
+    values (current_setting('prueba.cliente')::uuid, (select id from tipos_incidencia order by orden limit 1), 'Palé roto cuatrocientos', 'Detalle 400')
+    returning id into i1;
+  insert into incidencias (cliente_id, tipo_id, titulo, detalle, estado, resolucion, resuelto_en)
+    values (current_setting('prueba.cliente')::uuid, (select id from tipos_incidencia order by orden limit 1), 'Retraso cuatrocientos', 'Detalle 400', 'resuelto', 'Arreglado', now())
+    returning id into i2;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  r := incidencias_pagina('abiertas', 'PALE cuatrocientos', null, null, null, null, 1, 20);
+  if not (r -> 'ids') ? i1::text or (r -> 'ids') ? i2::text then raise exception 'FALLO 400 · el buscador o la pestaña «Abiertas» no filtran: %', r; end if;
+  r := incidencias_pagina('resueltas', 'cuatrocientos', null, null, null, null, 1, 20);
+  if not (r -> 'ids') ? i2::text or (r -> 'ids') ? i1::text or (r ->> 'abiertas')::int < 1 or (r ->> 'resueltas')::int < 1 then
+    raise exception 'FALLO 400 · la pestaña «Resueltas» o los contadores no van: %', r; end if;
+  r := incidencias_pagina('todas', 'cuatrocientos', (now() at time zone 'Europe/Madrid')::date + 1, null, null, null, 1, 20);
+  if jsonb_array_length(r -> 'ids') <> 0 then raise exception 'FALLO 400 · el filtro de fecha no filtra: %', r; end if;
+  r := incidencias_pagina('todas', 'cuatrocientos', null, null, null, null, 1, 1);
+  if jsonb_array_length(r -> 'ids') <> 1 or (r ->> 'total')::int < 2 then raise exception 'FALLO 400 · no pagina (1 por página, total de todas): %', r; end if;
+  -- «Ver como» un transportista: estas (del cliente) no salen.
+  r := incidencias_pagina('todas', 'cuatrocientos', null, null, null, current_setting('prueba.transp')::uuid, 1, 20);
+  if jsonb_array_length(r -> 'ids') <> 0 then raise exception 'FALLO 400 · «Ver como» transportista ve las del cliente'; end if;
+  reset role;
+  -- El cliente: las suyas sí; la del transportista de la prueba 75, ni contada.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  r := incidencias_pagina('todas', 'cuatrocientos', null, null, null, null, 1, 20);
+  if not (r -> 'ids') ? i1::text then raise exception 'FALLO 400 · el cliente no ve sus incidencias'; end if;
+  r := incidencias_pagina('todas', 'muelle no carga', null, null, null, null, 1, 20);
+  if (r ->> 'total')::int <> 0 or (r ->> 'abiertas')::int <> 0 then raise exception 'FALLO 400 · el cliente cuenta incidencias que no son suyas: %', r; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if has_function_privilege('anon', 'public.incidencias_pagina(text, text, date, date, uuid, uuid, int, int)', 'execute') then
+    raise exception 'FALLO 400 · se puede llamar sin sesión'; end if;
+  raise notice 'OK 400 · incidencias por páginas: pestaña, buscador sin acentos, fecha y «Ver como» en la base de datos; cada uno solo cuenta las suyas';
+end $$;
+
 -- Fin: fuera la ayuda de pruebas del código de carga.
 drop function if exists public.prueba_codigo_carga(uuid, text);
