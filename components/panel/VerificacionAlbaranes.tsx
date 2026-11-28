@@ -12,7 +12,7 @@
 // Si la clasificación leyó mal la referencia, se cambia el envío (y su GX en el nombre).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { aceptarAlbaran, rechazarAlbaran, reasignarAlbaran, tipoAlbaran } from '@/app/panel/(app)/verificacion-albaranes/acciones';
+import { aceptarAlbaran, rechazarAlbaran, reasignarAlbaran, tipoAlbaran, sugerenciasAlbaran, type SugerenciaAlbaran } from '@/app/panel/(app)/verificacion-albaranes/acciones';
 import { fecha, fechaHora } from '@/lib/formato';
 import { nombreEstado, colorEstado } from '@/lib/estados';
 
@@ -42,6 +42,16 @@ export default function VerificacionAlbaranes({ lista: inicial, soloLectura }: {
   const a = lista[Math.min(i, Math.max(lista.length - 1, 0))];
 
   useEffect(() => { setRef(''); setRechazo(null); setQuitadas([]); setPaginas(0); }, [a?.id]);
+  // Sin envío: los que encajan con el nombre del archivo (matrículas, CP, fecha), para elegir con un clic.
+  const [sugerencias, setSugerencias] = useState<{ id: string; lista: SugerenciaAlbaran[] | null } | null>(null);
+  const sinEnvio = !!a && !a.envio;
+  useEffect(() => {
+    if (!a || !sinEnvio) { setSugerencias(null); return; }
+    let vivo = true;
+    setSugerencias({ id: a.id, lista: null });
+    sugerenciasAlbaran(a.id).then((l) => { if (vivo) setSugerencias({ id: a.id, lista: l }); }).catch(() => { if (vivo) setSugerencias({ id: a.id, lista: [] }); });
+    return () => { vivo = false; };
+  }, [a?.id, sinEnvio]);   // eslint-disable-line react-hooks/exhaustive-deps
   const alternarHoja = (n: number) => setQuitadas((q) => (q.includes(n) ? q.filter((x) => x !== n) : [...q, n].sort((x, y) => x - y)));
   const todasFuera = paginas > 0 && quitadas.length >= paginas;
 
@@ -87,16 +97,17 @@ export default function VerificacionAlbaranes({ lista: inicial, soloLectura }: {
     setSaltados((n) => n + 1);
     ir(1);
   }
-  async function reasignar() {
-    if (!a || !ref.trim()) return;
+  async function reasignar(gx?: string) {
+    const nueva = (gx ?? ref).trim();
+    if (!a || !nueva) return;
     setOcupado(true); setAviso(null);
-    const r = await reasignarAlbaran(a.id, ref);
+    const r = await reasignarAlbaran(a.id, nueva);
     setOcupado(false);
     if (!r.ok) { setAviso({ t: 'err', m: r.error }); return; }
     setAviso({ t: 'ok', m: `Cambiado de envío. Nombre nuevo: ${r.nombre}` });
     router.refresh();
     // Los datos del envío nuevo llegan con la recarga; mientras, el nombre ya cambia aquí.
-    setLista((l) => l.map((x) => (x.id === a.id ? { ...x, nombre_archivo: r.nombre ?? x.nombre_archivo, referencia: ref.trim().toUpperCase() } : x)));
+    setLista((l) => l.map((x) => (x.id === a.id ? { ...x, nombre_archivo: r.nombre ?? x.nombre_archivo, referencia: nueva.toUpperCase() } : x)));
   }
   async function cambiarTipo(t: AlbaranPendiente['tipo']) {
     if (!a) return;
@@ -172,15 +183,44 @@ export default function VerificacionAlbaranes({ lista: inicial, soloLectura }: {
                   {a.envio.documentos_visibles > 0 && <div className="meta" style={{ color: '#b45309' }}>Ya tiene {a.envio.documentos_visibles} albarán/CMR visible para el cliente.</div>}
                   {a.datos.referencia_original && <div className="meta">Antes venía como {a.datos.referencia_original}.</div>}
                 </> : <div style={{ color: '#9a3412', fontWeight: 700 }}>
-                  {a.referencia ? `No hay ningún envío con la referencia ${a.referencia}.` : 'El nombre no trae referencia GX.'} Escribe la buena para poder aceptarlo.
+                  {a.referencia ? `No hay ningún envío con la referencia ${a.referencia}.` : 'El nombre no trae referencia GX.'} Elige el envío o escribe su referencia para poder aceptarlo.
                 </div>}
               </div>
+
+              {sinEnvio && sugerencias?.id === a.id && (
+                <div data-verif-sugerencias="" style={{ marginTop: '0.6rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.8rem', marginBottom: '0.3rem' }}>Envíos que encajan</div>
+                  {sugerencias.lista === null ? <p className="meta" style={{ margin: 0 }}>Buscando…</p>
+                    : !sugerencias.lista.length ? <p className="meta" style={{ margin: 0 }}>No hay ninguno que encaje con la fecha, los códigos postales o las matrículas del nombre. Escribe la referencia abajo.</p>
+                    : <div style={{ display: 'grid', gap: '0.35rem' }}>
+                      {sugerencias.lista.map((x) => (
+                        <div key={x.id} data-sugerencia={x.referencia} style={{ border: '1px solid var(--gray-200)', borderRadius: 10, padding: '0.45rem 0.55rem', background: '#fff' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            <a href={`/panel/envios?ver=${x.id}`} target="_blank" rel="noopener" style={{ fontWeight: 800 }}>#{x.referencia}</a>
+                            <span className={`badge badge-${colorEstado(x.estado)}`}>{nombreEstado(x.estado)}</span>
+                            {!soloLectura && <button type="button" className="btn-primary" disabled={ocupado} onClick={() => reasignar(x.referencia)}
+                              style={{ marginLeft: 'auto', fontSize: '0.75rem', padding: '0.2rem 0.6rem' }} aria-label={`Asignar al envío ${x.referencia}`}>Es este</button>}
+                          </div>
+                          <div className="meta">{x.cliente ?? '—'}{x.transportista ? ` · ${x.transportista}` : ''}</div>
+                          <div className="meta">{[x.origen, x.destino].filter(Boolean).join(' → ')}{x.fecha_carga ? ` · carga ${fecha(x.fecha_carga)}` : ''}</div>
+                          <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+                            {x.matriculas_coinciden && <span className="badge badge-green">Matrícula</span>}
+                            {x.origen_coincide && <span className="badge badge-green">Origen</span>}
+                            {x.destino_coincide && <span className="badge badge-green">Destino</span>}
+                            {a.datos.fecha && x.dias === 0 && <span className="badge badge-green">Misma fecha</span>}
+                            {a.datos.fecha && x.dias > 0 && x.dias <= 3 && <span className="badge badge-gray">{x.dias} día{x.dias === 1 ? '' : 's'} de diferencia</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>}
+                </div>
+              )}
 
               {!soloLectura && (
                 <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem' }}>
                   <input type="text" aria-label="Referencia GX del envío" placeholder="Cambiar envío: GX…" value={ref} onChange={(e) => setRef(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') void reasignar(); }} style={{ flex: 1, minWidth: 0 }} />
-                  <button type="button" className="btn-secondary" disabled={ocupado || !ref.trim()} onClick={reasignar}>Cambiar</button>
+                  <button type="button" className="btn-secondary" disabled={ocupado || !ref.trim()} onClick={() => reasignar()}>Cambiar</button>
                 </div>
               )}
 

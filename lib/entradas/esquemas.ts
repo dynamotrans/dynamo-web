@@ -213,6 +213,7 @@ export const ESQUEMAS = {
   "app/panel/(app)/verificacion-albaranes/acciones#aceptarAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000), z.array(z.number().or(z.nan())).max(10000).optional()]),
   "app/panel/(app)/verificacion-albaranes/acciones#reasignarAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/verificacion-albaranes/acciones#rechazarAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(5000)]),
+  "app/panel/(app)/verificacion-albaranes/acciones#sugerenciasAlbaran": z.tuple([z.string().uuid().or(z.literal(''))]),
   "app/panel/(app)/verificacion-albaranes/acciones#tipoAlbaran": z.tuple([z.string().uuid().or(z.literal('')), z.string().max(1000)]),
   "app/panel/(app)/verificacion/acciones#crearMiEmpresa": z.tuple([]),
   "app/panel/(app)/verificacion/acciones#miVerificacion": z.tuple([]),

@@ -102,3 +102,18 @@ export async function tipoAlbaran(id: string, tipo: string): Promise<Res> {
   const r = data as { resultado: string };
   return r.resultado === 'ok' ? { ok: true } : fallo(r.resultado);
 }
+
+// Sugerencias (usuario, 2026-11-28): los envíos que encajan con un albarán sin envío, por lo que
+// trae el nombre del archivo (matrículas, CP de origen y destino, fecha).
+export type SugerenciaAlbaran = {
+  id: string; referencia: string; estado: string; cliente: string | null; transportista: string | null; fecha_carga: string | null;
+  origen: string | null; destino: string | null; matriculas_coinciden: boolean; origen_coincide: boolean; destino_coincide: boolean; dias: number;
+};
+export async function sugerenciasAlbaran(id: string): Promise<SugerenciaAlbaran[]> {
+  comprobarEntrada("app/panel/(app)/verificacion-albaranes/acciones#sugerenciasAlbaran", [id]);
+  const s = await soloGestor();
+  if (!s) return [];
+  const { data, error } = await s.supabase.rpc('verificacion_albaran_sugerencias', { p_id: id });
+  if (error || !Array.isArray(data)) return [];
+  return data as unknown as SugerenciaAlbaran[];
+}

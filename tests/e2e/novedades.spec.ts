@@ -2183,6 +2183,40 @@ test.describe('novedades', () => {
     // El de 3 hojas ya no está en el almacén.
     expect((await bd().storage.from('documentos').download(`entrada/${ini.id}.pdf`)).data).toBeNull();
   });
+  test('verificación de albaranes: sin GX, sugiere el envío que encaja por matrícula y fecha y se asigna con un clic', async ({ page, request }) => {
+    const clave = process.env.ENTRADA_DOCUMENTOS_TOKEN!;
+    const { e } = await envioProgramadoDelTransportista('id, referencia_gx, fecha_carga_desde, fecha_carga_prevista, fecha_carga_real');
+    // Una matrícula que no lleva ningún otro envío.
+    const mat = `9${String(Date.now()).slice(-3)}XYZ`;
+    await bd().from('envios').update({ matricula_camion: mat }).eq('id', e.id);
+    const f = String(e.fecha_carga_real ?? e.fecha_carga_prevista ?? e.fecha_carga_desde).slice(0, 10).replace(/-/g, '');
+    const doc = await PDFDocument.create();
+    doc.addPage([300, 200]).drawText(`ALBARAN ${Date.now()}`, { x: 20, y: 100, size: 14, font: await doc.embedFont(StandardFonts.Helvetica) });
+    const base = process.env.E2E_URL ?? 'http://localhost:3484';
+    const nombre = `ESCANEO_ALB_${f}_41001-SEVILLA_28001-MADRID_${mat}.pdf`;
+    const ini = await (await request.post(`${base}/api/documentos-entrada`, { headers: { Authorization: `Bearer ${clave}` },
+      data: { accion: 'iniciar', nombre, origen: 'drive', origen_id: `e2e-sug-${Date.now()}` } })).json();
+    expect(ini.resultado).toBe('ok');
+    expect((await request.put(ini.subir_a, { headers: { 'content-type': 'application/pdf' }, data: Buffer.from(await doc.save()) })).ok()).toBeTruthy();
+    const conf = await (await request.post(`${base}/api/documentos-entrada`, { headers: { Authorization: `Bearer ${clave}` }, data: { accion: 'confirmar', id: ini.id } })).json();
+    expect(conf.resultado).toBe('ok');
+    expect(conf.envio_id).toBeNull();
+
+    await entrar(page, 'dynamo');
+    await page.goto('/panel/verificacion-albaranes');
+    // Se va a ese documento (sin GX) con la flecha hasta que su nombre sale en pantalla.
+    for (let k = 0; k < 40 && (await page.locator('[data-verif-nombre]').textContent()) !== nombre; k++) await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.locator('[data-verif-nombre]')).toHaveText(nombre);
+    await expect(page.getByRole('button', { name: /Aceptar/ })).toBeDisabled();
+    const sug = page.locator(`[data-sugerencia="${e.referencia_gx}"]`);
+    await expect(sug).toBeVisible({ timeout: 15_000 });
+    await expect(sug).toContainText('Matrícula');
+    await expect(page.locator('[data-sugerencia]').first()).toHaveAttribute('data-sugerencia', e.referencia_gx!);
+    await sug.getByRole('button', { name: `Asignar al envío ${e.referencia_gx}` }).click();
+    await expect(page.locator('[data-verif-envio]')).toContainText(`Envío #${e.referencia_gx}`);
+    await expect(page.getByRole('button', { name: /Aceptar/ })).toBeEnabled();
+    await expect.poll(async () => (await bd().from('documentos_entrada').select('envio_id').eq('id', ini.id).single()).data?.envio_id).toBe(e.id);
+  });
   test('mapa general: el cliente y Dynamo ven sus envíos en curso, con filtro y encuadre', async ({ page }) => {
     await envioProgramadoDelTransportista('id');
     for (const quien of ['cliente', 'dynamo'] as const) {
