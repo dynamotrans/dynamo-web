@@ -125,9 +125,11 @@ export async function invitarUsuario(d: Invitacion): Promise<Res> {
   if (!servicio) {
     return { ok: false, error: 'Falta conectar el envío de invitaciones: hay que poner la clave de servicio de Supabase en Vercel (SUPABASE_SERVICE_ROLE_KEY).' };
   }
+  // La invitación se APUNTA antes de mandarla (con la sesión de quien la da): con el registro de
+  // clientes cerrado, la base de datos solo crea la cuenta que tiene su invitación apuntada.
+  const ap = await apuntarInvitacion(s.supabase, email);
+  if (ap) return { ok: false, error: ap };
   const { data, error } = await servicio.auth.admin.inviteUserByEmail(email, {
-    // `anadido_por`: con el registro de clientes cerrado, la base de datos solo crea la cuenta
-    // que ha pedido un usuario activo (aquí, quien la da de alta desde Dynamo).
     data: { nombre: d.nombre.trim(), anadido_por: s.perfil!.id }, redirectTo: `${await origen()}/panel/confirmar`,
   });
   if (error || !data.user) return { ok: false, error: traducir(error?.message ?? 'No se ha podido enviar la invitación.') };
@@ -263,4 +265,15 @@ export async function quitarDoblePaso(id: string, clave: string): Promise<Res> {
   // Queda en la auditoría quién lo hizo (lo hace la clave de servicio, que no tiene autor).
   await s.supabase.rpc('registrar_doble_paso_quitado', { p_usuario: id });
   return { ok: true };
+}
+
+// Apunta la invitación (tope al día por persona). Devuelve el error para la pantalla, o null.
+async function apuntarInvitacion(sb: NonNullable<Awaited<ReturnType<typeof soloDynamo>>>['supabase'], email: string): Promise<string | null> {
+  const { data, error } = await sb.rpc('invitacion_registrar', { p_email: email });
+  if (error) return traducir(error.message);
+  const r = (data ?? {}) as { resultado?: string; maximo?: number };
+  if (r.resultado === 'ok') return null;
+  if (r.resultado === 'tope') return `Has llegado al máximo de ${r.maximo} invitaciones en 24 horas. Si necesitas más, súbelo en Parámetros.`;
+  if (r.resultado === 'email_no_valido') return 'El email no es válido.';
+  return 'Tu usuario no puede invitar a nadie.';
 }

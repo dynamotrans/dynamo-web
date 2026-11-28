@@ -315,6 +315,13 @@ export async function anadirCompanero(d: Companero): Promise<{ ok: true } | { ok
   if (!servicio) return { ok: false, error: `Falta conectar el envío de invitaciones: llámanos al ${CONTACTO.telefono} y lo damos de alta nosotros.` };
   const { data: ya } = await servicio.from('usuarios').select('id').ilike('email', email).maybeSingle();
   if (ya) return { ok: false, error: 'Ya existe una cuenta con ese email.' };
+  // Se apunta antes de mandarla (con tu sesión): sin invitación apuntada no se crea la cuenta.
+  const { data: ap, error: eAp } = await s.supabase.rpc('invitacion_registrar', { p_email: email });
+  const rAp = (ap ?? {}) as { resultado?: string; maximo?: number };
+  if (eAp || rAp.resultado !== 'ok') {
+    return { ok: false, error: rAp.resultado === 'tope' ? `Has llegado al máximo de ${rAp.maximo} compañeros añadidos en 24 horas. Si necesitas más, llámanos al ${CONTACTO.telefono}.`
+      : rAp.resultado === 'email_no_valido' ? 'El email no es válido.' : 'No se ha podido apuntar la invitación. Vuelve a intentarlo.' };
+  }
   const { data, error } = await servicio.auth.admin.inviteUserByEmail(email, {
     data: { nombre: d.nombre.trim(), anadido_por: p.id }, redirectTo: `${await origen()}/panel/confirmar`,
   });

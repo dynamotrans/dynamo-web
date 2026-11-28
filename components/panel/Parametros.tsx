@@ -86,6 +86,7 @@ const SECCIONES: Seccion[] = [
   { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
     { titulo: 'Registro de clientes nuevos', claves: ['registro_clientes_abierto'] },
+    { titulo: 'Tope de invitaciones al día', claves: ['invitaciones_dia_max', 'invitaciones_dia_max_dynamo'] },
     // Autorrelleno de datos fiscales con APIEmpresas.es (usuario, 2026-11-22): construido y apagado.
     { titulo: 'Autorrelleno de datos de empresas (APIEmpresas.es)', claves: ['autorrelleno_empresas_activo', 'autorrelleno_empresas_max_dia', 'autorrelleno_empresas_consultas_restantes', 'autorrelleno_empresas_aviso_restantes'] },
     // Tarifador de la web pública (usuario, 2026-11-19): precio sin cuenta, con límite por IP.

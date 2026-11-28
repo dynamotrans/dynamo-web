@@ -7,6 +7,12 @@ type V = string;   // el valor actual, ya en texto ("5", "Sí", "vacío"…)
 export type Ayuda = { titulo: string; explica: string; ejemplo?: (v: V) => string };
 
 export const AYUDA: Record<string, Ayuda> = {
+  invitaciones_dia_max: { titulo: 'Compañeros que puede añadir un cliente o transportista al día',
+    explica: 'Cuántas invitaciones puede mandar en 24 horas un usuario de cliente o de transportista desde «Mi cuenta → Añadir compañero». Frena a quien intente crear cuentas en masa.',
+    ejemplo: (v) => `Con ${v}: el ${Number(v) + 1}.º compañero del día no se puede añadir hasta mañana.` },
+  invitaciones_dia_max_dynamo: { titulo: 'Altas que puede dar una persona de Dynamo al día',
+    explica: 'Cuántas invitaciones puede mandar en 24 horas cada persona del equipo de Dynamo desde «Usuarios». Si un día hay que dar muchas de alta, súbelo un rato.',
+    ejemplo: (v) => `Con ${v}: a partir de la invitación ${Number(v) + 1} del día, «Usuarios» avisa y no la manda.` },
   // ---- Oferta escalonada por email -------------------------------------------------
   sin_camion_ampliar_dias: { titulo: 'Ampliar la ventana sin camión (días hábiles)',
     explica: 'Si un envío con ventana de carga acaba sin camión y el cliente dejó marcada «ampliar automáticamente», la ventana se amplía sola estos días hábiles, una sola vez. Con fecha fija no se amplía nunca. Con 0 no se amplía.',

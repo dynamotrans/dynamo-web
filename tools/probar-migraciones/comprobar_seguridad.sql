@@ -11917,9 +11917,17 @@ do $$ declare u uuid; begin
   exception when others then
     if sqlerrm not like '%registro_cerrado%' then raise; end if;
   end;
-  -- …pero sí la que pide un usuario activo (Dynamo desde Usuarios, o un compañero de empresa).
+  -- …ni poniendo el id de verdad de un usuario activo sin que haya invitación apuntada (2026-11-28)…
+  begin
+    insert into auth.users (email, raw_user_meta_data) values ('nuevo270c@cliente.prueba', jsonb_build_object('nombre', 'Otro', 'anadido_por', current_setting('prueba.u_admin')));
+    raise exception 'FALLO 270 · con el registro cerrado vale un «añadido por» sin invitación apuntada';
+  exception when others then
+    if sqlerrm not like '%registro_cerrado%' then raise; end if;
+  end;
+  -- …pero sí la que pide un usuario activo (Dynamo desde Usuarios, o un compañero de empresa): su invitación está apuntada.
+  insert into invitaciones (email, anadido_por) values ('invitado270@cliente.prueba', current_setting('prueba.u_admin')::uuid);
   insert into auth.users (email, raw_user_meta_data)
-    values ('invitado270@cliente.prueba', jsonb_build_object('nombre', 'Invitado Doscientos Setenta', 'anadido_por', current_setting('prueba.u_admin')))
+    values ('invitado270@cliente.prueba', jsonb_build_object('nombre', 'Invitado Doscientos Setenta'))
     returning id into u;
   if not exists (select 1 from usuarios where id = u) then raise exception 'FALLO 270 · con el registro cerrado no entra el usuario que da de alta Dynamo'; end if;
   update parametros set valor = 'true'::jsonb where clave = 'registro_clientes_abierto';
@@ -14304,7 +14312,8 @@ do $$ declare t uuid; ok boolean; u uuid; cli uuid := current_setting('prueba.cl
   exception when others then ok := sqlerrm like '%alta_bloqueada%'; end;
   if not ok then raise exception 'FALLO 320 · se crea por su cuenta una cuenta con el email de un transportista'; end if;
   -- Dynamo sí crea la cuenta del transportista (desde «Usuarios»)…
-  insert into auth.users (email, raw_user_meta_data) values ('trafico320@t.prueba', jsonb_build_object('nombre', 'Tráfico 320', 'anadido_por', current_setting('prueba.u_admin')))
+  insert into invitaciones (email, anadido_por) values ('trafico320@t.prueba', current_setting('prueba.u_admin')::uuid);
+  insert into auth.users (email, raw_user_meta_data) values ('trafico320@t.prueba', jsonb_build_object('nombre', 'Tráfico 320'))
     returning id into u;
   update usuarios set rol = 'transportista', transportista_id = t, estado = 'activa' where id = u;
   -- …pero nunca como usuario de un cliente.
@@ -18322,6 +18331,70 @@ do $$ declare id1 uuid; r jsonb; ref text; d documentos_entrada; begin
   perform set_config('request.jwt.claim.sub', '', false);
   update documentos_entrada set estado = 'rechazado' where id = id1;
   raise notice 'OK 397 · verificación de albaranes: Dynamo quita hojas de un PDF antes de aceptarlo (la bandeja apunta al PDF nuevo y guarda qué hojas, y el original no vuelve a entrar); el cliente no puede';
+end $$;
+
+-- 398 · VERIFICACIÓN: SUGERIR EL ENVÍO (usuario, 2026-11-28). Un albarán sin envío propone los
+-- envíos que encajan por matrícula, CP y fecha del nombre; solo para Dynamo.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare id1 uuid; r jsonb; x record; begin
+  -- Un envío vivo (ni borrador ni cancelado) con una matrícula que no lleva ningún otro.
+  select e.id into x from envios e where e.estado not in ('borrador', 'cancelado') and e.fecha_carga_desde is not null order by e.creado_en desc limit 1;
+  if x.id is null then raise exception 'FALLO 398 · no hay ningún envío vivo en las pruebas'; end if;
+  update envios set matricula_camion = '9398 XYZ' where id = x.id;
+  select e.id, e.referencia_gx, coalesce(e.fecha_carga_real, e.fecha_carga_prevista, e.fecha_carga_desde) as fecha_carga_desde, e.matricula_camion into x
+    from envios e where e.id = x.id;
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  id1 := (entrada_documento_iniciar('escaneo sin gx 398.pdf', 'drive', 'drive-398',
+            jsonb_build_object('fecha', x.fecha_carga_desde, 'matriculas', lower(x.matricula_camion) || ' / R0000ZZZ')) ->> 'id')::uuid;
+  perform entrada_documento_confirmar(id1, repeat('f', 64), 3000, 'application/pdf');
+  perform set_config('request.jwt.claim.role', '', true);
+  if (select envio_id from documentos_entrada where id = id1) is not null then raise exception 'FALLO 398 · sin GX se asigna a un envío solo'; end if;
+  -- El cliente no ve sugerencias.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  if jsonb_array_length(verificacion_albaran_sugerencias(id1)) <> 0 then raise exception 'FALLO 398 · el cliente ve sugerencias de envíos'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  r := verificacion_albaran_sugerencias(id1);
+  reset role;
+  if jsonb_array_length(r) = 0 or jsonb_array_length(r) > 5 then raise exception 'FALLO 398 · no sugiere envíos (o más de 5): %', r; end if;
+  if r -> 0 ->> 'id' <> x.id::text or not (r -> 0 ->> 'matriculas_coinciden')::boolean or (r -> 0 ->> 'dias')::int <> 0 then
+    raise exception 'FALLO 398 · el envío de la misma matrícula y fecha no sale el primero: %', r -> 0; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  update documentos_entrada set estado = 'rechazado' where id = id1;
+  raise notice 'OK 398 · verificación de albaranes: sin envío, sugiere los que encajan (la misma matrícula y fecha, el primero); el cliente no ve nada';
+end $$;
+
+-- 399 · INVITACIONES APUNTADAS CON TOPE DIARIO (auditoría, 2026-11-28). Solo apunta quien está
+-- activo y puede invitar; el tope corta; sin sesión, nada; nadie lee la tabla.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r jsonb; n int; v jsonb; begin
+  select valor into v from parametros where clave = 'invitaciones_dia_max';
+  update parametros set valor = '2'::jsonb where clave = 'invitaciones_dia_max';
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  if invitacion_registrar('Uno399@Empresa.Prueba ') ->> 'resultado' <> 'ok' then raise exception 'FALLO 399 · un cliente activo no puede apuntar la invitación de un compañero'; end if;
+  if invitacion_registrar('no es un email') ->> 'resultado' <> 'email_no_valido' then raise exception 'FALLO 399 · apunta un email que no vale'; end if;
+  perform invitacion_registrar('dos399@empresa.prueba');
+  r := invitacion_registrar('tres399@empresa.prueba');
+  if r ->> 'resultado' <> 'tope' then raise exception 'FALLO 399 · el tope diario de invitaciones no corta: %', r; end if;
+  begin
+    perform 1 from invitaciones limit 1;
+    if found then raise exception 'FALLO 399 · un cliente lee las invitaciones'; end if;
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+  if (select count(*) from invitaciones where email in ('uno399@empresa.prueba', 'dos399@empresa.prueba', 'tres399@empresa.prueba')) <> 2 then
+    raise exception 'FALLO 399 · no quedan apuntadas (en minúsculas) solo las dos que caben'; end if;
+  if not invitacion_vigente('UNO399@empresa.prueba') then raise exception 'FALLO 399 · la invitación apuntada no cuenta como vigente'; end if;
+  update parametros set valor = v where clave = 'invitaciones_dia_max';
+  if has_function_privilege('anon', 'public.invitacion_registrar(text)', 'execute') or has_function_privilege('authenticated', 'public.invitacion_vigente(text)', 'execute') then
+    raise exception 'FALLO 399 · las funciones de invitaciones se pueden llamar desde fuera'; end if;
+  perform set_config('request.jwt.claim.sub', '', false);
+  raise notice 'OK 399 · invitaciones: se apuntan antes de mandarlas, con tope diario por persona; el alta con el registro cerrado ya no se fía de «añadido por»';
 end $$;
 
 -- Fin: fuera la ayuda de pruebas del código de carga.

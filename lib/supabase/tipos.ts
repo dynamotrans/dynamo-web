@@ -3498,6 +3498,35 @@ export type Database = {
         Relationships: [
         ]
       }
+      invitaciones: {
+        Row: {
+          id: string
+          email: string
+          anadido_por: string
+          creada_en: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          anadido_por: string
+          creada_en?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          anadido_por?: string
+          creada_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitaciones_anadido_por_fkey"
+            columns: ["anadido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movil_codigos: {
         Row: {
           id: string
@@ -5892,6 +5921,8 @@ export type Database = {
       horario_texto: { Args: { p_sitio: string | null; p_temporada?: string | null }; Returns: string }
       ia_consulta_sql: { Args: { p_sql: string | null }; Returns: Json }
       iniciar_difusion: { Args: { p_envio: string | null; p_precio: number | null; p_banda_pct?: number | null; p_pronto_pago?: boolean | null; p_hora_carga?: string | null; p_forzar?: boolean | null }; Returns: Json }
+      invitacion_registrar: { Args: { p_email: string | null }; Returns: Json }
+      invitacion_vigente: { Args: { p_email: string | null }; Returns: boolean }
       km_cp: { Args: { p_pais_codigo_iso_origen: string | null; p_codigo_postal_origen: string | null; p_pais_codigo_iso_destino: string | null; p_codigo_postal_destino: string | null; p_max_edad?: string | null }; Returns: number }
       km_sitios: { Args: { p_origen: string | null; p_destino: string | null; p_max_edad?: string | null }; Returns: number }
       latido: { Args: Record<PropertyKey, never>; Returns: undefined }
@@ -6121,6 +6152,7 @@ export type Database = {
       verificacion_albaran_quitar_hojas: { Args: { p_id: string | null; p_ruta: string | null; p_sha256: string | null; p_tamano: number | null; p_hojas: number[] | null }; Returns: Json }
       verificacion_albaran_reasignar: { Args: { p_id: string | null; p_referencia: string | null }; Returns: Json }
       verificacion_albaran_rechazar: { Args: { p_id: string | null; p_motivo?: string | null }; Returns: Json }
+      verificacion_albaran_sugerencias: { Args: { p_id: string | null }; Returns: Json }
       verificacion_albaran_tipo: { Args: { p_id: string | null; p_tipo: string | null }; Returns: Json }
       verificacion_albaranes_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       verificacion_por_movimiento: { Args: { p_movimiento: string | null; p_descripcion: string | null; p_importe: number | null; p_fecha: string | null }; Returns: string }
