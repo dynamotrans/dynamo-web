@@ -5776,6 +5776,7 @@ export type Database = {
       envio_anulado_sin_pago: { Args: { p_envio: string | null }; Returns: boolean }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_cambio_abrir: { Args: { p_envio: string | null; p_tipo: string | null; p_antes: Json | null }; Returns: string }
+      envio_carga_cerrada: { Args: { p_envio: string | null; p_dia: string | null }; Returns: boolean }
       envio_columnas_tecnicas: { Args: Record<PropertyKey, never>; Returns: string[] }
       envio_con_transportista: { Args: { p_envio: string | null }; Returns: boolean }
       envio_de_referencia_gx: { Args: { p_ref: string | null }; Returns: string }

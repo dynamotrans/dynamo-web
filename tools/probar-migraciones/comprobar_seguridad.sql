@@ -18256,5 +18256,22 @@ do $$ begin
   raise notice 'OK 395 · notificaciones: apagada o sin email, su email no sale (queda omitido); encendida sale; las de seguridad no se apagan; solo Dynamo las ve y solo el Admin Master las cambia';
 end $$;
 
+-- 396 · SIN CAMIÓN AL CERRAR LA CARGA (usuario, 2026-11-28): el último día de carga termina en
+-- cuanto cierra el primer sitio de carga, no al día siguiente.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid := current_setting('prueba.sc1')::uuid; hoy date := (now() at time zone 'Europe/Madrid')::date; begin
+  if not envio_carga_cerrada(e, hoy - 1) then raise exception 'FALLO 396 · un día de carga pasado no cuenta como terminado'; end if;
+  if envio_carga_cerrada(e, hoy + 1) then raise exception 'FALLO 396 · mañana cuenta como terminado'; end if;
+  if envio_carga_cerrada(e, hoy) is distinct from ((now() at time zone 'Europe/Madrid')::time >= fn_difusion_hora_limite(e, hoy)) then
+    raise exception 'FALLO 396 · hoy no se mira la hora de cierre del sitio de carga'; end if;
+  if has_function_privilege('authenticated', 'envio_carga_cerrada(uuid, date)', 'execute') then raise exception 'FALLO 396 · la función interna se puede llamar desde fuera'; end if;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if (select schedule from cron.job where jobname = 'dynamo-sin-camion') is distinct from '*/15 * * * *' then
+      raise exception 'FALLO 396 · la tarea de los envíos sin camión no pasa cada 15 minutos'; end if;
+  end if;
+  raise notice 'OK 396 · sin camión: el último día de carga termina al cerrar el primer sitio de carga (no al día siguiente); la tarea pasa cada 15 minutos';
+end $$;
+
 -- Fin: fuera la ayuda de pruebas del código de carga.
 drop function if exists public.prueba_codigo_carga(uuid, text);
