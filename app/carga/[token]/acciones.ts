@@ -36,8 +36,32 @@ export async function reservar(token: string): Promise<{ resultado: string; hast
 
 export type Aceptacion = { cif: string; precio: number | null; pronto_pago: boolean; camion: string; remolque: string; conductor: string; telefono: string };
 
-export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number; error?: string }> {
-  comprobarEntrada("app/carga/[token]/acciones#aceptar", [token, a]);
+// CÓDIGO DE 4 CIFRAS (usuario, 2026-11-28): quien se identifica por CIF recibe un código, el
+// mismo por email y por WhatsApp, en los datos de contacto de SU ficha. Sin él no se acepta.
+export type CodigoPedido = { resultado: string; email_oculto?: string | null; telefono_oculto?: string | null; por_email?: boolean; por_whatsapp?: boolean; segundos?: number; intentos_restantes?: number };
+export async function pedirCodigoAceptar(token: string, cif: string): Promise<CodigoPedido> {
+  comprobarEntrada("app/carga/[token]/acciones#pedirCodigoAceptar", [token, cif]);
+  const reserva = (await cookies()).get(cookieReserva(token))?.value;
+  if (!reserva || !/^[0-9a-f-]{36}$/i.test(token)) return { resultado: 'reserva_caducada' };
+  const { supabaseServicio } = await import('@/lib/supabase/servicio');
+  const sv = supabaseServicio();
+  if (!sv) return { resultado: 'error' };
+  const { codigoAceptarNuevo, mandarCodigoAceptar } = await import('@/lib/servidor/codigoAceptar');
+  const { huellaCodigo } = await import('@/lib/servidor/codigoFirma');
+  const codigo = codigoAceptarNuevo();
+  const h = await headers();
+  const ip = (h.get('x-real-ip') ?? h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
+  const { data, error } = await sv.rpc('carga_codigo_preparar', { p_reserva: reserva, p_cif: cif, p_codigo_sha: huellaCodigo(token, codigo), p_ip: ip });
+  if (error) return { resultado: 'error' };
+  const r = data as { resultado: string; envio_id?: string; referencia?: string | null; email?: string | null; telefono?: string | null; email_oculto?: string | null; telefono_oculto?: string | null; segundos?: number; intentos_restantes?: number };
+  if (r.resultado !== 'ok' || !r.envio_id) return { resultado: r.resultado, segundos: r.segundos, intentos_restantes: r.intentos_restantes };
+  const salio = await mandarCodigoAceptar({ reserva, envioId: r.envio_id, referencia: r.referencia ?? null, email: r.email ?? null, telefono: r.telefono ?? null, codigo });
+  return { resultado: 'ok', email_oculto: salio.email ? r.email_oculto : null, telefono_oculto: salio.whatsapp ? r.telefono_oculto : null,
+    por_email: salio.email, por_whatsapp: salio.whatsapp };
+}
+
+export async function aceptar(token: string, a: Aceptacion, codigo?: string | null): Promise<{ resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number; quedan?: number; error?: string }> {
+  comprobarEntrada("app/carga/[token]/acciones#aceptar", [token, a, codigo]);
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
@@ -47,9 +71,11 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
     p_reserva: reserva, p_cif: a.cif, p_precio: a.precio, p_pronto_pago: a.pronto_pago,
     p_matricula_camion: a.camion, p_matricula_remolque: a.remolque, p_conductor_nombre: a.conductor, p_telefono: a.telefono,
     p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
+    // El código de 4 cifras: va su huella (la misma cuenta que al pedirlo), nunca el código.
+    p_codigo_sha: codigo && /^\d{4}$/.test(codigo) ? (await import('@/lib/servidor/codigoFirma')).huellaCodigo(token, codigo) : null,
   });
   if (error) return { resultado: 'error', error: /no se puede negociar/i.test(error.message) ? `${error.message.replace(/^.*?(Ahora no se puede)/, '$1')} Puedes aceptarla al precio ofertado.` : ERROR_CONEXION };
-  const r = data as { resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number };
+  const r = data as { resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number; quedan?: number };
   if (r.resultado === 'aceptada') {
     // El envío ya es suyo: la ORDEN DE CARGA le llega sola por email, igual que en una
     // asignación a mano desde el panel (usuario, 2026-11-15). Nunca rompe la aceptación.

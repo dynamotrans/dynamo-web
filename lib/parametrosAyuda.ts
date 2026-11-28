@@ -8,6 +8,12 @@ export type Ayuda = { titulo: string; explica: string; ejemplo?: (v: V) => strin
 
 export const AYUDA: Record<string, Ayuda> = {
   // ---- Oferta escalonada por email -------------------------------------------------
+  sin_camion_ampliar_dias: { titulo: 'Ampliar la ventana sin camión (días hábiles)',
+    explica: 'Si un envío con ventana de carga acaba sin camión y el cliente dejó marcada «ampliar automáticamente», la ventana se amplía sola estos días hábiles, una sola vez. Con fecha fija no se amplía nunca. Con 0 no se amplía.',
+    ejemplo: (v) => `Con ${v}: una ventana del lunes al miércoles sin camión pasa a acabar el ${Number(v) === 1 ? 'jueves' : Number(v) === 2 ? 'viernes' : `${v} días hábiles después`}.` },
+  sin_camion_respuesta_dias: { titulo: 'Días para elegir otra fecha (hábiles)',
+    explica: 'Cuando un envío pasa su fecha sin camión, el cliente recibe email y aviso para elegir otra fecha o cancelar sin coste. Si no contesta en estos días hábiles, se cancela solo, sin coste, y se le ofrece repetirlo.',
+    ejemplo: (v) => `Con ${v}: si el aviso sale el lunes, el miércoles${Number(v) === 2 ? '' : ' (o el día que toque)'} se cancela sin coste si no ha elegido fecha.` },
   difusion_dias_antes: { titulo: 'Arranque: días antes de la carga',
     explica: 'Los emails empiezan como pronto estos días antes del primer día de carga. Lanzada antes, la difusión espera dormida y arranca sola cuando toca.',
     ejemplo: (v) => `Con ${v}: una carga del día 20 empieza a ofrecerse el día ${Math.max(1, 20 - Number(v))}.` },

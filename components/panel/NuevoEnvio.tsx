@@ -8,7 +8,7 @@ import { avisarNavegando, avisarNavegandoA } from './CargandoNavegacion';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { plazoPagoPrevisto, pagoPrevioPrevisto, crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { plazoPagoPrevisto, pagoPrevioPrevisto, crearEnvio, cambiarRuta, crearEnvioCliente, crearEnvioManual, guardarEdicionEnvio, guardarEdicionEnvioCliente, diasAbiertosDe, comprobarCobertura, sitiosDelCliente, datosEditablesDeSitios, guardarEdicionesSitios, kmRuta, ultimosPreciosRuta, emailDeCliente, registrarConsultaPrecio, factorTarifa, guardarEdicionEnvioManual, guardarAmpliarSinCamion, enviarProformaCalculo, type UltimoPrecioRuta, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { calcularTarifa, aplicarDescuentoTarifa, compraTarifador, tablaInterna } from '@/lib/tarifador';
 import { BloquePrecio, PreciosInternosTabla } from './nuevoEnvio/PrecioSugerido';
 import MedidasCamion, { altoAncho } from './nuevoEnvio/MedidasCamion';
@@ -154,6 +154,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar' | 'corta'>(urgenciaIni);
+  // «Si no hay camión, ampliar automáticamente» (usuario, 2026-11-28): solo con ventana; marcada por defecto.
+  const [ampliarSinCamion, setAmpliarSinCamion] = useState<boolean>(((base?.envio as { ampliar_sin_camion?: boolean } | undefined)?.ampliar_sin_camion) ?? true);
   // La fecha puede venir ya elegida desde fuera (pulsar un día en la vista calendario);
   // si no cumple las reglas (muy pronto, festivo…), el ajuste automático de abajo la corrige.
   const [fecha, setFecha] = useState(editar ? (be?.fecha_carga_desde ?? '') : (fechaInicial ?? ''));
@@ -594,6 +596,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         contacto_nombre: n.contacto, contacto_telefono: n.telefono, horario_tramos: n.horario ? tramosDe(n.horario) : undefined };
     }));
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
+    await guardarAmpliarSinCamion(base.envio.id, urgencia !== 'dia' && ampliarSinCamion).catch(() => {});
     ir(`/panel/envios?ver=${base.envio.id}`);
     refrescar();
   }
@@ -677,6 +680,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rc.ok) { setEnviando(false); setAviso(rc.error); return; }
+      await guardarAmpliarSinCamion(base.envio.id, urgencia !== 'dia' && ampliarSinCamion).catch(() => {});
       ir(`/panel/envios?ver=${base.envio.id}`);
       refrescar();
       return;
@@ -693,6 +697,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
+    await guardarAmpliarSinCamion(base.envio.id, urgencia !== 'dia' && ampliarSinCamion).catch(() => {});
     ir(`/panel/envios?ver=${base.envio.id}`);
     refrescar();
   }
@@ -820,6 +825,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
         discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio,
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
+      if (rs.id && urgencia !== 'dia' && !ampliarSinCamion) await guardarAmpliarSinCamion(rs.id, false).catch(() => {});
       setEnviando(false); setRevisarLegal(false);
       setCreado({ ref: rs.referencia_gx, id: rs.id, modo: 'cliente', pago: rs.pagoPendiente, pagoLimite: rs.pagoLimite, razon: rs.pagoRazon });
       router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
@@ -836,6 +842,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
       discrecion_comercial: discrecion, anotaciones_cliente: notasEnvio, negociacion_pct: neg,
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
+    if (r.id && urgencia !== 'dia' && !ampliarSinCamion) await guardarAmpliarSinCamion(r.id, false).catch(() => {});
     setEnviando(false); setRevisarLegal(false);
     setCreado({ ref: r.referencia_gx, id: r.id, modo: 'admin' });
     router.refresh();   // sin el velo «Actualizando»: taparía la pantalla de éxito (usuario, 2026-11-14)
@@ -1360,6 +1367,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios: sitiosIni, f
                         después se puede cambiar a mano (lista o calendario). */}
                     <SelectorUrgencia valor={urgencia} grupaje={esGrupaje} onCambio={cambiarTipoFecha} />
                   </div>
+                  {urgencia !== 'dia' && !manual && (
+                    <label className="ptar-check" id="ampliar-sin-camion" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', margin: '0.2rem 0 0.4rem', fontSize: 'var(--fs-s)', lineHeight: 1.4 }}>
+                      <input type="checkbox" checked={ampliarSinCamion} onChange={(ev) => setAmpliarSinCamion(ev.target.checked)} style={{ marginTop: '0.15rem' }} />
+                      <span>Si no hay camión en estas fechas, <strong>ampliar automáticamente</strong> hasta 2 días hábiles más.</span>
+                    </label>
+                  )}
                   <div className="ptar-field-full">
                     {!modoCal ? (
                       // Lista de fechas; la última opción abre el calendario.

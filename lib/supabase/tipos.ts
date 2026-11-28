@@ -2315,6 +2315,12 @@ export type Database = {
           modificado_en: string | null
           modificado_por: string | null
           pronto_pago: boolean
+          codigo_sha: string | null
+          codigo_transportista_id: string | null
+          codigo_caduca_en: string | null
+          codigo_intentos: number
+          codigo_pedidos: number
+          codigo_pedido_en: string | null
         }
         Insert: {
           id?: string
@@ -2336,6 +2342,12 @@ export type Database = {
           modificado_en?: string | null
           modificado_por?: string | null
           pronto_pago?: boolean
+          codigo_sha?: string | null
+          codigo_transportista_id?: string | null
+          codigo_caduca_en?: string | null
+          codigo_intentos?: number
+          codigo_pedidos?: number
+          codigo_pedido_en?: string | null
         }
         Update: {
           id?: string
@@ -2357,6 +2369,12 @@ export type Database = {
           modificado_en?: string | null
           modificado_por?: string | null
           pronto_pago?: boolean
+          codigo_sha?: string | null
+          codigo_transportista_id?: string | null
+          codigo_caduca_en?: string | null
+          codigo_intentos?: number
+          codigo_pedidos?: number
+          codigo_pedido_en?: string | null
         }
         Relationships: [
           {
@@ -2518,6 +2536,9 @@ export type Database = {
           stripe_enlace_caduca_en: string | null
           stripe_sesiones: string[]
           pago_token: string
+          ampliar_sin_camion: boolean
+          sin_camion_ampliado_en: string | null
+          sin_camion_desde: string | null
         }
         Insert: {
           id?: string
@@ -2647,6 +2668,9 @@ export type Database = {
           stripe_enlace_caduca_en?: string | null
           stripe_sesiones?: string[]
           pago_token?: string
+          ampliar_sin_camion?: boolean
+          sin_camion_ampliado_en?: string | null
+          sin_camion_desde?: string | null
         }
         Update: {
           id?: string
@@ -2776,6 +2800,9 @@ export type Database = {
           stripe_enlace_caduca_en?: string | null
           stripe_sesiones?: string[]
           pago_token?: string
+          ampliar_sin_camion?: boolean
+          sin_camion_ampliado_en?: string | null
+          sin_camion_desde?: string | null
         }
         Relationships: [
           {
@@ -3541,6 +3568,61 @@ export type Database = {
           campo?: string
           registro_id?: string
           texto?: string
+          creado_en?: string
+          creado_por?: string | null
+          modificado_en?: string | null
+          modificado_por?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      notificaciones: {
+        Row: {
+          id: string
+          tipo: string
+          grupo: string
+          orden: number
+          titulo: string
+          descripcion: string | null
+          bloqueada: boolean
+          activa: boolean
+          email: boolean
+          whatsapp: boolean
+          whatsapp_plantilla: string | null
+          creado_en: string
+          creado_por: string | null
+          modificado_en: string | null
+          modificado_por: string | null
+        }
+        Insert: {
+          id?: string
+          tipo: string
+          grupo: string
+          orden?: number
+          titulo: string
+          descripcion?: string | null
+          bloqueada?: boolean
+          activa?: boolean
+          email?: boolean
+          whatsapp?: boolean
+          whatsapp_plantilla?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          modificado_en?: string | null
+          modificado_por?: string | null
+        }
+        Update: {
+          id?: string
+          tipo?: string
+          grupo?: string
+          orden?: number
+          titulo?: string
+          descripcion?: string | null
+          bloqueada?: boolean
+          activa?: boolean
+          email?: boolean
+          whatsapp?: boolean
+          whatsapp_plantilla?: string | null
           creado_en?: string
           creado_por?: string | null
           modificado_en?: string | null
@@ -5509,7 +5591,7 @@ export type Database = {
       }
     }
     Functions: {
-      aceptar_oferta_publica: { Args: { p_reserva: string | null; p_cif: string | null; p_precio?: number | null; p_pronto_pago?: boolean | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_telefono?: string | null; p_ip?: string | null }; Returns: Json }
+      aceptar_oferta_publica: { Args: { p_reserva: string | null; p_cif: string | null; p_precio?: number | null; p_pronto_pago?: boolean | null; p_matricula_camion?: string | null; p_matricula_remolque?: string | null; p_conductor_nombre?: string | null; p_telefono?: string | null; p_ip?: string | null; p_codigo_sha?: string | null }; Returns: Json }
       aceptar_reserva: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario?: string | null; p_precio?: number | null }; Returns: Json }
       activar_rastro: { Args: { p_tabla: string | null }; Returns: undefined }
       almacenes_dynamo_tarifa: { Args: Record<PropertyKey, never>; Returns: { id: string; nombre: string; direccion: string; codigo_postal: string; poblacion: string; provincia: string; disponible: boolean; semana: number; reparto: number }[] }
@@ -5572,6 +5654,7 @@ export type Database = {
       cancelar_mi_envio: { Args: { p_envio: string | null; p_motivo?: string | null }; Returns: Json }
       carga_aceptada_publica: { Args: { p_reserva: string | null }; Returns: Json }
       carga_aceptada_publica_completa: { Args: { p_reserva: string | null }; Returns: Json }
+      carga_codigo_preparar: { Args: { p_reserva: string | null; p_cif: string | null; p_codigo_sha: string | null; p_ip?: string | null }; Returns: Json }
       carga_por_codigo: { Args: { p_codigo: string | null; p_ip?: string | null }; Returns: Json }
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
       cif_base: { Args: { p: string | null }; Returns: string }
@@ -5689,6 +5772,7 @@ export type Database = {
       entregas_estimadas: { Args: { p_ids: string[] | null }; Returns: { envio_id: string; desde: string; hasta: string; fijada: boolean }[] }
       enviar_emails_pendientes: { Args: Record<PropertyKey, never>; Returns: number }
       enviar_sugerencia: { Args: { p_texto: string | null; p_pagina?: string | null; p_navegador?: string | null }; Returns: string }
+      envio_ampliar_sin_camion: { Args: { p_envio: string | null; p_si: boolean | null }; Returns: undefined }
       envio_anulado_sin_pago: { Args: { p_envio: string | null }; Returns: boolean }
       envio_asignandose: { Args: { p_envio: string | null }; Returns: boolean }
       envio_cambio_abrir: { Args: { p_envio: string | null; p_tipo: string | null; p_antes: Json | null }; Returns: string }
@@ -5832,7 +5916,7 @@ export type Database = {
       mi_autosuspension: { Args: { p_cliente?: string | null }; Returns: Json }
       mi_avisos_whatsapp: { Args: { p_activo: boolean | null }; Returns: Json }
       mi_avisos_whatsapp_no_preguntar: { Args: Record<PropertyKey, never>; Returns: undefined }
-      mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean; precio_a_mano: boolean }[] }
+      mi_cambio_envio: { Args: { p_envio: string | null }; Returns: { cambio: Json; estado: string; en: string; nota: string; modificable: boolean; con_camion: boolean; precio_a_mano: boolean; sin_camion_desde: string; sin_camion_cancela: string }[] }
       mi_cobertura_credito: { Args: Record<PropertyKey, never>; Returns: string }
       mi_contraoferta: { Args: { p_envio: string | null }; Returns: { permitida: boolean; propuesta: number; propuesta_en: string; precio_inicial: number }[] }
       mi_empresa: { Args: Record<PropertyKey, never>; Returns: { id: string; codigo: string; razon_social: string; cif: string; direccion: string; poblacion: string; codigo_postal: string; provincia: string; pais_codigo_iso: string; plazo_pago_dias: number; discrecion_comercial: boolean; tipo_camion_defecto: Database["public"]["Enums"]["tipo_camion"]; forma_carga_defecto: Database["public"]["Enums"]["forma_carga"]; requiere_plataforma_elevadora_defecto: boolean; estado: Database["public"]["Enums"]["estado_cuenta"]; iva_pct: number; nima_por_defecto: boolean }[] }
@@ -5974,6 +6058,7 @@ export type Database = {
       responder_cambio_transportista: { Args: { p_cambio: string | null; p_acepta: boolean | null; p_motivo?: string | null; p_en_nombre?: boolean | null }; Returns: Json }
       restriccion_punto: { Args: { p_pais: string | null; p_cp: string | null; p_tipo_parada?: string | null; p_tipo_carga?: Database["public"]["Enums"]["tipo_carga"] | null; p_fecha?: string | null }; Returns: { nombre: string; efecto: string; mensaje: string }[] }
       restricciones_ruta: { Args: { p_envio: string | null }; Returns: { orden: number; punto: string; tipo: string; nombre: string; efecto: string; mensaje: string }[] }
+      revisar_envios_sin_camion: { Args: Record<PropertyKey, never>; Returns: number }
       revisar_precio_envio: { Args: { p_envio: string | null; p_nuevo: number | null }; Returns: Json }
       revisar_precios_programados: { Args: Record<PropertyKey, never>; Returns: number }
       revisar_sugerencia: { Args: { p_sugerencia: string | null; p_estado: string | null; p_nota?: string | null }; Returns: undefined }

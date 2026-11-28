@@ -95,7 +95,28 @@ test.describe.serial('flujos clave', () => {
     // Al aceptar declara que las direcciones son accesibles para su camión (2026-11-19).
     await expect(t.locator('#aceptar-accesibilidad')).toContainText('Accesibilidad de los puntos de carga y descarga');
     await expect(t.locator('#aceptar-accesibilidad')).toContainText('almacenamiento, reexpedición o devolución');
+    // Su ficha tiene email de tráfico (para mandarle el código).
+    const sv = bd();
+    const { data: tr } = await sv.from('transportistas').select('id').eq('cif', CIF_TRANSPORTISTA).single();
+    const { count: conEmail } = await sv.from('contactos').select('id', { count: 'exact', head: true }).eq('transportista_id', tr!.id).not('email', 'is', null);
+    if (!conEmail) await sv.from('contactos').insert({ transportista_id: tr!.id, nombre: 'Tráfico e2e', funcion: 'trafico', email: 'trafico-e2e@transportes.invalid' });
     await t.getByRole('button', { name: 'ACEPTAR envío' }).click();
+    // CÓDIGO DE 4 CIFRAS (usuario, 2026-11-28): identificándose por CIF, primero el código que le
+    // llega por email y WhatsApp. En las pruebas no sale nada: se pone uno conocido en su reserva.
+    await expect(t.locator('#codigo-aceptar')).toBeVisible();
+    const tokenCarga = new URL(enlace).pathname.split('/').filter(Boolean).pop()!;
+    const { createHash } = await import('node:crypto');
+    const { error: errCod } = await sv.from('envio_reservas').update({ codigo_sha: createHash('sha256').update(`${tokenCarga}:1234`).digest('hex') })
+      .eq('envio_id', id).eq('estado', 'viva').not('codigo_transportista_id', 'is', null);
+    expect(errCod).toBeNull();
+    // Sin el código, no acepta.
+    await t.getByRole('button', { name: 'Confirmar código y aceptar' }).click();
+    await expect(t.getByText(/Escribe las 4 cifras/)).toBeVisible();
+    await t.fill('#f-codigo', '9999');
+    await t.getByRole('button', { name: 'Confirmar código y aceptar' }).click();
+    await expect(t.getByText(/El código no es correcto/)).toBeVisible();
+    await t.fill('#f-codigo', '1234');
+    await t.getByRole('button', { name: 'Confirmar código y aceptar' }).click();
     await expect(t.getByText('¡Envío aceptado!')).toBeVisible();
     await expect.poll(async () => (await ultimoEnvio()).transportista_id).not.toBeNull();
     // Con ventana, el día elegido al aceptar queda guardado en el envío.

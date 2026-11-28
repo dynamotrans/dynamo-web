@@ -704,3 +704,13 @@ export async function guardarEdicionesSitios(cambios: EdicionSitio[]): Promise<{
   }
   return { ok: true };
 }
+
+// Casilla «Si no hay camión, ampliar automáticamente» (usuario, 2026-11-28). La base de datos
+// comprueba que el envío es de quien llama (o que es Dynamo).
+export async function guardarAmpliarSinCamion(envio: string, si: boolean): Promise<void> {
+  comprobarEntrada("app/panel/(app)/nuevo-envio/acciones#guardarAmpliarSinCamion", [envio, si]);
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return;
+  const { error } = await s.supabase.rpc('envio_ampliar_sin_camion', { p_envio: envio, p_si: si });
+  if (error) console.error('[envío] casilla ampliar sin camión', error.message);
+}

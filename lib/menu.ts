@@ -26,6 +26,7 @@ export const ICONOS: Record<string, string> = {
   salir: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
   sugerencias: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/>',
   mapa: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
+  notificaciones: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
   soporte: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
 };
 
@@ -103,6 +104,8 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
       ...(ALMACENAMIENTOS ? [{ slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' } as Enlace] : []),
       { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
       { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
+      // Qué notificaciones salen y por dónde (email / WhatsApp) (usuario, 2026-11-28).
+      { slug: 'notificaciones', titulo: 'Notificaciones', icono: 'notificaciones' },
       { slug: 'festivos', titulo: 'Festivos', icono: 'ajustes' },
       // Lo que mandan los usuarios desde Soporte (usuario, 2026-11-21).
       { slug: 'sugerencias', titulo: 'Sugerencias', icono: 'sugerencias' },

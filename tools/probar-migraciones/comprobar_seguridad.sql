@@ -115,6 +115,19 @@ reset role;
 -- intentando romperla como lo haría alguien de fuera.
 
 -- ---- 8. Las funciones de la página pública no se pueden llamar con la clave pública --
+-- AYUDA DE PRUEBAS (2026-11-28): aceptar una carga por CIF exige el código de 4 cifras que el
+-- servidor manda al transportista. En estas pruebas no hay servidor: esta función pone en la
+-- reserva un código conocido (su huella es 'a' repetida) para ese CIF. Se borra al final.
+create or replace function public.prueba_codigo_carga(p_reserva uuid, p_cif text) returns text
+language sql security definer set search_path = public as $f$
+  update envio_reservas set codigo_sha = repeat('a', 64), codigo_caduca_en = now() + interval '15 minutes', codigo_intentos = 0,
+         codigo_transportista_id = (select id from transportistas where normalizar_id_fiscal(cif) = normalizar_id_fiscal(p_cif) limit 1)
+   where id = p_reserva
+  returning codigo_sha;
+$f$;
+comment on function public.prueba_codigo_carga(uuid, text) is '[Pruebas] Solo en la base de pruebas: pone un código conocido en una reserva para poder aceptar la carga por CIF. No existe en Supabase.';
+grant execute on function public.prueba_codigo_carga(uuid, text) to anon, authenticated;
+
 do $$ declare fallos text := ''; f text; r text; begin
   foreach f in array array[
     -- reservar_envio_publico y liberar_reserva_publica salen de esta lista el 2026-11-03: la página
@@ -1726,7 +1739,8 @@ do $$ declare v jsonb; r jsonb; a jsonb; c jsonb; tok uuid := current_setting('p
   if aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'X00000000') ->> 'resultado' <> 'transportista_no_encontrado' then
     raise exception 'FALLO 59 · se ha aceptado con un CIF que no existe';
   end if;
-  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'b-59000059', null, true, '1234 abc', 'r-5678-bcd', 'Pepe', '+34 600 111 222');
+  perform prueba_codigo_carga((r ->> 'reserva_id')::uuid, 'b-59000059');
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'b-59000059', null, true, '1234 abc', 'r-5678-bcd', 'Pepe', '+34 600 111 222', p_codigo_sha => repeat('a', 64));
   if a ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 59 · no acepta: %', a; end if;
   c := carga_aceptada_publica((r ->> 'reserva_id')::uuid);
   if c ->> 'resultado' <> 'aceptada' or c::text !~ 'C/ Escondida 1' or not (c ->> 'pronto_pago')::boolean
@@ -5029,7 +5043,8 @@ end $$;
 set role anon;
 do $$ declare r jsonb; a jsonb; begin
   r := reservar_envio_publico(current_setting('prueba.tok139')::uuid, '10.1.3.9');
-  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B59000059');
+  perform prueba_codigo_carga((r ->> 'reserva_id')::uuid, 'B59000059');
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B59000059', p_codigo_sha => repeat('a', 64));
   if coalesce(a ->> 'resultado', '') not in ('aceptada', 'pendiente_revision') then raise exception 'FALLO 139 · aceptar desde el tablón (sin oferta) falla: %', a; end if;
 end $$;
 reset role;
@@ -6851,7 +6866,8 @@ do $$ declare r jsonb; a jsonb; c jsonb; p jsonb; tok uuid := current_setting('p
   r := reservar_envio_publico(tok, null, 'prueba');
   if r ->> 'resultado' <> 'reservada' then raise exception 'FALLO 181 · no reserva: %', r; end if;
   -- Acepta CON matrículas: sin ellas las direcciones y el sitio van ocultos (prueba 289).
-  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B18118118', p_matricula_camion => '1818BCD', p_matricula_remolque => 'R1818BCD');
+  perform prueba_codigo_carga((r ->> 'reserva_id')::uuid, 'B18118118');
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B18118118', p_matricula_camion => '1818BCD', p_matricula_remolque => 'R1818BCD', p_codigo_sha => repeat('a', 64));
   if a ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 181 · no acepta: %', a; end if;
   c := carga_aceptada_publica((r ->> 'reserva_id')::uuid);
   select x into p from jsonb_array_elements(c -> 'paradas') x where x ->> 'tipo' = 'carga';
@@ -18065,3 +18081,180 @@ do $$ begin
     raise exception 'FALLO 392 · el servidor no puede llamar a carga_por_codigo'; end if;
   raise notice 'OK 392 · el código de 6 cifras de las cargas solo se consulta desde el servidor (con captcha e IP real)';
 end $$;
+
+-- 393 · CÓDIGO DE 4 CIFRAS PARA ACEPTAR UNA CARGA POR CIF (usuario, 2026-11-28). Identificarse
+-- con el CIF (que es público) ya no basta: hace falta el código que se manda al email y al
+-- WhatsApp de la ficha del transportista. Solo el servidor lo pide; 15 minutos y 5 intentos.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; o uuid; tok uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 22, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A393', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B393', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  o := ofertar_envio(e, null, 'bolsa_wtransnet', 800, 0::smallint, false);
+  select token into tok from envio_ofertas where id = o;
+  perform set_config('prueba.tok393', tok::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into contactos (transportista_id, nombre, funcion, email, telefono)
+select id, 'Tráfico 393', 'trafico', 'trafico393@t.prueba', '+34600393393' from transportistas where cif = 'B59000059';
+set role anon;
+do $$ declare r jsonb; a jsonb; res uuid; begin
+  r := reservar_envio_publico(current_setting('prueba.tok393')::uuid, null, 'prueba393');
+  res := (r ->> 'reserva_id')::uuid;
+  if res is null then raise exception 'FALLO 393 · preparación: no se reserva la carga: %', r; end if;
+  perform set_config('prueba.res393', res::text, false);
+  a := aceptar_oferta_publica(res, 'B59000059');
+  if a ->> 'resultado' <> 'falta_codigo' then raise exception 'FALLO 393 · se acepta la carga solo con el CIF: %', a; end if;
+  begin
+    perform carga_codigo_preparar(res, 'B59000059', repeat('b', 64));
+    raise exception 'FALLO 393 · cualquiera con la clave pública pide (y fija) el código';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+set role service_role;
+do $$ declare p jsonb; res uuid := current_setting('prueba.res393')::uuid; begin
+  p := carga_codigo_preparar(res, 'B59000059', repeat('b', 64));
+  if p ->> 'resultado' <> 'ok' or p ->> 'email' is null or p ->> 'telefono' is null or p ->> 'email_oculto' = p ->> 'email' then
+    raise exception 'FALLO 393 · no prepara bien el código (email y WhatsApp de la ficha, ocultos para la pantalla): %', p; end if;
+  if carga_codigo_preparar(res, 'B59000059', repeat('c', 64)) ->> 'resultado' <> 'espera' then
+    raise exception 'FALLO 393 · deja pedir otro código al momento'; end if;
+  if (select codigo_sha from envio_reservas where id = res) <> repeat('b', 64) then raise exception 'FALLO 393 · el segundo código ha pisado al primero'; end if;
+end $$;
+reset role;
+set role anon;
+do $$ declare a jsonb; res uuid := current_setting('prueba.res393')::uuid; begin
+  a := aceptar_oferta_publica(res, 'B59000059', p_codigo_sha => repeat('0', 64));
+  if a ->> 'resultado' <> 'codigo_mal' or (a ->> 'quedan')::int <> 4 then raise exception 'FALLO 393 · un código mal no cuenta el intento: %', a; end if;
+  a := aceptar_oferta_publica(res, 'B59000059', p_codigo_sha => repeat('b', 64));
+  if coalesce(a ->> 'resultado', '') not in ('aceptada', 'pendiente_revision') then raise exception 'FALLO 393 · con el código bueno no acepta: %', a; end if;
+end $$;
+reset role;
+do $$ begin
+  if (select codigo_sha from envio_reservas where id = current_setting('prueba.res393')::uuid) is not null then
+    raise exception 'FALLO 393 · el código sigue valiendo después de aceptar'; end if;
+  raise notice 'OK 393 · aceptar por CIF exige el código de 4 cifras (email + WhatsApp de la ficha): solo lo pide el servidor, uno por minuto, 5 intentos y de un solo uso';
+end $$;
+
+-- 394 · ENVÍO QUE PASA SU FECHA SIN CAMIÓN (usuario, 2026-11-28). Con ventana y la casilla, se
+-- amplía una vez; si no, «Sin camión · elige nueva fecha» con email y avisos; sin respuesta, se
+-- cancela solo y sin coste (con «Repetir envío»); cancelar estando sin camión no cuenta.
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare i int; e uuid; begin
+  for i in 1..3 loop
+    select (crear_envio(
+      jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 30, 'importe_cliente', 900, 'importe_transportista', 700),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A394', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                        jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B394', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+    perform set_config('prueba.sc' || i, e::text, false);
+  end loop;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare hoy date := (now() at time zone 'Europe/Madrid')::date; a uuid := current_setting('prueba.sc1')::uuid;
+  b uuid := current_setting('prueba.sc2')::uuid; c uuid := current_setting('prueba.sc3')::uuid; v record; n int; begin
+  if has_function_privilege('anon', 'revisar_envios_sin_camion()', 'execute') or has_function_privilege('authenticated', 'revisar_envios_sin_camion()', 'execute') then
+    raise exception 'FALLO 394 · la tarea de los envíos sin camión se puede llamar desde fuera'; end if;
+  -- A: ventana de 3 días que ya pasó · B y C: fecha fija de ayer. Todos programados, sin camión.
+  alter table envios disable trigger user;
+  update envios set estado = 'programado', transportista_id = null, estado_pago_previo = 'no_requerido', ampliar_sin_camion = true,
+         fecha_carga_desde = sumar_dias_habiles(hoy - 10, 0), fecha_carga_hasta = hoy - 1 where id = a;
+  update envios set estado = 'programado', transportista_id = null, estado_pago_previo = 'no_requerido',
+         fecha_carga_desde = hoy - 1, fecha_carga_hasta = hoy - 1 where id in (b, c);
+  alter table envios enable trigger user;
+  perform revisar_envios_sin_camion();
+  select * into v from envios where id = a;
+  if v.sin_camion_ampliado_en is null or v.fecha_carga_hasta < hoy or v.sin_camion_desde is not null then
+    raise exception 'FALLO 394 · la ventana sin camión no se amplía sola: hasta % ampliado % sin_camion %', v.fecha_carga_hasta, v.sin_camion_ampliado_en, v.sin_camion_desde; end if;
+  select * into v from envios where id = b;
+  if v.sin_camion_desde is null or v.estado <> 'programado' then raise exception 'FALLO 394 · la fecha fija sin camión no pasa a «elige nueva fecha»'; end if;
+  if not exists (select 1 from avisos where envio_id = b and para = 'cliente' and titulo like 'Sin camión%') then raise exception 'FALLO 394 · el cliente no recibe el aviso de sin camión'; end if;
+  if not exists (select 1 from avisos where envio_id = b and para = 'dynamo' and titulo like 'Sin camión%') then raise exception 'FALLO 394 · Dynamo no recibe el aviso de sin camión'; end if;
+  if exists (select 1 from emails_enviados where envio_id = b and tipo = 'sin_camion' and position('/panel/nuevo-envio?editar=' || b in cuerpo_html) = 0) then
+    raise exception 'FALLO 394 · el email de sin camión no lleva el botón para elegir otra fecha'; end if;
+  -- Una segunda pasada no repite nada.
+  select count(*) into n from avisos where envio_id = b;
+  perform revisar_envios_sin_camion();
+  if (select count(*) from avisos where envio_id = b) <> n then raise exception 'FALLO 394 · la tarea repite los avisos de sin camión'; end if;
+  -- B: el cliente no contesta → se cancela solo, sin coste.
+  update envios set sin_camion_desde = now() - interval '10 days' where id = b;
+  perform revisar_envios_sin_camion();
+  select * into v from envios where id = b;
+  if v.estado <> 'cancelado' or not v.cancelacion_sin_coste then raise exception 'FALLO 394 · sin respuesta no se cancela sin coste: % %', v.estado, v.cancelacion_sin_coste; end if;
+  if exists (select 1 from emails_enviados where envio_id = b and tipo = 'envio_cancelado' and estado = 'pendiente' and position('nuevo-envio?repetir=' || b in cuerpo_html) = 0) then
+    raise exception 'FALLO 394 · el email de cancelación sin camión no lleva «Repetir envío»'; end if;
+  if coalesce(current_setting('dynamo.revision_precio', true), '') = 'on' then raise exception 'FALLO 394 · queda abierta la puerta de las columnas de revisión'; end if;
+  -- C: el cliente elige otra fecha → deja de estar sin camión.
+  update envios set fecha_carga_desde = sumar_dias_habiles(hoy, 5), fecha_carga_hasta = sumar_dias_habiles(hoy, 5) where id = c;
+  if (select sin_camion_desde from envios where id = c) is not null then raise exception 'FALLO 394 · al cambiar la fecha sigue «sin camión»'; end if;
+  -- …y si vuelve a quedarse sin camión y lo cancela él, tampoco cuenta.
+  update envios set sin_camion_desde = now() where id = c;
+  update envios set estado = 'cancelado' where id = c;
+  if not (select cancelacion_sin_coste from envios where id = c) then raise exception 'FALLO 394 · cancelar un envío sin camión cuenta como cancelación normal'; end if;
+  raise notice 'OK 394 · envío sin camión: con ventana se amplía una vez; si no, «elige nueva fecha» con email y avisos; sin respuesta se cancela solo sin coste con «Repetir envío»; cambiar la fecha lo quita y cancelarlo no cuenta';
+end $$;
+
+-- 395 · NOTIFICACIONES (usuario, 2026-11-28): apagada (o sin email), su email no sale; las de
+-- seguridad no se apagan; solo Dynamo las ve y solo el Admin Master las cambia.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare cli uuid; r record; v jsonb; begin
+  if (select count(*) from notificaciones) < 40 then raise exception 'FALLO 395 · faltan notificaciones en la lista'; end if;
+  if exists (select 1 from notificaciones where not activa or not email or not whatsapp) then raise exception 'FALLO 395 · alguna nace apagada'; end if;
+  select cliente_id into cli from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  select valor into v from parametros where clave = 'credito_emails_activo';
+  update parametros set valor = 'true'::jsonb where clave = 'credito_emails_activo';
+  -- Sin email: el email se queda «omitido».
+  update notificaciones set email = false where tipo = 'credito_aviso';
+  perform fn_email_credito(cli, 'prueba395', 'credito_aviso', 'Prueba 395', '<p>x</p>');
+  select * into r from emails_enviados where clave = 'prueba395';
+  if r.id is null or r.estado <> 'omitido' or r.error not like '%Notificaciones%' then raise exception 'FALLO 395 · con el email apagado el email sale igual: %', to_jsonb(r); end if;
+  delete from emails_enviados where clave = 'prueba395';
+  -- Apagada del todo: igual.
+  update notificaciones set email = true, activa = false where tipo = 'credito_aviso';
+  perform fn_email_credito(cli, 'prueba395b', 'credito_aviso', 'Prueba 395', '<p>x</p>');
+  if (select estado from emails_enviados where clave = 'prueba395b') <> 'omitido' then raise exception 'FALLO 395 · con la notificación desactivada el email sale igual'; end if;
+  delete from emails_enviados where clave = 'prueba395b';
+  -- Encendida: sale.
+  update notificaciones set activa = true where tipo = 'credito_aviso';
+  perform fn_email_credito(cli, 'prueba395c', 'credito_aviso', 'Prueba 395', '<p>x</p>');
+  if (select estado from emails_enviados where clave = 'prueba395c') <> 'pendiente' then raise exception 'FALLO 395 · encendida, el email no sale'; end if;
+  delete from emails_enviados where clave = 'prueba395c';
+  if v is not null then update parametros set valor = v where clave = 'credito_emails_activo'; end if;
+  -- Las de seguridad no se apagan.
+  begin
+    update notificaciones set activa = false where tipo = 'codigo_firma';
+    raise exception 'FALLO 395 · se apaga un código de seguridad';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+set role anon;
+do $$ begin
+  begin
+    if exists (select 1 from notificaciones) then raise exception 'FALLO 395 · cualquiera lee las notificaciones'; end if;
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  update notificaciones set activa = false where tipo = 'envio_creado';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALLO 395 · un cliente apaga notificaciones'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if not (select activa from notificaciones where tipo = 'envio_creado') then raise exception 'FALLO 395 · un cliente ha apagado una notificación'; end if;
+  raise notice 'OK 395 · notificaciones: apagada o sin email, su email no sale (queda omitido); encendida sale; las de seguridad no se apagan; solo Dynamo las ve y solo el Admin Master las cambia';
+end $$;
+
+-- Fin: fuera la ayuda de pruebas del código de carga.
+drop function if exists public.prueba_codigo_carga(uuid, text);

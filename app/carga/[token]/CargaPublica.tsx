@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
-import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, sugerirTransportistas, flotaPublica, type AltaTransportista, type SugerenciaT, type FlotaPublica } from './acciones';
+import { reservar, aceptar, pedirCodigoAceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, sugerirTransportistas, flotaPublica, type AltaTransportista, type SugerenciaT, type FlotaPublica } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
 import { euros, fecha, ventana, pesoTn, fechaHora, metros, tipoCargaTxt, alturaMaxTxt, diasEntre } from '@/lib/formato';
 
@@ -298,6 +298,9 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   const diasV = diasEntre(o.fecha_carga_desde ?? null, o.fecha_carga_hasta ?? null);
   const [diaAc, setDiaAc] = useState('');
   const [pronto, setPronto] = useState(false);
+  // Código de 4 cifras al identificarse por CIF (usuario, 2026-11-28): el mismo por email y WhatsApp.
+  const [paso, setPaso] = useState<{ email: string | null; whatsapp: string | null; cif: string } | null>(null);
+  const [codigo, setCodigo] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   const [alta, setAlta] = useState(false);
@@ -361,12 +364,38 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
   if (alta) return <AltaNueva token={token} cif={/\d{4,}/.test(cif) ? cif : ''} precio={contra && precio !== base ? precio : null} pronto={pronto} texto={texto} urgente={quedan < 60000} onVolver={() => setAlta(false)} />;
 
   const cifReal = (elegido?.cif ?? cif).trim();
+  async function pedirCodigo() {
+    setError(null);
+    if (!cifReal) { setError('Escribe tu CIF / NIF para identificarte.'); avisaFaltas(['f-cif']); return; }
+    setTrabajando(true);
+    const r = await pedirCodigoAceptar(token, cifReal).catch(() => ({ resultado: 'error' } as Awaited<ReturnType<typeof pedirCodigoAceptar>>));
+    setTrabajando(false);
+    if (r.resultado === 'ok') {
+      setPaso({ email: r.email_oculto ?? null, whatsapp: r.telefono_oculto ?? null, cif: cifReal }); setCodigo('');
+      if (!r.por_email && !r.por_whatsapp) setError(`No hemos podido mandarte el código ahora. Pulsa «Mandar otro código» en un minuto o llámanos al ${CONTACTO.telefono}.`);
+      return;
+    }
+    const msg: Record<string, string> = {
+      transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo o, si es tu primer envío con nosotros, date de alta aquí abajo.${r.intentos_restantes != null ? ` Te quedan ${r.intentos_restantes} intento${r.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
+      demasiados_intentos: `Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al ${CONTACTO.telefono} y te la asignamos.`,
+      espera: `Acabamos de mandarte un código: espera ${r.segundos ?? 60} segundos antes de pedir otro.`,
+      demasiados: `Se han pedido demasiados códigos con esta reserva. Llámanos al ${CONTACTO.telefono}.`,
+      sin_contacto: `Tu ficha no tiene email ni móvil para mandarte el código. Llámanos al ${CONTACTO.telefono} y te asignamos la carga.`,
+      reserva_caducada: 'Se ha agotado el tiempo de reserva.',
+    };
+    setError(msg[r.resultado] ?? 'No se ha podido pedir el código. Vuelve a intentarlo.');
+    if (r.resultado === 'transportista_no_encontrado') setNoEncontrado(true);
+    if (r.resultado === 'reserva_caducada' || r.resultado === 'demasiados_intentos') refrescar();
+  }
   async function aceptarla() {
     setError(null);
     if (!o.para_transportista && !cifReal) { setError('Escribe tu CIF / NIF para identificarte.'); avisaFaltas(['f-cif']); return; }
     if (diasV.length > 1 && !diaAc) { setError('Elige el día en que cargas dentro de la ventana.'); avisaFaltas(['f-dia']); return; }
+    // Identificándose por CIF, primero el código (si cambia el CIF, se pide otro).
+    if (!o.para_transportista && (!paso || paso.cif !== cifReal)) { await pedirCodigo(); return; }
+    if (!o.para_transportista && !/^\d{4}$/.test(codigo)) { setError('Escribe las 4 cifras del código que te hemos mandado.'); avisaFaltas(['f-codigo']); return; }
     setTrabajando(true);
-    const x = await aceptar(token, { cif: cifReal, precio: contra && precio !== base ? precio : null, pronto_pago: pronto, ...veh });
+    const x = await aceptar(token, { cif: cifReal, precio: contra && precio !== base ? precio : null, pronto_pago: pronto, ...veh }, o.para_transportista ? null : codigo);
     if (x.resultado === 'aceptada' && diasV.length > 1 && diaAc) await completar(token, { ...veh, dia: diaAc });
     setTrabajando(false);
     if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { refrescar(); return; }
@@ -374,12 +403,17 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
       transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo o, si es tu primer envío con nosotros, date de alta aquí abajo.${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
       demasiados_intentos: `Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al ${CONTACTO.telefono} y te la asignamos.`,
       falta_cif: 'Escribe tu CIF / NIF para identificarte.',
+      falta_codigo: 'Pide el código para aceptar: te lo mandamos por email y WhatsApp.',
+      codigo_mal: `El código no es correcto.${x.quedan != null ? ` Te quedan ${x.quedan} intento${x.quedan === 1 ? '' : 's'}.` : ''}`,
+      codigo_caducado: 'El código ha caducado (dura 15 minutos). Pide otro.',
+      codigo_intentos: 'Has fallado el código demasiadas veces. Pide otro.',
       transportista_no_activo: 'Tu ficha de transportista no está activa ahora mismo. Contáctanos.',
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
       reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'El envío ya lo ha cogido otro transportista.',
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido aceptar. Vuelve a intentarlo.');
     if (x.resultado === 'transportista_no_encontrado') setNoEncontrado(true);
+    if (x.resultado === 'codigo_caducado' || x.resultado === 'codigo_intentos' || x.resultado === 'falta_codigo') { setPaso(null); setCodigo(''); }
     if (x.resultado === 'reserva_caducada' || x.resultado === 'tomada' || x.resultado === 'demasiados_intentos') refrescar();
   }
 
@@ -506,9 +540,22 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: OfertaPublica
       <div id="aceptar-accesibilidad" className="warn" style={{ display: 'block', marginBottom: '0.7rem' }}>
         <strong>{ACCESIBILIDAD_TITULO}.</strong> Al aceptar, {ACCESIBILIDAD_TEXTO.charAt(0).toLowerCase()}{ACCESIBILIDAD_TEXTO.slice(1)}
       </div>
+      {paso && !o.para_transportista && (
+        <div id="codigo-aceptar" className="codigo-aceptar">
+          <label htmlFor="f-codigo"><strong>Código para aceptar</strong> <Req /></label>
+          <p>
+            {paso.email || paso.whatsapp
+              ? <>Te hemos mandado un código de 4 cifras{paso.email ? <> al email <strong>{paso.email}</strong></> : null}{paso.email && paso.whatsapp ? ' y' : ''}{paso.whatsapp ? <> por WhatsApp al <strong>{paso.whatsapp}</strong></> : null}. Es el mismo en los dos. Caduca en 15 minutos.</>
+              : 'Escribe aquí el código de 4 cifras.'}
+          </p>
+          <input type="text" id="f-codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={4} pattern="[0-9]*" value={codigo}
+            onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="0000" />
+          <button type="button" className="btn-sec" onClick={pedirCodigo} disabled={trabajando}>Mandar otro código</button>
+        </div>
+      )}
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}
       {noEncontrado && !o.para_transportista && <button type="button" className="btn-sec" style={{ width: '100%', marginBottom: '0.6rem' }} onClick={() => setAlta(true)}>No estoy en Dynamo · darme de alta y aceptar</button>}
-      <button className="btn" onClick={aceptarla} disabled={trabajando}>{trabajando ? 'Aceptando…' : contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR envío'}</button>
+      <button className="btn" onClick={aceptarla} disabled={trabajando}>{trabajando ? 'Un momento…' : !o.para_transportista && !paso ? (contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR envío') : !o.para_transportista ? 'Confirmar código y aceptar' : contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR envío'}</button>
       <button type="button" className="btn-sec" style={{ display: 'block', margin: '0.7rem auto 0', background: 'none', border: 'none', color: 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }}
         onClick={async () => { await liberar(token); refrescar(); }}>No me interesa · dejarla libre ya</button>
       <div style={{ textAlign: 'center' }}><Dudas /></div>

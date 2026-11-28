@@ -570,3 +570,9 @@ a[x-apple-data-detectors], a[x-apple-data-detectors] * {
 .vuelta-tipos a { padding: 0.5rem 1rem; border-radius: 999px; border: 1.5px solid #3300cc; color: #3300cc; font-weight: 700; text-decoration: none; font-size: 0.95rem; }
 .vuelta-tipos a.activo { background: #3300cc; color: #ffffff; }
 .vuelta-tipos a:focus-visible { outline: 3px solid #a78bfa; outline-offset: 2px; }
+
+/* Código de 4 cifras para aceptar la carga (usuario, 2026-11-28). */
+.codigo-aceptar { margin: 0 0 0.8rem; padding: 0.9rem 1rem; border: 1.5px solid #c4b5fd; background: #f5f3ff; border-radius: 12px; }
+.codigo-aceptar p { margin: 0.35rem 0 0.6rem; font-size: 0.92rem; line-height: 1.45; color: #374151; }
+.codigo-aceptar input { display: block; width: 100%; max-width: 220px; font: 800 1.8rem/1 ui-monospace, Menlo, monospace; letter-spacing: 0.6em; text-align: center; padding: 0.6rem 0.4rem 0.6rem 1rem; border: 1.5px solid #a78bfa; border-radius: 10px; background: #fff; margin-bottom: 0.6rem; }
+.codigo-aceptar .btn-sec { width: auto; padding: 0.45rem 0.9rem; font-size: 0.9rem; }

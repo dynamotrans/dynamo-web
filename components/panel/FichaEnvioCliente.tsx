@@ -413,6 +413,18 @@ export default function FichaEnvioCliente({ e, etapas = [], cerrarHref, pendient
       )}
       {!manual && <RevisionCliente envio={e} r={e.revision} hacer={hacer} />}
       {e.pago && e.estado !== 'cancelado' && !pagoPrimero && <PagoCliente e={e} />}
+      {/* SIN CAMIÓN (usuario, 2026-11-28): pasó la fecha sin transportista. No se anula: elige
+          otra fecha o cancela sin coste; si no contesta, se cancela solo y sin coste. */}
+      {!manual && e.estado === 'programado' && e.cambio?.sin_camion_desde && (
+        <div className="pt-aviso error" id="sin-camion" style={{ marginBottom: '0.8rem' }}><div>
+          <strong>Sin camión · elige nueva fecha.</strong> No hemos encontrado camión para tu carga. Elige otra fecha de carga y seguimos buscando,
+          o cancélalo <strong>sin ningún coste</strong>.{e.cambio.sin_camion_cancela ? <> Si no eliges otra antes del <strong>{fecha(e.cambio.sin_camion_cancela)}</strong>, lo cancelaremos nosotros, también sin coste.</> : null}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
+            <a className="btn-primary" href={`/panel/nuevo-envio?editar=${e.id}`}>Elegir otra fecha</a>
+            {cancelable && <button type="button" className="btn-secondary" onClick={() => setVista('cancelar')} disabled={!!trabajando}>Cancelar sin coste</button>}
+          </div>
+        </div></div>
+      )}
       {!manual && <PedirCambio cambio={e.cambio} />}
       {!manual && ['cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro quien="cliente" incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {/* ENVÍO Y SEGUIMIENTO unificados, lo primero del acordeón — el mismo esqueleto
